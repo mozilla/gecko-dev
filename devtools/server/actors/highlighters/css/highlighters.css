@@ -449,7 +449,7 @@
   font-variant-numeric: tabular-nums;
   position: fixed;
   top: 30px;
-  right: 0px;
+  right: 0;
   font-size: 12px;
   padding: 4px;
 }
@@ -668,7 +668,7 @@
   position: absolute;
   inset-inline-start: 3px;
   inset-block-start: 3px;
-  box-shadow: 0px 0px 0px black;
+  box-shadow: 0 0 0 black;
   border: solid 1px #fff;
   forced-color-adjust: none;
 }
@@ -736,7 +736,7 @@
   mask-size: 16px 16px;
   background-color: var(--text-color);
 
-  border: 0px;
+  border: 0;
   appearance: none;
 }
 
@@ -781,7 +781,7 @@ button.paused-dbg-resume-button {
 
 .paused-dbg-reason {
   padding: 3px 16px;
-  margin: 8px 0px;
+  margin: 8px 0;
   font: var(--highlighter-font-family);
   font-size: var(--highlighter-font-size);
 }
@@ -859,7 +859,7 @@ button.paused-dbg-resume-button {
 
 
 #node-picker-notice-hide-button {
-  border: 0px;
+  border: 0;
   border-radius: 2px;
   appearance: none;
   background-color: var(--toolbar-border);

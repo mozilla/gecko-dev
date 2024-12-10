@@ -196,7 +196,7 @@ iframe {
   --autocomplete-item-color-swatch-margin-inline: 5px;
   appearance: none !important;
   background-color: transparent;
-  border-width: 0px !important;
+  border-width: 0 !important;
   margin: 0;
   padding: 0;
   overflow-x: hidden;

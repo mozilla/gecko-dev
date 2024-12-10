@@ -55,7 +55,7 @@
 .expressions-list {
   /* TODO: add normalize */
   margin: 0;
-  padding: 4px 0px;
+  padding: 4px 0;
   overflow-x: auto;
 }
 
@@ -91,7 +91,7 @@
 }
 
 .expression-container .tree .tree-node[aria-level="1"] {
-  padding-top: 0px;
+  padding-top: 0;
   /* keep line-height at 14px to prevent row from shifting upon expansion */
   line-height: 14px;
 }
@@ -125,7 +125,7 @@
 }
 
 .expression-content .object-node {
-  padding-inline-start: 0px;
+  padding-inline-start: 0;
   cursor: default;
 }
 
@@ -163,7 +163,7 @@
 }
 
 .expression-content .tree-node[data-expandable="false"][aria-level="1"] {
-  padding-inline-start: 0px;
+  padding-inline-start: 0;
 }
 
 .input-expression:not(:placeholder-shown) {

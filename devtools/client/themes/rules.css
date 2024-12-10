@@ -704,7 +704,7 @@
    */
   background-color: var(--inspector-highlight-background-color);
   /* Put the box-shadow inside the element so it's still visible when sibling elements are highlighted  */
-  box-shadow: inset 0px -1px 0px 0px var(--theme-contrast-border);
+  box-shadow: inset 0 -1px 0 0 var(--theme-contrast-border);
 
 
   /* property name and value and unmatched/inactive colors need to be adjusted

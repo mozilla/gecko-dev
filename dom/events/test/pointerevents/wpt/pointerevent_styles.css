@@ -27,7 +27,7 @@ background: red;
 height: 20px;
 width: 20px;
 position: absolute;
-padding: 0px;
+padding: 0;
 }
 
 #target0 {
@@ -82,7 +82,7 @@ color: white;
 }
 
 div {
-margin: 0em;
+margin: 0;
 padding: 2em;
 }
 

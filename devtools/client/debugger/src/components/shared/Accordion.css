@@ -6,8 +6,8 @@
   background-color: var(--theme-sidebar-background);
   width: 100%;
   list-style-type: none;
-  padding: 0px;
-  margin-top: 0px;
+  padding: 0;
+  margin-top: 0;
 }
 
 .accordion ._header {
@@ -21,7 +21,7 @@
   padding: 4px 6px;
   width: 100%;
   align-items: center;
-  margin: 0px;
+  margin: 0;
   font-weight: normal;
   cursor: default;
   user-select: none;

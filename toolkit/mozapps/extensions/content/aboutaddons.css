@@ -258,7 +258,7 @@ addon-card[expanded] .update-postponed-bar {
 addon-card[expanded] .update-postponed-bar + .addon-card-message {
   /* Remove margin between the two message bars when they are both
    * visible in the detail view */
-  margin-top: 0px;
+  margin-top: 0;
 }
 
 .update-postponed-bar + .addon-card-message:not([hidden]) {

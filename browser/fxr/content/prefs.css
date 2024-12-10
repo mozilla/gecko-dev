@@ -61,7 +61,7 @@ body {
 .button_report_issue {
   height: 50px;
   width: 110px;
-  margin: 20px 0px 70px 10px;
+  margin: 20px 0 70px 10px;
 
   font-size: 10px;
   text-align: start;
@@ -128,7 +128,7 @@ body {
 
 .setting_control {
   min-width: 120px;
-  margin: 5px 0px;
+  margin: 5px 0;
 }
 
 button.setting_control {

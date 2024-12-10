@@ -27,13 +27,13 @@
 
 .bracket-arrow.up::after {
   border-bottom-color: var(--theme-body-background);
-  top: 0px;
+  top: 0;
 }
 
 .bracket-arrow.down::before {
   border-bottom-color: transparent;
   border-top-color: var(--theme-splitter-color);
-  top: 0px;
+  top: 0;
 }
 
 .theme-dark .bracket-arrow.down::before {
@@ -49,7 +49,7 @@
 .bracket-arrow.left::before {
   border-left-color: transparent;
   border-right-color: var(--theme-splitter-color);
-  top: 0px;
+  top: 0;
 }
 
 .theme-dark .bracket-arrow.left::before {
@@ -59,6 +59,6 @@
 .bracket-arrow.left::after {
   border-left-color: transparent;
   border-right-color: var(--theme-body-background);
-  top: 0px;
+  top: 0;
   left: 1px;
 }

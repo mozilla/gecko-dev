@@ -13,8 +13,8 @@ body, html {
 body{
     padding-left: 24px;
     padding-right: 24px;
-    margin-left: 0px;
-    margin-right: 0px;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 a {

@@ -153,7 +153,7 @@ a[\_moz_anonclass="mozTableAddColumnBefore"] {
   position: absolute;
   z-index: 2147483647; /* max value for this property */
   text-decoration: none !important;
-  border: none 0px !important;
+  border: none 0 !important;
   width: 4px;
   height: 8px;
   background-image: url("resource://gre/res/table-add-column-before.gif");
@@ -174,7 +174,7 @@ a[\_moz_anonclass="mozTableAddColumnAfter"] {
   position: absolute;
   z-index: 2147483647; /* max value for this property */
   text-decoration: none !important;
-  border: none 0px !important;
+  border: none 0 !important;
   width: 4px;
   height: 8px;
   background-image: url("resource://gre/res/table-add-column-after.gif");
@@ -195,7 +195,7 @@ a[\_moz_anonclass="mozTableRemoveColumn"] {
   position: absolute;
   z-index: 2147483647; /* max value for this property */
   text-decoration: none !important;
-  border: none 0px !important;
+  border: none 0 !important;
   width: 8px;
   height: 8px;
   background-image: url("resource://gre/res/table-remove-column.gif");
@@ -216,7 +216,7 @@ a[\_moz_anonclass="mozTableAddRowBefore"] {
   position: absolute;
   z-index: 2147483647; /* max value for this property */
   text-decoration: none !important;
-  border: none 0px !important;
+  border: none 0 !important;
   width: 8px;
   height: 4px;
   background-image: url("resource://gre/res/table-add-row-before.gif");
@@ -237,7 +237,7 @@ a[\_moz_anonclass="mozTableAddRowAfter"] {
   position: absolute;
   z-index: 2147483647; /* max value for this property */
   text-decoration: none !important;
-  border: none 0px !important;
+  border: none 0 !important;
   width: 8px;
   height: 4px;
   background-image: url("resource://gre/res/table-add-row-after.gif");
@@ -258,7 +258,7 @@ a[\_moz_anonclass="mozTableRemoveRow"] {
   position: absolute;
   z-index: 2147483647; /* max value for this property */
   text-decoration: none !important;
-  border: none 0px !important;
+  border: none 0 !important;
   width: 8px;
   height: 8px;
   background-image: url("resource://gre/res/table-remove-row.gif");

@@ -60,7 +60,7 @@ html[dir="rtl"] .scopes-content .object-node {
 }
 
 .scopes-list {
-  padding: 4px 0px;
+  padding: 4px 0;
 }
 
 .scopes-list .function-signature {

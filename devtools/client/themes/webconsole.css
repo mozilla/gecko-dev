@@ -312,7 +312,7 @@
 
 .message > .message-body-wrapper {
   flex: auto;
-  min-width: 0px;
+  min-width: 0;
   margin: var(--console-output-vertical-padding) 0;
 }
 
@@ -705,7 +705,7 @@ a.learn-more-link.webconsole-learn-more-link {
     /* Don't stretch so there is room around the input to show the borders
        and the focus indicator */
     align-self: unset;
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 

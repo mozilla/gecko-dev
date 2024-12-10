@@ -126,8 +126,8 @@ li.error > .stylesheet-info > .stylesheet-more  > .stylesheet-error-message {
 
 .stylesheet-saveButton {
   display: none;
-  margin-top: 0px;
-  margin-bottom: 0px;
+  margin-top: 0;
+  margin-bottom: 0;
   text-decoration: underline;
   cursor: pointer;
 }

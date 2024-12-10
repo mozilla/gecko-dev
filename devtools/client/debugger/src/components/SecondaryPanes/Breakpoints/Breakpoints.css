@@ -76,8 +76,8 @@
 
 .breakpoints-options input {
   padding-inline-start: 2px;
-  margin-top: 0px;
-  margin-bottom: 0px;
+  margin-top: 0;
+  margin-bottom: 0;
   margin-inline-start: 0;
   margin-inline-end: 2px;
   vertical-align: text-bottom;
@@ -152,9 +152,9 @@ html .breakpoints-list .breakpoint.paused {
 }
 
 .breakpoint-checkbox {
-  margin-inline-start: 0px;
-  margin-top: 0px;
-  margin-bottom: 0px;
+  margin-inline-start: 0;
+  margin-top: 0;
+  margin-bottom: 0;
   vertical-align: text-bottom;
 }
 

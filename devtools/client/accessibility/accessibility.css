@@ -206,7 +206,7 @@ body {
   width: 14px;
   height: 14px;
   background-size: contain;
-  margin: 0px 1px;
+  margin: 0 1px;
   vertical-align: text-bottom;
 }
 
@@ -426,7 +426,7 @@ body {
   font: message-box;
   font-size: var(--theme-body-font-size);
   border-radius: 3px;
-  padding: 0px 3px;
+  padding: 0 3px;
   margin-inline-start: 5px;
   color: var(--badge-color);
   background-color: var(--badge-background-color);
@@ -437,7 +437,7 @@ body {
 .badge.audit-badge::before {
   content: "";
   display: inline-block;
-  vertical-align: 0px;
+  vertical-align: 0;
   width: 9px;
   height: 9px;
   margin-inline-end: 2px;
@@ -613,7 +613,7 @@ body {
   color: var(--badge-color);
   border: 1px solid var(--badge-border-color);
   border-radius: 3px;
-  padding: 0px 2px;
+  padding: 0 2px;
   margin-inline-start: 5px;
   user-select: none;
 }
@@ -792,7 +792,7 @@ body {
   width: 12px;
   height: 12px;
   margin-inline-end: 3px;
-  margin-inline-start: 0px;
+  margin-inline-start: 0;
   background: url("chrome://devtools/skin/images/eye.svg") no-repeat;
   -moz-context-properties: fill, stroke;
   fill: var(--theme-icon-color);

@@ -29,7 +29,7 @@ a:hover {
 	font-size: 300%;
 	font-weight: lighter;
 	padding: .2ex;
-	padding-bottom: 0ex;
+	padding-bottom: 0;
 	margin-bottom: .5ex;
 	border-bottom: 10px solid #FF9500;
 }

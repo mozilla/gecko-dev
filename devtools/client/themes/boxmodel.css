@@ -176,7 +176,7 @@
 }
 
 .boxmodel-margin.boxmodel-top {
-  top: 0px;
+  top: 0;
 }
 
 .boxmodel-margin.boxmodel-bottom {
@@ -332,7 +332,7 @@
   padding-left: 4px;
   padding-right: 4px;
   border-radius: 3px;
-  margin: 0px 0px;
+  margin: 0 0;
 }
 
 /* Editable fields */

@@ -15,8 +15,8 @@
 }
 
 #pacman {
-  width: 0px;
-  height: 0px;
+  width: 0;
+  height: 0;
   border-right: 60px solid transparent;
   border-top: 60px solid #FFCB01;
   border-left: 60px solid #FFCB01;

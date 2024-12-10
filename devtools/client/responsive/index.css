@@ -322,14 +322,14 @@ body,
   }
   100% {
     opacity: 1;
-    transform: translateY(0px);
+    transform: translateY(0);
   }
 }
 
 @keyframes fade-down-and-out {
   0% {
     opacity: 1;
-    transform: translateY(0px);
+    transform: translateY(0);
   }
   100% {
     opacity: 0;
@@ -537,7 +537,7 @@ body,
 
 .device-modal-title {
   font-size: 22px;
-  margin: 30px 0 0px 30px;
+  margin: 30px 0 0 30px;
 }
 
 .device-browser {

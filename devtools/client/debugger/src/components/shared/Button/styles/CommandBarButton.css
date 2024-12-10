@@ -9,7 +9,7 @@
   display: inline-block;
   text-align: center;
   position: relative;
-  padding: 0px 5px;
+  padding: 0 5px;
   fill: currentColor;
   min-width: 30px;
   /* Adjust outline so it's not clipped */

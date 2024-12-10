@@ -39,7 +39,7 @@
 }
 
 .pie-chart-container[slices="1"] > .pie-chart-slice {
-  stroke-width: 0px;
+  stroke-width: 0;
 }
 
 .pie-chart-slice,
@@ -110,6 +110,6 @@
 
 .table-chart-summary-label {
   font-weight: 600;
-  padding: 1px 0px;
+  padding: 1px 0;
   color: light-dark(var(--theme-body-color), var(--theme-text-color-strong));
 }

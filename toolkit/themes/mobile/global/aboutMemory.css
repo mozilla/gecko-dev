@@ -32,7 +32,7 @@ div.ancillary {
 
 div.section {
   padding: 2em;
-  margin: 1em 0em;
+  margin: 1em 0;
   border: 1px solid ThreeDShadow;
   border-radius: 10px;
   background: Field;
@@ -60,7 +60,7 @@ div.sidebarContents {
 
 div.sidebarItem {
   padding: 0.5em;
-  margin: 1em 0em;
+  margin: 1em 0;
   border: 1px solid ThreeDShadow;
   border-radius: 10px;
   background: Field;

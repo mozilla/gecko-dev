@@ -14,7 +14,7 @@
     transform: rotate(360deg) translateX(3px) rotate(-360deg);
   }
   to {
-    transform: rotate(720deg) translateX(0px) rotate(-720deg);
+    transform: rotate(720deg) translateX(0) rotate(-720deg);
   }
 }
 

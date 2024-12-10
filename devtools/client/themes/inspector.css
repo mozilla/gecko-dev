@@ -118,8 +118,8 @@ window {
 }
 
 #inspector-breadcrumbs-toolbar {
-  padding: 0px;
-  border-bottom-width: 0px;
+  padding: 0;
+  border-bottom-width: 0;
   border-top-width: 1px;
   border-top-color: var(--theme-splitter-color);
   /* Bug 1262668 - Use the same background as the body so the breadcrumbs toolbar doesn't

@@ -560,7 +560,7 @@ search-textbox {
    instead of the placeholder child that should actually be inside the popupset.
    This is a stopgap measure, and it does not address the real bug.  */
 .autocomplete-result-popupset {
-  max-width: 0px;
+  max-width: 0;
   width: 0 !important;
   min-width: 0%;
   min-height: 0%;

@@ -16,7 +16,7 @@
   height: -moz-fit-content;
   position: absolute;
   padding: 7px 5px;
-  margin: 0px;
+  margin: 0;
   top: 8px;
   inset-inline-start: 8px;
 }
@@ -169,7 +169,7 @@ path[data-statistic-name] {
 
 .offscreen{
     position: absolute!important;
-    font-size: 0px;
+    font-size: 0;
     overflow: hidden;
     clip: rect(1px,1px,1px,1px);
     clip-path: polygon(0 0,0 0,0 0,0 0);

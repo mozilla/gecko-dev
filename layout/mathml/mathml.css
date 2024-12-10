@@ -144,16 +144,16 @@ mtd {
 }
 /* turn off the spacing at the periphery of boundary cells */
 mtr:first-child > mtd {
-  padding-top: 0ex;
+  padding-top: 0;
 }
 mtr:last-child > mtd {
-  padding-bottom: 0ex;
+  padding-bottom: 0;
 }
 mtd:first-child {
-  padding-inline-start: 0em;
+  padding-inline-start: 0;
 }
 mtd:last-child {
-  padding-inline-end: 0em;
+  padding-inline-end: 0;
 }
 /* re-instate the spacing if the table has a surrounding frame */
 mtable[frame="solid"] > mtr:first-child > mtd,
@@ -177,7 +177,7 @@ mtable[rowspacing] > mtr > mtd,
 mtable[columnspacing] > mtr > mtd,
 mtable[framespacing] > mtr > mtd {
   /* Spacing handled outside of CSS */
-  padding: 0px;
+  padding: 0;
 }
 
 /**********************************************************************/

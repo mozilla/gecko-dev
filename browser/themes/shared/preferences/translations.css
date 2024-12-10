@@ -60,7 +60,7 @@
   padding: var(--space-small) 0;
   border-top: 1px solid var(--in-content-border-color);
   label {
-    margin: 0px calc( 2 * var(--space-small));
+    margin: 0 calc( 2 * var(--space-small));
   }
 }
 .translations-settings-language-error {

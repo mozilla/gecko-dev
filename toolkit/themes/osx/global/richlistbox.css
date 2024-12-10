@@ -35,7 +35,7 @@ richlistbox.theme-listbox:not(:focus) > richlistitem[selected="true"] {
 }
 
 richlistbox.theme-listbox > richlistitem > label {
-  margin: 0px;
+  margin: 0;
   padding-bottom: 1px;
   padding-inline-start: 4px;
   white-space: nowrap;

@@ -24,8 +24,8 @@
 
 .shortcuts-list {
   list-style: none;
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
   overflow: auto;
   width: calc(100% - 1px); /* 1px fixes the hidden right border */
 }

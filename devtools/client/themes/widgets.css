@@ -541,7 +541,7 @@
 /* Tree Item */
 
 .tree-widget-container .tree-widget-item {
-  padding: 4px 0px;
+  padding: 4px 0;
   /* OSX has line-height 14px by default, which causes weird alignment issues
    * because of 20px high icons. thus making line-height consistent with that of
    * windows.

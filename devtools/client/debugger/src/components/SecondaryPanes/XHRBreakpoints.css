@@ -91,7 +91,7 @@
   flex-grow: 1;
   text-overflow: ellipsis;
   overflow: hidden;
-  padding: 0px 2px 0px 2px;
+  padding: 0 2px 0 2px;
   line-height: 14px;
 }
 

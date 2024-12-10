@@ -30,7 +30,7 @@ Toolbar {
   display: block;
   border: ridge #ddddff 4px;
   width: 220px;
-  margin-right: 0px;
+  margin-right: 0;
   text-align: center;
 }
 

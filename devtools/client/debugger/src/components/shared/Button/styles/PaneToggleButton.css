@@ -11,12 +11,12 @@
 }
 
 .toggle-button.end {
-  margin-inline-end: 0px;
+  margin-inline-end: 0;
   margin-inline-start: auto;
 }
 
 .toggle-button.start {
-  margin-inline-start: 0px;
+  margin-inline-start: 0;
 }
 
 html[dir="rtl"] .toggle-button.start .img,

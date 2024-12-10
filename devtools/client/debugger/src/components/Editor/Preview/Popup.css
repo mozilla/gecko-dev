@@ -112,7 +112,7 @@
 }
 
 .popover .preview-popup .object-node {
-  padding-inline-start: 0px;
+  padding-inline-start: 0;
 }
 
 .preview-token:hover {
@@ -151,7 +151,7 @@
 
 .tooltip .gap {
   height: 4px;
-  padding-top: 0px;
+  padding-top: 0;
 }
 
 /* Exception popup */

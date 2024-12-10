@@ -53,7 +53,7 @@
   border: none;
   outline: 1px solid var(--badge-border-color);
   border-radius: 5px;
-  padding: 0px 4px;
+  padding: 0 4px;
   margin-inline-start: 5px;
   user-select: none;
   background-color: var(--badge-background-color);

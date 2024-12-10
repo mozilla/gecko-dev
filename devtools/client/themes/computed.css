@@ -89,7 +89,7 @@
 }
 
 .computed-property-view {
-  padding: 2px 0px;
+  padding: 2px 0;
   padding-inline-start: 5px;
   display: flex;
   flex-wrap: wrap;

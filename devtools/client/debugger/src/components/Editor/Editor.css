@@ -88,7 +88,7 @@ html[dir="rtl"] .editor-mount {
   background-color: var(--debug-expression-background);
   border-style: solid;
   border-color: var(--debug-expression-background);
-  border-width: 1px 0px 1px 0px;
+  border-width: 1px 0 1px 0;
   position: relative;
 }
 
@@ -99,7 +99,7 @@ html[dir="rtl"] .editor-mount {
   background: transparent;
   position: absolute;
   top: -2px;
-  left: 0px;
+  left: 0;
   width: 100%;
  }
 
@@ -109,7 +109,7 @@ html[dir="rtl"] .editor-mount {
   border-bottom: 1px solid var(--blue-50);
   position: absolute;
   bottom: -2px;
-  left: 0px;
+  left: 0;
   width: 100%;
  }
 

@@ -30,7 +30,7 @@ div.ancillary {
 
 div.section {
   padding: 2em;
-  margin: 1em 0em;
+  margin: 1em 0;
   border: 1px solid var(--in-content-border-color);
   border-radius: var(--border-radius-small);
   background: var(--background-color-box);
@@ -57,7 +57,7 @@ div.sidebarContents {
 
 div.sidebarItem {
   padding: 0.5em;
-  margin: 1em 0em;
+  margin: 1em 0;
   border: 1px solid var(--in-content-border-color);
   border-radius: var(--border-radius-small);
   background: var(--background-color-box);

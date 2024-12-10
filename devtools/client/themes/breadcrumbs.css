@@ -67,13 +67,13 @@
 .scrollbutton-up {
   border-right: solid 1px var(--theme-splitter-color);
   border-left: solid 1px transparent;
-  box-shadow: 3px 0px 3px -3px var(--theme-sidebar-background);
+  box-shadow: 3px 0 3px -3px var(--theme-sidebar-background);
 }
 
 .scrollbutton-down {
   border-right: solid 1px transparent;
   border-left: solid 1px var(--theme-splitter-color);
-  box-shadow: -3px 0px 3px -3px var(--theme-sidebar-background);
+  box-shadow: -3px 0 3px -3px var(--theme-sidebar-background);
 }
 
 .scrollbutton-up[disabled],

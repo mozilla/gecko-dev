@@ -42,7 +42,7 @@ body {
 select.about-translations-select {
   position: relative;
   padding-inline: 10px 20px;
-  padding-block: 0px;
+  padding-block: 0;
   min-width: 50%;
   width: max-content;
   margin: 5px;
