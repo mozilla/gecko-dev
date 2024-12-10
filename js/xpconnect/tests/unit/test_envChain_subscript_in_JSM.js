@@ -50,7 +50,7 @@ add_task(async function() {
   Assert.equal(env.prop, false);
 
   env = envs[i]; i++;
-  Assert.equal(env.type, "*BackstagePass*");
+  Assert.equal(env.type, "*SystemGlobal*");
   Assert.equal(env.qualified, false);
   Assert.equal(env.unqualified, false);
   Assert.equal(env.lexical, false);

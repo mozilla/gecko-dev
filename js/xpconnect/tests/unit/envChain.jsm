@@ -8,7 +8,7 @@ const envs = [];
 let env = funcs.getInnerMostEnvironmentObject();
 while (env) {
   envs.push({
-    type: funcs.getEnvironmentObjectType(env) || "*BackstagePass*",
+    type: funcs.getEnvironmentObjectType(env) || "*SystemGlobal*",
     qualified: !!Object.getOwnPropertyDescriptor(env, "qualified"),
     prop: !!Object.getOwnPropertyDescriptor(env, "prop"),
     lexical: !!Object.getOwnPropertyDescriptor(env, "lexical"),

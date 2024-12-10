@@ -15,7 +15,7 @@ const { FXA_PWDMGR_HOST, FXA_PWDMGR_REALM } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccountsCommon.sys.mjs"
 );
 
-// Use a backstage pass to get at our LoginManagerStorage object, so we can
+// Use the system global to get at our LoginManagerStorage object, so we can
 // mock the prototype.
 var { LoginManagerStorage } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccountsStorage.sys.mjs"

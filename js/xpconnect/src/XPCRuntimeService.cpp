@@ -8,7 +8,7 @@
 #include "xpc_make_class.h"
 
 #include "nsContentUtils.h"
-#include "BackstagePass.h"
+#include "SystemGlobal.h"
 #include "mozilla/Result.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/WebIDLGlobalNameHash.h"
@@ -18,11 +18,10 @@
 
 using namespace mozilla::dom;
 
-NS_IMPL_ISUPPORTS(BackstagePass, nsIXPCScriptable, nsIGlobalObject,
-                  nsIClassInfo, nsIScriptObjectPrincipal,
-                  nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS(SystemGlobal, nsIXPCScriptable, nsIGlobalObject, nsIClassInfo,
+                  nsIScriptObjectPrincipal, nsISupportsWeakReference)
 
-BackstagePass::BackstagePass()
+SystemGlobal::SystemGlobal()
     : mAgentClusterId(nsID::GenerateUUID()),
       mPrincipal(nsContentUtils::GetSystemPrincipal()),
       mWrapper(nullptr){}
@@ -31,8 +30,8 @@ BackstagePass::BackstagePass()
 // kill nsIXPCScriptable alltogether, so we don't use it here.
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME BackstagePass
-#define XPC_MAP_QUOTED_CLASSNAME "BackstagePass"
+#define XPC_MAP_CLASSNAME SystemGlobal
+#define XPC_MAP_QUOTED_CLASSNAME "SystemGlobal"
 #define XPC_MAP_FLAGS                                               \
   (XPC_SCRIPTABLE_WANT_RESOLVE | XPC_SCRIPTABLE_WANT_NEWENUMERATE | \
    XPC_SCRIPTABLE_WANT_FINALIZE | XPC_SCRIPTABLE_WANT_PRECREATE |   \
@@ -44,30 +43,30 @@ BackstagePass::BackstagePass()
 #include "xpc_map_end.h" /* This will #undef the above */
 
           JSObject
-          * BackstagePass::GetGlobalJSObject() {
+          * SystemGlobal::GetGlobalJSObject() {
   if (mWrapper) {
     return mWrapper->GetFlatJSObject();
   }
   return nullptr;
 }
 
-JSObject* BackstagePass::GetGlobalJSObjectPreserveColor() const {
+JSObject* SystemGlobal::GetGlobalJSObjectPreserveColor() const {
   if (mWrapper) {
     return mWrapper->GetFlatJSObjectPreserveColor();
   }
   return nullptr;
 }
 
-void BackstagePass::SetGlobalObject(JSObject* global) {
+void SystemGlobal::SetGlobalObject(JSObject* global) {
   nsISupports* p = XPCWrappedNative::Get(global);
   MOZ_ASSERT(p);
   mWrapper = static_cast<XPCWrappedNative*>(p);
 }
 
 NS_IMETHODIMP
-BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
-                       JSObject* objArg, jsid idArg, bool* resolvedp,
-                       bool* _retval) {
+SystemGlobal::Resolve(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
+                      JSObject* objArg, jsid idArg, bool* resolvedp,
+                      bool* _retval) {
   JS::RootedObject obj(cx, objArg);
   JS::RootedId id(cx, idArg);
   *_retval =
@@ -117,10 +116,10 @@ BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
 }
 
 NS_IMETHODIMP
-BackstagePass::NewEnumerate(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
-                            JSObject* objArg,
-                            JS::MutableHandleIdVector properties,
-                            bool enumerableOnly, bool* _retval) {
+SystemGlobal::NewEnumerate(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
+                           JSObject* objArg,
+                           JS::MutableHandleIdVector properties,
+                           bool enumerableOnly, bool* _retval) {
   JS::RootedObject obj(cx, objArg);
 
   XPCJSContext* xpccx = XPCJSContext::Get();
@@ -140,60 +139,60 @@ BackstagePass::NewEnumerate(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
 
 /***************************************************************************/
 NS_IMETHODIMP
-BackstagePass::GetInterfaces(nsTArray<nsIID>& aArray) {
+SystemGlobal::GetInterfaces(nsTArray<nsIID>& aArray) {
   aArray = nsTArray<nsIID>{NS_GET_IID(nsIXPCScriptable),
                            NS_GET_IID(nsIScriptObjectPrincipal)};
   return NS_OK;
 }
 
 NS_IMETHODIMP
-BackstagePass::GetScriptableHelper(nsIXPCScriptable** retval) {
+SystemGlobal::GetScriptableHelper(nsIXPCScriptable** retval) {
   nsCOMPtr<nsIXPCScriptable> scriptable = this;
   scriptable.forget(retval);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-BackstagePass::GetContractID(nsACString& aContractID) {
+SystemGlobal::GetContractID(nsACString& aContractID) {
   aContractID.SetIsVoid(true);
   return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP
-BackstagePass::GetClassDescription(nsACString& aClassDescription) {
-  aClassDescription.AssignLiteral("BackstagePass");
+SystemGlobal::GetClassDescription(nsACString& aClassDescription) {
+  aClassDescription.AssignLiteral("SystemGlobal");
   return NS_OK;
 }
 
 NS_IMETHODIMP
-BackstagePass::GetClassID(nsCID** aClassID) {
+SystemGlobal::GetClassID(nsCID** aClassID) {
   *aClassID = nullptr;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-BackstagePass::GetFlags(uint32_t* aFlags) {
+SystemGlobal::GetFlags(uint32_t* aFlags) {
   *aFlags = 0;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-BackstagePass::GetClassIDNoAlloc(nsCID* aClassIDNoAlloc) {
+SystemGlobal::GetClassIDNoAlloc(nsCID* aClassIDNoAlloc) {
   return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP
-BackstagePass::Finalize(nsIXPConnectWrappedNative* wrapper, JS::GCContext* gcx,
-                        JSObject* obj) {
+SystemGlobal::Finalize(nsIXPConnectWrappedNative* wrapper, JS::GCContext* gcx,
+                       JSObject* obj) {
   nsCOMPtr<nsIGlobalObject> bsp(do_QueryInterface(wrapper->Native()));
   MOZ_ASSERT(bsp);
-  static_cast<BackstagePass*>(bsp.get())->ForgetGlobalObject();
+  static_cast<SystemGlobal*>(bsp.get())->ForgetGlobalObject();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-BackstagePass::PreCreate(nsISupports* nativeObj, JSContext* cx,
-                         JSObject* globalObj, JSObject** parentObj) {
+SystemGlobal::PreCreate(nsISupports* nativeObj, JSContext* cx,
+                        JSObject* globalObj, JSObject** parentObj) {
   // We do the same trick here as for WindowSH. Return the js global
   // as parent, so XPConenct can find the right scope and the wrapper
   // that already exists.
@@ -208,7 +207,7 @@ BackstagePass::PreCreate(nsISupports* nativeObj, JSContext* cx,
 }
 
 mozilla::Result<mozilla::ipc::PrincipalInfo, nsresult>
-BackstagePass::GetStorageKey() {
+SystemGlobal::GetStorageKey() {
   MOZ_ASSERT(NS_IsMainThread());
 
   mozilla::ipc::PrincipalInfo principalInfo;

@@ -481,7 +481,7 @@ JS_PUBLIC_API bool JS::ExecuteInJSMEnvironment(
   // them to the environment. These are added after the NSVO environment.
   if (!targetObj.empty()) {
     // The environment chain will be as follows:
-    //      GlobalObject / BackstagePass
+    //      GlobalObject / SystemGlobal
     //      GlobalLexicalEnvironmentObject[this=global]
     //      NonSyntacticVariablesObject (the JSMEnvironment)
     //      NonSyntacticLexicalEnvironmentObject[this=nsvo]

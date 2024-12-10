@@ -34,7 +34,7 @@
 
 #include "nsJSUtils.h"
 
-#include "BackstagePass.h"
+#include "SystemGlobal.h"
 
 #include "TestShellChild.h"
 
@@ -383,7 +383,7 @@ bool XPCShellEnvironment::Init() {
             "principals");
   }
 
-  auto backstagePass = MakeRefPtr<BackstagePass>();
+  auto systemGlobal = MakeRefPtr<SystemGlobal>();
 
   JS::RealmOptions options;
   options.creationOptions().setNewCompartmentInSystemZone();
@@ -391,7 +391,7 @@ bool XPCShellEnvironment::Init() {
 
   JS::Rooted<JSObject*> globalObj(cx);
   rv = xpc::InitClassesWithNewWrappedGlobal(
-      cx, static_cast<nsIGlobalObject*>(backstagePass), principal, 0, options,
+      cx, static_cast<nsIGlobalObject*>(systemGlobal), principal, 0, options,
       &globalObj);
   if (NS_FAILED(rv)) {
     NS_ERROR("InitClassesWithNewWrappedGlobal failed!");
@@ -404,7 +404,7 @@ bool XPCShellEnvironment::Init() {
   }
   JSAutoRealm ar(cx, globalObj);
 
-  backstagePass->SetGlobalObject(globalObj);
+  systemGlobal->SetGlobalObject(globalObj);
 
   JS::Rooted<Value> privateVal(cx, PrivateValue(this));
   if (!JS_DefineProperty(cx, globalObj, "__XPCShellEnvironment", privateVal,

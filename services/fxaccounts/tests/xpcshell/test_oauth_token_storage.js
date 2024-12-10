@@ -10,7 +10,7 @@ const { FxAccountsClient } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccountsClient.sys.mjs"
 );
 
-// We grab some additional stuff via backstage passes.
+// We grab some additional stuff via the system global.
 var { AccountState } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccounts.sys.mjs"
 );

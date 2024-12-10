@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef BackstagePass_h__
-#define BackstagePass_h__
+#ifndef SystemGlobal_h__
+#define SystemGlobal_h__
 
 #include "js/loader/ModuleLoaderBase.h"
 #include "mozilla/BasePrincipal.h"
@@ -21,13 +21,15 @@
 
 class XPCWrappedNative;
 
-class BackstagePass final : public nsIGlobalObject,
-                            public nsIScriptObjectPrincipal,
-                            public nsIXPCScriptable,
-                            public nsIClassInfo,
-                            public nsSupportsWeakReference {
+// The shared system global (used by ChromeUtils.importESModule), and also
+// the xpcshell's global.
+class SystemGlobal final : public nsIGlobalObject,
+                           public nsIScriptObjectPrincipal,
+                           public nsIXPCScriptable,
+                           public nsIClassInfo,
+                           public nsSupportsWeakReference {
  public:
-  BackstagePass();
+  SystemGlobal();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIXPCSCRIPTABLE
@@ -83,13 +85,13 @@ class BackstagePass final : public nsIGlobalObject,
   bool IsSharedMemoryAllowed() const override { return true; }
 
   bool ShouldResistFingerprinting(RFPTarget aTarget) const override {
-    // BackstagePass is always the System Principal
+    // SystemGlobal is always the System Principal
     MOZ_RELEASE_ASSERT(mPrincipal->IsSystemPrincipal());
     return false;
   }
 
  private:
-  virtual ~BackstagePass() = default;
+  virtual ~SystemGlobal() = default;
 
   const nsID mAgentClusterId;
   nsCOMPtr<nsIPrincipal> mPrincipal;
@@ -98,4 +100,4 @@ class BackstagePass final : public nsIGlobalObject,
   RefPtr<JS::loader::ModuleLoaderBase> mModuleLoader;
 };
 
-#endif  // BackstagePass_h__
+#endif  // SystemGlobal_h__

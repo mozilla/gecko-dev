@@ -43,7 +43,7 @@ const envs = [];
 let env = funcs.getInnerMostEnvironmentObject();
 while (env) {
   envs.push({
-    type: funcs.getEnvironmentObjectType(env) || "*BackstagePass*",
+    type: funcs.getEnvironmentObjectType(env) || "*SystemGlobal*",
     qualified: !!Object.getOwnPropertyDescriptor(env, "unique_qualified"),
     unqualified: !!Object.getOwnPropertyDescriptor(env, "unique_unqualified"),
     lexical: !!Object.getOwnPropertyDescriptor(env, "unique_lexical"),
@@ -101,7 +101,7 @@ sendSyncMessage("unique-share-result", {
   Assert.equal(env.prop, false);
 
   env = envs[i]; i++;
-  Assert.equal(env.type, "*BackstagePass*");
+  Assert.equal(env.type, "*SystemGlobal*");
   Assert.equal(env.qualified, false);
   Assert.equal(env.unqualified, false);
   Assert.equal(env.lexical, false);
@@ -145,7 +145,7 @@ const envs = [];
 let env = funcs.getInnerMostEnvironmentObject();
 while (env) {
   envs.push({
-    type: funcs.getEnvironmentObjectType(env) || "*BackstagePass*",
+    type: funcs.getEnvironmentObjectType(env) || "*SystemGlobal*",
     qualified: !!Object.getOwnPropertyDescriptor(env, "non_unique_qualified"),
     unqualified: !!Object.getOwnPropertyDescriptor(env, "non_unique_unqualified"),
     lexical: !!Object.getOwnPropertyDescriptor(env, "non_unique_lexical"),
@@ -196,9 +196,9 @@ sendSyncMessage("non-unique-share-result", {
   Assert.equal(env.prop, false);
 
   env = envs[i]; i++;
-  Assert.equal(env.type, "*BackstagePass*");
+  Assert.equal(env.type, "*SystemGlobal*");
   Assert.equal(env.qualified, false);
-  Assert.equal(env.unqualified, true, "unqualified name must live in the backstage pass");
+  Assert.equal(env.unqualified, true, "unqualified name must live in the system global");
   Assert.equal(env.lexical, false);
   Assert.equal(env.prop, false);
 

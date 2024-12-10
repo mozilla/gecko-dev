@@ -26,7 +26,7 @@
  */
 
 // We expose a singleton from this module. Some tests may import the
-// constructor via a backstage pass.
+// constructor via the system global.
 import { FormAutofill } from "resource://autofill/FormAutofill.sys.mjs";
 import { FormAutofillUtils } from "resource://gre/modules/shared/FormAutofillUtils.sys.mjs";
 

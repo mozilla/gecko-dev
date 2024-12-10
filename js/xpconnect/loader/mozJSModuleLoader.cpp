@@ -204,7 +204,7 @@ static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   MOZ_LOG(nsContentUtils::DOMDumpLog(), mozilla::LogLevel::Debug,
-          ("[Backstage.Dump] %s", utf8str.get()));
+          ("[SystemGlobal.Dump] %s", utf8str.get()));
 #ifdef ANDROID
   __android_log_print(ANDROID_LOG_INFO, "Gecko", "%s", utf8str.get());
 #endif
@@ -635,7 +635,7 @@ mozJSModuleLoader::CollectReports(nsIHandleReportCallback* aHandleReport,
 void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
                                            const nsACString& aLocation,
                                            MutableHandleObject aGlobal) {
-  auto backstagePass = MakeRefPtr<BackstagePass>();
+  auto systemGlobal = MakeRefPtr<SystemGlobal>();
   RealmOptions options;
   auto& creationOptions = options.creationOptions();
 
@@ -655,7 +655,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
   mIsInitializingLoaderGlobal = true;
 #endif
   nsresult rv = xpc::InitClassesWithNewWrappedGlobal(
-      aCx, static_cast<nsIGlobalObject*>(backstagePass),
+      aCx, static_cast<nsIGlobalObject*>(systemGlobal),
       nsContentUtils::GetSystemPrincipal(), xpc::DONT_FIRE_ONNEWGLOBALHOOK,
       options, &global);
 #ifdef DEBUG
@@ -665,7 +665,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
 
   NS_ENSURE_TRUE_VOID(global);
 
-  backstagePass->SetGlobalObject(global);
+  systemGlobal->SetGlobalObject(global);
 
   JSAutoRealm ar(aCx, global);
   if (!JS_DefineFunctions(aCx, global, gGlobalFun)) {
@@ -686,8 +686,8 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
 
   MOZ_ASSERT(!mModuleLoader);
   RefPtr<SyncScriptLoader> scriptLoader = new SyncScriptLoader;
-  mModuleLoader = new SyncModuleLoader(scriptLoader, backstagePass);
-  backstagePass->InitModuleLoader(mModuleLoader);
+  mModuleLoader = new SyncModuleLoader(scriptLoader, systemGlobal);
+  systemGlobal->InitModuleLoader(mModuleLoader);
 
   aGlobal.set(global);
 }

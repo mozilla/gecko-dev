@@ -159,10 +159,6 @@ def _actorHId(actorhandle):
     return ExprSelect(actorhandle, ".", "mId")
 
 
-def _backstagePass():
-    return ExprCall(ExprVar("mozilla::ipc::PrivateIPDLInterface"))
-
-
 def _deleteId():
     return ExprVar("Msg___delete____ID")
 

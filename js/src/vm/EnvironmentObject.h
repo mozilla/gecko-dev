@@ -224,7 +224,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  * goes to NonSyntacticVariablesObject (see B.3 and B.4).
  * They have the following env chain:
  *
- *   BackstagePass global
+ *   SystemGlobal
  *       |
  *   GlobalLexicalEnvironmentObject[this=global]
  *       |
@@ -266,7 +266,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  * variables and WithEnvironmentObject holds qualified variables.
  * Unqualified names goes to NonSyntacticVariablesObject.
  *
- *   BackstagePass global
+ *   SystemGlobal
  *       |
  *   GlobalLexicalEnvironmentObject[this=global]
  *       |
@@ -284,7 +284,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  * Subscript may be loaded into global this.  In this case no extra environment
  * object is created.
  *
- *   BackstagePass global
+ *   SystemGlobal
  *       |
  *   GlobalLexicalEnvironmentObject[this=global]
  *       |
@@ -304,7 +304,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  * not shared across multiple runs. This is done exclusively in
  * js::ExecuteInFrameScriptEnvironment.
  *
- *   BackstagePass global
+ *   SystemGlobal
  *       |
  *   GlobalLexicalEnvironmentObject[this=global]
  *       |
@@ -323,7 +323,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  * The environment chain is associated with the message manager object
  * and cached for subsequent runs.
  *
- *   BackstagePass global (unqualified names)
+ *   SystemGlobal (unqualified names)
  *       |
  *   GlobalLexicalEnvironmentObject[this=global]
  *       |

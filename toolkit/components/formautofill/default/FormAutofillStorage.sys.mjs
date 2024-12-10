@@ -7,7 +7,7 @@
  */
 
 // We expose a singleton from this module. Some tests may import the
-// constructor via a backstage pass.
+// constructor via the system global.
 import {
   AddressesBase,
   CreditCardsBase,

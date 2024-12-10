@@ -402,7 +402,7 @@ class TbplFormatter(BaseFormatter):
             "Document",
             "nsDocShell",
             "BrowsingContext",
-            "BackstagePass",
+            "SystemGlobal",
         ]
         for bigLeakName in bigLeakers:
             if bigLeakName in data["objects"]:

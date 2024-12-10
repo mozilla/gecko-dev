@@ -41,7 +41,7 @@
 #include "nsJSUtils.h"
 #include "xpcpublic.h"
 #include "xpcprivate.h"
-#include "BackstagePass.h"
+#include "SystemGlobal.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
 #include "nsJSUtils.h"
@@ -130,12 +130,13 @@ class XPCShellDirProvider : public nsIDirectoryServiceProvider2 {
 };
 
 #ifdef XP_WIN
-class MOZ_STACK_CLASS AutoAudioSession {
- public:
-  AutoAudioSession() { widget::StartAudioSession(); }
+class MOZ_STACK_CLASS
+AutoAudioSession{public : AutoAudioSession(){widget::StartAudioSession();
+}
 
-  ~AutoAudioSession() { widget::StopAudioSession(); }
-};
+~AutoAudioSession() { widget::StopAudioSession(); }
+}
+;
 #endif
 
 #define EXITCODE_RUNTIME_ERROR 3
@@ -1273,7 +1274,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
     shellSecurityCallbacks = *scb;
     JS_SetSecurityCallbacks(cx, &shellSecurityCallbacks);
 
-    auto backstagePass = MakeRefPtr<BackstagePass>();
+    auto systemGlobal = MakeRefPtr<SystemGlobal>();
 
     // Make the default XPCShell global use a fresh zone (rather than the
     // System Zone) to improve cross-zone test coverage.
@@ -1288,7 +1289,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 
     JS::Rooted<JSObject*> glob(cx);
     rv = xpc::InitClassesWithNewWrappedGlobal(
-        cx, static_cast<nsIGlobalObject*>(backstagePass), systemprincipal, 0,
+        cx, static_cast<nsIGlobalObject*>(systemGlobal), systemprincipal, 0,
         options, &glob);
     if (NS_FAILED(rv)) {
       return 1;
@@ -1340,7 +1341,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
       }
       appStartup->DoneStartingUp();
 
-      backstagePass->SetGlobalObject(glob);
+      systemGlobal->SetGlobalObject(glob);
 
       JSAutoRealm ar(cx, glob);
 
@@ -1372,7 +1373,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 #endif
           // We are almost certainly going to run script here, so we need an
           // AutoEntryScript. This is Gecko-specific and not in any spec.
-          AutoEntryScript aes(backstagePass, "xpcshell argument processing");
+          AutoEntryScript aes(systemGlobal, "xpcshell argument processing");
 
           // If an exception is thrown, we'll set our return code
           // appropriately, and then let the AutoEntryScript destructor report

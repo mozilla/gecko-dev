@@ -5,9 +5,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS += [
-    "BackstagePass.h",
     "JSServices.h",
     "nsIXPConnect.h",
+    "SystemGlobal.h",
     "XPCJSMemoryReporter.h",
     "xpcObjectHelper.h",
     "xpcpublic.h",

@@ -20,7 +20,7 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 });
 
 // Don't use const here because this is acessed by
-// tests through the BackstagePass object.
+// tests through the SystemGlobal object.
 export var PROXY_TYPES_MAP = new Map([
   ["none", Ci.nsIProtocolProxyService.PROXYCONFIG_DIRECT],
   ["system", Ci.nsIProtocolProxyService.PROXYCONFIG_SYSTEM],

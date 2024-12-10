@@ -26,7 +26,7 @@ const {
   "resource://gre/modules/FxAccountsCommon.sys.mjs"
 );
 
-// We grab some additional stuff via backstage passes.
+// We grab some additional stuff via the system global.
 var { AccountState } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccounts.sys.mjs"
 );
