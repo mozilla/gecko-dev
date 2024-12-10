@@ -41,6 +41,7 @@ static int s_verbose;
 static std::string s_infile;
 static std::string s_outfile;
 static unsigned int s_num_outputs = 1;
+static Features s_features;
 static WriteCOptions s_write_c_options;
 static bool s_read_debug_names = true;
 static std::unique_ptr<FileStream> s_log_stream;
@@ -59,8 +60,7 @@ examples:
 
 static const std::string supported_features[] = {
     "multi-memory", "multi-value", "sign-extension", "saturating-float-to-int",
-    "exceptions",   "memory64",    "extended-const", "simd",
-    "threads",      "tail-call"};
+    "exceptions",   "memory64",    "extended-const", "simd"};
 
 static bool IsFeatureSupported(const std::string& feature) {
   return std::find(std::begin(supported_features), std::end(supported_features),
@@ -91,7 +91,7 @@ static void ParseOptions(int argc, char** argv) {
       "names section is used. If that is not present the name of the input\n"
       "file is used as the default.\n",
       [](const char* argument) { s_write_c_options.module_name = argument; });
-  s_write_c_options.features.AddOptions(&parser);
+  s_features.AddOptions(&parser);
   parser.AddOption("no-debug-names", "Ignore debug names in the binary file",
                    []() { s_read_debug_names = false; });
   parser.AddArgument("filename", OptionParser::ArgumentCount::One,
@@ -102,11 +102,10 @@ static void ParseOptions(int argc, char** argv) {
   parser.Parse(argc, argv);
 
   bool any_non_supported_feature = false;
-#define WABT_FEATURE(variable, flag, default_, help)                   \
-  any_non_supported_feature |=                                         \
-      (s_write_c_options.features.variable##_enabled() != default_) && \
-      s_write_c_options.features.variable##_enabled() &&               \
-      !IsFeatureSupported(flag);
+#define WABT_FEATURE(variable, flag, default_, help)   \
+  any_non_supported_feature |=                         \
+      (s_features.variable##_enabled() != default_) && \
+      s_features.variable##_enabled() && !IsFeatureSupported(flag);
 #include "wabt/feature.def"
 #undef WABT_FEATURE
 
@@ -115,6 +114,16 @@ static void ParseOptions(int argc, char** argv) {
             "wasm2c currently only supports a limited set of features.\n");
     exit(1);
   }
+}
+
+// TODO(binji): copied from binary-writer-spec.cc, probably should share.
+static std::string_view strip_extension(std::string_view s) {
+  std::string_view ext = s.substr(s.find_last_of('.'));
+  std::string_view result = s;
+
+  if (ext == ".c")
+    result.remove_suffix(ext.length());
+  return result;
 }
 
 Result Wasm2cMain(Errors& errors) {
@@ -129,12 +138,11 @@ Result Wasm2cMain(Errors& errors) {
   Module module;
   const bool kStopOnFirstError = true;
   const bool kFailOnCustomSectionError = true;
-  ReadBinaryOptions options(s_write_c_options.features, s_log_stream.get(),
-                            s_read_debug_names, kStopOnFirstError,
-                            kFailOnCustomSectionError);
+  ReadBinaryOptions options(s_features, s_log_stream.get(), s_read_debug_names,
+                            kStopOnFirstError, kFailOnCustomSectionError);
   CHECK_RESULT(ReadBinaryIr(s_infile.c_str(), file_data.data(),
                             file_data.size(), options, &errors, &module));
-  CHECK_RESULT(ValidateModule(&module, &errors, s_write_c_options.features));
+  CHECK_RESULT(ValidateModule(&module, &errors, s_features));
   CHECK_RESULT(GenerateNames(&module));
   /* TODO(binji): This shouldn't fail; if a name can't be applied
    * (because the index is invalid, say) it should just be skipped. */
@@ -142,12 +150,12 @@ Result Wasm2cMain(Errors& errors) {
 
   if (!s_outfile.empty()) {
     std::string header_name_full =
-        std::string(wabt::StripExtension(s_outfile)) + ".h";
+        std::string(strip_extension(s_outfile)) + ".h";
     std::vector<FileStream> c_streams;
     if (s_num_outputs == 1) {
       c_streams.emplace_back(s_outfile.c_str());
     } else {
-      std::string output_prefix{wabt::StripExtension(s_outfile)};
+      std::string output_prefix{strip_extension(s_outfile)};
       for (unsigned int i = 0; i < s_num_outputs; i++) {
         c_streams.emplace_back(output_prefix + "_" + std::to_string(i) + ".c");
       }
@@ -171,7 +179,7 @@ Result Wasm2cMain(Errors& errors) {
                           s_write_c_options));
     } else {
       std::string header_impl_name_full =
-          std::string(wabt::StripExtension(s_outfile)) + "-impl.h";
+          std::string(strip_extension(s_outfile)) + "-impl.h";
       FileStream h_impl_stream(header_impl_name_full);
       std::string_view header_impl_name = GetBasename(header_impl_name_full);
       CHECK_RESULT(WriteC(std::move(c_stream_ptrs), &h_stream, &h_impl_stream,

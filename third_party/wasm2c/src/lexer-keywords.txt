@@ -18,7 +18,6 @@ struct TokenInfo {
 };
 %%
 array, Type::Array, TokenType::Array
-after, TokenType::After
 assert_exception, TokenType::AssertException
 assert_exhaustion, TokenType::AssertExhaustion
 assert_invalid, TokenType::AssertInvalid
@@ -27,7 +26,6 @@ assert_return, TokenType::AssertReturn
 assert_trap, TokenType::AssertTrap
 assert_unlinkable, TokenType::AssertUnlinkable
 atomic.fence, TokenType::AtomicFence, Opcode::AtomicFence
-before, TokenType::Before
 binary, TokenType::Bin
 block, TokenType::Block, Opcode::Block
 br_if, TokenType::BrIf, Opcode::BrIf
@@ -38,7 +36,6 @@ call_ref, TokenType::CallRef, Opcode::CallRef
 call, TokenType::Call, Opcode::Call
 catch, TokenType::Catch, Opcode::Catch
 catch_all, TokenType::CatchAll, Opcode::CatchAll
-code, TokenType::Code
 data.drop, TokenType::DataDrop, Opcode::DataDrop
 data, TokenType::Data
 declare, TokenType::Declare
@@ -53,8 +50,6 @@ end, TokenType::End, Opcode::End
 tag, TokenType::Tag
 extern, Type::ExternRef, TokenType::Extern
 externref, Type::ExternRef
-exn, Type::ExnRef, TokenType::Exn
-exnref, Type::ExnRef
 export, TokenType::Export
 f32.abs, TokenType::Unary, Opcode::F32Abs
 f32.add, TokenType::Binary, Opcode::F32Add
@@ -183,7 +178,6 @@ f64x2, TokenType::F64X2
 field, TokenType::Field
 funcref, Type::FuncRef
 func, Type::FuncRef, TokenType::Func
-function, TokenType::Function
 get, TokenType::Get
 global.get, TokenType::GlobalGet, Opcode::GlobalGet
 global.set, TokenType::GlobalSet, Opcode::GlobalSet
@@ -195,7 +189,7 @@ i16x8.add, TokenType::Binary, Opcode::I16X8Add
 i16x8.all_true, TokenType::Unary, Opcode::I16X8AllTrue
 i16x8.avgr_u, TokenType::Binary, Opcode::I16X8AvgrU
 i16x8.bitmask, TokenType::Unary, Opcode::I16X8Bitmask
-i16x8.relaxed_dot_i8x16_i7x16_s, TokenType::Binary, Opcode::I16X8DotI8X16I7X16S
+i16x8.dot_i8x16_i7x16_s, TokenType::Binary, Opcode::I16X8DotI8X16I7X16S
 i16x8.eq, TokenType::Compare, Opcode::I16X8Eq
 i16x8.extract_lane_s, TokenType::SimdLaneOp, Opcode::I16X8ExtractLaneS
 i16x8.extract_lane_u, TokenType::SimdLaneOp, Opcode::I16X8ExtractLaneU
@@ -321,7 +315,7 @@ i32x4.abs, TokenType::Unary, Opcode::I32X4Abs
 i32x4.add, TokenType::Binary, Opcode::I32X4Add
 i32x4.all_true, TokenType::Unary, Opcode::I32X4AllTrue
 i32x4.bitmask, TokenType::Unary, Opcode::I32X4Bitmask
-i32x4.relaxed_dot_i8x16_i7x16_add_s, TokenType::Ternary, Opcode::I32X4DotI8X16I7X16AddS
+i32x4.dot_i8x16_i7x16_add_s, TokenType::Ternary, Opcode::I32X4DotI8X16I7X16AddS
 i32x4.eq, TokenType::Compare, Opcode::I32X4Eq
 i32x4.extract_lane, TokenType::SimdLaneOp, Opcode::I32X4ExtractLane
 i32x4.ge_s, TokenType::Compare, Opcode::I32X4GeS
@@ -556,7 +550,6 @@ nan:canonical, TokenType::NanCanonical
 nop, TokenType::Nop, Opcode::Nop
 offset, TokenType::Offset
 output, TokenType::Output
-pagesize, TokenType::PageSize
 param, TokenType::Param
 ref, TokenType::Ref
 quote, TokenType::Quote

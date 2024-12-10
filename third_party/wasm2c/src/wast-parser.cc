@@ -593,23 +593,20 @@ Location WastParser::GetLocation() {
 }
 
 TokenType WastParser::Peek(size_t n) {
-  assert(n <= 1);
   while (tokens_.size() <= n) {
     Token cur = lexer_->GetToken();
     if (cur.token_type() != TokenType::LparAnn) {
       tokens_.push_back(cur);
     } else {
       // Custom annotation. For now, discard until matching Rpar, unless it is
-      // a code metadata annotation or custom section. In those cases, we know
-      // how to parse it.
+      // a code metadata annotation. In that case, we know how to parse it.
       if (!options_->features.annotations_enabled()) {
         Error(cur.loc, "annotations not enabled: %s", cur.to_string().c_str());
         tokens_.push_back(Token(cur.loc, TokenType::Invalid));
         continue;
       }
-      if ((options_->features.code_metadata_enabled() &&
-           cur.text().find("metadata.code.") == 0) ||
-          cur.text() == "custom") {
+      if (options_->features.code_metadata_enabled() &&
+          cur.text().find("metadata.code.") == 0) {
         tokens_.push_back(cur);
         continue;
       }
@@ -657,8 +654,7 @@ bool WastParser::PeekMatchExpr() {
 }
 
 bool WastParser::PeekMatchRefType() {
-  return (options_->features.function_references_enabled() ||
-          options_->features.exceptions_enabled()) &&
+  return options_->features.function_references_enabled() &&
          PeekMatchLpar(TokenType::Ref);
 }
 
@@ -724,7 +720,6 @@ void WastParser::ErrorUnlessOpcodeEnabled(const Token& token) {
 
 Result WastParser::ErrorExpected(const std::vector<std::string>& expected,
                                  const char* example) {
-  GetToken();
   Token token = Consume();
   std::string expected_str;
   if (!expected.empty()) {
@@ -757,6 +752,7 @@ Result WastParser::ErrorExpected(const std::vector<std::string>& expected,
 Result WastParser::ErrorIfLpar(const std::vector<std::string>& expected,
                                const char* example) {
   if (Match(TokenType::Lpar)) {
+    GetToken();
     return ErrorExpected(expected, example);
   }
   return Result::Ok;
@@ -875,7 +871,7 @@ bool WastParser::ParseElemExprOpt(ExprList* out_elem_expr) {
     }
     EXPECT(Rpar);
   } else {
-    if (!IsExpr(PeekPair()) || ParseExpr(&exprs) != Result::Ok) {
+    if (ParseExpr(&exprs) != Result::Ok) {
       return false;
     }
   }
@@ -934,9 +930,6 @@ Result WastParser::ParseValueType(Var* out_type) {
     case Type::FuncRef:
     case Type::ExternRef:
       is_enabled = options_->features.reference_types_enabled();
-      break;
-    case Type::ExnRef:
-      is_enabled = options_->features.exceptions_enabled();
       break;
     default:
       is_enabled = true;
@@ -1057,9 +1050,8 @@ bool WastParser::ParseOffsetOpt(Address* out_offset) {
       Error(token.loc, "invalid offset \"" PRIstringview "\"",
             WABT_PRINTF_STRING_VIEW_ARG(sv));
     }
-    // With memory64, offsets > UINT32_MAX for i32 memories are no longer
-    // malformed (just invalid)
-    if ((!options_->features.memory64_enabled()) && (offset64 > UINT32_MAX)) {
+    // FIXME: make this depend on the current memory.
+    if (offset64 > UINT32_MAX) {
       Error(token.loc, "offset must be less than or equal to 0xffffffff");
     }
     *out_offset = offset64;
@@ -1146,37 +1138,6 @@ Result WastParser::ParseLimits(Limits* out_limits) {
   return Result::Ok;
 }
 
-Result WastParser::ParsePageSize(uint32_t* out_page_size) {
-  WABT_TRACE(ParsePageSize);
-
-  Result result = Result::Ok;
-
-  if (PeekMatchLpar(TokenType::PageSize)) {
-    if (!options_->features.custom_page_sizes_enabled()) {
-      Error(GetLocation(), "Specifying memory page size is not allowed");
-      return Result::Error;
-    }
-    EXPECT(Lpar);
-    EXPECT(PageSize);
-    auto token = GetToken();
-    if (!token.HasLiteral()) {
-      Error(GetLocation(), "malformed custom page size");
-      return Result::Error;
-    }
-    auto sv = token.literal().text;
-    result |= ParseInt32(sv, out_page_size, ParseIntType::UnsignedOnly);
-    if (*out_page_size > UINT32_MAX || *out_page_size <= 0 ||
-        (*out_page_size & (*out_page_size - 1))) {
-      Error(GetLocation(), "malformed custom page size");
-      return Result::Error;
-    }
-    Consume();
-    EXPECT(Rpar);
-  }
-
-  return result;
-}
-
 Result WastParser::ParseNat(uint64_t* out_nat, bool is_64) {
   WABT_TRACE(ParseNat);
   if (!PeekMatch(TokenType::Nat)) {
@@ -1210,18 +1171,16 @@ Result WastParser::ParseModule(std::unique_ptr<Module>* out_module) {
       auto module_command = cast<ScriptModuleCommand>(std::move(command));
       *module = std::move(module_command->module);
     }
-  } else if (IsModuleField(PeekPair()) || PeekIsCustom()) {
+  } else if (IsModuleField(PeekPair())) {
     // Parse an inline module (i.e. one with no surrounding (module)).
     CHECK_RESULT(ParseModuleFieldList(module.get()));
-  } else if (PeekMatch(TokenType::Eof)) {
-    errors_->emplace_back(ErrorLevel::Warning, GetLocation(), "empty module");
   } else {
     ConsumeIfLpar();
     ErrorExpected({"a module field", "a module"});
   }
 
   EXPECT(Eof);
-  if (!HasError()) {
+  if (errors_->size() == 0) {
     *out_module = std::move(module);
     return Result::Ok;
   } else {
@@ -1236,7 +1195,7 @@ Result WastParser::ParseScript(std::unique_ptr<Script>* out_script) {
   // Don't consume the Lpar yet, even though it is required. This way the
   // sub-parser functions (e.g. ParseFuncModuleField) can consume it and keep
   // the parsing structure more regular.
-  if (IsModuleField(PeekPair()) || PeekIsCustom()) {
+  if (IsModuleField(PeekPair())) {
     // Parse an inline module (i.e. one with no surrounding (module)).
     auto command = std::make_unique<ModuleCommand>();
     command->module.loc = GetLocation();
@@ -1244,15 +1203,13 @@ Result WastParser::ParseScript(std::unique_ptr<Script>* out_script) {
     script->commands.emplace_back(std::move(command));
   } else if (IsCommand(PeekPair())) {
     CHECK_RESULT(ParseCommandList(script.get(), &script->commands));
-  } else if (PeekMatch(TokenType::Eof)) {
-    errors_->emplace_back(ErrorLevel::Warning, GetLocation(), "empty script");
   } else {
     ConsumeIfLpar();
     ErrorExpected({"a module field", "a command"});
   }
 
   EXPECT(Eof);
-  if (!HasError()) {
+  if (errors_->size() == 0) {
     *out_script = std::move(script);
     return Result::Ok;
   } else {
@@ -1260,69 +1217,9 @@ Result WastParser::ParseScript(std::unique_ptr<Script>* out_script) {
   }
 }
 
-Result WastParser::ParseCustomSectionAnnotation(Module* module) {
-  WABT_TRACE(ParseCustomSectionAnnotation);
-  Location loc = GetLocation();
-  Token token = Consume();
-  if (token.text() != "custom") {
-    assert(
-        !"ParseCustomSectionAnnotation should only be called if PeekIsCustom() is true");
-    return Result::Error;
-  }
-  std::string section_name;
-  CHECK_RESULT(ParseQuotedText(&section_name));
-  if (Match(TokenType::Lpar)) {
-    if (!PeekMatch(TokenType::After) && !PeekMatch(TokenType::Before)) {
-      return ErrorExpected({"before", "after"});
-    }
-    Consume();
-    switch (Peek()) {
-      case TokenType::Function:
-      case TokenType::Type:
-      case TokenType::Import:
-      case TokenType::Export:
-      case TokenType::Table:
-      case TokenType::Global:
-      case TokenType::Elem:
-      case TokenType::Data:
-      case TokenType::Memory:
-      case TokenType::Code:
-      case TokenType::Start: {
-        Consume();
-        break;
-      }
-      default: {
-        return ErrorExpected({"type", "import", "function", "table", "memory",
-                              "global", "export", "start", "elem", "code",
-                              "data"});
-      }
-    }
-    EXPECT(Rpar);
-  }
-  std::vector<uint8_t> data;
-  CHECK_RESULT(ParseTextList(&data));
-  EXPECT(Rpar);
-
-  Custom custom = Custom(loc, section_name, data);
-  module->customs.push_back(custom);
-
-  return Result::Ok;
-}
-
-bool WastParser::PeekIsCustom() {
-  // If IsLparAnn succeeds, tokens_.front() must have text, as it is an LparAnn
-  // token.
-  return options_->features.annotations_enabled() && IsLparAnn(PeekPair()) &&
-         tokens_.front().text() == "custom";
-}
-
 Result WastParser::ParseModuleFieldList(Module* module) {
   WABT_TRACE(ParseModuleFieldList);
-  while (IsModuleField(PeekPair()) || PeekIsCustom()) {
-    if (PeekIsCustom()) {
-      CHECK_RESULT(ParseCustomSectionAnnotation(module));
-      continue;
-    }
+  while (IsModuleField(PeekPair())) {
     if (Failed(ParseModuleField(module))) {
       CHECK_RESULT(Synchronize(IsModuleField));
     }
@@ -1693,7 +1590,6 @@ Result WastParser::ParseImportModuleField(Module* module) {
       Consume();
       ParseBindVarOpt(&name);
       auto import = std::make_unique<TableImport>(name);
-      CHECK_RESULT(ParseLimitsIndex(&import->table.elem_limits));
       CHECK_RESULT(ParseLimits(&import->table.elem_limits));
       CHECK_RESULT(ParseRefType(&import->table.elem_type));
       EXPECT(Rpar);
@@ -1705,10 +1601,8 @@ Result WastParser::ParseImportModuleField(Module* module) {
       Consume();
       ParseBindVarOpt(&name);
       auto import = std::make_unique<MemoryImport>(name);
-      import->memory.page_size = WABT_DEFAULT_PAGE_SIZE;
       CHECK_RESULT(ParseLimitsIndex(&import->memory.page_limits));
       CHECK_RESULT(ParseLimits(&import->memory.page_limits));
-      CHECK_RESULT(ParsePageSize(&import->memory.page_size));
       EXPECT(Rpar);
       field = std::make_unique<ImportModuleField>(std::move(import), loc);
       break;
@@ -1761,26 +1655,15 @@ Result WastParser::ParseMemoryModuleField(Module* module) {
   if (PeekMatchLpar(TokenType::Import)) {
     CheckImportOrdering(module);
     auto import = std::make_unique<MemoryImport>(name);
-    import->memory.page_size = WABT_DEFAULT_PAGE_SIZE;
     CHECK_RESULT(ParseInlineImport(import.get()));
     CHECK_RESULT(ParseLimitsIndex(&import->memory.page_limits));
     CHECK_RESULT(ParseLimits(&import->memory.page_limits));
-    CHECK_RESULT(ParsePageSize(&import->memory.page_size));
     auto field =
         std::make_unique<ImportModuleField>(std::move(import), GetLocation());
     module->AppendField(std::move(field));
   } else {
     auto field = std::make_unique<MemoryModuleField>(loc, name);
-    field->memory.page_size = WABT_DEFAULT_PAGE_SIZE;
     CHECK_RESULT(ParseLimitsIndex(&field->memory.page_limits));
-    if (PeekMatchLpar(TokenType::PageSize)) {
-      // this is the data abbreviation (no limits)
-      CHECK_RESULT(ParsePageSize(&field->memory.page_size));
-      if (!PeekMatchLpar(TokenType::Data)) {
-        ConsumeIfLpar();
-        return ErrorExpected({"inline data segment"});
-      }
-    }
     if (MatchLpar(TokenType::Data)) {
       auto data_segment_field = std::make_unique<DataSegmentModuleField>(loc);
       DataSegment& data_segment = data_segment_field->data_segment;
@@ -1791,17 +1674,16 @@ Result WastParser::ParseMemoryModuleField(Module* module) {
       ParseTextListOpt(&data_segment.data);
       EXPECT(Rpar);
 
-      uint32_t num_pages = WABT_BYTES_TO_MIN_PAGES(data_segment.data.size(),
-                                                   field->memory.page_size);
-      field->memory.page_limits.initial = num_pages;
-      field->memory.page_limits.max = num_pages;
+      uint32_t byte_size = WABT_ALIGN_UP_TO_PAGE(data_segment.data.size());
+      uint32_t page_size = WABT_BYTES_TO_PAGES(byte_size);
+      field->memory.page_limits.initial = page_size;
+      field->memory.page_limits.max = page_size;
       field->memory.page_limits.has_max = true;
 
       module->AppendField(std::move(field));
       module->AppendField(std::move(data_segment_field));
     } else {
       CHECK_RESULT(ParseLimits(&field->memory.page_limits));
-      CHECK_RESULT(ParsePageSize(&field->memory.page_size));
       module->AppendField(std::move(field));
     }
   }
@@ -1843,53 +1725,48 @@ Result WastParser::ParseTableModuleField(Module* module) {
     CheckImportOrdering(module);
     auto import = std::make_unique<TableImport>(name);
     CHECK_RESULT(ParseInlineImport(import.get()));
-    CHECK_RESULT(ParseLimitsIndex(&import->table.elem_limits));
     CHECK_RESULT(ParseLimits(&import->table.elem_limits));
     CHECK_RESULT(ParseRefType(&import->table.elem_type));
     auto field =
         std::make_unique<ImportModuleField>(std::move(import), GetLocation());
     module->AppendField(std::move(field));
+  } else if (PeekMatch(TokenType::ValueType)) {
+    Type elem_type;
+    CHECK_RESULT(ParseRefType(&elem_type));
+
+    EXPECT(Lpar);
+    EXPECT(Elem);
+
+    auto elem_segment_field = std::make_unique<ElemSegmentModuleField>(loc);
+    ElemSegment& elem_segment = elem_segment_field->elem_segment;
+    elem_segment.table_var = Var(module->tables.size(), GetLocation());
+    elem_segment.offset.push_back(std::make_unique<ConstExpr>(Const::I32(0)));
+    elem_segment.offset.back().loc = loc;
+    elem_segment.elem_type = elem_type;
+    // Syntax is either an optional list of var (legacy), or a non-empty list
+    // of elem expr.
+    ExprList elem_expr;
+    if (ParseElemExprOpt(&elem_expr)) {
+      elem_segment.elem_exprs.push_back(std::move(elem_expr));
+      // Parse the rest.
+      ParseElemExprListOpt(&elem_segment.elem_exprs);
+    } else {
+      ParseElemExprVarListOpt(&elem_segment.elem_exprs);
+    }
+    EXPECT(Rpar);
+
+    auto table_field = std::make_unique<TableModuleField>(loc, name);
+    table_field->table.elem_limits.initial = elem_segment.elem_exprs.size();
+    table_field->table.elem_limits.max = elem_segment.elem_exprs.size();
+    table_field->table.elem_limits.has_max = true;
+    table_field->table.elem_type = elem_type;
+    module->AppendField(std::move(table_field));
+    module->AppendField(std::move(elem_segment_field));
   } else {
     auto field = std::make_unique<TableModuleField>(loc, name);
-    auto& table = field->table;
-    CHECK_RESULT(ParseLimitsIndex(&table.elem_limits));
-    if (PeekMatch(TokenType::ValueType)) {
-      Type elem_type;
-      CHECK_RESULT(ParseRefType(&elem_type));
-
-      EXPECT(Lpar);
-      EXPECT(Elem);
-
-      auto elem_segment_field = std::make_unique<ElemSegmentModuleField>(loc);
-      ElemSegment& elem_segment = elem_segment_field->elem_segment;
-      elem_segment.table_var = Var(module->tables.size(), GetLocation());
-      auto offset = table.elem_limits.is_64 ? Const::I64(0) : Const::I32(0);
-      elem_segment.offset.push_back(std::make_unique<ConstExpr>(offset));
-      elem_segment.offset.back().loc = loc;
-      elem_segment.elem_type = elem_type;
-      // Syntax is either an optional list of var (legacy), or a non-empty list
-      // of elem expr.
-      ExprList elem_expr;
-      if (ParseElemExprOpt(&elem_expr)) {
-        elem_segment.elem_exprs.push_back(std::move(elem_expr));
-        // Parse the rest.
-        ParseElemExprListOpt(&elem_segment.elem_exprs);
-      } else {
-        ParseElemExprVarListOpt(&elem_segment.elem_exprs);
-      }
-      EXPECT(Rpar);
-
-      table.elem_limits.initial = elem_segment.elem_exprs.size();
-      table.elem_limits.max = elem_segment.elem_exprs.size();
-      table.elem_limits.has_max = true;
-      table.elem_type = elem_type;
-      module->AppendField(std::move(field));
-      module->AppendField(std::move(elem_segment_field));
-    } else {
-      CHECK_RESULT(ParseLimits(&table.elem_limits));
-      CHECK_RESULT(ParseRefType(&table.elem_type));
-      module->AppendField(std::move(field));
-    }
+    CHECK_RESULT(ParseLimits(&field->table.elem_limits));
+    CHECK_RESULT(ParseRefType(&field->table.elem_type));
+    module->AppendField(std::move(field));
   }
 
   AppendInlineExportFields(module, &export_fields, module->tables.size() - 1);
@@ -2194,11 +2071,11 @@ Result WastParser::ParseMemoryExpr(Location loc,
 template <typename T>
 Result WastParser::ParseMemoryBinaryExpr(Location loc,
                                          std::unique_ptr<Expr>* out_expr) {
-  Var destmemidx;
   Var srcmemidx;
-  CHECK_RESULT(ParseMemidx(loc, &destmemidx));
+  Var destmemidx;
   CHECK_RESULT(ParseMemidx(loc, &srcmemidx));
-  out_expr->reset(new T(destmemidx, srcmemidx, loc));
+  CHECK_RESULT(ParseMemidx(loc, &destmemidx));
+  out_expr->reset(new T(srcmemidx, destmemidx, loc));
   return Result::Ok;
 }
 
@@ -2830,8 +2707,7 @@ Result WastParser::ParseConst(Const* const_, ConstType const_type) {
     case Opcode::I32Const: {
       auto token = Consume();
       if (!token.HasLiteral()) {
-        result = Result::Error;
-        break;
+        return Result::Error;
       }
       auto sv = token.literal().text;
       uint32_t u32;
@@ -2843,8 +2719,7 @@ Result WastParser::ParseConst(Const* const_, ConstType const_type) {
     case Opcode::I64Const: {
       auto token = Consume();
       if (!token.HasLiteral()) {
-        result = Result::Error;
-        break;
+        return Result::Error;
       }
       auto sv = token.literal().text;
       uint64_t u64;
@@ -3147,26 +3022,35 @@ Result WastParser::ParseExpr(ExprList* exprs) {
         CHECK_RESULT(ParseLabelOpt(&expr->true_.label));
         CHECK_RESULT(ParseBlockDeclaration(&expr->true_.decl));
 
-        while (PeekMatchExpr()) {
+        if (PeekMatchExpr()) {
           ExprList cond;
           CHECK_RESULT(ParseExpr(&cond));
           exprs->splice(exprs->end(), cond);
         }
 
-        EXPECT(Lpar);
-        if (!Match(TokenType::Then)) {
+        if (MatchLpar(TokenType::Then)) {
+          CHECK_RESULT(ParseTerminatingInstrList(&expr->true_.exprs));
+          expr->true_.end_loc = GetLocation();
+          EXPECT(Rpar);
+
+          if (MatchLpar(TokenType::Else)) {
+            CHECK_RESULT(ParseTerminatingInstrList(&expr->false_));
+            EXPECT(Rpar);
+          } else if (PeekMatchExpr()) {
+            CHECK_RESULT(ParseExpr(&expr->false_));
+          }
+          expr->false_end_loc = GetLocation();
+        } else if (PeekMatchExpr()) {
+          CHECK_RESULT(ParseExpr(&expr->true_.exprs));
+          expr->true_.end_loc = GetLocation();
+          if (PeekMatchExpr()) {
+            CHECK_RESULT(ParseExpr(&expr->false_));
+            expr->false_end_loc = GetLocation();
+          }
+        } else {
+          ConsumeIfLpar();
           return ErrorExpected({"then block"}, "(then ...)");
         }
-
-        CHECK_RESULT(ParseTerminatingInstrList(&expr->true_.exprs));
-        expr->true_.end_loc = GetLocation();
-        EXPECT(Rpar);
-
-        if (MatchLpar(TokenType::Else)) {
-          CHECK_RESULT(ParseTerminatingInstrList(&expr->false_));
-          EXPECT(Rpar);
-        }
-        expr->false_end_loc = GetLocation();
 
         exprs->push_back(std::move(expr));
         break;
@@ -3459,6 +3343,7 @@ Result WastParser::ParseModuleCommand(Script* script, CommandPtr* out_command) {
       module->name = bsm->name;
       module->loc = bsm->loc;
       for (const auto& error : errors) {
+        assert(error.error_level == ErrorLevel::Error);
         if (error.loc.offset == kInvalidOffset) {
           Error(bsm->loc, "error in binary module: %s", error.message.c_str());
         } else {
@@ -3473,26 +3358,7 @@ Result WastParser::ParseModuleCommand(Script* script, CommandPtr* out_command) {
     }
 
     case ScriptModuleType::Quoted:
-      auto command = std::make_unique<ModuleCommand>();
-      module = &command->module;
-      auto* qsm = cast<QuotedScriptModule>(script_module.get());
-      Errors errors;
-      const char* filename = "<text>";
-      std::unique_ptr<Module> m;
-      std::unique_ptr<WastLexer> lexer = WastLexer::CreateBufferLexer(
-          filename, qsm->data.data(), qsm->data.size(), &errors);
-      ParseWatModule(lexer.get(), &m, &errors, options_);
-      for (const auto& error : errors) {
-        if (error.loc.offset == kInvalidOffset) {
-          Error(qsm->loc, "error in quoted module: %s", error.message.c_str());
-        } else {
-          Error(qsm->loc, "error in quoted module: @0x%08" PRIzx ": %s",
-                error.loc.offset, error.message.c_str());
-        }
-      }
-      *module = std::move(*m.get());
-      *out_command = std::move(command);
-      break;
+      return ErrorExpected({"a binary module", "a text module"});
   }
 
   // script is nullptr when ParseModuleCommand is called from ParseModule.
@@ -3657,7 +3523,7 @@ Result WastParser::ParseScriptModule(
       auto tsm = std::make_unique<TextScriptModule>();
       tsm->module.name = name;
       tsm->module.loc = loc;
-      if (IsModuleField(PeekPair()) || PeekIsCustom()) {
+      if (IsModuleField(PeekPair())) {
         CHECK_RESULT(ParseModuleFieldList(&tsm->module));
       } else if (!PeekMatch(TokenType::Rpar)) {
         ConsumeIfLpar();
@@ -3722,43 +3588,6 @@ void WastParser::CheckImportOrdering(Module* module) {
     Error(GetLocation(),
           "imports must occur before all non-import definitions");
   }
-}
-
-bool WastParser::HasError() const {
-  return std::any_of(errors_->begin(), errors_->end(), [](const auto& x) {
-    return x.error_level == ErrorLevel::Error;
-  });
-}
-
-void WastParser::TokenQueue::push_back(Token t) {
-  assert(!tokens[!i]);
-  tokens[!i] = t;
-  if (empty()) {
-    i = !i;
-  }
-}
-
-void WastParser::TokenQueue::pop_front() {
-  assert(tokens[i]);
-  tokens[i].reset();
-  i = !i;
-}
-
-const Token& WastParser::TokenQueue::at(size_t n) const {
-  assert(n <= 1);
-  return tokens[i ^ static_cast<bool>(n)].value();
-}
-
-const Token& WastParser::TokenQueue::front() const {
-  return at(0);
-}
-
-bool WastParser::TokenQueue::empty() const {
-  return !tokens[i];
-}
-
-size_t WastParser::TokenQueue::size() const {
-  return empty() ? 0 : 1 + tokens[!i].has_value();
 }
 
 Result ParseWatModule(WastLexer* lexer,

@@ -30,14 +30,7 @@ std::string TypesToString(const TypeVector& types,
   }
 
   for (size_t i = 0; i < types.size(); ++i) {
-    Type ty = types[i];
-    // NOTE: Reference (and GetName) is also used by (e.g.) objdump, which does
-    // not apply validation. do this here so as to not break that.
-    if (ty == Type::Reference && ty.GetReferenceIndex() == kInvalidIndex) {
-      result += "reference";
-    } else {
-      result += types[i].GetName();
-    }
+    result += types[i].GetName();
     if (i < types.size() - 1) {
       result += ", ";
     }
@@ -261,7 +254,7 @@ Result TypeChecker::CheckSignature(const TypeVector& sig, const char* desc) {
   for (size_t i = 0; i < sig.size(); ++i) {
     result |= PeekAndCheckType(sig.size() - i - 1, sig[i]);
   }
-  PrintStackIfFailedV(result, desc, sig, /*is_end=*/false);
+  PrintStackIfFailed(result, desc, sig);
   return result;
 }
 
@@ -512,24 +505,29 @@ Result TypeChecker::OnCall(const TypeVector& param_types,
 }
 
 Result TypeChecker::OnCallIndirect(const TypeVector& param_types,
-                                   const TypeVector& result_types,
-                                   const Limits& table_limits) {
-  Result result = PopAndCheck1Type(table_limits.is_64 ? Type::I64 : Type::I32,
-                                   "call_indirect");
+                                   const TypeVector& result_types) {
+  Result result = PopAndCheck1Type(Type::I32, "call_indirect");
   result |= PopAndCheckCall(param_types, result_types, "call_indirect");
   return result;
 }
 
 Result TypeChecker::OnIndexedFuncRef(Index* out_index) {
   Type type;
-  Result result = PeekType(0, &type);
-  if (!type.IsReferenceWithIndex()) {
-    type = Type::Reference;
+  CHECK_RESULT(PeekType(0, &type));
+  Result result = Result::Ok;
+  if (!(type == Type::Any || type.IsReferenceWithIndex())) {
+    TypeVector actual;
+    actual.push_back(type);
+    std::string message =
+        "type mismatch in call_ref, expected reference but got " +
+        TypesToString(actual);
+    PrintError("%s", message.c_str());
+    result = Result::Error;
   }
-  result |= PopAndCheck1Type(type, "call_ref");
   if (Succeeded(result)) {
     *out_index = type.GetReferenceIndex();
   }
+  result |= DropTypes(1);
   return result;
 }
 
@@ -707,15 +705,15 @@ Result TypeChecker::OnLoop(const TypeVector& param_types,
   return result;
 }
 
-Result TypeChecker::OnMemoryCopy(const Limits& dst_limits,
-                                 const Limits& src_limits) {
+Result TypeChecker::OnMemoryCopy(const Limits& src_limits,
+                                 const Limits& dst_limits) {
   Limits size_limits = src_limits;
   // The memory64 proposal specifies that the type of the size argument should
   // be the mimimum of the two memory types.
   if (src_limits.is_64 && !dst_limits.is_64) {
     size_limits = dst_limits;
   }
-  return CheckOpcode3(Opcode::MemoryCopy, &dst_limits, &src_limits,
+  return CheckOpcode3(Opcode::MemoryCopy, &src_limits, &dst_limits,
                       &size_limits);
 }
 
@@ -742,61 +740,45 @@ Result TypeChecker::OnMemorySize(const Limits& limits) {
   return Result::Ok;
 }
 
-Result TypeChecker::OnTableCopy(const Limits& dst_limits,
-                                const Limits& src_limits) {
-  Limits size_limits = src_limits;
-  // The memory64 proposal specifies that the type of the size argument should
-  // be the mimimum of the two table types.
-  if (src_limits.is_64 && !dst_limits.is_64) {
-    size_limits = dst_limits;
-  }
-  return CheckOpcode3(Opcode::TableCopy, &dst_limits, &src_limits,
-                      &size_limits);
+Result TypeChecker::OnTableCopy() {
+  return CheckOpcode3(Opcode::TableCopy);
 }
 
 Result TypeChecker::OnElemDrop(uint32_t segment) {
   return Result::Ok;
 }
 
-Result TypeChecker::OnTableInit(uint32_t segment, const Limits& limits) {
-  return CheckOpcode3(Opcode::TableInit, &limits);
+Result TypeChecker::OnTableInit(uint32_t table, uint32_t segment) {
+  return CheckOpcode3(Opcode::TableInit);
 }
 
-Result TypeChecker::OnTableGet(Type elem_type, const Limits& limits) {
-  Result result = CheckOpcode1(Opcode::TableGet, &limits);
+Result TypeChecker::OnTableGet(Type elem_type) {
+  Result result = PopAndCheck1Type(Type::I32, "table.get");
   PushType(elem_type);
   return result;
 }
 
-Result TypeChecker::OnTableSet(Type elem_type, const Limits& limits) {
-  return PopAndCheck2Types(limits.IndexType(), elem_type, "table.set");
+Result TypeChecker::OnTableSet(Type elem_type) {
+  return PopAndCheck2Types(Type::I32, elem_type, "table.set");
 }
 
-Result TypeChecker::OnTableGrow(Type elem_type, const Limits& limits) {
-  Result result =
-      PopAndCheck2Types(elem_type, limits.IndexType(), "table.grow");
-  PushType(limits.IndexType());
+Result TypeChecker::OnTableGrow(Type elem_type) {
+  Result result = PopAndCheck2Types(elem_type, Type::I32, "table.grow");
+  PushType(Type::I32);
   return result;
 }
 
-Result TypeChecker::OnTableSize(const Limits& limits) {
-  PushType(limits.IndexType());
+Result TypeChecker::OnTableSize() {
+  PushType(Type::I32);
   return Result::Ok;
 }
 
-Result TypeChecker::OnTableFill(Type elem_type, const Limits& limits) {
-  return PopAndCheck3Types(limits.IndexType(), elem_type, limits.IndexType(),
-                           "table.fill");
+Result TypeChecker::OnTableFill(Type elem_type) {
+  return PopAndCheck3Types(Type::I32, elem_type, Type::I32, "table.fill");
 }
 
-Result TypeChecker::OnRefFuncExpr(Index func_type, bool force_generic_funcref) {
-  /*
-   * In a const expression, treat ref.func as producing a generic funcref.
-   * This avoids having to implement funcref subtyping (for now) and matches
-   * the previous behavior where SharedValidator::OnElemSegmentElemExpr_RefFunc
-   * examined only the validity of the function index.
-   */
-  if (features_.function_references_enabled() && !force_generic_funcref) {
+Result TypeChecker::OnRefFuncExpr(Index func_type) {
+  if (features_.function_references_enabled()) {
     PushType(Type(Type::Reference, func_type));
   } else {
     PushType(Type::FuncRef);
@@ -812,10 +794,18 @@ Result TypeChecker::OnRefNullExpr(Type type) {
 Result TypeChecker::OnRefIsNullExpr() {
   Type type;
   Result result = PeekType(0, &type);
-  if (!type.IsRef()) {
-    type = Type::Reference;
+  if (!(type == Type::Any || type.IsRef())) {
+    TypeVector actual;
+    if (Succeeded(result)) {
+      actual.push_back(type);
+    }
+    std::string message =
+        "type mismatch in ref.is_null, expected reference but got " +
+        TypesToString(actual);
+    PrintError("%s", message.c_str());
+    result = Result::Error;
   }
-  result |= PopAndCheck1Type(type, "ref.is_null");
+  result |= DropTypes(1);
   PushType(Type::I32);
   return result;
 }

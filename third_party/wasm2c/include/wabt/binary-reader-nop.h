@@ -89,8 +89,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
                         std::string_view module_name,
                         std::string_view field_name,
                         Index memory_index,
-                        const Limits* page_limits,
-                        uint32_t page_size) override {
+                        const Limits* page_limits) override {
     return Result::Ok;
   }
   Result OnImportGlobal(Index import_index,
@@ -131,9 +130,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   /* Memory section */
   Result BeginMemorySection(Offset size) override { return Result::Ok; }
   Result OnMemoryCount(Index count) override { return Result::Ok; }
-  Result OnMemory(Index index,
-                  const Limits* limits,
-                  uint32_t page_size) override {
+  Result OnMemory(Index index, const Limits* limits) override {
     return Result::Ok;
   }
   Result EndMemorySection() override { return Result::Ok; }
@@ -175,7 +172,6 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnLocalDecl(Index decl_index, Index count, Type type) override {
     return Result::Ok;
   }
-  Result EndLocalDecls() override { return Result::Ok; }
 
   /* Function expressions; called between BeginFunctionBody and
    EndFunctionBody */
@@ -277,7 +273,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnLocalSetExpr(Index local_index) override { return Result::Ok; }
   Result OnLocalTeeExpr(Index local_index) override { return Result::Ok; }
   Result OnLoopExpr(Type sig_type) override { return Result::Ok; }
-  Result OnMemoryCopyExpr(Index destmemidx, Index srcmemidx) override {
+  Result OnMemoryCopyExpr(Index srcmemidx, Index destmemidx) override {
     return Result::Ok;
   }
   Result OnDataDropExpr(Index segment_index) override { return Result::Ok; }
@@ -374,10 +370,12 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnElemSegmentElemExprCount(Index index, Index count) override {
     return Result::Ok;
   }
-  Result BeginElemExpr(Index elem_index, Index expr_index) override {
+  Result OnElemSegmentElemExpr_RefNull(Index segment_index,
+                                       Type type) override {
     return Result::Ok;
   }
-  Result EndElemExpr(Index elem_index, Index expr_index) override {
+  Result OnElemSegmentElemExpr_RefFunc(Index segment_index,
+                                       Index func_index) override {
     return Result::Ok;
   }
   Result EndElemSegment(Index index) override { return Result::Ok; }
@@ -522,15 +520,6 @@ class BinaryReaderNop : public BinaryReaderDelegate {
     return Result::Ok;
   }
   Result EndTargetFeaturesSection() override { return Result::Ok; }
-
-  /* Generic custom section */
-  Result BeginGenericCustomSection(Offset size) override { return Result::Ok; }
-  Result OnGenericCustomSection(std::string_view name,
-                                const void* data,
-                                Offset size) override {
-    return Result::Ok;
-  };
-  Result EndGenericCustomSection() override { return Result::Ok; }
 
   /* Linking section */
   Result BeginLinkingSection(Offset size) override { return Result::Ok; }
