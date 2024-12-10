@@ -6,7 +6,6 @@ import {
   LitElement,
   html,
   ifDefined,
-  nothing,
 } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
@@ -92,7 +91,7 @@ function queryAll(el, selector) {
  * async onClick() {
  *   let response = await this.getServerResponse(this.data);
  *   // Show the response status to the user.
- *   this.responseStatus = response.status;
+ *   this.responseStatus = respose.status;
  *   this.dispatchOnUpdateComplete(
  *     new CustomEvent("status-shown")
  *   );
@@ -263,21 +262,14 @@ export class MozBaseInputElement extends MozLitElement {
     super.willUpdate(changedProperties);
     this.#updateInternalState(this.description, "description");
     this.#updateInternalState(this.supportPage, "support-link");
-    this.#updateInternalState(this.label, "label");
   }
 
-  #updateInternalState(propVal, stateKey) {
-    let internalStateKey = `has-${stateKey}`;
-    let hasValue = !!(propVal || this.#hasSlottedContent.get(stateKey));
-
-    if (this.#internals.states?.has(internalStateKey) == hasValue) {
-      return;
-    }
-
-    if (hasValue) {
-      this.#internals.states.add(internalStateKey);
+  #updateInternalState(propVal, slotName) {
+    let stateKey = `has-${slotName}`;
+    if (propVal || this.#hasSlottedContent.get(slotName)) {
+      this.#internals.states.add(stateKey);
     } else {
-      this.#internals.states.delete(internalStateKey);
+      this.#internals.states.delete(stateKey);
     }
   }
 
@@ -305,10 +297,6 @@ export class MozBaseInputElement extends MozLitElement {
     return this.#internals.states.has("has-support-link");
   }
 
-  get hasLabel() {
-    return this.#internals.states.has("has-label");
-  }
-
   click() {
     this.inputEl.click();
   }
@@ -323,10 +311,6 @@ export class MozBaseInputElement extends MozLitElement {
     );
   }
 
-  inputStylesTemplate() {
-    return nothing;
-  }
-
   render() {
     let isInlineLayout = this.constructor.inputLayout == "inline";
     return html`
@@ -334,32 +318,27 @@ export class MozBaseInputElement extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-input-common.css"
       />
-      ${this.inputStylesTemplate()}
       <span class="label-wrapper">
         <label
           is="moz-label"
           part="label"
           for="input"
           shownaccesskey=${ifDefined(this.accessKey)}
-          >${isInlineLayout
-            ? this.inputTemplate()
-            : ""}${this.labelTemplate()}</label
-        >${this.hasDescription ? "" : this.supportLinkTemplate()}
+        >
+          ${isInlineLayout ? this.inputTemplate() : ""}${this.labelTemplate()}
+        </label>
+        ${this.hasDescription ? "" : this.supportLinkTemplate()}
       </span>
       ${this.descriptionTemplate()}
       ${!isInlineLayout ? this.inputTemplate() : ""}
-      ${this.nestedFieldsTemplate()}
     `;
   }
 
   labelTemplate() {
-    if (!this.label) {
-      return "";
-    }
-
-    return html`<span class="label-content"
-      >${this.iconTemplate()}<span class="text">${this.label}</span></span
-    >`;
+    return html`<span class="label-content">
+      ${this.iconTemplate()}
+      <span class="text">${this.label}</span>
+    </span>`;
   }
 
   descriptionTemplate() {
@@ -392,14 +371,6 @@ export class MozBaseInputElement extends MozLitElement {
     return html`<slot
       name="support-link"
       @slotchange=${this.onSlotchange}
-    ></slot>`;
-  }
-
-  nestedFieldsTemplate() {
-    return html`<slot
-      name="nested"
-      class="nested"
-      @slotchange=${this.handleNestedContent}
     ></slot>`;
   }
 

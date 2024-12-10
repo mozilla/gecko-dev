@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(this, {
 
 const CONTAINER_ID = "firefoxSuggestPrivacyContainer";
 const DATA_COLLECTION_TOGGLE_ID = "firefoxSuggestDataCollectionPrivacyToggle";
+const LEARN_MORE_CLASS = "firefoxSuggestLearnMore";
 
 // This test can take a while due to the many permutations some of these tasks
 // run through, so request a longer timeout.
@@ -229,32 +230,39 @@ add_task(async function clickLearnMore() {
     set: [["browser.urlbar.quicksuggest.dataCollection.enabled", true]],
   });
 
-  let toggle = dataCollectionSection.querySelector("moz-toggle");
-  let learnMoreLink = toggle.shadowRoot.querySelector(
-    "a[is='moz-support-link']"
+  let learnMoreLinks = doc.querySelectorAll(
+    `#${CONTAINER_ID} .` + LEARN_MORE_CLASS
   );
-
-  ok(learnMoreLink, "Learn-more link is present");
-  Assert.ok(
-    BrowserTestUtils.isVisible(learnMoreLink),
-    "Learn-more link is visible"
+  Assert.equal(
+    learnMoreLinks.length,
+    1,
+    "Expected number of learn-more links are present"
   );
+  for (let link of learnMoreLinks) {
+    Assert.ok(
+      BrowserTestUtils.isVisible(link),
+      "Learn-more link is visible: " + link.id
+    );
+  }
 
   let prefsTab = gBrowser.selectedTab;
-  let tabPromise = BrowserTestUtils.waitForNewTab(
-    gBrowser,
-    QuickSuggest.HELP_URL
-  );
-  info("Clicking learn-more link");
-  await EventUtils.synthesizeMouseAtCenter(
-    learnMoreLink,
-    {},
-    gBrowser.selectedBrowser.contentWindow
-  );
-  info("Waiting for help page to load in a new tab");
-  await tabPromise;
-  gBrowser.removeCurrentTab();
-  gBrowser.selectedTab = prefsTab;
+  for (let link of learnMoreLinks) {
+    let tabPromise = BrowserTestUtils.waitForNewTab(
+      gBrowser,
+      QuickSuggest.HELP_URL
+    );
+    info("Clicking learn-more link: " + link.id);
+    Assert.ok(link.id, "Sanity check: Learn-more link has an ID");
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      "#" + link.id,
+      {},
+      gBrowser.selectedBrowser
+    );
+    info("Waiting for help page to load in a new tab");
+    await tabPromise;
+    gBrowser.removeCurrentTab();
+    gBrowser.selectedTab = prefsTab;
+  }
 
   gBrowser.removeCurrentTab();
   await SpecialPowers.popPrefEnv();

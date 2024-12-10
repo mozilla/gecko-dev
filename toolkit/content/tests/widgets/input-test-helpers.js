@@ -76,17 +76,12 @@ class InputTestHelpers {
    */
   getInputEventHelpers() {
     let seenEvents = [];
-    let { activatedProperty } = this;
-
     function trackEvent(event) {
-      let reactiveProps = event.target.constructor.properties;
       seenEvents.push({
         type: event.type,
         value: event.target.value,
+        checked: event.target.checked,
         localName: event.currentTarget.localName,
-        ...(reactiveProps.hasOwnProperty(activatedProperty) && {
-          [activatedProperty]: event.target[activatedProperty],
-        }),
       });
     }
     function verifyEvents(expectedEvents) {
@@ -108,11 +103,11 @@ class InputTestHelpers {
           eventInfo.localName,
           "Event is emitted from the correct element."
         );
-        if (activatedProperty) {
+        if (eventInfo.hasOwnProperty("checked")) {
           is(
-            seenEventInfo[activatedProperty],
-            eventInfo[activatedProperty],
-            `Event ${activatedProperty} state is correct.`
+            seenEventInfo.checked,
+            eventInfo.checked,
+            "Event checked state is correct."
           );
         }
       });
@@ -137,9 +132,8 @@ class InputTestHelpers {
     await this.verifyDescription(elementName);
     await this.verifySupportPage(elementName);
     await this.verifyAccesskey(elementName);
-    await this.verifyNoWhitespace(elementName);
-    if (this.activatedProperty) {
-      await this.verifyActivated(elementName);
+    if (this.checkable) {
+      await this.verifyChecked(elementName);
     }
   }
 
@@ -337,7 +331,6 @@ class InputTestHelpers {
    */
   async verifySupportPage(selector) {
     const LEARN_MORE_TEXT = "Learn more";
-    const CUSTOM_TEXT = "Help me!";
 
     let templatesArgs = [
       [{ "support-page": "test-page", label: "A label" }],
@@ -406,7 +399,7 @@ class InputTestHelpers {
     );
     is(
       slottedSupportLink.innerText,
-      CUSTOM_TEXT,
+      "Help me!",
       "Slotted link uses non-default label text."
     );
     is(
@@ -445,7 +438,6 @@ class InputTestHelpers {
   async verifyAccesskey(selector) {
     const UNIQUE_ACCESS_KEY = "t";
     const SHARED_ACCESS_KEY = "d";
-    let { activatedProperty } = this;
 
     let attrs = [
       { value: "first", label: "First", accesskey: UNIQUE_ACCESS_KEY },
@@ -466,9 +458,7 @@ class InputTestHelpers {
       firstInput.inputEl,
       "Input element is not focused."
     );
-    if (activatedProperty) {
-      ok(!firstInput[activatedProperty], `Input is not ${activatedProperty}.`);
-    }
+    ok(!firstInput.checked, "Input is not checked.");
 
     synthesizeKey(
       UNIQUE_ACCESS_KEY,
@@ -487,11 +477,8 @@ class InputTestHelpers {
       firstInput.inputEl,
       "Input element is focused after accesskey is pressed."
     );
-    if (activatedProperty) {
-      ok(
-        firstInput[activatedProperty],
-        `Input is ${activatedProperty} after accesskey is pressed.`
-      );
+    if (this.checkable) {
+      ok(firstInput.checked, "Input is checked after accesskey is pressed.");
     }
 
     // Validate that activating a shared accesskey toggles focus between inputs.
@@ -507,11 +494,8 @@ class InputTestHelpers {
       secondInput,
       "Focus moves to the input with the shared accesskey."
     );
-    if (activatedProperty) {
-      ok(
-        !secondInput[activatedProperty],
-        `Second input is not ${activatedProperty}.`
-      );
+    if (this.checkable) {
+      ok(!secondInput.checked, "Second input is not checked.");
     }
 
     synthesizeKey(
@@ -526,115 +510,36 @@ class InputTestHelpers {
       thirdInput,
       "Focus cycles between inputs with the same accesskey."
     );
-    if (activatedProperty) {
-      ok(
-        !thirdInput[activatedProperty],
-        `Third input is not ${activatedProperty}.`
-      );
+    if (this.checkable) {
+      ok(!thirdInput.checked, "Third input is not checked.");
     }
   }
 
   /**
-   * Verifies the activated state of the input element.
+   * Verifies the checked state of the input element.
    *
    * @param {string} selector - HTML tag of the element under test.
    */
-  async verifyActivated(selector) {
+  async verifyChecked(selector) {
     let renderTarget = await this.renderInputElements();
     let firstInput = renderTarget.querySelector(selector);
-    let { activatedProperty } = this;
-
     ok(
-      !firstInput.inputEl[activatedProperty] && !firstInput[activatedProperty],
-      `Input is not ${activatedProperty} on initial render.`
+      !firstInput.inputEl.checked,
+      "Input name is not checked on initial render."
     );
-
-    firstInput[activatedProperty] = true;
+    firstInput.checked = true;
     await firstInput.updateComplete;
+    ok(firstInput.inputEl.checked, "Input is checked.");
+    ok(firstInput.checked, "Checked state is propagated.");
 
-    ok(firstInput[activatedProperty], `Input is ${activatedProperty}.`);
-    ok(
-      firstInput.inputEl[activatedProperty] ||
-        firstInput.inputEl.getAttribute(`aria-${activatedProperty}`) == "true",
-      `${activatedProperty} state is propagated.`
-    );
-
-    // Reset state so that the radio input doesn't
+    // Reset checked state so that the radio input doesn't
     // give a false negative
-    firstInput[activatedProperty] = false;
+    firstInput.checked = false;
     await firstInput.updateComplete;
 
     synthesizeMouseAtCenter(firstInput.inputEl, {});
     await firstInput.updateComplete;
-
-    ok(
-      firstInput[activatedProperty],
-      `Input is ${activatedProperty} via mouse.`
-    );
-    ok(
-      firstInput.inputEl[activatedProperty] ||
-        firstInput.inputEl.getAttribute(`aria-${activatedProperty}`) == "true",
-      `${activatedProperty} state is propagated.`
-    );
-  }
-
-  /**
-   * Verifies that whitespace isn't getting added via different parts of the
-   * template as it will be visible in the rendered markup.
-   *
-   * @param {string} selector - HTML tag of the element under test.
-   */
-  async verifyNoWhitespace(selector) {
-    let whitespaceTemplate = this.templateFn({
-      label: "label",
-      "support-page": "test",
-      "icon-src": "chrome://global/skin/icons/edit-copy.svg",
-    });
-    let renderTarget = await this.renderInputElements(whitespaceTemplate);
-    let firstInput = renderTarget.querySelector(selector);
-
-    if (firstInput.constructor.inputLayout == "block") {
-      return;
-    }
-
-    function isWhitespaceTextNode(node) {
-      return node.nodeType == Node.TEXT_NODE && !/[^\s]/.exec(node.nodeValue);
-    }
-
-    ok(
-      !isWhitespaceTextNode(firstInput.inputEl.previousSibling),
-      "Input element is not preceded by whitespace."
-    );
-    ok(
-      !isWhitespaceTextNode(firstInput.inputEl.nextSibling),
-      "Input element is not followed by whitespace."
-    );
-
-    let labelContent = firstInput.labelEl.querySelector(".label-content");
-    ok(
-      !isWhitespaceTextNode(labelContent.previousSibling),
-      "Label content is not preceded by whitespace."
-    );
-
-    // Usually labelContent won't be followed by anything, but adding this check
-    // ensures the whitespace doesn't accidentally get re-added
-    if (labelContent.nextSibling) {
-      ok(
-        !isWhitespaceTextNode(labelContent.nextSibling),
-        "Label content is not followed by whitespace."
-      );
-    }
-
-    let containsWhitespace = false;
-    for (let node of labelContent.childNodes) {
-      if (isWhitespaceTextNode(node)) {
-        containsWhitespace = true;
-        break;
-      }
-    }
-    ok(
-      !containsWhitespace,
-      "Label content doesn't contain any extra whitespace."
-    );
+    ok(firstInput.inputEl.checked, "Input is checked via mouse.");
+    ok(firstInput.checked, "Checked state is propagated.");
   }
 }

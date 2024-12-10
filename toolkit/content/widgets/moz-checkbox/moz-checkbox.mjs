@@ -58,18 +58,20 @@ export default class MozCheckbox extends MozBaseInputElement {
   }
 
   inputTemplate() {
-    return html`<input
-      id="input"
-      type="checkbox"
-      name=${this.name}
-      value=${this.value}
-      .checked=${this.checked}
-      @click=${this.handleStateChange}
-      @change=${this.redispatchEvent}
-      .disabled=${this.disabled}
-      aria-describedby="description"
-      accesskey=${ifDefined(this.accessKey)}
-    />`;
+    return html`
+      <input
+        id="input"
+        type="checkbox"
+        name=${this.name}
+        value=${this.value}
+        .checked=${this.checked}
+        @click=${this.handleStateChange}
+        @change=${this.redispatchEvent}
+        .disabled=${this.disabled}
+        aria-describedby="description"
+        accesskey=${ifDefined(this.accessKey)}
+      />
+    `;
   }
 }
 customElements.define("moz-checkbox", MozCheckbox);
