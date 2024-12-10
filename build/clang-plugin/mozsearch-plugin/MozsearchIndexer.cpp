@@ -1575,7 +1575,16 @@ public:
     const auto *parentDecl =
         dyn_cast_or_null<RecordDecl>(decl->getDeclContext());
 
-    J.attribute("kind", "field");
+    if (parentDecl) {
+      J.attribute("kind", "field");
+    } else if (llvm::isa<ParmVarDecl>(decl)) {
+      J.attribute("kind", "parameter");
+    } else if (decl->isLocalVarDecl()) {
+      J.attribute("kind", "localVar");
+    } else {
+      // namespace scope variable
+      J.attribute("kind", "variable");
+    }
 
     if (parentDecl) {
       J.attribute("parentsym", getMangledName(CurMangleContext, parentDecl));
@@ -2180,8 +2189,7 @@ public:
       }
     }
     if (VarDecl *D2 = dyn_cast<VarDecl>(D)) {
-      if (!D2->isTemplated() && !TemplateStack &&
-          isa<CXXRecordDecl>(D2->getDeclContext())) {
+      if (!D2->isTemplated() && !TemplateStack) {
         findBindingToJavaConstant(*AstContext, *D2);
         emitStructuredInfo(ExpansionLoc, D2);
       }
