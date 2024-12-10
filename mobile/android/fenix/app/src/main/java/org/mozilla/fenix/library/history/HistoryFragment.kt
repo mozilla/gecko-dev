@@ -59,8 +59,6 @@ import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.setTextColor
 import org.mozilla.fenix.library.LibraryPageFragment
-import org.mozilla.fenix.library.history.state.HistoryNavigationMiddleware
-import org.mozilla.fenix.library.history.state.HistorySyncMiddleware
 import org.mozilla.fenix.library.history.state.HistoryTelemetryMiddleware
 import org.mozilla.fenix.library.history.state.bindings.MenuBinding
 import org.mozilla.fenix.library.history.state.bindings.PendingDeletionBinding
@@ -112,16 +110,8 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
             HistoryFragmentStore(
                 initialState = HistoryFragmentState.initial,
                 middleware = listOf(
-                    HistoryNavigationMiddleware(
-                        onBackPressed = { findNavController().popBackStack() },
-                    ),
                     HistoryTelemetryMiddleware(
                         isInPrivateMode = requireComponents.appStore.state.mode == BrowsingMode.Private,
-                    ),
-                    HistorySyncMiddleware(
-                        accountManager = requireContext().components.backgroundServices.accountManager,
-                        refreshView = { historyView.historyAdapter.refresh() },
-                        scope = lifecycleScope,
                     ),
                 ),
             )
@@ -142,6 +132,8 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
             onRecentlyClosedClicked = ::navigateToRecentlyClosed,
             onHistoryItemClicked = ::openItem,
             onDeleteInitiated = ::onDeleteInitiated,
+            accountManager = requireContext().components.backgroundServices.accountManager,
+            scope = lifecycleScope,
         )
 
         return view

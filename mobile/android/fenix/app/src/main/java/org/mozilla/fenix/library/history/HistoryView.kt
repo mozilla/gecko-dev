@@ -11,6 +11,11 @@ import androidx.core.view.isVisible
 import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.SimpleItemAnimator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import mozilla.components.service.fxa.SyncEngine
+import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.service.fxa.sync.SyncReason
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.databinding.ComponentHistoryBinding
@@ -30,6 +35,8 @@ class HistoryView(
     val onHistoryItemClicked: (History) -> Unit,
     val onDeleteInitiated: (Set<History>) -> Unit,
     val onEmptyStateChanged: (Boolean) -> Unit,
+    private val accountManager: FxaAccountManager,
+    private val scope: CoroutineScope,
 ) : LibraryPageView(container) {
 
     val binding = ComponentHistoryBinding.inflate(
@@ -78,6 +85,15 @@ class HistoryView(
         binding.swipeRefresh.setColorSchemeColors(primaryTextColor)
         binding.swipeRefresh.setOnRefreshListener {
             store.dispatch(HistoryFragmentAction.StartSync)
+            scope.launch {
+                accountManager.syncNow(
+                    reason = SyncReason.User,
+                    debounce = true,
+                    customEngineSubset = listOf(SyncEngine.History),
+                )
+            }
+            historyAdapter.refresh()
+            store.dispatch(HistoryFragmentAction.FinishSync)
         }
     }
 
