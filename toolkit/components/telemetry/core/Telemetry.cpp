@@ -1825,6 +1825,9 @@ void AccumulateCategorical(HistogramID id, const nsTArray<nsCString>& labels) {
 void AccumulateTimeDelta(HistogramID aHistogram, TimeStamp start,
                          TimeStamp end) {
   if (start > end) {
+    mozilla::glean::telemetry::clamping_time_hgrams
+        .Get(nsDependentCString(GetHistogramName(aHistogram)))
+        .Add(1);
     Accumulate(aHistogram, 0);
     return;
   }
@@ -1834,6 +1837,9 @@ void AccumulateTimeDelta(HistogramID aHistogram, TimeStamp start,
 void AccumulateTimeDelta(HistogramID aHistogram, const nsCString& key,
                          TimeStamp start, TimeStamp end) {
   if (start > end) {
+    mozilla::glean::telemetry::clamping_time_hgrams
+        .Get(nsDependentCString(GetHistogramName(aHistogram)))
+        .Add(1);
     Accumulate(aHistogram, key, 0);
     return;
   }

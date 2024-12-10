@@ -5,6 +5,7 @@
 
 #include "gtest/gtest.h"
 #include "js/Conversions.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "TelemetryFixture.h"
 #include "TelemetryTestHelpers.h"
@@ -820,6 +821,12 @@ TEST_F(TelemetryTestFixture, AccumulateTimeDelta) {
   // end > start timestamp gives zero contribution
   Telemetry::AccumulateTimeDelta(Telemetry::TELEMETRY_TEST_COUNT, start + delta,
                                  start);
+
+  // The zero contribution is instrumented
+  auto result = mozilla::glean::telemetry::clamping_time_hgrams
+                    .Get("TELEMETRY_TEST_COUNT"_ns)
+                    .TestGetValue();
+  ASSERT_EQ(1, result.unwrap().ref());
 
   // Get a snapshot for all the histograms
   JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
