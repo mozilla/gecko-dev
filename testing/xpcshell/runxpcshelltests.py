@@ -170,7 +170,7 @@ class XPCShellTestThread(Thread):
     def __init__(
         self,
         test_object,
-        retry=True,
+        retry=None,
         verbose=False,
         usingTSan=False,
         usingCrashReporter=False,
@@ -181,6 +181,10 @@ class XPCShellTestThread(Thread):
 
         self.test_object = test_object
         self.retry = retry
+        if retry is None:
+            # Retry in CI, but report results without retry when run locally to
+            # avoid confusion and ease local debugging.
+            self.retry = os.environ.get("MOZ_AUTOMATION", 0) != 0
         self.verbose = verbose
         self.usingTSan = usingTSan
         self.usingCrashReporter = usingCrashReporter
@@ -2218,9 +2222,7 @@ class XPCShellTests(object):
                 self.start_test(test)
                 test.join()
                 self.test_ended(test)
-                if (test.failCount > 0 or test.passCount <= 0) and os.environ.get(
-                    "MOZ_AUTOMATION", 0
-                ) != 0:
+                if (test.failCount > 0 or test.passCount <= 0) and test.retry:
                     self.try_again_list.append(test.test_object)
                     continue
                 self.addTestResults(test)
