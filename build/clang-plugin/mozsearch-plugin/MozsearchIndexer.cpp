@@ -2238,6 +2238,12 @@ public:
     return true;
   }
 
+  CallExpr *CurrentCall = nullptr;
+  bool TraverseCallExpr(CallExpr *E) {
+    const auto _ = ValueRollback(CurrentCall, E);
+    return Super::TraverseCallExpr(E);
+  }
+
   bool VisitCallExpr(CallExpr *E) {
     Expr *CalleeExpr = E->getCallee()->IgnoreParenImpCasts();
 
@@ -2591,6 +2597,46 @@ public:
     }
   }
 
+  bool arityMatchesCurrentCallExpr(const Expr *E, const NamedDecl *Candidate) {
+    const auto IsCurrentCallee = CurrentCall && E == CurrentCall->getCallee();
+    const auto CallNumArgs =
+        IsCurrentCallee ? CurrentCall->getNumArgs() : std::optional<uint>{};
+
+    const FunctionDecl *CandidateFunc;
+    if (const auto *UsingDecl = dyn_cast<UsingShadowDecl>(Candidate)) {
+      CandidateFunc = UsingDecl->getTargetDecl()->getAsFunction();
+    } else {
+      CandidateFunc = Candidate->getAsFunction();
+    }
+
+    // We try and filter candidates by arity, but be conservative and accept
+    // them when we don't know better
+    if (!CandidateFunc || !CallNumArgs) {
+      return true;
+    }
+
+    const auto MinNumArgs = CandidateFunc->getMinRequiredExplicitArguments();
+    const auto MaxNumArgs = [&]() -> std::optional<uint> {
+      const auto IsVariadic =
+          CandidateFunc->isVariadic() ||
+          std::any_of(CandidateFunc->param_begin(), CandidateFunc->param_end(),
+                      [](const ParmVarDecl *param) {
+                        return param->isParameterPack();
+                      });
+
+      if (IsVariadic)
+        return {};
+
+      return CandidateFunc->getNumNonObjectParams();
+    }();
+
+    if (CallNumArgs < MinNumArgs || (MaxNumArgs && CallNumArgs > *MaxNumArgs)) {
+      return false;
+    }
+
+    return true;
+  }
+
   bool VisitOverloadExpr(OverloadExpr *E) {
     SourceLocation Loc = E->getExprLoc();
     normalizeLocation(&Loc);
@@ -2599,7 +2645,8 @@ public:
     }
 
     for (auto *Candidate : E->decls()) {
-      visitHeuristicResult(Loc, Candidate);
+      if (arityMatchesCurrentCallExpr(E, Candidate))
+        visitHeuristicResult(Loc, Candidate);
     }
 
     // Also record this location so that if we have instantiations, we can
@@ -2617,9 +2664,9 @@ public:
       return true;
     }
 
-    // If possible, provide a heuristic result without instantiation.
-    for (const NamedDecl *D : Resolver->resolveMemberExpr(E)) {
-      visitHeuristicResult(Loc, D);
+    for (const NamedDecl *Candidate : Resolver->resolveMemberExpr(E)) {
+      if (arityMatchesCurrentCallExpr(E, Candidate))
+        visitHeuristicResult(Loc, Candidate);
     }
 
     // Also record this location so that if we have instantiations, we can
@@ -2652,8 +2699,9 @@ public:
       return true;
     }
 
-    for (const NamedDecl *D : Resolver->resolveDeclRefExpr(E)) {
-      visitHeuristicResult(Loc, D);
+    for (const NamedDecl *Candidate : Resolver->resolveDeclRefExpr(E)) {
+      if (arityMatchesCurrentCallExpr(E, Candidate))
+        visitHeuristicResult(Loc, Candidate);
     }
 
     // Also record this location so that if we have instantiations, we can
