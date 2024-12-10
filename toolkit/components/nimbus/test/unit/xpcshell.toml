@@ -42,7 +42,6 @@ run-sequentially = "very high failure rate in parallel"
 ["test_SharedDataMap.js"]
 
 ["test_TargetingContextRecorder.js"]
-skip-if = ["artifact"]
 
 ["test_localization.js"]
 
