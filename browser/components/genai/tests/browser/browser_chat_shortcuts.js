@@ -65,6 +65,11 @@ add_task(async function test_show_shortcuts() {
     events = Glean.genaiChatbot.shortcutsExpanded.testGetValue();
     Assert.equal(events.length, 1, "One shortcuts opened");
     Assert.equal(events[0].extra.selection, 2, "Selected hi");
+    Assert.equal(
+      events[0].extra.warning,
+      "false",
+      "Warning lable value is correct"
+    );
 
     const custom = popup.querySelector("textarea");
     Assert.ok(custom, "Got custom prompt entry");
@@ -85,6 +90,58 @@ add_task(async function test_show_shortcuts() {
 
     SidebarController.hide();
   });
+});
+
+/**
+ * Check that the warning label is shown when too much text is selected
+ */
+add_task(async function test_show_warning_label() {
+  Services.fog.testResetFOG();
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.chat.shortcuts", true]],
+  });
+  await BrowserTestUtils.withNewTab(
+    "data:text/plain,hi".repeat(1000),
+    async browser => {
+      await SimpleTest.promiseFocus(browser);
+      const selectPromise = SpecialPowers.spawn(browser, [], () => {
+        ContentTaskUtils.waitForCondition(() => content.getSelection());
+      });
+      goDoCommand("cmd_selectAll");
+      await selectPromise;
+      BrowserTestUtils.synthesizeMouseAtCenter(
+        browser,
+        { type: "mouseup" },
+        browser
+      );
+      const shortcuts = await TestUtils.waitForCondition(() =>
+        document.querySelector(".content-shortcuts[shown]")
+      );
+      Assert.ok(shortcuts, "Shortcuts added on select");
+
+      let events = Glean.genaiChatbot.shortcutsDisplayed.testGetValue();
+      Assert.equal(events.length, 1, "Shortcuts shown once");
+      Assert.ok(events[0].extra.delay, "Waited some time");
+      Assert.equal(events[0].extra.inputType, "", "Not in input");
+      Assert.ok(events[0].extra.selection > 8192, "Selected enough text");
+
+      const popup = document.getElementById("ask-chat-shortcuts");
+      EventUtils.sendMouseEvent({ type: "mouseover" }, shortcuts);
+
+      await BrowserTestUtils.waitForEvent(popup, "popupshown");
+      Assert.ok(
+        popup.querySelector(".ask-chat-shortcut-warning"),
+        "Warning label shown"
+      );
+
+      events = Glean.genaiChatbot.shortcutsExpanded.testGetValue();
+      Assert.equal(
+        events[0].extra.warning,
+        "true",
+        "Warning lable value is correct"
+      );
+    }
+  );
 });
 
 /**

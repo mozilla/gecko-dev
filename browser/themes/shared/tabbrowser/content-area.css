@@ -257,6 +257,22 @@
   }
 }
 
+
+#ask-chat-shortcuts {
+  max-width: 345px;
+}
+
+.ask-chat-shortcut-warning {
+  margin: var(--arrowpanel-menuitem-margin);
+  margin-bottom: var(--space-xsmall);
+}
+
+.ask-chat-shortcuts-custom-prompt {
+  margin: var(--arrowpanel-menuitem-margin);
+  margin-top: var(--space-small);
+}
+
+
 /**
  * Dialogs
  */

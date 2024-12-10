@@ -434,8 +434,10 @@ genai.chatbot:
       Shortcuts expanded to show prompts.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1910005
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922379
     data_reviews:
       - https://phabricator.services.mozilla.com/D217782
+      - https://phabricator.services.mozilla.com/D225895
     data_sensitivity:
       - interaction
     expires: 147
@@ -447,6 +449,12 @@ genai.chatbot:
       selection:
         type: quantity
         description: Selected text length.
+      provider:
+        type: string
+        description: Selected provider id.
+      warning:
+        type: boolean
+        description: Warning label is shown to the user.
 
   shortcuts_hide_click:
     type: event
