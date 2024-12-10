@@ -2165,16 +2165,14 @@ function runUpdate(
 
   setAppBundleModTime();
 
-  // The version 3 argument format looks like
-  // updater 3 patch-dir install-dir apply-to-dir which-invocation [wait-pid [callback-working-dir callback-path args...]]
-  let args = [
-    "3",
-    updatesDirPath,
-    installDirPath,
-    aSwitchApp ? stageDirPath : applyToDirPath,
-    "first",
-    aSwitchApp ? pid + "/replace" : pid,
-  ];
+  let args = [updatesDirPath, installDirPath];
+  if (aSwitchApp) {
+    args[2] = stageDirPath;
+    args[3] = pid + "/replace";
+  } else {
+    args[2] = applyToDirPath;
+    args[3] = pid;
+  }
 
   let launchBin = gIsServiceTest && isInvalidArgTest ? callbackApp : gUpdateBin;
 
@@ -2182,8 +2180,6 @@ function runUpdate(
     args = args.concat([callbackApp.parent.path, callbackApp.path]);
     args = args.concat(gCallbackArgs);
   } else if (gIsServiceTest) {
-    // We are jumping straight to the second invocation in this case
-    args[4] = "second";
     args = ["launch-service", gUpdateBin.path].concat(args);
   } else if (aCallbackPath) {
     args = args.concat([callbackApp.parent.path, aCallbackPath]);
