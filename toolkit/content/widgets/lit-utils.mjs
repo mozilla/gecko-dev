@@ -348,6 +348,7 @@ export class MozBaseInputElement extends MozLitElement {
       </span>
       ${this.descriptionTemplate()}
       ${!isInlineLayout ? this.inputTemplate() : ""}
+      ${this.nestedFieldsTemplate()}
     `;
   }
 
@@ -391,6 +392,14 @@ export class MozBaseInputElement extends MozLitElement {
     return html`<slot
       name="support-link"
       @slotchange=${this.onSlotchange}
+    ></slot>`;
+  }
+
+  nestedFieldsTemplate() {
+    return html`<slot
+      name="nested"
+      class="nested"
+      @slotchange=${this.handleNestedContent}
     ></slot>`;
   }
 
