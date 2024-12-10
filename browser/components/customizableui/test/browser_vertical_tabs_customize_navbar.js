@@ -40,12 +40,12 @@ add_task(async function () {
   );
   is(
     alltabsPlacement.position,
-    14,
+    13,
     "alltabs-button is in its original default position"
   );
   is(
     firefoxViewPlacement.position,
-    13,
+    12,
     "firefox-view-button is in its original default position"
   );
 

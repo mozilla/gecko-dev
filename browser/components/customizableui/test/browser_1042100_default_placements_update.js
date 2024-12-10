@@ -148,7 +148,6 @@ function test() {
         "back-button",
         "forward-button",
         "stop-reload-button",
-        "vertical-spacer",
         "urlbar-container",
         "downloads-button",
         "fxa-toolbar-menu-button",
@@ -164,7 +163,6 @@ function test() {
 
   // Finally, test the downloads and fxa avatar button migrations work.
   let oldNavbarPlacements = [
-    "vertical-spacer",
     "urlbar-container",
     "customizableui-special-spring3",
     "search-container",
@@ -210,7 +208,6 @@ function test() {
   );
 
   oldNavbarPlacements = [
-    "vertical-spacer",
     "urlbar-container",
     "customizableui-special-spring3",
     "search-container",
@@ -224,7 +221,6 @@ function test() {
   });
   CustomizableUIInternal._updateForNewVersion();
   let expectedNavbarPlacements = [
-    "vertical-spacer",
     "urlbar-container",
     "customizableui-special-spring3",
     "search-container",
