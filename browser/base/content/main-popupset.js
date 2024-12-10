@@ -355,6 +355,12 @@ document.addEventListener(
         gUnifiedExtensions.onContextMenuCommand(event.currentTarget, event);
       });
 
+    document
+      .getElementById("webRTC-selectWindow-menulist")
+      .addEventListener("command", event => {
+        webrtcUI.updateWarningLabel(event.currentTarget);
+      });
+
     mainPopupSet.addEventListener("popupshowing", event => {
       switch (event.target.id) {
         case "context_sendTabToDevicePopupMenu":
