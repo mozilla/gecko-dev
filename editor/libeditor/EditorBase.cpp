@@ -5685,21 +5685,17 @@ nsresult EditorBase::InitializeSelection(
     SelectionRef().SetAncestorLimiter(nullptr);
   }
 
-  // If there is composition when this is called, we may need to restore IME
-  // selection because if the editor is reframed, this already forgot IME
-  // selection and the transaction.
-  if (mComposition && mComposition->IsMovingToNewTextNode()) {
-    MOZ_DIAGNOSTIC_ASSERT(IsTextEditor());
-    if (NS_WARN_IF(!IsTextEditor())) {
-      return NS_ERROR_UNEXPECTED;
-    }
+  // If there is composition in a text control when this method is called, we
+  // may need to restore IME selection because if the text control is reframed,
+  // this already forgot IME selection and the transaction.
+  // Note that if this is an HTMLEditor, updating composition makes the new
+  // composition string appear around IME or normal selection.  Therefore,
+  // we don't need to do nothing here.
+  if (IsTextEditor() && mComposition && mComposition->IsMovingToNewTextNode()) {
     // We need to look for the new text node from current selection.
     // XXX If selection is changed during reframe, this doesn't work well!
-    const nsRange* firstRange = SelectionRef().GetRangeAt(0);
-    if (NS_WARN_IF(!firstRange)) {
-      return NS_ERROR_FAILURE;
-    }
-    EditorRawDOMPoint atStartOfFirstRange(firstRange->StartRef());
+    const auto atStartOfFirstRange =
+        EditorBase::GetFirstSelectionStartPoint<EditorRawDOMPoint>();
     EditorRawDOMPoint betterInsertionPoint =
         AsTextEditor()->FindBetterInsertionPoint(atStartOfFirstRange);
     RefPtr<Text> textNode = betterInsertionPoint.GetContainerAs<Text>();

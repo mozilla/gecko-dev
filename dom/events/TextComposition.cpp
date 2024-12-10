@@ -135,7 +135,7 @@ void TextComposition::OnCharacterDataChanged(
 
   // If this is caused by a splitting text node, the composition string
   // may be split out to the new right node.  In the case,
-  // CompositionTransaction::DoTransaction handles it with warking the
+  // CompositionTransaction::DoTransaction handles it with walking the
   // following text nodes.  Therefore, we should NOT shrink the composing
   // range for avoind breaking the fix of bug 1310912.  Although the handling
   // looks buggy so that we need to move the handling into here later.
@@ -169,18 +169,28 @@ void TextComposition::OnCharacterDataChanged(
   // If removed range starts in the composition string, we need only adjust
   // the length to make composition range contain the replace string.
   if (aInfo.mChangeStart >= mCompositionStartOffsetInTextNode) {
+    if (!mCompositionLengthInTextNode) {
+      // However, don't extend composition range if there is no composition
+      // string.
+      return;
+    }
     MOZ_ASSERT(aInfo.LengthOfRemovedText() <= mCompositionLengthInTextNode);
     mCompositionLengthInTextNode -= aInfo.LengthOfRemovedText();
     mCompositionLengthInTextNode += aInfo.mReplaceLength;
     return;
   }
 
-  // If preceding characers of the composition string is also removed,  new
+  // If preceding characters of the composition string is also removed, new
   // composition start will be there and new composition ends at current
   // position.
   const uint32_t removedLengthInCompositionString =
       aInfo.mChangeEnd - mCompositionStartOffsetInTextNode;
   mCompositionStartOffsetInTextNode = aInfo.mChangeStart;
+  if (!mCompositionLengthInTextNode) {
+    // However, don't extend composition range if there is no composition
+    // string.
+    return;
+  }
   mCompositionLengthInTextNode -= removedLengthInCompositionString;
   mCompositionLengthInTextNode += aInfo.mReplaceLength;
 }
