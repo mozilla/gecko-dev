@@ -70,8 +70,7 @@
 
     <!-- Browser Toolbar -->
     <dimen name="browser_toolbar_height">56dp</dimen>
-    <dimen name="browser_navbar_height">48dp</dimen>
-    <dimen name="browser_navbar_divider_height">1dp</dimen>
+    <dimen name="browser_navbar_height">49dp</dimen>
     <dimen name="tab_strip_height">56dp</dimen>
     <dimen name="browser_microsurvey_height">131dp</dimen>
     <dimen name="toolbar_horizontal_margin">16dp</dimen>

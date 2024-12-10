@@ -1001,14 +1001,14 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN navigation toolbar is enabled  and microsurvey are enabled WHEN getBottomToolbarContainerHeight THEN returns the combined navbar & microsurvey height`() {
+    fun `GIVEN navigation toolbar is enabled and microsurvey are enabled WHEN getBottomToolbarContainerHeight THEN returns the combined navbar & microsurvey height`() {
         val settings = spyk(settings)
         every { settings.navigationToolbarEnabled } returns true
         every { settings.shouldShowMicrosurveyPrompt } returns true
 
         val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
 
-        assertEquals(179, bottomToolbarContainerHeight)
+        assertEquals(180, bottomToolbarContainerHeight)
     }
 
     @Test
@@ -1054,7 +1054,7 @@ class SettingsTest {
 
             val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
 
-            assertEquals(235, bottomToolbarHeight)
+            assertEquals(236, bottomToolbarHeight)
         }
     }
 
@@ -1069,7 +1069,7 @@ class SettingsTest {
 
             val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
 
-            assertEquals(179, bottomToolbarHeight)
+            assertEquals(180, bottomToolbarHeight)
         }
     }
 
@@ -1084,7 +1084,7 @@ class SettingsTest {
 
             val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
 
-            assertEquals(104, bottomToolbarHeight)
+            assertEquals(105, bottomToolbarHeight)
         }
     }
 
