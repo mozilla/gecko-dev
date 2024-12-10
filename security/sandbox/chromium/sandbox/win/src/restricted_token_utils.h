@@ -40,6 +40,7 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
                             bool lockdown_default_dacl,
                             PSID unique_restricted_sid,
                             bool use_restricting_sids,
+                            bool allow_everyone_for_user_restricted,
                             base::win::ScopedHandle* token);
 
 // Sets the integrity label on a object handle.

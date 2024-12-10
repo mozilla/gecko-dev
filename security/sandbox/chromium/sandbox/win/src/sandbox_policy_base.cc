@@ -162,6 +162,10 @@ void PolicyBase::SetDoNotUseRestrictingSIDs() {
   use_restricting_sids_ = false;
 }
 
+void PolicyBase::SetAllowEveryoneForUserRestricted() {
+  allow_everyone_for_user_restricted_ = true;
+}
+
 ResultCode PolicyBase::SetJobLevel(JobLevel job_level, uint32_t ui_exceptions) {
   if (memory_limit_ && job_level == JOB_NONE) {
     return SBOX_ERROR_BAD_PARAMS;
@@ -432,7 +436,8 @@ ResultCode PolicyBase::MakeTokens(base::win::ScopedHandle* initial,
   // with the process and therefore with any thread that is not impersonating.
   DWORD result = CreateRestrictedToken(
       effective_token_, lockdown_level_, integrity_level_, PRIMARY,
-      lockdown_default_dacl_, random_sid_ptr, use_restricting_sids_, lockdown);
+      lockdown_default_dacl_, random_sid_ptr, use_restricting_sids_,
+      allow_everyone_for_user_restricted_, lockdown);
   if (ERROR_SUCCESS != result)
     return SBOX_ERROR_CANNOT_CREATE_RESTRICTED_TOKEN;
 
@@ -501,7 +506,8 @@ ResultCode PolicyBase::MakeTokens(base::win::ScopedHandle* initial,
   // what we need (before reaching main( ))
   result = CreateRestrictedToken(
       effective_token_, initial_level_, integrity_level_, IMPERSONATION,
-      lockdown_default_dacl_, random_sid_ptr, use_restricting_sids_, initial);
+      lockdown_default_dacl_, random_sid_ptr, use_restricting_sids_,
+      allow_everyone_for_user_restricted_, initial);
   if (ERROR_SUCCESS != result)
     return SBOX_ERROR_CANNOT_CREATE_RESTRICTED_IMP_TOKEN;
 

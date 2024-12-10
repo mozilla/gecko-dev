@@ -1,0 +1,202 @@
+# HG changeset patch
+# User Bob Owen <bobowencode@gmail.com>
+# Date 1733481845 0
+#      Fri Dec 06 10:44:05 2024 +0000
+# Node ID 05db427a0e8bc9c49ffb2ee7825d150a2c07947c
+# Parent  43d313539f5fb692952b8c6eee9fa8d9b7e48fce
+Bug 1935962: When ks3rdhmpg.dll is loaded in the parent, allow Everyone SID for USER_RESTRICTED. r=yjuglaret!
+
+The crash caused by ks3rdhmpg.dll under USER_RESTRICTED appears to be down to
+the KnownDlls directory being blocked. Not setting the Everyone SID to deny only
+will allow access. It will also allow access to other resources that allow the
+Everyone and Restricted SIDs, but this will still be an improvement over
+USER_LIMITED.
+
+diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
+--- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
++++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
+@@ -53,16 +53,17 @@ DWORD GetObjectSecurityDescriptor(HANDLE
+ 
+ DWORD CreateRestrictedToken(HANDLE effective_token,
+                             TokenLevel security_level,
+                             IntegrityLevel integrity_level,
+                             TokenType token_type,
+                             bool lockdown_default_dacl,
+                             PSID unique_restricted_sid,
+                             bool use_restricting_sids,
++                            bool allow_everyone_for_user_restricted,
+                             base::win::ScopedHandle* token) {
+   RestrictedToken restricted_token;
+   restricted_token.Init(effective_token);
+   if (lockdown_default_dacl)
+     restricted_token.SetLockdownDefaultDacl();
+   if (unique_restricted_sid) {
+     restricted_token.AddDefaultDaclSid(Sid(unique_restricted_sid), GRANT_ACCESS,
+                                        GENERIC_ALL);
+@@ -159,16 +160,19 @@ DWORD CreateRestrictedToken(HANDLE effec
+         restricted_token.AddUserSidForDenyOnly();
+       }
+       break;
+     }
+     case USER_RESTRICTED: {
+       privilege_exceptions.push_back(SE_CHANGE_NOTIFY_NAME);
+       if (use_restricting_sids) {
+         restricted_token.AddRestrictingSid(WinRestrictedCodeSid);
++        if (allow_everyone_for_user_restricted) {
++          sid_exceptions.push_back(WinWorldSid);
++        }
+         if (unique_restricted_sid)
+           restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
+       } else {
+         restricted_token.AddUserSidForDenyOnly();
+       }
+       break;
+     }
+     case USER_LOCKDOWN: {
+diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
+--- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
++++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
+@@ -35,16 +35,17 @@ enum TokenType { IMPERSONATION = 0, PRIM
+ // the error.
+ DWORD CreateRestrictedToken(HANDLE effective_token,
+                             TokenLevel security_level,
+                             IntegrityLevel integrity_level,
+                             TokenType token_type,
+                             bool lockdown_default_dacl,
+                             PSID unique_restricted_sid,
+                             bool use_restricting_sids,
++                            bool allow_everyone_for_user_restricted,
+                             base::win::ScopedHandle* token);
+ 
+ // Sets the integrity label on a object handle.
+ DWORD SetObjectIntegrityLabel(HANDLE handle,
+                               SE_OBJECT_TYPE type,
+                               const wchar_t* ace_access,
+                               const wchar_t* integrity_level_sid);
+ 
+diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h b/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
+--- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
++++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
+@@ -104,16 +104,19 @@ class TargetPolicy {
+   // Returns the lockdown token level.
+   virtual TokenLevel GetLockdownTokenLevel() const = 0;
+ 
+   // Sets that we should not use restricting SIDs in the access tokens. We need
+   // to do this in some circumstances even though it weakens the sandbox.
+   // The default is to use them.
+   virtual void SetDoNotUseRestrictingSIDs() = 0;
+ 
++  // When called the Everyone SID won't be set to deny only for USER_RESTRICED.
++  virtual void SetAllowEveryoneForUserRestricted() = 0;
++
+   // Sets the security level of the Job Object to which the target process will
+   // belong. This setting is permanent and cannot be changed once the target
+   // process is spawned. The job controls the global security settings which
+   // can not be specified in the token security profile.
+   // job_level: the security level for the job. See the explanation of each
+   //   level in the JobLevel definition.
+   // ui_exceptions: specify what specific rights that are disabled in the
+   //   chosen job_level that need to be granted. Use this parameter to avoid
+diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
+--- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
++++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
+@@ -157,16 +157,20 @@ TokenLevel PolicyBase::GetInitialTokenLe
+ TokenLevel PolicyBase::GetLockdownTokenLevel() const {
+   return lockdown_level_;
+ }
+ 
+ void PolicyBase::SetDoNotUseRestrictingSIDs() {
+   use_restricting_sids_ = false;
+ }
+ 
++void PolicyBase::SetAllowEveryoneForUserRestricted() {
++  allow_everyone_for_user_restricted_ = true;
++}
++
+ ResultCode PolicyBase::SetJobLevel(JobLevel job_level, uint32_t ui_exceptions) {
+   if (memory_limit_ && job_level == JOB_NONE) {
+     return SBOX_ERROR_BAD_PARAMS;
+   }
+   job_level_ = job_level;
+   ui_exceptions_ = ui_exceptions;
+   return SBOX_ALL_OK;
+ }
+@@ -427,17 +431,18 @@ ResultCode PolicyBase::MakeTokens(base::
+   PSID random_sid_ptr = nullptr;
+   if (add_restricting_random_sid_)
+     random_sid_ptr = random_sid.GetPSID();
+ 
+   // Create the 'naked' token. This will be the permanent token associated
+   // with the process and therefore with any thread that is not impersonating.
+   DWORD result = CreateRestrictedToken(
+       effective_token_, lockdown_level_, integrity_level_, PRIMARY,
+-      lockdown_default_dacl_, random_sid_ptr, use_restricting_sids_, lockdown);
++      lockdown_default_dacl_, random_sid_ptr, use_restricting_sids_,
++      allow_everyone_for_user_restricted_, lockdown);
+   if (ERROR_SUCCESS != result)
+     return SBOX_ERROR_CANNOT_CREATE_RESTRICTED_TOKEN;
+ 
+   // If we're launching on the alternate desktop we need to make sure the
+   // integrity label on the object is no higher than the sandboxed process's
+   // integrity level. So, we lower the label on the desktop process if it's
+   // not already low enough for our process.
+   if (use_alternate_desktop_ && integrity_level_ != INTEGRITY_LEVEL_LAST) {
+@@ -496,17 +501,18 @@ ResultCode PolicyBase::MakeTokens(base::
+     }
+   }
+ 
+   // Create the 'better' token. We use this token as the one that the main
+   // thread uses when booting up the process. It should contain most of
+   // what we need (before reaching main( ))
+   result = CreateRestrictedToken(
+       effective_token_, initial_level_, integrity_level_, IMPERSONATION,
+-      lockdown_default_dacl_, random_sid_ptr, use_restricting_sids_, initial);
++      lockdown_default_dacl_, random_sid_ptr, use_restricting_sids_,
++      allow_everyone_for_user_restricted_, initial);
+   if (ERROR_SUCCESS != result)
+     return SBOX_ERROR_CANNOT_CREATE_RESTRICTED_IMP_TOKEN;
+ 
+   return SBOX_ALL_OK;
+ }
+ 
+ PSID PolicyBase::GetLowBoxSid() const {
+   return lowbox_sid_;
+diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
+--- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
++++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
+@@ -42,16 +42,17 @@ class PolicyBase final : public TargetPo
+ 
+   // TargetPolicy:
+   void AddRef() override;
+   void Release() override;
+   ResultCode SetTokenLevel(TokenLevel initial, TokenLevel lockdown) override;
+   TokenLevel GetInitialTokenLevel() const override;
+   TokenLevel GetLockdownTokenLevel() const override;
+   void SetDoNotUseRestrictingSIDs() final;
++  void SetAllowEveryoneForUserRestricted() final;
+   ResultCode SetJobLevel(JobLevel job_level, uint32_t ui_exceptions) override;
+   JobLevel GetJobLevel() const override;
+   ResultCode SetJobMemoryLimit(size_t memory_limit) override;
+   ResultCode SetAlternateDesktop(bool alternate_winstation) override;
+   std::wstring GetAlternateDesktop() const override;
+   ResultCode CreateAlternateDesktop(bool alternate_winstation) override;
+   void DestroyAlternateDesktop() override;
+   ResultCode SetIntegrityLevel(IntegrityLevel integrity_level) override;
+@@ -137,16 +138,17 @@ class PolicyBase final : public TargetPo
+   typedef std::list<TargetProcess*> TargetSet;
+   TargetSet targets_;
+   // Standard object-lifetime reference counter.
+   volatile LONG ref_count;
+   // The user-defined global policy settings.
+   TokenLevel lockdown_level_;
+   TokenLevel initial_level_;
+   bool use_restricting_sids_ = true;
++  bool allow_everyone_for_user_restricted_ = false;
+   JobLevel job_level_;
+   uint32_t ui_exceptions_;
+   size_t memory_limit_;
+   bool use_alternate_desktop_;
+   bool use_alternate_winstation_;
+   // Helps the file system policy initialization.
+   bool file_system_init_;
+   bool relaxed_interceptions_;

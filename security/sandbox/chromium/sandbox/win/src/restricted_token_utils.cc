@@ -58,6 +58,7 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
                             bool lockdown_default_dacl,
                             PSID unique_restricted_sid,
                             bool use_restricting_sids,
+                            bool allow_everyone_for_user_restricted,
                             base::win::ScopedHandle* token) {
   RestrictedToken restricted_token;
   restricted_token.Init(effective_token);
@@ -164,6 +165,9 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
       privilege_exceptions.push_back(SE_CHANGE_NOTIFY_NAME);
       if (use_restricting_sids) {
         restricted_token.AddRestrictingSid(WinRestrictedCodeSid);
+        if (allow_everyone_for_user_restricted) {
+          sid_exceptions.push_back(WinWorldSid);
+        }
         if (unique_restricted_sid)
           restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
       } else {
