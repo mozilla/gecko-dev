@@ -3262,12 +3262,7 @@ BrowserGlue.prototype = {
           Ci.nsIPK11TokenDB
         );
         let token = tokenDB.getInternalKeyToken();
-        let mpEnabled = token.hasPassword;
-        if (mpEnabled) {
-          Services.telemetry
-            .getHistogramById("MASTER_PASSWORD_ENABLED")
-            .add(mpEnabled);
-        }
+        Glean.primaryPassword.enabled.set(token.hasPassword);
       },
 
       function GMPInstallManagerSimpleCheckAndInstall() {

@@ -739,3 +739,19 @@ security:
     expires: never
     unit: unknown
     telemetry_mirror: SECURITY_GLOBAL_PRIVACY_CONTROL_ENABLED
+
+primary.password:
+  enabled:
+    type: boolean
+    description: >
+      If a primary-password is enabled for this profile.
+      Set soon after browser startup.
+      Does not update if a primary password is added or removed after startup.
+    bugs:
+      - https://bugzil.la/1936036
+    data_reviews:
+      - https://bugzil.la/1936036
+    notification_emails:
+      - mtigley@mozilla.com
+    expires: never
+    telemetry_mirror: PRIMARY_PASSWORD_ENABLED
