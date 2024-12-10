@@ -46,9 +46,9 @@
     <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">Àju bisognu dî pirmisi pi accèdiri ê prichi e cuntinuru murtimidiali. Vai nnê mpustazzioni di Android, ammacca pirmisi e auturizza.</string>
 
     <!-- Alert dialog confirmation before cancelling downloads, this is the title   -->
-    <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Voi sfalliri i scarricamenti privati?</string>
+    <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Vo\' sfalliri i scarricamenti privati?</string>
     <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
-    <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">Si chiuji ora tutti i schedi privati, sfallirà %1$s scarricamentu. Sì sicuru chi voi nèsciri dâ navigazziuni privata?</string>
+    <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">Si chiuji ora tutti i schedi privati, sfallirà %1$s scarricamentu. Vo\' nèsciri dâ navigazzioni privata?</string>
     <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
     <string name="mozac_feature_downloads_cancel_active_downloads_accept">Sfallisci scarricamenti</string>
     <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->

@@ -16,7 +16,7 @@
     <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
     <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[
       <ul>
-        <li>A pàggina chi voi vìdiri nun po èssiri mustrata picchì nun pozzu virificari si i dati ricivuti sunnu autèntici.</li>
+        <li>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì nun pozzu virificari si i dati ricivuti sunnu autèntici.</li>
         <li>Pi favuri cuntatta i prupitari dû situ pi nfurmalli di stu prubblema.</li>
       </ul>
     
@@ -167,7 +167,7 @@
 
     <!-- The error message shown when shown when a file cannot be loaded because of a detected data corruption. -->
     <string name="mozac_browser_errorpages_corrupted_content_message"><![CDATA[
-      <p>A pàggina chi voi vìdiri nun po èssiri mustrata picchì cci fu nu sbagghiu nnâ trasmissiuni dî dati.</p>
+      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì cci fu nu sbagghiu nnâ trasmissiuni dî dati.</p>
       <ul>
         <li>Pi favuri cuntatta i prupitari dû situ pi nfurmalli di stu prubblema.</li>
       </ul>
@@ -178,7 +178,7 @@
     <string name="mozac_browser_errorpages_content_crashed_title">U cuntinutu si bluccau</string>
 
     <string name="mozac_browser_errorpages_content_crashed_message"><![CDATA[
-      <p>A pàggina chi voi vìdiri nun po èssiri mustrata picchì cci fu nu sbagghiu nnâ trasmissiuni dî dati.</p>
+      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì cci fu nu sbagghiu nnâ trasmissiuni dî dati.</p>
       <ul>
         <li>Pi favuri cuntatta i prupitari dû situ pi nfurmalli di stu prubblema.</li>
       </ul>
@@ -189,7 +189,7 @@
     <string name="mozac_browser_errorpages_invalid_content_encoding_title">Erruri di cudìfica dû cuntinutu</string>
 
     <string name="mozac_browser_errorpages_invalid_content_encoding_message"><![CDATA[
-      <p>A pàggina chi voi vìdiri nun po èssiri mustrata picchì usa na mudalità di cumprissiuni nun vàlita o nun suppurtata.</p>
+      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì usa na mudalità di cumprissiuni nun vàlita o nun suppurtata.</p>
       <ul>
         <li>Pi favuri cuntatta i prupitari dû situ pi nfurmalli di stu prubblema.</li>
       </ul>

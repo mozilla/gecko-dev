@@ -64,7 +64,7 @@
     <string name="private_browsing_placeholder_description_2">
         %1$s cancella i to risciduti e a to crunuluggìa di navigazzioni quannu nesci di l\'applicazzioni o quannu chiuji tutti i schedi privati. Puru si chistu nun ti fa anònimu pî siti o pû to furnituri dû sirbizzu internet, è cchiù fàcili tèniri privatu chiḍḍu chi fai \'n linia di tutti chiḍḍi ca ùsanu stu dispusitivu.</string>
     <string name="private_browsing_common_myths">
-       Liggenni ncapu â navigazziuni privata
+       Liggenni ncapu â navigazzioni privata
        </string>
 
     <!-- True Private Browsing Mode -->
@@ -74,7 +74,7 @@
         private mode in our new Total Private Browsing mode.
         The first parameter is the name of the app defined in app_name (for example: Firefox Nightly)
         The second parameter is the clickable link text in felt_privacy_info_card_subtitle_link_text -->
-    <string name="felt_privacy_info_card_subtitle_2">%1$s cancella i to viscotta, a crunuluggìa e i dati dî siti quannu chiuji tutti i finestri privati. %2$s</string>
+    <string name="felt_privacy_info_card_subtitle_2">%1$s cancella i to viscotta, a crunuluggìa e i dati dî siti quannu chiuji tutti i schedi privati. %2$s</string>
     <!-- Clickable portion of the explanation for private browsing that links the user to our
         about privacy page.
         This string is used in felt_privacy_info_card_subtitle as the second parameter.-->
@@ -417,7 +417,7 @@
     <!-- Search engine suggestion description text -->
     <string name="search_engine_suggestions_description">Riscedi direttu dâ barra dû nnirizzu</string>
     <!-- Menu option in the search selector menu to open the search settings -->
-    <string name="search_settings_menu_item">Riscedi nnê mpustazzioni</string>
+    <string name="search_settings_menu_item">Mpustazzioni di risciduta</string>
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Sta vota cerca cu:</string>
 
@@ -431,7 +431,7 @@
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Ti damu u bimminutu nta n\'internet cchiù pirsunali</string>
     <!-- Home onboarding dialog welcome screen description text. -->
-    <string name="onboarding_home_welcome_description">Cchiù culura. Megghiu privatizza. A stissi didizzioni ê genti cchiù assai chi ê prufitti.</string>
+    <string name="onboarding_home_welcome_description">Cchiù culura. Megghiu privatizza. A stissa didizzioni ê genti cchiù assai chi ê prufitti.</string>
     <!-- Home onboarding dialog sign into sync screen title text. -->
     <string name="onboarding_home_sync_title_3">Canciari schirmi è cchiù fàcili di sempri</string>
     <!-- Home onboarding dialog sign into sync screen description text. -->
@@ -766,7 +766,7 @@
     <string name="preferences_show_sponsored_suggestions">Suggirimenti dî patrucinatura</string>
     <!-- Summary for preference to show sponsored Firefox Suggest search suggestions.
          The first parameter is the name of the application. -->
-    <string name="preferences_show_sponsored_suggestions_summary">Supporta %1$s attivannu quarci suggirimentu spunzurizzatu uccasiunali</string>
+    <string name="preferences_show_sponsored_suggestions_summary">Supporta %1$s attivannu quarchi suggirimentu spunzurizzatu uccasiunali</string>
     <!-- Preference title for switch preference to show Firefox Suggest search suggestions for web content.
          The first parameter is the name of the application. -->
     <string name="preferences_show_nonsponsored_suggestions">Suggirimenti di %1$s</string>
@@ -1525,7 +1525,7 @@
     <!-- Button to select all tabs in the "select tabs" step of the collection creator -->
     <string name="create_collection_select_all">Scarta tuttu</string>
     <!-- Button to deselect all tabs in the "select tabs" step of the collection creator -->
-    <string name="create_collection_deselect_all">Leva tuttu</string>
+    <string name="create_collection_deselect_all">Smarca tuttu</string>
     <!-- Text to prompt users to select the tabs to save in the "select tabs" step of the collection creator -->
     <string name="create_collection_save_to_collection_empty">Scarta i schedi di sarbari</string>
     <!-- Text to show users how many tabs they have selected in the "select tabs" step of the collection creator.

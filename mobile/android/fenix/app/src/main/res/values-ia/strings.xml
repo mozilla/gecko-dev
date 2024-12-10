@@ -601,8 +601,12 @@
     <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Continuante, tu concorda con le %1$s de Firefox.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Terminos de servicio</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox se cura de tu confidentialitate. Leger plus in nostre %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Aviso de confidentialitate</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Pro adjutar a meliorar le navigator, Firefox invia datos diagnostic e de interaction a Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Gerer</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -1035,6 +1039,8 @@
 
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Comparti le datos de uso basic con Adjust, nostre fornitor de marketing mobile</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Comparti informationes re como tu discoperiva Firefox con le socios mercantes de Mozilla. Isto adjuta nos a facer crescer Firefox e construer un internet melior</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Saper plus re le marketing del datos</string>
     <!-- Preference switch title for automatically submitting crash reports -->
@@ -3075,6 +3081,12 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Deler credentiales con nomine usator %s</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Adresses</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Cerner localisationes a activar</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Utensiles CFR</string>
@@ -3103,12 +3115,28 @@
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Actualisar ora</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Actualisar tu navigator Firefox</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Un certificato radice expirara, e causara le cessation de alcun functiones a le 14 de martio.</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Actualisar ante le 14 de martio</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Un certificato radice expirara, e causara que tu version de Firefox cessara de functionar correctemente.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Minus que 7 dies resta pro actualisar</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Le 14 de martio, additivos e altere functiones de Firefox cessara de functionar perque un certificato radice expira.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Ultime chance pro mantener tu Firefox</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Tu version de Firefox cessara de functionar correctemente le 14 de martio perque un certificato radice expirara.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Actualisation recommendate</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Additivos e alcun functiones cessara de functionar le 14 de martio.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Tu es sur un version plus vetere de Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Actualisa ante le 14 de martio pro continuar a usar additivos e altere functiones.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Alcun functionalitates cessara de functionar deman.</string>
 </resources>

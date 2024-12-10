@@ -195,7 +195,7 @@
     <!-- Text shown when installing an add-on has failed. -->
     <string name="mozac_feature_addons_cant_install_extension">Mpussìbbili nzitari u stinneriu</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
-    <string name="mozac_feature_addons_extension_failed_to_install_network_error">Stu stinneriu nun potti èssiri scarricatu picchì a cunnissioni sfallìu.</string>
+    <string name="mozac_feature_addons_extension_failed_to_install_network_error">Stu stinneriu nun potti èssiri scarricatu picchì a cunnissiuni sfallìu.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
     <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">Stu stinneriu nun potti èssiri nzitatu picchì parissi stravijatu.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->

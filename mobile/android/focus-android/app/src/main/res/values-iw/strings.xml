@@ -278,9 +278,9 @@
     <string name="preference_privacy_block_ads">חסימת רכיבי מעקב</string>
     <string name="preference_privacy_block_ads_summary">חלק מהפרסומות עוקבות אחר הביקורים באתרים, אפילו אם לא לחצת על הפרסומות</string>
     <string name="preference_privacy_block_analytics">חסימת מעקב של כלי ניתוח</string>
-    <string name="preference_privacy_block_analytics_summary">משמשות לאיסוף ניתוח ומדידת פעילויות כגון לחיצה וגלילה</string>
+    <string name="preference_privacy_block_analytics_summary">משמש לאיסוף, ניתוח ומדידת פעילויות כמו לחיצה וגלילה</string>
     <string name="preference_privacy_block_social">חסימת רכיבי מעקב חברתיים</string>
-    <string name="preference_privacy_block_social_summary">מוטמעות באתרים לצורך מעקב אחר הביקורים שלך והצגת רכיבים כגון כפתורי שיתוף</string>
+    <string name="preference_privacy_block_social_summary">מוטמעים באתרים לצורך מעקב אחר הביקורים שלך ולצורך הצגת רכיבים כגון כפתורי שיתוף</string>
     <string name="preference_privacy_block_content">חסימת כלי מעקב אחרים</string>
     <string name="preference_privacy_block_content_summary2">הפעלת התכונה עשויה לגרום לחלק מהאתרים להתנהג שלא כצפוי</string>
     <string name="preference_privacy_category_cookies">חסימת עוגיות</string>
@@ -536,7 +536,7 @@
     <!-- First run tour (Default browser): Title -->
     <string name="firstrun_defaultbrowser_title">חיזוק הפרטיות שלך</string>
     <!-- First run tour (Default browser): Text. -->
-    <string name="firstrun_defaultbrowser_text2">לקחת את הגלישה המאובטחת לרמה הבאה. ניתן לחסום פרסומות ותוכן אחר שעשוי לסייע במעקב אחריך בין אתרים שונים ולהפריע לזמני טעינת עמודים.</string>
+    <string name="firstrun_defaultbrowser_text2">לקחת את הגלישה המאובטחת לרמה הבאה. ניתן לחסום פרסומות ותוכן אחר שעשוי לעקוב אחריך בין אתרים שונים ולהפריע לזמני טעינת עמודים.</string>
 
     <!-- First run tour (Search): Title -->
     <string name="firstrun_search_title">החיפוש שלך, בדרך שלך</string>
@@ -546,7 +546,7 @@
     <!-- First run tour (Shortcut): Title -->
     <string name="firstrun_shortcut_title">הוספת קיצורי דרך למסך הבית שלך</string>
     <!-- First run tour (Shortcut): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-    <string name="firstrun_shortcut_text">ניתן לחזור לאתרים המועדפים עליך ב־%1$s בקלות. עליך פשוט לבחור באפשרות „הוספה למסך הבית” מהתפריט %1$s.</string>
+    <string name="firstrun_shortcut_text">ניתן לחזור לאתרים המועדפים עליך ב־%1$s בקלות. עליך פשוט לבחור באפשרות ״הוספה למסך הבית״ מהתפריט %1$s.</string>
 
     <!-- First run tour (Privacy): Title -->
     <string name="firstrun_privacy_title">להפוך את הפרטיות להרגל</string>
@@ -1095,11 +1095,6 @@
     <string name="promote_search_widget_snackbar_message">יישומון נוסף למסך הבית</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">כדי לצאת ממסך מלא, יש לגרור מלמעלה ולהשתמש בתנועת אחורה</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">כדי לצאת ממסך מלא, יש לגרור מלמעלה וללחוץ על חזרה</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">יש לגרור מלמעלה ולהשתמש בתנועת החזרה כדי לצאת</string>
