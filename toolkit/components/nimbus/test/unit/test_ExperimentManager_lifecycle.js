@@ -339,6 +339,10 @@ add_task(async function test_onRecipe_isFirefoxLabsOptin_recipe() {
       ...ExperimentFakes.recipe.bucketConfig,
       count: 10000,
     },
+    firefoxLabsTitle: "title",
+    firefoxLabsDescription: "description",
+    firefoxLabsGroup: "group",
+    requiresRestart: false,
   });
   const fxLabsOptOutRecipe = ExperimentFakes.recipe("fxLabsOptOut", {
     isFirefoxLabsOptIn: false,
@@ -348,6 +352,8 @@ add_task(async function test_onRecipe_isFirefoxLabsOptin_recipe() {
     },
     firefoxLabsTitle: null,
     firefoxLabsDescription: null,
+    firefoxLabsGroup: null,
+    requiresRestart: false,
   });
 
   await manager.onStartup();
