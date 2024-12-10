@@ -37,6 +37,7 @@ dependencies {
     implementation project(':browser-session-storage')
     implementation project(':browser-thumbnails')
     implementation project(':browser-tabstray')
+    implementation project(':browser-toolbar')
     api project(':feature-session')
     implementation project(':concept-engine')
     implementation project(':concept-tabstray')

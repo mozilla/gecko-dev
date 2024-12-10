@@ -13,9 +13,14 @@ import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.browser.toolbar.facts.ToolbarFacts
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.tabs.R
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.support.base.Component
+import mozilla.components.support.base.facts.Action
+import mozilla.components.support.base.facts.Fact
+import mozilla.components.support.base.facts.collect
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.ui.tabcounter.TabCounter
 import mozilla.components.ui.tabcounter.TabCounterMenu
@@ -51,10 +56,18 @@ open class TabCounterToolbarButton(
             reference = WeakReference(this)
             setOnClickListener {
                 showTabs.invoke()
+                emitTabCounterFact(
+                    action = Action.CLICK,
+                    ToolbarFacts.Items.TOOLBAR,
+                )
             }
 
             menu?.let { menu ->
                 setOnLongClickListener {
+                    emitTabCounterFact(
+                        action = Action.DISPLAY,
+                        ToolbarFacts.Items.MENU,
+                    )
                     menu.menuController.show(anchor = it)
                     true
                 }
@@ -93,6 +106,21 @@ open class TabCounterToolbarButton(
         } else {
             state.tabs.size
         }
+    }
+
+    private fun emitTabCounterFact(
+        action: Action,
+        item: String,
+        value: String? = null,
+        metadata: Map<String, Any>? = null,
+    ) {
+        Fact(
+            Component.UI_TABCOUNTER,
+            action,
+            item,
+            value,
+            metadata,
+        ).collect()
     }
 
     /**

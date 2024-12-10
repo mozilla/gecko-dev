@@ -34,6 +34,7 @@ import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.utils.ext.isLandscape
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.AddressToolbar
+import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Shopping
 import org.mozilla.fenix.HomeActivity
@@ -558,11 +559,17 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 secondaryImageTintResource = disableTint,
                 disableInSecondaryState = true,
                 longClickListener = {
+                    if (!this.isTablet) {
+                        NavigationBar.browserBackLongTapped.record(NoExtras())
+                    }
                     browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.Back(viewHistory = true),
                     )
                 },
                 listener = {
+                    if (!this.isTablet) {
+                        NavigationBar.browserBackTapped.record(NoExtras())
+                    }
                     browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.Back(viewHistory = false),
                     )
@@ -584,11 +591,17 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 secondaryImageTintResource = disableTint,
                 disableInSecondaryState = true,
                 longClickListener = {
+                    if (!this.isTablet) {
+                        NavigationBar.browserForwardLongTapped.record(NoExtras())
+                    }
                     browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.Forward(viewHistory = true),
                     )
                 },
                 listener = {
+                    if (!this.isTablet) {
+                        NavigationBar.browserForwardTapped.record(NoExtras())
+                    }
                     browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
                         ToolbarMenu.Item.Forward(viewHistory = false),
                     )
