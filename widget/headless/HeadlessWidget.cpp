@@ -457,7 +457,6 @@ nsresult HeadlessWidget::SynthesizeNativeMouseScrollEvent(
     double aDeltaX, double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
     uint32_t aAdditionalFlags, nsIObserver* aObserver) {
   AutoObserverNotifier notifier(aObserver, "mousescrollevent");
-  printf(">>> DEBUG_ME: Synth: aDeltaY=%f\n", aDeltaY);
   // The various platforms seem to handle scrolling deltas differently,
   // but the following seems to emulate it well enough.
   WidgetWheelEvent event(true, eWheel, this);
