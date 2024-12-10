@@ -664,13 +664,12 @@ bool WakeLockTopic::InhibitWaylandIdle() {
 
   UninhibitWaylandIdle();
 
-  if (GdkWindow* window = focusedWindow->GetGdkWindow()) {
-    wl_surface* waylandSurface = gdk_wayland_window_get_wl_surface(window);
-    if (waylandSurface) {
-      mWaylandInhibitor = zwp_idle_inhibit_manager_v1_create_inhibitor(
-          waylandDisplay->GetIdleInhibitManager(), waylandSurface);
-      mState = Inhibited;
-    }
+  MozContainerSurfaceLock lock(focusedWindow->GetMozContainer());
+  struct wl_surface* waylandSurface = lock.GetSurface();
+  if (waylandSurface) {
+    mWaylandInhibitor = zwp_idle_inhibit_manager_v1_create_inhibitor(
+        waylandDisplay->GetIdleInhibitManager(), waylandSurface);
+    mState = Inhibited;
   }
 
   WAKE_LOCK_LOG("InhibitWaylandIdle() %s",

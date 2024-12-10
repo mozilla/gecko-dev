@@ -51,9 +51,8 @@ LazyLogModule gWidgetLog("Widget");
 LazyLogModule gWidgetDragLog("WidgetDrag");
 LazyLogModule gWidgetWaylandLog("WidgetWayland");
 LazyLogModule gWidgetPopupLog("WidgetPopup");
-LazyLogModule gWidgetVsync("WidgetVSync");
+LazyLogModule gWidgetVsync("WidgetVsync");
 LazyLogModule gDmabufLog("Dmabuf");
-LazyLogModule gWidgetCompositorLog("WidgetCompositor");
 
 static GPollFunc sPollFunc;
 

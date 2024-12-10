@@ -13,7 +13,7 @@
 
 #include "CompositorWidget.h"
 #include "MozContainer.h"
-#include "WaylandSurfaceLock.h"
+#include "MozContainerSurfaceLock.h"
 #include "VsyncSource.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Maybe.h"
@@ -47,9 +47,6 @@
 
 #ifdef MOZ_LOGGING
 
-#  undef LOG
-#  undef LOGVERBOSE
-
 #  include "mozilla/Logging.h"
 #  include "nsTArray.h"
 #  include "Units.h"
@@ -64,18 +61,13 @@ extern mozilla::LazyLogModule gWidgetWaylandLog;
     MOZ_LOG(IsPopup() ? gWidgetPopupLog : gWidgetLog, \
             mozilla::LogLevel::Debug,                 \
             ("%s: " str, GetDebugTag().get(), ##__VA_ARGS__))
-#  define LOGVERBOSE(str, ...)                        \
-    MOZ_LOG(IsPopup() ? gWidgetPopupLog : gWidgetLog, \
-            mozilla::LogLevel::Verbose,               \
-            ("%s: " str, GetDebugTag().get(), ##__VA_ARGS__))
 #  define LOGW(...) MOZ_LOG(gWidgetLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 #  define LOGDRAG(...) \
     MOZ_LOG(gWidgetDragLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 #  define LOG_POPUP(...) \
     MOZ_LOG(gWidgetPopupLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
-#  define LOG_VSYNC(str, ...)                       \
-    MOZ_LOG(gWidgetVsync, mozilla::LogLevel::Debug, \
-            ("%s: " str, GetDebugTag().get(), ##__VA_ARGS__))
+#  define LOG_VSYNC(...) \
+    MOZ_LOG(gWidgetVsync, mozilla::LogLevel::Debug, (__VA_ARGS__))
 #  define LOG_ENABLED()                                         \
     (MOZ_LOG_TEST(gWidgetPopupLog, mozilla::LogLevel::Debug) || \
      MOZ_LOG_TEST(gWidgetLog, mozilla::LogLevel::Debug))
@@ -85,7 +77,6 @@ extern mozilla::LazyLogModule gWidgetWaylandLog;
 #else
 
 #  define LOG(...)
-#  define LOGVERBOSE(...)
 #  define LOGW(...)
 #  define LOGDRAG(...)
 #  define LOG_POPUP(...)
@@ -142,8 +133,6 @@ class CurrentX11TimeGetter;
 namespace widget {
 class DBusMenuBar;
 class Screen;
-class WaylandSurface;
-class WaylandSurfaceLock;
 }  // namespace widget
 }  // namespace mozilla
 
@@ -307,16 +296,8 @@ class nsWindow final : public nsBaseWidget {
   void OnDPIChanged();
   void OnCheckResize();
   void OnCompositedChanged();
+  void OnScaleChanged(bool aNotify);
   void DispatchResized();
-  void OnScaleEvent();
-
-  // Load new scale from system.
-
-  // aRefreshScreen means notify layout that scale was changed and
-  //  it should load correct values.
-  // Set aRefreshScreen to false if we operate on hidden window
-  // or if we're going to repaint.
-  void RefreshScale(bool aRefreshScreen);
 
   static guint32 sLastButtonPressTime;
 
@@ -447,7 +428,7 @@ class nsWindow final : public nsBaseWidget {
 
   static nsWindow* GetFocusedWindow();
 
-  mozilla::UniquePtr<mozilla::widget::WaylandSurfaceLock> LockSurface();
+  mozilla::UniquePtr<MozContainerSurfaceLock> LockSurface();
 
 #ifdef MOZ_WAYLAND
   // Use xdg-activation protocol to transfer focus from gFocusWindow to aWindow.
@@ -515,6 +496,9 @@ class nsWindow final : public nsBaseWidget {
 
   void RegisterTouchWindow() override;
 
+  mozilla::Atomic<int, mozilla::Relaxed> mCeiledScaleFactor{1};
+  double mFractionalScaleFactor = 0.0;
+
   void NativeMoveResize(bool aMoved, bool aResized);
 
   void NativeShow(bool aAction);
@@ -580,7 +564,6 @@ class nsWindow final : public nsBaseWidget {
   GtkWidget* mShell = nullptr;
   MozContainer* mContainer = nullptr;
   GdkWindow* mGdkWindow = nullptr;
-  RefPtr<mozilla::widget::WaylandSurface> mSurface;
   mozilla::Maybe<GdkPoint> mGdkWindowOrigin;
   mozilla::Maybe<GdkPoint> mGdkWindowRootOrigin;
 
@@ -602,9 +585,6 @@ class nsWindow final : public nsBaseWidget {
   float mAspectRatioSaved = 0.0f;
   mozilla::Maybe<GtkOrientation> mAspectResizer;
   LayoutDeviceIntPoint mLastResizePoint;
-
-  // Main thread only
-  int mCeiledScaleFactor = mozilla::widget::WaylandSurface::sNoScale;
 
   // The size requested, which might not be reflected in mBounds.  Used in
   // WaylandPopupSetDirectPosition() to remember intended size for popup
@@ -1037,6 +1017,10 @@ class nsWindow final : public nsBaseWidget {
   nsCString mWindowActivationTokenFromEnv;
   mozilla::widget::WindowSurfaceProvider mSurfaceProvider;
   GdkDragContext* mSourceDragContext = nullptr;
+#if MOZ_LOGGING
+  LayoutDeviceIntRect mLastLoggedBoundSize;
+  int mLastLoggedScale = -1;
+#endif
   mozilla::Sides mResizableEdges{mozilla::SideBits::eAll};
   // Running in kiosk mode and requested to stay on specified monitor.
   // If monitor is removed minimize the window.

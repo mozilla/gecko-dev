@@ -33,6 +33,7 @@ if CONFIG["MOZ_ENABLE_V4L2"]:
 
 EXPORTS += [
     "MozContainer.h",
+    "MozContainerSurfaceLock.h",
     "nsGTKToolkit.h",
     "nsGtkUtils.h",
     "nsImageToPixbuf.h",
@@ -55,7 +56,6 @@ EXPORTS.mozilla.widget += [
     "GtkCompositorWidget.h",
     "InProcessGtkCompositorWidget.h",
     "va_drmcommon.h",
-    "WaylandSurfaceLock.h",
     "WindowSurface.h",
     "WindowSurfaceProvider.h",
 ]
@@ -72,6 +72,7 @@ UNIFIED_SOURCES += [
     "IMContextWrapper.cpp",
     "InProcessGtkCompositorWidget.cpp",
     "MozContainer.cpp",
+    "MozContainerSurfaceLock.cpp",
     "MPRISServiceHandler.cpp",
     "NativeKeyBindings.cpp",
     "NativeMenuGtk.cpp",
@@ -93,7 +94,6 @@ UNIFIED_SOURCES += [
     "ScreenHelperGTK.cpp",
     "TaskbarProgress.cpp",
     "WakeLockListener.cpp",
-    "WaylandSurfaceLock.cpp",
     "WidgetStyleCache.cpp",
     "WidgetUtilsGtk.cpp",
     "WindowSurfaceProvider.cpp",
@@ -112,14 +112,13 @@ if CONFIG["MOZ_WAYLAND"]:
         "nsClipboardWayland.cpp",
         "nsWaylandDisplay.cpp",
         "WaylandBuffer.cpp",
-        "WaylandSurface.cpp",
         "WindowSurfaceWaylandMultiBuffer.cpp",
     ]
     EXPORTS.mozilla.widget += [
+        "MozContainerSurfaceLock.h",
         "MozContainerWayland.h",
         "nsWaylandDisplay.h",
         "WaylandBuffer.h",
-        "WaylandSurface.h",
     ]
 
 if CONFIG["MOZ_X11"]:

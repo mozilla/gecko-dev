@@ -512,27 +512,6 @@ class Atomic<bool, Order> : protected detail::AtomicBase<uint32_t, Order> {
   Atomic(Atomic& aOther) = delete;
 };
 
-/**
- * Atomic<T> implementation for double type.
- */
-template <MemoryOrdering Order>
-class Atomic<double, Order> : protected detail::AtomicBase<double, Order> {
-  typedef typename detail::AtomicBase<double, Order> Base;
-
- public:
-  constexpr Atomic() : Base() {}
-  explicit constexpr Atomic(double aInit) : Base(aInit) {}
-
-  operator double() const {
-    return double(Base::Intrinsics::load(Base::mValue));
-  }
-
-  double operator=(double aVal) { return Base::operator=(aVal); }
-
- private:
-  Atomic(Atomic& aOther) = delete;
-};
-
 // Relax the CPU during a spinlock.  It's a good idea to place this in a
 // spinlock so that the CPU doesn't pipeline the loop otherwise flushing the
 // pipeline when the loop finally breaks can be expensive.
