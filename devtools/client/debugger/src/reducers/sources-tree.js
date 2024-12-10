@@ -448,52 +448,54 @@ const TARGET_TYPE_ORDER = [
   TYPES.SHARED_WORKER,
   TYPES.WORKER,
 ];
-function sortThreadItems(a, b) {
+function sortThreadItems(threadItemA, threadItemB) {
   // Jest tests aren't emitting the necessary actions to populate the thread attributes.
   // Ignore sorting for them.
-  if (!a.thread || !b.thread) {
+  if (!threadItemA.thread || !threadItemB.thread) {
     return 0;
   }
-
+  return sortThreads(threadItemA.thread, threadItemB.thread);
+}
+export function sortThreads(a, b) {
   // Top level target is always listed first
-  if (a.thread.isTopLevel) {
+  if (a.isTopLevel) {
     return -1;
-  } else if (b.thread.isTopLevel) {
+  } else if (b.isTopLevel) {
     return 1;
   }
 
   // Order frame and content script per Window Global ID.
   // It should order them by creation date.
-  if (a.thread.innerWindowId > b.thread.innerWindowId) {
+  if (a.innerWindowId > b.innerWindowId) {
     return 1;
-  } else if (a.thread.innerWindowId < b.thread.innerWindowId) {
+  } else if (a.innerWindowId < b.innerWindowId) {
     return -1;
   }
 
   // If the two target have a different type, order by type
-  if (a.thread.targetType !== b.thread.targetType) {
-    const idxA = TARGET_TYPE_ORDER.indexOf(a.thread.targetType);
-    const idxB = TARGET_TYPE_ORDER.indexOf(b.thread.targetType);
+  if (a.targetType !== b.targetType) {
+    const idxA = TARGET_TYPE_ORDER.indexOf(a.targetType);
+    const idxB = TARGET_TYPE_ORDER.indexOf(b.targetType);
     return idxA < idxB ? -1 : 1;
   }
 
   // Order the process targets by their process ids
-  if (a.thread.processID && b.thread.processID) {
-    if (a.thread.processID > b.thread.processID) {
+  if (a.processID && b.processID) {
+    if (a.processID > b.processID) {
       return 1;
-    } else if (a.thread.processID < b.thread.processID) {
+    } else if (a.processID < b.processID) {
       return -1;
     }
   }
 
   // Order the frame targets and the worker targets by their target name
-  if (a.thread.targetType == "frame" && b.thread.targetType == "frame") {
-    return a.thread.name.localeCompare(b.thread.name);
+  if (a.targetType == "frame" && b.targetType == "frame") {
+    return a.name.localeCompare(b.name);
   } else if (
-    a.thread.targetType.endsWith("worker") &&
-    b.thread.targetType.endsWith("worker")
+    a.targetType.endsWith("worker") &&
+    b.targetType.endsWith("worker")
   ) {
-    return a.thread.name.localeCompare(b.thread.name);
+    return a.name.localeCompare(b.name);
   }
 
   return 0;

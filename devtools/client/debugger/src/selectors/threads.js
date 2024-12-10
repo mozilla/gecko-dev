@@ -10,19 +10,9 @@ export const getThreads = createSelector(
   threads => threads.filter(thread => !isMainThread(thread))
 );
 
-export const getAllThreads = createSelector(
-  getMainThread,
-  getThreads,
-  (mainThread, threads) => {
-    const orderedThreads = Array.from(threads).sort((threadA, threadB) => {
-      if (threadA.name === threadB.name) {
-        return 0;
-      }
-      return threadA.name < threadB.name ? -1 : 1;
-    });
-    return [mainThread, ...orderedThreads].filter(Boolean);
-  }
-);
+export function getAllThreads(state) {
+  return state.threads.threads;
+}
 
 function isMainThread(thread) {
   return thread.isTopLevel;

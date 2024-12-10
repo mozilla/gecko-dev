@@ -7,6 +7,13 @@
  * @module reducers/threads
  */
 
+import { sortThreads } from "./sources-tree.js";
+
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  BinarySearch: "resource://gre/modules/BinarySearch.sys.mjs",
+});
+
 export function initialThreadsState() {
   return {
     threads: [],
@@ -19,11 +26,25 @@ export function initialThreadsState() {
 
 export default function update(state = initialThreadsState(), action) {
   switch (action.type) {
-    case "INSERT_THREAD":
+    case "INSERT_THREAD": {
+      const { newThread } = action;
+      if (newThread.isTopLevel) {
+        return {
+          ...state,
+          threads: [newThread, ...state.threads],
+        };
+      }
+
+      const index = lazy.BinarySearch.insertionIndexOf(
+        sortThreads,
+        state.threads,
+        newThread
+      );
       return {
         ...state,
-        threads: [...state.threads, action.newThread],
+        threads: state.threads.toSpliced(index, 0, newThread),
       };
+    }
 
     case "REMOVE_THREAD":
       return {

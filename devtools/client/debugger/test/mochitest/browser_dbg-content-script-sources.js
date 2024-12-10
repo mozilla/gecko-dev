@@ -49,6 +49,17 @@ add_task(async function () {
     ["Main Thread", "Test content script extension", "Debugger test page"],
     "The threads are correctly ordered"
   );
+  const threadPanelLabels = [...findAllElements(dbg, "threadsPaneItems")].map(
+    el => {
+      return el.textContent;
+    }
+  );
+  // Verify that we get the exact same ordering in the threads panel
+  Assert.deepEqual(
+    threadPanelLabels,
+    sourceTreeThreadLabels,
+    "The threads are correctly ordered in the threads panel"
+  );
 
   // Destroy the toolbox and repeat the test in a new toolbox
   // and ensures that the content script is still listed.
