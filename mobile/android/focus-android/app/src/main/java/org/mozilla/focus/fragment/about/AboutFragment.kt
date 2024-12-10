@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -166,16 +167,18 @@ private fun LogoIcon(secretSettingsUnlocker: SecretSettingsUnlocker) {
 
 @Composable
 private fun VersionInfo(aboutVersion: String) {
-    Text(
-        text = aboutVersion,
-        color = focusColors.aboutPageText,
-        style = focusTypography.body1.copy(
-            // Use LTR in all cases since the version is not translatable.
-            textDirection = TextDirection.Ltr,
-        ),
-        modifier = Modifier
-            .padding(10.dp),
-    )
+    SelectionContainer {
+        Text(
+            text = aboutVersion,
+            color = focusColors.aboutPageText,
+            style = focusTypography.body1.copy(
+                // Use LTR in all cases since the version is not translatable.
+                textDirection = TextDirection.Ltr,
+            ),
+            modifier = Modifier
+                .padding(10.dp),
+        )
+    }
 }
 
 @Composable
