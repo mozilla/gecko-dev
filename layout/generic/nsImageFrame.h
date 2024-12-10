@@ -426,11 +426,8 @@ class nsDisplayImage final : public nsPaintedDisplayItem {
  public:
   typedef mozilla::layers::LayerManager LayerManager;
 
-  nsDisplayImage(nsDisplayListBuilder* aBuilder, nsImageFrame* aFrame,
-                 imgIContainer* aImage, imgIContainer* aPrevImage)
-      : nsPaintedDisplayItem(aBuilder, aFrame),
-        mImage(aImage),
-        mPrevImage(aPrevImage) {
+  nsDisplayImage(nsDisplayListBuilder* aBuilder, nsImageFrame* aFrame)
+      : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayImage);
   }
 
@@ -461,10 +458,12 @@ class nsDisplayImage final : public nsPaintedDisplayItem {
                                mozilla::layers::RenderRootStateManager*,
                                nsDisplayListBuilder*) final;
 
+  nsImageFrame* Frame() const {
+    MOZ_ASSERT(mFrame->IsImageFrame() || mFrame->IsImageControlFrame());
+    return static_cast<nsImageFrame*>(mFrame);
+  }
+
   NS_DISPLAY_DECL_NAME("Image", TYPE_IMAGE)
- private:
-  nsCOMPtr<imgIContainer> mImage;
-  nsCOMPtr<imgIContainer> mPrevImage;
 };
 
 }  // namespace mozilla

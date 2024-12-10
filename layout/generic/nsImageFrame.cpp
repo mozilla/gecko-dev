@@ -1052,8 +1052,9 @@ bool nsImageFrame::ShouldCreateImageFrameForContentProperty(
 // Check if we want to use an image frame or just let the frame constructor make
 // us into an inline, and if so, which kind of image frame should we create.
 /* static */
-auto nsImageFrame::ImageFrameTypeFor(
-    const Element& aElement, const ComputedStyle& aStyle) -> ImageFrameType {
+auto nsImageFrame::ImageFrameTypeFor(const Element& aElement,
+                                     const ComputedStyle& aStyle)
+    -> ImageFrameType {
   if (ShouldCreateImageFrameForContentProperty(aElement, aStyle)) {
     // Prefer the content property, for compat reasons, see bug 1484928.
     return ImageFrameType::ForContentProperty;
@@ -2236,12 +2237,17 @@ void nsImageFrame::AssertSyncDecodingHintIsInSync() const {
 #endif
 
 void nsDisplayImage::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
-  MOZ_ASSERT(mImage);
-  auto* frame = static_cast<nsImageFrame*>(mFrame);
+  auto* frame = Frame();
   frame->AssertSyncDecodingHintIsInSync();
 
+  auto* image = frame->mImage.get();
+  auto* prevImage = frame->mPrevImage.get();
+  if (!image) {
+    return;
+  }
+
   const bool oldImageIsDifferent =
-      OldImageHasDifferentRatio(*frame, *mImage, mPrevImage);
+      OldImageHasDifferentRatio(*frame, *image, prevImage);
 
   uint32_t flags = aBuilder->GetImageDecodeFlags();
   if (aBuilder->ShouldSyncDecodeImages() || oldImageIsDifferent ||
@@ -2250,17 +2256,17 @@ void nsDisplayImage::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
   }
 
   ImgDrawResult result = frame->PaintImage(
-      *aCtx, ToReferenceFrame(), GetPaintRect(aBuilder, aCtx), mImage, flags);
+      *aCtx, ToReferenceFrame(), GetPaintRect(aBuilder, aCtx), image, flags);
 
   if (result == ImgDrawResult::NOT_READY ||
       result == ImgDrawResult::INCOMPLETE ||
       result == ImgDrawResult::TEMPORARY_ERROR) {
     // If the current image failed to paint because it's still loading or
     // decoding, try painting the previous image.
-    if (mPrevImage) {
+    if (prevImage) {
       result =
           frame->PaintImage(*aCtx, ToReferenceFrame(),
-                            GetPaintRect(aBuilder, aCtx), mPrevImage, flags);
+                            GetPaintRect(aBuilder, aCtx), prevImage, flags);
     }
   }
 }
@@ -2275,7 +2281,8 @@ nsRect nsDisplayImage::GetDestRect() const {
 nsRegion nsDisplayImage::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                          bool* aSnap) const {
   *aSnap = false;
-  if (mImage && mImage->WillDrawOpaqueNow()) {
+  auto* image = Frame()->mImage.get();
+  if (image && image->WillDrawOpaqueNow()) {
     const nsRect frameContentBox = GetBounds(aSnap);
     return GetDestRect().Intersect(frameContentBox);
   }
@@ -2287,20 +2294,24 @@ bool nsDisplayImage::CreateWebRenderCommands(
     mozilla::wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
-  if (!mImage) {
+  MOZ_ASSERT(mFrame->IsImageFrame() || mFrame->IsImageControlFrame());
+  auto* frame = Frame();
+  auto* image = frame->mImage.get();
+  if (!image) {
+    // TODO: View transitions.
+    return true;
+  }
+
+  if (frame->HasImageMap()) {
+    // Image layer doesn't support draw focus ring for image map.
     return false;
   }
 
-  MOZ_ASSERT(mFrame->IsImageFrame() || mFrame->IsImageControlFrame());
-  // Image layer doesn't support draw focus ring for image map.
-  auto* frame = static_cast<nsImageFrame*>(mFrame);
-  if (frame->HasImageMap()) {
-    return false;
-  }
+  auto* prevImage = frame->mPrevImage.get();
 
   frame->AssertSyncDecodingHintIsInSync();
   const bool oldImageIsDifferent =
-      OldImageHasDifferentRatio(*frame, *mImage, mPrevImage);
+      OldImageHasDifferentRatio(*frame, *image, prevImage);
 
   uint32_t flags = aDisplayListBuilder->GetImageDecodeFlags();
   if (aDisplayListBuilder->ShouldSyncDecodeImages() || oldImageIsDifferent ||
@@ -2308,24 +2319,23 @@ bool nsDisplayImage::CreateWebRenderCommands(
     flags |= imgIContainer::FLAG_SYNC_DECODE;
   }
   if (StaticPrefs::image_svg_blob_image() &&
-      mImage->GetType() == imgIContainer::TYPE_VECTOR) {
+      image->GetType() == imgIContainer::TYPE_VECTOR) {
     flags |= imgIContainer::FLAG_RECORD_BLOB;
   }
 
   const nsRect destAppUnits = GetDestRect();
   const int32_t factor = mFrame->PresContext()->AppUnitsPerDevPixel();
-  LayoutDeviceRect destRect(
-      LayoutDeviceRect::FromAppUnits(destAppUnits, factor));
+  const auto destRect = LayoutDeviceRect::FromAppUnits(destAppUnits, factor);
 
   SVGImageContext svgContext;
   Maybe<ImageIntRegion> region;
   IntSize decodeSize = nsLayoutUtils::ComputeImageContainerDrawingParameters(
-      mImage, mFrame, destRect, destRect, aSc, flags, svgContext, region);
+      image, mFrame, destRect, destRect, aSc, flags, svgContext, region);
 
   RefPtr<image::WebRenderImageProvider> provider;
   ImgDrawResult drawResult =
-      mImage->GetImageProvider(aManager->LayerManager(), decodeSize, svgContext,
-                               region, flags, getter_AddRefs(provider));
+      image->GetImageProvider(aManager->LayerManager(), decodeSize, svgContext,
+                              region, flags, getter_AddRefs(provider));
 
   if (nsCOMPtr<imgIRequest> currentRequest = frame->GetCurrentRequest()) {
     LCPHelpers::FinalizeLCPEntryForImage(
@@ -2342,20 +2352,20 @@ bool nsDisplayImage::CreateWebRenderCommands(
     case ImgDrawResult::NOT_READY:
     case ImgDrawResult::INCOMPLETE:
     case ImgDrawResult::TEMPORARY_ERROR:
-      if (mPrevImage && mPrevImage != mImage) {
+      if (prevImage && prevImage != image) {
         // The current image and the previous image might be switching between
         // rasterized surfaces and blob recordings, so we need to update the
         // flags appropriately.
         uint32_t prevFlags = flags;
         if (StaticPrefs::image_svg_blob_image() &&
-            mPrevImage->GetType() == imgIContainer::TYPE_VECTOR) {
+            prevImage->GetType() == imgIContainer::TYPE_VECTOR) {
           prevFlags |= imgIContainer::FLAG_RECORD_BLOB;
         } else {
           prevFlags &= ~imgIContainer::FLAG_RECORD_BLOB;
         }
 
         RefPtr<image::WebRenderImageProvider> prevProvider;
-        ImgDrawResult prevDrawResult = mPrevImage->GetImageProvider(
+        ImgDrawResult prevDrawResult = prevImage->GetImageProvider(
             aManager->LayerManager(), decodeSize, svgContext, region, prevFlags,
             getter_AddRefs(prevProvider));
         if (prevProvider && (prevDrawResult == ImgDrawResult::SUCCESS ||
@@ -2377,7 +2387,7 @@ bool nsDisplayImage::CreateWebRenderCommands(
     case ImgDrawResult::NOT_SUPPORTED:
       return false;
     default:
-      updatePrevImage = mPrevImage != mImage;
+      updatePrevImage = prevImage != image;
       break;
   }
 
@@ -2385,7 +2395,6 @@ bool nsDisplayImage::CreateWebRenderCommands(
   // We should forget about it. We need to update the frame as well because the
   // display item may get recreated.
   if (updatePrevImage) {
-    mPrevImage = mImage;
     frame->mPrevImage = frame->mImage;
   }
 
@@ -2525,8 +2534,7 @@ void nsImageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
       }
     } else {
       if (mImage) {
-        aLists.Content()->AppendNewToTop<nsDisplayImage>(aBuilder, this, mImage,
-                                                         mPrevImage);
+        aLists.Content()->AppendNewToTop<nsDisplayImage>(aBuilder, this);
       } else if (isImageFromStyle) {
         aLists.Content()->AppendNewToTop<nsDisplayGradient>(aBuilder, this);
       }
