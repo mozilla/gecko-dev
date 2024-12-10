@@ -11,12 +11,18 @@ import androidx.test.rule.ActivityTestRule
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
+import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
+import org.mozilla.fenix.helpers.AppAndSystemHelper.assertAppWithPackageNameOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestHelper
+import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
 import org.mozilla.fenix.helpers.TestSetup
@@ -375,6 +381,156 @@ class RedesignedMenuTest : TestSetup() {
         }
         browserScreen {
             verifyPageContent(genericURL.content)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776966
+    @SmokeTest
+    @Test
+    fun verifyTheSaveSubMenuItemsTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+            verifySaveSubMenuItems(composeTestRule)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776967
+    @SmokeTest
+    @Test
+    fun verifyTheBookmarkThisPageSubMenuItemsTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickBookmarkThisPageButton(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickEditBookmarkButton(composeTestRule) {
+            verifyEditBookmarksView()
+            clickDeleteInEditModeButton()
+            confirmDeletion()
+        }
+        browserScreen {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+            verifyBookmarkThisPageButton(composeTestRule)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776968
+    @SmokeTest
+    @Test
+    fun verifyTheAddToShortcutsSubMenuOptionTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickAddToShortcutsButton(composeTestRule) {
+            verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
+        }.goToHomescreenWithRedesignedToolbar {
+            verifyExistingTopSitesTabs(testPage.title)
+        }.openTopSiteTabWithTitle(testPage.title) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickRemoveFromShortcutsButton(composeTestRule) {
+            verifySnackBarText(getStringResource(R.string.snackbar_top_site_removed))
+        }.goToHomescreenWithRedesignedToolbar {
+            verifyNotExistingTopSitesList(testPage.title)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776969
+    @SmokeTest
+    @Test
+    fun verifyTheAddToHomeScreenSubMenuOptionTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickAddToHomeScreenButton(composeTestRule) {
+            clickCancelShortcutButton()
+        }
+        browserScreen {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickAddToHomeScreenButton(composeTestRule) {
+            clickAddShortcutButton()
+            clickSystemHomeScreenShortcutAddButton()
+        }.openHomeScreenShortcut(testPage.title) {
+            verifyPageContent(testPage.content)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776970
+    @SmokeTest
+    @Test
+    fun verifyTheSaveToCollectionSubMenuOptionTest() {
+        val collectionTitle = "First Collection"
+        val firstTestPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val secondTestPage = TestAssetHelper.getGenericAsset(mockWebServer, 2)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(firstTestPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickSaveToCollectionButton(composeTestRule) {
+        }.typeCollectionNameAndSave(collectionTitle) {
+            verifySnackBarText("Collection saved!")
+        }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(secondTestPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickSaveToCollectionButton(composeTestRule) {
+        }.selectExistingCollection(collectionTitle) {
+            verifySnackBarText("Tab saved!")
+            clickSnackbarButton(composeTestRule, "VIEW")
+        }
+        homeScreen {
+        }.expandCollection(collectionTitle) {
+            verifyTabSavedInCollection(firstTestPage.title)
+            verifyTabSavedInCollection(secondTestPage.title)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776971
+    @SmokeTest
+    @Test
+    fun verifyTheSaveAsPDFSubMenuOptionTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            clickSaveButton(composeTestRule)
+        }.clickSaveAsPDFButton(composeTestRule) {
+            verifyDownloadPrompt(testPage.title + ".pdf")
+        }.clickDownload {
+        }.clickOpen("application/pdf") {
+            assertAppWithPackageNameOpens(packageName)
+            verifyUrl("content://media/external_primary/downloads/")
+            verifyTabCounter("2")
         }
     }
 }

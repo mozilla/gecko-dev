@@ -77,6 +77,18 @@ class RedesignedMainMenuRobot {
         Log.i(TAG, "verifyPageMainMenuItems: Verified the main menu items on the web page.")
     }
 
+    fun verifySaveSubMenuItems(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifySaveSubMenuItems: Trying to verify the \"Save\" sub menu items.")
+        composeTestRule.backToMainMenuButton().assertIsDisplayed()
+        composeTestRule.saveSubMenuTitle().assertIsDisplayed()
+        composeTestRule.bookmarkThisPageButton().assertIsDisplayed()
+        composeTestRule.addToShortcutsButton().assertIsDisplayed()
+        composeTestRule.addToHomeScreenButton().assertIsDisplayed()
+        composeTestRule.saveToCollectionButton().assertIsDisplayed()
+        composeTestRule.saveAsPDFButton().assertIsDisplayed()
+        Log.i(TAG, "verifySaveSubMenuItems: Verified the \"Save\" sub menu items.")
+    }
+
     fun verifySettingsButton(composeTestRule: ComposeTestRule) {
         Log.i(TAG, "verifySettingsButton: Trying to verify the Settings button from the new main menu design is displayed.")
         composeTestRule.settingsButton().assertIsDisplayed()
@@ -98,6 +110,16 @@ class RedesignedMainMenuRobot {
         Log.i(TAG, "verifyNoExtensionsButton: Trying to verify that the \"Extensions\" button exists.")
         composeTestRule.noExtensionsButton().assertExists()
         Log.i(TAG, "verifyNoExtensionsButton: Verified that the \"Extensions\" button exists.")
+    }
+
+    fun clickSaveButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickSaveButton: Trying to click the \"Save\" button from the new main menu design.")
+        composeTestRule.saveMenuButton().performClick()
+        Log.i(TAG, "clickSaveButton: Clicked the \"Save\" button from the new main menu design.")
+    }
+
+    fun verifyBookmarkThisPageButton(composeTestRule: ComposeTestRule) {
+        composeTestRule.bookmarkThisPageButton().assertIsDisplayed()
     }
 
     class Transition {
@@ -211,6 +233,69 @@ class RedesignedMainMenuRobot {
             SettingsSubMenuAddonsManagerRobot().interact()
             return SettingsSubMenuAddonsManagerRobot.Transition()
         }
+
+        fun clickBookmarkThisPageButton(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "clickBookmarkThisPageButton: Trying to click the \"Bookmark this page\" button from the new main menu design.")
+            composeTestRule.bookmarkThisPageButton().performClick()
+            Log.i(TAG, "clickBookmarkThisPageButton: Clicked the \"Bookmark this page\" button from the new main menu design.")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
+
+        fun clickAddToShortcutsButton(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "clickAddToShortcutsButton: Trying to click the \"Add to shortcuts\" button from the new main menu design.")
+            composeTestRule.addToShortcutsButton().performClick()
+            Log.i(TAG, "clickAddToShortcutsButton: Clicked the \"Add to shortcuts\" button from the new main menu design.")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
+
+        fun clickRemoveFromShortcutsButton(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "clickRemoveFromShortcutsButton: Trying to click the \"Remove from shortcuts\" button from the new main menu design.")
+            composeTestRule.removeFromShortcutsButton().performClick()
+            Log.i(TAG, "clickRemoveFromShortcutsButton: Clicked the \"Remove from shortcuts\" button from the new main menu design.")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
+
+        fun clickEditBookmarkButton(composeTestRule: ComposeTestRule, interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+            Log.i(TAG, "clickEditBookmarkButton: Trying to click the \"Edit bookmark\" button from the new main menu design.")
+            composeTestRule.editBookmarkButton().performClick()
+            Log.i(TAG, "clickEditBookmarkButton: Clicked the \"Edit bookmark\" button from the new main menu design.")
+
+            BookmarksRobot().interact()
+            return BookmarksRobot.Transition()
+        }
+
+        fun clickAddToHomeScreenButton(composeTestRule: ComposeTestRule, interact: AddToHomeScreenRobot.() -> Unit): AddToHomeScreenRobot.Transition {
+            Log.i(TAG, "clickAddToHomeScreenButton: Trying to click the \"Add to Home screen…\" button from the new main menu design.")
+            composeTestRule.addToHomeScreenButton().performClick()
+            Log.i(TAG, "clickAddToHomeScreenButton: Clicked the \"Add to Home screen…\" button from the new main menu design.")
+
+            AddToHomeScreenRobot().interact()
+            return AddToHomeScreenRobot.Transition()
+        }
+
+        fun clickSaveToCollectionButton(composeTestRule: ComposeTestRule, interact: CollectionRobot.() -> Unit): CollectionRobot.Transition {
+            Log.i(TAG, "clickSaveToCollectionButton: Trying to click the \"Save to collection…\" button from the new main menu design.")
+            composeTestRule.saveToCollectionButton().performClick()
+            Log.i(TAG, "clickSaveToCollectionButton: Clicked the \"Save to collection…\" button from the new main menu design.")
+
+            CollectionRobot().interact()
+            return CollectionRobot.Transition()
+        }
+
+        fun clickSaveAsPDFButton(composeTestRule: ComposeTestRule, interact: DownloadRobot.() -> Unit): DownloadRobot.Transition {
+            Log.i(TAG, "clickSaveAsPDFButton: Trying to click the \"Save as PDF…\" button from the new main menu design.")
+            composeTestRule.saveAsPDFButton().performClick()
+            Log.i(TAG, "clickSaveAsPDFButton: Clicked the \"Save as PDF…\" button from the new main menu design.")
+
+            DownloadRobot().interact()
+            return DownloadRobot.Transition()
+        }
     }
 }
 private fun ComposeTestRule.signInButton() = onNodeWithText(getStringResource(R.string.browser_menu_sign_in))
@@ -243,6 +328,8 @@ private fun ComposeTestRule.passwordsButton() = onNodeWithContentDescription(get
 
 private fun ComposeTestRule.whatsNewButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_new_in_firefox))
 
+private fun ComposeTestRule.backToMainMenuButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_back_button_content_description))
+
 // Page main menu items
 
 private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page_2))
@@ -252,3 +339,21 @@ private fun ComposeTestRule.toolsMenuButton() = onNodeWithTag("mainMenu.tools")
 private fun ComposeTestRule.saveMenuButton() = onNodeWithTag("mainMenu.save")
 
 private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site))
+
+// Save sub menu items
+
+private fun ComposeTestRule.saveSubMenuTitle() = onNodeWithText(getStringResource(R.string.browser_menu_save))
+
+private fun ComposeTestRule.bookmarkThisPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_bookmark_this_page))
+
+private fun ComposeTestRule.editBookmarkButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_edit_bookmark))
+
+private fun ComposeTestRule.addToShortcutsButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_add_to_shortcuts))
+
+private fun ComposeTestRule.removeFromShortcutsButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_remove_from_shortcuts))
+
+private fun ComposeTestRule.addToHomeScreenButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_add_to_homescreen_2))
+
+private fun ComposeTestRule.saveToCollectionButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_save_to_collection))
+
+private fun ComposeTestRule.saveAsPDFButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_save_as_pdf))
