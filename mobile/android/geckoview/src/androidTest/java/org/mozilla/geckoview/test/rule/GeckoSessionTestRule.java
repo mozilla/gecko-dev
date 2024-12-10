@@ -2735,21 +2735,6 @@ public class GeckoSessionTestRule implements TestRule {
     void setArgs(JSONObject object) throws JSONException;
   }
 
-  /**
-   * Sets value to the given scalar.
-   *
-   * @param id the scalar to be set.
-   * @param value the value to set.
-   */
-  public <T> void setScalar(final String id, final T value) {
-    webExtensionApiCall(
-        "SetScalar",
-        args -> {
-          args.put("id", id);
-          args.put("value", value);
-        });
-  }
-
   /** Invokes nsIDOMWindowUtils.setResolutionAndScaleTo. */
   public void setResolutionAndScaleTo(final GeckoSession session, final float resolution) {
     webExtensionApiCall(

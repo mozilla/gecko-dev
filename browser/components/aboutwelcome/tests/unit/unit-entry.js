@@ -415,11 +415,6 @@ const TEST_GLOBAL = {
       removeObserver() {},
       notifyObservers() {},
     },
-    telemetry: {
-      recordEvent: _eventDetails => {},
-      scalarSet: () => {},
-      keyedScalarAdd: () => {},
-    },
     uuid: {
       generateUUID() {
         return "{foo-123-foo}";

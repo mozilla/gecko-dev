@@ -423,10 +423,6 @@ const TEST_GLOBAL = {
       removeObserver() {},
       notifyObservers() {},
     },
-    telemetry: {
-      scalarSet: () => {},
-      keyedScalarAdd: () => {},
-    },
     uuid: {
       generateUUID() {
         return "{foo-123-foo}";

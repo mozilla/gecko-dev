@@ -14,9 +14,6 @@ const APIS = {
       ${code}
     })()`);
   },
-  SetScalar({ id, value }) {
-    browser.test.setScalar(id, value);
-  },
   GetRequestedLocales() {
     return browser.test.getRequestedLocales();
   },

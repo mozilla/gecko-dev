@@ -148,10 +148,6 @@ this.test = class extends ExtensionAPI {
           overrideService.clearAllOverrides();
         },
 
-        async setScalar(id, value) {
-          return Services.telemetry.scalarSet(id, value);
-        },
-
         async setResolutionAndScaleTo(tabId, resolution) {
           return getActorForTab(tabId, "TestSupport").sendQuery(
             "SetResolutionAndScaleTo",
