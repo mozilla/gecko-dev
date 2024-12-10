@@ -802,7 +802,7 @@
     <string name="studies_learn_more">Learn more</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app" moz:removedIn="135">The application will quit to apply changes</string>
+    <string name="studies_restart_app">The application will quit to apply changes</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Remove</string>

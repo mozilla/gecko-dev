@@ -5,6 +5,9 @@
 package org.mozilla.fenix.settings
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import androidx.annotation.VisibleForTesting
 import androidx.navigation.findNavController
 import androidx.preference.Preference
@@ -22,6 +25,7 @@ import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.OnboardingCardData
 import org.mozilla.fenix.nimbus.OnboardingCardType
+import kotlin.system.exitProcess
 
 /**
  * Lets the user toggle telemetry on/off.
@@ -41,6 +45,17 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
                     if (context.settings().isExperimentationEnabled) {
                         context.settings().isExperimentationEnabled = false
                         requireComponents.nimbus.sdk.globalUserParticipation = false
+                        if (SHOULD_EXIT_APP_AFTER_TURNING_OFF_STUDIES) {
+                            Toast.makeText(
+                                context,
+                                getString(R.string.quit_application),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            Handler(Looper.getMainLooper()).postDelayed(
+                                { quitTheApp() },
+                                EXIT_DELAY,
+                            )
+                        }
                     }
                 }
                 updateStudiesSection()
@@ -130,6 +145,18 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
             view?.findNavController()?.nav(R.id.dataChoicesFragment, action)
             true
         }
+    }
+
+    @VisibleForTesting
+    internal fun quitTheApp() {
+        exitProcess(0)
+    }
+
+    companion object {
+        private const val EXIT_DELAY = 2000L
+
+        @VisibleForTesting
+        var SHOULD_EXIT_APP_AFTER_TURNING_OFF_STUDIES = true
     }
 }
 

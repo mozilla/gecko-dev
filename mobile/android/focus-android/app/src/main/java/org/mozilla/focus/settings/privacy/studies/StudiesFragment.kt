@@ -11,6 +11,7 @@ import android.text.style.URLSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.lifecycle.ViewModelProvider
@@ -22,6 +23,7 @@ import org.mozilla.focus.ext.showToolbar
 import org.mozilla.focus.settings.BaseSettingsLikeFragment
 import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.utils.SupportUtils
+import kotlin.system.exitProcess
 
 class StudiesFragment : BaseSettingsLikeFragment() {
     private var _binding: FragmentStudiesBinding? = null
@@ -101,8 +103,31 @@ class StudiesFragment : BaseSettingsLikeFragment() {
 
     private fun setStudiesSwitch() {
         binding.studiesSwitch.setOnClickListener {
-            viewModel.setStudiesState(binding.studiesSwitch.isChecked)
+            val builder = AlertDialog.Builder(requireContext())
+                .setPositiveButton(
+                    R.string.action_ok,
+                ) { dialog, _ ->
+                    viewModel.setStudiesState(binding.studiesSwitch.isChecked)
+                    dialog.dismiss()
+                    quitTheApp()
+                }
+                .setNegativeButton(
+                    R.string.action_cancel,
+                ) { dialog, _ ->
+                    binding.studiesSwitch.isChecked = !binding.studiesSwitch.isChecked
+                    setStudiesTitleByState(binding.studiesSwitch.isChecked)
+                    dialog.dismiss()
+                }
+                .setTitle(R.string.preference_studies)
+                .setMessage(R.string.studies_restart_app)
+                .setCancelable(false)
+            val alertDialog: AlertDialog = builder.create()
+            alertDialog.show()
         }
+    }
+
+    private fun quitTheApp() {
+        exitProcess(0)
     }
 
     private fun setRemoveStudyListener() {
