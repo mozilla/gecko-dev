@@ -28,6 +28,8 @@ if CONFIG['MOZ_OPTIMIZE']:
         skia_opt_flags += ['-O2']
     elif CONFIG['CC_TYPE'] in ('clang', 'gcc'):
         skia_opt_flags += ['-O3']
+if CONFIG['TARGET_CPU'] in ('loongarch64'):
+    skia_opt_flags += ['-mno-lsx']
 
 """
 
