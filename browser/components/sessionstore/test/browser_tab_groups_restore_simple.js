@@ -64,4 +64,5 @@ add_task(async function test_RestoreSingleGroup() {
   );
 
   await BrowserTestUtils.closeWindow(win);
+  forgetClosedWindows();
 });
