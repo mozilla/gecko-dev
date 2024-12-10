@@ -1005,3 +1005,13 @@ strong {
     }
   }
 }
+
+/* Indent the content script items */
+.webconsole-evaluation-selector-item.indented::before {
+  content: "\2514\2500" !important;
+  z-index:1000;
+  margin-inline-start: 20px;
+}
+.checkbox-container .menuitem > .command.indented > .label {
+  padding-inline-start: 4px;
+}

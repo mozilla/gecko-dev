@@ -104,10 +104,14 @@ class EvaluationContextSelector extends Component {
       return "chrome://devtools/content/debugger/images/window.svg";
     }
 
+    if (target.targetType === TARGET_TYPES.CONTENT_SCRIPT) {
+      return "chrome://devtools/content/debugger/images/sources/extension.svg";
+    }
+
     return null;
   }
 
-  renderMenuItem(target) {
+  renderMenuItem(target, indented = false) {
     const { selectTarget, selectedTarget } = this.props;
 
     // When debugging a Web Extension, the top level target is always the fallback document.
@@ -120,7 +124,9 @@ class EvaluationContextSelector extends Component {
 
     return MenuItem({
       key: `webconsole-evaluation-selector-item-${target.actorID}`,
-      className: "menu-item webconsole-evaluation-selector-item",
+      className: `menu-item webconsole-evaluation-selector-item ${
+        indented ? "indented" : ""
+      }`,
       type: "checkbox",
       checked: selectedTarget ? selectedTarget == target : target.isTopLevel,
       label,
@@ -137,14 +143,6 @@ class EvaluationContextSelector extends Component {
     const collator = new Intl.Collator("en", { numeric: true });
     targets.sort((a, b) => collator.compare(a.name, b.name));
 
-    let mainTarget;
-    const sections = {
-      [TARGET_TYPES.FRAME]: [],
-      [TARGET_TYPES.WORKER]: [],
-      [TARGET_TYPES.SHARED_WORKER]: [],
-      [TARGET_TYPES.SERVICE_WORKER]: [],
-      [TARGET_TYPES.CONTENT_SCRIPT]: [],
-    };
     // When in Browser Toolbox, we want to display the process targets with the frames
     // in the same process as a group
     // e.g.
@@ -160,67 +158,109 @@ class EvaluationContextSelector extends Component {
     //     | RemoteSettingWorker.js       |
     //     |------------------------------|
     //
-    // This object will be keyed by PID, and each property will be an object with a
-    // `process` property (for the process target item), and a `frames` property (and array
-    // for all the frame target items).
-    const processes = {};
 
     const { webConsoleUI } = this.props;
     const handleProcessTargets =
       webConsoleUI.isBrowserConsole || webConsoleUI.isBrowserToolboxConsole;
 
-    for (const target of targets) {
-      const menuItem = this.renderMenuItem(target);
+    const processTargets = [];
+    const frameTargets = new Set();
+    const contentScriptTargets = new Set();
+    const workerTargets = [];
+    let topTarget = null;
 
+    for (const target of targets) {
       if (target.isTopLevel) {
-        mainTarget = menuItem;
-      } else if (target.targetType == TARGET_TYPES.PROCESS) {
-        if (!processes[target.processID]) {
-          processes[target.processID] = { frames: [] };
-        }
-        processes[target.processID].process = menuItem;
-      } else if (
-        target.targetType == TARGET_TYPES.FRAME &&
-        handleProcessTargets &&
-        target.processID
-      ) {
-        // The associated process target might not have been handled yet, so make sure
-        // to create it.
-        if (!processes[target.processID]) {
-          processes[target.processID] = { frames: [] };
-        }
-        processes[target.processID].frames.push(menuItem);
-      } else {
-        sections[target.targetType].push(menuItem);
+        topTarget = target;
+        continue;
+      }
+      switch (target.targetType) {
+        case TARGET_TYPES.PROCESS:
+          processTargets.push(target);
+          break;
+        case TARGET_TYPES.FRAME:
+          frameTargets.add(target);
+          break;
+        case TARGET_TYPES.CONTENT_SCRIPT:
+          contentScriptTargets.add(target);
+          break;
+        case TARGET_TYPES.WORKER:
+        case TARGET_TYPES.SHARED_WORKER:
+        case TARGET_TYPES.SERVICE_WORKER:
+          workerTargets.push(target);
+          break;
+        default:
+          console.warn(
+            "Unsupported target type in the evalutiong context selector",
+            target.targetType
+          );
       }
     }
+
+    const items = [];
+
+    const renderFrameWithContentScripts = frameTarget => {
+      items.push(this.renderMenuItem(frameTarget));
+
+      for (const contentScriptTarget of [...contentScriptTargets]) {
+        if (contentScriptTarget.innerWindowId != frameTarget.innerWindowId) {
+          continue;
+        }
+        items.push(this.renderMenuItem(contentScriptTarget, true));
+        contentScriptTargets.delete(contentScriptTarget);
+      }
+    };
 
     // Note that while debugging popups, we might have a small period
     // of time where we don't have any top level target when we reload
     // the original tab
-    const items = mainTarget ? [mainTarget] : [];
+    if (topTarget) {
+      renderFrameWithContentScripts(topTarget);
+    }
 
-    // Handle PROCESS targets sections first, as we want to display the associated frames
-    // below the process to group them.
-    if (processes) {
-      for (const [pid, { process, frames }] of Object.entries(processes)) {
-        items.push(dom.hr({ role: "menuseparator", key: `${pid}-separator` }));
-        if (process) {
-          items.push(process);
-        }
-        if (frames) {
-          items.push(...frames);
+    if (handleProcessTargets) {
+      const sortedProcessTargets = processTargets.sort(
+        (a, b) => a.processID < b.processID
+      );
+      for (const target of sortedProcessTargets) {
+        items.push(
+          dom.hr({ role: "menuseparator", key: `process-separator-${target.actorID}` }),
+          this.renderMenuItem(target)
+        );
+
+        for (const frameTarget of [...frameTargets]) {
+          if (frameTarget.processID != target.processID) {
+            continue;
+          }
+          renderFrameWithContentScripts(frameTarget);
+          frameTargets.delete(frameTarget);
         }
       }
     }
 
-    for (const [targetType, menuItems] of Object.entries(sections)) {
-      if (menuItems.length) {
-        items.push(
-          dom.hr({ role: "menuseparator", key: `${targetType}-separator` }),
-          ...menuItems
-        );
-      }
+    // Render all targets when running in regular non-browser-console/toolbox,
+    // but also possibly render any leftover frame which can't be matched to any Process ID.
+    const sortedFrames = [...frameTargets].sort(
+      (a, b) => a.innerWindowID < b.innerWindowID
+    );
+    if (sortedFrames.length) {
+      items.push(dom.hr({ role: "menuseparator", key: `frame-separator` }));
+    }
+    for (const frameTarget of sortedFrames) {
+      renderFrameWithContentScripts(frameTarget);
+    }
+    // All content scripts should have matched their related frame target in `renderFrameWithContentScripts`,
+    // but just in case, display any leftover.
+    for (const contentScriptTarget of contentScriptTargets) {
+      items.push(this.renderMenuItem(contentScriptTarget, true));
+    }
+
+    const sortedWorkers = workerTargets.sort((a, b) => a.url < b.url);
+    if (sortedWorkers.length) {
+      items.push(dom.hr({ role: "menuseparator", key: `worker-separator` }));
+    }
+    for (const workerTarget of sortedWorkers) {
+      items.push(this.renderMenuItem(workerTarget));
     }
 
     return MenuList(
