@@ -344,7 +344,7 @@ function testPopupMovement()
   var marginLeft = parseFloat(getComputedStyle(popup).marginLeft);
   var marginTop = parseFloat(getComputedStyle(popup).marginTop);
 
-  var panelIsTop = SpecialPowers.getBoolPref("ui.panel.default_level_parent");
+  var panelIsTop = !SpecialPowers.getBoolPref("ui.panel.default_level_parent");
   var overlapOSChrome = canOverlapOSChrome() && (!isPanelTest || panelIsTop);
   popup.moveTo(1, 1);
   [screenX, screenY] = getScreenXY(popup);

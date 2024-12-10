@@ -70,8 +70,6 @@ using mozilla::dom::Element;
 using mozilla::dom::Event;
 using mozilla::dom::XULButtonElement;
 
-int8_t nsMenuPopupFrame::sDefaultLevelIsTop = -1;
-
 TimeStamp nsMenuPopupFrame::sLastKeyTime;
 
 #ifdef MOZ_WAYLAND
@@ -105,15 +103,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsBlockFrame)
 //
 nsMenuPopupFrame::nsMenuPopupFrame(ComputedStyle* aStyle,
                                    nsPresContext* aPresContext)
-    : nsBlockFrame(aStyle, aPresContext, kClassID) {
-  // the preference name is backwards here. True means that the 'top' level is
-  // the default, and false means that the 'parent' level is the default.
-  if (sDefaultLevelIsTop >= 0) {
-    return;
-  }
-  sDefaultLevelIsTop =
-      Preferences::GetBool("ui.panel.default_level_parent", false);
-}  // ctor
+    : nsBlockFrame(aStyle, aPresContext, kClassID) {}
 
 nsMenuPopupFrame::~nsMenuPopupFrame() = default;
 
@@ -235,7 +225,8 @@ widget::PopupLevel nsMenuPopupFrame::GetPopupLevel(bool aIsNoAutoHide) const {
   }
 
   // Otherwise, the result depends on the platform.
-  return sDefaultLevelIsTop ? PopupLevel::Top : PopupLevel::Parent;
+  return StaticPrefs::ui_panel_default_level_parent() ? PopupLevel::Parent
+                                                      : PopupLevel::Top;
 }
 
 void nsMenuPopupFrame::PrepareWidget(bool aForceRecreate) {

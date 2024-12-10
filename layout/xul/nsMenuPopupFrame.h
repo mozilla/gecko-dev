@@ -640,8 +640,6 @@ class nsMenuPopupFrame final : public nsBlockFrame {
 
   nsRect mOverrideConstraintRect;
 
-  static int8_t sDefaultLevelIsTop;
-
   static mozilla::TimeStamp sLastKeyTime;
 
 };  // class nsMenuPopupFrame
