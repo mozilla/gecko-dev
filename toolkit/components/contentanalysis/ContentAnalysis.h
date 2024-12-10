@@ -86,6 +86,7 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
                          dom::WindowGlobalParent* aWindowGlobalParent);
   ContentAnalysisRequest(const nsTArray<uint8_t> aPrintData,
                          nsCOMPtr<nsIURI> aUrl, nsString aPrinterName,
+                         Reason aReason,
                          dom::WindowGlobalParent* aWindowGlobalParent);
   static nsresult GetFileDigest(const nsAString& aFilePath,
                                 nsCString& aDigestString);

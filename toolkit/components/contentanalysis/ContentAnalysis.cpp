@@ -316,8 +316,10 @@ ContentAnalysisRequest::ContentAnalysisRequest(
 
 ContentAnalysisRequest::ContentAnalysisRequest(
     const nsTArray<uint8_t> aPrintData, nsCOMPtr<nsIURI> aUrl,
-    nsString aPrinterName, dom::WindowGlobalParent* aWindowGlobalParent)
+    nsString aPrinterName, Reason aReason,
+    dom::WindowGlobalParent* aWindowGlobalParent)
     : mAnalysisType(AnalysisType::ePrint),
+      mReason(aReason),
       mUrl(std::move(aUrl)),
       mPrinterName(std::move(aPrinterName)),
       mWindowGlobalParent(aWindowGlobalParent) {
@@ -336,6 +338,9 @@ ContentAnalysisRequest::ContentAnalysisRequest(
   MOZ_ASSERT_UNREACHABLE(
       "Content Analysis is not supported on non-Windows platforms");
 #endif
+  // We currently only use this constructor when printing.
+  MOZ_ASSERT(aReason == nsIContentAnalysisRequest::Reason::ePrintPreviewPrint ||
+             aReason == nsIContentAnalysisRequest::Reason::eSystemDialogPrint);
   mOperationTypeForDisplay = OperationType::eOperationPrint;
   mRequestToken = GenerateRequestToken();
 }
@@ -2051,10 +2056,27 @@ ContentAnalysis::PrintToPDFToDetermineIfPrintAllowed(
                       __func__);
                   return;
                 }
+                // It's a little unclear what we should pass to the agent if
+                // print.always_print_silent is true, because in that case we
+                // don't show the print preview dialog or the system print
+                // dialog.
+                //
+                // I'm thinking of the print preview dialog case as the "normal"
+                // one, so to me printing without a dialog is closer to the
+                // system print dialog case.
+                bool isFromPrintPreviewDialog =
+                    !Preferences::GetBool("print.prefer_system_dialog") &&
+                    !Preferences::GetBool("print.always_print_silent");
                 nsCOMPtr<nsIContentAnalysisRequest> contentAnalysisRequest =
                     new contentanalysis::ContentAnalysisRequest(
                         std::move(printData), std::move(uri),
-                        std::move(printerName), windowParent);
+                        std::move(printerName),
+                        isFromPrintPreviewDialog
+                            ? nsIContentAnalysisRequest::Reason::
+                                  ePrintPreviewPrint
+                            : nsIContentAnalysisRequest::Reason::
+                                  eSystemDialogPrint,
+                        windowParent);
                 auto callback =
                     MakeRefPtr<contentanalysis::ContentAnalysisCallback>(
                         [browsingContext, cachedStaticBrowsingContext, promise,

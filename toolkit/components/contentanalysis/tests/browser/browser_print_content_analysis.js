@@ -76,6 +76,11 @@ function assertContentAnalysisRequest(request, expectedUrl) {
     "request has print analysisType"
   );
   is(
+    request.reason,
+    Ci.nsIContentAnalysisRequest.ePrintPreviewPrint,
+    "request has correct reason"
+  );
+  is(
     request.operationTypeForDisplay,
     Ci.nsIContentAnalysisRequest.eOperationPrint,
     "request has print operationTypeForDisplay"
