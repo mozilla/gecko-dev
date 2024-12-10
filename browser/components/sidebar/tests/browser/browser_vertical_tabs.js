@@ -67,9 +67,6 @@ function getExpectedElements(win, tabstripOrientation = "horizontal") {
   selectors = ["#vertical-tabs"];
   if (win.CustomTitlebar.enabled) {
     selectors.push("#nav-bar .titlebar-buttonbox-container");
-    if (sizeMode == "normal") {
-      selectors.push("#nav-bar .titlebar-spacer[type='post-tabs']");
-    }
   }
   return selectors;
 }
