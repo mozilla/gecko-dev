@@ -38,6 +38,8 @@ XPCOMUtils.defineLazyServiceGetter(
 const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
 const COLLECTION_ID_FALLBACK = "nimbus-desktop-experiments";
 const ENABLED_PREF = "messaging-system.rsexperimentloader.enabled";
+const TARGETING_CONTEXT_TELEMETRY_ENABLED_PREF =
+  "nimbus.telemetry.targetingContextEnabled";
 
 const TIMER_NAME = "rs-experiment-loader-timer";
 const TIMER_LAST_UPDATE_PREF = `app.update.lastUpdateTime.${TIMER_NAME}`;
@@ -81,6 +83,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "APP_ID",
   NIMBUS_APPID_PREF,
   "firefox-desktop"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "TARGETING_CONTEXT_TELEMETRY_ENABLED",
+  TARGETING_CONTEXT_TELEMETRY_ENABLED_PREF
 );
 
 const SCHEMAS = {
@@ -206,7 +213,12 @@ export class _RemoteSettingsExperimentLoader {
       this._updatingDeferred = Promise.withResolvers();
     }
 
-    lazy.recordTargetingContext();
+    // The targeting context metrics do not work in artifact builds.
+    // See-also: https://bugzilla.mozilla.org/show_bug.cgi?id=1936317
+    // See-also: https://bugzilla.mozilla.org/show_bug.cgi?id=1936319
+    if (lazy.TARGETING_CONTEXT_TELEMETRY_ENABLED) {
+      lazy.recordTargetingContext();
+    }
 
     // Since this method is async, the enabled pref could change between await
     // points. We don't want to half validate experiments, so we cache this to
