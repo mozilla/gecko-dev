@@ -287,6 +287,8 @@ impl RenderTarget {
                     }
                     if let Some(clear_color) = pic_task.clear_color {
                         self.clears.push((target_rect, clear_color));
+                    } else if self.cached {
+                        self.clears.push((target_rect, ColorF::TRANSPARENT));
                     }
 
                     // TODO(gw): The type names of AlphaBatchBuilder and BatchBuilder
