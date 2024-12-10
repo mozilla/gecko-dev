@@ -261,15 +261,17 @@ static already_AddRefed<Screen> MakeScreenGtk(GdkScreen* aScreen,
   if (heightMM > 0) {
     dpi = rect.height / (heightMM / MM_PER_INCH_FLOAT);
   }
+  bool isHDR =
+      GdkIsWaylandDisplay() ? WaylandDisplayGet()->IsHDREnabled() : false;
 
   LOG_SCREEN(
       "New monitor %d size [%d,%d -> %d x %d] depth %d scale %f CssScale %f  "
-      "DPI %f refresh %d ]",
+      "DPI %f refresh %d HDR %d]",
       aMonitorNum, rect.x, rect.y, rect.width, rect.height, pixelDepth,
-      contentsScale.scale, defaultCssScale.scale, dpi, refreshRate);
-  return MakeAndAddRef<Screen>(rect, availRect, pixelDepth, pixelDepth,
-                               refreshRate, contentsScale, defaultCssScale, dpi,
-                               Screen::IsPseudoDisplay::No, Screen::IsHDR::No);
+      contentsScale.scale, defaultCssScale.scale, dpi, refreshRate, isHDR);
+  return MakeAndAddRef<Screen>(
+      rect, availRect, pixelDepth, pixelDepth, refreshRate, contentsScale,
+      defaultCssScale, dpi, Screen::IsPseudoDisplay::No, Screen::IsHDR(isHDR));
 }
 
 void ScreenGetterGtk::RefreshScreens() {
@@ -288,6 +290,7 @@ void ScreenGetterGtk::RefreshScreens() {
 }
 
 gint ScreenHelperGTK::GetGTKMonitorScaleFactor(gint aMonitorNum) {
+  MOZ_ASSERT(NS_IsMainThread());
   GdkScreen* screen = gdk_screen_get_default();
   return gdk_screen_get_monitor_scale_factor(screen, aMonitorNum);
 }
