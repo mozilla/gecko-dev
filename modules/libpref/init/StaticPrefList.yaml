@@ -8595,14 +8595,15 @@
   mirror: always
   set_spidermonkey_pref: always
 
-# When selecting a call_ref target for speculative inlining, this is the minimum
+# When selecting call_ref targets for speculative inlining, this is the minimum
 # percentage of the total number of calls from the call site that a candidate
-# must have in order to be elegible for inlining.  Allowable: 10 .. 100 (%).
-# Setting it (eg) 75 means the hottest target must be 75% of all observed calls
-# to be considered for inlining.  Probably unwise to let this be much below 50.
+# set of targets must collectively have in order to be elegible for inlining.
+# Allowable: 10 .. 100 (%).  Setting it (eg) 75 means the targets must collectively
+# be 75% of all observed calls to be considered for inlining.  Probably unwise to
+# let this be much below 40.
 - name: javascript.options.wasm_call_ref_inlining_percent
   type: uint32_t
-  value: 50
+  value: 40
   mirror: always
   set_spidermonkey_pref: always
 

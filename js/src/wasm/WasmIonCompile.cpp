@@ -2525,23 +2525,25 @@ class FunctionCompiler {
   }
 
   [[nodiscard]]
-  bool shouldInlineCall(InliningHeuristics::CallKind kind, uint32_t funcIndex) {
-    // We only support this mode when lazy tiering. This is currently a
+  CallRefHint auditInlineableCallees(InliningHeuristics::CallKind kind,
+                                     CallRefHint hints) {
+    // Takes candidates for inlining as provided in `hints`, and returns a
+    // subset (or all) of them for which inlining is approved.  To indicate
+    // that they are all disallowed, return an empty CallRefHint.
+
+    MOZ_ASSERT_IF(kind == InliningHeuristics::CallKind::Direct,
+                  hints.length() == 1);
+
+    // We only support inlining when lazy tiering. This is currently a
     // requirement because we need the full module bytecode and function
     // definition ranges, which are not available in other modes.
     if (compilerEnv().mode() != CompileMode::LazyTiering) {
-      return false;
+      return CallRefHint();
     }
 
-    // We can't inline an imported function.
-    if (codeMeta().funcIsImport(funcIndex)) {
-      return false;
-    }
-
-    // We do not support inlining a callee which uses tail calls
-    FeatureUsage funcFeatureUsage = codeMeta().funcDefFeatureUsage(funcIndex);
-    if (funcFeatureUsage & FeatureUsage::ReturnCall) {
-      return false;
+    // If we were given no candidates, give up now.
+    if (hints.empty()) {
+      return CallRefHint();
     }
 
     // We can't inline if we've exceeded our per-root-function inlining
@@ -2551,17 +2553,43 @@ class FunctionCompiler {
     // if a budget overshoot happens, so we will have performed slightly more
     // inlining than allowed by the initial setting of `availableBudget`.  The
     // size of this overshoot is however very limited -- it can't exceed the
-    // size of one function body that is inlined.  And that is limited by
-    // InliningHeuristics::isSmallEnoughToInline.
+    // size of three function bodies that are inlined (3 because that's what
+    // CallRefHint can hold).  And the max size of an inlineable function body
+    // is limited by InliningHeuristics::isSmallEnoughToInline.
     if (rootCompiler_.inliningBudget() < 0) {
-      return false;
+      return CallRefHint();
     }
 
-    // Ask the heuristics system if we're allowed to inline a function of this
-    // size and kind at the current inlining depth.
-    uint32_t inlineeBodySize = codeMeta().funcDefRange(funcIndex).size;
-    return InliningHeuristics::isSmallEnoughToInline(kind, inliningDepth(),
-                                                     inlineeBodySize);
+    // Check each candidate in turn, and add all acceptable ones to `filtered`.
+    // It is important that `filtered` retains the same ordering as `hints`.
+    CallRefHint filtered;
+    for (uint32_t i = 0; i < hints.length(); i++) {
+      uint32_t funcIndex = hints.get(i);
+
+      // We can't inline an imported function.
+      if (codeMeta().funcIsImport(funcIndex)) {
+        continue;
+      }
+
+      // We do not support inlining a callee which uses tail calls
+      FeatureUsage funcFeatureUsage = codeMeta().funcDefFeatureUsage(funcIndex);
+      if (funcFeatureUsage & FeatureUsage::ReturnCall) {
+        continue;
+      }
+
+      // Ask the heuristics system if we're allowed to inline a function of
+      // this size and kind at the current inlining depth.
+      uint32_t inlineeBodySize = codeMeta().funcDefRange(funcIndex).size;
+      if (!InliningHeuristics::isSmallEnoughToInline(kind, inliningDepth(),
+                                                     inlineeBodySize)) {
+        continue;
+      }
+
+      filtered.append(funcIndex);
+    }
+
+    // Whatever ends up in `filtered` is approved for inlining.
+    return filtered;
   }
 
   [[nodiscard]]
@@ -5605,7 +5633,7 @@ class FunctionCompiler {
   CallRefHint readCallRefHint() {
     // We don't track anything if we're not using lazy tiering
     if (compilerEnv().mode() != CompileMode::LazyTiering) {
-      return CallRefHint::unknown();
+      return CallRefHint();
     }
 
     CallRefMetricsRange rangeInModule =
@@ -5835,7 +5863,7 @@ class FunctionCompiler {
   bool emitBrOnNonNull();
   bool emitSpeculativeInlineCallRef(uint32_t bytecodeOffset,
                                     const FuncType& funcType,
-                                    uint32_t expectedFuncIndex,
+                                    CallRefHint expectedFuncIndices,
                                     MDefinition* actualCalleeFunc,
                                     const DefVector& args, DefVector* results);
   bool emitCallRef();
@@ -6397,7 +6425,12 @@ bool FunctionCompiler::emitCall(bool asmJSFuncDef) {
     }
   } else {
     const auto callKind = InliningHeuristics::CallKind::Direct;
-    if (shouldInlineCall(callKind, funcIndex)) {
+    // Make up a single-entry CallRefHint and enquire about its inlineability.
+    CallRefHint hints;
+    hints.append(funcIndex);
+    hints = auditInlineableCallees(callKind, hints);
+    if (!hints.empty()) {
+      // Inlining of `funcIndex` was approved.
       if (!emitInlineCall(funcType, funcIndex, callKind, args, &results)) {
         return false;
       }
@@ -8311,71 +8344,93 @@ bool FunctionCompiler::emitBrOnNonNull() {
   return brOnNonNull(relativeDepth, values, type, condition);
 }
 
-// Speculatively inline a call_ref that is likely to target the expected
+// Speculatively inline a call_refs that are likely to target the expected
 // function index in this module. A fallback for if the actual callee is not
-// the speculated expected callee is always generated. This leads to a control
-// flow diamond that is roughly:
+// any of the speculated expected callees is always generated. This leads to a
+// control flow chain that is roughly:
 //
-// if (ref.func $expectedFuncIndex) == actualCalleeFunc:
-//   (call_inline $expectedFuncIndex)
+// if (ref.func $expectedFuncIndex_1) == actualCalleeFunc:
+//   (call_inline $expectedFuncIndex1)
+// else if (ref.func $expectedFuncIndex_2) == actualCalleeFunc:
+//   (call_inline $expectedFuncIndex2)
+// ...
 // else:
 //   (call_ref actualCalleeFunc)
+//
 bool FunctionCompiler::emitSpeculativeInlineCallRef(
     uint32_t bytecodeOffset, const FuncType& funcType,
-    uint32_t expectedFuncIndex, MDefinition* actualCalleeFunc,
+    CallRefHint expectedFuncIndices, MDefinition* actualCalleeFunc,
     const DefVector& args, DefVector* results) {
+  // There must be at least one speculative target.
+  MOZ_ASSERT(!expectedFuncIndices.empty());
+
   // Perform an up front null check on the callee function reference.
   if (!refAsNonNull(actualCalleeFunc)) {
     return false;
   }
 
-  // Load the cached value of `ref.func $expectedFuncIndex` for comparing
-  // against `actualCalleeFunc`. This cached value may be null if the `ref.func`
-  // for the expected function has not been executed in this runtime session.
-  //
-  // This is okay because we have done a null check on the `actualCalleeFunc`
-  // already and so comparing it against a null expected callee func will
-  // return false and fall back to the general case. This can only happen if
-  // we've deserialized a cached module in a different session, and then run
-  // the code without ever acquiring a reference to the expected function. In
-  // that case, the expected callee could never be the target of this call_ref,
-  // so performing the fallback path is the right thing to do anyways.
-  MDefinition* expectedCalleeFunc = loadCachedRefFunc(expectedFuncIndex);
-  if (!expectedCalleeFunc) {
+  constexpr size_t numElseBlocks = CallRefHint::NUM_ENTRIES + 1;
+  Vector<MBasicBlock*, numElseBlocks, SystemAllocPolicy> elseBlocks;
+  if (!elseBlocks.reserve(numElseBlocks)) {
     return false;
   }
 
-  // Check if the callee funcref we have is equals to the expected callee
-  // funcref we're inlining.
-  MDefinition* isExpectedCallee =
-      compare(actualCalleeFunc, expectedCalleeFunc, JSOp::Eq,
-              MCompare::Compare_WasmAnyRef);
-  if (!isExpectedCallee) {
-    return false;
-  }
+  for (uint32_t i = 0; i < expectedFuncIndices.length(); i++) {
+    uint32_t funcIndex = expectedFuncIndices.get(i);
 
-  // Start the 'then' block which will have the inlined code
-  MBasicBlock* elseBlock;
-  if (!branchAndStartThen(isExpectedCallee, &elseBlock)) {
-    return false;
-  }
+    // Load the cached value of `ref.func $expectedFuncIndex` for comparing
+    // against `actualCalleeFunc`. This cached value may be null if the
+    // `ref.func` for the expected function has not been executed in this
+    // runtime session.
+    //
+    // This is okay because we have done a null check on the `actualCalleeFunc`
+    // already and so comparing it against a null expected callee func will
+    // return false and fall back to the general case. This can only happen if
+    // we've deserialized a cached module in a different session, and then run
+    // the code without ever acquiring a reference to the expected function. In
+    // that case, the expected callee could never be the target of this
+    // call_ref, so performing the fallback path is the right thing to do
+    // anyways.
+    MDefinition* expectedCalleeFunc = loadCachedRefFunc(funcIndex);
+    if (!expectedCalleeFunc) {
+      return false;
+    }
 
-  // Inline the expected callee as we do with direct calls
-  DefVector inlineResults;
-  if (!emitInlineCall(funcType, expectedFuncIndex,
-                      InliningHeuristics::CallKind::CallRef, args,
-                      &inlineResults)) {
-    return false;
-  }
+    // Check if the callee funcref we have is equals to the expected callee
+    // funcref we're inlining.
+    MDefinition* isExpectedCallee =
+        compare(actualCalleeFunc, expectedCalleeFunc, JSOp::Eq,
+                MCompare::Compare_WasmAnyRef);
+    if (!isExpectedCallee) {
+      return false;
+    }
 
-  // Push the results for joining with the 'else' block
-  if (!pushDefs(inlineResults)) {
-    return false;
-  }
+    // Start a 'then' block, which will have the inlined code
+    MBasicBlock* elseBlock;
+    if (!branchAndStartThen(isExpectedCallee, &elseBlock)) {
+      return false;
+    }
 
-  // Switch to the 'else' block which will have the fallback `call_ref`
-  if (!switchToElse(elseBlock, &elseBlock)) {
-    return false;
+    // Inline the expected callee as we do with direct calls
+    DefVector inlineResults;
+    if (!emitInlineCall(funcType, funcIndex,
+                        InliningHeuristics::CallKind::CallRef, args,
+                        &inlineResults)) {
+      return false;
+    }
+
+    // Push the results for joining with the 'else' block
+    if (!pushDefs(inlineResults)) {
+      return false;
+    }
+
+    // Switch to the 'else' block which will have, either the check for the
+    // next target, or the fallback `call_ref` if we're out of targets.
+    if (!switchToElse(elseBlock, &elseBlock)) {
+      return false;
+    }
+
+    elseBlocks.infallibleAppend(elseBlock);
   }
 
   DefVector callResults;
@@ -8389,8 +8444,14 @@ bool FunctionCompiler::emitSpeculativeInlineCallRef(
     return false;
   }
 
-  // Join the two branches together
-  return joinIfElse(elseBlock, results);
+  // Join the various branches together
+  for (uint32_t i = elseBlocks.length() - 1; i != 0; i--) {
+    DefVector results;
+    if (!joinIfElse(elseBlocks[i], &results) || !pushDefs(results)) {
+      return false;
+    }
+  }
+  return joinIfElse(elseBlocks[0], results);
 }
 
 bool FunctionCompiler::emitCallRef() {
@@ -8413,13 +8474,14 @@ bool FunctionCompiler::emitCallRef() {
 
   const FuncType& funcType = codeMeta().types->type(funcTypeIndex).funcType();
 
-  if (hint.isInlineFunc() &&
-      shouldInlineCall(InliningHeuristics::CallKind::CallRef,
-                       hint.inlineFuncIndex())) {
+  // Ask the inlining heuristics which entries in `hint` we are allowed to
+  // inline.
+  CallRefHint approved =
+      auditInlineableCallees(InliningHeuristics::CallKind::CallRef, hint);
+  if (!approved.empty()) {
     DefVector results;
-    if (!emitSpeculativeInlineCallRef(bytecodeOffset, funcType,
-                                      hint.inlineFuncIndex(), callee, args,
-                                      &results)) {
+    if (!emitSpeculativeInlineCallRef(bytecodeOffset, funcType, approved,
+                                      callee, args, &results)) {
       return false;
     }
     iter().setResults(results.length(), results);

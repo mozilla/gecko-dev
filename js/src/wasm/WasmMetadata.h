@@ -349,7 +349,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
 
   CallRefHint getCallRefHint(uint32_t callRefIndex) const {
     if (!callRefHints) {
-      return CallRefHint::unknown();
+      return CallRefHint();
     }
     return CallRefHint::fromRepr(callRefHints[callRefIndex]);
   }

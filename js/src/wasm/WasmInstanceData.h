@@ -340,16 +340,6 @@ struct CallRefMetrics {
   static size_t offsetOfCountOther() {
     return offsetof(CallRefMetrics, countOther);
   }
-
-  uint64_t totalCount() const {
-    // The returned value should be interpreted in light of comments above
-    // about overflow.
-    uint64_t total = countOther;
-    for (size_t i = 0; i < CallRefMetrics::NUM_SLOTS; i++) {
-      total += counts[i];
-    }
-    return total;
-  }
 };
 
 }  // namespace wasm
