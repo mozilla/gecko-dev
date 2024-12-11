@@ -37,7 +37,7 @@ use crate::space::SpaceMapper;
 use crate::segment::SegmentBuilder;
 use crate::surface::SurfaceBuilder;
 use std::{f32, mem};
-use crate::util::{VecHelper, Preallocator};
+use crate::util::{MaxRect, VecHelper, Preallocator};
 use crate::visibility::{update_prim_visibility, FrameVisibilityState, FrameVisibilityContext};
 use crate::internal_types::{FrameVec, FrameMemory};
 
@@ -331,6 +331,22 @@ impl FrameBuilder {
             &frame_context,
         );
 
+        // Add a "fake" surface that we will use as parent for
+        // snapshotted pictures.
+        let root_spatial_node = frame_context.spatial_tree.root_reference_frame_index();
+        let snapshot_surface = SurfaceIndex(scene.surfaces.len());
+        scene.surfaces.push(SurfaceInfo::new(
+            root_spatial_node,
+            root_spatial_node,
+            WorldRect::max_rect(),
+            &frame_context.spatial_tree,
+            euclid::Scale::new(1.0),
+            (1.0, 1.0),
+            (1.0, 1.0),
+            false,
+            false,
+        ));
+
         scene.picture_graph.propagate_bounding_rects(
             &mut scene.prim_store.pictures,
             &mut scene.surfaces,
@@ -365,6 +381,37 @@ impl FrameBuilder {
                 config: scene.config,
                 root_spatial_node_index,
             };
+
+            for pic_index in scene.snapshot_pictures.iter() {
+                let mut visibility_state = FrameVisibilityState {
+                    clip_store: &mut scene.clip_store,
+                    resource_cache,
+                    gpu_cache,
+                    data_stores,
+                    clip_tree: &mut scene.clip_tree,
+                    composite_state,
+                    rg_builder,
+                    prim_instances: &mut scene.prim_instances,
+                    surfaces: &mut scene.surfaces,
+                    surface_stack: scratch.frame.surface_stack.take(),
+                    profile,
+                    scratch,
+                    visited_pictures: &mut visited_pictures,
+                };
+
+                let world_culling_rect = WorldRect::max_rect();
+
+                update_prim_visibility(
+                    *pic_index,
+                    None,
+                    &world_culling_rect,
+                    &scene.prim_store,
+                    true,
+                    &visibility_context,
+                    &mut visibility_state,
+                    &mut None,
+                );
+            }
 
             for pic_index in scene.tile_cache_pictures.iter().rev() {
                 let pic = &mut scene.prim_store.pictures[pic_index.0];
