@@ -569,6 +569,7 @@ dependencies {
     implementation ComponentsDependencies.thirdparty_sentry
 
     implementation project(':compose-awesomebar')
+    implementation project(':compose-base')
     implementation project(':compose-cfr')
 
     implementation project(':concept-awesomebar')
