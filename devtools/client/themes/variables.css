@@ -332,15 +332,20 @@
     --toolbarbutton-checked-background: SelectedItem;
     --toolbarbutton-checked-color: SelectedItemText;
 
-  /* Styling for devtool buttons */
-  --theme-toolbarbutton-background: ButtonFace;
-  --theme-toolbarbutton-color: ButtonText;
-  --theme-toolbarbutton-hover-background: SelectedItemText;
-  --theme-toolbarbutton-hover-color: SelectedItem;
-  --theme-toolbarbutton-checked-background: SelectedItem;
-  --theme-toolbarbutton-checked-color: SelectedItemText;
-  --theme-toolbarbutton-checked-hover-background: var(--theme-toolbarbutton-checked-background);
-  --theme-toolbarbutton-checked-hover-color: var(--theme-toolbarbutton-checked-color);
+    /* Styling for devtool buttons */
+    --theme-toolbarbutton-background: ButtonFace;
+    --theme-toolbarbutton-color: ButtonText;
+    --theme-toolbarbutton-hover-background: SelectedItemText;
+    --theme-toolbarbutton-hover-color: SelectedItem;
+    --theme-toolbarbutton-checked-background: SelectedItem;
+    --theme-toolbarbutton-checked-color: SelectedItemText;
+    --theme-toolbarbutton-checked-hover-background: var(--theme-toolbarbutton-checked-background);
+    --theme-toolbarbutton-checked-hover-color: var(--theme-toolbarbutton-checked-color);
+
+    /* Common popup styles(used by HTMLTooltip and autocomplete) */
+    --theme-popup-background: Canvas;
+    --theme-popup-color: CanvasText;
+    --theme-popup-border-color: CanvasText;
 
     /* Text color */
     --theme-selection-background: SelectedItem;
