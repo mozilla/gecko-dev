@@ -9,6 +9,16 @@ import "../moz-support-link/moz-support-link.mjs";
 export default {
   title: "UI Widgets/Toggle",
   component: "moz-toggle",
+  argTypes: {
+    l10nId: {
+      options: [
+        "moz-toggle-label",
+        "moz-toggle-aria-label",
+        "moz-toggle-description",
+      ],
+      control: { type: "select" },
+    },
+  },
   parameters: {
     status: "stable",
     actions: {
@@ -37,6 +47,7 @@ const Template = ({
   accessKey,
   iconSrc,
   hasSlottedSupportLink,
+  nestedFields,
 }) => html`
   <moz-toggle
     ?pressed=${pressed}
@@ -52,6 +63,26 @@ const Template = ({
     ${hasSlottedSupportLink
       ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
       : ""}
+    ${nestedFields
+      ? html`<moz-checkbox
+            slot="nested"
+            ?disabled=${disabled}
+            data-l10n-id=${ifDefined(l10nId)}
+          >
+          </moz-checkbox>
+          <moz-checkbox
+            slot="nested"
+            ?disabled=${disabled}
+            data-l10n-id=${ifDefined(l10nId)}
+          >
+            <moz-checkbox
+              slot="nested"
+              ?disabled=${disabled}
+              data-l10n-id=${ifDefined(l10nId)}
+            >
+            </moz-checkbox>
+          </moz-checkbox> `
+      : ""}
   </moz-toggle>
 `;
 
@@ -65,6 +96,7 @@ Default.args = {
   supportPage: "",
   iconSrc: "",
   hasSlottedSupportLink: false,
+  nestedFields: false,
 };
 
 export const Disabled = Template.bind({});
@@ -107,4 +139,10 @@ export const WithIcon = Template.bind({});
 WithIcon.args = {
   ...Default.args,
   iconSrc: "chrome://global/skin/icons/highlights.svg",
+};
+
+export const WithNestedFields = Template.bind({});
+WithNestedFields.args = {
+  ...Default.args,
+  nestedFields: true,
 };
