@@ -1325,7 +1325,11 @@ set_define("U_STATIC_IMPLEMENTATION", True, when=depends(system_icu)(lambda x: n
 # ECMAScript Temporal API Support (uses ICU and ICU4X)
 # ======================================================
 
-option("--with-temporal-api", default=False, help="Enable ECMAScript Temporal API")
+option(
+    "--with-temporal-api",
+    default=milestone.is_nightly,
+    help="{Enable|Disable} ECMAScript Temporal API",
+)
 
 set_config("JS_HAS_TEMPORAL_API", True, when="--with-temporal-api")
 set_define("JS_HAS_TEMPORAL_API", True, when="--with-temporal-api")

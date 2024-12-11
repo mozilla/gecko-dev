@@ -236,7 +236,7 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_PlainYearMonth:
     case JSProto_TemporalNow:
     case JSProto_ZonedDateTime:
-      return false;
+      return !JS::Prefs::experimental_temporal();
 #endif
 
     // Return true if the given constructor has been disabled at run-time.
