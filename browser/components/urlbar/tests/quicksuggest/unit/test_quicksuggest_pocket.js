@@ -107,7 +107,7 @@ add_task(async function telemetryType() {
 
 // When non-sponsored suggestions are disabled, Pocket suggestions should be
 // disabled.
-add_tasks_with_rust(async function nonsponsoredDisabled() {
+add_task(async function nonsponsoredDisabled() {
   // Disable sponsored suggestions. Pocket suggestions are non-sponsored, so
   // doing this should not prevent them from being enabled.
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
@@ -139,7 +139,7 @@ add_tasks_with_rust(async function nonsponsoredDisabled() {
 
 // When Pocket-specific preferences are disabled, suggestions should not be
 // added.
-add_tasks_with_rust(async function pocketSpecificPrefsDisabled() {
+add_task(async function pocketSpecificPrefsDisabled() {
   const prefs = ["suggest.pocket", "pocket.featureGate"];
   for (const pref of prefs) {
     // First make sure the suggestion is added.
@@ -169,7 +169,7 @@ add_tasks_with_rust(async function pocketSpecificPrefsDisabled() {
 
 // Check wheather the Pocket suggestions will be shown by the setup of Nimbus
 // variable.
-add_tasks_with_rust(async function nimbus() {
+add_task(async function nimbus() {
   // Disable the fature gate.
   UrlbarPrefs.set("pocket.featureGate", false);
   await check_results({
@@ -218,7 +218,7 @@ add_tasks_with_rust(async function nimbus() {
 
 // The suggestion should be shown as a top pick when a high-confidence keyword
 // is matched.
-add_tasks_with_rust(async function topPick() {
+add_task(async function topPick() {
   await check_results({
     context: createContext(HIGH_KEYWORD, {
       providers: [UrlbarProviderQuickSuggest.name],
@@ -231,7 +231,7 @@ add_tasks_with_rust(async function topPick() {
 });
 
 // Low-confidence keywords should do prefix matching starting at the first word.
-add_tasks_with_rust(async function lowPrefixes() {
+add_task(async function lowPrefixes() {
   // search string -> should match
   let tests = {
     l: false,
@@ -261,45 +261,8 @@ add_tasks_with_rust(async function lowPrefixes() {
   }
 });
 
-// Low-confidence keywords that start with "how to" should do prefix matching
-// starting at "how to" instead of the first word.
-//
-// Note: The Rust implementation doesn't support this.
-add_tasks_with_rust(
-  {
-    skip_if_rust_enabled: true,
-  },
-  async function lowPrefixes_howTo() {
-    // search string -> should match
-    let tests = {
-      h: false,
-      ho: false,
-      how: false,
-      "how ": false,
-      "how t": false,
-      "how to": true,
-      "how to ": true,
-      "how to l": true,
-      "how to lo": true,
-      "how to low": true,
-    };
-    for (let [searchString, shouldMatch] of Object.entries(tests)) {
-      info("Doing search: " + JSON.stringify({ searchString, shouldMatch }));
-      await check_results({
-        context: createContext(searchString, {
-          providers: [UrlbarProviderQuickSuggest.name],
-          isPrivate: false,
-        }),
-        matches: shouldMatch
-          ? [makeExpectedResult({ searchString, fullKeyword: "how to low" })]
-          : [],
-      });
-    }
-  }
-);
-
 // High-confidence keywords should not do prefix matching at all.
-add_tasks_with_rust(async function highPrefixes() {
+add_task(async function highPrefixes() {
   // search string -> should match
   let tests = {
     h: false,
@@ -335,7 +298,7 @@ add_tasks_with_rust(async function highPrefixes() {
 });
 
 // Keyword matching should be case insenstive.
-add_tasks_with_rust(async function uppercase() {
+add_task(async function uppercase() {
   await check_results({
     context: createContext(LOW_KEYWORD.toUpperCase(), {
       providers: [UrlbarProviderQuickSuggest.name],
@@ -364,7 +327,7 @@ add_tasks_with_rust(async function uppercase() {
 });
 
 // Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
-add_tasks_with_rust(async function notRelevant() {
+add_task(async function notRelevant() {
   let result = makeExpectedResult({ searchString: LOW_KEYWORD });
 
   info("Triggering the 'Not relevant' command");
@@ -429,7 +392,7 @@ add_tasks_with_rust(async function notRelevant() {
 
 // Tests the "Not interested" command: all Pocket suggestions should be disabled
 // and not added anymore.
-add_tasks_with_rust(async function notInterested() {
+add_task(async function notInterested() {
   let result = makeExpectedResult({ searchString: LOW_KEYWORD });
 
   info("Triggering the 'Not interested' command");
@@ -469,7 +432,7 @@ add_tasks_with_rust(async function notInterested() {
 });
 
 // Tests the "show less frequently" behavior.
-add_tasks_with_rust(async function showLessFrequently() {
+add_task(async function showLessFrequently() {
   await doShowLessFrequentlyTests({
     feature: QuickSuggest.getFeature("PocketSuggestions"),
     showLessFrequentlyCountPref: "pocket.showLessFrequentlyCount",

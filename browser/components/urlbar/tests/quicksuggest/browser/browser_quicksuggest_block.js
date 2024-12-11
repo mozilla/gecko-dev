@@ -57,7 +57,7 @@ add_setup(async function () {
 });
 
 // Picks the dismiss command in the result menu.
-add_tasks_with_rust(async function basic() {
+add_task(async function basic() {
   await doBasicBlockTest({
     block: async () => {
       await UrlbarTestUtils.openResultMenuAndPressAccesskey(window, "D", {
@@ -68,7 +68,7 @@ add_tasks_with_rust(async function basic() {
 });
 
 // Uses the key shortcut to block a suggestion.
-add_tasks_with_rust(async function basic_keyShortcut() {
+add_task(async function basic_keyShortcut() {
   await doBasicBlockTest({
     block: () => {
       // Arrow down once to select the row.
@@ -182,7 +182,7 @@ async function doOneBasicBlockTest({ result, block }) {
 }
 
 // Blocks multiple suggestions one after the other.
-add_tasks_with_rust(async function blockMultiple() {
+add_task(async function blockMultiple() {
   for (let i = 0; i < REMOTE_SETTINGS_RESULTS.length; i++) {
     // Do a search that triggers the i'th suggestion.
     let { keywords, url } = REMOTE_SETTINGS_RESULTS[i];

@@ -30,7 +30,7 @@ add_setup(async function () {
   });
 });
 
-add_tasks_with_rust(async function basic() {
+add_task(async function basic() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     const suggestion = REMOTE_SETTINGS_DATA[0].attachment[0];
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -67,7 +67,7 @@ add_tasks_with_rust(async function basic() {
 });
 
 // Tests the row/group label.
-add_tasks_with_rust(async function rowLabel() {
+add_task(async function rowLabel() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: REMOTE_SETTINGS_DATA[0].attachment[0].keywords[0],
@@ -81,7 +81,7 @@ add_tasks_with_rust(async function rowLabel() {
   await UrlbarTestUtils.promisePopupClose(window);
 });
 
-add_tasks_with_rust(async function disable() {
+add_task(async function disable() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.mdn.featureGate", false]],
   });
@@ -100,7 +100,7 @@ add_tasks_with_rust(async function disable() {
 });
 
 // Tests the "Not interested" result menu dismissal command.
-add_tasks_with_rust(async function resultMenu_notInterested() {
+add_task(async function resultMenu_notInterested() {
   await doDismissTest("not_interested");
 
   Assert.equal(UrlbarPrefs.get("suggest.mdn"), false);
@@ -116,7 +116,7 @@ add_tasks_with_rust(async function resultMenu_notInterested() {
 });
 
 // Tests the "Not relevant" result menu dismissal command.
-add_tasks_with_rust(async function resultMenu_notRelevant() {
+add_task(async function resultMenu_notRelevant() {
   await doDismissTest("not_relevant");
 
   Assert.equal(UrlbarPrefs.get("suggest.mdn"), true);
@@ -129,7 +129,7 @@ add_tasks_with_rust(async function resultMenu_notRelevant() {
 });
 
 // Tests the "Manage" result menu.
-add_tasks_with_rust(async function resultMenu_manage() {
+add_task(async function resultMenu_manage() {
   await doManageTest({ input: "array", index: 1 });
 });
 

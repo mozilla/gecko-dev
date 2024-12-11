@@ -457,52 +457,6 @@ add_task(async function selected_result_unit() {
   await SpecialPowers.popPrefEnv();
 });
 
-add_task(async function selected_result_rs_adm_sponsored() {
-  const cleanupQuickSuggest = await ensureQuickSuggestInit({
-    prefs: [["quicksuggest.rustEnabled", false]],
-  });
-
-  await doTest(async () => {
-    await openPopup("amp");
-    await selectRowByURL("https://example.com/amp");
-    await doEnter();
-
-    assertEngagementTelemetry([
-      {
-        selected_result: "rs_adm_sponsored",
-        selected_position: 2,
-        provider: "UrlbarProviderQuickSuggest",
-        results: "search_engine,rs_adm_sponsored",
-      },
-    ]);
-  });
-
-  await cleanupQuickSuggest();
-});
-
-add_task(async function selected_result_rs_adm_nonsponsored() {
-  const cleanupQuickSuggest = await ensureQuickSuggestInit({
-    prefs: [["quicksuggest.rustEnabled", false]],
-  });
-
-  await doTest(async () => {
-    await openPopup("wikipedia");
-    await selectRowByURL("https://example.com/wikipedia");
-    await doEnter();
-
-    assertEngagementTelemetry([
-      {
-        selected_result: "rs_adm_nonsponsored",
-        selected_position: 2,
-        provider: "UrlbarProviderQuickSuggest",
-        results: "search_engine,rs_adm_nonsponsored",
-      },
-    ]);
-  });
-
-  await cleanupQuickSuggest();
-});
-
 add_task(async function selected_result_input_field() {
   const expected = [
     {
@@ -878,9 +832,7 @@ add_task(async function selected_result_addons() {
 });
 
 add_task(async function selected_result_rust_adm_sponsored() {
-  const cleanupQuickSuggest = await ensureQuickSuggestInit({
-    prefs: [["quicksuggest.rustEnabled", true]],
-  });
+  const cleanupQuickSuggest = await ensureQuickSuggestInit();
 
   await doTest(async () => {
     await openPopup("amp");
@@ -901,9 +853,7 @@ add_task(async function selected_result_rust_adm_sponsored() {
 });
 
 add_task(async function selected_result_rust_adm_nonsponsored() {
-  const cleanupQuickSuggest = await ensureQuickSuggestInit({
-    prefs: [["quicksuggest.rustEnabled", true]],
-  });
+  const cleanupQuickSuggest = await ensureQuickSuggestInit();
 
   await doTest(async () => {
     await openPopup("wikipedia");

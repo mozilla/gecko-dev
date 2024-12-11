@@ -35,7 +35,7 @@ add_setup(async function () {
   });
 });
 
-add_tasks_with_rust(async function nonsponsored() {
+add_task(async function nonsponsored() {
   let match_type = "firefox-suggest";
   let advertiser = REMOTE_SETTINGS_RESULT.advertiser.toLowerCase();
   let reporting_url = undefined;

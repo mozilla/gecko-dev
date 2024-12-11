@@ -51,7 +51,7 @@ add_setup(async function init() {
   });
 });
 
-add_tasks_with_rust(async function basic() {
+add_task(async function basic() {
   for (const suggestion of REMOTE_SETTINGS_DATA[0].attachment) {
     const fullKeyword = suggestion.keywords[0];
     const firstWord = fullKeyword.split(" ")[0];
@@ -84,7 +84,7 @@ add_tasks_with_rust(async function basic() {
 });
 
 // Check wheather the MDN suggestions will be hidden by the pref.
-add_tasks_with_rust(async function disableByLocalPref() {
+add_task(async function disableByLocalPref() {
   const suggestion = REMOTE_SETTINGS_DATA[0].attachment[0];
   const keyword = suggestion.keywords[0];
 
@@ -122,7 +122,7 @@ add_tasks_with_rust(async function disableByLocalPref() {
 
 // Check wheather the MDN suggestions will be shown by the setup of Nimbus
 // variable.
-add_tasks_with_rust(async function nimbus() {
+add_task(async function nimbus() {
   const defaultPrefs = Services.prefs.getDefaultBranch("browser.urlbar.");
 
   const suggestion = REMOTE_SETTINGS_DATA[0].attachment[0];
@@ -178,7 +178,7 @@ add_tasks_with_rust(async function nimbus() {
   await QuickSuggestTestUtils.forceSync();
 });
 
-add_tasks_with_rust(async function mixedCaseQuery() {
+add_task(async function mixedCaseQuery() {
   const suggestion = REMOTE_SETTINGS_DATA[0].attachment[1];
   const keyword = "InPuT";
 

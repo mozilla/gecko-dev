@@ -38,7 +38,7 @@ add_setup(async function () {
 });
 
 // sponsored
-add_tasks_with_rust(async function sponsored() {
+add_task(async function sponsored() {
   let match_type = "firefox-suggest";
   let source = UrlbarPrefs.get("quicksuggest.rustEnabled")
     ? "rust"
@@ -169,7 +169,7 @@ add_tasks_with_rust(async function sponsored() {
 });
 
 // higher-placement sponsored, a.k.a sponsored priority, sponsored best match
-add_tasks_with_rust(async function sponsoredBestMatch() {
+add_task(async function sponsoredBestMatch() {
   let match_type = "best-match";
   let source = UrlbarPrefs.get("quicksuggest.rustEnabled")
     ? "rust"

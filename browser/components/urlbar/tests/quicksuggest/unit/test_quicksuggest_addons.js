@@ -115,7 +115,7 @@ add_task(async function telemetryType() {
 });
 
 // When quick suggest prefs are disabled, addon suggestions should be disabled.
-add_tasks_with_rust(async function quickSuggestPrefsDisabled() {
+add_task(async function quickSuggestPrefsDisabled() {
   let prefs = ["quicksuggest.enabled", "suggest.quicksuggest.nonsponsored"];
   for (let pref of prefs) {
     // Before disabling the pref, first make sure the suggestion is added.
@@ -149,7 +149,7 @@ add_tasks_with_rust(async function quickSuggestPrefsDisabled() {
 
 // When addon suggestions specific preference is disabled, addon suggestions
 // should not be added.
-add_tasks_with_rust(async function addonSuggestionsSpecificPrefDisabled() {
+add_task(async function addonSuggestionsSpecificPrefDisabled() {
   const prefs = ["suggest.addons", "addons.featureGate"];
   for (const pref of prefs) {
     // First make sure the suggestion is added.
@@ -184,7 +184,7 @@ add_tasks_with_rust(async function addonSuggestionsSpecificPrefDisabled() {
 
 // Check wheather the addon suggestions will be shown by the setup of Nimbus
 // variable.
-add_tasks_with_rust(async function nimbus() {
+add_task(async function nimbus() {
   // Disable the fature gate.
   UrlbarPrefs.set("addons.featureGate", false);
   await check_results({
@@ -236,7 +236,7 @@ add_tasks_with_rust(async function nimbus() {
   await QuickSuggestTestUtils.forceSync();
 });
 
-add_tasks_with_rust(async function hideIfAlreadyInstalled() {
+add_task(async function hideIfAlreadyInstalled() {
   // Show suggestion.
   await check_results({
     context: createContext("test", {
@@ -274,7 +274,7 @@ add_tasks_with_rust(async function hideIfAlreadyInstalled() {
   xpi.remove(false);
 });
 
-add_tasks_with_rust(async function remoteSettings() {
+add_task(async function remoteSettings() {
   const testCases = [
     {
       input: "f",
@@ -497,7 +497,7 @@ add_task(async function merinoIsTopPick() {
 });
 
 // Tests the "show less frequently" behavior.
-add_tasks_with_rust(async function showLessFrequently() {
+add_task(async function showLessFrequently() {
   await doShowLessFrequentlyTests({
     feature: QuickSuggest.getFeature("AddonSuggestions"),
     showLessFrequentlyCountPref: "addons.showLessFrequentlyCount",

@@ -35,7 +35,7 @@ add_setup(async function () {
 });
 
 // sponsored
-add_tasks_with_rust(async function sponsored() {
+add_task(async function sponsored() {
   let match_type = "firefox-suggest";
   let source = "merino";
 
