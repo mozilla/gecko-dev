@@ -102,13 +102,11 @@ fun ToolbarOnboardingPage(
                 val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
 
                 Row(Modifier.width(176.dp), horizontalArrangement = Arrangement.Center) {
-                    toolbarOptions?.let {
-                        ToolbarOptions(
-                            options = it,
-                            selectedOption = state.toolbarOptionSelected,
-                            onClick = onToolbarSelectionClicked,
-                        )
-                    }
+                    ToolbarOptions(
+                        options = toolbarOptions!!,
+                        selectedOption = state.toolbarOptionSelected,
+                        onClick = onToolbarSelectionClicked,
+                    )
                 }
             }
 
