@@ -1486,6 +1486,30 @@ bool nsLineLayout::NotifyOptionalBreakPosition(nsIFrame* aFrame,
 #define VALIGN_TOP 1
 #define VALIGN_BOTTOM 2
 
+void nsLineLayout::SetSpanForEmptyLine(PerSpanData* aPerSpanData,
+                                       WritingMode aWM,
+                                       const nsSize& aContainerSize,
+                                       nscoord aBStartEdge) {
+  for (PerFrameData* pfd = aPerSpanData->mFirstFrame; pfd; pfd = pfd->mNext) {
+    // Ideally, if the frame would collapse itself - but it depends on
+    // knowing that the line is empty.
+    if (!pfd->mFrame->IsInlineFrame() && !pfd->mFrame->IsRubyFrame() &&
+        !pfd->mFrame->IsPlaceholderFrame()) {
+      continue;
+    }
+    // Collapse the physical size to 0.
+    pfd->mBounds.BStart(aWM) = aBStartEdge;
+    pfd->mBounds.BSize(aWM) = 0;
+    // Initialize mBlockDirAlign (though it doesn't make much difference
+    // because we don't align empty boxes).
+    pfd->mBlockDirAlign = VALIGN_OTHER;
+    pfd->mFrame->SetRect(aWM, pfd->mBounds, aContainerSize);
+    if (pfd->mSpan) {
+      SetSpanForEmptyLine(pfd->mSpan, aWM, aContainerSize, aBStartEdge);
+    }
+  }
+}
+
 void nsLineLayout::VerticalAlignLine() {
   // Partially place the children of the block frame. The baseline for
   // this operation is set to zero so that the y coordinates for all
@@ -1494,21 +1518,8 @@ void nsLineLayout::VerticalAlignLine() {
   if (mLineIsEmpty) {
     // This line is empty, and should be consisting of only inline elements.
     // (inline-block elements would make the line non-empty).
-    WritingMode lineWM = psd->mWritingMode;
-    for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
-      // Ideally, if the frame would collapse itself - but it depends on
-      // knowing that the line is empty.
-      if (!pfd->mFrame->IsInlineFrame() && !pfd->mFrame->IsRubyFrame()) {
-        continue;
-      }
-      // Collapse the physical size to 0.
-      pfd->mBounds.BStart(lineWM) = mBStartEdge;
-      pfd->mBounds.BSize(lineWM) = 0;
-      // Initialize mBlockDirAlign (though it doesn't make much difference
-      // because we don't align empty boxes).
-      pfd->mBlockDirAlign = VALIGN_OTHER;
-      pfd->mFrame->SetRect(lineWM, pfd->mBounds, ContainerSize());
-    }
+    SetSpanForEmptyLine(psd, mRootSpan->mWritingMode, ContainerSize(),
+                        mBStartEdge);
 
     mFinalLineBSize = 0;
     if (mGotLineBox) {
