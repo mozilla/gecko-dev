@@ -114,7 +114,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-pretty-print-console.js"]
 
 ["browser_dbg-pretty-print-flow.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-pretty-print-inline-scripts.js"]
 skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
