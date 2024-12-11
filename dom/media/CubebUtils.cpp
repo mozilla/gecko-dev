@@ -20,6 +20,9 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/UnderrunHandler.h"
+#if defined(MOZ_SANDBOX)
+#  include "mozilla/SandboxSettings.h"
+#endif
 #include "nsContentUtils.h"
 #include "nsDebug.h"
 #include "nsIStringBundle.h"
@@ -299,6 +302,14 @@ void PrefChanged(const char* aPref, void* aClosure) {
     sCubebSandbox = Preferences::GetBool(aPref);
     MOZ_LOG(gCubebLog, LogLevel::Verbose,
             ("%s: %s", PREF_CUBEB_SANDBOX, sCubebSandbox ? "true" : "false"));
+#  if defined(MOZ_SANDBOX)
+    if (!sCubebSandbox && IsContentSandboxEnabled()) {
+      sCubebSandbox = true;
+      MOZ_LOG(gCubebLog, LogLevel::Error,
+              ("%s: false, but content sandbox enabled - forcing true",
+               PREF_CUBEB_SANDBOX));
+    }
+#  endif
   } else if (strcmp(aPref, PREF_AUDIOIPC_STACK_SIZE) == 0) {
     StaticMutexAutoLock lock(sMutex);
     sAudioIPCStackSize = Preferences::GetUint(PREF_AUDIOIPC_STACK_SIZE,
