@@ -15,6 +15,7 @@ XPIDL_SOURCES += [
     "nsIQuotaManagerService.idl",
     "nsIQuotaRequests.idl",
     "nsIQuotaResults.idl",
+    "nsIQuotaUtilsService.idl",
 ]
 
 XPIDL_MODULE = "dom_quota"
@@ -168,6 +169,10 @@ IPDL_SOURCES += [
     "PQuotaRequest.ipdl",
     "PQuotaUsageRequest.ipdl",
     "PRemoteQuotaObject.ipdl",
+]
+
+EXTRA_JS_MODULES += [
+    "QuotaUtilsService.sys.mjs",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")

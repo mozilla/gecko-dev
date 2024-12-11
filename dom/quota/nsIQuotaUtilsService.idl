@@ -1,0 +1,24 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+/**
+ * This interface provides utility methods for storage and quota management
+ * that require information only available in JavaScript system modules. It
+ * serves as a bridge for accessing such information from C++ code where direct
+ * access is not feasible.
+ */
+[scriptable, uuid(cdeca40d-74f4-44a2-beb3-84cd0bbc7785)]
+interface nsIQuotaUtilsService : nsISupports
+{
+  /**
+   * Retrieves the private identity id corresponding to the specified name.
+   *
+   * @param aName The name for which the private identity id is requested.
+   * @return The private identity id as an unsigned long.
+   */
+  unsigned long getPrivateIdentityId(in AString aName);
+};
