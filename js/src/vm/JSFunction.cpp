@@ -1346,29 +1346,16 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
     return false;
   }
 
-  JS::RootedVector<JSString*> parameterStrings(cx);
-  JS::RootedVector<Value> parameterArgs(cx);
   if (args.length() > 1) {
     RootedString str(cx);
 
     // Steps 10, 14.d.
     unsigned n = args.length() - 1;
-    if (!parameterStrings.reserve(n) || !parameterArgs.reserve(n)) {
-      return false;
-    }
 
     for (unsigned i = 0; i < n; i++) {
-      if (!parameterArgs.append(args[i])) {
-        return false;
-      }
-
       // Steps 14.a-b, 14.d.i-ii.
       str = ToString<CanGC>(cx, args[i]);
       if (!str) {
-        return false;
-      }
-
-      if (!parameterStrings.append(str)) {
         return false;
       }
 
@@ -1399,13 +1386,10 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
     return false;
   }
 
-  JS::RootedValue bodyArg(cx);
-  RootedString bodyString(cx);
   if (args.length() > 0) {
     // Steps 13, 14.e, 15.
-    bodyArg = args[args.length() - 1];
-    bodyString = ToString<CanGC>(cx, bodyArg);
-    if (!bodyString || !sb.append(bodyString)) {
+    RootedString body(cx, ToString<CanGC>(cx, args[args.length() - 1]));
+    if (!body || !sb.append(body)) {
       return false;
     }
   }
@@ -1426,14 +1410,7 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
   }
 
   // Block this call if security callbacks forbid it.
-  bool canCompileStrings = false;
-  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::JS, functionText,
-                                   JS::CompilationType::Function,
-                                   parameterStrings, bodyString, parameterArgs,
-                                   bodyArg, &canCompileStrings)) {
-    return false;
-  }
-  if (!canCompileStrings) {
+  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::JS, functionText)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_CSP_BLOCKED_FUNCTION);
     return false;

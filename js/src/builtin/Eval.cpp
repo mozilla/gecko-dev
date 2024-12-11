@@ -239,41 +239,21 @@ static bool EvalKernel(JSContext* cx, HandleValue v, EvalType evalType,
                 env->is<GlobalLexicalEnvironmentObject>());
   AssertInnerizedEnvironmentChain(cx, *env);
 
-  // "Dynamic Code Brand Checks" adds support for Object values.
-  // https://tc39.es/proposal-dynamic-code-brand-checks/#sec-performeval
-  // Steps 2-4.
-  RootedString str(cx);
-  if (v.isString()) {
-    str = v.toString();
-  } else if (v.isObject()) {
-    RootedObject obj(cx, &v.toObject());
-    if (!cx->getCodeForEval(obj, &str)) {
-      return false;
-    }
-  }
-  if (!str) {
+  // Step 2.
+  if (!v.isString()) {
     vp.set(v);
     return true;
   }
 
-  // Steps 6-8.
-  JS::RootedVector<JSString*> parameterStrings(cx);
-  JS::RootedVector<Value> parameterArgs(cx);
-  bool canCompileStrings = false;
-  if (!cx->isRuntimeCodeGenEnabled(
-          JS::RuntimeCode::JS, str,
-          evalType == DIRECT_EVAL ? JS::CompilationType::DirectEval
-                                  : JS::CompilationType::IndirectEval,
-          parameterStrings, str, parameterArgs, v, &canCompileStrings)) {
-    return false;
-  }
-  if (!canCompileStrings) {
+  // Steps 3-4.
+  RootedString str(cx, v.toString());
+  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::JS, str)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_CSP_BLOCKED_EVAL);
     return false;
   }
 
-  // Step 9 ff.
+  // Step 5 ff.
 
   // Per ES5, indirect eval runs in the global scope. (eval is specified this
   // way so that the compiler can make assumptions about what bindings may or

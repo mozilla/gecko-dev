@@ -26,10 +26,8 @@
 #include "jsfriendapi.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/ContextOptions.h"
-#include "js/GCVector.h"
 #include "js/Initialization.h"
 #include "js/LocaleSensitive.h"
-#include "js/Value.h"
 #include "js/WasmFeatures.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Atomics.h"
@@ -501,13 +499,8 @@ class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
   ~LogViolationDetailsRunnable() = default;
 };
 
-bool ContentSecurityPolicyAllows(
-    JSContext* aCx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCodeString,
-    JS::CompilationType aCompilationType,
-    JS::Handle<JS::StackGCVector<JSString*>> aParameterStrings,
-    JS::Handle<JSString*> aBodyString,
-    JS::Handle<JS::StackGCVector<JS::Value>> aParameterArgs,
-    JS::Handle<JS::Value> aBodyArg, bool* aOutCanCompileStrings) {
+bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
+                                 JS::Handle<JSString*> aCode) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   worker->AssertIsOnWorkerThread();
 
@@ -516,14 +509,14 @@ bool ContentSecurityPolicyAllows(
   uint16_t violationType;
   nsAutoJSString scriptSample;
   if (aKind == JS::RuntimeCode::JS) {
-    if (NS_WARN_IF(!scriptSample.init(aCx, aCodeString))) {
+    if (NS_WARN_IF(!scriptSample.init(aCx, aCode))) {
+      JS_ClearPendingException(aCx);
       return false;
     }
 
     if (!nsContentSecurityUtils::IsEvalAllowed(
             aCx, worker->UsesSystemPrincipal(), scriptSample)) {
-      *aOutCanCompileStrings = false;
-      return true;
+      return false;
     }
 
     evalOK = worker->IsEvalAllowed();
@@ -549,8 +542,7 @@ bool ContentSecurityPolicyAllows(
     }
   }
 
-  *aOutCanCompileStrings = evalOK;
-  return true;
+  return evalOK;
 }
 
 void CTypesActivityCallback(JSContext* aCx, JS::CTypesActivityType aType) {
@@ -1554,7 +1546,7 @@ class DumpCrashInfoRunnable final : public WorkerControlRunnable {
 };
 
 struct ActiveWorkerStats {
-  template <uint32_t ActiveWorkerStats::* Category>
+  template <uint32_t ActiveWorkerStats::*Category>
   void Update(const nsTArray<WorkerPrivate*>& aWorkers) {
     for (const auto worker : aWorkers) {
       RefPtr<DumpCrashInfoRunnable> runnable =

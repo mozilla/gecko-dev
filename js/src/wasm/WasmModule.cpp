@@ -206,16 +206,7 @@ JSObject* Module::createObject(JSContext* cx) const {
     return nullptr;
   }
 
-  JS::RootedVector<JSString*> parameterStrings(cx);
-  JS::RootedVector<Value> parameterArgs(cx);
-  bool canCompileStrings = false;
-  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::WASM, nullptr,
-                                   JS::CompilationType::Undefined,
-                                   parameterStrings, nullptr, parameterArgs,
-                                   NullHandleValue, &canCompileStrings)) {
-    return nullptr;
-  }
-  if (!canCompileStrings) {
+  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::WASM, nullptr)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_CSP_BLOCKED_WASM, "WebAssembly.Module");
     return nullptr;

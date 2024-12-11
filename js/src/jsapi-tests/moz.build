@@ -40,7 +40,6 @@ UNIFIED_SOURCES += [
     "testDeflateStringToUTF8Buffer.cpp",
     "testDeleteProperty.cpp",
     "testDifferentNewTargetInvokeConstructor.cpp",
-    "testDynamicCodeBrandChecks.cpp",
     "testEmptyWindowIsOmitted.cpp",
     "testErrorCopying.cpp",
     "testErrorLineOfContext.cpp",

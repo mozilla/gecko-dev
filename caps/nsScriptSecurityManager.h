@@ -28,14 +28,17 @@ class SystemPrincipal;
 
 namespace JS {
 enum class RuntimeCode;
-enum class CompilationType;
 }  // namespace JS
 
 /////////////////////////////
 // nsScriptSecurityManager //
 /////////////////////////////
-#define NS_SCRIPTSECURITYMANAGER_CID \
-  {0x7ee2a4c0, 0x4b93, 0x17d3, {0xba, 0x18, 0x00, 0x60, 0xb0, 0xf1, 0x99, 0xa2}}
+#define NS_SCRIPTSECURITYMANAGER_CID                 \
+  {                                                  \
+    0x7ee2a4c0, 0x4b93, 0x17d3, {                    \
+      0xba, 0x18, 0x00, 0x60, 0xb0, 0xf1, 0x99, 0xa2 \
+    }                                                \
+  }
 
 class nsScriptSecurityManager final : public nsIScriptSecurityManager {
  public:
@@ -88,13 +91,9 @@ class nsScriptSecurityManager final : public nsIScriptSecurityManager {
   virtual ~nsScriptSecurityManager();
 
   // Decides, based on CSP, whether or not eval() and stuff can be executed.
-  static bool ContentSecurityPolicyPermitsJSAction(
-      JSContext* aCx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCodeString,
-      JS::CompilationType aCompilationType,
-      JS::Handle<JS::StackGCVector<JSString*>> aParameterStrings,
-      JS::Handle<JSString*> aBodyString,
-      JS::Handle<JS::StackGCVector<JS::Value>> aParameterArgs,
-      JS::Handle<JS::Value> aBodyArg, bool* aOutCanCompileStrings);
+  static bool ContentSecurityPolicyPermitsJSAction(JSContext* cx,
+                                                   JS::RuntimeCode kind,
+                                                   JS::Handle<JSString*> aCode);
 
   static bool JSPrincipalsSubsume(JSPrincipals* first, JSPrincipals* second);
 
