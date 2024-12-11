@@ -75,9 +75,7 @@ fun ToolbarOnboardingPage(
 
                 Image(
                     painter = painterResource(id = imageRes),
-                    contentDescription = stringResource(
-                        R.string.onboarding_customize_toolbar_main_image_content_description,
-                    ),
+                    contentDescription = null,
                     modifier = Modifier.width(323.dp),
                 )
 
@@ -188,10 +186,7 @@ private fun SelectableImageItem(
     ) {
         Image(
             painter = painterResource(id = toolbarOption.imageRes),
-            contentDescription = stringResource(
-                R.string.onboarding_customize_toolbar_placement_content_description,
-                toolbarOption.label,
-            ),
+            contentDescription = "",
             modifier = if (isSelectedOption) {
                 Modifier.border(2.dp, FirefoxTheme.colors.actionPrimary, RoundedCornerShape(10.dp))
             } else {
@@ -218,7 +213,7 @@ private fun SelectableImageItem(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
-                    contentDescription = null, // decorative only.
+                    contentDescription = null,
                     modifier = Modifier.size(12.dp),
                     tint = PhotonColors.White,
                 )
