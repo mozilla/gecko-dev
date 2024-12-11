@@ -498,7 +498,7 @@ def artifact_build(
                 f"have been modified: \n{compiled_language_files_changed}\nThese files will "
                 "not be compiled, and your changes will not be realized in the build output."
                 "\n\nIf you want these changes to be realized, you should re-run './mach "
-                'boostrap` and select a build that does not state "Artifact Mode".'
+                'bootstrap` and select a build that does not state "Artifact Mode".'
                 "\nFor additional information on Artifact Builds see: "
                 "https://firefox-source-docs.mozilla.org/contributing/build/"
                 "artifact_builds.html"
