@@ -240,14 +240,16 @@ export class _ExperimentManager {
       throw new Error("When calling onRecipe, you must specify a source.");
     }
 
-    if (isFirefoxLabsOptIn) {
-      this.optInRecipes.push(recipe);
-    } else if (isTargetingMatch) {
+    if (isTargetingMatch) {
       if (!this.sessions.has(source)) {
         this.sessions.set(source, new Set());
       }
       this.sessions.get(source).add(slug);
+    }
 
+    if (isFirefoxLabsOptIn) {
+      this.optInRecipes.push(recipe);
+    } else if (isTargetingMatch) {
       if (this.store.has(slug)) {
         await this.updateEnrollment(recipe, source);
       } else if (isEnrollmentPaused) {

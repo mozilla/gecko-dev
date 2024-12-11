@@ -1961,4 +1961,120 @@ add_task(async function test_updateRecipesClearsOptIns() {
   await loader.updateRecipes();
 
   Assert.deepEqual(manager.optInRecipes, recipes);
+
+  await assertEmptyStore(manager.store);
+});
+
+add_task(async function test_updateRecipes_optInsStayEnrolled() {
+  info("testing opt-ins stay enrolled after update");
+
+  const recipe = ExperimentFakes.recipe("opt-in", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+    branches: [
+      {
+        ...ExperimentFakes.recipe.branches[0],
+        slug: "branch-0",
+        firefoxLabsTitle: "branch-0-title",
+      },
+      {
+        ...ExperimentFakes.recipe.branches[1],
+        slug: "branch-1",
+        firefoxLabsTitle: "branch-1-title",
+      },
+    ],
+    targeting: "true",
+    isFirefoxLabsOptIn: true,
+    firefoxLabsTitle: "opt-in-title",
+    firefoxLabsDescription: "opt-in-desc",
+    firefoxLabsGroup: "group",
+    requiresRestart: false,
+  });
+
+  const sandbox = sinon.createSandbox();
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  sandbox.stub(loader, "setTimer");
+  await loader.init();
+  await manager.onStartup();
+  await manager.store.ready();
+
+  sandbox
+    .stub(loader.remoteSettingsClients.experiments, "get")
+    .resolves([recipe]);
+
+  await loader.updateRecipes();
+
+  await manager.enroll(recipe, "rs-loader", {
+    optInRecipeBranchSlug: "branch-0",
+  });
+  Assert.ok(manager.store.get("opt-in")?.active, "Opt-in was enrolled");
+
+  await loader.updateRecipes();
+  Assert.ok(manager.store.get("opt-in")?.active, "Opt-in stayed enrolled");
+
+  manager.unenroll("opt-in");
+  manager.store._deleteForTests("opt-in");
+
+  await assertEmptyStore(manager.store);
+});
+
+add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
+  info("testing opt-ins unenroll after targeting becomes false");
+
+  const recipe = ExperimentFakes.recipe("opt-in", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+    branches: [
+      {
+        ...ExperimentFakes.recipe.branches[0],
+        slug: "branch-0",
+        firefoxLabsTitle: "branch-0-title",
+      },
+      {
+        ...ExperimentFakes.recipe.branches[1],
+        slug: "branch-1",
+        firefoxLabsTitle: "branch-1-title",
+      },
+    ],
+    targeting: "true",
+    isFirefoxLabsOptIn: true,
+    firefoxLabsTitle: "opt-in-title",
+    firefoxLabsDescription: "opt-in-desc",
+    firefoxLabsGroup: "group",
+    requiresRestart: false,
+  });
+
+  const sandbox = sinon.createSandbox();
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  sandbox.stub(loader, "setTimer");
+  await loader.init();
+  await manager.onStartup();
+  await manager.store.ready();
+
+  sandbox
+    .stub(loader.remoteSettingsClients.experiments, "get")
+    .resolves([recipe]);
+
+  await loader.updateRecipes();
+
+  await manager.enroll(recipe, "rs-loader", {
+    optInRecipeBranchSlug: "branch-0",
+  });
+  Assert.ok(manager.store.get("opt-in")?.active, "Opt-in was enrolled");
+
+  recipe.targeting = "false";
+  await loader.updateRecipes();
+  Assert.ok(!manager.store.get("opt-in")?.active, "Opt-in unenrolled");
+
+  manager.store._deleteForTests("opt-in");
+
+  await assertEmptyStore(manager.store);
 });
