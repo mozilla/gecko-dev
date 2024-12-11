@@ -6,10 +6,10 @@ package org.mozilla.fenix.ext
 
 import android.text.Editable
 import androidx.compose.runtime.Composable
+import mozilla.components.compose.base.utils.inComposePreview
 import mozilla.components.support.ktx.kotlin.MAX_URI_LENGTH
 import mozilla.components.support.ktx.kotlin.toShortUrl
 import org.mozilla.fenix.components.components
-import org.mozilla.fenix.compose.inComposePreview
 
 /**
  * Shortens URLs to be more user friendly, by applying [String.toShortUrl]
