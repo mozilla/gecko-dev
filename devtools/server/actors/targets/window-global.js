@@ -654,6 +654,14 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       .devtoolsSpawnedBrowsingContextForWebExtension
       ? this.devtoolsSpawnedBrowsingContextForWebExtension
       : this.originalDocShell.browsingContext;
+
+    // When toggling the toolbox on/off many times in a row,
+    // we may try to destroy the actor while the related document is already destroyed.
+    // In such scenario, return the minimum viable form
+    if (!originalBrowsingContext.currentWindowContext) {
+      return { actor: this.actorID };
+    }
+
     const browsingContextID = originalBrowsingContext.id;
     const innerWindowId =
       originalBrowsingContext.currentWindowContext.innerWindowId;
