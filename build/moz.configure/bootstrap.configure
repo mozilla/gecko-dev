@@ -92,7 +92,6 @@ def bootstrap_toolchain_tasks(host):
         result = {
             "index": t.optimization["index-search"],
             "artifact": t.attributes["toolchain-artifact"],
-            "extract": t.attributes.get("toolchain-extract", True),
         }
         command = t.attributes.get("toolchain-command")
         if command:
@@ -220,9 +219,6 @@ def bootstrap_path(path, **kwargs):
                     "--from-task",
                     f"{task_id}:{artifact}",
                 ]
-                if not task["extract"]:
-                    command.append("--no-unpack")
-
             elif command:
                 # For private local toolchains, run the associated command.
                 command = (
