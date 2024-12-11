@@ -36,7 +36,9 @@
         done();
       }
 
-      const {WorkerTest} = ChromeUtils.import("chrome://mochitests/content/chrome/dom/workers/test/WorkerTest.jsm");
+      const {WorkerTest} = ChromeUtils.importESModule(
+        "chrome://mochitests/content/chrome/dom/workers/test/WorkerTest.sys.mjs"
+      );
 
       worker = WorkerTest.go(window.location.href, messageCallback,
                              errorCallback);

@@ -34,7 +34,7 @@ support-files = [
   "WorkerDebugger_suspended_debugger.js",
   "WorkerDebugger_suspended_worker.js",
   "WorkerDebugger_worker.js",
-  "WorkerTest.jsm",
+  "WorkerTest.sys.mjs",
   "WorkerTest_subworker.js",
   "WorkerTest_worker.js",
   "bug1062920_worker.js",
@@ -86,7 +86,7 @@ support-files = [
 
 ["test_chromeWorker.xhtml"]
 
-["test_chromeWorkerJSM.xhtml"]
+["test_chromeWorkerESM.xhtml"]
 
 ["test_file.xhtml"]
 
