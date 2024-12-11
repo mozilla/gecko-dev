@@ -63,7 +63,7 @@ fun ThemeOnboardingPage(
     Column(
         modifier = Modifier
             .background(FirefoxTheme.colors.layer1)
-            .padding(horizontal = 16.dp, vertical = 32.dp)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.SpaceBetween,
