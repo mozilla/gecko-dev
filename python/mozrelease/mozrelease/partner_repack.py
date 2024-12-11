@@ -456,14 +456,17 @@ class RepackLinux(RepackBase):
             repack_info,
             **kwargs,
         )
-        self.uncompressed_build = build.replace(".bz2", "")
+        self.uncompressed_build = build.replace(".xz", "")
 
     def unpackBuild(self):
         super(RepackLinux, self).unpackBuild()
-        bunzip2_cmd = "bunzip2 %s" % self.build
-        shellCommand(bunzip2_cmd)
-        if not Path(self.uncompressed_build).exists():
-            log.error(f"Error: Unable to uncompress build {self.build}")
+        target_path = Path(self.uncompressed_build)
+        unpack_cmd = f"xz -c -d {self.build} > {target_path.absolute()}"
+        shellCommand(unpack_cmd)
+        if not target_path.exists():
+            log.error(
+                f"Error: Unable to uncompress build {self.build} - {target_path} doesn't exist"
+            )
             sys.exit(1)
 
     def copyFiles(self):
@@ -476,8 +479,8 @@ class RepackLinux(RepackBase):
             tar_flags = "rvf"
         tar_cmd = "tar %s %s %s" % (tar_flags, self.uncompressed_build, LINUX_DEST_DIR)
         shellCommand(tar_cmd)
-        bzip2_command = "bzip2 %s" % self.uncompressed_build
-        shellCommand(bzip2_command)
+        compress_cmd = "xz -f -z -e -9 %s" % self.uncompressed_build
+        shellCommand(compress_cmd)
 
 
 class RepackMac(RepackBase):
