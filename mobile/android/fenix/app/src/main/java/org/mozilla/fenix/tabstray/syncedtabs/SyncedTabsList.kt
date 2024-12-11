@@ -33,9 +33,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mozilla.components.browser.storage.sync.TabEntry
+import mozilla.components.compose.base.Divider
 import mozilla.components.feature.syncedtabs.view.SyncedTabsView
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.ext.dashedBorder
 import org.mozilla.fenix.compose.list.ExpandableListHeader

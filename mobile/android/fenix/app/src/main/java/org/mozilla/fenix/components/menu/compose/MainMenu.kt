@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.service.fxa.manager.AccountState
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
@@ -20,7 +21,6 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.menu.MenuDialogTestTag
 import org.mozilla.fenix.components.menu.compose.header.MenuHeader
-import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
