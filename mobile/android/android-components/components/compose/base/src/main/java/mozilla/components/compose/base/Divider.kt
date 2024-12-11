@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose
+package mozilla.components.compose.base
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
-import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.compose.base.theme.AcornTheme
 
 /**
  * Generic divider.
@@ -29,7 +29,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
 @Composable
 fun Divider(
     modifier: Modifier = Modifier,
-    color: Color = FirefoxTheme.colors.borderPrimary,
+    color: Color = AcornTheme.colors.borderPrimary,
 ) {
     androidx.compose.material.Divider(
         modifier = modifier,
@@ -43,10 +43,10 @@ fun Divider(
 @Composable
 @LightDarkPreview
 private fun VerticalDividerPreview() {
-    FirefoxTheme {
+    AcornTheme {
         Box(
             Modifier
-                .background(FirefoxTheme.colors.layer1)
+                .background(AcornTheme.colors.layer1)
                 .height(75.dp),
         ) {
             Row {
@@ -77,10 +77,10 @@ private fun VerticalDividerPreview() {
 @Composable
 @LightDarkPreview
 private fun HorizontalDividerPreview() {
-    FirefoxTheme {
+    AcornTheme {
         Box(
             Modifier
-                .background(FirefoxTheme.colors.layer1)
+                .background(AcornTheme.colors.layer1)
                 .width(100.dp)
                 .height(175.dp),
         ) {

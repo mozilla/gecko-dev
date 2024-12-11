@@ -56,11 +56,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.text.BidiFormatter
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.support.ktx.kotlin.MAX_URI_LENGTH
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.HorizontalFadingEdgeBox
 import org.mozilla.fenix.compose.SwipeToDismissBox
 import org.mozilla.fenix.compose.SwipeToDismissState

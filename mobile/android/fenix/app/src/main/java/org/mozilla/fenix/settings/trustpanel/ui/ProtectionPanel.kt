@@ -26,13 +26,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.compose.MenuGroup
 import org.mozilla.fenix.components.menu.compose.MenuItem
 import org.mozilla.fenix.components.menu.compose.MenuScaffold
 import org.mozilla.fenix.components.menu.compose.MenuTextItem
-import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.theme.FirefoxTheme
 
