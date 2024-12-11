@@ -6777,26 +6777,34 @@ var PanicButtonNotifier = {
       this.createPanelIfNeeded();
       let popup = document.getElementById("panic-button-success-notification");
       popup.hidden = false;
+
       // To close the popup in 3 seconds after the popup is shown but left uninteracted.
-      let onTimeout = () => {
-        PanicButtonNotifier.close();
-        removeListeners();
+      let closePopup = () => {
+        popup.hidePopup();
       };
       popup.addEventListener("popupshown", function () {
-        PanicButtonNotifier.timer = setTimeout(onTimeout, 3000);
+        PanicButtonNotifier.timer = setTimeout(closePopup, 3000);
       });
+
+      let closeButton = document.getElementById(
+        "panic-button-success-closebutton"
+      );
+      closeButton.addEventListener("command", closePopup);
+
       // To prevent the popup from closing when user tries to interact with the
       // popup using mouse or keyboard.
       let onUserInteractsWithPopup = () => {
         clearTimeout(PanicButtonNotifier.timer);
-        removeListeners();
       };
       popup.addEventListener("mouseover", onUserInteractsWithPopup);
       window.addEventListener("keydown", onUserInteractsWithPopup);
+
       let removeListeners = () => {
         popup.removeEventListener("mouseover", onUserInteractsWithPopup);
         window.removeEventListener("keydown", onUserInteractsWithPopup);
         popup.removeEventListener("popuphidden", removeListeners);
+        closeButton.removeEventListener("command", closePopup);
+        clearTimeout(PanicButtonNotifier.timer);
       };
       popup.addEventListener("popuphidden", removeListeners);
 
@@ -6806,10 +6814,6 @@ var PanicButtonNotifier = {
     } catch (ex) {
       console.error(ex);
     }
-  },
-  close() {
-    let popup = document.getElementById("panic-button-success-notification");
-    popup.hidePopup();
   },
 };
 
