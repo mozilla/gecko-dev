@@ -1377,7 +1377,13 @@ Changelog
 Nimbus Exposure Event
 ---------------------
 
-A `Nimbus exposure event`_ is recorded once per app session when the user first
+.. note::
+
+  This section is historical and describes how older versions of Firefox
+  recorded Nimbus exposure events for Firefox Suggest. Recent Firefox versions
+  no longer record Nimbus exposure events for Firefox Suggest.
+
+A Nimbus exposure event is recorded once per app session when the user first
 encounters the UI of an experiment in which they're enrolled. The timing of the
 event depends on the experiment and branch.
 
@@ -1428,12 +1434,15 @@ Changelog
   Firefox 124.0
     The ``experimentType = "modal"`` case is removed.
 
-.. _Nimbus exposure event: https://experimenter.info/jetstream/jetstream/#enrollment-vs-exposure
+  Firefox 135.0
+    The ``experimentType`` Nimbus variable is removed. By this time it already
+    not been referenced in Firefox code for quite a while. [Bug 1932502_]
 
 .. _1724076: https://bugzilla.mozilla.org/show_bug.cgi?id=1724076
 .. _1727392: https://bugzilla.mozilla.org/show_bug.cgi?id=1727392
 .. _1752953: https://bugzilla.mozilla.org/show_bug.cgi?id=1752953
 .. _1760596: https://bugzilla.mozilla.org/show_bug.cgi?id=1760596
+.. _1932502: https://bugzilla.mozilla.org/show_bug.cgi?id=1932502
 
 Merino Search Queries
 ---------------------

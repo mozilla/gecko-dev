@@ -238,12 +238,6 @@ urlbar:
     autoFillAdaptiveHistoryUseCountThreshold:
       type: string
       description: This value assumes float expression like "0.47". Threshold for use count of input history that we handle as adaptive history autofill. If the use count is this value or more, it will be a candidate.
-    experimentType:
-      type: string
-      description: The type of the experiment (or rollout). If "best-match", then the Nimbus exposure event will be recorded when the user first triggers a best match (or would have triggered a best match, for users in the control group). If empty, the event will be recorded when the user first triggers any type of Suggest suggestion.
-      enum:
-        - best-match
-        - ""
     fakespotFeatureGate:
       type: boolean
       fallbackPref: browser.urlbar.fakespot.featureGate
@@ -464,9 +458,6 @@ urlbar:
         - default
         - interest
         - random
-    quickSuggestRemoteSettingsDataType:
-      type: string
-      description: The `type` of the suggestions data in remote settings. If not specified, "data" is used.
     quickSuggestScenario:
       # IMPORTANT: This should not have a fallbackPref. See UrlbarPrefs.sys.mjs.
       type: string
@@ -525,9 +516,6 @@ urlbar:
         branch: default
         pref: browser.urlbar.recentsearches.maxResults
       description: The maximum number of recent searches to show.
-    recordNavigationalSuggestionTelemetry:
-      type: boolean
-      description: Whether to record navigational suggestion telemetry. Defaults to false.
     showSearchTermsFeatureGate:
       type: boolean
       fallbackPref: browser.urlbar.showSearchTerms.featureGate

@@ -595,13 +595,10 @@ const PREF_OTHER_DEFAULTS = new Map([
 // defaults are the values of their fallbacks.
 const NIMBUS_DEFAULTS = {
   addonsShowLessFrequentlyCap: 0,
-  experimentType: "",
   fakespotMinKeywordLength: null,
   pocketShowLessFrequentlyCap: 0,
   pocketSuggestIndex: null,
-  quickSuggestRemoteSettingsDataType: "data",
   quickSuggestScoreMap: null,
-  recordNavigationalSuggestionTelemetry: false,
   weatherKeywordsMinimumLength: null,
   weatherShowLessFrequentlyCap: null,
   weatherSimpleUI: true,
