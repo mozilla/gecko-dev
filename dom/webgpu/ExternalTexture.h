@@ -9,6 +9,7 @@
 #include "mozilla/gfx/Point.h"
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
+#include "mozilla/webgpu/WebGPUTypes.h"
 
 namespace mozilla {
 
@@ -20,13 +21,14 @@ namespace webgpu {
 
 class ExternalTextureDMABuf;
 class ExternalTextureMacIOSurface;
+class WebGPUParent;
 
 // A texture that can be used by the WebGPU implementation but is created and
 // owned by Gecko
 class ExternalTexture {
  public:
   static UniquePtr<ExternalTexture> Create(
-      const ffi::WGPUGlobal* aContext, const ffi::WGPUDeviceId aDeviceId,
+      WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
       const uint32_t aWidth, const uint32_t aHeight,
       const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage);

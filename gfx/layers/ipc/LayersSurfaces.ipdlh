@@ -29,6 +29,7 @@ using gfxImageFormat from "gfxTypes.h";
 using mozilla::layers::MaybeVideoBridgeSource from "mozilla/layers/VideoBridgeUtils.h";
 using mozilla::layers::RemoteTextureId from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::RemoteTextureOwnerId from "mozilla/layers/LayersTypes.h";
+[RefCounted] using mozilla::layers::GpuFence from "mozilla/layers/GpuFence.h";
 using mozilla::layers::GpuProcessTextureId from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::GpuProcessQueryId from "mozilla/layers/LayersTypes.h";
 using mozilla::wr::ExternalImageSource from "mozilla/webrender/WebRenderTypes.h";
@@ -67,6 +68,7 @@ namespace layers {
   uint32_t surfaceId;
   bool isOpaque;
   YUVColorSpace yUVColorSpace;
+  nullable GpuFence gpuFence;
 };
 
 [Comparable] struct SurfaceDescriptorDMABuf {

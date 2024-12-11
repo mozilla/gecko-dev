@@ -125,6 +125,7 @@ class NativeLayerWayland final : public NativeLayer {
   bool SurfaceIsFlipped() override;
 
   void AttachExternalImage(wr::RenderTextureHost* aExternalImage) override;
+  GpuFence* GetGpuFence() override { return nullptr; }
 
   void Commit();
   void Unmap();
