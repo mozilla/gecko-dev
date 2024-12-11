@@ -8321,15 +8321,6 @@
 
 #endif  // NIGHTLY_BUILD
 
-#ifdef JS_HAS_TEMPORAL_API
-  # Experimental support for Temporal in JavaScript.
-- name: javascript.options.experimental.temporal
-  type: bool
-  value: false
-  mirror: always
-  set_spidermonkey_pref: startup
-#endif  // JS_HAS_TEMPORAL_API
-
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   # Experimental support for Explicit Resource Management in JavaScript.
 -   name: javascript.options.experimental.explicit_resource_management

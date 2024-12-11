@@ -583,7 +583,6 @@
   MACRO_(toSource, "toSource")                                                 \
   MACRO_(toString, "toString")                                                 \
   MACRO_(ToString, "ToString")                                                 \
-  MACRO_(toTemporalInstant, "toTemporalInstant")                               \
   MACRO_(toUTCString, "toUTCString")                                           \
   MACRO_(trailingZeroDisplay, "trailingZeroDisplay")                           \
   MACRO_(transfer, "transfer")                                                 \

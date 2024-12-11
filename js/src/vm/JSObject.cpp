@@ -2330,13 +2330,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
     return true;
   }
 
-#ifdef JS_HAS_TEMPORAL_API
-  if (key == JSProto_Date && !JS::Prefs::experimental_temporal() &&
-      id == NameToId(cx->names().toTemporalInstant)) {
-    return true;
-  }
-#endif
-
 #ifdef NIGHTLY_BUILD
   if (key == JSProto_Math && !JS::Prefs::experimental_math_sumprecise() &&
       id == NameToId(cx->names().sumPrecise)) {
@@ -2855,9 +2848,8 @@ void GetObjectSlotNameFunctor::operator()(JS::TracingContext* tcx,
         if (false) {
           ;
         }
-#define TEST_SLOT_MATCHES_PROTOTYPE(name, clasp) \
-  else if ((JSProto_##name) == slot) {           \
-    slotname = #name;                            \
+#define TEST_SLOT_MATCHES_PROTOTYPE(name, clasp)       \
+  else if ((JSProto_##name) == slot){slotname = #name; \
   }
         JS_FOR_EACH_PROTOTYPE(TEST_SLOT_MATCHES_PROTOTYPE)
 #undef TEST_SLOT_MATCHES_PROTOTYPE
