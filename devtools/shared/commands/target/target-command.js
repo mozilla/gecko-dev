@@ -1126,6 +1126,10 @@ class TargetCommand extends EventEmitter {
    *        The target front we want the toolbox to focus on.
    */
   selectTarget(targetFront) {
+    // Ignore any target which we may try to select, but is already being destroyed
+    if (targetFront.isDestroyedOrBeingDestroyed()) {
+      return;
+    }
     return this._onTargetSelected(targetFront);
   }
 
