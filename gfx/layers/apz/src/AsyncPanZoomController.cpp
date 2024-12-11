@@ -5888,9 +5888,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(
     // The scrollable rect or composition bounds may have changed in a way that
     // makes our local scroll offset out of bounds, so clamp it.
     ClampAndSetVisualScrollOffset(Metrics().GetVisualScrollOffset());
-    for (auto& sampledState : mSampledState) {
-      sampledState.ClampVisualScrollOffset(Metrics());
-    }
   }
 
   // If our scroll range changed (for example, because the page dynamically
@@ -5917,15 +5914,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(
   }
 
   if (scrollOffsetUpdated) {
-    for (auto& sampledState : mSampledState) {
-      if (!didCancelAnimation && cumulativeRelativeDelta.isSome()) {
-        sampledState.UpdateScrollPropertiesWithRelativeDelta(
-            Metrics(), *cumulativeRelativeDelta);
-      } else {
-        sampledState.UpdateScrollProperties(Metrics());
-      }
-    }
-
     // Because of the scroll generation update, any inflight paint requests
     // are going to be ignored by layout, and so mExpectedGeckoMetrics becomes
     // incorrect for the purposes of calculating the LD transform. To correct
@@ -5996,9 +5984,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(
     // |if (scrollOffsetUpdated)| branch above. Eventually it should get
     // merged into that branch.
     Metrics().RecalculateLayoutViewportOffset();
-    for (auto& sampledState : mSampledState) {
-      sampledState.UpdateScrollProperties(Metrics());
-    }
     mExpectedGeckoMetrics.UpdateFrom(aLayerMetrics);
     if (ShouldCancelAnimationForScrollUpdate(Nothing())) {
       CancelAnimation();
@@ -6025,6 +6010,23 @@ void AsyncPanZoomController::NotifyLayersUpdated(
     // Note: it's important to do this _after_ we've accepted any
     // updated composition bounds.
     Metrics().RecalculateLayoutViewportOffset();
+  }
+
+  // Modify sampled state lastly.
+  if (scrollOffsetUpdated || visualScrollOffsetUpdated) {
+    for (auto& sampledState : mSampledState) {
+      if (!didCancelAnimation && cumulativeRelativeDelta.isSome()) {
+        sampledState.UpdateScrollPropertiesWithRelativeDelta(
+            Metrics(), *cumulativeRelativeDelta);
+      } else {
+        sampledState.UpdateScrollProperties(Metrics());
+      }
+    }
+  }
+  if (aIsFirstPaint || needToReclampScroll) {
+    for (auto& sampledState : mSampledState) {
+      sampledState.ClampVisualScrollOffset(Metrics());
+    }
   }
 
   if (needContentRepaint) {
