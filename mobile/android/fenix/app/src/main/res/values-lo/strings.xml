@@ -219,11 +219,11 @@
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">ຄົ້ນຫາໃນຫນ້ານີ້</string>
     <!-- Browser menu button that opens the find in page menu -->
-    <string name="browser_menu_find_in_page_2">ຊອກຫາໃນໜ້າ...</string>
+    <string name="browser_menu_find_in_page_2">ຊອກຫາໃນໜ້າ…</string>
     <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
     <string name="browser_menu_translations">ແປໜ້ານີ້</string>
     <!-- Browser menu button that saves the current tab to a collection -->
-    <string name="browser_menu_save_to_collection">ບັນທຶກໄວ້ໃນຄໍເລັກຊັນ...</string>
+    <string name="browser_menu_save_to_collection">ບັນທຶກໄວ້ໃນຄໍເລັກຊັນ…</string>
     <!-- Browser menu button that saves the current tab to a collection -->
     <string name="browser_menu_save_to_collection_2">ບັນທຶກໄປໄວ້ບ່ອນເກັບສະສົມ</string>
     <!-- Browser menu button that open a share menu to share the current site -->
@@ -277,7 +277,7 @@
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">ແປເປັນ %1$s</string>
     <!-- Browser menu label for the print feature -->
-    <string name="browser_menu_print">ພິມ...</string>
+    <string name="browser_menu_print">ພິມ…</string>
     <!-- Browser menu label for the Delete browsing data on quit feature.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">ອອກຈາກ %1$s</string>

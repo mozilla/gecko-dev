@@ -98,12 +98,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">فارغ کرو</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ساݙی سب کنوں تکڑی رازداری خصوصیت اڄݨ تائیں کراس سائٹ ٹریکراں کوں انج کریندی ہے۔ </string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">کُل کوکی حفاظت بارے سِکھو</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -119,12 +113,6 @@
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">ٹیب دی تاریخ دے ورقیاں دے وچکار ٹپ مارݨ کیتے تیراں تے انگل لاؤ تے روکو۔</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">نواں: ہک ٹیپ پچھوں  تے اڳوں تیر</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">تکھیری نیویگیشن توں لطف اندوز تھیوو جہڑی ہمیشہ تہاݙے ݙوݙیاں  تے ہوندی ہے۔</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">کیمرے تائیں رسائی دی لوڑ ہے۔ انڈرائیڈ دیاں ترتیباں تے ون٘ڄو، اجازتاں تے ٹیپ کرو تے اجازت ݙیوو تے انگل پھیرو۔</string>
@@ -319,9 +307,9 @@
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">ترتیباں</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">قاری منظر، ترجمہ، پرنٹ، شیئر، اوپن ایپ</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">قاری منظر، ترجمہ، پرنٹ، شیئر، اوپن ایپ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">قاری منظر، پرنٹ، شیئر، اوپن ایپس</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">قاری منظر، پرنٹ، شیئر، اوپن ایپس</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">محفوظ</string>
@@ -414,8 +402,6 @@
     <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s ڳولݨ انجݨ</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">آپݨے ذاتی تھئے مکھ پنّے نال ملو۔ حالیہ ٹیباں، نشانیاں تے ڳولݨ نتیجے اتھ ظاہر تھیسن۔</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">ٻئے ذاتی انٹرنیٹ وچ ست بسم اللہ</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -495,6 +481,17 @@
     <string name="onboarding_add_on_explore_more_extensions_2">ٻیاں ایکسٹنشناں پھلورو</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">براؤزنگ شروع کرو</string>
+
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">بندوبست کرو</string>
+    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_save_and_continue_button">محفوظ کرو تے جاری رکھو</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">چھوڑو</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">چوٹی</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">تل</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -893,14 +890,14 @@
     <string name="exceptions_empty_message_learn_more_link">ٻیا سِکھو</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">ورتاوا تے فنی ڈیٹا</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ورتاوا تے فنی ڈیٹا</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s کوں بہتر بݨاوݨ وچ ساݙی مدد کرݨ کیتے تہاݙے براؤزر دی کارکردگی، ورتاوا تے ہارڈویئر تے ڈیٹا کوں من پسند کاری کوں موزلّا نال شیئر کریندے </string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">مارکیٹنگ ڈیٹا</string>
 
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">ساݙے موبائل مارکیٹنگ وینڈر ایڈجسٹمنٹ نال بݨیادی ورتاوے دا ڈیٹا شیئر کریندے</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">ساݙے موبائل مارکیٹنگ وینڈر ایڈجسٹمنٹ نال بݨیادی ورتاوے دا ڈیٹا شیئر کریندے</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">کریش رپورٹاں خودکار جمع کرواؤ</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1196,6 +1193,22 @@
 
     <!-- WebCompat Reporter -->
 
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">یوآرایل</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">براہ مہربانی ٹھیک URL درج کرو۔</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">وجہ چݨو</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">مسئلہ دی وضاحت کرو (اختیاری)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">ٻیاں معلومات بھیڄو</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">منسوخ</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">بھیڄو</string>
+
+
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
     <string name="webcompat_reporter_reason_slow">سائٹ مٹھی ہے یا کم کائنی کریندی پئی؟</string>
@@ -1240,8 +1253,6 @@
     <string name="bookmark_delete_negative">منسوخ</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">فولڈر بݨاؤ</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">نشانی محفوظ!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">“%s” وچ محفوظ تھیا</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1586,8 +1597,6 @@
     <string name="snackbar_tabs_closed">ٹیب بند تھی ڳئے</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">ٹیب بند تھئے: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">کتاب نشانیاں محفوظ تھی ڳیاں!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">شارٹ کٹاں وچ شامل تھی ڳیا!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -2494,14 +2503,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">جیا، ایں کوں ازماؤ</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ہݨ کائناں</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">معلوم کرو جو بَھلا تُساں اِیں پراڈکٹ دے جائزیاں اُتے بھرواسہ کر سڳدے ہِیوے — خرید کرݨ کنوں پہلاں۔</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">نظرثانی پڑتالݨ آلا ازماؤ</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">بَھلا اِیہ جائزے قابلِ اعتماد ہِن؟ مُرتّب کِیتی ڳئی درجہ بندی ݙیکھݨ کِیتے ہُݨیں دباؤ۔</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">ریویو پڑتالی کھولو</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">ریویو پڑتالی کھولو</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2882,6 +2883,10 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">ورتݨ ناں %s نال لاگ ان مٹاؤ</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">پتے</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">CFR آلات</string>
@@ -2893,11 +2898,6 @@
     <string name="glean_debug_tools_title">Glean ڈی بگ ٹولز</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک اشارہ ورتو</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک دباؤ</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">اُتوں گھیلو تے ٻاہر نکلݨ کیتے واپسی دا اشارہ ورتو</string>
@@ -2908,4 +2908,9 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">ہݨ ابڈیٹ کرو</string>
+    </resources>
