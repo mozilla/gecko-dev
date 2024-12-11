@@ -253,6 +253,7 @@ add_setup(async function () {
 
   registerCleanupFunction(async () => {
     await baseExtension.unload();
+    sinon.restore();
   });
 });
 

@@ -67,6 +67,7 @@ add_setup(async function () {
 
   registerCleanupFunction(async () => {
     await extension.unload();
+    sinon.restore();
   });
 
   const settings = await RemoteSettings(SearchUtils.SETTINGS_ALLOWLIST_KEY);

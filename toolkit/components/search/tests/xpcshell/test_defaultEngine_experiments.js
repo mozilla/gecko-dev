@@ -90,6 +90,10 @@ add_setup(async () => {
   let promiseSaved = promiseSaveSettingsData();
   await Services.search.init();
   await promiseSaved;
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 async function switchExperiment(newExperiment) {

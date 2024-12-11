@@ -286,6 +286,10 @@ add_setup(async () => {
   SearchTestUtils.setRemoteSettingsConfig(BASE_CONFIG);
 
   await Services.search.init();
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 add_task(async function test_configuration_changes_default() {

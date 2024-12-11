@@ -45,6 +45,10 @@ add_setup(async function () {
   sinon.stub(NimbusFeatures.search, "ready").resolves();
 
   SearchTestUtils.setRemoteSettingsConfig(CONFIG);
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 add_task(async function test_pref_initial_value() {

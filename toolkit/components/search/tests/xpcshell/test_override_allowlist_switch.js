@@ -176,6 +176,10 @@ add_setup(async function () {
   );
 
   consoleAllowList.push("Failed to load");
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 /**

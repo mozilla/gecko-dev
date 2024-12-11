@@ -399,6 +399,10 @@ add_setup(async function () {
   await SearchSERPTelemetry.init();
   SearchSERPTelemetry.overrideSearchTelemetryForTests(TEST_PROVIDER_INFO);
   sinon.stub(BrowserSearchTelemetry, "shouldRecordSearchCount").returns(true);
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 add_task(async function test_parsing_search_urls() {

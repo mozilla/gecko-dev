@@ -61,6 +61,10 @@ add_setup(async function () {
   sinon.spy(NimbusFeatures.search, "onUpdate");
   sinon.stub(NimbusFeatures.search, "ready").resolves();
   await test.setup();
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 add_task(async function test_searchConfig_google() {

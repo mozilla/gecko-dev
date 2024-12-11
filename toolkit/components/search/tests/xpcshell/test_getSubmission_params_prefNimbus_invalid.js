@@ -53,6 +53,10 @@ add_setup(async function () {
   // The test engines used in this test need to be recognized as application
   // provided engines, or their MozParams will be ignored.
   SearchTestUtils.setRemoteSettingsConfig(CONFIG);
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 add_task(async function test_bad_nimbus_setting_on_init() {

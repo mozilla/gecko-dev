@@ -115,4 +115,6 @@ add_task(async function test_validate_all_engines_and_variants() {
       `Engine with id '${id}' was found.`
     );
   }
+
+  sinon.restore();
 });

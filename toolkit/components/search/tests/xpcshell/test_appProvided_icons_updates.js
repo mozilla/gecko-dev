@@ -130,6 +130,10 @@ add_setup(async function setup() {
   // Testing that an icon is not local generates a `Could not find {id}...`
   // message.
   consoleAllowList.push("Could not find");
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 add_task(async function test_icon_added_unknown_engine() {

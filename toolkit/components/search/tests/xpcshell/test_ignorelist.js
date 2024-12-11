@@ -35,6 +35,9 @@ add_setup(async () => {
   ]);
 
   SearchTestUtils.setRemoteSettingsConfig([{ identifier: "defaultEngine" }]);
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 add_task(async function test_ignoreListOnLoadSettings() {

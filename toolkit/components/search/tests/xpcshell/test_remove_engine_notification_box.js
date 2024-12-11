@@ -59,6 +59,10 @@ add_setup(async function () {
   await promiseSaved;
 
   userSettings = await Services.search.wrappedJSObject._settings.get();
+
+  registerCleanupFunction(async () => {
+    sinon.restore();
+  });
 });
 
 // Verify the loaded configuration matches what we expect for the test.
