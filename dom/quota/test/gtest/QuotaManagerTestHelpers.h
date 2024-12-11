@@ -9,6 +9,8 @@
 namespace mozilla::dom::quota {
 
 struct PrincipalMetadata;
+struct OriginMetadata;
+struct FullOriginMetadata;
 
 namespace test {
 
@@ -49,6 +51,47 @@ PrincipalMetadata GetPrincipalMetadata(const nsCString& aGroupNoSuffix,
 PrincipalMetadata GetPrincipalMetadata(const nsCString& aOriginSuffix,
                                        const nsCString& aGroupNoSuffix,
                                        const nsCString& aOriginNoSuffix);
+
+/**
+ * Creates an OriginMetadata object for a principal with an origin suffix.
+ *
+ * This function takes the same parameters as GetPrincipalMetadata, but
+ * returns an OriginMetadata object. The additional fields in OriginMetadata
+ * are set as follows:
+ * - The PERSISTENCE_TYPE_DEFAULT is used as the persistence type.
+ *
+ * @param aOriginSuffix The suffix to be added to the group and origin.
+ * @param aGroupNoSuffix The group associated with the principal, without the
+ * suffix.
+ * @param aOriginNoSuffix The origin without the suffix.
+ *
+ * @returns An OriginMetadata object containing the principal metadata from
+ * GetPrincipalMetadata, with the PERSISTENCE_TYPE_DEFAULT persistence type.
+ */
+OriginMetadata GetOriginMetadata(const nsCString& aOriginSuffix,
+                                 const nsCString& aGroupNoSuffix,
+                                 const nsCString& aOriginNoSuffix);
+
+/**
+ * Creates a FullOriginMetadata object for a principal with an origin suffix.
+ *
+ * This function takes the same parameters as GetOriginMetadata, but returns
+ * a FullOriginMetadata object. The additional fields in FullOriginMetadata
+ * are set as follows:
+ * - The false value is used for the persisted flag.
+ * - The 0 value is used for the last access time.
+ *
+ * @param aOriginSuffix The suffix to be added to the group and origin.
+ * @param aGroupNoSuffix The group associated with the principal, without the
+ * suffix.
+ * @param aOriginNoSuffix The origin without the suffix.
+ *
+ * @returns A FullOriginMetadata object containing the origin metadata from
+ * GetOriginMetadata, with a false persisted flag and a zero last access time.
+ */
+FullOriginMetadata GetFullOriginMetadata(const nsCString& aOriginSuffix,
+                                         const nsCString& aGroupNoSuffix,
+                                         const nsCString& aOriginNoSuffix);
 
 }  //  namespace test
 }  //  namespace mozilla::dom::quota

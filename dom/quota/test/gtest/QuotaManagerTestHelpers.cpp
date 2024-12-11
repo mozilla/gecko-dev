@@ -27,4 +27,18 @@ PrincipalMetadata GetPrincipalMetadata(const nsCString& aOriginSuffix,
                            /* aIsPrivate */ false};
 }
 
+OriginMetadata GetOriginMetadata(const nsCString& aOriginSuffix,
+                                 const nsCString& aGroupNoSuffix,
+                                 const nsCString& aOriginNoSuffix) {
+  return {GetPrincipalMetadata(aOriginSuffix, aGroupNoSuffix, aOriginNoSuffix),
+          PERSISTENCE_TYPE_DEFAULT};
+}
+
+FullOriginMetadata GetFullOriginMetadata(const nsCString& aOriginSuffix,
+                                         const nsCString& aGroupNoSuffix,
+                                         const nsCString& aOriginNoSuffix) {
+  return {GetOriginMetadata(aOriginSuffix, aGroupNoSuffix, aOriginNoSuffix),
+          /* aPersisted */ false, /* aLastAccessTime */ 0};
+}
+
 }  // namespace mozilla::dom::quota::test
