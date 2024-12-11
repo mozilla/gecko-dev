@@ -12,7 +12,9 @@
 namespace mozilla::dom::quota {
 
 TEST(DOM_Quota_OriginParser_IsUUIDOrigin, Valid)
-{ EXPECT_TRUE(IsUUIDOrigin("uuid://1ef9867c-e754-4303-a18b-684f0321f6e2"_ns)); }
+{
+  EXPECT_TRUE(IsUUIDOrigin("uuid://1ef9867c-e754-4303-a18b-684f0321f6e2"_ns));
+}
 
 TEST(DOM_Quota_OriginParser_IsUUIDOrigin, Invalid)
 {
