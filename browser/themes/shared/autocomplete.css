@@ -68,6 +68,7 @@
   }
 
   &[originaltype="loginsFooter"] {
+    background-color: transparent;
     color: currentColor;
     min-height: 2.6666em;
     position: relative;
@@ -86,7 +87,7 @@
     inset-inline-start: 50%;
     transform: translateX(-50%);
     width: 95%;
-    border-top: 1px solid currentColor;
+    border-top: 1px solid var(--panel-separator-color);
   }
 
   &[originaltype="insecureWarning"] {
@@ -234,7 +235,7 @@
     background-color: var(--status-background-color);
     color: var(--status-text-color);
     width: 100%;
-    border-bottom: 1px solid rgba(38,38,38,.15);
+    border-bottom: 1px solid var(--panel-separator-color);
     font-size: calc(10 / 12 * 1em);
   }
 
