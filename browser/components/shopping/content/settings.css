@@ -29,12 +29,6 @@
   #shopping-settings-toggles-section {
     display: grid;
     row-gap: 8px;
-
-    #shopping-ads-learn-more,
-    #shopping-auto-open-description {
-      margin-inline-end: 20px;
-      color: var(--text-color-deemphasized);
-    }
   }
 
   /* When `browser.shopping.experience2023.autoOpen` is true. */
