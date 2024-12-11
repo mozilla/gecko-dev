@@ -18,6 +18,3 @@ fuzzy(1,160000) == image-alpha-stretch-tile.yaml green-alpha-ref.yaml
 fuzzy(1,160000) == image-filter-stretch.yaml green-alpha-ref.yaml
 fuzzy(1,160000) == image-filter-stretch-tile.yaml green-alpha-ref.yaml
 == snapshot-area-01.yaml snapshot-area-01-ref.yaml
-== snapshot-offscreen.yaml snapshot-offscreen-ref.yaml
-== snapshot-huge.yaml snapshot-huge-ref.yaml
-== snapshot-dependency.yaml snapshot-dependency-ref.yaml

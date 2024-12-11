@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, DebugFlags, ExternalScrollId, FontRenderMode, ImageKey, MinimapData, PremultipliedColorF};
+use api::{ColorF, DebugFlags, FontRenderMode, PremultipliedColorF, ExternalScrollId, MinimapData};
 use api::units::*;
 use plane_split::BspSplitter;
 use crate::batch::{BatchBuilder, AlphaBatchBuilder, AlphaBatchContainer};
@@ -20,7 +20,7 @@ use crate::internal_types::{FastHashMap, PlaneSplitter, FrameId, FrameStamp};
 use crate::picture::{DirtyRegion, SliceId, TileCacheInstance};
 use crate::picture::{SurfaceInfo, SurfaceIndex};
 use crate::picture::{SubpixelMode, RasterConfig, PictureCompositeMode};
-use crate::prepare::prepare_picture;
+use crate::prepare::prepare_primitives;
 use crate::prim_store::{PictureIndex, PrimitiveScratchBuffer};
 use crate::prim_store::{DeferredResolve, PrimitiveInstance};
 use crate::profiler::{self, TransactionProfile};
@@ -28,7 +28,7 @@ use crate::render_backend::{DataStores, ScratchBuffer};
 use crate::renderer::{GpuBufferF, GpuBufferBuilderF, GpuBufferI, GpuBufferBuilderI, GpuBufferBuilder};
 use crate::render_target::{PictureCacheTarget, PictureCacheTargetKind};
 use crate::render_target::{RenderTargetContext, RenderTargetKind, RenderTarget};
-use crate::render_task_graph::{Pass, RenderTaskGraph, RenderTaskId, SubPassSurface};
+use crate::render_task_graph::{RenderTaskGraph, Pass, SubPassSurface};
 use crate::render_task_graph::{RenderPass, RenderTaskGraphBuilder};
 use crate::render_task::{RenderTaskKind, StaticRenderTaskSurface};
 use crate::resource_cache::ResourceCache;
@@ -37,7 +37,7 @@ use crate::space::SpaceMapper;
 use crate::segment::SegmentBuilder;
 use crate::surface::SurfaceBuilder;
 use std::{f32, mem};
-use crate::util::{MaxRect, VecHelper, Preallocator};
+use crate::util::{VecHelper, Preallocator};
 use crate::visibility::{update_prim_visibility, FrameVisibilityState, FrameVisibilityContext};
 use crate::internal_types::{FrameVec, FrameMemory};
 
@@ -173,17 +173,6 @@ pub struct FrameBuildingState<'a> {
     pub cmd_buffers: &'a mut CommandBufferList,
     pub clip_tree: &'a ClipTree,
     pub frame_gpu_data: &'a mut GpuBufferBuilder,
-    /// When using a render task to produce pixels that are associated with
-    /// an image key (for example snapshotted pictures), inserting the image
-    /// key / task id association in this hashmap allows the image item to
-    /// register a dependency to the render task. This ensures that the
-    /// render task is produced before the image that renders it if they
-    /// are happening in the same frame.
-    /// This mechanism relies on the item producing the render task to be
-    /// traversed before the image that displays it (in other words, the
-    /// picture must appear before the image in the display list).
-    pub image_dependencies: FastHashMap<ImageKey, RenderTaskId>,
-    pub visited_pictures: &'a mut [bool],
 }
 
 impl<'a> FrameBuildingState<'a> {
@@ -289,7 +278,6 @@ impl FrameBuilder {
         spatial_tree: &SpatialTree,
         cmd_buffers: &mut CommandBufferList,
         frame_gpu_data: &mut GpuBufferBuilder,
-        frame_memory: &FrameMemory,
         profile: &mut TransactionProfile,
     ) {
         profile_scope!("build_layer_screen_rects_and_cull_layers");
@@ -331,41 +319,11 @@ impl FrameBuilder {
             &frame_context,
         );
 
-        // Add a "fake" surface that we will use as parent for
-        // snapshotted pictures.
-        let root_spatial_node = frame_context.spatial_tree.root_reference_frame_index();
-        let snapshot_surface = SurfaceIndex(scene.surfaces.len());
-        scene.surfaces.push(SurfaceInfo::new(
-            root_spatial_node,
-            root_spatial_node,
-            WorldRect::max_rect(),
-            &frame_context.spatial_tree,
-            euclid::Scale::new(1.0),
-            (1.0, 1.0),
-            (1.0, 1.0),
-            false,
-            false,
-        ));
-
         scene.picture_graph.propagate_bounding_rects(
             &mut scene.prim_store.pictures,
             &mut scene.surfaces,
             &frame_context,
         );
-
-        // In order to handle picture snapshots consistently we need
-        // the visibility and prepare passes to visit them first before
-        // traversing the scene. This ensures that out-of-view snapshots
-        // are rendered and that snapshots are consistently produced
-        // relative to the root spatial node.
-        // However it means that the visibility and prepare passes may
-        // visit some pictures multiple times, so we keep track of visited
-        // pictures during each traversal to avoid that.
-        let n_pics = scene.prim_store.pictures.len();
-        let mut visited_pictures = frame_memory.new_vec_with_capacity(n_pics);
-        for _ in 0..n_pics {
-            visited_pictures.push(false);
-        }
 
         {
             profile_scope!("UpdateVisibility");
@@ -382,37 +340,6 @@ impl FrameBuilder {
                 root_spatial_node_index,
             };
 
-            for pic_index in scene.snapshot_pictures.iter() {
-                let mut visibility_state = FrameVisibilityState {
-                    clip_store: &mut scene.clip_store,
-                    resource_cache,
-                    gpu_cache,
-                    data_stores,
-                    clip_tree: &mut scene.clip_tree,
-                    composite_state,
-                    rg_builder,
-                    prim_instances: &mut scene.prim_instances,
-                    surfaces: &mut scene.surfaces,
-                    surface_stack: scratch.frame.surface_stack.take(),
-                    profile,
-                    scratch,
-                    visited_pictures: &mut visited_pictures,
-                };
-
-                let world_culling_rect = WorldRect::max_rect();
-
-                update_prim_visibility(
-                    *pic_index,
-                    None,
-                    &world_culling_rect,
-                    &scene.prim_store,
-                    true,
-                    &visibility_context,
-                    &mut visibility_state,
-                    &mut None,
-                );
-            }
-
             for pic_index in scene.tile_cache_pictures.iter().rev() {
                 let pic = &mut scene.prim_store.pictures[pic_index.0];
 
@@ -423,25 +350,23 @@ impl FrameBuilder {
                             .expect("bug: non-existent tile cache");
 
                         let mut visibility_state = FrameVisibilityState {
-                            clip_store: &mut scene.clip_store,
+                            surface_stack: scratch.frame.surface_stack.take(),
                             resource_cache,
                             gpu_cache,
-                            data_stores,
-                            clip_tree: &mut scene.clip_tree,
-                            composite_state,
-                            rg_builder,
-                            prim_instances: &mut scene.prim_instances,
-                            surfaces: &mut scene.surfaces,
-                            surface_stack: scratch.frame.surface_stack.take(),
-                            profile,
+                            clip_store: &mut scene.clip_store,
                             scratch,
-                            visited_pictures: &mut visited_pictures,
+                            data_stores,
+                            composite_state,
+                            clip_tree: &mut scene.clip_tree,
+                            rg_builder,
                         };
 
                         // If we have a tile cache for this picture, see if any of the
                         // relative transforms have changed, which means we need to
                         // re-map the dependencies of any child primitives.
+                        let surface = &scene.surfaces[surface_index.0];
                         let world_culling_rect = tile_cache.pre_update(
+                            surface.unclipped_local_rect,
                             surface_index,
                             &visibility_context,
                             &mut visibility_state,
@@ -459,18 +384,20 @@ impl FrameBuilder {
                             *pic_index,
                             None,
                             &world_culling_rect,
-                            &scene.prim_store,
+                            &mut scene.prim_store,
+                            &mut scene.prim_instances,
+                            &mut scene.surfaces,
                             true,
                             &visibility_context,
                             &mut visibility_state,
-                            &mut Some(tile_cache),
+                            tile_cache,
+                            profile,
                         );
 
                         // Build the dirty region(s) for this tile cache.
                         tile_cache.post_update(
                             &visibility_context,
-                            &mut visibility_state.composite_state,
-                            &mut visibility_state.resource_cache,
+                            &mut visibility_state,
                         );
 
                         visibility_state.clip_tree.pop_clip_root();
@@ -488,11 +415,6 @@ impl FrameBuilder {
 
         profile.start_time(profiler::FRAME_PREPARE_TIME);
 
-        // Reset the visited pictures for the prepare pass.
-        visited_pictures.clear();
-        for _ in 0..n_pics {
-            visited_pictures.push(false);
-        }
         let mut frame_state = FrameBuildingState {
             rg_builder,
             clip_store: &mut scene.clip_store,
@@ -509,53 +431,7 @@ impl FrameBuilder {
             cmd_buffers,
             clip_tree: &mut scene.clip_tree,
             frame_gpu_data,
-            image_dependencies: FastHashMap::default(),
-            visited_pictures: &mut visited_pictures,
         };
-
-
-        if !scene.snapshot_pictures.is_empty() {
-            // Push a default dirty region which does not cull any
-            // primitive.
-            let mut default_dirty_region = DirtyRegion::new(
-                root_spatial_node_index,
-            );
-            default_dirty_region.add_dirty_region(
-                PictureRect::max_rect(),
-                frame_context.spatial_tree,
-            );
-            frame_state.push_dirty_region(default_dirty_region);
-
-            frame_state.surface_builder.push_surface(
-                snapshot_surface,
-                false,
-                PictureRect::max_rect(),
-                None,
-                frame_state.surfaces,
-                frame_state.rg_builder,
-            );
-        }
-
-        for pic_index in &scene.snapshot_pictures {
-
-            prepare_picture(
-                *pic_index,
-                &mut scene.prim_store,
-                Some(snapshot_surface),
-                SubpixelMode::Allow,
-                &frame_context,
-                &mut frame_state,
-                data_stores,
-                &mut scratch.primitive,
-                tile_caches,
-                &mut scene.prim_instances
-            );
-        }
-
-        if !scene.snapshot_pictures.is_empty() {
-            frame_state.surface_builder.pop_empty_surface();
-            frame_state.pop_dirty_region();
-        }
 
         // Push a default dirty region which culls primitives
         // against the screen world rect, in absence of any
@@ -570,18 +446,45 @@ impl FrameBuilder {
         frame_state.push_dirty_region(default_dirty_region);
 
         for pic_index in &scene.tile_cache_pictures {
-            prepare_picture(
-                *pic_index,
-                &mut scene.prim_store,
-                None,
-                SubpixelMode::Allow,
-                &frame_context,
-                &mut frame_state,
-                data_stores,
-                &mut scratch.primitive,
-                tile_caches,
-                &mut scene.prim_instances
-            );
+            if let Some((pic_context, mut pic_state, mut prim_list)) = scene
+                .prim_store
+                .pictures[pic_index.0]
+                .take_context(
+                    *pic_index,
+                    None,
+                    SubpixelMode::Allow,
+                    &mut frame_state,
+                    &frame_context,
+                    data_stores,
+                    &mut scratch.primitive,
+                    tile_caches,
+                )
+            {
+                profile_marker!("PreparePrims");
+
+                prepare_primitives(
+                    &mut scene.prim_store,
+                    &mut prim_list,
+                    &pic_context,
+                    &mut pic_state,
+                    &frame_context,
+                    &mut frame_state,
+                    data_stores,
+                    &mut scratch.primitive,
+                    tile_caches,
+                    &mut scene.prim_instances,
+                );
+
+                let pic = &mut scene.prim_store.pictures[pic_index.0];
+                pic.restore_context(
+                    *pic_index,
+                    prim_list,
+                    pic_context,
+                    &scene.prim_instances,
+                    &frame_context,
+                    &mut frame_state,
+                );
+            }
         }
 
         frame_state.pop_dirty_region();
@@ -684,7 +587,6 @@ impl FrameBuilder {
             spatial_tree,
             &mut cmd_buffers,
             &mut gpu_buffer_builder,
-            &frame_memory,
             profile,
         );
 
