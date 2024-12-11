@@ -55,8 +55,6 @@
       this.addEventListener("TabAttrModified", this);
       this.addEventListener("TabHide", this);
       this.addEventListener("TabShow", this);
-      this.addEventListener("TabPinned", this);
-      this.addEventListener("TabUnpinned", this);
       this.addEventListener("TabHoverStart", this);
       this.addEventListener("TabHoverEnd", this);
       this.addEventListener("TabGroupExpand", this);
@@ -131,16 +129,6 @@
       this.previewPanel = null;
 
       this.allTabs[0].label = this.emptyTabTitle;
-
-      // Hide the secondary text for locales where it is unsupported due to size constraints.
-      const language = Services.locale.appLocaleAsBCP47;
-      const unsupportedLocales = Services.prefs.getCharPref(
-        "browser.tabs.secondaryTextUnsupportedLocales"
-      );
-      this.toggleAttribute(
-        "secondarytext-unsupported",
-        unsupportedLocales.split(",").includes(language.split("-")[0])
-      );
 
       this.newTabButton.setAttribute(
         "aria-label",
@@ -222,17 +210,6 @@
       this.#updateTabMinWidth();
       this.#updateTabMinHeight();
 
-      let indicatorTabs = gBrowser.visibleTabs.filter(tab => {
-        return (
-          tab.hasAttribute("soundplaying") ||
-          tab.hasAttribute("muted") ||
-          tab.hasAttribute("activemedia-blocked")
-        );
-      });
-      for (const indicatorTab of indicatorTabs) {
-        this.updateTabIndicatorAttr(indicatorTab);
-      }
-
       super.attributeChangedCallback(name, oldValue, newValue);
     }
 
@@ -245,14 +222,6 @@
     }
 
     on_TabAttrModified(event) {
-      if (
-        ["soundplaying", "muted", "activemedia-blocked", "sharing"].some(attr =>
-          event.detail.changed.includes(attr)
-        )
-      ) {
-        this.updateTabIndicatorAttr(event.target);
-      }
-
       if (
         event.detail.changed.includes("soundplaying") &&
         !event.target.visible
@@ -271,14 +240,6 @@
       if (event.target.soundPlaying) {
         this._hiddenSoundPlayingStatusChanged(event.target);
       }
-    }
-
-    on_TabPinned(event) {
-      this.updateTabIndicatorAttr(event.target);
-    }
-
-    on_TabUnpinned(event) {
-      this.updateTabIndicatorAttr(event.target);
     }
 
     on_TabHoverStart(event) {
@@ -3055,24 +3016,6 @@
         Services.prefs.removeObserver("privacy.userContext", this.boundObserve);
       }
       CustomizableUI.removeListener(this);
-    }
-
-    updateTabIndicatorAttr(tab) {
-      const theseAttributes = ["soundplaying", "muted", "activemedia-blocked"];
-      const notTheseAttributes = ["pinned", "sharing", "crashed"];
-
-      if (
-        this.verticalMode ||
-        notTheseAttributes.some(attr => tab.hasAttribute(attr))
-      ) {
-        tab.removeAttribute("indicator-replaces-favicon");
-        return;
-      }
-
-      tab.toggleAttribute(
-        "indicator-replaces-favicon",
-        theseAttributes.some(attr => tab.hasAttribute(attr))
-      );
     }
   }
 
