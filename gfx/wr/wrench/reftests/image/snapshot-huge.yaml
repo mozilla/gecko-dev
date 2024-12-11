@@ -1,0 +1,28 @@
+# This test case contains a very large (32k) snapshot which WebRender has
+# to render somehow (by down-scaling it presumably). The sizes and offsets
+# use multiples of 64px to avoid fuzziness from down-scaling by a factor of
+# up to 64.
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: [0, 0, 100, 100]
+      items:
+      - type: stacking-context
+        bounds: [100000, 0, 40000, 40000]
+        snapshot:
+          name: "snap0"
+          area: [-64, -64, 32896, 32896]
+        items:
+          - type: rect
+            bounds: [0, 0, 32768, 32768]
+            color: [0, 150, 0]
+          - type: rect
+            bounds: [256, 256, 1024, 1024]
+            color: [150, 0, 0]
+
+      - type: rect
+        bounds: [0, 0, 514, 514]
+        color: [100, 0, 0]
+      - image: snapshot(snap0)
+        bounds: [0, 0, 514, 514]
