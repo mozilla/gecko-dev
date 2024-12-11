@@ -34,12 +34,8 @@ enum class CompilationType;
 /////////////////////////////
 // nsScriptSecurityManager //
 /////////////////////////////
-#define NS_SCRIPTSECURITYMANAGER_CID                 \
-  {                                                  \
-    0x7ee2a4c0, 0x4b93, 0x17d3, {                    \
-      0xba, 0x18, 0x00, 0x60, 0xb0, 0xf1, 0x99, 0xa2 \
-    }                                                \
-  }
+#define NS_SCRIPTSECURITYMANAGER_CID \
+  {0x7ee2a4c0, 0x4b93, 0x17d3, {0xba, 0x18, 0x00, 0x60, 0xb0, 0xf1, 0x99, 0xa2}}
 
 class nsScriptSecurityManager final : public nsIScriptSecurityManager {
  public:

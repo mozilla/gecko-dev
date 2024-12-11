@@ -1554,7 +1554,7 @@ class DumpCrashInfoRunnable final : public WorkerControlRunnable {
 };
 
 struct ActiveWorkerStats {
-  template <uint32_t ActiveWorkerStats::*Category>
+  template <uint32_t ActiveWorkerStats::* Category>
   void Update(const nsTArray<WorkerPrivate*>& aWorkers) {
     for (const auto worker : aWorkers) {
       RefPtr<DumpCrashInfoRunnable> runnable =
