@@ -160,47 +160,51 @@ fn prepare_prim_for_render(
     if let PrimitiveInstanceKind::Picture { pic_index, .. } = prim_instances[prim_instance_index].kind {
         let pic = &mut store.pictures[pic_index.0];
 
-        // TODO(gw): Plan to remove pictures with no composite mode, so that we don't need
-        //           to special case for pass through pictures.
-        is_passthrough = pic.composite_mode.is_none();
+        if !frame_state.visited_pictures[pic_index.0] {
+            frame_state.visited_pictures[pic_index.0] = true;
 
-        match pic.take_context(
-            pic_index,
-            Some(pic_context.surface_index),
-            pic_context.subpixel_mode,
-            frame_state,
-            frame_context,
-            data_stores,
-            scratch,
-            tile_caches,
-        ) {
-            Some((pic_context_for_children, mut pic_state_for_children, mut prim_list)) => {
-                prepare_primitives(
-                    store,
-                    &mut prim_list,
-                    &pic_context_for_children,
-                    &mut pic_state_for_children,
-                    frame_context,
-                    frame_state,
-                    data_stores,
-                    scratch,
-                    tile_caches,
-                    prim_instances,
-                );
+            // TODO(gw): Plan to remove pictures with no composite mode, so that we don't need
+            //           to special case for pass through pictures.
+            is_passthrough = pic.composite_mode.is_none();
 
-                // Restore the dependencies (borrow check dance)
-                store.pictures[pic_context_for_children.pic_index.0]
-                    .restore_context(
-                        pic_context_for_children.pic_index,
-                        prim_list,
-                        pic_context_for_children,
-                        prim_instances,
+            match pic.take_context(
+                pic_index,
+                Some(pic_context.surface_index),
+                pic_context.subpixel_mode,
+                frame_state,
+                frame_context,
+                data_stores,
+                scratch,
+                tile_caches,
+            ) {
+                Some((pic_context_for_children, mut pic_state_for_children, mut prim_list)) => {
+                    prepare_primitives(
+                        store,
+                        &mut prim_list,
+                        &pic_context_for_children,
+                        &mut pic_state_for_children,
                         frame_context,
                         frame_state,
+                        data_stores,
+                        scratch,
+                        tile_caches,
+                        prim_instances,
                     );
-            }
-            None => {
-                return;
+
+                    // Restore the dependencies (borrow check dance)
+                    store.pictures[pic_context_for_children.pic_index.0]
+                        .restore_context(
+                            pic_context_for_children.pic_index,
+                            prim_list,
+                            pic_context_for_children,
+                            prim_instances,
+                            frame_context,
+                            frame_state,
+                        );
+                }
+                None => {
+                    return;
+                }
             }
         }
     }

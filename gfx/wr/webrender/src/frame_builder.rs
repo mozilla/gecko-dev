@@ -183,6 +183,7 @@ pub struct FrameBuildingState<'a> {
     /// traversed before the image that displays it (in other words, the
     /// picture must appear before the image in the display list).
     pub image_dependencies: FastHashMap<ImageKey, RenderTaskId>,
+    pub visited_pictures: &'a mut [bool],
 }
 
 impl<'a> FrameBuildingState<'a> {
@@ -288,6 +289,7 @@ impl FrameBuilder {
         spatial_tree: &SpatialTree,
         cmd_buffers: &mut CommandBufferList,
         frame_gpu_data: &mut GpuBufferBuilder,
+        frame_memory: &FrameMemory,
         profile: &mut TransactionProfile,
     ) {
         profile_scope!("build_layer_screen_rects_and_cull_layers");
@@ -335,6 +337,20 @@ impl FrameBuilder {
             &frame_context,
         );
 
+        // In order to handle picture snapshots consistently we need
+        // the visibility and prepare passes to visit them first before
+        // traversing the scene. This ensures that out-of-view snapshots
+        // are rendered and that snapshots are consistently produced
+        // relative to the root spatial node.
+        // However it means that the visibility and prepare passes may
+        // visit some pictures multiple times, so we keep track of visited
+        // pictures during each traversal to avoid that.
+        let n_pics = scene.prim_store.pictures.len();
+        let mut visited_pictures = frame_memory.new_vec_with_capacity(n_pics);
+        for _ in 0..n_pics {
+            visited_pictures.push(false);
+        }
+
         {
             profile_scope!("UpdateVisibility");
             profile_marker!("UpdateVisibility");
@@ -372,6 +388,7 @@ impl FrameBuilder {
                             surface_stack: scratch.frame.surface_stack.take(),
                             profile,
                             scratch,
+                            visited_pictures: &mut visited_pictures,
                         };
 
                         // If we have a tile cache for this picture, see if any of the
@@ -424,6 +441,11 @@ impl FrameBuilder {
 
         profile.start_time(profiler::FRAME_PREPARE_TIME);
 
+        // Reset the visited pictures for the prepare pass.
+        visited_pictures.clear();
+        for _ in 0..n_pics {
+            visited_pictures.push(false);
+        }
         let mut frame_state = FrameBuildingState {
             rg_builder,
             clip_store: &mut scene.clip_store,
@@ -441,6 +463,7 @@ impl FrameBuilder {
             clip_tree: &mut scene.clip_tree,
             frame_gpu_data,
             image_dependencies: FastHashMap::default(),
+            visited_pictures: &mut visited_pictures,
         };
 
         // Push a default dirty region which culls primitives
@@ -597,6 +620,7 @@ impl FrameBuilder {
             spatial_tree,
             &mut cmd_buffers,
             &mut gpu_buffer_builder,
+            &frame_memory,
             profile,
         );
 

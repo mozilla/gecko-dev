@@ -5179,6 +5179,7 @@ impl PicturePrimitive {
         scratch: &mut PrimitiveScratchBuffer,
         tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
     ) -> Option<(PictureContext, PictureState, PrimitiveList)> {
+        frame_state.visited_pictures[pic_index.0] = true;
         self.primary_render_task_id = None;
         self.secondary_render_task_id = None;
 
