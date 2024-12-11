@@ -60,7 +60,7 @@ object AcornTheme {
         @Composable
         get() = localAcornColors.current
 
-    val typography: FenixTypography
+    val typography: AcornTypography
         get() = defaultTypography
 
     val size: AcornSize
