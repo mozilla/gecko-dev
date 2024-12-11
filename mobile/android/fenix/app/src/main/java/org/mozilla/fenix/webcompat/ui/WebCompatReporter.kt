@@ -33,13 +33,13 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.button.TextButton
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Dropdown
 import org.mozilla.fenix.compose.TextField
 import org.mozilla.fenix.compose.TextFieldColors
 import org.mozilla.fenix.compose.button.PrimaryButton
-import org.mozilla.fenix.compose.button.TextButton
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
 import org.mozilla.fenix.webcompat.store.WebCompatReporterState
