@@ -821,6 +821,24 @@ export var SessionStore = {
   },
 
   /**
+   * Retrieve the tab group state of a saved tab group by ID.
+   *
+   * @param {string} tabGroupId
+   * @returns {TabGroupStateData|undefined}
+   */
+  getSavedTabGroup(tabGroupId) {
+    return SessionStoreInternal.getSavedTabGroup(tabGroupId);
+  },
+
+  /**
+   * Returns all tab groups that were saved in this session.
+   * @returns {TabGroupStateData[]}
+   */
+  getSavedTabGroups() {
+    return SessionStoreInternal.getSavedTabGroups();
+  },
+
+  /**
    * Remove a tab group from the session's saved tab group list.
    * @param {string} tabGroupId
    *   The ID of the tab group to remove
@@ -959,7 +977,7 @@ var SessionStoreInternal = {
   // states for all recently closed windows
   _closedWindows: [],
 
-  // states for all closed tab groups
+  /** @type {TabGroupStateData[]} states for all closed tab groups */
   _savedGroups: [],
 
   // collection of session states yet to be restored
@@ -2960,17 +2978,7 @@ var SessionStoreInternal = {
 
     let closedGroups = this._windows[win.__SSi].closedGroups;
 
-    let tabGroupState = lazy.TabGroupState.collect(tabGroup);
-    tabGroupState.closedAt = Date.now();
-
-    // Only save tab state for tabs that qualify
-    tabGroupState.tabs = [];
-    tabGroup.tabs.forEach(tab => {
-      let tabState = lazy.TabState.collect(tab, TAB_CUSTOM_VALUES.get(tab));
-      this.maybeSaveClosedTab(win, tab, tabState, {
-        closedTabsArray: tabGroupState.tabs,
-      });
-    });
+    let tabGroupState = this.buildClosedTabGroupState(tabGroup, win);
 
     if (tabGroupState.tabs.length) {
       // TODO(jswinarton) it's unclear if updating lastClosedTabGroupCount is
@@ -2985,6 +2993,38 @@ var SessionStoreInternal = {
       closedGroups.push(tabGroupState);
       this._closedObjectsChanged = true;
     }
+  },
+
+  /**
+   * Build `TabGroupStateData` for a tab group that is about to close.
+   *
+   * The `TabGroupState` module is generally responsible for collecting
+   * tab group state data, but the session store has additional requirements
+   * for closed tabs that are currently only implemented in
+   * `SessionStoreInternal.maybeSaveClosedTab`. This method uses `TabGroupState`
+   * to collect information and then enriches it with metadata specific to tab
+   * groups that are saved or closed.
+   *
+   * @param {MozTabbrowserTabGroup} tabGroup
+   * @param {Window} win
+   * @returns {TabGroupStateData}
+   *   Returns tab group state data from `TabGroupState` but enriched with
+   *   metadata specific to saved or closed tab groups.
+   */
+  buildClosedTabGroupState(tabGroup, win) {
+    let tabGroupState = lazy.TabGroupState.collect(tabGroup);
+    tabGroupState.closedAt = Date.now();
+
+    // Only save tab state for tabs that qualify
+    tabGroupState.tabs = [];
+    tabGroup.tabs.forEach(tab => {
+      let tabState = lazy.TabState.collect(tab, TAB_CUSTOM_VALUES.get(tab));
+      this.maybeSaveClosedTab(win, tab, tabState, {
+        closedTabsArray: tabGroupState.tabs,
+      });
+    });
+
+    return tabGroupState;
   },
 
   /**
@@ -3505,6 +3545,11 @@ var SessionStoreInternal = {
     this._notifyOfClosedObjectsChange();
   },
 
+  /**
+   * @param {Window} aWindow
+   *        Window reference
+   * @returns {{windows: WindowStateData[]}}
+   */
   getWindowState: function ssi_getWindowState(aWindow) {
     if ("__SSi" in aWindow) {
       return Cu.cloneInto(this._getWindowState(aWindow), {});
@@ -4169,21 +4214,18 @@ var SessionStoreInternal = {
     );
   },
 
+  /**
+   * @param {Window|{sourceWindow: Window}|{sourceClosedId: number}|{sourceWindowId: string}} aSource
+   * @returns {WindowStateData}
+   */
   _resolveClosedDataSource(aSource) {
     let winData;
     if (aSource instanceof Ci.nsIDOMWindow) {
-      if (!aSource.__SSi) {
-        throw Components.Exception(
-          "Window is not tracked",
-          Cr.NS_ERROR_INVALID_ARG
-        );
-      }
-      winData = this._windows[aSource.__SSi];
+      winData = this.getWindowStateData(aSource);
+    } else if (aSource.sourceWindow instanceof Ci.nsIDOMWindow) {
+      winData = this.getWindowStateData(aSource.sourceWindow);
     } else if (typeof aSource.sourceClosedId == "number") {
-      /* eslint-disable-next-line no-shadow */
-      winData = this._closedWindows.find(
-        closedData => closedData.closedId == aSource.sourceClosedId
-      );
+      winData = this.getClosedWindowDataByClosedId(aSource.sourceClosedId);
       if (!winData) {
         throw Components.Exception(
           "No such closed window",
@@ -4191,13 +4233,8 @@ var SessionStoreInternal = {
         );
       }
     } else if (typeof aSource.sourceWindowId == "string") {
-      winData = this._windows[aSource.sourceWindowId];
-      if (!winData) {
-        throw Components.Exception(
-          "No such source window",
-          Cr.NS_ERROR_INVALID_ARG
-        );
-      }
+      let win = this.getWindowById(aSource.sourceWindowId);
+      winData = this.getWindowStateData(win);
     } else {
       throw Components.Exception(
         "Invalid source object",
@@ -5105,9 +5142,9 @@ var SessionStoreInternal = {
 
   /**
    * serialize session data for a window
-   * @param aWindow
+   * @param {Window} aWindow
    *        Window reference
-   * @returns string
+   * @returns {{windows: [WindowStateData]}}
    */
   _getWindowState: function ssi_getWindowState(aWindow) {
     if (!this._isWindowLoaded(aWindow)) {
@@ -5119,6 +5156,24 @@ var SessionStoreInternal = {
     }
 
     return { windows: [this._windows[aWindow.__SSi]] };
+  },
+
+  /**
+   * Retrieves window data for an active session.
+   *
+   * @param {Window} aWindow
+   * @returns {WindowStateData}
+   * @throws {Error} if `aWindow` is not being managed in the session store.
+   */
+  getWindowStateData: function ssi_getWindowStateData(aWindow) {
+    if (!aWindow.__SSi || !(aWindow.__SSi in this._windows)) {
+      throw Components.Exception(
+        "Window is not tracked",
+        Cr.NS_ERROR_INVALID_ARG
+      );
+    }
+
+    return this._windows[aWindow.__SSi];
   },
 
   /**
@@ -7550,7 +7605,11 @@ var SessionStoreInternal = {
     if (this.getSavedTabGroup(tabGroup.id)) {
       return;
     }
-    this._savedGroups.push(lazy.TabGroupState.clone(tabGroup));
+    let tabGroupState = this.buildClosedTabGroupState(
+      tabGroup,
+      tabGroup.ownerGlobal
+    );
+    this._savedGroups.push(tabGroupState);
   },
 
   /**
@@ -7561,6 +7620,14 @@ var SessionStoreInternal = {
     return this._savedGroups.find(
       savedTabGroup => savedTabGroup.id == tabGroupId
     );
+  },
+
+  /**
+   * Returns all tab groups that were saved in this session.
+   * @returns {TabGroupStateData[]}
+   */
+  getSavedTabGroups() {
+    return Cu.cloneInto(this._savedGroups, {});
   },
 
   /**

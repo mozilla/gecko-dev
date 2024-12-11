@@ -37,4 +37,5 @@ add_task(async function test_SaveTabGroups() {
 
   ss.forgetSavedTabGroup(group2.id);
   await BrowserTestUtils.closeWindow(win);
+  forgetClosedWindows();
 });
