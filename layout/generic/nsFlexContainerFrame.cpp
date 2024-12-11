@@ -6465,29 +6465,30 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
     const auto* childStylePos =
         nsLayoutUtils::GetStyleFrame(childFrame)->StylePosition();
 
-    // A flex item with a preferred aspect-ratio and a definite size in the flex
-    // container's block axis can transfer its block size to the inline axis,
-    // affecting its intrinsic inline size contribution to the flex container's
-    // intrinsic inline size. This helper function determines whether we should
-    // "pre-stretch" a flex item's cross-size (with that size considered to be
-    // definite) based on the flex container's definite cross-size.
+    // A flex item with a definite block size can transfer its block size to the
+    // inline-axis via its own aspect-ratio or serve as a percentage basis for
+    // its children with aspect-ratios. Both can influence the item's intrinsic
+    // inline size contribution to the flex container's intrinsic inline size.
+    //
+    // This helper function determines whether we should "pre-stretch" a flex
+    // item's cross size (with that size considered to be definite) based on the
+    // flex container's definite cross size.
     //
     // Note: The logic here is similar to the "pre-stretch" in
-    // GenerateFlexItemForChild(), except that we do not construct a full
-    // FlexItem object.
+    // GenerateFlexItemForChild().
     const bool childShouldStretchCrossSize = [&]() {
       if (!isSingleLine || axisTracker.IsColumnOriented()) {
-        // We only perform "pre-stretch" for the item's cross-size if the flex
+        // We only perform "pre-stretch" for the item's cross size if the flex
         // container is single-line and row-oriented.
         return false;
       }
       if (!aInput.mPercentageBasisForChildren ||
           aInput.mPercentageBasisForChildren->BSize(flexWM) ==
               NS_UNCONSTRAINEDSIZE) {
-        // The flex container does not have a definite cross-size to stretch the
+        // The flex container does not have a definite cross size to stretch the
         // items.
         //
-        // Note: if the flex container has a definite cross-size (for items to
+        // Note: if the flex container has a definite cross size (for items to
         // pre-stretch to fill), it should be passed down in
         // mPercentageBasisForChildren -- specifically in the BSize component,
         // given that we know the flex container is row-oriented at this point.
@@ -6497,18 +6498,18 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
           childStylePos->UsedAlignSelf(Style())._0;
       if ((alignSelf != StyleAlignFlags::STRETCH &&
            alignSelf != StyleAlignFlags::NORMAL) ||
-          childFrame->StyleMargin()->HasBlockAxisAuto(flexWM) ||
-          !childStylePos->BSize(flexWM).IsAuto()) {
+          !childStylePos->BSize(flexWM).IsAuto() ||
+          childFrame->StyleMargin()->HasBlockAxisAuto(flexWM)) {
         // Similar to FlexItem::ResolveStretchedCrossSize(), we only stretch
         // the item if it satisfies all the following conditions:
         // - align-self: stretch or align-self: normal (which behaves as
         //   stretch) https://drafts.csswg.org/css-align-3/#align-flex
-        // - no auto margins in the cross axis
         // - a cross-axis size property of value "auto"
+        // - no auto margins in the cross-axis
         // https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-stretch
         return false;
       }
-      // Let's stretch the item's cross-size.
+      // Let's stretch the item's cross size.
       return true;
     }();
 
