@@ -361,6 +361,7 @@ export class YelpSuggestions extends BaseFeature {
     url.searchParams.set(this.#metadataCache.findDesc, ml.subject);
 
     return {
+      ...ml,
       title: ml.subject,
       url: url.toString(),
       subjectExactMatch: false,
@@ -368,11 +369,8 @@ export class YelpSuggestions extends BaseFeature {
       locationParam: this.#metadataCache.findLoc,
       icon_blob: this.#metadataCache.iconBlob,
       score: this.#metadataCache.score,
-      subject: ml.subject,
       city: ml.location?.city,
       region: ml.location?.state,
-      source: ml.source,
-      provider: ml.provider,
     };
   }
 
