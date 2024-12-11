@@ -6,6 +6,7 @@ import {
   LitElement,
   html,
   ifDefined,
+  nothing,
 } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
@@ -91,7 +92,7 @@ function queryAll(el, selector) {
  * async onClick() {
  *   let response = await this.getServerResponse(this.data);
  *   // Show the response status to the user.
- *   this.responseStatus = respose.status;
+ *   this.responseStatus = response.status;
  *   this.dispatchOnUpdateComplete(
  *     new CustomEvent("status-shown")
  *   );
@@ -262,14 +263,21 @@ export class MozBaseInputElement extends MozLitElement {
     super.willUpdate(changedProperties);
     this.#updateInternalState(this.description, "description");
     this.#updateInternalState(this.supportPage, "support-link");
+    this.#updateInternalState(this.label, "label");
   }
 
-  #updateInternalState(propVal, slotName) {
-    let stateKey = `has-${slotName}`;
-    if (propVal || this.#hasSlottedContent.get(slotName)) {
-      this.#internals.states.add(stateKey);
+  #updateInternalState(propVal, stateKey) {
+    let internalStateKey = `has-${stateKey}`;
+    let hasValue = !!(propVal || this.#hasSlottedContent.get(stateKey));
+
+    if (this.#internals.states?.has(internalStateKey) == hasValue) {
+      return;
+    }
+
+    if (hasValue) {
+      this.#internals.states.add(internalStateKey);
     } else {
-      this.#internals.states.delete(stateKey);
+      this.#internals.states.delete(internalStateKey);
     }
   }
 
@@ -297,6 +305,10 @@ export class MozBaseInputElement extends MozLitElement {
     return this.#internals.states.has("has-support-link");
   }
 
+  get hasLabel() {
+    return this.#internals.states.has("has-label");
+  }
+
   click() {
     this.inputEl.click();
   }
@@ -311,6 +323,10 @@ export class MozBaseInputElement extends MozLitElement {
     );
   }
 
+  inputStylesTemplate() {
+    return nothing;
+  }
+
   render() {
     let isInlineLayout = this.constructor.inputLayout == "inline";
     return html`
@@ -318,6 +334,7 @@ export class MozBaseInputElement extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-input-common.css"
       />
+      ${this.inputStylesTemplate()}
       <span class="label-wrapper">
         <label
           is="moz-label"
@@ -335,6 +352,10 @@ export class MozBaseInputElement extends MozLitElement {
   }
 
   labelTemplate() {
+    if (!this.label) {
+      return "";
+    }
+
     return html`<span class="label-content"
       >${this.iconTemplate()}<span class="text">${this.label}</span></span
     >`;
