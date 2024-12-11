@@ -6,7 +6,7 @@ use std::os::raw::c_void;
 use std::ptr;
 
 use glutin::platform::windows::EGLContext;
-use webrender::{CompositorInputConfig, CompositorSurfaceTransform, LayerCompositor};
+use webrender::{LayerCompositor, CompositorInputConfig};
 use winit::platform::windows::WindowExtWindows;
 
 use crate::WindowWrapper;
@@ -248,12 +248,11 @@ impl LayerCompositor for WrCompositor {
     }
 
     fn add_surface(
-        &mut self,
-        index: usize,
-        _transform: CompositorSurfaceTransform,
-        _clip_rect: webrender::api::units::DeviceIntRect,
-        _image_rendering: webrender::api::ImageRendering,
-    ) {
+            &mut self,
+            index: usize,
+            _clip_rect: webrender::api::units::DeviceIntRect,
+            _image_rendering: webrender::api::ImageRendering,
+        ) {
         let layer = &self.layers[index];
 
         unsafe {

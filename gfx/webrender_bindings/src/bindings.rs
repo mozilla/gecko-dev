@@ -42,7 +42,7 @@ use webrender::{
     MappableCompositor, MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor,
     PipelineInfo, ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats,
     SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig,
-    UploadMethod, WebRenderOptions, WindowVisibility, ONE_TIME_USAGE_HINT, CompositorInputConfig, CompositorSurfaceUsage,
+    UploadMethod, WebRenderOptions, WindowVisibility, ONE_TIME_USAGE_HINT, CompositorInputConfig,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -1506,7 +1506,6 @@ struct NativeLayer {
     size: DeviceIntSize,
     is_opaque: bool,
     frames_since_used: usize,
-    usage: CompositorSurfaceUsage,
 }
 
 pub struct WrLayerCompositor {
@@ -1543,8 +1542,7 @@ impl LayerCompositor for WrLayerCompositor {
             let size = request.rect.size();
 
             let existing_index = self.surface_pool.iter().position(|layer| {
-                layer.is_opaque == request.is_opaque &&
-                layer.usage.matches(&request.usage)
+                layer.is_opaque == request.is_opaque
             });
 
             let mut layer = match existing_index {
@@ -1553,9 +1551,6 @@ impl LayerCompositor for WrLayerCompositor {
 
                     layer.frames_since_used = 0;
 
-                    // Copy across (potentially) updated external image id
-                    layer.usage = request.usage;
-
                     layer
                 }
                 None => {
@@ -1563,23 +1558,12 @@ impl LayerCompositor for WrLayerCompositor {
                     self.next_layer_id += 1;
 
                     unsafe {
-                        match request.usage {
-                            CompositorSurfaceUsage::Content => {
-                                wr_compositor_create_swapchain_surface(
-                                    self.compositor,
-                                    id,
-                                    size,
-                                    request.is_opaque,
-                                );
-                            }
-                            CompositorSurfaceUsage::External { .. } => {
-                                wr_compositor_create_external_surface(
-                                    self.compositor,
-                                    id,
-                                    request.is_opaque,
-                                );
-                            }
-                        }
+                        wr_compositor_create_swapchain_surface(
+                            self.compositor,
+                            id,
+                            size,
+                            request.is_opaque,
+                        );
                     }
 
                     NativeLayer {
@@ -1587,33 +1571,19 @@ impl LayerCompositor for WrLayerCompositor {
                         size,
                         is_opaque: request.is_opaque,
                         frames_since_used: 0,
-                        usage: request.usage,
                     }
                 }
             };
 
-            match layer.usage {
-                CompositorSurfaceUsage::Content => {
-                    if layer.size.width != size.width || layer.size.height != size.height {
-                        unsafe {
-                            wr_compositor_resize_swapchain(
-                                self.compositor,
-                                layer.id,
-                                size
-                            );
-                        }
-                        layer.size = size;
-                    }
+            if layer.size.width != size.width || layer.size.height != size.height {
+                unsafe {
+                    wr_compositor_resize_swapchain(
+                        self.compositor,
+                        layer.id,
+                        size
+                    );
                 }
-                CompositorSurfaceUsage::External { external_image_id, .. } => {
-                    unsafe {
-                        wr_compositor_attach_external_image(
-                            self.compositor,
-                            layer.id,
-                            external_image_id,
-                        );
-                    }
-                }
+                layer.size = size;
             }
 
             self.visual_tree.push(layer);
@@ -1651,11 +1621,13 @@ impl LayerCompositor for WrLayerCompositor {
     fn add_surface(
         &mut self,
         index: usize,
-        transform: CompositorSurfaceTransform,
         clip_rect: DeviceIntRect,
         image_rendering: ImageRendering,
     ) {
         let layer = &self.visual_tree[index];
+
+        // TODO(gwc): Need to set correct transform once adding video layers
+        let transform = CompositorSurfaceTransform::identity();
 
         unsafe {
             wr_compositor_add_surface(
