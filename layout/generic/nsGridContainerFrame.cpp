@@ -827,8 +827,14 @@ struct nsGridContainerFrame::GridItemInfo {
     return aAlign;
   }
 
-  // Return true if we should apply Automatic Minimum Size to this item.
+  // Return true if we should use MinContribution on items that do not span
+  // any flex tracks to determine the minimum contribution, and if we should
+  // set the eApplyAutoMinSize flag on grid items.
+  //
+  // In part this is determined by whether or not the minimum contribution
+  // of the item is content-based.
   // https://drafts.csswg.org/css-grid-2/#min-size-auto
+  //
   // @note the caller should also check that the item spans at least one track
   // that has a min track sizing function that is 'auto' before applying it.
   bool ShouldApplyAutoMinSize(WritingMode aContainerWM,
@@ -2383,7 +2389,7 @@ struct nsGridContainerFrame::Tracks {
   void ResolveIntrinsicSize(GridReflowInput& aState,
                             nsTArray<GridItemInfo>& aGridItems,
                             const TrackSizingFunctions& aFunctions,
-                            LineRange GridArea::*aRange,
+                            LineRange GridArea::* aRange,
                             nscoord aPercentageBasis,
                             SizingConstraint aConstraint);
 
@@ -2783,7 +2789,7 @@ struct nsGridContainerFrame::Tracks {
   void CalculateSizes(GridReflowInput& aState,
                       nsTArray<GridItemInfo>& aGridItems,
                       const TrackSizingFunctions& aFunctions,
-                      nscoord aContentBoxSize, LineRange GridArea::*aRange,
+                      nscoord aContentBoxSize, LineRange GridArea::* aRange,
                       SizingConstraint aConstraint);
 
   /**
@@ -5830,10 +5836,10 @@ static nscoord MaxContentContribution(const GridItemInfo& aGridItem,
 
 // Computes the min-size contribution for a grid item, as defined at
 // https://drafts.csswg.org/css-grid-2/#min-size-contribution
-static nscoord MinSize(const GridItemInfo& aGridItem,
-                       const GridReflowInput& aState, gfxContext* aRC,
-                       WritingMode aCBWM, LogicalAxis aAxis,
-                       CachedIntrinsicSizes* aCache) {
+static nscoord MinContribution(const GridItemInfo& aGridItem,
+                               const GridReflowInput& aState, gfxContext* aRC,
+                               WritingMode aCBWM, LogicalAxis aAxis,
+                               CachedIntrinsicSizes* aCache) {
   if (aCache->mMinSize.isSome()) {
     return aCache->mMinSize.value();
   }
@@ -5901,7 +5907,7 @@ static nscoord MinSize(const GridItemInfo& aGridItem,
 void nsGridContainerFrame::Tracks::CalculateSizes(
     GridReflowInput& aState, nsTArray<GridItemInfo>& aGridItems,
     const TrackSizingFunctions& aFunctions, nscoord aContentBoxSize,
-    LineRange GridArea::*aRange, SizingConstraint aConstraint) {
+    LineRange GridArea::* aRange, SizingConstraint aConstraint) {
   // Implement the intrinsic sizing algorithm, step 12.5 as described in:
   // https://drafts.csswg.org/css-grid-2/#algo-content
   nscoord percentageBasis = aContentBoxSize;
@@ -5985,7 +5991,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
         s = MaxContentContribution(aGridItem, aState, rc, wm, mAxis, &cache);
       }
     } else {
-      s = MinSize(aGridItem, aState, rc, wm, mAxis, &cache);
+      s = MinContribution(aGridItem, aState, rc, wm, mAxis, &cache);
     }
     sz.mBase = std::max(sz.mBase, s);
   } else if (sz.mState & TrackSize::eMinContentMinSizing) {
@@ -6626,7 +6632,7 @@ bool nsGridContainerFrame::Tracks::GrowSizeForSpanningItems(
 
 void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
     GridReflowInput& aState, nsTArray<GridItemInfo>& aGridItems,
-    const TrackSizingFunctions& aFunctions, LineRange GridArea::*aRange,
+    const TrackSizingFunctions& aFunctions, LineRange GridArea::* aRange,
     nscoord aPercentageBasis, SizingConstraint aConstraint) {
   // Intrinsic sizing algorithm 12.5 steps 2-5
   // https://drafts.csswg.org/css-grid-2/#algo-content
@@ -6751,7 +6757,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
         // Collect the various grid item size contributions we need.
         nscoord minSize = 0;
         if (state & TrackSize::eIntrinsicMinSizing) {  // for 3.1
-          minSize = MinSize(gridItem, aState, rc, wm, mAxis, &cache);
+          minSize = MinContribution(gridItem, aState, rc, wm, mAxis, &cache);
         }
         nscoord minContent = 0;
         if (state & (contentBasedMinSelector |           // for 3.2
@@ -9887,7 +9893,7 @@ void nsGridContainerFrame::ExtraContainerFrameInfo(nsACString& aTo) const {
 /* static */ nsGridContainerFrame::FindItemInGridOrderResult
 nsGridContainerFrame::FindFirstItemInGridOrder(
     CSSOrderAwareFrameIterator& aIter, const nsTArray<GridItemInfo>& aGridItems,
-    LineRange GridArea::*aMajor, LineRange GridArea::*aMinor,
+    LineRange GridArea::* aMajor, LineRange GridArea::* aMinor,
     uint32_t aFragmentStartTrack) {
   FindItemInGridOrderResult result = {nullptr, false};
   uint32_t minMajor = kTranslatedMaxLine + 1;
@@ -9913,8 +9919,8 @@ nsGridContainerFrame::FindFirstItemInGridOrder(
 /* static */ nsGridContainerFrame::FindItemInGridOrderResult
 nsGridContainerFrame::FindLastItemInGridOrder(
     ReverseCSSOrderAwareFrameIterator& aIter,
-    const nsTArray<GridItemInfo>& aGridItems, LineRange GridArea::*aMajor,
-    LineRange GridArea::*aMinor, uint32_t aFragmentStartTrack,
+    const nsTArray<GridItemInfo>& aGridItems, LineRange GridArea::* aMajor,
+    LineRange GridArea::* aMinor, uint32_t aFragmentStartTrack,
     uint32_t aFirstExcludedTrack) {
   FindItemInGridOrderResult result = {nullptr, false};
   int32_t maxMajor = -1;
