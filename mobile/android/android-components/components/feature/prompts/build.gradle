@@ -39,6 +39,7 @@ tasks.withType(KotlinCompile).configureEach {
 
 dependencies {
     implementation project(':browser-state')
+    implementation project(':compose-base')
     implementation project(':concept-engine')
     implementation project(':feature-session')
     implementation project(':feature-tabs')
