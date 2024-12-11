@@ -13,6 +13,7 @@ XPIDL_SOURCES += [
     "nsIQuotaArtificialFailure.idl",
     "nsIQuotaCallbacks.idl",
     "nsIQuotaManagerService.idl",
+    "nsIQuotaManagerServiceInternal.idl",
     "nsIQuotaRequests.idl",
     "nsIQuotaResults.idl",
     "nsIQuotaUtilsService.idl",

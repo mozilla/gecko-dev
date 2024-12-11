@@ -513,7 +513,7 @@ void QuotaManagerService::RemoveIdleObserver() {
 NS_IMPL_ADDREF(QuotaManagerService)
 NS_IMPL_RELEASE_WITH_DESTROY(QuotaManagerService, Destroy())
 NS_IMPL_QUERY_INTERFACE(QuotaManagerService, nsIQuotaManagerService,
-                        nsIObserver)
+                        nsIQuotaManagerServiceInternal, nsIObserver)
 
 NS_IMETHODIMP
 QuotaManagerService::StorageName(nsIQuotaRequest** _retval) {
