@@ -43,7 +43,66 @@ const MAX_MASK_SIZE: i32 = 4096;
 
 const MIN_BRUSH_SPLIT_AREA: f32 = 128.0 * 128.0;
 
-pub fn prepare_primitives(
+/// The entry point of the preapre pass.
+pub fn prepare_picture(
+    pic_index: PictureIndex,
+    store: &mut PrimitiveStore,
+    surface_index: Option<SurfaceIndex>,
+    subpixel_mode: SubpixelMode,
+    frame_context: &FrameBuildingContext,
+    frame_state: &mut FrameBuildingState,
+    data_stores: &mut DataStores,
+    scratch: &mut PrimitiveScratchBuffer,
+    tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
+    prim_instances: &mut Vec<PrimitiveInstance>,
+) -> bool {
+    if frame_state.visited_pictures[pic_index.0] {
+        return true;
+    }
+
+    frame_state.visited_pictures[pic_index.0] = true;
+
+    let pic = &mut store.pictures[pic_index.0];
+    let Some((pic_context, mut pic_state, mut prim_list)) = pic.take_context(
+        pic_index,
+        surface_index,
+        subpixel_mode,
+        frame_state,
+        frame_context,
+        data_stores,
+        scratch,
+        tile_caches,
+    ) else {
+        return false;
+    };
+
+    prepare_primitives(
+        store,
+        &mut prim_list,
+        &pic_context,
+        &mut pic_state,
+        frame_context,
+        frame_state,
+        data_stores,
+        scratch,
+        tile_caches,
+        prim_instances,
+    );
+
+    // Restore the dependencies (borrow check dance)
+    store.pictures[pic_context.pic_index.0].restore_context(
+        pic_context.pic_index,
+        prim_list,
+        pic_context,
+        prim_instances,
+        frame_context,
+        frame_state,
+    );
+
+    true
+}
+
+fn prepare_primitives(
     store: &mut PrimitiveStore,
     prim_list: &mut PrimitiveList,
     pic_context: &PictureContext,
@@ -158,55 +217,25 @@ fn prepare_prim_for_render(
     // picture target, if being composited.
     let mut is_passthrough = false;
     if let PrimitiveInstanceKind::Picture { pic_index, .. } = prim_instances[prim_instance_index].kind {
-        let pic = &mut store.pictures[pic_index.0];
-
-        if !frame_state.visited_pictures[pic_index.0] {
-            frame_state.visited_pictures[pic_index.0] = true;
-
-            // TODO(gw): Plan to remove pictures with no composite mode, so that we don't need
-            //           to special case for pass through pictures.
-            is_passthrough = pic.composite_mode.is_none();
-
-            match pic.take_context(
-                pic_index,
-                Some(pic_context.surface_index),
-                pic_context.subpixel_mode,
-                frame_state,
-                frame_context,
-                data_stores,
-                scratch,
-                tile_caches,
-            ) {
-                Some((pic_context_for_children, mut pic_state_for_children, mut prim_list)) => {
-                    prepare_primitives(
-                        store,
-                        &mut prim_list,
-                        &pic_context_for_children,
-                        &mut pic_state_for_children,
-                        frame_context,
-                        frame_state,
-                        data_stores,
-                        scratch,
-                        tile_caches,
-                        prim_instances,
-                    );
-
-                    // Restore the dependencies (borrow check dance)
-                    store.pictures[pic_context_for_children.pic_index.0]
-                        .restore_context(
-                            pic_context_for_children.pic_index,
-                            prim_list,
-                            pic_context_for_children,
-                            prim_instances,
-                            frame_context,
-                            frame_state,
-                        );
-                }
-                None => {
-                    return;
-                }
-            }
+        if !prepare_picture(
+            pic_index,
+            store,
+            Some(pic_context.surface_index),
+            pic_context.subpixel_mode,
+            frame_context,
+            frame_state,
+            data_stores,
+            scratch,
+            tile_caches,
+            prim_instances
+        ) {
+            return;
         }
+
+        is_passthrough = store
+            .pictures[pic_index.0]
+            .composite_mode
+            .is_none();
     }
 
     let prim_instance = &mut prim_instances[prim_instance_index];
