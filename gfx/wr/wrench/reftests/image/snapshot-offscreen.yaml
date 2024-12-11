@@ -1,0 +1,52 @@
+# This test case contains two snapshotted stacking contexts that are far
+# off-screen, displayed as images that are in view.
+# The images should show the contents of the stacking context.
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: [0, 0, 100, 100]
+      items:
+      - type: rect
+        bounds: [ 0, 0, 320, 250 ]
+        color: [100, 50, 10]
+      - type: stacking-context
+        bounds: [100000, 0, 200, 200]
+        snapshot:
+          name: "snap0"
+          area: [10, 10, 80, 180]
+        items:
+          - type: rect
+            bounds: [ 0, 0, 90, 100]
+            color: [0, 150, 0]
+          - type: rect
+            bounds: [ 10, 100, 90, 100]
+            color: [150, 0, 0]
+      - type: stacking-context
+        bounds: [-3500, 4500, 200, 200]
+        snapshot:
+          name: "snap1"
+          area: [-10, -10, 120, 220]
+        items:
+          - type: rect
+            bounds: [0, 0, 90, 100]
+            color: [0, 150, 0]
+          - type: rect
+            bounds: [ 10, 100, 90, 100]
+            color: [150, 0, 0]
+
+      # The two rects behind the images are only there to show
+      # the bounds of the image. They are not useful to the test
+      # per-se but make it easier to see what is off if the
+      # bounds are incorrect.
+      - type: rect
+        bounds: [10, 20, 80, 180]
+        color: [200, 200, 200]
+      - image: snapshot(snap0)
+        bounds: [10, 20, 80, 180]
+
+      - type: rect
+        bounds: [150, 0, 120, 220]
+        color: [200, 200, 200]
+      - image: snapshot(snap1)
+        bounds: [150, 0, 120, 220]
