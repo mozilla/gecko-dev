@@ -92,8 +92,24 @@ enum class RuntimeCode { JS, WASM };
 typedef bool (*JSCSPEvalChecker)(JSContext* cx, JS::RuntimeCode kind,
                                  JS::HandleString code);
 
+/*
+ * Provide a string of code from an Object argument, to be used by eval.
+ * See JSContext::getCodeForEval() in vm/JSContext.cpp as well as
+ * https://tc39.es/proposal-dynamic-code-brand-checks/#sec-hostgetcodeforeval
+ *
+ * `code` is the JavaScript object passed by the user.
+ * `outCode` is the JavaScript string to be actually executed, with nullptr
+ *  meaning NO-CODE.
+ *
+ * Return false on failure, true on success. The |outCode| parameter should not
+ * be modified in case of failure.
+ */
+typedef bool (*JSCodeForEvalOp)(JSContext* cx, JS::HandleObject code,
+                                JS::MutableHandle<JSString*> outCode);
+
 struct JSSecurityCallbacks {
   JSCSPEvalChecker contentSecurityPolicyAllows;
+  JSCodeForEvalOp codeForEvalGets;
   JSSubsumesOp subsumes;
 };
 

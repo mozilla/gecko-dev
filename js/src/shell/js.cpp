@@ -955,6 +955,7 @@ class ShellPrincipals final : public JSPrincipals {
 
 JSSecurityCallbacks ShellPrincipals::securityCallbacks = {
     nullptr,  // contentSecurityPolicyAllows
+    nullptr,  // codeForEvalGets
     subsumes};
 
 // The fully-trusted principal subsumes all other principals.

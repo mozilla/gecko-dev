@@ -1554,6 +1554,7 @@ void nsScriptSecurityManager::InitJSCallbacks(JSContext* aCx) {
 
   static const JSSecurityCallbacks securityCallbacks = {
       ContentSecurityPolicyPermitsJSAction,
+      nullptr,  // codeForEvalGets
       JSPrincipalsSubsume,
   };
 

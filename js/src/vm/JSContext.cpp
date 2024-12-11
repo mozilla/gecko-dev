@@ -1245,6 +1245,17 @@ bool JSContext::isRuntimeCodeGenEnabled(JS::RuntimeCode kind,
   return true;
 }
 
+bool JSContext::getCodeForEval(HandleObject code,
+                               JS::MutableHandle<JSString*> outCode) {
+  if (JSCodeForEvalOp gets = runtime()->securityCallbacks->codeForEvalGets) {
+    return gets(this, code, outCode);
+  }
+  // Default implementation from the "Dynamic Code Brand Checks" spec.
+  // https://tc39.es/proposal-dynamic-code-brand-checks/#sec-hostgetcodeforeval
+  outCode.set(nullptr);
+  return true;
+}
+
 size_t JSContext::sizeOfExcludingThis(
     mozilla::MallocSizeOf mallocSizeOf) const {
   /*
