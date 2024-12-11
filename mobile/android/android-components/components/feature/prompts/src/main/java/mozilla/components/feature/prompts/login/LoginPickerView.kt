@@ -38,9 +38,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.withStyledAttributes
+import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.R
-import mozilla.components.feature.prompts.identitycredential.previews.LightDarkPreview
 import mozilla.components.support.ktx.android.content.getColorFromAttr
 import mozilla.components.ui.icons.R as iconsR
 
