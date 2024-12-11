@@ -13,12 +13,12 @@
   <script type="application/javascript"><![CDATA[
 
   /** Test for StringEncoding API. **/
-  // Import our test JSM. We first strip the filename off
-  // the chrome url, then append the jsm filename.
+  // Import our test ESM. We first strip the filename off
+  // the chrome url, then append the filename.
   var base = /.*\//.exec(window.location.href)[0];
-  const {checkFromJSM} = ChromeUtils.import(base + "file_stringencoding.jsm");
+  const {checkFromESM} = ChromeUtils.importESModule(base + "file_stringencoding.sys.mjs");
 
-  checkFromJSM(is);
+  checkFromESM(is);
 
   ]]></script>
 </window>

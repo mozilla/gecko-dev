@@ -1,4 +1,4 @@
 [DEFAULT]
-support-files = ["file_stringencoding.jsm"]
+support-files = ["file_stringencoding.sys.mjs"]
 
 ["test_stringencoding.xhtml"]
