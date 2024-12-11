@@ -40,9 +40,10 @@ bool uprofiler_initted = false;
 
 static bool const SANDBOX_PROFILER_DEBUG = false;
 
-// Semaphore that we use to signal the SandboxProfilerEmitter thread when data
+// Semaphores that we use to signal the SandboxProfilerEmitter thread when data
 // has been pushed to the SandboxProfilerQueue
-static sem_t gRequest;
+static sem_t gSyscallRequest;
+static sem_t gLogsRequest;
 
 // This is only be called on main thread, and not within SIGSYS context
 //
@@ -78,12 +79,12 @@ void SandboxProfiler::Create() {
 }
 
 SandboxProfiler::SandboxProfiler() {
-  sem_init(&gRequest, /* pshared */ 0, /* value */ 0);
   mThreadLogs = std::thread(&SandboxProfiler::ThreadMain, this,
-                            "SandboxProfilerEmitterLogs", gLogsQueue.get());
-  mThreadSyscalls =
-      std::thread(&SandboxProfiler::ThreadMain, this,
-                  "SandboxProfilerEmitterSyscalls", gSyscallsQueue.get());
+                            "SandboxProfilerEmitterLogs", gLogsQueue.get(),
+                            &gLogsRequest);
+  mThreadSyscalls = std::thread(&SandboxProfiler::ThreadMain, this,
+                                "SandboxProfilerEmitterSyscalls",
+                                gSyscallsQueue.get(), &gSyscallRequest);
 }
 
 /* static */
@@ -91,8 +92,9 @@ void SandboxProfiler::Shutdown() {
   isShutdown = true;
 
   if (gProfiler) {
-    // Unblock all
-    SandboxProfiler::Signal(&gRequest);
+    // Unblock remaining
+    SandboxProfiler::Signal(&gSyscallRequest);
+    SandboxProfiler::Signal(&gLogsRequest);
   }
 
   gProfiler = nullptr;
@@ -108,8 +110,6 @@ SandboxProfiler::~SandboxProfiler() {
   if (mThreadSyscalls.joinable()) {
     mThreadSyscalls.join();
   }
-
-  sem_destroy(&gRequest);
 }
 
 /* static */
@@ -128,13 +128,7 @@ void SandboxProfiler::Signal(sem_t* aSem) {
 }
 
 /* static */
-int SandboxProfiler::TimedWait(sem_t* aSem, int aSec, int aNSec) {
-  struct timespec timeout = {.tv_sec = 0, .tv_nsec = 0};
-  clock_gettime(CLOCK_REALTIME, &timeout);
-  timeout.tv_sec += aSec;
-  timeout.tv_nsec += aNSec;
-  return sem_timedwait(aSem, &timeout);
-}
+int SandboxProfiler::Wait(sem_t* aSem) { return sem_wait(aSem); }
 
 /* static */
 void SandboxProfiler::ReportInit(const void* top) {
@@ -167,7 +161,7 @@ void SandboxProfiler::ReportInit(const void* top) {
     }
   }
 
-  SandboxProfiler::Signal(&gRequest);
+  SandboxProfiler::Signal(&gSyscallRequest);
 }
 
 void SandboxProfiler::ReportInitImpl(SandboxProfilerPayload& payload,
@@ -219,7 +213,7 @@ void SandboxProfiler::ReportLog(const char* aBuf) {
     }
   }
 
-  SandboxProfiler::Signal(&gRequest);
+  SandboxProfiler::Signal(&gLogsRequest);
 }
 
 void SandboxProfiler::ReportLogImpl(SandboxProfilerPayload& payload) {
@@ -288,7 +282,7 @@ void SandboxProfiler::ReportRequest(const void* top, uint64_t aId,
     }
   }
 
-  SandboxProfiler::Signal(&gRequest);
+  SandboxProfiler::Signal(&gSyscallRequest);
 }
 
 void SandboxProfiler::ReportRequestImpl(SandboxProfilerPayload& payload,
@@ -314,15 +308,21 @@ void SandboxProfiler::ReportRequestImpl(SandboxProfilerPayload& payload,
 }
 
 void SandboxProfiler::ThreadMain(const char* aThreadName,
-                                 SandboxProfilerQueue* aQueue) {
+                                 SandboxProfilerQueue* aQueue,
+                                 sem_t* aRequest) {
   uprofiler.register_thread(aThreadName, CallerPC());
   SandboxProfilerPayload p;
 
+  DebugOnly<int> sem_init_rv =
+      sem_init(aRequest, /* pshared */ 0, /* value */ 0);
+  MOZ_ASSERT(sem_init_rv == 0, "Failure to initialize semaphore");
+
   while (!isShutdown) {
-    // On error dont consume ?
-    if (SandboxProfiler::TimedWait(&gRequest, /* sec */ 0, /* nsec */ 1e8) <
-        0) {
-      if (errno == ETIMEDOUT) {
+    errno = 0;
+    if (SandboxProfiler::Wait(aRequest) < 0) {
+      int _errno = errno;
+      MOZ_ASSERT(_errno != EINVAL, "sem_wait() returned EINVAL");
+      if (_errno == EAGAIN || _errno == EINTR) {
         continue;
       }
     }
@@ -376,6 +376,8 @@ void SandboxProfiler::ThreadMain(const char* aThreadName,
       }
     }
   }
+
+  sem_destroy(aRequest);
 
   uprofiler.unregister_thread();
 }
