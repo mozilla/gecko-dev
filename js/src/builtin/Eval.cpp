@@ -257,7 +257,17 @@ static bool EvalKernel(JSContext* cx, HandleValue v, EvalType evalType,
   }
 
   // Steps 6-8.
-  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::JS, str)) {
+  JS::RootedVector<JSString*> parameterStrings(cx);
+  JS::RootedVector<Value> parameterArgs(cx);
+  bool canCompileStrings = false;
+  if (!cx->isRuntimeCodeGenEnabled(
+          JS::RuntimeCode::JS, str,
+          evalType == DIRECT_EVAL ? JS::CompilationType::DirectEval
+                                  : JS::CompilationType::IndirectEval,
+          parameterStrings, str, parameterArgs, v, &canCompileStrings)) {
+    return false;
+  }
+  if (!canCompileStrings) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_CSP_BLOCKED_EVAL);
     return false;

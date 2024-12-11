@@ -196,7 +196,16 @@ static bool PerformShadowRealmEval(JSContext* cx, Handle<JSString*> sourceText,
   MOZ_ASSERT(callerRealm != evalRealm);
 
   // Step 1. Perform ? HostEnsureCanCompileStrings(callerRealm, evalRealm).
-  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::JS, sourceText)) {
+  JS::RootedVector<JSString*> parameterStrings(cx);
+  JS::RootedVector<Value> parameterArgs(cx);
+  bool canCompileStrings = false;
+  if (!cx->isRuntimeCodeGenEnabled(JS::RuntimeCode::JS, sourceText,
+                                   JS::CompilationType::Undefined,
+                                   parameterStrings, nullptr, parameterArgs,
+                                   NullHandleValue, &canCompileStrings)) {
+    return false;
+  }
+  if (!canCompileStrings) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_CSP_BLOCKED_SHADOWREALM);
     return false;
