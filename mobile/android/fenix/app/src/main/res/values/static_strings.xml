@@ -134,6 +134,7 @@
     <string name="profiler_start_cancel">Cancel</string>
 
     <string name="profiler_gathering">Gathering the profile</string>
+    <string name="profiler_stopping">Stopping the profiler</string>
     <string name="profiler_no_info">No information was gathered</string>
 
     <string name="profiler_waiting_start">Waiting for Profiler to start</string>

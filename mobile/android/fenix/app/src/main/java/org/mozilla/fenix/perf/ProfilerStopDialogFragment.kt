@@ -68,7 +68,9 @@ class ProfilerStopDialogFragment : DialogFragment() {
                 // In the waiting state, we do not want the users to be able to click away from the dialogue
                 // since the user needs to wait for the profiler data to be ready and we don't want to handle
                 // the process in the background.
-                if (viewStateObserver.value != CardState.WaitForProfilerState) {
+                if (viewStateObserver.value != CardState.WaitForProfilerGathering &&
+                    viewStateObserver.value != CardState.WaitForProfilerStop
+                ) {
                     this@ProfilerStopDialogFragment.dismiss()
                 }
             },
@@ -77,8 +79,11 @@ class ProfilerStopDialogFragment : DialogFragment() {
                 CardState.UrlWarningState -> {
                     UrlWarningCard(viewStateObserver)
                 }
-                CardState.WaitForProfilerState -> {
+                CardState.WaitForProfilerGathering -> {
                     WaitForProfilerDialog(R.string.profiler_gathering)
+                }
+                CardState.WaitForProfilerStop -> {
+                    WaitForProfilerDialog(R.string.profiler_stopping)
                 }
             }
         }
@@ -110,15 +115,17 @@ class ProfilerStopDialogFragment : DialogFragment() {
                 ) {
                     TextButton(
                         onClick = {
+                            viewStateObserver.value = CardState.WaitForProfilerStop
                             requireContext().components.core.engine.profiler?.stopProfiler(
                                 onSuccess = {
                                     setProfilerState()
+                                    dismiss()
                                 },
                                 onError = {
                                     setProfilerState()
+                                    dismiss()
                                 },
                             )
-                            dismiss()
                         },
                     ) {
                         Text(stringResource(R.string.profiler_start_cancel))
@@ -127,7 +134,7 @@ class ProfilerStopDialogFragment : DialogFragment() {
 
                     TextButton(
                         onClick = {
-                            viewStateObserver.value = CardState.WaitForProfilerState
+                            viewStateObserver.value = CardState.WaitForProfilerGathering
                             stopProfiler()
                         },
                     ) {
@@ -177,6 +184,7 @@ class ProfilerStopDialogFragment : DialogFragment() {
      */
     enum class CardState {
         UrlWarningState,
-        WaitForProfilerState,
+        WaitForProfilerGathering,
+        WaitForProfilerStop,
     }
 }
