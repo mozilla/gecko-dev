@@ -18,7 +18,7 @@
     {
       waitForWorkerFinish();
 
-      const {Test} = ChromeUtils.import("chrome://mochitests/content/chrome/dom/url/tests/test_bug883784.jsm");
+      const {Test} = ChromeUtils.importESModule("chrome://mochitests/content/chrome/dom/url/tests/test_bug883784.sys.mjs");
       Test.start(ok, is, finish);
     }
 

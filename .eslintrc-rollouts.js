@@ -1581,7 +1581,6 @@ const rollouts = [
       "dom/tests/mochitest/whatwg/test_postMessage_transfer.html",
       "dom/tests/mochitest/whatwg/test_postMessage_userpass.html",
       "dom/url/tests/browser_download_after_revoke.js",
-      "dom/url/tests/file_url.jsm",
       "dom/url/tests/protocol_worker.js",
       "dom/url/tests/test_unknown_url_origin.html",
       "dom/url/tests/test_url.html",

@@ -1,10 +1,10 @@
 [DEFAULT]
 skip-if = ["os == 'android'"]
 support-files = [
-  "file_url.jsm",
-  "file_worker_url.jsm",
-  "test_bug883784.jsm",
-  "jsm_url_worker.js",
+  "file_url.sys.mjs",
+  "file_worker_url.sys.mjs",
+  "test_bug883784.sys.mjs",
+  "esm_url_worker.js",
   "!/dom/workers/test/dom_worker_helper.js",
 ]
 

@@ -1,8 +1,6 @@
-var EXPORTED_SYMBOLS = ["Test"];
-
-var Test = {
+export var Test = {
   start(ok, is, finish) {
-    let worker = new ChromeWorker("jsm_url_worker.js");
+    let worker = new ChromeWorker("esm_url_worker.js");
     worker.onmessage = function (event) {
       if (event.data.type == "status") {
         ok(event.data.status, event.data.msg);

@@ -1,7 +1,5 @@
-var EXPORTED_SYMBOLS = ["checkFromJSM"];
-
-function checkFromJSM(ok, is, finish) {
-  let worker = new ChromeWorker("jsm_url_worker.js");
+export function checkFromESM(ok, is, finish) {
+  let worker = new ChromeWorker("esm_url_worker.js");
   worker.onmessage = function (event) {
     if (event.data.type == "finish") {
       finish();

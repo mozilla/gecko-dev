@@ -17,8 +17,10 @@
     {
       SimpleTest.waitForExplicitFinish();
 
-      const {checkFromJSM} = ChromeUtils.import("chrome://mochitests/content/chrome/dom/url/tests/file_worker_url.jsm");
-      checkFromJSM(ok, is, SimpleTest.finish);
+      const {checkFromESM} = ChromeUtils.importESModule(
+        "chrome://mochitests/content/chrome/dom/url/tests/file_worker_url.sys.mjs"
+      );
+      checkFromESM(ok, is, SimpleTest.finish);
     }
 
   ]]>
