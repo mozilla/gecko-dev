@@ -7,6 +7,7 @@
 #define GPU_ExternalTextureMacIOSurface_H_
 
 #include "mozilla/gfx/FileHandleWrapper.h"
+#include "mozilla/WeakPtr.h"
 #include "mozilla/webgpu/ExternalTexture.h"
 
 class MacIOSurface;
@@ -18,11 +19,14 @@ namespace webgpu {
 class ExternalTextureMacIOSurface final : public ExternalTexture {
  public:
   static UniquePtr<ExternalTextureMacIOSurface> Create(
+      WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
       const uint32_t aWidth, const uint32_t aHeight,
       const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage);
 
-  ExternalTextureMacIOSurface(const uint32_t aWidth, const uint32_t aHeight,
+  ExternalTextureMacIOSurface(WebGPUParent* aParent,
+                              const ffi::WGPUDeviceId aDeviceId,
+                              const uint32_t aWidth, const uint32_t aHeight,
                               const struct ffi::WGPUTextureFormat aFormat,
                               const ffi::WGPUTextureUsages aUsage,
                               RefPtr<MacIOSurface>&& aSurface);
@@ -43,6 +47,8 @@ class ExternalTextureMacIOSurface final : public ExternalTexture {
   uint32_t GetIOSurfaceId();
 
  protected:
+  const WeakPtr<WebGPUParent> mParent;
+  const RawId mDeviceId;
   const RefPtr<MacIOSurface> mSurface;
 };
 

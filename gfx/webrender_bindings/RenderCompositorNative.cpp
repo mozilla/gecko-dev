@@ -13,6 +13,7 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/CompositionRecorder.h"
+#include "mozilla/layers/GpuFence.h"
 #include "mozilla/layers/NativeLayer.h"
 #include "mozilla/layers/SurfacePool.h"
 #include "mozilla/StaticPrefs_gfx.h"
@@ -87,6 +88,8 @@ RenderedFrameId RenderCompositorNative::EndFrame(
   RenderedFrameId frameId = GetNextRenderFrameId();
 
   DoSwap();
+
+  MOZ_ASSERT(mPendingGpuFeces.empty());
 
   if (mNativeLayerForEntireWindow) {
     mNativeLayerForEntireWindow->NotifySurfaceReady();
@@ -431,6 +434,13 @@ void RenderCompositorNative::AddSurface(
     layer->SetSamplingFilter(ToSamplingFilter(aImageRendering));
     mAddedLayers.AppendElement(layer);
 
+    if (surface.mIsExternal) {
+      RefPtr<layers::GpuFence> fence = layer->GetGpuFence();
+      if (fence && BackendType() == layers::WebRenderBackend::HARDWARE) {
+        mPendingGpuFeces.emplace_back(fence);
+      }
+    }
+
     if (!surface.mIsExternal) {
       mAddedTilePixelCount += layerSize.width * layerSize.height;
     }
@@ -471,16 +481,16 @@ RenderCompositorNativeOGL::~RenderCompositorNativeOGL() {
     gfxCriticalNote
         << "Failed to make render context current during destroying.";
     // Leak resources!
-    mPreviousFrameDoneSync = nullptr;
-    mThisFrameDoneSync = nullptr;
+    mPreviousFrameDoneFences = nullptr;
+    mThisFrameDoneFences = nullptr;
     return;
   }
 
-  if (mPreviousFrameDoneSync) {
-    mGL->fDeleteSync(mPreviousFrameDoneSync);
+  if (mPreviousFrameDoneFences && mPreviousFrameDoneFences->mSync) {
+    mGL->fDeleteSync(mPreviousFrameDoneFences->mSync);
   }
-  if (mThisFrameDoneSync) {
-    mGL->fDeleteSync(mThisFrameDoneSync);
+  if (mThisFrameDoneFences && mThisFrameDoneFences->mSync) {
+    mGL->fDeleteSync(mThisFrameDoneFences->mSync);
   }
 }
 
@@ -512,23 +522,43 @@ void RenderCompositorNativeOGL::InsertFrameDoneSync() {
 #ifdef XP_DARWIN
   // Only do this on macOS.
   // On other platforms, SwapBuffers automatically applies back-pressure.
-  if (mThisFrameDoneSync) {
-    mGL->fDeleteSync(mThisFrameDoneSync);
+  if (mThisFrameDoneFences && mThisFrameDoneFences->mSync) {
+    mGL->fDeleteSync(mThisFrameDoneFences->mSync);
   }
-  mThisFrameDoneSync = mGL->fFenceSync(LOCAL_GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+  mThisFrameDoneFences =
+      MakeUnique<BackPressureFences>(std::move(mPendingGpuFeces));
+  mThisFrameDoneFences->mSync =
+      mGL->fFenceSync(LOCAL_GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 #endif
 }
 
 bool RenderCompositorNativeOGL::WaitForGPU() {
-  if (mPreviousFrameDoneSync) {
-    AUTO_PROFILER_LABEL("Waiting for GPU to finish previous frame", GRAPHICS);
-    mGL->fClientWaitSync(mPreviousFrameDoneSync,
-                         LOCAL_GL_SYNC_FLUSH_COMMANDS_BIT,
-                         LOCAL_GL_TIMEOUT_IGNORED);
-    mGL->fDeleteSync(mPreviousFrameDoneSync);
+  if (mPreviousFrameDoneFences) {
+    bool complete = false;
+    while (!complete) {
+      complete = true;
+      for (const auto& fence : mPreviousFrameDoneFences->mGpuFeces) {
+        if (!fence->HasCompleted()) {
+          complete = false;
+          break;
+        }
+      }
+
+      if (!complete) {
+        PR_Sleep(PR_MillisecondsToInterval(1));
+      }
+    }
+
+    if (mPreviousFrameDoneFences->mSync) {
+      AUTO_PROFILER_LABEL("Waiting for GPU to finish previous frame", GRAPHICS);
+      mGL->fClientWaitSync(mPreviousFrameDoneFences->mSync,
+                           LOCAL_GL_SYNC_FLUSH_COMMANDS_BIT,
+                           LOCAL_GL_TIMEOUT_IGNORED);
+      mGL->fDeleteSync(mPreviousFrameDoneFences->mSync);
+    }
   }
-  mPreviousFrameDoneSync = mThisFrameDoneSync;
-  mThisFrameDoneSync = nullptr;
+  mPreviousFrameDoneFences = std::move(mThisFrameDoneFences);
+  MOZ_ASSERT(!mThisFrameDoneFences);
 
   return true;
 }

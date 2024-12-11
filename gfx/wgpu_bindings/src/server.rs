@@ -1270,6 +1270,62 @@ pub extern "C" fn wgpu_vkimage_get_dma_buf_info(handle: &VkImageHandle) -> DMABu
     }
 }
 
+#[cfg(target_os = "macos")]
+pub struct MetalSharedEventHandle(metal::SharedEvent);
+#[cfg(not(target_os = "macos"))]
+pub struct MetalSharedEventHandle;
+
+#[no_mangle]
+#[allow(unreachable_code)]
+#[allow(unused_variables)]
+pub extern "C" fn wgpu_server_get_device_fence_metal_shared_event(
+    global: &Global,
+    device_id: id::DeviceId,
+) -> *mut MetalSharedEventHandle {
+    #[cfg(target_os = "macos")]
+    {
+        let shared_event = unsafe {
+            global.device_fence_as_hal::<wgc::api::Metal, _, Option<metal::SharedEvent>>(
+                device_id,
+                |hal_fence| hal_fence.map(|fence| fence.raw_shared_event().unwrap().clone()),
+            )
+        };
+        let shared_event = match shared_event {
+            Some(shared_event) => shared_event,
+            None => {
+                return ptr::null_mut();
+            }
+        };
+        return Box::into_raw(Box::new(MetalSharedEventHandle(shared_event)));
+    }
+
+    ptr::null_mut()
+}
+
+#[no_mangle]
+#[allow(unreachable_code)]
+#[allow(unused_variables)]
+pub extern "C" fn wgpu_server_metal_shared_event_signaled_value(
+    shared_event: &mut MetalSharedEventHandle,
+) -> u64 {
+    #[cfg(target_os = "macos")]
+    {
+        return shared_event.0.signaled_value();
+    }
+
+    u64::MAX
+}
+
+#[no_mangle]
+#[allow(unreachable_code)]
+#[allow(unused_variables)]
+pub extern "C" fn wgpu_server_delete_metal_shared_event(shared_event: *mut MetalSharedEventHandle) {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = unsafe { Box::from_raw(shared_event) };
+    }
+}
+
 extern "C" {
     #[allow(dead_code)]
     fn gfx_critical_note(msg: *const c_char);

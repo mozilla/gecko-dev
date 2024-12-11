@@ -268,6 +268,7 @@ class NativeLayerCA : public NativeLayer {
   void DumpLayer(std::ostream& aOutputStream);
 
   void AttachExternalImage(wr::RenderTextureHost* aExternalImage) override;
+  GpuFence* GetGpuFence() override;
 
   void SetRootWindowIsFullscreen(bool aFullscreen);
 
