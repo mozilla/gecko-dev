@@ -76,12 +76,17 @@ class InputTestHelpers {
    */
   getInputEventHelpers() {
     let seenEvents = [];
+    let { activatedProperty } = this;
+
     function trackEvent(event) {
+      let reactiveProps = event.target.constructor.properties;
       seenEvents.push({
         type: event.type,
         value: event.target.value,
-        checked: event.target.checked,
         localName: event.currentTarget.localName,
+        ...(reactiveProps.hasOwnProperty(activatedProperty) && {
+          [activatedProperty]: event.target[activatedProperty],
+        }),
       });
     }
     function verifyEvents(expectedEvents) {
@@ -103,11 +108,11 @@ class InputTestHelpers {
           eventInfo.localName,
           "Event is emitted from the correct element."
         );
-        if (eventInfo.hasOwnProperty("checked")) {
+        if (activatedProperty) {
           is(
-            seenEventInfo.checked,
-            eventInfo.checked,
-            "Event checked state is correct."
+            seenEventInfo[activatedProperty],
+            eventInfo[activatedProperty],
+            `Event ${activatedProperty} state is correct.`
           );
         }
       });
@@ -133,8 +138,8 @@ class InputTestHelpers {
     await this.verifySupportPage(elementName);
     await this.verifyAccesskey(elementName);
     await this.verifyNoWhitespace(elementName);
-    if (this.checkable) {
-      await this.verifyChecked(elementName);
+    if (this.activatedProperty) {
+      await this.verifyActivated(elementName);
     }
   }
 
@@ -332,6 +337,7 @@ class InputTestHelpers {
    */
   async verifySupportPage(selector) {
     const LEARN_MORE_TEXT = "Learn more";
+    const CUSTOM_TEXT = "Help me!";
 
     let templatesArgs = [
       [{ "support-page": "test-page", label: "A label" }],
@@ -400,7 +406,7 @@ class InputTestHelpers {
     );
     is(
       slottedSupportLink.innerText,
-      "Help me!",
+      CUSTOM_TEXT,
       "Slotted link uses non-default label text."
     );
     is(
@@ -439,6 +445,7 @@ class InputTestHelpers {
   async verifyAccesskey(selector) {
     const UNIQUE_ACCESS_KEY = "t";
     const SHARED_ACCESS_KEY = "d";
+    let { activatedProperty } = this;
 
     let attrs = [
       { value: "first", label: "First", accesskey: UNIQUE_ACCESS_KEY },
@@ -459,7 +466,9 @@ class InputTestHelpers {
       firstInput.inputEl,
       "Input element is not focused."
     );
-    ok(!firstInput.checked, "Input is not checked.");
+    if (activatedProperty) {
+      ok(!firstInput[activatedProperty], `Input is not ${activatedProperty}.`);
+    }
 
     synthesizeKey(
       UNIQUE_ACCESS_KEY,
@@ -478,8 +487,11 @@ class InputTestHelpers {
       firstInput.inputEl,
       "Input element is focused after accesskey is pressed."
     );
-    if (this.checkable) {
-      ok(firstInput.checked, "Input is checked after accesskey is pressed.");
+    if (activatedProperty) {
+      ok(
+        firstInput[activatedProperty],
+        `Input is ${activatedProperty} after accesskey is pressed.`
+      );
     }
 
     // Validate that activating a shared accesskey toggles focus between inputs.
@@ -495,8 +507,11 @@ class InputTestHelpers {
       secondInput,
       "Focus moves to the input with the shared accesskey."
     );
-    if (this.checkable) {
-      ok(!secondInput.checked, "Second input is not checked.");
+    if (activatedProperty) {
+      ok(
+        !secondInput[activatedProperty],
+        `Second input is not ${activatedProperty}.`
+      );
     }
 
     synthesizeKey(
@@ -511,37 +526,56 @@ class InputTestHelpers {
       thirdInput,
       "Focus cycles between inputs with the same accesskey."
     );
-    if (this.checkable) {
-      ok(!thirdInput.checked, "Third input is not checked.");
+    if (activatedProperty) {
+      ok(
+        !thirdInput[activatedProperty],
+        `Third input is not ${activatedProperty}.`
+      );
     }
   }
 
   /**
-   * Verifies the checked state of the input element.
+   * Verifies the activated state of the input element.
    *
    * @param {string} selector - HTML tag of the element under test.
    */
-  async verifyChecked(selector) {
+  async verifyActivated(selector) {
     let renderTarget = await this.renderInputElements();
     let firstInput = renderTarget.querySelector(selector);
-    ok(
-      !firstInput.inputEl.checked,
-      "Input name is not checked on initial render."
-    );
-    firstInput.checked = true;
-    await firstInput.updateComplete;
-    ok(firstInput.inputEl.checked, "Input is checked.");
-    ok(firstInput.checked, "Checked state is propagated.");
+    let { activatedProperty } = this;
 
-    // Reset checked state so that the radio input doesn't
+    ok(
+      !firstInput.inputEl[activatedProperty] && !firstInput[activatedProperty],
+      `Input is not ${activatedProperty} on initial render.`
+    );
+
+    firstInput[activatedProperty] = true;
+    await firstInput.updateComplete;
+
+    ok(firstInput[activatedProperty], `Input is ${activatedProperty}.`);
+    ok(
+      firstInput.inputEl[activatedProperty] ||
+        firstInput.inputEl.getAttribute(`aria-${activatedProperty}`) == "true",
+      `${activatedProperty} state is propagated.`
+    );
+
+    // Reset state so that the radio input doesn't
     // give a false negative
-    firstInput.checked = false;
+    firstInput[activatedProperty] = false;
     await firstInput.updateComplete;
 
     synthesizeMouseAtCenter(firstInput.inputEl, {});
     await firstInput.updateComplete;
-    ok(firstInput.inputEl.checked, "Input is checked via mouse.");
-    ok(firstInput.checked, "Checked state is propagated.");
+
+    ok(
+      firstInput[activatedProperty],
+      `Input is ${activatedProperty} via mouse.`
+    );
+    ok(
+      firstInput.inputEl[activatedProperty] ||
+        firstInput.inputEl.getAttribute(`aria-${activatedProperty}`) == "true",
+      `${activatedProperty} state is propagated.`
+    );
   }
 
   /**

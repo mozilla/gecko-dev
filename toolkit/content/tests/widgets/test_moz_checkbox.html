@@ -18,7 +18,7 @@
         templateFn: (attrs, children) =>
           html`<moz-checkbox ${attrs}>${children}</moz-checkbox>`,
       });
-      testHelpers.checkable = true;
+      testHelpers.activatedProperty = "checked";
     });
 
     add_task(async function testMozCheckboxProperties() {
