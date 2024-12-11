@@ -19,9 +19,9 @@ import androidx.navigation.compose.rememberNavController
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.lib.state.ext.observeAsState
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.debugsettings.addresses.AddressesDebugLocalesRepository
 import org.mozilla.fenix.debugsettings.addresses.AddressesTools
 import org.mozilla.fenix.debugsettings.addresses.FakeAddressesDebugLocalesRepository

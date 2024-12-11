@@ -10,6 +10,7 @@ import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.DragEvent
 import android.view.View
+import android.view.View.OnDragListener
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.browser.tabstray.TabViewHolder

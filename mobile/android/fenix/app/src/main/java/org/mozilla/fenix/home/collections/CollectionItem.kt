@@ -26,10 +26,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.feature.tab.collections.Tab
 import org.mozilla.fenix.R.drawable
 import org.mozilla.fenix.R.string
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.FaviconListItem
 import org.mozilla.fenix.compose.tabstray.DismissedTabBackground
 import org.mozilla.fenix.ext.toShortUrl
