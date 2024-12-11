@@ -14,10 +14,10 @@ root:
           area: [10, 10, 80, 180]
         items:
           - type: rect
-            bounds: [ 0, 0, 90, 100 ]
+            bounds: [0, 0, 90, 100]
             color: [0, 150, 0]
           - type: rect
-            bounds: [ 10, 100, 90, 100 ]
+            bounds: [10, 100, 90, 100]
             color: [150, 0, 0]
       # Stacking context snapshotted as "snap1".
       # Note that the snapshot area is larger than
@@ -26,13 +26,13 @@ root:
         bounds: [0, 300, 200, 200]
         snapshot:
           name: "snap1"
-          area: [-10, 290, 120, 220]
+          area: [-10, -10, 120, 220]
         items:
           - type: rect
-            bounds: [ 0, 0, 90, 100 ]
+            bounds: [0, 0, 90, 100]
             color: [0, 150, 0]
           - type: rect
-            bounds: [ 10, 100, 90, 100 ]
+            bounds: [10, 100, 90, 100]
             color: [150, 0, 0]
       # Show the two stacking contexts again, as images.
       # The sizes of the images are match the snapshot areas
