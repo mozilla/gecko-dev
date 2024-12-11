@@ -26,8 +26,10 @@
 #include "jsfriendapi.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/ContextOptions.h"
+#include "js/GCVector.h"
 #include "js/Initialization.h"
 #include "js/LocaleSensitive.h"
+#include "js/Value.h"
 #include "js/WasmFeatures.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Atomics.h"
@@ -499,8 +501,13 @@ class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
   ~LogViolationDetailsRunnable() = default;
 };
 
-bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
-                                 JS::Handle<JSString*> aCode) {
+bool ContentSecurityPolicyAllows(
+    JSContext* aCx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCodeString,
+    JS::CompilationType aCompilationType,
+    JS::Handle<JS::StackGCVector<JSString*>> aParameterStrings,
+    JS::Handle<JSString*> aBodyString,
+    JS::Handle<JS::StackGCVector<JS::Value>> aParameterArgs,
+    JS::Handle<JS::Value> aBodyArg, bool* aOutCanCompileStrings) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   worker->AssertIsOnWorkerThread();
 
@@ -509,14 +516,14 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
   uint16_t violationType;
   nsAutoJSString scriptSample;
   if (aKind == JS::RuntimeCode::JS) {
-    if (NS_WARN_IF(!scriptSample.init(aCx, aCode))) {
-      JS_ClearPendingException(aCx);
+    if (NS_WARN_IF(!scriptSample.init(aCx, aCodeString))) {
       return false;
     }
 
     if (!nsContentSecurityUtils::IsEvalAllowed(
             aCx, worker->UsesSystemPrincipal(), scriptSample)) {
-      return false;
+      *aOutCanCompileStrings = false;
+      return true;
     }
 
     evalOK = worker->IsEvalAllowed();
@@ -542,7 +549,8 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
     }
   }
 
-  return evalOK;
+  *aOutCanCompileStrings = evalOK;
+  return true;
 }
 
 void CTypesActivityCallback(JSContext* aCx, JS::CTypesActivityType aType) {

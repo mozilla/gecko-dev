@@ -77,20 +77,35 @@ typedef bool (*JSSubsumesOp)(JSPrincipals* first, JSPrincipals* second);
 
 namespace JS {
 enum class RuntimeCode { JS, WASM };
+enum class CompilationType { DirectEval, IndirectEval, Function, Undefined };
 }  // namespace JS
 
 /*
  * Used to check if a CSP instance wants to disable eval() and friends.
  * See JSContext::isRuntimeCodeGenEnabled() in vm/JSContext.cpp.
  *
- * `code` is the JavaScript source code passed to eval/Function, but nullptr
- * for Wasm.
+ * codeString, compilationType, parameterStrings, bodyString, parameterArgs,
+ * and bodyArg are defined in the "Dynamic Code Brand Checks" spec
+ * (see https://tc39.es/proposal-dynamic-code-brand-checks).
  *
- * Returning `false` from this callback will prevent the execution/compilation
- * of the code.
+ * An Undefined compilationType is used for cases that are not covered by that
+ * spec and unused parameters are null/empty. Currently, this includes Wasm
+ * (only check if compilation is enabled) and ShadowRealmEval (only check
+ * codeString).
+ *
+ * `outCanCompileStrings` is set to false if this callback prevents the
+ * execution/compilation of the code and to true otherwise.
+ *
+ * Return false on failure, true on success. The |outCanCompileStrings|
+ * parameter should not be modified in case of failure.
  */
-typedef bool (*JSCSPEvalChecker)(JSContext* cx, JS::RuntimeCode kind,
-                                 JS::HandleString code);
+typedef bool (*JSCSPEvalChecker)(
+    JSContext* cx, JS::RuntimeCode kind, JS::Handle<JSString*> codeString,
+    JS::CompilationType compilationType,
+    JS::Handle<JS::StackGCVector<JSString*>> parameterStrings,
+    JS::Handle<JSString*> bodyString,
+    JS::Handle<JS::StackGCVector<JS::Value>> parameterArgs,
+    JS::Handle<JS::Value> bodyArg, bool* outCanCompileStrings);
 
 /*
  * Provide a string of code from an Object argument, to be used by eval.
