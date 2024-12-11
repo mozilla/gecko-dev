@@ -416,7 +416,7 @@ impl FrameBuilder {
                             true,
                             &visibility_context,
                             &mut visibility_state,
-                            tile_cache,
+                            &mut Some(tile_cache),
                         );
 
                         // Build the dirty region(s) for this tile cache.

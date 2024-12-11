@@ -151,7 +151,7 @@ pub fn update_prim_visibility(
     is_root_tile_cache: bool,
     frame_context: &FrameVisibilityContext,
     frame_state: &mut FrameVisibilityState,
-    tile_cache: &mut TileCacheInstance,
+    tile_cache: &mut Option<&mut TileCacheInstance>,
  ) {
     if frame_state.visited_pictures[pic_index.0] {
         return;
@@ -175,11 +175,13 @@ pub fn update_prim_visibility(
 
             // Let the picture cache know that we are pushing an off-screen
             // surface, so it can treat dependencies of surface atomically.
-            tile_cache.push_surface(
-                surface_local_rect,
-                pic.spatial_node_index,
-                frame_context.spatial_tree,
-            );
+            if let Some(tile_cache) = tile_cache {
+                tile_cache.push_surface(
+                    surface_local_rect,
+                    pic.spatial_node_index,
+                    frame_context.spatial_tree,
+                );
+            }
 
             (raster_config.surface_index, true)
         }
@@ -314,26 +316,46 @@ pub fn update_prim_visibility(
                 }
             };
 
-            tile_cache.update_prim_dependencies(
-                prim_instance,
-                cluster.spatial_node_index,
-                // It's OK to pass the local_coverage_rect here as it's only used by primitives
-                // (for compositor surfaces) that don't have inflation anyway.
-                local_coverage_rect,
-                frame_context,
-                frame_state.data_stores,
-                frame_state.clip_store,
-                &store.pictures,
-                frame_state.resource_cache,
-                &store.color_bindings,
-                &frame_state.surface_stack,
-                &mut frame_state.composite_state,
-                &mut frame_state.gpu_cache,
-                &mut frame_state.scratch.primitive,
-                is_root_tile_cache,
-                frame_state.surfaces,
-                frame_state.profile,
-            );
+            {
+                let prim_surface_index = frame_state.surface_stack.last().unwrap().1;
+                let prim_clip_chain = &prim_instance.vis.clip_chain;
+
+                // Accumulate the exact (clipped) local rect into the parent surface.
+                let surface = &mut frame_state.surfaces[prim_surface_index.0];
+                surface.clipped_local_rect = surface.clipped_local_rect.union(&prim_clip_chain.pic_coverage_rect);
+            }
+
+            prim_instance.vis.state = match tile_cache {
+                Some(tile_cache) => {
+                    tile_cache.update_prim_dependencies(
+                        prim_instance,
+                        cluster.spatial_node_index,
+                        // It's OK to pass the local_coverage_rect here as it's only
+                        // used by primitives (for compositor surfaces) that don't
+                        // have inflation anyway.
+                        local_coverage_rect,
+                        frame_context,
+                        frame_state.data_stores,
+                        frame_state.clip_store,
+                        &store.pictures,
+                        frame_state.resource_cache,
+                        &store.color_bindings,
+                        &frame_state.surface_stack,
+                        &mut frame_state.composite_state,
+                        &mut frame_state.gpu_cache,
+                        &mut frame_state.scratch.primitive,
+                        is_root_tile_cache,
+                        frame_state.surfaces,
+                        frame_state.profile,
+                    )
+                }
+                None => {
+                    VisibilityState::Visible {
+                        vis_flags: PrimitiveVisibilityFlags::empty(),
+                        sub_slice_index: SubSliceIndex::DEFAULT,
+                    }
+                }
+            };
         }
     }
 
@@ -342,11 +364,13 @@ pub fn update_prim_visibility(
     }
 
     if let Some(ref rc) = pic.raster_config {
-        match rc.composite_mode {
-            PictureCompositeMode::TileCache { .. } => {}
-            _ => {
-                // Pop the off-screen surface from the picture cache stack
-                tile_cache.pop_surface();
+        if let Some(tile_cache) = tile_cache {
+            match rc.composite_mode {
+                PictureCompositeMode::TileCache { .. } => {}
+                _ => {
+                    // Pop the off-screen surface from the picture cache stack
+                    tile_cache.pop_surface();
+                }
             }
         }
     }
