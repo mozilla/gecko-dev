@@ -1630,11 +1630,7 @@ export var UrlbarUtils = {
       // past reporting of weather suggestions.
       return "weather";
     }
-    let source = result.payload.source;
-    if (source == "remote-settings") {
-      source = "rs";
-    }
-    return `${source}_${result.payload.telemetryType}`;
+    return result.payload.source + "_" + result.payload.telemetryType;
   },
 
   /**

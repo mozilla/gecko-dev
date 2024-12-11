@@ -128,6 +128,7 @@ add_task(async function quickSuggestPrefsDisabled() {
         makeExpectedResult({
           suggestion: MERINO_SUGGESTIONS[0],
           source: "merino",
+          provider: "amo",
         }),
       ],
     });
@@ -162,6 +163,7 @@ add_task(async function addonSuggestionsSpecificPrefDisabled() {
         makeExpectedResult({
           suggestion: MERINO_SUGGESTIONS[0],
           source: "merino",
+          provider: "amo",
         }),
       ],
     });
@@ -209,6 +211,7 @@ add_task(async function nimbus() {
       makeExpectedResult({
         suggestion: MERINO_SUGGESTIONS[0],
         source: "merino",
+        provider: "amo",
       }),
     ],
   });
@@ -247,6 +250,7 @@ add_task(async function hideIfAlreadyInstalled() {
       makeExpectedResult({
         suggestion: MERINO_SUGGESTIONS[0],
         source: "merino",
+        provider: "amo",
       }),
     ],
   });
@@ -296,14 +300,12 @@ add_task(async function remoteSettings() {
       input: "first",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "1st",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
@@ -318,119 +320,102 @@ add_task(async function remoteSettings() {
       input: "two",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "two ",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "two w",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "two wo",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "two wor",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "two word",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "two words",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "aa",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "aa ",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "aa b",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "aa b ",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "aa b c",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-        source: "remote-settings",
       }),
     },
     {
       input: "second",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[1],
-        source: "remote-settings",
       }),
     },
     {
       input: "2nd",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[1],
-        source: "remote-settings",
       }),
     },
     {
       input: "third",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[2],
-        source: "remote-settings",
       }),
     },
     {
       input: "3rd",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[2],
-        source: "remote-settings",
       }),
     },
     {
       input: "fourth",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[3],
-        source: "remote-settings",
         setUtmParams: false,
       }),
     },
@@ -438,7 +423,6 @@ add_task(async function remoteSettings() {
       input: "FoUrTh",
       expected: makeExpectedResult({
         suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[3],
-        source: "remote-settings",
         setUtmParams: false,
       }),
     },
@@ -475,6 +459,7 @@ add_task(async function merinoIsTopPick() {
       makeExpectedResult({
         suggestion,
         source: "merino",
+        provider: "amo",
       }),
     ],
   });
@@ -491,6 +476,7 @@ add_task(async function merinoIsTopPick() {
       makeExpectedResult({
         suggestion,
         source: "merino",
+        provider: "amo",
       }),
     ],
   });
@@ -504,7 +490,6 @@ add_task(async function showLessFrequently() {
     nimbusCapVariable: "addonsShowLessFrequentlyCap",
     expectedResult: makeExpectedResult({
       suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
-      source: "remote-settings",
     }),
     keyword: "two words",
   });
@@ -535,14 +520,12 @@ add_task(async function rustProviders() {
   await QuickSuggestTestUtils.forceSync();
 });
 
-function makeExpectedResult({ suggestion, source, setUtmParams = true }) {
-  let provider;
-  if (source == "merino") {
-    provider = "amo";
-  } else {
-    source = undefined;
-  }
-
+function makeExpectedResult({
+  suggestion,
+  source,
+  provider,
+  setUtmParams = true,
+}) {
   return QuickSuggestTestUtils.amoResult({
     source,
     provider,
