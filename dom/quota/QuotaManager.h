@@ -43,8 +43,6 @@
 #include "nscore.h"
 #include "prenv.h"
 
-#define QUOTA_MANAGER_CONTRACTID "@mozilla.org/dom/quota/manager;1"
-
 class mozIStorageConnection;
 class nsIEventTarget;
 class nsIFile;
