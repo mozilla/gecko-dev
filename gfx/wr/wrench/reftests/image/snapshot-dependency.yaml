@@ -1,0 +1,40 @@
+# This test contains a snapshotted stacking context which is defined
+# in a less "nested" part of the document than the image that displays
+# it (using a stack of filters to nest the image in multiple render
+# passes).
+# Without special care to render the snapshot before the image,
+# WebRender's render task graph would schedule the most nested part
+# first, causing the snapshot to be drawn too late.
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: [0, 0, 1000, 1000]
+      items:
+      - type: stacking-context
+        bounds: [0, 0, 128, 128]
+        snapshot:
+          name: "snap0"
+        items:
+          - type: rect
+            bounds: [0, 0, 128, 128]
+            color: [100, 100, 100]
+
+      - type: stacking-context
+        bounds: [0, 0, 2048, 2048]
+        filter: grayscale(1)
+        items:
+        - type: stacking-context
+          bounds: [0, 0, 2048, 2048]
+          filter: grayscale(1)
+          items:
+          - type: stacking-context
+            bounds: [0, 0, 2048, 2048]
+            filter: grayscale(1)
+            items:
+            - type: stacking-context
+              bounds: [0, 0, 2048, 2048]
+              filter: grayscale(1)
+              items:
+              - image: snapshot(snap0)
+                bounds: [130, 0, 128, 128]
