@@ -2947,6 +2947,14 @@
         insertBefore?.group ?? insertBefore
       );
       group.addTabs(tabs);
+
+      // Bail out if the group is empty at this point. This can happen if all
+      // provided tabs are pinned and therefore cannot be grouped.
+      if (!group.tabs.length) {
+        group.remove();
+        return null;
+      }
+
       group.dispatchEvent(
         new CustomEvent("TabGroupCreate", {
           bubbles: true,
@@ -8163,8 +8171,11 @@ var TabContextMenu = {
 
     let disabled = gBrowser.tabs.length == 1;
     let multiselectionContext = this.contextTab.multiselected;
+    let contextTabs = multiselectionContext
+      ? gBrowser.selectedTabs
+      : [this.contextTab];
     let tabCountInfo = JSON.stringify({
-      tabCount: (multiselectionContext && gBrowser.multiSelectedTabsCount) || 1,
+      tabCount: contextTabs.length,
     });
 
     var menuItems = aPopupMenu.getElementsByAttribute(
@@ -8217,15 +8228,11 @@ var TabContextMenu = {
     let contextUngroupTab = document.getElementById("context_ungroupTab");
 
     if (gBrowser._tabGroupsEnabled) {
-      let selectedGroupCount = 0;
-      if (multiselectionContext) {
-        selectedGroupCount = new Set(
-          // the filter is necessary to remove the "null" group
-          gBrowser.selectedTabs.map(t => t.group).filter(g => g)
-        ).size;
-      } else if (this.contextTab.group) {
-        selectedGroupCount = 1;
-      }
+      let groupableTabs = contextTabs.filter(t => !t.pinned);
+      let selectedGroupCount = new Set(
+        // the filter is necessary to remove the "null" group
+        groupableTabs.map(t => t.group).filter(g => g)
+      ).size;
 
       // Determine whether or not the "current" tab group should appear in the move context menu
       let availableGroupsToMoveTo = gBrowser
@@ -8233,10 +8240,8 @@ var TabContextMenu = {
         .sort((a, b) => a.createdDate - b.createdDate);
 
       let groupToFilter;
-      if (multiselectionContext && selectedGroupCount == 1) {
-        groupToFilter = gBrowser.selectedTabs[0].group;
-      } else if (gBrowser.selectedTabs.length == 1) {
-        groupToFilter = this.contextTab.group;
+      if (selectedGroupCount == 1) {
+        groupToFilter = groupableTabs[0].group;
       }
       if (groupToFilter) {
         availableGroupsToMoveTo = availableGroupsToMoveTo.filter(
@@ -8244,6 +8249,8 @@ var TabContextMenu = {
         );
       }
 
+      contextMoveTabToGroup.disabled = !groupableTabs.length;
+      contextMoveTabToNewGroup.disabled = !groupableTabs.length;
       if (!availableGroupsToMoveTo.length) {
         contextMoveTabToGroup.hidden = true;
         contextMoveTabToNewGroup.hidden = false;
@@ -8304,12 +8311,9 @@ var TabContextMenu = {
       !multiselectionContext;
     let unloadTabItem = document.getElementById("context_unloadTab");
     if (gBrowser._unloadTabInContextMenu) {
-      let tabs = this.contextTab.multiselected
-        ? gBrowser.selectedTabs
-        : [this.contextTab];
       // linkedPanel is false if the tab is already unloaded
       // Cannot unload about: pages, etc., so skip browsers that are not remote
-      let unloadableTabs = tabs.filter(
+      let unloadableTabs = contextTabs.filter(
         t => t.linkedPanel && t.linkedBrowser?.isRemoteBrowser
       );
       unloadTabItem.hidden = unloadableTabs.length === 0;
@@ -8361,10 +8365,9 @@ var TabContextMenu = {
           : true;
       }
     );
-    let contextTabIsSelected = this.contextTab.multiselected;
     let visibleTabs = gBrowser.visibleTabs;
     let lastVisibleTab = visibleTabs[visibleTabs.length - 1];
-    let tabsToMove = contextTabIsSelected ? selectedTabs : [this.contextTab];
+    let tabsToMove = contextTabs;
     let lastTabToMove = tabsToMove[tabsToMove.length - 1];
 
     let isLastPinnedTab = false;

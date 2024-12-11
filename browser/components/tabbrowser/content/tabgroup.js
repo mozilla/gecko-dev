@@ -192,7 +192,7 @@
     }
 
     /**
-     * remove all tabs from the group and delete the group
+     * Remove all tabs from the group and delete the group.
      *
      */
     ungroupTabs() {
