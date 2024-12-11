@@ -8363,6 +8363,8 @@ fn request_render_task(
                 frame_state.rg_builder,
             );
 
+            frame_state.image_dependencies.insert(info.key.as_image(), task_id);
+
             task_id
         }
         None => {

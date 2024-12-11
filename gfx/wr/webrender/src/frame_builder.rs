@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, DebugFlags, FontRenderMode, PremultipliedColorF, ExternalScrollId, MinimapData};
+use api::{ColorF, DebugFlags, ExternalScrollId, FontRenderMode, ImageKey, MinimapData, PremultipliedColorF};
 use api::units::*;
 use plane_split::BspSplitter;
 use crate::batch::{BatchBuilder, AlphaBatchBuilder, AlphaBatchContainer};
@@ -28,7 +28,7 @@ use crate::render_backend::{DataStores, ScratchBuffer};
 use crate::renderer::{GpuBufferF, GpuBufferBuilderF, GpuBufferI, GpuBufferBuilderI, GpuBufferBuilder};
 use crate::render_target::{PictureCacheTarget, PictureCacheTargetKind};
 use crate::render_target::{RenderTargetContext, RenderTargetKind, RenderTarget};
-use crate::render_task_graph::{RenderTaskGraph, Pass, SubPassSurface};
+use crate::render_task_graph::{Pass, RenderTaskGraph, RenderTaskId, SubPassSurface};
 use crate::render_task_graph::{RenderPass, RenderTaskGraphBuilder};
 use crate::render_task::{RenderTaskKind, StaticRenderTaskSurface};
 use crate::resource_cache::ResourceCache;
@@ -173,6 +173,16 @@ pub struct FrameBuildingState<'a> {
     pub cmd_buffers: &'a mut CommandBufferList,
     pub clip_tree: &'a ClipTree,
     pub frame_gpu_data: &'a mut GpuBufferBuilder,
+    /// When using a render task to produce pixels that are associated with
+    /// an image key (for example snapshotted pictures), inserting the image
+    /// key / task id association in this hashmap allows the image item to
+    /// register a dependency to the render task. This ensures that the
+    /// render task is produced before the image that renders it if they
+    /// are happening in the same frame.
+    /// This mechanism relies on the item producing the render task to be
+    /// traversed before the image that displays it (in other words, the
+    /// picture must appear before the image in the display list).
+    pub image_dependencies: FastHashMap<ImageKey, RenderTaskId>,
 }
 
 impl<'a> FrameBuildingState<'a> {
@@ -431,6 +441,7 @@ impl FrameBuilder {
             cmd_buffers,
             clip_tree: &mut scene.clip_tree,
             frame_gpu_data,
+            image_dependencies: FastHashMap::default(),
         };
 
         // Push a default dirty region which culls primitives

@@ -382,6 +382,13 @@ impl ImageData {
             }
         }
 
+        if let Some(task_id) = frame_state.image_dependencies.get(&self.key) {
+            frame_state.surface_builder.add_child_render_task(
+                *task_id,
+                frame_state.rg_builder
+            );
+        }
+
         if let Some(mut request) = frame_state.gpu_cache.request(&mut common.gpu_cache_handle) {
             self.write_prim_gpu_blocks(&image_instance.adjustment, &mut request);
         }
