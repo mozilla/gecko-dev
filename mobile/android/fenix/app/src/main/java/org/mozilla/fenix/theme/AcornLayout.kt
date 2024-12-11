@@ -380,7 +380,7 @@ enum class AcornWindowSize(
 private fun AcornLayoutPreview() {
     var windowSize by remember { mutableStateOf(AcornWindowSize.Large) }
 
-    FirefoxTheme {
+    AcornTheme {
         Column(
             modifier = Modifier
                 .background(color = FirefoxTheme.colors.layerScrim)
@@ -442,7 +442,7 @@ private fun AcornLayoutPreview() {
 
             Spacer(Modifier.height(FirefoxTheme.space.small))
 
-            FirefoxTheme(windowSize = windowSize) {
+            AcornTheme(windowSize = windowSize) {
                 val widthModifier = when (FirefoxTheme.windowSize) {
                     AcornWindowSize.Small -> Modifier.width(width = 400.dp)
                     AcornWindowSize.Medium -> Modifier.width(width = 700.dp)
