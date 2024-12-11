@@ -20,7 +20,7 @@ use crate::internal_types::{FastHashMap, PlaneSplitter, FrameId, FrameStamp};
 use crate::picture::{DirtyRegion, SliceId, TileCacheInstance};
 use crate::picture::{SurfaceInfo, SurfaceIndex};
 use crate::picture::{SubpixelMode, RasterConfig, PictureCompositeMode};
-use crate::prepare::prepare_primitives;
+use crate::prepare::prepare_picture;
 use crate::prim_store::{PictureIndex, PrimitiveScratchBuffer};
 use crate::prim_store::{DeferredResolve, PrimitiveInstance};
 use crate::profiler::{self, TransactionProfile};
@@ -538,45 +538,18 @@ impl FrameBuilder {
 
         for pic_index in &scene.snapshot_pictures {
 
-            if let Some((pic_context, mut pic_state, mut prim_list)) = scene
-                .prim_store
-                .pictures[pic_index.0]
-                .take_context(
-                    *pic_index,
-                    Some(snapshot_surface),
-                    SubpixelMode::Allow,
-                    &mut frame_state,
-                    &frame_context,
-                    data_stores,
-                    &mut scratch.primitive,
-                    tile_caches,
-                )
-            {
-                profile_marker!("PreparePrims");
-
-                prepare_primitives(
-                    &mut scene.prim_store,
-                    &mut prim_list,
-                    &pic_context,
-                    &mut pic_state,
-                    &frame_context,
-                    &mut frame_state,
-                    data_stores,
-                    &mut scratch.primitive,
-                    tile_caches,
-                    &mut scene.prim_instances,
-                );
-
-                let pic = &mut scene.prim_store.pictures[pic_index.0];
-                pic.restore_context(
-                    *pic_index,
-                    prim_list,
-                    pic_context,
-                    &scene.prim_instances,
-                    &frame_context,
-                    &mut frame_state,
-                );
-            }
+            prepare_picture(
+                *pic_index,
+                &mut scene.prim_store,
+                Some(snapshot_surface),
+                SubpixelMode::Allow,
+                &frame_context,
+                &mut frame_state,
+                data_stores,
+                &mut scratch.primitive,
+                tile_caches,
+                &mut scene.prim_instances
+            );
         }
 
         if !scene.snapshot_pictures.is_empty() {
@@ -597,45 +570,18 @@ impl FrameBuilder {
         frame_state.push_dirty_region(default_dirty_region);
 
         for pic_index in &scene.tile_cache_pictures {
-            if let Some((pic_context, mut pic_state, mut prim_list)) = scene
-                .prim_store
-                .pictures[pic_index.0]
-                .take_context(
-                    *pic_index,
-                    None,
-                    SubpixelMode::Allow,
-                    &mut frame_state,
-                    &frame_context,
-                    data_stores,
-                    &mut scratch.primitive,
-                    tile_caches,
-                )
-            {
-                profile_marker!("PreparePrims");
-
-                prepare_primitives(
-                    &mut scene.prim_store,
-                    &mut prim_list,
-                    &pic_context,
-                    &mut pic_state,
-                    &frame_context,
-                    &mut frame_state,
-                    data_stores,
-                    &mut scratch.primitive,
-                    tile_caches,
-                    &mut scene.prim_instances,
-                );
-
-                let pic = &mut scene.prim_store.pictures[pic_index.0];
-                pic.restore_context(
-                    *pic_index,
-                    prim_list,
-                    pic_context,
-                    &scene.prim_instances,
-                    &frame_context,
-                    &mut frame_state,
-                );
-            }
+            prepare_picture(
+                *pic_index,
+                &mut scene.prim_store,
+                None,
+                SubpixelMode::Allow,
+                &frame_context,
+                &mut frame_state,
+                data_stores,
+                &mut scratch.primitive,
+                tile_caches,
+                &mut scene.prim_instances
+            );
         }
 
         frame_state.pop_dirty_region();
