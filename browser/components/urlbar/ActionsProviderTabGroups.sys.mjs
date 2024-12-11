@@ -51,7 +51,6 @@ class ProviderTabGroups extends ActionsProvider {
             onPick: (_queryContext, _controller) => {
               this.openGroup(group);
             },
-            dataset: { color: group.color },
           })
         );
       }
