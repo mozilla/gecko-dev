@@ -11,11 +11,13 @@ EXPORTS.mozilla.dom.quota += [
 
 EXPORTS.mozilla.dom.quota.test += [
     "QuotaManagerDependencyFixture.h",
+    "QuotaManagerTestHelpers.h",
 ]
 
 UNIFIED_SOURCES = [
     "Common.cpp",
     "QuotaManagerDependencyFixture.cpp",
+    "QuotaManagerTestHelpers.cpp",
     "TestCheckedUnsafePtr.cpp",
     "TestClientUsageArray.cpp",
     "TestDirectoryLock.cpp",

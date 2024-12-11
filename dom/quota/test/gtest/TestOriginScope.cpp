@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "QuotaManagerTestHelpers.h"
 #include "gtest/gtest.h"
 #include "mozilla/dom/quota/OriginScope.h"
 #include "nsStringFwd.h"
@@ -12,25 +13,7 @@
 
 namespace mozilla::dom::quota {
 
-namespace {
-
-PrincipalMetadata GetPrincipalMetadata(const nsCString& aGroup,
-                                       const nsCString& aOriginNoSuffix) {
-  return PrincipalMetadata{""_ns, aGroup, aOriginNoSuffix, aOriginNoSuffix,
-                           /* aIsPrivate */ false};
-}
-
-PrincipalMetadata GetPrincipalMetadata(const nsCString& aSuffix,
-                                       const nsCString& aGroupNoSuffix,
-                                       const nsCString& aOriginNoSuffix) {
-  nsCString group = aGroupNoSuffix + aSuffix;
-  nsCString origin = aOriginNoSuffix + aSuffix;
-
-  return PrincipalMetadata{aSuffix, group, origin, origin,
-                           /* aIsPrivate */ false};
-}
-
-}  // namespace
+using test::GetPrincipalMetadata;
 
 TEST(DOM_Quota_OriginScope, SanityChecks)
 {
