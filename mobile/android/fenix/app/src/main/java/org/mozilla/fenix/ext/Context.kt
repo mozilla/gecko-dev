@@ -15,6 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityManager
 import androidx.annotation.StringRes
+import mozilla.components.compose.base.theme.AcornWindowSize
 import mozilla.components.support.locale.LocaleManager
 import org.mozilla.fenix.FenixApplication
 import org.mozilla.fenix.R
@@ -22,7 +23,6 @@ import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricController
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.settings.advanced.getSelectedLocale
-import org.mozilla.fenix.theme.AcornWindowSize
 import org.mozilla.fenix.utils.isLargeScreenSize
 import java.lang.String.format
 import java.util.Locale

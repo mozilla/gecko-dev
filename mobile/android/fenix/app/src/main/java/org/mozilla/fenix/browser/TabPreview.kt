@@ -22,6 +22,7 @@ import mozilla.components.browser.menu.view.MenuButton
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.thumbnails.loader.ThumbnailLoader
+import mozilla.components.compose.base.theme.AcornWindowSize
 import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
@@ -35,7 +36,6 @@ import org.mozilla.fenix.databinding.TabPreviewBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.theme.AcornWindowSize
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.ThemeManager
 import kotlin.math.min
