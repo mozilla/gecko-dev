@@ -17,65 +17,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import mozilla.components.ui.colors.PhotonColors
-import org.mozilla.fenix.compose.inComposePreview
-import org.mozilla.fenix.ext.settings
-
-/**
- * Indicates the theme that is displayed.
- */
-enum class Theme {
-    Light,
-    Dark,
-    Private,
-    ;
-
-    companion object {
-        /**
-         * Returns the current [Theme] that is displayed.
-         *
-         * @param allowPrivateTheme Boolean used to control whether [Theme.Private] is an option
-         * for [FirefoxTheme] colors.
-         *
-         * @return the current [Theme] that is displayed.
-         */
-        @Composable
-        fun getTheme(allowPrivateTheme: Boolean = true) =
-            if (allowPrivateTheme &&
-                !inComposePreview &&
-                LocalContext.current.settings().lastKnownMode.isPrivate
-            ) {
-                Private
-            } else if (isSystemInDarkTheme()) {
-                Dark
-            } else {
-                Light
-            }
-    }
-}
 
 /**
  * A top-level Composable wrapper used to access Acorn Theming tokens.
  *
- * @param theme The current [Theme] that is displayed.
+ * @param colors The [AcornColors] theme to use.
  * @param size The palette of [AcornSize] tokens.
  * @param windowSize The [AcornWindowSize] of the app window.
  * @param content The children composables to be laid out.
  */
 @Composable
 fun AcornTheme(
-    theme: Theme = Theme.getTheme(),
+    colors: AcornColors = getAcornColors(),
     size: AcornSize = AcornSize(),
     windowSize: AcornWindowSize = AcornWindowSize.getWindowSize(),
     content: @Composable () -> Unit,
 ) {
-    val colors = when (theme) {
-        Theme.Light -> lightColorPalette
-        Theme.Dark -> darkColorPalette
-        Theme.Private -> privateColorPalette
-    }
-
     ProvideAcornTokens(
         size = size,
         windowSize = windowSize,
@@ -85,6 +43,13 @@ fun AcornTheme(
             content = content,
         )
     }
+}
+
+@Composable
+private fun getAcornColors() = if (isSystemInDarkTheme()) {
+    darkColorPalette
+} else {
+    lightColorPalette
 }
 
 /**
@@ -111,7 +76,7 @@ object AcornTheme {
         get() = localWindowSize.current
 }
 
-private val darkColorPalette = AcornColors(
+val darkColorPalette = AcornColors(
     layer1 = PhotonColors.DarkGrey60,
     layer2 = PhotonColors.DarkGrey30,
     layer3 = PhotonColors.DarkGrey80,
@@ -194,7 +159,7 @@ private val darkColorPalette = AcornColors(
     tabInactive = PhotonColors.DarkGrey80,
 )
 
-private val lightColorPalette = AcornColors(
+val lightColorPalette = AcornColors(
     layer1 = PhotonColors.LightGrey10,
     layer2 = PhotonColors.White,
     layer3 = PhotonColors.LightGrey20,
@@ -277,7 +242,7 @@ private val lightColorPalette = AcornColors(
     tabInactive = PhotonColors.LightGrey20,
 )
 
-private val privateColorPalette = darkColorPalette.copy(
+val privateColorPalette = darkColorPalette.copy(
     layer1 = PhotonColors.Violet90,
     layer2 = PhotonColors.Violet90,
     layer3 = PhotonColors.Ink90,
