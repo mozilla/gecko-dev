@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * A custom typography for Mozilla Firefox for Android (Fenix).
+ * A custom typography for Acorn Theming.
  *
  * @property headline5 Currently not in-use.
  * @property headline6 Used for headings on Onboarding Modals and App Bar Titles.
@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
  * @property overline Used for Sheets.
  */
 @Suppress("LongParameterList")
-class FenixTypography(
+class AcornTypography(
     val headline5: TextStyle,
     val headline6: TextStyle,
     val headline7: TextStyle,
@@ -48,7 +48,7 @@ class FenixTypography(
     val overline: TextStyle,
 )
 
-val defaultTypography = FenixTypography(
+val defaultTypography = AcornTypography(
     headline5 = TextStyle(
         fontSize = 24.sp,
         fontWeight = FontWeight.W400,

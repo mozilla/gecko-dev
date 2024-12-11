@@ -73,7 +73,7 @@ object FirefoxTheme {
         @Composable
         get() = AcornTheme.colors
 
-    val typography: FenixTypography
+    val typography: AcornTypography
         get() = AcornTheme.typography
 
     val size: AcornSize
