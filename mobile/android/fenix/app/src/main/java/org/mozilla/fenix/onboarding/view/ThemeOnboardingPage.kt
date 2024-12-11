@@ -102,11 +102,13 @@ fun ThemeOnboardingPage(
                 val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    ThemeOptions(
-                        options = themeOptions!!,
-                        selectedOption = state.themeOptionSelected,
-                        onClick = onThemeSelectionClicked,
-                    )
+                    themeOptions?.let {
+                        ThemeOptions(
+                            options = it,
+                            selectedOption = state.themeOptionSelected,
+                            onClick = onThemeSelectionClicked,
+                        )
+                    }
                 }
             }
 
