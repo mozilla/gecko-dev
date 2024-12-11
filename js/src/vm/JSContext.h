@@ -805,6 +805,10 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // runtime code generation "unsafe-eval", or "wasm-unsafe-eval" for Wasm.
   bool isRuntimeCodeGenEnabled(JS::RuntimeCode kind, js::HandleString code);
 
+  // Get code to be used by eval for Object argument.
+  bool getCodeForEval(JS::HandleObject code,
+                      JS::MutableHandle<JSString*> outCode);
+
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
   size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
