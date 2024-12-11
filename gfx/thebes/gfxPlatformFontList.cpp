@@ -1474,16 +1474,19 @@ class LoadCmapsRunnable final : public IdleRunnable,
       return NS_OK;
     }
     auto* families = list->Families();
-    // Skip any families that are already initialized.
-    while (mIndex < numFamilies && families[mIndex].IsFullyInitialized()) {
-      ++mIndex;
-    }
-    // Fully process a few families, and advance index.
     while (mIndex < numFamilies) {
-      Unused << pfl->InitializeFamily(&families[mIndex++], true);
-      if (mDeadline.IsNull() || TimeStamp::Now() >= mDeadline) {
-        break;
+      auto& family = families[mIndex++];
+      if (family.IsFullyInitialized()) {
+        // Skip any families that are already initialized.
+        continue;
       }
+      // Fully initialize this family.
+      Unused << pfl->InitializeFamily(&family, true);
+      // TODO(emilio): It'd make sense to use mDeadline here to determine
+      // whether we can do more work, but that is surprisingly a performance
+      // regression in practice, see bug 1936489. Investigate if we can be
+      // smarter about this.
+      break;
     }
     // If there are more families to initialize, post ourselves back to the
     // idle queue handle the next ones; otherwise we're finished and we need
