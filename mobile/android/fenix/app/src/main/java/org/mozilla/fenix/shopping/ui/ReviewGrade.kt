@@ -26,9 +26,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.shopping.store.ReviewQualityCheckState.Grade
 import org.mozilla.fenix.theme.FirefoxTheme
 

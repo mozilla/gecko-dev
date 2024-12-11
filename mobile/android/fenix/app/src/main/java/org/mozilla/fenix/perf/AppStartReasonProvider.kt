@@ -15,6 +15,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.GleanMetrics.Metrics
 import org.mozilla.fenix.android.DefaultActivityLifecycleCallbacks
+import org.mozilla.fenix.perf.AppStartReasonProvider.StartReason
 
 private val logger = Logger("AppStartReasonProvider")
 

@@ -19,11 +19,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.InfoCard
 import org.mozilla.fenix.compose.InfoCardButtonText
 import org.mozilla.fenix.compose.InfoType
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.shopping.store.ReviewQualityCheckState
 import org.mozilla.fenix.shopping.store.ReviewQualityCheckState.OptedIn.ProductReviewState
 import org.mozilla.fenix.theme.FirefoxTheme

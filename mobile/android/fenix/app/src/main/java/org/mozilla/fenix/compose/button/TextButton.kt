@@ -10,7 +10,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import mozilla.components.compose.base.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 import java.util.Locale
 

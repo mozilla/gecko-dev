@@ -24,11 +24,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.support.ktx.android.content.appName
 import mozilla.components.support.ktx.android.content.appVersionName
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.inComposePreview
 import org.mozilla.fenix.compose.list.TextListItem
 import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState

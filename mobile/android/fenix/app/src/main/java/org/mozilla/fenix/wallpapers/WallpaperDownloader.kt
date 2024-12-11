@@ -13,7 +13,6 @@ import mozilla.components.concept.fetch.isSuccess
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.wallpapers.Wallpaper.Companion.getLocalPath
 import java.io.File
-import java.lang.IllegalStateException
 
 /**
  * Can download wallpapers from a remote host.
