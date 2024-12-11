@@ -43,6 +43,8 @@
 #include "nscore.h"
 #include "prenv.h"
 
+#define GTEST_CLASS(testFixture, testName) testFixture##_##testName##_Test
+
 class mozIStorageConnection;
 class nsIEventTarget;
 class nsIFile;
@@ -78,6 +80,11 @@ class OriginScope;
 class QuotaObject;
 class UniversalDirectoryLock;
 
+namespace test {
+class GTEST_CLASS(TestQuotaManagerAndShutdownFixture,
+                  ThumbnailPrivateIdentityTemporaryOriginCount);
+}
+
 class QuotaManager final : public BackgroundThreadObject {
   friend class CanonicalQuotaObject;
   friend class ClearStorageOp;
@@ -94,6 +101,8 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class OriginInfo;
   friend class PersistOp;
   friend class ShutdownStorageOp;
+  friend class test::GTEST_CLASS(TestQuotaManagerAndShutdownFixture,
+                                 ThumbnailPrivateIdentityTemporaryOriginCount);
   friend class UniversalDirectoryLock;
 
   friend Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
@@ -796,6 +805,21 @@ class QuotaManager final : public BackgroundThreadObject {
 
   void RemoveTemporaryOrigins();
 
+  /**
+   * Retrieves the count of thumbnail private identity temporary origins.
+   *
+   * This method returns the current count of temporary origins associated with
+   * thumbnail private identity contexts. It requires that the thumbnail
+   * private identity id is known.
+   *
+   * @return The count of thumbnail private identity temporary origins.
+   *
+   * @note The thumbnail private identity id must be known before calling this
+   *   method. If the id is not known, it will cause a debug assertion failure
+   *   due to the `MOZ_ASSERT`.
+   */
+  uint32_t ThumbnailPrivateIdentityTemporaryOriginCount() const;
+
   PrincipalMetadataArray GetAllTemporaryGroups() const;
 
   OriginMetadataArray GetAllTemporaryOrigins() const;
@@ -912,6 +936,8 @@ class QuotaManager final : public BackgroundThreadObject {
     nsTHashMap<nsCStringHashKey, nsTArray<FullOriginMetadata>>
         mAllTemporaryOrigins;
     Maybe<uint32_t> mThumbnailPrivateIdentityId;
+    // Tracks the count of thumbnail private identity temporary origins.
+    uint32_t mThumbnailPrivateIdentityTemporaryOriginCount = 0;
   };
   ThreadBound<IOThreadAccessible> mIOThreadAccessible;
 
