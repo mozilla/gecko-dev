@@ -56,7 +56,7 @@ enum class Theme {
 }
 
 /**
- * The theme for Mozilla Firefox for Android (Fenix).
+ * A top-level Composable wrapper used to access Acorn Theming tokens.
  *
  * @param theme The current [Theme] that is displayed.
  * @param size The palette of [AcornSize] tokens.
@@ -64,7 +64,7 @@ enum class Theme {
  * @param content The children composables to be laid out.
  */
 @Composable
-fun FirefoxTheme(
+fun AcornTheme(
     theme: Theme = Theme.getTheme(),
     size: AcornSize = AcornSize(),
     windowSize: AcornWindowSize = AcornWindowSize.getWindowSize(),
@@ -87,10 +87,13 @@ fun FirefoxTheme(
     }
 }
 
-object FirefoxTheme {
-    val colors: FirefoxColors
+/**
+ * Provides access to the Acorn design system tokens.
+ */
+object AcornTheme {
+    val colors: AcornColors
         @Composable
-        get() = localFirefoxColors.current
+        get() = localAcornColors.current
 
     val typography: FenixTypography
         get() = defaultTypography
@@ -108,7 +111,7 @@ object FirefoxTheme {
         get() = localWindowSize.current
 }
 
-private val darkColorPalette = FirefoxColors(
+private val darkColorPalette = AcornColors(
     layer1 = PhotonColors.DarkGrey60,
     layer2 = PhotonColors.DarkGrey30,
     layer3 = PhotonColors.DarkGrey80,
@@ -191,7 +194,7 @@ private val darkColorPalette = FirefoxColors(
     tabInactive = PhotonColors.DarkGrey80,
 )
 
-private val lightColorPalette = FirefoxColors(
+private val lightColorPalette = AcornColors(
     layer1 = PhotonColors.LightGrey10,
     layer2 = PhotonColors.White,
     layer3 = PhotonColors.LightGrey20,
@@ -291,7 +294,7 @@ private val privateColorPalette = darkColorPalette.copy(
  */
 @Suppress("LargeClass", "LongParameterList")
 @Stable
-class FirefoxColors(
+class AcornColors(
     layer1: Color,
     layer2: Color,
     layer3: Color,
@@ -689,10 +692,10 @@ class FirefoxColors(
         private set
 
     /**
-     * Updates the existing colors with the provided [FirefoxColors].
+     * Updates the existing colors with the provided [AcornColors].
      */
     @Suppress("LongMethod")
-    fun update(other: FirefoxColors) {
+    fun update(other: AcornColors) {
         layer1 = other.layer1
         layer2 = other.layer2
         layer3 = other.layer3
@@ -776,7 +779,7 @@ class FirefoxColors(
     }
 
     /**
-     * Return a copy of this [FirefoxColors] and optionally overriding any of the provided values.
+     * Return a copy of this [AcornColors] and optionally overriding any of the provided values.
      */
     @Suppress("LongMethod")
     fun copy(
@@ -860,7 +863,7 @@ class FirefoxColors(
         ripple: Color = this.ripple,
         tabActive: Color = this.tabActive,
         tabInactive: Color = this.tabInactive,
-    ): FirefoxColors = FirefoxColors(
+    ): AcornColors = AcornColors(
         layer1 = layer1,
         layer2 = layer2,
         layer3 = layer3,
@@ -946,13 +949,13 @@ class FirefoxColors(
 
 /**
  * This function is used to set the current value of [localWindowSize],
- * [localSpace], [localSize], and [localFirefoxColors].
+ * [localSpace], [localSize], and [localAcornColors].
  */
 @Composable
 fun ProvideAcornTokens(
     size: AcornSize,
     windowSize: AcornWindowSize,
-    colors: FirefoxColors,
+    colors: AcornColors,
     content: @Composable () -> Unit,
 ) {
     val space = AcornSpace.fromWindowSize(windowSize = windowSize)
@@ -967,23 +970,23 @@ fun ProvideAcornTokens(
         localWindowSize provides windowSize,
         localSpace provides space,
         localSize provides size,
-        localFirefoxColors provides colorPalette,
+        localAcornColors provides colorPalette,
         content = content,
     )
 }
 
-private val localFirefoxColors = staticCompositionLocalOf<FirefoxColors> {
-    error("No FirefoxColors provided")
+private val localAcornColors = staticCompositionLocalOf<AcornColors> {
+    error("No AcornColors provided")
 }
 
 private val localWindowSize = staticCompositionLocalOf<AcornWindowSize> {
-    error("No FirefoxWindowSize provided")
+    error("No AcornWindowSize provided")
 }
 
 private val localSpace = staticCompositionLocalOf<AcornSpace> {
-    error("No FirefoxSpace provided")
+    error("No AcornSpace provided")
 }
 
 private val localSize = staticCompositionLocalOf<AcornSize> {
-    error("No FirefoxSize provided")
+    error("No AcornSize provided")
 }
