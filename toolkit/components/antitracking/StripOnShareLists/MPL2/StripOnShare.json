@@ -140,5 +140,9 @@
   "meetup": {
     "queryParams": ["eventOrigin", "recId", "recSource", "searchId"],
     "topLevelSites": ["www.meetup.com"]
+  },
+  "facebook": {
+    "queryParams": ["__cft__[0]", "__cft__%5B0%5D", "__tn__"],
+    "topLevelSites": ["www.facebook.com"]
   }
 }
