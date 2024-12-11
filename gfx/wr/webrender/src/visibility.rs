@@ -53,6 +53,7 @@ pub struct FrameVisibilityState<'a> {
     pub surface_stack: Vec<(PictureIndex, SurfaceIndex)>,
     pub profile: &'a mut TransactionProfile,
     pub scratch: &'a mut ScratchBuffer,
+    pub visited_pictures: &'a mut[bool],
 }
 
 impl<'a> FrameVisibilityState<'a> {
@@ -152,6 +153,10 @@ pub fn update_prim_visibility(
     frame_state: &mut FrameVisibilityState,
     tile_cache: &mut TileCacheInstance,
  ) {
+    if frame_state.visited_pictures[pic_index.0] {
+        return;
+    }
+    frame_state.visited_pictures[pic_index.0] = true;
     let pic = &store.pictures[pic_index.0];
 
     let (surface_index, pop_surface) = match pic.raster_config {
