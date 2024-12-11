@@ -327,6 +327,11 @@ impl SurfaceBuilder {
         }
     }
 
+    pub fn pop_empty_surface(&mut self) {
+        let builder = self.builder_stack.pop().unwrap();
+        assert!(!builder.establishes_sub_graph);
+    }
+
     // Finish adding primitives and child tasks to a surface and pop it off the stack
     pub fn pop_surface(
         &mut self,

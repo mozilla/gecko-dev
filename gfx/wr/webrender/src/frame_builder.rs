@@ -513,6 +513,77 @@ impl FrameBuilder {
             visited_pictures: &mut visited_pictures,
         };
 
+
+        if !scene.snapshot_pictures.is_empty() {
+            // Push a default dirty region which does not cull any
+            // primitive.
+            let mut default_dirty_region = DirtyRegion::new(
+                root_spatial_node_index,
+            );
+            default_dirty_region.add_dirty_region(
+                PictureRect::max_rect(),
+                frame_context.spatial_tree,
+            );
+            frame_state.push_dirty_region(default_dirty_region);
+
+            frame_state.surface_builder.push_surface(
+                snapshot_surface,
+                false,
+                PictureRect::max_rect(),
+                None,
+                frame_state.surfaces,
+                frame_state.rg_builder,
+            );
+        }
+
+        for pic_index in &scene.snapshot_pictures {
+
+            if let Some((pic_context, mut pic_state, mut prim_list)) = scene
+                .prim_store
+                .pictures[pic_index.0]
+                .take_context(
+                    *pic_index,
+                    Some(snapshot_surface),
+                    SubpixelMode::Allow,
+                    &mut frame_state,
+                    &frame_context,
+                    data_stores,
+                    &mut scratch.primitive,
+                    tile_caches,
+                )
+            {
+                profile_marker!("PreparePrims");
+
+                prepare_primitives(
+                    &mut scene.prim_store,
+                    &mut prim_list,
+                    &pic_context,
+                    &mut pic_state,
+                    &frame_context,
+                    &mut frame_state,
+                    data_stores,
+                    &mut scratch.primitive,
+                    tile_caches,
+                    &mut scene.prim_instances,
+                );
+
+                let pic = &mut scene.prim_store.pictures[pic_index.0];
+                pic.restore_context(
+                    *pic_index,
+                    prim_list,
+                    pic_context,
+                    &scene.prim_instances,
+                    &frame_context,
+                    &mut frame_state,
+                );
+            }
+        }
+
+        if !scene.snapshot_pictures.is_empty() {
+            frame_state.surface_builder.pop_empty_surface();
+            frame_state.pop_dirty_region();
+        }
+
         // Push a default dirty region which culls primitives
         // against the screen world rect, in absence of any
         // other dirty regions.
