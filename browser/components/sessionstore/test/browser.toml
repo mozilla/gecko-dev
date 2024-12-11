@@ -282,22 +282,7 @@ tags = "os_integration"
 
 ["browser_tab_groups_empty.js"]
 
-["browser_tab_groups_restore_closed_in_closed_window.js"]
-skip-if = [
-  "os == 'linux' && (asan || tsan)" # Bug 1936093
-]
-
-["browser_tab_groups_restore_closed_in_open_window.js"]
-skip-if = [
-  "os == 'linux' && (asan || tsan)" # Bug 1936093
-]
-
 ["browser_tab_groups_restore_multiple.js"]
-
-["browser_tab_groups_restore_saved.js"]
-skip-if = [
-  "os == 'linux' && (asan || tsan)" # Bug 1936093
-]
 
 ["browser_tab_groups_restore_simple.js"]
 

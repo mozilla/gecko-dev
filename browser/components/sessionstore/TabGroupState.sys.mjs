@@ -2,17 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/**
- * @typedef {object} TabGroupStateData
- * @property {string} id
- *   Unique ID of the tab group.
- * @property {string} name
- *   User-defined name of the tab group.
- * @property {"blue"|"purple"|"cyan"|"orange"|"yellow"|"pink"|"green"|"gray"|"red"} color
- *   User-selected color name for the tab group's label/icons.
- * @property {boolean} collapsed
- *   Whether the tab group is collapsed or expanded in the tab strip.
- */
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  TabState: "resource:///modules/sessionstore/TabState.sys.mjs",
+});
 
 /**
  * Module that contains tab group state collection methods.
@@ -33,6 +27,21 @@ class _TabGroupState {
       color: tabGroup.color,
       collapsed: tabGroup.collapsed,
     };
+  }
+
+  /**
+   * Collect data related to a single tab group, including all of the tabs
+   * within that group.
+   *
+   * @param {MozTabbrowserTabGroup} tabGroup
+   *   Tab group browser element
+   * @returns {object}
+   *   Serialized tab group data
+   */
+  clone(tabGroup) {
+    const groupState = this.collect(tabGroup);
+    groupState.tabs = tabGroup.tabs.map(tab => lazy.TabState.collect(tab));
+    return groupState;
   }
 }
 
