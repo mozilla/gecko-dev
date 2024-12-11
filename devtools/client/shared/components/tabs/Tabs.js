@@ -267,7 +267,9 @@ define(function (require, exports) {
 
       this.setState(newState, () => {
         // Properly set focus on selected tab.
-        const selectedTab = this.tabsEl.current.querySelector(".is-active > a");
+        const selectedTab = this.tabsEl.current.querySelector(
+          `a[data-tab-index="${index}"]`
+        );
         if (selectedTab) {
           selectedTab.focus();
         }

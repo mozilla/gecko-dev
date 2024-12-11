@@ -2,7 +2,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!DOCTYPE HTML>
-<html>
+<html dir="ltr">
 <!--
 Test tabs accessibility.
 -->
@@ -10,6 +10,7 @@ Test tabs accessibility.
   <meta charset="utf-8">
   <title>Tabs component accessibility test</title>
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css">
 </head>
 <body>
@@ -49,12 +50,22 @@ window.onload = async function () {
     is(tabAnchors[1].getAttribute("aria-selected"), "false", "Anchor aria-selected is set correctly by default");
     is(tabAnchors[1].getAttribute("aria-controls"), "sidebar-1-panel", "Anchor aria-controls is set correctly");
 
-    await setState(tabbarReact, Object.assign({}, tabbarReact.state, {
-      activeTab: 1
-    }));
+    tabAnchors[0].focus();
+    synthesizeKey("KEY_ArrowRight");
+    // Wait for the second tab to be selected
+    await waitFor(() => tabAnchors[1].getAttribute("aria-selected") === "true");
 
     is(tabAnchors[0].getAttribute("aria-selected"), "false", "Anchor aria-selected is reset correctly");
     is(tabAnchors[1].getAttribute("aria-selected"), "true", "Anchor aria-selected is reset correctly");
+    ok(document.activeElement === tabAnchors[1], "New active (second) tab is focused");
+
+    synthesizeKey("KEY_ArrowLeft");
+    // Wait for the first tab to be selected
+    await waitFor(() => tabAnchors[0].getAttribute("aria-selected") === "true");
+
+    is(tabAnchors[0].getAttribute("aria-selected"), "true", "Anchor aria-selected is reset correctly");
+    is(tabAnchors[1].getAttribute("aria-selected"), "false", "Anchor aria-selected is reset correctly");
+    ok(document.activeElement === tabAnchors[0], "New active (first) tab is focused");
 
     function addTabWithPanel(tabId) {
       // Setup for InspectorTabPanel
