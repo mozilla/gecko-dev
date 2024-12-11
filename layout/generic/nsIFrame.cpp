@@ -814,7 +814,8 @@ void nsIFrame::Destroy(DestroyContext& aContext) {
 
   MaybeScheduleReflowSVGNonDisplayText(this);
 
-  SVGObserverUtils::InvalidateDirectRenderingObservers(this);
+  SVGObserverUtils::InvalidateDirectRenderingObservers(
+      this, SVGObserverUtils::INVALIDATE_DESTROY);
 
   const auto* disp = StyleDisplay();
   if (disp->mPosition == StylePositionProperty::Sticky) {

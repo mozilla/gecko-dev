@@ -1283,7 +1283,7 @@ static SVGPaintingProperty* GetPaintingProperty(
 }
 
 static already_AddRefed<URLAndReferrerInfo> GetMarkerURI(
-    nsIFrame* aFrame, const StyleUrlOrNone nsStyleSVG::*aMarker) {
+    nsIFrame* aFrame, const StyleUrlOrNone nsStyleSVG::* aMarker) {
   const StyleUrlOrNone& url = aFrame->StyleSVG()->*aMarker;
   if (url.IsNone()) {
     return nullptr;
@@ -1702,7 +1702,7 @@ Element* SVGObserverUtils::GetAndObserveBackgroundClip(nsIFrame* aFrame) {
 }
 
 SVGPaintServerFrame* SVGObserverUtils::GetAndObservePaintServer(
-    nsIFrame* aPaintedFrame, StyleSVGPaint nsStyleSVG::*aPaint) {
+    nsIFrame* aPaintedFrame, StyleSVGPaint nsStyleSVG::* aPaint) {
   // If we're looking at a frame within SVG text, then we need to look up
   // to find the right frame to get the painting property off.  We should at
   // least look up past a text frame, and if the text frame's parent is the
@@ -1863,9 +1863,11 @@ void SVGObserverUtils::InvalidateRenderingObservers(nsIFrame* aFrame) {
 
 void SVGObserverUtils::InvalidateDirectRenderingObservers(
     Element* aElement, uint32_t aFlags /* = 0 */) {
-  if (nsIFrame* frame = aElement->GetPrimaryFrame()) {
-    // If the rendering has changed, the bounds may well have changed too:
-    frame->RemoveProperty(SVGUtils::ObjectBoundingBoxProperty());
+  if (!(aFlags & INVALIDATE_DESTROY)) {
+    if (nsIFrame* frame = aElement->GetPrimaryFrame()) {
+      // If the rendering has changed, the bounds may well have changed too:
+      frame->RemoveProperty(SVGUtils::ObjectBoundingBoxProperty());
+    }
   }
 
   if (aElement->HasDirectRenderingObservers()) {

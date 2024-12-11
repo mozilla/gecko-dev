@@ -42,12 +42,8 @@ class SVGMPathElement;
 }  // namespace dom
 }  // namespace mozilla
 
-#define MOZILLA_ICANVASFILTEROBSERVER_IID            \
-  {                                                  \
-    0xd1c85f93, 0xd1ed, 0x4ea9, {                    \
-      0xa0, 0x39, 0x71, 0x62, 0xe4, 0x41, 0xf1, 0xa1 \
-    }                                                \
-  }
+#define MOZILLA_ICANVASFILTEROBSERVER_IID \
+  {0xd1c85f93, 0xd1ed, 0x4ea9, {0xa0, 0x39, 0x71, 0x62, 0xe4, 0x41, 0xf1, 0xa1}}
 
 namespace mozilla {
 
@@ -262,7 +258,7 @@ class SVGObserverUtils {
    */
   static void InvalidateRenderingObservers(nsIFrame* aFrame);
 
-  enum { INVALIDATE_REFLOW = 1 };
+  enum { INVALIDATE_REFLOW = 0x1, INVALIDATE_DESTROY = 0x2 };
 
   enum ReferenceState {
     /// Has no references to SVG filters (may still have CSS filter functions!)
@@ -284,7 +280,7 @@ class SVGObserverUtils {
    * Get the paint server for aPaintedFrame.
    */
   static SVGPaintServerFrame* GetAndObservePaintServer(
-      nsIFrame* aPaintedFrame, mozilla::StyleSVGPaint nsStyleSVG::*aPaint);
+      nsIFrame* aPaintedFrame, mozilla::StyleSVGPaint nsStyleSVG::* aPaint);
 
   /**
    * Get the start/mid/end-markers for the given frame, and add the frame as
