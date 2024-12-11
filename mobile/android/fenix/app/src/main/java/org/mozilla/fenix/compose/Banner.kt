@@ -18,7 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
-import org.mozilla.fenix.compose.button.TextButton
+import mozilla.components.compose.base.button.TextButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**

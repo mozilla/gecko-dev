@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose.button
+package mozilla.components.compose.base.button
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import mozilla.components.compose.base.annotation.LightDarkPreview
-import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.compose.base.theme.AcornTheme
 import java.util.Locale
 
 /**
@@ -31,7 +31,7 @@ fun TextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    textColor: Color = FirefoxTheme.colors.textAccent,
+    textColor: Color = AcornTheme.colors.textAccent,
     upperCaseText: Boolean = true,
 ) {
     androidx.compose.material.TextButton(
@@ -45,8 +45,8 @@ fun TextButton(
             } else {
                 text
             },
-            color = if (enabled) textColor else FirefoxTheme.colors.textDisabled,
-            style = FirefoxTheme.typography.button,
+            color = if (enabled) textColor else AcornTheme.colors.textDisabled,
+            style = AcornTheme.typography.button,
             maxLines = 1,
         )
     }
@@ -55,8 +55,8 @@ fun TextButton(
 @Composable
 @LightDarkPreview
 private fun TextButtonPreview() {
-    FirefoxTheme {
-        Column(Modifier.background(FirefoxTheme.colors.layer1)) {
+    AcornTheme {
+        Column(Modifier.background(AcornTheme.colors.layer1)) {
             TextButton(
                 text = "label",
                 onClick = {},
