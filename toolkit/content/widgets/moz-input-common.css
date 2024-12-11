@@ -14,20 +14,9 @@
     --input-margin-inline-start-adjust: calc(-1 * var(--input-space-offset));
   }
 
-  :host(:not(:state(has-label))) {
-    --input-space-offset: var(--input-width);
-    display: inline-block;
-  }
-
   :host([inputlayout="block"]) {
     --input-space-offset: 0;
     --input-margin-block-adjust: var(--space-xsmall) 0;
-  }
-
-  @media (forced-colors) {
-    :host([disabled]) {
-      color: GrayText;
-    }
   }
 
   /* Label text */
@@ -65,11 +54,7 @@
     line-height: inherit;
     vertical-align: top;
     margin-block: var(--input-margin-block-adjust);
-    margin-inline: var(--input-margin-inline-start-adjust) var(--space-small);
-
-    :host(:not(:state(has-label))) & {
-      margin-inline-end: 0;
-    }
+    margin-inline-start: var(--input-margin-inline-start-adjust);
   }
 
   /* Icon */
@@ -109,18 +94,5 @@
   a[is="moz-support-link"],
   ::slotted([slot="support-link"]) {
     display: inline-block;
-  }
-
-  /* Nested fields */
-
-  .nested {
-    margin-inline-start: var(--input-space-offset);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-large);
-  }
-
-  ::slotted([slot="nested"]:first-child) {
-    margin-block-start: var(--space-large);
   }
 }

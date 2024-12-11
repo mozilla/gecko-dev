@@ -541,18 +541,9 @@ add_task(async function clickLearnMore() {
   });
   await assertInfoBox("addressbar-firefox-suggest-info-all");
 
-  let learnMoreLinks = [
-    ...doc.querySelectorAll("#locationBarGroup ." + LEARN_MORE_CLASS),
-  ];
-  let toggles = addressBarSection.querySelectorAll("moz-toggle");
-  for (let toggle of toggles) {
-    let learnMoreLink = toggle.shadowRoot.querySelector(
-      "a[is='moz-support-link']"
-    );
-    if (learnMoreLink) {
-      learnMoreLinks.push(learnMoreLink);
-    }
-  }
+  let learnMoreLinks = doc.querySelectorAll(
+    "#locationBarGroup ." + LEARN_MORE_CLASS
+  );
   Assert.equal(
     learnMoreLinks.length,
     3,
@@ -572,10 +563,11 @@ add_task(async function clickLearnMore() {
       QuickSuggest.HELP_URL
     );
     info("Clicking learn-more link: " + link.id);
-    await EventUtils.synthesizeMouseAtCenter(
-      link,
+    Assert.ok(link.id, "Sanity check: Learn-more link has an ID");
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      "#" + link.id,
       {},
-      gBrowser.selectedBrowser.contentWindow
+      gBrowser.selectedBrowser
     );
     info("Waiting for help page to load in a new tab");
     await tabPromise;

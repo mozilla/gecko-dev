@@ -78,11 +78,13 @@ export class ContentSection extends React.PureComponent {
       return;
     }
 
+    let drawerHeight;
+
     if (drawerRef) {
-      let drawerHeight = parseFloat(window.getComputedStyle(drawerRef));
+      drawerHeight = parseFloat(window.getComputedStyle(drawerRef)?.height);
 
       if (isOpen) {
-        drawerRef.style.marginTop = "var(--space-large)";
+        drawerRef.style.marginTop = `0`;
       } else {
         drawerRef.style.marginTop = `-${drawerHeight}px`;
       }
@@ -133,80 +135,77 @@ export class ContentSection extends React.PureComponent {
             />
           </div>
         )}
-        <div className="settings-toggles">
-          <div id="shortcuts-section" className="section">
-            <moz-toggle
-              id="shortcuts-toggle"
-              pressed={topSitesEnabled || null}
-              onToggle={this.onPreferenceSelect}
-              data-preference="feeds.topsites"
-              data-eventSource="TOP_SITES"
-              data-l10n-id="newtab-custom-shortcuts-toggle"
-            >
-              <div slot="nested">
-                <div className="more-info-top-wrapper">
-                  <div
-                    className="more-information"
-                    ref={this.topSitesDrawerRef}
-                  >
-                    <select
-                      id="row-selector"
-                      className="selector"
-                      name="row-count"
-                      data-preference="topSitesRows"
-                      value={topSitesRowsCount}
-                      onChange={this.onPreferenceSelect}
+        <div id="shortcuts-section" className="section">
+          <moz-toggle
+            id="shortcuts-toggle"
+            pressed={topSitesEnabled || null}
+            onToggle={this.onPreferenceSelect}
+            data-preference="feeds.topsites"
+            data-eventSource="TOP_SITES"
+            data-l10n-id="newtab-custom-shortcuts-toggle"
+            data-l10n-attrs="label, description"
+          />
+          <div>
+            <div className="more-info-top-wrapper">
+              <div className="more-information" ref={this.topSitesDrawerRef}>
+                <select
+                  id="row-selector"
+                  className="selector"
+                  name="row-count"
+                  data-preference="topSitesRows"
+                  value={topSitesRowsCount}
+                  onChange={this.onPreferenceSelect}
+                  disabled={!topSitesEnabled}
+                  aria-labelledby="custom-shortcuts-title"
+                >
+                  <option
+                    value="1"
+                    data-l10n-id="newtab-custom-row-selector"
+                    data-l10n-args='{"num": 1}'
+                  />
+                  <option
+                    value="2"
+                    data-l10n-id="newtab-custom-row-selector"
+                    data-l10n-args='{"num": 2}'
+                  />
+                  <option
+                    value="3"
+                    data-l10n-id="newtab-custom-row-selector"
+                    data-l10n-args='{"num": 3}'
+                  />
+                  <option
+                    value="4"
+                    data-l10n-id="newtab-custom-row-selector"
+                    data-l10n-args='{"num": 4}'
+                  />
+                </select>
+                {mayHaveSponsoredTopSites && (
+                  <div className="check-wrapper" role="presentation">
+                    <input
+                      id="sponsored-shortcuts"
+                      className="sponsored-checkbox"
                       disabled={!topSitesEnabled}
-                      aria-labelledby="custom-shortcuts-title"
-                    >
-                      <option
-                        value="1"
-                        data-l10n-id="newtab-custom-row-selector"
-                        data-l10n-args='{"num": 1}'
-                      />
-                      <option
-                        value="2"
-                        data-l10n-id="newtab-custom-row-selector"
-                        data-l10n-args='{"num": 2}'
-                      />
-                      <option
-                        value="3"
-                        data-l10n-id="newtab-custom-row-selector"
-                        data-l10n-args='{"num": 3}'
-                      />
-                      <option
-                        value="4"
-                        data-l10n-id="newtab-custom-row-selector"
-                        data-l10n-args='{"num": 4}'
-                      />
-                    </select>
-                    {mayHaveSponsoredTopSites && (
-                      <div className="check-wrapper" role="presentation">
-                        <input
-                          id="sponsored-shortcuts"
-                          className="sponsored-checkbox"
-                          disabled={!topSitesEnabled}
-                          checked={showSponsoredTopSitesEnabled}
-                          type="checkbox"
-                          onChange={this.onPreferenceSelect}
-                          data-preference="showSponsoredTopSites"
-                          data-eventSource="SPONSORED_TOP_SITES"
-                        />
-                        <label
-                          className="sponsored"
-                          htmlFor="sponsored-shortcuts"
-                          data-l10n-id="newtab-custom-sponsored-sites"
-                        />
-                      </div>
-                    )}
+                      checked={showSponsoredTopSitesEnabled}
+                      type="checkbox"
+                      onChange={this.onPreferenceSelect}
+                      data-preference="showSponsoredTopSites"
+                      data-eventSource="SPONSORED_TOP_SITES"
+                    />
+                    <label
+                      className="sponsored"
+                      htmlFor="sponsored-shortcuts"
+                      data-l10n-id="newtab-custom-sponsored-sites"
+                    />
                   </div>
-                </div>
+                )}
               </div>
-            </moz-toggle>
+            </div>
           </div>
+        </div>
 
-          {pocketRegion && (
-            <div id="pocket-section" className="section">
+        {pocketRegion && (
+          <div id="pocket-section" className="section">
+            <label className="switch">
               <moz-toggle
                 id="pocket-toggle"
                 pressed={pocketEnabled || null}
@@ -215,61 +214,60 @@ export class ContentSection extends React.PureComponent {
                 data-preference="feeds.section.topstories"
                 data-eventSource="TOP_STORIES"
                 data-l10n-id="newtab-custom-stories-toggle"
-              >
-                <div slot="nested">
-                  {(mayHaveSponsoredStories || mayHaveRecentSaves) && (
-                    <div className="more-info-pocket-wrapper">
-                      <div
-                        className="more-information"
-                        ref={this.pocketDrawerRef}
-                      >
-                        {mayHaveSponsoredStories && (
-                          <div className="check-wrapper" role="presentation">
-                            <input
-                              id="sponsored-pocket"
-                              className="sponsored-checkbox"
-                              disabled={!pocketEnabled}
-                              checked={showSponsoredPocketEnabled}
-                              type="checkbox"
-                              onChange={this.onPreferenceSelect}
-                              data-preference="showSponsored"
-                              data-eventSource="POCKET_SPOCS"
-                            />
-                            <label
-                              className="sponsored"
-                              htmlFor="sponsored-pocket"
-                              data-l10n-id="newtab-custom-pocket-sponsored"
-                            />
-                          </div>
-                        )}
-                        {mayHaveRecentSaves && (
-                          <div className="check-wrapper" role="presentation">
-                            <input
-                              id="recent-saves-pocket"
-                              className="sponsored-checkbox"
-                              disabled={!pocketEnabled}
-                              checked={showRecentSavesEnabled}
-                              type="checkbox"
-                              onChange={this.onPreferenceSelect}
-                              data-preference="showRecentSaves"
-                              data-eventSource="POCKET_RECENT_SAVES"
-                            />
-                            <label
-                              className="sponsored"
-                              htmlFor="recent-saves-pocket"
-                              data-l10n-id="newtab-custom-pocket-show-recent-saves"
-                            />
-                          </div>
-                        )}
+                data-l10n-attrs="label, description"
+              />
+            </label>
+            <div>
+              {(mayHaveSponsoredStories || mayHaveRecentSaves) && (
+                <div className="more-info-pocket-wrapper">
+                  <div className="more-information" ref={this.pocketDrawerRef}>
+                    {mayHaveSponsoredStories && (
+                      <div className="check-wrapper" role="presentation">
+                        <input
+                          id="sponsored-pocket"
+                          className="sponsored-checkbox"
+                          disabled={!pocketEnabled}
+                          checked={showSponsoredPocketEnabled}
+                          type="checkbox"
+                          onChange={this.onPreferenceSelect}
+                          data-preference="showSponsored"
+                          data-eventSource="POCKET_SPOCS"
+                        />
+                        <label
+                          className="sponsored"
+                          htmlFor="sponsored-pocket"
+                          data-l10n-id="newtab-custom-pocket-sponsored"
+                        />
                       </div>
-                    </div>
-                  )}
+                    )}
+                    {mayHaveRecentSaves && (
+                      <div className="check-wrapper" role="presentation">
+                        <input
+                          id="recent-saves-pocket"
+                          className="sponsored-checkbox"
+                          disabled={!pocketEnabled}
+                          checked={showRecentSavesEnabled}
+                          type="checkbox"
+                          onChange={this.onPreferenceSelect}
+                          data-preference="showRecentSaves"
+                          data-eventSource="POCKET_RECENT_SAVES"
+                        />
+                        <label
+                          className="sponsored"
+                          htmlFor="recent-saves-pocket"
+                          data-l10n-id="newtab-custom-pocket-show-recent-saves"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </moz-toggle>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          <div id="recent-section" className="section">
+        <div id="recent-section" className="section">
+          <label className="switch">
             <moz-toggle
               id="highlights-toggle"
               pressed={highlightsEnabled || null}
@@ -277,11 +275,14 @@ export class ContentSection extends React.PureComponent {
               data-preference="feeds.section.highlights"
               data-eventSource="HIGHLIGHTS"
               data-l10n-id="newtab-custom-recent-toggle"
+              data-l10n-attrs="label, description"
             />
-          </div>
+          </label>
+        </div>
 
-          {mayHaveWeather && (
-            <div id="weather-section" className="section">
+        {mayHaveWeather && (
+          <div id="weather-section" className="section">
+            <label className="switch">
               <moz-toggle
                 id="weather-toggle"
                 pressed={weatherEnabled || null}
@@ -289,27 +290,28 @@ export class ContentSection extends React.PureComponent {
                 data-preference="showWeather"
                 data-eventSource="WEATHER"
                 data-l10n-id="newtab-custom-weather-toggle"
+                data-l10n-attrs="label, description"
               />
+            </label>
+          </div>
+        )}
+
+        {pocketRegion &&
+          mayHaveSponsoredStories &&
+          spocMessageVariant === "variant-c" && (
+            <div className="sponsored-content-info">
+              <div className="icon icon-help"></div>
+              <div>
+                Sponsored content supports our mission to build a better web.{" "}
+                <SafeAnchor
+                  dispatch={this.props.dispatch}
+                  url="https://support.mozilla.org/kb/pocket-sponsored-stories-new-tabs"
+                >
+                  Find out how
+                </SafeAnchor>
+              </div>
             </div>
           )}
-
-          {pocketRegion &&
-            mayHaveSponsoredStories &&
-            spocMessageVariant === "variant-c" && (
-              <div className="sponsored-content-info">
-                <div className="icon icon-help"></div>
-                <div>
-                  Sponsored content supports our mission to build a better web.{" "}
-                  <SafeAnchor
-                    dispatch={this.props.dispatch}
-                    url="https://support.mozilla.org/kb/pocket-sponsored-stories-new-tabs"
-                  >
-                    Find out how
-                  </SafeAnchor>
-                </div>
-              </div>
-            )}
-        </div>
 
         <span className="divider" role="separator"></span>
 

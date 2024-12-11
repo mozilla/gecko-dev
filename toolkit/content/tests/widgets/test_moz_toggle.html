@@ -10,86 +10,99 @@
   solution for token variables for the new widgets -->
   <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <script type="module" src="chrome://global/content/elements/moz-toggle.mjs"></script>
-  <script src="input-test-helpers.js"></script>
 </head>
 <body>
+<p id="display"></p>
+<div id="content" style="max-width: fit-content">
+  <moz-toggle label="Label" description="Description" pressed="true"></moz-toggle>
+</div>
+<pre id="test">
 <script class="testbody" type="application/javascript">
-  let testHelpers = new InputTestHelpers();
+  const { BrowserTestUtils } = ChromeUtils.importESModule(
+    "resource://testing-common/BrowserTestUtils.sys.mjs"
+  );
 
-  add_setup(async function setup() {
-    let { html } = await testHelpers.setupLit();
-    let templateFn = (attrs, children) => html`
-      <moz-toggle ${attrs}>${children}</moz-toggle>
-    `;
-    await testHelpers.setupInputTests({ templateFn });
-    testHelpers.activatedProperty = "pressed";
-  });
+  add_task(async function testMozToggleDisplay() {
+    const mozToggle = document.querySelector("moz-toggle");
+    ok(mozToggle, "moz-toggle is rendered");
 
-  add_task(async function testMozToggleProperties() {
-    await testHelpers.testCommonInputProperties("moz-toggle");
+    const label = mozToggle.labelEl;
+    ok(label, "moz-toggle contains a label");
+    ok(label.textContent.includes("Label"), "The expected label text is shown");
+
+    const description = mozToggle.descriptionEl;
+    ok(description, "moz-toggle contains a description");
+    ok(description.textContent.includes("Description"), "The expected description text is shown");
+
+    const button = mozToggle.buttonEl;
+    ok(button, "moz-toggle contains a button");
+    is(button.getAttribute("aria-pressed"), "true", "The button is pressed");
   });
 
   add_task(async function testMozToggleInteraction() {
-    let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
-    let interactionTemplate = testHelpers.templateFn({ value: "default", label: "Label" });
-    let renderTarget = await testHelpers.renderInputElements(interactionTemplate);
-    const mozToggle = renderTarget.querySelector("moz-toggle");
+    const mozToggle = document.querySelector("moz-toggle");
     const button = mozToggle.buttonEl;
-    mozToggle.pressed = true;
-    await mozToggle.updateComplete;
-
-    mozToggle.addEventListener("click", trackEvent);
-    mozToggle.addEventListener("toggle", trackEvent);
-
     is(mozToggle.pressed, true, "moz-toggle is pressed initially");
     is(button.getAttribute("aria-pressed"), "true", "aria-pressed reflects the pressed state");
 
     synthesizeMouseAtCenter(button, {});
-    await TestUtils.waitForTick();
-
-    verifyEvents([
-      { type: "click", localName: "moz-toggle", pressed: false, value: "default" },
-      { type: "toggle", localName: "moz-toggle", pressed: false, value: "default" },
-    ]);
+    await mozToggle.updateComplete;
 
     is(mozToggle.pressed, false, "The toggle pressed state changes on click");
     is(button.getAttribute("aria-pressed"), "false", "aria-pressed reflects this change");
 
     synthesizeMouseAtCenter(mozToggle.labelEl, {});
-    await TestUtils.waitForTick();
-
-    // Clicking the label element emits an additional click event that doesn't update the pressed state.
-    verifyEvents([
-      { type: "click", localName: "moz-toggle", pressed: false, value: "default" },
-      { type: "click", localName: "moz-toggle", pressed: true, value: "default" },
-      { type: "toggle", localName: "moz-toggle", pressed: true, value: "default" },
-    ]);
+    await mozToggle.updateComplete;
 
     is(mozToggle.pressed, true, "The toggle pressed state changes on label click");
     is(button.getAttribute("aria-pressed"), "true", "aria-pressed reflects this change");
 
     mozToggle.focus();
     synthesizeKey(" ", {});
-    await TestUtils.waitForTick();
-
-    verifyEvents([
-      { type: "click", localName: "moz-toggle", pressed: false, value: "default" },
-      { type: "toggle", localName: "moz-toggle", pressed: false, value: "default" },
-    ]);
+    await mozToggle.updateComplete;
 
     is(mozToggle.pressed, false, "The toggle pressed state can be changed via space bar");
     is(button.getAttribute("aria-pressed"), "false", "aria-pressed reflects this change");
 
+    let descriptionClicked = BrowserTestUtils.waitForEvent(mozToggle, "click");
     synthesizeMouseAtCenter(mozToggle.descriptionEl, {});
-    await TestUtils.waitForTick();
-
-    verifyEvents([]);
-
+    await descriptionClicked;
     isnot(
       mozToggle.shadowRoot.activeElement,
       mozToggle.buttonEl,
       "Clicking the description should not focus the toggle button"
     );
+  });
+
+  add_task(async function testSupportsAccesskey() {
+    const mozToggle = document.querySelector("moz-toggle");
+    let nextAccesskey = "l";
+    mozToggle.setAttribute("accesskey", nextAccesskey);
+    await new Promise(requestAnimationFrame);
+
+    mozToggle.blur();
+    isnot(
+      mozToggle.shadowRoot.activeElement,
+      mozToggle.buttonEl,
+      "Toggle button should not be focused."
+    );
+    await mozToggle.updateComplete;
+
+    mozToggle.pressed = false;
+    ok(!mozToggle.pressed, "Toggle is off");
+    synthesizeKey(
+      nextAccesskey,
+      navigator.platform.includes("Mac")
+        ? { altKey: true, ctrlKey: true }
+        : { altKey: true, shiftKey: true }
+    );
+
+    is(
+      mozToggle.shadowRoot.activeElement,
+      mozToggle.buttonEl,
+      "Focus has moved to the toggle button."
+    );
+    ok(mozToggle.pressed, "Toggle is on");
   });
 </script>
 </pre>

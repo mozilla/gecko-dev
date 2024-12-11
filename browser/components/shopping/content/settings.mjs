@@ -85,17 +85,17 @@ class ShoppingSettings extends MozLitElement {
             data-l10n-id="shopping-settings-recommendations-toggle2"
             data-l10n-attrs="label"
             @toggle=${this.onToggleRecommendations}>
-            <span id="shopping-ads-learn-more" data-l10n-id="shopping-settings-recommendations-learn-more3" slot="description">
-              <a
-                id="shopping-ads-learn-more-link"
-                target="_blank"
-                href="${window.RPMGetFormatURLPref(
-                  "app.support.baseURL"
-                )}review-checker-review-quality?utm_campaign=learn-more&utm_medium=inproduct&utm_term=core-sidebar#w_ads_for_relevant_products"
-                data-l10n-name="review-quality-url"
-              ></a>
-            </span>
           </moz-toggle/>
+          <span id="shopping-ads-learn-more" data-l10n-id="shopping-settings-recommendations-learn-more3">
+            <a
+              id="shopping-ads-learn-more-link"
+              target="_blank"
+              href="${window.RPMGetFormatURLPref(
+                "app.support.baseURL"
+              )}review-checker-review-quality?utm_campaign=learn-more&utm_medium=inproduct&utm_term=core-sidebar#w_ads_for_relevant_products"
+              data-l10n-name="review-quality-url"
+            ></a>
+          </span>
         </div>`
       : null;
 
@@ -137,13 +137,12 @@ class ShoppingSettings extends MozLitElement {
             data-l10n-attrs="label"
             @toggle=${this.onToggleAutoOpen}
           >
-            <span
-              slot="description"
-              id="shopping-auto-open-description"
-              data-l10n-id=${autoOpenDescriptionL10nId}
-              data-l10n-args=${JSON.stringify(autoOpenDescriptionL10nArgs)}
-            ></span>
           </moz-toggle>
+          <span
+            id="shopping-auto-open-description"
+            data-l10n-id=${autoOpenDescriptionL10nId}
+            data-l10n-args=${JSON.stringify(autoOpenDescriptionL10nArgs)}
+          ></span>
         </div>`
       : null;
 

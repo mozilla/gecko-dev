@@ -19,7 +19,7 @@
         </moz-radio-group>
       `;
       await testHelpers.setupInputTests({ templateFn });
-      testHelpers.activatedProperty = "checked";
+      testHelpers.checkable = true;
     });
 
     add_task(async function testMozRadioProperties() {

@@ -155,17 +155,11 @@
     font-size: inherit;
   }
 
-  .settings-toggles {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xlarge);
-  }
-
-  [slot='nested'] {
-    margin-block-start: 0;
-  }
-
   .section {
+    moz-toggle {
+      margin-bottom: 10px;
+    }
+
     .sponsored {
       font-size: 14px;
       margin-inline-start: 5px;
@@ -254,7 +248,7 @@
 
     .more-info-top-wrapper {
       .check-wrapper {
-        margin-block-start: var(--space-large);
+        margin-top: 10px;
       }
     }
   }
