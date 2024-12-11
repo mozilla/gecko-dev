@@ -7,7 +7,7 @@ package org.mozilla.fenix.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import org.mozilla.fenix.compose.inComposePreview
+import mozilla.components.compose.base.utils.inComposePreview
 import org.mozilla.fenix.ext.settings
 
 /**

@@ -50,12 +50,12 @@ import mozilla.components.browser.icons.compose.Loader
 import mozilla.components.browser.icons.compose.Placeholder
 import mozilla.components.browser.icons.compose.WithIcon
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.utils.inComposePreview
 import mozilla.components.support.ktx.kotlin.trimmed
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.Image
 import org.mozilla.fenix.compose.TabThumbnail
-import org.mozilla.fenix.compose.inComposePreview
 import org.mozilla.fenix.compose.menu.DropdownMenu
 import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.compose.text.Text
