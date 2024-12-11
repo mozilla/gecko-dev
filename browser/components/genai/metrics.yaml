@@ -146,6 +146,29 @@ genai.chatbot:
         type: boolean
         description: New/current state is enabled.
 
+  keyboard_shortcut:
+    type: event
+    description: >
+      Chatbot sidebar toggled with keyboard shortcut.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905027
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226205
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      enabled:
+        type: boolean
+        description: Chatbot was already enabled.
+      sidebar:
+        type: string
+        description: Sidebar is currently open.
+
   onboarding_close:
     type: event
     description: >

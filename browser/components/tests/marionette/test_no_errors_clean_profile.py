@@ -49,6 +49,11 @@ known_errors = [
         "message": "key_toggleReaderMode",
     },
     {
+        # Triggered as soon as anything tries to use shortcut keys.
+        # Bug 1936426 to reconsider warning as we want ctrl-alt-x for chatbot.
+        "message": "viewGenaiChatSidebarKb",
+    },
+    {
         # Triggered on Linux because it doesn't implement the
         # secondsSinceLastOSRestart property at all.
         "message": "(NS_ERROR_NOT_IMPLEMENTED) [nsIAppStartup.secondsSinceLastOSRestart]",
