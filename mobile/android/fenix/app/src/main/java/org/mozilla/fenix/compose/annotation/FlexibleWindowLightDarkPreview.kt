@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.compose.base.annotation
+package org.mozilla.fenix.compose.annotation
 
 import android.content.res.Configuration
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
-import mozilla.components.compose.base.theme.AcornWindowSize
+import org.mozilla.fenix.theme.AcornWindowSize
 
 private const val SMALL_WINDOW_WIDTH = 400
 private const val MEDIUM_WINDOW_WIDTH = 700

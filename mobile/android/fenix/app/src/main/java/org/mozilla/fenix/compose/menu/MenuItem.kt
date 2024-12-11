@@ -8,7 +8,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import mozilla.components.compose.base.Divider
+import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.text.Text
 
 /**

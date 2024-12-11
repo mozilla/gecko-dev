@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.compose.base.theme
+package org.mozilla.fenix.theme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * A custom typography for Acorn Theming.
+ * A custom typography for Mozilla Firefox for Android (Fenix).
  *
  * @property headline5 Currently not in-use.
  * @property headline6 Used for headings on Onboarding Modals and App Bar Titles.
@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
  * @property overline Used for Sheets.
  */
 @Suppress("LongParameterList")
-class AcornTypography(
+class FenixTypography(
     val headline5: TextStyle,
     val headline6: TextStyle,
     val headline7: TextStyle,
@@ -48,7 +48,7 @@ class AcornTypography(
     val overline: TextStyle,
 )
 
-val defaultTypography = AcornTypography(
+val defaultTypography = FenixTypography(
     headline5 = TextStyle(
         fontSize = 24.sp,
         fontWeight = FontWeight.W400,
@@ -144,10 +144,10 @@ private fun TypographyPreview() {
         Pair("Overline", defaultTypography.overline),
     )
 
-    AcornTheme(colors = lightColorPalette) {
+    FirefoxTheme {
         LazyColumn(
             modifier = Modifier
-                .background(AcornTheme.colors.layer1)
+                .background(FirefoxTheme.colors.layer1)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {

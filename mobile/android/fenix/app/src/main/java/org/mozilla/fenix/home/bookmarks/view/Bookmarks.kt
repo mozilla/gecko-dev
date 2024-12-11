@@ -41,14 +41,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.icons.compose.Loader
 import mozilla.components.browser.icons.compose.Placeholder
-import mozilla.components.compose.base.annotation.LightDarkPreview
-import mozilla.components.compose.base.utils.inComposePreview
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.Image
 import org.mozilla.fenix.compose.MenuItem
+import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.compose.inComposePreview
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.theme.FirefoxTheme
 

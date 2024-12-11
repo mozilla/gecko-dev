@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.compose.base.theme
+package org.mozilla.fenix.theme
 
 import android.content.Context
 import android.content.res.Configuration
@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.mozilla.fenix.utils.isLargeScreenSize
 
 /**
  * The baseline dimension primitives for size, space, and window size.
@@ -244,7 +245,7 @@ data class AcornSpace(
      */
     val baseContentEqualPadding = small
 
-    internal companion object {
+    companion object {
         /**
          * Returns the palette of space tokens corresponding to the [AcornWindowSize].
          *
@@ -296,7 +297,6 @@ enum class AcornWindowSize(
      */
     fun isNotSmall() = this != Small
 
-    @Suppress("UndocumentedPublicClass")
     companion object {
         /**
          * Helper function for obtaining the window's [AcornWindowSize] within Compose.
@@ -380,16 +380,16 @@ enum class AcornWindowSize(
 private fun AcornLayoutPreview() {
     var windowSize by remember { mutableStateOf(AcornWindowSize.Large) }
 
-    AcornTheme {
+    FirefoxTheme {
         Column(
             modifier = Modifier
-                .background(color = AcornTheme.colors.layerScrim)
+                .background(color = FirefoxTheme.colors.layerScrim)
                 .fillMaxSize()
-                .padding(all = AcornTheme.space.cardPadding),
+                .padding(all = FirefoxTheme.space.cardPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(AcornTheme.space.small),
+                horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
             ) {
                 Button(
                     onClick = {
@@ -397,13 +397,13 @@ private fun AcornLayoutPreview() {
                     },
                     modifier = Modifier.width(200.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        backgroundColor = AcornTheme.colors.actionPrimary,
+                        backgroundColor = FirefoxTheme.colors.actionPrimary,
                     ),
                 ) {
                     Text(
                         text = "Small",
-                        color = AcornTheme.colors.textActionPrimary,
-                        style = AcornTheme.typography.button,
+                        color = FirefoxTheme.colors.textActionPrimary,
+                        style = FirefoxTheme.typography.button,
                     )
                 }
 
@@ -413,13 +413,13 @@ private fun AcornLayoutPreview() {
                     },
                     modifier = Modifier.width(200.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        backgroundColor = AcornTheme.colors.actionPrimary,
+                        backgroundColor = FirefoxTheme.colors.actionPrimary,
                     ),
                 ) {
                     Text(
                         text = "Medium",
-                        color = AcornTheme.colors.textActionPrimary,
-                        style = AcornTheme.typography.button,
+                        color = FirefoxTheme.colors.textActionPrimary,
+                        style = FirefoxTheme.typography.button,
                     )
                 }
 
@@ -429,21 +429,21 @@ private fun AcornLayoutPreview() {
                     },
                     modifier = Modifier.width(200.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        backgroundColor = AcornTheme.colors.actionPrimary,
+                        backgroundColor = FirefoxTheme.colors.actionPrimary,
                     ),
                 ) {
                     Text(
                         text = "Large",
-                        color = AcornTheme.colors.textActionPrimary,
-                        style = AcornTheme.typography.button,
+                        color = FirefoxTheme.colors.textActionPrimary,
+                        style = FirefoxTheme.typography.button,
                     )
                 }
             }
 
-            Spacer(Modifier.height(AcornTheme.space.small))
+            Spacer(Modifier.height(FirefoxTheme.space.small))
 
-            AcornTheme(windowSize = windowSize) {
-                val widthModifier = when (AcornTheme.windowSize) {
+            FirefoxTheme(windowSize = windowSize) {
+                val widthModifier = when (FirefoxTheme.windowSize) {
                     AcornWindowSize.Small -> Modifier.width(width = 400.dp)
                     AcornWindowSize.Medium -> Modifier.width(width = 700.dp)
                     AcornWindowSize.Large -> Modifier.fillMaxWidth()
@@ -452,8 +452,8 @@ private fun AcornLayoutPreview() {
                     modifier = widthModifier
                         .fillMaxHeight()
                         .verticalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(AcornTheme.space.small),
-                    verticalArrangement = Arrangement.spacedBy(AcornTheme.space.small),
+                    horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
+                    verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
                 ) {
                     for (x in 0 until 200) {
                         val color = Color(
@@ -464,19 +464,19 @@ private fun AcornLayoutPreview() {
 
                         Box(
                             modifier = Modifier
-                                .size(size = AcornTheme.size.thumbnail)
+                                .size(size = FirefoxTheme.size.thumbnail)
                                 .background(
                                     color = color,
-                                    shape = RoundedCornerShape(size = AcornTheme.size.corner.small),
+                                    shape = RoundedCornerShape(size = FirefoxTheme.size.corner.small),
                                 )
                                 .border(
-                                    width = AcornTheme.size.border.normal,
+                                    width = FirefoxTheme.size.border.normal,
                                     color = color.copy(
                                         red = color.red * 0.8f,
                                         green = color.green * 0.8f,
                                         blue = color.blue * 0.8f,
                                     ),
-                                    shape = RoundedCornerShape(size = AcornTheme.size.corner.small),
+                                    shape = RoundedCornerShape(size = FirefoxTheme.size.corner.small),
                                 ),
                         )
                     }

@@ -12,6 +12,7 @@ import androidx.navigation.NavOptions
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.support.base.log.logger.Logger
+import java.lang.IllegalArgumentException
 
 /**
  * Navigate from the fragment with [id] using the given [directions].

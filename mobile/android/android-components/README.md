@@ -179,12 +179,6 @@ _Generic low-level UI components for building apps._
 
 * 🔵 [**Tabcounter**](components/ui/tabcounter/README.md) - A button that shows the current tab count and can animate state changes.
 
-## Compose
-
-Compose UI components for building apps.
-
-* 🔵 [**Base**](components/compose/base/README.md) - Base component containing Composable components based on [Acorn Design System](https://acorn.firefox.com/) that are used as building blocks for building UI.
-
 ## Service
 
 _Components and libraries to interact with backend services._

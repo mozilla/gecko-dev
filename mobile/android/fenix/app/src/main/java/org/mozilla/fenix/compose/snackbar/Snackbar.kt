@@ -42,10 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import kotlinx.coroutines.launch
-import mozilla.components.compose.base.button.TextButton
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.SnackbarBehavior
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.compose.button.TextButton
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.Snackbar.Companion.SnackbarAnimationCallback
 import org.mozilla.fenix.compose.snackbar.SnackbarState.Type

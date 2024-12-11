@@ -26,10 +26,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.concept.identitycredential.Provider
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.identitycredential.previews.DialogPreviewMaterialTheme
+import mozilla.components.feature.prompts.identitycredential.previews.LightDarkPreview
 import mozilla.components.support.ktx.kotlin.base64ToBitmap
 
 /**

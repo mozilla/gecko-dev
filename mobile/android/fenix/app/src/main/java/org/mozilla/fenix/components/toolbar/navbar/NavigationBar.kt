@@ -38,7 +38,6 @@ import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
@@ -48,6 +47,7 @@ import org.mozilla.fenix.components.toolbar.NewTabMenu
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.IconButton
 import org.mozilla.fenix.compose.LongPressIconButton
+import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.utils.KeyboardState
 import org.mozilla.fenix.compose.utils.keyboardAsState
 import org.mozilla.fenix.search.SearchDialogFragment
