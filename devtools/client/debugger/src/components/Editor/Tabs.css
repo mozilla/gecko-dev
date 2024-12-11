@@ -45,6 +45,14 @@
   font-size: 12px;
   background-color: transparent;
   vertical-align: bottom;
+
+  :root[forced-colors-active] & {
+    color: ButtonText;
+
+    &.active {
+      color: SelectedItemText;
+    }
+  }
 }
 
 .source-tab::before {
@@ -64,12 +72,21 @@
 .source-tab.active {
   --tab-line-color: var(--tab-line-selected-color);
   color: var(--theme-toolbar-selected-color);
-  border-bottom-color: transparent;
+  background-color: var(--theme-toolbar-selected-background);
+  border-bottom-color: var(--theme-toolbar-selected-background);
 }
 
 .source-tab:not(.active):hover {
   --tab-line-color: var(--tab-line-hover-color);
   background-color: var(--theme-toolbar-hover);
+
+  :root[forced-colors-active] & {
+    color: SelectedItem;
+
+    & .img.source-icon {
+      fill: var(--theme-icon-hover-color);
+    }
+  }
 }
 
 .source-tab:hover::before,
@@ -119,9 +136,15 @@
 
 .source-tab.active .source-icon {
   background-color: currentColor;
+  fill: currentColor;
 }
 
 .source-tab .close-btn:hover {
   color: var(--theme-selection-color);
   background-color: var(--theme-selection-background);
+}
+
+:root[forced-colors-active] .source-tab.active .close-btn:hover {
+  color: var(--theme-selection-background);
+  background-color: var(--theme-selection-color);
 }
