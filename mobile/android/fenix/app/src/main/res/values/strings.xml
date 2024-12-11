@@ -582,6 +582,10 @@
     <string name="onboarding_customize_toolbar_top_option">Top</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Bottom</string>
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">Large header image of the toolbar selection view showing an illustrated toolbar.</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description">Image of the %1$s toolbar</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Pick a theme</string>
@@ -597,6 +601,10 @@
     <string name="onboarding_customize_theme_light_option">Light</string>
     <!-- Onboarding theme selection card label for 'system default' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_system_option">System auto</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Large header image of the theme selection view showing illustrated artist and builder tools.</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Image of the %1$s theme</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
