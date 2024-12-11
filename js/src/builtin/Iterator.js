@@ -6,17 +6,6 @@ function IteratorIdentity() {
   return this;
 }
 
-#ifdef NIGHTLY_BUILD
-/**
- *  Iterator.range ( start, end, optionOrStep )
- *
- * https://tc39.es/proposal-iterator.range/#sec-iterator.range
- */
-function IteratorRange(start, end, optionOrStep) {
-  return false;
-}
-#endif
-
 /* ECMA262 7.2.7 */
 function IteratorNext(iteratorRecord, value) {
   // Steps 1-2.
@@ -24,10 +13,10 @@ function IteratorNext(iteratorRecord, value) {
     ArgumentsLength() < 2
       ? callContentFunction(iteratorRecord.nextMethod, iteratorRecord.iterator)
       : callContentFunction(
-          iteratorRecord.nextMethod,
-          iteratorRecord.iterator,
-          value
-        );
+        iteratorRecord.nextMethod,
+        iteratorRecord.iterator,
+        value
+      );
   // Step 3.
   if (!IsObject(result)) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, result);
@@ -1033,7 +1022,7 @@ function* IteratorConcatGenerator(iterables) {
   assert(iterables.length % 2 === 0, "iterables contains pairs (item, method)");
 
   // Step 3.a.
-  for (var i = iterables.length; i > 0; ) {
+  for (var i = iterables.length; i > 0;) {
     var item = iterables[--i];
     var method = iterables[--i];
 
@@ -1065,5 +1054,35 @@ function IteratorZip(predicate) {
  */
 function IteratorZipKeyed(predicate) {
   return false;
+}
+
+/**
+ * Iterator.range ( start, end, optionOrStep, type )
+ * 
+ * https://tc39.es/proposal-iterator.range/#sec-iterator.range
+ */
+function CreateNumericRangeIterator(start, end, optionOrStep, isNumberRange) {
+  return false;
+}
+
+/**
+ *  Iterator.range ( start, end, optionOrStep )
+ *
+ * https://tc39.es/proposal-iterator.range/#sec-iterator.range
+ */
+function IteratorRange(start, end, optionOrStep) {
+
+  // Step 1. If start is a Number, return ? CreateNumericRangeIterator(start, end, optionOrStep, NUMBER-RANGE)
+  if (typeof start === 'number') {
+    return CreateNumericRangeIterator(start, end, optionOrStep, true);
+  }
+
+  // Step 2. If start is a BigInt, return ? CreateNumericRangeIterator(start, end, optionOrStep, BIGINT-RANGE)
+  if (typeof start === 'bigint') {
+    return CreateNumericRangeIterator(start, end, optionOrStep, false);
+  }
+
+  // Step 3. Throw a TypeError exception.
+  ThrowTypeError(JSMSG_ITERATOR_RANGE_INVALID_START);
 }
 #endif

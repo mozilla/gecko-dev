@@ -990,4 +990,7 @@ MSG_DEF(JSMSG_ERROR_WAS_SUPPRESSED, 0, IF_EXPLICIT_RESOURCE_MANAGEMENT(JSEXN_SUP
 // DisposableStack
 MSG_DEF(JSMSG_DISPOSABLE_STACK_DISPOSED, 0, JSEXN_REFERENCEERR, "DisposableStack has already been disposed")
 
+// Iterator.range
+MSG_DEF(JSMSG_ITERATOR_RANGE_INVALID_START, 0, JSEXN_TYPEERR, "The 'start' argument must be a number or BigInt")
+
 //clang-format on
