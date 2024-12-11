@@ -53,6 +53,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param pageState The page content that's displayed.
  * @param onThemeSelectionClicked Callback for when a theme selection is clicked.
  */
+@Suppress("LongMethod")
 @Composable
 fun ThemeOnboardingPage(
     onboardingStore: OnboardingStore,

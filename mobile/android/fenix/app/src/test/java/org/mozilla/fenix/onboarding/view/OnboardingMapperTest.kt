@@ -264,6 +264,7 @@ class OnboardingMapperTest {
             description = "Keep searches within reach",
             primaryButton = Action("Save and continue", unitLambda),
             secondaryButton = Action("Skip", unitLambda),
+            toolbarOptions = toolbarOptions,
         )
 
         val onboardingPageUiData = OnboardingPageUiData(
