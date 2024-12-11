@@ -71,7 +71,7 @@ add_task(async function yelpDisabled() {
   gMakeSuggestionsStub.returns({ intent: "yelp_intent", subject: "burgers" });
   let expectedResult = makeExpectedResult(YOKOHAMA_RESULT);
 
-  let prefs = [
+  let tests = [
     // These disable the Yelp feature itself, including Rust suggestions.
     "suggest.quicksuggest.sponsored",
     "suggest.yelp",
@@ -83,11 +83,52 @@ add_task(async function yelpDisabled() {
     "yelp.mlEnabled",
     "browser.ml.enable",
     "quicksuggest.mlEnabled",
-  ];
-  for (let pref of prefs) {
-    info("Starting subtest for pref: " + pref);
 
-    // Before disabling the pref, first make sure the suggestion is added.
+    // pref combinations
+    {
+      prefs: {
+        "suggest.quicksuggest.sponsored": true,
+        "suggest.quicksuggest.nonsponsored": true,
+      },
+      expected: true,
+    },
+    {
+      prefs: {
+        "suggest.quicksuggest.sponsored": true,
+        "suggest.quicksuggest.nonsponsored": false,
+      },
+      expected: true,
+    },
+    {
+      prefs: {
+        "suggest.quicksuggest.sponsored": false,
+        "suggest.quicksuggest.nonsponsored": true,
+      },
+      expected: false,
+    },
+    {
+      prefs: {
+        "suggest.quicksuggest.sponsored": false,
+        "suggest.quicksuggest.nonsponsored": false,
+      },
+      expected: false,
+    },
+  ];
+  for (let test of tests) {
+    info("Starting subtest: " + JSON.stringify(test));
+
+    let prefs;
+    let expected;
+    if (typeof test == "string") {
+      // A string value is a pref name, and we'll set it to false and expect no
+      // suggestions.
+      prefs = { [test]: false };
+      expected = false;
+    } else {
+      ({ prefs, expected } = test);
+    }
+
+    // Before setting the prefs, first make sure the suggestion is added.
     info("Doing search 1");
     await check_results({
       context: createContext("burgers", {
@@ -97,23 +138,32 @@ add_task(async function yelpDisabled() {
       matches: [expectedResult],
     });
 
-    // Now disable the pref.
-    info("Disabling pref and doing search 2");
-    UrlbarPrefs.set(pref, false);
+    // Also get the original pref values.
+    let originalPrefs = Object.fromEntries(
+      Object.keys(prefs).map(name => [name, UrlbarPrefs.get(name)])
+    );
+
+    // Now set the prefs.
+    info("Setting prefs and doing search 2");
+    for (let [name, value] of Object.entries(prefs)) {
+      UrlbarPrefs.set(name, value);
+    }
     await check_results({
       context: createContext("burgers", {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: [],
+      matches: expected ? [expectedResult] : [],
     });
 
     // Revert.
-    UrlbarPrefs.set(pref, true);
+    for (let [name, value] of Object.entries(originalPrefs)) {
+      UrlbarPrefs.set(name, value);
+    }
     await QuickSuggestTestUtils.forceSync();
 
     // Make sure Yelp is added again.
-    info("Doing search 3 after re-enabling the pref");
+    info("Doing search 3 after reverting the prefs");
     await check_results({
       context: createContext("burgers", {
         providers: [UrlbarProviderQuickSuggest.name],
