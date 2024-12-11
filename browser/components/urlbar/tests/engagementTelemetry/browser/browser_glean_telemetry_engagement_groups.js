@@ -231,9 +231,7 @@ add_task(async function suggest() {
       assertEngagementTelemetry([
         {
           groups: "heuristic,suggest",
-          results: UrlbarPrefs.get("quickSuggestRustEnabled")
-            ? "search_engine,rust_adm_nonsponsored"
-            : "search_engine,rs_adm_nonsponsored",
+          results: "search_engine,rust_adm_nonsponsored",
           n_results: 2,
         },
       ]),

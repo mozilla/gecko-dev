@@ -672,7 +672,7 @@ add_task(async function maxResults() {
   await QuickSuggestTestUtils.forceSync();
 
   let searchString = "maxresults";
-  let suggestions = await QuickSuggest.backend.query(searchString);
+  let suggestions = await QuickSuggest.rustBackend.query(searchString);
   Assert.equal(
     suggestions.length,
     gMaxResultsSuggestionsCount,
@@ -784,7 +784,7 @@ async function doManySuggestResultsTest({
 
   // Make sure many Suggest suggestions match the search string.
   let searchString = "maxresults";
-  let suggestions = await QuickSuggest.backend.query(searchString);
+  let suggestions = await QuickSuggest.rustBackend.query(searchString);
   Assert.equal(
     suggestions.length,
     gMaxResultsSuggestionsCount,

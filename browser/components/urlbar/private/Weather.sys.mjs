@@ -173,7 +173,7 @@ export class Weather extends BaseFeature {
   get canShowLessFrequently() {
     const cap =
       lazy.UrlbarPrefs.get("weatherShowLessFrequentlyCap") ||
-      lazy.QuickSuggest.backend.config?.showLessFrequentlyCap ||
+      lazy.QuickSuggest.config.showLessFrequentlyCap ||
       0;
     return !cap || this.showLessFrequentlyCount < cap;
   }

@@ -128,9 +128,8 @@ class ProviderQuickSuggest extends UrlbarProvider {
 
     // Fetch suggestions from all enabled sources.
     let promises = [];
-    let { backend } = lazy.QuickSuggest;
-    if (backend?.isEnabled) {
-      promises.push(backend.query(searchString));
+    if (lazy.QuickSuggest.rustBackend?.isEnabled) {
+      promises.push(lazy.QuickSuggest.rustBackend.query(searchString));
     }
     if (
       lazy.UrlbarPrefs.get("quicksuggest.dataCollection.enabled") &&
@@ -633,10 +632,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
    */
   cancelQuery() {
     // Cancel the Rust query.
-    let backend = lazy.QuickSuggest.getFeature("SuggestBackendRust");
-    if (backend?.isEnabled) {
-      backend.cancelQuery();
-    }
+    lazy.QuickSuggest.rustBackend?.cancelQuery();
 
     // Cancel the Merino timeout timer so it doesn't fire and record a timeout.
     // If it's already canceled or has fired, this is a no-op.

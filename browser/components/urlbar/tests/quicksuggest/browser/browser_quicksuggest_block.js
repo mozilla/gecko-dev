@@ -93,10 +93,7 @@ async function doOneBasicBlockTest({ result, block }) {
   // The suggested index is -1 even for sponsored since search suggestions are
   // disabled.
   let suggested_index = -1;
-  let expectedBlockId =
-    UrlbarPrefs.get("quicksuggest.rustEnabled") && !isSponsored
-      ? null
-      : result.id;
+  let expectedBlockId = !isSponsored ? null : result.id;
 
   let pingsSubmitted = 0;
   GleanPings.quickSuggest.testBeforeNextSubmit(() => {

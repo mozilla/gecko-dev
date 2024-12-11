@@ -108,6 +108,14 @@ export class SuggestBackendRust extends BaseFeature {
     }
   }
 
+  get enablingPreferences() {
+    return ["quicksuggest.rustEnabled"];
+  }
+
+  get shouldEnable() {
+    return lazy.UrlbarPrefs.get("quicksuggest.rustEnabled");
+  }
+
   /**
    * @returns {object}
    *   The global Suggest config from the Rust component as returned from
@@ -123,10 +131,6 @@ export class SuggestBackendRust extends BaseFeature {
    */
   get ingestPromise() {
     return this.#ingestQueue.emptyPromise;
-  }
-
-  get shouldEnable() {
-    return lazy.UrlbarPrefs.get("quickSuggestRustEnabled");
   }
 
   enable(enabled) {

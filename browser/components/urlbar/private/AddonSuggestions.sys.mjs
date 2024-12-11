@@ -9,7 +9,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  SuggestionsMap: "resource:///modules/urlbar/private/SuggestBackendJs.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
@@ -49,58 +48,6 @@ export class AddonSuggestions extends BaseFeature {
 
   get rustSuggestionTypes() {
     return ["Amo"];
-  }
-
-  enable(enabled) {
-    if (enabled) {
-      lazy.QuickSuggest.jsBackend.register(this);
-    } else {
-      lazy.QuickSuggest.jsBackend.unregister(this);
-      this.#suggestionsMap?.clear();
-    }
-  }
-
-  queryRemoteSettings(searchString) {
-    const suggestions = this.#suggestionsMap?.get(searchString);
-    if (!suggestions) {
-      return [];
-    }
-
-    return suggestions.map(suggestion => ({
-      icon: suggestion.icon,
-      url: suggestion.url,
-      title: suggestion.title,
-      description: suggestion.description,
-      guid: suggestion.guid,
-      score: suggestion.score,
-    }));
-  }
-
-  async onRemoteSettingsSync(rs) {
-    const records = await rs.get({ filters: { type: "amo-suggestions" } });
-    if (!this.isEnabled) {
-      return;
-    }
-
-    const suggestionsMap = new lazy.SuggestionsMap();
-
-    for (const record of records) {
-      const { buffer } = await rs.attachments.download(record);
-      if (!this.isEnabled) {
-        return;
-      }
-
-      const results = JSON.parse(new TextDecoder("utf-8").decode(buffer));
-      await suggestionsMap.add(results, {
-        mapKeyword:
-          lazy.SuggestionsMap.MAP_KEYWORD_PREFIXES_STARTING_AT_FIRST_WORD,
-      });
-      if (!this.isEnabled) {
-        return;
-      }
-    }
-
-    this.#suggestionsMap = suggestionsMap;
   }
 
   async makeResult(queryContext, suggestion, searchString) {
@@ -270,10 +217,8 @@ export class AddonSuggestions extends BaseFeature {
   get canShowLessFrequently() {
     const cap =
       lazy.UrlbarPrefs.get("addonsShowLessFrequentlyCap") ||
-      lazy.QuickSuggest.backend.config?.showLessFrequentlyCap ||
+      lazy.QuickSuggest.config.showLessFrequentlyCap ||
       0;
     return !cap || this.showLessFrequentlyCount < cap;
   }
-
-  #suggestionsMap = null;
 }

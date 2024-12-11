@@ -277,6 +277,5 @@ add_task(async function manyExposureResults_hidden_manyMatched() {
 });
 
 function suggestResultType(typeWithoutSource) {
-  let source = UrlbarPrefs.get("quickSuggestRustEnabled") ? "rust" : "rs";
-  return `${source}_${typeWithoutSource}`;
+  return `rust_${typeWithoutSource}`;
 }

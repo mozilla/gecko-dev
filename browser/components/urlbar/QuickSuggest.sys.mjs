@@ -28,8 +28,6 @@ const FEATURES = {
   MDNSuggestions: "resource:///modules/urlbar/private/MDNSuggestions.sys.mjs",
   PocketSuggestions:
     "resource:///modules/urlbar/private/PocketSuggestions.sys.mjs",
-  SuggestBackendJs:
-    "resource:///modules/urlbar/private/SuggestBackendJs.sys.mjs",
   SuggestBackendMl:
     "resource:///modules/urlbar/private/SuggestBackendMl.sys.mjs",
   SuggestBackendRust:
@@ -99,29 +97,21 @@ class _QuickSuggest {
   }
 
   /**
-   * @returns {SuggestBackendJs|SuggestBackendRust}
-   *   The currently active backend.
-   */
-  get backend() {
-    return lazy.UrlbarPrefs.get("quickSuggestRustEnabled")
-      ? this.rustBackend
-      : this.jsBackend;
-  }
-
-  /**
    * @returns {SuggestBackendRust}
-   *   The Rust backend. Not used when the JS backend is enabled.
+   *   The Rust backend, which manages the Rust component.
    */
   get rustBackend() {
     return this.#features.SuggestBackendRust;
   }
 
   /**
-   * @returns {SuggestBackendJs}
-   *   The JS backend. Not used when the Rust backend is enabled.
+   * @returns {object}
+   *   Global Suggest configuration stored in remote settings and ingested by
+   *   the Rust component. See remote settings or the Rust component for the
+   *   latest schema.
    */
-  get jsBackend() {
-    return this.#features.SuggestBackendJs;
+  get config() {
+    return this.rustBackend?.config || {};
   }
 
   /**

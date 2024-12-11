@@ -68,6 +68,5 @@ async function getRowByType(type) {
 }
 
 function suggestResultType(typeWithoutSource) {
-  let source = UrlbarPrefs.get("quickSuggestRustEnabled") ? "rust" : "rs";
-  return `${source}_${typeWithoutSource}`;
+  return `rust_${typeWithoutSource}`;
 }

@@ -1,7 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/* eslint-disable mozilla/valid-lazy */
 /* eslint-disable jsdoc/require-param */
 
 const lazy = {};
@@ -9,28 +8,15 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
-  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
-  RemoteSettingsConfig: "resource://gre/modules/RustRemoteSettings.sys.mjs",
   RemoteSettingsServer:
     "resource://testing-common/RemoteSettingsServer.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
-  SuggestBackendRust:
-    "resource:///modules/urlbar/private/SuggestBackendRust.sys.mjs",
-  Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
-  SuggestionProvider: "resource://gre/modules/RustSuggest.sys.mjs",
-  SuggestStore: "resource://gre/modules/RustSuggest.sys.mjs",
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
-  UrlbarProviderQuickSuggest:
-    "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
-  UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
-  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 let gTestScope;
@@ -42,6 +28,7 @@ let gTestScope;
 // xpcshell tests.
 Object.defineProperty(lazy, "UrlbarTestUtils", {
   get: () => {
+    // eslint-disable-next-line mozilla/valid-lazy
     if (!lazy._UrlbarTestUtils) {
       const { UrlbarTestUtils: module } = ChromeUtils.importESModule(
         "resource://testing-common/UrlbarTestUtils.sys.mjs"
@@ -49,10 +36,13 @@ Object.defineProperty(lazy, "UrlbarTestUtils", {
       module.init(gTestScope);
       gTestScope.registerCleanupFunction(() => {
         // Make sure the utils are re-initialized during the next test.
+        // eslint-disable-next-line mozilla/valid-lazy
         lazy._UrlbarTestUtils = null;
       });
+      // eslint-disable-next-line mozilla/valid-lazy
       lazy._UrlbarTestUtils = module;
     }
+    // eslint-disable-next-line mozilla/valid-lazy
     return lazy._UrlbarTestUtils;
   },
 });
@@ -64,6 +54,7 @@ Object.defineProperty(lazy, "UrlbarTestUtils", {
 // xpcshell tests.
 Object.defineProperty(lazy, "MerinoTestUtils", {
   get: () => {
+    // eslint-disable-next-line mozilla/valid-lazy
     if (!lazy._MerinoTestUtils) {
       const { MerinoTestUtils: module } = ChromeUtils.importESModule(
         "resource://testing-common/MerinoTestUtils.sys.mjs"
@@ -71,10 +62,13 @@ Object.defineProperty(lazy, "MerinoTestUtils", {
       module.init(gTestScope);
       gTestScope.registerCleanupFunction(() => {
         // Make sure the utils are re-initialized during the next test.
+        // eslint-disable-next-line mozilla/valid-lazy
         lazy._MerinoTestUtils = null;
       });
+      // eslint-disable-next-line mozilla/valid-lazy
       lazy._MerinoTestUtils = module;
     }
+    // eslint-disable-next-line mozilla/valid-lazy
     return lazy._MerinoTestUtils;
   },
 });
@@ -222,20 +216,8 @@ class _QuickSuggestTestUtils {
     await this.#remoteSettingsServer.start();
     this.#log("ensureQuickSuggestInit", "Remote settings server started");
 
-    // Get the cached `RemoteSettings` client used by the JS backend and tell it
-    // to ignore signatures and to always force sync. Otherwise it won't sync if
-    // the previous sync was recent enough, which is incompatible with testing.
-    let rs = lazy.RemoteSettings("quicksuggest");
-    let { get, verifySignature } = rs;
-    rs.verifySignature = false;
-    rs.get = opts => get.call(rs, { forceSync: true, ...opts });
-    this.#restoreRemoteSettings = () => {
-      rs.verifySignature = verifySignature;
-      rs.get = get;
-    };
-
-    // Finally, init Suggest and set prefs. Do this after setting up remote
-    // settings because the current backend will immediately try to sync.
+    // Init Suggest and set prefs. Do this after setting up remote settings
+    // because the Rust backend will immediately try to sync.
     this.#log(
       "ensureQuickSuggestInit",
       "Calling QuickSuggest.init() and setting prefs"
@@ -251,7 +233,7 @@ class _QuickSuggestTestUtils {
       serverUrl: this.#remoteSettingsServer.url.toString(),
     });
 
-    // Wait for the current backend to finish syncing.
+    // Wait for the Rust backend to finish syncing.
     await this.forceSync();
 
     // Set up Merino. This can happen any time relative to Suggest init.
@@ -279,8 +261,8 @@ class _QuickSuggestTestUtils {
   async #uninitQuickSuggest(prefs, clearDataCollectionEnabled) {
     this.#log("#uninitQuickSuggest", "Started");
 
-    // Reset prefs, which can cause the current backend to start syncing. Wait
-    // for it to finish.
+    // Reset prefs, which can cause the Rust backend to start syncing. Wait for
+    // it to finish.
     for (let [name] of prefs) {
       lazy.UrlbarPrefs.clear(name);
     }
@@ -288,7 +270,6 @@ class _QuickSuggestTestUtils {
 
     this.#log("#uninitQuickSuggest", "Stopping remote settings server");
     await this.#remoteSettingsServer.stop();
-    this.#restoreRemoteSettings();
 
     if (clearDataCollectionEnabled) {
       lazy.UrlbarPrefs.clear("quicksuggest.dataCollection.enabled");
@@ -356,11 +337,6 @@ class _QuickSuggestTestUtils {
       await lazy.QuickSuggest.rustBackend._test_ingest();
       this.#log("forceSync", "Done syncing Rust backend");
     }
-    if (lazy.QuickSuggest.jsBackend.isEnabled) {
-      this.#log("forceSync", "Syncing JS backend");
-      await lazy.QuickSuggest.jsBackend._test_syncAll();
-      this.#log("forceSync", "Done syncing JS backend");
-    }
     this.#log("forceSync", "Done");
   }
 
@@ -378,7 +354,7 @@ class _QuickSuggestTestUtils {
    * @see {@link setConfig}
    */
   async withConfig({ config, callback }) {
-    let original = lazy.QuickSuggest.jsBackend.config;
+    let original = lazy.QuickSuggest.config;
     await this.setConfig(config);
     await callback();
     await this.setConfig(original);
@@ -413,15 +389,14 @@ class _QuickSuggestTestUtils {
 
   /**
    * Returns an expected AMP (sponsored) result that can be passed to
-   * `check_results()` in xpcshell tests regardless of whether the Rust backend
-   * is enabled.
+   * `check_results()` in xpcshell tests.
    *
    * @returns {object}
    *   An object that can be passed to `check_results()`.
    */
   ampResult({
-    source,
-    provider,
+    source = "rust",
+    provider = "Amp",
     keyword = "amp",
     fullKeyword = keyword,
     title = "Amp Suggestion",
@@ -452,6 +427,8 @@ class _QuickSuggestTestUtils {
         url,
         originalUrl,
         requestId,
+        source,
+        provider,
         displayUrl: url.replace(/^https:\/\//, ""),
         isSponsored: true,
         qsSuggestion: fullKeyword ?? keyword,
@@ -473,17 +450,9 @@ class _QuickSuggestTestUtils {
       result.payload.descriptionL10n = descriptionL10n;
     }
 
-    if (lazy.UrlbarPrefs.get("quickSuggestRustEnabled")) {
-      result.payload.source = source || "rust";
-      result.payload.provider = provider || "Amp";
-      if (result.payload.source == "rust") {
-        result.payload.iconBlob = iconBlob;
-      } else {
-        result.payload.icon = icon;
-      }
+    if (result.payload.source == "rust") {
+      result.payload.iconBlob = iconBlob;
     } else {
-      result.payload.source = source || "remote-settings";
-      result.payload.provider = provider || "AdmWikipedia";
       result.payload.icon = icon;
     }
 
@@ -519,31 +488,24 @@ class _QuickSuggestTestUtils {
 
   /**
    * Returns an expected Wikipedia (non-sponsored) result that can be passed to
-   * `check_results()` in xpcshell tests regardless of whether the Rust backend
-   * is enabled.
+   * `check_results()` in xpcshell tests.
    *
    * @returns {object}
    *   An object that can be passed to `check_results()`.
    */
   wikipediaResult({
-    source,
-    provider,
+    source = "rust",
+    provider = "Wikipedia",
     keyword = "wikipedia",
     fullKeyword = keyword,
     title = "Wikipedia Suggestion",
     url = "https://example.com/wikipedia",
     originalUrl = url,
-    icon = null,
     iconBlob = null,
-    impressionUrl = "https://example.com/wikipedia-impression",
-    clickUrl = "https://example.com/wikipedia-click",
-    blockId = 2,
-    advertiser = "Wikipedia",
-    iabCategory = "5 - Education",
     suggestedIndex = -1,
     isSuggestedIndexRelativeToGroup = true,
   } = {}) {
-    let result = {
+    return {
       suggestedIndex,
       isSuggestedIndexRelativeToGroup,
       type: lazy.UrlbarUtils.RESULT_TYPE.URL,
@@ -553,6 +515,9 @@ class _QuickSuggestTestUtils {
         title,
         url,
         originalUrl,
+        iconBlob,
+        source,
+        provider,
         displayUrl: url.replace(/^https:\/\//, ""),
         isSponsored: false,
         qsSuggestion: fullKeyword ?? keyword,
@@ -566,23 +531,6 @@ class _QuickSuggestTestUtils {
         telemetryType: "adm_nonsponsored",
       },
     };
-
-    if (lazy.UrlbarPrefs.get("quickSuggestRustEnabled")) {
-      result.payload.source = source || "rust";
-      result.payload.provider = provider || "Wikipedia";
-      result.payload.iconBlob = iconBlob;
-    } else {
-      result.payload.source = source || "remote-settings";
-      result.payload.provider = provider || "AdmWikipedia";
-      result.payload.icon = icon;
-      result.payload.sponsoredImpressionUrl = impressionUrl;
-      result.payload.sponsoredClickUrl = clickUrl;
-      result.payload.sponsoredBlockId = blockId;
-      result.payload.sponsoredAdvertiser = advertiser;
-      result.payload.sponsoredIabCategory = iabCategory;
-    }
-
-    return result;
   }
 
   /**
@@ -847,15 +795,14 @@ class _QuickSuggestTestUtils {
 
   /**
    * Returns an expected AMO (addons) result that can be passed to
-   * `check_results()` in xpcshell tests regardless of whether the Rust backend
-   * is enabled.
+   * `check_results()` in xpcshell tests.
    *
    * @returns {object}
    *   An object that can be passed to `check_results()`.
    */
   amoResult({
-    source,
-    provider,
+    source = "rust",
+    provider = "Amo",
     title = "Amo Suggestion",
     description = "Amo description",
     url = "https://example.com/amo",
@@ -870,7 +817,7 @@ class _QuickSuggestTestUtils {
       url = url.href;
     }
 
-    let result = {
+    return {
       isBestMatch: true,
       suggestedIndex: 1,
       type: lazy.UrlbarUtils.RESULT_TYPE.URL,
@@ -891,21 +838,11 @@ class _QuickSuggestTestUtils {
         telemetryType: "amo",
       },
     };
-
-    if (lazy.UrlbarPrefs.get("quickSuggestRustEnabled")) {
-      result.payload.source = source || "rust";
-      result.payload.provider = provider || "Amo";
-    } else {
-      result.payload.source = source || "remote-settings";
-      result.payload.provider = provider || "AddonSuggestions";
-    }
-
-    return result;
   }
 
   /**
    * Returns an expected MDN result that can be passed to `check_results()` in
-   * xpcshell tests regardless of whether the Rust backend is enabled.
+   * xpcshell tests.
    *
    * @returns {object}
    *   An object that can be passed to `check_results()`.
@@ -920,7 +857,7 @@ class _QuickSuggestTestUtils {
     );
     finalUrl.searchParams.set("utm_content", "treatment");
 
-    let result = {
+    return {
       isBestMatch: true,
       suggestedIndex: 1,
       type: lazy.UrlbarUtils.RESULT_TYPE.URL,
@@ -936,33 +873,24 @@ class _QuickSuggestTestUtils {
         icon: "chrome://global/skin/icons/mdn.svg",
         shouldShowUrl: true,
         bottomTextL10n: { id: "firefox-suggest-mdn-bottom-text" },
+        source: "rust",
+        provider: "Mdn",
       },
     };
-
-    if (lazy.UrlbarPrefs.get("quickSuggestRustEnabled")) {
-      result.payload.source = "rust";
-      result.payload.provider = "Mdn";
-    } else {
-      result.payload.source = "remote-settings";
-      result.payload.provider = "MDNSuggestions";
-    }
-
-    return result;
   }
 
   /**
    * Returns an expected weather result that can be passed to `check_results()`
-   * in xpcshell tests regardless of whether the Rust backend is enabled.
+   * in xpcshell tests.
    *
    * @returns {object}
    *   An object that can be passed to `check_results()`.
    */
   weatherResult({
-    source,
-    provider,
+    source = "rust",
+    provider = "Weather",
     city = null,
     region = null,
-    telemetryType = undefined,
     temperatureUnit = undefined,
   } = {}) {
     if (!temperatureUnit) {
@@ -970,19 +898,19 @@ class _QuickSuggestTestUtils {
         Services.locale.regionalPrefsLocales[0] == "en-US" ? "f" : "c";
     }
 
-    let result = {
+    return {
       type: lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC,
       source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
       heuristic: false,
       suggestedIndex: 1,
       payload: {
         temperatureUnit,
+        source,
+        provider,
         url: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
         input: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
         iconId: "6",
         requestId: lazy.MerinoTestUtils.server.response.body.request_id,
-        source: "merino",
-        provider: "accuweather",
         dynamicType: "weather",
         city: city || lazy.MerinoTestUtils.WEATHER_SUGGESTION.city_name,
         region: region || lazy.MerinoTestUtils.WEATHER_SUGGESTION.region_code,
@@ -998,20 +926,9 @@ class _QuickSuggestTestUtils {
         low: lazy.MerinoTestUtils.WEATHER_SUGGESTION.forecast.low[
           temperatureUnit
         ],
+        telemetryType: "weather",
       },
     };
-
-    if (lazy.UrlbarPrefs.get("quickSuggestRustEnabled")) {
-      result.payload.source = source || "rust";
-      result.payload.provider = provider || "Weather";
-      if (telemetryType !== null) {
-        result.payload.telemetryType = telemetryType || "weather";
-      }
-    } else {
-      throw new Error("Weather result not supported when Rust disabled");
-    }
-
-    return result;
   }
 
   /**
@@ -1437,7 +1354,6 @@ class _QuickSuggestTestUtils {
   }
 
   #remoteSettingsServer;
-  #restoreRemoteSettings;
 }
 
 export var QuickSuggestTestUtils = new _QuickSuggestTestUtils();

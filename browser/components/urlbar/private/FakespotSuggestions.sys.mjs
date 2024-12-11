@@ -108,7 +108,7 @@ export class FakespotSuggestions extends BaseFeature {
   get canShowLessFrequently() {
     let cap =
       lazy.UrlbarPrefs.get("fakespotShowLessFrequentlyCap") ||
-      lazy.QuickSuggest.backend.config?.showLessFrequentlyCap ||
+      lazy.QuickSuggest.config.showLessFrequentlyCap ||
       0;
     return !cap || this.showLessFrequentlyCount < cap;
   }

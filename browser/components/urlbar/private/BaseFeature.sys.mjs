@@ -27,14 +27,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
  *   place, without mixing it with unrelated code and cluttering up
  *   `QuickSuggest`. You can also test it in isolation from `QuickSuggest`.
  *
- * - Remote settings management. You can register your feature with
- *   `QuickSuggestRemoteSettings` and it will be called at appropriate times to
- *   sync from remote settings.
- *
- * - If your feature also serves suggestions from remote settings, you can
- *   implement one method, `queryRemoteSettings()`, to hook into
- *   `UrlbarProviderQuickSuggest`.
- *
  * - Your feature will automatically get its own logger.
  *
  * To register your subclass with `QuickSuggest`, add it to the `FEATURES` const
@@ -115,31 +107,6 @@ export class BaseFeature {
    *   Whether the feature should be enabled or not.
    */
   enable(_enabled) {}
-
-  /**
-   * If the feature manages suggestions from remote settings that should be
-   * returned by UrlbarProviderQuickSuggest, the subclass should override this
-   * method. It should return remote settings suggestions matching the given
-   * search string.
-   *
-   * @param {string} _searchString
-   *   The search string.
-   * @returns {Array}
-   *   An array of matching suggestions, or null if not implemented.
-   */
-  async queryRemoteSettings(_searchString) {
-    return null;
-  }
-
-  /**
-   * If the feature manages data in remote settings, the subclass should
-   * override this method. It should fetch the data and build whatever data
-   * structures are necessary to support the feature.
-   *
-   * @param {RemoteSettings} _rs
-   *   The `RemoteSettings` client object.
-   */
-  async onRemoteSettingsSync(_rs) {}
 
   /**
    * If the feature manages suggestions that either aren't served by Merino or

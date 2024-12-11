@@ -479,17 +479,10 @@ function makeExpectedResult({
   searchString,
   fullKeyword = searchString,
   suggestion = REMOTE_SETTINGS_DATA[0].attachment[0],
-  source = "remote-settings",
+  source = "rust",
   isTopPick = false,
   suggestedIndex,
 } = {}) {
-  if (
-    source == "remote-settings" &&
-    UrlbarPrefs.get("quicksuggest.rustEnabled")
-  ) {
-    source = "rust";
-  }
-
   let provider;
   let keywordSubstringNotTyped = fullKeyword.substring(searchString.length);
   let description = suggestion.description;

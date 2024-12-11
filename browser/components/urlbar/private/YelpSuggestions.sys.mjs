@@ -64,7 +64,7 @@ export class YelpSuggestions extends BaseFeature {
   get canShowLessFrequently() {
     const cap =
       lazy.UrlbarPrefs.get("yelpShowLessFrequentlyCap") ||
-      lazy.QuickSuggest.backend.config?.showLessFrequentlyCap ||
+      lazy.QuickSuggest.config.showLessFrequentlyCap ||
       0;
     return !cap || this.showLessFrequentlyCount < cap;
   }

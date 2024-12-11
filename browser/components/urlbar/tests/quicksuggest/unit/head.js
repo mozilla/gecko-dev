@@ -502,8 +502,6 @@ async function doOneShowLessFrequentlyTest({
  *     The order doesn't matter.
  */
 async function doRustProvidersTests({ searchString, tests }) {
-  UrlbarPrefs.set("quicksuggest.rustEnabled", true);
-
   for (let { prefs, expectedUrls } of tests) {
     info(
       "Starting Rust providers test: " + JSON.stringify({ prefs, expectedUrls })
@@ -531,8 +529,4 @@ async function doRustProvidersTests({ searchString, tests }) {
     }
     await QuickSuggestTestUtils.forceSync();
   }
-
-  info("Clearing rustEnabled pref and forcing sync");
-  UrlbarPrefs.clear("quicksuggest.rustEnabled");
-  await QuickSuggestTestUtils.forceSync();
 }

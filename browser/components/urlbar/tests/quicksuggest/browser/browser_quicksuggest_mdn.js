@@ -48,10 +48,7 @@ add_task(async function basic() {
       UrlbarProviderQuickSuggest.name,
       "The result should be from the expected provider"
     );
-    Assert.equal(
-      result.payload.provider,
-      UrlbarPrefs.get("quickSuggestRustEnabled") ? "Mdn" : "MDNSuggestions"
-    );
+    Assert.equal(result.payload.provider, "Mdn");
 
     const onLoad = BrowserTestUtils.browserLoaded(
       gBrowser.selectedBrowser,

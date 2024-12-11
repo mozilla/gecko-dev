@@ -39,10 +39,7 @@ add_task(async function nonsponsored() {
   let match_type = "firefox-suggest";
   let advertiser = REMOTE_SETTINGS_RESULT.advertiser.toLowerCase();
   let reporting_url = undefined;
-  let source = UrlbarPrefs.get("quicksuggest.rustEnabled")
-    ? "rust"
-    : "remote-settings";
-  let block_id = source == "rust" ? undefined : REMOTE_SETTINGS_RESULT.id;
+  let source = "rust";
 
   // Make sure `improve_suggest_experience_checked` is recorded correctly
   // depending on the value of the related pref.
@@ -66,7 +63,6 @@ add_task(async function nonsponsored() {
             source,
             match_type,
             position,
-            block_id,
             advertiser,
             reporting_url,
             suggested_index: -1,
@@ -85,7 +81,6 @@ add_task(async function nonsponsored() {
               source,
               match_type,
               position,
-              block_id,
               advertiser,
               reporting_url,
               suggested_index: -1,
@@ -100,7 +95,6 @@ add_task(async function nonsponsored() {
               source,
               match_type,
               position,
-              block_id,
               advertiser,
               reporting_url,
               suggested_index: -1,
@@ -121,7 +115,6 @@ add_task(async function nonsponsored() {
                 source,
                 match_type,
                 position,
-                block_id,
                 advertiser,
                 reporting_url,
                 suggested_index: -1,
@@ -136,7 +129,6 @@ add_task(async function nonsponsored() {
                 source,
                 match_type,
                 position,
-                block_id,
                 advertiser,
                 suggested_index: -1,
                 suggested_index_relative_to_group: true,
@@ -156,7 +148,6 @@ add_task(async function nonsponsored() {
                 source,
                 match_type,
                 position,
-                block_id,
                 advertiser,
                 reporting_url,
                 suggested_index: -1,

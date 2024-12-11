@@ -75,10 +75,9 @@ add_task(async function basic() {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches:
-        UrlbarPrefs.get("quickSuggestRustEnabled") && !fullKeyword.includes(" ")
-          ? [QuickSuggestTestUtils.mdnResult(suggestion)]
-          : [],
+      matches: !fullKeyword.includes(" ")
+        ? [QuickSuggestTestUtils.mdnResult(suggestion)]
+        : [],
     });
   }
 });

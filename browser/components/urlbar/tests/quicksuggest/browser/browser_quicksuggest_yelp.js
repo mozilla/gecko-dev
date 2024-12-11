@@ -27,7 +27,6 @@ add_setup(async function () {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
     prefs: [
-      ["quicksuggest.rustEnabled", true],
       ["suggest.quicksuggest.sponsored", true],
       ["suggest.yelp", true],
       ["yelp.featureGate", true],
