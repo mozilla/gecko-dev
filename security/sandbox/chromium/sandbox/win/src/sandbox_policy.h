@@ -109,6 +109,9 @@ class TargetPolicy {
   // The default is to use them.
   virtual void SetDoNotUseRestrictingSIDs() = 0;
 
+  // When called the Everyone SID won't be set to deny only for USER_RESTRICED.
+  virtual void SetAllowEveryoneForUserRestricted() = 0;
+
   // Sets the security level of the Job Object to which the target process will
   // belong. This setting is permanent and cannot be changed once the target
   // process is spawned. The job controls the global security settings which
