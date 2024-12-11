@@ -99,7 +99,6 @@
     <!-- The size of padding for the display toolbar. -->
     <dimen name="browser_fragment_display_toolbar_padding" tools:ignore="UnusedResources">16dp</dimen>
     <dimen name="mozac_browser_toolbar_button_width" tools:ignore="UnusedResources">48dp</dimen>
-    <dimen name="mozac_browser_toolbar_start_end_margin" tools:ignore="UnusedResources">16dp</dimen>
 
     <!-- Search Fragment -->
     <dimen name="search_fragment_clipboard_item_height">56dp</dimen>
