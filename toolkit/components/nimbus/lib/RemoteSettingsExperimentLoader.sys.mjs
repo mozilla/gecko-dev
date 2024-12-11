@@ -98,6 +98,19 @@ const SCHEMAS = {
   },
 };
 
+export const RecipeStatus = Object.freeze({
+  TARGETING_MATCH: "TARGETING_MATCH",
+  TARGETING_MISMATCH: "TARGETING_MISMATCH",
+  INVALID: "INVALID",
+
+  isValid(status) {
+    return (
+      status === RecipeStatus.TARGETING_MATCH ||
+      status === RecipeStatus.TARGETING_MISMATCH
+    );
+  },
+});
+
 export class _RemoteSettingsExperimentLoader {
   constructor() {
     // Has the timer been set?
@@ -275,11 +288,13 @@ export class _RemoteSettingsExperimentLoader {
     if (recipes && !loadingError) {
       for (const recipe of recipes) {
         const status = await enrollmentsCtx.checkRecipe(recipe);
-        await this.manager.onRecipe(
-          recipe,
-          "rs-loader",
-          status === EnrollmentsContext.getRecipeStatuses().TARGETING_MATCH
-        );
+        if (RecipeStatus.isValid(status)) {
+          await this.manager.onRecipe(
+            recipe,
+            "rs-loader",
+            status === RecipeStatus.TARGETING_MATCH
+          );
+        }
       }
 
       lazy.log.debug(
@@ -426,12 +441,10 @@ export class _RemoteSettingsExperimentLoader {
       }
     );
 
-    // If a recipe is either targeting mismatch or invalid,
-    // ouput or throw the specific error message.
-    if (
-      (await enrollmentsCtx.checkRecipe(recipe)) !==
-      EnrollmentsContext.getRecipeStatuses().TARGETING_MATCH
-    ) {
+    // If a recipe is either targeting mismatch or invalid, ouput or throw the
+    // specific error message.
+    const result = await enrollmentsCtx.checkRecipe(recipe);
+    if (result !== RecipeStatus.TARGETING_MATCH) {
       const results = enrollmentsCtx.getResults();
 
       if (results.recipeMismatches.length) {
@@ -550,20 +563,6 @@ export class EnrollmentsContext {
     this.locale = Services.locale.appLocaleAsBCP47;
   }
 
-  // Enum values returned by the .checkRecipe function.
-  static RECIPE_STATUS = {
-    TARGETING_MATCH: "TARGETING_MATCH",
-    TARGETING_MISMATCH: "TARGETING_MISMATCH",
-    INVALID: "INVALID",
-  };
-
-  // Returns the static RECIPE_STATUS enum. This function exists because
-  // the _RemoteSettingsExperimentLoader class cannot access it due to scope and hoisting issues.
-  // Moving this class above _RemoteSettingsExperimentLoader would eliminate the need for this function.
-  static getRecipeStatuses() {
-    return this.RECIPE_STATUS;
-  }
-
   getResults() {
     return {
       recipeMismatches: this.recipeMismatches,
@@ -587,7 +586,7 @@ export class EnrollmentsContext {
       // This is *not* the same as `lazy.APP_ID` which is used to
       // distinguish between desktop Firefox and the desktop background
       // updater.
-      return EnrollmentsContext.RECIPE_STATUS.INVALID;
+      return RecipeStatus.INVALID;
     }
 
     const validateFeatureSchemas =
@@ -606,7 +605,7 @@ export class EnrollmentsContext {
         if (recipe.slug) {
           this.invalidRecipes.push(recipe.slug);
         }
-        return EnrollmentsContext.RECIPE_STATUS.INVALID;
+        return RecipeStatus.INVALID;
       }
     }
 
@@ -637,7 +636,7 @@ export class EnrollmentsContext {
     }
 
     if (!haveAllFeatures) {
-      return EnrollmentsContext.RECIPE_STATUS.INVALID;
+      return RecipeStatus.INVALID;
     }
 
     if (this.shouldCheckTargeting) {
@@ -649,7 +648,7 @@ export class EnrollmentsContext {
       } else {
         lazy.log.debug(`${recipe.id} did not match due to targeting`);
         this.recipeMismatches.push(recipe.slug);
-        return EnrollmentsContext.RECIPE_STATUS.TARGETING_MISMATCH;
+        return RecipeStatus.TARGETING_MISMATCH;
       }
     }
 
@@ -667,7 +666,7 @@ export class EnrollmentsContext {
         lazy.log.debug(
           `${recipe.id} is localized but missing locale ${this.locale}`
         );
-        return EnrollmentsContext.RECIPE_STATUS.INVALID;
+        return RecipeStatus.INVALID;
       }
     }
 
@@ -683,10 +682,10 @@ export class EnrollmentsContext {
         this.missingL10nIds.set(recipe.slug, result.missingL10nIds);
       }
       lazy.log.debug(`${recipe.id} did not validate`);
-      return EnrollmentsContext.RECIPE_STATUS.INVALID;
+      return RecipeStatus.INVALID;
     }
 
-    return EnrollmentsContext.RECIPE_STATUS.TARGETING_MATCH;
+    return RecipeStatus.TARGETING_MATCH;
   }
 
   async evaluateJexl(jexlString, customContext) {

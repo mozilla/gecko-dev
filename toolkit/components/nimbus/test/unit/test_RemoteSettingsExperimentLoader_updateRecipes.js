@@ -11,7 +11,7 @@ const {
   NimbusFeatures,
   _ExperimentFeature: ExperimentFeature,
 } = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
-const { EnrollmentsContext } = ChromeUtils.importESModule(
+const { EnrollmentsContext, RecipeStatus } = ChromeUtils.importESModule(
   "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
 );
 const { PanelTestProvider } = ChromeUtils.importESModule(
@@ -111,10 +111,7 @@ add_task(async function test_updateRecipes_invalidFeatureId() {
   sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
   await loader.init();
-  ok(
-    onRecipe.calledOnceWith(badRecipe, "rs-loader", false),
-    "Should not call .onRecipe "
-  );
+  ok(onRecipe.notCalled, "Should not call .onRecipe for invalid recipes");
 
   await assertEmptyStore(manager.store);
 });
@@ -162,10 +159,7 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
   sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
   await loader.init();
-  ok(
-    onRecipe.calledOnceWith(badRecipe, "rs-loader", false),
-    "Should call .onRecipe once with badRecipe and isTargettingMatch=false"
-  );
+  ok(onRecipe.notCalled, "Should not call onRecipe for invalid recipe");
 
   await assertEmptyStore(manager.store, { cleanup: true });
 });
@@ -187,10 +181,7 @@ add_task(async function test_updateRecipes_invalidRecipe() {
   sandbox.stub(manager.store, "getAllActiveExperiments").returns([]);
 
   await loader.init();
-  ok(
-    onRecipe.calledOnceWith(badRecipe, "rs-loader", false),
-    "Should call .onRecipe once with badRecipe and isTargettingMatch=false"
-  );
+  ok(onRecipe.notCalled, "Should not call .onRecipe for invalid recipe");
 
   await assertEmptyStore(manager.store, { cleanup: true });
 });
@@ -247,16 +238,8 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
   await loader.updateRecipes("timer");
   equal(
     loader.manager.onRecipe.callCount,
-    2,
-    "should call onRecipe for both good and bad recipes"
-  );
-  ok(
-    manager.onRecipe.calledWith(recipe, "rs-loader", true),
-    "should call .onRecipe with the recipe and isTargettingMatch=true"
-  );
-  ok(
-    manager.onRecipe.calledWith(badRecipe, "rs-loader", false),
-    "should call .onRecipe with the badRecipe and isTargettingMatch=false"
+    1,
+    "should not have called .onRecipe again"
   );
   equal(
     loader.manager.onFinalize.callCount,
@@ -372,21 +355,13 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
   await loader.updateRecipes("timer");
   equal(
     loader.manager.onRecipe.callCount,
-    2,
-    "should call .onRecipe for both good and bad recipes"
-  );
-  ok(
-    manager.onRecipe.calledWith(recipe, "rs-loader", true),
-    "should call .onRecipe with the recipe and isTargettingMatch=true"
-  );
-  ok(
-    manager.onRecipe.calledWith(badRecipe, "rs-loader", false),
-    "should call .onRecipe with the badRecipe and isTargettingMatch=false"
+    1,
+    "should not have called .onRecipe again"
   );
   equal(
     loader.manager.onFinalize.callCount,
     2,
-    "should have called .onFinalize again for both good and bad recipes"
+    "should have called .onFinalize again"
   );
 
   ok(
@@ -504,16 +479,8 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   await loader.updateRecipes("timer");
   equal(
     manager.onRecipe.callCount,
-    2,
-    "should call .onRecipe for both good and bad recipes"
-  );
-  ok(
-    manager.onRecipe.calledWith(recipe, "rs-loader", true),
-    "should call .onRecipe with the recipe and isTargettingMatch=true"
-  );
-  ok(
-    manager.onRecipe.calledWith(badRecipe, "rs-loader", false),
-    "should call .onRecipe with the badRecipe and isTargettingMatch=false"
+    1,
+    "should not have called .onRecipe again"
   );
   equal(
     manager.onFinalize.callCount,
@@ -775,10 +742,7 @@ add_task(async function test_updateRecipes_appId() {
   info("Testing updateRecipes() with the default application ID");
   await loader.init();
 
-  Assert.ok(
-    manager.onRecipe.calledOnceWith(recipe, "rs-loader", false),
-    "should call .onRecipe for recipe with isTargettingMatch=false"
-  );
+  Assert.ok(manager.onRecipe.notCalled, ".onRecipe was never called");
   Assert.ok(
     onFinalizeCalled(manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
@@ -903,10 +867,7 @@ add_task(async function test_updateRecipes_recipeAppId() {
   sinon.stub(manager.store, "ready").resolves();
 
   await loader.init();
-  Assert.ok(
-    manager.onRecipe.calledOnceWith(recipe, "rs-loader", false),
-    ".onRecipe was called once"
-  );
+  Assert.ok(manager.onRecipe.notCalled, ".onRecipe was never called");
   Assert.ok(
     onFinalizeCalled(manager.onFinalize, "rs-loader", {
       recipeMismatches: [],
@@ -986,12 +947,8 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
 
     await loader.init();
     ok(
-      manager.onRecipe.calledWith(invalidRecipe, "rs-loader", false),
-      "should call .onRecipe for invalid recipe with isTargettingMatch=false"
-    );
-    ok(
-      manager.onRecipe.calledWith(optOutRecipe, "rs-loader", true),
-      "should call .onRecipe for opt-out recipe with isTargettingMatch=true"
+      manager.onRecipe.calledOnceWith(optOutRecipe, "rs-loader", true),
+      "should call .onRecipe for opt-out recipe"
     );
 
     ok(
@@ -1054,6 +1011,7 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
     EnrollmentsContext.prototype,
     "checkTargeting"
   );
+  const checkSpy = sinon.spy(EnrollmentsContext.prototype, "checkRecipe");
 
   await loader.init();
   ok(targetingSpy.calledOnce, "Should have checked targeting for recipe");
@@ -1061,9 +1019,14 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
     !(await targetingSpy.returnValues[0]),
     "Targeting should not have matched"
   );
+  Assert.equal(
+    await checkSpy.returnValues[0],
+    RecipeStatus.TARGETING_MISMATCH,
+    "Recipe should be considered a targeting mismatch"
+  );
   ok(
     manager.onRecipe.calledOnceWith(recipe, "rs-loader", false),
-    "should .onRecipe once with the above recipe and isTargettingMatch=false"
+    "should call .onRecipe for the recipe"
   );
   ok(
     telemetrySpy.notCalled,
@@ -1953,10 +1916,12 @@ add_task(async function test_updateRecipesClearsOptIns() {
       isFirefoxLabsOptIn: true,
       firefoxLabsTitle: "opt-in-1-title",
       firefoxLabsDescription: "opt-in-1-desc",
+      firefoxLabsGroup: "group",
+      requiresRestart: false,
       isRollout: true,
       branches: [ExperimentFakes.recipe.branches[0]],
       targeting: "true",
-      publishedDate: new Date(now),
+      publishedDate: new Date(now).toISOString(),
     }),
     ExperimentFakes.recipe("opt-in-2", {
       bucketConfig: {
@@ -1966,10 +1931,12 @@ add_task(async function test_updateRecipesClearsOptIns() {
       isFirefoxLabsOptIn: true,
       firefoxLabsTitle: "opt-in-2-title",
       firefoxLabsDescription: "opt-in-2-desc",
+      firefoxLabsGroup: "group",
+      requiresRestart: false,
       isRollout: true,
       branches: [ExperimentFakes.recipe.branches[0]],
       targeting: "false",
-      publishedDate: new Date(now + 10000),
+      publishedDate: new Date(now + 10000).toISOString(),
     }),
   ];
 
