@@ -3802,9 +3802,9 @@ int NS_main(int argc, NS_tchar** argv) {
 
           // If the update couldn't be started, then set useService to false so
           // we do the update the old way.
-          DWORD launchResult = LaunchServiceSoftwareUpdateCommand(
+          DWORD ret = LaunchServiceSoftwareUpdateCommand(
               serviceArgc, (LPCWSTR*)suiArgv.get());
-          useService = (launchResult == ERROR_SUCCESS);
+          useService = (ret == ERROR_SUCCESS);
           // If the command was launched then wait for the service to be done.
           if (useService) {
             LOG(("Launched service successfully"));
@@ -3869,8 +3869,7 @@ int NS_main(int argc, NS_tchar** argv) {
               }
             }
           } else {
-            LOG(("Launching service failed. useService=false, launchResult=%u",
-                 launchResult));
+            LOG(("Launching service failed. useService=false"));
             lastFallbackError = FALLBACKKEY_LAUNCH_ERROR;
           }
         }
