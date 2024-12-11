@@ -40,4 +40,11 @@
     <!-- Content description for close button -->
     <string name="mozac_feature_downloads_button_close">അടയ്ക്കുക</string>
 
+    <!-- Title for the third party download app chooser dialog -->
+    <string name="mozac_feature_downloads_third_party_app_chooser_dialog_title">ഉപയോഗിച്ച് പ്രവർത്തനം പൂർത്തിയാക്കുക</string>
+    <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->--&gt;
+    <string name="mozac_feature_downloads_unable_to_open_third_party_app">%1$s തുറക്കാനായില്ല</string>
+
+    <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
+    <string name="mozac_feature_downloads_cancel_active_downloads_accept">ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കുക</string>
     </resources>

@@ -346,6 +346,8 @@
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Zobrazení čtečky, Překlad, %s, Tisk, Sdílet, Otevřít aplikaci</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Zobrazení čtečky, Překlad, Hlášení rozbité stránky, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Zobrazení čtečky, Překlad, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu

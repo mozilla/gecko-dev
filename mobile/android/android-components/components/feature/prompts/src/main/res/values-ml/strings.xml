@@ -17,23 +17,27 @@
     <!-- Text for password field in an authentication dialog. -->
     <string name="mozac_feature_prompt_password_hint">രഹസ്യവാക്ക്</string>
     <!-- Negative confirmation that we should not save the new or updated login -->
-    <string name="mozac_feature_prompt_dont_save">സൂക്ഷിക്കേണ്ട</string>
+    <string name="mozac_feature_prompt_dont_save_2">ഇപ്പോഴല്ല</string>
+    <!-- Negative confirmation that we should never save a login for this site -->
+    <string name="mozac_feature_prompt_never_save">ഒരിക്കലും സംരക്ഷിക്കരുത്</string>
+    <!-- Negative confirmation that we should not save a credit card for this site -->
+    <string name="mozac_feature_prompt_not_now">ഇപ്പോഴല്ല</string>
     <!-- Positive confirmation that we should save the new or updated login -->
     <string name="mozac_feature_prompt_save_confirmation">സൂക്ഷിക്കുക</string>
     <!-- Negative confirmation that we should not save the updated login -->
-    <string name="mozac_feature_prompt_dont_update">പുതുക്കേണ്ടതില്ല</string>
+    <string name="mozac_feature_prompt_dont_update_2">ഇപ്പോഴല്ല</string>
     <!-- Positive confirmation that we should save the updated login -->
     <string name="mozac_feature_prompt_update_confirmation">പുതുക്കുക</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_empty_password">രഹസ്യവാക്ക് ശൂന്യമായിരിക്കരുത്</string>
+    <string name="mozac_feature_prompt_error_empty_password_2">രഹസ്യവാക്കു് ഇടുക</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_unknown_cause">ലോഗിൻ സൂക്ഷിക്കുവാനായില്ല</string>
-    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new login. -->
-    <string name="mozac_feature_prompt_login_save_headline">ഈ ലോഗിൻ സംരക്ഷിക്കണോ?</string>
-    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_update_headline">ഈ ലോഗിൻ പുതുക്കണോ?</string>
+    <string name="mozac_feature_prompt_error_unknown_cause_2">രഹസ്യവാക്കു് കരുതിവയ്ക്കാൻ പറ്റനില്ല</string>
+    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
+    <string name="mozac_feature_prompt_login_save_headline_2">രഹസ്യവാക്കു് കരുതിവയ്ക്കട്ടെ?</string>
+    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
+    <string name="mozac_feature_prompt_login_update_headline_2">രഹസ്യവാക്കു് മാറ്റണോ?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline">സംരക്ഷിച്ച രഹസ്യവാക്കിലേക്ക് ഉപയോക്തൃനാമം ചേർക്കണോ?</string>
+    <string name="mozac_feature_prompt_login_add_username_headline_2">ഉപയോക്തൃപേരു് മാറ്റണോ?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">ഒരു വാചക ഇൻപുട്ട് ഫീൽഡ് നൽകുന്നതിനുള്ള ലേബൽ</string>
@@ -78,4 +82,35 @@
     <!-- December month of the year (short description), used on the month chooser dialog. -->
     <string name="mozac_feature_prompts_dec">ഡിസം</string>
 
-    </resources>
+    <!-- Title of the time picker dialog. -->
+    <string name="mozac_feature_prompts_set_time">കാലം നിശ്ചയിക്കുക</string>
+    <!-- Option in expanded select password prompt that links to password settings -->
+    <string name="mozac_feature_prompts_manage_logins_2">രഹസ്യവാക്കുകളുടെ കൈകാര്യം ചെയ്യുക</string>
+    <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
+    <string name="mozac_feature_prompts_saved_logins_2">കരുതിവച്ച രഹസ്യവാക്കുകൾ</string>
+
+    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_2">ഒരു കഠിനമായ രഹസ്യവാക്കു് ഉപയോഗിക്കുക</string>
+
+    <!-- Pressing this will dismiss the suggested strong password dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_dismiss">ഇപ്പോഴല്ല</string>
+
+    <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
+    <string name="mozac_feature_prompt_repost_title">ഈ സൈറ്റിലേക്ക് ദത്ത വീണ്ടും അയയ്‌ക്കണോ?</string>
+    <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
+    <string name="mozac_feature_prompt_repost_positive_button_text">ദത്ത വീണ്ടും അയയ്‌ക്കുക</string>
+    <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
+    <string name="mozac_feature_prompt_repost_negative_button_text">റദ്ദാക്കുക</string>
+
+    <!-- Address Autofill -->
+    <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
+    <string name="mozac_feature_prompts_select_address_2">വിലാസം തിരഞ്ഞെടുക്കുക</string>
+
+    <!-- Federated Credential Management prompts -->
+    <!--Content description for the Account picture in the Select Account FedCM prompt -->
+    <string name="mozac_feature_prompts_account_picture">രൂപരേഖ ചിത്രം</string>
+    <!-- Text for the positive button of the Identity Credential dialogs. -->
+    <string name="mozac_feature_prompts_identity_credentials_continue">തുടരുക</string>
+    <!-- Text for the cancel button of the Identity Credential dialogs. -->
+    <string name="mozac_feature_prompts_identity_credentials_cancel">റദ്ദാക്കുക</string>
+</resources>

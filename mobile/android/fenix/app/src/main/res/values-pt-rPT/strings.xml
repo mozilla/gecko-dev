@@ -113,6 +113,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Toque e mantenha pressionadas as setas para alternar entre as páginas no histórico deste separador.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Deslize a barra de ferramentas para alternar entre separadores</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Deslize para a esquerda ou direita para alternar. Deslize para a esquerda no seu último separador para abrir um novo separador.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">É necessário acesso à câmara. Aceda às definições do Android, toque em permissões e toque em permitir.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -236,8 +242,12 @@
     <string name="browser_menu_open_in_regular_tab">Abrir num separador normal</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Adicionar ao ecrã Inicial</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Adicionar aplicação ao ecrã inicial</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Adicionar ao ecrã inicial…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Adicionar aplicação ao ecrã inicial…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Os dispositivos Xiaomi podem necessitar de permissões adicionais para adicionar atalhos ao ecrã principal. Verifique as suas definições.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -328,10 +338,20 @@
     <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Vista de Leitura, Traduzir, Imprimir, Partilhar, Abrir Aplicação</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Vista de Leitura, Imprimir, Partilhar, Abrir Aplicação</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Vista de Leitura, Traduzir, %s, Imprimir, Partilhar, Abrir aplicação</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
-    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Vista de leitura, Traduzir, Reportar site com problemas, Imprimir, Partilhar, Abrir aplicação</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Vista de Leitura, Traduzir, Reportar site com problemas, Imprimir, Partilhar, Abrir aplicação</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Vista de Leitura, Traduzir, Imprimir, Partilhar, Abrir aplicação</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Vista de Leitura, %s, Imprimir, Partilhar, Abrir aplicação</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
-    <string name="browser_menu_tools_description_with_report_site_2">Vista de leitura, Reportar site com problemas, Imprimir, Partilhar, Abrir aplicação</string>
+    <string name="browser_menu_tools_description_with_report_site_2">Vista de Leitura, Reportar site com problemas, Imprimir, Partilhar, Abrir Aplicação</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Vista de Leitura, Imprimir, Partilhar, Abrir aplicação</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Guardar</string>
@@ -351,7 +371,7 @@
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traduzir página…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
-    <string name="browser_menu_webcompat_reporter">Reportar site quebrado…</string>
+    <string name="browser_menu_webcompat_reporter">Reportar site com problemas…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Traduzido para %1$s</string>
@@ -551,17 +571,17 @@
     <string name="onboarding_add_on_star_rating_content_description">Avaliado em %1$s de 5</string>
 
     <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
-    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Ajude-nos a fazer o Firefox melhor</string>
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Ajude-nos a tornar o Firefox melhor</string>
     <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Enviar relatórios de falha automaticamente</string>
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Enviar relatórios de falhas automaticamente</string>
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">Os relatórios de falha permitem-nos diagnosticar e corrigir problemas com o navegador. Os relatórios podem incluir dados pessoais ou sensíveis.</string>
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">Os relatórios de falhas permitem-nos diagnosticar e corrigir problemas com o navegador. Os relatórios podem incluir dados pessoais ou sensíveis.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Saber mais acerca de relatórios de falha</string>
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Saber mais sobre os relatórios de falhas</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Enviar dados técnicos e de interação para a Mozilla</string>
     <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
-    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Os dados sobre o seu dispositivo, configuração de hardware e como utiliza o Firefox ajudam a melhorar funcionalidades, desempenho e estabilidade para utilizadores em todo o lado.</string>
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Os dados sobre o seu dispositivo, configuração de hardware e como utiliza o Firefox ajudam a melhorar funcionalidades, desempenho e estabilidade para os utilizadores em todo o lado.</string>
     <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Saber mais sobre os dados de utilização</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
@@ -570,17 +590,17 @@
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Cancelar</string>
 
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Bem-vindo(a) ao Firefox</string>
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Boas-vindas ao Firefox</string>
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Concordar e continuar</string>
     <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
-    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Ao continuar, concorda com o Firefox %1$s.</string>
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Ao continuar, concorda com os %1$s do Firefox.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Termos do serviço</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
-    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">O Firefox preocupa-se com a sua privacidade. Leia mais no nosso %1$s.</string>
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">O Firefox preocupa-se com a sua privacidade. Saiba mais na nossa %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
-    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Política de privacidade</string>
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Informação de privacidade</string>
     <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
     <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Para ajudar a melhorar o navegador, o Firefox envia dados de diagnóstico e de interação para a Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
@@ -594,9 +614,9 @@
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Ignorar</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_top_option">Topo</string>
+    <string name="onboarding_customize_toolbar_top_option">Superior</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_bottom_option">Fim</string>
+    <string name="onboarding_customize_toolbar_bottom_option">Inferior</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -992,6 +1012,10 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dados técnicos e de utilização</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Dados técnicos e de interação</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Saber mais</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Partilha dados de desempenho, utilização, hardware e personalização sobre o seu navegador com a Mozilla para nos ajudar a tornar o %1$s melhor</string>
     <!-- Preference switch for marketing data collection -->
@@ -1000,9 +1024,9 @@
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Partilha informação básica de utilização com a Adjust, o nosso fornecedor de marketing para dispositivos móveis</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Partilhe informações sobre como descobriu o Firefox com os parceiros de marketing da Mozilla. Isto ajuda-nos a crescer o Firefox e a construir uma Internet melhor</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Partilhe informações sobre como descobriu o Firefox com os parceiros de marketing da Mozilla. Isto ajuda o Firefox a crescer e a construir uma Internet melhor</string>
     <!-- Learn more link for marketing data preference -->
-    <string name="preferences_marketing_data_learn_more">Saber mais acerca de dados de marketing</string>
+    <string name="preferences_marketing_data_learn_more">Saber mais sobres as informações de marketing</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Submeter relatórios de falha automaticamente</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1290,6 +1314,29 @@
 
 
     <!-- WebCompat Reporter -->
+
+
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Reportar site com problemas</string>
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Ajude a tornar o %1$s melhor para todos. Os colaboradores da Mozilla utilizam a informação que você envia para corrigir problemas dos sites.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Introduza um URL válido</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">O que não está a funcionar? (opcional)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Escolha o motivo</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Descreva o problema (opcional)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Enviar mais informações</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Cancelar</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Enviar</string>
 
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
@@ -2861,18 +2908,18 @@
     <string name="protection_panel_banner_not_protected_title">Desativou as proteções</string>
     <!-- Description text for the protection panel banner when tracking protection is disabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="protection_panel_banner_not_protected_description">%s está de licença. Sugerimos que reative as proteções.</string>
+    <string name="protection_panel_banner_not_protected_description">%s não está ao serviço. Sugerimos que reative as proteções.</string>
     <!-- Title text for the protection panel banner when tracking protection is enabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="protection_panel_banner_protected_title">%s está de guarda</string>
     <!-- Description text for the protection panel banner when tracking protection is enabled. -->
-    <string name="protection_panel_banner_protected_description">Está protegido. Se detetarmos algo, iremos fornecer-lhe essa informação.</string>
+    <string name="protection_panel_banner_protected_description">Tem as proteções ativas. Se detetarmos algo, iremos fornecer-lhe essa informação.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">Proteção melhorada contra a monitorização</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
-    <string name="protection_panel_etp_toggle_enabled_description">Se algo parecer quebrado neste site, tente desativar as proteções.</string>
+    <string name="protection_panel_etp_toggle_enabled_description">Se parecer que algo não está a funcionar neste site, experimente desativar as proteções.</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
-    <string name="protection_panel_etp_toggle_disabled_description">As proteções estão desativadas. Sugerimos que as ligue novamente.</string>
+    <string name="protection_panel_etp_toggle_disabled_description">As proteções estão DESATIVADAS. Sugerimos que a sua reativação.</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
@@ -3020,21 +3067,21 @@
     <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Atualizar agora</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Atualize o seu navegador Firefox</string>
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Atualize o seu Firefox</string>
     <!-- Homepage card message about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Um certificado de raiz irá expirar, fazendo com que algumas funcionalidades parassem de funcionar a 14 de março.</string>
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Um certificado raiz irá expirar, o que fará com que algumas funcionalidades deixem de funcionar a 14 de março.</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Atualizar antes de 14 de março</string>
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Atualiza antes de 14 de março</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Um certificado de raiz irá expirar, fazendo com que a sua versão do Firefox deixe de funcionar corretamente.</string>
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Um certificado raiz irá expirar, o que fará com que a sua versão do Firefox deixe de funcionar corretamente.</string>
     <!-- Homepage card title about old Firefox version -->
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Faltam menos de 7 dias para atualizar</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">A 14 de março, os extras e outras funcionalidades do Firefox irão parar de funcionar porque um certificado de raiz está a expirar.</string>
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">A 14 de março, os extras e outras funcionalidades do Firefox vão deixar de funcionar porque um certificado raiz está a expirar.</string>
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Última oportunidade para manter o seu Firefox</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">A sua versão do Firefox irá parar de funcionar corretamente no dia 14 de março porque um certificado de raiz está a expirar.</string>
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">A sua versão do Firefox irá deixar de funcionar corretamente no dia 14 de março porque um certificado raiz está a expirar.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Atualização recomendada</string>
     <!-- Push notification message about old Firefox version -->
@@ -3044,5 +3091,5 @@
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Atualize antes de 14 de março para continuar a utilizar extras e outras funcionalidades.</string>
     <!-- Push notification message about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Algumas funcionalidades vão parar de funcionar amanhã.</string>
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Algumas funcionalidades vão deixar de funcionar amanhã.</string>
 </resources>

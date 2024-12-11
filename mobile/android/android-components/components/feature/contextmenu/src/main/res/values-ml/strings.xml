@@ -18,6 +18,8 @@
     <string name="mozac_feature_contextmenu_copy_image_location">ചിത്രത്തിന്റെ സ്ഥാനം പകർത്തുക</string>
     <!-- Text for context menu item to save / download the image. -->
     <string name="mozac_feature_contextmenu_save_image">ചിത്രം സൂക്ഷിക്കുക</string>
+    <!-- Text for context menu item to copy the image to the clipboard. -->
+    <string name="mozac_feature_contextmenu_copy_image">ചിത്രം പകർത്തുക</string>
     <!-- Text for context menu item to save / download the file. -->
     <string name="mozac_feature_contextmenu_save_file_to_device">ഉപകരണത്തിലേക്ക് ഫയൽ സൂക്ഷിക്കുക</string>
     <!-- Text for confirmation "snackbar" shown after opening a link in a new tab.  -->
@@ -30,6 +32,22 @@
     <string name="mozac_feature_contextmenu_snackbar_action_switch">മാറുക</string>
     <!-- Text for context menu item to open the link in an external app. -->
     <string name="mozac_feature_contextmenu_open_link_in_external_app">ബാഹ്യ ആപ്പിൽ കണ്ണി തുറക്കുക</string>
+    <!-- Text for context menu item to share the email with another app. -->
+    <string name="mozac_feature_contextmenu_share_email_address">ഇ-തപാൽ വിലാസം പങ്കിടുക</string>
+    <!-- Text for context menu item to copy the email address to the clipboard. -->
+    <string name="mozac_feature_contextmenu_copy_email_address">ഇ-തപാൽ വിലാസം പകർത്തുക</string>
+    <!-- Text for confirmation "snackbar" shown after copying a email address to the clipboard. -->
+    <string name="mozac_feature_contextmenu_snackbar_email_address_copied">ഇ-തപാൽ വിലാസം ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തി</string>
+    <!-- Text for context menu item to add to a contact. -->
+    <string name="mozac_feature_contextmenu_add_to_contact">വിളിപട്ടികയിലേക്കു് ചേർക്കുക</string>
+    <!-- Action shown in a text selection context menu. This will prompt a search using the selected text.-->
+    <string name="mozac_selection_context_menu_search_2">തിരയുക</string>
+    <!-- Action shown in a text selection context menu. This will prompt a search in a private tab using the selected text-->
+    <string name="mozac_selection_context_menu_search_privately_2">സ്വകാര്യ തിരയൽ</string>
     <!-- Action shown in a text selection context menu. This will prompt a share of the selected text. -->
     <string name="mozac_selection_context_menu_share">പങ്കിടുക</string>
-    </resources>
+    <!-- Action shown in a text selection context menu. This will prompt a new email from the selected text. -->
+    <string name="mozac_selection_context_menu_email">ഇ-തപാൽ</string>
+    <!-- Action shown in a text selection context menu. This will prompt a new call from the selected text. -->
+    <string name="mozac_selection_context_menu_call">വിളിക്കുക</string>
+</resources>

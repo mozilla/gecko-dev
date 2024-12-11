@@ -37,6 +37,15 @@
     <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">അപകടസാധ്യത സ്വീകരിച്ച് തുടരുക</string>
 
+    <!-- The document title and heading of the error page shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">ഈ വെബ്സ്ഥാനത്തിനൊരു സുരക്ഷിതമായ സമ്പർക്കത്തിന്റെ ആവശ്യമുണ്ടു്.</string>
+
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">കൂടുതൽ…</string>
+
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">തിരിച്ചു് പോവുക</string>
+
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">കണക്ഷൻ തടസ്സപ്പെട്ടു</string>
 
@@ -151,9 +160,14 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">ഇന്റർനെറ്റ് കണക്ഷൻ ലഭ്യമല്ല</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">ഇന്റർനെറ്റ് കണക്ഷൻ ലഭ്യമല്ല</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">താങ്ങളുടെ അന്തരവല സമ്പർക്കത്തിൽ കുഴപ്പം ഉണ്ടു്</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">നിങ്ങളുടെ നെറ്റ്‌വർക്ക് കണക്ഷൻ പരിശോധിക്കുക അല്ലെങ്കിൽ കുറച്ച് നിമിഷങ്ങൾക്ക് ശേഷം പേജ് വീണ്ടും ലഭ്യമാക്കാൻ ശ്രമിക്കുക.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">നിങ്ങളുടെ നെറ്റ്‌വർക്ക് കണക്ഷൻ പരിശോധിക്കുക അല്ലെങ്കിൽ കുറച്ച് നിമിഷങ്ങൾക്ക് ശേഷം പേജ് വീണ്ടും ലഭ്യമാക്കാൻ ശ്രമിക്കുക.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">പിഴസൂചി: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">വീണ്ടും ലഭ്യമാക്കുക</string>
 
@@ -215,4 +229,8 @@
     <!-- The %1$s will be replaced by the malicious website URL-->
     <string name="mozac_browser_errorpages_safe_phishing_uri_message"><![CDATA[<p>%1$s എന്നിടത്തുള്ള സൈറ്റ് ഒരു തെറ്റിദ്ധരിപ്പിക്കുന്ന സൈറ്റാണ് എന്ന് രേഖപ്പെടുത്തിയിട്ടുള്ളതിനാൽ താങ്കളുടെ സുരക്ഷാ ക്രമീകരണങ്ങളനുസരിച്ച് തടയപ്പെട്ടിരിക്കുന്നു.</p>]]></string>
 
-    </resources>
+    <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
+    <string name="mozac_browser_errorpages_httpsonly_title">സൂക്ഷമമുള്ള വെബ്സ്ഥാനം ലഭ്യമല്ല</string>
+    <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
+    <string name="mozac_browser_errorpages_httpsonly_button">HTTP സൈറ്റിലേക്കു് തുടരുക</string>
+</resources>
