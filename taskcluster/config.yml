@@ -206,6 +206,7 @@ treeherder:
         'compose-tabstray': 'compose-tabstray'
         'concept-awesomebar': 'concept-awesomebar'
         'concept-base': 'concept-base'
+        'compose-base': 'compose-base'
         'compose-cfr': 'compose-cfr'
         'concept-engine': 'concept-engine'
         'concept-fetch': 'concept-fetch'
