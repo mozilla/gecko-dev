@@ -7,7 +7,6 @@
 #include "MacIOSurfaceTextureHostOGL.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/MacIOSurface.h"
-#include "mozilla/layers/GpuFence.h"
 #include "mozilla/webrender/RenderMacIOSurfaceTextureHost.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/webrender/WebRenderAPI.h"
@@ -25,7 +24,6 @@ MacIOSurfaceTextureHostOGL::MacIOSurfaceTextureHostOGL(
   if (!mSurface) {
     gfxCriticalNote << "Failed to look up MacIOSurface";
   }
-  mGpuFence = aDescriptor.gpuFence();
 }
 
 MacIOSurfaceTextureHostOGL::~MacIOSurfaceTextureHostOGL() {
@@ -76,7 +74,7 @@ void MacIOSurfaceTextureHostOGL::CreateRenderTexture(
   MOZ_ASSERT(mExternalImageId.isSome());
 
   RefPtr<wr::RenderTextureHost> texture =
-      new wr::RenderMacIOSurfaceTextureHost(GetMacIOSurface(), mGpuFence);
+      new wr::RenderMacIOSurfaceTextureHost(GetMacIOSurface());
 
   bool isDRM = (bool)(mFlags & TextureFlags::DRM_SOURCE);
   texture->SetIsFromDRMSource(isDRM);

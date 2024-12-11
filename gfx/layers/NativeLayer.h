@@ -28,7 +28,6 @@ class RenderTextureHost;
 
 namespace layers {
 
-class GpuFence;
 class NativeLayer;
 class NativeLayerCA;
 class NativeLayerWayland;
@@ -235,8 +234,6 @@ class NativeLayer {
   virtual void DiscardBackbuffers() = 0;
 
   virtual void AttachExternalImage(wr::RenderTextureHost* aExternalImage) = 0;
-
-  virtual GpuFence* GetGpuFence() = 0;
 
  protected:
   virtual ~NativeLayer() = default;

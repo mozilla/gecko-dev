@@ -937,22 +937,6 @@ void NativeLayerCA::AttachExternalImage(wr::RenderTextureHost* aExternalImage) {
   });
 }
 
-GpuFence* NativeLayerCA::GetGpuFence() {
-  if (!mTextureHost) {
-    return nullptr;
-  }
-
-  wr::RenderMacIOSurfaceTextureHost* texture =
-      mTextureHost->AsRenderMacIOSurfaceTextureHost();
-  if (!texture) {
-    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    gfxCriticalNoteOnce << "ExternalImage is not RenderMacIOSurfaceTextureHost";
-    return nullptr;
-  }
-
-  return texture->GetGpuFence();
-}
-
 bool NativeLayerCA::IsVideo(const MutexAutoLock& aProofOfLock) {
   // If we have a texture host, we've checked to see if it's providing video.
   // And if we don't have a texture host, it isn't video, so we just check

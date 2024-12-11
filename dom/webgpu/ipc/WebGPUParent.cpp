@@ -1635,7 +1635,7 @@ std::shared_ptr<ExternalTexture> WebGPUParent::CreateExternalTexture(
                      mExternalTextures.end());
 
   UniquePtr<ExternalTexture> texture = ExternalTexture::Create(
-      this, aDeviceId, aWidth, aHeight, aFormat, aUsage);
+      mContext.get(), aDeviceId, aWidth, aHeight, aFormat, aUsage);
   if (!texture) {
     return nullptr;
   }

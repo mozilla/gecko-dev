@@ -145,7 +145,6 @@ EXPORTS.mozilla.layers += [
     "D3D11ZeroCopyTextureImage.h",
     "DirectionUtils.h",
     "Effects.h",
-    "GpuFence.h",
     "ImageDataSerializer.h",
     "ipc/ActiveResource.h",
     "ipc/APZChild.h",
@@ -264,7 +263,6 @@ if CONFIG["MOZ_WAYLAND"]:
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
     EXPORTS.mozilla.layers += [
-        "GpuFenceMTLSharedEvent.h",
         "NativeLayerCA.h",
         "SurfacePoolCA.h",
     ]
@@ -277,7 +275,6 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
         "SurfacePoolCA.mm",
     ]
     SOURCES += [
-        "GpuFenceMTLSharedEvent.cpp",
         "MacIOSurfaceHelpers.cpp",
         "MacIOSurfaceImage.cpp",
     ]

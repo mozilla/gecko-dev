@@ -178,8 +178,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
     return ForwardError(Some(aDeviceId), aError);
   }
 
-  ffi::WGPUGlobal* GetContext() const { return mContext.get(); }
-
  private:
   static void MapCallback(uint8_t* aUserData,
                           ffi::WGPUBufferMapAsyncStatus aStatus);

@@ -29,7 +29,6 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/FocusTarget.h"
 #include "mozilla/layers/GeckoContentControllerTypes.h"
-#include "mozilla/layers/GpuFence.h"
 #include "mozilla/layers/KeyboardMap.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/MatrixMessage.h"
@@ -1172,39 +1171,6 @@ struct ParamTraits<mozilla::layers::DoubleTapToZoomMetrics> {
 };
 
 } /* namespace IPC */
-
-namespace mozilla {
-namespace ipc {
-
-template <>
-struct IPDLParamTraits<layers::GpuFence*> {
-  static void Write(IPC::MessageWriter* aWriter, IProtocol* aActor,
-                    layers::GpuFence* aParam) {
-    if (aParam) {
-      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    }
-    WriteIPDLParam(aWriter, aActor, false);
-  }
-
-  static bool Read(IPC::MessageReader* aReader, IProtocol* aActor,
-                   RefPtr<layers::GpuFence>* aResult) {
-    *aResult = nullptr;
-    bool notnull = false;
-    if (!ReadIPDLParam(aReader, aActor, &notnull)) {
-      return false;
-    }
-
-    if (!notnull) {
-      return true;
-    }
-
-    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    return true;
-  }
-};
-
-}  // namespace ipc
-}  // namespace mozilla
 
 #define DEFINE_SERVO_PARAMTRAITS(ty_)                                \
   MOZ_DEFINE_RUST_PARAMTRAITS(mozilla::ty_, Servo_##ty_##_Serialize, \

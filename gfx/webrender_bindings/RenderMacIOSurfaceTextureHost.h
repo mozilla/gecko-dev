@@ -14,16 +14,14 @@
 namespace mozilla {
 
 namespace layers {
-class GpuFence;
 class SurfaceDescriptorMacIOSurface;
-}  // namespace layers
+}
 
 namespace wr {
 
 class RenderMacIOSurfaceTextureHost final : public RenderTextureHostSWGL {
  public:
-  explicit RenderMacIOSurfaceTextureHost(MacIOSurface* aSurface,
-                                         layers::GpuFence* aGpuFence);
+  explicit RenderMacIOSurfaceTextureHost(MacIOSurface* aSurface);
 
   wr::WrExternalImage Lock(uint8_t aChannelIndex, gl::GLContext* aGL) override;
   void Unlock() override;
@@ -48,14 +46,11 @@ class RenderMacIOSurfaceTextureHost final : public RenderTextureHostSWGL {
                 PlaneInfo& aPlaneInfo) override;
   void UnmapPlanes() override;
 
-  layers::GpuFence* GetGpuFence() { return mGpuFence; }
-
  private:
   virtual ~RenderMacIOSurfaceTextureHost();
   void DeleteTextureHandle();
 
   RefPtr<MacIOSurface> mSurface;
-  RefPtr<layers::GpuFence> mGpuFence;
   RefPtr<gl::GLContext> mGL;
   GLuint mTextureHandles[3];
 };
