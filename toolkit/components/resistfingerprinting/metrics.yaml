@@ -4077,3 +4077,20 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  canvas_feature_status:
+    type: string
+    description: >
+      Status of and failure id (if failed) of ACCELERATED_CANVAS2D feature
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935712
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935712#c0
+    expires: never
+    data_sensitivity:
+      - technical

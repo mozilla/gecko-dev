@@ -50,6 +50,7 @@
 #include "mozilla/dom/Navigator.h"
 #include "nsIGSettingsService.h"
 #include "nsITimer.h"
+#include "gfxConfig.h"
 
 #include "gfxPlatformFontList.h"
 #include "prsystem.h"
@@ -615,6 +616,12 @@ void PopulateMisc(bool worksInGtest) {
       gfxInfo->GetUsingAcceleratedCanvas(&isUsingAcceleratedCanvas);
       glean::characteristics::using_accelerated_canvas.Set(
           isUsingAcceleratedCanvas);
+      auto& feature = mozilla::gfx::gfxConfig::GetFeature(
+          mozilla::gfx::Feature::ACCELERATED_CANVAS2D);
+      nsCString status = feature.GetValue() == gfx::FeatureStatus::Blocklisted
+                             ? "#BLOCKLIST_SPECIFIC"_ns
+                             : feature.GetStatusAndFailureIdString();
+      glean::characteristics::canvas_feature_status.Set(status);
     }
   } else {
     // System Locale
@@ -675,7 +682,7 @@ const RefPtr<PopulatePromise>& TimoutPromise(
 // metric is set, this variable should be incremented. It'll be a lot. It's
 // okay. We're going to need it to know (including during development) what is
 // the source of the data we are looking at.
-const int kSubmissionSchema = 13;
+const int kSubmissionSchema = 14;
 
 const auto* const kUUIDPref =
     "toolkit.telemetry.user_characteristics_ping.uuid";
