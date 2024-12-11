@@ -18,10 +18,11 @@
 }
 
 
-.frames [role="list"]{
+.frames .top-frames-list[role="listbox"] {
   display: inline-grid;
   grid-template-columns: auto 1fr;
   grid-column-gap: 8px;
+  outline-offset: -2px;
 }
 
 .frames .frame {
@@ -32,6 +33,7 @@
   grid-template-columns: subgrid;
   cursor: pointer;
   white-space: normal;
+  outline-offset: -2px;
 }
 
 .frames .title {
@@ -69,7 +71,7 @@
   grid-column:1 / -1;
 }
 
-.frames .frames-group .group {
+.frames .frames-group {
   display: flex;
 }
 
@@ -79,7 +81,7 @@
   color: var(--console-output-color);
 }
 
-.frames .frames-group .frames-list {
+.frames .frames-list {
   margin-block-start: 2px;
   /*
    * We want to display each frame name on its own row, without having new lines in the
@@ -89,22 +91,22 @@
   grid-template-columns: 1fr;
 }
 
-.frames .frames-group .frames-list .frame {
+.frames .frames-list .frame {
   padding-inline-start: 0;
   text-overflow: ellipsis;
 }
 
-.frames-group .frames-list .title {
+.frames-list .title {
   grid-column: -1 / 1;
   padding-inline-start: 16px;
 }
 
-.frames .frames-group .frames-list .frame:first-of-type {
+.frames .frames-list .frame:first-of-type {
   border-top: 1px solid var(--theme-splitter-color);
   padding-block-start: 4px;
 }
 
-.frames .frames-group .frames-list .frame:last-of-type {
+.frames .frames-list .frame:last-of-type {
   margin-block-end: 4px;
   border-bottom: 1px solid var(--theme-splitter-color);
 }
@@ -148,7 +150,7 @@
   background-color: currentColor;
 }
 
-.group .img.arrow {
+.frames-group .img.arrow {
     mask: url("chrome://devtools/content/debugger/images/arrow.svg");
     margin-inline-end: 4px;
     background-color: var(--theme-icon-dimmed-color);
@@ -160,7 +162,7 @@
     transition: transform 0.18s ease;
 }
 
-.group .img.arrow.expanded {
+.frames-group .img.arrow.expanded {
   transform: rotate(0);
 }
 

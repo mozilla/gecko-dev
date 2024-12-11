@@ -21,7 +21,7 @@ add_task(async function () {
   const msgNode = await waitFor(() => findConsoleAPIMessage(hud, MESSAGE));
   ok(!msgNode.classList.contains("open"), `Error logged not expanded`);
 
-  const groupNode = await waitFor(() => msgNode.querySelector(".group"));
+  const groupNode = await waitFor(() => msgNode.querySelector(".frames-group"));
   ok(groupNode, "The error object is logged as expected");
 
   const onGroupExpanded = waitFor(() =>
@@ -32,7 +32,7 @@ add_task(async function () {
 
   ok(true, "The stacktrace group was expanded");
   is(
-    msgNode.querySelectorAll(".frame").length,
+    msgNode.querySelectorAll(".frame:not(.frames-group)").length,
     3,
     "Expected frames are displayed"
   );

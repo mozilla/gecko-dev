@@ -81,7 +81,7 @@ window.onload = function() {
     info("Expand React group");
     let onReactGroupExpanded = waitFor(() =>
       traceEl.querySelector(".frames-group.expanded"));
-    traceEl.querySelector(".group").click();
+    traceEl.querySelector(".frames-group").click();
     await onReactGroupExpanded;
 
     isDeeply(getStacktraceText(traceEl), [
@@ -105,7 +105,7 @@ window.onload = function() {
     info("Collapse React group");
     onReactGroupExpanded = waitFor(() =>
       !traceEl.querySelector(".frames-group.expanded"));
-    traceEl.querySelector(".group").click();
+    traceEl.querySelector(".frames-group").click();
     await onReactGroupExpanded;
 
     isDeeply(getStacktraceText(traceEl), [
@@ -118,16 +118,16 @@ window.onload = function() {
   });
 
   function getStacktraceText(traceElement) {
-    return Array.from(traceElement.querySelectorAll(".frame, .frames-group")).map(el => {
+    return Array.from(traceElement.querySelectorAll(".frame")).map(el => {
         // If it's a group, we want to append an arrow representing the group state
         if (el.classList.contains("frames-group")) {
           const arrow = el.classList.contains("expanded") ? "▼" : "▶︎";
-          const content = el.querySelector(".group").textContent.trim();
+          const content = el.textContent.trim();
           return `${arrow} ${content}`;
         }
 
         const title = el.querySelector(".title");
-        if (el.closest(".frames-group")) {
+        if (el.closest(".frames-list")) {
           return `| ${title.textContent}`;
         }
 

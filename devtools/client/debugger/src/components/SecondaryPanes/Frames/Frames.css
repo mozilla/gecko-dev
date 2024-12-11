@@ -2,26 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-.frames [role="list"] {
+.frames div[role="listbox"] {
   list-style: none;
   margin: 0;
   padding: 4px 0;
+  outline-offset: -2px;
 }
 
-.frames [role="list"] [role="listitem"] {
-  padding-bottom: 2px;
+.frames div[role="listbox"] .frame {
+  padding: 2px;
   overflow: hidden;
   display: flex;
   justify-content: space-between;
   column-gap: 0.5em;
   flex-direction: row;
   align-items: center;
-  margin: 0;
+  margin: 2px;
   max-width: 100%;
   flex-wrap: wrap;
+  outline-offset: -2px;
 }
 
-.frames [role="list"] [role="listitem"] * {
+.frames div[role="listbox"] .frame * {
   user-select: none;
 }
 
@@ -60,48 +62,51 @@
 .frames .title {
   text-overflow: ellipsis;
   overflow: hidden;
-  padding-inline-start: 10px;
+  padding-inline-start: 20px;
 }
 
 .frames-group .title {
-  padding-inline-start: 40px;
+  padding-inline-start: 30px;
 }
 
-.frames [role="list"] [role="listitem"]:hover,
-.frames [role="list"] [role="listitem"]:focus {
-  background-color: var(--theme-toolbar-background-alt);
+.frames div[role="listbox"] .frame:hover,
+.frames div[role="listbox"] .frame:focus {
+    background-color: var(--theme-toolbar-background-alt);
 }
 
-.frames [role="list"] [role="listitem"]:hover .location-async-cause,
-.frames [role="list"] [role="listitem"]:focus .location-async-cause,
-.frames [role="list"] [role="listitem"]:hover .async-label,
-.frames [role="list"] [role="listitem"]:focus .async-label {
+.frames div[role="listbox"] .location-async-cause:hover,
+.frames div[role="listbox"] .location-async-cause:focus
+.frames div[role="listbox"] .location-async-cause:hover .async-label,
+.frames div[role="listbox"] .location-async-cause:focus .async-label{
   background-color: var(--theme-body-background);
 }
 
-.theme-dark .frames [role="list"] [role="listitem"]:not(.selected):focus,
-.theme-dark .frames [role="list"] [role="listitem"]:not(.selected):focus .async-label {
-  background-color: var(--theme-tab-toolbar-background);
+.frames div[role="listbox"] .frame:focus {
+  box-shadow: none;
 }
 
-.frames [role="list"] [role="listitem"].selected,
-.frames [role="list"] [role="listitem"].selected .async-label {
+.frames div[role="listbox"] .frame.selected {
   background-color: var(--theme-selection-background);
   color: var(--theme-selection-color);
+  outline-offset: 1px;
 }
 
-.frames [role="list"] [role="listitem"].inactive,
-.frames [role="list"] [role="listitem"].inactive.async-label {
+.frames div[role="listbox"] .frame.dead {
+  color: var(--theme-text-color-inactive);
+}
+
+.frames div[role="listbox"] .frame.inactive,
+.frames div[role="listbox"] .frame.inactive.async-label {
   background-color: light-dark(var(--theme-toolbar-background-alt), var(--theme-body-alternate-emphasized-background));
 }
 
 
-.frames [role="list"] [role="listitem"].selected i.annotation-logo svg path {
+.frames div[role="listbox"] .frame.selected i.annotation-logo svg path {
   fill: var(--theme-selection-color);
 }
 
-:root.theme-light .frames [role="list"] [role="listitem"].selected .location,
-:root.theme-dark .frames [role="list"] [role="listitem"].selected .location {
+:root.theme-light .frames div[role="listbox"] .frame.selected .location,
+:root.theme-dark .frames div[role="listbox"] .frame.selected .location {
   color: var(--theme-selection-color);
 }
 
@@ -147,36 +152,40 @@
   left: -9999px;
 }
 
-.call-stack-pane [role="listitem"] .location-async-cause {
-  height: 20px;
-  line-height: 20px;
+.call-stack-pane .location-async-cause {
+  --label-padding: 20px;
+
   color: var(--theme-text-color-alt);
-  display: block;
-  z-index: 4;
-  position: relative;
-  padding-inline-start: 17px;
+  display: flex;
+  align-items: center;
+  padding-block: 2px;
   width: 100%;
   pointer-events: none;
+
+  &::before,
+  &::after {
+    content: "";
+    height: 1px;
+    translate: 0 1px;
+    background-color: var(--theme-splitter-color);
+  }
+
+  &::before {
+    width: var(--label-padding);
+  }
+
+  &::after {
+    flex: 1;
+  }
+
 }
 
 .frames-group .location-async-cause {
-  padding-inline-start: 47px;
-}
-
-.call-stack-pane [role="listitem"] .location-async-cause::after {
-  content: " ";
-  position: absolute;
-  left: 0;
-  z-index: -1;
-  height: 30px;
-  top: 50%;
-  width: 100%;
-  border-top: 1px solid var(--theme-tab-toolbar-background);;
+  --label-padding: 50px;
 }
 
 .call-stack-pane .async-label {
-  z-index: 1;
-  background-color: var(--theme-sidebar-background);
   padding: 0 3px;
   display: inline-block;
+  font-style: italic;
 }

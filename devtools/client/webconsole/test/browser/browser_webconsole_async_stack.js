@@ -74,17 +74,17 @@ add_task(async function () {
 async function getSimplifiedStack(messageEl) {
   const framesEl = await waitFor(() => {
     const frames = messageEl.querySelectorAll(
-      ".message-body-wrapper > .stacktrace .frame"
+      `.message-body-wrapper > .stacktrace .frame,
+       .message-body-wrapper > .stacktrace .location-async-cause`
     );
     return frames.length ? frames : null;
   }, "Couldn't find stacktrace");
 
-  return Array.from(framesEl)
-    .map(frameEl =>
-      Array.from(frameEl.querySelectorAll(".title,.location-async-cause")).map(
-        el => el.textContent.trim()
-      )
-    )
+  return [...framesEl]
+    .map(frameEl => {
+      const el = frameEl.querySelector(".title") || frameEl;
+      return el.textContent.trim();
+    })
     .flat()
     .join("\n");
 }

@@ -75,6 +75,7 @@ class SecondaryPanes extends Component {
     this.state = {
       showExpressionsInput: false,
       showXHRInput: false,
+      expandedFrameGroups: {},
     };
   }
 
@@ -108,6 +109,12 @@ class SecondaryPanes extends Component {
 
   onXHRAdded = () => {
     this.setState({ showXHRInput: false });
+  };
+
+  onExpandFrameGroup = expandedFrameGroups => {
+    this.setState({
+      expandedFrameGroups: { ...expandedFrameGroups },
+    });
   };
 
   watchExpressionHeaderButtons() {
@@ -305,6 +312,11 @@ class SecondaryPanes extends Component {
       className: "call-stack-pane",
       component: React.createElement(Frames, {
         panel: "debugger",
+        // These props enable storing and using the current expanded state
+        // of the frame groups. This is we always handle displaying selected frames
+        // in groups correctly.
+        onExpandFrameGroup: this.onExpandFrameGroup,
+        expandedFrameGroups: this.state.expandedFrameGroups,
       }),
       opened: prefs.callStackVisible,
       onToggle: opened => {

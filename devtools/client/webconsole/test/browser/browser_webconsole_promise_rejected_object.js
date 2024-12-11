@@ -63,17 +63,17 @@ add_task(async function () {
     message.querySelector(".collapse-button").click();
     const framesEl = await waitFor(() => {
       const frames = message.querySelectorAll(
-        ".message-body-wrapper > .stacktrace .frame"
+        `.message-body-wrapper > .stacktrace .frame,
+         .message-body-wrapper > .stacktrace .location-async-cause`
       );
       return frames.length ? frames : null;
     }, "Couldn't find stacktrace");
 
-    const frames = Array.from(framesEl)
-      .map(frameEl =>
-        Array.from(
-          frameEl.querySelectorAll(".title, .location-async-cause")
-        ).map(el => el.textContent.trim())
-      )
+    const frames = [...framesEl]
+      .map(frameEl => {
+        const el = frameEl.querySelector(".title") || frameEl;
+        return el.textContent.trim();
+      })
       .flat();
 
     is(

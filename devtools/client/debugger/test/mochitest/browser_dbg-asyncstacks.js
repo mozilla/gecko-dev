@@ -14,8 +14,6 @@ add_task(async function () {
   await waitForPaused(dbg);
 
   is(findElement(dbg, "frame", 1).innerText, "sleep\ndoc-frames-async.html:13");
-  is(
-    findElement(dbg, "frame", 2).innerText,
-    "async\nmain\ndoc-frames-async.html:17"
-  );
+  is(findElement(dbg, "asyncframe", 2).innerText, "async");
+  is(findElement(dbg, "frame", 3).innerText, "main\ndoc-frames-async.html:17");
 });

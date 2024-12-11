@@ -7,15 +7,37 @@
 // Ignore strange errors when shutting down.
 PromiseTestUtils.allowMatchingRejectionsGlobally(/No such actor/);
 
-add_task(async function () {
-  const dbg = await initDebugger("doc-script-switching.html");
+add_task(async function testBasicFrames() {
+  const dbg = await initDebugger(
+    "doc-script-switching.html",
+    "script-switching-01.js",
+    "script-switching-02.js"
+  );
 
   const found = findElement(dbg, "callStackBody");
   is(found, null, "Call stack is hidden");
 
   invokeInTab("firstCall");
   await waitForPaused(dbg);
-  ok(isFrameSelected(dbg, 1, "secondCall"), "the first frame is selected");
+
+  const frames = findAllElements(dbg, "frames");
+  assertFrameIsSelected(dbg, frames[0], "secondCall");
+
+  info("Assert pause at the correct location");
+  await assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, "script-switching-02.js").id,
+    6
+  );
+
+  info("Click the second frame and assert the frame and the selected location");
+  frames[1].click();
+  await assertSelectedLocation(
+    dbg,
+    findSource(dbg, "script-switching-01.js").id,
+    8
+  );
+  assertFrameIsSelected(dbg, frames[1], "firstCall");
 
   const button = toggleButton(dbg);
   ok(!button, "toggle button shouldn't be there");
@@ -23,18 +45,73 @@ add_task(async function () {
   await resume(dbg);
 });
 
-add_task(async function () {
-  const dbg = await initDebugger("doc-frames.html");
+add_task(async function testFrameNavigation() {
+  const dbg = await initDebugger("doc-frames.html", "frames.js");
 
+  const source = findSource(dbg, "frames.js");
   invokeInTab("startRecursion");
   await waitForPaused(dbg);
-  ok(isFrameSelected(dbg, 1, "recurseA"), "the first frame is selected");
+
+  let frames = findAllElements(dbg, "frames");
+  assertFrameIsSelected(dbg, frames[0], "recurseA");
+  assertFrameContent(dbg, frames[0], "recurseA", "frames.js:3");
 
   // check to make sure that the toggle button isn't there
   let button = toggleButton(dbg);
-  let frames = findAllElements(dbg, "frames");
+
   is(button.innerText, "Expand rows", "toggle button should be 'expand'");
   is(frames.length, 7, "There should be at most seven frames");
+
+  frames[0].focus();
+
+  info("Assert the Home and End Keys on the frame list");
+  pressKey(dbg, "End");
+  assertFrameContent(
+    dbg,
+    dbg.win.document.activeElement,
+    "recurseA",
+    "frames.js:8"
+  );
+
+  pressKey(dbg, "Start");
+  assertFrameContent(
+    dbg,
+    dbg.win.document.activeElement,
+    "recurseA",
+    "frames.js:3"
+  );
+
+  info("Assert navigating through the frames");
+  pressKey(dbg, "Down");
+  is(frames[1], dbg.win.document.activeElement, "The second frame is focused");
+
+  pressKey(dbg, "Down");
+  is(frames[2], dbg.win.document.activeElement, "The third frame is focused");
+
+  info(
+    "Assert that selecting the third frame jumps to the correct source location"
+  );
+  pressKey(dbg, "Enter");
+
+  await assertSelectedLocation(dbg, source.id, 8);
+  assertFrameIsSelected(dbg, frames[2], "recurseA");
+  assertFrameContent(dbg, frames[2], "recurseA", "frames.js:8");
+
+  info("Navigate up and assert the second frame");
+  pressKey(dbg, "Up");
+  is(
+    frames[1],
+    dbg.win.document.activeElement,
+    "The second frame is now focused"
+  );
+
+  info(
+    "Assert that selecting the second frame jumps to the correct source location"
+  );
+  pressKey(dbg, "Enter");
+
+  await assertSelectedLocation(dbg, source.id, 18);
+  assertFrameIsSelected(dbg, frames[1], "recurseB");
 
   button.click();
 
@@ -45,7 +122,7 @@ add_task(async function () {
   await waitForSelectedSource(dbg, "frames.js");
 });
 
-add_task(async function () {
+add_task(async function testGroupFrames() {
   const url = createMockAngularPage();
   const tab = await addTab(url);
   info("Open debugger");
@@ -64,16 +141,74 @@ add_task(async function () {
   );
 
   await waitForPaused(dbg);
-  const $group = findElementWithSelector(dbg, ".frames .frames-group");
+  const group = findElementWithSelector(dbg, ".frames .frames-group");
   is(
-    $group.querySelector(".badge").textContent,
+    group.querySelector(".badge").textContent,
     "2",
     "Group has expected badge"
   );
   is(
-    $group.querySelector(".group-description-name").textContent,
+    group.querySelector(".group-description-name").textContent,
     "Angular",
     "Group has expected location"
+  );
+
+  info("Expand the frame group");
+  group.focus();
+  pressKey(dbg, "Enter");
+
+  info("Press arrow to select first frame element");
+  pressKey(dbg, "Down");
+
+  info("Assert the Home and End Keys in the Frame Group");
+  pressKey(dbg, "End");
+  info("The last frame item in the group is not selected");
+  assertFrameIsNotSelected(dbg, dbg.win.document.activeElement, "<anonymous>");
+  assertFrameContent(dbg, dbg.win.document.activeElement, "<anonymous>");
+
+  pressKey(dbg, "Start");
+  info("The group header is focused");
+  is(
+    dbg.win.document.activeElement.querySelector(".group-description-name")
+      .innerText,
+    "Angular",
+    "The group is correct"
+  );
+
+  const frameElements = findAllElements(dbg, "frames");
+  is(
+    frameElements[0],
+    dbg.win.document.activeElement,
+    "The first frame is now focused"
+  );
+
+  const source = findSource(dbg, "angular.js");
+  await assertPausedAtSourceAndLine(dbg, source.id, 4);
+  await assertSelectedLocation(dbg, source.id, 4);
+  assertFrameIsSelected(dbg, frameElements[1], "<anonymous>");
+
+  info("Select the frame group");
+  frameElements[1].focus();
+  pressKey(dbg, "Up");
+
+  info(
+    "Assert that the frame group does not collapse when a frame group item is selected"
+  );
+  pressKey(dbg, "Enter");
+  const frameGroupHeader = frameElements[1].parentNode.previousElementSibling;
+  ok(
+    frameGroupHeader.classList.contains("expanded"),
+    "The frame group is still expanded"
+  );
+  is(
+    frameGroupHeader.querySelector(".group-description-name").innerText,
+    "Angular",
+    "The group is correct"
+  );
+  is(
+    frameGroupHeader.title,
+    "Select a non-group frame to collapse Angular frames",
+    "The group title is correct"
   );
 
   await resume(dbg);
@@ -85,6 +220,32 @@ add_task(async function () {
 function toggleButton(dbg) {
   const callStackBody = findElement(dbg, "callStackBody");
   return callStackBody.querySelector(".show-more");
+}
+
+function assertFrameContent(dbg, element, expectedTitle, expectedLocation) {
+  is(
+    element.querySelector(".title").innerText,
+    expectedTitle,
+    "The frame title is correct"
+  );
+
+  if (expectedLocation) {
+    is(
+      element.querySelector(".location").innerText,
+      expectedLocation,
+      "The location is correct"
+    );
+  }
+}
+
+async function assertSelectedLocation(dbg, sourceId, line) {
+  await waitFor(() => {
+    const selectedLocation = dbg.selectors.getSelectedLocation();
+    return (
+      selectedLocation.source.id == sourceId && selectedLocation.line == line
+    );
+  });
+  ok(true, "The correct location is selected");
 }
 
 // Create an HTTP server to simulate an angular app with anonymous functions

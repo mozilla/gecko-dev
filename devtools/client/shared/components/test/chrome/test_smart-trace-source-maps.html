@@ -169,12 +169,12 @@ window.onload = function() {
     is(onReadyCount, 1, "onReady was called once");
 
     info("Check the the sourcemapped version is rendered after the sourcemapTimeout");
-    await waitFor(() => !!traceEl.querySelector(".group"));
+    await waitFor(() => !!traceEl.querySelector(".frames-group"));
 
-    frameEls = Array.from(traceEl.querySelectorAll(".frame"));
+    frameEls = Array.from(traceEl.querySelectorAll(".frame:not(.frames-group)"));
     is(frameEls.length, 0, "SmartTrace has no frame");
 
-    const groups = Array.from(traceEl.querySelectorAll(".group"));
+    const groups = Array.from(traceEl.querySelectorAll(".frames-group"));
     is(groups.length, 1, "SmartTrace has a group");
     is(groups[0].textContent.trim(), "React 2", "A collapsed React group is displayed");
 

@@ -43,7 +43,7 @@ add_task(async function () {
 
   info("Click on the frame.");
   EventUtils.sendMouseEvent(
-    { type: "mousedown" },
+    { type: "click" },
     node.querySelector(".stacktrace .location")
   );
 

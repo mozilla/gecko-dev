@@ -48,7 +48,7 @@ async function checkMousedownOnNode(hud, toolbox, frameNode) {
   info("checking click on node location");
   const onSourceInDebuggerOpened = once(hud, "source-in-debugger-opened");
   EventUtils.sendMouseEvent(
-    { type: "mousedown" },
+    { type: "click" },
     frameNode.querySelector(".location")
   );
   await onSourceInDebuggerOpened;

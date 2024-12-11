@@ -98,6 +98,7 @@ add_task(async function () {
 
   info("Check stacktrace frames can be focused");
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+  EventUtils.synthesizeKey("KEY_ArrowUp");
   ok(
     outputScroller.ownerDocument.activeElement.closest(".message.trace"),
     "The active element is in the trace message"
@@ -109,14 +110,15 @@ add_task(async function () {
     "test.html:10",
     `last frame of the stacktrace is focused ${outputScroller.ownerDocument.activeElement.innerText}`
   );
+
   is(
     outputScroller.ownerDocument.activeElement.getAttribute("class"),
     "frame",
     "active element has expected class"
   );
 
-  info("Hit Tab to navigate to second frame of the stacktrace");
-  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+  info("Hit Up Arrow to navigate to second frame of the stacktrace");
+  EventUtils.synthesizeKey("KEY_ArrowUp");
   ok(
     outputScroller.ownerDocument.activeElement.closest(".message.trace"),
     "The active element is in the trace message"
@@ -134,8 +136,8 @@ add_task(async function () {
     "active element has expected class"
   );
 
-  info("Hit Tab to navigate to first frame of the stacktrace");
-  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+  info("Hit Up Arrow to navigate to first frame of the stacktrace");
+  EventUtils.synthesizeKey("KEY_ArrowUp");
   ok(
     outputScroller.ownerDocument.activeElement.closest(".message.trace"),
     "The active element is in the trace message"
@@ -154,6 +156,7 @@ add_task(async function () {
   );
 
   info("Hit Tab to navigate to the message location");
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
   ok(
     outputScroller.ownerDocument.activeElement.closest(".message.trace"),

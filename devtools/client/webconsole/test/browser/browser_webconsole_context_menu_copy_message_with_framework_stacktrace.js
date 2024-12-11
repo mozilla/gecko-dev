@@ -76,7 +76,7 @@ add_task(async function () {
   info("Expand the React group");
   const getFrames = () => messageEl.querySelectorAll(".frame");
   const frames = getFrames().length;
-  messageEl.querySelector(".frames .group").click();
+  messageEl.querySelector(".frames .frames-group").click();
   // Let's wait until all React frames are displayed.
   await waitFor(() => getFrames().length > frames);
 
