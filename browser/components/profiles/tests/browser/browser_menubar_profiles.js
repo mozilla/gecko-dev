@@ -43,9 +43,16 @@ add_task(async function test_menu_contents_no_profiles() {
   SelectableProfileService.uninit();
   await waitForUIUpdate();
 
-  // Simulate opening the menu, as seen in browser_file_close_tabs.js.
+  // Simulate opening the menu.
   let updated = new Promise(resolve => {
-    popup.addEventListener("popupshown", resolve, { once: true });
+    popup.addEventListener(
+      "popupshown",
+      async () => {
+        await waitForUIUpdate();
+        resolve();
+      },
+      { once: true }
+    );
   });
   popup.dispatchEvent(new MouseEvent("popupshowing", { bubbles: true }));
   popup.dispatchEvent(new MouseEvent("popupshown", { bubbles: true }));
