@@ -2109,11 +2109,13 @@ impl TileCacheInstance {
     /// Update transforms, opacity, color bindings and tile rects.
     pub fn pre_update(
         &mut self,
-        pic_rect: PictureRect,
         surface_index: SurfaceIndex,
         frame_context: &FrameVisibilityContext,
         frame_state: &mut FrameVisibilityState,
     ) -> WorldRect {
+        let surface = &frame_state.surfaces[surface_index.0];
+        let pic_rect = surface.unclipped_local_rect;
+
         self.surface_index = surface_index;
         self.local_rect = pic_rect;
         self.local_clip_rect = PictureRect::max_rect();
@@ -3771,14 +3773,15 @@ impl TileCacheInstance {
     pub fn post_update(
         &mut self,
         frame_context: &FrameVisibilityContext,
-        frame_state: &mut FrameVisibilityState,
+        composite_state: &mut CompositeState,
+        resource_cache: &mut ResourceCache,
     ) {
         assert!(self.current_surface_traversal_depth == 0);
 
         self.dirty_region.reset(self.spatial_node_index);
         self.subpixel_mode = self.calculate_subpixel_mode();
 
-        self.transform_index = frame_state.composite_state.register_transform(
+        self.transform_index = composite_state.register_transform(
             self.local_to_raster,
             // TODO(gw): Once we support scaling of picture cache tiles during compositing,
             //           that transform gets plugged in here!
@@ -3798,9 +3801,9 @@ impl TileCacheInstance {
             if !surface.used_this_frame {
                 // If we removed an external surface, we need to mark the dirty rects as
                 // invalid so a full composite occurs on the next frame.
-                frame_state.composite_state.dirty_rects_are_valid = false;
+                composite_state.dirty_rects_are_valid = false;
 
-                frame_state.resource_cache.destroy_compositor_surface(surface.native_surface_id);
+                resource_cache.destroy_compositor_surface(surface.native_surface_id);
             }
 
             surface.used_this_frame
@@ -3823,8 +3826,8 @@ impl TileCacheInstance {
         };
 
         let mut state = TileUpdateDirtyState {
-            resource_cache: frame_state.resource_cache,
-            composite_state: frame_state.composite_state,
+            resource_cache,
+            composite_state,
             compare_cache: &mut self.compare_cache,
             spatial_node_comparer: &mut self.spatial_node_comparer,
         };
@@ -3882,8 +3885,8 @@ impl TileCacheInstance {
         };
 
         let mut state = TilePostUpdateState {
-            resource_cache: frame_state.resource_cache,
-            composite_state: frame_state.composite_state,
+            resource_cache,
+            composite_state,
         };
 
         for (i, sub_slice) in self.sub_slices.iter_mut().enumerate().rev() {
@@ -3919,7 +3922,7 @@ impl TileCacheInstance {
                 &self.local_clip_rect,
                 &map_pic_to_world,
             ) {
-                frame_state.composite_state.register_occluder(
+                composite_state.register_occluder(
                     underlay.z_id,
                     world_surface_rect,
                 );
@@ -3933,7 +3936,7 @@ impl TileCacheInstance {
                         &self.local_clip_rect,
                         &map_pic_to_world,
                     ) {
-                        frame_state.composite_state.register_occluder(
+                        composite_state.register_occluder(
                             compositor_surface.descriptor.z_id,
                             world_surface_rect,
                         );
@@ -3945,7 +3948,7 @@ impl TileCacheInstance {
         // Register the opaque region of this tile cache as an occluder, which
         // is used later in the frame to occlude other tiles.
         if !self.backdrop.opaque_rect.is_empty() {
-            let z_id_backdrop = frame_state.composite_state.z_generator.next();
+            let z_id_backdrop = composite_state.z_generator.next();
 
             let backdrop_rect = self.backdrop.opaque_rect
                 .intersection(&self.local_rect)
@@ -3960,7 +3963,7 @@ impl TileCacheInstance {
 
                 // Since we register the entire backdrop rect, use the opaque z-id for the
                 // picture cache slice.
-                frame_state.composite_state.register_occluder(
+                composite_state.register_occluder(
                     z_id_backdrop,
                     world_backdrop_rect,
                 );

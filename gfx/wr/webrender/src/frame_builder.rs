@@ -360,23 +360,24 @@ impl FrameBuilder {
                             .expect("bug: non-existent tile cache");
 
                         let mut visibility_state = FrameVisibilityState {
-                            surface_stack: scratch.frame.surface_stack.take(),
+                            clip_store: &mut scene.clip_store,
                             resource_cache,
                             gpu_cache,
-                            clip_store: &mut scene.clip_store,
-                            scratch,
                             data_stores,
-                            composite_state,
                             clip_tree: &mut scene.clip_tree,
+                            composite_state,
                             rg_builder,
+                            prim_instances: &mut scene.prim_instances,
+                            surfaces: &mut scene.surfaces,
+                            surface_stack: scratch.frame.surface_stack.take(),
+                            profile,
+                            scratch,
                         };
 
                         // If we have a tile cache for this picture, see if any of the
                         // relative transforms have changed, which means we need to
                         // re-map the dependencies of any child primitives.
-                        let surface = &scene.surfaces[surface_index.0];
                         let world_culling_rect = tile_cache.pre_update(
-                            surface.unclipped_local_rect,
                             surface_index,
                             &visibility_context,
                             &mut visibility_state,
@@ -394,20 +395,18 @@ impl FrameBuilder {
                             *pic_index,
                             None,
                             &world_culling_rect,
-                            &mut scene.prim_store,
-                            &mut scene.prim_instances,
-                            &mut scene.surfaces,
+                            &scene.prim_store,
                             true,
                             &visibility_context,
                             &mut visibility_state,
                             tile_cache,
-                            profile,
                         );
 
                         // Build the dirty region(s) for this tile cache.
                         tile_cache.post_update(
                             &visibility_context,
-                            &mut visibility_state,
+                            &mut visibility_state.composite_state,
+                            &mut visibility_state.resource_cache,
                         );
 
                         visibility_state.clip_tree.pop_clip_root();
