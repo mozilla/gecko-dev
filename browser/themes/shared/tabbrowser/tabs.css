@@ -867,6 +867,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  text-shadow: none;
   border-radius: var(--tab-border-radius);
   line-height: calc(var(--tab-group-label-height) - var(--tab-group-line-thickness));
   min-height: var(--tab-group-label-height);
