@@ -365,12 +365,7 @@ bool nsIFrame::IsVisibleConsideringAncestors(uint32_t aFlags) const {
       return false;
     }
 
-    // Checking mMozSubtreeHiddenOnlyVisually is relatively slow because it
-    // involves loading more memory. It's only allowed in chrome sheets so let's
-    // only support it in the parent process so we can mostly optimize this out
-    // in content processes.
-    if (XRE_IsParentProcess() &&
-        frame->StyleUIReset()->mMozSubtreeHiddenOnlyVisually) {
+    if (frame->StyleUIReset()->mMozSubtreeHiddenOnlyVisually) {
       return false;
     }
 
@@ -4047,12 +4042,7 @@ static bool ShouldSkipFrame(nsDisplayListBuilder* aBuilder,
   if (aFrame->HasAnyStateBits(skipFlags)) {
     return true;
   }
-  // Checking mMozSubtreeHiddenOnlyVisually is relatively slow because it
-  // involves loading more memory. It's only allowed in chrome sheets so let's
-  // only support it in the parent process so we can mostly optimize this out in
-  // content processes.
-  return XRE_IsParentProcess() &&
-         aFrame->StyleUIReset()->mMozSubtreeHiddenOnlyVisually;
+  return aFrame->StyleUIReset()->mMozSubtreeHiddenOnlyVisually;
 }
 
 void nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder* aBuilder,

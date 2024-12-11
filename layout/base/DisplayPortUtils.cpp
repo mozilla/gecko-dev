@@ -881,12 +881,7 @@ bool DisplayPortUtils::MaybeCreateDisplayPortInFirstScrollFrameEncountered(
       }
     }
   }
-  // Checking mMozSubtreeHiddenOnlyVisually is relatively slow because it
-  // involves loading more memory. It's only allowed in chrome sheets so let's
-  // only support it in the parent process so we can mostly optimize this out in
-  // content processes.
-  if (XRE_IsParentProcess() &&
-      aFrame->StyleUIReset()->mMozSubtreeHiddenOnlyVisually) {
+  if (aFrame->StyleUIReset()->mMozSubtreeHiddenOnlyVisually) {
     // Only descend the visible card of deck / tabpanels
     return false;
   }
