@@ -22,6 +22,7 @@
 #include "nsIQuotaRequests.h"
 #include "nsIVariant.h"
 #include "nsScriptSecurityManager.h"
+#include "QuotaManagerTestHelpers.h"
 
 namespace mozilla::dom::quota::test {
 
@@ -348,9 +349,7 @@ void QuotaManagerDependencyFixture::InitializeTemporaryClient(
 
 // static
 PrincipalMetadata QuotaManagerDependencyFixture::GetTestPrincipalMetadata() {
-  return {""_ns, "example.com"_ns, "http://example.com"_ns,
-          "http://example.com"_ns,
-          /* aIsPrivate */ false};
+  return GetPrincipalMetadata("example.com"_ns, "http://example.com"_ns);
 }
 
 // static
@@ -372,9 +371,8 @@ ClientMetadata QuotaManagerDependencyFixture::GetTestClientMetadata() {
 // static
 PrincipalMetadata
 QuotaManagerDependencyFixture::GetOtherTestPrincipalMetadata() {
-  return {""_ns, "other-example.com"_ns, "http://other-example.com"_ns,
-          "http://other-example.com"_ns,
-          /* aIsPrivate */ false};
+  return GetPrincipalMetadata("other-example.com"_ns,
+                              "http://other-example.com"_ns);
 }
 
 // static
