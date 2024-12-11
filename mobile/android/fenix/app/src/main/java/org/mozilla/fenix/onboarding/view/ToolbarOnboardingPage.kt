@@ -147,22 +147,19 @@ private fun ToolbarOptions(
     selectedOption: ToolbarOptionType,
     onClick: (ToolbarOptionType) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        options.forEach {
-            SelectableImageItem(
-                toolbarOption = it,
-                selectedOption = selectedOption,
-                onClick = onClick,
-            )
+    SelectableImageItem(
+        toolbarOption = options[0],
+        selectedOption = selectedOption,
+        onClick = onClick,
+    )
 
-            if (it != options.last()) {
-                Spacer(Modifier.width(26.dp))
-            }
-        }
-    }
+    Spacer(Modifier.width(40.dp))
+
+    SelectableImageItem(
+        toolbarOption = options[1],
+        selectedOption = selectedOption,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -217,14 +214,6 @@ private fun SelectableImageItem(
                     modifier = Modifier.size(12.dp),
                     tint = PhotonColors.White,
                 )
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .border(2.dp, FirefoxTheme.colors.actionSecondary, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
             }
         }
     }

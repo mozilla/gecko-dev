@@ -272,6 +272,5 @@ private fun createOnboardingPageState(
     privacyCaption = onboardingPageUiData.privacyCaption,
     addOns = onboardingPageUiData.addOns,
     themeOptions = onboardingPageUiData.themeOptions,
-    toolbarOptions = onboardingPageUiData.toolbarOptions,
     termsOfService = onboardingPageUiData.termsOfService,
 )
