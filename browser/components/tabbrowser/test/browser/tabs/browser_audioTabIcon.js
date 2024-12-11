@@ -574,6 +574,11 @@ async function test_mute_keybinding() {
     let mutedPromise = get_wait_for_mute_promise(tab, true);
     EventUtils.synthesizeKey("m", { ctrlKey: true });
     await mutedPromise;
+    is(
+      tab.hasAttribute("indicator-replaces-favicon"),
+      !tab.pinned,
+      "Mute indicator should replace the favicon on hover if the tab isn't pinned"
+    );
     mutedPromise = get_wait_for_mute_promise(tab, false);
     EventUtils.synthesizeKey("m", { ctrlKey: true });
     await mutedPromise;
