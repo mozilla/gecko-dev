@@ -3857,8 +3857,6 @@ void RestyleManager::DoReparentComputedStyleForFirstLine(
     }
   }
 
-  // FIXME(emilio): This is the only caller of GetParentComputedStyle, let's try
-  // to remove it?
   nsIFrame* providerFrame;
   ComputedStyle* newParentStyle =
       aFrame->GetParentComputedStyle(&providerFrame);
