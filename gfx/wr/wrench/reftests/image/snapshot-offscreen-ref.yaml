@@ -1,0 +1,30 @@
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: [0, 0, 100, 100]
+      items:
+      - type: rect
+        bounds: [0, 0, 320, 250]
+        color: [100, 50, 10]
+      # snap0 from the test case
+      - type: rect
+        bounds: [10, 20, 80, 180]
+        color: [200, 200, 200]
+      - type: rect
+        bounds: [10, 20, 80, 100]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [10, 110, 80, 90]
+        color: [150, 0, 0]
+      # snap1 from the test case
+      - type: rect
+        bounds: [150, 0, 120, 220]
+        color: [200, 200, 200]
+      - type: rect
+        bounds: [160, 10, 90, 100]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [170, 110, 90, 100]
+        color: [150, 0, 0]
+
