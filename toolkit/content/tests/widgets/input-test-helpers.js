@@ -132,6 +132,7 @@ class InputTestHelpers {
     await this.verifyDescription(elementName);
     await this.verifySupportPage(elementName);
     await this.verifyAccesskey(elementName);
+    await this.verifyNoWhitespace(elementName);
     if (this.checkable) {
       await this.verifyChecked(elementName);
     }
@@ -541,5 +542,65 @@ class InputTestHelpers {
     await firstInput.updateComplete;
     ok(firstInput.inputEl.checked, "Input is checked via mouse.");
     ok(firstInput.checked, "Checked state is propagated.");
+  }
+
+  /**
+   * Verifies that whitespace isn't getting added via different parts of the
+   * template as it will be visible in the rendered markup.
+   *
+   * @param {string} selector - HTML tag of the element under test.
+   */
+  async verifyNoWhitespace(selector) {
+    let whitespaceTemplate = this.templateFn({
+      label: "label",
+      "support-page": "test",
+      "icon-src": "chrome://global/skin/icons/edit-copy.svg",
+    });
+    let renderTarget = await this.renderInputElements(whitespaceTemplate);
+    let firstInput = renderTarget.querySelector(selector);
+
+    if (firstInput.constructor.inputLayout == "block") {
+      return;
+    }
+
+    function isWhitespaceTextNode(node) {
+      return node.nodeType == Node.TEXT_NODE && !/[^\s]/.exec(node.nodeValue);
+    }
+
+    ok(
+      !isWhitespaceTextNode(firstInput.inputEl.previousSibling),
+      "Input element is not preceded by whitespace."
+    );
+    ok(
+      !isWhitespaceTextNode(firstInput.inputEl.nextSibling),
+      "Input element is not followed by whitespace."
+    );
+
+    let labelContent = firstInput.labelEl.querySelector(".label-content");
+    ok(
+      !isWhitespaceTextNode(labelContent.previousSibling),
+      "Label content is not preceded by whitespace."
+    );
+
+    // Usually labelContent won't be followed by anything, but adding this check
+    // ensures the whitespace doesn't accidentally get re-added
+    if (labelContent.nextSibling) {
+      ok(
+        !isWhitespaceTextNode(labelContent.nextSibling),
+        "Label content is not followed by whitespace."
+      );
+    }
+
+    let containsWhitespace = false;
+    for (let node of labelContent.childNodes) {
+      if (isWhitespaceTextNode(node)) {
+        containsWhitespace = true;
+        break;
+      }
+    }
+    ok(
+      !containsWhitespace,
+      "Label content doesn't contain any extra whitespace."
+    );
   }
 }
