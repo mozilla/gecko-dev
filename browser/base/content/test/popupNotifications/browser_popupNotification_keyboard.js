@@ -20,8 +20,6 @@ function test() {
 // Focusing on notification icon buttons is handled by the ToolbarKeyboardNavigator
 // component and arrow keys (see browser/base/content/browser-toolbarKeyNav.js).
 async function focusNotificationAnchor(anchor) {
-  let urlbarContainer = anchor.closest("#urlbar-container");
-
   // To happen focus event on urlbar, remove the focus once.
   // We intentionally turn off this a11y check, because the following click is
   // purposefully targeting a non-interactive element.
@@ -32,21 +30,11 @@ async function focusNotificationAnchor(anchor) {
     document.activeElement.closest("#browser")
   );
 
-  // Move focus to Unified Search Button.
-  let searchModeSwitcher = urlbarContainer.querySelector(
-    "#urlbar-searchmode-switcher"
-  );
+  // Move focus to left side button of urlbar.
   EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
-  await BrowserTestUtils.waitForCondition(
-    () => BrowserTestUtils.isVisible(searchModeSwitcher),
-    "Wait until Unified Search Button is shown"
-  );
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
-  await BrowserTestUtils.waitForCondition(
-    () => document.activeElement == searchModeSwitcher,
-    "Wait until the focus will move to Unified Search Button"
-  );
 
+  // Move focus to the target.
   while (document.activeElement !== anchor) {
     EventUtils.synthesizeKey("ArrowRight");
   }

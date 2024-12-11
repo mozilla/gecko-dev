@@ -44,16 +44,20 @@ add_task(async function changeSelectionUsingKeyboard() {
   is(document.activeElement, gURLBar.inputField, "urlbar should be focused");
 
   info("Move focus to the selected tab using the keyboard");
-  let unifiedSearchButton = document.getElementById(
-    "urlbar-searchmode-switcher"
+  let trackingProtectionIconContainer = document.querySelector(
+    "#tracking-protection-icon-container"
   );
-  await synthesizeKeyAndWaitForFocus(unifiedSearchButton, "VK_TAB", {
-    shiftKey: true,
-  });
+  await synthesizeKeyAndWaitForFocus(
+    trackingProtectionIconContainer,
+    "VK_TAB",
+    {
+      shiftKey: true,
+    }
+  );
   is(
     document.activeElement,
-    unifiedSearchButton,
-    "Unified Search Button should be focused"
+    trackingProtectionIconContainer,
+    "tracking protection icon container should be focused"
   );
   await synthesizeKeyAndWaitForFocus(
     document.getElementById("reload-button"),

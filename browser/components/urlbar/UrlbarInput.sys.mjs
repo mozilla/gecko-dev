@@ -3910,24 +3910,6 @@ export class UrlbarInput {
     this.logger.debug("Focus Event");
     if (!this._hideFocus) {
       this.toggleAttribute("focused", true);
-
-      // Prevent from showing USB until finishing user's operation if the focus
-      // is moved by mouse since user might select the urlbar value.
-      if (
-        lazy.UrlbarPrefs.get("usb.dynamic") &&
-        Services.focus.getLastFocusMethod(this.window) ==
-          Services.focus.FLAG_BYMOUSE &&
-        this.getAttribute("pageproxystate") == "valid"
-      ) {
-        this.toggleAttribute("usb-focus-processing", true);
-        this.window.addEventListener(
-          "mouseup",
-          () => {
-            this.removeAttribute("usb-focus-processing");
-          },
-          { once: true }
-        );
-      }
     }
 
     // If the value was trimmed, check whether we should untrim it.
