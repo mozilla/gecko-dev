@@ -6,7 +6,7 @@ package org.mozilla.fenix.compose.annotation
 
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
-import org.mozilla.fenix.theme.AcornWindowSize
+import mozilla.components.compose.base.theme.AcornWindowSize
 
 /**
  * A wrapper annotation for creating a preview that renders a preview for each value of [AcornWindowSize].

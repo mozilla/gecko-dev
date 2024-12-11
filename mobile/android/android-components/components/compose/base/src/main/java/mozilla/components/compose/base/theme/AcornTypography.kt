@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.theme
+package mozilla.components.compose.base.theme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -144,10 +144,10 @@ private fun TypographyPreview() {
         Pair("Overline", defaultTypography.overline),
     )
 
-    FirefoxTheme {
+    AcornTheme(colors = lightColorPalette) {
         LazyColumn(
             modifier = Modifier
-                .background(FirefoxTheme.colors.layer1)
+                .background(AcornTheme.colors.layer1)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.theme
+package mozilla.components.compose.base.theme
 
 import android.content.Context
 import android.content.res.Configuration
@@ -40,7 +40,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import org.mozilla.fenix.utils.isLargeScreenSize
 
 /**
  * The baseline dimension primitives for size, space, and window size.
@@ -245,7 +244,7 @@ data class AcornSpace(
      */
     val baseContentEqualPadding = small
 
-    companion object {
+    internal companion object {
         /**
          * Returns the palette of space tokens corresponding to the [AcornWindowSize].
          *
@@ -297,6 +296,7 @@ enum class AcornWindowSize(
      */
     fun isNotSmall() = this != Small
 
+    @Suppress("UndocumentedPublicClass")
     companion object {
         /**
          * Helper function for obtaining the window's [AcornWindowSize] within Compose.
@@ -383,13 +383,13 @@ private fun AcornLayoutPreview() {
     AcornTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layerScrim)
+                .background(color = AcornTheme.colors.layerScrim)
                 .fillMaxSize()
-                .padding(all = FirefoxTheme.space.cardPadding),
+                .padding(all = AcornTheme.space.cardPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
+                horizontalArrangement = Arrangement.spacedBy(AcornTheme.space.small),
             ) {
                 Button(
                     onClick = {
@@ -397,13 +397,13 @@ private fun AcornLayoutPreview() {
                     },
                     modifier = Modifier.width(200.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        backgroundColor = FirefoxTheme.colors.actionPrimary,
+                        backgroundColor = AcornTheme.colors.actionPrimary,
                     ),
                 ) {
                     Text(
                         text = "Small",
-                        color = FirefoxTheme.colors.textActionPrimary,
-                        style = FirefoxTheme.typography.button,
+                        color = AcornTheme.colors.textActionPrimary,
+                        style = AcornTheme.typography.button,
                     )
                 }
 
@@ -413,13 +413,13 @@ private fun AcornLayoutPreview() {
                     },
                     modifier = Modifier.width(200.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        backgroundColor = FirefoxTheme.colors.actionPrimary,
+                        backgroundColor = AcornTheme.colors.actionPrimary,
                     ),
                 ) {
                     Text(
                         text = "Medium",
-                        color = FirefoxTheme.colors.textActionPrimary,
-                        style = FirefoxTheme.typography.button,
+                        color = AcornTheme.colors.textActionPrimary,
+                        style = AcornTheme.typography.button,
                     )
                 }
 
@@ -429,21 +429,21 @@ private fun AcornLayoutPreview() {
                     },
                     modifier = Modifier.width(200.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        backgroundColor = FirefoxTheme.colors.actionPrimary,
+                        backgroundColor = AcornTheme.colors.actionPrimary,
                     ),
                 ) {
                     Text(
                         text = "Large",
-                        color = FirefoxTheme.colors.textActionPrimary,
-                        style = FirefoxTheme.typography.button,
+                        color = AcornTheme.colors.textActionPrimary,
+                        style = AcornTheme.typography.button,
                     )
                 }
             }
 
-            Spacer(Modifier.height(FirefoxTheme.space.small))
+            Spacer(Modifier.height(AcornTheme.space.small))
 
             AcornTheme(windowSize = windowSize) {
-                val widthModifier = when (FirefoxTheme.windowSize) {
+                val widthModifier = when (AcornTheme.windowSize) {
                     AcornWindowSize.Small -> Modifier.width(width = 400.dp)
                     AcornWindowSize.Medium -> Modifier.width(width = 700.dp)
                     AcornWindowSize.Large -> Modifier.fillMaxWidth()
@@ -452,8 +452,8 @@ private fun AcornLayoutPreview() {
                     modifier = widthModifier
                         .fillMaxHeight()
                         .verticalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
-                    verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
+                    horizontalArrangement = Arrangement.spacedBy(AcornTheme.space.small),
+                    verticalArrangement = Arrangement.spacedBy(AcornTheme.space.small),
                 ) {
                     for (x in 0 until 200) {
                         val color = Color(
@@ -464,19 +464,19 @@ private fun AcornLayoutPreview() {
 
                         Box(
                             modifier = Modifier
-                                .size(size = FirefoxTheme.size.thumbnail)
+                                .size(size = AcornTheme.size.thumbnail)
                                 .background(
                                     color = color,
-                                    shape = RoundedCornerShape(size = FirefoxTheme.size.corner.small),
+                                    shape = RoundedCornerShape(size = AcornTheme.size.corner.small),
                                 )
                                 .border(
-                                    width = FirefoxTheme.size.border.normal,
+                                    width = AcornTheme.size.border.normal,
                                     color = color.copy(
                                         red = color.red * 0.8f,
                                         green = color.green * 0.8f,
                                         blue = color.blue * 0.8f,
                                     ),
-                                    shape = RoundedCornerShape(size = FirefoxTheme.size.corner.small),
+                                    shape = RoundedCornerShape(size = AcornTheme.size.corner.small),
                                 ),
                         )
                     }
