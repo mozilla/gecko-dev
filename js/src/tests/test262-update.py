@@ -68,6 +68,7 @@ SHELL_OPTIONS = {
     "promise-try": "--enable-promise-try",
     "explicit-resource-management": "--enable-explicit-resource-management",
     "Atomics.pause": "--enable-atomics-pause",
+    "Temporal": "--enable-temporal",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {
