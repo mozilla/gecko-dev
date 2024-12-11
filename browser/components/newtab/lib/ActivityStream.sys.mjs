@@ -489,6 +489,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.following",
+    {
+      title: "A comma-separated list of strings of followed section topics",
+      value: "",
+    },
+  ],
+  [
     "discoverystream.spoc-positions",
     {
       title: "CSV string of spoc position indexes on newtab Pocket grid",
