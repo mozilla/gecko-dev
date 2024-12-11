@@ -484,4 +484,10 @@ bool IsUUIDOrigin(const nsCString& aOrigin) {
   return regex_match(aOrigin.get(), pattern);
 }
 
+bool IsUserContextSuffix(const nsACString& aSuffix, uint32_t aUserContextId) {
+  OriginAttributes originAttributes;
+  MOZ_ALWAYS_TRUE(originAttributes.PopulateFromSuffix(aSuffix));
+  return originAttributes.mUserContextId == aUserContextId;
+}
+
 }  // namespace mozilla::dom::quota

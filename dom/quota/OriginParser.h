@@ -103,6 +103,28 @@ class MOZ_STACK_CLASS OriginParser final {
 
 bool IsUUIDOrigin(const nsCString& aOrigin);
 
+/**
+ * Checks whether the given origin attributes suffix corresponds to a specific
+ * user context, based on the provided `userContextId` value.
+ *
+ * This function parses the input suffix into an `OriginAttributes` object
+ * and evaluates the `userContextId` attribute. If the attribute matches the
+ * given `aUserContextId`, the suffix is considered to belong to that user
+ * context. Other attributes in the suffix are ignored.
+ *
+ * @param aSuffix The origin attributes suffix to check. This must be a valid
+ *   suffix; otherwise, the code will trigger an assertion failure.
+ * @param aUserContextId The `userContextId` value to compare against the
+ *   attribute in the suffix.
+ *
+ * @return `true` if the `userContextId` attribute matches `aUserContextId`,
+ * `false` otherwise.
+ *
+ * @note The input must be a valid suffix. Invalid inputs will cause a
+ * diagnostic assertion failure because of `MOZ_ALWAYS_TRUE`.
+ */
+bool IsUserContextSuffix(const nsACString& aSuffix, uint32_t aUserContextId);
+
 }  // namespace dom::quota
 }  // namespace mozilla
 
