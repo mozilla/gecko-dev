@@ -2140,8 +2140,8 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
              "public API should be consistent with internal state (about "
              "whether flex item's inline axis is flex container's main axis)");
 
-  const ReflowInput* containerRS = aFlexItemReflowInput.mParentReflowInput;
-  if (IsLegacyBox(containerRS->mFrame)) {
+  const ReflowInput* containerRI = aFlexItemReflowInput.mParentReflowInput;
+  if (IsLegacyBox(containerRI->mFrame)) {
     // For -webkit-{inline-}box and -moz-{inline-}box, we need to:
     // (1) Use prefixed "box-align" instead of "align-items" to determine the
     //     container's cross-axis alignment behavior.
@@ -2149,13 +2149,13 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
     //     cross-axis alignment. (The legacy box model doesn't support this.)
     // So, each FlexItem simply copies the container's converted "align-items"
     // value and disregards their own "align-self" property.
-    const nsStyleXUL* containerStyleXUL = containerRS->mFrame->StyleXUL();
+    const nsStyleXUL* containerStyleXUL = containerRI->mFrame->StyleXUL();
     mAlignSelf = ConvertLegacyStyleToAlignItems(containerStyleXUL);
     mAlignSelfFlags = {0};
   } else {
     StyleAlignSelf alignSelf =
         aFlexItemReflowInput.mStylePosition->UsedAlignSelf(
-            containerRS->mFrame->Style());
+            containerRI->mFrame->Style());
     if (MOZ_LIKELY(alignSelf._0 == StyleAlignFlags::NORMAL)) {
       alignSelf = {StyleAlignFlags::STRETCH};
     }
@@ -2191,8 +2191,8 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
     // item's main size is its BSize, and is considered definite under certain
     // conditions laid out for definite flex-item main-sizes in the spec.
     if (aAxisTracker.IsRowOriented() ||
-        (containerRS->ComputedBSize() != NS_UNCONSTRAINEDSIZE &&
-         !containerRS->mFlags.mTreatBSizeAsIndefinite)) {
+        (containerRI->ComputedBSize() != NS_UNCONSTRAINEDSIZE &&
+         !containerRI->mFlags.mTreatBSizeAsIndefinite)) {
       // The flex *container* has a definite main-size (either by being
       // row-oriented [and using its own inline size which is by definition
       // definite, or by being column-oriented and having a definite
