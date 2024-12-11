@@ -52,9 +52,17 @@ add_task(
 
     info("Starting shutdown");
 
-    Services.startup.advanceShutdownPhase(
-      Services.startup.SHUTDOWN_PHASE_APPSHUTDOWNQM
-    );
+    // XXX Extract this into a generic helper.
+    const phases = [
+      Services.startup.SHUTDOWN_PHASE_APPSHUTDOWNNETTEARDOWN,
+      Services.startup.SHUTDOWN_PHASE_APPSHUTDOWNTEARDOWN,
+      Services.startup.SHUTDOWN_PHASE_APPSHUTDOWN,
+      Services.startup.SHUTDOWN_PHASE_APPSHUTDOWNQM,
+    ];
+
+    for (const phase of phases) {
+      Services.startup.advanceShutdownPhase(phase);
+    }
 
     info("Waiting for database to finish opening");
 
