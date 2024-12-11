@@ -289,7 +289,9 @@ void ScreenGetterGtk::RefreshScreens() {
 
 gint ScreenHelperGTK::GetGTKMonitorScaleFactor(gint aMonitorNum) {
   GdkScreen* screen = gdk_screen_get_default();
-  return gdk_screen_get_monitor_scale_factor(screen, aMonitorNum);
+  return aMonitorNum < gdk_screen_get_n_monitors(screen)
+             ? gdk_screen_get_monitor_scale_factor(screen, aMonitorNum)
+             : 1;
 }
 
 ScreenHelperGTK::ScreenHelperGTK() {
