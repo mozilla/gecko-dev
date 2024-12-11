@@ -39,11 +39,7 @@ prefs = [
 ]
 
 ["test_defaultAudioConstraints.html"]
-skip-if = [
-  "os == 'mac'",
-  "os == 'win'",
-  "os == 'android'", # Bug 1404995, no loopback devices on some platforms
-]
+run-if = ["os == 'linux'"] # Bug 1404995, no loopback devices on some platforms
 
 ["test_getUserMedia_GC_MediaStream.html"]
 
@@ -56,36 +52,23 @@ skip-if = [
 ["test_getUserMedia_audioCapture.html"]
 
 ["test_getUserMedia_audioConstraints.html"]
-skip-if = [
-  "os == 'mac'",
-  "os == 'win'",
-  "os == 'android'", # Bug 1404995, no loopback devices on some platforms
-]
+run-if = ["os == 'linux'"] # Bug 1404995, no loopback devices on some platforms
 
 ["test_getUserMedia_audioConstraints_concurrentIframes.html"]
+run-if = ["os == 'linux'"] # Bug 1404995, no loopback devices on some platforms
 skip-if = [
-  "os == 'mac'",
-  "os == 'win'",
-  "os == 'android'",
-  "(os == 'linux' && debug)",  # Bug 1404995, no loopback devices on some platforms # Bug 1481101
-  "os == 'linux' && !debug && !fission", # bug 1645930, lower frequency intermittent
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1481101
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && !fission", # bug 1645930, lower frequency intermittent
 ]
 
 ["test_getUserMedia_audioConstraints_concurrentStreams.html"]
-skip-if = [
-  "os == 'mac'",
-  "os == 'win'",
-  "os == 'android'", # Bug 1404995, no loopback devices on some platforms
-]
+run-if = ["os == 'linux'"] # Bug 1404995, no loopback devices on some platforms
 
 ["test_getUserMedia_basicAudio.html"]
 
 ["test_getUserMedia_basicAudio_loopback.html"]
-skip-if = [
-  "os == 'mac'",
-  "os == 'win'",
-  "os == 'android'", # Bug 1404995, no loopback devices on some platforms
-]
+run-if = ["os == 'linux'"] # Bug 1404995, no loopback devices on some platforms
+tags = "os_integration"
 
 ["test_getUserMedia_basicScreenshare.html"]
 skip-if = [
@@ -93,11 +76,13 @@ skip-if = [
   "apple_silicon", #            bug 1707742
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929425
 ]
+tags = "os_integration"
 
 ["test_getUserMedia_basicTabshare.html"]
 skip-if = ["os == 'android'"] # no windowshare on android
 
 ["test_getUserMedia_basicVideo.html"]
+tags = "os_integration"
 
 ["test_getUserMedia_basicVideoAudio.html"]
 

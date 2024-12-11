@@ -73,6 +73,9 @@ skip-if = ["os != 'linux'"] # the only platform with real devices
 ["test_ondevicechange.html"]
 run-sequentially = "sets prefs that may disrupt other tests"
 
+["test_ondevicechange_resistfingerprinting.html"]
+run-sequentially = "sets prefs that may disrupt other tests"
+
 ["test_setSinkId-echoCancellation.html"]
 skip-if = ["os == 'android'"] # bug 1473346 - no setSinkId()
 
@@ -80,13 +83,10 @@ skip-if = ["os == 'android'"] # bug 1473346 - no setSinkId()
 skip-if = ["os == 'android'"] # bug 1473346 - no setSinkId()
 
 ["test_setSinkId.html"]
-skip-if = ["os != 'linux'"] # the only platform with real devices
+run-if = ["os == 'linux'"] # the only platform with real devices
 
 ["test_setSinkId_default_addTrack.html"]
 
 ["test_setSinkId_preMutedElement.html"]
 
 ["test_unfocused_pref.html"]
-
-["test_ondevicechange_resistfingerprinting.html"]
-run-sequentially = "sets prefs that may disrupt other tests"
