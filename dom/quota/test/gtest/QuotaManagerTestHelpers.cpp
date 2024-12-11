@@ -11,19 +11,19 @@
 
 namespace mozilla::dom::quota::test {
 
-PrincipalMetadata GetPrincipalMetadata(const nsCString& aGroup,
+PrincipalMetadata GetPrincipalMetadata(const nsCString& aGroupNoSuffix,
                                        const nsCString& aOriginNoSuffix) {
-  return PrincipalMetadata{""_ns, aGroup, aOriginNoSuffix, aOriginNoSuffix,
-                           /* aIsPrivate */ false};
+  return PrincipalMetadata{""_ns, aGroupNoSuffix, aOriginNoSuffix,
+                           aOriginNoSuffix, /* aIsPrivate */ false};
 }
 
-PrincipalMetadata GetPrincipalMetadata(const nsCString& aSuffix,
+PrincipalMetadata GetPrincipalMetadata(const nsCString& aOriginSuffix,
                                        const nsCString& aGroupNoSuffix,
                                        const nsCString& aOriginNoSuffix) {
-  nsCString group = aGroupNoSuffix + aSuffix;
-  nsCString origin = aOriginNoSuffix + aSuffix;
+  nsCString group = aGroupNoSuffix + aOriginSuffix;
+  nsCString origin = aOriginNoSuffix + aOriginSuffix;
 
-  return PrincipalMetadata{aSuffix, group, origin, origin,
+  return PrincipalMetadata{aOriginSuffix, group, origin, origin,
                            /* aIsPrivate */ false};
 }
 
