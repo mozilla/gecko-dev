@@ -691,6 +691,18 @@ class DisplayToolbar internal constructor(
     internal fun showMenuButton() {
         views.menu.setShouldBeHidden(false)
     }
+
+    /**
+     * Sets the horizontal padding.
+     */
+    fun setHorizontalPadding(horizontalPadding: Int) {
+        val background = views.background
+        (background.layoutParams as? ConstraintLayout.LayoutParams)?.apply {
+            goneStartMargin = horizontalPadding
+            goneEndMargin = horizontalPadding
+            background.layoutParams = this
+        }
+    }
 }
 
 /**
