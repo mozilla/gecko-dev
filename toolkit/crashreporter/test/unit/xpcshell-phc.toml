@@ -3,6 +3,7 @@ head = "head_crashreporter.js"
 skip-if = [
   "os == 'android'", # 1536217
   "win11_2009 && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807922
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807922
 ]
 support-files = [
   "crasher_subprocess_head.js",
