@@ -7929,25 +7929,44 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     backplateColor.emplace(GetBackplateColor(this));
   }
 
-  // Don't use the line cursor if we might have a descendant placeholder ...
-  // it might skip lines that contain placeholders but don't themselves
-  // intersect with the dirty area.
-  // In particular, we really want to check ShouldDescendIntoFrame()
-  // on all our child frames, but that might be expensive.  So we
-  // approximate it by checking it on |this|; if it's true for any
-  // frame in our child list, it's also true for |this|.
-  // Also skip the cursor if we're creating text overflow markers,
-  // since we need to know what line number we're up to in order
-  // to generate unique display item keys.
-  // Lastly, the cursor should be skipped if we're drawing
-  // backplates behind text. When backplating we consider consecutive
-  // runs of text as a whole, which requires we iterate through all lines
-  // to find our backplate size.
-  nsLineBox* cursor =
-      (hasDescendantPlaceHolders || textOverflow.isSome() || backplateColor ||
-       HasLineClampEllipsis() || HasLineClampEllipsisDescendant())
-          ? nullptr
-          : GetFirstLineContaining(aBuilder->GetDirtyRect().y);
+  const bool canUseCursor = [&] {
+    if (hasDescendantPlaceHolders) {
+      // Don't use the line cursor if we might have a descendant placeholder. It
+      // might skip lines that contain placeholders but don't themselves
+      // intersect with the dirty area.
+      //
+      // In particular, we really want to check ShouldDescendIntoFrame()
+      // on all our child frames, but that might be expensive.  So we
+      // approximate it by checking it on |this|; if it's true for any
+      // frame in our child list, it's also true for |this|.
+      return false;
+    }
+    if (textOverflow.isSome()) {
+      // Also skip the cursor if we're creating text overflow markers, since we
+      // need to know what line number we're up to in order to generate unique
+      // display item keys.
+      return false;
+    }
+    if (backplateColor) {
+      // Cursors should be skipped if we're drawing backplates behind text. When
+      // backplating we consider consecutive runs of text as a whole, which
+      // requires we iterate through all lines to find our backplate size.
+      return false;
+    }
+    if ((HasLineClampEllipsis() || HasLineClampEllipsisDescendant()) &&
+        StaticPrefs::layout_css_webkit_line_clamp_skip_paint()) {
+      // We can't use the cursor if we're in a line-clamping situation, and
+      // we're configured to not paint its clamped content, as we need to know
+      // whether we've hit the clamp point which requires iterating over all
+      // lines.
+      return false;
+    }
+    return true;
+  }();
+
+  nsLineBox* cursor = canUseCursor
+                          ? GetFirstLineContaining(aBuilder->GetDirtyRect().y)
+                          : nullptr;
   LineIterator line_end = LinesEnd();
 
   TextOverflow* textOverflowPtr = textOverflow.ptrOr(nullptr);
@@ -7967,7 +7986,8 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
         if (ShouldDescendIntoLine(lineArea)) {
           DisplayLine(aBuilder, line, line->IsInline(), aLists, this, nullptr,
                       0, depth, drawnLines, foundClamp);
-          MOZ_ASSERT(!foundClamp);
+          MOZ_ASSERT(!foundClamp ||
+                     !StaticPrefs::layout_css_webkit_line_clamp_skip_paint());
         }
       }
     }
@@ -8030,7 +8050,8 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
         }
       }
       foundClamp = foundClamp || line->HasLineClampEllipsis();
-      if (foundClamp) {
+      if (foundClamp &&
+          StaticPrefs::layout_css_webkit_line_clamp_skip_paint()) {
         break;
       }
       lineCount++;
