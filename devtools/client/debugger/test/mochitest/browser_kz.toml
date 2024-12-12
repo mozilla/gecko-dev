@@ -127,7 +127,6 @@ skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks res
 ["browser_dbg-pretty-print.js"]
 
 ["browser_dbg-preview-frame.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 skip-if = ["os == 'win'"]
 
 ["browser_dbg-preview-getter.js"]
@@ -272,7 +271,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-sources-project-search.js"]
 
 ["browser_dbg-state-based-panels.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-step-in-navigate.js"]
 
@@ -290,7 +288,6 @@ skip-if = ["os == 'win'"]
 ["browser_dbg-tabs-pretty-print.js"]
 
 ["browser_dbg-tabs-without-urls-selected.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-tabs-without-urls.js"]
 
