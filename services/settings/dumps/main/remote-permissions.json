@@ -1,4 +1,13 @@
 {
-  "data": [],
-  "timestamp": 1730278443662
+  "data": [
+    {
+      "type": "https-only-load-insecure",
+      "origin": "http://rough-subsequent-message.glitch.me",
+      "schema": 1733820446033,
+      "capability": 10,
+      "id": "9f6e573e-d615-4538-8d22-dcb9f33e5a06",
+      "last_modified": 1733839156202
+    }
+  ],
+  "timestamp": 1733839156202
 }
