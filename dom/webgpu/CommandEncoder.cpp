@@ -97,9 +97,7 @@ void CommandEncoder::Cleanup() {
 
 void CommandEncoder::TrackPresentationContext(CanvasContext* aTargetContext) {
   if (aTargetContext) {
-    if (!aTargetContext->IsOffscreenCanvas()) {
-      mPresentationContexts.AppendElement(aTargetContext);
-    }
+    mPresentationContexts.AppendElement(aTargetContext);
   }
 }
 

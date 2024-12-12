@@ -193,12 +193,6 @@ bool OffscreenCanvasDisplayHelper::CommitFrameToCompositor(
     MaybeQueueInvalidateElement();
   }
 
-  if (mData.mOwnerId.isSome()) {
-    // No need to update the ImageContainer as the presentation itself is
-    // handled in the compositor process.
-    return true;
-  }
-
   if (!mImageContainer) {
     return false;
   }
