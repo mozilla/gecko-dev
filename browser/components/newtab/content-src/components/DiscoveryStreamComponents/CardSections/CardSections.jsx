@@ -18,12 +18,47 @@ const PREF_SECTIONS_PERSONALIZATION_ENABLED =
   "discoverystream.sections.personalization.enabled";
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
+const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
 const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 
-function CardSections({
-  data,
-  feed,
+function getLayoutData(responsiveLayouts, index) {
+  let layoutData = {
+    classNames: [],
+  };
+
+  responsiveLayouts.forEach(layout => {
+    layout.tiles.forEach((tile, tileIndex) => {
+      if (tile.position === index) {
+        layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
+        layoutData.classNames.push(
+          `col-${layout.columnCount}-position-${tileIndex}`
+        );
+      }
+    });
+  });
+
+  return layoutData;
+}
+
+// function to determine amount of tiles shown per section per viewport
+function getMaxTiles(responsiveLayouts) {
+  return responsiveLayouts
+    .flatMap(responsiveLayout => responsiveLayout)
+    .reduce((acc, t) => {
+      acc[t.columnCount] = t.tiles.length;
+
+      // Update maxTile if current tile count is greater
+      if (!acc.maxTile || t.tiles.length > acc.maxTile) {
+        acc.maxTile = t.tiles.length;
+      }
+      return acc;
+    }, {});
+}
+
+function CardSection({
+  sectionPosition,
+  section,
   dispatch,
   type,
   firstVisibleTimestamp,
@@ -40,72 +75,193 @@ function CardSections({
   const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
-  const mayHaveSectionsContextMenu =
-    prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
+  const followedSectionsPref = prefs[PREF_FOLLOWED_SECTIONS] || "";
+
   const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
+  const mayHaveSectionsPersonalization =
+    prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
 
-  const handleIntersection = useCallback(
-    el => {
-      dispatch(
-        ac.AlsoToMain({
-          type: at.CARD_SECTION_IMPRESSION,
-          data: {
-            section: el.id,
-            section_position: el.dataset.sectionPosition,
-          },
-        })
-      );
-    },
-    [dispatch]
-  );
+  const { sectionKey, title, subtitle } = section;
+  const { responsiveLayouts } = section.layout;
 
-  // Ref to hold all of the section elements
+  const followedSections = followedSectionsPref
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+  const following = followedSections.includes(sectionKey);
+
+  const handleIntersection = useCallback(() => {
+    dispatch(
+      ac.AlsoToMain({
+        type: at.CARD_SECTION_IMPRESSION,
+        data: {
+          section: sectionKey,
+          section_position: sectionPosition,
+        },
+      })
+    );
+  }, [dispatch, sectionKey, sectionPosition]);
+
+  // Ref to hold the section element
   const sectionRefs = useIntersectionObserver(handleIntersection);
-
-  // Handle a render before feed has been fetched by displaying nothing
-  if (!data) {
-    return null;
-  }
 
   // Only show thumbs up/down buttons if both default thumbs and sections thumbs prefs are enabled
   const mayHaveCombinedThumbsUpDown =
     mayHaveSectionsCardsThumbsUpDown && mayHaveThumbsUpDown;
+
+  const onFollowClick = useCallback(() => {
+    dispatch(
+      ac.SetPref(
+        PREF_FOLLOWED_SECTIONS,
+        [...followedSections, sectionKey].join(", ")
+      )
+    );
+  }, [dispatch, sectionKey, followedSections]);
+
+  const onUnfollowClick = useCallback(() => {
+    dispatch(
+      ac.SetPref(
+        PREF_FOLLOWED_SECTIONS,
+        [...followedSections.filter(item => item !== sectionKey)].join(", ")
+      )
+    );
+  }, [dispatch, sectionKey, followedSections]);
+
+  const { maxTile } = getMaxTiles(responsiveLayouts);
+  const displaySections = section.data.slice(0, maxTile);
+  const isSectionEmpty = !displaySections?.length;
+  const shouldShowLabels = sectionKey === "top_stories_section" && showTopics;
+
+  if (isSectionEmpty) {
+    return null;
+  }
+
+  const sectionContextWrapper = (
+    <div className="section-context-wrapper">
+      <div
+        className={following ? "section-follow following" : "section-follow"}
+      >
+        <moz-button
+          onClick={following ? onUnfollowClick : onFollowClick}
+          type={following ? "destructive" : "default"}
+        >
+          <span
+            className="section-button-follow-text"
+            data-l10n-id="newtab-section-follow-button"
+          />
+          <span
+            className="section-button-following-text"
+            data-l10n-id="newtab-section-following-button"
+          />
+          <span
+            className="section-button-unfollow-text"
+            data-l10n-id="newtab-section-unfollow-button"
+          />
+        </moz-button>
+      </div>
+      <SectionContextMenu
+        dispatch={dispatch}
+        index={sectionPosition}
+        title={title}
+        type={type}
+      />
+    </div>
+  );
+
+  return (
+    <section
+      className="ds-section"
+      ref={el => {
+        sectionRefs.current[0] = el;
+      }}
+    >
+      <div className="section-heading">
+        <div className="section-title-wrapper">
+          <h2 className="section-title">{title}</h2>
+          {subtitle && <p className="section-subtitle">{subtitle}</p>}
+        </div>
+        {mayHaveSectionsPersonalization ? sectionContextWrapper : null}
+      </div>
+      <div className="ds-section-grid ds-card-grid">
+        {section.data.slice(0, maxTile).map((rec, index) => {
+          const { classNames } = getLayoutData(responsiveLayouts, index);
+
+          if (!rec || rec.placeholder) {
+            return <PlaceholderDSCard key={`dscard-${index}`} />;
+          }
+
+          return (
+            <DSCard
+              key={`dscard-${rec.id}`}
+              pos={rec.pos}
+              flightId={rec.flight_id}
+              image_src={rec.image_src}
+              raw_image_src={rec.raw_image_src}
+              word_count={rec.word_count}
+              time_to_read={rec.time_to_read}
+              title={rec.title}
+              topic={rec.topic}
+              excerpt={rec.excerpt}
+              url={rec.url}
+              id={rec.id}
+              shim={rec.shim}
+              fetchTimestamp={rec.fetchTimestamp}
+              type={type}
+              context={rec.context}
+              sponsor={rec.sponsor}
+              sponsored_by_override={rec.sponsored_by_override}
+              dispatch={dispatch}
+              source={rec.domain}
+              publisher={rec.publisher}
+              pocket_id={rec.pocket_id}
+              context_type={rec.context_type}
+              bookmarkGuid={rec.bookmarkGuid}
+              recommendation_id={rec.recommendation_id}
+              firstVisibleTimestamp={firstVisibleTimestamp}
+              corpus_item_id={rec.corpus_item_id}
+              scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
+              recommended_at={rec.recommended_at}
+              received_rank={rec.received_rank}
+              format={rec.format}
+              alt_text={rec.alt_text}
+              mayHaveThumbsUpDown={mayHaveCombinedThumbsUpDown}
+              mayHaveSectionsCards={mayHaveSectionsCards}
+              showTopics={shouldShowLabels}
+              selectedTopics={selectedTopics}
+              availableTopics={availableTopics}
+              is_collection={is_collection}
+              saveToPocketCard={saveToPocketCard}
+              ctaButtonSponsors={ctaButtonSponsors}
+              ctaButtonVariant={ctaButtonVariant}
+              spocMessageVariant={spocMessageVariant}
+              sectionsClassNames={classNames.join(" ")}
+              section={sectionKey}
+              sectionPosition={sectionPosition}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function CardSections({
+  data,
+  feed,
+  dispatch,
+  type,
+  firstVisibleTimestamp,
+  is_collection,
+  spocMessageVariant,
+  ctaButtonVariant,
+  ctaButtonSponsors,
+}) {
+  // Handle a render before feed has been fetched by displaying nothing
+  if (!data) {
+    return null;
+  }
   const { sections } = data;
   const isEmpty = sections.length === 0;
-
-  function getLayoutData(responsiveLayout, index) {
-    let layoutData = {
-      classNames: [],
-    };
-
-    responsiveLayout.forEach(layout => {
-      layout.tiles.forEach((tile, tileIndex) => {
-        if (tile.position === index) {
-          layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
-          layoutData.classNames.push(
-            `col-${layout.columnCount}-position-${tileIndex}`
-          );
-        }
-      });
-    });
-
-    return layoutData;
-  }
-
-  // function to determine amount of tiles shown per section per viewport
-  function getMaxTiles(responsiveLayouts) {
-    return responsiveLayouts
-      .flatMap(responsiveLayout => responsiveLayout)
-      .reduce((acc, t) => {
-        acc[t.columnCount] = t.tiles.length;
-
-        // Update maxTile if current tile count is greater
-        if (!acc.maxTile || t.tiles.length > acc.maxTile) {
-          acc.maxTile = t.tiles.length;
-        }
-        return acc;
-      }, {});
-  }
 
   return isEmpty ? (
     <div className="ds-card-grid empty">
@@ -113,101 +269,20 @@ function CardSections({
     </div>
   ) : (
     <div className="ds-section-wrapper">
-      {sections.map((section, sectionIndex) => {
-        const { sectionKey, title, subtitle } = section;
-        const { responsiveLayouts } = section.layout;
-        const { maxTile } = getMaxTiles(responsiveLayouts);
-        const displaySections = section.data.slice(0, maxTile);
-        const isSectionEmpty = !displaySections?.length;
-        const shouldShowLabels =
-          sectionKey === "top_stories_section" && showTopics;
-
-        if (isSectionEmpty) {
-          return null;
-        }
-
+      {sections.map((section, sectionPosition) => {
         return (
-          <section
-            key={sectionKey}
-            id={sectionKey}
-            className="ds-section"
-            data-section-position={sectionIndex}
-            ref={el => {
-              sectionRefs.current[sectionIndex] = el;
-            }}
-          >
-            <div className="section-heading">
-              <h2 className="section-title">{title}</h2>
-              {subtitle && <p className="section-subtitle">{subtitle}</p>}
-              {mayHaveSectionsContextMenu && (
-                <SectionContextMenu
-                  dispatch={dispatch}
-                  index={sectionIndex}
-                  title={title}
-                  type={type}
-                />
-              )}
-            </div>
-            <div className="ds-section-grid ds-card-grid">
-              {section.data.slice(0, maxTile).map((rec, index) => {
-                const { classNames } = getLayoutData(responsiveLayouts, index);
-
-                if (!rec || rec.placeholder) {
-                  return <PlaceholderDSCard key={`dscard-${index}`} />;
-                }
-
-                return (
-                  <DSCard
-                    key={`dscard-${rec.id}`}
-                    pos={rec.pos}
-                    flightId={rec.flight_id}
-                    image_src={rec.image_src}
-                    raw_image_src={rec.raw_image_src}
-                    word_count={rec.word_count}
-                    time_to_read={rec.time_to_read}
-                    title={rec.title}
-                    topic={rec.topic}
-                    excerpt={rec.excerpt}
-                    url={rec.url}
-                    id={rec.id}
-                    shim={rec.shim}
-                    fetchTimestamp={rec.fetchTimestamp}
-                    type={type}
-                    context={rec.context}
-                    sponsor={rec.sponsor}
-                    sponsored_by_override={rec.sponsored_by_override}
-                    dispatch={dispatch}
-                    source={rec.domain}
-                    publisher={rec.publisher}
-                    pocket_id={rec.pocket_id}
-                    context_type={rec.context_type}
-                    bookmarkGuid={rec.bookmarkGuid}
-                    recommendation_id={rec.recommendation_id}
-                    firstVisibleTimestamp={firstVisibleTimestamp}
-                    corpus_item_id={rec.corpus_item_id}
-                    scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
-                    recommended_at={rec.recommended_at}
-                    received_rank={rec.received_rank}
-                    format={rec.format}
-                    alt_text={rec.alt_text}
-                    mayHaveThumbsUpDown={mayHaveCombinedThumbsUpDown}
-                    mayHaveSectionsCards={mayHaveSectionsCards}
-                    showTopics={shouldShowLabels}
-                    selectedTopics={selectedTopics}
-                    availableTopics={availableTopics}
-                    is_collection={is_collection}
-                    saveToPocketCard={saveToPocketCard}
-                    ctaButtonSponsors={ctaButtonSponsors}
-                    ctaButtonVariant={ctaButtonVariant}
-                    spocMessageVariant={spocMessageVariant}
-                    sectionsClassNames={classNames.join(" ")}
-                    section={sectionKey}
-                    sectionPosition={sectionIndex}
-                  />
-                );
-              })}
-            </div>
-          </section>
+          <CardSection
+            key={`section-${section.sectionKey}`}
+            sectionPosition={sectionPosition}
+            section={section}
+            dispatch={dispatch}
+            type={type}
+            firstVisibleTimestamp={firstVisibleTimestamp}
+            is_collection={is_collection}
+            spocMessageVariant={spocMessageVariant}
+            ctaButtonVariant={ctaButtonVariant}
+            ctaButtonSponsors={ctaButtonSponsors}
+          />
         );
       })}
     </div>

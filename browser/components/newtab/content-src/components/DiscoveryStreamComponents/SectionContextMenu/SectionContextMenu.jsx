@@ -29,7 +29,7 @@ export function SectionContextMenu(props) {
   return (
     <div className="section-context-menu">
       <moz-button
-        type="icon ghost"
+        type="icon"
         size="default"
         iconsrc="chrome://global/skin/icons/more.svg"
         title={title}

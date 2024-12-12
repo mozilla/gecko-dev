@@ -4615,6 +4615,9 @@ main section {
   padding-block-end: 0;
 }
 .ds-section-wrapper .ds-section .section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-block: var(--space-small) var(--space-medium);
 }
 .ds-section-wrapper .ds-section .section-title {
@@ -4649,6 +4652,35 @@ main section {
   .ds-section-wrapper .ds-section .section-subtitle {
     font-size: 1rem;
   }
+}
+.ds-section-wrapper .section-context-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  column-gap: var(--space-small);
+}
+.ds-section-wrapper .section-follow .section-button-following-text {
+  display: none;
+}
+.ds-section-wrapper .section-follow .section-button-unfollow-text {
+  display: none;
+}
+.ds-section-wrapper .section-follow.following .section-button-follow-text {
+  display: none;
+}
+.ds-section-wrapper .section-follow.following .section-button-following-text {
+  display: block;
+}
+.ds-section-wrapper .section-follow.following:not(:hover) moz-button {
+  --button-background-color-destructive: var(--button-background-color);
+  --button-text-color-destructive: var(--button-text-color);
+  --button-border-color-destructive: var(--button-border-color);
+}
+.ds-section-wrapper .section-follow.following:hover .section-button-following-text {
+  display: none;
+}
+.ds-section-wrapper .section-follow.following:hover .section-button-unfollow-text {
+  display: block;
 }
 
 .ds-section-grid.ds-card-grid {
@@ -7635,13 +7667,4 @@ main section {
   .ad-banner-wrapper.billboard {
     display: none;
   }
-}
-
-.section-context-menu {
-  display: flex;
-  align-items: center;
-  justify-content: end;
-  position: absolute;
-  top: 0;
-  inset-inline-end: 5px;
 }
