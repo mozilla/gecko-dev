@@ -437,13 +437,24 @@ static bool IsScriptEventHandler(ScriptKind kind, nsIContent* aScriptElement) {
 nsContentPolicyType ScriptLoadRequestToContentPolicyType(
     ScriptLoadRequest* aRequest) {
   if (aRequest->GetScriptLoadContext()->IsPreload()) {
-    return aRequest->IsModuleRequest()
-               ? nsIContentPolicy::TYPE_INTERNAL_MODULE_PRELOAD
-               : nsIContentPolicy::TYPE_INTERNAL_SCRIPT_PRELOAD;
+    if (aRequest->IsModuleRequest()) {
+      return aRequest->AsModuleRequest()->mModuleType ==
+                     JS::ModuleType::JavaScript
+                 ? nsIContentPolicy::TYPE_INTERNAL_MODULE_PRELOAD
+                 : nsIContentPolicy::TYPE_INTERNAL_JSON_PRELOAD;
+    }
+
+    return nsIContentPolicy::TYPE_INTERNAL_SCRIPT_PRELOAD;
   }
 
-  return aRequest->IsModuleRequest() ? nsIContentPolicy::TYPE_INTERNAL_MODULE
-                                     : nsIContentPolicy::TYPE_INTERNAL_SCRIPT;
+  if (aRequest->IsModuleRequest()) {
+    return aRequest->AsModuleRequest()->mModuleType ==
+                   JS::ModuleType::JavaScript
+               ? nsIContentPolicy::TYPE_INTERNAL_MODULE
+               : nsIContentPolicy::TYPE_JSON;
+  }
+
+  return nsIContentPolicy::TYPE_INTERNAL_SCRIPT;
 }
 
 nsresult ScriptLoader::CheckContentPolicy(Document* aDocument,
