@@ -263,5 +263,14 @@ void SessionStoreChild::ResetSessionStore(
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION(SessionStoreChild, mSessionStoreListener,
-                         mSessionStoreChangeListener)
+NS_IMPL_CYCLE_COLLECTION_CLASS(SessionStoreChild)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(SessionStoreChild)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStoreListener)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStoreChangeListener)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(SessionStoreChild)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStoreListener)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStoreChangeListener)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
