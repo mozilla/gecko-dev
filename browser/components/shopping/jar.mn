@@ -29,3 +29,4 @@ browser.jar:
     content/browser/shopping/recommended-ad.css (content/recommended-ad.css)
     content/browser/shopping/recommended-ad.mjs (content/recommended-ad.mjs)
     content/browser/shopping/assets/ (content/assets/*)
+    content/browser/shopping/review-checker.xhtml (content/review-checker.xhtml)

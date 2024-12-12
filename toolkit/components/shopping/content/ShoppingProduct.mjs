@@ -407,8 +407,10 @@ export class ShoppingProduct extends EventEmitter {
         }
       }
     } catch (error) {
-      Glean?.shoppingProduct?.requestError.record();
-      console.error(error);
+      if (error.name !== "AbortError") {
+        Glean?.shoppingProduct?.requestError.record();
+        console.error(error);
+      }
     }
 
     if (!responseOk && responseStatus < 500) {
@@ -497,7 +499,10 @@ export class ShoppingProduct extends EventEmitter {
       let response = await imgRequestPromise;
       imgResult = await response.blob();
     } catch (error) {
-      console.error(error);
+      if (error.name !== "AbortError") {
+        Glean?.shoppingProduct?.requestError.record();
+        console.error(error);
+      }
     }
 
     return imgResult;

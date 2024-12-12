@@ -651,7 +651,14 @@ var gBrowserInit = {
 
     CaptivePortalWatcher.delayedStartup();
 
-    ShoppingSidebarManager.ensureInitialized();
+    if (
+      !Services.prefs.getBoolPref(
+        "browser.shopping.experience2023.integratedSidebar",
+        false
+      )
+    ) {
+      ShoppingSidebarManager.ensureInitialized();
+    }
 
     SessionStore.promiseAllWindowsRestored.then(() => {
       this._schedulePerWindowIdleTasks();

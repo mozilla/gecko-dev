@@ -1,6 +1,15 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+/* exported MOCK_UNPOPULATED_DATA, MOCK_POPULATED_DATA, MOCK_INVALID_KEY_OBJ,
+            MOCK_UNANALYZED_PRODUCT_RESPONSE, MOCK_STALE_PRODUCT_RESPONSE,
+            MOCK_UNGRADED_PRODUCT_RESPONSE, MOCK_NOT_ENOUGH_REVIEWS_PRODUCT_RESPONSE,
+            MOCK_ANALYZED_PRODUCT_RESPONSE, MOCK_UNAVAILABLE_PRODUCT_RESPONSE,
+            MOCK_UNAVAILABLE_PRODUCT_REPORTED_RESPONSE, MOCK_PAGE_NOT_SUPPORTED_RESPONSE,
+            MOCK_RECOMMENDED_ADS_RESPONSE, verifyAnalysisDetailsVisible,
+            verifyAnalysisDetailsHidden, verifyFooterHidden, getAnalysisDetails,
+            getSettingsDetails, withReviewCheckerSidebar */
+
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/components/shopping/test/browser/head.js",
   this
@@ -222,4 +231,43 @@ function getSettingsDetails(browser, data) {
     }
     return returnState;
   });
+}
+
+/**
+ * Perform a task in the Review Checker sidebar's inner process,
+ * after the sidebar browser and the RC browser have loaded.
+ *
+ * @param  {Function}  task      content task function
+ * @param  {Array}     [args]    arguments for the content task
+ * @param  {Window}    [win]     the window we expect the sidebar
+ *                               to be loaded in
+ */
+async function withReviewCheckerSidebar(task, args = [], win = window) {
+  const SHOPPING_SIDEBAR_URL = "about:shoppingsidebar";
+  let sidebar = win.document.getElementById("sidebar");
+  if (!sidebar) {
+    return;
+  }
+
+  let { readyState } = sidebar.contentDocument;
+  if (readyState === "loading" || readyState === "uninitialized") {
+    await new Promise(resolve => {
+      sidebar.contentDocument.addEventListener("DOMContentLoaded", resolve, {
+        once: true,
+      });
+    });
+  }
+
+  let rcBrowser = sidebar.contentDocument.getElementById(
+    "review-checker-browser"
+  );
+  if (rcBrowser.webProgress.isLoadingDocument) {
+    await BrowserTestUtils.browserLoaded(
+      rcBrowser,
+      false,
+      SHOPPING_SIDEBAR_URL
+    );
+  }
+
+  await ContentTask.spawn(rcBrowser, args, task);
 }

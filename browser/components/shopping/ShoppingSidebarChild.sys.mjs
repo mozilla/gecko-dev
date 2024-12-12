@@ -296,6 +296,9 @@ export class ShoppingSidebarChild extends RemotePageChild {
           return;
         }
         let url = await this.sendQuery("GetProductURL");
+        if (!url) {
+          return;
+        }
 
         // Bail out if we opted out in the meantime, or don't have a URI.
         if (!canContinue(null, false)) {
@@ -407,6 +410,9 @@ export class ShoppingSidebarChild extends RemotePageChild {
         return;
       }
       let url = await this.sendQuery("GetProductURL");
+      if (!url) {
+        return;
+      }
 
       // Similar to canContinue() above, check to see if things
       // have changed while we were waiting. Bail out if the user

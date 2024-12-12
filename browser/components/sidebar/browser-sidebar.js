@@ -162,7 +162,7 @@ var SidebarController = {
         "viewReviewCheckerSidebar",
         {
           elementId: "sidebar-switcher-review-checker",
-          url: "chrome://browser/content/shopping/shopping.html",
+          url: "chrome://browser/content/shopping/review-checker.xhtml",
           menuId: "menu_reviewCheckerSidebar",
           menuL10nId: "menu-view-review-checker",
           revampL10nId: "sidebar-menu-review-checker-label",

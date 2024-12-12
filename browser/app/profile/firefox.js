@@ -869,7 +869,14 @@ pref("browser.shopping.experience2023.sidebarClosedCount", 0);
 pref("browser.shopping.experience2023.showKeepSidebarClosedMessage", true);
 
 // Integrates the Review Checker shopping feature into the global sidebar
+// shoppingSidebar pref should be opposite of this to disable
+// the custom shopping sidebar.
 pref("browser.shopping.experience2023.integratedSidebar", false);
+
+// Enables showing the Review Checker in the Shopping sidebar.
+// integratedSidebar pref should be opposite of this to disable
+// the Review Checker sidebar panel.
+pref("browser.shopping.experience2023.shoppingSidebar", true);
 
 // Spin the cursor while the page is loading
 pref("browser.spin_cursor_while_busy", false);
