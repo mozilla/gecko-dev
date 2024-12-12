@@ -6532,13 +6532,14 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
 
     StyleSizeOverrides sizeOverrides;
     if (childShouldStretchCrossSize) {
-      nscoord stretchedCrossSize =
-          aInput.mPercentageBasisForChildren->BSize(flexWM);
-      if (childStylePos->mBoxSizing == StyleBoxSizing::Content) {
-        const nscoord mbp =
-            childFrame->IntrinsicBSizeOffsets().MarginBorderPadding();
-        stretchedCrossSize = std::max(0, stretchedCrossSize - mbp);
-      }
+      const auto offsetData = childFrame->IntrinsicBSizeOffsets();
+      const nscoord boxSizingToMarginEdgeSize =
+          childStylePos->mBoxSizing == StyleBoxSizing::Content
+              ? offsetData.MarginBorderPadding()
+              : offsetData.margin;
+      const nscoord stretchedCrossSize =
+          std::max(0, aInput.mPercentageBasisForChildren->BSize(flexWM) -
+                          boxSizingToMarginEdgeSize);
       const auto stretchedStyleCrossSize = StyleSize::LengthPercentage(
           LengthPercentage::FromAppUnits(stretchedCrossSize));
       // The size override is in the child's own writing mode.
