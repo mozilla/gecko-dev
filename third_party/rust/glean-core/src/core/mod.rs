@@ -127,7 +127,7 @@ where
 ///     ping_lifetime_max_time: 2000,
 /// };
 /// let mut glean = Glean::new(cfg).unwrap();
-/// let ping = PingType::new("sample", true, false, true, true, true, vec![], vec![]);
+/// let ping = PingType::new("sample", true, false, true, true, true, vec![], vec![], true);
 /// glean.register_ping_type(&ping);
 ///
 /// let call_counter: CounterMetric = CounterMetric::new(CommonMetricData {
@@ -428,7 +428,16 @@ impl Glean {
     /// # Returns
     ///
     /// Whether the "events" ping was submitted.
-    pub fn on_ready_to_submit_pings(&self, trim_data_to_registered_pings: bool) -> bool {
+    pub fn on_ready_to_submit_pings(&mut self, trim_data_to_registered_pings: bool) -> bool {
+        // When upload is disabled on init we already clear out metrics.
+        // However at that point not all pings are registered and so we keep that data around.
+        // By the time we would be ready to submit we try again cleaning out metrics from
+        // now-known pings.
+        if !self.upload_enabled {
+            log::debug!("on_ready_to_submit_pings. let's clear pings once again.");
+            self.clear_metrics();
+        }
+
         self.event_data_store
             .flush_pending_events_on_startup(self, trim_data_to_registered_pings)
     }
@@ -467,11 +476,64 @@ impl Glean {
         }
     }
 
+    /// Enable or disable a ping.
+    ///
+    /// Disabling a ping causes all data for that ping to be removed from storage
+    /// and all pending pings of that type to be deleted.
+    ///
+    /// **Note**: Do not use directly. Call `PingType::set_enabled` instead.
+    #[doc(hidden)]
+    pub fn set_ping_enabled(&mut self, ping: &PingType, enabled: bool) {
+        ping.store_enabled(enabled);
+        if !enabled {
+            if let Some(data) = self.data_store.as_ref() {
+                _ = data.clear_ping_lifetime_storage(ping.name());
+                _ = data.clear_lifetime_storage(Lifetime::User, ping.name());
+                _ = data.clear_lifetime_storage(Lifetime::Application, ping.name());
+            }
+            let ping_maker = PingMaker::new();
+            let disabled_pings = &[ping.name()][..];
+            if let Err(err) = ping_maker.clear_pending_pings(self.get_data_path(), disabled_pings) {
+                log::warn!("Error clearing pending pings: {}", err);
+            }
+        }
+    }
+
     /// Determines whether upload is enabled.
     ///
     /// When upload is disabled, no data will be recorded.
     pub fn is_upload_enabled(&self) -> bool {
         self.upload_enabled
+    }
+
+    /// Check if a ping is enabled.
+    ///
+    /// Note that some internal "ping" names are considered to be always enabled.
+    ///
+    /// If a ping is not known to Glean ("unregistered") it is always considered disabled.
+    /// If a ping is known, it can be enabled/disabled at any point.
+    /// Only data for enabled pings is recorded.
+    /// Disabled pings are never submitted.
+    pub fn is_ping_enabled(&self, ping: &str) -> bool {
+        // We "abuse" pings/storage names for internal data.
+        const DEFAULT_ENABLED: &[&str] = &[
+            "glean_client_info",
+            "glean_internal_info",
+            // for `experimentation_id`.
+            // That should probably have gone into `glean_internal_info` instead.
+            "all-pings",
+        ];
+
+        // `client_info`-like stuff is always enabled.
+        if DEFAULT_ENABLED.contains(&ping) {
+            return true;
+        }
+
+        let Some(ping) = self.ping_registry.get(ping) else {
+            return false;
+        };
+
+        ping.enabled(self)
     }
 
     /// Handles the changing of state from upload disabled to enabled.
@@ -526,9 +588,15 @@ impl Glean {
             .first_run_date
             .get_value(self, "glean_client_info");
 
-        // Clear any pending pings.
+        // Clear any pending pings that follow `collection_enabled`.
         let ping_maker = PingMaker::new();
-        if let Err(err) = ping_maker.clear_pending_pings(self.get_data_path()) {
+        let disabled_pings = self
+            .ping_registry
+            .iter()
+            .filter(|&(_ping_name, ping)| ping.follows_collection_enabled())
+            .map(|(ping_name, _ping)| &ping_name[..])
+            .collect::<Vec<_>>();
+        if let Err(err) = ping_maker.clear_pending_pings(self.get_data_path(), &disabled_pings) {
             log::warn!("Error clearing pending pings: {}", err);
         }
 
@@ -536,7 +604,16 @@ impl Glean {
         // Note that this also includes the ping sequence numbers, so it has
         // the effect of resetting those to their initial values.
         if let Some(data) = self.data_store.as_ref() {
-            data.clear_all()
+            _ = data.clear_lifetime_storage(Lifetime::User, "glean_internal_info");
+            _ = data.clear_lifetime_storage(Lifetime::User, "glean_client_info");
+            _ = data.clear_lifetime_storage(Lifetime::Application, "glean_client_info");
+            for (ping_name, ping) in &self.ping_registry {
+                if ping.follows_collection_enabled() {
+                    _ = data.clear_ping_lifetime_storage(ping_name);
+                    _ = data.clear_lifetime_storage(Lifetime::User, ping_name);
+                    _ = data.clear_lifetime_storage(Lifetime::Application, ping_name);
+                }
+            }
         }
         if let Err(err) = self.event_data_store.clear_all() {
             log::warn!("Error clearing pending events: {}", err);
@@ -724,6 +801,15 @@ impl Glean {
             .insert(ping.name().to_string(), ping.clone());
     }
 
+    /// Gets a list of currently registered ping names.
+    ///
+    /// # Returns
+    ///
+    /// The list of ping names that are currently registered.
+    pub fn get_registered_ping_names(&self) -> Vec<&str> {
+        self.ping_registry.keys().map(String::as_str).collect()
+    }
+
     /// Get create time of the Glean object.
     pub(crate) fn start_time(&self) -> DateTime<FixedOffset> {
         self.start_time
@@ -860,8 +946,8 @@ impl Glean {
     /// Return the value for the debug view tag or [`None`] if it hasn't been set.
     ///
     /// The `debug_view_tag` may be set from an environment variable
-    /// (`GLEAN_DEBUG_VIEW_TAG`) or through the [`set_debug_view_tag`] function.
-    pub(crate) fn debug_view_tag(&self) -> Option<&String> {
+    /// (`GLEAN_DEBUG_VIEW_TAG`) or through the `set_debug_view_tag` function.
+    pub fn debug_view_tag(&self) -> Option<&String> {
         self.debug.debug_view_tag.get()
     }
 
@@ -902,11 +988,11 @@ impl Glean {
         self.debug.log_pings.set(value)
     }
 
-    /// Return the value for the log pings debug option or [`None`] if it hasn't been set.
+    /// Return the value for the log pings debug option or `false` if it hasn't been set.
     ///
     /// The `log_pings` option may be set from an environment variable (`GLEAN_LOG_PINGS`)
-    /// or through the [`set_log_pings`] function.
-    pub(crate) fn log_pings(&self) -> bool {
+    /// or through the `set_log_pings` function.
+    pub fn log_pings(&self) -> bool {
         self.debug.log_pings.get().copied().unwrap_or(false)
     }
 

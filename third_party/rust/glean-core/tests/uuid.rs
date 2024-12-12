@@ -18,19 +18,19 @@ fn uuid_is_generated_and_stored() {
     let uuid: UuidMetric = UuidMetric::new(CommonMetricData {
         name: "uuid".into(),
         category: "local".into(),
-        send_in_pings: vec!["core".into()],
+        send_in_pings: vec!["store1".into()],
         ..Default::default()
     });
 
     uuid.generate_and_set_sync(&glean);
-    let snapshot = glean.snapshot("core", false);
+    let snapshot = glean.snapshot("store1", false);
     assert!(
         snapshot.contains(r#""local.uuid": ""#),
         "Snapshot 1: {snapshot}"
     );
 
     uuid.generate_and_set_sync(&glean);
-    let snapshot = glean.snapshot("core", false);
+    let snapshot = glean.snapshot("store1", false);
     assert!(
         snapshot.contains(r#""local.uuid": ""#),
         "Snapshot 2: {snapshot}"

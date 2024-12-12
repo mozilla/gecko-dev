@@ -284,6 +284,10 @@ impl EventDatabase {
         {
             let mut db = self.event_stores.write().unwrap(); // safe unwrap, only error case is poisoning
             for store_name in meta.inner.send_in_pings.iter() {
+                if !glean.is_ping_enabled(store_name) {
+                    continue;
+                }
+
                 let store = db.entry(store_name.to_string()).or_default();
                 let execution_counter = CounterMetric::new(CommonMetricData {
                     name: "execution_counter".into(),
@@ -455,7 +459,7 @@ impl EventDatabase {
                     .event
                     .extra
                     .as_ref()
-                    .map_or(false, |extra| extra.is_empty())
+                    .is_some_and(|extra| extra.is_empty())
                 {
                     // Small optimization to save us sending empty dicts.
                     event.event.extra = None;
@@ -758,7 +762,7 @@ mod test {
         let (mut glean, dir) = new_glean(None);
         let db = EventDatabase::new(dir.path()).unwrap();
 
-        let test_storage = "test-storage";
+        let test_storage = "store1";
         let test_category = "category";
         let test_name = "name";
         let test_timestamp = 2;
