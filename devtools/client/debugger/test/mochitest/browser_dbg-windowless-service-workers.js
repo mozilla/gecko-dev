@@ -7,9 +7,7 @@
 
 "use strict";
 
-// Use an URL with a specific port to check that Bug 1876533 is fixed
-// We're using URL without port in other tests, like browser_dbg-windowless-service-workers-reload.js
-const SW_URL = EXAMPLE_URL_WITH_PORT + "service-worker.sjs";
+let SW_URL;
 
 add_task(async function () {
   info("Subtest #1");
@@ -17,6 +15,8 @@ add_task(async function () {
   await pushPref("devtools.debugger.threads-visible", true);
   await pushPref("dom.serviceWorkers.testing.enabled", true);
 
+  // Use an URL with a specific port to check that Bug 1876533 is fixed
+  // We're using URL without port in other tests, like browser_dbg-windowless-service-workers-reload.js
   const dbg = await initDebuggerWithAbsoluteURL(
     EXAMPLE_URL_WITH_PORT + "doc-service-workers.html"
   );
@@ -25,6 +25,11 @@ add_task(async function () {
     await content.wrappedJSObject.registerWorker();
   });
   const workerSource = await waitForSource(dbg, "service-worker.sjs");
+
+  // Retrieve the live URL of the Service Worker as it should be "http://" URL.
+  // (based on EXAMPLE_URL_WITH_PORT URL http: + custom port)
+  // But when running with --use-http3-server, the worker has an https URL.
+  SW_URL = workerSource.url;
 
   await addBreakpoint(dbg, "service-worker.sjs", 13);
 
