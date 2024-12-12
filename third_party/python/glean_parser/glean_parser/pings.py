@@ -47,9 +47,12 @@ class Ping:
         self.metadata = metadata
         self.precise_timestamps = self.metadata.get("precise_timestamps", True)
         self.include_info_sections = self.metadata.get("include_info_sections", True)
+        self.follows_collection_enabled = self.metadata.get("follows_collection_enabled", True)
         if enabled is None:
             enabled = True
         self.enabled = enabled
+        if not self.follows_collection_enabled:
+            self.enabled = False
         self.schedules_pings: List[str] = []
         if data_reviews is None:
             data_reviews = []
@@ -98,6 +101,9 @@ class Ping:
         modified_dict = util.remove_output_params(modified_dict, "precise_timestamps")
         modified_dict = util.remove_output_params(
             modified_dict, "include_info_sections"
+        )
+        modified_dict = util.remove_output_params(
+            modified_dict, "follows_collection_enabled"
         )
         modified_dict = util.remove_output_params(modified_dict, "schedules_pings")
         return modified_dict
