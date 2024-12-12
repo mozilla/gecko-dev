@@ -690,7 +690,7 @@
     }
 
     on_overflow(event) {
-      event.currentTarget.setAttribute("textoverflow", "true");
+      event.currentTarget.toggleAttribute("textoverflow", true);
     }
 
     on_underflow(event) {
