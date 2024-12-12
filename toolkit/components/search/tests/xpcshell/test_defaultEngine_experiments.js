@@ -87,7 +87,7 @@ add_setup(async () => {
 
   SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 
-  let promiseSaved = promiseSaveSettingsData();
+  let promiseSaved = promiseAfterSettings();
   await Services.search.init();
   await promiseSaved;
 
@@ -99,7 +99,7 @@ add_setup(async () => {
 async function switchExperiment(newExperiment) {
   let promiseReloaded =
     SearchTestUtils.promiseSearchNotification("engines-reloaded");
-  let promiseSaved = promiseSaveSettingsData();
+  let promiseSaved = promiseAfterSettings();
 
   // Stub getVariable to populate the cache with our expected data
   getVariableStub.callsFake(name => {

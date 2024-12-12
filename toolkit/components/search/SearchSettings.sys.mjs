@@ -165,7 +165,15 @@ export class SearchSettings {
         throw new Error("no engine in the file");
       }
     } catch (ex) {
-      lazy.logConsole.debug("get: No settings file exists, new profile?", ex);
+      if (DOMException.isInstance(ex) && ex.name === "NotFoundError") {
+        lazy.logConsole.debug("get: No settings file exists, new profile?", ex);
+      } else {
+        lazy.logConsole.error("get: Settings file empty or corrupt.", ex);
+        Services.prefs.setIntPref(
+          lazy.SearchUtils.BROWSER_SEARCH_PREF + "lastSettingsCorruptTime",
+          Date.now() / 1000
+        );
+      }
       json = {};
     }
 

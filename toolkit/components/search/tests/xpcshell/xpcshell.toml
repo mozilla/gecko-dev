@@ -199,6 +199,8 @@ support-files = [
 
 ["test_sendSubmissionURL.js"]
 
+["test_settings_corrupt.js"]
+
 ["test_settings_migrate_11.js"]
 support-files = [
   "icons/remoteIcon.ico",
