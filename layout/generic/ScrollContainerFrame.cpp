@@ -4203,9 +4203,13 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // We want to call SetContainsNonMinimalDisplayPort if
   // mWillBuildScrollableLayer is true for any reason other than having a
   // minimal display port.
-  if (aBuilder->IsPaintingToWindow()) {
-    if (DisplayPortUtils::HasNonMinimalDisplayPort(GetContent()) ||
-        mZoomableByAPZ) {
+  if (mWillBuildScrollableLayer && aBuilder->IsPaintingToWindow()) {
+    // Since mWillBuildScrollableLayer = HasDisplayPort || mZoomableByAPZ we can
+    // simplify this check to avoid getting the display port again.
+    if (mZoomableByAPZ ||
+        !GetContent()->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
+      MOZ_ASSERT(DisplayPortUtils::HasNonMinimalDisplayPort(GetContent()) ||
+                 mZoomableByAPZ);
       aBuilder->SetContainsNonMinimalDisplayPort();
     }
   }

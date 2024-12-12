@@ -464,15 +464,15 @@ void DisplayPortUtils::MarkDisplayPortAsPainted(nsIContent* aContent) {
 }
 
 bool DisplayPortUtils::HasNonMinimalDisplayPort(nsIContent* aContent) {
-  return HasDisplayPort(aContent) &&
-         !aContent->GetProperty(nsGkAtoms::MinimalDisplayPort);
+  return !aContent->GetProperty(nsGkAtoms::MinimalDisplayPort) &&
+         HasDisplayPort(aContent);
 }
 
 bool DisplayPortUtils::HasNonMinimalNonZeroDisplayPort(nsIContent* aContent) {
-  if (!HasDisplayPort(aContent)) {
+  if (aContent->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
     return false;
   }
-  if (aContent->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
+  if (!HasDisplayPort(aContent)) {
     return false;
   }
 
