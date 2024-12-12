@@ -324,10 +324,10 @@ export class MozBaseInputElement extends MozLitElement {
           part="label"
           for="input"
           shownaccesskey=${ifDefined(this.accessKey)}
-        >
-          ${isInlineLayout ? this.inputTemplate() : ""}${this.labelTemplate()}
-        </label>
-        ${this.hasDescription ? "" : this.supportLinkTemplate()}
+          >${isInlineLayout
+            ? this.inputTemplate()
+            : ""}${this.labelTemplate()}</label
+        >${this.hasDescription ? "" : this.supportLinkTemplate()}
       </span>
       ${this.descriptionTemplate()}
       ${!isInlineLayout ? this.inputTemplate() : ""}
@@ -335,10 +335,9 @@ export class MozBaseInputElement extends MozLitElement {
   }
 
   labelTemplate() {
-    return html`<span class="label-content">
-      ${this.iconTemplate()}
-      <span class="text">${this.label}</span>
-    </span>`;
+    return html`<span class="label-content"
+      >${this.iconTemplate()}<span class="text">${this.label}</span></span
+    >`;
   }
 
   descriptionTemplate() {
