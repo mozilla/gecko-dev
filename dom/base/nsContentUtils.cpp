@@ -7868,7 +7868,9 @@ bool nsContentUtils::IsCORSSafelistedRequestHeader(const nsACString& aName,
          (aName.LowerCaseEqualsLiteral("content-type") &&
           nsContentUtils::IsAllowedNonCorsContentType(aValue)) ||
          (aName.LowerCaseEqualsLiteral("range") &&
-          nsContentUtils::IsAllowedNonCorsRange(aValue));
+          nsContentUtils::IsAllowedNonCorsRange(aValue)) ||
+         (StaticPrefs::network_http_idempotencyKey_enabled() &&
+          aName.LowerCaseEqualsLiteral("idempotency-key"));
 }
 
 mozilla::LogModule* nsContentUtils::ResistFingerprintingLog() {

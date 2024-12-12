@@ -12652,6 +12652,12 @@
   value: 2
   mirror: always
 
+# Include an idempotency-key header for POST requests
+- name: network.http.idempotencyKey.enabled
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Whether to respect the redirected-tainted origin flag
 # https://fetch.spec.whatwg.org/#concept-request-tainted-origin
 - name: network.http.origin.redirectTainted
