@@ -43,6 +43,9 @@ support-files = [
   "!/devtools/client/shared/test/shared-head.js",
   "!/devtools/client/shared/test/telemetry-test-helpers.js",
 ]
+prefs = [
+  "network.cookie.CHIPS.enabled=true",
+]
 
 ["browser_storage_basic.js"]
 
@@ -81,6 +84,8 @@ https_first_disabled = true
 skip-if = [
   "os == 'linux' && debug && fission && socketprocess_networking", # high frequency intermittent
 ]
+
+["browser_storage_cookies_partitioned.js"]
 
 ["browser_storage_cookies_samesite.js"]
 skip-if = ["true"] # Bug 1448484 - sameSite1 is "Unset" - Got undefined, expected Unset

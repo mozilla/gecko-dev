@@ -58,20 +58,23 @@ class CookiesStorageActor extends BaseStorageActor {
     super.destroy();
   }
 
-  static UNIQUE_KEY_INDEXES = { name: 0, host: 1, path: 2 };
+  static UNIQUE_KEY_INDEXES = { name: 0, host: 1, path: 2, partitionKey: 3 };
 
   #getCookieUniqueKey(cookie) {
     return (
-      cookie.name + SEPARATOR_GUID + cookie.host + SEPARATOR_GUID + cookie.path
+      cookie.name +
+      SEPARATOR_GUID +
+      cookie.host +
+      SEPARATOR_GUID +
+      cookie.path +
+      SEPARATOR_GUID +
+      cookie.originAttributes.partitionKey
     );
   }
 
   populateStoresForHost(host) {
     this.hostVsStores.set(host, new Map());
-
-    const originAttributes = this.getOriginAttributesFromHost(host);
-    const cookies = this.getCookiesFromHost(host, originAttributes);
-
+    const cookies = this.getCookiesFromHost(host);
     for (const cookie of cookies) {
       if (this.isCookieAtHost(cookie, host)) {
         const uniqueKey = this.#getCookieUniqueKey(cookie);
@@ -96,7 +99,53 @@ class CookiesStorageActor extends BaseStorageActor {
     return originAttributes;
   }
 
-  getCookiesFromHost(host, originAttributes) {
+  getCookiesFromHost(host) {
+    // Gather originAttributes list from host
+    const hostBrowsingContexts =
+      this.storageActor.getBrowsingContextsFromHost(host);
+    const originAttributesList = [];
+    if (hostBrowsingContexts.length) {
+      // Since we need to get all browsing contexts to get their originAttributes,
+      // we might get "duplicated" objects, which would translate into having the same
+      // cookies multiple times.
+      // To avoid that, we compute a unique key from originAttributes to only have unique ones.
+      const uniqueOriginAttributes = new Set();
+      for (const bc of hostBrowsingContexts) {
+        const { originAttributes } =
+          bc.currentWindowGlobal.documentStoragePrincipal;
+        // The object is small, seems fine to stringify it to compute a unique key
+        const oaKey = JSON.stringify(originAttributes);
+        if (!uniqueOriginAttributes.has(oaKey)) {
+          originAttributesList.push(originAttributes);
+          uniqueOriginAttributes.add(oaKey);
+        }
+
+        // Top level document might have an empty partitionKey in browsingContext.currentWindowGlobal.documentStoragePrincipal.originAttributes,
+        // but it can still have Paritioned cookies (in CHIPS, that's first-party partitioned cookies).
+        // In order to retrieve those, we create a new originAttribute with the
+        // partitionKey from browsingContext.currentWindowGlobal.cookieJarSettings.partitionKey
+        if (
+          bc.currentWindowGlobal.cookieJarSettings.partitionKey !==
+          originAttributes.partitionKey
+        ) {
+          const derivedOriginAttributes = {
+            ...originAttributes,
+            partitionKey: bc.currentWindowGlobal.cookieJarSettings.partitionKey,
+          };
+          const derivedOaKey = JSON.stringify(derivedOriginAttributes);
+          if (!uniqueOriginAttributes.has(derivedOaKey)) {
+            originAttributesList.push(derivedOriginAttributes);
+            uniqueOriginAttributes.add(derivedOaKey);
+          }
+        }
+      }
+    } else {
+      // In case of WebExtension or BrowserToolbox, we may pass privileged hosts
+      // which don't relate to any particular window. getOriginAttributesFromHost will
+      // fallback to the top window origin attributes.
+      originAttributesList.push(this.getOriginAttributesFromHost(host));
+    }
+
     // Local files have no host.
     if (host.startsWith("file:///")) {
       host = "";
@@ -104,7 +153,20 @@ class CookiesStorageActor extends BaseStorageActor {
 
     host = trimHttpHttpsPort(host);
 
-    return Services.cookies.getCookiesFromHost(host, originAttributes);
+    // Retrieve cookies all the passed originAttributes so we can get cookies from all jars
+    let cookies;
+    for (const originAttributes of originAttributesList) {
+      const oaCookies = Services.cookies.getCookiesFromHost(
+        host,
+        originAttributes
+      );
+      if (!cookies) {
+        cookies = oaCookies;
+      } else {
+        cookies.push(...oaCookies);
+      }
+    }
+    return cookies || [];
   }
 
   /**
@@ -291,7 +353,6 @@ class CookiesStorageActor extends BaseStorageActor {
    *        See editCookie() for format details.
    */
   async editItem(data) {
-    data.originAttributes = this.getOriginAttributesFromHost(data.host);
     this.editCookie(data);
   }
 
@@ -301,19 +362,19 @@ class CookiesStorageActor extends BaseStorageActor {
     this.addCookie(guid, principal);
   }
 
-  async removeItem(host, name) {
-    const originAttributes = this.getOriginAttributesFromHost(host);
-    this.removeCookie(host, name, originAttributes);
+  async removeItem(host, uniqueKey) {
+    if (uniqueKey === undefined) {
+      return;
+    }
+    this._removeCookies(host, { uniqueKey });
   }
 
   async removeAll(host, domain) {
-    const originAttributes = this.getOriginAttributesFromHost(host);
-    this.removeAllCookies(host, domain, originAttributes);
+    this._removeCookies(host, { domain });
   }
 
   async removeAllSessionCookies(host, domain) {
-    const originAttributes = this.getOriginAttributesFromHost(host);
-    this._removeCookies(host, { domain, originAttributes, session: true });
+    this._removeCookies(host, { domain, session: true });
   }
 
   addCookie(guid, principal) {
@@ -377,17 +438,22 @@ class CookiesStorageActor extends BaseStorageActor {
     const origName = field === "name" ? oldValue : data.items.name;
     const origHost = field === "host" ? oldValue : data.items.host;
     const origPath = field === "path" ? oldValue : data.items.path;
+    // We can't use `data.items.partitionKey` as it's the formatted value and we need
+    // to check against the "raw" one. Its value can't be modified, so we don't need to
+    // look into oldValue.
+    const partitionKey =
+      data.items.uniqueKey.split(SEPARATOR_GUID)[
+        CookiesStorageActor.UNIQUE_KEY_INDEXES.partitionKey
+      ];
     let cookie = null;
 
-    const cookies = Services.cookies.getCookiesFromHost(
-      origHost,
-      data.originAttributes || {}
-    );
+    const cookies = this.getCookiesFromHost(data.host);
     for (const nsiCookie of cookies) {
       if (
         nsiCookie.name === origName &&
         nsiCookie.host === origHost &&
-        nsiCookie.path === origPath
+        nsiCookie.path === origPath &&
+        nsiCookie.originAttributes.partitionKey === partitionKey
       ) {
         cookie = {
           host: nsiCookie.host,
@@ -400,6 +466,7 @@ class CookiesStorageActor extends BaseStorageActor {
           expires: nsiCookie.expires,
           originAttributes: nsiCookie.originAttributes,
           schemeMap: nsiCookie.schemeMap,
+          isPartitioned: nsiCookie.isPartitioned,
         };
         break;
       }
@@ -464,21 +531,25 @@ class CookiesStorageActor extends BaseStorageActor {
       cookie.isSession ? MAX_COOKIE_EXPIRY : cookie.expires,
       cookie.originAttributes,
       cookie.sameSite,
-      cookie.schemeMap
+      cookie.schemeMap,
+      cookie.isPartitioned
     );
   }
 
   _removeCookies(host, opts = {}) {
     // We use a uniqueId to emulate compound keys for cookies. We need to
     // extract the cookie name to remove the correct cookie.
-    if (opts.name) {
-      const uniqueKeyParts = opts.name.split(SEPARATOR_GUID);
+    if (opts.uniqueKey) {
+      const uniqueKeyParts = opts.uniqueKey.split(SEPARATOR_GUID);
 
       opts.name = uniqueKeyParts[CookiesStorageActor.UNIQUE_KEY_INDEXES.name];
       opts.path = uniqueKeyParts[CookiesStorageActor.UNIQUE_KEY_INDEXES.path];
+      opts.partitionKey =
+        uniqueKeyParts[CookiesStorageActor.UNIQUE_KEY_INDEXES.partitionKey] ||
+        "";
     }
 
-    host = trimHttpHttpsPort(host);
+    const trimmedHost = trimHttpHttpsPort(host);
 
     function hostMatches(cookieHost, matchHost) {
       if (cookieHost == null) {
@@ -487,19 +558,20 @@ class CookiesStorageActor extends BaseStorageActor {
       if (cookieHost.startsWith(".")) {
         return ("." + matchHost).endsWith(cookieHost);
       }
-      return cookieHost == host;
+      return cookieHost == trimmedHost;
     }
 
-    const cookies = Services.cookies.getCookiesFromHost(
-      host,
-      opts.originAttributes || {}
-    );
+    const cookies = this.getCookiesFromHost(host);
     for (const cookie of cookies) {
       if (
         hostMatches(cookie.host, host) &&
         (!opts.name || cookie.name === opts.name) &&
         (!opts.domain || cookie.host === opts.domain) &&
         (!opts.path || cookie.path === opts.path) &&
+        (!opts.uniqueKey ||
+          // make sure to pick the cookie from the correct jar
+          cookie.originAttributes.partitionKey === opts.partitionKey) &&
+        // for session cookie removal
         (!opts.session || (!cookie.expires && !cookie.maxAge))
       ) {
         Services.cookies.remove(
