@@ -14,14 +14,14 @@ tags = "apz"
 skip-if = ["os == 'android'"]  # wheel events not supported on mobile
 
 ["test_bug1253683.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
 ["test_bug1277814.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
@@ -59,12 +59,13 @@ run-if = [ # FIXME: enable on more desktop platforms (see bug 1608506 comment 4)
 run-if = ["os == 'android'"]
 
 ["test_group_hittest-1.html"]
-skip-if = ["os == 'android'"]  # mouse events not supported on mobile
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 
 ["test_group_hittest-2.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'", #  mouse events not supported on mobile
   "win11_2009 && bits == 32",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # win11 24H2
   "win11_2009 && asan",
   "os == 'linux' && asan", #  stack is not large enough for the test
   "display == 'wayland' && os_version == '22.04'", #  Bug 1857059
@@ -73,8 +74,8 @@ skip-if = [
 ]
 
 ["test_group_hittest-3.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # mouse events not supported on mobile
   "win11_2009 && bits == 32",
   "win11_2009 && asan",
   "http3",
@@ -82,7 +83,7 @@ skip-if = [
 ]
 
 ["test_group_hittest-overscroll.html"]
-skip-if = ["os == 'android'"]  # mouse events not supported on mobile
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 
 ["test_group_keyboard-2.html"]
 
@@ -123,6 +124,8 @@ skip-if = [
 skip-if = [
   "win10_2009", # Bug 1404836
   "win11_2009", # Bug 1404836
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1404836
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1404836
 ]
 
 ["test_group_programmatic_scroll_behavior.html"]
@@ -165,8 +168,8 @@ skip-if = ["display == 'wayland' && os_version == '22.04'"]  # Bug 1857059
 ["test_group_touchevents.html"]
 
 ["test_group_wheelevents.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'", #  wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'", #  Bug 1857059
 ]
 
@@ -183,33 +186,33 @@ skip-if = ["os == 'win'"] # see bug 1495580 for Windows
 ["test_interrupted_reflow.html"]
 
 ["test_layerization.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "os == 'linux' && fission && headless", # Bug 1722907
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
 ["test_relative_update.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
 ["test_scroll_inactive_bug1190112.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
 ["test_scroll_inactive_flattened_frame.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
 ["test_scroll_subframe_scrollbar.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
@@ -223,20 +226,20 @@ run-if = [
 skip-if = ["true"] # Don't run in CI yet, see bug 1657477
 
 ["test_touch_listeners_impacting_wheel.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "os == 'mac'",  # synthesized wheel smooth-scrolling not supported on OS X
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
 ["test_wheel_scroll.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]
 
 ["test_wheel_transactions.html"]
+run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
 ]

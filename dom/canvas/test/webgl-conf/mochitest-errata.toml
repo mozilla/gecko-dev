@@ -1602,10 +1602,14 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win11_2009",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["generated/test_2_conformance2__textures__misc__tex-3d-mipmap-levels-intel-bug.html"]
-fail-if = ["win11_2009"]
+fail-if = [
+  "win11_2009",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r16f-red-float.html"]
 fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]

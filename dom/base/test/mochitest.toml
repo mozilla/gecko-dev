@@ -753,6 +753,7 @@ skip-if = [
   "verify && !debug && os == 'linux'", #bug 687032
   "http3",
   "http2",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1936460
 ]
 
 ["test_bug590870.html"]

@@ -496,6 +496,10 @@ https_first_disabled = true
 https_first_disabled = true
 
 ["browser_ext_tabs_events.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug", # Bug 1786601
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1786601
+]
 
 ["browser_ext_tabs_events_order.js"]
 https_first_disabled = true
@@ -609,6 +613,9 @@ skip-if = [
   "os == 'linux' && os_version == '18.04'", # Bug 1651261
   "win11_2009 && asan", # Bug 1797751
   "win11_2009 && debug", # Bug 1797751
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug", # Bug 1797751
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1797751
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1797751
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
 ]
 

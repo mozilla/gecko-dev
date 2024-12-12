@@ -63,6 +63,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Disabled in Bug 1713158. Intemittent bug: Bug 1665011
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1665011
   "win11_2009", # Bug 1798331
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1798331
 ]
 
 ["browser_animation_animation-target_select.js"]
@@ -150,7 +151,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_animation_logic_mutations_fast.js"]
 skip-if = [
   "debug",
-  "win11_2009' && bits == 32", # Bug 1567800
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1567800
 ]
 

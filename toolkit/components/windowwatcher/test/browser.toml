@@ -12,6 +12,8 @@ support-files = ["head.js"]
 skip-if = [
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64'", # Bug 1276802 - Opening windows from content on Windows might not get the size right
   "os == 'win' && os_version == '11.2009' && processor == 'x86'", # Bug 1276802 - Opening windows from content on Windows might not get the size right
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1276802 - Opening windows from content on Windows might not get the size right
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1276802 - Opening windows from content on Windows might not get the size right
 ]
 
 ["browser_non_popup_from_popup.js"]

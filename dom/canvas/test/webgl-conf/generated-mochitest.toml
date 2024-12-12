@@ -8160,7 +8160,10 @@ skip-if = ["true"]
 
 ["generated/test_2_conformance2__textures__misc__tex-3d-mipmap-levels-intel-bug.html"]
 subsuite = "webgl2-core"
-fail-if = ["win11_2009"]
+fail-if = [
+  "win11_2009",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__misc__tex-3d-size-limit.html"]
 subsuite = "webgl2-core"
@@ -8207,6 +8210,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win11_2009",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["generated/test_2_conformance2__textures__misc__tex-new-formats.html"]

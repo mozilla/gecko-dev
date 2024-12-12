@@ -71,6 +71,7 @@ fail-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["ensure-exts/test_WEBGL_compressed_texture_etc.html"]
@@ -79,6 +80,7 @@ fail-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["ensure-exts/test_WEBGL_compressed_texture_etc1.html"]
@@ -89,6 +91,7 @@ fail-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["ensure-exts/test_WEBGL_compressed_texture_pvrtc.html"]
@@ -100,6 +103,7 @@ fail-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["ensure-exts/test_WEBGL_compressed_texture_s3tc.html"]

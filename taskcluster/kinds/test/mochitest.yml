@@ -285,7 +285,7 @@ mochitest-browser-chrome:
                     linux.*64-asan-qr/opt: 16
                     linux.*64-tsan-qr/opt: 32
                     macosx.*64.*/opt: 10
-                    windows11-32.*/opt: 10
+                    windows11.*/opt: 10
                     windows.*-ccov.*/.*: 14
                     windows.*-asan-qr/opt: 14
                     .*/debug: 12

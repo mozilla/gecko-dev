@@ -6,6 +6,8 @@ skip-if = [
    "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1775881
    "os == 'win' && os_version == '11.2009' && debug", # Bug 1775881
    "os == 'win' && os_version == '11.2009' && asan", # Bug 1775881
+   "os == 'win' && os_version == '11.26100' && debug", # Bug 1775881
+   "os == 'win' && os_version == '11.26100' && asan", # Bug 1775881
    "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1775881
 ]
 
