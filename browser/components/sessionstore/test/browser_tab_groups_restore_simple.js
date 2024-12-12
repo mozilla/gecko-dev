@@ -9,9 +9,9 @@ registerCleanupFunction(async () => {
 add_task(async function test_RestoreSingleGroup() {
   let win = await promiseNewWindowLoaded();
   let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
-  let aboutCrashesTab = BrowserTestUtils.addTab(win.gBrowser, "about:crashes");
+  let aboutAboutTab = BrowserTestUtils.addTab(win.gBrowser, "about:about");
   const { id: originalTabGroupId } = win.gBrowser.addTabGroup(
-    [aboutRobotsTab, aboutCrashesTab],
+    [aboutRobotsTab, aboutAboutTab],
     {
       color: "blue",
       label: "about pages",
@@ -20,7 +20,6 @@ add_task(async function test_RestoreSingleGroup() {
 
   await TabStateFlusher.flushWindow(win);
   await BrowserTestUtils.closeWindow(win);
-  await forceSaveState();
 
   // Now restore the window
   win = SessionStore.undoCloseWindow(0);

@@ -17,8 +17,8 @@ add_setup(async function () {
 add_task(async function test_basic_restore_tabgroup() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
-  let aboutCrashesTab = BrowserTestUtils.addTab(win.gBrowser, "about:crashes");
-  let tabGroup = win.gBrowser.addTabGroup([aboutRobotsTab, aboutCrashesTab], {
+  let aboutMozillaTab = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
+  let tabGroup = win.gBrowser.addTabGroup([aboutRobotsTab, aboutMozillaTab], {
     color: "blue",
     label: "about pages",
   });
