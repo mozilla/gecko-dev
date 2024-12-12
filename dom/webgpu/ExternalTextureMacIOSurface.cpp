@@ -24,6 +24,13 @@ UniquePtr<ExternalTextureMacIOSurface> ExternalTextureMacIOSurface::Create(
     return nullptr;
   }
 
+  if (aWidth > MacIOSurface::GetMaxWidth() ||
+      aHeight > MacIOSurface::GetMaxHeight()) {
+    gfxCriticalNoteOnce << "Requested MacIOSurface is too large: (" << aWidth
+                        << ", " << aHeight << ")";
+    return nullptr;
+  }
+
   RefPtr<MacIOSurface> surface =
       MacIOSurface::CreateIOSurface(aWidth, aHeight, true);
   if (!surface) {
