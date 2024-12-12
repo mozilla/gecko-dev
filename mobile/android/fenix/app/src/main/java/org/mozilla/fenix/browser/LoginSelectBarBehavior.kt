@@ -41,15 +41,12 @@ class LoginSelectBarBehavior<V : View>(
             .firstOrNull()
 
         // It is possible that previous anchor's visibility is changed.
-        // The layout is updated and layoutDependsOn is called but onDependentViewChanged not.
         // We have to check here if a new anchor is available and reparent the logins bar.
-        // This check also ensures we are not positioning the login bar multiple times for the same anchor.
-        return if (anchorId != currentAnchorId) {
+        if (anchorId != currentAnchorId) {
             positionLoginBar(child, parent.children.firstOrNull { it.id == anchorId })
-            true
-        } else {
-            false
         }
+
+        return false
     }
 
     private fun positionLoginBar(loginBar: V, dependency: View?) {
