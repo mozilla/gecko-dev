@@ -119,11 +119,19 @@ class ProviderGlobalActions extends UrlbarProvider {
           tag: "div",
           children: result.payload.results.map((key, i) => {
             let action = this.#actions.get(key);
+            let style;
+            if (action.dataset?.style) {
+              style = "";
+              for (let [prop, val] of Object.entries(action.dataset.style)) {
+                style += `${prop}: ${val};`;
+              }
+            }
             return {
               name: `button-${i}`,
               tag: "span",
               classList: ["urlbarView-action-btn"],
               attributes: {
+                style,
                 inputLength: result.payload.inputLength,
                 "data-action": key,
                 role: "button",

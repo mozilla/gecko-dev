@@ -1000,6 +1000,20 @@
   .urlbarView[action-override] &[data-action=tabswitch] {
     display: none;
   }
+
+  &[data-action^=tabgroup-] {
+    color: light-dark(var(--tab-group-color-pale), var(--tab-group-label-text-dark));
+    background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+
+    /* Add offset to the focus / selection indicator as the outline color could
+       be close to the group color. */
+    outline-offset: 1px;
+    margin-inline-start: 1px;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
 }
 
 /* Search one-offs */

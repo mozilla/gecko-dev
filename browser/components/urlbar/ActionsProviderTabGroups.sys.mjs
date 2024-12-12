@@ -38,18 +38,25 @@ class ProviderTabGroups extends ActionsProvider {
     let gBrowser = lazy.BrowserWindowTracker.getTopWindow().gBrowser;
     let input = queryContext.trimmedLowerCaseSearchString;
     let results = [];
+    let i = 0;
 
     for (let group of gBrowser.getAllTabGroups()) {
-      let label = group.attributes.label.value.toLowerCase();
-      if (label.startsWith(input)) {
+      if (group.label.toLowerCase().startsWith(input)) {
         results.push(
           new ActionsResult({
-            key: label,
+            key: `tabgroup-${i++}`,
             icon: "chrome://browser/skin/tabbrowser/tab-groups.svg",
             l10nId: "urlbar-result-action-search-tabgroups",
-            l10nArgs: { group: label },
+            l10nArgs: { group: group.label },
             onPick: (_queryContext, _controller) => {
               this.openGroup(group);
+            },
+            dataset: {
+              style: {
+                "--tab-group-color": `var(--tab-group-color-${group.color})`,
+                "--tab-group-color-invert": `var(--tab-group-color-${group.color}-invert)`,
+                "--tab-group-color-pale": `var(--tab-group-color-${group.color}-pale)`,
+              },
             },
           })
         );
