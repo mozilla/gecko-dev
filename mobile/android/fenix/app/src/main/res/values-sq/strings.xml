@@ -335,11 +335,15 @@
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Pamje Lexuesi, Përktheni, %s, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Pamje Lexues, Përktheni, Njoftoni për sajt të dëmtuar, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Pamje Lexuesi, Përktheni, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Pamje Lexuesi, %s, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Pamje Lexuesi, Njoftoni për sajt të dëmtuar, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Pamje Lexuesi, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -560,9 +564,15 @@
     <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Ndihmonani ta bëjmë Firefox-in më të mirë</string>
     <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Dërgo vetvetiu njoftime vithisjesh</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">Raportet e vithisjeve na lejojnë të diagnostikojmë dhe ndreqim probleme me shfletuesin. Raportet mund të përfshijnë të dhëna personale, ose rezervat.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Mësoni më tepër rreth njoftimesh vithisjesh</string>
 
+    <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Dërgo të dhëna teknike dhe ndërveprimesh te Mozilla</string>
+    <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Të dhënat rreth pajisjes tuaj, formësimit hardware dhe se si e përdorni Firefox-in ndihmojnë të përmirësohen veçori, funksionimi dhe qëndrueshmëria për përdorues kudo.</string>
     <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Mësoni më tepër rreth të dhënash përdorimi</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
@@ -573,12 +583,16 @@
     <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Mirë se vini në Firefox</string>
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Shprehni pajtimin dhe vazhdoni</string>
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Duke vazhduar, pajtoheni me %1$s Firefox-i.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Kushte Shërbimi</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
     <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox-i kujdeset për privatësinë tuaj. Lexoni më tepër te %1$s tona.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Shënim Mbi Privatësinë</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Që të ndihmoni të përmirësohet shfletuesi, Firefox-i dërgon te Mozilla të dhëna diagnostikimesh dhe ndërveprimesh. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Administrojini</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -1002,6 +1016,8 @@
     <string name="preferences_marketing_data">Të dhëna marketingu</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">I jep Adjust-it, tregtuesit tonë të marketingut për platforma celulare, të dhëna elementare mbi përdorimin</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Ndani me partnerë marketingu të Mozilla-s informacion se si e zbuluat Firefox-in. Kjo na ndihmon të fuqizojmë Firefox-in dhe të ndërtojmë një internet më të mirë</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Mësoni më tepër rreth të dhënash marketingu</string>
     <!-- Preference switch title for automatically submitting crash reports -->
@@ -2882,6 +2898,14 @@
     <string name="protection_panel_banner_not_secure_description">Lidhja juaj s’është e siguruar.</string>
     <!-- Title text for the protection panel banner when tracking protection is disabled. -->
     <string name="protection_panel_banner_not_protected_title">Keni mbyllur mbrojtjet</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s s’është në punë. Sugjerojmë ta riaktivizoni mbrojtjen.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s është në punë</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">Jeni i mbrojtur. Nëse vërejmë gjë, do t’ua bëjmë të ditur.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">Mbrojtje e Thelluar Nga Gjurmimi</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
@@ -3006,6 +3030,9 @@
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">Adresa</string>
 
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Vendore për t’u aktivizuar për diagnostikim</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Mjete CFR</string>
@@ -3032,10 +3059,18 @@
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Përditësojeni tani</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Përditësoni shfletuesin tuaj Firefox</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Do të skadojë një dëshmi rrënjë, duke bërë që disa nga veçoritë të reshtin së funksionuari më 14 mars.</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Përditësojeni para 14 marsit</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Do të skadojë një dëshmi rrënjë, duke bërë që versioni juaj i Firefox-it të reshtë së funksionuari si duhet.</string>
     <!-- Homepage card title about old Firefox version -->
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Më pak se 7 ditë për ta përditësuar</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Më 14 mars, shtesa dhe veçori të tjera të Firefox-it do të reshtin së funksionuari, për shkak të skadimit të një dëshmie rrënjë.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Shansi juaj i fundit të mbani Firefox-in tuaj</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Versioni juaj i Firefox-it do të reshtë së funksionuari më 14 mars, ngaqë po skadon një dëshmi rrënjë.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->

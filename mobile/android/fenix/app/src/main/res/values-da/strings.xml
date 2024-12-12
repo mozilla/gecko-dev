@@ -95,12 +95,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Afvis</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Vores stærkeste privatlivs-beskyttelse til dato isolerer sporings-tjenester på tværs af websteder.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Læs om Komplet Cookiebeskyttelse</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -122,12 +116,6 @@
     <string name="address_bar_swipe_cfr_title">Stryg værktøjslinje op for at skifte faneblade</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Stryg til højre eller venstre for at skifte. Stryg til venstre på dit sidste faneblad for at åbne et nyt.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nyt: Pile til at gå frem og tilbage med et enkelt tryk</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Nyd hurtigere navigation, der altid er lige ved hånden.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Adgang til kamera er nødvendig. Gå til Indstillinger i Android, tryk på Tilladelser, og tryk så på Tillad.</string>
@@ -346,17 +334,21 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Luk menuen tilpasset fanebladsmenu</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Læsevisning, Oversæt, Udskriv, Del, Åbn app</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Læsevisning, Oversæt, Udskriv, Del, Åbn app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Læsevisning, Udskriv, Del, Åbn app</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Læsevisning, Udskriv, Del, Åbn app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_translate_with_report_site">Læsevisning, Oversæt, %s, Udskriv, Del, Åbn app</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Læsevisning, Oversæt, %s, Udskriv, Del, Åbn app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Læsevisning, Oversæt, Rapporter problem med websted, Udskriv, Del, Åbn app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Læsevisning, Oversæt, Udskriv, Del, Åbn app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_report_site">Læsevisning, %s, Udskriv, Del, Åbn app</string>
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Læsevisning, %s, Udskriv, Del, Åbn app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Læsevisning, Rapporter problem med websted, Udskriv, Del, Åbn app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Læsevisning, Udskriv, Del, Åbn app</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -377,6 +369,8 @@
     <string name="browser_menu_turn_off_reader_view">Slå læsevisning fra</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Oversæt side…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">Rapporter problem med websted…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Oversat til %1$s</string>
@@ -459,8 +453,6 @@
     <string name="search_engine_icon_content_description_1">Søgetjeneste: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Mød din tilpassede startside. Seneste faneblade, bogmærker og søgeresultater vises her.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Velkommen til et mere personligt internet</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -574,6 +566,53 @@
     <string name="onboarding_add_on_add_button_content_description">Tilføj tilføjelsesknap</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Bedømt %1$s ud af 5</string>
+
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Hjælp os med at gøre Firefox bedre</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Send automatisk fejlrapporter</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">Med fejlrapporter kan vi diagnosticere og løse problemer med browseren. Rapporter kan indeholde personlige eller følsomme data.</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Læs mere om fejlrapporter</string>
+    <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Send tekniske data og data om brug til Mozilla</string>
+    <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Data om din enhed, hardwarekonfiguration og hvordan du bruger Firefox hjælper med at forbedre funktioner, ydeevne og stabilitet for brugere overalt.</string>
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Læs mere om brug-data</string>
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Færdig</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Annuller</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Velkommen til Firefox</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Accepter og fortsæt</string>
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Ved at fortsætte accepterer du Firefox\' %1$s.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">tjenestevilkår</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox passer på dit privatliv. Læs mere i vores %1$s.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">privatlivserklæring</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">For at hjælpe med at forbedre browseren sender Firefox diagnosticeringsdata og data om brug til Mozilla. %1$s</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Håndter</string>
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Vælg placeringen af værktøjslinjen</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Hold søgning indenfor rækkevidde.</string>
+    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_save_and_continue_button">Gem og fortsæt</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">Spring over</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">Top</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">Bund</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -967,7 +1006,7 @@
     <string name="exceptions_empty_message_learn_more_link">Læs mere</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Brug og tekniske data</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Tekniske data og data om brug</string>
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Tekniske data og data om brug</string>
     <!-- Preference switch for usage and technical learn more link -->
@@ -977,7 +1016,11 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Markedsføringsdata</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Deler grundlæggende data for anvendelse med Adjust, vores samarbejdspartner inden for markedsføring.</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Deler grundlæggende data for anvendelse med Adjust, vores samarbejdspartner inden for markedsføring.</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Del oplysninger med Mozillas markedsføringspartnere om, hvordan du opdagede Firefox. Dette hjælper os med at udvikle Firefox og et bedre internet</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">Læs mere om markedsføringsdata</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Indsend automatisk fejlrapporter</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1331,8 +1374,6 @@
     <string name="bookmark_delete_negative">Annuller</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Tilføj mappe</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Bogmærke gemt!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Gemt i “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1676,8 +1717,6 @@
     <string name="snackbar_tabs_closed">Faneblade lukket</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Faneblade lukket: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Bogmærker gemt!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Bogmærker gemt i “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2580,14 +2619,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Ja, prøv det</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ikke nu</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Find ud af, om du kan stole på anmeldelserne af dette produkt — før du køber det.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Prøv verificering af anmeldelser</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Er disse anmeldelser pålidelige? Tjek nu for at se en justeret bedømmelse.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Åbn verificering af anmeldelser</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Åbn verificering af anmeldelser</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2853,6 +2884,28 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">Annuller</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">Vær forsigtig på dette websted</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">Din forbindelse er ikke sikker.</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">Du har slået beskyttelse fra</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s er ikke aktiveret. Vi foreslå, at du slår beskyttelse til igen.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s beskytter dig</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">Du er beskyttet. Vi giver dig besked, hvis vi opdager noget.</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">Udvidet beskyttelse mod sporing</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">Hvis noget på webstedet ikke ser ud til at virke som det skal, så prøv at slå beskyttelse fra.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Beskyttelse er SLÅET FRA. Vi anbefaler, at du slår det til igen.</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">Debug-værktøjer</string>
@@ -2966,6 +3019,13 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Slet login med brugernavn %s</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Adresser</string>
+
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Debugging-sprog der kan aktiveres</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">CFR-værktøjer</string>
@@ -2977,11 +3037,6 @@
     <string name="glean_debug_tools_title">Glean debug-værktøjer</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">For at afslutte fuldskærm skal du trække fra toppen og derefter stryge fingeren mod venstre</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">For at afslutte fuldskærm skal du trække fra toppen og trykke på tilbage-knappen</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Træk fra toppen og stryg derefter mod venstre for at afslutte</string>
@@ -2992,4 +3047,35 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Opdater nu</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Opdater din Firefox-browser</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Et rodcertifikat udløber, hvilket vil få nogle funktioner til at stoppe med at virke den 14. marts.</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Opdater inden den 14. marts</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Et rodcertifikat udløber, hvilket vil få din version af Firefox til at stoppe med at fungere korrekt.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Mindre end 7 dage tilbage til at opdatere</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Den 14. marts vil tilføjelser og andre Firefox-funktioner stoppe med at virke, fordi et rodcertifikat udløber.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Sidste chance for at beholde din Firefox</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Din version af Firefox vil stoppe med at virke korrekt den 14. marts, fordi et rodcertifikat udløber.</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Opdatering anbefales</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Tilføjelser og nogle funktioner stopper med at virke den 14. marts.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Du bruger en ældre version af Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Opdater inden den 14. marts for at fortsætte med at bruge tilføjelser og andre funktioner.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Nogle funktioner holder op med at virke i morgen.</string>
 </resources>

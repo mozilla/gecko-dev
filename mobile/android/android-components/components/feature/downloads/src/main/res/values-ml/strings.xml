@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
-    <string name="mozac_feature_downloads_notification_channel">ഡൗണ്‍ലോഡുകള്‍</string>
+    <string name="mozac_feature_downloads_notification_channel">ഇറക്കിവയ്ക്കലുകൾ</string>
 
     <!-- Text shown on the second row of a paused download notification. -->
-    <string name="mozac_feature_downloads_paused_notification_text">ഡൗൺലോഡ് താൽക്കാലികമായി നിർത്തി</string>
+    <string name="mozac_feature_downloads_paused_notification_text">ഇറക്കിവയ്ക്കൽ താൽക്കാലികമായി നിർത്തി</string>
     <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
-    <string name="mozac_feature_downloads_completed_notification_text2">ഡൗണ്‍ലോഡ് പൂര്‍ത്തിയായിരിക്കുന്നു</string>
+    <string name="mozac_feature_downloads_completed_notification_text2">ഇറക്കിവയ്ക്കൽ പൂര്‍ത്തിയായിരിക്കുന്നു</string>
 
     <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
-    <string name="mozac_feature_downloads_failed_notification_text2">ഡൗൺലോഡ് പരാജയപ്പെട്ടു</string>
+    <string name="mozac_feature_downloads_failed_notification_text2">ഇറക്കിവയ്ക്കാൻ കഴിഞ്ഞില്ല</string>
 
     <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-    <string name="mozac_feature_downloads_dialog_title2">ഡൗൺലോഡ് ചെയ്യുക (%1$s)</string>
+    <string name="mozac_feature_downloads_dialog_title2">ഇറക്കിവയ്ക്കുക (%1$s)</string>
     <!-- Alert dialog confirmation before download a file, this is the positive action. -->
-    <string name="mozac_feature_downloads_dialog_download">ഡൗണ്‍ലോഡ്</string>
+    <string name="mozac_feature_downloads_dialog_download">ഇറക്കിവയ്ക്കൂ</string>
     <!-- Alert dialog confirmation before download a file, this is the negative action. -->
     <string name="mozac_feature_downloads_dialog_cancel">റദ്ദാക്കുക</string>
     <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
@@ -45,6 +45,10 @@
     <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->--&gt;
     <string name="mozac_feature_downloads_unable_to_open_third_party_app">%1$s തുറക്കാനായില്ല</string>
 
+    <!-- Alert dialog confirmation before cancelling downloads, this is the title   -->
+    <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">സ്വകാര്യ ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കട്ടെ?</string>
     <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
     <string name="mozac_feature_downloads_cancel_active_downloads_accept">ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കുക</string>
-    </resources>
+    <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
+    <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">സ്വകാര്യ തിരച്ചിലിൽ താങ്ങിനില്ക്കുക</string>
+</resources>

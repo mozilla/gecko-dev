@@ -21,7 +21,9 @@
     <!-- Description for clipboard_read permission. -->
     <string name="mozac_feature_addons_permissions_clipboard_read_description">ക്ലിപ്ബോര്‍ഡില്‍ നിന്നും ‍ഡാറ്റ എടുക്കുക</string>
     <!-- Description for clipboard_write permission. -->
-    <string name="mozac_feature_addons_permissions_clipboard_write_description">ക്ലിപ്പ്ബോർഡിലേക്ക് ഡാറ്റ നൽകുക</string>
+    <string name="mozac_feature_addons_permissions_clipboard_write_description">പകർത്തൽപെട്ടിലേക്കു് ദത്ത നൽകുക</string>
+    <!-- Description for declarativeNetRequest permission. -->
+    <string name="mozac_feature_addons_permissions_declarative_net_request_description">ഏത് താളിലും ഉള്ളടക്കം തടയുക</string>
     <!-- Description for declarativeNetRequestFeedback permission. -->
     <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">തിരയൽ നാൾവഴി വായിക്കുക</string>
     <!-- Description for downloads permission. -->
@@ -33,7 +35,7 @@
     <!-- Description for geolocation permission. -->
     <string name="mozac_feature_addons_permissions_geolocation_description">നിങ്ങളുടെ സ്ഥലവിവരം ലഭ്യമാക്കുക</string>
     <!-- Description for history permission. -->
-    <string name="mozac_feature_addons_permissions_history_description">ബ്രൌസിങ്ങ് ചരിത്രം പരിശോധിക്കുക</string>
+    <string name="mozac_feature_addons_permissions_history_description">തിരച്ചിൽ നാൾവഴി പരിശോധിക്കുക</string>
     <!-- Description for management permission. -->
     <string name="mozac_feature_addons_permissions_management_description">എക്സ്റ്റന്‍ഷന്‍ ഉപയോഗം നിരീക്ഷിക്കുകയും തീമുകള്‍ കൈകാര്യം ചെയ്യുകയും ചെയ്യുക</string>
     <!-- Description for native_messaging permission. -->
@@ -64,6 +66,8 @@
     <string name="mozac_feature_addons_learn_more">അനുമതികളെക്കുറിച്ച് കൂടുതലറിയുക</string>
     <!-- The rating of the add-on. -->
     <string name="mozac_feature_addons_rating">റേറ്റിങ്</string>
+    <!-- A link that points to the detail page of the extension. -->
+    <string name="mozac_feature_addons_more_info_link_2">ഈ വിപുലീകരണമെക്കുറിച്ചു് കൂടുതലറിയുക</string>
     <!-- The settings of the add-on. -->
     <string name="mozac_feature_addons_settings">ക്രമീകരണങ്ങള്‍</string>
     <!-- Indicates the add-on is enabled. -->
@@ -72,6 +76,8 @@
     <string name="mozac_feature_addons_settings_allow_in_private_browsing">സ്വകാര്യ ബ്രൗസിംഗിൽ ലഭ്യമാക്കുക</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
     <string name="mozac_feature_addons_settings_run_in_private_browsing">സ്വകാര്യ ബ്രൗസിംഗിൽ തുറക്കുക</string>
+    <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
+    <string name="mozac_feature_addons_not_allowed_in_private_browsing">സ്വകാര്യ ജാലകങ്ങളില്‍ അനുവദനീയമല്ല</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_enabled">പ്രാപ്തമാക്കി</string>
     <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
@@ -116,6 +122,8 @@
     <string name="mozac_feature_addons_addons">ആഡ്-ഓണുകള്‍</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
     <string name="mozac_feature_addons_addons_manager">ആഡ്-ഓണ്‍ മാനേജര്‍</string>
+    <!-- Button to re-enable the extensions in the "crash" notification -->
+    <string name="mozac_feature_extensions_manager_notification_restart_button">വിപുലീകരണങ്ങൾ വീണ്ടും തുടങ്ങുക</string>
     <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on-->
     <string name="mozac_feature_addons_updater_notification_allow_button">അനുവദിക്കുക</string>
     <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated-->

@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Të fshehë dhe shfaqë skeda shfletuesi</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Të hyjë në historik shfletimesh</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Shkarkoni dhe xhironi modele IA në pajisjen tuaj</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Lejo programthe të paverifikuar palësh të treta të hyjnë në të dhënat tuaja</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Të zgjerojë mjetet e zhvilluesit për hyrje në të dhënat tuaja në skeda të hapura</string>
     <!-- The version on of add-on. -->

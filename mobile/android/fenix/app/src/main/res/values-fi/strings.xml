@@ -605,6 +605,8 @@
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Tietosuojakäytäntö</string>
     <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
     <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Selaimen parantamiseksi Firefox lähettää diagnostiikka- ja vuorovaikutustietoja Mozillalle. %1$s</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Hallitse</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Valitse työkalupalkin sijoitus</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -613,6 +615,11 @@
     <string name="onboarding_customize_toolbar_save_and_continue_button">Tallenna ja jatka</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Ohita</string>
+
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">Ylhäällä</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">Alhaalla</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
