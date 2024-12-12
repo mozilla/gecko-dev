@@ -692,6 +692,9 @@ skip-if = ["os == 'android'"] # bug 1848398 - style cache miss on Android.
 
 ["test_ext_webRequest_suspend.js"]
 
+["test_ext_webRequest_type_json.js"]
+prefs = ["javascript.options.experimental.import_attributes=true"]
+
 ["test_ext_webRequest_userContextId.js"]
 
 ["test_ext_webRequest_viewsource.js"]
