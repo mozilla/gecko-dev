@@ -356,6 +356,18 @@ WorkerDebugger::GetId(nsAString& aResult) {
 }
 
 NS_IMETHODIMP
+WorkerDebugger::GetName(nsAString& aResult) {
+  AssertIsOnMainThread();
+
+  if (!mWorkerPrivate) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  aResult = mWorkerPrivate->WorkerName();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 WorkerDebugger::Initialize(const nsAString& aURL) {
   AssertIsOnMainThread();
 

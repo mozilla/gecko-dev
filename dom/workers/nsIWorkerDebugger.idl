@@ -49,6 +49,8 @@ interface nsIWorkerDebugger : nsISupports
 
   readonly attribute AString id;
 
+  readonly attribute AString name;
+
   void initialize(in AString url);
 
   [binaryname(PostMessageMoz)]

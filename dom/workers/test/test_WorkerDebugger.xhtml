@@ -25,7 +25,7 @@
           waitForRegister(WORKER_URL),
           waitForRegister(CHILD_WORKER_URL)
         ]);
-        worker = new ChromeWorker(WORKER_URL);
+        worker = new ChromeWorker(WORKER_URL, { name: "worker name" });
         let [dbg, childDbg] = await promise;
 
         info("Check that the top-level chrome worker debugger has the " +
@@ -38,6 +38,8 @@
            "Chrome worker debugger should be dedicated.");
         is(dbg.window, window,
            "Top-level dedicated worker debugger should have window.");
+        is(dbg.name, "worker name",
+           "Top-level worker name is exposed via name attribute.");
 
         info("Check that the non-top-level content worker debugger has the " +
              "correct properties.");
@@ -49,6 +51,8 @@
            "Content worker debugger should be dedicated.");
         is(childDbg.window, window,
            "Non-top-level worker debugger should have window.");
+        is(childDbg.name, "",
+           "Non-top-level worker doesn't have a custom name");
 
         info("Terminate the top-level chrome worker and the non-top-level " +
              "content worker, and wait for their debuggers to be " +
