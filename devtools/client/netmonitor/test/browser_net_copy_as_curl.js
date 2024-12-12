@@ -81,7 +81,6 @@ function buildTestData(QUOTE) {
     "POST",
     "--data-raw " + quote(POST_PAYLOAD),
     header("Content-Type: text/plain;charset=UTF-8"),
-    header("idempotency-key: 123456"),
   ];
   const ORIGIN_RESULT = [header("Origin: https://example.com")];
 

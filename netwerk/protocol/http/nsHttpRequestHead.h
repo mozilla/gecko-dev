@@ -101,7 +101,6 @@ class nsHttpRequestHead {
     kMethod_Custom,
     kMethod_Get,
     kMethod_Post,
-    kMethod_Patch,
     kMethod_Options,
     kMethod_Connect,
     kMethod_Head,
@@ -116,7 +115,6 @@ class nsHttpRequestHead {
   bool EqualsMethod(ParsedMethodType aType);
   bool IsGet() { return EqualsMethod(kMethod_Get); }
   bool IsPost() { return EqualsMethod(kMethod_Post); }
-  bool IsPatch() { return EqualsMethod(kMethod_Patch); }
   bool IsOptions() { return EqualsMethod(kMethod_Options); }
   bool IsConnect() { return EqualsMethod(kMethod_Connect); }
   bool IsHead() { return EqualsMethod(kMethod_Head); }

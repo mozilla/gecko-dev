@@ -242,10 +242,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   uint32_t GenerateUniqueID() { return ++mLastUniqueID; }
   uint32_t SessionStartTime() { return mSessionStartTime; }
 
-  void GenerateIdempotencyKeyForPost(const uint32_t aPostId,
-                                     nsILoadInfo* aLoadInfo,
-                                     nsACString& aOutKey);
-
   //
   // Connection management methods:
   //
@@ -640,8 +636,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   // useragent components
   nsCString mLegacyAppName{"Mozilla"};
   nsCString mLegacyAppVersion{"5.0"};
-  uint64_t mIdempotencyKeySeed;
-  uint64_t mPrivateBrowsingIdempotencyKeySeed;
   nsCString mPlatform;
   nsCString mOscpu;
   nsCString mMisc;
