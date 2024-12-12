@@ -169,7 +169,8 @@ class Editor extends EventEmitter {
 
   #abortController;
   // The id for the current source in the editor (selected source). This
-  // is used to cache the scroll snapshot for tracking scroll positions.
+  // is used to cache the scroll snapshot for tracking scroll positions and the
+  // symbols.
   #currentDocumentId = null;
   #currentDocument = null;
   #CodeMirror6;
@@ -2136,6 +2137,71 @@ class Editor extends EventEmitter {
 
   getLineOrOffset(line) {
     return this.isWasm ? this.lineToWasmOffset(line) : line;
+  }
+
+  /**
+   * Traverse the syntaxTree and return expressions
+   * which best match the specified token location is on our
+   * list of accepted symbol types.
+   *
+   * @param {Object} tokenLocation
+   * @returns {Array} Member expression matches
+   */
+  async findBestMatchExpressions(tokenLocation) {
+    const cm = editors.get(this);
+    const {
+      codemirrorLanguage: { syntaxTree },
+    } = this.#CodeMirror6;
+
+    function matchPosition(node, position) {
+      return node.from <= position && node.to >= position;
+    }
+    const expressions = [];
+    const symbolTypes = new Set([
+      "MemberExpression",
+      "VariableDefinition",
+      "VariableName",
+      "this",
+      "PropertyName",
+    ]);
+
+    const line = cm.state.doc.line(tokenLocation.line);
+    const tokPos = line.from + tokenLocation.column;
+
+    await syntaxTree(cm.state).iterate({
+      enter: node => {
+        if (symbolTypes.has(node.name) && matchPosition(node, tokPos)) {
+          expressions.push({
+            type: node.name,
+            // Computed member expressions not currently supported
+            computed: false,
+            expression: cm.state.doc.sliceString(node.from, node.to),
+            location: {
+              start: this.#posToLineColumn(node.from),
+              end: this.#posToLineColumn(node.to),
+            },
+            from: node.from,
+            to: node.to,
+          });
+        }
+      },
+      from: line.from,
+      to: line.to,
+    });
+    // There might be multiple expressions which are within the locations.
+    // We want to match expressions based on dots before the desired token.
+    // Examples :
+    // - With expression `a.b.c.d`, if the desired token is `c` we should match `a.b.c` not `a.b.c.d`
+    // - With expression `this.x`, if the desired token is `this` we should match `this` not `this.x`
+    // - With expression `a.b.c`, if the desired token is `c` we should match `a.b.c` not `c`
+    return expressions.sort((a, b) => {
+      if (a.from < b.from || a.to < b.to) {
+        return -1;
+      } else if (a.from > b.from || a.to > b.to) {
+        return 1;
+      }
+      return 0;
+    });
   }
 
   /**

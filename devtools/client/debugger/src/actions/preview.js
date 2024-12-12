@@ -16,28 +16,33 @@ import {
   getSelectedTraceIndex,
   getAllTraces,
 } from "../selectors/index";
+import { features } from "../utils/prefs";
 
 import { getMappedExpression } from "./expressions";
 const {
   TRACER_FIELDS_INDEXES,
 } = require("resource://devtools/server/actors/tracer.js");
 
-async function findExpressionMatch(state, parserWorker, editor, tokenPos) {
+async function findExpressionMatches(state, parserWorker, editor, tokenPos) {
   const location = getSelectedLocation(state);
   if (!location) {
-    return null;
+    return [];
+  }
+  if (features.codemirrorNext) {
+    return editor.findBestMatchExpressions(tokenPos);
   }
 
-  // Fallback on expression from codemirror cursor if parser worker misses symbols
-  // or is unable to find a match.
-  const match = await parserWorker.findBestMatchExpression(
+  let match = await parserWorker.findBestMatchExpression(
     location.source.id,
     tokenPos
   );
-  if (match) {
-    return match;
+  if (!match) {
+    // Fallback on expression from codemirror cursor,
+    // if parser worker misses symbols or is unable to find a match.
+    match = editor.getExpressionFromCoords(tokenPos);
+    return match ? [match] : [];
   }
-  return editor.getExpressionFromCoords(tokenPos);
+  return [match];
 }
 
 /**
@@ -66,13 +71,17 @@ export function getTracerPreview(target, tokenPos, editor) {
       return null;
     }
 
-    const match = await findExpressionMatch(
+    const matches = await findExpressionMatches(
       getState(),
       parserWorker,
       editor,
       tokenPos
     );
-    let { expression, location } = match;
+    if (!matches.length) {
+      return null;
+    }
+
+    let { expression, location } = matches[0];
     const source = getSelectedSource(getState());
     if (location && source.isOriginal) {
       const thread = getCurrentThread(getState());
@@ -149,18 +158,17 @@ export function getPausedPreview(target, tokenPos, editor) {
     if (!selectedFrame) {
       return null;
     }
-
-    const match = await findExpressionMatch(
+    const matches = await findExpressionMatches(
       getState(),
       parserWorker,
       editor,
       tokenPos
     );
-    if (!match) {
+    if (!matches.length) {
       return null;
     }
 
-    let { expression, location } = match;
+    let { expression, location } = matches[0];
 
     if (isConsole(expression)) {
       return null;
@@ -235,22 +243,34 @@ export function getPausedPreview(target, tokenPos, editor) {
 
 export function getExceptionPreview(target, tokenPos, editor) {
   return async ({ getState, parserWorker }) => {
-    const match = await findExpressionMatch(
+    const matches = await findExpressionMatches(
       getState(),
       parserWorker,
       editor,
       tokenPos
     );
-    if (!match) {
+    if (!matches.length) {
       return null;
     }
+    let exception;
+    // Lezer might return multiple matches in certain scenarios.
+    // Example: For this expression `[].inlineException()` is likely to throw an exception,
+    // but if the user hovers over `inlineException` lezer finds 2 matches :
+    // 1) `inlineException` for `PropertyName`,
+    // 2) `[].inlineException()` for `MemberExpression`
+    // Babel seems to only include the `inlineException`.
+    for (const match of matches) {
+      const tokenColumnStart = match.location.start.column + 1;
+      exception = getSelectedException(
+        getState(),
+        tokenPos.line,
+        tokenColumnStart
+      );
+      if (exception) {
+        break;
+      }
+    }
 
-    const tokenColumnStart = match.location.start.column + 1;
-    const exception = getSelectedException(
-      getState(),
-      tokenPos.line,
-      tokenColumnStart
-    );
     if (!exception) {
       return null;
     }
