@@ -1963,7 +1963,7 @@ class Skipfails(object):
                 ] == path and task_id in self.error_summary[manifest][allmods].get(
                     RUNS, {}
                 ):
-                    allpaths.append(allmods)
+                    allpaths.append(path)
             if len(allpaths) > 0:
                 return allpaths  # cached (including self tests)
         error_url = f"https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/{task_id}/artifacts/public/test_info/reftest_errorsummary.log"
@@ -2033,5 +2033,5 @@ class Skipfails(object):
             if status != FAIL:
                 self.error_summary[group][allmods][RUNS][task_id][STATUS] = status
             if test == path:
-                allpaths.append(allmods)
+                allpaths.append(test)
         return allpaths

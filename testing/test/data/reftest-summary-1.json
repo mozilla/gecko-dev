@@ -1,6 +1,6 @@
 {
   "dom/media/test/reftest/reftest.list": {
-    "skip-if(Android) pref(media.dormant-on-pause-timeout-ms,-1) fuzzy(0-20,0-500) == dom/media/test/reftest/frame_order_mp4.html dom/media/test/reftest/frame_order_mp4-ref.html": {
+    "dom/media/test/reftest/frame_order_mp4.html == dom/media/test/reftest/frame_order_mp4-ref.html": {
       "lineno": 13,
       "test": "dom/media/test/reftest/frame_order_mp4.html == dom/media/test/reftest/frame_order_mp4-ref.html",
       "runs": {
