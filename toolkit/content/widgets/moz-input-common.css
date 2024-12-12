@@ -14,9 +14,20 @@
     --input-margin-inline-start-adjust: calc(-1 * var(--input-space-offset));
   }
 
+  :host(:not(:state(has-label))) {
+    --input-space-offset: var(--input-width);
+    display: inline-block;
+  }
+
   :host([inputlayout="block"]) {
     --input-space-offset: 0;
     --input-margin-block-adjust: var(--space-xsmall) 0;
+  }
+
+  @media (forced-colors) {
+    :host([disabled]) {
+      color: GrayText;
+    }
   }
 
   /* Label text */
@@ -55,6 +66,10 @@
     vertical-align: top;
     margin-block: var(--input-margin-block-adjust);
     margin-inline: var(--input-margin-inline-start-adjust) var(--space-small);
+
+    :host(:not(:state(has-label))) & {
+      margin-inline-end: 0;
+    }
   }
 
   /* Icon */
