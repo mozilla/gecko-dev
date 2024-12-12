@@ -110,4 +110,17 @@
   ::slotted([slot="support-link"]) {
     display: inline-block;
   }
+
+  /* Nested fields */
+
+  .nested {
+    margin-inline-start: var(--input-space-offset);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-large);
+  }
+
+  ::slotted([slot="nested"]:first-child) {
+    margin-block-start: var(--space-large);
+  }
 }

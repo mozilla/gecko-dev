@@ -10759,11 +10759,10 @@ class ContentSection extends (external_React_default()).PureComponent {
     } else {
       return;
     }
-    let drawerHeight;
     if (drawerRef) {
-      drawerHeight = parseFloat(window.getComputedStyle(drawerRef)?.height);
+      let drawerHeight = parseFloat(window.getComputedStyle(drawerRef));
       if (isOpen) {
-        drawerRef.style.marginTop = `0`;
+        drawerRef.style.marginTop = "var(--space-large)";
       } else {
         drawerRef.style.marginTop = `-${drawerHeight}px`;
       }
@@ -10807,6 +10806,8 @@ class ContentSection extends (external_React_default()).PureComponent {
       setPref: setPref,
       activeWallpaper: activeWallpaper
     })), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "settings-toggles"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
       id: "shortcuts-section",
       className: "section"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
@@ -10815,9 +10816,10 @@ class ContentSection extends (external_React_default()).PureComponent {
       onToggle: this.onPreferenceSelect,
       "data-preference": "feeds.topsites",
       "data-eventSource": "TOP_SITES",
-      "data-l10n-id": "newtab-custom-shortcuts-toggle",
-      "data-l10n-attrs": "label, description"
-    }), /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("div", {
+      "data-l10n-id": "newtab-custom-shortcuts-toggle"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      slot: "nested"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-info-top-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-information",
@@ -10863,11 +10865,9 @@ class ContentSection extends (external_React_default()).PureComponent {
       className: "sponsored",
       htmlFor: "sponsored-shortcuts",
       "data-l10n-id": "newtab-custom-sponsored-sites"
-    })))))), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
+    }))))))), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
       id: "pocket-section",
       className: "section"
-    }, /*#__PURE__*/external_React_default().createElement("label", {
-      className: "switch"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
       id: "pocket-toggle",
       pressed: pocketEnabled || null,
@@ -10875,9 +10875,10 @@ class ContentSection extends (external_React_default()).PureComponent {
       "aria-describedby": "custom-pocket-subtitle",
       "data-preference": "feeds.section.topstories",
       "data-eventSource": "TOP_STORIES",
-      "data-l10n-id": "newtab-custom-stories-toggle",
-      "data-l10n-attrs": "label, description"
-    })), /*#__PURE__*/external_React_default().createElement("div", null, (mayHaveSponsoredStories || mayHaveRecentSaves) && /*#__PURE__*/external_React_default().createElement("div", {
+      "data-l10n-id": "newtab-custom-stories-toggle"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      slot: "nested"
+    }, (mayHaveSponsoredStories || mayHaveRecentSaves) && /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-info-pocket-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-information",
@@ -10914,40 +10915,34 @@ class ContentSection extends (external_React_default()).PureComponent {
       className: "sponsored",
       htmlFor: "recent-saves-pocket",
       "data-l10n-id": "newtab-custom-pocket-show-recent-saves"
-    })))))), /*#__PURE__*/external_React_default().createElement("div", {
+    }))))))), /*#__PURE__*/external_React_default().createElement("div", {
       id: "recent-section",
       className: "section"
-    }, /*#__PURE__*/external_React_default().createElement("label", {
-      className: "switch"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
       id: "highlights-toggle",
       pressed: highlightsEnabled || null,
       onToggle: this.onPreferenceSelect,
       "data-preference": "feeds.section.highlights",
       "data-eventSource": "HIGHLIGHTS",
-      "data-l10n-id": "newtab-custom-recent-toggle",
-      "data-l10n-attrs": "label, description"
-    }))), mayHaveWeather && /*#__PURE__*/external_React_default().createElement("div", {
+      "data-l10n-id": "newtab-custom-recent-toggle"
+    })), mayHaveWeather && /*#__PURE__*/external_React_default().createElement("div", {
       id: "weather-section",
       className: "section"
-    }, /*#__PURE__*/external_React_default().createElement("label", {
-      className: "switch"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
       id: "weather-toggle",
       pressed: weatherEnabled || null,
       onToggle: this.onPreferenceSelect,
       "data-preference": "showWeather",
       "data-eventSource": "WEATHER",
-      "data-l10n-id": "newtab-custom-weather-toggle",
-      "data-l10n-attrs": "label, description"
-    }))), pocketRegion && mayHaveSponsoredStories && spocMessageVariant === "variant-c" && /*#__PURE__*/external_React_default().createElement("div", {
+      "data-l10n-id": "newtab-custom-weather-toggle"
+    })), pocketRegion && mayHaveSponsoredStories && spocMessageVariant === "variant-c" && /*#__PURE__*/external_React_default().createElement("div", {
       className: "sponsored-content-info"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "icon icon-help"
     }), /*#__PURE__*/external_React_default().createElement("div", null, "Sponsored content supports our mission to build a better web.", " ", /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
       dispatch: this.props.dispatch,
       url: "https://support.mozilla.org/kb/pocket-sponsored-stories-new-tabs"
-    }, "Find out how"))), /*#__PURE__*/external_React_default().createElement("span", {
+    }, "Find out how")))), /*#__PURE__*/external_React_default().createElement("span", {
       className: "divider",
       role: "separator"
     }), /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
