@@ -220,7 +220,7 @@ EpochNanoseconds js::temporal::ToEpochNanoseconds(
 
   auto [seconds, nanos] =
       ToInt96(epochNanoseconds) / ToNanoseconds(TemporalUnit::Second);
-  return {seconds, nanos};
+  return {{seconds, nanos}};
 }
 
 static BigInt* CreateBigInt(JSContext* cx,
@@ -335,7 +335,7 @@ EpochNanoseconds js::temporal::GetUTCEpochNanoseconds(
   //
   // The returned epoch nanoseconds value can exceed ±8.64 × 10^21, because it
   // includes the local time zone offset.
-  return EpochNanoseconds::fromMilliseconds(ms) + EpochDuration{0, nanos};
+  return EpochNanoseconds::fromMilliseconds(ms) + EpochDuration{{0, nanos}};
 }
 
 /**

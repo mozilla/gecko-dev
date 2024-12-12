@@ -175,7 +175,7 @@ static TimeDuration TimeDurationFromNanoseconds(const Int96& nanoseconds) {
   // Split into seconds and nanoseconds.
   auto [seconds, nanos] = nanoseconds / ToNanoseconds(TemporalUnit::Second);
 
-  return {seconds, nanos};
+  return {{seconds, nanos}};
 }
 
 /**
@@ -208,7 +208,7 @@ static TimeDuration TimeDurationFromMicroseconds(const Int96& microseconds) {
   // Scale microseconds to nanoseconds.
   int32_t nanos = micros * int32_t(ToNanoseconds(TemporalUnit::Microsecond));
 
-  return {seconds, nanos};
+  return {{seconds, nanos}};
 }
 
 /**

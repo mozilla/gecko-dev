@@ -41,7 +41,7 @@ class InstantObject : public NativeObject {
     int32_t nanoseconds = getFixedSlot(NANOSECONDS_SLOT).toInt32();
     MOZ_ASSERT(0 <= nanoseconds && nanoseconds <= 999'999'999);
 
-    return {int64_t(seconds), nanoseconds};
+    return {{int64_t(seconds), nanoseconds}};
   }
 
  private:
