@@ -142,7 +142,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-debug-line.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-debugger-buttons.js"]
 
@@ -270,7 +269,6 @@ skip-if = ["true"] # bug 1607636
 ["browser_dbg-inline-script-offset.js"]
 
 ["browser_dbg-inspector-integration.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-integration-reloading-compressed-sourcemaps.js"]
 
