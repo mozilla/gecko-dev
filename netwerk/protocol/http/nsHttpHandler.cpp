@@ -30,6 +30,8 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Components.h"
 #include "mozilla/Printf.h"
+#include "mozilla/RandomNum.h"
+#include "mozilla/SHA1.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_privacy.h"
@@ -75,6 +77,7 @@
 #include "mozilla/DynamicFpiRedirectHeuristic.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/LazyIdleThread.h"
+#include "mozilla/OriginAttributesHashKey.h"
 #include "mozilla/StaticPrefs_image.h"
 #include "mozilla/SyncRunnable.h"
 
@@ -260,6 +263,8 @@ nsHttpHandler::nsHttpHandler()
       mImageAcceptHeader(ImageAcceptHeader()),
       mDocumentAcceptHeader(DocumentAcceptHeader()),
       mLastUniqueID(NowInSeconds()),
+      mIdempotencyKeySeed(mozilla::RandomUint64OrDie()),
+      mPrivateBrowsingIdempotencyKeySeed(mozilla::RandomUint64OrDie()),
       mDebugObservations(false),
       mEnableAltSvc(false),
       mEnableAltSvcOE(false),
@@ -556,6 +561,31 @@ void nsHttpHandler::UpdateParentalControlsEnabled(bool waitForCompletion) {
                                std::move(getParentalControlsTask)),
         mozilla::EventQueuePriority::Idle);
   }
+}
+
+void nsHttpHandler::GenerateIdempotencyKeyForPost(const uint32_t aPostId,
+                                                  nsILoadInfo* aLoadInfo,
+                                                  nsACString& aOutKey) {
+  MOZ_ASSERT(aLoadInfo);
+  OriginAttributes attrs = aLoadInfo->GetOriginAttributes();
+
+  // Create a SHA1 string using the origin attributes, session seed and the post
+  // id.
+  nsAutoCString sha1Input;
+  attrs.CreateSuffix(sha1Input);
+  sha1Input.AppendInt(aPostId);
+  sha1Input.AppendInt(attrs.IsPrivateBrowsing()
+                          ? mPrivateBrowsingIdempotencyKeySeed
+                          : mIdempotencyKeySeed);
+  SHA1Sum sha1;
+  SHA1Sum::Hash hash;
+  sha1.update((sha1Input.get()), sha1Input.Length());
+  sha1.finish(hash);
+  uint64_t hashValue = BigEndian::readUint64(&hash);
+
+  aOutKey.Append("\"");
+  aOutKey.AppendInt(hashValue);
+  aOutKey.Append("\"");
 }
 
 const nsCString& nsHttpHandler::Http3QlogDir() {
