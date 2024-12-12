@@ -251,7 +251,7 @@ private fun OnboardingPagePreview() {
                 description = stringResource(id = R.string.onboarding_customize_toolbar_description),
                 primaryButton = Action(
                     text = stringResource(
-                        id = R.string.onboarding_customize_toolbar_save_and_continue_button,
+                        id = R.string.onboarding_save_and_start_button,
                     ),
                     onClick = {},
                 ),

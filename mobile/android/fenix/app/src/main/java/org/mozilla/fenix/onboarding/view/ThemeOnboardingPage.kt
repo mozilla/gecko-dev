@@ -60,7 +60,7 @@ fun ThemeOnboardingPage(
     pageState: OnboardingPageState,
     onThemeSelectionClicked: (ThemeOptionType) -> Unit,
 ) {
-    //  Base
+    // Base
     Column(
         modifier = Modifier
             .background(FirefoxTheme.colors.layer1)
@@ -278,7 +278,7 @@ private fun OnboardingPagePreview() {
                 description = stringResource(id = R.string.onboarding_customize_theme_description),
                 primaryButton = Action(
                     text = stringResource(
-                        id = R.string.onboarding_customize_theme_save_and_continue_button,
+                        id = R.string.onboarding_save_and_continue_button,
                     ),
                     onClick = {},
                 ),
