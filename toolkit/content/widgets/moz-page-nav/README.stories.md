@@ -44,7 +44,7 @@ intended to change the selected view, provide a heading, and have links to exter
 
 * Use moz-page-nav for single-page navigation to switch between different views.
 * moz-page-nav also supports footer buttons for external and support links
-* This component is intended to be used in about: pages such as about:firefoxview, about:preferences, about:addons, about:debugging, etc.
+* This component will be used in about: pages such as about:firefoxview, about:preferences, about:addons, about:debugging, etc.
 
 ## When not to use
 
@@ -55,7 +55,7 @@ intended to change the selected view, provide a heading, and have links to exter
 The source for `moz-page-nav` and `moz-page-nav-button` can be found under
 [toolkit/content/widgets/moz-page-nav](https://searchfox.org/mozilla-central/source/toolkit/content/widgets/moz-page-nav).
 You can find an examples of `moz-page-nav` in use in the Firefox codebase in
-[about:firefoxview](https://searchfox.org/mozilla-central/rev/9783996dbd86f999cab50ea426079a7b10f28a2f/browser/components/firefoxview/firefoxview.html#53-88).
+[about:firefoxview](https://searchfox.org/mozilla-central/source/browser/components/firefoxview/firefoxview.html#52-87).
 
 `moz-page-nav` can be imported into `.html`/`.xhtml` files:
 
@@ -66,19 +66,16 @@ You can find an examples of `moz-page-nav` in use in the Firefox codebase in
 And used as follows:
 
 ```html
-<moz-page-nav heading="This is a nav">
+<moz-page-nav>
   <moz-page-nav-button
-    data-l10n-id="id-1"
     view="A name for the first view"
     iconSrc="A url for the icon for the first navigation button">
   </moz-page-nav-button>
   <moz-page-nav-button
-    data-l10n-id="id-2"
     view="A name for the second view"
     iconSrc="A url for the icon for the second navigation button">
   </moz-page-nav-button>
   <moz-page-nav-button
-    data-l10n-id="id-3"
     view="A name for the third view"
     iconSrc="A url for the icon for the third navigation button">
   </moz-page-nav-button>
@@ -100,44 +97,6 @@ And used as follows:
   </moz-page-nav-button>
 </moz-page-nav>
 ```
-
-### Iconless variant
-
-The `iconSrc` property of `moz-page-nav-button` is optional. This is intended to support more internal facing `about:` pages where the addition of icons is not necessary. In these cases, the code will look a bit simpler:
-
-```html
-<moz-page-nav heading="This is a nav">
-  <moz-page-nav-button
-    data-l10n-id="id-1"
-    view="A name for the first view">
-  </moz-page-nav-button>
-  <moz-page-nav-button
-    data-l10n-id="id-2"
-    view="A name for the second view">
-  </moz-page-nav-button>
-  <moz-page-nav-button
-    data-l10n-id="id-3"
-    view="A name for the third view">
-  </moz-page-nav-button>
-</moz-page-nav>
-```
-
-And will render like this:
-
-```html story
-<moz-page-nav heading="This is a nav" style={{ '--page-nav-margin-top': 0, '--page-nav-margin-bottom': 0, height: '150px' }}>
-  <moz-page-nav-button view="A name for the first view">
-    <p style={{ margin: 0 }}>First iconless button</p>
-  </moz-page-nav-button>
-  <moz-page-nav-button view="A name for the second view">
-    <p style={{ margin: 0 }}>Second iconless button</p>
-  </moz-page-nav-button>
-  <moz-page-nav-button view="A name for the third view">
-    <p style={{ margin: 0 }}>Third iconless button</p>
-  </moz-page-nav-button>
-</moz-page-nav>
-```
-Please note that `moz-page-nav` does not currently support mixing `moz-page-nav-button`s with icons and iconless `moz-page-nav-button`s. To avoid display issue your nav should pick one type for primary and secondary nav buttons and stick with it.
 
 ### Fluent usage
 

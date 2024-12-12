@@ -3,6 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
+  --page-nav-button-border-radius: var(--button-border-radius);
+  --page-nav-button-text-color: var(--button-text-color-ghost);
+  --page-nav-button-text-color-hover: var(--button-text-color-ghost-hover);
+  --page-nav-button-text-color-active: var(--button-text-color-ghost-active);
+  --page-nav-button-background-color: var(--button-background-color-ghost);
+  --page-nav-button-background-color-hover: var(--button-background-color-ghost-hover);
+  --page-nav-button-background-color-active: var(--button-background-color-ghost-active);
+  --page-nav-button-background-color-selected: color-mix(in srgb, currentColor 8%, transparent);
+  --page-nav-button-padding: var(--space-small) var(--space-medium);
   --page-nav-margin-top: 72px;
   --page-nav-margin-bottom: 36px;
   --page-nav-gap: var(--space-large);
@@ -10,13 +19,14 @@
   --page-nav-border-color: var(--border-color);
   --page-nav-focus-outline-inset: var(--focus-outline-inset);
   --page-nav-header-logo-size: calc(var(--icon-size-default) + var(--space-small));
+  --page-nav-width: 240px;
   --page-nav-hr-color: #CFCFD8;
-
   margin-inline-start: 42px;
   position: sticky;
   top: 0;
   height: 100vh;
   display: block;
+  width: var(--page-nav-width);
 
   @media (prefers-reduced-motion) {
     /* (See Bug 1610081) Setting border-inline-end to add clear differentiation between side navigation and main content area */
@@ -25,6 +35,8 @@
 
   @media (max-width: 52rem) {
     grid-template-rows: 1fr auto;
+    --page-nav-width: fit-content;
+    --page-nav-button-padding: var(--space-small);
   }
 }
 
@@ -52,13 +64,13 @@ nav {
     margin-inline-start: calc(var(--space-medium) - ((var(--page-nav-header-logo-size) - var(--icon-size-default)) / 2));
 
     @media (max-width: 52rem) {
-      .has-nav-icons & {
-        margin-inline: auto;
-      }
+      margin-inline: auto;
     }
   }
 
   > .page-nav-header {
+    /* Align the header text/icon with the page nav button icons */
+    margin-inline-start: var(--page-nav-button-padding);
     font-size: var(--font-size-xlarge);
     font-weight: var(--font-weight-bold);
     margin-block: 0;

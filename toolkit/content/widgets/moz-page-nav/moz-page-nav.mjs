@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import {
-  html,
-  when,
-  classMap,
-} from "chrome://global/content/vendor/lit.all.mjs";
+import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-support-link.mjs";
@@ -35,7 +31,7 @@ export default class MozPageNav extends MozLitElement {
 
   get pageNavButtons() {
     return this.primaryNavGroupSlot
-      ?.assignedNodes()
+      .assignedNodes()
       .filter(
         node => node?.localName === "moz-page-nav-button" && !node.hidden
       );
@@ -43,7 +39,7 @@ export default class MozPageNav extends MozLitElement {
 
   get secondaryNavButtons() {
     return this.secondaryNavGroupSlot
-      ?.assignedNodes()
+      .assignedNodes()
       .filter(
         node => node?.localName === "moz-page-nav-button" && !node.hidden
       );
@@ -92,16 +88,12 @@ export default class MozPageNav extends MozLitElement {
   }
 
   render() {
-    let hasNavIcons = [
-      ...(this.pageNavButtons ?? []),
-      ...(this.secondaryNavButtons ?? []),
-    ].some(button => button.iconSrc);
     return html`
       <link
         rel="stylesheet"
         href="chrome://global/content/elements/moz-page-nav.css"
       />
-      <nav class=${classMap({ "has-nav-icons": hasNavIcons })}>
+      <nav>
         <div class="page-nav-header-wrapper">
           <div class="logo"></div>
           <h1 class="page-nav-header" id="page-nav-header">${this.heading}</h1>
@@ -155,7 +147,7 @@ customElements.define("moz-page-nav", MozPageNav);
  */
 export class MozPageNavButton extends MozLitElement {
   static properties = {
-    iconSrc: { type: String, reflect: true },
+    iconSrc: { type: String },
     href: { type: String },
     selected: { type: Boolean },
     supportPage: { type: String, attribute: "support-page" },
