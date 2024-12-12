@@ -165,7 +165,9 @@ nsresult AttrArray::RemoveAttrAt(uint32_t aPos, nsAttrValue& aValue) {
   mImpl->mBuffer[aPos].mValue.SwapValueWith(aValue);
   mImpl->mBuffer[aPos].~InternalAttr();
 
-  memmove(mImpl->mBuffer + aPos, mImpl->mBuffer + aPos + 1,
+  // InternalAttr are not trivially copyable *but* we manually called the
+  // destructor so the memmove should be ok.
+  memmove((void*)(mImpl->mBuffer + aPos), mImpl->mBuffer + aPos + 1,
           (mImpl->mAttrCount - aPos - 1) * sizeof(InternalAttr));
 
   --mImpl->mAttrCount;

@@ -716,12 +716,13 @@ class ServoStyleSet {
 
     MOZ_ASSERT(mCachedAnonymousContentStyles.Length() + aStyles.Length() < 256,
                "(index, length) pairs must be bigger");
-    MOZ_ASSERT(mCachedAnonymousContentStyleIndexes[index].second == 0,
+    MOZ_ASSERT(mCachedAnonymousContentStyleIndexes[index].length == 0,
                "shouldn't need to overwrite existing cached styles");
     MOZ_ASSERT(!aStyles.IsEmpty(), "should have some styles to cache");
 
-    mCachedAnonymousContentStyleIndexes[index] = std::make_pair(
-        mCachedAnonymousContentStyles.Length(), aStyles.Length());
+    mCachedAnonymousContentStyleIndexes[index] = {
+        (uint8_t)mCachedAnonymousContentStyles.Length(),
+        (uint8_t)aStyles.Length()};
     mCachedAnonymousContentStyles.AppendElements(std::move(aStyles));
   }
 
@@ -729,18 +730,21 @@ class ServoStyleSet {
       AnonymousContentKey aKey, nsTArray<RefPtr<ComputedStyle>>& aStyles) {
     auto index = static_cast<size_t>(aKey);
     auto loc = mCachedAnonymousContentStyleIndexes[index];
-    aStyles.AppendElements(mCachedAnonymousContentStyles.Elements() + loc.first,
-                           loc.second);
+    aStyles.AppendElements(mCachedAnonymousContentStyles.Elements() + loc.index,
+                           loc.length);
   }
 
   void RegisterProperty(const dom::PropertyDefinition&, ErrorResult&);
 
  private:
+  struct Location {
+    uint8_t index, length;
+  };
   // Map of AnonymousContentKey values to an (index, length) pair pointing into
   // mCachedAnonymousContentStyles.
   //
   // We assert that the index and length values fit into uint8_ts.
-  Array<std::pair<uint8_t, uint8_t>, 1 << sizeof(AnonymousContentKey) * 8>
+  Array<Location, 1 << sizeof(AnonymousContentKey) * 8>
       mCachedAnonymousContentStyleIndexes;
 
   // Stores cached ComputedStyles for certain native anonymous content.

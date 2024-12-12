@@ -75,7 +75,7 @@ struct nsXPTCVariant {
 
   // Clear to a valid, null state.
   nsXPTCVariant() {
-    memset(this, 0, sizeof(nsXPTCVariant));
+    memset((void*)this, 0, sizeof(nsXPTCVariant));
     type = nsXPTType::T_VOID;
   }
 

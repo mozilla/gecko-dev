@@ -133,6 +133,6 @@ NS_IMETHODIMP nsNetAddr::GetIsV4Mapped(bool* aIsV4Mapped) {
 }
 
 NS_IMETHODIMP nsNetAddr::GetNetAddr(NetAddr* aResult) {
-  memcpy(aResult, &mAddr, sizeof(mAddr));
+  *aResult = mAddr;
   return NS_OK;
 }

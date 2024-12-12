@@ -96,7 +96,6 @@ nsresult HttpConnectionUDP::Init(nsHttpConnectionInfo* info,
   // We need an address here so that we can convey the IP version of the
   // socket.
   NetAddr local;
-  memset(&local, 0, sizeof(local));
   local.raw.family = peerAddr.raw.family;
   rv = mSocket->InitWithAddress(&local, nullptr, false, 1);
   if (NS_FAILED(rv)) {

@@ -134,7 +134,6 @@ std::unique_ptr<webgl::ShaderValidator> WebGLContext::CreateShaderValidator(
   const auto outputLanguage = ShaderOutput(gl);
 
   ShBuiltInResources resources;
-  memset(&resources, 0, sizeof(resources));
   sh::InitBuiltInResources(&resources);
 
   resources.HashFunction = webgl::IdentifierHashFunc;

@@ -222,7 +222,7 @@ nsDNSRecord::GetNextAddr(uint16_t port, NetAddr* addr) {
       // attempt to reresolve it failed.
       return NS_ERROR_NOT_AVAILABLE;
     }
-    memcpy(addr, mHostRecord->addr.get(), sizeof(NetAddr));
+    *addr = *mHostRecord->addr;
     mDone = true;
   }
 
@@ -264,7 +264,7 @@ nsDNSRecord::GetAddresses(nsTArray<NetAddr>& aAddressArray) {
       return NS_ERROR_NOT_AVAILABLE;
     }
     NetAddr* addr = aAddressArray.AppendElement(NetAddr());
-    memcpy(addr, mHostRecord->addr.get(), sizeof(NetAddr));
+    *addr = *mHostRecord->addr;
     if (addr->raw.family == AF_INET) {
       addr->inet.port = 0;
     } else if (addr->raw.family == AF_INET6) {

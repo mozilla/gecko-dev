@@ -3227,9 +3227,11 @@ static void AddChildProcessAnnotations(
       // PHC is special for now, let's deal with it here
 #ifdef MOZ_PHC
       const auto& buffer = data.byte_buffer._0;
-      mozilla::phc::AddrInfo addr_info;
-      memcpy(&addr_info, buffer.Elements(), sizeof(addr_info));
-      PopulatePHCAnnotations(aAnnotations, &addr_info);
+      alignas(mozilla::phc::AddrInfo) char mem[sizeof(mozilla::phc::AddrInfo)];
+      memcpy(mem, buffer.Elements(), sizeof(mozilla::phc::AddrInfo));
+      const auto* addr_info =
+          reinterpret_cast<const mozilla::phc::AddrInfo*>(mem);
+      PopulatePHCAnnotations(aAnnotations, addr_info);
 #endif
       continue;
     }

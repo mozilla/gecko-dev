@@ -194,9 +194,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 nsUDPMessage::nsUDPMessage(NetAddr* aAddr, nsIOutputStream* aOutputStream,
                            FallibleTArray<uint8_t>&& aData)
-    : mOutputStream(aOutputStream), mData(std::move(aData)) {
-  memcpy(&mAddr, aAddr, sizeof(NetAddr));
-}
+    : mAddr(*aAddr), mOutputStream(aOutputStream), mData(std::move(aData)) {}
 
 nsUDPMessage::~nsUDPMessage() { DropJSObjects(this); }
 
@@ -351,9 +349,7 @@ class UDPMessageProxy final : public nsIUDPMessage {
  public:
   UDPMessageProxy(NetAddr* aAddr, nsIOutputStream* aOutputStream,
                   FallibleTArray<uint8_t>&& aData)
-      : mOutputStream(aOutputStream), mData(std::move(aData)) {
-    memcpy(&mAddr, aAddr, sizeof(mAddr));
-  }
+      : mAddr(*aAddr), mOutputStream(aOutputStream), mData(std::move(aData)) {}
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIUDPMESSAGE
@@ -787,7 +783,7 @@ void nsUDPSocket::CloseSocket() {
 NS_IMETHODIMP
 nsUDPSocket::GetAddress(NetAddr* aResult) {
   // no need to enter the lock here
-  memcpy(aResult, &mAddr, sizeof(mAddr));
+  *aResult = mAddr;
   return NS_OK;
 }
 

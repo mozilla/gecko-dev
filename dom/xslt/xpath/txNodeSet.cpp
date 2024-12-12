@@ -108,7 +108,9 @@ nsresult txNodeSet::add(const txXPathNode& aNode) {
 
   if (moveSize > 0) {
     LOG_CHUNK_MOVE(pos, pos + 1, moveSize);
-    memmove(pos + 1, pos, moveSize * sizeof(txXPathNode));
+    // This move is okay even though txXPathNode is not trivially copyable as
+    // the created hole at `pos` is used for inplace new below.
+    memmove((void*)(pos + 1), pos, moveSize * sizeof(txXPathNode));
   }
 
   new (pos) txXPathNode(aNode);
@@ -371,7 +373,8 @@ nsresult txNodeSet::sweep() {
     // move chunk
     if (chunk > 0) {
       LOG_CHUNK_MOVE(mStart + pos - chunk, insertion, chunk);
-      memmove(insertion, mStart + pos - chunk, chunk * sizeof(txXPathNode));
+      memmove((void*)insertion, mStart + pos - chunk,
+              chunk * sizeof(txXPathNode));
       insertion += chunk;
     }
   }
@@ -465,7 +468,7 @@ bool txNodeSet::ensureGrowSize(int32_t aSize) {
       dest = mEndBuffer - oldSize;
     }
     LOG_CHUNK_MOVE(mStart, dest, oldSize);
-    memmove(dest, mStart, oldSize * sizeof(txXPathNode));
+    memmove((void*)dest, mStart, oldSize * sizeof(txXPathNode));
     mStart = dest;
     mEnd = dest + oldSize;
 
@@ -490,7 +493,7 @@ bool txNodeSet::ensureGrowSize(int32_t aSize) {
 
   if (oldSize > 0) {
     LOG_CHUNK_MOVE(mStart, dest, oldSize);
-    memcpy(dest, mStart, oldSize * sizeof(txXPathNode));
+    memcpy((void*)dest, mStart, oldSize * sizeof(txXPathNode));
   }
 
   if (mStartBuffer) {
@@ -563,5 +566,5 @@ void txNodeSet::copyElements(txXPathNode* aDest, const txXPathNode* aStart,
 void txNodeSet::transferElements(txXPathNode* aDest, const txXPathNode* aStart,
                                  const txXPathNode* aEnd) {
   LOG_CHUNK_MOVE(aStart, aDest, (aEnd - aStart));
-  memcpy(aDest, aStart, (aEnd - aStart) * sizeof(txXPathNode));
+  memcpy((void*)aDest, aStart, (aEnd - aStart) * sizeof(txXPathNode));
 }

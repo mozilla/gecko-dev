@@ -1278,7 +1278,7 @@ static PRStatus nsSOCKSIOLayerConnect(PRFileDesc* fd, const PRNetAddr* addr,
     dst.inet.family = AF_INET;
     dst.inet.port = addr->ipv6.port;
   } else {
-    memcpy(&dst, addr, sizeof(dst));
+    dst = NetAddr(addr);
   }
 
   info->SetDestinationAddr(dst);

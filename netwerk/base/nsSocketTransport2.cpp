@@ -864,7 +864,7 @@ nsresult nsSocketTransport::InitWithConnectedSocket(PRFileDesc* fd,
   }
   mPort = ntohs(port);
 
-  memcpy(&mNetAddr, addr, sizeof(NetAddr));
+  mNetAddr = *addr;
 
   mPollFlags = (PR_POLL_READ | PR_POLL_WRITE | PR_POLL_EXCEPT);
   mState = STATE_TRANSFERRING;
@@ -2595,7 +2595,7 @@ nsSocketTransport::GetPeerAddr(NetAddr* addr) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  memcpy(addr, &mNetAddr, sizeof(NetAddr));
+  *addr = mNetAddr;
   return NS_OK;
 }
 
@@ -2614,7 +2614,7 @@ nsSocketTransport::GetSelfAddr(NetAddr* addr) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  memcpy(addr, &mSelfAddr, sizeof(NetAddr));
+  *addr = mSelfAddr;
   return NS_OK;
 }
 
@@ -2628,8 +2628,7 @@ nsSocketTransport::Bind(NetAddr* aLocalAddr) {
     return NS_ERROR_FAILURE;
   }
 
-  mBindAddr = MakeUnique<NetAddr>();
-  memcpy(mBindAddr.get(), aLocalAddr, sizeof(NetAddr));
+  mBindAddr = MakeUnique<NetAddr>(*aLocalAddr);
 
   return NS_OK;
 }
