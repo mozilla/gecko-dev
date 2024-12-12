@@ -24,11 +24,6 @@
 
 /** Begin titlebar **/
 
-.browser-titlebar {
-  /* Centrally align content items vertically */
-  justify-content: center;
-}
-
 .titlebar-button {
   display: none;
 }
