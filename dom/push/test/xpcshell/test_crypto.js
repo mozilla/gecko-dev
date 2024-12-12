@@ -174,13 +174,40 @@ add_task(async function test_crypto_getCryptoParamsFromHeaders() {
       exception: /Missing encryption header/,
     },
     {
+      desc: "Missing salt header",
+      headers: {
+        encoding: "aesgcm",
+        crypto_key: "dh=pbmv1QkcEDY",
+        encryption: "dh=Esao8aTBfIk;rs=32",
+      },
+      exception: /Invalid salt parameter/,
+    },
+    {
       desc: "Invalid record size",
       headers: {
         encoding: "aesgcm",
         crypto_key: "dh=pbmv1QkcEDY",
-        encryption: "dh=Esao8aTBfIk;rs=bad",
+        encryption: "salt=Esao8aTBfIk;rs=bad",
       },
-      exception: /Invalid salt parameter/,
+      exception: /rs parameter must be/,
+    },
+    {
+      desc: "Zero record size",
+      headers: {
+        encoding: "aesgcm",
+        crypto_key: "dh=pbmv1QkcEDY",
+        encryption: "salt=Esao8aTBfIk;rs=0",
+      },
+      exception: /rs parameter must be/,
+    },
+    {
+      desc: "Too big record size",
+      headers: {
+        encoding: "aesgcm",
+        crypto_key: "dh=pbmv1QkcEDY",
+        encryption: "salt=Esao8aTBfIk;rs=68719476736",
+      },
+      exception: /rs parameter must be/,
     },
     {
       desc: "aesgcm with Encryption-Key",
