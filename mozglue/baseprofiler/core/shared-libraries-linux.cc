@@ -740,7 +740,10 @@ static int dl_iterate_callback(struct dl_phdr_info* dl_info, size_t size,
     }
   }
 
-  libInfoList->push_back(LoadedLibraryInfo(dl_info->dlpi_name, baseAddress,
+  // Check in case it's a nullptr, as we will construct a std::string with it.
+  // It's UB to pass nullptr to the std::string constructor.
+  const char* libName = dl_info->dlpi_name ? dl_info->dlpi_name : "";
+  libInfoList->push_back(LoadedLibraryInfo(libName, baseAddress,
                                            firstMappingStart, lastMappingEnd));
 
   return 0;
