@@ -262,6 +262,14 @@ class MenuTelemetryMiddleware(
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
             }
 
+            MenuAction.OpenInRegularTab -> {
+                Events.browserMenuAction.record(
+                    Events.BrowserMenuActionExtra(
+                        item = "open_in_regular_tab",
+                    ),
+                )
+            }
+
             MenuAction.ShowCFR -> Menu.showCfr.record(NoExtras())
 
             MenuAction.DismissCFR -> Menu.dismissCfr.record(NoExtras())

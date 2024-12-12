@@ -42,6 +42,7 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.SaveMenuClicked,
         is MenuAction.ToolsMenuClicked,
         is MenuAction.ShowCFR,
+        is MenuAction.OpenInRegularTab,
         is MenuAction.DismissCFR,
         -> state
 

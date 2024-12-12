@@ -52,6 +52,7 @@ import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
 import mozilla.components.support.utils.ext.isLandscape
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
+import org.mozilla.fenix.Config
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -72,6 +73,7 @@ import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
@@ -215,6 +217,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 addPinnedSiteUseCase = components.useCases.topSitesUseCase.addPinnedSites,
                                 removePinnedSitesUseCase = components.useCases.topSitesUseCase.removeTopSites,
                                 requestDesktopSiteUseCase = components.useCases.sessionUseCases.requestDesktopSite,
+                                tabsUseCases = components.useCases.tabsUseCases,
                                 alertDialogBuilder = AlertDialog.Builder(context),
                                 topSitesMaxLimit = components.settings.topSitesMaxLimit,
                                 onDeleteAndQuit = {
@@ -583,6 +586,14 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isWebCompatReporterSupported = isWebCompatReporterSupported,
                                     isReaderable = isReaderable,
                                     isReaderViewActive = isReaderViewActive,
+                                    isOpenInRegularTabSupported = selectedTab?.let { session ->
+                                        // This feature is gated behind Nightly for the time being.
+                                        Config.channel.isNightlyOrDebug &&
+                                            // This feature is explicitly for users opening links in private tabs.
+                                            settings.openLinksInAPrivateTab &&
+                                            // and is only visible in private tabs.
+                                            session.content.private
+                                    } ?: false,
                                     hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,
                                     externalAppName = appLinksRedirect?.appName ?: "",
                                     isTranslated = selectedTab?.translationsState?.isTranslated
@@ -627,6 +638,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onWebCompatReporterClick = {
                                         store.dispatch(MenuAction.Navigate.WebCompatReporter)
+                                    },
+                                    onOpenInRegularTabClick = {
+                                        store.dispatch(MenuAction.OpenInRegularTab)
                                     },
                                 )
                             }

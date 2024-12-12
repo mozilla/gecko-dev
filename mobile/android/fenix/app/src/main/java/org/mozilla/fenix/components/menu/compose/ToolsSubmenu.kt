@@ -27,6 +27,7 @@ internal fun ToolsSubmenu(
     isReaderViewActive: Boolean,
     isTranslated: Boolean,
     isTranslationSupported: Boolean,
+    isOpenInRegularTabSupported: Boolean,
     hasExternalApp: Boolean,
     externalAppName: String,
     translatedLanguage: String,
@@ -38,6 +39,7 @@ internal fun ToolsSubmenu(
     onShareMenuClick: () -> Unit,
     onOpenInAppMenuClick: () -> Unit,
     onWebCompatReporterClick: () -> Unit,
+    onOpenInRegularTabClick: () -> Unit,
 ) {
     MenuScaffold(
         header = {
@@ -76,6 +78,16 @@ internal fun ToolsSubmenu(
                     isReaderViewActive = isReaderViewActive,
                     translatedLanguage = translatedLanguage,
                     onClick = onTranslatePageMenuClick,
+                )
+            }
+
+            if (isOpenInRegularTabSupported) {
+                Divider(color = FirefoxTheme.colors.borderSecondary)
+
+                MenuItem(
+                    label = stringResource(id = R.string.browser_menu_open_in_normal_tab),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_external_link_24),
+                    onClick = onOpenInRegularTabClick,
                 )
             }
 
@@ -195,6 +207,7 @@ private fun ToolsSubmenuPreview() {
                 isTranslated = false,
                 isTranslationSupported = false,
                 hasExternalApp = true,
+                isOpenInRegularTabSupported = true,
                 externalAppName = "Pocket",
                 translatedLanguage = "",
                 onBackButtonClick = {},
@@ -205,6 +218,7 @@ private fun ToolsSubmenuPreview() {
                 onShareMenuClick = {},
                 onOpenInAppMenuClick = {},
                 onWebCompatReporterClick = {},
+                onOpenInRegularTabClick = {},
             )
         }
     }
@@ -225,6 +239,7 @@ private fun ToolsSubmenuPrivatePreview() {
                 isTranslated = false,
                 isTranslationSupported = true,
                 hasExternalApp = true,
+                isOpenInRegularTabSupported = true,
                 externalAppName = "Pocket",
                 translatedLanguage = "",
                 onBackButtonClick = {},
@@ -235,6 +250,7 @@ private fun ToolsSubmenuPrivatePreview() {
                 onShareMenuClick = {},
                 onOpenInAppMenuClick = {},
                 onWebCompatReporterClick = {},
+                onOpenInRegularTabClick = {},
             )
         }
     }
