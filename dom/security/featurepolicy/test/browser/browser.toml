@@ -1,0 +1,8 @@
+[DEFAULT]
+support-files = [
+  "empty.html",
+  "!/dom/tests/mochitest/geolocation/network_geolocation.sjs",
+]
+tags = "feature-policy"
+
+["browser_cross_origin_embed.js"]

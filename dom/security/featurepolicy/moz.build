@@ -9,6 +9,7 @@ with Files("**"):
 
 TEST_DIRS += ["test/gtest"]
 MOCHITEST_MANIFESTS += ["test/mochitest/mochitest.toml"]
+BROWSER_CHROME_MANIFESTS += ["test/browser/browser.toml"]
 
 EXPORTS.mozilla.dom += [
     "Feature.h",
