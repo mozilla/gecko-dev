@@ -3,9 +3,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
+  --page-nav-button-border-radius: var(--button-border-radius);
+  --page-nav-button-text-color: var(--button-text-color-ghost);
+  --page-nav-button-text-color-hover: var(--button-text-color-ghost-hover);
+  --page-nav-button-text-color-active: var(--button-text-color-ghost-active);
+  --page-nav-button-background-color: var(--button-background-color-ghost);
+  --page-nav-button-background-color-hover: var(--button-background-color-ghost-hover);
+  --page-nav-button-background-color-active: var(--button-background-color-ghost-active);
+  --page-nav-button-background-color-selected: color-mix(in srgb, currentColor 8%, transparent);
+  --page-nav-button-padding: var(--space-small) var(--space-medium);
+  --page-nav-button-width: 240px;
+
   border-radius: var(--border-radius-small);
+
   &:focus-visible {
     outline-offset: var(--page-nav-focus-outline-inset);
+  }
+
+  @media (max-width: 52rem) {
+    --page-nav-button-padding: var(--space-small);
+    --page-nav-button-width: 120px;
+  }
+}
+
+:host([iconsrc]) {
+  @media (max-width: 52rem) {
+    --page-nav-button-width: var(--button-size-icon);
   }
 }
 
@@ -15,13 +38,12 @@ button {
   border: 1px solid var(--page-nav-border-color);
   -moz-context-properties: fill, fill-opacity;
   fill: var(--icon-color);
-  display: grid;
-  grid-template-columns: min-content 1fr;
+  display: flex;
   gap: var(--space-medium);
   align-items: center;
   font-family: inherit;
   font-size: inherit;
-  width: 100%;
+  width: var(--page-nav-button-width);
   font-weight: normal;
   border-radius: var(--page-nav-button-border-radius);
   color: var(--page-nav-button-text-color);
@@ -121,14 +143,14 @@ slot {
 }
 
 @media (max-width: 52rem) {
-  a[href],
-  button {
-    grid-template-columns: min-content;
-    justify-content: center;
-    margin-inline: 0;
-  }
-
   slot {
-    display: none;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    .page-nav-icon + & {
+      display: none;
+    }
   }
 }
