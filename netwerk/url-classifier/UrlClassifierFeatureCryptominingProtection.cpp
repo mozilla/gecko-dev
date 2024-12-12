@@ -90,8 +90,8 @@ UrlClassifierFeatureCryptominingProtection::MaybeCreate(nsIChannel* aChannel) {
   if (!StaticPrefs::privacy_trackingprotection_cryptomining_enabled()) {
     return nullptr;
   }
-  RefPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  bool isThirdParty = loadInfo->GetIsThirdPartyContextToTopWindow();
+
+  bool isThirdParty = AntiTrackingUtils::IsThirdPartyChannel(aChannel);
   if (!isThirdParty) {
     UC_LOG(
         ("UrlClassifierFeatureCryptominingProtection::MaybeCreate - "

@@ -183,8 +183,6 @@ skip-if = [
 ["browser_referrerDefaultPolicy.js"]
 support-files = ["referrer.sjs"]
 
-["browser_sameSiteTrackerBlocking.js"]
-
 ["browser_script.js"]
 support-files = ["tracker.js"]
 

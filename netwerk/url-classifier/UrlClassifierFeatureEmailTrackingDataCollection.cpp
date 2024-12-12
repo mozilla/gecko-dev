@@ -119,8 +119,7 @@ UrlClassifierFeatureEmailTrackingDataCollection::MaybeCreate(
     return nullptr;
   }
 
-  RefPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  bool isThirdParty = loadInfo->GetIsThirdPartyContextToTopWindow();
+  bool isThirdParty = AntiTrackingUtils::IsThirdPartyChannel(aChannel);
 
   // We don't need to collect data if the email tracker is loaded in first-party
   // context.
