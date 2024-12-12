@@ -150,7 +150,6 @@ support-files = [
 run-if = ["os == 'mac'"] # Cocoa widget test
 skip-if = [
   "verify",
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929438
 ]
 
 ["test_native_menus.xhtml"]

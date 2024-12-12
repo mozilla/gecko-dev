@@ -227,9 +227,6 @@ support-files = [
 ["test_menuitem_commands.xhtml"]
 
 ["test_menulist.xhtml"]
-skip-if = [
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
-]
 
 ["test_menulist_in_popup.xhtml"]
 
@@ -340,9 +337,6 @@ support-files = ["window_preferences_onsyncfrompreference.xhtml"]
 ["test_screenPersistence.xhtml"]
 
 ["test_scrollbar.xhtml"]
-skip-if = [
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
-]
 
 ["test_showcaret.xhtml"]
 
