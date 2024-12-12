@@ -659,6 +659,13 @@ MainThreadRunnableName:
   type: string
   ping: true
 
+ModuleSignatureInfo:
+  description: >
+    A string holding a JSON object describing which entity signed the modules
+    present in the system. The format of this object is:
+    { "Vendor1": [ "Module1", "Module2", ...], "Vendor2": [ "Module3", ... ] }
+  type: string
+
 MozCrashReason:
   description: >
     Plaintext description of why Firefox crashed, this is usually set by
