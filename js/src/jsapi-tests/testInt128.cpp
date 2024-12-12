@@ -22,11 +22,16 @@
 // fall back to std::abort().
 //
 // https://cplusplus.github.io/CWG/issues/2518.html
-#  if defined(__clang__) && (__clang_major__ >= 17)
-#    define UINT128_PARSE_ERROR(...) static_assert(false, __VA_ARGS__)
-#  elif MOZ_IS_GCC && MOZ_GCC_VERSION_AT_LEAST(13, 1, 0)
-#    define UINT128_PARSE_ERROR(...) static_assert(false, __VA_ARGS__)
-#  else
+#  if defined(__clang__)
+#    if (__clang_major__ >= 17)
+#      define UINT128_PARSE_ERROR(...) static_assert(false, __VA_ARGS__)
+#    endif
+#  elif MOZ_IS_GCC
+#    if MOZ_GCC_VERSION_AT_LEAST(13, 1, 0)
+#      define UINT128_PARSE_ERROR(...) static_assert(false, __VA_ARGS__)
+#    endif
+#  endif
+#  ifndef UINT128_PARSE_ERROR
 #    define UINT128_PARSE_ERROR(...) std::abort()
 #  endif
 
@@ -181,7 +186,7 @@ constexpr Uint128 operator""_u128() {
 
 template <char... DIGITS>
 constexpr Int128 operator""_i128() {
-  return Int128{operator""_u128 < DIGITS... > ()};
+  return Int128{operator""_u128 < DIGITS...>()};
 }
 
 class ConversionFixture : public JSAPIRuntimeTest {
