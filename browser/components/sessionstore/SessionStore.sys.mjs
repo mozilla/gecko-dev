@@ -1705,6 +1705,8 @@ var SessionStoreInternal = {
         // longer consider its data interesting enough to keep around.
         this.removeClosedTabData(winData, closedTabs, index);
       }
+
+      this._cleanupOrphanedClosedGroups(winData);
     }
 
     // If this the final message we need to resolve all pending flush
@@ -2980,19 +2982,15 @@ var SessionStoreInternal = {
 
     let tabGroupState = this.buildClosedTabGroupState(tabGroup, win);
 
-    if (tabGroupState.tabs.length) {
-      // TODO(jswinarton) it's unclear if updating lastClosedTabGroupCount is
-      // necessary when restoring tab groups — it largely depends on how we
-      // decide to do the restore. If we add a _LAST_ACTION_CLOSED_TAB_GROUP
-      // item to the closed actions list, this may not be necessary.
-      // To address in bug1915174
-      // TODO may not be necessary since this is automatically done as part of
-      // maybeSaveClosedTab. Investigate.
-      this._windows[win.__SSi]._lastClosedTabGroupCount =
-        tabGroupState.tabs.length;
-      closedGroups.push(tabGroupState);
-      this._closedObjectsChanged = true;
-    }
+    // TODO(jswinarton) it's unclear if updating lastClosedTabGroupCount is
+    // necessary when restoring tab groups — it largely depends on how we
+    // decide to do the restore. If we add a _LAST_ACTION_CLOSED_TAB_GROUP
+    // item to the closed actions list, this may not be necessary.
+    // To address in bug1915174
+    this._windows[win.__SSi]._lastClosedTabGroupCount =
+      tabGroupState.tabs.length;
+    closedGroups.push(tabGroupState);
+    this._closedObjectsChanged = true;
   },
 
   /**
@@ -4141,6 +4139,7 @@ var SessionStoreInternal = {
       closedTabSet,
       closedTabIndex
     );
+    this._cleanupOrphanedClosedGroups(sourceWinData);
 
     // Predict the remote type to use for the load to avoid unnecessary process
     // switches.
@@ -7729,6 +7728,30 @@ var SessionStoreInternal = {
 
     this.restoreTabs(targetWindow, tabs, tabDataList, 0);
     return tabs[0].group;
+  },
+
+  /**
+   * Remove tab groups from the closedGroups list that have no tabs associated
+   * with them.
+   *
+   * This can sometimes happen because tab groups are immediately
+   * added to closedGroups on closing, before the complete history of the tabs
+   * within the group have been processed. If it is later determined that none
+   * of the tabs in the group were "worth saving", the group will be empty.
+   * This can also happen if a user "undoes" the last closed tab in a closed tab
+   * group.
+   *
+   * See: bug1933966, bug1933485
+   *
+   * @param {WindowStateData} winData
+   */
+  _cleanupOrphanedClosedGroups(winData) {
+    for (let index = winData.closedGroups.length - 1; index >= 0; index--) {
+      if (winData.closedGroups[index].tabs.length === 0) {
+        winData.closedGroups.splice(index, 1);
+        this._closedObjectsChanged = true;
+      }
+    }
   },
 };
 

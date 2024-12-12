@@ -358,6 +358,7 @@ add_task(async function testRecentlyClosedTabsFromClosedWindows() {
         entries: [{ url: "about:mozilla", triggeringPrincipal_base64 }],
       },
     ],
+    closedGroups: [],
     _closedTabs: closedTabUrls.map(url => {
       return {
         title: url,

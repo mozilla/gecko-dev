@@ -41,6 +41,8 @@ prefs = [
   "browser.startup.couldRestoreSession.count=0",
 ]
 
+["browser_1933485_tab_groups_history.js"]
+
 ["browser_aboutPrivateBrowsing.js"]
 
 ["browser_aboutSessionRestore.js"]
