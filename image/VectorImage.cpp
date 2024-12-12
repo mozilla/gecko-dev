@@ -450,9 +450,14 @@ VectorImage::GetWidth(int32_t* aWidth) {
   }
 
   SVGSVGElement* rootElem = mSVGDocumentWrapper->GetRootSVGElem();
-  MOZ_ASSERT(rootElem,
-             "Should have a root SVG elem, since we finished "
-             "loading without errors");
+  if (MOZ_UNLIKELY(!rootElem)) {
+    // Unlikely to reach this code; we should have a root SVG elem, since we
+    // finished loading without errors. But we can sometimes get here during
+    // shutdown (as part of gathering a memory report) if the internal SVG
+    // document has already been torn down by a shutdown listener.
+    *aWidth = 0;
+    return NS_ERROR_FAILURE;
+  }
   LengthPercentage rootElemWidth = rootElem->GetIntrinsicWidth();
 
   if (!rootElemWidth.IsLength()) {
@@ -542,9 +547,14 @@ VectorImage::GetHeight(int32_t* aHeight) {
   }
 
   SVGSVGElement* rootElem = mSVGDocumentWrapper->GetRootSVGElem();
-  MOZ_ASSERT(rootElem,
-             "Should have a root SVG elem, since we finished "
-             "loading without errors");
+  if (MOZ_UNLIKELY(!rootElem)) {
+    // Unlikely to reach this code; we should have a root SVG elem, since we
+    // finished loading without errors. But we can sometimes get here during
+    // shutdown (as part of gathering a memory report) if the internal SVG
+    // document has already been torn down by a shutdown listener.
+    *aHeight = 0;
+    return NS_ERROR_FAILURE;
+  }
   LengthPercentage rootElemHeight = rootElem->GetIntrinsicHeight();
 
   if (!rootElemHeight.IsLength()) {
