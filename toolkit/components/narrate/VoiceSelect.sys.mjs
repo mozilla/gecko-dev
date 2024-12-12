@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-export function VoiceSelect(win, label) {
+export function VoiceSelect(win) {
   this._winRef = Cu.getWeakReference(win);
 
   let element = win.document.createElement("div");
   element.classList.add("voiceselect");
-  // TODO: remove unused .label span with Bug 1903156.
-  // eslint-disable-next-line no-unsanitized/property
   element.innerHTML = `<button class="select-toggle" aria-controls="voice-options" aria-expanded="false" role="combobox">
-      <span class="label">${label}</span> <span class="current-voice"></span>
+      <span class="current-voice"></span>
     </button>
     <div class="options" id="voice-options" role="listbox"></div>`;
 

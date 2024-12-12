@@ -24,9 +24,6 @@ const defaultValues = {
  * the document layout correctly.
  */
 async function testTextLayout(aPref, value, cssProp, cssValue) {
-  // Enable the improved text and layout menu.
-  Services.prefs.setBoolPref("reader.improved_text_menu.enabled", true);
-
   // Set the pref to the custom value.
   const valueType = typeof value;
   if (valueType == "number") {
@@ -75,9 +72,6 @@ async function testTextLayout(aPref, value, cssProp, cssValue) {
  * Test that the reset button restores all layout options to defaults.
  */
 async function testTextLayoutReset() {
-  // Enable the improved text and layout menu.
-  Services.prefs.setBoolPref("reader.improved_text_menu.enabled", true);
-
   // Set all prefs to non-default values.
   Services.prefs.setIntPref(`reader.font_size`, 15);
   Services.prefs.setCharPref(`reader.font_type`, "serif");
@@ -134,9 +128,6 @@ async function testTextLayoutReset() {
  * Test that the focus stays within the text and layout menu.
  */
 async function testTextLayoutFocus() {
-  // Enable the improved text and layout menu.
-  Services.prefs.setBoolPref("reader.improved_text_menu.enabled", true);
-
   // Open a browser tab, enter reader mode, and test if the focus stays
   // within the menu.
   await BrowserTestUtils.withNewTab(
@@ -153,7 +144,7 @@ async function testTextLayoutFocus() {
 
       await SpecialPowers.spawn(browser, [], () => {
         let doc = content.document;
-        doc.querySelector(".improved-style-button").click();
+        doc.querySelector(".text-layout-button").click();
 
         let firstFocusableElement = doc.querySelector(
           ".text-size-minus-button"

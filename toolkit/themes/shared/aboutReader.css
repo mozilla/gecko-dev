@@ -253,31 +253,6 @@ blockquote {
   border-inline-start: 2px solid var(--main-foreground) !important;
 }
 
-.color-scheme-buttons {
-  .light-button,
-  .auto-button {
-    color: var(--light-theme-foreground);
-    background-color: var(--light-theme-background);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .auto-button {
-      color: var(--dark-theme-foreground);
-      background-color: var(--dark-theme-background);
-    }
-  }
-
-  .dark-button {
-    color: var(--dark-theme-foreground);
-    background-color: var(--dark-theme-background);
-  }
-
-  .sepia-button {
-    color: #5b4636;
-    background-color: #f4ecd8;
-  }
-}
-
 /* Loading/error message */
 
 .reader-message {
@@ -550,8 +525,6 @@ button:disabled {
   visibility: visible;
 }
 
-/* Font style popup */
-
 .radio-button {
   /* We visually hide these, but we keep them around so they can be focused
    * and changed by interacting with them via the label, or the keyboard, or
@@ -569,28 +542,7 @@ button:disabled {
   justify-content: center;
 }
 
-.content-width-value,
-.font-size-value,
-.line-height-value {
-  box-sizing: border-box;
-  width: 36px;
-  height: 20px;
-  line-height: 18px;
-  display: flex;
-  justify-content: center;
-  align-content: center;
-  margin: auto;
-  border-radius: 10px;
-  border: 1px solid var(--font-value-border);
-  color: var(--popup-button-foreground);
-  background-color: var(--font-value-background);
-}
-
 .buttonrow > button {
-  border: 0;
-  height: 60px;
-  width: 90px;
-  background-color: transparent;
   background-repeat: no-repeat;
   background-position: center;
   fill: var(--popup-button-foreground);
@@ -608,11 +560,6 @@ button:disabled {
 .buttonrow > button:enabled:focus-visible {
   outline: 2px solid var(--outline-focus-color);
   outline-offset: -2px;
-}
-
-.style-dropdown .radiorow:not(:last-child),
-.style-dropdown .buttonrow:not(:last-child) {
-  border-bottom: 1px solid var(--popup-line);
 }
 
 .radiorow > label {
@@ -930,7 +877,7 @@ label[for="text-alignment-buttons"] {
   }
 }
 
-/* Separate colors menu popup */
+/* Colors menu popup */
 
 #color-controls {
   padding-block: var(--space-small);
@@ -975,12 +922,12 @@ div[name="customtheme"] {
   color: var(--popup-button-foreground);
 }
 
-.colors-menu-color-scheme-buttons {
+.color-scheme-buttons {
   flex-wrap: wrap;
   padding-block: var(--space-xsmall) var(--space-small);
 }
 
-.colors-menu-color-scheme-buttons > label {
+.color-scheme-buttons > label {
   height: 48px;
   width: calc(50% - 21px);
   font-size: 15px;
@@ -994,7 +941,7 @@ div[name="customtheme"] {
   margin: var(--space-xsmall);
 }
 
-.colors-menu-color-scheme-buttons > label:before {
+.color-scheme-buttons > label:before {
   content: "";
   display: inline-block;
   width: 24px;
@@ -1004,7 +951,7 @@ div[name="customtheme"] {
   margin-inline: var(--space-medium);
 }
 
-.colors-menu-color-scheme-buttons {
+.color-scheme-buttons {
   .auto-button:before {
     background: linear-gradient(to right, var(--light-theme-background) 50%, var(--dark-theme-background) 50%);;
   }
@@ -1059,52 +1006,12 @@ div[name="customtheme"] {
   background-image: url("chrome://global/skin/icons/close.svg");
 }
 
-.style-button {
-  background-image: url("chrome://global/skin/reader/RM-Type-Controls-24x24.svg");
-}
-
-.improved-style-button {
+.text-layout-button {
   background-image: url("chrome://global/skin/reader/RM-Type-Controls-24x24.svg");
 }
 
 .colors-button {
   background-image: url("chrome://mozapps/skin/extensions/category-themes.svg");
-}
-
-.minus-button {
-  background-size: 18px 18px;
-  background-image: url("chrome://global/skin/reader/RM-Minus-24x24.svg");
-}
-
-.plus-button {
-  background-size: 18px 18px;
-  background-image: url("chrome://global/skin/reader/RM-Plus-24x24.svg");
-}
-
-.content-width-minus-button {
-  background-size: 42px 16px;
-  background-image: url("chrome://global/skin/reader/RM-Content-Width-Minus-42x16.svg");
-}
-
-.content-width-plus-button {
-  background-size: 44px 16px;
-  background-image: url("chrome://global/skin/reader/RM-Content-Width-Plus-44x16.svg");
-}
-
-.line-height-minus-button {
-  background-size: 34px 14px;
-  background-image: url("chrome://global/skin/reader/RM-Line-Height-Minus-38x14.svg");
-}
-
-.line-height-plus-button {
-  background-size: 34px 24px;
-  background-image: url("chrome://global/skin/reader/RM-Line-Height-Plus-38x24.svg");
-}
-
-/* Mirror the line height buttons if the article is RTL. */
-.reader-controls[articledir="rtl"] .line-height-minus-button,
-.reader-controls[articledir="rtl"] .line-height-plus-button {
-  transform: scaleX(-1);
 }
 
 @media print {

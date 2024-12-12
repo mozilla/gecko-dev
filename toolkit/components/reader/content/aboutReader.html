@@ -54,14 +54,10 @@
               data-l10n-id="about-reader-toolbar-close"
             ></span>
           </button>
-          <ul
-            class="dropdown improved-style-dropdown"
-            id="improved-text-menu"
-            hidden="true"
-          >
+          <ul class="dropdown text-layout-dropdown">
             <li>
               <button
-                class="dropdown-toggle toolbar-button improved-style-button"
+                class="dropdown-toggle toolbar-button text-layout-button"
                 aria-labelledby="toolbar-text-layout-controls"
                 data-telemetry-id="reader-text-layout-controls"
               >
@@ -155,67 +151,7 @@
               </details>
             </li>
           </ul>
-          <ul class="dropdown style-dropdown" id="regular-text-menu">
-            <li>
-              <button
-                class="dropdown-toggle toolbar-button style-button"
-                aria-labelledby="toolbar-type-controls"
-                data-telemetry-id="reader-type-controls"
-              >
-                <span
-                  class="hover-label"
-                  id="toolbar-type-controls"
-                  data-l10n-id="about-reader-toolbar-type-controls"
-                ></span>
-              </button>
-            </li>
-            <li class="dropdown-popup">
-              <div class="font-type-buttons radiorow"></div>
-              <div class="font-size-buttons buttonrow">
-                <button
-                  class="minus-button"
-                  data-l10n-id="about-reader-toolbar-minus"
-                ></button>
-                <span class="font-size-value"></span>
-                <button
-                  class="plus-button"
-                  data-l10n-id="about-reader-toolbar-plus"
-                ></button>
-              </div>
-              <div class="content-width-buttons buttonrow">
-                <button
-                  class="content-width-minus-button"
-                  data-l10n-id="about-reader-toolbar-contentwidthminus"
-                ></button>
-                <span class="content-width-value"></span>
-                <button
-                  class="content-width-plus-button"
-                  data-l10n-id="about-reader-toolbar-contentwidthplus"
-                ></button>
-              </div>
-              <div class="line-height-buttons buttonrow">
-                <button
-                  class="line-height-minus-button"
-                  data-l10n-id="about-reader-toolbar-lineheightminus"
-                ></button>
-                <span class="line-height-value"></span>
-                <button
-                  class="line-height-plus-button"
-                  data-l10n-id="about-reader-toolbar-lineheightplus"
-                ></button>
-              </div>
-              <div
-                class="color-scheme-buttons radiorow"
-                id="regular-color-scheme"
-                hidden="false"
-              ></div>
-            </li>
-          </ul>
-          <ul
-            class="dropdown colors-dropdown"
-            id="custom-colors-color-scheme"
-            hidden="true"
-          >
+          <ul class="dropdown colors-dropdown">
             <li>
               <button
                 class="dropdown-toggle toolbar-button colors-button"
@@ -251,10 +187,7 @@
                 ></button>
               </button-group>
               <named-deck id="tabs-deck" is-tabbed>
-                <div
-                  name="fxtheme"
-                  class="colors-menu-color-scheme-buttons radiorow"
-                ></div>
+                <div name="fxtheme" class="color-scheme-buttons radiorow"></div>
                 <div name="customtheme">
                   <ul class="custom-colors-selection"></ul>
                   <button
