@@ -22,6 +22,10 @@ class PrivacyPreferencesStoreTest {
         val store = PrivacyPreferencesStore(initialState = state)
         safeDispatch(store, PrivacyPreferencesAction.Init)
         assertEquals(state, store.state)
+        assertFalse(state.crashReportingEnabled)
+        assertTrue(state.usageDataEnabled)
+        assertFalse(state.crashReportingChecked)
+        assertTrue(state.usageDataChecked)
     }
 
     @Test
@@ -39,13 +43,13 @@ class PrivacyPreferencesStoreTest {
     @Test
     fun `WHEN the usage data updated action is dispatched THEN the state is updated to match`() {
         val store = PrivacyPreferencesStore(initialState = PrivacyPreferencesState())
-        assertFalse(store.state.usageDataEnabled)
-
-        safeDispatch(store, PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo(true))
         assertTrue(store.state.usageDataEnabled)
 
         safeDispatch(store, PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo(false))
         assertFalse(store.state.usageDataEnabled)
+
+        safeDispatch(store, PrivacyPreferencesAction.UsageDataPreferenceUpdatedTo(true))
+        assertTrue(store.state.usageDataEnabled)
     }
 
     @Test
@@ -63,13 +67,13 @@ class PrivacyPreferencesStoreTest {
     @Test
     fun `WHEN the usage data checked action is dispatched THEN the state is updated to match`() {
         val store = PrivacyPreferencesStore(initialState = PrivacyPreferencesState())
-        assertFalse(store.state.usageDataChecked)
-
-        safeDispatch(store, PrivacyPreferencesAction.UsageDataUserChecked(true))
         assertTrue(store.state.usageDataChecked)
 
         safeDispatch(store, PrivacyPreferencesAction.UsageDataUserChecked(false))
         assertFalse(store.state.usageDataChecked)
+
+        safeDispatch(store, PrivacyPreferencesAction.UsageDataUserChecked(true))
+        assertTrue(store.state.usageDataChecked)
     }
 }
 

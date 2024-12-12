@@ -19,7 +19,7 @@ import mozilla.components.lib.state.UiStore
  */
 data class PrivacyPreferencesState(
     val crashReportingEnabled: Boolean = false,
-    val usageDataEnabled: Boolean = false,
+    val usageDataEnabled: Boolean = true,
     val crashReportingChecked: Boolean = crashReportingEnabled,
     val usageDataChecked: Boolean = usageDataEnabled,
 ) : State
