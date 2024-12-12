@@ -85,6 +85,9 @@ void QuotaManagerDependencyFixture::InitializeFixture() {
   rv = observer->Observe(nullptr, "sessionstore-windows-restored", nullptr);
   ASSERT_NS_SUCCEEDED(rv);
 
+  rv = NS_ProcessPendingEvents(nullptr);
+  ASSERT_NS_SUCCEEDED(rv);
+
   // Force creation of the quota manager.
   ASSERT_NO_FATAL_FAILURE(EnsureQuotaManager());
 
