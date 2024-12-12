@@ -8,7 +8,10 @@ const kContentPref = "font.size.variable.x-western";
 
 function countPrefReadsInThread(pref, thread) {
   let count = 0;
-  for (let payload of getPayloadsOfType(thread, "Preference")) {
+  for (let payload of ProfilerTestUtils.getPayloadsOfType(
+    thread,
+    "Preference"
+  )) {
     if (payload.prefName === pref) {
       count++;
     }
@@ -42,7 +45,7 @@ add_task(async function test_profile_preferencereads_markers() {
     "The profiler is not currently active"
   );
 
-  await startProfiler({ features: ["js"] });
+  await ProfilerTestUtils.startProfiler({ features: ["js"] });
 
   const url = BASE_URL + "single_frame.html";
   await BrowserTestUtils.withNewTab(url, async contentBrowser => {

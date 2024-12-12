@@ -27,7 +27,7 @@ add_task(async function test_profile_feature_ipcmessges() {
   const url = BASE_URL + "simple.html";
 
   info("Open a tab while profiling IPC messages.");
-  await startProfiler({ features: ["js", "ipcmessages"] });
+  await ProfilerTestUtils.startProfiler({ features: ["js", "ipcmessages"] });
   info("Started the profiler sucessfully! Now, let's open a tab.");
 
   await BrowserTestUtils.withNewTab(url, async contentBrowser => {
@@ -49,14 +49,14 @@ add_task(async function test_profile_feature_ipcmessges() {
         await waitSamplingAndStopProfilerAndGetThreads(contentPid);
 
       Assert.greater(
-        getPayloadsOfType(parentThread, "IPC").length,
+        ProfilerTestUtils.getPayloadsOfType(parentThread, "IPC").length,
         0,
         "IPC profile markers were recorded for the parent process' main " +
           "thread when the IPCMessages feature was turned on."
       );
 
       Assert.greater(
-        getPayloadsOfType(contentThread, "IPC").length,
+        ProfilerTestUtils.getPayloadsOfType(contentThread, "IPC").length,
         0,
         "IPC profile markers were recorded for the content process' main " +
           "thread when the IPCMessages feature was turned on."
@@ -65,7 +65,7 @@ add_task(async function test_profile_feature_ipcmessges() {
   });
 
   info("Now open a tab without profiling IPC messages.");
-  await startProfiler({ features: ["js"] });
+  await ProfilerTestUtils.startProfiler({ features: ["js"] });
 
   await BrowserTestUtils.withNewTab(url, async contentBrowser => {
     const contentPid = await SpecialPowers.spawn(
@@ -83,14 +83,14 @@ add_task(async function test_profile_feature_ipcmessges() {
       const { parentThread, contentThread } =
         await waitSamplingAndStopProfilerAndGetThreads(contentPid);
       Assert.equal(
-        getPayloadsOfType(parentThread, "IPC").length,
+        ProfilerTestUtils.getPayloadsOfType(parentThread, "IPC").length,
         0,
         "No IPC profile markers were recorded for the parent process' main " +
           "thread when the IPCMessages feature was turned off."
       );
 
       Assert.equal(
-        getPayloadsOfType(contentThread, "IPC").length,
+        ProfilerTestUtils.getPayloadsOfType(contentThread, "IPC").length,
         0,
         "No IPC profile markers were recorded for the content process' main " +
           "thread when the IPCMessages feature was turned off."

@@ -17,7 +17,7 @@ add_task(async () => {
   // functionA -> functionB -> functionC
   const sampleIndex = await functionA();
 
-  const profile = await stopNowAndGetProfile();
+  const profile = await ProfilerTestUtils.stopNowAndGetProfile();
   const [thread] = profile.threads;
   const { samples } = thread;
 
@@ -70,5 +70,5 @@ async function functionB() {
 }
 
 async function functionC() {
-  return captureAtLeastOneJsSample();
+  return ProfilerTestUtils.captureAtLeastOneJsSample();
 }

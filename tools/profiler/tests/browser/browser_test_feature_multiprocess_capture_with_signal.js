@@ -36,15 +36,17 @@ function check_profile_contains_parent_and_content_pids(
 
 function check_profile_for_synthetic_marker(profile) {
   // Essentially the same test as `browser_test_markers_parent_process.js`
-  const markers = getInflatedMarkerData(profile.threads[0]);
+  const markers = ProfilerTestUtils.getInflatedMarkerData(profile.threads[0]);
   {
     const domEventStart = markers.find(
       ({ phase, data }) =>
-        phase === INTERVAL_START && data?.eventType === "synthetic"
+        phase === ProfilerTestUtils.markerPhases.INTERVAL_START &&
+        data?.eventType === "synthetic"
     );
     const domEventEnd = markers.find(
       ({ phase, data }) =>
-        phase === INTERVAL_END && data?.eventType === "synthetic"
+        phase === ProfilerTestUtils.markerPhases.INTERVAL_END &&
+        data?.eventType === "synthetic"
     );
     ok(domEventStart, "A start DOMEvent was generated");
     ok(domEventEnd, "An end DOMEvent was generated");

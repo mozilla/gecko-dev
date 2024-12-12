@@ -15,7 +15,7 @@ add_task(async function test_profile_feature_jsallocations() {
     "The profiler is not currently active"
   );
 
-  await startProfiler({ features: ["js", "jsallocations"] });
+  await ProfilerTestUtils.startProfiler({ features: ["js", "jsallocations"] });
 
   const url = BASE_URL + "do_work_500ms.html";
   await BrowserTestUtils.withNewTab(url, async contentBrowser => {
@@ -33,20 +33,22 @@ add_task(async function test_profile_feature_jsallocations() {
       const { parentThread, contentThread } =
         await waitSamplingAndStopProfilerAndGetThreads(contentPid);
       Assert.greater(
-        getPayloadsOfType(parentThread, "JS allocation").length,
+        ProfilerTestUtils.getPayloadsOfType(parentThread, "JS allocation")
+          .length,
         0,
         "Allocations were recorded for the parent process' main thread when the " +
           "JS Allocation feature was turned on."
       );
       Assert.greater(
-        getPayloadsOfType(contentThread, "JS allocation").length,
+        ProfilerTestUtils.getPayloadsOfType(contentThread, "JS allocation")
+          .length,
         0,
         "Allocations were recorded for the content process' main thread when the " +
           "JS Allocation feature was turned on."
       );
     }
 
-    await startProfiler({ features: ["js"] });
+    await ProfilerTestUtils.startProfiler({ features: ["js"] });
     // Now reload the tab with a clean run.
     gBrowser.reload();
     await wait(500);
@@ -57,14 +59,16 @@ add_task(async function test_profile_feature_jsallocations() {
       const { parentThread, contentThread } =
         await waitSamplingAndStopProfilerAndGetThreads(contentPid);
       Assert.equal(
-        getPayloadsOfType(parentThread, "JS allocation").length,
+        ProfilerTestUtils.getPayloadsOfType(parentThread, "JS allocation")
+          .length,
         0,
         "No allocations were recorded for the parent processes' main thread when " +
           "JS allocation was not turned on."
       );
 
       Assert.equal(
-        getPayloadsOfType(contentThread, "JS allocation").length,
+        ProfilerTestUtils.getPayloadsOfType(contentThread, "JS allocation")
+          .length,
         0,
         "No allocations were recorded for the content processes' main thread when " +
           "JS allocation was not turned on."

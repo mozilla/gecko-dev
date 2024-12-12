@@ -5,13 +5,14 @@
 /**
  * Test that we emit network markers accordingly
  */
+
 add_task(async function test_network_markers() {
   Assert.ok(
     !Services.profiler.IsActive(),
     "The profiler is not currently active"
   );
 
-  startProfilerForMarkerTests();
+  await ProfilerTestUtils.startProfilerForMarkerTests();
 
   const win = await BrowserTestUtils.openNewBrowserWindow({
     private: true,
@@ -31,8 +32,10 @@ add_task(async function test_network_markers() {
     const { parentThread, contentThread } =
       await stopProfilerNowAndGetThreads(contentPid);
 
-    const parentNetworkMarkers = getInflatedNetworkMarkers(parentThread);
-    const contentNetworkMarkers = getInflatedNetworkMarkers(contentThread);
+    const parentNetworkMarkers =
+      ProfilerTestUtils.getInflatedNetworkMarkers(parentThread);
+    const contentNetworkMarkers =
+      ProfilerTestUtils.getInflatedNetworkMarkers(contentThread);
     info(JSON.stringify(parentNetworkMarkers, null, 2));
     info(JSON.stringify(contentNetworkMarkers, null, 2));
 

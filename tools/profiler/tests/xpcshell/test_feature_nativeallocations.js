@@ -23,7 +23,7 @@ add_task(async () => {
   );
   {
     info("Start the profiler.");
-    await startProfiler({
+    await ProfilerTestUtils.startProfiler({
       // Only instrument the main thread.
       threads: ["GeckoMain"],
       features: ["js", "nativeallocations"],
@@ -36,7 +36,7 @@ add_task(async () => {
     doWork();
 
     info("Get the profile data and analyze it.");
-    const profile = await waitSamplingAndStopAndGetProfile();
+    const profile = await ProfilerTestUtils.waitSamplingAndStopAndGetProfile();
 
     const {
       allocationPayloads,
@@ -71,12 +71,12 @@ add_task(async () => {
 
   info("Restart the profiler, to ensure that we get no more allocations.");
   {
-    await startProfiler({ features: ["js"] });
+    await ProfilerTestUtils.startProfiler({ features: ["js"] });
     info("Do some work again.");
     doWork();
     info("Wait for the periodic sampling.");
-    const profile = await waitSamplingAndStopAndGetProfile();
-    const allocationPayloads = getPayloadsOfType(
+    const profile = await ProfilerTestUtils.waitSamplingAndStopAndGetProfile();
+    const allocationPayloads = ProfilerTestUtils.getPayloadsOfType(
       profile.threads[0],
       "Native allocation"
     );
@@ -101,7 +101,7 @@ function doWork() {
  */
 function getAllocationInformation(profile) {
   // Get all of the allocation payloads.
-  const allocationPayloads = getPayloadsOfType(
+  const allocationPayloads = ProfilerTestUtils.getPayloadsOfType(
     profile.threads[0],
     "Native allocation"
   );

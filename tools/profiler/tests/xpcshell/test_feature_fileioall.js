@@ -14,7 +14,7 @@ add_task(async () => {
     filename,
   });
 
-  const threads = getThreads(profile);
+  const threads = ProfilerTestUtils.getThreads(profile);
   const mainThread = threads.find(thread => thread.name === "GeckoMain");
   const mainThreadFileIO = getInflatedFileIOMarkers(mainThread, filename);
   let backgroundThread;
@@ -74,7 +74,7 @@ add_task(async () => {
     filename,
   });
 
-  const threads = getThreads(profile);
+  const threads = ProfilerTestUtils.getThreads(profile);
   const mainThread = threads.find(thread => thread.name === "GeckoMain");
   const mainThreadFileIO = getInflatedFileIOMarkers(mainThread, filename);
 
@@ -140,7 +140,7 @@ async function startProfilerAndTriggerFileIO({
   info("Remove the file");
   await removeFile(path);
 
-  return stopNowAndGetProfile();
+  return ProfilerTestUtils.stopNowAndGetProfile();
 }
 
 async function fileExists(file) {

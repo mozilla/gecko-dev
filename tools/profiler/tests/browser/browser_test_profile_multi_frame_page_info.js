@@ -19,7 +19,7 @@ add_task(async function test_profile_multi_frame_page_info() {
   info(
     "Start the profiler to test the page information with multi frame page."
   );
-  await startProfiler();
+  await ProfilerTestUtils.startProfiler();
 
   info("Open a tab with multi_frame.html in it.");
   // multi_frame.html embeds single_frame.html inside an iframe.

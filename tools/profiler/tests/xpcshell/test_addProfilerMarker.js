@@ -115,7 +115,7 @@ function expectStack(marker, thread) {
 }
 
 add_task(async () => {
-  startProfilerForMarkerTests();
+  await ProfilerTestUtils.startProfilerForMarkerTests();
   startTime = Cu.now();
   while (Cu.now() < startTime + 1) {
     // Busy wait for 1ms to ensure the intentionally set start time of markers
@@ -198,10 +198,10 @@ add_task(async () => {
   testCategory([{ category: "does not exist" }], "Other");
 
   info("Capture the profile");
-  const profile = await stopNowAndGetProfile();
+  const profile = await ProfilerTestUtils.stopNowAndGetProfile();
   const mainThread = profile.threads.find(({ name }) => name === "GeckoMain");
-  const markers = getInflatedMarkerData(mainThread).filter(m =>
-    m.name.startsWith(markerNamePrefix)
+  const markers = ProfilerTestUtils.getInflatedMarkerData(mainThread).filter(
+    m => m.name.startsWith(markerNamePrefix)
   );
   Assert.equal(
     markers.length,

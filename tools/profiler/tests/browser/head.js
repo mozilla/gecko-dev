@@ -30,7 +30,7 @@ registerCleanupFunction(async () => {
  * @returns {Promise<{profile, parentThread, contentProcess, contentThread}>}
  */
 async function stopProfilerNowAndGetThreads(contentPid) {
-  const profile = await stopNowAndGetProfile();
+  const profile = await ProfilerTestUtils.stopNowAndGetProfile();
 
   const parentThread = profile.threads[0];
   const contentProcess = profile.processes.find(

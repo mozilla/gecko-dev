@@ -6,12 +6,13 @@ add_task(async function test_markers_gc_cc() {
   info("Test GC&CC markers.");
 
   info("Create a throwaway profile.");
-  await startProfiler({});
+  await ProfilerTestUtils.startProfiler({});
   let tempProfileContainer = { profile: null };
-  tempProfileContainer.profile = await waitSamplingAndStopAndGetProfile();
+  tempProfileContainer.profile =
+    await ProfilerTestUtils.waitSamplingAndStopAndGetProfile();
 
   info("Restart the profiler.");
-  await startProfiler({});
+  await ProfilerTestUtils.startProfiler({});
 
   info("Throw away the previous profile, which should be garbage-collected.");
   Assert.equal(
@@ -35,9 +36,9 @@ add_task(async function test_markers_gc_cc() {
   SpecialPowers.forceCC();
 
   info("Stop the profiler and get the profile.");
-  const profile = await waitSamplingAndStopAndGetProfile();
+  const profile = await ProfilerTestUtils.waitSamplingAndStopAndGetProfile();
 
-  const markers = getInflatedMarkerData(profile.threads[0]);
+  const markers = ProfilerTestUtils.getInflatedMarkerData(profile.threads[0]);
   Assert.ok(
     markers.some(({ data }) => data?.type === "GCSlice"),
     "A GCSlice marker was recorded"

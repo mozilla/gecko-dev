@@ -57,7 +57,7 @@ add_task(async function test_network_markers_service_worker_use() {
     "The profiler is not currently active"
   );
 
-  startProfilerForMarkerTests();
+  await ProfilerTestUtils.startProfilerForMarkerTests();
 
   const url = `${BASE_URL_HTTPS}serviceworkers/serviceworker_page.html`;
   await BrowserTestUtils.withNewTab(url, async contentBrowser => {
@@ -74,14 +74,17 @@ add_task(async function test_network_markers_service_worker_use() {
     logInformationForThread("parentThread information", parentThread);
     logInformationForThread("contentThread information", contentThread);
 
-    const parentNetworkMarkers = getInflatedNetworkMarkers(parentThread)
+    const parentNetworkMarkers = ProfilerTestUtils.getInflatedNetworkMarkers(
+      parentThread
+    )
       // When we load a page, Firefox will check the service worker freshness
       // after a few seconds. So when the test lasts a long time (with some test
       // environments) we might see spurious markers about that that we're not
       // interesting in in this part of the test. They're only present in the
       // parent process.
       .filter(marker => !marker.data.URI.includes(serviceWorkerFileName));
-    const contentNetworkMarkers = getInflatedNetworkMarkers(contentThread);
+    const contentNetworkMarkers =
+      ProfilerTestUtils.getInflatedNetworkMarkers(contentThread);
 
     // Here are some logs to ease debugging.
     info(
@@ -92,8 +95,11 @@ add_task(async function test_network_markers_service_worker_use() {
         JSON.stringify(contentNetworkMarkers, null, 2)
     );
 
-    const parentPairs = getPairsOfNetworkMarkers(parentNetworkMarkers);
-    const contentPairs = getPairsOfNetworkMarkers(contentNetworkMarkers);
+    const parentPairs =
+      ProfilerTestUtils.getPairsOfNetworkMarkers(parentNetworkMarkers);
+    const contentPairs = ProfilerTestUtils.getPairsOfNetworkMarkers(
+      contentNetworkMarkers
+    );
 
     // First, make sure we properly matched all start with stop markers. This
     // means that both arrays should contain only arrays of 2 elements.

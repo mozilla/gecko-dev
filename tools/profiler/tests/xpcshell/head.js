@@ -10,9 +10,6 @@
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const { setTimeout } = ChromeUtils.importESModule(
-  "resource://gre/modules/Timer.sys.mjs"
-);
 
 // Load the shared head
 const sharedHead = do_get_file("shared-head.js", false);
@@ -126,7 +123,7 @@ function expectStackToContain(
  * @returns {InflatedMarkers[]}
  */
 function getInflatedFileIOMarkers(thread, filename) {
-  const markers = getInflatedMarkerData(thread);
+  const markers = ProfilerTestUtils.getInflatedMarkerData(thread);
   return markers.filter(
     marker =>
       marker.data?.type === "FileIO" &&
@@ -161,7 +158,10 @@ function checkInflatedFileIOMarkers(markers, filename) {
         "Has a marker.name that starts with FileIO"
       );
       equal(marker.data.type, "FileIO", "Has a marker.data.type");
-      ok(isIntervalMarker(marker), "All FileIO markers are interval markers");
+      ok(
+        ProfilerTestUtils.isIntervalMarker(marker),
+        "All FileIO markers are interval markers"
+      );
       ok(
         validOperations.has(marker.data.operation),
         `The markers have a known operation - "${marker.data.operation}"`

@@ -19,7 +19,7 @@ add_task(async function test_profile_single_frame_page_info() {
   info(
     "Start the profiler to test the page information with single frame page."
   );
-  await startProfiler();
+  await ProfilerTestUtils.startProfiler();
 
   info("Open a tab with single_frame.html in it.");
   const url = BASE_URL_HTTPS + "single_frame.html";
@@ -68,7 +68,7 @@ add_task(async function test_profile_private_browsing() {
   info(
     "Start the profiler to test the page information with single frame page."
   );
-  await startProfiler();
+  await ProfilerTestUtils.startProfiler();
 
   info("Open a private window with single_frame.html in it.");
   const win = await BrowserTestUtils.openNewBrowserWindow({

@@ -74,7 +74,7 @@ add_task(async () => {
 });
 
 function getInflatedCPUFreqMarkers(thread) {
-  const markers = getInflatedMarkerData(thread);
+  const markers = ProfilerTestUtils.getInflatedMarkerData(thread);
   return markers.filter(marker => marker.data?.type === "CPUSpeed");
 }
 
@@ -93,10 +93,10 @@ async function runProfilerWithCPUSpeed(features) {
   const threads = [];
   await Services.profiler.StartProfiler(entries, interval, features, threads);
 
-  const profile = await waitSamplingAndStopAndGetProfile();
+  const profile = await ProfilerTestUtils.waitSamplingAndStopAndGetProfile();
   const mainThread = profile.threads.find(({ name }) => name === "GeckoMain");
 
-  const schema = getSchema(profile, "CPUSpeed");
+  const schema = ProfilerTestUtils.getSchema(profile, "CPUSpeed");
   const markers = getInflatedCPUFreqMarkers(mainThread);
   return { schema, markers };
 }

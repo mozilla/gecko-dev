@@ -3,11 +3,8 @@
 
 "use strict";
 
-/* import-globals-from /tools/profiler/tests/shared-head.js */
-
-Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/tools/profiler/tests/browser/shared-head.js",
-  this
+const { ProfilerTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/ProfilerTestUtils.sys.mjs"
 );
 
 async function addTab() {
@@ -112,7 +109,7 @@ async function waitForMaybeSandboxProfilerData(
 }
 
 add_task(async () => {
-  await startProfiler(sandboxSettingsEnabled);
+  await ProfilerTestUtils.startProfiler(sandboxSettingsEnabled);
   await waitForMaybeSandboxProfilerData(
     "SandboxProfilerEmitterSyscalls",
     ["id", "init"],
@@ -123,7 +120,7 @@ add_task(async () => {
 });
 
 add_task(async () => {
-  await startProfiler(sandboxSettingsEnabled);
+  await ProfilerTestUtils.startProfiler(sandboxSettingsEnabled);
   await waitForMaybeSandboxProfilerData(
     "SandboxProfilerEmitterLogs",
     ["log"],
@@ -134,7 +131,7 @@ add_task(async () => {
 });
 
 add_task(async () => {
-  await startProfiler(sandboxSettingsDisabled);
+  await ProfilerTestUtils.startProfiler(sandboxSettingsDisabled);
   await waitForMaybeSandboxProfilerData(
     "SandboxProfilerEmitterSyscalls",
     ["id", "init"],
@@ -145,7 +142,7 @@ add_task(async () => {
 });
 
 add_task(async () => {
-  await startProfiler(sandboxSettingsEnabled);
+  await ProfilerTestUtils.startProfiler(sandboxSettingsEnabled);
   await waitForMaybeSandboxProfilerData(
     "SandboxProfilerEmitterLogs",
     ["log"],

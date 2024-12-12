@@ -19,7 +19,7 @@ add_task(async function test_profile_fission_no_private_browsing() {
   info(
     "Start the profiler to test the page information with single frame page."
   );
-  await startProfiler();
+  await ProfilerTestUtils.startProfiler();
 
   info("Open a private window with single_frame.html in it.");
   const win = await BrowserTestUtils.openNewBrowserWindow({
@@ -128,7 +128,7 @@ add_task(async function test_profile_fission_private_browsing() {
   info(
     "Start the profiler to test the page information with single frame page."
   );
-  await startProfiler();
+  await ProfilerTestUtils.startProfiler();
 
   info("Open a private window with single_frame.html in it.");
   const win = await BrowserTestUtils.openNewBrowserWindow({

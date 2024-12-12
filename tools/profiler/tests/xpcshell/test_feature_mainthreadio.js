@@ -111,10 +111,10 @@ async function runProfilerWithFileIO(features, filename) {
   info("Remove the file");
   file.remove(false);
 
-  const profile = await stopNowAndGetProfile();
+  const profile = await ProfilerTestUtils.stopNowAndGetProfile();
   const mainThread = profile.threads.find(({ name }) => name === "GeckoMain");
 
-  const schema = getSchema(profile, "FileIO");
+  const schema = ProfilerTestUtils.getSchema(profile, "FileIO");
 
   const markers = getInflatedFileIOMarkers(mainThread, filename);
 

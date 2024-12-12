@@ -11,7 +11,7 @@ add_task(async function test_profile_feature_jstracing() {
     "The profiler is not currently active"
   );
 
-  await startProfiler({ features: ["tracing"] });
+  await ProfilerTestUtils.startProfiler({ features: ["tracing"] });
 
   const url = BASE_URL_HTTPS + "tracing.html";
   await BrowserTestUtils.withNewTab(url, async contentBrowser => {

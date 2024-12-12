@@ -15,13 +15,13 @@ add_task(async () => {
   Services.profiler.StartProfiler(entries, interval, features, threads);
   Assert.ok(Services.profiler.IsActive());
 
-  await captureAtLeastOneJsSample();
+  await ProfilerTestUtils.captureAtLeastOneJsSample();
 
   info(
     "Stop the profiler and check that we have successfully captured a profile" +
       " with the AndroidUI thread."
   );
-  const profile = await stopNowAndGetProfile();
+  const profile = await ProfilerTestUtils.stopNowAndGetProfile();
   Assert.notEqual(profile, null);
   const androidUiThread = profile.threads.find(
     thread => thread.name == "AndroidUI (JVM)"

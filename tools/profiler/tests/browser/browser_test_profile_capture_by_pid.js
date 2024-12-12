@@ -39,7 +39,9 @@ async function test_with_filter(fnFilterWithContentId) {
     );
 
     info("Start the profiler to test filters including 'pid:<content>'.");
-    await startProfiler({ threads: fnFilterWithContentId(contentPid) });
+    await ProfilerTestUtils.startProfiler({
+      threads: fnFilterWithContentId(contentPid),
+    });
 
     let pidsWithSamplerThread = null;
     await TestUtils.waitForCondition(
@@ -54,7 +56,7 @@ async function test_with_filter(fnFilterWithContentId) {
     );
 
     info("Capture the profile data.");
-    const profile = await waitSamplingAndStopAndGetProfile();
+    const profile = await ProfilerTestUtils.waitSamplingAndStopAndGetProfile();
 
     await TestUtils.waitForCondition(async function () {
       return !(await GetPidsWithSamplerThread()).length;
