@@ -59,6 +59,16 @@ class Ping {
    */
   void TestBeforeNextSubmit(PingTestCallback&& aCallback) const;
 
+  /**
+   * Enable or disable a ping.
+   *
+   * Disabling a ping causes all data for that ping to be removed from storage
+   * and all pending pings of that type to be deleted.
+   *
+   * @param aValue When true, enable metric collection.
+   */
+  void SetEnabled(bool aValue) const;
+
  private:
   const uint32_t mId;
 };

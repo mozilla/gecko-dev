@@ -123,7 +123,7 @@ add_task(
       Assert.ok(count == 1 && MEMORY_BUCKETS.includes(bucket));
     }
 
-    const customData = Glean.testOnlyIpc.aCustomDist.testGetValue("store1");
+    const customData = Glean.testOnlyIpc.aCustomDist.testGetValue("test-ping");
     Assert.equal(3 + 4, customData.sum, "Sum's correct");
     for (let [bucket, count] of Object.entries(customData.values)) {
       Assert.ok(

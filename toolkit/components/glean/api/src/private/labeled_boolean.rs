@@ -92,7 +92,7 @@ mod test {
         let metric = &metrics::test_only_ipc::an_unordered_labeled_boolean;
         metric.get("a_label").set(true);
 
-        assert!(metric.get("a_label").test_get_value("store1").unwrap());
+        assert!(metric.get("a_label").test_get_value("test-ping").unwrap());
     }
 
     #[test]
@@ -159,7 +159,10 @@ mod test {
         assert!(ipc::replay_from_buf(&ipc::take_buf().unwrap()).is_ok());
 
         assert!(
-            !parent_metric.get(label).test_get_value("store1").unwrap(),
+            !parent_metric
+                .get(label)
+                .test_get_value("test-ping")
+                .unwrap(),
             "Later value takes precedence."
         );
     }

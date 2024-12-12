@@ -19,3 +19,14 @@ sample:
     - N/A
   notification_emails:
     - CHANGE-ME@example.com
+
+test-string-list:
+  description: |
+    A test custom ping.
+  include_client_id: true
+  bugs:
+    - https://bugzilla.mozilla.org/123456789
+  data_reviews:
+    - N/A
+  notification_emails:
+    - CHANGE-ME@example.com
