@@ -98,7 +98,8 @@ UrlClassifierFeatureTrackingProtection::MaybeCreate(nsIChannel* aChannel) {
     return nullptr;
   }
 
-  bool isThirdParty = AntiTrackingUtils::IsThirdPartyChannel(aChannel);
+  RefPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
+  bool isThirdParty = loadInfo->GetIsThirdPartyContextToTopWindow();
   if (!isThirdParty) {
     UC_LOG(
         ("UrlClassifierFeatureTrackingProtection::MaybeCreate - "

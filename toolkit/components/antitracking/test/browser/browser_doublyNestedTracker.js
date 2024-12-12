@@ -6,11 +6,11 @@ add_task(async function () {
     set: [
       [
         "network.cookie.cookieBehavior",
-        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
       ],
       [
         "network.cookie.cookieBehavior.pbmode",
-        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
       ],
       ["privacy.trackingprotection.enabled", false],
       ["privacy.trackingprotection.pbmode.enabled", false],
@@ -34,9 +34,9 @@ add_task(async function () {
 
   async function loadSubpage() {
     async function runChecks() {
-      is(document.cookie, "", "No cookies for me");
-      document.cookie = "name=value";
       is(document.cookie, "", "I don't have the cookies!");
+      document.cookie = "name=partitioned; Secure; Partitioned";
+      is(document.cookie, "name=partitioned", "I have partitioned cookies!");
     }
 
     await new Promise(resolve => {
@@ -82,6 +82,7 @@ add_task(async function () {
     [{ page: testAnotherThirdPartyPage, callback: loadSubpage.toString() }],
     async function (obj) {
       await new content.Promise(resolve => {
+        content.document.cookie = "name=value";
         let ifr = content.document.createElement("iframe");
         ifr.onload = _ => {
           info("Sending code to the 3rd party content");

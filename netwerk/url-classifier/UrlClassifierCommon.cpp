@@ -490,8 +490,9 @@ void UrlClassifierCommon::AnnotateChannel(nsIChannel* aChannel,
     return;
   }
 
+  RefPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   bool isThirdPartyWithTopLevelWinURI =
-      AntiTrackingUtils::IsThirdPartyChannel(aChannel);
+      loadInfo->GetIsThirdPartyContextToTopWindow();
 
   SetClassificationFlagsHelper(aChannel, aClassificationFlags,
                                isThirdPartyWithTopLevelWinURI);
