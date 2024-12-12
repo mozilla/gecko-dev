@@ -188,7 +188,7 @@ add_task(
 
     // custom_distribution
     const customSampleSum = CUSTOM_SAMPLES.reduce((acc, a) => acc + a, 0);
-    const customData = Glean.testOnlyIpc.aCustomDist.testGetValue("test-ping");
+    const customData = Glean.testOnlyIpc.aCustomDist.testGetValue("store1");
     Assert.equal(customSampleSum, customData.sum, "Sum's correct");
     for (let [bucket, count] of Object.entries(customData.values)) {
       Assert.ok(

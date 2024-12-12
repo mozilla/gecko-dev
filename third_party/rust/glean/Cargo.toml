@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "glean"
-version = "63.0.0"
+version = "62.0.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -50,10 +50,6 @@ path = "tests/custom_distribution_buffered.rs"
 [[test]]
 name = "init_fails"
 path = "tests/init_fails.rs"
-
-[[test]]
-name = "interruptible_shutdown"
-path = "tests/interruptible_shutdown.rs"
 
 [[test]]
 name = "memory_distribution_buffered"
@@ -95,11 +91,8 @@ path = "tests/timing_distribution_single_sample.rs"
 name = "upload_timing"
 path = "tests/upload_timing.rs"
 
-[dependencies.crossbeam-channel]
-version = "0.5"
-
 [dependencies.glean-core]
-version = "63.0.0"
+version = "62.0.0"
 
 [dependencies.inherent]
 version = "1"
@@ -112,6 +105,9 @@ version = "1.18.0"
 
 [dependencies.whatsys]
 version = "0.3.0"
+
+[dev-dependencies.crossbeam-channel]
+version = "0.5"
 
 [dev-dependencies.env_logger]
 version = "0.10.0"

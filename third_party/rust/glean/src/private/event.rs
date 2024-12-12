@@ -96,7 +96,7 @@ mod test {
         let metric: EventMetric<traits::NoExtraKeys> = EventMetric::new(CommonMetricData {
             name: "event".into(),
             category: "test".into(),
-            send_in_pings: vec!["store1".into()],
+            send_in_pings: vec!["test1".into()],
             ..Default::default()
         });
 
@@ -133,7 +133,7 @@ mod test {
         let metric: EventMetric<SomeExtra> = EventMetric::new(CommonMetricData {
             name: "event".into(),
             category: "test".into(),
-            send_in_pings: vec!["store1".into()],
+            send_in_pings: vec!["test1".into()],
             ..Default::default()
         });
 
@@ -188,7 +188,7 @@ mod test {
             CommonMetricData {
                 name: "event".into(),
                 category: "test".into(),
-                send_in_pings: vec!["store1".into()],
+                send_in_pings: vec!["test1".into()],
                 ..Default::default()
             },
             vec!["key1".into(), "key2".into()],

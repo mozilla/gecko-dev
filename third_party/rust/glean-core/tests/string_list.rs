@@ -18,25 +18,25 @@ fn list_can_store_multiple_items() {
     let list: StringListMetric = StringListMetric::new(CommonMetricData {
         name: "list".into(),
         category: "local".into(),
-        send_in_pings: vec!["store1".into()],
+        send_in_pings: vec!["core".into()],
         ..Default::default()
     });
 
     list.add_sync(&glean, "first");
-    assert_eq!(list.get_value(&glean, "store1").unwrap(), vec!["first"]);
+    assert_eq!(list.get_value(&glean, "core").unwrap(), vec!["first"]);
 
     list.add_sync(&glean, "second");
     assert_eq!(
-        list.get_value(&glean, "store1").unwrap(),
+        list.get_value(&glean, "core").unwrap(),
         vec!["first", "second"]
     );
 
     list.set_sync(&glean, vec!["third".into()]);
-    assert_eq!(list.get_value(&glean, "store1").unwrap(), vec!["third"]);
+    assert_eq!(list.get_value(&glean, "core").unwrap(), vec!["third"]);
 
     list.add_sync(&glean, "fourth");
     assert_eq!(
-        list.get_value(&glean, "store1").unwrap(),
+        list.get_value(&glean, "core").unwrap(),
         vec!["third", "fourth"]
     );
 }

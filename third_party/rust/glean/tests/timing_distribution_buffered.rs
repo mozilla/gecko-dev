@@ -25,7 +25,7 @@ mod metrics {
             CommonMetricData {
                 name: "boo".into(),
                 category: "sample".into(),
-                send_in_pings: vec!["store1".into()],
+                send_in_pings: vec!["validation".into()],
                 lifetime: Lifetime::Ping,
                 disabled: false,
                 ..Default::default()

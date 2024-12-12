@@ -52,8 +52,6 @@ void Ping::Submit(const nsACString& aReason) const {
   fog_submit_ping_by_id(mId, &aReason);
 }
 
-void Ping::SetEnabled(bool aValue) const { fog_set_ping_enabled(mId, aValue); }
-
 void Ping::TestBeforeNextSubmit(PingTestCallback&& aCallback) const {
   {
     GetCallbackMapLock().apply(
@@ -69,12 +67,6 @@ NS_IMPL_ISUPPORTS_CI(GleanPing, nsIGleanPing)
 NS_IMETHODIMP
 GleanPing::Submit(const nsACString& aReason) {
   mPing.Submit(aReason);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-GleanPing::SetEnabled(bool aValue) {
-  mPing.SetEnabled(aValue);
   return NS_OK;
 }
 

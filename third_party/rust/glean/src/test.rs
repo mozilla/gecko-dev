@@ -18,10 +18,6 @@ use crate::private::{BooleanMetric, CounterMetric, EventMetric, StringMetric, Te
 use super::*;
 use crate::common_test::{lock_test, new_glean, GLOBAL_APPLICATION_ID};
 
-fn new_test_ping(name: &str) -> PingType {
-    PingType::new(name, true, true, true, true, true, vec![], vec![], true)
-}
-
 #[test]
 fn send_a_ping() {
     let _lock = lock_test();
@@ -53,7 +49,8 @@ fn send_a_ping() {
 
     // Define a new ping and submit it.
     const PING_NAME: &str = "test-ping";
-    let custom_ping = new_test_ping(PING_NAME);
+    let custom_ping =
+        private::PingType::new(PING_NAME, true, true, true, true, true, vec![], vec![]);
     custom_ping.submit(None);
 
     // Wait for the ping to arrive.
@@ -94,17 +91,8 @@ fn send_a_ping_without_info_sections() {
 
     // Define a new ping and submit it.
     const PING_NAME: &str = "noinfo-ping";
-    let custom_ping = PingType::new(
-        PING_NAME,
-        true,
-        true,
-        true,
-        /* include_info_sections */ false,
-        true,
-        vec![],
-        vec![],
-        true,
-    );
+    let custom_ping =
+        private::PingType::new(PING_NAME, true, true, true, false, true, vec![], vec![]);
     custom_ping.submit(None);
 
     // Wait for the ping to arrive.
@@ -608,7 +596,7 @@ fn ping_collection_must_happen_after_concurrently_scheduled_metrics_recordings()
     );
 
     let ping_name = "custom_ping_1";
-    let ping = new_test_ping(ping_name);
+    let ping = private::PingType::new(ping_name, true, false, true, true, true, vec![], vec![]);
     let metric = private::StringMetric::new(CommonMetricData {
         name: "string_metric".into(),
         category: "telemetry".into(),
@@ -641,7 +629,7 @@ fn basic_metrics_should_be_cleared_when_disabling_uploading() {
     let metric = private::StringMetric::new(CommonMetricData {
         name: "string_metric".into(),
         category: "telemetry".into(),
-        send_in_pings: vec!["store1".into()],
+        send_in_pings: vec!["default".into()],
         lifetime: Lifetime::Ping,
         disabled: false,
         ..Default::default()
@@ -1111,7 +1099,16 @@ fn flipping_upload_enabled_respects_order_of_events() {
         .build();
 
     // We create a ping and a metric before we initialize Glean
-    let sample_ping = new_test_ping("sample-ping-1");
+    let sample_ping = PingType::new(
+        "sample-ping-1",
+        true,
+        false,
+        true,
+        true,
+        true,
+        vec![],
+        vec![],
+    );
     let metric = private::StringMetric::new(CommonMetricData {
         name: "string_metric".into(),
         category: "telemetry".into(),
@@ -1155,7 +1152,7 @@ fn registering_pings_before_init_must_work() {
     }
 
     // Create a custom ping and attempt its registration.
-    let sample_ping = new_test_ping("pre-register");
+    let sample_ping = PingType::new("pre-register", true, true, true, true, true, vec![], vec![]);
 
     // Create a custom configuration to use a fake uploader.
     let dir = tempfile::tempdir().unwrap();
@@ -1168,7 +1165,7 @@ fn registering_pings_before_init_must_work() {
 
     let _t = new_glean(Some(cfg), true);
 
-    // Submit a test ping.
+    // Submit a baseline ping.
     sample_ping.submit(None);
 
     // Wait for the ping to arrive.
@@ -1207,7 +1204,7 @@ fn test_a_ping_before_submission() {
     let _t = new_glean(Some(cfg), true);
 
     // Create a custom ping and register it.
-    let sample_ping = new_test_ping("custom1");
+    let sample_ping = PingType::new("custom1", true, true, true, true, true, vec![], vec![]);
 
     let metric = CounterMetric::new(CommonMetricData {
         name: "counter_metric".into(),
@@ -1324,7 +1321,8 @@ fn signaling_done() {
 
     // Define a new ping and submit it.
     const PING_NAME: &str = "test-ping";
-    let custom_ping = new_test_ping(PING_NAME);
+    let custom_ping =
+        private::PingType::new(PING_NAME, true, true, true, true, true, vec![], vec![]);
     custom_ping.submit(None);
     custom_ping.submit(None);
 
@@ -1395,7 +1393,8 @@ fn configure_ping_throttling() {
 
     // Define a new ping.
     const PING_NAME: &str = "test-ping";
-    let custom_ping = new_test_ping(PING_NAME);
+    let custom_ping =
+        private::PingType::new(PING_NAME, true, true, true, true, true, vec![], vec![]);
 
     // Submit and receive it `pings_per_interval` times.
     for _ in 0..pings_per_interval {
@@ -1458,7 +1457,9 @@ fn pings_ride_along_builtin_pings() {
 
     let _t = new_glean(Some(cfg), true);
 
-    let _ride_along_ping = new_test_ping("ride-along");
+    let reasons = vec!["active".to_string()];
+    let _ride_along_ping =
+        private::PingType::new("ride-along", true, true, true, true, true, vec![], reasons);
 
     // Simulate becoming active.
     handle_client_active();

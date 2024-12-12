@@ -96,13 +96,6 @@ additionalProperties:
             Interaction with `include_client_id`: `include_client_id` only takes
             effect when `metadata.include_info_sections` is `true`.
           type: boolean
-        follows_collection_enabled:
-          title: Follows Collection Enabled
-          description: |
-            Whether this ping follows the built-in collection enabled flag.
-
-            Setting this to `false` always sets `enabled=false` too.
-          type: boolean
         ping_schedule:
           title: Ping Schedule
           description: |

@@ -5,7 +5,7 @@
 // #[allow(dead_code)] is required on this module as a workaround for
 // https://github.com/rust-lang/rust/issues/46379
 #![allow(dead_code)]
-use glean_core::{Glean, PingType, Result};
+use glean_core::{Glean, Result};
 
 use std::fs::{read_dir, File};
 use std::io::{BufRead, BufReader};
@@ -68,19 +68,9 @@ pub fn new_glean(tempdir: Option<tempfile::TempDir>) -> (Glean, tempfile::TempDi
         ping_lifetime_threshold: 0,
         ping_lifetime_max_time: 0,
     };
-    let mut glean = Glean::new(cfg).unwrap();
-
-    // store{1,2} is used throughout tests
-    _ = new_test_ping(&mut glean, "store1");
-    _ = new_test_ping(&mut glean, "store2");
+    let glean = Glean::new(cfg).unwrap();
 
     (glean, dir)
-}
-
-pub fn new_test_ping(glean: &mut Glean, name: &str) -> PingType {
-    let ping = PingType::new(name, true, false, true, true, true, vec![], vec![], true);
-    glean.register_ping_type(&ping);
-    ping
 }
 
 /// Converts an iso8601::DateTime to a chrono::DateTime<FixedOffset>

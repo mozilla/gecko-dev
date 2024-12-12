@@ -8,7 +8,7 @@
 
 use std::{panic, process};
 
-use glean::{private::PingType, ClientInfoMetrics, Configuration};
+use glean::{ClientInfoMetrics, Configuration};
 
 /// Initialize the env logger for a test environment.
 ///
@@ -48,6 +48,5 @@ pub fn initialize(cfg: Configuration) {
         locale: Some("xx-XX".to_string()),
     };
 
-    _ = PingType::new("store1", true, true, true, true, true, vec![], vec![], true);
     glean::initialize(cfg, client_info);
 }

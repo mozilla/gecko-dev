@@ -219,7 +219,7 @@ mod test {
 
         metric.accumulate_samples_signed(vec![1, 2, 3]);
 
-        assert!(metric.test_get_value("test-ping").is_some());
+        assert!(metric.test_get_value("store1").is_some());
     }
 
     #[test]
@@ -243,7 +243,7 @@ mod test {
         assert!(ipc::replay_from_buf(&buf).is_ok());
 
         let data = parent_metric
-            .test_get_value("test-ping")
+            .test_get_value("store1")
             .expect("should have some data");
 
         assert_eq!(2, data.values[&1], "Low bucket has 2 values");

@@ -770,7 +770,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_COUNTER
@@ -791,7 +791,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: h#TELEMETRY_TEST_COUNT
@@ -812,7 +812,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     labels:
@@ -837,7 +837,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_UNORDERED_BOOL
@@ -857,7 +857,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_BOOLEAN_KIND
@@ -878,7 +878,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_UNORDERED_LABELED_BOOL
@@ -899,7 +899,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_DATE
@@ -919,7 +919,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MULTIPLE_STORES_STRING
@@ -938,7 +938,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
   a_memory_dist:
@@ -958,7 +958,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_LINEAR
@@ -978,7 +978,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_EXPONENTIAL
@@ -997,7 +997,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     range_min: 1
@@ -1021,7 +1021,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_KEYED_BOOLEAN_KIND
@@ -1051,7 +1051,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TelemetryTest_MirrorWithExtra_Object1
@@ -1084,7 +1084,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
   no_extra_event:
@@ -1103,7 +1103,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     telemetry_mirror: TelemetryTest_NotExpiredOptout_Object1
   a_uuid:
     type: uuid
@@ -1121,7 +1121,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_STRING_KIND
@@ -1141,7 +1141,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_ANOTHER_MIRROR_FOR_LABELED_COUNTER
@@ -1162,7 +1162,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_LABELED_COUNTER
@@ -1182,7 +1182,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
   irate:
@@ -1200,7 +1200,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_RATE
   rate_with_external_denominator:
     type: rate
@@ -1218,7 +1218,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
   an_external_denominator:
     type: counter
     description: |
@@ -1234,7 +1234,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
   a_url:
@@ -1252,7 +1252,7 @@ test_only.ipc:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_URL
@@ -1274,7 +1274,7 @@ test_only.jog:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1
 
   an_event:
     type: event
@@ -1299,4 +1299,4 @@ test_only.jog:
       - glean-team@mozilla.com
     expires: never
     send_in_pings:
-      - test-ping
+      - store1

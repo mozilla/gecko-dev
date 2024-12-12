@@ -292,9 +292,9 @@ gitignorant==0.3.1 \
 giturlparse==0.12.0 \
     --hash=sha256:c0fff7c21acc435491b1779566e038757a205c1ffdcb47e4f81ea52ad8c3859a \
     --hash=sha256:412b74f2855f1da2fefa89fd8dde62df48476077a72fc19b62039554d27360eb
-glean-parser==16.1.0 \
-    --hash=sha256:25d430a9e126767dae72f73c983724978b119ebb75611fc98f9bb8d36491016e \
-    --hash=sha256:030aadc197d86920f2c3ef8c538a8c6b1d5d112d4fa0631863fbcad55d2f1852
+glean-parser==15.2.1 \
+    --hash=sha256:e63d87847b2366858b457fc6336bca764898d6e560cc144c5a0ca34effd719fd \
+    --hash=sha256:8f8eeba3a7624c3c5cdab9c2602abfabfce57ae66b32ba487650cd6def17a77b
 idna==3.10 \
     --hash=sha256:12f65c9b470abda6dc35cf8e63cc574b1c52b11df2c86030af0ac09b01b13ea9 \
     --hash=sha256:946d195a0d259cbba61165e88e65941f16e9b36ea6ddb97f00452bae8b1287d3

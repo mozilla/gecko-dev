@@ -4,7 +4,6 @@
 
 use std::sync::{Mutex, MutexGuard};
 
-use crate::private::Ping;
 use once_cell::sync::Lazy;
 
 const GLOBAL_APPLICATION_ID: &str = "org.mozilla.firefox.test";
@@ -16,18 +15,6 @@ pub fn lock_test() -> (MutexGuard<'static, ()>, tempfile::TempDir) {
     static GLOBAL_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
     let lock = GLOBAL_LOCK.lock().unwrap();
-
-    _ = Ping::new(
-        "test-ping",
-        true,
-        false,
-        true,
-        true,
-        true,
-        vec![],
-        vec![],
-        true,
-    );
 
     let dir = setup_glean(None);
     (lock, dir)

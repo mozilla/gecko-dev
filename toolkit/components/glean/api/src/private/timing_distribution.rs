@@ -705,7 +705,7 @@ mod test {
         metric.cancel(id);
 
         // We can't inspect the values yet.
-        assert!(metric.test_get_value("test-ping").is_none());
+        assert!(metric.test_get_value("store1").is_none());
     }
 
     #[test]
@@ -737,7 +737,7 @@ mod test {
         assert!(ipc::replay_from_buf(&buf).is_ok());
 
         let data = parent_metric
-            .test_get_value("test-ping")
+            .test_get_value("store1")
             .expect("should have some data");
 
         // No guarantees from timers means no guarantees on buckets.

@@ -453,7 +453,7 @@ mod test {
                     cmd: CommonMetricData {
                         name: "global".into(),
                         category: "metric".into(),
-                        send_in_pings: vec!["test-ping".into()],
+                        send_in_pings: vec!["ping".into()],
                         disabled: false,
                         ..Default::default()
                     },
@@ -469,17 +469,14 @@ mod test {
         GLOBAL_METRIC.get("a_value").set(true);
         assert_eq!(
             true,
-            GLOBAL_METRIC
-                .get("a_value")
-                .test_get_value("test-ping")
-                .unwrap()
+            GLOBAL_METRIC.get("a_value").test_get_value("ping").unwrap()
         );
     }
 
     #[test]
     fn sets_labeled_bool_metrics() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: Vec<String> = vec!["store1".into()];
 
         let metric: LabeledMetric<LabeledBooleanMetric, DynamicLabel> = LabeledMetric::new(
             0.into(),
@@ -497,14 +494,14 @@ mod test {
 
         metric.get("upload").set(true);
 
-        assert!(metric.get("upload").test_get_value("test-ping").unwrap());
-        assert_eq!(None, metric.get("download").test_get_value("test-ping"));
+        assert!(metric.get("upload").test_get_value("store1").unwrap());
+        assert_eq!(None, metric.get("download").test_get_value("store1"));
     }
 
     #[test]
     fn sets_labeled_string_metrics() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: Vec<String> = vec!["store1".into()];
 
         let metric: LabeledMetric<LabeledStringMetric, DynamicLabel> = LabeledMetric::new(
             0.into(),
@@ -524,15 +521,15 @@ mod test {
 
         assert_eq!(
             "Glean",
-            metric.get("upload").test_get_value("test-ping").unwrap()
+            metric.get("upload").test_get_value("store1").unwrap()
         );
-        assert_eq!(None, metric.get("download").test_get_value("test-ping"));
+        assert_eq!(None, metric.get("download").test_get_value("store1"));
     }
 
     #[test]
     fn sets_labeled_counter_metrics() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: Vec<String> = vec!["store1".into()];
 
         let metric: LabeledMetric<LabeledCounterMetric, DynamicLabel> = LabeledMetric::new(
             0.into(),
@@ -550,17 +547,14 @@ mod test {
 
         metric.get("upload").add(10);
 
-        assert_eq!(
-            10,
-            metric.get("upload").test_get_value("test-ping").unwrap()
-        );
-        assert_eq!(None, metric.get("download").test_get_value("test-ping"));
+        assert_eq!(10, metric.get("upload").test_get_value("store1").unwrap());
+        assert_eq!(None, metric.get("download").test_get_value("store1"));
     }
 
     #[test]
     fn records_errors() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: Vec<String> = vec!["store1".into()];
 
         let metric: LabeledMetric<LabeledBooleanMetric, DynamicLabel> = LabeledMetric::new(
             0.into(),
@@ -587,7 +581,7 @@ mod test {
     #[test]
     fn predefined_labels() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: Vec<String> = vec!["store1".into()];
 
         #[allow(dead_code)]
         enum MetricLabels {
@@ -612,18 +606,15 @@ mod test {
         metric.get("label2").set(false);
         metric.get("not_a_label").set(true);
 
-        assert_eq!(
-            true,
-            metric.get("label1").test_get_value("test-ping").unwrap()
-        );
+        assert_eq!(true, metric.get("label1").test_get_value("store1").unwrap());
         assert_eq!(
             false,
-            metric.get("label2").test_get_value("test-ping").unwrap()
+            metric.get("label2").test_get_value("store1").unwrap()
         );
         // The label not in the predefined set is recorded to the `other` bucket.
         assert_eq!(
             true,
-            metric.get("__other__").test_get_value("test-ping").unwrap()
+            metric.get("__other__").test_get_value("store1").unwrap()
         );
 
         assert_eq!(

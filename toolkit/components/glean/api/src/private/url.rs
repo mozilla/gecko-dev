@@ -161,7 +161,7 @@ mod test {
 
         assert_eq!(
             "https://example.com",
-            metric.test_get_value("test-ping").unwrap()
+            metric.test_get_value("store1").unwrap()
         );
     }
 
@@ -189,7 +189,7 @@ mod test {
         assert!(ipc::replay_from_buf(&ipc::take_buf().unwrap()).is_ok());
 
         assert!(
-            "https://example.com/parent" == parent_metric.test_get_value("test-ping").unwrap(),
+            "https://example.com/parent" == parent_metric.test_get_value("store1").unwrap(),
             "Url metrics should only work in the parent process"
         );
     }

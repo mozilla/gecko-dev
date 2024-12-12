@@ -175,7 +175,7 @@ mod test {
         let expected = Uuid::new_v4();
         metric.set(expected.clone());
 
-        assert_eq!(expected, metric.test_get_value("test-ping").unwrap());
+        assert_eq!(expected, metric.test_get_value("store1").unwrap());
     }
 
     #[test]
@@ -201,7 +201,7 @@ mod test {
 
         assert_eq!(
             expected,
-            parent_metric.test_get_value("test-ping").unwrap(),
+            parent_metric.test_get_value("store1").unwrap(),
             "UUID metrics should only work in the parent process"
         );
     }

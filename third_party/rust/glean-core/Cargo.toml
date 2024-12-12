@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "glean-core"
-version = "63.0.0"
+version = "62.0.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -40,7 +40,7 @@ license = "MPL-2.0"
 repository = "https://github.com/mozilla/glean"
 
 [package.metadata.glean]
-glean-parser = "16.1.0"
+glean-parser = "15.2.0"
 
 [lib]
 name = "glean_core"
@@ -49,10 +49,6 @@ path = "src/lib.rs"
 [[test]]
 name = "boolean"
 path = "tests/boolean.rs"
-
-[[test]]
-name = "collection_enabled"
-path = "tests/collection_enabled.rs"
 
 [[test]]
 name = "counter"

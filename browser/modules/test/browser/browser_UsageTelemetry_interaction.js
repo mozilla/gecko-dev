@@ -97,8 +97,6 @@ add_task(async function toolbarButtons() {
 
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
     Services.fog.testResetFOG();
-    // We want to record events into this ping, so it has to be enabled.
-    GleanPings.prototypeNoCodeEvents.setEnabled(true);
 
     let newTab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
     let tabClose = BrowserTestUtils.waitForTabClosing(newTab);
