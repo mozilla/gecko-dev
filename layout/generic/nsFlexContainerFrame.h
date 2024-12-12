@@ -177,6 +177,14 @@ class nsFlexContainerFrame final : public nsContainerFrame,
       const ReflowInput& aChildRI,
       mozilla::LogicalAxis aLogicalAxis) const override;
 
+  // Return aFlexItem's used 'align-self' value and the associated flags
+  // (safe/unsafe).
+  //
+  // Note: This method guarantees not to return StyleAlignFlags::NORMAL because
+  // it converts NORMAL to STRETCH.
+  std::pair<mozilla::StyleAlignFlags, mozilla::StyleAlignFlags>
+  UsedAlignSelfAndFlagsForItem(const nsIFrame* aFlexItem) const;
+
   /**
    * Helper function to calculate packing space and initial offset of alignment
    * subjects in MainAxisPositionTracker() and CrossAxisPositionTracker() for

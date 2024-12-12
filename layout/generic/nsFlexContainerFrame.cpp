@@ -1376,6 +1376,44 @@ StyleAlignFlags nsFlexContainerFrame::CSSAlignmentForAbsPosChild(
   return (alignment | alignmentFlags);
 }
 
+std::pair<StyleAlignFlags, StyleAlignFlags>
+nsFlexContainerFrame::UsedAlignSelfAndFlagsForItem(
+    const nsIFrame* aFlexItem) const {
+  MOZ_ASSERT(aFlexItem->IsFlexItem());
+
+  if (IsLegacyBox(this)) {
+    // For -webkit-{inline-}box and -moz-{inline-}box, we need to:
+    // (1) Use prefixed "box-align" instead of "align-items" to determine the
+    //     container's cross-axis alignment behavior.
+    // (2) Suppress the ability for flex items to override that with their own
+    //     cross-axis alignment. (The legacy box model doesn't support this.)
+    // So, each FlexItem simply copies the container's converted "align-items"
+    // value and disregards their own "align-self" property.
+    const StyleAlignFlags alignSelf =
+        ConvertLegacyStyleToAlignItems(StyleXUL());
+    const StyleAlignFlags flags = {0};
+    return {alignSelf, flags};
+  }
+
+  // Note: we don't need to call nsLayoutUtils::GetStyleFrame(aFlexItem) because
+  // the table wrapper frame inherits 'align-self' property from the table
+  // frame.
+  StyleAlignSelf usedAlignSelf =
+      aFlexItem->StylePosition()->UsedAlignSelf(Style());
+  if (MOZ_LIKELY(usedAlignSelf._0 == StyleAlignFlags::NORMAL)) {
+    // For flex items, 'align-self:normal' behaves as 'align-self:stretch'.
+    // https://drafts.csswg.org/css-align-3/#align-flex
+    usedAlignSelf = {StyleAlignFlags::STRETCH};
+  }
+
+  // Store the <overflow-position> bits in flags, and strip the bits from the
+  // used align-self value.
+  const StyleAlignFlags flags = usedAlignSelf._0 & StyleAlignFlags::FLAG_BITS;
+  const StyleAlignFlags alignSelf =
+      usedAlignSelf._0 & ~StyleAlignFlags::FLAG_BITS;
+  return {alignSelf, flags};
+}
+
 void nsFlexContainerFrame::GenerateFlexItemForChild(
     FlexLine& aLine, nsIFrame* aChildFrame,
     const ReflowInput& aParentReflowInput,
@@ -2133,37 +2171,16 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
   MOZ_ASSERT(mFrame, "expecting a non-null child frame");
   MOZ_ASSERT(!mFrame->IsPlaceholderFrame(),
              "placeholder frames should not be treated as flex items");
-  MOZ_ASSERT(!mFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW),
-             "out-of-flow frames should not be treated as flex items");
+  MOZ_ASSERT(mFrame->IsFlexItem(), "mFrame must be a flex item!");
   MOZ_ASSERT(mIsInlineAxisMainAxis ==
                  nsFlexContainerFrame::IsItemInlineAxisMainAxis(mFrame),
              "public API should be consistent with internal state (about "
              "whether flex item's inline axis is flex container's main axis)");
 
-  const ReflowInput* containerRI = aFlexItemReflowInput.mParentReflowInput;
-  if (IsLegacyBox(containerRI->mFrame)) {
-    // For -webkit-{inline-}box and -moz-{inline-}box, we need to:
-    // (1) Use prefixed "box-align" instead of "align-items" to determine the
-    //     container's cross-axis alignment behavior.
-    // (2) Suppress the ability for flex items to override that with their own
-    //     cross-axis alignment. (The legacy box model doesn't support this.)
-    // So, each FlexItem simply copies the container's converted "align-items"
-    // value and disregards their own "align-self" property.
-    const nsStyleXUL* containerStyleXUL = containerRI->mFrame->StyleXUL();
-    mAlignSelf = ConvertLegacyStyleToAlignItems(containerStyleXUL);
-    mAlignSelfFlags = {0};
-  } else {
-    StyleAlignSelf alignSelf =
-        aFlexItemReflowInput.mStylePosition->UsedAlignSelf(
-            containerRI->mFrame->Style());
-    if (MOZ_LIKELY(alignSelf._0 == StyleAlignFlags::NORMAL)) {
-      alignSelf = {StyleAlignFlags::STRETCH};
-    }
-
-    // Store and strip off the <overflow-position> bits
-    mAlignSelfFlags = alignSelf._0 & StyleAlignFlags::FLAG_BITS;
-    mAlignSelf = alignSelf._0 & ~StyleAlignFlags::FLAG_BITS;
-  }
+  const auto* container =
+      static_cast<nsFlexContainerFrame*>(mFrame->GetParent());
+  std::tie(mAlignSelf, mAlignSelfFlags) =
+      container->UsedAlignSelfAndFlagsForItem(mFrame);
 
   // Our main-size is considered definite if any of these are true:
   // (a) main axis is the item's inline axis.
@@ -2190,6 +2207,7 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
     // The item's block-axis is the flex container's main axis. So, the flex
     // item's main size is its BSize, and is considered definite under certain
     // conditions laid out for definite flex-item main-sizes in the spec.
+    const ReflowInput* containerRI = aFlexItemReflowInput.mParentReflowInput;
     if (aAxisTracker.IsRowOriented() ||
         (containerRI->ComputedBSize() != NS_UNCONSTRAINEDSIZE &&
          !containerRI->mFlags.mTreatBSizeAsIndefinite)) {
@@ -6494,16 +6512,15 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
         // given that we know the flex container is row-oriented at this point.
         return false;
       }
-      const StyleAlignFlags alignSelf =
-          childStylePos->UsedAlignSelf(Style())._0;
-      if ((alignSelf != StyleAlignFlags::STRETCH &&
-           alignSelf != StyleAlignFlags::NORMAL) ||
+      [[maybe_unused]] auto [alignSelf, flags] =
+          UsedAlignSelfAndFlagsForItem(childFrame);
+      if (alignSelf != StyleAlignFlags::STRETCH ||
           !childStylePos->BSize(flexWM).IsAuto() ||
           childFrame->StyleMargin()->HasBlockAxisAuto(flexWM)) {
         // Similar to FlexItem::ResolveStretchedCrossSize(), we only stretch
         // the item if it satisfies all the following conditions:
-        // - align-self: stretch or align-self: normal (which behaves as
-        //   stretch) https://drafts.csswg.org/css-align-3/#align-flex
+        // - used align-self value is 'stretch' (CSSAlignmentForFlexItem() has
+        //   converted 'normal' to 'stretch')
         // - a cross-axis size property of value "auto"
         // - no auto margins in the cross-axis
         // https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-stretch
