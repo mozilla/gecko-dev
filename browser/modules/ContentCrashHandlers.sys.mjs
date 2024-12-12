@@ -517,7 +517,6 @@ export var TabCrashHandler = {
 
     browser.docShell.displayLoadError(Cr.NS_ERROR_BUILDID_MISMATCH, uri, null);
     tab.setAttribute("crashed", true);
-    gBrowser.tabContainer.updateTabIndicatorAttr(tab);
   },
 
   /**
@@ -542,7 +541,6 @@ export var TabCrashHandler = {
     browser.docShell.displayLoadError(Cr.NS_ERROR_CONTENT_CRASHED, uri, null);
     browser.removeAttribute("crashedPageTitle");
     tab.setAttribute("crashed", true);
-    gBrowser.tabContainer.updateTabIndicatorAttr(tab);
   },
 
   /**

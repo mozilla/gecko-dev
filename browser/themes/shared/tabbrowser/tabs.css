@@ -29,7 +29,6 @@
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
   --tab-icon-end-margin: 5.5px;
-  --tab-icon-overlay-fill: light-dark(white, black);
   --tab-icon-overlay-stroke: light-dark(black, white);
   --tab-label-line-height: 1.7;
   --tab-loading-fill: #0A84FF;
@@ -492,12 +491,16 @@
 .tab-icon-overlay {
   position: relative;
   padding: 2px;
+  top: -5.5px;
+  inset-inline-end: -6px;
+  z-index: 1; /* Overlay tab title */
 
   &[crashed] {
     list-style-image: url("chrome://browser/skin/tabbrowser/crashed.svg");
   }
 
-  &:not([crashed]) {
+  #tabbrowser-tabs[orient="vertical"]:not([expanded]) &:not([crashed]),
+  &[pinned]:not([crashed]) {
     &[soundplaying] {
       background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
     }
@@ -511,54 +514,39 @@
     }
 
     &:is([soundplaying], [muted], [activemedia-blocked]) {
-      background-color: var(--tab-icon-overlay-stroke);
+      background-color: color-mix(in srgb, currentColor 7%, var(--toolbar-bgcolor));
       background-position: center;
       background-repeat: no-repeat;
       border-radius: 10px;
       -moz-context-properties: fill;
-      fill: var(--tab-icon-overlay-fill);
+      fill: var(--tab-icon-overlay-stroke);
     }
   }
+}
 
-  &:not([indicator-replaces-favicon]) {
-    top: -5.5px;
-    inset-inline-end: -6px;
-    z-index: 1; /* Overlay tab title */
+.tab-audio-button {
+  display: none;
+  margin-inline-end: var(--tab-icon-end-margin);
+  --icon-size-default: 12px;
+  --button-size-icon-small: 24px;
+  --button-min-height-small: 24px;
 
+  #tabbrowser-tabs:is([orient="vertical"][expanded], [orient="horizontal"]) &:not([pinned]):not([crashed]) {
     &:is([soundplaying], [muted], [activemedia-blocked]) {
-      top: -8px;
-      inset-inline-end: -6px;
-    }
-  }
-
-  &[indicator-replaces-favicon] {
-    border-radius: 2px;
-    fill-opacity: 0.75;
-
-    &:hover {
-      background-color: color-mix(in srgb, currentColor 15%, transparent);
-      fill-opacity: 0.95;
+      display: block;
     }
 
-    &:hover:active {
-      background-color: color-mix(in srgb, currentColor 30%, transparent);
+    &[soundplaying]::part(button) {
+      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
     }
 
-    &:is([soundplaying], [muted], [activemedia-blocked]) {
-      &:hover,
-      &:hover:active {
-        background-color: color-mix(in srgb, currentColor 50%, transparent);
-      }
+    &[muted]::part(button) {
+      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
     }
-  }
 
-  :is(
-    :root[uidensity=compact],
-    #tabbrowser-tabs[secondarytext-unsupported],
-    :root:not([uidensity=compact]) #tabbrowser-tabs:not([secondarytext-unsupported]) .tabbrowser-tab:hover
-  ) .tab-icon-stack[indicator-replaces-favicon] > :not(&),
-  :root:not([uidensity=compact]) #tabbrowser-tabs:not([secondarytext-unsupported]) .tabbrowser-tab:not(:hover) &[indicator-replaces-favicon] {
-    opacity: 0;
+    &[activemedia-blocked]::part(button) {
+      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-small.svg");
+    }
   }
 }
 
@@ -633,23 +621,13 @@
 
   #tabbrowser-tabs:is([secondarytext-unsupported], [orient="vertical"]) &,
   :root[uidensity=compact] &,
-  &:not([soundplaying], [muted], [activemedia-blocked], [pictureinpicture]),
-  &:not([activemedia-blocked]) > .tab-icon-sound-blocked-label,
-  &[muted][activemedia-blocked] > .tab-icon-sound-blocked-label,
-  &[activemedia-blocked] > .tab-icon-sound-playing-label,
-  &[muted] > .tab-icon-sound-playing-label,
+  &:not([pictureinpicture]),
   &[pictureinpicture] > .tab-icon-sound-playing-label,
   &[pictureinpicture] > .tab-icon-sound-muted-label,
   &:not([pictureinpicture]) > .tab-icon-sound-pip-label,
-  &:not([muted]) > .tab-icon-sound-muted-label,
   &:not([showtooltip]) > .tab-icon-sound-tooltip-label,
   &[showtooltip] > .tab-icon-sound-label:not(.tab-icon-sound-tooltip-label) {
     display: none;
-  }
-
-  &[soundplaying-scheduledremoval]:not([muted]):not(:hover) {
-    transition: opacity .3s linear var(--soundplaying-removal-delay);
-    opacity: 0;
   }
 }
 
