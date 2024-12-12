@@ -1606,19 +1606,6 @@ QuotaManagerService::ListCachedOrigins(nsIQuotaRequest** _retval) {
 }
 
 NS_IMETHODIMP
-QuotaManagerService::SetThumbnailPrivateIdentityId(
-    uint32_t aThumbnailPrivateIdentityId) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
-
-  mBackgroundActor->SendSetThumbnailPrivateIdentityId(
-      aThumbnailPrivateIdentityId);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 QuotaManagerService::Observe(nsISupports* aSubject, const char* aTopic,
                              const char16_t* aData) {
   MOZ_ASSERT(XRE_IsParentProcess());

@@ -608,12 +608,6 @@ class QuotaManager final : public BackgroundThreadObject {
     return *mPrivateStoragePath;
   }
 
-  bool IsThumbnailPrivateIdentityIdKnown() const;
-
-  uint32_t GetThumbnailPrivateIdentityId() const;
-
-  void SetThumbnailPrivateIdentityId(uint32_t aThumbnailPrivateIdentityId);
-
   uint64_t GetGroupLimit() const;
 
   std::pair<uint64_t, uint64_t> GetUsageAndLimitForEstimate(
@@ -911,7 +905,6 @@ class QuotaManager final : public BackgroundThreadObject {
   struct IOThreadAccessible {
     nsTHashMap<nsCStringHashKey, nsTArray<FullOriginMetadata>>
         mAllTemporaryOrigins;
-    Maybe<uint32_t> mThumbnailPrivateIdentityId;
   };
   ThreadBound<IOThreadAccessible> mIOThreadAccessible;
 
