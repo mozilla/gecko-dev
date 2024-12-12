@@ -63,6 +63,14 @@ function HistorySidebarInit() {
     document.getElementById("byday").setAttribute("checked", "true");
   }
 
+  let bhTooltip = document.getElementById("bhTooltip");
+  bhTooltip.addEventListener("popupshowing", event => {
+    window.top.BookmarksEventHandler.fillInBHTooltip(bhTooltip, event);
+  });
+  bhTooltip.addEventListener("popuphiding", () =>
+    bhTooltip.removeAttribute("position")
+  );
+
   searchHistory("");
 }
 

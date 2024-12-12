@@ -843,7 +843,8 @@ var BookmarksEventHandler = {
       var tree = aTooltip.triggerNode.parentNode;
       var cell = tree.getCellAt(aEvent.clientX, aEvent.clientY);
       if (cell.row == -1) {
-        return false;
+        aEvent.preventDefault();
+        return;
       }
       node = tree.view.nodeForTreeIndex(cell.row);
       cropped = tree.isCellCropped(cell.row, cell.col);
@@ -860,7 +861,8 @@ var BookmarksEventHandler = {
     }
 
     if (!node && !targetURI) {
-      return false;
+      aEvent.preventDefault();
+      return;
     }
 
     // Show node.label as tooltip's title for non-Places nodes.
@@ -874,7 +876,8 @@ var BookmarksEventHandler = {
 
     // Show tooltip for containers only if their title is cropped.
     if (!cropped && !url) {
-      return false;
+      aEvent.preventDefault();
+      return;
     }
 
     let tooltipTitle = aEvent.target.querySelector(".places-tooltip-title");
@@ -891,7 +894,6 @@ var BookmarksEventHandler = {
     }
 
     // Show tooltip.
-    return true;
   },
 };
 

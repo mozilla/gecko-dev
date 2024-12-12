@@ -36,6 +36,14 @@ function init() {
 
   document.getElementById("bookmarks-view").place =
     "place:type=" + Ci.nsINavHistoryQueryOptions.RESULTS_AS_ROOTS_QUERY;
+
+  let bhTooltip = document.getElementById("bhTooltip");
+  bhTooltip.addEventListener("popupshowing", event => {
+    window.top.BookmarksEventHandler.fillInBHTooltip(bhTooltip, event);
+  });
+  bhTooltip.addEventListener("popuphiding", () =>
+    bhTooltip.removeAttribute("position")
+  );
 }
 
 function searchBookmarks(aSearchString) {

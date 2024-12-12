@@ -408,6 +408,9 @@ document.addEventListener(
           gCustomizeMode.onPanelContextMenuShowing(event);
           ToolbarContextMenu.updateExtension(event.target);
           break;
+        case "bhTooltip":
+          BookmarksEventHandler.fillInBHTooltip(event.target, event);
+          break;
       }
     });
 
@@ -433,6 +436,7 @@ document.addEventListener(
     mainPopupSet.addEventListener("popuphiding", event => {
       switch (event.target.id) {
         case "tabbrowser-tab-tooltip":
+        case "bhTooltip":
           event.target.removeAttribute("position");
           break;
       }
