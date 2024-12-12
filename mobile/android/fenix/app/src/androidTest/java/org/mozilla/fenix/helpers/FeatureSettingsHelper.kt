@@ -94,6 +94,11 @@ interface FeatureSettingsHelper {
     var isMenuRedesignCFREnabled: Boolean
 
     /**
+     * Enable or disable the new bookmarks UI.
+     */
+    var isNewBookmarksEnabled: Boolean
+
+    /**
      * Enable or disable the new microsurvey feature.
      */
     var isMicrosurveyEnabled: Boolean

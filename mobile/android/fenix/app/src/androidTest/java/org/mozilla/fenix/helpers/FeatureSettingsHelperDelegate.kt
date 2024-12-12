@@ -45,6 +45,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         isNavigationToolbarEnabled = settings.navigationToolbarEnabled,
         isMenuRedesignEnabled = settings.enableMenuRedesign,
         isMenuRedesignCFREnabled = settings.shouldShowMenuCFR,
+        isNewBookmarksEnabled = settings.useNewBookmarks,
         isMicrosurveyEnabled = settings.microsurveyFeatureEnabled,
         isSetAsDefaultBrowserPromptEnabled = settings.setAsDefaultBrowserPromptForExistingUsersEnabled,
         shouldUseBottomToolbar = settings.shouldUseBottomToolbar,
@@ -79,6 +80,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
     override var isNavigationToolbarEnabled: Boolean by updatedFeatureFlags::isNavigationToolbarEnabled
     override var isMenuRedesignEnabled: Boolean by updatedFeatureFlags::isMenuRedesignEnabled
     override var isMenuRedesignCFREnabled: Boolean by updatedFeatureFlags::isMenuRedesignCFREnabled
+    override var isNewBookmarksEnabled: Boolean by updatedFeatureFlags::isNewBookmarksEnabled
     override var isMicrosurveyEnabled: Boolean by updatedFeatureFlags::isMicrosurveyEnabled
     override var isSetAsDefaultBrowserPromptEnabled: Boolean by updatedFeatureFlags::isSetAsDefaultBrowserPromptEnabled
     override var shouldUseBottomToolbar: Boolean by updatedFeatureFlags::shouldUseBottomToolbar
@@ -112,6 +114,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         settings.navigationToolbarEnabled = featureFlags.isNavigationToolbarEnabled
         settings.enableMenuRedesign = featureFlags.isMenuRedesignEnabled
         settings.shouldShowMenuCFR = featureFlags.isMenuRedesignCFREnabled
+        settings.useNewBookmarks = featureFlags.isNewBookmarksEnabled
         settings.microsurveyFeatureEnabled = featureFlags.isMicrosurveyEnabled
         settings.setAsDefaultBrowserPromptForExistingUsersEnabled = featureFlags.isSetAsDefaultBrowserPromptEnabled
         settings.shouldUseBottomToolbar = featureFlags.shouldUseBottomToolbar
@@ -137,6 +140,7 @@ private data class FeatureFlags(
     var isNavigationToolbarEnabled: Boolean,
     var isMenuRedesignEnabled: Boolean,
     var isMenuRedesignCFREnabled: Boolean,
+    var isNewBookmarksEnabled: Boolean,
     var isMicrosurveyEnabled: Boolean,
     var isSetAsDefaultBrowserPromptEnabled: Boolean,
     var shouldUseBottomToolbar: Boolean,
