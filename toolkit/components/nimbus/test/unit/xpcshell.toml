@@ -46,6 +46,8 @@ skip-if = ["artifact"]
 
 ["test_localization.js"]
 
+["test_nimbusTelemetry.js"]
+
 ["test_policy.js"]
 
 ["test_prefFlips.js"]

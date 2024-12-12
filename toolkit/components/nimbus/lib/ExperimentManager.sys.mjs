@@ -219,10 +219,23 @@ export class _ExperimentManager {
     this.observe();
 
     lazy.NimbusFeatures.nimbusTelemetry.onUpdate(() => {
-      const cfg =
+      // Providing default values ensure we disable metrics when unenrolling.
+      const cfg = {
+        metrics_enabled: {
+          "nimbus_targeting_environment.targeting_context_value": false,
+          "nimbus_events.enrollment_status": false,
+        },
+      };
+
+      const overrides =
         lazy.NimbusFeatures.nimbusTelemetry.getVariable(
           "gleanMetricConfiguration"
         ) ?? {};
+
+      for (const [key, value] of Object.entries(overrides)) {
+        cfg[key] = { ...(cfg[key] ?? {}), ...value };
+      }
+
       Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
     });
   }
