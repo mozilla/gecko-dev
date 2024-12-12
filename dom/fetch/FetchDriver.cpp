@@ -889,6 +889,7 @@ nsresult FetchDriver::HttpFetch(
           case RequestDestination::Sharedworker:
           case RequestDestination::Worker:
           case RequestDestination::Xslt:
+          case RequestDestination::Json:
             return FETCH_PRIORITY_ADJUSTMENT_FOR(link_preload_script,
                                                  fetchPriority);
           case RequestDestination::Image:

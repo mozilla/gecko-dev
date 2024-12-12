@@ -6543,6 +6543,9 @@ static void CollectORBBlockTelemetry(
           Telemetry::LABELS_ORB_BLOCK_INITIATOR::BLOCKED_FETCH);
       break;
     case ExtContentPolicy::TYPE_SCRIPT:
+    // New `JSON` label will be added in a follow-up.
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1936599
+    case ExtContentPolicy::TYPE_JSON:
       Telemetry::AccumulateCategorical(
           Telemetry::LABELS_ORB_BLOCK_INITIATOR::SCRIPT);
       break;

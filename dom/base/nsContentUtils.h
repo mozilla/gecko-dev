@@ -3698,6 +3698,9 @@ nsContentUtils::InternalContentPolicyTypeToExternal(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_INTERNAL_EXTERNAL_RESOURCE:
       return ExtContentPolicy::TYPE_OTHER;
 
+    case nsIContentPolicy::TYPE_INTERNAL_JSON_PRELOAD:
+      return ExtContentPolicy::TYPE_JSON;
+
     case nsIContentPolicy::TYPE_INVALID:
     case nsIContentPolicy::TYPE_OTHER:
     case nsIContentPolicy::TYPE_SCRIPT:
@@ -3725,6 +3728,7 @@ nsContentUtils::InternalContentPolicyTypeToExternal(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_PROXIED_WEBRTC_MEDIA:
     case nsIContentPolicy::TYPE_WEB_IDENTITY:
     case nsIContentPolicy::TYPE_WEB_TRANSPORT:
+    case nsIContentPolicy::TYPE_JSON:
       // NOTE: When adding something here make sure the enumerator is defined!
       return static_cast<ExtContentPolicyType>(aType);
 

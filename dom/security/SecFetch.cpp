@@ -30,6 +30,9 @@ nsCString MapInternalContentPolicyTypeToDest(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_INTERNAL_FRAME_MESSAGEMANAGER_SCRIPT:
     case nsIContentPolicy::TYPE_SCRIPT:
       return "script"_ns;
+    case nsIContentPolicy::TYPE_JSON:
+    case nsIContentPolicy::TYPE_INTERNAL_JSON_PRELOAD:
+      return "json"_ns;
     case nsIContentPolicy::TYPE_INTERNAL_WORKER:
     case nsIContentPolicy::TYPE_INTERNAL_WORKER_STATIC_MODULE:
       return "worker"_ns;

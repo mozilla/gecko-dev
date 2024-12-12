@@ -352,6 +352,8 @@ CSPDirective CSP_ContentTypeToDirective(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD:
     case nsIContentPolicy::TYPE_WEB_IDENTITY:
     case nsIContentPolicy::TYPE_WEB_TRANSPORT:
+    case nsIContentPolicy::TYPE_JSON:
+    case nsIContentPolicy::TYPE_INTERNAL_JSON_PRELOAD:
       return nsIContentSecurityPolicy::CONNECT_SRC_DIRECTIVE;
 
     case nsIContentPolicy::TYPE_OBJECT:

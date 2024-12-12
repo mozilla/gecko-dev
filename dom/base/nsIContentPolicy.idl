@@ -449,13 +449,26 @@ interface nsIContentPolicy : nsISupports
     TYPE_INTERNAL_EXTERNAL_RESOURCE = 61,
 
     /**
+     * Indicates a JSON module loaded through an import statement.
+     */
+    TYPE_JSON = 62,
+
+    /**
+     * Same as TYPE_JSON but indicates an internal constant for a preloaded
+     * JSON module loaded through an import statement.
+     *
+     * This will be mapped to TYPE_JSON before being passed to content policy
+     * implementations.
+     */
+    TYPE_INTERNAL_JSON_PRELOAD = 63,
+
+    /**
      * Used to indicate the end of this list, not a content policy. If you want
      * to add a new content policy type, place it before this sentinel value
      * TYPE_END, have it use TYPE_END's current value, and increment TYPE_END by
      * one. (TYPE_END should always have the highest numerical value.)
      */
-    TYPE_END = 62,
-
+    TYPE_END = 64,
 
     /* When adding new content types, please update
      * NS_CP_ContentTypeName, nsCSPContext, CSP_ContentTypeToDirective,
@@ -604,6 +617,7 @@ enum class ExtContentPolicyType : uint8_t {
   TYPE_PROXIED_WEBRTC_MEDIA = nsIContentPolicy::TYPE_PROXIED_WEBRTC_MEDIA,
   TYPE_WEB_IDENTITY = nsIContentPolicy::TYPE_WEB_IDENTITY,
   TYPE_WEB_TRANSPORT = nsIContentPolicy::TYPE_WEB_TRANSPORT,
+  TYPE_JSON = nsIContentPolicy::TYPE_JSON,
 };
 
 typedef ExtContentPolicyType ExtContentPolicy;

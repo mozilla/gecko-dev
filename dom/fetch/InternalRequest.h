@@ -52,6 +52,7 @@ namespace dom {
  * "iframe"          | TYPE_SUBDOCUMENT, TYPE_INTERNAL_IFRAME
  * "image"           | TYPE_INTERNAL_IMAGE, TYPE_INTERNAL_IMAGE_PRELOAD,
  *                   | TYPE_IMAGE, TYPE_INTERNAL_IMAGE_FAVICON, TYPE_IMAGESET
+ * "json"            | TYPE_JSON, TYPE_INTERNAL_JSON_PRELOAD
  * "manifest"        | TYPE_WEB_MANIFEST
  * "object"          | TYPE_INTERNAL_OBJECT, TYPE_OBJECT
  * "paintworklet"    | TYPE_INTERNAL_PAINTWORKLET

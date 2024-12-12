@@ -487,6 +487,7 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
     case ExtContentPolicy::TYPE_PROXIED_WEBRTC_MEDIA:
     case ExtContentPolicy::TYPE_WEB_TRANSPORT:
     case ExtContentPolicy::TYPE_WEB_IDENTITY:
+    case ExtContentPolicy::TYPE_JSON:
       break;
 
     case ExtContentPolicy::TYPE_INVALID:

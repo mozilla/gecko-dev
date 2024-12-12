@@ -32,6 +32,7 @@ enum MozContentPolicyType {
   "imageset",
   "web_manifest",
   "speculative",
+  "json",
   "other"
 };
 
