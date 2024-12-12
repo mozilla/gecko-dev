@@ -339,6 +339,16 @@ strong {
   flex-grow: 1;
 }
 
+/* Adding the scrollbar in the RDM tooltip */
+#device-selector-menu .tooltip-panel {
+  max-height: 500px;
+}
+
+#device-selector-menu .tooltip-panel > .checkbox-container {
+  height: 100%;
+  overflow-y: auto;
+}
+
 .tooltip-visible {
   display: flex;
 }
