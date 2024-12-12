@@ -2743,10 +2743,10 @@ nsAutoRegion nsWindow::ComputeNonClientHRGN() {
   // windows non-client chrome and app non-client chrome
   // in winRgn.
   ::GetWindowRect(mWnd, &rect);
-  rect.top += mCaptionHeight + mVertResizeMargin;
-  rect.right -= mHorResizeMargin;
-  rect.bottom -= mVertResizeMargin;
-  rect.left += mHorResizeMargin;
+  rect.top += mCustomNonClientMetrics.mCaptionHeight + mCustomNonClientMetrics.mVertResizeMargin;
+  rect.right -= mCustomNonClientMetrics.mHorResizeMargin;
+  rect.bottom -= mCustomNonClientMetrics.mVertResizeMargin;
+  rect.left += mCustomNonClientMetrics.mHorResizeMargin;
   ::MapWindowPoints(nullptr, mWnd, (LPPOINT)&rect, 2);
   nsAutoRegion clientRgn(::CreateRectRgnIndirect(&rect));
   ::CombineRgn(winRgn, winRgn, clientRgn, RGN_DIFF);
