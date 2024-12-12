@@ -46,12 +46,17 @@ const EXAMPLE_COM_URI =
 add_task(async function () {
   await openTabAndSetupStorage(EXAMPLE_COM_URI);
   gUI.tree.expandAll();
+  showColumn("partitionKey", true);
 
   info("Check that we get both partitioned and unpartitioned cookies");
   await selectTreeItem(["cookies", "https://example.com"]);
   const topLevelExampleComFooId = getCookieId("foo", "example.com", "/");
   await selectTableItem(topLevelExampleComFooId);
   checkCell(topLevelExampleComFooId, "value", "unpartitioned-top");
+  checkCell(topLevelExampleComFooId, "partitionKey", "");
+  await findVariableViewProperties([
+    { name: "foo.Partition Key", dontMatch: true },
+  ]);
 
   const nestedExampleComFooId = getCookieId(
     "foo",
@@ -61,6 +66,10 @@ add_task(async function () {
   );
   await selectTableItem(nestedExampleComFooId);
   checkCell(nestedExampleComFooId, "value", "partitioned-nested");
+  checkCell(nestedExampleComFooId, "partitionKey", "https://example.com");
+  await findVariableViewProperties([
+    { name: "foo.Partition Key", value: "https://example.com" },
+  ]);
 
   await selectTreeItem(["cookies", "https://example.org"]);
   const thirdPartyPartitionedId = getCookieId(
@@ -71,6 +80,13 @@ add_task(async function () {
   );
   await selectTableItem(thirdPartyPartitionedId);
   checkCell(thirdPartyPartitionedId, "value", "partitioned-third-party");
+  checkCell(thirdPartyPartitionedId, "partitionKey", "https://example.com");
+  await findVariableViewProperties([
+    {
+      name: "fooThirdPartyPartitioned.Partition Key",
+      value: "https://example.com",
+    },
+  ]);
 
   info("Edit unpartitioned cookie value");
   await selectTreeItem(["cookies", "https://example.com"]);

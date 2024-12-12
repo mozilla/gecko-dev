@@ -408,14 +408,11 @@ class StorageActorMock extends EventEmitter {
    * Get the browsing contexts matching the given host.
    *
    * @param {String} host: The host for which we want the browsing contexts
-   * @param {Object} options
-   * @param {Boolean} options.acceptSameProcessIframes: Whether we should return same
-   *                  process iframes or not.
    * @returns Array<BrowsingContext>
    */
-  getBrowsingContextsFromHost(host, { acceptSameProcessIframes = true } = {}) {
+  getBrowsingContextsFromHost(host) {
     return this.watcherActor
-      .getAllBrowsingContexts({ acceptSameProcessIframes })
+      .getAllBrowsingContexts({ acceptSameProcessIframes: true })
       .filter(
         bc => this.getHostName(bc.currentWindowGlobal.documentURI) === host
       );

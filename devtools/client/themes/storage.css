@@ -73,7 +73,8 @@ a {
 
 #hostOnly,
 #isHttpOnly,
-#sameSite {
+#sameSite,
+#partitioned {
   min-width: 58px;
 }
 

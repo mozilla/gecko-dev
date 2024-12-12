@@ -120,10 +120,11 @@ class CookiesStorageActor extends BaseStorageActor {
           uniqueOriginAttributes.add(oaKey);
         }
 
-        // Top level document might have an empty partitionKey in browsingContext.currentWindowGlobal.documentStoragePrincipal.originAttributes,
-        // but it can still have Paritioned cookies (in CHIPS, that's first-party partitioned cookies).
+        // A document might have an empty partitionKey in browsingContext.currentWindowGlobal.documentStoragePrincipal.originAttributes,
+        // (e.g. a top level document), but still have partitioned cookies, in a different jar
+        // (in CHIPS, for top level document that's first-party partitioned cookies).
         // In order to retrieve those, we create a new originAttribute with the
-        // partitionKey from browsingContext.currentWindowGlobal.cookieJarSettings.partitionKey
+        // partitionKey from the window global cookie jar partitionKey
         if (
           bc.currentWindowGlobal.cookieJarSettings.partitionKey !==
           originAttributes.partitionKey
@@ -217,7 +218,7 @@ class CookiesStorageActor extends BaseStorageActor {
       return null;
     }
 
-    return {
+    const obj = {
       uniqueKey: this.#getCookieUniqueKey(cookie),
       name: cookie.name,
       host: cookie.host || "",
@@ -239,6 +240,23 @@ class CookiesStorageActor extends BaseStorageActor {
       isHttpOnly: cookie.isHttpOnly,
       sameSite: this.getSameSiteStringFromCookie(cookie),
     };
+
+    if (cookie.isPartitioned) {
+      const rawPartitionKey = cookie.originAttributes.partitionKey;
+      // We need to return the site derived from the partition key.
+      // rawPartitionKey format should be like "(<scheme>,<baseDomain>,[port],[ancestorbit])"
+      // see https://searchfox.org/mozilla-central/rev/23efe2c8c5b3a3182d449211ff9036fb34fe0219/caps/OriginAttributes.h#132-138
+      // We can ignore the `ancestorbit` part.
+      const [scheme, baseDomain, port] = rawPartitionKey
+        .replace(/(?<openingparen>^\()|(?<closingparen>\)$)/g, "")
+        .split(",");
+      const partitionKey = `${scheme}://${baseDomain}${
+        port !== undefined && /^\d+$/.test(port) ? ":" + port : ""
+      }`;
+      obj.partitionKey = partitionKey;
+    }
+
+    return obj;
   }
 
   getSameSiteStringFromCookie(cookie) {
@@ -329,7 +347,7 @@ class CookiesStorageActor extends BaseStorageActor {
   }
 
   async getFields() {
-    return [
+    const fields = [
       { name: "uniqueKey", editable: false, private: true },
       { name: "name", editable: true, hidden: false },
       { name: "value", editable: true, hidden: false },
@@ -344,6 +362,12 @@ class CookiesStorageActor extends BaseStorageActor {
       { name: "creationTime", editable: false, hidden: true },
       { name: "hostOnly", editable: false, hidden: true },
     ];
+
+    if (Services.prefs.getBoolPref("network.cookie.CHIPS.enabled", false)) {
+      fields.push({ name: "partitionKey", editable: false, hidden: false });
+    }
+
+    return fields;
   }
 
   /**

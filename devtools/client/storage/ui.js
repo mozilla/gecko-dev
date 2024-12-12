@@ -91,6 +91,7 @@ const HEADERS_NON_L10N_STRINGS = {
     hostOnly: "HostOnly",
     isHttpOnly: "HttpOnly",
     isSecure: "Secure",
+    partitionKey: "Partition Key",
     path: "Path",
     sameSite: "SameSite",
     uniqueKey: "Unique key",
