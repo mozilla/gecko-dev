@@ -958,7 +958,9 @@ ConnectionData.prototype = Object.freeze({
 
     function bindParam(obj, key, val) {
       let isBlob =
-        val && typeof val == "object" && val.constructor.name == "Uint8Array";
+        val &&
+        typeof val == "object" &&
+        ["Uint8Array", "Uint8ClampedArray"].includes(val.constructor.name);
       let args = [key, val];
       if (isBlob) {
         args.push(val.length);
@@ -1080,14 +1082,14 @@ ConnectionData.prototype = Object.freeze({
 
         switch (reason) {
           case Ci.mozIStorageStatementCallback.REASON_FINISHED:
-          case Ci.mozIStorageStatementCallback.REASON_CANCELED:
+          case Ci.mozIStorageStatementCallback.REASON_CANCELED: {
             // If there is an onRow handler, we always instead resolve to a
             // boolean indicating whether the onRow handler was called or not.
             let result = onRow ? handledRow : rows;
             deferred.resolve(result);
             break;
-
-          case Ci.mozIStorageStatementCallback.REASON_ERROR:
+          }
+          case Ci.mozIStorageStatementCallback.REASON_ERROR: {
             let error = new Error(
               "Error(s) encountered during statement execution: " +
                 errors.map(e => e.message).join(", ")
@@ -1105,7 +1107,7 @@ ConnectionData.prototype = Object.freeze({
 
             deferred.reject(error);
             break;
-
+          }
           default:
             deferred.reject(
               new Error("Unknown completion reason code: " + reason)
@@ -1267,6 +1269,10 @@ ConnectionData.prototype = Object.freeze({
  *   testDelayedOpenPromise -- (promise) Used by tests to delay the open
  *       callback handling and execute code between asyncOpen and its callback.
  *
+ *   extensions -- (array) Array of SQLite extension names that should be
+ *       loaded for the connection. List of approved extensions is hardcoded in
+ *       `mozStorageConnection`, no other extensions can be loaded.
+ *
  * FUTURE options to control:
  *
  *   special named databases
@@ -1404,14 +1410,41 @@ function openConnection(options) {
           reject(error);
           return;
         }
+
         logger.debug("Connection opened");
+        connection.QueryInterface(Ci.mozIStorageAsyncConnection);
 
         if (options.testDelayedOpenPromise) {
           await options.testDelayedOpenPromise;
         }
 
+        if (options.extensions) {
+          for (let extension of options.extensions) {
+            try {
+              await new Promise((resolve2, reject2) =>
+                connection.loadExtension(extension, rv => {
+                  if (Components.isSuccessCode(rv)) {
+                    resolve2();
+                  } else {
+                    reject2(rv);
+                  }
+                })
+              );
+            } catch (ex) {
+              logger.error(`Could not load extension '${extension}'`, ex);
+              connection.asyncClose();
+              reject(
+                new Error(`Could not load extension '${extension}'`, {
+                  cause: ex,
+                })
+              );
+              return;
+            }
+          }
+        }
+
         if (isClosed()) {
-          connection.QueryInterface(Ci.mozIStorageAsyncConnection).asyncClose();
+          connection.asyncClose();
           reject(
             new Error(
               "Sqlite.sys.mjs has been shutdown. Cannot open connection to: " +
@@ -1422,13 +1455,7 @@ function openConnection(options) {
         }
 
         try {
-          resolve(
-            new OpenedConnection(
-              connection.QueryInterface(Ci.mozIStorageAsyncConnection),
-              identifier,
-              openedOptions
-            )
-          );
+          resolve(new OpenedConnection(connection, identifier, openedOptions));
         } catch (ex) {
           logger.error("Could not open database", ex);
           connection.asyncClose();

@@ -1392,3 +1392,14 @@ add_task(async function test_pageSize() {
   );
   await c.close();
 });
+
+add_task(async function test_loadExtension() {
+  await Assert.rejects(
+    getDummyDatabase("dummy", { extensions: ["dummy"] }),
+    /Could not load extension/,
+    "Check unsupported extension"
+  );
+  let c = await getDummyDatabase("fts", { extensions: ["fts5"] });
+  await c.execute("CREATE VIRTUAL TABLE test_fts USING fts5(body)");
+  await c.close();
+});
