@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, YuvRangedColorSpace, YuvFormat, ImageRendering, ExternalImageId, ImageBufferKind};
+use api::{ColorF, ExternalImageId, ImageBufferKind, ImageKey, ImageRendering, YuvFormat, YuvRangedColorSpace};
 use api::units::*;
 use api::ColorDepth;
 use crate::image_source::resolve_image;
@@ -204,6 +204,8 @@ pub struct ExternalSurfaceDescriptor {
     /// If the native surface needs to be updated, this will contain the size
     /// of the native surface as Some(size). If not dirty, this is None.
     pub update_params: Option<DeviceIntSize>,
+    /// If using external compositing, a user key for the client
+    pub external_image_id: Option<ExternalImageId>,
 }
 
 impl ExternalSurfaceDescriptor {
@@ -283,6 +285,8 @@ pub struct ResolvedExternalSurface {
     pub image_buffer_kind: ImageBufferKind,
     // Update information for a native surface if it's dirty
     pub update_params: Option<(NativeSurfaceId, DeviceIntSize)>,
+    /// If using external compositing, a user key for the client
+    pub external_image_id: Option<ExternalImageId>,
 }
 
 /// Public interface specified in `WebRenderOptions` that configures
@@ -461,10 +465,32 @@ pub struct CompositeTileDescriptor {
 // by WR to render content, or is an external swapchain for video
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum CompositorSurfaceUsage {
     Content,
-    External,
+    External {
+        image_key: ImageKey,
+        external_image_id: ExternalImageId,
+        transform_index: CompositorTransformIndex,
+    },
+}
+
+impl CompositorSurfaceUsage {
+    // Returns true if usage is compatible
+    pub fn matches(&self, other: &CompositorSurfaceUsage) -> bool {
+        match (self, other) {
+            // Surfaces used for content are always compatible
+            (CompositorSurfaceUsage::Content, CompositorSurfaceUsage::Content) => true,
+
+            (CompositorSurfaceUsage::Content, CompositorSurfaceUsage::External { .. }) |
+            (CompositorSurfaceUsage::External { .. }, CompositorSurfaceUsage::Content) => false,
+
+            // External surfaces are matched by image-key (which doesn't change per-frame)
+            (CompositorSurfaceUsage::External { image_key: key1, .. }, CompositorSurfaceUsage::External { image_key: key2, .. }) => {
+                key1 == key2
+            }
+        }
+    }
 }
 
 /// Describes the properties that identify a surface composition uniquely.
@@ -752,7 +778,7 @@ impl CompositeState {
         // when drawing with the simple (Draw) compositor, and to schedule compositing
         // of any required updates into the surfaces.
         let needs_external_surface_update = match self.compositor_kind {
-            CompositorKind::Draw { .. } => true,
+            CompositorKind::Draw { .. } | CompositorKind::Layer { .. } => true,
             _ => external_surface.update_params.is_some(),
         };
         let external_surface_index = if needs_external_surface_update {
@@ -1035,6 +1061,7 @@ impl CompositeState {
                         },
                     image_buffer_kind,
                     update_params,
+                    external_image_id: external_surface.external_image_id,
                 });
             },
             ExternalSurfaceDependency::Rgb { .. } => {
@@ -1047,6 +1074,7 @@ impl CompositeState {
                     },
                     image_buffer_kind,
                     update_params,
+                    external_image_id: external_surface.external_image_id,
                 });
             },
         }
@@ -1333,6 +1361,7 @@ pub trait Compositor {
 
 // Describes the configuration for an input layer that the compositor
 // implemention should prepare
+#[derive(Debug)]
 pub struct CompositorInputLayer {
     // Device space location and size of the layer
     pub rect: DeviceIntRect,
@@ -1344,6 +1373,7 @@ pub struct CompositorInputLayer {
 
 // Provides the parameters about the frame to the compositor implementation.
 // TODO(gw): Include information about picture cache slices and external surfaces.
+#[derive(Debug)]
 pub struct CompositorInputConfig<'a> {
     pub layers: &'a [CompositorInputLayer],
 }
@@ -1368,6 +1398,7 @@ pub trait LayerCompositor {
     fn add_surface(
         &mut self,
         index: usize,
+        transform: CompositorSurfaceTransform,
         clip_rect: DeviceIntRect,
         image_rendering: ImageRendering,
     );
