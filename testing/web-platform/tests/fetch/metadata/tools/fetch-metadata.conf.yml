@@ -86,6 +86,7 @@ cases:
       window-location.sub.html: [{}]
       script-module-import-dynamic.sub.html: [{}]
       script-module-import-static.sub.html: [{}]
+      script-json-module-import-static.sub.html: [{}]
       svg-image.sub.html: [{}]
       window-history.sub.html: [{}]
       worker-dedicated-importscripts.sub.html: [{}]
@@ -140,6 +141,7 @@ cases:
       window-location.sub.html: []
       script-module-import-dynamic.sub.html: []
       script-module-import-static.sub.html: []
+      script-json-module-import-static.sub.html: []
       svg-image.sub.html: []
       window-history.sub.html: []
       worker-dedicated-importscripts.sub.html: []
@@ -208,6 +210,7 @@ cases:
       window-location.sub.html: [{}]
       script-module-import-dynamic.sub.html: [{}]
       script-module-import-static.sub.html: [{}]
+      script-json-module-import-static.sub.html: [{}]
       serviceworker.https.sub.html: [{}]
       svg-image.sub.html: [{}]
       window-history.sub.html: [{}]
@@ -284,6 +287,7 @@ cases:
       window-location.sub.html: [{}]
       script-module-import-dynamic.sub.html: [{}]
       script-module-import-static.sub.html: [{}]
+      script-json-module-import-static.sub.html: [{}]
       svg-image.sub.html: [{}]
       worker-dedicated-importscripts.sub.html: [{}]
 
@@ -378,6 +382,7 @@ cases:
       window-location.sub.html: [{}]
       script-module-import-dynamic.sub.html: [{}]
       script-module-import-static.sub.html: [{}]
+      script-json-module-import-static.sub.html: [{}]
       svg-image.sub.html: [{}]
       worker-dedicated-importscripts.sub.html: [{}]
 
@@ -419,6 +424,7 @@ cases:
       header-link.sub.html: []
       script-module-import-static.sub.html: []
       script-module-import-dynamic.sub.html: []
+      script-json-module-import-static.sub.html: []
       # Service Workers' redirect mode is "error"
       serviceworker.https.sub.html: []
       # Interstitial locations in an HTTP redirect chain are not added to the
@@ -607,6 +613,8 @@ cases:
         - expected: cors
       script-module-import-static.sub.html:
         - expected: cors
+      script-json-module-import-static.sub.html:
+        - expected: cors
       # https://svgwg.org/svg2-draft/linking.html#processingURL-fetch
       svg-image.sub.html:
         - expected: no-cors
@@ -735,6 +743,8 @@ cases:
         - expected: script
       script-module-import-static.sub.html:
         - expected: script
+      script-json-module-import-static.sub.html:
+        - expected: json
       serviceworker.https.sub.html:
         - expected: serviceworker
       # Implemented as "image" in Chromium and Firefox, but specified as
@@ -837,6 +847,8 @@ cases:
       script-module-import-dynamic.sub.html:
         - expected: NULL
       script-module-import-static.sub.html:
+        - expected: NULL
+      script-json-module-import-static.sub.html:
         - expected: NULL
       serviceworker.https.sub.html:
         - expected: NULL
