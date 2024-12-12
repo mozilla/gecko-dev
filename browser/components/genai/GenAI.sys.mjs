@@ -747,7 +747,7 @@ export const GenAI = {
       (placeholder, key, options) =>
         // Currently only supporting numeric options for slice with `undefined`
         // resulting in whole string
-        context[key]?.slice(0, options) ?? placeholder
+        `<${key}>${context[key]?.slice(0, options) ?? placeholder}</${key}>`
     );
   },
 

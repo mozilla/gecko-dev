@@ -47,6 +47,10 @@ genai-prompts-quiz =
 genai-prompts-explain =
     .label = Explain this
     .value = Please explain the key concepts in this selection, using simple words. Also, use examples.
+# Prompt purpose: writing tool that helps users with spelling and grammar mistakes and produce a response that identifies errors and rewrites the inputted text correctly
+genai-prompts-proofread =
+    .label = Proofread
+    .value = Please proofread the selection for spelling and grammar errors. Identify any mistakes and provide a corrected version of the text. Maintain the meaning and factual accuracy and output the list of proposed corrections first, followed by the final, corrected version of the text.
 
 ## Chatbot menu shortcuts
 

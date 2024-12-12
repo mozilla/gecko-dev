@@ -44,32 +44,32 @@ add_task(function test_basic_prompt() {
 add_task(function test_prompt_placeholders() {
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a%" }),
-    "%a%",
+    "<a>%a%</a>",
     "Placeholder kept without context"
   );
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a%" }, { a: "z" }),
-    "z",
+    "<a>z</a>",
     "Placeholder replaced with context"
   );
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a%%a%%a%" }, { a: "z" }),
-    "zzz",
+    "<a>z</a><a>z</a><a>z</a>",
     "Repeat placeholders replaced with context"
   );
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a% %b%" }, { a: "z" }),
-    "z %b%",
+    "<a>z</a> <b>%b%</b>",
     "Missing placeholder context not replaced"
   );
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a% %b%" }, { a: "z", b: "y" }),
-    "z y",
+    "<a>z</a> <b>y</b>",
     "Multiple placeholders replaced with context"
   );
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a% %b%" }, { a: "%b%", b: "y" }),
-    "%b% y",
+    "<a>%b%</a> <b>y</b>",
     "Placeholders from original prompt replaced with context"
   );
 });
@@ -80,17 +80,17 @@ add_task(function test_prompt_placeholders() {
 add_task(function test_prompt_placeholder_options() {
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a|1%" }, { a: "xyz" }),
-    "x",
+    "<a>x</a>",
     "Context reduced to 1"
   );
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a|2%" }, { a: "xyz" }),
-    "xy",
+    "<a>xy</a>",
     "Context reduced to 2"
   );
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a|3%" }, { a: "xyz" }),
-    "xyz",
+    "<a>xyz</a>",
     "Context kept to 3"
   );
 });
@@ -113,7 +113,7 @@ add_task(async function test_prompt_prefix() {
 
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a%" }, { a: "hi" }),
-    "hi\n\nhi",
+    "<a>hi</a>\n\n<a>hi</a>",
     "Context used for prefix and prompt"
   );
 });
