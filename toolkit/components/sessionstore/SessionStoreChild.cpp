@@ -268,9 +268,14 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(SessionStoreChild)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(SessionStoreChild)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStoreListener)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStoreChangeListener)
+  tmp->UnlinkManager();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(SessionStoreChild)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStoreListener)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStoreChangeListener)
+  if (XRE_IsContentProcess()) {
+    CycleCollectionNoteChild(cb, static_cast<BrowserChild*>(tmp->Manager()),
+                             "Manager()");
+  }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
