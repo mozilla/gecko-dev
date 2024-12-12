@@ -180,9 +180,23 @@ var testCases = [
       });
     }
 
+    // Override the expected blocking notifications if the tracker cookie
+    // blocking
+    let isTrackerCookieBlocked = Services.prefs.getBoolPref(
+      "network.cookie.cookieBehavior.trackerCookieBlocking"
+    );
+
+    if (!isTrackerCookieBlocked) {
+      // Override for BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN.
+      testCases[5].cases[3] = [false]; /* 3rd-party tracker */
+      testCases[5].cases[4] = [false]; /* 3rd-party tracker with permission */
+      testCases[5].cases[7] = [false]; /* insecure tracker */
+    }
+
     testCases.forEach(test => {
       let [hasStorageAccess, expectedBlockingNotifications] =
         test.cases[settings.indexOf(setting)];
+
       let callback = hasStorageAccess
         ? async _ => {
             /* import-globals-from storageAccessAPIHelpers.js */
