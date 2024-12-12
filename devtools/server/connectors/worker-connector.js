@@ -112,6 +112,7 @@ function connectToWorker(connection, dbg, forwardingPrefix, options) {
         options,
         workerDebuggerData: {
           id: dbg.id,
+          name: dbg.name,
           type: dbg.type,
           relatedDocumentInnerWindowId:
             dbg.window?.windowGlobalChild?.innerWindowId,

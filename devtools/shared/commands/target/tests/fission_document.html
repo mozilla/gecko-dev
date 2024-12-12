@@ -11,7 +11,7 @@
   const params = new URLSearchParams(document.location.search);
 
   // eslint-disable-next-line no-unused-vars
-  const worker = new Worker("https://example.com/browser/devtools/shared/commands/target/tests/test_worker.js#simple-worker");
+  const worker = new Worker("https://example.com/browser/devtools/shared/commands/target/tests/test_worker.js#simple-worker", { name: "Simple worker" });
 
   // eslint-disable-next-line no-unused-vars
   const sharedWorker = new SharedWorker("https://example.com/browser/devtools/shared/commands/target/tests/test_worker.js#shared-worker");

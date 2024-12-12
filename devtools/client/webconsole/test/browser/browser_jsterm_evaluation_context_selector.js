@@ -64,7 +64,7 @@ add_task(async function () {
     tooltip: TEST_URI,
   };
   const expectedWorkerItem = {
-    label: `javascript,console.log("worker")`,
+    label: "my worker",
     tooltip: `data:application/javascript,console.log("worker")`,
     indented: true,
   };

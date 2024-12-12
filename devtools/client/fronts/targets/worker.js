@@ -29,9 +29,10 @@ class WorkerTargetFront extends TargetMixin(
     return this._type === Ci.nsIWorkerDebugger.TYPE_SERVICE;
   }
 
-  // Display file name instead of absolute URL in the context selector/threads panel
+  // If the worker doesn't have a custom name,
+  // display file name instead of absolute URL in the context selector/threads panel
   get name() {
-    return this._url.split("/").pop();
+    return this._name || this._url.split("/").pop();
   }
 
   form(json) {
@@ -46,6 +47,7 @@ class WorkerTargetFront extends TargetMixin(
     this._type = json.type;
     // Expose the WorkerDebugger's `id` so that we can match the target with the descriptor
     this.id = json.id;
+    this._name = json.name;
 
     // Expose the inner Window ID of the document which may have spawned this worker
     this.relatedDocumentInnerWindowId = json.relatedDocumentInnerWindowId;

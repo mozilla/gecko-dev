@@ -112,6 +112,7 @@ class WorkerTargetActor extends BaseTargetActor {
       objectsManagerActor: this.objectsManagerActor?.actorID,
 
       id: this._workerDebuggerData.id,
+      name: this._workerDebuggerData.name,
       type: this._workerDebuggerData.type,
       url: this._workerDebuggerData.url,
       relatedDocumentInnerWindowId: this._relatedDocumentInnerWindowId,
