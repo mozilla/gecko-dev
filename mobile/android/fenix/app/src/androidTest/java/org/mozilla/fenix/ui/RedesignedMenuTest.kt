@@ -7,6 +7,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
 import org.junit.Rule
 import org.junit.Test
@@ -14,11 +15,13 @@ import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertAppWithPackageNameOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.assertYoutubeAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -531,6 +534,131 @@ class RedesignedMenuTest : TestSetup() {
             assertAppWithPackageNameOpens(packageName)
             verifyUrl("content://media/external_primary/downloads/")
             verifyTabCounter("2")
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776951
+    @SmokeTest
+    @Test
+    fun verifyTheDefaultToolsMenuItemsTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            openToolsMenu(composeTestRule)
+            verifyTheDefaultToolsMenuItems(composeTestRule)
+            verifyReaderViewButtonIsEnabled(composeTestRule, isEnabled = false)
+            verifyOpenInAppButtonIsEnabled(composeTestRule, isEnabled = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776961
+    @SmokeTest
+    @Test
+    fun verifyTheReaderViewButtonTest() {
+        val readerViewPage = TestAssetHelper.getLoremIpsumAsset(mockWebServer)
+        val estimatedReadingTime = "1 - 2 minutes"
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(readerViewPage.url) {
+            verifyPageContent(readerViewPage.content)
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            openToolsMenu(composeTestRule)
+            verifyReaderViewButtonIsEnabled(composeTestRule, isEnabled = true)
+        }.clickTheReaderViewModeButton(composeTestRule) {
+            verifyPageContent(estimatedReadingTime)
+            composeTestRule.waitForIdle()
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            openToolsMenu(composeTestRule)
+            verifyCustomizeReaderViewButtonIsDisplayed(composeTestRule, isDisplayed = true)
+        }.clickCustomizeReaderViewButton(composeTestRule) {
+            verifyAppearanceFontGroup(true)
+            verifyAppearanceFontSansSerif(true)
+            verifyAppearanceFontSerif(true)
+            verifyAppearanceFontIncrease(true)
+            verifyAppearanceFontDecrease(true)
+            verifyAppearanceFontSize(3)
+            verifyAppearanceColorGroup(true)
+            verifyAppearanceColorDark(true)
+            verifyAppearanceColorLight(true)
+            verifyAppearanceColorSepia(true)
+        }.closeAppearanceMenu {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            openToolsMenu(composeTestRule)
+        }.clickTurnOffReaderViewButton(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            openToolsMenu(composeTestRule)
+            verifyReaderViewButtonIsEnabled(composeTestRule, isEnabled = true)
+            verifyCustomizeReaderViewButtonIsDisplayed(composeTestRule, isDisplayed = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776953
+    @SmokeTest
+    @Test
+    fun verifyTheTranslatePageButtonsStatesTest() {
+        val testPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            openToolsMenu(composeTestRule)
+        }.clickTranslateButton(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(composeTestRule, isDisplayed = true)
+        }.clickTranslateButton(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            openToolsMenu(composeTestRule)
+        }.clickTranslatedToButton(composeTestRule, "English") {
+            verifyTranslationSheetIsDisplayed(composeTestRule, isDisplayed = true)
+        }.clickShowOriginalButton(composeTestRule) {
+            verifyPageContent(testPage.content)
+        }.openThreeDotMenuFromRedesignedToolbar {
+            openToolsMenu(composeTestRule)
+            verifyTheDefaultToolsMenuItems(composeTestRule)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776955
+    @SmokeTest
+    @Test
+    fun verifyTheShareButtonTest() {
+        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            openToolsMenu(composeTestRule)
+        }.clickShareButton(composeTestRule) {
+            verifyShareTabLayout()
+            verifySharingWithSelectedApp(
+                appName = "Gmail",
+                content = testPage.url.toString(),
+                subject = testPage.title,
+            )
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776956
+    @SmokeTest
+    @Test
+    fun verifyOpenInAppButtonIsEnabledTest() {
+        val youtubeURL = "vnd.youtube://".toUri()
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(youtubeURL) {
+            waitForPageToLoad(waitingTime)
+        }.openThreeDotMenuFromRedesignedToolbar {
+            expandRedesignedMenu(composeTestRule)
+            openToolsMenu(composeTestRule)
+            verifyOpenInAppButtonIsEnabled(composeTestRule, appName = "YouTube", isEnabled = true)
+            clickOpenInAppButton(composeTestRule, appName = "YouTube")
+            assertYoutubeAppOpens()
         }
     }
 }

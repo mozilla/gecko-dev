@@ -57,7 +57,7 @@ open class TestSetup {
         FxNimbus.features.translations.withInitializer { _, _ ->
             Translations(
                 mainFlowToolbarEnabled = false,
-                mainFlowBrowserMenuEnabled = false,
+                mainFlowBrowserMenuEnabled = true,
             )
         }
         Log.i(TAG, "TestSetup: Disabled the translations prompt")

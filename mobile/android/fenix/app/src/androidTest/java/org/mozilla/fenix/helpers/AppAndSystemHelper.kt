@@ -359,6 +359,13 @@ object AppAndSystemHelper {
     }
 
     fun assertYoutubeAppOpens() {
+        Log.i(TAG, "assertYoutubeAppOpens: Trying to revoke the Notifications permission for the YouTube app.")
+        runBlocking {
+            // This will prevent the Youtube app to show the "Allow notifications" dialog
+            Log.i(TAG, "assertYoutubeAppOpens: Granting the Notifications permission for the YouTube app.")
+            mDevice.executeShellCommand("pm grant com.google.android.youtube android.permission.POST_NOTIFICATIONS")
+            Log.i(TAG, "assertYoutubeAppOpens: Granted the Notifications permission for the YouTube app.")
+        }
         Log.i(TAG, "assertYoutubeAppOpens: Trying to check the intent to YouTube.")
         intended(toPackage(YOUTUBE_APP))
         Log.i(TAG, "assertYoutubeAppOpens: Verified the intent matches YouTube.")

@@ -167,4 +167,12 @@ object TestAssetHelper {
 
         return TestAsset(url, "", title)
     }
+
+    fun getForeignWebPageAsset(server: MockWebServer): TestAsset {
+        val url = server.url("pages/foreignWebPage.html").toString().toUri()!!
+        val title = "Page_de_test_FR"
+        val content = "Article du jour"
+
+        return TestAsset(url, content, title)
+    }
 }
