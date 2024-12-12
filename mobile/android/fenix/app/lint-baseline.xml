@@ -34,39 +34,6 @@
     </issue>
 
     <issue
-        id="KotlinNullnessAnnotation"
-        message="Do not use `@NonNull` in Kotlin; the nullability is already implied by the Kotlin type `RecyclerView.ViewHolder` **not** ending with `?`"
-        errorLine1="        @NonNull viewHolder: RecyclerView.ViewHolder,"
-        errorLine2="        ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/tabstray/browser/DraggableItemAnimator.kt"
-            line="13"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="KotlinNullnessAnnotation"
-        message="Do not use `@NonNull` in Kotlin; the nullability is already implied by the Kotlin type `RecyclerView.ItemAnimator.ItemHolderInfo` **not** ending with `?`"
-        errorLine1="        @NonNull preLayoutInfo: RecyclerView.ItemAnimator.ItemHolderInfo,"
-        errorLine2="        ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/tabstray/browser/DraggableItemAnimator.kt"
-            line="14"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="KotlinNullnessAnnotation"
-        message="Do not use `@NonNull` in Kotlin; the nullability is already implied by the Kotlin type `RecyclerView.ItemAnimator.ItemHolderInfo` **not** ending with `?`"
-        errorLine1="        @NonNull postLayoutInfo: RecyclerView.ItemAnimator.ItemHolderInfo,"
-        errorLine2="        ~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/tabstray/browser/DraggableItemAnimator.kt"
-            line="15"
-            column="9"/>
-    </issue>
-
-    <issue
         id="UnusedAttribute"
         message="Attribute `android:foreground` has no effect on API levels lower than 23 (current min is 21)"
         errorLine1="    android:foreground=&quot;?android:attr/selectableItemBackground&quot;"
