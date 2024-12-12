@@ -27,9 +27,10 @@ ITERATIONS = 5
 
 
 class ImageAnalzer:
-    def __init__(self, browser):
+    def __init__(self, browser, test):
         self.video = None
         self.browser = browser
+        self.test = test
         self.width = 0
         self.height = 0
         self.video_name = ""
@@ -46,6 +47,9 @@ class ImageAnalzer:
         self.nav_start_command = (
             f"am start-activity -W -n {self.intent} -a "
             f"android.intent.action.VIEW -d "
+        )
+        self.view_intent_command = (
+            f"am start-activity -W -n {self.intent} -a " f"android.intent.action.VIEW"
         )
 
         self.device.shell("mkdir -p /sdcard/Download")
@@ -66,9 +70,9 @@ class ImageAnalzer:
     def skip_onboarding(self):
         # Skip onboarding for chrome and fenix
         if self.browser == PROD_CHRM:
-            self.device.shell(
-                '\'echo "chrome --no-default-browser-check --no-first-run --disable-fre" '
-                "> /data/local/tmp/chrome-command-line'"
+            self.device.shell_output(
+                'echo "chrome --no-default-browser-check --no-first-run '
+                '--disable-fre" > /data/local/tmp/chrome-command-line '
             )
             self.device.shell("am set-debug-app --persistent com.android.chrome")
         elif self.browser == PROD_FENIX:
@@ -84,6 +88,8 @@ class ImageAnalzer:
         for website in BACKGROUND_TABS:
             self.device.shell(self.nav_start_command + website)
             time.sleep(3)
+        if self.test == "mobile_restore":
+            self.load_page_to_test_startup()
 
     def get_video(self, run):
         self.video_name = f"vid{run}_{self.browser}.mp4"
@@ -101,9 +107,11 @@ class ImageAnalzer:
             ]
         )
 
-        # Navigate to a page
-        self.device.shell(self.nav_start_command + APP_LINK_STARTUP_WEBSITE)
-        time.sleep(5)
+        if self.test == "cold_view_nav_end":
+            self.load_page_to_test_startup()
+        elif self.test == "mobile_restore":
+            self.open_browser_with_view_intent()
+
         recording.kill()
         time.sleep(5)
         self.device.command_output(
@@ -135,7 +143,7 @@ class ImageAnalzer:
         mse = err / (float(h * w))
         return mse
 
-    def get_cold_view_nav_end_frame(self):
+    def get_page_loaded_time(self):
         """
         Returns the index of the frame where the main image on the shopify demo page is displayed
         for the first time.
@@ -163,22 +171,36 @@ class ImageAnalzer:
         self.video.read()
         return self.video.get(cv2.CAP_PROP_POS_MSEC)
 
+    def load_page_to_test_startup(self):
+        # Navigate to the page we want to use for testing startup
+        self.device.shell(self.nav_start_command + APP_LINK_STARTUP_WEBSITE)
+        time.sleep(5)
+
+    def open_browser_with_view_intent(self):
+        self.device.shell(self.view_intent_command)
+        time.sleep(5)
+
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise Exception("Didn't pass the arg properly :(")
-    browser = sys.argv[1]
+    if len(sys.argv) != 3:
+        raise Exception("Didn't pass the args properly :(")
     start_video_timestamp = []
+    browser = sys.argv[1]
+    test = sys.argv[2]
+    perfherder_names = {
+        "cold_view_nav_end": "applink_startup",
+        "mobile_restore": "tab_restore",
+    }
 
-    ImageObject = ImageAnalzer(browser)
+    ImageObject = ImageAnalzer(browser, test)
     for iteration in range(ITERATIONS):
         ImageObject.app_setup()
         ImageObject.get_video(iteration)
-        nav_done_frame = ImageObject.get_cold_view_nav_end_frame()
+        nav_done_frame = ImageObject.get_page_loaded_time()
         start_video_timestamp += [ImageObject.get_time_from_frame_num(nav_done_frame)]
     print(
         'perfMetrics: {"values": ',
         start_video_timestamp,
-        ', "name": "applink_startup", "shouldAlert": true',
+        ', "name": "' + perfherder_names[test] + '", "shouldAlert": true',
         "}",
     )

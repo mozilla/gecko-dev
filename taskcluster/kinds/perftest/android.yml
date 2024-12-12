@@ -122,6 +122,55 @@ hw-a55-startup-fenix-shopify-applink-startup:
             --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
             --output $MOZ_FETCHES_DIR/../artifacts
 
+hw-a55-aarch64-shippable-startup-chrome-m-tab-restore-shopify:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run android startup restore perftest on Chrome on a Samsung A55
+    treeherder:
+        symbol: perftest-chrome(tab-restore-shopify)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: true
+    run-on-projects: [trunk-only]
+    run:
+        command: >-
+             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+             cd $GECKO_PATH &&
+             python3 python/mozperftest/mozperftest/runner.py
+             --flavor custom-script
+             --app chrome-m
+             testing/performance/mobile-startup/restore.sh
+             --perfherder
+             --output $MOZ_FETCHES_DIR/../artifacts
+
+hw-a55-aarch64-shippable-startup-fenix-tab-restore-shopify:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run android startup restore perftest on Fenix on a Samsung A55
+    treeherder:
+        symbol: perftest-fenix(tab-restore-shopify)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: true
+    run-on-projects: [trunk-only]
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app fenix
+            testing/performance/mobile-startup/restore.sh
+            --perfherder
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+
 hw-a55-aarch64:
     worker-type: t-bitbar-gw-perf-a55
     description: Run ./mach perftest on a Samsung Galaxy a55
