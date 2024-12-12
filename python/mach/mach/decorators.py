@@ -13,7 +13,7 @@ from .base import MachError
 from .registrar import Registrar
 
 
-class _MachCommand(object):
+class _MachCommand:
     """Container for mach command metadata."""
 
     __slots__ = (
@@ -160,7 +160,7 @@ class _MachCommand(object):
             parent.subcommand_handlers[self.subcommand] = self
 
 
-class Command(object):
+class Command:
     """Decorator for functions or methods that provide a mach command.
 
     The decorator accepts arguments that define basic attributes of the
@@ -198,7 +198,7 @@ class Command(object):
         return func
 
 
-class SubCommand(object):
+class SubCommand:
     """Decorator for functions or methods that provide a sub-command.
 
     Mach commands can have sub-commands. e.g. ``mach command foo`` or
@@ -249,7 +249,7 @@ class SubCommand(object):
         return func
 
 
-class CommandArgument(object):
+class CommandArgument:
     """Decorator for additional arguments to mach subcommands.
 
     This decorator should be used to add arguments to mach commands. Arguments
@@ -285,7 +285,7 @@ class CommandArgument(object):
         return func
 
 
-class CommandArgumentGroup(object):
+class CommandArgumentGroup:
     """Decorator for additional argument groups to mach commands.
 
     This decorator should be used to add arguments groups to mach commands.

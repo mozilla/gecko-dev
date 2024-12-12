@@ -5,7 +5,7 @@
 import logging
 
 
-class LoggingMixin(object):
+class LoggingMixin:
     """Provides functionality to control logging."""
 
     def populate_logger(self, name=None):

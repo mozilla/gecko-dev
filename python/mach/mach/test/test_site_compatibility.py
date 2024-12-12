@@ -81,7 +81,7 @@ class PackageCache:
         if vendor_path in self._cache:
             return self._cache[vendor_path]
 
-        if not any((p for p in vendor_path.iterdir() if p.name.endswith(".dist-info"))):
+        if not any(p for p in vendor_path.iterdir() if p.name.endswith(".dist-info")):
             # This vendored package is not a wheel. It may be a source package (with
             # a setup.py), or just some Python code that was manually copied into the
             # tree. If it's a source package, the setup.py file may be up a few levels

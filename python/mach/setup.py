@@ -32,7 +32,6 @@ setup(
         "blessed",
         "mozfile",
         "mozprocess",
-        "six",
     ],
     tests_require=["mock"],
 )

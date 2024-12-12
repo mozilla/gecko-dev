@@ -15,7 +15,6 @@ from mozversioncontrol import (
     MissingVCSTool,
     get_repository_object,
 )
-from six import string_types
 
 from mach.telemetry import is_telemetry_enabled
 from mach.util import get_state_dir
@@ -26,7 +25,7 @@ _SENTRY_DSN = (
 )
 
 
-class ErrorReporter(object):
+class ErrorReporter:
     @abc.abstractmethod
     def report_exception(self, exception):
         """Report the exception to remote error-tracking software."""
@@ -133,7 +132,7 @@ def _patch_absolute_paths(sentry_event, topsrcdir: Path):
                 key = needle.sub(replacement, key)
                 value[key] = recursive_patch(next_value, needle, replacement)
             return value
-        elif isinstance(value, string_types):
+        elif isinstance(value, str):
             return needle.sub(replacement, value)
         else:
             return value

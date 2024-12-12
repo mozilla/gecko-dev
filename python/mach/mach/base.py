@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-class CommandContext(object):
+class CommandContext:
     """Holds run-time state so it can easily be passed to command providers."""
 
     def __init__(

@@ -133,7 +133,7 @@ class ArgumentParser(argparse.ArgumentParser):
         return text
 
 
-class ContextWrapper(object):
+class ContextWrapper:
     def __init__(self, context, handler):
         object.__setattr__(self, "_context", context)
         object.__setattr__(self, "_handler", handler)
@@ -155,7 +155,7 @@ class ContextWrapper(object):
         setattr(object.__getattribute__(self, "_context"), key, value)
 
 
-class Mach(object):
+class Mach:
     """Main mach driver type.
 
     This type is responsible for holding global mach state and dispatching

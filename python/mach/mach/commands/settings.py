@@ -28,14 +28,14 @@ def run_settings(command_context, short=None):
     wrapper = TextWrapper(initial_indent="# ", subsequent_indent="# ")
     for i, section in enumerate(sorted(command_context._mach_context.settings)):
         if not short:
-            print("%s[%s]" % ("" if i == 0 else "\n", section))
+            print("{}[{}]".format("" if i == 0 else "\n", section))
 
         for option in sorted(command_context._mach_context.settings[section]._settings):
             meta = command_context._mach_context.settings[section].get_meta(option)
             desc = meta["description"]
 
             if short:
-                print("%s.%s -- %s" % (section, option, desc.splitlines()[0]))
+                print("{}.{} -- {}".format(section, option, desc.splitlines()[0]))
                 continue
 
             if option == "*":
@@ -47,4 +47,4 @@ def run_settings(command_context, short=None):
                 value = "<%s>" % types[meta["type_cls"]]
 
             print(wrapper.fill(desc))
-            print(";%s=%s" % (option, value))
+            print(";{}={}".format(option, value))

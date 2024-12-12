@@ -17,20 +17,17 @@ settings are available.
 import collections
 import collections.abc
 import sys
+from configparser import NoSectionError, RawConfigParser
 from functools import wraps
 from pathlib import Path
 from typing import List, Union
-
-import six
-from six import string_types
-from six.moves.configparser import NoSectionError, RawConfigParser
 
 
 class ConfigException(Exception):
     pass
 
 
-class ConfigType(object):
+class ConfigType:
     """Abstract base class for config values."""
 
     @staticmethod
@@ -63,7 +60,7 @@ class ConfigType(object):
 class StringType(ConfigType):
     @staticmethod
     def validate(value):
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise TypeError()
 
     @staticmethod
@@ -110,7 +107,7 @@ class PositiveIntegerType(IntegerType):
 class PathType(StringType):
     @staticmethod
     def validate(value):
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise TypeError()
 
     @staticmethod
@@ -127,7 +124,7 @@ TYPE_CLASSES = {
 }
 
 
-class DefaultValue(object):
+class DefaultValue:
     pass
 
 
@@ -142,7 +139,7 @@ def reraise_attribute_error(func):
             return func(*args, **kwargs)
         except KeyError:
             exc_class, exc, tb = sys.exc_info()
-            six.reraise(AttributeError().__class__, exc, tb)
+            raise exc.with_traceback(tb)
 
     return _
 
@@ -193,7 +190,7 @@ class ConfigSettings(collections.abc.Mapping):
     will result in exceptions being raised.
     """
 
-    class ConfigSection(collections.abc.MutableMapping, object):
+    class ConfigSection(collections.abc.MutableMapping):
         """Represents an individual config section."""
 
         def __init__(self, config, name, settings):
@@ -300,7 +297,7 @@ class ConfigSettings(collections.abc.Mapping):
         """
         filtered = [f for f in filenames if f.exists()]
 
-        fps = [open(f, "rt") for f in filtered]
+        fps = [open(f) for f in filtered]
         self.load_fps(fps)
         for fp in fps:
             fp.close()
@@ -334,7 +331,7 @@ class ConfigSettings(collections.abc.Mapping):
             extra -- A dict of additional key/value pairs to add to the
                 setting metadata.
         """
-        if isinstance(type_cls, string_types):
+        if isinstance(type_cls, str):
             type_cls = TYPE_CLASSES[type_cls]
 
         meta = {"description": description, "type_cls": type_cls}
@@ -363,7 +360,7 @@ class ConfigSettings(collections.abc.Mapping):
 
             if option in config_settings[section]:
                 raise ConfigException(
-                    "Setting has already been registered: %s.%s" % (section, option)
+                    "Setting has already been registered: {}.{}".format(section, option)
                 )
 
             meta = self._format_metadata(*setting[1:])
@@ -375,7 +372,7 @@ class ConfigSettings(collections.abc.Mapping):
             for k, v in settings.items():
                 if k in section:
                     raise ConfigException(
-                        "Setting already registered: %s.%s" % (section_name, k)
+                        "Setting already registered: {}.{}".format(section_name, k)
                     )
 
                 section[k] = v

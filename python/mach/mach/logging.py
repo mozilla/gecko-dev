@@ -14,7 +14,6 @@ import sys
 import time
 
 import blessed
-import six
 from mozbuild.buildversion import mozilla_build_version
 from packaging.version import Version
 
@@ -62,10 +61,7 @@ def _wrap_stdstream(fh):
     if fh in (sys.stderr, sys.stdout):
         encoding = sys.getdefaultencoding()
         encoding = "utf-8" if encoding in ("ascii", "charmap") else encoding
-        if six.PY2:
-            return codecs.getwriter(encoding)(fh, errors="replace")
-        else:
-            return codecs.getwriter(encoding)(fh.buffer, errors="replace")
+        return codecs.getwriter(encoding)(fh.buffer, errors="replace")
     else:
         return fh
 
@@ -251,7 +247,7 @@ def formatted_stack_trace(record, formatter):
     return rv
 
 
-class LoggingManager(object):
+class LoggingManager:
     """Holds and controls global logging state.
 
     An application should instantiate one of these and configure it as needed.

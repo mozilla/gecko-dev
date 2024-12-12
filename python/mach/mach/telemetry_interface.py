@@ -10,7 +10,7 @@ from unittest.mock import Mock
 from mach.site import MozSiteMetadata, SitePackagesSource
 
 
-class NoopTelemetry(object):
+class NoopTelemetry:
     def __init__(self, failed_glean_import):
         self._failed_glean_import = failed_glean_import
 
@@ -40,7 +40,7 @@ class NoopTelemetry(object):
             )
 
 
-class GleanTelemetry(object):
+class GleanTelemetry:
     """Records and sends Telemetry using Glean.
 
     Metrics are defined in python/mozbuild/metrics.yaml.

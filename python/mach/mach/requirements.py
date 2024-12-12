@@ -157,7 +157,7 @@ def _parse_mach_env_requirements(
 
         requirements_output.requirements_paths.append(str(requirements_path))
 
-        with open(requirements_path, "r") as requirements_file:
+        with open(requirements_path) as requirements_file:
             lines = [line for line in requirements_file]
 
         for number, line in enumerate(lines, start=1):

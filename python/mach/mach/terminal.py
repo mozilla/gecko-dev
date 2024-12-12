@@ -11,8 +11,6 @@ one place, away from code that is commonly looked at.
 import logging
 import sys
 
-from six.moves import range
-
 
 class LoggingHandler(logging.Handler):
     """Custom logging handler that works with terminal window dressing.
@@ -53,7 +51,7 @@ class LoggingHandler(logging.Handler):
         self.flush()
 
 
-class TerminalFooter(object):
+class TerminalFooter:
     """Represents something drawn on the bottom of a terminal."""
 
     def __init__(self, terminal):

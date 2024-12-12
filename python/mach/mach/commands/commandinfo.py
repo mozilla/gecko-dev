@@ -18,7 +18,7 @@ COMPLETION_TEMPLATES_DIR = Path(__file__).resolve().parent / "completion_templat
 
 
 @attr.s
-class CommandInfo(object):
+class CommandInfo:
     name = attr.ib(type=str)
     description = attr.ib(type=str)
     subcommands = attr.ib(type=list)

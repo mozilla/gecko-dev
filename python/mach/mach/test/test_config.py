@@ -7,7 +7,6 @@ from pathlib import Path
 
 from mozfile.mozfile import NamedTemporaryFile
 from mozunit import main
-from six import string_types
 
 from mach.config import (
     BooleanType,
@@ -35,7 +34,7 @@ bar = value2
 
 
 @SettingsProvider
-class Provider1(object):
+class Provider1:
     config_settings = [
         ("foo.bar", StringType, "desc"),
         ("foo.baz", PathType, "desc"),
@@ -43,7 +42,7 @@ class Provider1(object):
 
 
 @SettingsProvider
-class ProviderDuplicate(object):
+class ProviderDuplicate:
     config_settings = [
         ("dupesect.foo", StringType, "desc"),
         ("dupesect.foo", StringType, "desc"),
@@ -51,7 +50,7 @@ class ProviderDuplicate(object):
 
 
 @SettingsProvider
-class Provider2(object):
+class Provider2:
     config_settings = [
         ("a.string", StringType, "desc"),
         ("a.boolean", BooleanType, "desc"),
@@ -62,7 +61,7 @@ class Provider2(object):
 
 
 @SettingsProvider
-class Provider3(object):
+class Provider3:
     @classmethod
     def config_settings(cls):
         return [
@@ -75,7 +74,7 @@ class Provider3(object):
 
 
 @SettingsProvider
-class Provider4(object):
+class Provider4:
     config_settings = [
         ("foo.abc", StringType, "desc", "a", {"choices": set("abc")}),
         ("foo.xyz", StringType, "desc", "w", {"choices": set("xyz")}),
@@ -83,7 +82,7 @@ class Provider4(object):
 
 
 @SettingsProvider
-class Provider5(object):
+class Provider5:
     config_settings = [
         ("foo.*", "string", "desc"),
         ("foo.bar", "string", "desc"),
@@ -189,11 +188,11 @@ class TestConfigSettings(unittest.TestCase):
         a.int = -4
         a.path = "./foo/bar"
 
-        self.assertIsInstance(a.string, string_types)
+        self.assertIsInstance(a.string, (str,))
         self.assertIsInstance(a.boolean, bool)
         self.assertIsInstance(a.pos_int, int)
         self.assertIsInstance(a.int, int)
-        self.assertIsInstance(a.path, string_types)
+        self.assertIsInstance(a.path, (str,))
 
     def test_retrieval_type(self):
         self.retrieval_type_helper(Provider2)

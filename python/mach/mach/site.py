@@ -192,7 +192,7 @@ class MozSiteMetadata:
             f'The virtualenv at "{prefix}" is out-of-date.'
         )
         try:
-            with open(metadata_path, "r") as file:
+            with open(metadata_path) as file:
                 raw = json.load(file)
 
             if not raw.get("is_finalized", False):

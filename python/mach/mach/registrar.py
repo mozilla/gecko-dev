@@ -7,8 +7,6 @@ from copy import deepcopy
 from cProfile import Profile
 from pathlib import Path
 
-import six
-
 from .base import MachError
 
 INVALID_COMMAND_CONTEXT = r"""
@@ -19,7 +17,7 @@ Run |mach help| to show a list of all commands available to the current context.
 """.lstrip()
 
 
-class MachRegistrar(object):
+class MachRegistrar:
     """Container for mach command and config providers."""
 
     def __init__(self):
@@ -141,7 +139,7 @@ class MachRegistrar(object):
             print(f"python3 -m snakeviz {profile_file.name}")
 
         result = result or 0
-        assert isinstance(result, six.integer_types)
+        assert isinstance(result, int)
 
         if not debug_command:
             postrun = getattr(context, "post_dispatch_handler", None)

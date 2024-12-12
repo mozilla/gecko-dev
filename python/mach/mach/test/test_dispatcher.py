@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 from mozunit import main
-from six import string_types
 
 from mach.base import CommandContext
 from mach.registrar import Registrar
@@ -25,7 +24,7 @@ class TestDispatcher(unittest.TestCase):
             mach.settings.register_provider(provider)
 
         if config:
-            if isinstance(config, string_types):
+            if isinstance(config, str):
                 config = StringIO(config)
             mach.settings.load_fps([config])
 
