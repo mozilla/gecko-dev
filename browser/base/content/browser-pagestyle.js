@@ -61,9 +61,8 @@ var gPageStyleMenu = {
           "checked",
           !currentStyleSheet.disabled && !styleDisabled
         );
-        menuItem.setAttribute(
-          "oncommand",
-          "gPageStyleMenu.switchStyleSheet(this.getAttribute('data'));"
+        menuItem.addEventListener("command", event =>
+          this.switchStyleSheet(event.currentTarget.getAttribute("data"))
         );
         menuPopup.appendChild(menuItem);
         currentStyleSheets[currentStyleSheet.title] = menuItem;
