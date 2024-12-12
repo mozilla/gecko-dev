@@ -4,17 +4,19 @@
 "use strict";
 
 const kPrefCustomizationNavBarWhenVerticalTabs =
-  "browser.uiCustomization.verticalNavBar";
+  "browser.uiCustomization.navBarWhenVerticalTabs";
+const tabsToolbar = "TabsToolbar";
+const navBar = "nav-bar";
 
 add_setup(async () => {
+  Services.prefs.setCharPref(kPrefCustomizationNavBarWhenVerticalTabs, "");
   await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.verticalTabs", true]],
+    set: [["sidebar.revamp", true]],
   });
 });
 
 registerCleanupFunction(async () => {
   await SpecialPowers.popPrefEnv();
-  Services.prefs.clearUserPref(kPrefCustomizationNavBarWhenVerticalTabs);
   gBrowser.removeAllTabsBut(gBrowser.tabs[0]);
 });
 
@@ -23,6 +25,31 @@ registerCleanupFunction(async () => {
 // This test asserts we remember any tab strip widget customizations in the nav-bar
 // when switching between vertical and horizontal modes
 add_task(async function () {
+  let defaultHorizontalAllTabsPlacement =
+    CustomizableUI.getPlacementOfWidget("alltabs-button");
+  let defaultHorizontalFirefoxViewPlacement =
+    CustomizableUI.getPlacementOfWidget("firefox-view-button");
+  is(
+    defaultHorizontalAllTabsPlacement.area,
+    tabsToolbar,
+    `alltabs-button is in the ${tabsToolbar}`
+  );
+  is(
+    defaultHorizontalFirefoxViewPlacement.area,
+    tabsToolbar,
+    `firefox-view-button is in the ${tabsToolbar}`
+  );
+  info(
+    `alltabs-button is in its original default position ${defaultHorizontalAllTabsPlacement.position} for horizontal tabs mode`
+  );
+  info(
+    `firefox-view-button is in its original default position ${defaultHorizontalFirefoxViewPlacement.position} for horizontal tabs mode`
+  );
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.verticalTabs", true]],
+  });
+
   await startCustomizing();
   is(gBrowser.tabs.length, 2, "Should have 2 tabs");
 
@@ -34,45 +61,67 @@ add_task(async function () {
     "aftercustomization"
   );
 
-  let alltabsPlacement = CustomizableUI.getPlacementOfWidget("alltabs-button");
-  let firefoxViewPlacement = CustomizableUI.getPlacementOfWidget(
+  let defaultVerticalAllTabsPlacement =
+    CustomizableUI.getPlacementOfWidget("alltabs-button");
+  let defaultVerticalFirefoxViewPlacement = CustomizableUI.getPlacementOfWidget(
     "firefox-view-button"
   );
   is(
-    alltabsPlacement.position,
-    14,
-    "alltabs-button is in its original default position"
+    defaultVerticalAllTabsPlacement.area,
+    navBar,
+    `alltabs-button is in the ${navBar}`
   );
   is(
-    firefoxViewPlacement.position,
-    13,
-    "firefox-view-button is in its original default position"
+    defaultVerticalFirefoxViewPlacement.area,
+    navBar,
+    `firefox-view-button is in the ${navBar}`
+  );
+  info(
+    `alltabs-button is in its original default position ${defaultVerticalAllTabsPlacement.position} for vertical tabs mode`
+  );
+  info(
+    `firefox-view-button is in its original default position ${defaultVerticalFirefoxViewPlacement.position} for vertical tabs mode`
   );
 
-  CustomizableUI.moveWidgetWithinArea("alltabs-button", 1);
-  CustomizableUI.moveWidgetWithinArea("firefox-view-button", 2);
+  let customAllTabsPosition = 1;
+  let customFirefoxViewPosition = 2;
+  CustomizableUI.moveWidgetWithinArea("alltabs-button", customAllTabsPosition);
+  CustomizableUI.moveWidgetWithinArea(
+    "firefox-view-button",
+    customFirefoxViewPosition
+  );
 
   await BrowserTestUtils.switchTab(gBrowser, nonCustomizingTab);
   await finishedCustomizing;
 
-  alltabsPlacement = CustomizableUI.getPlacementOfWidget("alltabs-button");
-  firefoxViewPlacement = CustomizableUI.getPlacementOfWidget(
+  let alltabsPlacement = CustomizableUI.getPlacementOfWidget("alltabs-button");
+  let firefoxViewPlacement = CustomizableUI.getPlacementOfWidget(
     "firefox-view-button"
   );
-  is(alltabsPlacement.area, "nav-bar", "alltabs-button is in the nav-bar");
+  is(alltabsPlacement.area, navBar, `alltabs-button is in the ${navBar}`);
   is(
     firefoxViewPlacement.area,
-    "nav-bar",
-    "firefox-view-button is in the nav-bar"
+    navBar,
+    `firefox-view-button is in the ${navBar}`
+  );
+  isnot(
+    defaultVerticalAllTabsPlacement.position,
+    alltabsPlacement.position,
+    "alltabs-button has been moved from its default position"
+  );
+  isnot(
+    defaultVerticalFirefoxViewPlacement.position,
+    firefoxViewPlacement.position,
+    "firefox-view-button has been moved from its default position"
   );
   is(
     alltabsPlacement.position,
-    1,
+    customAllTabsPosition,
     "alltabs-button is in its new custom position"
   );
   is(
     firefoxViewPlacement.position,
-    2,
+    customFirefoxViewPosition,
     "firefox-view-button is in its new custom position"
   );
 
@@ -87,22 +136,22 @@ add_task(async function () {
   );
   is(
     horizontalAlltabsPlacement.area,
-    "TabsToolbar",
-    "alltabs-button is in the TabsToolbar"
+    tabsToolbar,
+    `alltabs-button is in the ${tabsToolbar}`
   );
   is(
     horizontalFirefoxViewPlacement.area,
-    "TabsToolbar",
-    "firefox-view-button is in the TabsToolbar"
+    tabsToolbar,
+    `firefox-view-button is in the ${tabsToolbar}`
   );
   is(
     horizontalAlltabsPlacement.position,
-    3,
+    defaultHorizontalAllTabsPlacement.position,
     "alltabs-button is in its default horizontal mode position"
   );
   is(
     horizontalFirefoxViewPlacement.position,
-    0,
+    defaultHorizontalFirefoxViewPlacement.position,
     "firefox-view-button is in its default horizontal mode position"
   );
 
@@ -116,20 +165,20 @@ add_task(async function () {
   let newFirefoxViewPlacement = CustomizableUI.getPlacementOfWidget(
     "firefox-view-button"
   );
-  is(newAlltabsPlacement.area, "nav-bar", "alltabs-button is in the nav-bar");
+  is(newAlltabsPlacement.area, navBar, `alltabs-button is in the ${navBar}`);
   is(
     newFirefoxViewPlacement.area,
-    "nav-bar",
-    "firefox-view-button is in the nav-bar"
+    navBar,
+    `firefox-view-button is in the ${navBar}`
   );
   is(
     newAlltabsPlacement.position,
-    1,
+    customAllTabsPosition,
     "alltabs-button is in its new custom position"
   );
   is(
     newFirefoxViewPlacement.position,
-    2,
+    customFirefoxViewPosition,
     "firefox-view-button is in its new custom position"
   );
 });
