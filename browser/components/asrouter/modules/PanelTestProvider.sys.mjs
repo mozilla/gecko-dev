@@ -20,6 +20,70 @@ const isMSIX =
 
 const MESSAGES = () => [
   {
+    id: "TAB_GROUP_TEST_CALLOUT",
+    template: "feature_callout",
+    groups: ["cfr"],
+    content: {
+      id: "TAB_GROUP_TEST_CALLOUT",
+      template: "multistage",
+      backdrop: "transparent",
+      transitions: false,
+      screens: [
+        {
+          id: "TAB_GROUP_TEST_CALLOUT",
+          anchors: [
+            {
+              selector: ".tab-content[selected]",
+              panel_position: {
+                anchor_attachment: "bottomcenter",
+                callout_attachment: "topright",
+              },
+            },
+          ],
+          content: {
+            position: "callout",
+            width: "333px",
+            padding: 16,
+            logo: {
+              imageURL:
+                "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/ce5a14ef-ed44-4c16-9aaf-eb99f58bcb4f.svg",
+              height: "190px",
+            },
+            title: {
+              raw: "Try tab groups for less clutter, more focus",
+            },
+            subtitle: {
+              raw: "Organize your tabs by dragging one tab on top of another to create your first tab group.",
+            },
+            primary_button: {
+              label: {
+                raw: "Got it",
+              },
+              action: {
+                dismiss: true,
+              },
+            },
+            dismiss_button: {
+              action: {
+                dismiss: true,
+              },
+              size: "small",
+              marginInline: "0 20px",
+              marginBlock: "20px 0",
+            },
+          },
+        },
+      ],
+    },
+    targeting: "tabsClosedCount >= 2 && currentTabsOpen >= 4",
+    trigger: {
+      id: "nthTabClosed",
+    },
+    frequency: {
+      lifetime: 1,
+    },
+  },
+  {
     id: "SET_DEFAULT_SPOTLIGHT_TEST",
     template: "spotlight",
     content: {

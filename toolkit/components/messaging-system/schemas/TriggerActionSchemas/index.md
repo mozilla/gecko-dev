@@ -51,6 +51,7 @@ let patterns: string[];
 - [`pdfJsFeatureCalloutCheck`](#pdfjsfeaturecalloutcheck)
 - [`newtabFeatureCalloutCheck`](#newtabfeaturecalloutcheck)
 - [`nthTabClosed`](#nthtabclosed)
+- [`nthTabOpened`](#nthtabopened)
 - [`activityAfterIdle`](#activityafteridle)
 - [`cookieBannerDetected`](#cookiebannerdetected)
 - [`cookieBannerHandled`](#cookiebannerhandled)
@@ -213,6 +214,43 @@ Happens when the user closes n or more tabs in a session
 {
   trigger: { id: "nthTabClosed" },
   targeting: "tabsClosedCount >= 2"
+}
+```
+```js
+// The trigger also tracks the number of tabs currently open,
+// and the currentTabsOpen context variable can be used in targeting
+// to ensure a minimum number of tabs are open.
+// Here, the message will trigger on the next tab closed
+// after 4 tabs are opened (and remain open).
+{
+  trigger: { id: "nthTabClosed" },
+  targeting: "currentTabsOpen >= 4"
+}
+```
+
+### `nthTabOpened`
+
+Happens when the user opens n or more tabs in a session
+
+```js
+// Register a message with the following trigger and
+// include the tabsOpenedCount context variable in the targeting.
+// Here, the message triggers once two or more tabs are opened,
+// even if the tabs were closed in between.
+{
+  trigger: { id: "nthTabOpened" },
+  targeting: "tabsOpenedCount >= 2"
+}
+```
+```js
+// The trigger also tracks the number of tabs currently open,
+// and the currentTabsOpen context variable can be used in targeting
+// to ensure a minimum number of tabs are open.
+// Here, the message will trigger on the next tab opened
+// while 4 tabs remain open in the browser.
+{
+  trigger: { id: "nthTabOpened" },
+  targeting: "currentTabsOpen >= 4"
 }
 ```
 

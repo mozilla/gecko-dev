@@ -195,6 +195,27 @@ add_task(async function test_nthTabClosed() {
   Assert.ok(handlerStub.notCalled, "Not called after uninit");
 });
 
+add_task(async function test_nthTabOpened() {
+  const handlerStub = sinon.stub();
+  const tabOpenedTrigger = ASRouterTriggerListeners.get("nthTabOpened");
+  tabOpenedTrigger.uninit();
+  tabOpenedTrigger.init(handlerStub);
+
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+
+  await BrowserTestUtils.openNewForegroundTab(win);
+  Assert.ok(handlerStub.calledOnce, "Called once after first tab opened");
+
+  await BrowserTestUtils.openNewForegroundTab(win);
+  Assert.ok(handlerStub.calledTwice, "Called twice after second tab opened");
+
+  BrowserTestUtils.closeWindow(win);
+  handlerStub.resetHistory();
+  tabOpenedTrigger.uninit();
+
+  Assert.ok(handlerStub.notCalled, "Not called after uninit");
+});
+
 add_task(async function test_cookieBannerDetected() {
   const handlerStub = sinon.stub();
   const bannerDetectedTrigger = ASRouterTriggerListeners.get(
