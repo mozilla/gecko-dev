@@ -107,6 +107,9 @@ nav-stop-shortcut =
 ai-chatbot-sidebar-shortcut =
     .key = X
 
+toggle-sidebar-shortcut =
+    .key = Z
+
 history-show-all-shortcut =
     .key = H
 

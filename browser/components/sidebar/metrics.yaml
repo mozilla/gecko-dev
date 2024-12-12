@@ -243,6 +243,28 @@ sidebar:
       addon_id:
         type: string
         description: The extension's ID.
+  keyboard_shortcut:
+    type: event
+    description: >
+      Revamped sidebar toggled with keyboard shortcut.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897411
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D229405
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      panel:
+        type: string
+        description: Sidebar panel is currently open if any.
+      opened:
+        type: boolean
+        description: Whether the sidebar is opening
 history:
   sidebar_toggle:
     type: event

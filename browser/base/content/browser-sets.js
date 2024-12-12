@@ -251,6 +251,11 @@ document.addEventListener(
       });
 
     document.getElementById("mainKeyset").addEventListener("command", event => {
+      const SIDEBAR_REVAMP_PREF = "sidebar.revamp";
+      const SIDEBAR_REVAMP_ENABLED = Services.prefs.getBoolPref(
+        SIDEBAR_REVAMP_PREF,
+        false
+      );
       switch (event.target.id) {
         case "goHome":
           BrowserCommands.home();
@@ -277,6 +282,15 @@ document.addEventListener(
           SidebarController.toggle("viewGenaiChatSidebar");
           break;
         }
+        case "toggleSidebarKb":
+          if (SIDEBAR_REVAMP_ENABLED) {
+            SidebarController.handleToolbarButtonClick();
+            Glean.sidebar.keyboardShortcut.record({
+              panel: SidebarController.currentID,
+              opened: SidebarController._state.launcherExpanded,
+            });
+          }
+          break;
         case "key_gotoHistory":
           SidebarController.toggle("viewHistorySidebar");
           break;

@@ -283,7 +283,7 @@ export const CustomizableWidgets = [
   },
   {
     id: "sidebar-button",
-    tooltiptext: "sidebar-button.tooltiptext2",
+    l10nId: "show-sidebars",
     defaultArea: "nav-bar",
     _introducedByPref: "sidebar.revamp",
     onCommand(aEvent) {

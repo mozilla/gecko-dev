@@ -59,6 +59,12 @@ known_errors = [
         "message": "(NS_ERROR_NOT_IMPLEMENTED) [nsIAppStartup.secondsSinceLastOSRestart]",
         "filename": "BrowserGlue",
     },
+    {
+        # Triggered as soon as anything tries to use shortcut keys.
+        # Bug 1936426 to reconsider warning as we want ctrl-z / ctrl-alt-z
+        # for sidebar.
+        "message": "toggleSidebarKb",
+    },
 ]
 
 # Same rules apply here - please don't add anything! - but headless runs

@@ -737,6 +737,7 @@ var SidebarController = {
     if (!this._sidebars.get(this.lastOpenedId)) {
       this.lastOpenedId = this.DEFAULT_SIDEBAR_ID;
     }
+    this.updateToolbarButton();
     this._inited = false;
     this.init();
   },
@@ -1088,26 +1089,32 @@ var SidebarController = {
    * Update `checked` state and tooltip text of the toolbar button.
    */
   updateToolbarButton(toolbarButton = this.toolbarButton) {
-    if (!this.sidebarRevampEnabled || !toolbarButton) {
-      // For the non-revamped sidebar, this is handled by CustomizableWidgets.
+    if (!toolbarButton) {
       return;
     }
-    toolbarButton.toggleAttribute("expanded", this.sidebarMain.expanded);
-    switch (this.sidebarRevampVisibility) {
-      case "always-show":
-        // Toolbar button controls expanded state.
-        toolbarButton.checked = this.sidebarMain.expanded;
-        toolbarButton.dataset.l10nId = toolbarButton.checked
-          ? "sidebar-widget-collapse-sidebar"
-          : "sidebar-widget-expand-sidebar";
-        break;
-      case "hide-sidebar":
-        // Toolbar button controls hidden state.
-        toolbarButton.checked = !this.sidebarContainer.hidden;
-        toolbarButton.dataset.l10nId = toolbarButton.checked
-          ? "sidebar-widget-hide-sidebar"
-          : "sidebar-widget-show-sidebar";
-        break;
+    if (!this.sidebarRevampEnabled) {
+      toolbarButton.dataset.l10nId = "show-sidebars";
+    } else {
+      let sidebarToggleKey = document.getElementById("toggleSidebarKb");
+      const shortcut = ShortcutUtils.prettifyShortcut(sidebarToggleKey);
+      this.toolbarButton.dataset.l10nArgs = JSON.stringify({ shortcut });
+      toolbarButton.toggleAttribute("expanded", this.sidebarMain.expanded);
+      switch (this.sidebarRevampVisibility) {
+        case "always-show":
+          // Toolbar button controls expanded state.
+          toolbarButton.checked = this.sidebarMain.expanded;
+          toolbarButton.dataset.l10nId = toolbarButton.checked
+            ? "sidebar-widget-collapse-sidebar2"
+            : "sidebar-widget-expand-sidebar2";
+          break;
+        case "hide-sidebar":
+          // Toolbar button controls hidden state.
+          toolbarButton.checked = !this.sidebarContainer.hidden;
+          toolbarButton.dataset.l10nId = toolbarButton.checked
+            ? "sidebar-widget-hide-sidebar2"
+            : "sidebar-widget-show-sidebar2";
+          break;
+      }
     }
   },
 

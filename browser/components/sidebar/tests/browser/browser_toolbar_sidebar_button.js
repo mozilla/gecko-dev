@@ -108,9 +108,12 @@ add_task(async function test_expanded_state_for_always_show() {
       document.l10n.getAttributes(button),
       {
         id: expanded
-          ? "sidebar-widget-collapse-sidebar"
-          : "sidebar-widget-expand-sidebar",
-        args: null,
+          ? "sidebar-widget-collapse-sidebar2"
+          : "sidebar-widget-expand-sidebar2",
+        args:
+          AppConstants.platform === "macosx"
+            ? { shortcut: "⌃Z" }
+            : { shortcut: "Alt+Ctrl+Z" },
       },
       "Toolbar button has the correct tooltip."
     );
@@ -203,9 +206,12 @@ add_task(async function test_states_for_hide_sidebar() {
       document.l10n.getAttributes(button),
       {
         id: hidden
-          ? "sidebar-widget-show-sidebar"
-          : "sidebar-widget-hide-sidebar",
-        args: null,
+          ? "sidebar-widget-show-sidebar2"
+          : "sidebar-widget-hide-sidebar2",
+        args:
+          AppConstants.platform === "macosx"
+            ? { shortcut: "⌃Z" }
+            : { shortcut: "Alt+Ctrl+Z" },
       },
       "Toolbar button has the correct tooltip."
     );
@@ -287,5 +293,40 @@ add_task(async function test_sidebar_button_runtime_pref_enabled() {
     widgetPlacement.area,
     CustomizableUI.AREA_NAVBAR,
     "The sidebar button is in the nav-bar"
+  );
+});
+
+/**
+ * Check that keyboard shortcut toggles sidebar
+ */
+add_task(async function test_keyboard_shortcut() {
+  const sidebar = document.querySelector("sidebar-main");
+  const key = document.getElementById("toggleSidebarKb");
+
+  Assert.ok(!sidebar.expanded, "Sidebar collapsed by default");
+
+  key.doCommand();
+
+  Assert.ok(sidebar.expanded, "Sidebar expanded with keyboard");
+
+  key.doCommand();
+
+  Assert.ok(!sidebar.expanded, "Closed sidebar with keyboard");
+  const events = Glean.sidebar.keyboardShortcut.testGetValue();
+  Assert.equal(events.length, 2, "Got 2 keyboard events");
+  Assert.equal(
+    events[0].extra.panel,
+    "",
+    "No sidebar panels opened when expanding via keyboard shortcut"
+  );
+  Assert.equal(
+    events[0].extra.opened,
+    "true",
+    "Glean event recorded that sidebar was expanded/shown with keyboard shortcut"
+  );
+  Assert.equal(
+    events[1].extra.opened,
+    "false",
+    "Glean event recorded that sidebar was collapsed/hidden with keyboard shortcut"
   );
 });
