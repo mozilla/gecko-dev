@@ -144,17 +144,24 @@ add_task(async function aes128gcm_rs() {
     info(`testing expected decoder failure with rs=${rs}`);
     let message = new TextEncoder().encode(payload);
     let authSecret = crypto.getRandomValues(new Uint8Array(16));
-    const { ciphertext, encoding } = await PushCrypto.encrypt(message, recvPublicKey, authSecret);
+    const { ciphertext, encoding } = await PushCrypto.encrypt(
+      message,
+      recvPublicKey,
+      authSecret
+    );
     // Given it doesn't make sense to encrypt with invalid param,
     // we just overwrite the header with invalid value
     new DataView(ciphertext.buffer).setUint32(16, rs);
-    await Assert.rejects(PushCrypto.decrypt(
-      recvPrivateKey,
-      recvPublicKey,
-      authSecret,
-      { encoding },
-      ciphertext
-    ), /Record sizes smaller than 18 are invalid/);
+    await Assert.rejects(
+      PushCrypto.decrypt(
+        recvPrivateKey,
+        recvPublicKey,
+        authSecret,
+        { encoding },
+        ciphertext
+      ),
+      /Record sizes smaller than 18 are invalid/
+    );
   }
   for (let rs of [18, 50, 1024, 4096, 16384]) {
     info(`testing expected success with rs=${rs}`);
