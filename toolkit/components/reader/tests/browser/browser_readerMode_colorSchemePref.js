@@ -68,6 +68,7 @@ add_task(async function () {
 
 async function testColorsFocus() {
   // Set the theme selection to auto.
+  Services.prefs.setBoolPref("reader.colors_menu.enabled", true);
   Services.prefs.setCharPref("reader.color_scheme", "auto");
 
   // Open a browser tab, enter reader mode, and test if focus stays

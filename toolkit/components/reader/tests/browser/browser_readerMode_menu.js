@@ -106,9 +106,9 @@ add_task(async function () {
 
       await SpecialPowers.spawn(browser, [], async function () {
         let doc = content.document;
-        let dropdown = doc.querySelector(".text-layout-dropdown");
+        let dropdown = doc.querySelector(".improved-style-dropdown");
 
-        doc.querySelector(".text-layout-button").click();
+        doc.querySelector(".improved-style-button").click();
         ok(dropdown.classList.contains("open"), "dropdown is open");
 
         // hover outside the dropdown and scroll
@@ -122,7 +122,9 @@ add_task(async function () {
       });
       await scrollEventPromise;
       await SpecialPowers.spawn(browser, [], async function () {
-        let dropdown = content.document.querySelector(".text-layout-dropdown");
+        let dropdown = content.document.querySelector(
+          ".improved-style-dropdown"
+        );
         ok(!dropdown.classList.contains("open"), "dropdown is closed");
       });
 
@@ -134,10 +136,10 @@ add_task(async function () {
 
       await SpecialPowers.spawn(browser, [], async function () {
         let doc = content.document;
-        let dropdown = doc.querySelector(".text-layout-dropdown");
+        let dropdown = doc.querySelector(".improved-style-dropdown");
 
         // reopen the dropdown
-        doc.querySelector(".text-layout-button").click();
+        doc.querySelector(".improved-style-button").click();
         ok(dropdown.classList.contains("open"), "dropdown is open");
 
         // hover over the dropdown and scroll
@@ -153,7 +155,9 @@ add_task(async function () {
       });
       await scrollEventPromise;
       await SpecialPowers.spawn(browser, [], async function () {
-        let dropdown = content.document.querySelector(".text-layout-dropdown");
+        let dropdown = content.document.querySelector(
+          ".improved-style-dropdown"
+        );
         ok(dropdown.classList.contains("open"), "dropdown remains open");
       });
     }

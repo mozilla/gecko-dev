@@ -29,6 +29,21 @@ about-reader-estimated-read-time =
        *[other] { $range } minutes
     }
 
+## These are used as tooltips in Type Control
+
+about-reader-toolbar-minus =
+    .title = Decrease font size
+about-reader-toolbar-plus =
+    .title = Increase font size
+about-reader-toolbar-contentwidthminus =
+    .title = Decrease Content Width
+about-reader-toolbar-contentwidthplus =
+    .title = Increase Content Width
+about-reader-toolbar-lineheightminus =
+    .title = Decrease Line Height
+about-reader-toolbar-lineheightplus =
+    .title = Increase Line Height
+
 ## These are the styles of typeface that are options in the reader view controls.
 
 about-reader-font-type-serif = Serif
@@ -38,6 +53,7 @@ about-reader-font-type-monospace = Monospace
 ## Reader View toolbar buttons
 
 about-reader-toolbar-close = Close Reader View
+about-reader-toolbar-type-controls = Type controls
 about-reader-toolbar-text-layout-controls = Text and layout
 about-reader-toolbar-theme-controls = Theme
 about-reader-toolbar-savetopocket = Save to { -pocket-brand-name }
@@ -68,16 +84,11 @@ about-reader-custom-colors-selection-highlight = Highlighter for read aloud
 
 about-reader-reset-button = Reset defaults
 
-## Reader View text and layout menu
+## Reader View improved text and layout menu
 
 about-reader-text-header = Text
 
 about-reader-text-size-label = Text size
-about-reader-toolbar-minus =
-    .title = Decrease font size
-about-reader-toolbar-plus =
-    .title = Increase font size
-
 about-reader-font-type-selector-label = Font
 about-reader-font-weight-selector-label = Font weight
 

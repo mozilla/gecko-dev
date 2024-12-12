@@ -6,6 +6,7 @@
  * inadvertently match elements in the article content. */
 
 body {
+  --current-voice: #7f7f7f;
   --narrate-word-highlight-color: #ffe087;
   --narrating-paragraph-background-color: #ffc;
 }
@@ -17,6 +18,7 @@ body.sepia {
 
 body.dark,
 body.contrast {
+  --current-voice: #a09eac;
   --narrate-word-highlight-color: #6f6f6f;
   --narrating-paragraph-background-color: #242424;
 }
@@ -26,6 +28,7 @@ body.custom {
 }
 
 body.hcm {
+  --current-voice: inherit;
   --narrate-word-highlight-color: SelectedItem;
   --narrating-paragraph-background-color: Canvas;
 }
@@ -63,119 +66,98 @@ body.hcm .narrate-word-highlight {
 
 .narrate-toggle {
   background-image: url("chrome://global/skin/narrate/headphone.svg");
-
-  .speaking & {
-    /* This shows with an animation. */
-    background-image: url("chrome://global/skin/narrate/headphone-active.svg");
-    fill: var(--toolbar-button-foreground-active);
-  }
-
-  body.hcm .speaking & {
-    background-color: var(--toolbar-button-background-active);
-    border-color: var(--toolbar-button-border-active);
-  }
-
-  body.hcm .speaking:not(.open) &:hover {
-    background-color: var(--toolbar-button-background-hover);
-    border-color: var(--toolbar-button-border-hover);
-    fill: var(--toolbar-button-foreground-hover);
-  }
 }
 
-.narrate-dropdown > .dropdown-popup {
-  padding: var(--space-small) var(--space-large);
+.speaking .narrate-toggle {
+  /* This shows with an animation. */
+  background-image: url("chrome://global/skin/narrate/headphone-active.svg");
+  fill: var(--toolbar-button-foreground-active);
+}
 
-  button:enabled:hover {
-    background-color: var(--popup-button-background-hover);
-    color: var(--popup-button-foreground-hover);
-    fill: var(--popup-button-foreground-hover);
+body.hcm .speaking .narrate-toggle {
+  background-color: var(--toolbar-button-background-active);
+  border-color: var(--toolbar-button-border-active);
+}
 
-    body.hcm & {
-      border-color: SelectedItem;
-    }
-  }
+body.hcm .speaking:not(.open) .narrate-toggle:hover {
+  background-color: var(--toolbar-button-background-hover);
+  border-color: var(--toolbar-button-border-hover);
+  fill: var(--toolbar-button-foreground-hover);
+}
 
-  button:enabled:hover:active {
-    background-color: var(--popup-button-background-active);
+.narrate-dropdown > .dropdown-popup button {
+  background-color: transparent;
+  fill: var(--popup-button-foreground);
+}
 
-    body.hcm & {
-      border-color: ButtonText;
-    }
-  }
+.narrate-dropdown > .dropdown-popup button:enabled:hover {
+  background-color: var(--popup-button-background-hover);
+  color: var(--popup-button-foreground-hover);
+  fill: var(--popup-button-foreground-hover);
+}
 
-  button:enabled:focus-visible {
-    outline: 2px solid var(--outline-focus-color);
-    outline-offset: -2px;
-  }
+.narrate-dropdown > .dropdown-popup button:enabled:hover:active {
+  background-color: var(--popup-button-background-active);
+}
+
+.narrate-dropdown > .dropdown-popup button:enabled:focus-visible {
+  outline: 2px solid var(--outline-focus-color);
+  outline-offset: -2px;
 }
 
 .narrate-row {
   display: flex;
   align-items: center;
-  padding-block: var(--space-small);
+  min-height: 40px;
+  box-sizing: border-box;
+}
 
-  &:not(.narrate-voices) {
-    direction: ltr;
-  }
+.narrate-row:not(.narrate-voices) {
+  direction: ltr;
+}
+
+.narrate-row:not(:first-child) {
+  border-top: 1px solid var(--popup-line);
 }
 
 /* Control buttons */
 
-.narrate-control {
-  gap: var(--space-xxsmall);
+.narrate-control > button {
+  background-size: 24px 24px;
+  background-repeat: no-repeat;
+  background-position: center center;
+  height: 64px;
+  width: 82px;
+  border: none;
+  box-sizing: border-box;
+}
 
-  button {
-    display: flex;
-    flex: 1;
-    min-height: 36px;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 20px 20px;
-    background-color: var(--popup-button-background);
-    color: var(--popup-button-foreground);
-    fill: currentColor;
-    -moz-context-properties: fill;
-    border: none;
+.narrate-control > button:not(:first-child) {
+  border-inline-start: 1px solid var(--popup-line);
+}
 
-    &:first-of-type {
-      border-start-start-radius: var(--border-radius-small);
-      border-end-start-radius: var(--border-radius-small);
-    }
+.narrate-skip-previous {
+  border-top-left-radius: 3px;
+  background-image: url("chrome://global/skin/narrate/back.svg");
+}
 
-    &:last-of-type {
-      border-start-end-radius: var(--border-radius-small);
-      border-end-end-radius: var(--border-radius-small);
-    }
+.narrate-skip-next {
+  border-top-right-radius: 3px;
+  background-image: url("chrome://global/skin/narrate/forward.svg");
+}
 
-    &.narrate-skip-previous {
-      background-image: url("chrome://global/skin/narrate/skip-backward-20.svg");
-    }
+.narrate-start-stop {
+  background-image: url("chrome://global/skin/narrate/start.svg");
+}
 
-    &.narrate-skip-next {
-      background-image: url("chrome://global/skin/narrate/skip-forward-20.svg");
-    }
-
-    &.narrate-start-stop {
-      background-image: url("chrome://global/skin/media/play-fill.svg");
-
-      .narrate-dropdown.speaking & {
-        background-image: url("chrome://global/skin/media/pause-fill.svg");
-      }
-    }
-
-    body.hcm & {
-      border: 1px solid var(--popup-button-border);
-
-      &:disabled {
-        border-color: var(--icon-disabled-fill);
-      }
-    }
-  }
+.narrate-dropdown.speaking .narrate-start-stop {
+  background-image: url("chrome://global/skin/narrate/stop.svg");
 }
 
 /* Rate control */
 
-.narrate-rate-icon {
+.narrate-rate::before,
+.narrate-rate::after {
   content: '';
   width: 48px;
   height: 40px;
@@ -183,99 +165,115 @@ body.hcm .narrate-word-highlight {
   background-repeat: no-repeat;
   background-size: 24px auto;
   -moz-context-properties: fill;
-  fill: var(--popup-foreground);
+  fill: var(--popup-button-foreground);
+}
 
-  &.slow {
-    background-image: url("chrome://global/skin/narrate/slow.svg");
-  }
+.narrate-rate::before {
+  background-image: url("chrome://global/skin/narrate/slow.svg");
+}
 
-  &.fast {
-    background-image: url("chrome://global/skin/narrate/fast.svg");
-  }
+.narrate-rate::after {
+  background-image: url("chrome://global/skin/narrate/fast.svg");
 }
 
 .narrate-rate-input {
-  width: 200px;
+  margin: 0 1px;
+  flex-grow: 1;
+  background-color: var(--popup-background);
+  border-radius: 2px;
+  width: 148px;
+}
+
+.narrate-rate-input:focus-visible {
+  outline: 2px solid var(--outline-focus-color);
+  outline-offset: 2px;
+}
+
+.narrate-rate-input::-moz-range-track {
+  background-color: var(--popup-button-foreground);
+  height: 2px;
+}
+
+.narrate-rate-input::-moz-range-progress {
+  background-color: var(--primary-color);
+  height: 2px;
+}
+
+.narrate-rate-input::-moz-range-thumb {
+  background-color: var(--popup-button-foreground);
+  height: 16px;
+  width: 16px;
+  border-radius: 8px;
+  border-width: 0;
+}
+
+.narrate-rate-input:active::-moz-range-thumb {
+  background-color: var(--primary-color);
 }
 
 /* Voice selection */
 
 .voiceselect {
+  width: 246px;
+}
+
+.voiceselect > button.select-toggle,
+.voiceselect > .options > button.option {
+  appearance: none;
+  border: none;
   width: 100%;
+  min-height: 40px;
+}
 
-  > button.select-toggle,
-  > .options > button.option {
-    appearance: none;
-    width: 100%;
-    min-height: 36px;
-    border: 1px solid transparent;
-    color: var(--popup-button-foreground);
-    font-size: 15px;
+.voiceselect > button.select-toggle::after {
+  content: '';
+  background-image: url("chrome://global/skin/narrate/arrow.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 12px 12px;
+  display: inline-block;
+  width: 1.5em;
+  height: 1em;
+  vertical-align: middle;
+}
 
-    body.hcm & {
-      border-color: var(--popup-button-border);
-    }
-  }
+.current-voice {
+  color: var(--current-voice);
+}
 
-  > button.select-toggle {
-    display: flex;
-    align-items: center;
-    padding-inline: var(--space-medium);
-    border-radius: var(--border-radius-small);
-    background-color: var(--popup-button-background);
-    font-weight: var(--font-weight-bold);
-    -moz-context-properties: fill;
-    fill: currentColor;
+.voiceselect .label {
+  color: var(--popup-button-foreground);
+}
 
-    .current-voice {
-      display: flex;
-      width: 100%;
-      padding-inline: var(--space-small);
-    }
-  }
+.voiceselect > .options {
+  display: none;
+  overflow-y: auto;
+}
 
-  > button.select-toggle::before,
-  > button.select-toggle::after {
-    content: "";
-    width: 24px;
-    height: var(--icon-size-default);
-    background-repeat: no-repeat;
-    background-size: var(--icon-size-default) auto;
-  }
+.voiceselect.open > .options {
+  display: block;
+  border-top: 1px solid var(--popup-line);
+}
 
-  > button.select-toggle::before {
-    background-image: url("chrome://global/skin/media/audio.svg");
-  }
+.voiceselect > .options > button.option {
+  box-sizing: border-box;
+  color: var(--popup-button-foreground);
+}
 
-  > button.select-toggle::after {
-    background-image: url("chrome://global/skin/icons/arrow-down.svg");
-  }
+.voiceselect > .options > button.option:not(:first-child) {
+  border-top: 1px solid var(--popup-line);
+}
 
-  &.open > button.select-toggle::after {
-    background-image: url("chrome://global/skin/icons/arrow-up.svg");
-  }
+.voiceselect > .options > button.option::-moz-focus-inner {
+  outline: none;
+  border: 0;
+}
 
-  > .options {
-    display: none;
-    overflow-y: auto;
+.voiceselect > .options:not(.hovering) > button.option:hover:not(:focus) {
+  background-color: transparent;
+}
 
-    > button.option {
-      background-color: transparent;
-      text-align: start;
-      padding-inline-start: var(--space-medium);
-    }
-
-    > button.option::-moz-focus-inner {
-      outline: none;
-      border: 0;
-    }
-
-    &:not(.hovering) > button.option:hover:not(:focus) {
-      background-color: transparent;
-    }
-  }
-
-  &.open > .options {
-    display: block;
-  }
+.voiceselect:not(.open) > button,
+.voiceselect .option:last-child {
+  border-radius: 0 0 3px 3px;
 }
