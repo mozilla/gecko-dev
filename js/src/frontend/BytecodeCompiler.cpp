@@ -1487,7 +1487,7 @@ static bool CompileLazyFunctionToStencilMaybeInstantiate(
         .setAllowRelazify();
   }
 
-  if (input.options.checkDelazificationCache()) {
+  if (stencils && input.options.checkDelazificationCache()) {
     const CompilationStencil* cached =
         stencils->getDelazificationFor(input.extent());
     if (cached) {
