@@ -141,9 +141,7 @@
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsIOutputStream.h"
-#include "nsIQuotaManagerServiceInternal.h"
 #include "nsIQuotaRequests.h"
-#include "nsIQuotaUtilsService.h"
 #include "nsIPlatformInfo.h"
 #include "nsIPrincipal.h"
 #include "nsIRunnable.h"
@@ -1625,52 +1623,6 @@ QuotaManager::Observer::Observe(nsISupports* aSubject, const char* aTopic,
           "profile-do-change must precede sessionstore-windows-restored!");
       return NS_OK;
     }
-
-    auto setThumbnailPrivateIdentityId = []() {
-      nsCOMPtr<nsIQuotaManagerServiceInternal> quotaManagerService =
-          QuotaManagerService::GetOrCreate();
-      if (NS_WARN_IF(!quotaManagerService)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      nsCOMPtr<nsIQuotaUtilsService> quotaUtilsService =
-          do_GetService("@mozilla.org/dom/quota-utils-service;1");
-      if (NS_WARN_IF(!quotaUtilsService)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      uint32_t thumbnailPrivateIdentityId;
-      nsresult rv = quotaUtilsService->GetPrivateIdentityId(
-          u"userContextIdInternal.thumbnail"_ns, &thumbnailPrivateIdentityId);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-
-      rv = quotaManagerService->SetThumbnailPrivateIdentityId(
-          thumbnailPrivateIdentityId);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-
-      return NS_OK;
-    };
-
-    // StartupRecorder.sys.mjs transitions from before handling user events when
-    // it gets the sessionstore-windows-restored notification, but the actual
-    // transition is done asynchronously:
-    // https://searchfox.org/mozilla-central/rev/a77c79d60e2adee009b8641b3a80d9520481c01a/browser/components/StartupRecorder.sys.mjs#189
-    // This must be done asynchronously too to avoid test failures, such as in:
-    // browser/base/content/test/performance/browser_startup.js
-    // where this error would occur:
-    // "resource://gre/modules/ContextualIdentityService.sys.mjs is not allowed
-    // before handling user events"
-    MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(NS_NewRunnableFunction(
-        "QuotaManager::Observer::Observe", [setThumbnailPrivateIdentityId]() {
-          nsresult rv = setThumbnailPrivateIdentityId();
-          if (NS_WARN_IF(NS_FAILED(rv))) {
-            return;
-          }
-        })));
 
     return NS_OK;
   }
@@ -6925,26 +6877,6 @@ QuotaManager::AllClientTypes() {
     return *mAllClientTypes;
   }
   return *mAllClientTypesExceptLS;
-}
-
-bool QuotaManager::IsThumbnailPrivateIdentityIdKnown() const {
-  AssertIsOnIOThread();
-
-  return mIOThreadAccessible.Access()->mThumbnailPrivateIdentityId.isSome();
-}
-
-uint32_t QuotaManager::GetThumbnailPrivateIdentityId() const {
-  AssertIsOnIOThread();
-
-  return mIOThreadAccessible.Access()->mThumbnailPrivateIdentityId.ref();
-}
-
-void QuotaManager::SetThumbnailPrivateIdentityId(
-    uint32_t aThumbnailPrivateIdentityId) {
-  AssertIsOnIOThread();
-
-  mIOThreadAccessible.Access()->mThumbnailPrivateIdentityId =
-      Some(aThumbnailPrivateIdentityId);
 }
 
 uint64_t QuotaManager::GetGroupLimit() const {

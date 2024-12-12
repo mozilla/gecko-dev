@@ -31,19 +31,6 @@ class TestQuotaManager : public QuotaManagerDependencyFixture {
   }
 };
 
-TEST_F(TestQuotaManager, GetThumbnailPrivateIdentityId) {
-  PerformOnIOThread([]() {
-    QuotaManager* quotaManager = QuotaManager::Get();
-    ASSERT_TRUE(quotaManager);
-
-    const bool known = quotaManager->IsThumbnailPrivateIdentityIdKnown();
-    ASSERT_TRUE(known);
-
-    const uint32_t id = quotaManager->GetThumbnailPrivateIdentityId();
-    ASSERT_GT(id, 4u);
-  });
-}
-
 // Test OpenStorageDirectory when an opening of the storage directory is
 // already ongoing and storage shutdown is scheduled after that.
 TEST_F(TestQuotaManager, OpenStorageDirectory_OngoingWithScheduledShutdown) {
