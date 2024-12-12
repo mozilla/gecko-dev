@@ -791,27 +791,39 @@ class nsWindow final : public nsBaseWidget {
   PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate = nullptr;
 
   LayoutDeviceIntMargin NonClientSizeMargin() const {
-    return NonClientSizeMargin(mNonClientOffset);
+    return NonClientSizeMargin(mCustomNonClientMetrics.mOffset);
   }
   LayoutDeviceIntMargin NonClientSizeMargin(
       const LayoutDeviceIntMargin& aNonClientOffset) const;
   LayoutDeviceIntMargin NormalWindowNonClientOffset() const;
 
-  // Non-client margin settings
-  // Pre-calculated outward offset applied to default frames
-  LayoutDeviceIntMargin mNonClientOffset;
+  struct CustomNonClientMetrics {
+    // Width of the left and right portions of the resize region
+    mozilla::LayoutDeviceIntCoord mHorResizeMargin;
+    // Height of the top and bottom portions of the resize region
+    mozilla::LayoutDeviceIntCoord mVertResizeMargin;
+    // Height of the caption plus border
+    mozilla::LayoutDeviceIntCoord mCaptionHeight;
+    // Pre-calculated outward offset applied to the default frame
+    LayoutDeviceIntMargin mOffset;
+
+    LayoutDeviceIntMargin ResizeMargins() const {
+      return {mVertResizeMargin, mHorResizeMargin, mVertResizeMargin,
+              mHorResizeMargin};
+    }
+
+    LayoutDeviceIntMargin DefaultMargins() const {
+      auto margins = ResizeMargins();
+      margins.top += mCaptionHeight;
+      return margins;
+    }
+  } mCustomNonClientMetrics;
 
   // Indicates the custom titlebar is enabled.
   bool mCustomNonClient = false;
   // Whether we want to draw to the titlebar once the chrome shows. (Always
-  // Nothing if mHideChrome is false).
+  // Nothing if mHideChrome is false.)
   mozilla::Maybe<bool> mCustomTitlebarOnceChromeShows;
-  // Width of the left and right portions of the resize region
-  mozilla::LayoutDeviceIntCoord mHorResizeMargin;
-  // Height of the top and bottom portions of the resize region
-  mozilla::LayoutDeviceIntCoord mVertResizeMargin;
-  // Height of the caption plus border
-  mozilla::LayoutDeviceIntCoord mCaptionHeight;
   // Custom extra resize margin width.
   mozilla::LayoutDeviceIntCoord mCustomResizeMargin{0};
 

@@ -2545,7 +2545,8 @@ LayoutDeviceIntMargin nsWindow::NormalWindowNonClientOffset() const {
   //
   // When using custom titlebar, we hide the titlebar and leave the default
   // frame on the other sides.
-  return LayoutDeviceIntMargin(mCaptionHeight + mVertResizeMargin, 0, 0, 0);
+  return LayoutDeviceIntMargin(mCustomNonClientMetrics.DefaultMargins().top, 0,
+                               0, 0);
 }
 
 /**
@@ -2576,6 +2577,8 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
 
   float dpi = GetDPI();
 
+  auto& metrics = mCustomNonClientMetrics;
+
   // mHorResizeMargin is the size of the default NC areas on the
   // left and right sides of our window.  It is calculated as
   // the sum of:
@@ -2585,7 +2588,7 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
   //
   // If the window does not have a caption, mHorResizeMargin will be equal to
   // `WinUtils::GetSystemMetricsForDpi(SM_CXFRAME, dpi)`
-  mHorResizeMargin =
+  metrics.mHorResizeMargin =
       WinUtils::GetSystemMetricsForDpi(SM_CXFRAME, dpi) +
       (hasCaption ? WinUtils::GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi)
                   : 0);
@@ -2598,7 +2601,7 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
   //
   // If the window does not have a caption, mVertResizeMargin will be equal to
   // `WinUtils::GetSystemMetricsForDpi(SM_CYFRAME, dpi)`
-  mVertResizeMargin =
+  metrics.mVertResizeMargin =
       WinUtils::GetSystemMetricsForDpi(SM_CYFRAME, dpi) +
       (hasCaption ? WinUtils::GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi)
                   : 0);
@@ -2606,15 +2609,12 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
   // mCaptionHeight is the default size of the caption. You need to include
   // mVertResizeMargin if you want the whole size of the default NC area at the
   // top of the window.
-  mCaptionHeight =
+  metrics.mCaptionHeight =
       hasCaption ? WinUtils::GetSystemMetricsForDpi(SM_CYCAPTION, dpi) : 0;
 
+  metrics.mOffset = {};
   if (sizeMode == nsSizeMode_Minimized) {
-    // Use default frame size for minimized windows
-    mNonClientOffset.top = 0;
-    mNonClientOffset.left = 0;
-    mNonClientOffset.right = 0;
-    mNonClientOffset.bottom = 0;
+    // Use default frame size for minimized windows (so, do nothing).
   } else if (sizeMode == nsSizeMode_Fullscreen) {
     // Remove the default frame from the top of our fullscreen window.  This
     // makes the whole caption part of our client area, allowing us to draw
@@ -2626,31 +2626,25 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
     // and extend into the frame. It might be worth investigating if we can
     // make fullscreen work without messing with window styles (like
     // maximized windows work).
-    mNonClientOffset.top = mVertResizeMargin + mCaptionHeight;
-    mNonClientOffset.bottom = mVertResizeMargin;
-    mNonClientOffset.left = mHorResizeMargin;
-    mNonClientOffset.right = mHorResizeMargin;
+    metrics.mOffset = metrics.DefaultMargins();
   } else if (sizeMode == nsSizeMode_Maximized) {
     // We make the entire frame part of the client area. We leave the default
     // frame sizes for left, right and bottom since Windows will automagically
     // position the edges "offscreen" for maximized windows.
-    mNonClientOffset.top = mCaptionHeight;
-    mNonClientOffset.bottom = 0;
-    mNonClientOffset.left = 0;
-    mNonClientOffset.right = 0;
+    metrics.mOffset.top = metrics.mCaptionHeight;
 
     if (mozilla::Maybe<UINT> maybeEdge = GetHiddenTaskbarEdge()) {
       auto edge = maybeEdge.value();
       if (ABE_LEFT == edge) {
-        mNonClientOffset.left -= kHiddenTaskbarSize;
+        metrics.mOffset.left -= kHiddenTaskbarSize;
       } else if (ABE_RIGHT == edge) {
-        mNonClientOffset.right -= kHiddenTaskbarSize;
+        metrics.mOffset.right -= kHiddenTaskbarSize;
       } else if (ABE_BOTTOM == edge || ABE_TOP == edge) {
-        mNonClientOffset.bottom -= kHiddenTaskbarSize;
+        metrics.mOffset.bottom -= kHiddenTaskbarSize;
       }
     }
   } else {
-    mNonClientOffset = NormalWindowNonClientOffset();
+    metrics.mOffset = NormalWindowNonClientOffset();
   }
 
   UpdateOpaqueRegionInternal();
@@ -2718,6 +2712,7 @@ void nsWindow::SetCustomTitlebar(bool aCustomTitlebar) {
           (HICON)::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL, 0);
       ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)icon);
     }
+    mCustomNonClientMetrics = {};
     ResetLayout();
   }
 }
@@ -5922,11 +5917,7 @@ void nsWindow::FinishLiveResizing(ResizeState aNewState) {
 
 LayoutDeviceIntMargin nsWindow::NonClientSizeMargin(
     const LayoutDeviceIntMargin& aNonClientOffset) const {
-  return LayoutDeviceIntMargin(
-      mCaptionHeight + mVertResizeMargin - aNonClientOffset.top,
-      mHorResizeMargin - aNonClientOffset.right,
-      mVertResizeMargin - aNonClientOffset.bottom,
-      mHorResizeMargin - aNonClientOffset.left);
+  return mCustomNonClientMetrics.DefaultMargins() - aNonClientOffset;
 }
 
 int32_t nsWindow::ClientMarginHitTestPoint(int32_t aX, int32_t aY) {
@@ -5976,9 +5967,7 @@ int32_t nsWindow::ClientMarginHitTestPoint(int32_t aX, int32_t aY) {
   // E.g., user must expect that Firefox button always opens the popup menu
   // even when the user clicks on the above edge of it.
   LayoutDeviceIntMargin borderSize = nonClientSizeMargin;
-  borderSize.EnsureAtLeast(
-      LayoutDeviceIntMargin(mVertResizeMargin, mHorResizeMargin,
-                            mVertResizeMargin, mHorResizeMargin));
+  borderSize.EnsureAtLeast(mCustomNonClientMetrics.ResizeMargins());
   // If we have a custom resize margin, check for it too.
   if (mCustomResizeMargin) {
     borderSize.EnsureAtLeast(
