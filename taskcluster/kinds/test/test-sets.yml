@@ -405,9 +405,19 @@ web-platform-tests-1015:
     - web-platform-tests-reftest
 
 macosx1470-64-tests:
+    - cppunittest
+    - crashtest
+    - firefox-ui-functional
+    - gtest
+    - jittest
+    - jsreftest
     - marionette
     - marionette-unittest
+    - reftest
     - telemetry-tests-client
+    - test-verify
+    - test-verify-gpu
+    - test-verify-wpt
     - web-platform-tests
     - web-platform-tests-canvas
     - web-platform-tests-crashtest
@@ -417,14 +427,12 @@ macosx1470-64-tests:
     - web-platform-tests-reftest
     - web-platform-tests-wdspec
     - web-platform-tests-webcodecs
+    - xpcshell
 
 macosx1015-64-qr-tests:
     - cppunittest
     - crashtest
-    - firefox-ui-functional
-    - gtest
     - jittest
-    - jsreftest
     - mochitest-a11y
     - mochitest-browser-a11y
     - mochitest-browser-chrome
@@ -441,10 +449,6 @@ macosx1015-64-qr-tests:
     - mochitest-webgl1-ext
     - mochitest-webgl2-core
     - mochitest-webgl2-ext
-    - reftest
-    - test-verify
-    - test-verify-gpu
-    - test-verify-wpt
     - xpcshell
 
 macosx64-talos:

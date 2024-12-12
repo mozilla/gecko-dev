@@ -337,6 +337,7 @@ macosx1100-aarch64-shippable-qr/opt:
 macosx1470-64-shippable/opt:
     build-platform: macosx64-shippable/opt
     test-sets:
+        - awsy
         - macosx64-talos
         - talos-profiling
         - macosx1470-64-tests

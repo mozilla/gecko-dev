@@ -73,6 +73,9 @@ task-defaults:
                 macosx1015.*:
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
+                macosx1470.*:
+                    - macosx64-minidump-stackwalk
+                    - macosx64-fix-stacks
                 macosx1100.*:
                     - macosx64-aarch64-minidump-stackwalk
                     - macosx64-aarch64-fix-stacks

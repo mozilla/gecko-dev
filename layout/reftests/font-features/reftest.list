@@ -92,7 +92,7 @@ random-if(!winWidget&&!cocoaWidget) == fwid-spaces.html fwid-spaces-ref.html
 random-if(!winWidget&&!cocoaWidget) fails-if(winWidget||cocoaWidget) != kerning-spaces-arial-nokern.html kerning-spaces-arial-default.html
 random-if(!winWidget&&!cocoaWidget) fails-if(winWidget||cocoaWidget) == kerning-spaces-arial-kern.html kerning-spaces-arial-default.html
 random-if(!winWidget&&!cocoaWidget) fails-if(winWidget||cocoaWidget) != kerning-spaces-tnr-nokern.html kerning-spaces-tnr-default.html
-random-if(!winWidget&&!cocoaWidget) fails-if(winWidget||cocoaWidget) == kerning-spaces-tnr-kern.html kerning-spaces-tnr-default.html
+random-if(!winWidget&&!cocoaWidget) fails-if(winWidget||cocoaWidget&&/^10\.15$/.test(os_version)||cocoaWidget&&/^11\.20$/.test(os_version)) == kerning-spaces-tnr-kern.html kerning-spaces-tnr-default.html
 
 # font-variant-caps fallback
 # -- sanity check - none of these should look like the default rendering
