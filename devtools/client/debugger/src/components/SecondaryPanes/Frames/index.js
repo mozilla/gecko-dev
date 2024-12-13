@@ -22,6 +22,8 @@ import {
 
 const NUM_FRAMES_SHOWN = 7;
 
+const isMacOS = Services.appinfo.OS === "Darwin";
+
 class Frames extends Component {
   constructor(props) {
     super(props);
@@ -231,6 +233,14 @@ class Frames extends Component {
         previousSibling.previousElementSibling?.focus();
       } else {
         previousSibling.focus();
+      }
+    } else if (event.key == "ArrowRight") {
+      if (isMacOS && event.metaKey) {
+        this.focusLastItem(event, nextSibling);
+      }
+    } else if (event.key == "ArrowLeft") {
+      if (isMacOS && event.metaKey) {
+        this.focusFirstItem(event, previousSibling);
       }
     }
   }
