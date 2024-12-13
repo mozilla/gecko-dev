@@ -298,8 +298,6 @@ support-files = ["file_bug966552.html"]
 
 ["test_bug1068979.html"]
 
-["test_bug1094000.html"]
-
 ["test_bug1102906.html"]
 skip-if = ["os == 'android'"]
 
