@@ -25,6 +25,7 @@ from . import markdown
 from . import metrics
 from . import ruby_server
 from . import rust
+from . import rust_server
 from . import swift
 from . import util
 
@@ -66,6 +67,7 @@ OUTPUTTERS = {
     "markdown": Outputter(markdown.output_markdown, []),
     "swift": Outputter(swift.output_swift, ["*.swift"]),
     "rust": Outputter(rust.output_rust, []),
+    "rust_server": Outputter(rust_server.output_rust, []),
 }
 
 
