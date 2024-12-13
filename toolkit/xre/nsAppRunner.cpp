@@ -5060,34 +5060,6 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   Maybe<ShouldNotProcessUpdatesReason> shouldNotProcessUpdatesReason =
       ShouldNotProcessUpdates(mDirProvider, updRoot);
   if (shouldNotProcessUpdatesReason.isNothing()) {
-    // If the MOZ_TEST_PROCESS_UPDATES environment variable already exists, then
-    // we are being called from the callback application.
-    if (EnvHasValue("MOZ_TEST_PROCESS_UPDATES")) {
-      // If the caller has asked us to log our arguments, do so.  This is used
-      // to make sure that the maintenance service successfully launches the
-      // callback application.
-      const char* logFile = nullptr;
-      if (ARG_FOUND == CheckArg("dump-args", &logFile)) {
-        FILE* logFP = fopen(logFile, "wb");
-        if (logFP) {
-          for (int i = 1; i < gRestartArgc; ++i) {
-            fprintf(logFP, "%s\n", gRestartArgv[i]);
-          }
-          fclose(logFP);
-        }
-      }
-      *aExitFlag = true;
-      return 0;
-    }
-
-    // Support for processing an update and exiting. The
-    // MOZ_TEST_PROCESS_UPDATES environment variable will be part of the
-    // updater's environment and the application that is relaunched by the
-    // updater. When the application is relaunched by the updater it will be
-    // removed below and the application will exit.
-    if (CheckArg("test-process-updates")) {
-      SaveToEnv("MOZ_TEST_PROCESS_UPDATES=1");
-    }
     nsCOMPtr<nsIFile> exeFile, exeDir;
     rv = mDirProvider.GetFile(XRE_EXECUTABLE_FILE, &persistent,
                               getter_AddRefs(exeFile));
@@ -5113,6 +5085,25 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   if (CheckArg("test-process-updates") ||
       EnvHasValue("MOZ_TEST_PROCESS_UPDATES")) {
     SaveToEnv("MOZ_TEST_PROCESS_UPDATES=");
+
+    // If the caller has asked us to log our arguments, do so.  This is used
+    // to make sure that the maintenance service successfully launches the
+    // callback application.
+    const char* logFile = nullptr;
+    if (ARG_FOUND == CheckArg("dump-args", &logFile)) {
+      FILE* logFP = fopen(logFile, "wb");
+      if (logFP) {
+        for (int i = 1; i < gRestartArgc; ++i) {
+          fprintf(logFP, "%s\n", gRestartArgv[i]);
+        }
+        fclose(logFP);
+      }
+    }
+
+    // Tests may want to know when we are done. We are about to exit, so we are
+    // done here. Write out a file to indicate this to the caller.
+    WriteUpdateCompleteTestFile(updRoot);
+
     *aExitFlag = true;
     return 0;
   }

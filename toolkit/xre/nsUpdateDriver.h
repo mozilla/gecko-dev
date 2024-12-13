@@ -76,6 +76,16 @@ nsresult ProcessUpdates(nsIFile* greDir, nsIFile* appDir, nsIFile* updRootDir,
 nsresult IsMultiSessionInstallLockoutActive(nsIFile* updRootDir,
                                             bool& isActive);
 
+/**
+ * This function is only needed for testing. When Firefox is started up with
+ * `--test-process-updates`, we go through all the "update at startup" logic,
+ * apply an update and restart, if applicable, and then, instead of starting
+ * the browser, we call this function to write out a file signalling to the test
+ * that the process has completed since otherwise it's not totally clear to the
+ * the test when and if the browser relaunches and exits.
+ */
+nsresult WriteUpdateCompleteTestFile(nsIFile* updRootDir);
+
 // The implementation of the update processor handles the task of loading the
 // updater application for staging an update.
 // XXX ehsan this is living in this file in order to make use of the existing

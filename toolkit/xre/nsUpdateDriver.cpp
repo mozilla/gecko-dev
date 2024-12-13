@@ -146,6 +146,11 @@ static bool GetStatusFile(nsIFile* dir, nsCOMPtr<nsIFile>& result) {
   return GetFile(dir, "update.status"_ns, result);
 }
 
+static void GetPidString(nsACString& output) {
+  output.Truncate(0);
+  output.AppendInt((int32_t)getpid());
+}
+
 /**
  * Get the contents of the file when it can be opened with read and write
  * access. The reason it is opened for both read and write is to prevent trying
@@ -171,6 +176,19 @@ static int32_t ReadWritableFile(nsIFile* file, char (&buf)[Size]) {
   PR_Close(fd);
 
   return n;
+}
+
+static nsresult WriteFile(nsIFile* file, nsACString& toWrite) {
+  PRFileDesc* fd = nullptr;
+  nsresult rv = file->OpenNSPRFileDesc(PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+                                       0660, &fd);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  const int32_t n =
+      PR_Write(fd, PromiseFlatCString(toWrite).get(), toWrite.Length());
+  PR_Close(fd);
+
+  return (unsigned long)n == toWrite.Length() ? NS_OK : NS_ERROR_FAILURE;
 }
 
 enum UpdateStatus {
@@ -311,6 +329,18 @@ nsresult IsMultiSessionInstallLockoutActive(nsIFile* updRootDir,
 #endif
 
   return NS_OK;
+}
+
+nsresult WriteUpdateCompleteTestFile(nsIFile* updRootDir) {
+  nsCOMPtr<nsIFile> outputFile;
+  nsresult rv = updRootDir->Clone(getter_AddRefs(outputFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+  outputFile->AppendNative("test_process_updates.txt"_ns);
+
+  nsAutoCString pid;
+  GetPidString(pid);
+
+  return WriteFile(outputFile, pid);
 }
 
 /**
@@ -553,7 +583,7 @@ static void ApplyUpdate(nsIFile* greDir, nsIFile* updateDir, nsIFile* appDir,
     // which is ignored by the updater.
     pid.AssignLiteral("0");
 #else
-    pid.AppendInt((int32_t)getpid());
+    GetPidString(pid);
 #endif
     if (isStaged) {
       // Append a special token to the PID in order to inform the updater that

@@ -88,6 +88,7 @@ const FILE_LAST_UPDATE_ELEVATED_LOG = "last-update-elevated.log";
 const FILE_LAST_UPDATE_LOG = "last-update.log";
 const FILE_PRECOMPLETE = "precomplete";
 const FILE_PRECOMPLETE_BAK = "precomplete.bak";
+const FILE_TEST_PROCESS_UPDATES = "test_process_updates.txt";
 const FILE_UPDATE_CONFIG_JSON = "update-config.json";
 const FILE_UPDATE_ELEVATED_LOG = "update-elevated.log";
 const FILE_UPDATE_LOG = "update.log";
@@ -485,6 +486,7 @@ function getUpdateDirFile(aLeafName, aWhichDir = null) {
     case FILE_ACTIVE_UPDATE_XML_TMP:
     case FILE_UPDATE_CONFIG_JSON:
     case FILE_BACKUP_UPDATE_CONFIG_JSON:
+    case FILE_TEST_PROCESS_UPDATES:
     case FILE_UPDATE_TEST:
     case FILE_UPDATES_XML:
     case FILE_UPDATES_XML_TMP:
