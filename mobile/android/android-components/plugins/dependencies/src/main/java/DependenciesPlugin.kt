@@ -19,7 +19,7 @@ object Versions {
     const val serialization = "1.6.3"
     const val python_envs_plugin = "0.0.31"
 
-    const val mozilla_glean = "62.0.0"
+    const val mozilla_glean = "63.0.0"
 
     const val maven_ant_tasks = "2.1.3"
     const val jacoco = "0.8.12"

@@ -110,7 +110,7 @@ mod test {
         let metric: ObjectMetric<SimpleArray> = ObjectMetric::new(CommonMetricData {
             name: "object".into(),
             category: "test".into(),
-            send_in_pings: vec!["test1".into()],
+            send_in_pings: vec!["store1".into()],
             ..Default::default()
         });
 
@@ -144,7 +144,7 @@ mod test {
         let metric: ObjectMetric<BalloonsObject> = ObjectMetric::new(CommonMetricData {
             name: "object".into(),
             category: "test".into(),
-            send_in_pings: vec!["test1".into()],
+            send_in_pings: vec!["store1".into()],
             ..Default::default()
         });
 
@@ -178,7 +178,7 @@ mod test {
         let metric: ObjectMetric<SimpleArray> = ObjectMetric::new(CommonMetricData {
             name: "object".into(),
             category: "test".into(),
-            send_in_pings: vec!["test1".into()],
+            send_in_pings: vec!["store1".into()],
             ..Default::default()
         });
 
@@ -225,7 +225,7 @@ mod test {
         let metric: ObjectMetric<StackTrace> = ObjectMetric::new(CommonMetricData {
             name: "object".into(),
             category: "test".into(),
-            send_in_pings: vec!["test1".into()],
+            send_in_pings: vec!["store1".into()],
             ..Default::default()
         });
 
