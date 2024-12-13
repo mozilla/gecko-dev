@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 export async function runBackgroundTask() {
-  const get = Services.env.get("MOZ_TEST_PROCESS_UPDATES");
+  const get = Services.env.get("MOZ_TEST_SHOULD_NOT_PROCESS_UPDATES");
   let exitCode = 81;
   if (get == "ShouldNotProcessUpdates(): OtherInstanceRunning") {
     exitCode = 80;
@@ -16,7 +16,7 @@ export async function runBackgroundTask() {
     exitCode = 78;
   }
   console.debug(`runBackgroundTask: shouldprocessupdates`, {
-    exists: Services.env.exists("MOZ_TEST_PROCESS_UPDATES"),
+    exists: Services.env.exists("MOZ_TEST_SHOULD_NOT_PROCESS_UPDATES"),
     get,
   });
   console.error(
