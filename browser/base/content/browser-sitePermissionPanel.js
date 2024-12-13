@@ -15,6 +15,8 @@ var gPermissionPanel = {
       let wrapper = document.getElementById("template-permission-popup");
       wrapper.replaceWith(wrapper.content);
       this._popupInitialized = true;
+      this._permissionPopup.addEventListener("popupshown", this);
+      this._permissionPopup.addEventListener("popuphidden", this);
     }
   },
 
@@ -344,33 +346,38 @@ var gPermissionPanel = {
     this.openPopup(event);
   },
 
-  onPopupShown(event) {
-    if (event.target == this._permissionPopup) {
-      window.addEventListener("focus", this, true);
-    }
-  },
+  handleEvent(event) {
+    switch (event.type) {
+      case "popupshown":
+        if (event.target == this._permissionPopup) {
+          window.addEventListener("focus", this, true);
+        }
+        break;
+      case "popuphidden":
+        if (event.target == this._permissionPopup) {
+          window.removeEventListener("focus", this, true);
+        }
+        break;
+      case "focus":
+        {
+          let elem = document.activeElement;
+          let position = elem.compareDocumentPosition(this._permissionPopup);
 
-  onPopupHidden(event) {
-    if (event.target == this._permissionPopup) {
-      window.removeEventListener("focus", this, true);
-    }
-  },
-
-  handleEvent() {
-    let elem = document.activeElement;
-    let position = elem.compareDocumentPosition(this._permissionPopup);
-
-    if (
-      !(
-        position &
-        (Node.DOCUMENT_POSITION_CONTAINS | Node.DOCUMENT_POSITION_CONTAINED_BY)
-      ) &&
-      !this._permissionPopup.hasAttribute("noautohide")
-    ) {
-      // Hide the panel when focusing an element that is
-      // neither an ancestor nor descendant unless the panel has
-      // @noautohide (e.g. for a tour).
-      PanelMultiView.hidePopup(this._permissionPopup);
+          if (
+            !(
+              position &
+              (Node.DOCUMENT_POSITION_CONTAINS |
+                Node.DOCUMENT_POSITION_CONTAINED_BY)
+            ) &&
+            !this._permissionPopup.hasAttribute("noautohide")
+          ) {
+            // Hide the panel when focusing an element that is
+            // neither an ancestor nor descendant unless the panel has
+            // @noautohide (e.g. for a tour).
+            PanelMultiView.hidePopup(this._permissionPopup);
+          }
+        }
+        break;
     }
   },
 
