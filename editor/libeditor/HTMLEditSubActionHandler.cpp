@@ -43,6 +43,7 @@
 #include "mozilla/Unused.h"
 #include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/HTMLBRElement.h"
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/Selection.h"
@@ -667,7 +668,6 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
       switch (GetTopLevelEditSubAction()) {
         case EditSubAction::eInsertText:
         case EditSubAction::eInsertTextComingFromIME:
-        case EditSubAction::eDeleteSelectedContent:
         case EditSubAction::eInsertLineBreak:
         case EditSubAction::eInsertParagraphSeparator:
         case EditSubAction::ePasteHTMLContent:
@@ -3364,17 +3364,25 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
     }
   }
 
-  {
+  if (GetTopLevelEditSubAction() == EditSubAction::eDeleteSelectedContent) {
     AutoTrackDOMPoint trackingNewCaretPosition(RangeUpdaterRef(),
                                                &newCaretPosition);
-    Result<CaretPoint, nsresult> caretPointOrError =
-        InsertBRElementIfHardLineIsEmptyAndEndsWithBlockBoundary(
-            newCaretPosition);
-    if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
-      NS_WARNING(
-          "HTMLEditor::"
-          "InsertBRElementIfHardLineIsEmptyAndEndsWithBlockBoundary() failed");
-      return caretPointOrError;
+    Result<CreateElementResult, nsresult> insertPaddingBRResult =
+        InsertPaddingBRElementIfNeeded(
+            newCaretPosition,
+            aEditingHost.IsContentEditablePlainTextOnly() ? nsIEditor::eNoStrip
+                                                          : nsIEditor::eStrip,
+            aEditingHost);
+    if (MOZ_UNLIKELY(insertPaddingBRResult.isErr())) {
+      NS_WARNING("HTMLEditor::InsertPaddingBRElementIfNeeded() failed");
+      return insertPaddingBRResult.propagateErr();
+    }
+    trackingNewCaretPosition.FlushAndStopTracking();
+    if (!newCaretPosition.IsInTextNode()) {
+      insertPaddingBRResult.unwrap().MoveCaretPointTo(
+          newCaretPosition, {SuggestCaret::OnlyIfHasSuggestion});
+    } else {
+      insertPaddingBRResult.unwrap().IgnoreCaretPointSuggestion();
     }
   }
   if (!newCaretPosition.IsSetAndValid()) {
@@ -11004,6 +11012,59 @@ nsresult HTMLEditor::InsertPaddingBRElementForEmptyLastLineIfNeeded(
       rv != NS_SUCCESS_EDITOR_BUT_IGNORED_TRIVIAL_ERROR,
       "CreateElementResult::SuggestCaretPointTo() failed, but ignored");
   return NS_OK;
+}
+
+Result<CreateElementResult, nsresult>
+HTMLEditor::InsertPaddingBRElementIfNeeded(
+    const EditorDOMPoint& aPoint, nsIEditor::EStripWrappers aDeleteEmptyInlines,
+    const Element& aEditingHost) {
+  MOZ_ASSERT(aPoint.IsInContentNode());
+
+  EditorDOMPoint pointToInsertPaddingBR =
+      HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(aPoint,
+                                                             aEditingHost);
+  if (!pointToInsertPaddingBR.IsSet()) {
+    return CreateElementResult::NotHandled();
+  }
+  if (aDeleteEmptyInlines == nsIEditor::eStrip &&
+      pointToInsertPaddingBR.IsContainerElement() &&
+      HTMLEditUtils::IsEmptyInlineContainer(
+          *pointToInsertPaddingBR.ContainerAs<Element>(),
+          {EmptyCheckOption::TreatSingleBRElementAsVisible,
+           EmptyCheckOption::TreatBlockAsVisible,
+           EmptyCheckOption::TreatListItemAsVisible,
+           EmptyCheckOption::TreatTableCellAsVisible},
+          BlockInlineCheck::UseComputedDisplayStyle)) {
+    RefPtr<Element> emptyInlineAncestor =
+        HTMLEditUtils::GetMostDistantAncestorEditableEmptyInlineElement(
+            *pointToInsertPaddingBR.ContainerAs<nsIContent>(),
+            BlockInlineCheck::UseComputedDisplayStyle);
+    if (!emptyInlineAncestor) {
+      emptyInlineAncestor = pointToInsertPaddingBR.ContainerAs<Element>();
+    }
+    AutoTrackDOMPoint trackPointToInsertPaddingBR(RangeUpdaterRef(),
+                                                  &pointToInsertPaddingBR);
+    nsresult rv = DeleteNodeWithTransaction(*emptyInlineAncestor);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
+      return Err(rv);
+    }
+  }
+  // TODO: Insert padding <br> for the last empty line if the point is
+  // immediately after a block boundary.  However, we should not use the flag
+  // anymore because we should use linefeed in preformatted text.
+  Result<CreateElementResult, nsresult> insertPaddingBRResult =
+      InsertBRElement(WithTransaction::Yes, pointToInsertPaddingBR);
+  if (MOZ_UNLIKELY(insertPaddingBRResult.isErr())) {
+    NS_WARNING("HTMLEditor::InsertBRElement() failed");
+    return insertPaddingBRResult;
+  }
+  insertPaddingBRResult.inspect().IgnoreCaretPointSuggestion();
+  RefPtr<Element> paddingBRElement =
+      insertPaddingBRResult.unwrap().UnwrapNewNode();
+  EditorDOMPoint atPaddingBRElement(paddingBRElement);
+  return CreateElementResult(std::move(paddingBRElement),
+                             std::move(atPaddingBRElement));
 }
 
 Result<EditorDOMPoint, nsresult> HTMLEditor::RemoveAlignFromDescendants(
