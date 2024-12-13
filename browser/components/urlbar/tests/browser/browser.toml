@@ -447,6 +447,9 @@ support-files = ["dummy_page.html"]
 
 ["browser_searchHistoryLimit.js"]
 
+["browser_searchModeSwitcher_appProvidedEngines.js"]
+tags = "persisted-search"
+
 ["browser_searchModeSwitcher_basic.js"]
 
 ["browser_searchModeSwitcher_dynamicUSB.js"]
