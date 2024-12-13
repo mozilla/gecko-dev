@@ -470,7 +470,7 @@ void AsyncImagePipelineManager::ApplyAsyncImageForPipeline(
           params, wr::ToLayoutRect(aPipeline->mScBounds),
           // This is fine to do unconditionally because we only push images
           // here.
-          wr::RasterSpace::Screen());
+          wr::RasterSpace::Screen(), nullptr);
 
   Maybe<wr::SpaceAndClipChainHelper> spaceAndClipChainHelper;
   if (referenceFrameId) {

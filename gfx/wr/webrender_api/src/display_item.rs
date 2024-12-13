@@ -876,6 +876,7 @@ pub struct ReferenceFrame {
     pub key: SpatialTreeItemKey,
 }
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct SnapshotInfo {
     pub key: SnapshotImageKey,
