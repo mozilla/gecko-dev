@@ -100,6 +100,12 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">പുതിയ വഴികാട്ടല്വവസ്ഥയൊപ്പം ഇനിയും വേഗത്തിൽ പരതുക</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">ടാബുകൾ മാറാൻ കരുപ്പട്ട സ്വൈപ്പുചെയ്യുക</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">മാറാൻ ഇടത്തോട്ടോ വലത്തോട്ടോ സ്വൈപ്പ് ചെയ്യുക. ഒരു പുതിയ ടാബ് തുറക്കാൻ താങ്ങളുടെ അവസാന ടാബിൽ ഇടത്തേക്ക് സ്വൈപ്പ് ചെയ്യുക.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">ക്യാമറ അനുമതി ആവശ്യമാണ്. ആണ്ട്രൊയിടു് ക്രമീകരണങ്ങളിലേക്ക് പോവുക, അനുമതികൾ അമർത്തുക, അനുവദിക്കുക എന്നു് അമർത്തുക.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -183,6 +189,9 @@
     <string name="browser_menu_extensions_banner_onboarding_header">%s താങ്ങളുടേതാക്കുക</string>
     <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
     <string name="browser_menu_disabled_extensions_banner_onboarding_header">നിങ്ങൾ വിപുലീകരണങ്ങൾ സ്ഥാപിച്ചിരിക്കുന്നു, പക്ഷേ പ്രവർത്തനക്ഷമമാക്കിയിട്ടില്ല</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ ഉപയോഗിക്കുന്നതിനു് ക്രമീകരണങ്ങളിൽ അല്ലെങ്കിൽ ചുവടെയുള്ള &quot;%s&quot; തിരഞ്ഞെടുത്തു് അതിനു് പ്രവർത്തനക്ഷമമാക്കുക.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">കൂടുതലറിയുക</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -398,6 +407,8 @@
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox സ്വകാര്യത അറിയിപ്പു് </string>
+    <!-- Text for the button to set firefox as default browser on the device -->
+    <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">തനതു അന്വേഷിയായി വയ്ക്കുക</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
     <!-- Text for the button to sign in to sync on the device -->
@@ -622,6 +633,9 @@
     <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
     <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">എല്ല വെബ്സ്ഥാനങ്ങൾക്കു് അനുവദിക്കുക</string>
 
+    <!-- Add-on Preferences -->
+    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
+    <string name="preferences_customize_extension_collection">ഇഷ്ടനുസൃത വിപുലീകരണ ശേഖരം</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">ശരി</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -736,6 +750,12 @@
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">പഠനങ്ങൾ</string>
 
+    <!-- Summary for studies preferences -->
+    <string name="preference_experiments_summary_2">പഠനങ്ങൾ സ്ഥാപിക്കാനും പ്രവർത്തിപ്പിക്കാനും മോസില്ലയെ അനുവദിക്കും</string>
+
+    <!-- Turn On Sync Preferences -->
+    <!-- Header of the Sync and save your data preference view -->
+    <string name="preferences_sync_2">ദത്ത സമന്വയിപ്പിച്ച് കരുതിവയ്ക്കുക</string>
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">വീണ്ടും ബന്ധിപ്പിക്കുന്നതിന് പ്രവേശിക്കുക</string>
     <!-- Preference for removing FxA account -->
@@ -768,6 +788,9 @@
 
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">ഉപകരണപ്പട്ട മറയ്ക്കാൻ ഗതിമാറ്റുക</string>
+
+    <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
+    <string name="preference_gestures_swipe_toolbar_show_tabs">ടാബുകൾ തുറക്കുന്നതിന് കരുപ്പട്ട മുകളിലേക്ക് സ്വൈപ്പുചെയ്യുക</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -881,6 +904,8 @@
     <string name="studies_active">സജീവം</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">കൂടുതലറിയുക</string>
+    <!-- Dialog message shown after removing a study -->
+    <string name="studies_restart_app">മാറ്റങ്ങൾ ബാധകമാക്കാൻ പ്രയോഗയന്ത്രാംശം പുറത്തുകടക്കും</string>
     <!-- Dialog button to confirm the removing a study. -->
     <string name="studies_restart_dialog_ok">ശരി</string>
     <!-- Dialog button text for canceling removing a study. -->
@@ -1446,6 +1471,8 @@
     <!-- Action item in menu for the Delete browsing data on quit feature -->
     <string name="delete_browsing_data_on_quit_action">പുറത്ത് കടക്കുക</string>
 
+    <!-- Title text of a delete browsing data dialog. -->
+    <string name="delete_history_prompt_title">മായ്ക്കാനുള്ള സമയപരിധി</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
     <string name="delete_history_prompt_button_last_hour">കഴിഞ്ഞ മണിക്കൂരിൽ</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for today and yesterday. -->
@@ -1517,6 +1544,8 @@
 
     <!-- Preference for enhanced tracking protection for the standard protection settings -->
     <string name="preference_enhanced_tracking_protection_standard_default_1">സ്റ്റാൻഡേർഡ് (തനതായിട്ടുള്ളത്)</string>
+    <!-- Preference description for enhanced tracking protection for the standard protection settings -->
+    <string name="preference_enhanced_tracking_protection_standard_description_5">താളുകൾ സാധാരണമായി ലഭ്യമാവും പക്ഷേ കുറച്ചേ പിന്തുടർച്ചയന്ത്രങ്ങളെ തടയും.</string>
     <!--  Accessibility text for the Standard protection information icon  -->
     <string name="preference_enhanced_tracking_protection_standard_info_button">സ്റ്റാൻഡേർഡ് ട്രാക്കിംഗ് പരിരക്ഷണം എന്തെല്ലാം തടഞ്ഞു</string>
     <!-- Preference for enhanced tracking protection for the strict protection settings -->
@@ -1978,6 +2007,8 @@
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
     <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">കഴിഞ്ഞ ഒരു മാസത്തോളമായി താങ്ങൾ ശ്രദ്ധിക്കാത്ത ടാബുകൾ ഫയർഫോക്സിന് അടയ്ക്കാനാവും.</string>
 
+    <!-- Title for search suggestions when Google is the default search suggestion engine. -->
+    <string name="google_search_engine_suggestion_header">Google തിരയൽ</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
     <string name="other_default_search_engine_suggestion_header">%s തിരച്ചിൽ</string>
 
@@ -2022,6 +2053,8 @@
     <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">%s-ന്റെ പരസ്യം</string>
     <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
     <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">ഇപ്പോൾ പരിശോധിക്കുക</string>
+    <!-- Title for info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_title">വിവരം അറിയിക്കുന്നതിനു് നന്ദി!</string>
     <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
     <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">മനസ്സിലായി</string>
     <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
@@ -2149,6 +2182,9 @@
     <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
     <string name="automatic_translation_toolbar_title_preference">യാന്ത്രിക വിവർത്തനം</string>
 
+    <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
+    <string name="automatic_translation_error_warning_text">ഭാഷാകൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. കുറച്ചു് നേരം കഴിഞ്ഞു് തിരിച്ചു് വരുക.</string>
+
     <!-- Preference option for always translate. Radio button title text. -->
     <string name="automatic_translation_option_always_translate_title_preference">എപ്പോഴും വിവർത്തനം ചെയ്യുക</string>
     <!-- Preference option for never translate. Radio button title text.-->
@@ -2200,6 +2236,15 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">ഇറക്കിവയ്ക്കുക</string>
 
+    <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
+    <string name="download_languages_fetch_error_warning_text">ഭാഷാകൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. കുറച്ചു് നേരം കഴിഞ്ഞു് വീണ്ടും ശ്രമിക്കുക. </string>
+    <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
+      The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_error_warning_text"><![CDATA[<b>%1$s</b> ഇറക്കിവയ്ക്കാൻ പറ്റിയില്ല.  വീണ്ടും ശ്രമിക്കുക.]]></string>
+    <!-- The title of the warning card informs the user that an error has occurred at deleting a language.
+          The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_delete_error_warning_text"><![CDATA[<b>%1$s</b> മായ്ക്കാൻ പറ്റിയില്ല.  വീണ്ടും ശ്രമിക്കുക.]]></string>
+
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
     The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file. -->
@@ -2213,6 +2258,8 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">റദ്ദാക്കുക</string>
 
+    <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
+    <string name="download_language_file_dialog_checkbox_text">എപ്പോഴും ദത്തകരുതിവയ്ക്കൽ രീതിയിൽ ഇറക്കിവയ്ക്കുക</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
     <string name="download_language_file_dialog_positive_button_text">ഇറക്കിവയ്ക്കുക</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
@@ -2232,18 +2279,88 @@
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">മെച്ചപ്പെടുത്തിയ പിന്തുടർച്ച സംരക്ഷണം</string>
 
+    <!-- Debug drawer -->
+    <!-- The user-facing title of the Debug Drawer feature. -->
+    <string name="debug_drawer_title">തെറ്റുതിരുത്തല്ക്കരുകൾ</string>
+    <!-- Content description (not visible, for screen readers etc.): Navigate back within the debug drawer. -->
+    <string name="debug_drawer_back_button_content_description">പുറകോട്ടു് പോവുക</string>
+    <!-- Content description (not visible, for screen readers etc.): Open debug drawer. -->
+    <string name="debug_drawer_fab_content_description">പിഴ-മേശവലിപ്പ് തുറക്കുക</string>
+
+    <!-- Debug drawer tabs tools -->
+    <!-- The title of the Tab Tools feature in the Debug Drawer. -->
+    <string name="debug_drawer_tab_tools_title">ടാബുകരുകൾ</string>
+    <!-- The title of the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_title">ടാബ് എണ്ണം</string>
+    <!-- The active tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_active">സജീവമുള്ള</string>
+    <!-- The inactive tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_inactive">നിഷ്ക്രിയമുള്ള</string>
+    <!-- The private tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_private">സ്വകാര്യം</string>
+    <!-- The total tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_total">മൊത്തം എണ്ണം</string>
+    <!-- The title of the tab creation tool section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_title">ടാബു് ഉണ്ടാക്കല്ക്കരു</string>
+
+    <!-- The label of the text field in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_text_field_label">ഉണ്ടാക്കാനുള്ള ടാബളവു്</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is empty -->
+    <string name="debug_drawer_tab_tools_tab_quantity_empty_error">പാഠതലത്തിൽ ഒന്നുമില്ല</string>
+    <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">അധിപൂർണസംഖ്യ മാത്രം ഇടുക</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">പൂജ്യത്തേക്കാൾ വലിയ ഒരു സംഖ്യ നൽകുക</string>
+
+    <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">സജീവ ടാബുകളിലേക്ക് ചേർക്കുക</string>
+    <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_inactive">നിഷ്ക്രിയ ടാബുകളിലേക്ക് ചേർക്കുക</string>
+    <!-- The button text to add tabs to the private tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">സ്വകാര്യ ടാബുകളിലേക്കു് ചേർക്കുക</string>
+
+    <!-- Microsurvey -->
+    <!-- Prompt view -->
+    <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിനു് മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും </string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">തുടരുക</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">സ്വകാര്യതാ അറിയിപ്പ്</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">സമർപ്പിക്കുക</string>
+    <!-- The survey completion confirmation text -->
+    <string name="micro_survey_feedback_confirmation">താങ്കളുടെ പ്രതികരണത്തിനു് നന്ദി</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_1" tools:ignore="UnusedResources">വളരെ സന്തുഷ്ടമായി</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_2" tools:ignore="UnusedResources">സന്തുഷ്ടമായി</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_3" tools:ignore="UnusedResources">അത്രതൊന്നും പറയാൻ ഇല്ല</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_4" tools:ignore="UnusedResources">സന്തുഷ്ടമായില്ല</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_5" tools:ignore="UnusedResources">തീരെ സന്തുഷ്ടമായില്ല</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">ഞാൻ ഉപയോഗിക്കാരില്ല</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">ഞാൻ ഫൈയർഫോക്സിൽ തിരയൽ ഉപയോഗിക്കാരില്ല</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">ഞാൻ സമന്വയം ഉപയോഗിക്കാരില്ല</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ അച്ചടിപ്പു് മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും </string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ തിരച്ചിൽ മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും </string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ സമന്വയം മെച്ചപെടുത്താൻ സഹായിക്കുക. ഇതു് ചെയ്യാൻ വെറും ഒരു നിമിഷം എടുക്കും </string>
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിൽ അച്ചടിപ്പുക്കൂടെ താങ്ങൾക്കു് എത്രത്തോളം സംതൃപ്തിയുണ്ട്?</string>
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സു് ആമുഖതാൾ കൊണ്ടു് താങ്ങൾക്കു് എത്രത്തോളം സംതൃപ്തിയുണ്ട്?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സു് തിരച്ചിൽ അനുഭവം കൊണ്ടു് താങ്ങൾക്കു് എത്രത്തോളം സംതൃപ്തിയുണ്ട്?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സു് സമന്വയ അനുഭവം കൊണ്ടു് താങ്ങൾക്കു് എത്രത്തോളം സംതൃപ്തിയുണ്ട്?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">ഫയർഫോക്സു് അടയാളം</string>
@@ -2256,8 +2373,29 @@
     <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain  -->
     <string name="debug_drawer_logins_current_domain_label">നിലവിലെ മേഖലം: %s</string>
 
+    <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
+    <string name="debug_drawer_logins_add_login_button">ഈ മേഖലക്കു് ഒരു വ്യാജ പ്രവേശിക്കൽ ചേർക്കുക</string>
+    <!-- Content description for delete button where parameter will be the username of the login -->
+    <string name="debug_drawer_logins_delete_login_button_content_description">%s എന്ന ഉപയോക്തൃപ്പേരുള്ള പ്രവേശിക്കൽ മായ്ക്കുക</string>
+
     <!-- Debug drawer addresses -->
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">വിലാസങ്ങള്‍</string>
 
-    </resources>
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">ഉടന്‍ പുതുക്കുക</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">താങ്ങളുടെ ഫയർഫോക്സു് അന്വേഷിയേ പുതുക്കുക</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">മാർച്ച് 14-ന് മുമ്പ് പുതുക്കുക</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">പുതുക്കൽ ചെയ്താൽ നല്ലതായിരുന്നു</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">താങ്ങൾ ഫയർഫോക്സിന്റെ ഒരു പഴയ പതിപ്പിലാണു്</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">ആഡ് ഓണുകളും മറ്റു് സവിശേഷതളും ഉപയോഗിച്ചതിരിക്കാൻ 14-൹ മാർച്ചിന്റെ മുമ്പു് പുതുക്കൽ ചെയ്യുക</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ചില സവിശേഷതകൾ നാളെ പ്രവർത്തിക്കാൻ നിർത്തും.</string>
+</resources>

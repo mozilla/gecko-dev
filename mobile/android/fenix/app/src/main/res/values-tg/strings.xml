@@ -2929,8 +2929,15 @@
     <!-- Title text for the protection panel banner when tracking protection is enabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="protection_panel_banner_protected_title">Муҳофизати «%s» фаъол аст</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">Мо шуморо муҳофизат кардем. Агар ягон чизеро пайдо кунем, мо ба шумо хабар медиҳем.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">Муҳофизати такмилёфта аз пайгирӣ</string>
+
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">Агар ягон чиз дар ин сомона вайрон бошад, кӯшиш кунед, ки воситаи муҳофизатро хомӯш намоед.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Воситаи муҳофизат ХОМӮШ АСТ. Мо тавсия медиҳем, ки шумо онро аз нав фаъол созед.</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
@@ -3052,6 +3059,9 @@
     <!-- Debug drawer addresses -->
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">Нишониҳо</string>
+
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Забонҳои ислоҳи хатоҳо барои фаъолсозӣ</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->

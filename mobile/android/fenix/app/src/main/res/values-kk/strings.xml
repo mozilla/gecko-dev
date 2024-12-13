@@ -339,11 +339,15 @@
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Оқу режимі, Аудару, %s, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Оқу режимі, Аудару, Сынған сайт туралы хабарлау, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Оқу режимі, Аудару, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Оқу режимі, %s, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Оқу режимі, Сынған сайт туралы хабарлау, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Оқу режимі, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -364,6 +368,8 @@
     <string name="browser_menu_turn_off_reader_view">Оқу көрінісін сөндіру</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Парақты аудару…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">Сынған сайт туралы хабарлау…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">%1$s тіліне аударылған</string>
@@ -589,8 +595,12 @@
     <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Жалғастыру арқылы сіз Firefox %1$s келісесіз.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Қызмет көрсету шарттарымен</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox сіздің жекелігіңізге мән береді. Толығырақ біздің %1$s бөлімінен оқыңыз.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Жекелік ескертуі</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Браузерді жақсартуға көмектесу үшін Firefox Mozilla-ға диагностикалық және өзара әрекеттесу деректерін жібереді. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Басқару</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -1010,6 +1020,8 @@
     <string name="preferences_marketing_data">Маркетингтік мәліметтер</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Біздің мобильді маркетинг вендоры Adjust-пен негізгі пайдалану деректерін бөліседі</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Firefox-ты өзіңіз үшін қалай ашқаныңыз туралы ақпаратты Mozilla маркетинг серіктестерімен бөлісіңіз. Бұл бізге Firefox-ты дамытуға және жақсырақ интернет құруға көмектеседі</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Маркетинг деректері туралы көбірек білу</string>
     <!-- Preference switch title for automatically submitting crash reports -->
@@ -2894,6 +2906,22 @@
     <!-- Title text for the protection panel banner when tracking protection is disabled. -->
     <string name="protection_panel_banner_not_protected_title">Сіз қорғаныстарды сөндірдіңіз</string>
 
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s жұмыстан тыс. Біз қорғаныстарды қайта іске қосуды ұсынамыз.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s күзетте</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">Сіз қорғалғансыз. Бірдеңені байқасақ, сізге хабарлаймыз.</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">Бақылаудан кеңейтілген қорғаныс</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">Бұл сайтта бірдеңе бұзылған болып көрінсе, қорғанысты сөндіріп көріңіз.</string>
+
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Қорғаныстар СӨНДІРІЛГЕН. Біз оларды қайта іске қосуды ұсынамыз.</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">Жөндеу құралдары</string>
@@ -3007,6 +3035,12 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">%s пайдаланушы атымен логинді өшіру</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Адрестер</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Іске қосу үшін жөндеу локальдері</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">CFR құралдары</string>
@@ -3029,4 +3063,34 @@
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
 
-    </resources>
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Қазір жаңарту</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Firefox браузерін жаңартыңыз</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Түбірлік сертификаттың мерзімі аяқталады, бұл кейбір мүмкіндіктердің жұмысын 14 наурызда тоқтатады.</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">14 наурызға дейін жаңартыңыз</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Түбірлік сертификаттың мерзімі аяқталады, бұл сіздің Firefox нұсқасының дұрыс жұмысын тоқтатуына әкеледі.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Жаңартуға 7 күннен аз уақыт қалды</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">14 наурызда қосымшалар мен басқа Firefox мүмкіндіктері жұмысын тоқтатады, себебі түбірлік сертификаттың мерзімі аяқталады.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Сіздің Firefox-ты сақтаудың соңғы мүмкіндігі</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Сіздің Firefox нұсқаңыз 14 наурызда өз жұмысын тоқтатады, себебі түбірлік сертификаттың мерзімі аяқталады.</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Жаңарту ұсынылады</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Қосымшалар мен кейбір мүмкіндіктер 14 наурызда жұмысын тоқтатады.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Сіз Firefox-тың ескі нұсқасын қолданып отырсыз</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Қосымшалар мен басқа мүмкіндіктерді пайдалануды жалғастыру үшін 14 наурызға дейін жаңартыңыз.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Кейбір мүмкіндіктер ертең жұмысын тоқтатады.</string>
+</resources>

@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">ブラウザーのタブの表示状態の変更</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">閲覧履歴へのアクセス</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">ユーザーの端末で AI モデルのダウンロードと実行</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">未検証のサードパーティースクリプトにユーザーデータへのアクセスを許可</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">開いているタブのユーザーデータへアクセスするため開発ツールを展開</string>
     <!-- The version on of add-on. -->

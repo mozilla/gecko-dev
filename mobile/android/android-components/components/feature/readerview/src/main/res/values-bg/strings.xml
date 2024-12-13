@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Name for one of the font options available to use -->
-    <string name="mozac_feature_readerview_sans_serif_font">Несерифен</string>
+    <string name="mozac_feature_readerview_sans_serif_font">Безсерифен</string>
     <!-- Accessible description for the font option -->
-    <string name="mozac_feature_readerview_sans_serif_font_desc">Несерифен шрифт</string>
+    <string name="mozac_feature_readerview_sans_serif_font_desc">Безсерифен шрифт</string>
     <!-- Name for one of the font options available to use -->
     <string name="mozac_feature_readerview_serif_font">Серифен</string>
     <!-- Accessible description for the font option -->
