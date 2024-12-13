@@ -7,6 +7,7 @@
 
 #include "DocumentLoadListener.h"
 
+#include "imgLoader.h"
 #include "NeckoCommon.h"
 #include "nsLoadGroup.h"
 #include "mozilla/AntiTrackingUtils.h"
@@ -223,10 +224,12 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
   ParentProcessDocumentOpenInfo(ParentChannelListener* aListener,
                                 uint32_t aFlags,
                                 mozilla::dom::BrowsingContext* aBrowsingContext,
+                                const nsACString& aTypeHint,
                                 bool aIsDocumentLoad)
       : nsDocumentOpenInfo(aFlags, false),
         mBrowsingContext(aBrowsingContext),
         mListener(aListener),
+        mTypeHint(aTypeHint),
         mIsDocumentLoad(aIsDocumentLoad) {
     LOG(("ParentProcessDocumentOpenInfo ctor [this=%p]", this));
   }
@@ -307,8 +310,8 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
 
   nsDocumentOpenInfo* Clone() override {
     mCloned = true;
-    return new ParentProcessDocumentOpenInfo(mListener, mFlags,
-                                             mBrowsingContext, mIsDocumentLoad);
+    return new ParentProcessDocumentOpenInfo(
+        mListener, mFlags, mBrowsingContext, mTypeHint, mIsDocumentLoad);
   }
 
   nsresult OnDocumentStartRequest(nsIRequest* request) {
@@ -324,6 +327,8 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
     if (!mUsedContentHandler && !m_targetStreamListener) {
       m_targetStreamListener = mListener;
       if (NS_FAILED(rv)) {
+        LOG(("nsDocumentOpenInfo OnStartRequest Failed [this=%p, rv=%s]", this,
+             GetStaticErrorName(rv)));
         request->CancelWithReason(
             rv, "nsDocumentOpenInfo::OnStartRequest failed"_ns);
       }
@@ -365,6 +370,18 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
     // this may lead to the resource being downloaded.
     if (nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
         channel && channel->IsDocument()) {
+      // Respect the specified image MIME type if loading binary content type
+      // into an object/embed element.
+      nsAutoCString channelType;
+      channel->GetContentType(channelType);
+      if (!mTypeHint.IsEmpty() &&
+          imgLoader::SupportImageWithMimeType(mTypeHint) &&
+          (channelType.EqualsASCII(APPLICATION_GUESS_FROM_EXT) ||
+           channelType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
+           channelType.EqualsASCII(BINARY_OCTET_STREAM))) {
+        channel->SetContentType(mTypeHint);
+      }
+
       return OnDocumentStartRequest(request);
     }
 
@@ -406,6 +423,7 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
 
   RefPtr<mozilla::dom::BrowsingContext> mBrowsingContext;
   RefPtr<ParentChannelListener> mListener;
+  nsCString mTypeHint;
   const bool mIsDocumentLoad;
 
   /**
@@ -873,7 +891,8 @@ auto DocumentLoadListener::Open(nsDocShellLoadState* aLoadState,
 
   RefPtr<ParentProcessDocumentOpenInfo> openInfo =
       new ParentProcessDocumentOpenInfo(mParentChannelListener, openFlags,
-                                        loadingContext, mIsDocumentLoad);
+                                        loadingContext, aLoadState->TypeHint(),
+                                        mIsDocumentLoad);
   openInfo->Prepare();
 
 #ifdef ANDROID

@@ -1466,6 +1466,17 @@ nsresult nsObjectLoadingContent::OpenChannel() {
 
     loadState->SetShouldCheckForRecursion(true);
 
+    // When loading using DocumentChannel, ensure that the MIME type hint is
+    // propagated to DocumentLoadListener. Object elements can override MIME
+    // handling in some scenarios.
+    if (!mOriginalContentType.IsEmpty()) {
+      nsAutoCString parsedMime, dummy;
+      NS_ParseResponseContentType(mOriginalContentType, parsedMime, dummy);
+      if (!parsedMime.IsEmpty()) {
+        loadState->SetTypeHint(parsedMime);
+      }
+    }
+
     chan =
         DocumentChannel::CreateForObject(loadState, loadInfo, loadFlags, shim);
     MOZ_ASSERT(chan);
