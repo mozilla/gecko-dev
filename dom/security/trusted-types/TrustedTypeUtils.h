@@ -105,6 +105,11 @@ GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,
                                              const nsINode& aNode,
                                              Maybe<nsAutoString>& aResultHolder,
                                              ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString*
+GetTrustedTypesCompliantStringForTrustedScript(
+    const nsAString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, nsIGlobalObject& aGlobalObject,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
 
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-process-value-with-a-default-policy
 template <typename ExpectedType>
@@ -130,6 +135,17 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
 // https://html.spec.whatwg.org/multipage/webappapis.html#hostgetcodeforeval(argument)
 bool HostGetCodeForEval(JSContext* aCx, JS::Handle<JSObject*> aCode,
                         JS::MutableHandle<JSString*> aOutCode);
+
+// Implements steps 1 and 2 of EnsureCSPDoesNotBlockStringCompilation.
+// See https://w3c.github.io/webappsec-csp/#can-compile-strings
+MOZ_CAN_RUN_SCRIPT bool
+AreArgumentsTrustedForEnsureCSPDoesNotBlockStringCompilation(
+    JSContext* aCx, JS::Handle<JSString*> aCodeString,
+    JS::CompilationType aCompilationType,
+    JS::Handle<JS::StackGCVector<JSString*>> aParameterStrings,
+    JS::Handle<JSString*> aBodyString,
+    JS::Handle<JS::StackGCVector<JS::Value>> aParameterArgs,
+    JS::Handle<JS::Value> aBodyArg, ErrorResult& aError);
 
 }  // namespace TrustedTypeUtils
 

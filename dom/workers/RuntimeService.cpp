@@ -502,7 +502,7 @@ class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
   ~LogViolationDetailsRunnable() = default;
 };
 
-bool ContentSecurityPolicyAllows(
+MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION bool ContentSecurityPolicyAllows(
     JSContext* aCx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCodeString,
     JS::CompilationType aCompilationType,
     JS::Handle<JS::StackGCVector<JSString*>> aParameterStrings,
@@ -517,6 +517,19 @@ bool ContentSecurityPolicyAllows(
   uint16_t violationType;
   nsAutoJSString scriptSample;
   if (aKind == JS::RuntimeCode::JS) {
+    ErrorResult error;
+    bool areArgumentsTrusted = TrustedTypeUtils::
+        AreArgumentsTrustedForEnsureCSPDoesNotBlockStringCompilation(
+            aCx, aCodeString, aCompilationType, aParameterStrings, aBodyString,
+            aParameterArgs, aBodyArg, error);
+    if (error.MaybeSetPendingException(aCx)) {
+      return false;
+    }
+    if (!areArgumentsTrusted) {
+      *aOutCanCompileStrings = false;
+      return true;
+    }
+
     if (NS_WARN_IF(!scriptSample.init(aCx, aCodeString))) {
       return false;
     }

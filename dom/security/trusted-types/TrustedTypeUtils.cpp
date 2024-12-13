@@ -492,6 +492,15 @@ GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,
       &aInput, aSink, aSinkGroup, aNode, aResultHolder, aError);
 }
 
+MOZ_CAN_RUN_SCRIPT const nsAString*
+GetTrustedTypesCompliantStringForTrustedScript(
+    const nsAString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, nsIGlobalObject& aGlobalObject,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
+  return GetTrustedTypesCompliantString<TrustedScript>(
+      &aInput, aSink, aSinkGroup, aGlobalObject, aResultHolder, aError);
+}
+
 bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
                                     int32_t aElementNamespaceID,
                                     nsAtom* aAttributeName,
@@ -611,6 +620,140 @@ bool HostGetCodeForEval(JSContext* aCx, JS::Handle<JSObject*> aCode,
   }
   aOutCode.set(nullptr);
   return true;
+}
+
+bool AreArgumentsTrustedForEnsureCSPDoesNotBlockStringCompilation(
+    JSContext* aCx, JS::Handle<JSString*> aCodeString,
+    JS::CompilationType aCompilationType,
+    JS::Handle<JS::StackGCVector<JSString*>> aParameterStrings,
+    JS::Handle<JSString*> aBodyString,
+    JS::Handle<JS::StackGCVector<JS::Value>> aParameterArgs,
+    JS::Handle<JS::Value> aBodyArg, ErrorResult& aError) {
+  // EnsureCSPDoesNotBlockStringCompilation is essentially HTML's implementation
+  // of HostEnsureCanCompileStrings, so we only consider the cases described in
+  // the Dynamic Code Brand Checks spec. The algorithm is also supposed to be
+  // called for "TIMER" too but in that case it does not execute the specific
+  // part implemented in the present method (step 2).
+  // https://html.spec.whatwg.org/multipage/webappapis.html#hostensurecancompilestrings(realm,-parameterstrings,-bodystring,-codestring,-compilationtype,-parameterargs,-bodyarg)
+  // https://tc39.es/proposal-dynamic-code-brand-checks/#sec-hostensurecancompilestrings
+  // https://html.spec.whatwg.org/#timer-initialisation-steps
+  if (!StaticPrefs::dom_security_trusted_types_enabled() ||
+      aCompilationType == JS::CompilationType::Undefined) {
+    return true;
+  }
+
+  // https://html.spec.whatwg.org/multipage/webappapis.html#hostensurecancompilestrings(realm,-parameterstrings,-bodystring,-codestring,-compilationtype,-parameterargs,-bodyarg)
+  // https://w3c.github.io/webappsec-csp/#can-compile-strings
+  nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
+  if (!global) {
+    aError.Throw(NS_ERROR_NULL_POINTER);
+    return false;
+  }
+
+  // Exit early for some cases where GetTrustedTypesCompliantString
+  // would have no effect on aCodeString.
+  if (nsPIDOMWindowInner* piDOMWindowInner = global->GetAsInnerWindow()) {
+    const Document* extantDoc = piDOMWindowInner->GetExtantDoc();
+    if (extantDoc &&
+        !extantDoc->HasPolicyWithRequireTrustedTypesForDirective()) {
+      return true;
+    }
+  }
+
+  // Steps 2.2 - 2.4.
+  bool isTrusted = true;
+  auto isArgumentTrusted = [&aCx](JS::Handle<JS::Value> aValue,
+                                  JS::Handle<JSString*> aString,
+                                  ErrorResult& aError) {
+    if (!aValue.isObject()) {
+      return false;
+    }
+    JS::Rooted<JSObject*> object(aCx, &aValue.toObject());
+    TrustedScript* trustedScript;
+    if (NS_FAILED(UNWRAP_OBJECT(TrustedScript, &object, trustedScript))) {
+      return false;
+    }
+    nsAutoJSString jsString;
+    if (NS_WARN_IF(!jsString.init(aCx, aString))) {
+      aError.StealExceptionFromJSContext(aCx);
+      return false;
+    }
+    return jsString.Equals(trustedScript->mData);
+  };
+  if (aCompilationType == JS::CompilationType::DirectEval ||
+      aCompilationType == JS::CompilationType::IndirectEval) {
+    // The following assertions are guanranteed by the steps of PerformEval.
+    MOZ_ASSERT(aParameterArgs.empty());
+    MOZ_ASSERT(aParameterStrings.empty());
+    MOZ_ASSERT(aBodyString);
+    MOZ_ASSERT(aBodyArg.isString() || aBodyArg.isObject());
+    isTrusted = aBodyArg.isObject();
+#ifdef DEBUG
+    bool trusted = isArgumentTrusted(aBodyArg, aBodyString, aError);
+    if (aError.Failed()) {
+      return false;
+    }
+    // The following assertion is guaranteed by the HTML implementation of
+    // HostGetCodeForEval.
+    MOZ_ASSERT(isTrusted == trusted);
+#endif
+  } else {
+    MOZ_ASSERT(aCompilationType == JS::CompilationType::Function);
+    if (aBodyString) {
+      isTrusted = isArgumentTrusted(aBodyArg, aBodyString, aError);
+      if (aError.Failed()) {
+        return false;
+      }
+    }
+    if (isTrusted) {
+      MOZ_ASSERT(aParameterArgs.length() == aParameterStrings.length());
+      for (size_t index = 0; index < aParameterArgs.length(); index++) {
+        isTrusted = isArgumentTrusted(aParameterArgs[index],
+                                      aParameterStrings[index], aError);
+        if (aError.Failed()) {
+          return false;
+        }
+        if (!isTrusted) {
+          break;
+        }
+      }
+    }
+  }
+
+  // If successful, the steps below always ends up with sourceString ==
+  // codeString. Moreover if isTrusted == true, passing a new TrustedScript to
+  // GetTrustedTypesCompliantStringForTrustedScript would just return codeString
+  // immediately, so we can skip all these steps.
+  if (isTrusted) {
+    return true;
+  }
+
+  // Steps 2.5 - 2.6.
+  nsAutoJSString codeString;
+  if (NS_WARN_IF(!codeString.init(aCx, aCodeString))) {
+    aError.StealExceptionFromJSContext(aCx);
+    return false;
+  }
+
+  Maybe<nsAutoString> compliantStringHolder;
+  constexpr nsLiteralString evalSink = u"eval"_ns;
+  constexpr nsLiteralString functionSink = u"Function"_ns;
+  nsCOMPtr<nsIGlobalObject> pinnedGlobal = global;
+  const nsAString* compliantString =
+      dom::TrustedTypeUtils::GetTrustedTypesCompliantStringForTrustedScript(
+          codeString,
+          aCompilationType == JS::CompilationType::Function ? functionSink
+                                                            : evalSink,
+          kTrustedTypesOnlySinkGroup, *pinnedGlobal, compliantStringHolder,
+          aError);
+
+  // Step 2.7-2.8.
+  // Callers will take care of throwing an EvalError when we return false.
+  if (aError.Failed()) {
+    aError.SuppressException();
+    return false;
+  }
+  return compliantString->Equals(codeString);
 }
 
 }  // namespace mozilla::dom::TrustedTypeUtils
