@@ -27,8 +27,11 @@ export const selectLayoutRender = ({ state = {}, prefs = {} }) => {
     const results = [...data];
     for (let position of spocsPositions) {
       const spoc = spocsData[spocIndexPlacementMap[placementName]];
+      const format = spoc?.format;
       // If there are no spocs left, we can stop filling positions.
-      if (!spoc) {
+      // Since banner-type ads are placed by row and don't use the normal spoc-position,
+      // dont combine with content
+      if (!spoc || format === "billboard" || format === "leaderboard") {
         break;
       }
 

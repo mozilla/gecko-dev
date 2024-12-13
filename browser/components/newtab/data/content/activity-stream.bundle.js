@@ -700,6 +700,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.refreshTopicSelectionCache = this.refreshTopicSelectionCache.bind(this);
     this.toggleTBRFeed = this.toggleTBRFeed.bind(this);
     this.handleSectionsToggle = this.handleSectionsToggle.bind(this);
+    this.toggleIABBanners = this.toggleIABBanners.bind(this);
     this.state = {
       toggledStories: {},
       weatherQuery: ""
@@ -773,6 +774,37 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       weatherQuery
     } = this.state;
     this.props.dispatch(actionCreators.SetPref("weather.query", weatherQuery));
+  }
+  toggleIABBanners(e) {
+    const {
+      pressed,
+      id
+    } = e.target;
+    const billboardEnabled = this.props.otherPrefs["newtabAdSize.billboard"];
+    const leaderboardEnabled = this.props.otherPrefs["newtabAdSize.leaderboard"];
+    let spocValue;
+    let spocCount;
+    if (id === "billboard") {
+      this.props.dispatch(actionCreators.SetPref("newtabAdSize.billboard", pressed));
+      if (pressed) {
+        spocValue = `newtab_spocs, newtab_billboard${leaderboardEnabled ? ", newtab_leaderboard" : ""}`;
+        spocCount = `6,1${leaderboardEnabled ? ",1" : ""}`;
+      } else {
+        spocValue = `newtab_spocs${leaderboardEnabled ? ", newtab_leaderboard" : ""}`;
+        spocCount = `6${leaderboardEnabled ? ",1" : ""}`;
+      }
+    } else if (id === "leaderboard") {
+      this.props.dispatch(actionCreators.SetPref("newtabAdSize.leaderboard", pressed));
+      if (pressed) {
+        spocValue = `newtab_spocs, newtab_leaderboard${billboardEnabled ? ", newtab_billboard" : ""}`;
+        spocCount = `6,1${billboardEnabled ? ",1" : ""}`;
+      } else {
+        spocValue = `newtab_spocs${billboardEnabled ? ", newtab_billboard" : ""}`;
+        spocCount = `6${billboardEnabled ? ",1" : ""}`;
+      }
+    }
+    this.props.dispatch(actionCreators.SetPref("discoverystream.placements.spocs", spocValue));
+    this.props.dispatch(actionCreators.SetPref("discoverystream.placements.spocs.counts", spocCount));
   }
   handleSectionsToggle(e) {
     const {
@@ -928,6 +960,13 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     const selectedFeed = this.props.otherPrefs["discoverystream.contextualContent.selectedFeed"];
     const sectionsEnabled = this.props.otherPrefs["discoverystream.sections.enabled"];
     const TBRFeeds = this.props.otherPrefs["discoverystream.contextualContent.feeds"].split(",").map(s => s.trim()).filter(item => item);
+
+    // Prefs for IAB Banners
+    const billboardsEnabled = this.props.otherPrefs["newtabAdSize.billboard"];
+    const leaderboardEnabled = this.props.otherPrefs["newtabAdSize.leaderboard"];
+    const spocPlacements = this.props.otherPrefs["discoverystream.placements.spocs"];
+    const billboardPressed = billboardsEnabled && spocPlacements.includes("newtab_billboard");
+    const leaderboardPressed = leaderboardEnabled && spocPlacements.includes("newtab_leaderboard");
     return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
       className: "button",
       onClick: this.restorePrefDefaults
@@ -966,7 +1005,23 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       pressed: sectionsEnabled || null,
       onToggle: this.handleSectionsToggle,
       label: "Toggle DS Sections"
-    })), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, prefToggles.map(pref => /*#__PURE__*/external_React_default().createElement(Row, {
+    })), /*#__PURE__*/external_React_default().createElement("details", {
+      className: "details-section"
+    }, /*#__PURE__*/external_React_default().createElement("summary", null, "IAB Banner Ad Sizes"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "leaderboard",
+      pressed: leaderboardPressed || null,
+      onToggle: this.toggleIABBanners,
+      label: "Enable IAB Leaderboard"
+    })), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "billboard",
+      pressed: billboardPressed || null,
+      onToggle: this.toggleIABBanners,
+      label: "Enable IAB Billboard"
+    }))), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, prefToggles.map(pref => /*#__PURE__*/external_React_default().createElement(Row, {
       key: pref
     }, /*#__PURE__*/external_React_default().createElement("td", null, /*#__PURE__*/external_React_default().createElement(TogglePrefCheckbox, {
       checked: config[pref],
@@ -4110,7 +4165,8 @@ function ListFeed({
 const AdBanner = ({
   spoc,
   dispatch,
-  firstVisibleTimestamp
+  firstVisibleTimestamp,
+  row
 }) => {
   const getDimensions = format => {
     switch (format) {
@@ -4156,8 +4212,17 @@ const AdBanner = ({
       }]
     }));
   };
+
+  // in the default card grid 1 would come before the 1st row of cards and 9 comes after the last row
+  // using clamp to make sure its between valid values (1-9)
+  const clampedRow = Math.max(1, Math.min(9, row));
   return /*#__PURE__*/external_React_default().createElement("aside", {
-    className: `ad-banner-wrapper ${spoc.format}`
+    className: `ad-banner-wrapper`,
+    style: {
+      gridRow: clampedRow
+    }
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: `ad-banner-inner ${spoc.format}`
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "ad-banner-dismiss"
   }, /*#__PURE__*/external_React_default().createElement("button", {
@@ -4185,7 +4250,7 @@ const AdBanner = ({
   }, /*#__PURE__*/external_React_default().createElement("img", {
     src: spoc.raw_image_src,
     alt: spoc.alt_text,
-    loading: "lazy",
+    loading: "eager",
     width: imgWidth,
     height: imgHeight
   }))), /*#__PURE__*/external_React_default().createElement("div", {
@@ -4193,7 +4258,7 @@ const AdBanner = ({
   }, /*#__PURE__*/external_React_default().createElement("span", {
     className: "ad-banner-sponsored-label",
     "data-l10n-id": "newtab-topsite-sponsored"
-  })));
+  }))));
 };
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardGrid/CardGrid.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -4221,6 +4286,10 @@ const PREF_SPOCS_STARTUPCACHE_ENABLED = "discoverystream.spocs.startupCache.enab
 const PREF_LIST_FEED_ENABLED = "discoverystream.contextualContent.enabled";
 const PREF_LIST_FEED_SELECTED_FEED = "discoverystream.contextualContent.selectedFeed";
 const PREF_FAKESPOT_ENABLED = "discoverystream.contextualContent.fakespot.enabled";
+const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
+const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
+const PREF_LEADERBOARD_POSITION = "newtabAdSize.billboard.position";
+const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
 const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -4501,6 +4570,8 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const spocsStartupCacheEnabled = prefs[PREF_SPOCS_STARTUPCACHE_ENABLED];
     const listFeedEnabled = prefs[PREF_LIST_FEED_ENABLED];
     const listFeedSelectedFeed = prefs[PREF_LIST_FEED_SELECTED_FEED];
+    const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
+    const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
     // filter out recs that should be in ListFeed
     const recs = this.props.data.recommendations.filter(item => !item.feedName).slice(0, items);
     const cards = [];
@@ -4508,62 +4579,52 @@ class _CardGrid extends (external_React_default()).PureComponent {
     let editorsPicksCards = [];
     for (let index = 0; index < items; index++) {
       const rec = recs[index];
-      if (rec?.format === "billboard" || rec?.format === "leaderboard") {
-        cards.push( /*#__PURE__*/external_React_default().createElement(AdBanner, {
-          spoc: rec,
-          key: `dscard-${rec.id}`,
-          dispatch: this.props.dispatch,
-          type: this.props.type,
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp
-        }));
-      } else {
-        cards.push(topicsLoading || !rec || rec.placeholder || rec.flight_id && !spocsStartupCacheEnabled && this.props.App.isForStartupCache ? /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
-          key: `dscard-${index}`
-        }) : /*#__PURE__*/external_React_default().createElement(DSCard, {
-          key: `dscard-${rec.id}`,
-          pos: rec.pos,
-          flightId: rec.flight_id,
-          image_src: rec.image_src,
-          raw_image_src: rec.raw_image_src,
-          word_count: rec.word_count,
-          time_to_read: rec.time_to_read,
-          title: rec.title,
-          topic: rec.topic,
-          showTopics: showTopics,
-          selectedTopics: selectedTopics,
-          availableTopics: availableTopics,
-          excerpt: rec.excerpt,
-          url: rec.url,
-          id: rec.id,
-          shim: rec.shim,
-          fetchTimestamp: rec.fetchTimestamp,
-          type: this.props.type,
-          context: rec.context,
-          sponsor: rec.sponsor,
-          sponsored_by_override: rec.sponsored_by_override,
-          dispatch: this.props.dispatch,
-          source: rec.domain,
-          publisher: rec.publisher,
-          pocket_id: rec.pocket_id,
-          context_type: rec.context_type,
-          bookmarkGuid: rec.bookmarkGuid,
-          is_collection: this.props.is_collection,
-          saveToPocketCard: saveToPocketCard,
-          ctaButtonSponsors: ctaButtonSponsors,
-          ctaButtonVariant: ctaButtonVariant,
-          spocMessageVariant: spocMessageVariant,
-          recommendation_id: rec.recommendation_id,
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-          mayHaveThumbsUpDown: mayHaveThumbsUpDown,
-          mayHaveSectionsCards: mayHaveSectionsCards,
-          corpus_item_id: rec.corpus_item_id,
-          scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
-          recommended_at: rec.recommended_at,
-          received_rank: rec.received_rank,
-          format: rec.format,
-          alt_text: rec.alt_text
-        }));
-      }
+      cards.push(topicsLoading || !rec || rec.placeholder || rec.flight_id && !spocsStartupCacheEnabled && this.props.App.isForStartupCache ? /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
+        key: `dscard-${index}`
+      }) : /*#__PURE__*/external_React_default().createElement(DSCard, {
+        key: `dscard-${rec.id}`,
+        pos: rec.pos,
+        flightId: rec.flight_id,
+        image_src: rec.image_src,
+        raw_image_src: rec.raw_image_src,
+        word_count: rec.word_count,
+        time_to_read: rec.time_to_read,
+        title: rec.title,
+        topic: rec.topic,
+        showTopics: showTopics,
+        selectedTopics: selectedTopics,
+        availableTopics: availableTopics,
+        excerpt: rec.excerpt,
+        url: rec.url,
+        id: rec.id,
+        shim: rec.shim,
+        fetchTimestamp: rec.fetchTimestamp,
+        type: this.props.type,
+        context: rec.context,
+        sponsor: rec.sponsor,
+        sponsored_by_override: rec.sponsored_by_override,
+        dispatch: this.props.dispatch,
+        source: rec.domain,
+        publisher: rec.publisher,
+        pocket_id: rec.pocket_id,
+        context_type: rec.context_type,
+        bookmarkGuid: rec.bookmarkGuid,
+        is_collection: this.props.is_collection,
+        saveToPocketCard: saveToPocketCard,
+        ctaButtonSponsors: ctaButtonSponsors,
+        ctaButtonVariant: ctaButtonVariant,
+        spocMessageVariant: spocMessageVariant,
+        recommendation_id: rec.recommendation_id,
+        firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+        mayHaveThumbsUpDown: mayHaveThumbsUpDown,
+        mayHaveSectionsCards: mayHaveSectionsCards,
+        corpus_item_id: rec.corpus_item_id,
+        scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
+        recommended_at: rec.recommended_at,
+        received_rank: rec.received_rank,
+        format: rec.format,
+        alt_text: rec.alt_text
+      }));
     }
     if (widgets?.positions?.length && widgets?.data?.length) {
       let positionIndex = 0;
@@ -4600,6 +4661,32 @@ class _CardGrid extends (external_React_default()).PureComponent {
       if (!isFakespot || isFakespot && fakespotEnabled) {
         // Place the list feed as the 3rd element in the card grid
         cards.splice(2, 1, this.renderListFeed(this.props.data.recommendations, listFeedSelectedFeed));
+      }
+    }
+
+    // if a banner ad is enabled and we have any available, place them in the grid
+    const {
+      spocs
+    } = this.props.DiscoveryStream;
+    if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs) {
+      const spocTypes = [billboardEnabled && "billboard", leaderboardEnabled && "leaderboard"].filter(Boolean);
+      // We need to go through the billboards in `newtab_spocs` because they have been normalized
+      // in DiscoveryStreamFeed on line 1024
+      const bannerSpocs = spocs.data.newtab_spocs.items.filter(({
+        format
+      }) => spocTypes.includes(format));
+      if (bannerSpocs.length) {
+        for (const spoc of bannerSpocs) {
+          const row = spoc.format === "leaderboard" ? prefs[PREF_LEADERBOARD_POSITION] : prefs[PREF_BILLBOARD_POSITION];
+          cards.push( /*#__PURE__*/external_React_default().createElement(AdBanner, {
+            spoc: spoc,
+            key: `dscard-${spoc.id}`,
+            dispatch: this.props.dispatch,
+            type: this.props.type,
+            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            row: row
+          }));
+        }
       }
     }
     let moreRecsHeader = "";
@@ -9372,8 +9459,11 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
     const results = [...data];
     for (let position of spocsPositions) {
       const spoc = spocsData[spocIndexPlacementMap[placementName]];
+      const format = spoc?.format;
       // If there are no spocs left, we can stop filling positions.
-      if (!spoc) {
+      // Since banner-type ads are placed by row and don't use the normal spoc-position,
+      // dont combine with content
+      if (!spoc || format === "billboard" || format === "leaderboard") {
         break;
       }
 
