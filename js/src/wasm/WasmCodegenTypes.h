@@ -624,8 +624,20 @@ class CallSiteDesc {
   CallSiteKind kind_;
 
  public:
-  CallSiteDesc() : lineOrBytecode_(0), kind_(CallSiteKind::Func) {}
-  explicit CallSiteDesc(CallSiteKind kind) : lineOrBytecode_(0), kind_(kind) {
+  // Some call sites do not have a bytecode offset associated with them
+  // (such as ones in import function wrappers). We represent them using '0' as
+  // the bytecode offset. This should never be confused with a real offset,
+  // because the binary format has overhead from the magic number and section
+  // headers.
+  static constexpr uint32_t NO_LINE_OR_BYTECODE = 0;
+  static constexpr uint32_t FIRST_VALID_BYTECODE_OFFSET =
+      NO_LINE_OR_BYTECODE + 1;
+  static_assert(NO_LINE_OR_BYTECODE < sizeof(wasm::MagicNumber));
+
+  CallSiteDesc()
+      : lineOrBytecode_(NO_LINE_OR_BYTECODE), kind_(CallSiteKind::Func) {}
+  explicit CallSiteDesc(CallSiteKind kind)
+      : lineOrBytecode_(NO_LINE_OR_BYTECODE), kind_(kind) {
     MOZ_ASSERT(kind == CallSiteKind(kind_));
   }
   CallSiteDesc(uint32_t lineOrBytecode, CallSiteKind kind)

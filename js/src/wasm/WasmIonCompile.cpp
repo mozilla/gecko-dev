@@ -2546,6 +2546,12 @@ class FunctionCompiler {
     MOZ_ASSERT_IF(kind == InliningHeuristics::CallKind::Direct,
                   hints.length() == 1);
 
+    // We don't support asm.js and inlining. asm.js also doesn't support
+    // baseline, which is required for lazy tiering, so we should never get
+    // here. The biggest complication for asm.js is getting correct stack
+    // traces with inlining.
+    MOZ_ASSERT(!codeMeta().isAsmJS());
+
     // We only support inlining when lazy tiering. This is currently a
     // requirement because we need the full module bytecode and function
     // definition ranges, which are not available in other modes.

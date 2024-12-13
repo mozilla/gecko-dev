@@ -32,8 +32,28 @@ struct BytecodeRange {
 
   uint32_t end() const { return start + size; }
 
+  // Returns whether a range is a non-strict subset of this range.
   bool contains(const BytecodeRange& other) const {
     return other.start >= start && other.end() <= end();
+  }
+
+  // Returns whether an offset is contained in this range.
+  bool containsOffset(uint32_t bytecodeOffset) const {
+    return bytecodeOffset >= start && bytecodeOffset < end();
+  }
+
+  // Compare where an offset falls relative to this range. This returns `0` if
+  // it is contained in this range, `-1` if it falls before the range, and `1`
+  // if it is after the range.
+  int compareOffset(uint32_t bytecodeOffset) const {
+    if (containsOffset(bytecodeOffset)) {
+      return 0;
+    }
+    if (bytecodeOffset < start) {
+      return -1;
+    }
+    MOZ_ASSERT(bytecodeOffset >= end());
+    return 1;
   }
 
   bool operator==(const BytecodeRange& rhs) const {
