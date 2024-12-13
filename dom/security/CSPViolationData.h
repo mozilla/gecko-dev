@@ -48,6 +48,8 @@ struct CSPViolationData {
 
   ~CSPViolationData();
 
+  static const nsDependentSubstring MaybeTruncateSample(
+      const nsAString& aSample);
   BlockedContentSource BlockedContentSourceOrUnknown() const;
 
   const uint32_t mViolatedPolicyIndex;

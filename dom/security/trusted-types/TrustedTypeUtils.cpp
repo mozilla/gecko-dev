@@ -75,7 +75,6 @@ static bool DoesSinkTypeRequireTrustedTypes(nsIContentSecurityPolicy* aCSP,
 namespace SinkTypeMismatch {
 enum class Value { Blocked, Allowed };
 
-static constexpr size_t kTrimmedSourceLength = 40;
 static constexpr nsLiteralString kSampleSeparator = u"|"_ns;
 }  // namespace SinkTypeMismatch
 
@@ -98,8 +97,8 @@ static SinkTypeMismatch::Value ShouldSinkTypeMismatchViolationBeBlockedByCSP(
 
     auto caller = JSCallingLocation::Get();
 
-    const nsDependentSubstring trimmedSource = Substring(
-        aSource, /* aStartPos */ 0, SinkTypeMismatch::kTrimmedSourceLength);
+    const nsDependentSubstring trimmedSource =
+        CSPViolationData::MaybeTruncateSample(aSource);
     const nsString sample =
         aSink + SinkTypeMismatch::kSampleSeparator + trimmedSource;
 

@@ -15,21 +15,29 @@
 
 namespace mozilla::dom {
 
-static nsString MaybeTruncateSample(const nsAString& aSample) {
-  nsString sample{aSample};
-  // Truncate sample string.
-  uint32_t length = sample.Length();
-  if (length > nsCSPContext::ScriptSampleMaxLength()) {
-    uint32_t desiredLength = nsCSPContext::ScriptSampleMaxLength();
+/* static */
+const nsDependentSubstring CSPViolationData::MaybeTruncateSample(
+    const nsAString& aSample) {
+  uint32_t length = aSample.Length();
+  uint32_t maybeTruncatedLength = nsCSPContext::ScriptSampleMaxLength();
+  if (length > maybeTruncatedLength) {
     // Don't cut off right before a low surrogate. Just include it.
-    if (NS_IS_LOW_SURROGATE(sample[desiredLength])) {
-      desiredLength++;
+    // TODO(bug 1935996): Should we also count previous surrogate pairs as
+    // single characters?
+    if (NS_IS_LOW_SURROGATE(aSample[maybeTruncatedLength])) {
+      maybeTruncatedLength++;
     }
-    sample.Replace(nsCSPContext::ScriptSampleMaxLength(),
-                   length - desiredLength,
-                   nsContentUtils::GetLocalizedEllipsis());
   }
-  return sample;
+  return Substring(aSample, 0, maybeTruncatedLength);
+}
+
+static const nsString MaybeTruncateSampleWithEllipsis(
+    const nsAString& aSample) {
+  const nsDependentSubstring sample =
+      CSPViolationData::MaybeTruncateSample(aSample);
+  return sample.Length() < aSample.Length()
+             ? sample + nsContentUtils::GetLocalizedEllipsis()
+             : nsString(aSample);
 }
 
 CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
@@ -45,7 +53,14 @@ CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
       mLineNumber{aLineNumber},
       mColumnNumber{aColumnNumber},
       mElement{aElement},
-      mSample{MaybeTruncateSample(aSample)} {}
+      // For TrustedTypesSink, sample is already truncated and formatted in
+      // ShouldSinkTypeMismatchViolationBeBlockedByCSP.
+      // TODO(bug 1935996): The specifications do not mention adding an
+      // ellipsis.
+      mSample{BlockedContentSourceOrUnknown() ==
+                      BlockedContentSource::TrustedTypesSink
+                  ? nsString(aSample)
+                  : MaybeTruncateSampleWithEllipsis(aSample)} {}
 
 // Required for `mElement`, since its destructor requires a definition of
 // `Element`.
