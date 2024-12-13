@@ -76,17 +76,54 @@ namespace SinkTypeMismatch {
 enum class Value { Blocked, Allowed };
 
 static constexpr nsLiteralString kSampleSeparator = u"|"_ns;
+static constexpr nsLiteralString kFunctionAnonymousPrefix =
+    u"function anonymous"_ns;
+static constexpr nsLiteralString kAsyncFunctionAnonymousPrefix =
+    u"async function anonymous"_ns;
+static constexpr nsLiteralString kFunctionStarAnonymousPrefix =
+    u"function* anonymous"_ns;
+static constexpr nsLiteralString kAsyncFunctionStarAnonymousPrefix =
+    u"async function* anonymous"_ns;
 }  // namespace SinkTypeMismatch
 
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-sink-type-mismatch-violation-be-blocked-by-content-security-policy
 static SinkTypeMismatch::Value ShouldSinkTypeMismatchViolationBeBlockedByCSP(
     nsIContentSecurityPolicy* aCSP, const nsAString& aSink,
     const nsAString& aSinkGroup, const nsAString& aSource) {
-  MOZ_ASSERT(aCSP && aCSP->GetHasPolicyWithRequireTrustedTypesForDirective());
+  MOZ_ASSERT(DoesSinkTypeRequireTrustedTypes(aCSP, aSinkGroup));
   SinkTypeMismatch::Value result = SinkTypeMismatch::Value::Allowed;
 
   uint32_t numPolicies = 0;
   aCSP->GetPolicyCount(&numPolicies);
+
+  // First determine the trimmed sample to be used for violation report. Note
+  // that this method is called after DoesSinkTypeRequireTrustedTypes returned
+  // true, so we will always report at least one violation below.
+  size_t startPos = 0;
+  if (aSink.Equals(u"Function"_ns)) {
+    auto sourceStartsWith = [&aSource, &startPos](const nsAString& aPrefix) {
+      MOZ_ASSERT(startPos == 0);
+      if (aSource.Length() >= aPrefix.Length() &&
+          Substring(aSource, 0, aPrefix.Length()).Equals(aPrefix)) {
+        startPos = aPrefix.Length();
+        return true;
+      }
+      return false;
+    };
+    for (auto& prefix : {SinkTypeMismatch::kFunctionAnonymousPrefix,
+                         SinkTypeMismatch::kAsyncFunctionAnonymousPrefix,
+                         SinkTypeMismatch::kFunctionStarAnonymousPrefix,
+                         SinkTypeMismatch::kAsyncFunctionStarAnonymousPrefix}) {
+      if (sourceStartsWith(prefix)) {
+        break;
+      }
+    }
+  }
+
+  const nsDependentSubstring trimmedSample =
+      CSPViolationData::MaybeTruncateSample(Substring(aSource, startPos));
+  const nsString sample =
+      aSink + SinkTypeMismatch::kSampleSeparator + trimmedSample;
 
   for (uint32_t i = 0; i < numPolicies; ++i) {
     const auto* policy = aCSP->GetPolicy(i);
@@ -96,11 +133,6 @@ static SinkTypeMismatch::Value ShouldSinkTypeMismatchViolationBeBlockedByCSP(
     }
 
     auto caller = JSCallingLocation::Get();
-
-    const nsDependentSubstring trimmedSource =
-        CSPViolationData::MaybeTruncateSample(aSource);
-    const nsString sample =
-        aSink + SinkTypeMismatch::kSampleSeparator + trimmedSource;
 
     CSPViolationData cspViolationData{
         i,
