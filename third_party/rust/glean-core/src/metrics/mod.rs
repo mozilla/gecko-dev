@@ -178,10 +178,6 @@ pub trait MetricType {
     /// This depends on the metrics own state, as determined by its metadata,
     /// and whether upload is enabled on the Glean object.
     fn should_record(&self, glean: &Glean) -> bool {
-        if !glean.is_upload_enabled() {
-            return false;
-        }
-
         // Technically nothing prevents multiple calls to should_record() to run in parallel,
         // meaning both are reading self.meta().disabled and later writing it. In between it can
         // also read remote_settings_config, which also could be modified in between those 2 reads.

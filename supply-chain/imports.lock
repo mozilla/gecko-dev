@@ -3,7 +3,7 @@
 
 [[unpublished.allocator-api2]]
 version = "0.2.999"
-audited_as = "0.2.18"
+audited_as = "0.2.20"
 
 [[publisher.aho-corasick]]
 version = "1.1.0"
@@ -258,15 +258,15 @@ user-login = "jrmuizel"
 user-name = "Jeff Muizelaar"
 
 [[publisher.glean]]
-version = "62.0.0"
-when = "2024-11-05"
+version = "63.0.0"
+when = "2024-11-28"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
 
 [[publisher.glean-core]]
-version = "62.0.0"
-when = "2024-11-05"
+version = "63.0.0"
+when = "2024-11-28"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
@@ -957,6 +957,15 @@ Shuffling of features in this update and while there are updates to `unsafe`
 code it's no different than before and the usage remains the same.
 """
 
+[[audits.bytecode-alliance.audits.allocator-api2]]
+who = "Chris Fallin <chris@cfallin.org>"
+criteria = "safe-to-deploy"
+delta = "0.2.18 -> 0.2.20"
+notes = """
+The changes appear to be reasonable updates from Rust's stdlib imported into
+`allocator-api2`'s copy of this code.
+"""
+
 [[audits.bytecode-alliance.audits.arrayref]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
@@ -1553,20 +1562,6 @@ who = "ChromeOS"
 criteria = "safe-to-run"
 version = "0.2.3"
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
-
-[[audits.google.audits.unicode-linebreak]]
-who = "Lukasz Anforowicz <lukasza@chromium.org>"
-criteria = "safe-to-deploy"
-version = "0.1.5"
-notes = """
-Grepped for `-i cipher`, `-i crypto`, `'\bfs\b'``, `'\bnet\b'``, `'\bunsafe\b'``
-and there were no hits.
-
-Version `0.1.2` of this crate has been added to Chromium in
-https://source.chromium.org/chromium/chromium/src/+/591a0f30c5eac93b6a3d981c2714ffa4db28dbcb
-The CL description contains a link to a Google-internal document with audit details.
-"""
-aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
 [[audits.google.audits.version_check]]
 who = "George Burgess IV <gbiv@google.com>"

@@ -44,6 +44,7 @@ impl PingType {
         enabled: bool,
         schedules_pings: Vec<String>,
         reason_codes: Vec<String>,
+        follows_collection_enabled: bool,
     ) -> Self {
         let inner = glean_core::metrics::PingType::new(
             name.into(),
@@ -54,12 +55,21 @@ impl PingType {
             enabled,
             schedules_pings,
             reason_codes,
+            follows_collection_enabled,
         );
 
         Self {
             inner,
             test_callback: Arc::new(Default::default()),
         }
+    }
+
+    /// Enable or disable a ping.
+    ///
+    /// Disabling a ping causes all data for that ping to be removed from storage
+    /// and all pending pings of that type to be deleted.
+    pub fn set_enabled(&self, enabled: bool) {
+        self.inner.set_enabled(enabled)
     }
 
     /// Submits the ping for eventual uploading.
