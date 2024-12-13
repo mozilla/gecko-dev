@@ -191,6 +191,7 @@ var gTimeoutRuns = 0;
 // Environment related globals
 var gShouldResetEnv = undefined;
 var gAddedEnvXRENoWindowsCrashDialog = false;
+var gCrashReporterDisabled;
 var gEnvXPCOMDebugBreak;
 var gEnvXPCOMMemLeakLog;
 var gEnvForceServiceFallback = false;
@@ -1184,6 +1185,8 @@ function cleanupUpdateFiles() {
       );
     }
   }
+  // We just deleted this.
+  gUpdateBin = null;
 }
 
 /**
@@ -2979,6 +2982,27 @@ function waitForApplicationStop(aApplication) {
     exitValue,
     0,
     "the process should have stopped, process name: " + aApplication
+  );
+}
+
+/**
+ * Waits for the application with the specified pid to stop.
+ *
+ * @param   pid
+ *          The application identifier to wait on.
+ * @param   timeout
+ *          The amount of time to wait, if the pid doesn't exit.
+ */
+function waitForPidStop(pid, timeout = 120) {
+  debugDump("waiting for pid " + pid + " to stop if necessary");
+  // Use the helper bin to ensure the application is stopped. If not stopped,
+  // then wait for it to stop (at most 120 seconds).
+  let args = ["wait-for-pid-exit", pid, timeout.toString()];
+  let exitValue = runTestHelperSync(args);
+  Assert.equal(
+    exitValue,
+    0,
+    "the process should have stopped, process id: " + pid
   );
 }
 
@@ -4942,10 +4966,32 @@ async function runUpdateUsingApp(aExpectedStatus) {
   gProcess.run(true, args, args.length);
   debugDump("launched application exited");
 
-  resetEnvironment();
+  if (gAppTimer) {
+    gAppTimer.cancel();
+    gAppTimer = null;
+  }
 
-  if (AppConstants.platform == "win") {
-    waitForApplicationStop(FILE_UPDATER_BIN);
+  resetEnvironment();
+  const pidFile = getUpdateDirFile(FILE_TEST_PROCESS_UPDATES);
+  debugDump(`Waiting for file: ${pidFile.path}`);
+  let pid;
+  await TestUtils.waitForCondition(
+    () => {
+      let fileContents = readFile(pidFile);
+      if (!fileContents) {
+        return false;
+      }
+      pid = parseInt(fileContents, 10);
+      return !isNaN(pid);
+    },
+    "Waiting for application to write test complete file",
+    /* interval */ 500
+  );
+  waitForPidStop(pid);
+  try {
+    pid.remove(false);
+  } catch (ex) {
+    debugDump("Failed to remove pid file", ex);
   }
 
   let file = getUpdateDirFile(FILE_UPDATE_STATUS);
@@ -5133,6 +5179,11 @@ function setEnvironment() {
 
   gShouldResetEnv = true;
 
+  gAddedEnvXRENoWindowsCrashDialog = false;
+  gCrashReporterDisabled = null;
+  gEnvXPCOMDebugBreak = null;
+  gEnvXPCOMMemLeakLog = null;
+
   if (
     AppConstants.platform == "win" &&
     !Services.env.exists("XRE_NO_WINDOWS_CRASH_DIALOG")
@@ -5168,8 +5219,22 @@ function setEnvironment() {
         "warn... previously it didn't exist"
     );
   }
-
   Services.env.set("XPCOM_DEBUG_BREAK", "warn");
+
+  if (Services.env.exists("MOZ_CRASHREPORTER_DISABLE")) {
+    gCrashReporterDisabled = Services.env.get("MOZ_CRASHREPORTER_DISABLE");
+    debugDump(
+      "setting the MOZ_CRASHREPORTER_DISABLE environment variable to " +
+        "true... previous value " +
+        gCrashReporterDisabled
+    );
+  } else {
+    debugDump(
+      "setting the MOZ_CRASHREPORTER_DISABLE environment variable to " +
+        "true... previously it didn't exist"
+    );
+  }
+  Services.env.set("MOZ_CRASHREPORTER_DISABLE", "true");
 
   if (gEnvForceServiceFallback) {
     // This env variable forces the updater to use the service in an invalid
