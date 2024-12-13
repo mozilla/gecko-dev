@@ -3497,7 +3497,6 @@ toolbar#nav-bar {
                 "swgl": self.extraPrefs.get("gfx.webrender.software", False),
                 "verify": options.verify,
                 "verify_fission": options.verify_fission,
-                "vertical_tab": self.extraPrefs.get("sidebar.verticalTabs", False),
                 "webgl_ipc": self.extraPrefs.get("webgl.out-of-process", False),
                 "wmfme": (
                     self.extraPrefs.get("media.wmf.media-engine.enabled", 0)
