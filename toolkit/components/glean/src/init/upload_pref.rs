@@ -90,10 +90,10 @@ impl UploadPrefObserver {
             // ensure Glean is told to wipe the stores.
             // This may send a "deletion-request" ping for a client_id that's never sent
             // any other pings.
-            glean::set_upload_enabled(false);
+            glean::set_collection_enabled(false);
         }
         RECORDING_ENABLED.store(recording_enabled, Ordering::SeqCst);
-        glean::set_upload_enabled(upload_enabled || recording_enabled);
+        glean::set_collection_enabled(upload_enabled || recording_enabled);
         NS_OK
     }
 }

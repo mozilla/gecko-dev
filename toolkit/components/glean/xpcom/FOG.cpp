@@ -422,11 +422,13 @@ FOG::TestRegisterRuntimePing(
     const bool aSendIfEmpty, const bool aPreciseTimestamps,
     const bool aIncludeInfoSections, const bool aEnabled,
     const nsTArray<nsCString>& aSchedulesPings,
-    const nsTArray<nsCString>& aReasonCodes, uint32_t* aPingIdOut) {
+    const nsTArray<nsCString>& aReasonCodes,
+    const bool aFollowsCollectionEnabled, uint32_t* aPingIdOut) {
   *aPingIdOut = 0;
   *aPingIdOut = glean::jog::jog_test_register_ping(
       &aName, aIncludeClientId, aSendIfEmpty, aPreciseTimestamps,
-      aIncludeInfoSections, aEnabled, &aSchedulesPings, &aReasonCodes);
+      aIncludeInfoSections, aEnabled, &aSchedulesPings, &aReasonCodes,
+      aFollowsCollectionEnabled);
   return NS_OK;
 }
 

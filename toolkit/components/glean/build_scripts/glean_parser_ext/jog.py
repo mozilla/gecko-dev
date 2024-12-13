@@ -55,7 +55,7 @@ known_metadata = [
     "permit_non_commutative_operations_over_ipc",
 ]
 
-# List of all ping-specific args that JOG undertsands.
+# List of all ping-specific args that JOG understands.
 known_ping_args = [
     "name",
     "include_client_id",
@@ -65,6 +65,7 @@ known_ping_args = [
     "enabled",
     "schedules_pings",
     "reason_codes",
+    "follows_collection_enabled",
 ]
 
 

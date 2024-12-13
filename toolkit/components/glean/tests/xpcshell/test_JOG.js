@@ -32,7 +32,7 @@ add_task(function test_jog_counter_works() {
     "counter",
     "jog_cat",
     "jog_counter",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -46,7 +46,7 @@ add_task(async function test_jog_string_works() {
     "string",
     "jog_cat",
     "jog_string",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -63,7 +63,7 @@ add_task(async function test_jog_string_list_works() {
     "string_list",
     "jog_cat",
     "jog_string_list",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -85,7 +85,7 @@ add_task(async function test_jog_timespan_works() {
     "timespan",
     "jog_cat",
     "jog_timespan",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ time_unit: "millisecond" })
@@ -109,7 +109,7 @@ add_task(async function test_jog_uuid_works() {
     "uuid",
     "jog_cat",
     "jog_uuid",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -128,7 +128,7 @@ add_task(function test_jog_datetime_works() {
     "datetime",
     "jog_cat",
     "jog_datetime",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ time_unit: "nanosecond" })
@@ -145,7 +145,7 @@ add_task(function test_jog_boolean_works() {
     "boolean",
     "jog_cat",
     "jog_bool",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -158,7 +158,7 @@ add_task(async function test_jog_event_works() {
     "event",
     "jog_cat",
     "jog_event_no_extra",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -172,7 +172,7 @@ add_task(async function test_jog_event_works() {
     "event",
     "jog_cat",
     "jog_event",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ allowed_extra_keys: ["extra1", "extra2"] })
@@ -189,7 +189,7 @@ add_task(async function test_jog_event_works() {
     "event",
     "jog_cat",
     "jog_event_with_extra",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({
@@ -230,7 +230,7 @@ add_task(async function test_jog_memory_distribution_works() {
     "memory_distribution",
     "jog_cat",
     "jog_memory_dist",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ memory_unit: "megabyte" })
@@ -254,7 +254,7 @@ add_task(async function test_jog_custom_distribution_works() {
     "custom_distribution",
     "jog_cat",
     "jog_custom_dist",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({
@@ -297,7 +297,8 @@ add_task(async function test_jog_custom_pings() {
     true,
     true,
     [],
-    []
+    [],
+    true
   );
   Assert.ok("jogPing" in GleanPings);
   let submitted = false;
@@ -317,7 +318,7 @@ add_task(async function test_jog_timing_distribution_works() {
     "timing_distribution",
     "jog_cat",
     "jog_timing_dist",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ time_unit: "microsecond" })
@@ -360,7 +361,7 @@ add_task(async function test_jog_labeled_boolean_works() {
     "labeled_boolean",
     "jog_cat",
     "jog_labeled_bool",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -390,7 +391,7 @@ add_task(async function test_jog_labeled_boolean_with_static_labels_works() {
     "labeled_boolean",
     "jog_cat",
     "jog_labeled_bool_with_labels",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ ordered_labels: ["label_1", "label_2"] })
@@ -428,7 +429,7 @@ add_task(async function test_jog_labeled_counter_works() {
     "labeled_counter",
     "jog_cat",
     "jog_labeled_counter",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -459,7 +460,7 @@ add_task(async function test_jog_labeled_counter_with_static_labels_works() {
     "labeled_counter",
     "jog_cat",
     "jog_labeled_counter_with_labels",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ ordered_labels: ["label_1", "label_2"] })
@@ -502,7 +503,7 @@ add_task(async function test_jog_labeled_string_works() {
     "labeled_string",
     "jog_cat",
     "jog_labeled_string",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -532,7 +533,7 @@ add_task(async function test_jog_labeled_string_with_labels_works() {
     "labeled_string",
     "jog_cat",
     "jog_labeled_string_with_labels",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ ordered_labels: ["label_1", "label_2"] })
@@ -574,7 +575,7 @@ add_task(function test_jog_quantity_works() {
     "quantity",
     "jog_cat",
     "jog_quantity",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -587,7 +588,7 @@ add_task(function test_jog_rate_works() {
     "rate",
     "jog_cat",
     "jog_rate",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -603,7 +604,7 @@ add_task(function test_jog_rate_works() {
     "denominator",
     "jog_cat",
     "jog_denominator",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({
@@ -611,7 +612,7 @@ add_task(function test_jog_rate_works() {
         {
           name: "jog_rate_ext",
           category: "jog_cat",
-          send_in_pings: ["test-only"],
+          send_in_pings: ["test-ping"],
           lifetime: "ping",
           disabled: false,
         },
@@ -622,7 +623,7 @@ add_task(function test_jog_rate_works() {
     "rate",
     "jog_cat",
     "jog_rate_ext",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -641,7 +642,7 @@ add_task(function test_jog_dotted_categories_work() {
     "counter",
     "jog_cat.dotted",
     "jog_counter",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -659,7 +660,8 @@ add_task(async function test_jog_ping_works() {
     true,
     true,
     [],
-    [kReason]
+    [kReason],
+    true
   );
   let submitted = false;
   GleanPings.myPing.testBeforeNextSubmit(reason => {
@@ -680,7 +682,8 @@ add_task(async function test_jog_noinfo_ping_works() {
     false,
     true,
     [],
-    [kReason]
+    [kReason],
+    true
   );
   let submitted = false;
   GleanPings.noinfoPing.testBeforeNextSubmit(reason => {
@@ -703,7 +706,7 @@ add_task(function test_jog_name_collision() {
     "counter",
     "test_only.jog",
     "a_counter",
-    ["store1"],
+    ["test-ping"],
     `"ping"`,
     true // changing the metric to disabled.
   );
@@ -730,7 +733,7 @@ add_task(function test_jog_name_collision() {
     "event",
     "test_only.jog",
     "an_event",
-    ["store1"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ allowed_extra_keys: ["extra1", "extra2", "extra3"] }) // New extra key just dropped
@@ -757,7 +760,7 @@ add_task(async function test_jog_text_works() {
     "text",
     "test_only.jog",
     "a_text",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );
@@ -771,7 +774,7 @@ add_task(async function test_jog_custom_distribution_works() {
     "labeled_custom_distribution",
     "jog_cat",
     "jog_labeled_custom_dist",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({
@@ -805,7 +808,7 @@ add_task(async function test_jog_labeled_memory_distribution_works() {
     "labeled_memory_distribution",
     "jog_cat",
     "jog_labeled_memory_dist",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ memory_unit: "megabyte" })
@@ -829,7 +832,7 @@ add_task(async function test_jog_labeled_timing_distribution_works() {
     "labeled_timing_distribution",
     "jog_cat",
     "jog_labeled_timing_dist",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false,
     JSON.stringify({ time_unit: "microsecond" })
@@ -869,7 +872,7 @@ add_task(async function test_jog_labeled_quantity_works() {
     "labeled_quantity",
     "jog_cat",
     "jog_labeled_quantity",
-    ["test-only"],
+    ["test-ping"],
     `"ping"`,
     false
   );

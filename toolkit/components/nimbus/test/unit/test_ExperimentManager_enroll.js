@@ -185,7 +185,7 @@ add_task(
     );
 
     // Check that there aren't any Glean enrollment events yet
-    var enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue();
+    var enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue("events");
     Assert.equal(
       undefined,
       enrollmentEvents,
@@ -219,7 +219,7 @@ add_task(
     );
 
     // Check that the Glean enrollment event was recorded.
-    enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue();
+    enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue("events");
     // We expect only one event
     Assert.equal(1, enrollmentEvents.length);
     // And that one event matches the expected enrolled experiment
@@ -275,7 +275,7 @@ add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
   );
 
   // Check that there aren't any Glean enrollment events yet
-  var enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue();
+  var enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue("events");
   Assert.equal(
     undefined,
     enrollmentEvents,
@@ -337,7 +337,7 @@ add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
   );
 
   // Check that the Glean enrollment event was recorded.
-  enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue();
+  enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue("events");
   // We expect only one event
   Assert.equal(1, enrollmentEvents.length);
   // And that one event matches the expected enrolled experiment
@@ -381,7 +381,7 @@ add_task(async function test_failure_name_conflict() {
   await manager.onStartup();
 
   // Check that there aren't any Glean enroll_failed events yet
-  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue();
+  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   Assert.equal(
     undefined,
     failureEvents,
@@ -408,7 +408,7 @@ add_task(async function test_failure_name_conflict() {
   );
 
   // Check that the Glean enrollment event was recorded.
-  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue();
+  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   // We expect only one event
   Assert.equal(1, failureEvents.length);
   // And that one event matches the expected enrolled experiment
@@ -439,7 +439,7 @@ add_task(async function test_failure_group_conflict() {
   await manager.onStartup();
 
   // Check that there aren't any Glean enroll_failed events yet
-  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue();
+  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   Assert.equal(
     undefined,
     failureEvents,
@@ -488,7 +488,7 @@ add_task(async function test_failure_group_conflict() {
   );
 
   // Check that the Glean enroll_failed event was recorded.
-  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue();
+  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   // We expect only one event
   Assert.equal(1, failureEvents.length);
   // And that event matches the expected experiment and reason
@@ -525,7 +525,7 @@ add_task(async function test_rollout_failure_group_conflict() {
   await manager.onStartup();
 
   // Check that there aren't any Glean enroll_failed events yet
-  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue();
+  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   Assert.equal(
     undefined,
     failureEvents,
@@ -552,7 +552,7 @@ add_task(async function test_rollout_failure_group_conflict() {
   );
 
   // Check that the Glean enroll_failed event was recorded.
-  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue();
+  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   // We expect only one event
   Assert.equal(1, failureEvents.length);
   // And that event matches the expected experiment and reason
@@ -586,7 +586,7 @@ add_task(async function test_rollout_experiment_no_conflict() {
   await manager.onStartup();
 
   // Check that there aren't any Glean enroll_failed events yet
-  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue();
+  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   Assert.equal(
     undefined,
     failureEvents,
@@ -616,7 +616,7 @@ add_task(async function test_rollout_experiment_no_conflict() {
   );
 
   // Check that there aren't any Glean enroll_failed events
-  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue();
+  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   Assert.equal(
     undefined,
     failureEvents,

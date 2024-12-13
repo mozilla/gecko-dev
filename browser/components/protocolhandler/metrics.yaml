@@ -34,7 +34,6 @@ protocolhandler.mailto:
       - set_local_default
       - dismiss_local_default
     send_in_pings:
-      - active
       - metrics
 
   handler_prompt_shown:
@@ -53,5 +52,4 @@ protocolhandler.mailto:
       - os_default
       - fx_default
     send_in_pings:
-      - active
       - metrics

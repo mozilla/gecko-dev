@@ -48,4 +48,14 @@ interface nsIGleanPing : nsISupports
    * @param aCallback - The callback to call on the next submit.
    */
   void testBeforeNextSubmit(in nsIGleanPingTestCallback aCallback);
+
+  /**
+   * Enable or disable a ping.
+   *
+   * Disabling a ping causes all data for that ping to be removed from storage
+   * and all pending pings of that type to be deleted.
+   *
+   * @param aValue When true, enable metric collection.
+   */
+  void setEnabled(in boolean aValue);
 };

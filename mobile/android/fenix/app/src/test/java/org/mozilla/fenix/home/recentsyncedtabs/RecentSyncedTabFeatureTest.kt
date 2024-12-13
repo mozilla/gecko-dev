@@ -38,7 +38,6 @@ import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.telemetry.glean.internal.ErrorType
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -49,12 +48,13 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.RecentSyncedTabs
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 
 @RunWith(AndroidJUnit4::class)
 class RecentSyncedTabFeatureTest {
 
     @get:Rule
-    val gleanTestRule = GleanTestRule(testContext)
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     private val earliestTime = 100L
     private val earlierTime = 250L

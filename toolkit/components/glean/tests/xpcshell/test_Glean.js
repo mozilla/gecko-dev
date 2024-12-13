@@ -211,7 +211,7 @@ add_task(async function test_fog_memory_distribution_works() {
 add_task(async function test_fog_custom_distribution_works() {
   Glean.testOnlyIpc.aCustomDist.accumulateSamples([7, 268435458]);
 
-  let data = Glean.testOnlyIpc.aCustomDist.testGetValue("store1");
+  let data = Glean.testOnlyIpc.aCustomDist.testGetValue("test-ping");
   Assert.equal(2, data.count, "Count of entries is correct");
   Assert.equal(7 + 268435458, data.sum, "Sum's correct");
   for (let [bucket, count] of Object.entries(data.values)) {
@@ -451,7 +451,7 @@ add_task(async function test_fog_url_works() {
   const value = "https://www.example.com/fog";
   Glean.testOnlyIpc.aUrl.set(value);
 
-  Assert.equal(value, Glean.testOnlyIpc.aUrl.testGetValue("store1"));
+  Assert.equal(value, Glean.testOnlyIpc.aUrl.testGetValue("test-ping"));
 });
 
 add_task(async function test_fog_text_works() {
