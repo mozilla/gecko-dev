@@ -5096,24 +5096,25 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
     NS_ENSURE_SUCCESS(rv, 1);
     ProcessUpdates(mDirProvider.GetGREDir(), exeDir, updRoot, gRestartArgc,
                    gRestartArgv, mAppData->version);
-    if (EnvHasValue("MOZ_TEST_PROCESS_UPDATES")) {
-      SaveToEnv("MOZ_TEST_PROCESS_UPDATES=");
-      *aExitFlag = true;
-      return 0;
-    }
   } else {
-    if (CheckArg("test-process-updates") ||
-        EnvHasValue("MOZ_TEST_PROCESS_UPDATES")) {
+    if (CheckArg("test-should-not-process-updates") ||
+        EnvHasValue("MOZ_TEST_SHOULD_NOT_PROCESS_UPDATES")) {
       // Support for testing *not* processing an update.  The launched process
       // can witness this environment variable and conclude that its runtime
       // environment resulted in not processing updates.
 
-      SaveToEnv(nsPrintfCString(
-                    "MOZ_TEST_PROCESS_UPDATES=ShouldNotProcessUpdates(): %s",
-                    ShouldNotProcessUpdatesReasonAsString(
-                        shouldNotProcessUpdatesReason.value()))
+      SaveToEnv(nsPrintfCString("MOZ_TEST_SHOULD_NOT_PROCESS_UPDATES="
+                                "ShouldNotProcessUpdates(): %s",
+                                ShouldNotProcessUpdatesReasonAsString(
+                                    shouldNotProcessUpdatesReason.value()))
                     .get());
     }
+  }
+  if (CheckArg("test-process-updates") ||
+      EnvHasValue("MOZ_TEST_PROCESS_UPDATES")) {
+    SaveToEnv("MOZ_TEST_PROCESS_UPDATES=");
+    *aExitFlag = true;
+    return 0;
   }
 #endif
 
