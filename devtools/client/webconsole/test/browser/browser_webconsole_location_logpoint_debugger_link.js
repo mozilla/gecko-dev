@@ -126,10 +126,15 @@ add_task(async function () {
 
   info("Add a logpoint to the first file");
   await selectSource(dbg, "test-location-debugger-link-logpoint-1.js");
+  // Wait a bit for CM6 to complete any updates so the log panel
+  // does not lose focus after the it has been opened
+  await waitForDocumentLoadComplete(dbg);
   await setLogPoint(dbg, 8, "`a is ${a}`");
 
   info("Add a logpoint to the second file");
   await selectSource(dbg, "test-location-debugger-link-logpoint-2.js");
+  // See comment above
+  await waitForDocumentLoadComplete(dbg);
   await setLogPoint(dbg, 8, "`c is ${c}`");
 
   info("Selecting the console");
