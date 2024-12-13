@@ -9,6 +9,7 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
@@ -645,6 +646,7 @@ class RedesignedMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2776956
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1936933")
     @SmokeTest
     @Test
     fun verifyOpenInAppButtonIsEnabledTest() {
