@@ -584,13 +584,18 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
             return NS_ERROR_FAILURE;
           }
         }
+        const RefPtr<Element> editingHost =
+            ComputeEditingHost(LimitInBodyElement::No);
+        if (MOZ_UNLIKELY(!editingHost)) {
+          break;
+        }
         if (EditorUtils::IsEditableContent(
                 *pointToAdjust.ContainerAs<nsIContent>(), EditorType::HTML)) {
           AutoTrackDOMPoint trackPointToAdjust(RangeUpdaterRef(),
                                                &pointToAdjust);
           nsresult rv =
               WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
-                  *this, pointToAdjust);
+                  *this, pointToAdjust, *editingHost);
           if (NS_FAILED(rv)) {
             NS_WARNING(
                 "WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt() "
@@ -618,7 +623,7 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
           AutoTrackDOMPoint trackStartPoint(RangeUpdaterRef(), &atStart);
           nsresult rv =
               WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
-                  *this, atStart);
+                  *this, atStart, *editingHost);
           if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
             return NS_ERROR_EDITOR_DESTROYED;
           }
@@ -637,8 +642,8 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
             EditorUtils::IsEditableContent(*atEnd.ContainerAs<nsIContent>(),
                                            EditorType::HTML)) {
           nsresult rv =
-              WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(*this,
-                                                                        atEnd);
+              WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
+                  *this, atEnd, *editingHost);
           if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
             return NS_ERROR_EDITOR_DESTROYED;
           }
@@ -3129,8 +3134,8 @@ Result<CaretPoint, nsresult>
 HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
     const EditorDOMPointInText& aStartToDelete,
     const EditorDOMPointInText& aEndToDelete,
-    TreatEmptyTextNodes aTreatEmptyTextNodes,
-    DeleteDirection aDeleteDirection) {
+    TreatEmptyTextNodes aTreatEmptyTextNodes, DeleteDirection aDeleteDirection,
+    const Element& aEditingHost) {
   MOZ_ASSERT(aStartToDelete.IsSetAndValid());
   MOZ_ASSERT(aEndToDelete.IsSetAndValid());
   MOZ_ASSERT(aStartToDelete.EqualsOrIsBefore(aEndToDelete));
@@ -3343,6 +3348,20 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
       newCaretPosition.GetContainer()->GetPreviousSibling()->IsText()) {
     newCaretPosition.SetToEndOf(
         newCaretPosition.GetContainer()->GetPreviousSibling()->AsText());
+  }
+
+  {
+    AutoTrackDOMPoint trackPointToPutCaret(RangeUpdaterRef(),
+                                           &newCaretPosition);
+    nsresult rv =
+        EnsureNoFollowingUnnecessaryLineBreak(newCaretPosition, aEditingHost);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak() failed");
+      return Err(rv);
+    }
+    if (NS_WARN_IF(!newCaretPosition.IsSet())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
   }
 
   {
