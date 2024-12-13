@@ -304,6 +304,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                             )
                         },
                         onMenuButtonClick = {
+                            NavigationBar.customMenuTapped.record(NoExtras())
                             nav(
                                 R.id.externalAppBrowserFragment,
                                 ExternalAppBrowserFragmentDirections.actionGlobalMenuDialogFragment(
