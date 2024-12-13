@@ -255,7 +255,11 @@ def _should_keep_condition(existing_condition: str, new_condition: str):
     If both are equal, then we keep the existing to prevent changing the order of conditions
     """
     return existing_condition == new_condition or not (
-        existing_condition in new_condition or new_condition in existing_condition
+        # Make sure to add a space to prevent overwriting combined test variants
+        # Eg: "debug && e10s" should not overwrite "debug && e10s+swgl"
+        # but "debug" should overwrite "debug && e10s"
+        (existing_condition + " ") in new_condition
+        or (new_condition + " ") in existing_condition
     )
 
 

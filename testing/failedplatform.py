@@ -3,6 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from functools import reduce
 from typing import Dict, Set
 
 
@@ -16,6 +17,10 @@ class FailedPlatform:
     def __init__(
         self,
         # Keys are build types, values are test variants for this build type
+        # Tests variants can be composite by using the "+" character
+        # eg: a11y_checks+swgl
+        # See examples in
+        # https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.source.test-info-all/artifacts/public%2Ftest-info-testrun-matrix.json
         oop_permutations: Dict[str, list[str]],
     ) -> None:
         # Contains all test variants for each build type the task failed on
@@ -70,6 +75,11 @@ class FailedPlatform:
             )
         return filtered_types[0]
 
+    def get_negated_variant(self, test_variant: str):
+        if not test_variant.startswith("!"):
+            return "!" + test_variant
+        return test_variant.replace("!", "", 1)
+
     def get_no_variant_conditions(self, and_str: str, build_type: str):
         """
         The no_variant test variant does not really exist and is only internal.
@@ -83,54 +93,96 @@ class FailedPlatform:
         ]
         return_str = ""
         for tv in variants:
-            if not tv.startswith("!"):
-                return_str += and_str + "!" + tv
-            else:
-                return_str += and_str + tv.replace("!", "", 1)
+            return_str += and_str + self.get_negated_variant(tv)
         return return_str
 
-    def get_test_variant_condition(self, test_variant: str):
+    def get_test_variant_condition(
+        self, and_str: str, build_type: str, test_variant: str
+    ):
+        """
+        If the given test variant is part of another composite test variant, then add negations matching that composite
+        variant to prevent overlapping in skips.
+        eg: test variant "a11y_checks" is to be added while "a11y_checks+swgl" exists
+        the resulting condition will be "a11y_checks && !swgl"
+        """
+        all_test_variants_parts = [
+            tv.split("+")
+            for tv in self.get_possible_test_variants(build_type)
+            if tv != "no_variant" and tv != test_variant
+        ]
+        test_variant_parts = test_variant.split("+")
+        # List of composite test variants more specific than the current one
+        matching_variants_parts = [
+            tv_parts
+            for tv_parts in all_test_variants_parts
+            if all(x in tv_parts for x in test_variant_parts)
+        ]
+        variants_to_negate = [
+            part
+            for tv_parts in matching_variants_parts
+            for part in tv_parts
+            if part not in test_variant_parts
+        ]
+
+        return_str = reduce((lambda x, y: x + and_str + y), test_variant_parts, "")
+        return_str = reduce(
+            (lambda x, y: x + and_str + self.get_negated_variant(y)),
+            variants_to_negate,
+            return_str,
+        )
+        return return_str
+
+    def get_test_variant_string(self, test_variant: str):
+        """
+        Some test variants strings need to be updated to match what is given in oop_permutations
+        """
         if test_variant == "no-fission":
             return "!fission"
         return test_variant
 
-    def get_cleaned_test_variants(self, build_type: str, test_variants: list[str]):
-        converted_variants = [self.get_test_variant_condition(t) for t in test_variants]
-        filtered_variants = [
-            t
-            for t in converted_variants
-            if t in self.get_possible_test_variants(build_type)
-        ]
-        if len(filtered_variants) == 0:
-            filtered_variants = ["no_variant"]
-        return filtered_variants
+    def get_cleaned_test_variant(
+        self, build_type: str, test_variants: list[str]
+    ) -> str:
+        """
+        Convert the test variants array into a string compatible with the test variants described in oop_permutations
+        """
+        if len(test_variants) == 0:
+            return "no_variant"
+
+        converted_variants = [self.get_test_variant_string(t) for t in test_variants]
+        # When several variants are present, combine them with a '+'
+        reduced_variant = reduce((lambda x, y: x + "+" + y), converted_variants)
+        if reduced_variant not in self.get_possible_test_variants(build_type):
+            return "no_variant"
+        return reduced_variant
 
     def get_skip_string(
         self, and_str: str, build_types: list[str], test_variants: list[str]
     ) -> str:
         cleaned_build_type = self.get_cleaned_build_type(build_types)
-        filtered_variants = self.get_cleaned_test_variants(
+        cleaned_variant = self.get_cleaned_test_variant(
             cleaned_build_type, test_variants
         )
         if self.failures.get(cleaned_build_type) is None:
-            self.failures[cleaned_build_type] = set(filtered_variants)
+            self.failures[cleaned_build_type] = {cleaned_variant}
         else:
-            self.failures[cleaned_build_type].update(filtered_variants)
+            self.failures[cleaned_build_type].add(cleaned_variant)
 
         return_str = ""
         # If every test variant of every build type failed, do not add anything
         if not self.is_full_fail():
             return_str += and_str + cleaned_build_type
-            filtered_variants = self.get_cleaned_test_variants(
-                cleaned_build_type, test_variants
-            )
             if not self.is_full_test_variants_fail(cleaned_build_type):
-                if len(filtered_variants) == 1 and filtered_variants[0] == "no_variant":
+                cleaned_variant = self.get_cleaned_test_variant(
+                    cleaned_build_type, test_variants
+                )
+                if cleaned_variant == "no_variant":
                     return_str += self.get_no_variant_conditions(
                         and_str, cleaned_build_type
                     )
                 else:
-                    for tv in filtered_variants:
-                        return_str += and_str + tv
+                    return_str += self.get_test_variant_condition(
+                        and_str, cleaned_build_type, cleaned_variant
+                    )
 
         return return_str
