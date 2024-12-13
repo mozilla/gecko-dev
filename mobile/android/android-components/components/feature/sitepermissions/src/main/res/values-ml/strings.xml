@@ -31,6 +31,8 @@
     <string name="mozac_feature_sitepermissions_always_allow">എപ്പോഴും</string>
     <!-- Text for a negative button in a permission request dialog. This will never allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time-->
     <string name="mozac_feature_sitepermissions_never_allow">ഒരിക്കലും അരുത്</string>
+    <!-- Title of a dialog to require to save data in persistent storage. %1$s will be replaced with the URL of the current page -->
+    <string name="mozac_feature_sitepermissions_persistent_storage_title">സ്ഥിരമായ സംഭരണത്തിൽ ദത്ത സംഭരിക്കാൻ %1$s അനുവദിക്കണോ?</string>
     <!-- Text for a negative button in the storage access permission request dialog. This button will not give access to this permission. -->
     <string name="mozac_feature_sitepermissions_storage_access_not_allow">അനുമതി നല്കരുതു്</string>
     <!-- Clickable text that will open a new tab navigating the user to online documentation about specific features. -->

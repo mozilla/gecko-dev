@@ -35,7 +35,7 @@
     <!-- Tab tray multi select title in app bar. The first parameter is the number of tabs selected -->
     <string name="tab_tray_multi_select_title">%1$d scartati</string>
     <!-- Label of button in create collection dialog for creating a new collection  -->
-    <string name="tab_tray_add_new_collection">Agghiunci na ricota nova</string>
+    <string name="tab_tray_add_new_collection">Junci na ricota nova</string>
     <!-- Label of editable text in create collection dialog for naming a new collection  -->
     <string name="tab_tray_add_new_collection_name">Nomu</string>
     <!-- Label of button in save to collection dialog for selecting a current collection  -->
@@ -84,7 +84,7 @@
     <!-- Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen -->
     <string name="private_mode_cfr_message_2">Abbìa a to pròssima scheda privata c\'un toccu.</string>
     <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-    <string name="private_mode_cfr_pos_button_text">Agghiunci â schirmata mastra</string>
+    <string name="private_mode_cfr_pos_button_text">Junci â schirmata mastra</string>
     <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">No, grazzi</string>
 
@@ -208,7 +208,7 @@
     <string name="browser_menu_recommended_section_content_description">Stinneri raccumannati</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
-    <string name="browser_menu_extension_plus_icon_content_description_2">Agghiunci %1$s</string>
+    <string name="browser_menu_extension_plus_icon_content_description_2">Junci %1$s</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Mustra cchiù assai stinneri</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -230,15 +230,15 @@
     <!-- Browser menu button that reopens a private tab as a regular tab -->
     <string name="browser_menu_open_in_regular_tab">Grapi nta na scheda nurmali</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-    <string name="browser_menu_add_to_homescreen">Agghiunci â schirmata mastra</string>
+    <string name="browser_menu_add_to_homescreen">Junci â schirmata mastra</string>
     <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-    <string name="browser_menu_add_app_to_homescreen">Agghiunci l\'applicazzioni â schirmata mastra</string>
+    <string name="browser_menu_add_app_to_homescreen">Junci l\'applicazzioni â schirmata mastra</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-    <string name="browser_menu_add_to_homescreen_2">Agghiunci â schirmata mastra…</string>
+    <string name="browser_menu_add_to_homescreen_2">Junci â schirmata mastra…</string>
     <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-    <string name="browser_menu_add_app_to_homescreen_2">Agghiunci app â schirmata mastra…</string>
+    <string name="browser_menu_add_app_to_homescreen_2">Junci app â schirmata mastra…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
-    <string name="browser_menu_add_to_homescreen_xiaomi">È pussìbbili chi i dispusitivi Xiaomi abbisògnanu di pirmisi addizziunali p\'agghiùnciri accurzi â schirmata mastra. Pi favuri cuntrolla i to mpustazzioni.</string>
+    <string name="browser_menu_add_to_homescreen_xiaomi">È pussìbbili chi i dispusitivi Xiaomi abbisògnanu di pirmisi addizziunali pi jùnciri accurzi â schirmata mastra. Pi favuri cuntrolla i to mpustazzioni.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Sincrunizza arrè</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -275,7 +275,7 @@
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view_2">Pirsunalizza a mudalità di littura</string>
     <!-- Browser menu label for adding a bookmark -->
-    <string name="browser_menu_add">Agghiunci</string>
+    <string name="browser_menu_add">Junci</string>
     <!-- Browser menu label for editing a bookmark -->
     <string name="browser_menu_edit">Cancia</string>
     <!-- Button shown on the home page that opens the Customize home settings -->
@@ -339,9 +339,9 @@
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Sarba</string>
     <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-    <string name="browser_menu_save_description">Agghiunci nzingalibbru, Accurzu, Pàggina mastra, Ricoti, PDF</string>
+    <string name="browser_menu_save_description">Junci nzingalibbru, Accurzu, Pàggina mastra, Ricoti, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
-    <string name="browser_menu_bookmark_this_page">Agghiunci sta pàggina ê nzingalibbra</string>
+    <string name="browser_menu_bookmark_this_page">Junci sta pàggina ê nzingalibbra</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
     <string name="browser_menu_edit_bookmark">Cancia nzingalibbru</string>
 
@@ -495,7 +495,7 @@
     <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Cu Firefox nnâ to pàggina mastra, ài accessu fàcili ô navigaturi chi àvi a privatizza comu priurità, e chi blocca i trazzatura chi ti sicùtanu ntra un situ e n\'autru.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Agghiunci stigghiu di Firefox</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Junci stigghiu di Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Ora no</string>
 
@@ -503,7 +503,7 @@
     Note: The word "Firefox" should NOT be translated -->
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Pirsunalizza Firefox chî stinneri</string>
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Agghiunci stinneri terzi p\'ammigghiurari a to sicurizza, a pruduttività e autru superchiu.</string>
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Junci stinneri terzi p\'ammigghiurari a to sicurizza, a pruduttività e autru superchiu.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Scopri cchiù assai stinneri.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -530,11 +530,11 @@
     <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
     <string name="onboarding_add_on_reviews_label">Ricinzioni: %1$s</string>
     <!-- Content description for the add-on icon. -->
-    <string name="onboarding_add_on_icon_content_description">Icona di l\'agghiuncitina</string>
+    <string name="onboarding_add_on_icon_content_description">Icona dâ juncitina</string>
     <!-- Content description for the an installed add-on icon. -->
-    <string name="onboarding_installed_add_on_icon_content_description">Icona di l\'agghiuncitina nzitata</string>
+    <string name="onboarding_installed_add_on_icon_content_description">Icona dâ juncitina nzitata</string>
     <!-- Content description for the an installing add-on icon. -->
-    <string name="onboarding_installing_add_on_icon_content_description">Icona di l\'agghiuncitina \'n cursu di nzitamentu</string>
+    <string name="onboarding_installing_add_on_icon_content_description">Icona dâ juncitina \'n cursu di nzitamentu</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Vutatu cu %1$s di 5 stiḍḍi</string>
     <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
@@ -647,7 +647,7 @@
     <!-- Will inform the user of the risk of activating Allow screenshots in private browsing option -->
     <string name="preferences_screenshots_in_private_mode_disclaimer">Si u pirmetti, i schedi privati sunnu visìbbili macari quannu ài autri applicazzioni graputi</string>
     <!-- Preference for adding private browsing shortcut -->
-    <string name="preferences_add_private_browsing_shortcut">Agghiunci accurzu di navigazzioni privata</string>
+    <string name="preferences_add_private_browsing_shortcut">Junci accurzu di navigazzioni privata</string>
     <!-- Preference for enabling "HTTPS-Only" mode -->
     <string name="preferences_https_only_title">Mudalità sulu HTTPS</string>
 
@@ -1160,9 +1160,9 @@
     <!-- Title for the list of tabs in the synced tabs -->
     <string name="tabs_header_synced_tabs_title">Schedi sincrunizzati</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
-    <string name="add_tab">Agghiunci na scheda</string>
+    <string name="add_tab">Junci na scheda</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
-    <string name="add_private_tab">Agghiunci na scheda privata</string>
+    <string name="add_private_tab">Junci na scheda privata</string>
     <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
     <string name="tab_drawer_fab_content">Privata</string>
     <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
@@ -1180,7 +1180,7 @@
     <!-- Text shown in the menu for closing all tabs -->
     <string name="tab_tray_menu_item_close">Chiuji tutti i schedi</string>
     <!-- Text shown in the multiselect menu for bookmarking selected tabs. -->
-    <string name="tab_tray_multiselect_menu_item_bookmark">Agghiunci ê nzingalibbra</string>
+    <string name="tab_tray_multiselect_menu_item_bookmark">Junci ê nzingalibbra</string>
     <!-- Text shown in the multiselect menu for closing selected tabs. -->
     <string name="tab_tray_multiselect_menu_item_close">Chiuji</string>
     <!-- Content description for tabs tray multiselect share button -->
@@ -1322,7 +1322,7 @@
     <!-- Text for the cancel button on delete bookmark dialog -->
     <string name="bookmark_delete_negative">Sfai</string>
     <!-- Screen title for adding a bookmarks folder -->
-    <string name="bookmark_add_folder">Agghiunci na carpetta</string>
+    <string name="bookmark_add_folder">Junci na carpetta</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Sarbatu nni “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1367,7 +1367,7 @@
     <!-- Label for a text input field for a bookmark or folder name -->
     <string name="bookmark_name_label_normal_case">Nomu</string>
     <!-- Bookmark add folder screen title -->
-    <string name="bookmark_add_folder_fragment_label">Agghiunci na carpetta</string>
+    <string name="bookmark_add_folder_fragment_label">Junci na carpetta</string>
     <!-- Bookmark select folder screen title -->
     <string name="bookmark_select_folder_fragment_label">Scarta na carpetta</string>
     <!-- Bookmark editing error missing title -->
@@ -1394,7 +1394,7 @@
     <!-- Content description for the bookmark navigation bar back button -->
     <string name="bookmark_navigate_back_button_content_description">Torna nn\'arrè</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
-    <string name="bookmark_add_new_folder_button_content_description">Agghiunci na carpetta nova</string>
+    <string name="bookmark_add_new_folder_button_content_description">Junci na carpetta nova</string>
     <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
     <string name="bookmark_delete_bookmark_content_description">Cancella u nzingalibbru</string>
     <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
@@ -1413,7 +1413,7 @@
     <!-- Description for the bookmark list empty state when you're signed into sync. -->
     <string name="bookmark_empty_list_authenticated_description">Sarba i siti mentri chi nàvighi. Pigghiamu macari i nzingalibbra di l\'autri dispusitivi sincrunizzati.</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
-    <string name="bookmark_empty_list_folder_description">Agghiunci nzingalibbra mentri chi nàvighi, accussì ti l\'attrovi fàcili doppu.</string>
+    <string name="bookmark_empty_list_folder_description">Junci nzingalibbra mentri chi nàvighi, accussì ti l\'attrovi fàcili doppu.</string>
     <!-- Description for the add new folder button when selecting a folder. -->
     <string name="bookmark_select_folder_new_folder_button_title">Nova carpetta</string>
 
@@ -1521,7 +1521,7 @@
     <!-- Title for the "name collection" step of the collection creator -->
     <string name="create_collection_name_collection">Nomu dâ ricota</string>
     <!-- Button to add new collection for the "select collection" step of the collection creator -->
-    <string name="create_collection_add_new_collection">Agghiunci na ricota nova</string>
+    <string name="create_collection_add_new_collection">Junci na ricota nova</string>
     <!-- Button to select all tabs in the "select tabs" step of the collection creator -->
     <string name="create_collection_select_all">Scarta tuttu</string>
     <!-- Button to deselect all tabs in the "select tabs" step of the collection creator -->
@@ -1666,7 +1666,7 @@
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Nzingalibbra sarbati nne “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
-    <string name="snackbar_added_to_shortcuts">Agghiuncisti a l\'accurzi!</string>
+    <string name="snackbar_added_to_shortcuts">Juncisti a l\'accurzi!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
     <string name="snackbar_private_tab_closed">Chiujisti a scheda privata</string>
     <!-- Text shown in snackbar when user closes all private tabs -->
@@ -1943,17 +1943,17 @@
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL cupiatu nnô pitazzu</string>
 
     <!-- Title text for the Add To Homescreen dialog -->
-    <string name="add_to_homescreen_title">Agghiunci â schirmata mastra</string>
+    <string name="add_to_homescreen_title">Junci â schirmata mastra</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->
     <string name="add_to_homescreen_cancel">Sfai</string>
     <!-- Add button text for the Add to Homescreen dialog -->
-    <string name="add_to_homescreen_add">Agghiunci</string>
+    <string name="add_to_homescreen_add">Junci</string>
     <!-- Continue to website button text for the first-time Add to Homescreen dialog -->
     <string name="add_to_homescreen_continue">Cuntinua nnô situ</string>
     <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
     <string name="add_to_homescreen_text_placeholder">Nomu di l\'accurzu</string>
     <!-- Describes the add to homescreen functionality -->
-    <string name="add_to_homescreen_description_2">Po\' agghiùnciri fàcili stu situ â schirmata mastra dû to dispusitivu pi tràsiri cchiù lestu cu na spirienza comu si fussi n\'applicazzioni.</string>
+    <string name="add_to_homescreen_description_2">Po\' jùnciri fàcili stu situ â schirmata mastra dû to dispusitivu pi tràsiri cchiù lestu cu na spirienza comu si fussi n\'applicazzioni.</string>
 
     <!-- Preference for managing the settings for logins and passwords in Fenix -->
     <string name="preferences_passwords_logins_and_passwords_2">Chiavi</string>
@@ -1973,7 +1973,7 @@
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">Jinchi e sarba i nomi utenti e i chiavi nna l\'autri applicazzioni dû to dispusitivu.</string>
     <!-- Preference option for adding a password -->
-    <string name="preferences_logins_add_login_2">Agghiunci chiavi</string>
+    <string name="preferences_logins_add_login_2">Junci chiavi</string>
 
     <!-- Preference for syncing saved passwords in Fenix -->
     <string name="preferences_passwords_sync_logins_2">Sincrunizza chiavi</string>
@@ -2058,11 +2058,11 @@
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
     <string name="preferences_credit_cards_sync_cards">Sincrunizza i carti</string>
     <!-- Preference option for adding a card -->
-    <string name="preferences_credit_cards_add_credit_card_2">Agghiunci na carta</string>
+    <string name="preferences_credit_cards_add_credit_card_2">Junci na carta</string>
     <!-- Preference option for managing saved cards -->
     <string name="preferences_credit_cards_manage_saved_cards_2">Manija i carti</string>
     <!-- Preference option for adding an address -->
-    <string name="preferences_addresses_add_address">Agghiunci nu nnirizzu</string>
+    <string name="preferences_addresses_add_address">Junci nu nnirizzu</string>
     <!-- Preference option for managing saved addresses -->
     <string name="preferences_addresses_manage_addresses">Manija i nnirizzi</string>
 
@@ -2072,7 +2072,7 @@
     <string name="preferences_addresses_save_and_autofill_addresses_summary_2">Macari nùmmari di tilèfunu e nnirizzi di posta elittrònica</string>
 
     <!-- Title of the "Add card" screen -->
-    <string name="credit_cards_add_card">Agghiunci na carta</string>
+    <string name="credit_cards_add_card">Junci na carta</string>
     <!-- Title of the "Edit card" screen -->
     <string name="credit_cards_edit_card">Cancia a carta</string>
 
@@ -2105,7 +2105,7 @@
     <!-- Error message for card number validation -->
     <string name="credit_cards_number_validation_error_message_2">Metti un nùmmaru di carta vàlitu</string>
     <!-- Error message for card name on card validation -->
-    <string name="credit_cards_name_on_card_validation_error_message_2">Agghiunci un nomu</string>
+    <string name="credit_cards_name_on_card_validation_error_message_2">Junci un nomu</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">Sblocca pi taliari i to carti sarbati</string>
     <!-- Title of warning dialog if users have no device authentication set up -->
@@ -2121,7 +2121,7 @@
     <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
     <string name="credit_cards_biometric_prompt_unlock_message_2">Sblocca p\'usari i mètudi di pagamentu sarbati</string>
     <!-- Title of the "Add address" screen -->
-    <string name="addresses_add_address">Agghiunci nu nnirizzu</string>
+    <string name="addresses_add_address">Junci nu nnirizzu</string>
     <!-- Title of the "Edit address" screen -->
     <string name="addresses_edit_address">Cancia u nnirizzu</string>
     <!-- Title of the "Manage addresses" screen -->
@@ -2163,9 +2163,9 @@
     <string name="address_menu_delete_address">Cancella nnirizzu</string>
 
     <!-- Title of the Add search engine screen -->
-    <string name="search_engine_add_custom_search_engine_title">Agghiunci muturi di risciduta</string>
+    <string name="search_engine_add_custom_search_engine_title">Junci muturi di risciduta</string>
     <!-- Content description (not visible, for screen readers etc.): Title for the button that navigates to add new engine screen -->
-    <string name="search_engine_add_custom_search_engine_button_content_description">Agghiunci un novu muturi di risciduta</string>
+    <string name="search_engine_add_custom_search_engine_button_content_description">Junci un novu muturi di risciduta</string>
     <!-- Title of the Edit search engine screen -->
     <string name="search_engine_edit_custom_search_engine_title">Cancia u muturi di risciduta</string>
     <!-- Text for the menu button to edit a search engine -->
@@ -2238,7 +2238,7 @@
     <!-- Bookmark deletion confirmation -->
     <string name="bookmark_deletion_confirmation">Cancillari stu nzingalibbru?</string>
     <!-- Browser menu button that adds a shortcut to the home fragment -->
-    <string name="browser_menu_add_to_shortcuts">Agghiunci a l\'accurzi</string>
+    <string name="browser_menu_add_to_shortcuts">Junci a l\'accurzi</string>
     <!-- Browser menu button that removes a shortcut from the home fragment -->
     <string name="browser_menu_remove_from_shortcuts">Leva di l\'accurzi</string>
     <!-- text shown before the issuer name to indicate who its verified by, parameter is the name of
@@ -2261,7 +2261,7 @@
     <!--  The page title for editing a saved password. -->
     <string name="edit_2">Cancia a chiavi</string>
     <!--  The page title for adding new password. -->
-    <string name="add_login_2">Agghiunci chiavi</string>
+    <string name="add_login_2">Junci chiavi</string>
     <!--  Error text displayed underneath the password field when it is in an error case. -->
     <string name="saved_login_password_required_2">Metti na chiavi</string>
 
@@ -2309,7 +2309,7 @@
     <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
     <string name="shortcut_max_limit_title">Agghicasti ô nùmmaru màssimu d\'accurzi</string>
     <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
-    <string name="shortcut_max_limit_content">P\'agghiùnciri n\'accurzu novu, n\'hâ livari unu. Tocca e teni ammaccatu u situ e cancèllalu.</string>
+    <string name="shortcut_max_limit_content">P i jùnciri n\'accurzu novu, n\'hâ livari unu. Tocca e teni ammaccatu u situ e cancèllalu.</string>
     <!-- Confirmation dialog button text when top sites limit is reached. -->
     <string name="top_sites_max_limit_confirmation_button">Bonu, u capivi</string>
     <!-- Label for the preference to show the shortcuts for the most visited top sites on the homepage -->
@@ -2690,7 +2690,7 @@
     <!-- Title of the never translate site preference screen that will appear on the toolbar.-->
     <string name="never_translate_site_toolbar_title_preference">Nun tradùciri mai sti siti</string>
     <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-    <string name="never_translate_site_header_preference">P\'agghiùnciri un novu situ: vacci e scarta “Nun tradùciri mai” dû minù di traduzzioni.</string>
+    <string name="never_translate_site_header_preference">Pi jùnciri un novu situ: vacci e scarta “Nun tradùciri mai” dû minù di traduzzioni.</string>
     <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_item_list_content_description_preference">Cancella %1$s</string>
@@ -2831,12 +2831,12 @@
         that can be generated in one operation.-->
     <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">Supirasti u nùmmaru màssimu di schedi (%1$s) chi poi criari a na vota sula</string>
     <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
-    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">Agghiunci ê schedi attivi</string>
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">Junci ê schedi attivi</string>
     <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
-    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_inactive">Agghiunci ê schedi fermi</string>
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_inactive">Junci ê schedi fermi</string>
 
     <!-- The button text to add tabs to the private tab group in the tab creation tool. -->
-    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">Agghiunci ê schedi privati</string>
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">Junci ê schedi privati</string>
 
     <!-- Microsurvey -->
     <!-- Prompt view -->
@@ -2900,7 +2900,7 @@
     <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain  -->
     <string name="debug_drawer_logins_current_domain_label">Duminiu attuali: %s</string>
     <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
-    <string name="debug_drawer_logins_add_login_button">Agghiunci na cridinziali fausa pi stu duminiu</string>
+    <string name="debug_drawer_logins_add_login_button">Junci na cridinziali fausa pi stu duminiu</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Cancella a cridinziali cû nomu utenti %s</string>
 
@@ -2941,7 +2941,7 @@
     <!-- Homepage card title about old Firefox version -->
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Arristaru cchiù picca di 7 jorna p\'attualizzari</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">U 14 di marzu, l\'agghiuncitini e autri carattirìstichi di Firefox accàbbanu di funziunari picchì scadi un cirtificatu principali.</string>
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">U 14 di marzu, i juncitini e autri carattirìstichi di Firefox accàbbanu di funziunari picchì scadi un cirtificatu principali.</string>
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Ùrtima pussibbilità pi cuntinuari a usari Firefox</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
@@ -2949,11 +2949,11 @@
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Attualizzu cunzigghiatu</string>
     <!-- Push notification message about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">L\'agghiuncitini e certi carattarìstichi nun funziònanu cchiù dû 14 di marzu.</string>
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">I juncitini e certi carattarìstichi nun funziònanu cchiù dû 14 di marzu.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Stai usannu na virsiuni vecchia di Firefox</string>
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Attualizza prima dû 14 di marzu pi cuntinuari a usari l\'agghiuncitini e autri carattarìstichi.</string>
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Attualizza prima dû 14 di marzu pi cuntinuari a usari i juncitini e autri carattarìstichi.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Certi carattarìstichi nun funziònanu cchiù di dumani.</string>
 </resources>
