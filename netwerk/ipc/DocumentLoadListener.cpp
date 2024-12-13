@@ -321,9 +321,12 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
     // just forward to our default listener. This happens when the channel is in
     // an error state, and we want to just forward that on to be handled in the
     // content process, or when DONT_RETARGET is set.
-    if ((NS_SUCCEEDED(rv) || rv == NS_ERROR_WONT_HANDLE_CONTENT) &&
-        !mUsedContentHandler && !m_targetStreamListener) {
+    if (!mUsedContentHandler && !m_targetStreamListener) {
       m_targetStreamListener = mListener;
+      if (NS_FAILED(rv)) {
+        request->CancelWithReason(
+            rv, "nsDocumentOpenInfo::OnStartRequest failed"_ns);
+      }
       return m_targetStreamListener->OnStartRequest(request);
     }
     if (m_targetStreamListener != mListener) {
