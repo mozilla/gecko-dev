@@ -74,10 +74,6 @@ const PREF_APP_UPDATE_CANCELATIONS_OSX = "app.update.cancelations.osx";
 const PREF_APP_UPDATE_CANCELATIONS_OSX_MAX = "app.update.cancelations.osx.max";
 const PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_ENABLED =
   "app.update.checkOnlyInstance.enabled";
-const PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_INTERVAL =
-  "app.update.checkOnlyInstance.interval";
-const PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_TIMEOUT =
-  "app.update.checkOnlyInstance.timeout";
 const PREF_APP_UPDATE_DOWNLOAD_ATTEMPTS = "app.update.download.attempts";
 const PREF_APP_UPDATE_DOWNLOAD_MAXATTEMPTS = "app.update.download.maxAttempts";
 const PREF_APP_UPDATE_ELEVATE_NEVER = "app.update.elevate.never";
@@ -276,18 +272,6 @@ const XML_SAVER_INTERVAL_MS = 200;
 // update before proceeding anyway.
 const LANGPACK_UPDATE_DEFAULT_TIMEOUT = 300000;
 
-// Interval between rechecks for other instances after the initial check finds
-// at least one other instance.
-const ONLY_INSTANCE_CHECK_DEFAULT_POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-
-// Wait this long after detecting that another instance is running (having been
-// polling that entire time) before giving up and applying the update anyway.
-const ONLY_INSTANCE_CHECK_DEFAULT_TIMEOUT_MS = 6 * 60 * 60 * 1000; // 6 hours
-
-// The other instance check timeout can be overridden via a pref, but we limit
-// that value to this so that the pref can't effectively disable the feature.
-const ONLY_INSTANCE_CHECK_MAX_TIMEOUT_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
-
 // Values to use when polling for staging. See `pollForStagingEnd` for more
 // details.
 const STAGING_POLLING_MIN_INTERVAL_MS = 15 * 1000; // 15 seconds
@@ -423,15 +407,6 @@ function unwrap(obj) {
 const LangPackUpdates = new WeakMap();
 
 /**
- * When we're polling to see if other running instances of the application have
- * exited, there's no need to ever start polling again in parallel. To prevent
- * doing that, we keep track of the promise that resolves when polling completes
- * and return that if a second simultaneous poll is requested, so that the
- * multiple callers end up waiting for the same promise to resolve.
- */
-let gOtherInstancePollPromise;
-
-/**
  * Query the update sync manager to see if another instance of this same
  * installation of this application is currently running, under the context of
  * any operating system user (not just the current one).
@@ -459,83 +434,6 @@ function isOtherInstanceRunning() {
     LOG(`isOtherInstanceRunning - sync manager failed with exception: ${ex}`);
     return false;
   }
-}
-
-/**
- * Query the update sync manager to see if another instance of this same
- * installation of this application is currently running, under the context of
- * any operating system user (not just the one running this instance).
- * This function polls for the status of other instances continually
- * (asynchronously) until either none exist or a timeout expires.
- *
- * @return a Promise that resolves with false if at any point during polling no
- *         other instances can be found, or resolves with true if the timeout
- *         expires when other instances are still running
- */
-function waitForOtherInstances() {
-  // If we're already in the middle of a poll, reuse it rather than start again.
-  if (gOtherInstancePollPromise) {
-    return gOtherInstancePollPromise;
-  }
-
-  let timeout = Services.prefs.getIntPref(
-    PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_TIMEOUT,
-    ONLY_INSTANCE_CHECK_DEFAULT_TIMEOUT_MS
-  );
-
-  // return immediately if timeout value is invalid.
-  if (timeout <= 0) {
-    return Promise.resolve(isOtherInstanceRunning());
-  }
-
-  // Don't allow the pref to set a super high timeout and break this feature.
-  if (timeout > ONLY_INSTANCE_CHECK_MAX_TIMEOUT_MS) {
-    timeout = ONLY_INSTANCE_CHECK_MAX_TIMEOUT_MS;
-  }
-
-  let interval = Services.prefs.getIntPref(
-    PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_INTERVAL,
-    ONLY_INSTANCE_CHECK_DEFAULT_POLL_INTERVAL_MS
-  );
-
-  if (interval <= 0) {
-    interval = ONLY_INSTANCE_CHECK_DEFAULT_POLL_INTERVAL_MS;
-  }
-
-  // Don't allow an interval longer than the timeout.
-  interval = Math.min(interval, timeout);
-
-  let iterations = 0;
-  const maxIterations = Math.ceil(timeout / interval);
-
-  gOtherInstancePollPromise = new Promise(function (resolve) {
-    let poll = function () {
-      iterations++;
-      if (!isOtherInstanceRunning()) {
-        LOG("waitForOtherInstances - no other instances found, exiting");
-        resolve(false);
-        gOtherInstancePollPromise = undefined;
-      } else if (iterations >= maxIterations) {
-        LOG(
-          "waitForOtherInstances - timeout expired while other instances " +
-            "are still running"
-        );
-        resolve(true);
-        gOtherInstancePollPromise = undefined;
-      } else if (iterations + 1 == maxIterations && timeout % interval != 0) {
-        // In case timeout isn't a multiple of interval, set the next timeout
-        // for the remainder of the time rather than for the usual interval.
-        lazy.setTimeout(poll, timeout % interval);
-      } else {
-        lazy.setTimeout(poll, interval);
-      }
-    };
-
-    LOG("waitForOtherInstances - beginning polling");
-    poll();
-  });
-
-  return gOtherInstancePollPromise;
 }
 
 /**
@@ -3564,8 +3462,6 @@ export class UpdateService {
         );
       } else if (!hasUpdateMutex()) {
         AUSTLMY.pingCheckCode(this._pingSuffix, AUSTLMY.CHK_NO_MUTEX);
-      } else if (isOtherInstanceRunning()) {
-        AUSTLMY.pingCheckCode(this._pingSuffix, AUSTLMY.CHK_OTHER_INSTANCE);
       } else if (!this.canCheckForUpdates) {
         AUSTLMY.pingCheckCode(this._pingSuffix, AUSTLMY.CHK_UNABLE_TO_CHECK);
       }
@@ -3925,15 +3821,6 @@ export class UpdateService {
       return false;
     }
 
-    if (isOtherInstanceRunning()) {
-      // This doesn't block update checks, but we will have to wait until either
-      // the other instance is gone or we time out waiting for it.
-      LOG(
-        "UpdateService.canCheckForUpdates - another instance is holding the " +
-          "lock, will need to wait for it prior to checking for updates"
-      );
-    }
-
     LOG("UpdateService.canCheckForUpdates - able to check for updates");
     return true;
   }
@@ -3956,11 +3843,7 @@ export class UpdateService {
    * See nsIUpdateService.idl
    */
   get canApplyUpdates() {
-    return (
-      this.canUsuallyApplyUpdates &&
-      hasUpdateMutex() &&
-      !isOtherInstanceRunning()
-    );
+    return this.canUsuallyApplyUpdates && hasUpdateMutex();
   }
 
   /**
@@ -5500,8 +5383,6 @@ export class CheckerService {
     if (!internal) {
       await lazy.AUS.init();
     }
-
-    await waitForOtherInstances();
 
     let url;
     try {
