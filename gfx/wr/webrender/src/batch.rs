@@ -1423,6 +1423,12 @@ impl BatchBuilder {
             }
             PrimitiveInstanceKind::Picture { pic_index, .. } => {
                 let picture = &ctx.prim_store.pictures[pic_index.0];
+                if let Some(snapshot) = picture.snapshot {
+                    if snapshot.detached {
+                        return;
+                    }
+                }
+
                 let blend_mode = BlendMode::PremultipliedAlpha;
                 let prim_cache_address = gpu_cache.get_address(&ctx.globals.default_image_handle);
 

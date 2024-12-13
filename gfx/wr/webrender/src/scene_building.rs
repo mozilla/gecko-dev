@@ -954,7 +954,7 @@ impl<'a> SceneBuilder<'a> {
                             // as the items in the stacking context.
                             SnapshotInfo {
                                 area: snapshot.area.translate(info.origin.to_vector()),
-                                key: snapshot.key,
+                                .. snapshot
                             }
                         });
 

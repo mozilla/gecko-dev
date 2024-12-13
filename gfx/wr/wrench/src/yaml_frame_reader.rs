@@ -2041,6 +2041,7 @@ impl YamlFrameReader {
             let yaml = &yaml["snapshot"];
             let name = yaml["name"].as_str().unwrap_or("snapshot");
             let area = yaml["area"].as_rect().unwrap_or(bounds);
+            let detached = yaml["detached"].as_bool().unwrap_or(false);
 
             let key = SnapshotImageKey(wrench.api.generate_image_key());
             self.snapshots.insert(name.to_string(), Snapshot {
@@ -2052,7 +2053,7 @@ impl YamlFrameReader {
             txn.add_snapshot_image(key);
             wrench.api.send_transaction(wrench.document_id, txn);
 
-            Some(SnapshotInfo { key, area })
+            Some(SnapshotInfo { key, area, detached })
         } else {
             None
         };

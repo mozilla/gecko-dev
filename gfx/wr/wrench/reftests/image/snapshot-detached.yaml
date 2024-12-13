@@ -1,0 +1,24 @@
+# This test case contains a detached snapshotted stacking context
+# displayed as an image.
+# This means that the stacking context should appear only once as
+# an image, while the original stacking context is "detached" from
+# the scene and not shown.
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: [0, 0, 1000, 1000]
+      items:
+      - type: stacking-context
+        bounds: [10, 10, 200, 200]
+        snapshot:
+          name: "snap0"
+          area: [-10, -10, 120, 120]
+          detached: true
+        items:
+          - type: rect
+            bounds: [10, 10, 80, 80]
+            color: [0, 150, 0]
+
+      - image: snapshot(snap0)
+        bounds: [210, 10, 120, 120]

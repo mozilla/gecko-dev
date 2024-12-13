@@ -876,11 +876,33 @@ pub struct ReferenceFrame {
     pub key: SpatialTreeItemKey,
 }
 
+/// If passed in a stacking context display item, inform WebRender that
+/// the contents of the stacking context should be retained into a texture
+/// and associated to an image key.
+///
+/// Image display items can then display the cached snapshot using the
+/// same image key.
+///
+/// The flow for creating/using/deleting snapshots is the same as with
+/// regular images:
+///  - The image key must have been created with `Transaction::add_snapshot_image`.
+///  - The current scene must not contain references to the snapshot when
+///    `Transaction::delete_snapshot_image` is called.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct SnapshotInfo {
+    /// The image key to associate the snapshot with.
     pub key: SnapshotImageKey,
+    /// The bounds of the snapshot in local space.
+    ///
+    /// This rectangle is relative to the same coordinate space as the
+    /// child items of the stacking context.
     pub area: LayoutRect,
+    /// If true, detach the stacking context from the scene and only
+    /// render it into the snapshot.
+    /// If false, the stacking context rendered in the frame normally
+    /// in addition to being cached into the snapshot.
+    pub detached: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
