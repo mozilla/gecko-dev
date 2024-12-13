@@ -36,15 +36,19 @@ add_task(async function test_invalidEngine() {
   );
   await promise;
 
-  let addEngineList = searchPopup.querySelectorAll(
-    ".searchbar-engine-one-off-add-engine"
-  );
-  let item = addEngineList[addEngineList.length - 1];
+  let addEngineList;
+  await TestUtils.waitForCondition(() => {
+    addEngineList = searchPopup.querySelectorAll(
+      ".searchbar-engine-one-off-add-engine"
+    );
+    return addEngineList.length;
+  }, "Wait until at least one item in the addEngineList");
+  let item;
 
-  await TestUtils.waitForCondition(
-    () => item.tooltipText.includes("engineInvalid"),
-    "Wait until the tooltip will be correct"
-  );
+  await TestUtils.waitForCondition(() => {
+    item = addEngineList[addEngineList.length - 1];
+    return item?.tooltipText.includes("engineInvalid");
+  }, "Wait until the tooltip will be correct");
   Assert.ok(true, "Last item should be the invalid entry");
 
   let promptPromise = PromptTestUtils.waitForPrompt(tab.linkedBrowser, {
