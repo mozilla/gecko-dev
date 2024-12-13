@@ -9,6 +9,7 @@ import functools
 import json
 from pathlib import Path
 import sys
+import re
 import textwrap
 from typing import Any, Callable, Iterable, Sequence, Tuple, Union, Optional
 import urllib.request
@@ -187,6 +188,16 @@ def snake_case(value: str) -> str:
     Convert the value to snake_case.
     """
     return value.lower().replace(".", "_").replace("-", "_")
+
+
+def camel_or_pascal_to_snake_case(value: str) -> str:
+    """
+    Convert Camel Case or Pascal Case to Snake Case.
+
+    Any capitalized values beyond the first token are lowered
+    and an `_` is inserted.
+    """
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", value).lower()
 
 
 def screaming_case(value: str) -> str:
@@ -534,6 +545,7 @@ ping_args = [
     "enabled",
     "schedules_pings",
     "reason_codes",
+    "follows_collection_enabled",
 ]
 
 

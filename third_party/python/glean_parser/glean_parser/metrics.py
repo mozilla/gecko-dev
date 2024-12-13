@@ -470,8 +470,16 @@ class Object(Metric):
                 f"Found additional fields: {extra}. Only allowed: {allowed}"
             )
 
-        if "type" not in structure or structure["type"] not in Object.ALLOWED_TYPES:
-            raise ValueError("invalid or missing `type` in object structure")
+        if "type" not in structure:
+            raise ValueError(
+                f"missing `type` in object structure. Allowed: {Object.ALLOWED_TYPES}"
+            )
+        if structure["type"] not in Object.ALLOWED_TYPES:
+            raise ValueError(
+                "invalid `type` in object structure. found: {}, allowed: {}".format(
+                    structure["type"], Object.ALLOWED_TYPES
+                )
+            )
 
         if structure["type"] == "object":
             if "items" in structure:
