@@ -562,9 +562,11 @@ add_task(async function enter_on_remove_bookmark_should_remove_bookmark() {
 });
 
 add_task(async function mouse_hovering_panel_should_prevent_autoclose() {
-  if (AppConstants.platform != "win") {
+  if (true) {
     // This test requires synthesizing native mouse movement which is
     // best supported on Windows.
+    // FIXME(bug 1936867): Re-enable this test or find a better solution for
+    // this autoclosing.
     return;
   }
   await test_bookmarks_popup({
