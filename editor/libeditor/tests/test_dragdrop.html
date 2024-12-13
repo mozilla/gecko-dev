@@ -1907,7 +1907,7 @@ async function doTest() {
     ) {
       is(input.value, "Somt",
         `${description}: dragged range should be removed from <input>`);
-      is(contenteditable.innerHTML, "e Tex<br>",
+      is(contenteditable.innerHTML, "e Tex",
         `${description}: dragged content should be inserted into contenteditable`);
       is(beforeinputEvents.length, 2,
         `${description}: 2 "beforeinput" events should be fired on <input> and contenteditable`);
@@ -1961,7 +1961,7 @@ async function doTest() {
     ) {
       is(input.value, "Some Text",
         `${description}: dragged range shouldn't be removed from <input>`);
-      is(contenteditable.innerHTML, "e Tex<br>",
+      is(contenteditable.innerHTML, "e Tex",
         `${description}: dragged content should be inserted into contenteditable`);
       is(beforeinputEvents.length, 2,
         `${description}: 2 "beforeinput" events should be fired on <input> and contenteditable`);
@@ -2066,7 +2066,7 @@ async function doTest() {
     ) {
       is(input.value, "Some Text",
         `${description}: dragged range shouldn't be removed from <input>`);
-      is(contenteditable.innerHTML, "e Tex<br>",
+      is(contenteditable.innerHTML, "e Tex",
         `${description}: dragged content should be inserted into contenteditable`);
       is(beforeinputEvents.length, 1,
         `${description}: only one "beforeinput" events should be fired on contenteditable`);
@@ -2117,7 +2117,7 @@ async function doTest() {
     ) {
       is(textarea.value, "Linne2",
         `${description}: dragged range should be removed from <textarea>`);
-      is(contenteditable.innerHTML, "e1<br>Li<br>",
+      is(contenteditable.innerHTML, "e1<br>Li",
         `${description}: dragged content should be inserted into contenteditable`);
       is(beforeinputEvents.length, 2,
         `${description}: 2 "beforeinput" events should be fired on <input> and contenteditable`);
@@ -2171,7 +2171,7 @@ async function doTest() {
     ) {
       is(textarea.value, "Line1\nLine2",
         `${description}: dragged range should be removed from <textarea>`);
-      is(contenteditable.innerHTML, "e1<br>Li<br>",
+      is(contenteditable.innerHTML, "e1<br>Li",
         `${description}: dragged content should be inserted into contenteditable`);
       is(beforeinputEvents.length, 1,
         `${description}: only one "beforeinput" events should be fired on contenteditable`);

@@ -2282,6 +2282,18 @@ nsresult HTMLEditor::InsertElementAtSelectionAsAction(
           "SplitAtEdges::eAllowToCreateEmptyContainer) failed");
       return EditorBase::ToGenericNSResult(insertElementResult.unwrapErr());
     }
+    if (MOZ_LIKELY(aElement->IsInComposedDoc())) {
+      const auto afterElement = EditorDOMPoint::After(*aElement);
+      if (MOZ_LIKELY(afterElement.IsInContentNode())) {
+        nsresult rv =
+            EnsureNoFollowingUnnecessaryLineBreak(afterElement, *editingHost);
+        if (NS_FAILED(rv)) {
+          NS_WARNING(
+              "HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak() failed");
+          return EditorBase::ToGenericNSResult(rv);
+        }
+      }
+    }
     insertElementResult.inspect().IgnoreCaretPointSuggestion();
   }
   // Set caret after element, but check for special case
@@ -4148,7 +4160,7 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
       NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
       return caretPointOrError.propagateErr();
     }
-    return InsertTextResult(EditorDOMPointInText(&aTextNode, aOffset),
+    return InsertTextResult(EditorDOMPoint(&aTextNode, aOffset),
                             caretPointOrError.unwrap());
   }
 
@@ -4206,8 +4218,8 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
   // Don't check whether we've been destroyed here because we need to notify
   // listeners and observers below even if we've already destroyed.
 
-  EditorDOMPointInText endOfInsertedText(&aTextNode,
-                                         aOffset + aStringToInsert.Length());
+  EditorDOMPoint endOfInsertedText(&aTextNode,
+                                   aOffset + aStringToInsert.Length());
 
   if (pointToInsert.IsSet()) {
     auto [begin, end] = ComputeInsertedRange(pointToInsert, aStringToInsert);
@@ -4369,6 +4381,96 @@ Result<CreateElementResult, nsresult> HTMLEditor::InsertBRElement(
           std::move(newBRElement),
           unwrappedCreateNewBRElementResult.UnwrapCaretPoint());
   }
+}
+
+nsresult HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak(
+    const EditorDOMPoint& aNextOrAfterModifiedPoint,
+    const Element& aEditingHost) {
+  MOZ_ASSERT(aNextOrAfterModifiedPoint.IsInContentNode());
+
+  const bool isWhiteSpacePreformatted = EditorUtils::IsWhiteSpacePreformatted(
+      *aNextOrAfterModifiedPoint.ContainerAs<nsIContent>());
+  const DebugOnly<bool> isNewLinePreformatted =
+      EditorUtils::IsNewLinePreformatted(
+          *aNextOrAfterModifiedPoint.ContainerAs<nsIContent>());
+
+  const nsCOMPtr<nsIContent> unnecessaryLineBreakContent =
+      HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+          aNextOrAfterModifiedPoint, aEditingHost);
+  if (MOZ_LIKELY(!unnecessaryLineBreakContent)) {
+    return NS_OK;
+  }
+  if (unnecessaryLineBreakContent->IsHTMLElement(nsGkAtoms::br)) {
+    // If the invisible break is a placeholder of ancestor inline elements, we
+    // should not delete it to allow users to insert text with the format
+    // specified by them.
+    if (HTMLEditUtils::GetMostDistantAncestorEditableEmptyInlineElement(
+            *unnecessaryLineBreakContent,
+            BlockInlineCheck::UseComputedDisplayStyle)) {
+      return NS_OK;
+    }
+    nsresult rv = DeleteNodeWithTransaction(*unnecessaryLineBreakContent);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "EditorBase::DeleteNodeWithTransaction() failed "
+                         "to delete unnecessary <br>");
+    return rv;
+  }
+  Text* const textNode = Text::FromNode(unnecessaryLineBreakContent);
+  MOZ_ASSERT(textNode);
+  MOZ_ASSERT(textNode->TextDataLength() > 0);
+  MOZ_ASSERT(EditorRawDOMPoint(textNode, textNode->TextDataLength() - 1)
+                 .IsCharPreformattedNewLine());
+  MOZ_ASSERT(isNewLinePreformatted);
+  const auto IsVisibleChar = [&](char16_t aChar) {
+    switch (aChar) {
+      case HTMLEditUtils::kNewLine:
+        return true;
+      case HTMLEditUtils::kSpace:
+      case HTMLEditUtils::kTab:
+      case HTMLEditUtils::kCarriageReturn:
+        return isWhiteSpacePreformatted;
+      default:
+        return true;
+    }
+  };
+  const nsTextFragment& textFragment = textNode->TextFragment();
+  const uint32_t length = textFragment.GetLength();
+  const DebugOnly<const char16_t> lastChar = textFragment.CharAt(length - 1);
+  MOZ_ASSERT(lastChar == HTMLEditUtils::kNewLine);
+  const bool textNodeHasVisibleChar = [&]() {
+    if (length == 1u) {
+      return false;
+    }
+    for (const uint32_t offset : Reversed(IntegerRange(length - 1))) {
+      if (IsVisibleChar(textFragment.CharAt(offset))) {
+        return true;
+      }
+    }
+    return false;
+  }();
+  if (!textNodeHasVisibleChar) {
+    // If the invisible break is a placeholder of ancestor inline elements, we
+    // should not delete it to allow users to insert text with the format
+    // specified by them.
+    if (HTMLEditUtils::GetMostDistantAncestorEditableEmptyInlineElement(
+            *unnecessaryLineBreakContent,
+            BlockInlineCheck::UseComputedDisplayStyle)) {
+      return NS_OK;
+    }
+    nsresult rv = DeleteNodeWithTransaction(*unnecessaryLineBreakContent);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "EditorBase::DeleteNodeWithTransaction() failed "
+                         "to delete unnecessary Text node");
+    return rv;
+  }
+  Result<CaretPoint, nsresult> result =
+      DeleteTextWithTransaction(MOZ_KnownLive(*textNode), length - 1, 1);
+  if (MOZ_UNLIKELY(result.isErr())) {
+    NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
+    return result.unwrapErr();
+  }
+  result.unwrap().IgnoreCaretPointSuggestion();
+  return NS_OK;
 }
 
 Result<CreateElementResult, nsresult>

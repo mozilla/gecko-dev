@@ -144,6 +144,15 @@ template bool HTMLEditUtils::IsSameCSSColorValue(const nsAString& aColorA,
 template bool HTMLEditUtils::IsSameCSSColorValue(const nsACString& aColorA,
                                                  const nsACString& aColorB);
 
+template nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+    const EditorDOMPoint& aPoint, const Element& aEditingHost);
+template nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+    const EditorRawDOMPoint& aPoint, const Element& aEditingHost);
+template nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+    const EditorDOMPointInText& aPoint, const Element& aEditingHost);
+template nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+    const EditorRawDOMPointInText& aPoint, const Element& aEditingHost);
+
 bool HTMLEditUtils::CanContentsBeJoined(const nsIContent& aLeftContent,
                                         const nsIContent& aRightContent) {
   if (aLeftContent.NodeInfo()->NameAtom() !=
@@ -358,6 +367,17 @@ bool HTMLEditUtils::IsVisibleElementEvenIfLeafNode(const nsIContent& aContent) {
   if (const HTMLInputElement* inputElement =
           HTMLInputElement::FromNode(&aContent)) {
     return inputElement->ControlType() != FormControlType::InputHidden;
+  }
+  // If the element has a primary frame and it's not empty, the element is
+  // visible.
+  // XXX This method does not guarantee that the layout has already been
+  // updated.  Therefore, this check might be wrong in the edge cases.
+  // However, basically, editor apps should not depend on this path, this
+  // is required if last <br> before a block boundary becomes visible because
+  // of followed by empty but styled frame like <span style=padding:1px></span>.
+  if (aContent.GetPrimaryFrame() &&
+      !aContent.GetPrimaryFrame()->GetSize().IsEmpty()) {
+    return true;
   }
   // Maybe, empty inline element such as <span>.
   return false;
@@ -898,9 +918,9 @@ nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
       // we need lastLineBreakContent to make the trailing white-space visible.
       switch (textFragment.CharAt(textFragment.GetLength() - 1u)) {
         case HTMLEditUtils::kSpace:
+        case HTMLEditUtils::kNewLine:
         case HTMLEditUtils::kCarriageReturn:
         case HTMLEditUtils::kTab:
-        case HTMLEditUtils::kNBSP:
           return nullptr;
         default:
           return lastLineBreakContent;
@@ -923,6 +943,47 @@ nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
   // If the block is empty except invisible data nodes and lastLineBreakContent,
   // lastLineBreakContent is necessary to make the block visible.
   return nullptr;
+}
+
+template <typename EditorDOMPointType>
+nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+    const EditorDOMPointType& aPoint, const Element& aEditingHost) {
+  MOZ_ASSERT(aPoint.IsSetAndValid());
+  MOZ_ASSERT(aPoint.IsInContentNode());
+
+  WSScanResult nextThing =
+      WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
+          &aEditingHost, aPoint, BlockInlineCheck::UseComputedDisplayStyle);
+  if (!nextThing.ReachedBRElement() &&
+      !(nextThing.ReachedPreformattedLineBreak() &&
+        nextThing.PointAtReachedContent<EditorRawDOMPoint>()
+            .IsAtLastContent())) {
+    return nullptr;  // no line break next to aPoint
+  }
+  WSScanResult nextThingOfLineBreak =
+      WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
+          &aEditingHost,
+          nextThing.PointAfterReachedContent<EditorRawDOMPoint>(),
+          BlockInlineCheck::UseComputedDisplayStyle);
+  const Element* const blockElement =
+      nextThingOfLineBreak.ReachedBlockBoundary()
+          ? nextThingOfLineBreak.ElementPtr()
+          : HTMLEditUtils::GetAncestorElement(
+                *nextThing.GetContent(), {AncestorType::ClosestBlockElement},
+                BlockInlineCheck::UseComputedDisplayStyle);
+  if (MOZ_UNLIKELY(!blockElement)) {
+    return nullptr;
+  }
+  nsIContent* const unnecessaryLineBreak = GetUnnecessaryLineBreakContent(
+      *blockElement, nextThingOfLineBreak.ReachedOtherBlockElement()
+                         ? ScanLineBreak::BeforeBlock
+                         : ScanLineBreak::AtEndOfBlock);
+  // If the line break content is different from the found line break
+  // immediately after aPoint, it's too far. So, the caller should not touch it.
+  if (unnecessaryLineBreak != nextThing.GetContent()) {
+    return nullptr;
+  }
+  return unnecessaryLineBreak;
 }
 
 bool HTMLEditUtils::IsEmptyNode(nsPresContext* aPresContext,

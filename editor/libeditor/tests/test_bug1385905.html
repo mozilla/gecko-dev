@@ -33,7 +33,7 @@ SimpleTest.waitForFocus(() => {
      "Typing Enter at start of the <div> element should split the <div> element");
   synthesizeKey("KEY_ArrowUp");
   sendString("x");
-  is(editor.innerHTML, "<div>x<br></div><div>contents</div>",
+  is(editor.innerHTML, "<div>x</div><div>contents</div>",
      "Typing 'x' at the empty <div> element should just insert 'x' into the <div> element");
   ensureNoPaddingBR();
   synthesizeKey("KEY_Enter");
