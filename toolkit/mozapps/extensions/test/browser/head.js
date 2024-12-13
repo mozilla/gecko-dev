@@ -1251,6 +1251,13 @@ MockAddon.prototype = {
     this.seen = true;
   },
 
+  updateBlocklistState() {
+    // NOTE: this is currently a no-op meant to just prevent MockProvider
+    // addons to trigger an unexpected "addon.updateBlockistState is not a function"
+    // error in tests covering the blocklist (while there are also MockProvider
+    // installed addons).
+  },
+
   _updateActiveState(currentActive, newActive) {
     if (currentActive == newActive) {
       return;

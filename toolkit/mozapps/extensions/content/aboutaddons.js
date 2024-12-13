@@ -3015,6 +3015,10 @@ class AddonCard extends HTMLElement {
     if (this.details && changed.includes("quarantineIgnoredByUser")) {
       this.details.updateQuarantinedDomainsUserAllowed();
     }
+
+    if (changed.includes("blocklistState")) {
+      this.update();
+    }
   }
 
   /* Extension Permission change listener */
