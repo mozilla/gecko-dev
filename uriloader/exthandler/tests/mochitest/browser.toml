@@ -71,6 +71,12 @@ support-files = [
   "file_with[funny_name.webm^headers^",
 ]
 
+["browser_errorpage_attachment.js"]
+support-files = [
+  "blank.html",
+  "emptyErrorPage.sjs",
+]
+
 ["browser_extension_correction.js"]
 support-files = [
   "file_as.exe",
