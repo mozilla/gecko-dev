@@ -91,7 +91,6 @@ menupopup {
   &[badge-status="update-available"],
   &[badge-status="update-downloading"],
   &[badge-status="update-manual"],
-  &[badge-status="update-other-instance"],
   &[badge-status="update-restart"],
   &[badge-status="update-unsupported"] {
     > .toolbarbutton-badge-stack > .toolbarbutton-badge {
@@ -110,7 +109,6 @@ menupopup {
   &[badge-status="update-available"],
   &[badge-status="update-downloading"],
   &[badge-status="update-manual"],
-  &[badge-status="update-other-instance"],
   &[badge-status="update-restart"] {
     > .toolbarbutton-badge-stack > .toolbarbutton-badge {
       fill: var(--panel-banner-item-update-supported-bgcolor);
@@ -127,7 +125,6 @@ menupopup {
   &[notificationid="update-available"],
   &[notificationid="update-downloading"],
   &[notificationid="update-manual"],
-  &[notificationid="update-other-instance"],
   &[notificationid="update-restart"] {
     > .toolbarbutton-icon {
       background-image: url(chrome://browser/skin/update-badge.svg);
