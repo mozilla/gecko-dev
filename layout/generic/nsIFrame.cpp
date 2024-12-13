@@ -6940,6 +6940,7 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
       // inline-size to make our margin-box fill aAvailableISize:
       nscoord availBased = nsLayoutUtils::ComputeStretchContentBoxISize(
           aAvailableISize, aMargin.ISize(aWM), aBorderPadding.ISize(aWM));
+
       const nscoord bSize = ComputeBSizeValueAsPercentageBasis(
           styleBSize.IsAuto() && result.BSize(aWM) != NS_UNCONSTRAINEDSIZE
               ? StyleSize::LengthPercentage(
@@ -6950,7 +6951,7 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
 
       const IntrinsicSizeInput input(
           aRenderingContext, Some(aCBSize.ConvertTo(GetWritingMode(), aWM)),
-          Some(LogicalSize(aWM, availBased, bSize)
+          Some(LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, bSize)
                    .ConvertTo(GetWritingMode(), aWM)));
       result.ISize(aWM) = ShrinkISizeToFit(input, availBased, aFlags);
     }
