@@ -251,7 +251,7 @@ bool BaseCompiler::addInterruptCheck() {
   masm.branch32(Assembler::Equal,
                 Address(tmp, wasm::Instance::offsetOfInterrupt()), Imm32(0),
                 &ok);
-  masm.wasmTrap(wasm::Trap::CheckInterrupt, bytecodeOffset());
+  trap(wasm::Trap::CheckInterrupt);
   masm.bind(&ok);
   return createStackMap("addInterruptCheck");
 }
@@ -536,7 +536,8 @@ bool BaseCompiler::beginFunction() {
 
   // Generate a stack-overflow check and its associated stackmap.
 
-  fr.checkStack(ABINonArgReg0, BytecodeOffset(func_.lineOrBytecode));
+  fr.checkStack(ABINonArgReg0,
+                TrapSiteDesc(BytecodeOffset(func_.lineOrBytecode)));
 
   ExitStubMapVector extras;
   if (!stackMapGenerator_.generateStackmapEntriesForTrapExit(args, &extras)) {
@@ -1649,7 +1650,7 @@ void BaseCompiler::endCall(FunctionCall& call, size_t stackSpace) {
   if (call.restoreRegisterStateAndRealm) {
     // The instance has been clobbered, so always reload
     fr.loadInstancePtr(InstanceReg);
-    masm.loadWasmPinnedRegsFromInstance();
+    masm.loadWasmPinnedRegsFromInstance(mozilla::Nothing());
     masm.switchToWasmInstanceRealm(ABINonArgReturnReg0, ABINonArgReturnReg1);
   } else if (call.usesSystemAbi) {
     // On x86 there are no pinned registers, so don't waste time
@@ -1657,7 +1658,7 @@ void BaseCompiler::endCall(FunctionCall& call, size_t stackSpace) {
 #ifndef JS_CODEGEN_X86
     // The instance has been clobbered, so always reload
     fr.loadInstancePtr(InstanceReg);
-    masm.loadWasmPinnedRegsFromInstance();
+    masm.loadWasmPinnedRegsFromInstance(mozilla::Nothing());
 #endif
   }
 }
@@ -1872,14 +1873,14 @@ CodeOffset BaseCompiler::callSymbolic(SymbolicAddress callee,
 
 class OutOfLineAbortingTrap : public OutOfLineCode {
   Trap trap_;
-  BytecodeOffset off_;
+  TrapSiteDesc desc_;
 
  public:
-  OutOfLineAbortingTrap(Trap trap, BytecodeOffset off)
-      : trap_(trap), off_(off) {}
+  OutOfLineAbortingTrap(Trap trap, const TrapSiteDesc& desc)
+      : trap_(trap), desc_(desc) {}
 
   virtual void generate(MacroAssembler* masm) override {
-    masm->wasmTrap(trap_, off_);
+    masm->wasmTrap(trap_, desc_);
     MOZ_ASSERT(!rejoin()->bound());
   }
 };
@@ -1907,14 +1908,14 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
   CalleeDesc callee =
       CalleeDesc::wasmTable(codeMeta_, table, tableIndex, callIndirectId);
   OutOfLineCode* oob = addOutOfLineCode(
-      new (alloc_) OutOfLineAbortingTrap(Trap::OutOfBounds, bytecodeOffset()));
+      new (alloc_) OutOfLineAbortingTrap(Trap::OutOfBounds, trapSiteDesc()));
   if (!oob) {
     return false;
   }
   Label* nullCheckFailed = nullptr;
 #ifndef WASM_HAS_HEAPREG
   OutOfLineCode* nullref = addOutOfLineCode(new (alloc_) OutOfLineAbortingTrap(
-      Trap::IndirectCallToNull, bytecodeOffset()));
+      Trap::IndirectCallToNull, trapSiteDesc()));
   if (!nullref) {
     return false;
   }
@@ -2483,18 +2484,18 @@ class OutOfLineTruncateCheckF32OrF64ToI32 : public OutOfLineCode {
   AnyReg src;
   RegI32 dest;
   TruncFlags flags;
-  BytecodeOffset off;
+  TrapSiteDesc trapSiteDesc;
 
  public:
   OutOfLineTruncateCheckF32OrF64ToI32(AnyReg src, RegI32 dest, TruncFlags flags,
-                                      BytecodeOffset off)
-      : src(src), dest(dest), flags(flags), off(off) {}
+                                      TrapSiteDesc trapSiteDesc)
+      : src(src), dest(dest), flags(flags), trapSiteDesc(trapSiteDesc) {}
 
   virtual void generate(MacroAssembler* masm) override {
     if (src.tag == AnyReg::F32) {
-      masm->oolWasmTruncateCheckF32ToI32(src.f32(), dest, flags, off, rejoin());
+      masm->oolWasmTruncateCheckF32ToI32(src.f32(), dest, flags, trapSiteDesc, rejoin());
     } else if (src.tag == AnyReg::F64) {
-      masm->oolWasmTruncateCheckF64ToI32(src.f64(), dest, flags, off, rejoin());
+      masm->oolWasmTruncateCheckF64ToI32(src.f64(), dest, flags, trapSiteDesc, rejoin());
     } else {
       MOZ_CRASH("unexpected type");
     }
@@ -2502,10 +2503,9 @@ class OutOfLineTruncateCheckF32OrF64ToI32 : public OutOfLineCode {
 };
 
 bool BaseCompiler::truncateF32ToI32(RegF32 src, RegI32 dest, TruncFlags flags) {
-  BytecodeOffset off = bytecodeOffset();
   OutOfLineCode* ool =
       addOutOfLineCode(new (alloc_) OutOfLineTruncateCheckF32OrF64ToI32(
-          AnyReg(src), dest, flags, off));
+          AnyReg(src), dest, flags, trapSiteDesc()));
   if (!ool) {
     return false;
   }
@@ -2520,10 +2520,9 @@ bool BaseCompiler::truncateF32ToI32(RegF32 src, RegI32 dest, TruncFlags flags) {
 }
 
 bool BaseCompiler::truncateF64ToI32(RegF64 src, RegI32 dest, TruncFlags flags) {
-  BytecodeOffset off = bytecodeOffset();
   OutOfLineCode* ool =
       addOutOfLineCode(new (alloc_) OutOfLineTruncateCheckF32OrF64ToI32(
-          AnyReg(src), dest, flags, off));
+          AnyReg(src), dest, flags, trapSiteDesc()));
   if (!ool) {
     return false;
   }
@@ -2541,18 +2540,18 @@ class OutOfLineTruncateCheckF32OrF64ToI64 : public OutOfLineCode {
   AnyReg src;
   RegI64 dest;
   TruncFlags flags;
-  BytecodeOffset off;
+  TrapSiteDesc trapSiteDesc;
 
  public:
   OutOfLineTruncateCheckF32OrF64ToI64(AnyReg src, RegI64 dest, TruncFlags flags,
-                                      BytecodeOffset off)
-      : src(src), dest(dest), flags(flags), off(off) {}
+                                      TrapSiteDesc trapSiteDesc)
+      : src(src), dest(dest), flags(flags), trapSiteDesc(trapSiteDesc) {}
 
   virtual void generate(MacroAssembler* masm) override {
     if (src.tag == AnyReg::F32) {
-      masm->oolWasmTruncateCheckF32ToI64(src.f32(), dest, flags, off, rejoin());
+      masm->oolWasmTruncateCheckF32ToI64(src.f32(), dest, flags, trapSiteDesc, rejoin());
     } else if (src.tag == AnyReg::F64) {
-      masm->oolWasmTruncateCheckF64ToI64(src.f64(), dest, flags, off, rejoin());
+      masm->oolWasmTruncateCheckF64ToI64(src.f64(), dest, flags, trapSiteDesc, rejoin());
     } else {
       MOZ_CRASH("unexpected type");
     }
@@ -2574,7 +2573,7 @@ bool BaseCompiler::truncateF32ToI64(RegF32 src, RegI64 dest, TruncFlags flags,
                                     RegF64 temp) {
   OutOfLineCode* ool =
       addOutOfLineCode(new (alloc_) OutOfLineTruncateCheckF32OrF64ToI64(
-          AnyReg(src), dest, flags, bytecodeOffset()));
+          AnyReg(src), dest, flags, trapSiteDesc()));
   if (!ool) {
     return false;
   }
@@ -2593,7 +2592,7 @@ bool BaseCompiler::truncateF64ToI64(RegF64 src, RegI64 dest, TruncFlags flags,
                                     RegF64 temp) {
   OutOfLineCode* ool =
       addOutOfLineCode(new (alloc_) OutOfLineTruncateCheckF32OrF64ToI64(
-          AnyReg(src), dest, flags, bytecodeOffset()));
+          AnyReg(src), dest, flags, trapSiteDesc()));
   if (!ool) {
     return false;
   }
@@ -5938,7 +5937,7 @@ bool BaseCompiler::emitConvertFloatingToInt64Callout(SymbolicAddress callee,
   if (!(flags & TRUNC_SATURATING)) {
     // The OOL check just succeeds or fails, it does not generate a value.
     ool = addOutOfLineCode(new (alloc_) OutOfLineTruncateCheckF32OrF64ToI64(
-        AnyReg(inputVal), rv, flags, bytecodeOffset()));
+        AnyReg(inputVal), rv, flags, trapSiteDesc()));
     if (!ool) {
       return false;
     }
@@ -6275,8 +6274,7 @@ bool BaseCompiler::emitLoad(ValType type, Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
   loadCommon(&access, AccessCheck(), type);
   return true;
 }
@@ -6292,8 +6290,7 @@ bool BaseCompiler::emitStore(ValType resultType, Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
   storeCommon(&access, AccessCheck(), resultType);
   return true;
 }
@@ -6673,7 +6670,7 @@ bool BaseCompiler::emitAtomicCmpXchg(ValType type, Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Full());
   atomicCmpXchg(&access, type);
   return true;
@@ -6688,7 +6685,7 @@ bool BaseCompiler::emitAtomicLoad(ValType type, Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Load());
   atomicLoad(&access, type);
   return true;
@@ -6706,7 +6703,7 @@ bool BaseCompiler::emitAtomicRMW(ValType type, Scalar::Type viewType,
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Full());
   atomicRMW(&access, type, op);
   return true;
@@ -6723,7 +6720,7 @@ bool BaseCompiler::emitAtomicStore(ValType type, Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Store());
   atomicStore(&access, type);
   return true;
@@ -6740,7 +6737,7 @@ bool BaseCompiler::emitAtomicXchg(ValType type, Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Full());
   atomicXchg(&access, type);
   return true;
@@ -6758,7 +6755,7 @@ bool BaseCompiler::emitWait(ValType type, uint32_t byteSize) {
   MemoryAccessDesc access(
       addr.memoryIndex,
       type.kind() == ValType::I32 ? Scalar::Int32 : Scalar::Int64, addr.align,
-      addr.offset, bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex));
+      addr.offset, trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
   return atomicWait(type, &access);
 }
 
@@ -6772,7 +6769,7 @@ bool BaseCompiler::emitNotify() {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, Scalar::Int32, addr.align,
-                          addr.offset, bytecodeOffset(),
+                          addr.offset, trapSiteDesc(),
                           hugeMemoryEnabled(addr.memoryIndex));
   return atomicNotify(&access);
 }
@@ -7142,7 +7139,7 @@ void BaseCompiler::emitTableBoundsCheck(uint32_t tableIndex, RegI32 address,
       addressOfTableField(tableIndex, offsetof(TableInstanceData, length),
                           instance),
       &ok);
-  masm.wasmTrap(wasm::Trap::OutOfBounds, bytecodeOffset());
+  trap(wasm::Trap::OutOfBounds);
   masm.bind(&ok);
 }
 
@@ -7229,7 +7226,7 @@ void BaseCompiler::emitPreBarrier(RegPtr valueAddr) {
 #endif
 
   EmitWasmPreBarrierGuard(masm, instance, scratch, Address(valueAddr, 0),
-                          &skipBarrier, nullptr);
+                          &skipBarrier, mozilla::Nothing());
 
 #ifndef RABALDR_PIN_INSTANCE
   fr.loadInstancePtr(instance);
@@ -7399,10 +7396,9 @@ void BaseCompiler::SignalNullCheck::emitNullCheck(BaseCompiler* bc, RegRef rp) {
 void BaseCompiler::SignalNullCheck::emitTrapSite(BaseCompiler* bc,
                                                  FaultingCodeOffset fco,
                                                  TrapMachineInsn tmi) {
-  wasm::BytecodeOffset trapOffset(bc->bytecodeOffset());
   MacroAssembler& masm = bc->masm;
   masm.append(wasm::Trap::NullPointerDereference,
-              wasm::TrapSite(tmi, fco, trapOffset));
+              wasm::TrapSite(tmi, fco, bc->trapSiteDesc()));
 }
 
 template <typename NullCheckPolicy>
@@ -7431,7 +7427,7 @@ RegI32 BaseCompiler::emitGcArrayGetNumElements(RegRef rp) {
 void BaseCompiler::emitGcArrayBoundsCheck(RegI32 index, RegI32 numElements) {
   Label inBounds;
   masm.branch32(Assembler::Below, index, numElements, &inBounds);
-  masm.wasmTrap(Trap::OutOfBounds, bytecodeOffset());
+  trap(Trap::OutOfBounds);
   masm.bind(&inBounds);
 }
 
@@ -8596,7 +8592,7 @@ bool BaseCompiler::emitArrayFill() {
     MOZ_ASSERT(RegI32(scratch) != index);
     MOZ_ASSERT(RegI32(scratch) != numElements);
     masm.wasmBoundsCheckRange32(index, numElements, arrayNumElements, scratch,
-                                bytecodeOffset());
+                                trapSiteDesc());
   }
   // 3: arrayNumElements index numElements
 
@@ -8851,7 +8847,7 @@ bool BaseCompiler::emitRefCast(bool nullable) {
                               regs.scratch2);
   freeRegistersForBranchIfRefSubtype(regs);
 
-  masm.wasmTrap(Trap::BadCast, bytecodeOffset());
+  trap(Trap::BadCast);
   masm.bind(&success);
   pushRef(ref);
 
@@ -9981,8 +9977,7 @@ bool BaseCompiler::emitLoadSplat(Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
   loadSplat(&access);
   return true;
 }
@@ -9997,8 +9992,7 @@ bool BaseCompiler::emitLoadZero(Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
   loadZero(&access);
   return true;
 }
@@ -10012,7 +10006,7 @@ bool BaseCompiler::emitLoadExtend(Scalar::Type viewType) {
     return true;
   }
   MemoryAccessDesc access(addr.memoryIndex, Scalar::Int64, addr.align,
-                          addr.offset, bytecodeOffset(),
+                          addr.offset, trapSiteDesc(),
                           hugeMemoryEnabled(addr.memoryIndex));
   loadExtend(&access, viewType);
   return true;
@@ -10046,8 +10040,7 @@ bool BaseCompiler::emitLoadLane(uint32_t laneSize) {
       MOZ_CRASH("unsupported laneSize");
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
   loadLane(&access, laneIndex);
   return true;
 }
@@ -10080,8 +10073,7 @@ bool BaseCompiler::emitStoreLane(uint32_t laneSize) {
       MOZ_CRASH("unsupported laneSize");
   }
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
   storeLane(&access, laneIndex);
   return true;
 }

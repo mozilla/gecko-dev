@@ -246,9 +246,17 @@ using FaultingCodeOffsetPair =
     std::pair<FaultingCodeOffset, FaultingCodeOffset>;
 static_assert(sizeof(FaultingCodeOffsetPair) == 8);
 
-class TrapSiteDesc {
-public:
-  TrapSiteDesc() = default;
+// The fields of a TrapSite that do not depend on code generation.
+
+struct TrapSiteDesc {
+  explicit TrapSiteDesc(
+      BytecodeOffset bytecodeOffset,
+      const ShareableBytecodeOffsetVector* inlinedCallerOffsets = nullptr)
+      : bytecodeOffset(bytecodeOffset),
+        inlinedCallerOffsets(inlinedCallerOffsets) {}
+  TrapSiteDesc() : TrapSiteDesc(BytecodeOffset(0)) {};
+
+  bool isValid() const { return bytecodeOffset.isValid(); }
 
   BytecodeOffset bytecodeOffset;
   // If this trap site has been inlined into another function, the inlined
@@ -257,40 +265,33 @@ public:
   SharedBytecodeOffsetVector inlinedCallerOffsets;
 };
 
+using MaybeTrapSiteDesc = mozilla::Maybe<TrapSiteDesc>;
+
 // A TrapSite represents a wasm instruction at a given bytecode offset that
 // can fault at the given pc offset.  When such a fault occurs, a signal/
 // exception handler looks up the TrapSite to confirm the fault is intended/
 // safe and redirects pc to the trap stub.
 
-struct TrapSite {
+struct TrapSite : TrapSiteDesc {
 #ifdef DEBUG
   TrapMachineInsn insn;
 #endif
   uint32_t pcOffset;
-  BytecodeOffset bytecode;
-  // If this trap site has been inlined into another function, the inlined
-  // caller functions. The direct ancestor of this function (i.e. the one
-  // directly above it on the stack) is the last entry in the vector.
-  SharedBytecodeOffsetVector inlinedCallerOffsets;
 
   TrapSite()
       :
 #ifdef DEBUG
         insn(TrapMachineInsn::OfficialUD),
 #endif
-        pcOffset(-1),
-        inlinedCallerOffsets(nullptr) {
+        pcOffset(-1) {
   }
   TrapSite(TrapMachineInsn insn, FaultingCodeOffset fco,
-           BytecodeOffset bytecode,
-           const ShareableBytecodeOffsetVector* inlinedCallerOffsets = nullptr)
-      :
+           const TrapSiteDesc& siteDesc)
+      : TrapSiteDesc(siteDesc),
 #ifdef DEBUG
         insn(insn),
 #endif
-        pcOffset(fco.get()),
-        bytecode(bytecode),
-        inlinedCallerOffsets(inlinedCallerOffsets) {
+        pcOffset(fco.get()) {
   }
 };
 
@@ -366,7 +367,7 @@ class TrapSitesForKind {
     }
 
     return pcOffsets_.append(site.pcOffset) &&
-           bytecodeOffsets_.append(site.bytecode);
+           bytecodeOffsets_.append(site.bytecodeOffset);
   }
 
   [[nodiscard]]
@@ -940,6 +941,10 @@ class CallSiteDesc {
   }
   const ShareableBytecodeOffsetVector* inlinedCallerOffsetsVector() const {
     return inlinedCallerOffsets_.get();
+  }
+  TrapSiteDesc toTrapSiteDesc() const {
+    return TrapSiteDesc(wasm::BytecodeOffset(lineOrBytecode()),
+                        inlinedCallerOffsetsVector());
   }
   CallSiteKind kind() const { return kind_; }
   bool isImportCall() const { return kind() == CallSiteKind::Import; }

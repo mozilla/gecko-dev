@@ -473,7 +473,7 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
   }
 
   code.trapSites.offsetBy(offsetInModule);
-  if (!code.trapSites.appendAll(std::move(code.trapSites))) {
+  if (!codeBlock_->trapSites.appendAll(std::move(code.trapSites))) {
     return false;
   }
 

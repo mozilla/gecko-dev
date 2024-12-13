@@ -1307,6 +1307,10 @@ struct BaseCompiler final {
   // Retrieve the current bytecodeOffset.
   inline BytecodeOffset bytecodeOffset() const;
 
+  // Get a trap site description for a trap that would occur in the current
+  // opcode.
+  inline TrapSiteDesc trapSiteDesc() const;
+
   // Generate a trap instruction for the current bytecodeOffset.
   inline void trap(Trap t) const;
 

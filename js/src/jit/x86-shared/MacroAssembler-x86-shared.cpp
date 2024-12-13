@@ -802,20 +802,20 @@ struct MOZ_RAII AutoHandleWasmTruncateToIntErrors {
   MacroAssembler& masm;
   Label inputIsNaN;
   Label intOverflow;
-  wasm::BytecodeOffset off;
+  const wasm::TrapSiteDesc& trapSiteDesc;
 
-  explicit AutoHandleWasmTruncateToIntErrors(MacroAssembler& masm,
-                                             wasm::BytecodeOffset off)
-      : masm(masm), off(off) {}
+  explicit AutoHandleWasmTruncateToIntErrors(
+      MacroAssembler& masm, const wasm::TrapSiteDesc& trapSiteDesc)
+      : masm(masm), trapSiteDesc(trapSiteDesc) {}
 
   ~AutoHandleWasmTruncateToIntErrors() {
     // Handle errors.  These cases are not in arbitrary order: code will
     // fall through to intOverflow.
     masm.bind(&intOverflow);
-    masm.wasmTrap(wasm::Trap::IntegerOverflow, off);
+    masm.wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
 
     masm.bind(&inputIsNaN);
-    masm.wasmTrap(wasm::Trap::InvalidConversionToInteger, off);
+    masm.wasmTrap(wasm::Trap::InvalidConversionToInteger, trapSiteDesc);
   }
 };
 
@@ -837,11 +837,9 @@ void MacroAssembler::wasmTruncateFloat32ToInt32(FloatRegister input,
   j(Assembler::Overflow, oolEntry);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input,
-                                                  Register output,
-                                                  TruncFlags flags,
-                                                  wasm::BytecodeOffset off,
-                                                  Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI32(
+    FloatRegister input, Register output, TruncFlags flags,
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
   bool isUnsigned = flags & TRUNC_UNSIGNED;
   bool isSaturating = flags & TRUNC_SATURATING;
 
@@ -878,7 +876,7 @@ void MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input,
     return;
   }
 
-  AutoHandleWasmTruncateToIntErrors traps(*this, off);
+  AutoHandleWasmTruncateToIntErrors traps(*this, trapSiteDesc);
 
   // Eagerly take care of NaNs.
   branchDouble(Assembler::DoubleUnordered, input, input, &traps.inputIsNaN);
@@ -903,11 +901,9 @@ void MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input,
   jump(rejoin);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input,
-                                                  Register output,
-                                                  TruncFlags flags,
-                                                  wasm::BytecodeOffset off,
-                                                  Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI32(
+    FloatRegister input, Register output, TruncFlags flags,
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
   bool isUnsigned = flags & TRUNC_UNSIGNED;
   bool isSaturating = flags & TRUNC_SATURATING;
 
@@ -944,7 +940,7 @@ void MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input,
     return;
   }
 
-  AutoHandleWasmTruncateToIntErrors traps(*this, off);
+  AutoHandleWasmTruncateToIntErrors traps(*this, trapSiteDesc);
 
   // Eagerly take care of NaNs.
   branchFloat(Assembler::DoubleUnordered, input, input, &traps.inputIsNaN);
@@ -965,11 +961,9 @@ void MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input,
   jump(rejoin);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
-                                                  Register64 output,
-                                                  TruncFlags flags,
-                                                  wasm::BytecodeOffset off,
-                                                  Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI64(
+    FloatRegister input, Register64 output, TruncFlags flags,
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
   bool isUnsigned = flags & TRUNC_UNSIGNED;
   bool isSaturating = flags & TRUNC_SATURATING;
 
@@ -1005,7 +999,7 @@ void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
     return;
   }
 
-  AutoHandleWasmTruncateToIntErrors traps(*this, off);
+  AutoHandleWasmTruncateToIntErrors traps(*this, trapSiteDesc);
 
   // Eagerly take care of NaNs.
   branchDouble(Assembler::DoubleUnordered, input, input, &traps.inputIsNaN);
@@ -1032,11 +1026,9 @@ void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
   jump(rejoin);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI64(FloatRegister input,
-                                                  Register64 output,
-                                                  TruncFlags flags,
-                                                  wasm::BytecodeOffset off,
-                                                  Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI64(
+    FloatRegister input, Register64 output, TruncFlags flags,
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
   bool isUnsigned = flags & TRUNC_UNSIGNED;
   bool isSaturating = flags & TRUNC_SATURATING;
 
@@ -1072,7 +1064,7 @@ void MacroAssembler::oolWasmTruncateCheckF32ToI64(FloatRegister input,
     return;
   }
 
-  AutoHandleWasmTruncateToIntErrors traps(*this, off);
+  AutoHandleWasmTruncateToIntErrors traps(*this, trapSiteDesc);
 
   // Eagerly take care of NaNs.
   branchFloat(Assembler::DoubleUnordered, input, input, &traps.inputIsNaN);

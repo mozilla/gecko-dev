@@ -3767,12 +3767,11 @@ class MToNumberInt32 : public MUnaryInstruction, public ToInt32Policy::Data {
 // Converts a value or typed input to a truncated int32, for use with bitwise
 // operations. This is an infallible ValueToECMAInt32.
 class MTruncateToInt32 : public MUnaryInstruction, public ToInt32Policy::Data {
-  wasm::BytecodeOffset bytecodeOffset_;
+  wasm::TrapSiteDesc trapSiteDesc_;
 
   explicit MTruncateToInt32(
-      MDefinition* def,
-      wasm::BytecodeOffset bytecodeOffset = wasm::BytecodeOffset())
-      : MUnaryInstruction(classOpcode, def), bytecodeOffset_(bytecodeOffset) {
+      MDefinition* def, wasm::TrapSiteDesc trapSiteDesc = wasm::TrapSiteDesc())
+      : MUnaryInstruction(classOpcode, def), trapSiteDesc_(trapSiteDesc) {
     setResultType(MIRType::Int32);
     setMovable();
 
@@ -3811,7 +3810,7 @@ class MTruncateToInt32 : public MUnaryInstruction, public ToInt32Policy::Data {
     return input()->type() < MIRType::Symbol;
   }
 
-  wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
+  const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }
 
   ALLOW_CLONE(MTruncateToInt32)
 };
@@ -5158,7 +5157,7 @@ class MDiv : public MBinaryArithInstruction {
   bool canBeNegativeDividend_;
   bool unsigned_;  // If false, signedness will be derived from operands
   bool trapOnError_;
-  wasm::BytecodeOffset bytecodeOffset_;
+  wasm::TrapSiteDesc trapSiteDesc_;
 
   MDiv(MDefinition* left, MDefinition* right, MIRType type)
       : MBinaryArithInstruction(classOpcode, left, right, type),
@@ -5178,12 +5177,12 @@ class MDiv : public MBinaryArithInstruction {
   }
   static MDiv* New(TempAllocator& alloc, MDefinition* left, MDefinition* right,
                    MIRType type, bool unsignd, bool trapOnError = false,
-                   wasm::BytecodeOffset bytecodeOffset = wasm::BytecodeOffset(),
+                   wasm::TrapSiteDesc trapSiteDesc = wasm::TrapSiteDesc(),
                    bool mustPreserveNaN = false) {
     auto* div = new (alloc) MDiv(left, right, type);
     div->unsigned_ = unsignd;
     div->trapOnError_ = trapOnError;
-    div->bytecodeOffset_ = bytecodeOffset;
+    div->trapSiteDesc_ = trapSiteDesc;
     if (trapOnError) {
       div->setGuard();  // not removable because of possible side-effects.
       div->setNotMovable();
@@ -5244,9 +5243,9 @@ class MDiv : public MBinaryArithInstruction {
   }
 
   bool trapOnError() const { return trapOnError_; }
-  wasm::BytecodeOffset bytecodeOffset() const {
-    MOZ_ASSERT(bytecodeOffset_.isValid());
-    return bytecodeOffset_;
+  const wasm::TrapSiteDesc& trapSiteDesc() const {
+    MOZ_ASSERT(trapSiteDesc_.isValid());
+    return trapSiteDesc_;
   }
 
   bool isFloat32Commutative() const override { return true; }
@@ -5280,7 +5279,7 @@ class MMod : public MBinaryArithInstruction {
   bool canBePowerOfTwoDivisor_;
   bool canBeDivideByZero_;
   bool trapOnError_;
-  wasm::BytecodeOffset bytecodeOffset_;
+  wasm::TrapSiteDesc trapSiteDesc_;
 
   MMod(MDefinition* left, MDefinition* right, MIRType type)
       : MBinaryArithInstruction(classOpcode, left, right, type),
@@ -5297,14 +5296,13 @@ class MMod : public MBinaryArithInstruction {
                    MIRType type) {
     return new (alloc) MMod(left, right, type);
   }
-  static MMod* New(
-      TempAllocator& alloc, MDefinition* left, MDefinition* right, MIRType type,
-      bool unsignd, bool trapOnError = false,
-      wasm::BytecodeOffset bytecodeOffset = wasm::BytecodeOffset()) {
+  static MMod* New(TempAllocator& alloc, MDefinition* left, MDefinition* right,
+                   MIRType type, bool unsignd, bool trapOnError = false,
+                   wasm::TrapSiteDesc trapSiteDesc = wasm::TrapSiteDesc()) {
     auto* mod = new (alloc) MMod(left, right, type);
     mod->unsigned_ = unsignd;
     mod->trapOnError_ = trapOnError;
-    mod->bytecodeOffset_ = bytecodeOffset;
+    mod->trapSiteDesc_ = trapSiteDesc;
     if (trapOnError) {
       mod->setGuard();  // not removable because of possible side-effects.
       mod->setNotMovable();
@@ -5340,9 +5338,9 @@ class MMod : public MBinaryArithInstruction {
   bool isUnsigned() const { return unsigned_; }
 
   bool trapOnError() const { return trapOnError_; }
-  wasm::BytecodeOffset bytecodeOffset() const {
-    MOZ_ASSERT(bytecodeOffset_.isValid());
-    return bytecodeOffset_;
+  const wasm::TrapSiteDesc& trapSiteDesc() const {
+    MOZ_ASSERT(trapSiteDesc_.isValid());
+    return trapSiteDesc_;
   }
 
   [[nodiscard]] bool writeRecoverData(
