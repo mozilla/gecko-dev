@@ -228,7 +228,7 @@ class ClassificationProvider:
         return {
             Platforms.ANDROID_A55.value: {
                 "query": {
-                    Suites.PERFTEST.value: "'android 'a55 'shippable 'aarch64",
+                    Suites.PERFTEST.value: "'android 'a55",
                     "default": "'android 'a55 'shippable 'aarch64",
                 },
                 "restriction": check_for_android,
@@ -238,7 +238,7 @@ class ClassificationProvider:
                 # The android, and android-a55 queries are expected to be the same,
                 # we don't want to run the tests on other mobile platforms.
                 "query": {
-                    Suites.PERFTEST.value: "'android 'a55 'shippable 'aarch64",
+                    Suites.PERFTEST.value: "'android",
                     "default": "'android 'a55 'shippable 'aarch64",
                 },
                 "restriction": check_for_android,
@@ -638,5 +638,22 @@ class ClassificationProvider:
                 "description": (
                     "A set of tests used to test machine learning performance in Firefox."
                 ),
+            },
+            "Mobile Resource Usage": {
+                "query": {
+                    Suites.PERFTEST.value: ["'perftest 'resource"],
+                },
+                "suites": [Suites.PERFTEST.value],
+                "platform-restrictions": [
+                    Platforms.ANDROID.value,
+                ],
+                "app-restrictions": {
+                    Suites.PERFTEST.value: [
+                        Apps.FENIX.value,
+                        Apps.CHROME_M.value,
+                    ],
+                },
+                "tasks": [],
+                "description": ("A set of tests for testing resource usage on mobile."),
             },
         }
