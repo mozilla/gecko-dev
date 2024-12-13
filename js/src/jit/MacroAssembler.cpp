@@ -4820,7 +4820,7 @@ CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
     MOZ_CRASH("instanceOffset is Nothing only for unsupported abi calls.");
   }
   CodeOffset raOffset = call(
-      wasm::CallSiteDesc(bytecode.offset(), wasm::CallSite::Symbolic), imm);
+      wasm::CallSiteDesc(bytecode.offset(), wasm::CallSiteKind::Symbolic), imm);
 
   callWithABIPost(stackAdjust, result, /* callFromWasm = */ true);
 
@@ -6094,7 +6094,7 @@ CodeOffset MacroAssembler::wasmReturnCallImport(
   loadWasmPinnedRegsFromInstance();
 
   wasm::CallSiteDesc stubDesc(desc.lineOrBytecode(),
-                              wasm::CallSiteDesc::ReturnStub);
+                              wasm::CallSiteKind::ReturnStub);
   wasmCollapseFrameSlow(retCallInfo, stubDesc);
   jump(ABINonArgReg0);
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());
@@ -6343,7 +6343,7 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
   // slots in the frame do not have valid values.
 
   wasm::CallSiteDesc newDesc(desc.lineOrBytecode(),
-                             wasm::CallSiteDesc::IndirectFast);
+                             wasm::CallSiteKind::IndirectFast);
   *fastCallOffset = call(newDesc, calleeScratch);
 
   bind(&done);
@@ -6447,7 +6447,7 @@ void MacroAssembler::wasmReturnCallIndirect(
           calleeScratch);
 
   wasm::CallSiteDesc stubDesc(desc.lineOrBytecode(),
-                              wasm::CallSiteDesc::ReturnStub);
+                              wasm::CallSiteKind::ReturnStub);
   wasmCollapseFrameSlow(retCallInfo, stubDesc);
   jump(calleeScratch);
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());
@@ -6525,7 +6525,7 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   // slots in the frame do not have valid values.
 
   wasm::CallSiteDesc newDesc(desc.lineOrBytecode(),
-                             wasm::CallSiteDesc::FuncRefFast);
+                             wasm::CallSiteKind::FuncRefFast);
   *fastCallOffset = call(newDesc, calleeScratch);
 
   bind(&done);
@@ -6572,7 +6572,7 @@ void MacroAssembler::wasmReturnCallRef(
   loadPtr(Address(calleeFnObj, uncheckedEntrySlotOffset), calleeScratch);
 
   wasm::CallSiteDesc stubDesc(desc.lineOrBytecode(),
-                              wasm::CallSiteDesc::ReturnStub);
+                              wasm::CallSiteKind::ReturnStub);
   wasmCollapseFrameSlow(retCallInfo, stubDesc);
   jump(calleeScratch);
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());

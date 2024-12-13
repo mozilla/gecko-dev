@@ -85,7 +85,7 @@ struct CompiledCode {
   FuncCompileOutputVector funcs;
   Bytes bytes;
   CodeRangeVector codeRanges;
-  CallSiteVector callSites;
+  CallSites callSites;
   CallSiteTargetVector callSiteTargets;
   TrapSiteVectorArray trapSites;
   SymbolicAccessVector symbolicAccesses;

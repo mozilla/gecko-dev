@@ -96,8 +96,9 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
     // The only case when this can happend is during IndirectCallBadSig
     // trapping and stack unwinding. The top frame will never be at ReturnStub
     // callsite, except during IndirectCallBadSig unwinding.
-    const CallSite* site = code_->lookupCallSite(unwoundPC);
-    if (site && site->kind() == CallSite::ReturnStub) {
+    CallSite site;
+    if (code_->lookupCallSite(unwoundPC, &site) &&
+        site.kind() == CallSiteKind::ReturnStub) {
       MOZ_ASSERT(trapData.trap == Trap::IndirectCallBadSig);
       resumePCinCurrentFrame_ = (uint8_t*)unwoundPC;
     }
@@ -135,15 +136,16 @@ WasmFrameIter::WasmFrameIter(FrameWithInstances* fp, void* returnAddress)
   code_ = LookupCode(returnAddress, &codeRange_);
   MOZ_ASSERT(code_ && codeRange_ && codeRange_->kind() == CodeRange::Function);
 
-  const CallSite* callsite = code_->lookupCallSite(returnAddress);
-  MOZ_ASSERT(callsite && callsite->mightBeCrossInstance());
+  CallSite site;
+  MOZ_ALWAYS_TRUE(code_->lookupCallSite(returnAddress, &site));
+  MOZ_ASSERT(site.mightBeCrossInstance());
 
 #ifdef ENABLE_WASM_JSPI
-  stackSwitched_ = callsite->isStackSwitch();
+  stackSwitched_ = site.isStackSwitch();
 #endif
 
   MOZ_ASSERT(code_ == &instance_->code());
-  lineOrBytecode_ = callsite->lineOrBytecode();
+  lineOrBytecode_ = site.lineOrBytecode();
   failedUnwindSignatureMismatch_ = false;
 
   MOZ_ASSERT(!done());
@@ -291,20 +293,20 @@ void WasmFrameIter::popFrame() {
 
   MOZ_ASSERT(codeRange_->kind() == CodeRange::Function);
 
-  const CallSite* callsite = code_->lookupCallSite(returnAddress);
-  MOZ_ASSERT(callsite);
+  CallSite site;
+  MOZ_ALWAYS_TRUE(code_->lookupCallSite(returnAddress, &site));
 
-  if (callsite->mightBeCrossInstance()) {
+  if (site.mightBeCrossInstance()) {
     instance_ = ExtractCallerInstanceFromFrameWithInstances(prevFP);
   }
 
 #ifdef ENABLE_WASM_JSPI
-  stackSwitched_ = callsite->isStackSwitch();
+  stackSwitched_ = site.isStackSwitch();
 #endif
 
   MOZ_ASSERT(code_ == &instance()->code());
 
-  lineOrBytecode_ = callsite->lineOrBytecode();
+  lineOrBytecode_ = site.lineOrBytecode();
   failedUnwindSignatureMismatch_ = false;
 
   MOZ_ASSERT(!done());
@@ -401,8 +403,9 @@ bool WasmFrameIter::debugEnabled() const {
   }
 
   // Debug frame is not present at the return stub.
-  const CallSite* site = code_->lookupCallSite((void*)resumePCinCurrentFrame_);
-  return !(site && site->kind() == CallSite::ReturnStub);
+  CallSite site;
+  return !(code_->lookupCallSite((void*)resumePCinCurrentFrame_, &site) &&
+           site.kind() == CallSiteKind::ReturnStub);
 }
 
 DebugFrame* WasmFrameIter::debugFrame() const {
@@ -1131,8 +1134,8 @@ static inline void AssertMatchesCallSite(void* callerPC, uint8_t* callerFP) {
     return;
   }
 
-  const CallSite* callsite = code->lookupCallSite(callerPC);
-  MOZ_ASSERT(callsite);
+  CallSite site;
+  MOZ_ALWAYS_TRUE(code->lookupCallSite(callerPC, &site));
 #endif
 }
 
@@ -1248,8 +1251,9 @@ const Instance* js::wasm::GetNearestEffectiveInstance(const Frame* fp) {
 
     MOZ_ASSERT(codeRange->kind() == CodeRange::Function);
     MOZ_ASSERT(code);
-    const CallSite* callsite = code->lookupCallSite(returnAddress);
-    if (callsite->mightBeCrossInstance()) {
+    CallSite site;
+    MOZ_ALWAYS_TRUE(code->lookupCallSite(returnAddress, &site));
+    if (site.mightBeCrossInstance()) {
       return ExtractCalleeInstanceFromFrameWithInstances(fp);
     }
 

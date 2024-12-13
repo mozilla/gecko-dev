@@ -643,7 +643,7 @@ namespace jit {
 
 // The base class of all Assemblers for all archs.
 class AssemblerShared {
-  wasm::CallSiteVector callSites_;
+  wasm::CallSites callSites_;
   wasm::CallSiteTargetVector callSiteTargets_;
   wasm::TrapSiteVectorArray trapSites_;
   wasm::SymbolicAccessVector symbolicAccesses_;
@@ -701,7 +701,7 @@ class AssemblerShared {
   template <typename... Args>
   void append(const wasm::CallSiteDesc& desc, CodeOffset retAddr,
               Args&&... args) {
-    enoughMemory_ &= callSites_.emplaceBack(desc, retAddr.offset());
+    enoughMemory_ &= callSites_.append(wasm::CallSite(desc, retAddr.offset()));
     enoughMemory_ &= callSiteTargets_.emplaceBack(std::forward<Args>(args)...);
   }
   void append(wasm::Trap trap, wasm::TrapSite site) {
@@ -735,7 +735,7 @@ class AssemblerShared {
     enoughMemory_ &= callRefMetricsPatches_.append(patch);
   }
 
-  wasm::CallSiteVector& callSites() { return callSites_; }
+  wasm::CallSites& callSites() { return callSites_; }
   wasm::CallSiteTargetVector& callSiteTargets() { return callSiteTargets_; }
   wasm::TrapSiteVectorArray& trapSites() { return trapSites_; }
   wasm::SymbolicAccessVector& symbolicAccesses() { return symbolicAccesses_; }

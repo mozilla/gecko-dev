@@ -19,8 +19,10 @@
 #ifndef wasm_codegen_types_h
 #define wasm_codegen_types_h
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/Span.h"
 
 #include <stdint.h>
 
@@ -30,6 +32,7 @@
 #include "wasm/WasmConstants.h"
 #include "wasm/WasmInstanceData.h"
 #include "wasm/WasmSerialize.h"
+#include "wasm/WasmShareable.h"
 #include "wasm/WasmTypeDef.h"
 #include "wasm/WasmUtility.h"
 
@@ -131,6 +134,13 @@ class BytecodeOffset {
 };
 
 WASM_DECLARE_CACHEABLE_POD(BytecodeOffset);
+using BytecodeOffsetVector =
+    mozilla::Vector<BytecodeOffset, 4, SystemAllocPolicy>;
+using BytecodeOffsetSpan = mozilla::Span<const BytecodeOffset>;
+using ShareableBytecodeOffsetVector =
+    ShareableVector<BytecodeOffset, 4, SystemAllocPolicy>;
+using SharedBytecodeOffsetVector = RefPtr<const ShareableBytecodeOffsetVector>;
+using MutableBytecodeOffsetVector = RefPtr<ShareableBytecodeOffsetVector>;
 
 // A TrapMachineInsn describes roughly what kind of machine instruction has
 // caused a trap.  This is used only for validation of trap placement in debug
@@ -583,70 +593,93 @@ extern const CodeRange* LookupInSorted(const CodeRangeVector& codeRanges,
 // the metadata necessary to walk up to the next frame. Lastly CallSiteAndTarget
 // adds the function index of the callee.
 
-class CallSiteDesc {
-  static constexpr size_t LINE_OR_BYTECODE_BITS_SIZE = 28;
-  uint32_t lineOrBytecode_ : LINE_OR_BYTECODE_BITS_SIZE;
-  uint32_t kind_ : 4;
+enum class CallSiteKind : uint8_t {
+  Func,           // pc-relative call to a specific function
+  Import,         // wasm import call
+  Indirect,       // dynamic callee called via register, context on stack
+  IndirectFast,   // dynamically determined to be same-instance
+  FuncRef,        // call using direct function reference
+  FuncRefFast,    // call using direct function reference within same-instance
+  ReturnFunc,     // return call to a specific function
+  ReturnStub,     // return call trampoline
+  Symbolic,       // call to a single symbolic callee
+  EnterFrame,     // call to a enter frame handler
+  LeaveFrame,     // call to a leave frame handler
+  CollapseFrame,  // call to a leave frame handler during tail call
+  StackSwitch,    // stack switch point
+  Breakpoint,     // call to instruction breakpoint
+  RequestTierUp   // call to request tier-2 compilation of this function
+};
 
-  WASM_CHECK_CACHEABLE_POD(lineOrBytecode_, kind_);
+WASM_DECLARE_CACHEABLE_POD(CallSiteKind);
+WASM_DECLARE_POD_VECTOR(CallSiteKind, CallSiteKindVector)
+
+class CallSiteDesc {
+  // The line of bytecode offset that this call site is at.
+  uint32_t lineOrBytecode_;
+  // If this call site has been inlined into another function, the inlined
+  // caller functions. The direct ancestor of this function (i.e. the one
+  // directly above it on the stack) is the last entry in the vector.
+  SharedBytecodeOffsetVector inlinedCallerOffsets_;
+  CallSiteKind kind_;
 
  public:
-  static constexpr uint32_t MAX_LINE_OR_BYTECODE_VALUE =
-      (1 << LINE_OR_BYTECODE_BITS_SIZE) - 1;
-
-  enum Kind {
-    Func,           // pc-relative call to a specific function
-    Import,         // wasm import call
-    Indirect,       // dynamic callee called via register, context on stack
-    IndirectFast,   // dynamically determined to be same-instance
-    FuncRef,        // call using direct function reference
-    FuncRefFast,    // call using direct function reference within same-instance
-    ReturnFunc,     // return call to a specific function
-    ReturnStub,     // return call trampoline
-    Symbolic,       // call to a single symbolic callee
-    EnterFrame,     // call to a enter frame handler
-    LeaveFrame,     // call to a leave frame handler
-    CollapseFrame,  // call to a leave frame handler during tail call
-    StackSwitch,    // stack switch point
-    Breakpoint,     // call to instruction breakpoint
-    RequestTierUp   // call to request tier-2 compilation of this function
-  };
-  CallSiteDesc() : lineOrBytecode_(0), kind_(0) {}
-  explicit CallSiteDesc(Kind kind) : lineOrBytecode_(0), kind_(kind) {
-    MOZ_ASSERT(kind == Kind(kind_));
+  CallSiteDesc() : lineOrBytecode_(0), kind_(CallSiteKind::Func) {}
+  explicit CallSiteDesc(CallSiteKind kind) : lineOrBytecode_(0), kind_(kind) {
+    MOZ_ASSERT(kind == CallSiteKind(kind_));
   }
-  CallSiteDesc(uint32_t lineOrBytecode, Kind kind)
+  CallSiteDesc(uint32_t lineOrBytecode, CallSiteKind kind)
       : lineOrBytecode_(lineOrBytecode), kind_(kind) {
-    MOZ_ASSERT(kind == Kind(kind_));
+    MOZ_ASSERT(kind == CallSiteKind(kind_));
     MOZ_ASSERT(lineOrBytecode == lineOrBytecode_);
   }
-  CallSiteDesc(BytecodeOffset bytecodeOffset, Kind kind)
+  CallSiteDesc(BytecodeOffset bytecodeOffset, CallSiteKind kind)
       : lineOrBytecode_(bytecodeOffset.offset()), kind_(kind) {
-    MOZ_ASSERT(kind == Kind(kind_));
+    MOZ_ASSERT(kind == CallSiteKind(kind_));
+    MOZ_ASSERT(bytecodeOffset.offset() == lineOrBytecode_);
+  }
+  CallSiteDesc(uint32_t lineOrBytecode,
+               const ShareableBytecodeOffsetVector* inlinedCallerOffsets,
+               CallSiteKind kind)
+      : lineOrBytecode_(lineOrBytecode),
+        inlinedCallerOffsets_(inlinedCallerOffsets),
+        kind_(kind) {
+    MOZ_ASSERT(kind == CallSiteKind(kind_));
+    MOZ_ASSERT(lineOrBytecode == lineOrBytecode_);
+  }
+  CallSiteDesc(BytecodeOffset bytecodeOffset,
+               const ShareableBytecodeOffsetVector* inlinedCallerOffsets,
+               CallSiteKind kind)
+      : lineOrBytecode_(bytecodeOffset.offset()),
+        inlinedCallerOffsets_(inlinedCallerOffsets),
+        kind_(kind) {
+    MOZ_ASSERT(kind == CallSiteKind(kind_));
     MOZ_ASSERT(bytecodeOffset.offset() == lineOrBytecode_);
   }
   uint32_t lineOrBytecode() const { return lineOrBytecode_; }
-  Kind kind() const { return Kind(kind_); }
-  bool isImportCall() const { return kind() == CallSiteDesc::Import; }
-  bool isIndirectCall() const { return kind() == CallSiteDesc::Indirect; }
-  bool isFuncRefCall() const { return kind() == CallSiteDesc::FuncRef; }
-  bool isReturnStub() const { return kind() == CallSiteDesc::ReturnStub; }
-  bool isStackSwitch() const { return kind() == CallSiteDesc::StackSwitch; }
+  BytecodeOffsetSpan inlinedCallerOffsets() const {
+    if (!inlinedCallerOffsets_) {
+      return BytecodeOffsetSpan();
+    }
+    return inlinedCallerOffsets_->span();
+  }
+  const ShareableBytecodeOffsetVector* inlinedCallerOffsetsVector() const {
+    return inlinedCallerOffsets_.get();
+  }
+  CallSiteKind kind() const { return kind_; }
+  bool isImportCall() const { return kind() == CallSiteKind::Import; }
+  bool isIndirectCall() const { return kind() == CallSiteKind::Indirect; }
+  bool isFuncRefCall() const { return kind() == CallSiteKind::FuncRef; }
+  bool isReturnStub() const { return kind() == CallSiteKind::ReturnStub; }
+  bool isStackSwitch() const { return kind() == CallSiteKind::StackSwitch; }
   bool mightBeCrossInstance() const {
     return isImportCall() || isIndirectCall() || isFuncRefCall() ||
            isReturnStub() || isStackSwitch();
   }
 };
 
-static_assert(js::wasm::MaxFunctionBytes <=
-              CallSiteDesc::MAX_LINE_OR_BYTECODE_VALUE);
-
-WASM_DECLARE_CACHEABLE_POD(CallSiteDesc);
-
 class CallSite : public CallSiteDesc {
   uint32_t returnAddressOffset_;
-
-  WASM_CHECK_CACHEABLE_POD_WITH_PARENT(CallSiteDesc, returnAddressOffset_);
 
  public:
   CallSite() : returnAddressOffset_(0) {}
@@ -658,8 +691,178 @@ class CallSite : public CallSiteDesc {
   uint32_t returnAddressOffset() const { return returnAddressOffset_; }
 };
 
-WASM_DECLARE_CACHEABLE_POD(CallSite);
-WASM_DECLARE_POD_VECTOR(CallSite, CallSiteVector)
+using CallSiteVector = Vector<CallSite, 0, SystemAllocPolicy>;
+
+// A collection of CallSite that is optimized for compact storage.
+//
+// The individual fields are split to be in their own vectors to minimize
+// overhead due to alignment for small fields like CallSiteKind.
+//
+// The `inlinedCallerOffsets` field is split into a sparse hash map as it's
+// expected that many call sites will not be in inlined functions.
+class CallSites {
+  // Define our own Uint32Vector without any inline storage so it can be used
+  // with swap.
+  using Uint32Vector = Vector<uint32_t, 0, SystemAllocPolicy>;
+  using SparseInlinedCallerOffsets =
+      mozilla::HashMap<uint32_t, SharedBytecodeOffsetVector,
+                       mozilla::DefaultHasher<uint32_t>, SystemAllocPolicy>;
+
+  CallSiteKindVector kinds_;
+  Uint32Vector lineOrBytecodes_;
+  Uint32Vector returnAddressOffsets_;
+  SparseInlinedCallerOffsets inlinedCallerOffsets_;
+
+ public:
+  explicit CallSites() {}
+
+  // We limit the maximum amount of call sites to fit in a uint32_t for better
+  // compaction of the sparse hash map. This is dynamically enforced, but
+  // should be safe. The maximum executable memory in a process is at most
+  // ~2GiB, a machine call instruction is at least two bytes (realistically
+  // much more), which would put the limit of call sites far below UINT32_MAX.
+  // We subtract one so that this check is not idempotent on 32-bit systems.
+  static constexpr size_t MAX_LENGTH = UINT32_MAX - 1;
+
+  uint32_t length() const {
+    size_t result = kinds_.length();
+    // Enforced by dynamic checks in mutation functions.
+    MOZ_ASSERT(result <= MAX_LENGTH);
+    return (uint32_t)result;
+  }
+
+  bool empty() const { return kinds_.empty(); }
+
+  CallSiteKind kind(size_t index) const { return kinds_[index]; }
+
+  CallSite operator[](size_t index) const {
+    SharedBytecodeOffsetVector inlinedCallerOffsets;
+    if (auto entry = inlinedCallerOffsets_.lookup(index)) {
+      inlinedCallerOffsets = entry->value();
+    }
+    return CallSite(CallSiteDesc(lineOrBytecodes_[index], inlinedCallerOffsets,
+                                 kinds_[index]),
+                    returnAddressOffsets_[index]);
+  }
+
+  [[nodiscard]]
+  bool append(CallSite&& callSite) {
+    // See comment on MAX_LENGTH for details.
+    if (length() == MAX_LENGTH) {
+      return false;
+    }
+
+    uint32_t index = length();
+
+    // If there are inline callers, then insert an entry in our hash map.
+    const ShareableBytecodeOffsetVector* inlinedCallers =
+        callSite.inlinedCallerOffsetsVector();
+    if (inlinedCallers && !inlinedCallers->empty()) {
+      if (!inlinedCallerOffsets_.putNew(
+              index, SharedBytecodeOffsetVector(inlinedCallers))) {
+        return false;
+      }
+    }
+
+    return kinds_.append(callSite.kind()) &&
+           lineOrBytecodes_.append(callSite.lineOrBytecode()) &&
+           returnAddressOffsets_.append(callSite.returnAddressOffset());
+  }
+
+  [[nodiscard]]
+  bool appendAll(CallSites&& other) {
+    // See comment on MAX_LENGTH for details.
+    mozilla::CheckedUint32 newLength =
+        mozilla::CheckedUint32(length()) + other.length();
+    if (!newLength.isValid() || newLength.value() > MAX_LENGTH) {
+      return false;
+    }
+
+    uint32_t index = length();
+    for (auto iter = other.inlinedCallerOffsets_.modIter(); !iter.done();
+         iter.next()) {
+      if (!inlinedCallerOffsets_.putNew(index++,
+                                        std::move(iter.get().value()))) {
+        return false;
+      }
+    }
+    return kinds_.appendAll(other.kinds_) &&
+           lineOrBytecodes_.appendAll(other.lineOrBytecodes_) &&
+           returnAddressOffsets_.appendAll(other.returnAddressOffsets_);
+  }
+
+  void swap(CallSites& other) {
+    kinds_.swap(other.kinds_);
+    lineOrBytecodes_.swap(other.lineOrBytecodes_);
+    returnAddressOffsets_.swap(other.returnAddressOffsets_);
+    inlinedCallerOffsets_.swap(other.inlinedCallerOffsets_);
+  }
+
+  void clear() {
+    kinds_.clear();
+    lineOrBytecodes_.clear();
+    returnAddressOffsets_.clear();
+    inlinedCallerOffsets_.clear();
+  }
+
+  [[nodiscard]]
+  bool reserve(size_t length) {
+    // See comment on MAX_LENGTH for details.
+    if (length > MAX_LENGTH) {
+      return false;
+    }
+
+    return kinds_.reserve(length) && lineOrBytecodes_.reserve(length) &&
+           returnAddressOffsets_.reserve(length);
+  }
+
+  void shrinkStorageToFit() {
+    kinds_.shrinkStorageToFit();
+    lineOrBytecodes_.shrinkStorageToFit();
+    returnAddressOffsets_.shrinkStorageToFit();
+    inlinedCallerOffsets_.compact();
+  }
+
+  void offsetBy(uint32_t offsetInModule) {
+    for (uint32_t& returnAddressOffset : returnAddressOffsets_) {
+      returnAddressOffset += offsetInModule;
+    }
+  }
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+    size_t size = 0;
+    ShareableBytecodeOffsetVector::SeenSet seen;
+    for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
+      size +=
+          iter.get().value()->sizeOfIncludingThisIfNotSeen(mallocSizeOf, &seen);
+    }
+    return size + kinds_.sizeOfExcludingThis(mallocSizeOf) +
+           lineOrBytecodes_.sizeOfExcludingThis(mallocSizeOf) +
+           returnAddressOffsets_.sizeOfExcludingThis(mallocSizeOf) +
+           inlinedCallerOffsets_.shallowSizeOfExcludingThis(mallocSizeOf);
+  }
+
+  [[nodiscard]]
+  bool lookup(uint32_t returnAddressOffset, CallSite* callSite) const;
+
+  void checkInvariants() const {
+#ifdef DEBUG
+    MOZ_ASSERT(kinds_.length() == lineOrBytecodes_.length());
+    MOZ_ASSERT(kinds_.length() == returnAddressOffsets_.length());
+    uint32_t last = 0;
+    for (uint32_t returnAddressOffset : returnAddressOffsets_) {
+      MOZ_ASSERT(returnAddressOffset >= last);
+      last = returnAddressOffset;
+    }
+    for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
+      MOZ_ASSERT(iter.get().key() < length());
+      MOZ_ASSERT(!iter.get().value()->empty());
+    }
+#endif
+  }
+
+  WASM_DECLARE_FRIEND_SERIALIZE(CallSites);
+};
 
 // A CallSiteTarget describes the callee of a CallSite, either a function or a
 // trap exit. Although checked in debug builds, a CallSiteTarget doesn't

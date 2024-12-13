@@ -945,7 +945,7 @@ struct BaseCompiler final {
 
   // Insert a breakpoint almost anywhere.  This will create a call, with all the
   // overhead that entails.
-  void insertBreakablePoint(CallSiteDesc::Kind kind);
+  void insertBreakablePoint(CallSiteKind kind);
 
   // Insert code at the end of a function for breakpoint filtering.
   void insertPerFunctionDebugStub();

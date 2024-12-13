@@ -213,7 +213,7 @@ static bool AppendFunctionIndexName(uint32_t funcIndex, UTF8Bytes* bytes) {
 bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
                                       UTF8Bytes* name) const {
   if (moduleName && moduleName->length != 0) {
-    if (!AppendName(namePayload->bytes, *moduleName, name)) {
+    if (!AppendName(namePayload->vector, *moduleName, name)) {
       return false;
     }
     if (!name->append('.')) {
@@ -222,7 +222,7 @@ bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
   }
 
   if (funcIndex < funcNames.length() && funcNames[funcIndex].length != 0) {
-    return AppendName(namePayload->bytes, funcNames[funcIndex], name);
+    return AppendName(namePayload->vector, funcNames[funcIndex], name);
   }
 
   if (ctx == NameContext::BeforeLocation) {

@@ -4421,7 +4421,7 @@ bool wasm::DecodeModuleTail(Decoder& d, CodeMetadata* codeMeta,
 
 bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
                     const FeatureOptions& options, UniqueChars* error) {
-  Decoder d(bytecode.bytes, 0, error);
+  Decoder d(bytecode.vector, 0, error);
 
   FeatureArgs features = FeatureArgs::build(cx, options);
   SharedCompileArgs compileArgs = CompileArgs::buildForValidation(features);
