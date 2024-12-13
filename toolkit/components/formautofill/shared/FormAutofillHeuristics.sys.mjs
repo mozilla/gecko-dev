@@ -633,18 +633,6 @@ export const FormAutofillHeuristics = {
       prevCCFields.add(detail.fieldName);
     }
 
-    const subsequentCCFields = new Set();
-    for (let idx = scanner.parsingIndex + fields.length; ; idx++) {
-      const detail = scanner.getFieldDetailByIndex(idx);
-      if (
-        lazy.FormAutofillUtils.getCategoryFromFieldName(detail?.fieldName) !=
-        "creditCard"
-      ) {
-        break;
-      }
-      subsequentCCFields.add(detail.fieldName);
-    }
-
     const isLastField =
       scanner.getFieldDetailByIndex(scanner.parsingIndex + 1) === null;
 
@@ -658,17 +646,11 @@ export const FormAutofillHeuristics = {
     //    because "cc-csc" is often the last field in a credit card form, and we want to
     //    avoid mistakenly updating fields in subsequent address forms.
     if (
-      (["cc-number"].some(f => prevCCFields.has(f)) &&
-        !["cc-name", "cc-given-name", "cc-family-name"].some(f =>
-          prevCCFields.has(f)
-        ) &&
-        (isLastField || !prevCCFields.has("cc-csc"))) || // 4. Or we update when current name field is followed by
-      //    creditcard form fields that contain cc-number
-      //    and no cc-name-* field is detected
-      (["cc-number"].some(f => subsequentCCFields.has(f)) &&
-        !["cc-name", "cc-given-name", "cc-family-name"].some(f =>
-          subsequentCCFields.has(f)
-        ))
+      ["cc-number"].some(f => prevCCFields.has(f)) &&
+      !["cc-name", "cc-given-name", "cc-family-name"].some(f =>
+        prevCCFields.has(f)
+      ) &&
+      (isLastField || !prevCCFields.has("cc-csc"))
     ) {
       // If there is only one field, assume the name field a `cc-name` field
       if (fields.length == 1) {
