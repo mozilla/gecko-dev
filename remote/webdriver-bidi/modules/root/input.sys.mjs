@@ -290,7 +290,7 @@ class InputModule extends RootBiDiModule {
     this.#resetInputState(context);
 
     // Process async follow-up tasks in content before the reply is sent.
-    this.#finalizeAction(context);
+    await this.#finalizeAction(context);
   }
 
   /**
