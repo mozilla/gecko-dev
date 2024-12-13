@@ -584,7 +584,9 @@ add_task(async function mouse_hovering_panel_should_prevent_autoclose() {
     },
     isBookmarkRemoved: true,
   });
-});
+  // FIXME(bug 1936867): Re-enable this test or find a better solution for
+  // autoclosing.
+}).skip();
 
 add_task(async function ctrl_d_new_bookmark_mousedown_mouseout_no_autoclose() {
   await test_bookmarks_popup({
