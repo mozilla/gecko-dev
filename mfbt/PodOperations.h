@@ -86,20 +86,6 @@ static MOZ_ALWAYS_INLINE void PodArrayZero(Array<T, N>& aArr) {
 }
 
 /**
- * Assign |*aSrc| to |*aDst|.  The locations must not be the same and must not
- * overlap.
- */
-template <typename T>
-static MOZ_ALWAYS_INLINE void PodAssign(T* aDst, const T* aSrc) {
-  static_assert(std::is_trivially_copyable_v<T>,
-                "PodAssign requires trivially copyable types");
-  MOZ_ASSERT(aDst + 1 <= aSrc || aSrc + 1 <= aDst,
-             "destination and source must not overlap");
-  memcpy(reinterpret_cast<char*>(aDst), reinterpret_cast<const char*>(aSrc),
-         sizeof(T));
-}
-
-/**
  * Copy |aNElem| T elements from |aSrc| to |aDst|.  The two memory ranges must
  * not overlap!
  */
@@ -110,12 +96,8 @@ static MOZ_ALWAYS_INLINE void PodCopy(T* aDst, const T* aSrc, size_t aNElem) {
   MOZ_ASSERT(aDst + aNElem <= aSrc || aSrc + aNElem <= aDst,
              "destination and source must not overlap");
   if (aNElem < 128) {
-    /*
-     * Avoid using operator= in this loop, as it may have been
-     * intentionally deleted by the POD type.
-     */
     for (const T* srcend = aSrc + aNElem; aSrc < srcend; aSrc++, aDst++) {
-      PodAssign(aDst, aSrc);
+      *aDst = *aSrc;
     }
   } else {
     memcpy(aDst, aSrc, aNElem * sizeof(T));
