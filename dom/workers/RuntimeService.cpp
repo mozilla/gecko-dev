@@ -50,6 +50,7 @@
 #include "mozilla/dom/WorkerBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ShadowRealmGlobalScope.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
 #include "mozilla/dom/IndexedDatabaseManager.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Preferences.h"
@@ -696,7 +697,7 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
 
   // Security policy:
   static const JSSecurityCallbacks securityCallbacks = {
-      ContentSecurityPolicyAllows};
+      ContentSecurityPolicyAllows, TrustedTypeUtils::HostGetCodeForEval};
   JS_SetSecurityCallbacks(aWorkerCx, &securityCallbacks);
 
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely

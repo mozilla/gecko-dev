@@ -67,6 +67,7 @@
 #include "mozilla/ExtensionPolicyService.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "nsContentUtils.h"
@@ -1564,7 +1565,7 @@ void nsScriptSecurityManager::InitJSCallbacks(JSContext* aCx) {
 
   static const JSSecurityCallbacks securityCallbacks = {
       ContentSecurityPolicyPermitsJSAction,
-      nullptr,  // codeForEvalGets
+      TrustedTypeUtils::HostGetCodeForEval,
       JSPrincipalsSubsume,
   };
 

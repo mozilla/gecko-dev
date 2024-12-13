@@ -15,6 +15,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupportsImpl.h"
 #include "nsString.h"
+#include "js/TypeDecls.h"
 
 class nsIContentSecurityPolicy;
 
@@ -125,6 +126,10 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
     int32_t aAttributeNamespaceID,
     const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aNewValue,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+
+// https://html.spec.whatwg.org/multipage/webappapis.html#hostgetcodeforeval(argument)
+bool HostGetCodeForEval(JSContext* aCx, JS::Handle<JSObject*> aCode,
+                        JS::MutableHandle<JSString*> aOutCode);
 
 }  // namespace TrustedTypeUtils
 

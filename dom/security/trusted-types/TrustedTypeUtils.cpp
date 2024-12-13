@@ -597,4 +597,20 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
   return nullptr;
 }
 
+bool HostGetCodeForEval(JSContext* aCx, JS::Handle<JSObject*> aCode,
+                        JS::MutableHandle<JSString*> aOutCode) {
+  JS::Rooted<JSObject*> obj(aCx, aCode);
+  TrustedScript* trustedScript;
+  if (StaticPrefs::dom_security_trusted_types_enabled() &&
+      NS_SUCCEEDED(UNWRAP_OBJECT(TrustedScript, &obj, trustedScript))) {
+    if (JSString* copy = JS_NewUCStringCopyZ(aCx, trustedScript->mData.get())) {
+      aOutCode.set(copy);
+      return true;
+    }
+    return false;
+  }
+  aOutCode.set(nullptr);
+  return true;
+}
+
 }  // namespace mozilla::dom::TrustedTypeUtils
