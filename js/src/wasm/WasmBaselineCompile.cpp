@@ -2493,9 +2493,11 @@ class OutOfLineTruncateCheckF32OrF64ToI32 : public OutOfLineCode {
 
   virtual void generate(MacroAssembler* masm) override {
     if (src.tag == AnyReg::F32) {
-      masm->oolWasmTruncateCheckF32ToI32(src.f32(), dest, flags, trapSiteDesc, rejoin());
+      masm->oolWasmTruncateCheckF32ToI32(src.f32(), dest, flags, trapSiteDesc,
+                                         rejoin());
     } else if (src.tag == AnyReg::F64) {
-      masm->oolWasmTruncateCheckF64ToI32(src.f64(), dest, flags, trapSiteDesc, rejoin());
+      masm->oolWasmTruncateCheckF64ToI32(src.f64(), dest, flags, trapSiteDesc,
+                                         rejoin());
     } else {
       MOZ_CRASH("unexpected type");
     }
@@ -2549,9 +2551,11 @@ class OutOfLineTruncateCheckF32OrF64ToI64 : public OutOfLineCode {
 
   virtual void generate(MacroAssembler* masm) override {
     if (src.tag == AnyReg::F32) {
-      masm->oolWasmTruncateCheckF32ToI64(src.f32(), dest, flags, trapSiteDesc, rejoin());
+      masm->oolWasmTruncateCheckF32ToI64(src.f32(), dest, flags, trapSiteDesc,
+                                         rejoin());
     } else if (src.tag == AnyReg::F64) {
-      masm->oolWasmTruncateCheckF64ToI64(src.f64(), dest, flags, trapSiteDesc, rejoin());
+      masm->oolWasmTruncateCheckF64ToI64(src.f64(), dest, flags, trapSiteDesc,
+                                         rejoin());
     } else {
       MOZ_CRASH("unexpected type");
     }
@@ -11694,7 +11698,7 @@ bool BaseCompiler::emitBody() {
                                       ValType::F32, ValType::I32));
           case uint32_t(MiscOp::I32TruncSatF32U):
             CHECK_NEXT(dispatchConversionOOM(
-                emitTruncateF32ToI32<TRUNC_UNSIGNED | TRUNC_SATURATING>,
+                emitTruncateF32ToI32 < TRUNC_UNSIGNED | TRUNC_SATURATING >,
                 ValType::F32, ValType::I32));
           case uint32_t(MiscOp::I32TruncSatF64S):
             CHECK_NEXT(
@@ -11702,7 +11706,7 @@ bool BaseCompiler::emitBody() {
                                       ValType::F64, ValType::I32));
           case uint32_t(MiscOp::I32TruncSatF64U):
             CHECK_NEXT(dispatchConversionOOM(
-                emitTruncateF64ToI32<TRUNC_UNSIGNED | TRUNC_SATURATING>,
+                emitTruncateF64ToI32 < TRUNC_UNSIGNED | TRUNC_SATURATING >,
                 ValType::F64, ValType::I32));
           case uint32_t(MiscOp::I64TruncSatF32S):
 #ifdef RABALDR_FLOAT_TO_I64_CALLOUT
@@ -11723,7 +11727,7 @@ bool BaseCompiler::emitBody() {
                 ValType::I64));
 #else
             CHECK_NEXT(dispatchConversionOOM(
-                emitTruncateF32ToI64<TRUNC_UNSIGNED | TRUNC_SATURATING>,
+                emitTruncateF32ToI64 < TRUNC_UNSIGNED | TRUNC_SATURATING >,
                 ValType::F32, ValType::I64));
 #endif
           case uint32_t(MiscOp::I64TruncSatF64S):
@@ -11745,7 +11749,7 @@ bool BaseCompiler::emitBody() {
                 ValType::I64));
 #else
             CHECK_NEXT(dispatchConversionOOM(
-                emitTruncateF64ToI64<TRUNC_UNSIGNED | TRUNC_SATURATING>,
+                emitTruncateF64ToI64 < TRUNC_UNSIGNED | TRUNC_SATURATING >,
                 ValType::F64, ValType::I64));
 #endif
           case uint32_t(MiscOp::MemoryCopy):

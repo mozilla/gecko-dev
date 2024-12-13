@@ -71,7 +71,7 @@ static bool SlowCallSiteSearchByOffset(const CodeBlock& code, uint32_t offset,
 bool DebugState::getLineOffsets(size_t lineno, Vector<uint32_t>* offsets) {
   CallSite callSite;
   return !SlowCallSiteSearchByOffset(debugCode(), lineno, &callSite) ||
-           offsets->append(lineno);
+         offsets->append(lineno);
 }
 
 bool DebugState::getAllColumnOffsets(Vector<ExprLoc>* offsets) {

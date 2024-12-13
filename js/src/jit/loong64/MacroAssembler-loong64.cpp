@@ -955,10 +955,10 @@ void MacroAssemblerLOONG64::ma_push(Register r) {
   if (r == StackPointer) {
     ScratchRegisterScope scratch(asMasm());
     as_or(scratch, r, zero);
-    as_addi_d(StackPointer, StackPointer, (int32_t) - sizeof(intptr_t));
+    as_addi_d(StackPointer, StackPointer, (int32_t)-sizeof(intptr_t));
     as_st_d(scratch, StackPointer, 0);
   } else {
-    as_addi_d(StackPointer, StackPointer, (int32_t) - sizeof(intptr_t));
+    as_addi_d(StackPointer, StackPointer, (int32_t)-sizeof(intptr_t));
     as_st_d(r, StackPointer, 0);
   }
 }
@@ -1287,7 +1287,7 @@ void MacroAssemblerLOONG64::ma_pop(FloatRegister f) {
 }
 
 void MacroAssemblerLOONG64::ma_push(FloatRegister f) {
-  as_addi_d(StackPointer, StackPointer, (int32_t) - sizeof(double));
+  as_addi_d(StackPointer, StackPointer, (int32_t)-sizeof(double));
   as_fst_d(f, StackPointer, 0);
 }
 

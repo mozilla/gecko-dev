@@ -94,7 +94,8 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
     funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(), lineOrBytecode_,
                                             *codeRange);
     if (trapData.trapSiteDesc.inlinedCallerOffsets) {
-      inlinedCallerOffsets_ = trapData.trapSiteDesc.inlinedCallerOffsets->span();
+      inlinedCallerOffsets_ =
+          trapData.trapSiteDesc.inlinedCallerOffsets->span();
     } else {
       inlinedCallerOffsets_ = BytecodeOffsetSpan();
     }

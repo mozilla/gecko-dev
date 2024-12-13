@@ -4385,7 +4385,7 @@ void MacroAssemblerRiscv64::ma_push(Register r) {
     r = ScratchRegister;
   }
 
-  addi(StackPointer, StackPointer, (int32_t) - sizeof(intptr_t));
+  addi(StackPointer, StackPointer, (int32_t)-sizeof(intptr_t));
   sd(r, StackPointer, 0);
 }
 
@@ -5655,7 +5655,7 @@ void MacroAssemblerRiscv64::ma_pop(FloatRegister f) {
 }
 
 void MacroAssemblerRiscv64::ma_push(FloatRegister f) {
-  addi(StackPointer, StackPointer, (int32_t) - sizeof(double));
+  addi(StackPointer, StackPointer, (int32_t)-sizeof(double));
   fsd(f, StackPointer, 0);
 }
 
