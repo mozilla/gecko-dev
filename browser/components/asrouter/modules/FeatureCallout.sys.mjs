@@ -603,6 +603,22 @@ export class FeatureCallout {
           continue;
         }
       }
+      if (selector.includes("::%shadow%")) {
+        let parts = selector.split("::%shadow%");
+        for (let i = 0; i < parts.length; i++) {
+          selector = parts[i].trim();
+          if (i === parts.length - 1) {
+            break;
+          }
+          let el = scope.querySelector(selector);
+          if (!el) {
+            break;
+          }
+          if (el.shadowRoot) {
+            scope = el.shadowRoot;
+          }
+        }
+      }
       let element = scope.querySelector(selector);
       // The element may not be a child of the scope, but the scope itself. For
       // example, if we're anchoring directly to the trigger tab, our selector
