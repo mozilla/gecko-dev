@@ -7,10 +7,12 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.espresso.Espresso.pressBack
+import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper.getEnhancedTrackingProtectionAsset
@@ -253,8 +255,13 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }.openEnhancedTrackingProtectionSheet {
             verifyEnhancedTrackingProtectionSheetStatus("ON", true)
         }.openDetails {
-            verifyCrossSiteCookiesBlocked(true)
-            navigateBackToDetails()
+            // Third-party cookie tracker blocking in Nightly was disabled: https://bugzilla.mozilla.org/show_bug.cgi?id=1935156
+            if (activityTestRule.activity.components.core.engine.version.releaseChannel == EngineReleaseChannel.BETA &&
+                activityTestRule.activity.components.core.engine.version.releaseChannel == EngineReleaseChannel.RELEASE
+            ) {
+                verifyCrossSiteCookiesBlocked(true)
+                navigateBackToDetails()
+            }
             verifyCryptominersBlocked(true)
             navigateBackToDetails()
             verifyFingerprintersBlocked(true)
@@ -467,8 +474,14 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         enhancedTrackingProtection {
         }.openEnhancedTrackingProtectionSheet {
         }.openDetails {
-            verifyCrossSiteCookiesBlocked(true)
-            navigateBackToDetails()
+            // Third-party cookie tracker blocking in Nightly was disabled: https://bugzilla.mozilla.org/show_bug.cgi?id=1935156
+            if (
+                activityTestRule.activity.components.core.engine.version.releaseChannel == EngineReleaseChannel.BETA &&
+                activityTestRule.activity.components.core.engine.version.releaseChannel == EngineReleaseChannel.RELEASE
+            ) {
+                verifyCrossSiteCookiesBlocked(true)
+                navigateBackToDetails()
+            }
             verifyCryptominersBlocked(true)
             navigateBackToDetails()
             verifyFingerprintersBlocked(true)
