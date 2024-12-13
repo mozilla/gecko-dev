@@ -45,6 +45,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FxAccountsStorageManagerCanStoreField:
     "resource://gre/modules/FxAccountsStorage.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  SelectableProfileService:
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
   Weave: "resource://services-sync/main.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
 });
@@ -88,8 +90,21 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "browserProfilesEnabled",
+  "browser.profiles.enabled",
+  false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "allowSyncMerge",
+  "browser.profiles.sync.allow-danger-merge",
+  false
+);
+
 ChromeUtils.defineLazyGetter(lazy, "l10n", function () {
-  return new Localization(["browser/sync.ftl"], true);
+  return new Localization(["browser/sync.ftl", "branding/brand.ftl"], true);
 });
 
 // These engines will be displayed to the user to pick which they would like to
@@ -275,16 +290,48 @@ FxAccountsWebChannel.prototype = {
         await this._helpers.logout(data.uid);
         break;
       case COMMAND_CAN_LINK_ACCOUNT:
-        let canLinkAccount = this._helpers.shouldAllowRelink(data.email);
-
-        let response = {
-          command,
-          messageId: message.messageId,
-          data: { ok: canLinkAccount },
-        };
-
-        log.debug("FxAccountsWebChannel response", response);
-        this._channel.send(response, sendingContext);
+        {
+          let response = { command, messageId: message.messageId };
+          // If browser profiles are not enabled, then we use the old merge sync dialog
+          if (!lazy.browserProfilesEnabled) {
+            response.data = { ok: this._helpers.shouldAllowRelink(data.email) };
+            this._channel.send(response, sendingContext);
+            break;
+          }
+          // In the new sync warning, we give users a few more options to
+          // control what they want to do with their sync data
+          let result = await this._helpers.promptProfileSyncWarningIfNeeded(
+            data.email
+          );
+          switch (result.action) {
+            case "create-profile":
+              lazy.SelectableProfileService.createNewProfile();
+              response.data = { ok: false };
+              break;
+            case "switch-profile":
+              lazy.SelectableProfileService.launchInstance(result.data);
+              response.data = { ok: false };
+              break;
+            // Either no warning was shown, or user selected the continue option
+            // to link the account
+            case "continue":
+              response.data = { ok: true };
+              break;
+            case "cancel":
+              response.data = { ok: false };
+              break;
+            default:
+              log.error(
+                "Invalid FxAccountsWebChannel dialog response: ",
+                result.action
+              );
+              response.data = { ok: false };
+              break;
+          }
+          log.debug("FxAccountsWebChannel response", response);
+          // Send the response based on what the user selected above
+          this._channel.send(response, sendingContext);
+        }
         break;
       case COMMAND_SYNC_PREFERENCES:
         this._helpers.openSyncPreferences(browser, data.entryPoint);
@@ -454,6 +501,27 @@ FxAccountsWebChannelHelpers.prototype = {
     return (
       !this._needRelinkWarning(acctName) || this._promptForRelink(acctName)
     );
+  },
+
+  /**
+   * Checks if the user is potentially hitting an issue with the current
+   * account they're logging into. Returns the choice of the user if shown
+   * @returns {string} - The corresponding option the user pressed. Can be either:
+   * cancel, continue, switch-profile, or create-profile
+   */
+  async promptProfileSyncWarningIfNeeded(acctEmail) {
+    // Was a previous account signed into this profile or is there another profile currently signed in
+    // to the account we're signing into
+    let profileLinkedWithAcct =
+      await this._getProfileAssociatedWithAcct(acctEmail);
+    if (this._needRelinkWarning(acctEmail) || profileLinkedWithAcct) {
+      return this._promptForProfileSyncWarning(
+        acctEmail,
+        profileLinkedWithAcct
+      );
+    }
+    // The user has no warnings needed and can continue signing in
+    return { action: "continue" };
   },
 
   async _initializeSync() {
@@ -868,9 +936,62 @@ FxAccountsWebChannelHelpers.prototype = {
     );
   },
 
+  // Get the current name of the profile the user is currently on
+  _getCurrentProfileName() {
+    return lazy.SelectableProfileService?.currentProfile?.name;
+  },
+
+  async _getAllProfiles() {
+    return await lazy.SelectableProfileService.getAllProfiles();
+  },
+
+  /**
+   * Checks if a profile is associated with the given account email.
+   *
+   * @param {string} acctEmail - The email of the account to check.
+   * @returns {Promise<SelectableProfile|null>} - The profile associated with the account, or null if none.
+   */
+  async _getProfileAssociatedWithAcct(acctEmail) {
+    let profiles = await this._getAllProfiles();
+    let currentProfile = await this._getCurrentProfileName();
+    for (let profile of profiles) {
+      if (profile.name === currentProfile.name) {
+        continue; // Skip current profile
+      }
+
+      let profilePath = profile.path;
+      let signedInUserPath = PathUtils.join(profilePath, "signedInUser.json");
+      let signedInUser = await this._readJSONFileAsync(signedInUserPath);
+      if (
+        signedInUser?.accountData &&
+        signedInUser.accountData.email === acctEmail
+      ) {
+        // The account is signed into another profile
+        return profile;
+      }
+    }
+    return null;
+  },
+
+  async _readJSONFileAsync(filePath) {
+    try {
+      let data = await IOUtils.readJSON(filePath);
+      if (data && data.version !== 1) {
+        throw new Error(
+          `Unsupported signedInUser.json version: ${data.version}`
+        );
+      }
+      return data;
+    } catch (e) {
+      // File not found or error reading/parsing
+      return null;
+    }
+  },
+
   /**
    * Show the user a warning dialog that the data from the previous account
-   * and the new account will be merged.
+   * and the new account will be merged. _promptForSyncWarning should be
+   * used instead of this
    *
    * @private
    */
@@ -906,7 +1027,226 @@ FxAccountsWebChannelHelpers.prototype = {
       null,
       {}
     );
+    this.emitSyncWarningDialogTelemetry(
+      { 0: "continue", 1: "cancel" },
+      pressed,
+      false // old dialog doesn't have other profiles
+    );
     return pressed === 0; // 0 is the "continue" button
+  },
+
+  /**
+   * Similar to _promptForRelink but more offers more contextual warnings
+   * to the user to support browser profiles.
+   * @returns {string} - The corresponding option the user pressed. Can be either:
+   * cancel, continue, switch-profile, or create-profile
+   *
+   */
+  _promptForProfileSyncWarning(acctEmail, profileLinkedWithAcct) {
+    let currentProfile = this._getCurrentProfileName();
+    let title, heading, description, mergeLabel, switchLabel;
+    if (profileLinkedWithAcct) {
+      [title, heading, description, mergeLabel, switchLabel] =
+        lazy.l10n.formatValuesSync([
+          { id: "sync-account-in-use-header" },
+          {
+            id: lazy.allowSyncMerge
+              ? "sync-account-already-signed-in-header"
+              : "sync-account-in-use-header-merge",
+            args: {
+              acctEmail,
+              otherProfile: profileLinkedWithAcct.name,
+            },
+          },
+          {
+            id: lazy.allowSyncMerge
+              ? "sync-account-in-use-description-merge"
+              : "sync-account-in-use-description",
+            args: {
+              acctEmail,
+              currentProfile,
+              otherProfile: profileLinkedWithAcct.name,
+            },
+          },
+          {
+            id: "sync-button-sync-profile",
+            args: { profileName: currentProfile },
+          },
+          {
+            id: "sync-button-switch-profile",
+            args: { profileName: profileLinkedWithAcct.name },
+          },
+        ]);
+    } else {
+      // This current profile was previously associated with a different account
+      [title, heading, description, mergeLabel, switchLabel] =
+        lazy.l10n.formatValuesSync([
+          {
+            id: lazy.allowSyncMerge
+              ? "sync-profile-different-account-title-merge"
+              : "sync-profile-different-account-title",
+          },
+          {
+            id: "sync-profile-different-account-header",
+          },
+          {
+            id: lazy.allowSyncMerge
+              ? "sync-profile-different-account-description-merge"
+              : "sync-profile-different-account-description",
+            args: {
+              acctEmail,
+              profileName: currentProfile,
+            },
+          },
+          { id: "sync-button-sync-and-merge" },
+          { id: "sync-button-create-profile" },
+        ]);
+    }
+    let result = this.showWarningPrompt({
+      title,
+      body: `${heading}\n\n${description}`,
+      btnLabel1: lazy.allowSyncMerge ? mergeLabel : switchLabel,
+      btnLabel2: lazy.allowSyncMerge ? switchLabel : null,
+      isAccountLoggedIntoAnotherProfile: !!profileLinkedWithAcct,
+    });
+
+    // If the user chose to switch profiles, return the associated profile as well.
+    if (result === "switch-profile") {
+      return { action: result, data: profileLinkedWithAcct };
+    }
+
+    // For all other actions, just return the action name.
+    return { action: result };
+  },
+
+  /**
+   * Shows the user a warning prompt.
+   * @returns {string} - The corresponding option the user pressed. Can be either:
+   * cancel, continue, switch-profile, or create-profile
+   */
+  showWarningPrompt({
+    title,
+    body,
+    btnLabel1,
+    btnLabel2,
+    isAccountLoggedIntoAnotherProfile,
+  }) {
+    let ps = Services.prompt;
+    let buttonFlags;
+    let pressed;
+    let actionMap = {};
+
+    if (lazy.allowSyncMerge) {
+      // Merge allowed: two options + cancel
+      buttonFlags =
+        ps.BUTTON_POS_0 * ps.BUTTON_TITLE_IS_STRING +
+        ps.BUTTON_POS_1 * ps.BUTTON_TITLE_IS_STRING +
+        ps.BUTTON_POS_2 * ps.BUTTON_TITLE_CANCEL +
+        ps.BUTTON_POS_2_DEFAULT;
+
+      // Define action map based on context
+      if (isAccountLoggedIntoAnotherProfile) {
+        // Account is associated with another profile
+        actionMap = {
+          0: "continue", // merge option
+          1: "switch-profile",
+          2: "cancel",
+        };
+      } else {
+        // Profile was previously logged in with another account
+        actionMap = {
+          0: "continue", // merge option
+          1: "create-profile",
+          2: "cancel",
+        };
+      }
+
+      // Show the prompt
+      pressed = ps.confirmEx(
+        null,
+        title,
+        body,
+        buttonFlags,
+        btnLabel1,
+        btnLabel2,
+        null,
+        null,
+        {}
+      );
+    } else {
+      // Merge not allowed: one option + cancel
+      buttonFlags =
+        ps.BUTTON_POS_0 * ps.BUTTON_TITLE_IS_STRING +
+        ps.BUTTON_POS_1 * ps.BUTTON_TITLE_CANCEL +
+        ps.BUTTON_POS_1_DEFAULT;
+
+      // Define action map based on context
+      if (isAccountLoggedIntoAnotherProfile) {
+        // Account is associated with another profile
+        actionMap = {
+          0: "switch-profile",
+          1: "cancel",
+        };
+      } else {
+        // Profile was previously logged in with another account
+        actionMap = {
+          0: "create-profile",
+          1: "cancel",
+        };
+      }
+
+      // Show the prompt
+      pressed = ps.confirmEx(
+        null,
+        title,
+        body,
+        buttonFlags,
+        btnLabel1,
+        null,
+        null,
+        null,
+        {}
+      );
+    }
+
+    this.emitSyncWarningDialogTelemetry(
+      actionMap,
+      pressed,
+      isAccountLoggedIntoAnotherProfile
+    );
+    return actionMap[pressed] || "unknown";
+  },
+
+  emitSyncWarningDialogTelemetry(
+    actionMap,
+    pressed,
+    isAccountLoggedIntoAnotherProfile
+  ) {
+    let variant;
+
+    if (!lazy.browserProfilesEnabled) {
+      // Old merge dialog
+      variant = "old-merge";
+    } else if (isAccountLoggedIntoAnotherProfile) {
+      // Sync warning dialog for profile already associated
+      variant = lazy.allowSyncMerge
+        ? "sync-warning-allow-merge"
+        : "sync-warning";
+    } else {
+      // Sync warning dialog for a different account previously logged in
+      variant = lazy.allowSyncMerge
+        ? "merge-warning-allow-merge"
+        : "merge-warning";
+    }
+
+    // Telemetry extra options
+    let extraOptions = {
+      variant_shown: variant,
+      option_clicked: actionMap[pressed] || "unknown",
+    };
+
+    // Record telemetry
+    Glean.syncMergeDialog?.clicked?.record(extraOptions);
   },
 };
 

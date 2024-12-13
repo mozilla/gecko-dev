@@ -47,6 +47,8 @@ skip-if = ["appname == 'thunderbird'"]
 
 ["test_storage_manager.js"]
 
+["test_sync_warning_dialogs.js"]
+
 ["test_telemetry.js"]
 
 ["test_web_channel.js"]

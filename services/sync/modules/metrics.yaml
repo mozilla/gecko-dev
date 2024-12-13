@@ -631,3 +631,28 @@ deletion.request:
     expires: never
     send_in_pings: ["deletion-request"]
     telemetry_mirror: DELETION_REQUEST_SYNC_DEVICE_ID
+
+sync_merge_dialog:
+  clicked:
+    type: event
+    description: >
+      Event to record that showed the user a warning for potentially merging
+      data from multiple accounts and recorded
+    notification_emails:
+      - sync-team@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/1929705/
+    data_reviews:
+      - https://bugzilla.mozilla.org/1929705/
+    expires: never
+    extra_keys:
+      option_clicked:
+        description: >
+          Which option the user actually clicked. Which can be "cancel",
+          "continue", "create-profile" or "switch-profile"
+        type: string
+      variant_shown:
+        description: >
+          Which variant we showed the user. Which can be "sync-warning", "sync-warning-allow-merge",
+          "merge-warning", "merge-warning-allow-merge", "old-merge"
+        type: string
