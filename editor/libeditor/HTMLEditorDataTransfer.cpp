@@ -429,7 +429,7 @@ class MOZ_STACK_CLASS HTMLEditor::HTMLWithContextInserter final {
 };
 
 class MOZ_STACK_CLASS
-    HTMLEditor::HTMLWithContextInserter::FragmentFromPasteCreator final {
+HTMLEditor::HTMLWithContextInserter::FragmentFromPasteCreator final {
  public:
   nsresult Run(const Document& aDocument, const nsAString& aInputString,
                const nsAString& aContextStr, const nsAString& aInfoStr,
