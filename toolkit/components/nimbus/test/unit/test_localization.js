@@ -951,7 +951,8 @@ async function test_updateRecipes_missingLocale({
     "should call .onFinalize with missing locale"
   );
 
-  const gleanEvents = Glean.nimbusEvents.validationFailed.testGetValue("events");
+  const gleanEvents =
+    Glean.nimbusEvents.validationFailed.testGetValue("events");
   Assert.equal(gleanEvents.length, 1, "Should be one validationFailed event");
   Assert.equal(
     gleanEvents[0].extra.experiment,
@@ -1040,7 +1041,8 @@ add_task(async function test_updateRecipes_missingEntry() {
     "should call .onFinalize with missing locale"
   );
 
-  const gleanEvents = Glean.nimbusEvents.validationFailed.testGetValue("events");
+  const gleanEvents =
+    Glean.nimbusEvents.validationFailed.testGetValue("events");
   Assert.equal(gleanEvents.length, 1, "Should be one validationFailed event");
   Assert.equal(
     gleanEvents[0].extra.experiment,

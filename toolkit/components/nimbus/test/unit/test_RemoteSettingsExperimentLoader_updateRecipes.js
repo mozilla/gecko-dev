@@ -1128,7 +1128,8 @@ add_task(async function test_updateRecipes_rollout_bucketing() {
     "Should unenroll from rollout"
   );
 
-  const unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
+  const unenrollmentEvents =
+    Glean.nimbusEvents.unenrollment.testGetValue("events");
   Assert.equal(
     unenrollmentEvents.length,
     1,
