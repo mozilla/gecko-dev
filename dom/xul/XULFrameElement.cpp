@@ -88,7 +88,7 @@ void XULFrameElement::SetOpenWindowInfo(nsIOpenWindowInfo* aInfo) {
 }
 
 void XULFrameElement::LoadSrc() {
-  if (!IsInUncomposedDoc() || !OwnerDoc()->GetRootElement()) {
+  if (!IsInComposedDoc()) {
     return;
   }
   RefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
@@ -147,10 +147,9 @@ void XULFrameElement::SwapFrameLoaders(nsFrameLoaderOwner* aOtherLoaderOwner,
 }
 
 nsresult XULFrameElement::BindToTree(BindContext& aContext, nsINode& aParent) {
-  nsresult rv = nsXULElement::BindToTree(aContext, aParent);
-  NS_ENSURE_SUCCESS(rv, rv);
+  MOZ_TRY(nsXULElement::BindToTree(aContext, aParent));
 
-  if (IsInUncomposedDoc()) {
+  if (IsInComposedDoc()) {
     NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
                  "Missing a script blocker!");
     // We're in a document now.  Kick off the frame load.

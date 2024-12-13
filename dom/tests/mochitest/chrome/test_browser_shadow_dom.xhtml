@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <title>xul browser should work in shadow dom</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script><![CDATA[
+    add_task(async function test_browser_shadow_dom() {
+      let url = "data:text/html,PASS";
+      let browser = document.createXULElement("browser");
+      browser.setAttribute("type", "content");
+      browser.setAttribute("src", url);
+      let load = new Promise(r => browser.addEventListener("load", r, { once: true }));
+      info(`Appended browser`);
+      document.getElementById("target").attachShadow({ mode: "open" }).appendChild(browser);
+      await load;
+      info(`loaded browser`);
+      let childURI = browser.contentDocument.documentURI;
+      is(childURI, url, "Should load in shadow DOM");
+    });
+  ]]></script>
+</head>
+<body>
+<div id="target"></div>
+</body>
+</html>
