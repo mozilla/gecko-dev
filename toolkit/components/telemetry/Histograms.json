@@ -8232,38 +8232,6 @@
     "kind": "count",
     "description": "Number of Telemetry ping files evicted due to server errors (4XX HTTP code received)"
   },
-  "TELEMETRY_SESSIONDATA_FAILED_LOAD": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Set if Telemetry failed to load the session data from disk."
-  },
-  "TELEMETRY_SESSIONDATA_FAILED_PARSE": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Set if Telemetry failed to parse the session data loaded from disk."
-  },
-  "TELEMETRY_SESSIONDATA_FAILED_VALIDATION": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Set if Telemetry failed to validate the session data loaded from disk."
-  },
-  "TELEMETRY_SESSIONDATA_FAILED_SAVE": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Set if Telemetry failed to save the session data to disk."
-  },
   "TELEMETRY_EVENT_PING_SENT": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "thunderbird"],

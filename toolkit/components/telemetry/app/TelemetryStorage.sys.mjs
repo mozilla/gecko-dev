@@ -798,7 +798,6 @@ var TelemetryStorageImpl = {
         `_saveSessionData - Failed to write session data to ${filePath}`,
         e
       );
-      Telemetry.getHistogramById("TELEMETRY_SESSIONDATA_FAILED_SAVE").add(1);
     }
   },
 
@@ -822,7 +821,6 @@ var TelemetryStorageImpl = {
       content = await IOUtils.readUTF8(dataFile);
     } catch (ex) {
       this._log.info("_loadSessionData - can not load session data file", ex);
-      Telemetry.getHistogramById("TELEMETRY_SESSIONDATA_FAILED_LOAD").add(1);
       return null;
     }
 
@@ -831,7 +829,6 @@ var TelemetryStorageImpl = {
       data = JSON.parse(content);
     } catch (ex) {
       this._log.error("_loadSessionData - failed to parse session data", ex);
-      Telemetry.getHistogramById("TELEMETRY_SESSIONDATA_FAILED_PARSE").add(1);
       return null;
     }
 

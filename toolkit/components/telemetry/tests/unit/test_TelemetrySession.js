@@ -1570,9 +1570,6 @@ add_task(async function test_savedSessionData() {
   // Create the directory which will contain the data file, if it doesn't already
   // exist.
   await IOUtils.makeDirectory(DATAREPORTING_PATH);
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_LOAD").clear();
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_PARSE").clear();
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_VALIDATION").clear();
 
   // Write test data to the session data file.
   const dataFilePath = PathUtils.join(DATAREPORTING_PATH, "session-state.json");
@@ -1606,9 +1603,6 @@ add_task(async function test_savedSessionData() {
 
   // Start TelemetrySession so that it loads the session data file.
   await TelemetryController.testReset();
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_LOAD").sum);
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_PARSE").sum);
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_VALIDATION").sum);
 
   // Watch a test preference, trigger and environment change and wait for it to propagate.
   // _watchPreferences triggers a subsession notification
@@ -1651,9 +1645,6 @@ add_task(async function test_sessionData_ShortSession() {
 
   // Remove the session state file.
   await IOUtils.remove(SESSION_STATE_PATH, { ignoreAbsent: true });
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_LOAD").clear();
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_PARSE").clear();
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_VALIDATION").clear();
 
   const expectedSessionUUID = "ff602e52-47a1-b7e8-4c1a-ffffffffc87a";
   const expectedSubsessionUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
@@ -1667,10 +1658,6 @@ add_task(async function test_sessionData_ShortSession() {
   TelemetryController.testReset();
   await TelemetryController.testShutdown();
 
-  Assert.equal(1, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_LOAD").sum);
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_PARSE").sum);
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_VALIDATION").sum);
-
   // Restore the UUID generation functions.
   fakeGenerateUUID(TelemetryUtils.generateUUID, TelemetryUtils.generateUUID);
 
@@ -1683,9 +1670,6 @@ add_task(async function test_sessionData_ShortSession() {
   Assert.equal(payload.info.profileSubsessionCounter, 2);
   Assert.equal(payload.info.previousSessionId, expectedSessionUUID);
   Assert.equal(payload.info.previousSubsessionId, expectedSubsessionUUID);
-  Assert.equal(1, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_LOAD").sum);
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_PARSE").sum);
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_VALIDATION").sum);
 
   await TelemetryController.testShutdown();
 });
@@ -1694,9 +1678,6 @@ add_task(async function test_invalidSessionData() {
   // Create the directory which will contain the data file, if it doesn't already
   // exist.
   await IOUtils.makeDirectory(DATAREPORTING_PATH);
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_LOAD").clear();
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_PARSE").clear();
-  getHistogram("TELEMETRY_SESSIONDATA_FAILED_VALIDATION").clear();
 
   // Write test data to the session data file. This should fail to parse.
   const dataFilePath = PathUtils.join(DATAREPORTING_PATH, "session-state.json");
@@ -1707,11 +1688,6 @@ add_task(async function test_invalidSessionData() {
 
   // Start TelemetryController so that it loads the session data file.
   await TelemetryController.testReset();
-
-  // The session data file should not load. Only expect the current subsession.
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_LOAD").sum);
-  Assert.equal(1, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_PARSE").sum);
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_VALIDATION").sum);
 
   // Write test data to the session data file. This should fail validation.
   const sessionState = {
@@ -1735,9 +1711,6 @@ add_task(async function test_invalidSessionData() {
 
   let payload = TelemetrySession.getPayload();
   Assert.equal(payload.info.profileSubsessionCounter, expectedSubsessions);
-  Assert.equal(0, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_LOAD").sum);
-  Assert.equal(1, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_PARSE").sum);
-  Assert.equal(1, getSnapshot("TELEMETRY_SESSIONDATA_FAILED_VALIDATION").sum);
 
   await TelemetryController.testShutdown();
 

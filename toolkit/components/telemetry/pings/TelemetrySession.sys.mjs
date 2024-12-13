@@ -1290,9 +1290,6 @@ var Impl = {
       !("sessionId" in data)
     ) {
       this._log.error("_loadSessionData - session data is invalid");
-      Services.telemetry
-        .getHistogramById("TELEMETRY_SESSIONDATA_FAILED_VALIDATION")
-        .add(1);
       return null;
     }
 
