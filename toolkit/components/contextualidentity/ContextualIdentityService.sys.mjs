@@ -162,8 +162,8 @@ _ContextualIdentityService.prototype = {
     }
   },
 
-  load() {
-    return IOUtils.read(this._path).then(
+  async load() {
+    await IOUtils.read(this._path).then(
       bytes => {
         // If synchronous loading happened in the meantime, exit now.
         if (this._dataReady) {
@@ -179,6 +179,10 @@ _ContextualIdentityService.prototype = {
       error => {
         this.loadError(error);
       }
+    );
+    Services.obs.notifyObservers(
+      null,
+      "contextual-identity-service-load-finished"
     );
   },
 
