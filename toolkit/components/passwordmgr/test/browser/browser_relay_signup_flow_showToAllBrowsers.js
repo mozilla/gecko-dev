@@ -357,6 +357,10 @@ add_task(
           service: "relay",
           entrypoint_experiment: "first_offer_version",
           entrypoint_variation: "control",
+          utm_source: "relay-integration",
+          utm_medium: "firefox-desktop",
+          utm_campaign: "first_offer_version",
+          utm_content: "control",
         }
       );
     const fxaSigninURL = new URL(fxaSigninUrlString);

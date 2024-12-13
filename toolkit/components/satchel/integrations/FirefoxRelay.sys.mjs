@@ -699,6 +699,10 @@ class RelayOffered {
               service: "relay",
               entrypoint_experiment: "first_offer_version",
               entrypoint_variation: treatment,
+              utm_source: "relay-integration",
+              utm_medium: "firefox-desktop",
+              utm_campaign: "first_offer_version",
+              utm_content: treatment,
             }
           );
         browser.ownerGlobal.openWebLinkIn(fxaUrl, "tab");
