@@ -74,6 +74,11 @@ var data = [
     fixed: "whatever://this/is/a/test.html",
   },
   {
+    // Valid should not be changed.
+    wrong: "whatever://user:pass@example.com/test.html",
+    fixed: "whatever://user:pass@example.com/test.html",
+  },
+  {
     // Spaces before @ are valid if it appears after the domain.
     wrong: "example.com/ @test.com",
     fixed: "http://example.com/%20@test.com",

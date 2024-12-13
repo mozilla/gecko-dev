@@ -161,13 +161,6 @@ ChromeUtils.defineLazyGetter(
     /^(?:[a-z+.-]+:\/*(?!\/))?\[(?:[0-9a-f]{0,4}:){0,7}[0-9a-f]{0,4}\]?(?::\d+|\/)?/i
 );
 
-// Regex used to detect spaces in URL credentials.
-ChromeUtils.defineLazyGetter(
-  lazy,
-  "DetectSpaceInCredentialsRegex",
-  () => /^[^/]*\s[^/]*@/
-);
-
 // Cache of known domains.
 ChromeUtils.defineLazyGetter(lazy, "knownDomains", () => {
   const branch = "browser.fixup.domainwhitelist.";
@@ -384,13 +377,23 @@ URIFixup.prototype = {
       uriString = uriString.replace(/^:?\/\//, "");
     }
 
+    let detectSpaceInCredentials = val => {
+      // Only search the first 512 chars for performance reasons.
+      let firstChars = val.slice(0, 512);
+      if (!firstChars.includes("@")) {
+        return false;
+      }
+      let credentials = firstChars.split("@")[0];
+      return !credentials.includes("/") && /\s/.test(credentials);
+    };
+
     // Avoid fixing up content that looks like tab-separated values.
     // Assume that 1 tab is accidental, but more than 1 implies this is
     // supposed to be tab-separated content.
     if (
       !isCommonProtocol &&
       lazy.maxOneTabRegex.test(uriString) &&
-      !lazy.DetectSpaceInCredentialsRegex.test(untrimmedURIString)
+      !detectSpaceInCredentials(untrimmedURIString)
     ) {
       let uriWithProtocol = fixupURIProtocol(uriString);
       if (uriWithProtocol) {
@@ -966,8 +969,11 @@ function fileURIFixup(uriString) {
  *          or null if fixing was not possible.
  */
 function fixupURIProtocol(uriString) {
-  let schemePos = uriString.indexOf("://");
-  if (schemePos == -1 || schemePos > uriString.search(/[:\/]/)) {
+  // The longest URI scheme on the IANA list is 36 chars + 3 for ://
+  let schemeChars = uriString.slice(0, 39);
+
+  let schemePos = schemeChars.indexOf("://");
+  if (schemePos == -1 || schemePos > schemeChars.search(/[:\/]/)) {
     uriString = "http://" + uriString;
   }
   try {
