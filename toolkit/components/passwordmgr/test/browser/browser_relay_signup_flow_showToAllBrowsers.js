@@ -132,14 +132,14 @@ add_task(
           "Clicking on Relay auto-complete item should open the FXA + Relay opt-in prompt"
         );
         const relayTermsLink = fxaRelayOptInPrompt.querySelector(
-          "#firefox-fxa-and-relay-offer-tos-url"
+          ".firefox-fxa-and-relay-offer-tos-url"
         );
         Assert.ok(
           relayTermsLink,
           "Relay opt-in prompt includes link to terms of service."
         );
         const relayPrivacyLink = fxaRelayOptInPrompt.querySelector(
-          "#firefox-fxa-and-relay-offer-privacy-url"
+          ".firefox-fxa-and-relay-offer-privacy-url"
         );
         Assert.ok(
           relayPrivacyLink,
