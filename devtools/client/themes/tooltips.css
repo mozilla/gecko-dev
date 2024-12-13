@@ -620,7 +620,12 @@ strong {
     }
   }
 
-  .menuitem > button.command:is([role="menuitem"],[role="menuitemcheckbox"],[role="link"]) {
+  /* Use :where to avoid having a high specificity that would take over the rule above */
+  .menuitem > button.command:where(
+    [role="menuitem"],
+    [role="menuitemcheckbox"],
+    [role="link"]
+  ) {
     appearance: none;
     border: none;
     background-color: transparent;
