@@ -36,7 +36,8 @@ class CacheIOThread final : public nsIThreadObserver {
 
   CacheIOThread();
 
-  using EventQueue = nsTArray<nsCOMPtr<nsIRunnable>>;
+  // We have LAST_LEVEL times queues, so keep the inline storage reasonable.
+  using EventQueue = AutoTArray<nsCOMPtr<nsIRunnable>, 32>;
 
   enum ELevel : uint32_t {
     OPEN_PRIORITY,
