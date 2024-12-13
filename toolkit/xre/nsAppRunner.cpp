@@ -4502,7 +4502,8 @@ enum struct ShouldNotProcessUpdatesReason {
   DevToolsLaunching,
   NotAnUpdatingTask,
   OtherInstanceRunning,
-  FirstStartup
+  FirstStartup,
+  MultiSessionInstallLockout
 };
 
 const char* ShouldNotProcessUpdatesReasonAsString(
@@ -4514,13 +4515,17 @@ const char* ShouldNotProcessUpdatesReasonAsString(
       return "NotAnUpdatingTask";
     case ShouldNotProcessUpdatesReason::OtherInstanceRunning:
       return "OtherInstanceRunning";
+    case ShouldNotProcessUpdatesReason::FirstStartup:
+      return "FirstStartup";
+    case ShouldNotProcessUpdatesReason::MultiSessionInstallLockout:
+      return "MultiSessionInstallLockout";
     default:
       MOZ_CRASH("impossible value for ShouldNotProcessUpdatesReason");
   }
 }
 
 Maybe<ShouldNotProcessUpdatesReason> ShouldNotProcessUpdates(
-    nsXREDirProvider& aDirProvider) {
+    nsXREDirProvider& aDirProvider, nsIFile* aUpdateRoot) {
   // Don't process updates when launched from the installer.
   // It's possible for a stale update to be present in the case of a paveover;
   // ignore it and leave the update service to discard it.
@@ -4548,6 +4553,33 @@ Maybe<ShouldNotProcessUpdatesReason> ShouldNotProcessUpdates(
     }
   }
 
+  bool otherInstance = false;
+  // At this point we have a dir provider but no XPCOM directory service.  We
+  // launch the update sync manager using that information so that it doesn't
+  // need to ask for (and fail to find) the directory service.
+  nsCOMPtr<nsIFile> anAppFile;
+  bool persistent;
+  nsresult rv = aDirProvider.GetFile(XRE_EXECUTABLE_FILE, &persistent,
+                                     getter_AddRefs(anAppFile));
+  if (NS_SUCCEEDED(rv) && anAppFile) {
+    auto updateSyncManager = new nsUpdateSyncManager(anAppFile);
+    rv = updateSyncManager->IsOtherInstanceRunning(&otherInstance);
+    if (NS_FAILED(rv)) {
+      // Unless we know that there is another instance, we default to assuming
+      // there is not one.
+      otherInstance = false;
+    }
+  }
+
+  if (otherInstance) {
+    bool msilActive = false;
+    rv = IsMultiSessionInstallLockoutActive(aUpdateRoot, msilActive);
+    if (NS_SUCCEEDED(rv) && msilActive) {
+      NS_WARNING("ShouldNotProcessUpdates(): MultiSessionInstallLockout");
+      return Some(ShouldNotProcessUpdatesReason::MultiSessionInstallLockout);
+    }
+  }
+
 #  ifdef MOZ_BACKGROUNDTASKS
   // Do not process updates if we're running a background task mode and another
   // instance is already running.  This avoids periodic maintenance updating
@@ -4571,22 +4603,6 @@ Maybe<ShouldNotProcessUpdatesReason> ShouldNotProcessUpdates(
       return Some(ShouldNotProcessUpdatesReason::NotAnUpdatingTask);
     }
 
-    // At this point we have a dir provider but no XPCOM directory service.  We
-    // launch the update sync manager using that information so that it doesn't
-    // need to ask for (and fail to find) the directory service.
-    nsCOMPtr<nsIFile> anAppFile;
-    bool persistent;
-    nsresult rv = aDirProvider.GetFile(XRE_EXECUTABLE_FILE, &persistent,
-                                       getter_AddRefs(anAppFile));
-    if (NS_FAILED(rv) || !anAppFile) {
-      // Strange, but not a reason to skip processing updates.
-      return Nothing();
-    }
-
-    auto updateSyncManager = new nsUpdateSyncManager(anAppFile);
-
-    bool otherInstance = false;
-    updateSyncManager->IsOtherInstanceRunning(&otherInstance);
     if (otherInstance) {
       NS_WARNING("ShouldNotProcessUpdates(): OtherInstanceRunning");
       return Some(ShouldNotProcessUpdatesReason::OtherInstanceRunning);
@@ -5031,19 +5047,19 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
     }
   }
 #  endif
-  Maybe<ShouldNotProcessUpdatesReason> shouldNotProcessUpdatesReason =
-      ShouldNotProcessUpdates(mDirProvider);
-  if (shouldNotProcessUpdatesReason.isNothing()) {
-    // Check for and process any available updates
-    nsCOMPtr<nsIFile> updRoot;
-    bool persistent;
-    rv = mDirProvider.GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
-                              getter_AddRefs(updRoot));
-    // XRE_UPDATE_ROOT_DIR may fail. Fallback to appDir if failed
-    if (NS_FAILED(rv)) {
-      updRoot = mDirProvider.GetAppDir();
-    }
+  // Check for and process any available updates
+  nsCOMPtr<nsIFile> updRoot;
+  bool persistent;
+  rv = mDirProvider.GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
+                            getter_AddRefs(updRoot));
+  // XRE_UPDATE_ROOT_DIR may fail. Fallback to appDir if failed
+  if (NS_FAILED(rv)) {
+    updRoot = mDirProvider.GetAppDir();
+  }
 
+  Maybe<ShouldNotProcessUpdatesReason> shouldNotProcessUpdatesReason =
+      ShouldNotProcessUpdates(mDirProvider, updRoot);
+  if (shouldNotProcessUpdatesReason.isNothing()) {
     // If the MOZ_TEST_PROCESS_UPDATES environment variable already exists, then
     // we are being called from the callback application.
     if (EnvHasValue("MOZ_TEST_PROCESS_UPDATES")) {
