@@ -125,11 +125,15 @@ AudioTimelineEvent::AudioTimelineEvent(Type aType,
 }
 
 AudioTimelineEvent::AudioTimelineEvent(const AudioTimelineEvent& rhs)
-    : mType(rhs.mType) {
-  memcpy((void*)this, &rhs, sizeof(*this));
-
-  if (rhs.mType == AudioTimelineEvent::SetValueCurve) {
+    : mType(rhs.mType), mTime(rhs.mTime) {
+  if (mType == AudioTimelineEvent::SetValueCurve) {
+    mCurveLength = rhs.mCurveLength;
     mCurve = NewCurveCopy(Span(rhs.mCurve, rhs.mCurveLength));
+    mDuration = rhs.mDuration;
+  } else {
+    mValue = rhs.mValue;
+    mTimeConstant = rhs.mTimeConstant;
+    mPerTickRatio = rhs.mPerTickRatio;
   }
 }
 
