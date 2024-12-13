@@ -162,7 +162,7 @@ add_task(async function test_removePartialSites() {
   settingsDialogClosePromise = promiseSettingsDialogClose();
   frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
   cancelBtn = frameDoc.querySelector("dialog").getButton("cancel");
-  await removeSelectedSite(hosts.slice(0, 2));
+  removeSelectedSite(hosts.slice(0, 2));
   assertSitesListed(doc, hosts.slice(2));
   cancelBtn.doCommand();
   await settingsDialogClosePromise;
@@ -178,7 +178,7 @@ add_task(async function test_removePartialSites() {
   frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
   saveBtn = frameDoc.querySelector("dialog").getButton("accept");
   cancelBtn = frameDoc.querySelector("dialog").getButton("cancel");
-  await removeSelectedSite(hosts.slice(0, 2));
+  removeSelectedSite(hosts.slice(0, 2));
   assertSitesListed(doc, hosts.slice(2));
   saveBtn.doCommand();
   await removeDialogOpenPromise;
@@ -193,13 +193,15 @@ add_task(async function test_removePartialSites() {
     REMOVE_DIALOG_URL
   );
   settingsDialogClosePromise = promiseSettingsDialogClose();
+  updatePromise = promiseSiteDataManagerSitesUpdated();
   frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
   saveBtn = frameDoc.querySelector("dialog").getButton("accept");
-  await removeSelectedSite(hosts.slice(0, 2));
+  removeSelectedSite(hosts.slice(0, 2));
   assertSitesListed(doc, hosts.slice(2));
   saveBtn.doCommand();
   await removeDialogOpenPromise;
   await settingsDialogClosePromise;
+  await updatePromise;
   await openSiteDataSettingsDialog();
   assertSitesListed(doc, hosts.slice(2));
 
