@@ -84,6 +84,10 @@ const PREF_APP_UPDATE_ELEVATE_NEVER = "app.update.elevate.never";
 const PREF_APP_UPDATE_ELEVATE_VERSION = "app.update.elevate.version";
 const PREF_APP_UPDATE_ELEVATE_ATTEMPTS = "app.update.elevate.attempts";
 const PREF_APP_UPDATE_ELEVATE_MAXATTEMPTS = "app.update.elevate.maxAttempts";
+const PREF_APP_UPDATE_INSTALL_LOCKOUT_ENABLED =
+  "app.update.multiSessionInstallLockout.enabled";
+const PREF_APP_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS =
+  "app.update.multiSessionInstallLockout.timeoutMs";
 const PREF_APP_UPDATE_LANGPACK_ENABLED = "app.update.langpack.enabled";
 const PREF_APP_UPDATE_LANGPACK_TIMEOUT = "app.update.langpack.timeout";
 const PREF_APP_UPDATE_NOTIFYDURINGDOWNLOAD = "app.update.notifyDuringDownload";
@@ -126,6 +130,7 @@ const FILE_UPDATE_MAR = "update.mar";
 const FILE_UPDATE_STATUS = "update.status";
 const FILE_UPDATE_TEST = "update.test";
 const FILE_UPDATE_VERSION = "update.version";
+const FILE_UPDATE_TIMESTAMP = "update.timestamp";
 
 const STATE_NONE = "null";
 const STATE_DOWNLOADING = "downloading";
@@ -289,6 +294,11 @@ const STAGING_POLLING_MIN_INTERVAL_MS = 15 * 1000; // 15 seconds
 const STAGING_POLLING_MAX_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const STAGING_POLLING_ATTEMPTS_PER_INTERVAL = 5;
 const STAGING_POLLING_MAX_DURATION_MS = 1 * 60 * 60 * 1000; // 1 hour
+
+// Timestamps further than this many milliseconds in the future will be
+// considered invalid.
+const MAX_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
+const DEFAULT_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 1 day
 
 // This value will be set to true if it appears that BITS is being used by
 // another user to download updates. We don't really want two users using BITS
@@ -2606,6 +2616,12 @@ export class UpdateService {
         Ci.nsIApplicationUpdateServiceInternal,
       ]),
     };
+
+    Services.prefs.addObserver(PREF_APP_UPDATE_INSTALL_LOCKOUT_ENABLED, this);
+    Services.prefs.addObserver(
+      PREF_APP_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS,
+      this
+    );
   }
 
   /**
@@ -2646,6 +2662,14 @@ export class UpdateService {
         break;
       case "quit-application":
         Services.obs.removeObserver(this, topic);
+        Services.prefs.removeObserver(
+          PREF_APP_UPDATE_INSTALL_LOCKOUT_ENABLED,
+          this
+        );
+        Services.prefs.removeObserver(
+          PREF_APP_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS,
+          this
+        );
 
         if (lazy.UpdateMutex.isLocked()) {
           // If we hold the update mutex, let it go!
@@ -2682,6 +2706,14 @@ export class UpdateService {
             LOG("UpdateService:observe - releasing update mutex for testing");
             lazy.UpdateMutex.unlock();
           }
+        }
+        break;
+      case "nsPref:changed":
+        if (
+          data == PREF_APP_UPDATE_INSTALL_LOCKOUT_ENABLED ||
+          data == PREF_APP_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS
+        ) {
+          await this.writeTimestampFile();
         }
         break;
     }
@@ -3111,6 +3143,7 @@ export class UpdateService {
         LOG("UpdateService:#asyncInit - Cleaning up missing pending update.");
         cleanupReadyUpdate();
       }
+      await this.writeTimestampFile();
     } else {
       // If there was an I/O error it is assumed that the patch is not invalid
       // and it is set to pending so an attempt to apply it again will happen
@@ -4389,6 +4422,88 @@ export class UpdateService {
     LOG(
       `UpdateService:cancelDownloadingUpdate - Successfully cleaned up BITS Job ${bitsId}`
     );
+  }
+
+  /**
+   * Writes a timestamp for the end of the install lockout timeout to
+   * 'update.timestamp'. Before this timestamp, Firefox will only install
+   * updates at startup if there are no other instances running. After this
+   * timestamp, Firefox will install updates at startup even if there are other
+   * instances running.
+   *
+   * Unless this is the initial write of this file, this function only writes to
+   * the file when we are reasonably sure we know when the timer ought to have
+   * started (i.e. when the update download finished). We want to make sure that
+   * we aren't writing a timestamp based on the current time to this file.
+   *
+   * If the update timeout feature is not enabled, this instead removes the
+   * timeout file, if present.
+   *
+   * @param  options
+   *         An optional object containing any of these keys:
+   *           dir
+   *             The patch directory where the update.timestamp file should be
+   *             written. Defaults to using `getReadyUpdateDir()`.
+   *           update
+   *             The nsIUpdate to write the timestamp for. Defaults to the
+   *             current `readyUpdate`.
+   *           isInitialWrite
+   *             Should be `true` if this is the first write of the timestamp
+   *             file for this update. If this is `true`, `update` must have a
+   *             valid `installDate` set (`usingDefaultInstallDate == false`).
+   */
+  async writeTimestampFile({ dir, update, isInitialWrite = false } = {}) {
+    if (!update) {
+      update = lazy.UM.internal.readyUpdate;
+    }
+    if (!update) {
+      LOG(
+        "UpdateService:writeTimestampFile - Not writing timestamp file. No update."
+      );
+      return;
+    }
+
+    const timeoutsEnabled = Services.prefs.getBoolPref(
+      PREF_APP_UPDATE_INSTALL_LOCKOUT_ENABLED,
+      true
+    );
+    if (timeoutsEnabled && update.usingDefaultInstallDate && !isInitialWrite) {
+      LOG(
+        "UpdateService:writeTimestampFile - Skipping timestamp update. Lack of valid data."
+      );
+      return;
+    }
+
+    const timestampFile = dir ? dir.clone() : getReadyUpdateDir();
+    timestampFile.append(FILE_UPDATE_TIMESTAMP);
+
+    const timeoutMs = Services.prefs.getIntPref(
+      PREF_APP_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS,
+      DEFAULT_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS
+    );
+
+    if (timeoutsEnabled && timeoutMs > 0) {
+      const timestampMs = Math.min(
+        update.installDate + timeoutMs,
+        Date.now() + MAX_UPDATE_INSTALL_LOCKOUT_TIMEOUT_MS
+      );
+      LOG(
+        `UpdateService:writeTimestampFile - Writing ${new Date(
+          timestampMs
+        )} (${timestampMs})`
+      );
+      writeStringToFile(timestampFile, timestampMs);
+    } else {
+      LOG(
+        `UpdateService:writeTimestampFile - Removing file. Feature ` +
+          `Enabled=${timeoutsEnabled}, Timeout=${timeoutMs}ms`
+      );
+      try {
+        await IOUtils.remove(timestampFile.path, { ignoreAbsent: true });
+      } catch (ex) {
+        LOG("UpdateService:writeTimestampFile - Failed to remove file: " + ex);
+      }
+    }
   }
 
   classID = UPDATESERVICE_CID;
@@ -6724,11 +6839,16 @@ class Downloader {
             `Downloader:onStopRequest - Ready to apply. Setting state to ` +
               `"${state}".`
           );
-          writeStatusFile(getReadyUpdateDir(), state);
-          writeVersionFile(getReadyUpdateDir(), this._update.appVersion);
-          this._update.installDate = new Date().getTime();
+          this._update.installDate = Date.now();
           this._update.statusText =
             lazy.gUpdateBundle.GetStringFromName("installPending");
+          writeStatusFile(readyDir, state);
+          writeVersionFile(readyDir, this._update.appVersion);
+          await this.updateService.writeTimestampFile({
+            dir: readyDir,
+            update: this._update,
+            isInitialWrite: true,
+          });
           Services.prefs.setIntPref(PREF_APP_UPDATE_DOWNLOAD_ATTEMPTS, 0);
         } else {
           LOG(
