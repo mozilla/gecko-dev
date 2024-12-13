@@ -127,12 +127,12 @@ class LDivOrModI64
     }
     return mir_->toWasmBuiltinDivI64()->canBeNegativeOverflow();
   }
-  const wasm::TrapSiteDesc& trapSiteDesc() const {
+  wasm::BytecodeOffset bytecodeOffset() const {
     MOZ_ASSERT(mir_->isWasmBuiltinDivI64() || mir_->isWasmBuiltinModI64());
     if (mir_->isWasmBuiltinModI64()) {
-      return mir_->toWasmBuiltinModI64()->trapSiteDesc();
+      return mir_->toWasmBuiltinModI64()->bytecodeOffset();
     }
-    return mir_->toWasmBuiltinDivI64()->trapSiteDesc();
+    return mir_->toWasmBuiltinDivI64()->bytecodeOffset();
   }
 };
 
@@ -169,12 +169,12 @@ class LUDivOrModI64
     }
     return mir_->toWasmBuiltinDivI64()->canBeNegativeOverflow();
   }
-  const wasm::TrapSiteDesc& trapSiteDesc() const {
+  wasm::BytecodeOffset bytecodeOffset() const {
     MOZ_ASSERT(mir_->isWasmBuiltinDivI64() || mir_->isWasmBuiltinModI64());
     if (mir_->isWasmBuiltinModI64()) {
-      return mir_->toWasmBuiltinModI64()->trapSiteDesc();
+      return mir_->toWasmBuiltinModI64()->bytecodeOffset();
     }
-    return mir_->toWasmBuiltinDivI64()->trapSiteDesc();
+    return mir_->toWasmBuiltinDivI64()->bytecodeOffset();
   }
 };
 

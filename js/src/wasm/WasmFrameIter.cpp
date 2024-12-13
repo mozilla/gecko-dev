@@ -53,26 +53,22 @@ static const Instance* ExtractCalleeInstanceFromFrameWithInstances(
       FrameWithInstances::calleeInstanceOffset());
 }
 
-static uint32_t FuncIndexForLineOrBytecode(const CodeMetadata& codeMeta,
-                                           uint32_t lineOrBytecode,
-                                           const CodeRange& codeRange) {
-  // If this is asm.js, then this is a line number and we also will not be
-  // doing any inlining. Report the physical func index.
-  //
-  // Or else if there is no bytecode offset in the call site, then this must be
-  // something internal we've generated and no inlining should be involved.
-  if (codeMeta.isAsmJS() || lineOrBytecode == CallSite::NO_LINE_OR_BYTECODE) {
-    // Fall back to the physical function index of the code range.
-    return codeRange.funcIndex();
-  }
-  return codeMeta.findFuncIndex(lineOrBytecode);
-}
-
 /*****************************************************************************/
 // WasmFrameIter implementation
 
 WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
-    : activation_(activation), fp_(fp ? fp : activation->wasmExitFP()) {
+    : activation_(activation),
+      code_(nullptr),
+      codeRange_(nullptr),
+      lineOrBytecode_(0),
+      fp_(fp ? fp : activation->wasmExitFP()),
+      instance_(nullptr),
+      unwoundCallerFP_(nullptr),
+      unwind_(Unwind::False),
+      unwoundAddressOfReturnAddress_(nullptr),
+      resumePCinCurrentFrame_(nullptr),
+      failedUnwindSignatureMismatch_(false),
+      stackSwitched_(false) {
   MOZ_ASSERT(fp_);
   instance_ = GetNearestEffectiveInstance(fp_);
 
@@ -89,16 +85,10 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
     code_ = &instance_->code();
     MOZ_ASSERT(code_ == LookupCode(unwoundPC));
 
-    const CodeRange* codeRange = code_->lookupFuncRange(unwoundPC);
-    lineOrBytecode_ = trapData.trapSiteDesc.bytecodeOffset.offset();
-    funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(), lineOrBytecode_,
-                                            *codeRange);
-    if (trapData.trapSiteDesc.inlinedCallerOffsets) {
-      inlinedCallerOffsets_ =
-          trapData.trapSiteDesc.inlinedCallerOffsets->span();
-    } else {
-      inlinedCallerOffsets_ = BytecodeOffsetSpan();
-    }
+    codeRange_ = code_->lookupFuncRange(unwoundPC);
+    MOZ_ASSERT(codeRange_);
+
+    lineOrBytecode_ = trapData.bytecodeOffset;
     failedUnwindSignatureMismatch_ = trapData.failedUnwindSignatureMismatch;
 
     // The debugEnabled() relies on valid value of resumePCinCurrentFrame_
@@ -106,13 +96,10 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
     // The only case when this can happend is during IndirectCallBadSig
     // trapping and stack unwinding. The top frame will never be at ReturnStub
     // callsite, except during IndirectCallBadSig unwinding.
-    CallSite site;
-    if (code_->lookupCallSite(unwoundPC, &site) &&
-        site.kind() == CallSiteKind::ReturnStub) {
+    const CallSite* site = code_->lookupCallSite(unwoundPC);
+    if (site && site->kind() == CallSite::ReturnStub) {
       MOZ_ASSERT(trapData.trap == Trap::IndirectCallBadSig);
       resumePCinCurrentFrame_ = (uint8_t*)unwoundPC;
-    } else {
-      resumePCinCurrentFrame_ = (uint8_t*)trapData.resumePC;
     }
 
     MOZ_ASSERT(!done());
@@ -130,36 +117,41 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
 }
 
 WasmFrameIter::WasmFrameIter(FrameWithInstances* fp, void* returnAddress)
-    : lineOrBytecode_(0),
+    : activation_(nullptr),
+      code_(nullptr),
+      codeRange_(nullptr),
+      lineOrBytecode_(0),
       fp_(fp),
       instance_(fp->calleeInstance()),
-      resumePCinCurrentFrame_((uint8_t*)returnAddress) {
+      unwoundCallerFP_(nullptr),
+      unwind_(Unwind::False),
+      unwoundAddressOfReturnAddress_(nullptr),
+      resumePCinCurrentFrame_((uint8_t*)returnAddress),
+      failedUnwindSignatureMismatch_(false),
+      stackSwitched_(false) {
   // Specialized implementation to avoid popFrame() interation.
   // It is expected that the iterator starts at a callsite that is in
   // the function body and has instance reference.
-  const CodeRange* codeRange;
-  code_ = LookupCode(returnAddress, &codeRange);
-  MOZ_ASSERT(code_ && codeRange->kind() == CodeRange::Function);
+  code_ = LookupCode(returnAddress, &codeRange_);
+  MOZ_ASSERT(code_ && codeRange_ && codeRange_->kind() == CodeRange::Function);
 
-  CallSite site;
-  MOZ_ALWAYS_TRUE(code_->lookupCallSite(returnAddress, &site));
-  MOZ_ASSERT(site.mightBeCrossInstance());
+  const CallSite* callsite = code_->lookupCallSite(returnAddress);
+  MOZ_ASSERT(callsite && callsite->mightBeCrossInstance());
 
 #ifdef ENABLE_WASM_JSPI
-  currentFrameStackSwitched_ = site.isStackSwitch();
+  stackSwitched_ = callsite->isStackSwitch();
 #endif
 
   MOZ_ASSERT(code_ == &instance_->code());
-  lineOrBytecode_ = site.lineOrBytecode();
-  funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(),
-                                          site.lineOrBytecode(), *codeRange);
-  inlinedCallerOffsets_ = site.inlinedCallerOffsets();
+  lineOrBytecode_ = callsite->lineOrBytecode();
+  failedUnwindSignatureMismatch_ = false;
 
   MOZ_ASSERT(!done());
 }
 
 bool WasmFrameIter::done() const {
   MOZ_ASSERT(!!fp_ == !!code_);
+  MOZ_ASSERT(!!fp_ == !!codeRange_);
   return !fp_;
 }
 
@@ -176,7 +168,7 @@ void WasmFrameIter::operator++() {
   // it is skipped, as explained above). So to unwind the innermost frame, we
   // just clear the trapping state.
 
-  if (isLeavingFrames_) {
+  if (unwind_ == Unwind::True) {
     if (activation_->isWasmTrapping()) {
       activation_->finishWasmTrap();
     }
@@ -202,39 +194,10 @@ static inline void AssertDirectJitCall(const void* fp) {
 }
 
 void WasmFrameIter::popFrame() {
-  // If we're visiting inlined frames, see if this frame was inlined.
-  if (enableInlinedFrames_ && inlinedCallerOffsets_.size() > 0) {
-    // We do not support inlining and debugging
-    MOZ_ASSERT(!code_->codeMeta().debugEnabled);
-
-    // The inlined callee offsets are ordered so that our immediate caller is
-    // the last offset.
-    //
-    // Set our current offset and func index to the last entry, then shift the
-    // span over by one.
-    const BytecodeOffset* first = inlinedCallerOffsets_.data();
-    const BytecodeOffset* last =
-        inlinedCallerOffsets_.data() + inlinedCallerOffsets_.size() - 1;
-    lineOrBytecode_ = last->offset();
-    inlinedCallerOffsets_ = BytecodeOffsetSpan(first, last);
-    MOZ_ASSERT(lineOrBytecode_ != CallSite::NO_LINE_OR_BYTECODE);
-    funcIndex_ = code_->codeMeta().findFuncIndex(lineOrBytecode_);
-    // An inlined frame will never do a stack switch, nor fail a signature
-    // mismatch.
-    currentFrameStackSwitched_ = false;
-    failedUnwindSignatureMismatch_ = false;
-    // Invalidate the resumePC, it should not be accessed anyways
-    resumePCinCurrentFrame_ = nullptr;
-    // Preserve fp_ for unwinding to the next frame when we're done with inline
-    // frames.
-    return;
-  }
-
   uint8_t* returnAddress = fp_->returnAddress();
-  const CodeRange* codeRange;
-  code_ = LookupCode(returnAddress, &codeRange);
+  code_ = LookupCode(returnAddress, &codeRange_);
 #ifdef ENABLE_WASM_JSPI
-  currentFrameStackSwitched_ = false;
+  stackSwitched_ = false;
 #endif
 
   if (!code_) {
@@ -254,53 +217,48 @@ void WasmFrameIter::popFrame() {
     AssertDirectJitCall(fp_->jitEntryCaller());
 
     unwoundCallerFP_ = fp_->jitEntryCaller();
-    unwoundCallerFPIsJSJit_ = true;
-    unwoundAddressOfReturnAddress_ = fp_->addressOfReturnAddress();
+    hasUnwoundJitFrame_ = true;
 
-    if (isLeavingFrames_) {
-      activation_->setJSExitFP(unwoundCallerFP_);
+    if (unwind_ == Unwind::True) {
+      activation_->setJSExitFP(unwoundCallerFP());
+      unwoundAddressOfReturnAddress_ = fp_->addressOfReturnAddress();
     }
 
     fp_ = nullptr;
     code_ = nullptr;
-    funcIndex_ = UINT32_MAX;
-    lineOrBytecode_ = UINT32_MAX;
-    inlinedCallerOffsets_ = BytecodeOffsetSpan();
-    resumePCinCurrentFrame_ = nullptr;
+    codeRange_ = nullptr;
 
     MOZ_ASSERT(done());
     return;
   }
 
-  MOZ_ASSERT(codeRange);
+  MOZ_ASSERT(codeRange_);
 
   Frame* prevFP = fp_;
   fp_ = fp_->wasmCaller();
   resumePCinCurrentFrame_ = returnAddress;
 
-  if (codeRange->isInterpEntry()) {
+  if (codeRange_->isInterpEntry()) {
     // Interpreter entry has a simple frame, record FP from it.
     unwoundCallerFP_ = reinterpret_cast<uint8_t*>(fp_);
-    MOZ_ASSERT(!unwoundCallerFPIsJSJit_);
-    unwoundAddressOfReturnAddress_ = prevFP->addressOfReturnAddress();
+    MOZ_ASSERT(!hasUnwoundJitFrame_);
 
     fp_ = nullptr;
     code_ = nullptr;
-    funcIndex_ = UINT32_MAX;
-    lineOrBytecode_ = UINT32_MAX;
-    inlinedCallerOffsets_ = BytecodeOffsetSpan();
+    codeRange_ = nullptr;
 
-    if (isLeavingFrames_) {
+    if (unwind_ == Unwind::True) {
       // We're exiting via the interpreter entry; we can safely reset
       // exitFP.
       activation_->setWasmExitFP(nullptr);
+      unwoundAddressOfReturnAddress_ = prevFP->addressOfReturnAddress();
     }
 
     MOZ_ASSERT(done());
     return;
   }
 
-  if (codeRange->isJitEntry()) {
+  if (codeRange_->isJitEntry()) {
     // This wasm function has been called through the generic JIT entry by
     // a JIT caller, so the call stack resembles this:
     //
@@ -314,64 +272,51 @@ void WasmFrameIter::popFrame() {
     // The next value of FP is a jit exit frame with type WasmGenericJitEntry.
     // This lets us transition to a JSJit frame iterator.
     unwoundCallerFP_ = reinterpret_cast<uint8_t*>(fp_);
-    unwoundCallerFPIsJSJit_ = true;
+    hasUnwoundJitFrame_ = true;
     AssertJitExitFrame(unwoundCallerFP_,
                        jit::ExitFrameType::WasmGenericJitEntry);
-    unwoundAddressOfReturnAddress_ = prevFP->addressOfReturnAddress();
 
     fp_ = nullptr;
     code_ = nullptr;
-    funcIndex_ = UINT32_MAX;
-    lineOrBytecode_ = UINT32_MAX;
-    inlinedCallerOffsets_ = BytecodeOffsetSpan();
+    codeRange_ = nullptr;
 
-    if (isLeavingFrames_) {
+    if (unwind_ == Unwind::True) {
       activation_->setJSExitFP(unwoundCallerFP());
+      unwoundAddressOfReturnAddress_ = prevFP->addressOfReturnAddress();
     }
 
     MOZ_ASSERT(done());
     return;
   }
 
-  MOZ_ASSERT(codeRange->kind() == CodeRange::Function);
+  MOZ_ASSERT(codeRange_->kind() == CodeRange::Function);
 
-  CallSite site;
-  MOZ_ALWAYS_TRUE(code_->lookupCallSite(returnAddress, &site));
+  const CallSite* callsite = code_->lookupCallSite(returnAddress);
+  MOZ_ASSERT(callsite);
 
-  if (site.mightBeCrossInstance()) {
+  if (callsite->mightBeCrossInstance()) {
     instance_ = ExtractCallerInstanceFromFrameWithInstances(prevFP);
   }
 
 #ifdef ENABLE_WASM_JSPI
-  currentFrameStackSwitched_ = site.isStackSwitch();
+  stackSwitched_ = callsite->isStackSwitch();
 #endif
 
-  MOZ_ASSERT(code_ == &instance_->code());
+  MOZ_ASSERT(code_ == &instance()->code());
 
-  lineOrBytecode_ = site.lineOrBytecode();
-  funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(),
-                                          site.lineOrBytecode(), *codeRange);
-  inlinedCallerOffsets_ = site.inlinedCallerOffsets();
+  lineOrBytecode_ = callsite->lineOrBytecode();
   failedUnwindSignatureMismatch_ = false;
 
   MOZ_ASSERT(!done());
 }
 
-bool WasmFrameIter::hasSourceInfo() const {
-  // Source information is not available unless you're visiting inline frames,
-  // or you're debugging and therefore no inlining is happening.
-  return enableInlinedFrames_ || code_->codeMeta().debugEnabled;
-}
-
 const char* WasmFrameIter::filename() const {
   MOZ_ASSERT(!done());
-  MOZ_ASSERT(hasSourceInfo());
   return code_->codeMeta().scriptedCaller().filename.get();
 }
 
 const char16_t* WasmFrameIter::displayURL() const {
   MOZ_ASSERT(!done());
-  MOZ_ASSERT(hasSourceInfo());
   return code_->codeMetaForAsmJS()
              ? code_->codeMetaForAsmJS()->displayURL()  // asm.js
              : nullptr;                                 // wasm
@@ -379,7 +324,6 @@ const char16_t* WasmFrameIter::displayURL() const {
 
 bool WasmFrameIter::mutedErrors() const {
   MOZ_ASSERT(!done());
-  MOZ_ASSERT(hasSourceInfo());
   return code_->codeMetaForAsmJS()
              ? code_->codeMetaForAsmJS()->mutedErrors()  // asm.js
              : false;                                    // wasm
@@ -387,10 +331,9 @@ bool WasmFrameIter::mutedErrors() const {
 
 JSAtom* WasmFrameIter::functionDisplayAtom() const {
   MOZ_ASSERT(!done());
-  MOZ_ASSERT(hasSourceInfo());
 
   JSContext* cx = activation_->cx();
-  JSAtom* atom = instance_->getFuncDisplayAtom(cx, funcIndex_);
+  JSAtom* atom = instance()->getFuncDisplayAtom(cx, codeRange_->funcIndex());
   if (!atom) {
     cx->clearPendingException();
     return cx->names().empty_;
@@ -401,21 +344,17 @@ JSAtom* WasmFrameIter::functionDisplayAtom() const {
 
 unsigned WasmFrameIter::lineOrBytecode() const {
   MOZ_ASSERT(!done());
-  MOZ_ASSERT(hasSourceInfo());
   return lineOrBytecode_;
 }
 
 uint32_t WasmFrameIter::funcIndex() const {
   MOZ_ASSERT(!done());
-  MOZ_ASSERT(hasSourceInfo());
-  return funcIndex_;
+  return codeRange_->funcIndex();
 }
 
 unsigned WasmFrameIter::computeLine(
     JS::TaggedColumnNumberOneOrigin* column) const {
-  MOZ_ASSERT(!done());
-  MOZ_ASSERT(hasSourceInfo());
-  if (instance_->isAsmJS()) {
+  if (instance()->isAsmJS()) {
     if (column) {
       *column =
           JS::TaggedColumnNumberOneOrigin(JS::LimitedColumnNumberOneOrigin(
@@ -424,12 +363,20 @@ unsigned WasmFrameIter::computeLine(
     return lineOrBytecode_;
   }
 
-  MOZ_ASSERT(!(funcIndex_ & JS::TaggedColumnNumberOneOrigin::WasmFunctionTag));
+  MOZ_ASSERT(!(codeRange_->funcIndex() &
+               JS::TaggedColumnNumberOneOrigin::WasmFunctionTag));
   if (column) {
-    *column =
-        JS::TaggedColumnNumberOneOrigin(JS::WasmFunctionIndex(funcIndex_));
+    *column = JS::TaggedColumnNumberOneOrigin(
+        JS::WasmFunctionIndex(codeRange_->funcIndex()));
   }
   return lineOrBytecode_;
+}
+
+void** WasmFrameIter::unwoundAddressOfReturnAddress() const {
+  MOZ_ASSERT(done());
+  MOZ_ASSERT(unwind_ == Unwind::True);
+  MOZ_ASSERT(unwoundAddressOfReturnAddress_);
+  return unwoundAddressOfReturnAddress_;
 }
 
 bool WasmFrameIter::debugEnabled() const {
@@ -449,19 +396,32 @@ bool WasmFrameIter::debugEnabled() const {
   }
 
   // Only non-imported functions can have debug frames.
-  if (funcIndex_ < code_->funcImports().length()) {
+  if (codeRange_->funcIndex() < code_->funcImports().length()) {
     return false;
   }
 
   // Debug frame is not present at the return stub.
-  CallSite site;
-  return !(code_->lookupCallSite((void*)resumePCinCurrentFrame_, &site) &&
-           site.kind() == CallSiteKind::ReturnStub);
+  const CallSite* site = code_->lookupCallSite((void*)resumePCinCurrentFrame_);
+  return !(site && site->kind() == CallSite::ReturnStub);
 }
 
 DebugFrame* WasmFrameIter::debugFrame() const {
   MOZ_ASSERT(!done());
   return DebugFrame::from(fp_);
+}
+
+bool WasmFrameIter::hasUnwoundJitFrame() const {
+  MOZ_ASSERT_IF(hasUnwoundJitFrame_, unwoundCallerFP_);
+  return hasUnwoundJitFrame_;
+}
+
+uint8_t* WasmFrameIter::resumePCinCurrentFrame() const {
+  if (resumePCinCurrentFrame_) {
+    return resumePCinCurrentFrame_;
+  }
+  MOZ_ASSERT(activation_->isWasmTrapping());
+  // The next instruction is the instruction following the trap instruction.
+  return (uint8_t*)activation_->wasmTrapData().resumePC;
 }
 
 /*****************************************************************************/
@@ -861,13 +821,13 @@ void wasm::GenerateFunctionPrologue(MacroAssembler& masm,
         }
 
         masm.bind(&fail);
-        masm.wasmTrap(Trap::IndirectCallBadSig, TrapSiteDesc());
+        masm.wasmTrap(Trap::IndirectCallBadSig, BytecodeOffset(0));
         break;
       }
       case CallIndirectIdKind::Immediate: {
         masm.branch32(Assembler::Condition::Equal, WasmTableCallSigReg,
                       Imm32(callIndirectId.immediate()), &functionBody);
-        masm.wasmTrap(Trap::IndirectCallBadSig, TrapSiteDesc());
+        masm.wasmTrap(Trap::IndirectCallBadSig, BytecodeOffset(0));
         break;
       }
       case CallIndirectIdKind::AsmJS:
@@ -1171,8 +1131,8 @@ static inline void AssertMatchesCallSite(void* callerPC, uint8_t* callerFP) {
     return;
   }
 
-  CallSite site;
-  MOZ_ALWAYS_TRUE(code->lookupCallSite(callerPC, &site));
+  const CallSite* callsite = code->lookupCallSite(callerPC);
+  MOZ_ASSERT(callsite);
 #endif
 }
 
@@ -1288,9 +1248,8 @@ const Instance* js::wasm::GetNearestEffectiveInstance(const Frame* fp) {
 
     MOZ_ASSERT(codeRange->kind() == CodeRange::Function);
     MOZ_ASSERT(code);
-    CallSite site;
-    MOZ_ALWAYS_TRUE(code->lookupCallSite(returnAddress, &site));
-    if (site.mightBeCrossInstance()) {
+    const CallSite* callsite = code->lookupCallSite(returnAddress);
+    if (callsite->mightBeCrossInstance()) {
       return ExtractCalleeInstanceFromFrameWithInstances(fp);
     }
 

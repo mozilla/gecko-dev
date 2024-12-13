@@ -236,7 +236,7 @@ class JitActivation : public Activation {
     return offsetof(JitActivation, encodedWasmExitReason_);
   }
 
-  void startWasmTrap(wasm::Trap trap, const wasm::TrapSiteDesc& trapDesc,
+  void startWasmTrap(wasm::Trap trap, uint32_t bytecodeOffset,
                      const wasm::RegisterState& state);
   void finishWasmTrap();
   bool isWasmTrapping() const { return !!wasmTrapData_; }

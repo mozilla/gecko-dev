@@ -1870,37 +1870,45 @@ void MacroAssembler::wasmTruncateFloat32ToInt32(FloatRegister input,
   ma_b(ScratchRegister, Imm32(0), oolEntry, Assembler::NotEqual);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI32(
-    FloatRegister input, Register output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input,
+                                                  Register output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   outOfLineWasmTruncateToInt32Check(input, output, MIRType::Float32, flags,
-                                    rejoin, trapSiteDesc);
+                                    rejoin, off);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI32(
-    FloatRegister input, Register output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input,
+                                                  Register output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   outOfLineWasmTruncateToInt32Check(input, output, MIRType::Double, flags,
-                                    rejoin, trapSiteDesc);
+                                    rejoin, off);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI64(
-    FloatRegister input, Register64 output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI64(FloatRegister input,
+                                                  Register64 output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   outOfLineWasmTruncateToInt64Check(input, output, MIRType::Float32, flags,
-                                    rejoin, trapSiteDesc);
+                                    rejoin, off);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI64(
-    FloatRegister input, Register64 output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
+                                                  Register64 output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   outOfLineWasmTruncateToInt64Check(input, output, MIRType::Double, flags,
-                                    rejoin, trapSiteDesc);
+                                    rejoin, off);
 }
 
 void MacroAssemblerMIPSShared::outOfLineWasmTruncateToInt32Check(
     FloatRegister input, Register output, MIRType fromType, TruncFlags flags,
-    Label* rejoin, const wasm::TrapSiteDesc& trapSiteDesc) {
+    Label* rejoin, wasm::BytecodeOffset trapOffset) {
   bool isUnsigned = flags & TRUNC_UNSIGNED;
   bool isSaturating = flags & TRUNC_SATURATING;
 
@@ -1958,14 +1966,14 @@ void MacroAssemblerMIPSShared::outOfLineWasmTruncateToInt32Check(
     asMasm().branchFloat(Assembler::DoubleUnordered, input, input, &inputIsNaN);
   }
 
-  asMasm().wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
+  asMasm().wasmTrap(wasm::Trap::IntegerOverflow, trapOffset);
   asMasm().bind(&inputIsNaN);
-  asMasm().wasmTrap(wasm::Trap::InvalidConversionToInteger, trapSiteDesc);
+  asMasm().wasmTrap(wasm::Trap::InvalidConversionToInteger, trapOffset);
 }
 
 void MacroAssemblerMIPSShared::outOfLineWasmTruncateToInt64Check(
     FloatRegister input, Register64 output_, MIRType fromType, TruncFlags flags,
-    Label* rejoin, const wasm::TrapSiteDesc& trapSiteDesc) {
+    Label* rejoin, wasm::BytecodeOffset trapOffset) {
   bool isUnsigned = flags & TRUNC_UNSIGNED;
   bool isSaturating = flags & TRUNC_SATURATING;
 
@@ -2049,9 +2057,9 @@ void MacroAssemblerMIPSShared::outOfLineWasmTruncateToInt64Check(
 
 #endif
 
-  asMasm().wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
+  asMasm().wasmTrap(wasm::Trap::IntegerOverflow, trapOffset);
   asMasm().bind(&inputIsNaN);
-  asMasm().wasmTrap(wasm::Trap::InvalidConversionToInteger, trapSiteDesc);
+  asMasm().wasmTrap(wasm::Trap::InvalidConversionToInteger, trapOffset);
 }
 
 void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,

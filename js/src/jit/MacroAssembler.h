@@ -3780,19 +3780,19 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   FaultingCodeOffset wasmTrapInstruction() PER_SHARED_ARCH;
 
-  void wasmTrap(wasm::Trap trap, const wasm::TrapSiteDesc& trapSiteDesc);
+  void wasmTrap(wasm::Trap trap, wasm::BytecodeOffset bytecodeOffset);
 
   // Load all pinned regs via InstanceReg.  If the trapOffset is something,
   // give the first load a trap descriptor with type IndirectCallToNull, so that
   // a null instance will cause a trap.
   void loadWasmPinnedRegsFromInstance(
-      const wasm::MaybeTrapSiteDesc& trapSiteDesc);
+      mozilla::Maybe<wasm::BytecodeOffset> trapOffset = mozilla::Nothing());
 
   // Returns a pair: the offset of the undefined (trapping) instruction, and
   // the number of extra bytes of stack allocated prior to the trap
   // instruction proper.
   std::pair<CodeOffset, uint32_t> wasmReserveStackChecked(
-      uint32_t amount, const wasm::TrapSiteDesc& trapSiteDesc);
+      uint32_t amount, wasm::BytecodeOffset trapOffset);
 
   // Emit a bounds check against the wasm heap limit, jumping to 'ok' if 'cond'
   // holds; this can be the label either of the access or of the trap.  The
@@ -3919,8 +3919,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                  bool isSaturating,
                                  Label* oolEntry) PER_SHARED_ARCH;
   void oolWasmTruncateCheckF64ToI32(FloatRegister input, Register output,
-                                    TruncFlags flags,
-                                    const wasm::TrapSiteDesc& trapSiteDesc,
+                                    TruncFlags flags, wasm::BytecodeOffset off,
                                     Label* rejoin)
       DEFINED_ON(arm, arm64, x86_shared, mips_shared, loong64, riscv64, wasm32);
 
@@ -3930,8 +3929,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                   bool isSaturating,
                                   Label* oolEntry) PER_SHARED_ARCH;
   void oolWasmTruncateCheckF32ToI32(FloatRegister input, Register output,
-                                    TruncFlags flags,
-                                    const wasm::TrapSiteDesc& trapSiteDesc,
+                                    TruncFlags flags, wasm::BytecodeOffset off,
                                     Label* rejoin)
       DEFINED_ON(arm, arm64, x86_shared, mips_shared, loong64, riscv64, wasm32);
 
@@ -3946,8 +3944,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                   Label* oolRejoin, FloatRegister tempDouble)
       DEFINED_ON(arm64, x86, x64, mips64, loong64, riscv64, wasm32);
   void oolWasmTruncateCheckF64ToI64(FloatRegister input, Register64 output,
-                                    TruncFlags flags,
-                                    const wasm::TrapSiteDesc& trapSiteDesc,
+                                    TruncFlags flags, wasm::BytecodeOffset off,
                                     Label* rejoin)
       DEFINED_ON(arm, arm64, x86_shared, mips_shared, loong64, riscv64, wasm32);
 
@@ -3960,8 +3957,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                    Label* oolRejoin, FloatRegister tempDouble)
       DEFINED_ON(arm64, x86, x64, mips64, loong64, riscv64, wasm32);
   void oolWasmTruncateCheckF32ToI64(FloatRegister input, Register64 output,
-                                    TruncFlags flags,
-                                    const wasm::TrapSiteDesc& trapSiteDesc,
+                                    TruncFlags flags, wasm::BytecodeOffset off,
                                     Label* rejoin)
       DEFINED_ON(arm, arm64, x86_shared, mips_shared, loong64, riscv64, wasm32);
 
@@ -4062,7 +4058,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // after the call.
   void wasmTrapOnFailedInstanceCall(Register resultRegister,
                                     wasm::FailureMode failureMode,
-                                    const wasm::TrapSiteDesc& trapSiteDesc);
+                                    wasm::BytecodeOffset bytecodeOffset);
 
   // Performs a bounds check for ranged wasm operations like memory.fill or
   // array.fill. This handles the bizarre edge case in the wasm spec where a
@@ -4072,7 +4068,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // `length` and `limit` will be unchanged.
   void wasmBoundsCheckRange32(Register index, Register length, Register limit,
                               Register tmp,
-                              const wasm::TrapSiteDesc& trapSiteDesc);
+                              wasm::BytecodeOffset bytecodeOffset);
 
   // Returns information about which registers are necessary for a
   // branchWasmRefIsSubtype call.

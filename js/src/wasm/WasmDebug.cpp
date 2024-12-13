@@ -55,32 +55,28 @@ void DebugState::finalize(JS::GCContext* gcx) {
   }
 }
 
-static bool SlowCallSiteSearchByOffset(const CodeBlock& code, uint32_t offset,
-                                       CallSite* callSite) {
-  for (uint32_t callSiteIndex = 0; callSiteIndex < code.callSites.length();
-       callSiteIndex++) {
-    if (code.callSites.kind(callSiteIndex) == CallSiteKind::Breakpoint &&
-        code.callSites[callSiteIndex].lineOrBytecode() == offset) {
-      *callSite = code.callSites[callSiteIndex];
-      return true;
+static const CallSite* SlowCallSiteSearchByOffset(const CodeBlock& code,
+                                                  uint32_t offset) {
+  for (const CallSite& callSite : code.callSites) {
+    if (callSite.lineOrBytecode() == offset &&
+        callSite.kind() == CallSiteDesc::Breakpoint) {
+      return &callSite;
     }
   }
-  return false;
+  return nullptr;
 }
 
 bool DebugState::getLineOffsets(size_t lineno, Vector<uint32_t>* offsets) {
-  CallSite callSite;
-  return !SlowCallSiteSearchByOffset(debugCode(), lineno, &callSite) ||
-         offsets->append(lineno);
+  const CallSite* callsite = SlowCallSiteSearchByOffset(debugCode(), lineno);
+  return !(callsite && !offsets->append(lineno));
 }
 
 bool DebugState::getAllColumnOffsets(Vector<ExprLoc>* offsets) {
-  for (uint32_t callSiteIndex = 0;
-       callSiteIndex < debugCode().callSites.length(); callSiteIndex++) {
-    if (debugCode().callSites.kind(callSiteIndex) != CallSiteKind::Breakpoint) {
+  for (const CallSite& callSite : debugCode().callSites) {
+    if (callSite.kind() != CallSite::Breakpoint) {
       continue;
     }
-    uint32_t offset = debugCode().callSites[callSiteIndex].lineOrBytecode();
+    uint32_t offset = callSite.lineOrBytecode();
     if (!offsets->emplaceBack(
             offset,
             JS::WasmFunctionIndex::DefaultBinarySourceColumnNumberOneOrigin,
@@ -93,8 +89,7 @@ bool DebugState::getAllColumnOffsets(Vector<ExprLoc>* offsets) {
 
 bool DebugState::getOffsetLocation(uint32_t offset, uint32_t* lineno,
                                    JS::LimitedColumnNumberOneOrigin* column) {
-  CallSite callSite;
-  if (!SlowCallSiteSearchByOffset(debugCode(), offset, &callSite)) {
+  if (!SlowCallSiteSearchByOffset(debugCode(), offset)) {
     return false;
   }
   *lineno = offset;
@@ -147,13 +142,11 @@ void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
   bool anyEnterAndLeave = enterAndLeaveFrameTrapsCounter_ > 0;
 
   bool keepDebugging = false;
-  for (uint32_t callSiteIndex = 0;
-       callSiteIndex < debugCode().callSites.length(); callSiteIndex++) {
-    if (debugCode().callSites.kind(callSiteIndex) != CallSiteKind::Breakpoint) {
+  for (const CallSite& callSite : debugCode().callSites) {
+    if (callSite.kind() != CallSite::Breakpoint) {
       continue;
     }
-    uint32_t offset =
-        debugCode().callSites[callSiteIndex].returnAddressOffset();
+    uint32_t offset = callSite.returnAddressOffset();
     if (codeRange.begin() <= offset && offset <= codeRange.end()) {
       keepDebugging = keepDebugging || breakpointSites_.has(offset);
     }
@@ -168,17 +161,16 @@ void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
 }
 
 bool DebugState::hasBreakpointTrapAtOffset(uint32_t offset) {
-  CallSite callSite;
-  return SlowCallSiteSearchByOffset(debugCode(), offset, &callSite);
+  return SlowCallSiteSearchByOffset(debugCode(), offset);
 }
 
 void DebugState::toggleBreakpointTrap(JSRuntime* rt, Instance* instance,
                                       uint32_t offset, bool enabled) {
-  CallSite callSite;
-  if (!SlowCallSiteSearchByOffset(debugCode(), offset, &callSite)) {
+  const CallSite* callSite = SlowCallSiteSearchByOffset(debugCode(), offset);
+  if (!callSite) {
     return;
   }
-  size_t debugTrapOffset = callSite.returnAddressOffset();
+  size_t debugTrapOffset = callSite->returnAddressOffset();
 
   const CodeSegment& codeSegment = debugSegment();
   const CodeRange* codeRange =
@@ -339,9 +331,10 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
       for (auto iter = breakpointSites_.iter();
            !iter.done() && !mustLeaveEnabled; iter.next()) {
         WasmBreakpointSite* site = iter.get().value();
-        CallSite callSite;
-        if (SlowCallSiteSearchByOffset(debugCode(), site->offset, &callSite)) {
-          size_t debugTrapOffset = callSite.returnAddressOffset();
+        const CallSite* callSite =
+            SlowCallSiteSearchByOffset(debugCode(), site->offset);
+        if (callSite) {
+          size_t debugTrapOffset = callSite->returnAddressOffset();
           const CodeSegment& codeSegment = debugSegment();
           const CodeRange* codeRange =
               code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);

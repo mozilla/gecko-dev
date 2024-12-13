@@ -409,7 +409,7 @@ void CodeGeneratorARM::divICommon(MDiv* mir, Register lhs, Register rhs,
       if (mir->trapOnError()) {
         Label ok;
         masm.ma_b(&ok, Assembler::NotEqual);
-        masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->bytecodeOffset());
         masm.bind(&ok);
       } else {
         // (-INT32_MIN)|0 = INT32_MIN
@@ -432,7 +432,7 @@ void CodeGeneratorARM::divICommon(MDiv* mir, Register lhs, Register rhs,
       if (mir->trapOnError()) {
         Label nonZero;
         masm.ma_b(&nonZero, Assembler::NotEqual);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
         masm.bind(&nonZero);
       } else {
         // Infinity|0 == 0
@@ -507,7 +507,7 @@ void CodeGenerator::visitSoftDivI(LSoftDivI* ins) {
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
     int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
-    masm.callWithABI(mir->trapSiteDesc().bytecodeOffset,
+    masm.callWithABI(mir->bytecodeOffset(),
                      wasm::SymbolicAddress::aeabi_idivmod,
                      mozilla::Some(instanceOffset));
     masm.Pop(InstanceReg);
@@ -586,7 +586,7 @@ void CodeGeneratorARM::modICommon(MMod* mir, Register lhs, Register rhs,
       Label nonZero;
       masm.ma_b(&nonZero, Assembler::NotEqual);
       if (mir->trapOnError()) {
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
       } else {
         // NaN|0 == 0
         masm.ma_mov(Imm32(0), output);
@@ -697,7 +697,7 @@ void CodeGenerator::visitSoftModI(LSoftModI* ins) {
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
     int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
-    masm.callWithABI(mir->trapSiteDesc().bytecodeOffset,
+    masm.callWithABI(mir->bytecodeOffset(),
                      wasm::SymbolicAddress::aeabi_idivmod,
                      mozilla::Some(instanceOffset));
     masm.Pop(InstanceReg);
@@ -1790,7 +1790,7 @@ void CodeGenerator::visitWasmAddOffset(LWasmAddOffset* lir) {
   ScratchRegisterScope scratch(masm);
   masm.ma_add(base, Imm32(mir->offset()), out, scratch, SetCC);
   OutOfLineAbortingWasmTrap* ool = new (alloc())
-      OutOfLineAbortingWasmTrap(mir->trapSiteDesc(), wasm::Trap::OutOfBounds);
+      OutOfLineAbortingWasmTrap(mir->bytecodeOffset(), wasm::Trap::OutOfBounds);
   addOutOfLineCode(ool, mir);
   masm.ma_b(ool->entry(), Assembler::CarrySet);
 }
@@ -1805,7 +1805,7 @@ void CodeGenerator::visitWasmAddOffset64(LWasmAddOffset64* lir) {
   masm.ma_add(base.low, Imm32(mir->offset()), out.low, scratch, SetCC);
   masm.ma_adc(base.high, Imm32(mir->offset() >> 32), out.high, scratch, SetCC);
   OutOfLineAbortingWasmTrap* ool = new (alloc())
-      OutOfLineAbortingWasmTrap(mir->trapSiteDesc(), wasm::Trap::OutOfBounds);
+      OutOfLineAbortingWasmTrap(mir->bytecodeOffset(), wasm::Trap::OutOfBounds);
   addOutOfLineCode(ool, mir);
   masm.ma_b(ool->entry(), Assembler::CarrySet);
 }
@@ -2052,7 +2052,7 @@ void CodeGeneratorARM::generateUDivModZeroCheck(Register rhs, Register output,
       if (mir->trapOnError()) {
         Label nonZero;
         masm.ma_b(&nonZero, Assembler::NotEqual);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
         masm.bind(&nonZero);
       } else {
         Label skip;
@@ -2093,8 +2093,7 @@ void CodeGenerator::visitSoftUDivOrMod(LSoftUDivOrMod* ins) {
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
     wasm::BytecodeOffset bytecodeOffset =
-        (div ? div->trapSiteDesc().bytecodeOffset
-             : mod->trapSiteDesc().bytecodeOffset);
+        (div ? div->bytecodeOffset() : mod->bytecodeOffset());
     int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
     masm.callWithABI(bytecodeOffset, wasm::SymbolicAddress::aeabi_uidivmod,
                      mozilla::Some(instanceOffset));
@@ -2223,21 +2222,21 @@ void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
   int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
   if (lir->mir()->isSaturating()) {
     if (lir->mir()->isUnsigned()) {
-      masm.callWithABI(mir->trapSiteDesc().bytecodeOffset,
+      masm.callWithABI(mir->bytecodeOffset(),
                        wasm::SymbolicAddress::SaturatingTruncateDoubleToUint64,
                        mozilla::Some(instanceOffset));
     } else {
-      masm.callWithABI(mir->trapSiteDesc().bytecodeOffset,
+      masm.callWithABI(mir->bytecodeOffset(),
                        wasm::SymbolicAddress::SaturatingTruncateDoubleToInt64,
                        mozilla::Some(instanceOffset));
     }
   } else {
     if (lir->mir()->isUnsigned()) {
-      masm.callWithABI(mir->trapSiteDesc().bytecodeOffset,
+      masm.callWithABI(mir->bytecodeOffset(),
                        wasm::SymbolicAddress::TruncateDoubleToUint64,
                        mozilla::Some(instanceOffset));
     } else {
-      masm.callWithABI(mir->trapSiteDesc().bytecodeOffset,
+      masm.callWithABI(mir->bytecodeOffset(),
                        wasm::SymbolicAddress::TruncateDoubleToInt64,
                        mozilla::Some(instanceOffset));
     }
@@ -2272,7 +2271,7 @@ void CodeGeneratorARM::visitOutOfLineWasmTruncateCheck(
 
   masm.outOfLineWasmTruncateToIntCheck(ool->input(), ool->fromType(),
                                        ool->toType(), ool->isUnsigned(),
-                                       ool->rejoin(), ool->trapSiteDesc());
+                                       ool->rejoin(), ool->bytecodeOffset());
 }
 
 void CodeGenerator::visitInt64ToFloatingPointCall(
@@ -2439,7 +2438,7 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
     // We can use InstanceReg as temp register because we preserved it
     // before.
     masm.branchTest64(Assembler::NonZero, rhs, rhs, InstanceReg, &nonZero);
-    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->trapSiteDesc());
+    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->bytecodeOffset());
     masm.bind(&nonZero);
   }
 
@@ -2453,7 +2452,7 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
     if (mir->isWasmBuiltinModI64()) {
       masm.xor64(output, output);
     } else {
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, lir->trapSiteDesc());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, lir->bytecodeOffset());
     }
     masm.jump(&done);
     masm.bind(&notmin);
@@ -2467,12 +2466,10 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
 
   int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
   if (mir->isWasmBuiltinModI64()) {
-    masm.callWithABI(lir->trapSiteDesc().bytecodeOffset,
-                     wasm::SymbolicAddress::ModI64,
+    masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::ModI64,
                      mozilla::Some(instanceOffset));
   } else {
-    masm.callWithABI(lir->trapSiteDesc().bytecodeOffset,
-                     wasm::SymbolicAddress::DivI64,
+    masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::DivI64,
                      mozilla::Some(instanceOffset));
   }
 
@@ -2500,7 +2497,7 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
     // We can use InstanceReg as temp register because we preserved it
     // before.
     masm.branchTest64(Assembler::NonZero, rhs, rhs, InstanceReg, &nonZero);
-    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->trapSiteDesc());
+    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->bytecodeOffset());
     masm.bind(&nonZero);
   }
 
@@ -2513,12 +2510,10 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   MDefinition* mir = lir->mir();
   int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
   if (mir->isWasmBuiltinModI64()) {
-    masm.callWithABI(lir->trapSiteDesc().bytecodeOffset,
-                     wasm::SymbolicAddress::UModI64,
+    masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::UModI64,
                      mozilla::Some(instanceOffset));
   } else {
-    masm.callWithABI(lir->trapSiteDesc().bytecodeOffset,
-                     wasm::SymbolicAddress::UDivI64,
+    masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::UDivI64,
                      mozilla::Some(instanceOffset));
   }
   masm.Pop(InstanceReg);

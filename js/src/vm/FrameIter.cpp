@@ -186,7 +186,7 @@ void JitFrameIter::settle() {
 
   if (isWasm()) {
     const wasm::WasmFrameIter& wasmFrame = asWasm();
-    if (!wasmFrame.done() || !wasmFrame.unwoundCallerFPIsJSJit()) {
+    if (!wasmFrame.hasUnwoundJitFrame()) {
       return;
     }
 
@@ -200,6 +200,7 @@ void JitFrameIter::settle() {
     //
     // The wasm iterator has saved the previous jit frame pointer for us.
 
+    MOZ_ASSERT(wasmFrame.done());
     uint8_t* prevFP = wasmFrame.unwoundCallerFP();
 
     if (mustUnwindActivation_) {
@@ -402,7 +403,6 @@ void FrameIter::nextJitFrame() {
   }
 
   MOZ_ASSERT(isWasm());
-  wasmFrame().enableInlinedFrames();
   data_.pc_ = nullptr;
 }
 

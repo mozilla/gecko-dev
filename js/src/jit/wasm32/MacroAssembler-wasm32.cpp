@@ -95,9 +95,11 @@ void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
   MOZ_CRASH();
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI32(
-    FloatRegister input, Register output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input,
+                                                  Register output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   MOZ_CRASH();
 }
 
@@ -113,9 +115,11 @@ void MacroAssembler::wasmTruncateDoubleToUInt64(
   MOZ_CRASH();
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI64(
-    FloatRegister input, Register64 output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
+                                                  Register64 output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   MOZ_CRASH();
 }
 
@@ -131,15 +135,19 @@ void MacroAssembler::wasmTruncateFloat32ToUInt64(
   MOZ_CRASH();
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI64(
-    FloatRegister input, Register64 output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI64(FloatRegister input,
+                                                  Register64 output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   MOZ_CRASH();
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI32(
-    FloatRegister input, Register output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input,
+                                                  Register output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   MOZ_CRASH();
 }
 

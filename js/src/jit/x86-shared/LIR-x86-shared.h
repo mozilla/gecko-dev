@@ -152,11 +152,11 @@ class LUDivOrMod : public LBinaryMath<1> {
     return mir_->toDiv()->trapOnError();
   }
 
-  wasm::TrapSiteDesc trapSiteDesc() const {
+  wasm::BytecodeOffset bytecodeOffset() const {
     if (mir_->isMod()) {
-      return mir_->toMod()->trapSiteDesc();
+      return mir_->toMod()->bytecodeOffset();
     }
-    return mir_->toDiv()->trapSiteDesc();
+    return mir_->toDiv()->bytecodeOffset();
   }
 };
 
@@ -191,11 +191,11 @@ class LUDivOrModConstant : public LInstructionHelper<1, 1, 1> {
     }
     return mir_->toDiv()->trapOnError();
   }
-  wasm::TrapSiteDesc trapSiteDesc() const {
+  wasm::BytecodeOffset bytecodeOffset() const {
     if (mir_->isMod()) {
-      return mir_->toMod()->trapSiteDesc();
+      return mir_->toMod()->bytecodeOffset();
     }
-    return mir_->toDiv()->trapSiteDesc();
+    return mir_->toDiv()->bytecodeOffset();
   }
 };
 

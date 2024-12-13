@@ -98,12 +98,12 @@ class LDivOrModI64 : public LBinaryMath<1> {
     }
     return mir_->toDiv()->canBeNegativeOverflow();
   }
-  const wasm::TrapSiteDesc& trapSiteDesc() const {
+  wasm::BytecodeOffset bytecodeOffset() const {
     MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
     if (mir_->isMod()) {
-      return mir_->toMod()->trapSiteDesc();
+      return mir_->toMod()->bytecodeOffset();
     }
-    return mir_->toDiv()->trapSiteDesc();
+    return mir_->toDiv()->bytecodeOffset();
   }
 };
 
@@ -140,12 +140,12 @@ class LUDivOrModI64 : public LBinaryMath<1> {
     return mir_->toDiv()->canBeDivideByZero();
   }
 
-  const wasm::TrapSiteDesc& trapSiteDesc() const {
+  wasm::BytecodeOffset bytecodeOffset() const {
     MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
     if (mir_->isMod()) {
-      return mir_->toMod()->trapSiteDesc();
+      return mir_->toMod()->bytecodeOffset();
     }
-    return mir_->toDiv()->trapSiteDesc();
+    return mir_->toDiv()->bytecodeOffset();
   }
 };
 

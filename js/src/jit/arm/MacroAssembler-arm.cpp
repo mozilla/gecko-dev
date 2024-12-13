@@ -4908,32 +4908,40 @@ void MacroAssembler::wasmTruncateFloat32ToInt32(FloatRegister input,
                       isSaturating, oolEntry);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI32(
-    FloatRegister input, Register output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input,
+                                                  Register output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   outOfLineWasmTruncateToIntCheck(input, MIRType::Float32, MIRType::Int32,
-                                  flags, rejoin, trapSiteDesc);
+                                  flags, rejoin, off);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI32(
-    FloatRegister input, Register output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input,
+                                                  Register output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   outOfLineWasmTruncateToIntCheck(input, MIRType::Double, MIRType::Int32, flags,
-                                  rejoin, trapSiteDesc);
+                                  rejoin, off);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI64(
-    FloatRegister input, Register64 output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI64(FloatRegister input,
+                                                  Register64 output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   outOfLineWasmTruncateToIntCheck(input, MIRType::Float32, MIRType::Int64,
-                                  flags, rejoin, trapSiteDesc);
+                                  flags, rejoin, off);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI64(
-    FloatRegister input, Register64 output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
+                                                  Register64 output,
+                                                  TruncFlags flags,
+                                                  wasm::BytecodeOffset off,
+                                                  Label* rejoin) {
   outOfLineWasmTruncateToIntCheck(input, MIRType::Double, MIRType::Int64, flags,
-                                  rejoin, trapSiteDesc);
+                                  rejoin, off);
 }
 
 void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
@@ -6210,7 +6218,7 @@ void MacroAssemblerARM::wasmTruncateToInt32(FloatRegister input,
 
 void MacroAssemblerARM::outOfLineWasmTruncateToIntCheck(
     FloatRegister input, MIRType fromType, MIRType toType, TruncFlags flags,
-    Label* rejoin, const wasm::TrapSiteDesc& trapSiteDesc) {
+    Label* rejoin, wasm::BytecodeOffset trapOffset) {
   // On ARM, saturating truncation codegen handles saturating itself rather
   // than relying on out-of-line fixup code.
   if (flags & TRUNC_SATURATING) {
@@ -6293,10 +6301,10 @@ void MacroAssemblerARM::outOfLineWasmTruncateToIntCheck(
 
   // Handle errors.
   bind(&fail);
-  asMasm().wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
+  asMasm().wasmTrap(wasm::Trap::IntegerOverflow, trapOffset);
 
   bind(&inputIsNaN);
-  asMasm().wasmTrap(wasm::Trap::InvalidConversionToInteger, trapSiteDesc);
+  asMasm().wasmTrap(wasm::Trap::InvalidConversionToInteger, trapOffset);
 }
 
 void MacroAssemblerARM::wasmLoadImpl(const wasm::MemoryAccessDesc& access,

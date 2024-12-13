@@ -700,7 +700,7 @@
     input: WasmAnyRef
   arguments:
     trap: wasm::Trap
-    trapSiteDesc: wasm::TrapSiteDesc
+    bytecodeOffset: wasm::BytecodeOffset
   type_policy: none
   congruent_to: if_operands_equal
   alias_set: none
@@ -712,7 +712,7 @@
     input: WasmAnyRef
   arguments:
     trap: wasm::Trap
-    trapSiteDesc: wasm::TrapSiteDesc
+    bytecodeOffset: wasm::BytecodeOffset
   type_policy: none
   result_type: Int32
   congruent_to: if_operands_equal
@@ -1373,7 +1373,7 @@
     ref: WasmAnyRef
   arguments:
     trap: wasm::Trap
-    trapSiteDesc: wasm::TrapSiteDesc
+    bytecodeOffset: wasm::BytecodeOffset
   guard: true
   type_policy: none
   result_type: None
@@ -3462,7 +3462,7 @@
     length: Int32
     limit: Int32
   arguments:
-    trapSiteDesc: wasm::TrapSiteDesc
+    bytecodeOffset: wasm::BytecodeOffset
   result_type: Int32
   congruent_to: if_operands_equal
   type_policy: none

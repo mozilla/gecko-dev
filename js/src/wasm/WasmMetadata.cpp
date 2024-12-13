@@ -173,19 +173,6 @@ bool CodeMetadata::prepareForCompile(CompileMode mode) {
   return true;
 }
 
-uint32_t CodeMetadata::findFuncIndex(uint32_t bytecodeOffset) const {
-  size_t funcDefIndex;
-  if (!mozilla::BinarySearchIf(
-          funcDefRanges, 0, funcDefRanges.length(),
-          [bytecodeOffset](const BytecodeRange& range) {
-            return range.compareOffset(bytecodeOffset);
-          },
-          &funcDefIndex)) {
-    MOZ_CRASH("missing function definition");
-  }
-  return numFuncImports + funcDefIndex;
-}
-
 uint32_t CodeMetadata::findFuncExportIndex(uint32_t funcIndex) const {
   MOZ_ASSERT(funcs[funcIndex].isExported());
 
@@ -226,7 +213,7 @@ static bool AppendFunctionIndexName(uint32_t funcIndex, UTF8Bytes* bytes) {
 bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
                                       UTF8Bytes* name) const {
   if (moduleName && moduleName->length != 0) {
-    if (!AppendName(namePayload->vector, *moduleName, name)) {
+    if (!AppendName(namePayload->bytes, *moduleName, name)) {
       return false;
     }
     if (!name->append('.')) {
@@ -235,7 +222,7 @@ bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
   }
 
   if (funcIndex < funcNames.length() && funcNames[funcIndex].length != 0) {
-    return AppendName(namePayload->vector, funcNames[funcIndex], name);
+    return AppendName(namePayload->bytes, funcNames[funcIndex], name);
   }
 
   if (ctx == NameContext::BeforeLocation) {

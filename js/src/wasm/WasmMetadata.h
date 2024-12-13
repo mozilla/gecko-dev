@@ -326,9 +326,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     uint32_t funcDefIndex = funcIndex - numFuncImports;
     return funcDefFeatureUsages[funcDefIndex];
   }
-  // Given a bytecode offset inside a function definition, find the function
-  // index.
-  uint32_t findFuncIndex(uint32_t bytecodeOffset) const;
 
   BuiltinModuleFuncId knownFuncImport(uint32_t funcIndex) const {
     MOZ_ASSERT(funcIndex < numFuncImports);

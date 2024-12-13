@@ -169,7 +169,7 @@ template <class Addr>
 void wasm::EmitWasmPreBarrierGuard(MacroAssembler& masm, Register instance,
                                    Register scratch, Addr addr,
                                    Label* skipBarrier,
-                                   MaybeTrapSiteDesc trapSiteDesc) {
+                                   BytecodeOffset* trapOffset) {
   // If no incremental GC has started, we don't need the barrier.
   masm.loadPtr(
       Address(instance, Instance::offsetOfAddressOfNeedsIncrementalBarrier()),
@@ -182,19 +182,18 @@ void wasm::EmitWasmPreBarrierGuard(MacroAssembler& masm, Register instance,
   masm.branchWasmAnyRefIsGCThing(false, scratch, skipBarrier);
 
   // Emit metadata for a potential null access when reading the previous value.
-  if (trapSiteDesc) {
-    masm.append(
-        wasm::Trap::NullPointerDereference,
-        wasm::TrapSite(TrapMachineInsnForLoadWord(), fco, *trapSiteDesc));
+  if (trapOffset) {
+    masm.append(wasm::Trap::NullPointerDereference,
+                wasm::TrapSite(TrapMachineInsnForLoadWord(), fco, *trapOffset));
   }
 }
 
 template void wasm::EmitWasmPreBarrierGuard<Address>(
     MacroAssembler& masm, Register instance, Register scratch, Address addr,
-    Label* skipBarrier, MaybeTrapSiteDesc trapSiteDesc);
+    Label* skipBarrier, BytecodeOffset* trapOffset);
 template void wasm::EmitWasmPreBarrierGuard<BaseIndex>(
     MacroAssembler& masm, Register instance, Register scratch, BaseIndex addr,
-    Label* skipBarrier, MaybeTrapSiteDesc trapSiteDesc);
+    Label* skipBarrier, BytecodeOffset* trapOffset);
 
 void wasm::EmitWasmPreBarrierCallImmediate(MacroAssembler& masm,
                                            Register instance, Register scratch,

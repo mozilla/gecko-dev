@@ -20,7 +20,6 @@
 
 #include "wasm/WasmExprType.h"
 #include "wasm/WasmStubs.h"
-#include "wasm/WasmSummarizeInsn.h"
 #include "wasm/WasmTypeDef.h"
 #include "wasm/WasmValidate.h"
 #include "wasm/WasmValue.h"
@@ -36,27 +35,18 @@ ArgTypeVector::ArgTypeVector(const FuncType& funcType)
       hasStackResults_(ABIResultIter::HasStackResults(
           ResultType::Vector(funcType.results()))) {}
 
-bool TrapSitesForKind::lookup(uint32_t trapInstructionOffset,
-                              TrapSiteDesc* trapOut) const {
-  size_t lowerBound = 0;
-  size_t upperBound = pcOffsets_.length();
-
-  size_t match;
-  if (BinarySearch(pcOffsets_, lowerBound, upperBound, trapInstructionOffset,
-                   &match)) {
-    TrapSiteDesc desc;
-    desc.bytecodeOffset = bytecodeOffsets_[match];
-    if (auto lookup = inlinedCallerOffsets_.lookup(match)) {
-      desc.inlinedCallerOffsets = lookup->value();
+bool TrapSiteVectorArray::empty() const {
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    if (!(*this)[trap].empty()) {
+      return false;
     }
-    *trapOut = desc;
-    return true;
   }
-  return false;
+
+  return true;
 }
 
 #ifdef DEBUG
-const char* wasm::ToString(Trap trap) {
+const char* js::wasm::NameOfTrap(Trap trap) {
   switch (trap) {
     case Trap::Unreachable:
       return "Unreachable";
@@ -87,11 +77,11 @@ const char* wasm::ToString(Trap trap) {
     case Trap::Limit:
       return "Limit";
     default:
-      return "Unknown";
+      return "NameOfTrap:unknown";
   }
 }
 
-const char* wasm::ToString(TrapMachineInsn tmi) {
+const char* js::wasm::NameOfTrapMachineInsn(TrapMachineInsn tmi) {
   switch (tmi) {
     case TrapMachineInsn::OfficialUD:
       return "OfficialUD";
@@ -118,62 +108,44 @@ const char* wasm::ToString(TrapMachineInsn tmi) {
     case TrapMachineInsn::Atomic:
       return "Atomic";
     default:
-      return "Unknown";
+      return "NameOfTrapMachineInsn::unknown";
   }
 }
 #endif  // DEBUG
 
-void TrapSitesForKind::checkInvariants(const uint8_t* codeBase) const {
-#ifdef DEBUG
-  MOZ_ASSERT(machineInsns_.length() == pcOffsets_.length());
-  MOZ_ASSERT(pcOffsets_.length() == bytecodeOffsets_.length());
-
-  uint32_t last = 0;
-  for (uint32_t pcOffset : pcOffsets_) {
-    MOZ_ASSERT(pcOffset > last);
-    last = pcOffset;
+void TrapSiteVectorArray::clear() {
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    (*this)[trap].clear();
   }
+}
 
-#  if (defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86) ||   \
-       defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_ARM) || \
-       defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_MIPS64))
-  // Check that each trapsite is associated with a plausible instruction.  The
-  // required instruction kind depends on the trapsite kind.
-  //
-  // NOTE: currently enabled on x86_{32,64}, arm{32,64}, loongson64 and mips64.
-  // Ideally it should be extended to riscv64 too.
-  //
-  for (uint32_t i = 0; i < length(); i++) {
-    uint32_t pcOffset = pcOffsets_[i];
-    TrapMachineInsn expected = machineInsns_[i];
-
-    const uint8_t* insnAddr = codeBase + uintptr_t(pcOffset);
-    // `expected` describes the kind of instruction we expect to see at
-    // `insnAddr`.  Find out what is actually there and check it matches.
-    mozilla::Maybe<TrapMachineInsn> actual = SummarizeTrapInstruction(insnAddr);
-    bool valid = actual.isSome() && actual.value() == expected;
-    // This is useful for diagnosing validation failures.
-    // if (!valid) {
-    //   fprintf(stderr,
-    //           "FAIL: reason=%-22s  expected=%-12s  "
-    //           "pcOffset=%-5u  addr= %p\n",
-    //           ToString(trap), ToString(expected),
-    //           pcOffset, insnAddr);
-    //   if (actual.isSome()) {
-    //     fprintf(stderr, "FAIL: identified as %s\n",
-    //             actual.isSome() ? ToString(actual.value())
-    //                             : "(insn not identified)");
-    //   }
-    // }
-    MOZ_ASSERT(valid, "wasm trapsite does not reference a valid insn");
+void TrapSiteVectorArray::swap(TrapSiteVectorArray& rhs) {
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    (*this)[trap].swap(rhs[trap]);
   }
+}
 
-  for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
-    MOZ_ASSERT(iter.get().key() < length());
-    MOZ_ASSERT(!iter.get().value()->empty());
+void TrapSiteVectorArray::shrinkStorageToFit() {
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    (*this)[trap].shrinkStorageToFit();
   }
-#  endif
-#endif
+}
+
+size_t TrapSiteVectorArray::sumOfLengths() const {
+  size_t ret = 0;
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    ret += (*this)[trap].length();
+  }
+  return ret;
+}
+
+size_t TrapSiteVectorArray::sizeOfExcludingThis(
+    mozilla::MallocSizeOf mallocSizeOf) const {
+  size_t ret = 0;
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    ret += (*this)[trap].sizeOfExcludingThis(mallocSizeOf);
+  }
+  return ret;
 }
 
 CodeRange::CodeRange(Kind kind, Offsets offsets)
@@ -269,19 +241,6 @@ const CodeRange* wasm::LookupInSorted(const CodeRangeVector& codeRanges,
   }
 
   return &codeRanges[match];
-}
-
-bool CallSites::lookup(uint32_t returnAddressOffset, CallSite* callSite) const {
-  size_t lowerBound = 0;
-  size_t upperBound = returnAddressOffsets_.length();
-
-  size_t match;
-  if (BinarySearch(returnAddressOffsets_, lowerBound, upperBound,
-                   returnAddressOffset, &match)) {
-    *callSite = (*this)[match];
-    return true;
-  }
-  return false;
 }
 
 CallIndirectId CallIndirectId::forAsmJSFunc() {

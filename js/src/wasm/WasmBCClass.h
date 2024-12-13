@@ -945,7 +945,7 @@ struct BaseCompiler final {
 
   // Insert a breakpoint almost anywhere.  This will create a call, with all the
   // overhead that entails.
-  void insertBreakablePoint(CallSiteKind kind);
+  void insertBreakablePoint(CallSiteDesc::Kind kind);
 
   // Insert code at the end of a function for breakpoint filtering.
   void insertPerFunctionDebugStub();
@@ -1306,10 +1306,6 @@ struct BaseCompiler final {
 
   // Retrieve the current bytecodeOffset.
   inline BytecodeOffset bytecodeOffset() const;
-
-  // Get a trap site description for a trap that would occur in the current
-  // opcode.
-  inline TrapSiteDesc trapSiteDesc() const;
 
   // Generate a trap instruction for the current bytecodeOffset.
   inline void trap(Trap t) const;

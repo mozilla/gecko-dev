@@ -987,8 +987,8 @@ void CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest,
   MOZ_ASSERT(mir->isTruncateToInt32() || mir->isWasmBuiltinTruncateToInt32());
   wasm::BytecodeOffset bytecodeOffset =
       mir->isTruncateToInt32()
-          ? mir->toTruncateToInt32()->trapSiteDesc().bytecodeOffset
-          : mir->toWasmBuiltinTruncateToInt32()->trapSiteDesc().bytecodeOffset;
+          ? mir->toTruncateToInt32()->bytecodeOffset()
+          : mir->toWasmBuiltinTruncateToInt32()->bytecodeOffset();
   OutOfLineCode* ool = oolTruncateDouble(src, dest, mir, bytecodeOffset);
 
   masm.branchTruncateDoubleMaybeModUint32(src, dest, ool->entry());
@@ -1000,8 +1000,8 @@ void CodeGeneratorShared::emitTruncateFloat32(FloatRegister src, Register dest,
   MOZ_ASSERT(mir->isTruncateToInt32() || mir->isWasmBuiltinTruncateToInt32());
   wasm::BytecodeOffset bytecodeOffset =
       mir->isTruncateToInt32()
-          ? mir->toTruncateToInt32()->trapSiteDesc().bytecodeOffset
-          : mir->toWasmBuiltinTruncateToInt32()->trapSiteDesc().bytecodeOffset;
+          ? mir->toTruncateToInt32()->bytecodeOffset()
+          : mir->toWasmBuiltinTruncateToInt32()->bytecodeOffset();
   OutOfLineTruncateSlow* ool = new (alloc())
       OutOfLineTruncateSlow(src, dest, /* float32 */ true, bytecodeOffset);
   addOutOfLineCode(ool, mir);

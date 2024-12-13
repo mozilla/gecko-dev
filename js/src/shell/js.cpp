@@ -7043,7 +7043,7 @@ static bool WasmCompileAndSerialize(JSContext* cx) {
 #  endif
 
   wasm::MutableBytes bytecode = js_new<wasm::ShareableBytes>();
-  if (!ReadAll(stdIn, &bytecode->vector)) {
+  if (!ReadAll(stdIn, &bytecode->bytes)) {
     return false;
   }
 

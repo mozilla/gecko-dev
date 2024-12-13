@@ -1054,8 +1054,14 @@ void CodeBlock::offsetMetadataBy(uint32_t delta) {
   for (CodeRange& cr : codeRanges) {
     cr.offsetBy(delta);
   }
-  callSites.offsetBy(delta);
-  trapSites.offsetBy(delta);
+  for (CallSite& cs : callSites) {
+    cs.offsetBy(delta);
+  }
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    for (TrapSite& ts : trapSites[trap]) {
+      ts.offsetBy(delta);
+    }
+  }
   for (FuncExport& fe : funcExports) {
     fe.offsetBy(delta);
   }
@@ -1087,9 +1093,26 @@ const CodeRange* CodeBlock::lookupRange(const void* pc) const {
   return LookupInSorted(codeRanges, target);
 }
 
-bool CodeBlock::lookupCallSite(void* pc, CallSite* callSite) const {
+struct CallSiteRetAddrOffset {
+  const CallSiteVector& callSites;
+  explicit CallSiteRetAddrOffset(const CallSiteVector& callSites)
+      : callSites(callSites) {}
+  uint32_t operator[](size_t index) const {
+    return callSites[index].returnAddressOffset();
+  }
+};
+
+const CallSite* CodeBlock::lookupCallSite(void* pc) const {
   uint32_t target = ((uint8_t*)pc) - segment->base();
-  return callSites.lookup(target, callSite);
+  size_t lowerBound = 0;
+  size_t upperBound = callSites.length();
+
+  size_t match;
+  if (BinarySearch(CallSiteRetAddrOffset(callSites), lowerBound, upperBound,
+                   target, &match)) {
+    return &callSites[match];
+  }
+  return nullptr;
 }
 
 const StackMap* CodeBlock::lookupStackMap(uint8_t* pc) const {
@@ -1110,11 +1133,30 @@ const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {
   return nullptr;
 }
 
-bool CodeBlock::lookupTrap(void* pc, Trap* kindOut,
-                           TrapSiteDesc* trapOut) const {
-  MOZ_ASSERT(containsCodePC(pc));
+struct TrapSitePCOffset {
+  const TrapSiteVector& trapSites;
+  explicit TrapSitePCOffset(const TrapSiteVector& trapSites)
+      : trapSites(trapSites) {}
+  uint32_t operator[](size_t index) const { return trapSites[index].pcOffset; }
+};
+
+bool CodeBlock::lookupTrap(void* pc, Trap* trapOut,
+                           BytecodeOffset* bytecode) const {
   uint32_t target = ((uint8_t*)pc) - segment->base();
-  return trapSites.lookup(target, kindOut, trapOut);
+  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
+    const TrapSiteVector& trapSitesForKind = trapSites[trap];
+
+    size_t upperBound = trapSitesForKind.length();
+    size_t match;
+    if (BinarySearch(TrapSitePCOffset(trapSitesForKind), 0, upperBound, target,
+                     &match)) {
+      MOZ_ASSERT(containsCodePC(pc));
+      *trapOut = trap;
+      *bytecode = trapSitesForKind[match].bytecode;
+      return true;
+    }
+  }
+  return false;
 }
 
 struct UnwindInfoPCOffset {

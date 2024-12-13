@@ -4820,7 +4820,7 @@ CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
     MOZ_CRASH("instanceOffset is Nothing only for unsupported abi calls.");
   }
   CodeOffset raOffset = call(
-      wasm::CallSiteDesc(bytecode.offset(), wasm::CallSiteKind::Symbolic), imm);
+      wasm::CallSiteDesc(bytecode.offset(), wasm::CallSite::Symbolic), imm);
 
   callWithABIPost(stackAdjust, result, /* callFromWasm = */ true);
 
@@ -5588,17 +5588,17 @@ void MacroAssembler::branchTestObjectNeedsProxyResultValidation(
 }
 
 void MacroAssembler::wasmTrap(wasm::Trap trap,
-                              const wasm::TrapSiteDesc& trapSiteDesc) {
+                              wasm::BytecodeOffset bytecodeOffset) {
   FaultingCodeOffset fco = wasmTrapInstruction();
   MOZ_ASSERT_IF(!oom(),
                 currentOffset() - fco.get() == WasmTrapInstructionLength);
 
-  append(trap,
-         wasm::TrapSite(wasm::TrapMachineInsn::OfficialUD, fco, trapSiteDesc));
+  append(trap, wasm::TrapSite(wasm::TrapMachineInsn::OfficialUD, fco,
+                              bytecodeOffset));
 }
 
 std::pair<CodeOffset, uint32_t> MacroAssembler::wasmReserveStackChecked(
-    uint32_t amount, const wasm::TrapSiteDesc& trapSiteDesc) {
+    uint32_t amount, wasm::BytecodeOffset trapOffset) {
   if (amount > MAX_UNCHECKED_LEAF_FRAME_SIZE) {
     // The frame is large.  Don't bump sp until after the stack limit check so
     // that the trap handler isn't called with a wild sp.
@@ -5614,7 +5614,7 @@ std::pair<CodeOffset, uint32_t> MacroAssembler::wasmReserveStackChecked(
               scratch, &ok);
 
     bind(&trap);
-    wasmTrap(wasm::Trap::StackOverflow, trapSiteDesc);
+    wasmTrap(wasm::Trap::StackOverflow, trapOffset);
     CodeOffset trapInsnOffset = CodeOffset(currentOffset());
 
     bind(&ok);
@@ -5627,7 +5627,7 @@ std::pair<CodeOffset, uint32_t> MacroAssembler::wasmReserveStackChecked(
   branchStackPtrRhs(Assembler::Below,
                     Address(InstanceReg, wasm::Instance::offsetOfStackLimit()),
                     &ok);
-  wasmTrap(wasm::Trap::StackOverflow, trapSiteDesc);
+  wasmTrap(wasm::Trap::StackOverflow, trapOffset);
   CodeOffset trapInsnOffset = CodeOffset(currentOffset());
   bind(&ok);
   return std::pair<CodeOffset, uint32_t>(trapInsnOffset, amount);
@@ -6050,7 +6050,7 @@ CodeOffset MacroAssembler::wasmCallImport(const wasm::CallSiteDesc& desc,
 
   storePtr(InstanceReg,
            Address(getStackPointer(), WasmCalleeInstanceOffsetBeforeCall));
-  loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+  loadWasmPinnedRegsFromInstance();
 
   return wasmMarkedSlowCall(desc, ABINonArgReg0);
 }
@@ -6091,10 +6091,10 @@ CodeOffset MacroAssembler::wasmReturnCallImport(
 
   storePtr(InstanceReg,
            Address(getStackPointer(), WasmCalleeInstanceOffsetBeforeCall));
-  loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+  loadWasmPinnedRegsFromInstance();
 
   wasm::CallSiteDesc stubDesc(desc.lineOrBytecode(),
-                              wasm::CallSiteKind::ReturnStub);
+                              wasm::CallSiteDesc::ReturnStub);
   wasmCollapseFrameSlow(retCallInfo, stubDesc);
   jump(ABINonArgReg0);
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());
@@ -6131,14 +6131,15 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
   }
 
   CodeOffset ret = call(desc, builtin);
-  wasmTrapOnFailedInstanceCall(ReturnReg, failureMode, desc.toTrapSiteDesc());
+  wasmTrapOnFailedInstanceCall(ReturnReg, failureMode,
+                               wasm::BytecodeOffset(desc.lineOrBytecode()));
 
   return ret;
 }
 
 void MacroAssembler::wasmTrapOnFailedInstanceCall(
     Register resultRegister, wasm::FailureMode failureMode,
-    const wasm::TrapSiteDesc& trapSiteDesc) {
+    wasm::BytecodeOffset bytecodeOffset) {
   Label noTrap;
   switch (failureMode) {
     case wasm::FailureMode::Infallible:
@@ -6161,7 +6162,7 @@ void MacroAssembler::wasmTrapOnFailedInstanceCall(
                 &noTrap);
       break;
   }
-  wasmTrap(wasm::Trap::ThrowReported, trapSiteDesc);
+  wasmTrap(wasm::Trap::ThrowReported, bytecodeOffset);
   bind(&noTrap);
 }
 
@@ -6221,6 +6222,7 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
   MOZ_ASSERT(callee.which() == wasm::CalleeDesc::WasmTable);
 
   const int shift = sizeof(wasm::FunctionTableElem) == 8 ? 3 : 4;
+  wasm::BytecodeOffset trapOffset(desc.lineOrBytecode());
   const Register calleeScratch = WasmTableCallScratchReg0;
   const Register index = WasmTableCallIndexReg;
 
@@ -6302,13 +6304,13 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
   // Use the null pointer exception resulting from loading HeapReg from a null
   // instance to handle a call to a null slot.
   MOZ_ASSERT(nullCheckFailedLabel == nullptr);
-  loadWasmPinnedRegsFromInstance(mozilla::Some(desc.toTrapSiteDesc()));
+  loadWasmPinnedRegsFromInstance(mozilla::Some(trapOffset));
 #else
   MOZ_ASSERT(nullCheckFailedLabel != nullptr);
   branchTestPtr(Assembler::Zero, InstanceReg, InstanceReg,
                 nullCheckFailedLabel);
 
-  loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+  loadWasmPinnedRegsFromInstance();
 #endif
   switchToWasmInstanceRealm(index, WasmTableCallScratchReg1);
 
@@ -6321,7 +6323,7 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
 
   loadPtr(Address(getStackPointer(), WasmCallerInstanceOffsetBeforeCall),
           InstanceReg);
-  loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+  loadWasmPinnedRegsFromInstance();
   switchToWasmInstanceRealm(ABINonArgReturnReg0, ABINonArgReturnReg1);
   jump(&done);
 
@@ -6341,7 +6343,7 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
   // slots in the frame do not have valid values.
 
   wasm::CallSiteDesc newDesc(desc.lineOrBytecode(),
-                             wasm::CallSiteKind::IndirectFast);
+                             wasm::CallSiteDesc::IndirectFast);
   *fastCallOffset = call(newDesc, calleeScratch);
 
   bind(&done);
@@ -6357,6 +6359,7 @@ void MacroAssembler::wasmReturnCallIndirect(
   MOZ_ASSERT(callee.which() == wasm::CalleeDesc::WasmTable);
 
   const int shift = sizeof(wasm::FunctionTableElem) == 8 ? 3 : 4;
+  wasm::BytecodeOffset trapOffset(desc.lineOrBytecode());
   const Register calleeScratch = WasmTableCallScratchReg0;
   const Register index = WasmTableCallIndexReg;
 
@@ -6430,13 +6433,13 @@ void MacroAssembler::wasmReturnCallIndirect(
   // Use the null pointer exception resulting from loading HeapReg from a null
   // instance to handle a call to a null slot.
   MOZ_ASSERT(nullCheckFailedLabel == nullptr);
-  loadWasmPinnedRegsFromInstance(mozilla::Some(desc.toTrapSiteDesc()));
+  loadWasmPinnedRegsFromInstance(mozilla::Some(trapOffset));
 #else
   MOZ_ASSERT(nullCheckFailedLabel != nullptr);
   branchTestPtr(Assembler::Zero, InstanceReg, InstanceReg,
                 nullCheckFailedLabel);
 
-  loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+  loadWasmPinnedRegsFromInstance();
 #endif
   switchToWasmInstanceRealm(index, WasmTableCallScratchReg1);
 
@@ -6444,7 +6447,7 @@ void MacroAssembler::wasmReturnCallIndirect(
           calleeScratch);
 
   wasm::CallSiteDesc stubDesc(desc.lineOrBytecode(),
-                              wasm::CallSiteKind::ReturnStub);
+                              wasm::CallSiteDesc::ReturnStub);
   wasmCollapseFrameSlow(retCallInfo, stubDesc);
   jump(calleeScratch);
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());
@@ -6479,11 +6482,11 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   size_t instanceSlotOffset = FunctionExtended::offsetOfExtendedSlot(
       FunctionExtended::WASM_INSTANCE_SLOT);
   static_assert(FunctionExtended::WASM_INSTANCE_SLOT < wasm::NullPtrGuardSize);
+  wasm::BytecodeOffset trapOffset(desc.lineOrBytecode());
   FaultingCodeOffset fco =
       loadPtr(Address(calleeFnObj, instanceSlotOffset), newInstanceTemp);
   append(wasm::Trap::NullPointerDereference,
-         wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco,
-                        desc.toTrapSiteDesc()));
+         wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco, trapOffset));
   branchPtr(Assembler::Equal, InstanceReg, newInstanceTemp, &fastCall);
 
   storePtr(InstanceReg,
@@ -6492,7 +6495,7 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   storePtr(InstanceReg,
            Address(getStackPointer(), WasmCalleeInstanceOffsetBeforeCall));
 
-  loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+  loadWasmPinnedRegsFromInstance();
   switchToWasmInstanceRealm(WasmCallRefCallScratchReg0,
                             WasmCallRefCallScratchReg1);
 
@@ -6507,7 +6510,7 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   // Restore registers and realm and back to this caller's.
   loadPtr(Address(getStackPointer(), WasmCallerInstanceOffsetBeforeCall),
           InstanceReg);
-  loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+  loadWasmPinnedRegsFromInstance();
   switchToWasmInstanceRealm(ABINonArgReturnReg0, ABINonArgReturnReg1);
   jump(&done);
 
@@ -6522,7 +6525,7 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   // slots in the frame do not have valid values.
 
   wasm::CallSiteDesc newDesc(desc.lineOrBytecode(),
-                             wasm::CallSiteKind::FuncRefFast);
+                             wasm::CallSiteDesc::FuncRefFast);
   *fastCallOffset = call(newDesc, calleeScratch);
 
   bind(&done);
@@ -6545,11 +6548,11 @@ void MacroAssembler::wasmReturnCallRef(
   size_t instanceSlotOffset = FunctionExtended::offsetOfExtendedSlot(
       FunctionExtended::WASM_INSTANCE_SLOT);
   static_assert(FunctionExtended::WASM_INSTANCE_SLOT < wasm::NullPtrGuardSize);
+  wasm::BytecodeOffset trapOffset(desc.lineOrBytecode());
   FaultingCodeOffset fco =
       loadPtr(Address(calleeFnObj, instanceSlotOffset), newInstanceTemp);
   append(wasm::Trap::NullPointerDereference,
-         wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco,
-                        desc.toTrapSiteDesc()));
+         wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco, trapOffset));
   branchPtr(Assembler::Equal, InstanceReg, newInstanceTemp, &fastCall);
 
   storePtr(InstanceReg,
@@ -6558,7 +6561,7 @@ void MacroAssembler::wasmReturnCallRef(
   storePtr(InstanceReg,
            Address(getStackPointer(), WasmCalleeInstanceOffsetBeforeCall));
 
-  loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+  loadWasmPinnedRegsFromInstance();
   switchToWasmInstanceRealm(WasmCallRefCallScratchReg0,
                             WasmCallRefCallScratchReg1);
 
@@ -6569,7 +6572,7 @@ void MacroAssembler::wasmReturnCallRef(
   loadPtr(Address(calleeFnObj, uncheckedEntrySlotOffset), calleeScratch);
 
   wasm::CallSiteDesc stubDesc(desc.lineOrBytecode(),
-                              wasm::CallSiteKind::ReturnStub);
+                              wasm::CallSiteDesc::ReturnStub);
   wasmCollapseFrameSlow(retCallInfo, stubDesc);
   jump(calleeScratch);
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());
@@ -6588,7 +6591,7 @@ void MacroAssembler::wasmReturnCallRef(
 
 void MacroAssembler::wasmBoundsCheckRange32(
     Register index, Register length, Register limit, Register tmp,
-    const wasm::TrapSiteDesc& trapSiteDesc) {
+    wasm::BytecodeOffset bytecodeOffset) {
   Label ok;
   Label fail;
 
@@ -6598,7 +6601,7 @@ void MacroAssembler::wasmBoundsCheckRange32(
   jump(&ok);
 
   bind(&fail);
-  wasmTrap(wasm::Trap::OutOfBounds, trapSiteDesc);
+  wasmTrap(wasm::Trap::OutOfBounds, bytecodeOffset);
 
   bind(&ok);
 }
@@ -7848,19 +7851,19 @@ void MacroAssembler::boundsCheck32PowerOfTwo(Register index, uint32_t length,
 }
 
 void MacroAssembler::loadWasmPinnedRegsFromInstance(
-    const wasm::MaybeTrapSiteDesc& trapSiteDesc) {
+    mozilla::Maybe<wasm::BytecodeOffset> trapOffset) {
 #ifdef WASM_HAS_HEAPREG
   static_assert(wasm::Instance::offsetOfMemory0Base() < 4096,
                 "We count only on the low page being inaccessible");
   FaultingCodeOffset fco = loadPtr(
       Address(InstanceReg, wasm::Instance::offsetOfMemory0Base()), HeapReg);
-  if (trapSiteDesc) {
+  if (trapOffset) {
     append(
         wasm::Trap::IndirectCallToNull,
-        wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco, *trapSiteDesc));
+        wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco, *trapOffset));
   }
 #else
-  MOZ_ASSERT(!trapSiteDesc);
+  MOZ_ASSERT(!trapOffset);
 #endif
 }
 

@@ -578,8 +578,8 @@ class CodeBlock {
   //
   FuncToCodeRangeMap funcToCodeRange;
   CodeRangeVector codeRanges;
-  CallSites callSites;
-  TrapSites trapSites;
+  CallSiteVector callSites;
+  TrapSiteVectorArray trapSites;
   FuncExportVector funcExports;
   StackMaps stackMaps;
   TryNoteVector tryNotes;
@@ -646,10 +646,10 @@ class CodeBlock {
   }
 
   const CodeRange* lookupRange(const void* pc) const;
-  bool lookupCallSite(void* pc, CallSite* callSite) const;
+  const CallSite* lookupCallSite(void* pc) const;
   const StackMap* lookupStackMap(uint8_t* pc) const;
   const TryNote* lookupTryNote(const void* pc) const;
-  bool lookupTrap(void* pc, Trap* kindOut, TrapSiteDesc* trapOut) const;
+  bool lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const;
   const CodeRangeUnwindInfo* lookupUnwindInfo(void* pc) const;
   FuncExport& lookupFuncExport(uint32_t funcIndex,
                                size_t* funcExportIndex = nullptr);
@@ -1154,12 +1154,12 @@ class Code : public ShareableBase<Code> {
   void clearLinkData() const;
 
   // Code metadata lookup:
-  bool lookupCallSite(void* pc, CallSite* callSite) const {
+  const CallSite* lookupCallSite(void* pc) const {
     const CodeBlock* block = blockMap_.lookup(pc);
     if (!block) {
-      return false;
+      return nullptr;
     }
-    return block->lookupCallSite(pc, callSite);
+    return block->lookupCallSite(pc);
   }
   const CodeRange* lookupFuncRange(void* pc) const {
     const CodeBlock* block = blockMap_.lookup(pc);
@@ -1186,12 +1186,12 @@ class Code : public ShareableBase<Code> {
     }
     return (*block)->lookupTryNote(pc);
   }
-  bool lookupTrap(void* pc, Trap* kindOut, TrapSiteDesc* trapOut) const {
+  bool lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const {
     const CodeBlock* block = blockMap_.lookup(pc);
     if (!block) {
       return false;
     }
-    return block->lookupTrap(pc, kindOut, trapOut);
+    return block->lookupTrap(pc, trapOut, bytecode);
   }
   const CodeRangeUnwindInfo* lookupUnwindInfo(void* pc) const {
     const CodeBlock* block = blockMap_.lookup(pc);

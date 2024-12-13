@@ -417,7 +417,7 @@ void CodeGenerator::visitWasmAddOffset(LWasmAddOffset* lir) {
   }
   masm.add32(Imm32(mir->offset()), out);
   OutOfLineAbortingWasmTrap* ool = new (alloc())
-      OutOfLineAbortingWasmTrap(mir->trapSiteDesc(), wasm::Trap::OutOfBounds);
+      OutOfLineAbortingWasmTrap(mir->bytecodeOffset(), wasm::Trap::OutOfBounds);
   addOutOfLineCode(ool, mir);
   masm.j(Assembler::CarrySet, ool->entry());
 }
@@ -432,7 +432,7 @@ void CodeGenerator::visitWasmAddOffset64(LWasmAddOffset64* lir) {
   }
   masm.add64(Imm64(mir->offset()), out);
   OutOfLineAbortingWasmTrap* ool = new (alloc())
-      OutOfLineAbortingWasmTrap(mir->trapSiteDesc(), wasm::Trap::OutOfBounds);
+      OutOfLineAbortingWasmTrap(mir->bytecodeOffset(), wasm::Trap::OutOfBounds);
   addOutOfLineCode(ool, mir);
   masm.j(Assembler::CarrySet, ool->entry());
 }
@@ -914,7 +914,7 @@ void CodeGenerator::visitUDivOrMod(LUDivOrMod* ins) {
       if (ins->trapOnError()) {
         Label nonZero;
         masm.j(Assembler::NonZero, &nonZero);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, ins->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, ins->bytecodeOffset());
         masm.bind(&nonZero);
       } else {
         ool = new (alloc()) ReturnZero(output);
@@ -962,7 +962,7 @@ void CodeGenerator::visitUDivOrModConstant(LUDivOrModConstant* ins) {
   if (d == 0) {
     if (ins->mir()->isTruncated()) {
       if (ins->trapOnError()) {
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, ins->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, ins->bytecodeOffset());
       } else {
         masm.xorl(output, output);
       }
@@ -1113,7 +1113,7 @@ void CodeGenerator::visitDivPowTwoI(LDivPowTwoI* ins) {
     } else if (mir->trapOnError()) {
       Label ok;
       masm.j(Assembler::NoOverflow, &ok);
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->trapSiteDesc());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->bytecodeOffset());
       masm.bind(&ok);
     }
   } else if (mir->isUnsigned() && !mir->isTruncated()) {
@@ -1235,7 +1235,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
     if (mir->trapOnError()) {
       Label nonZero;
       masm.j(Assembler::NonZero, &nonZero);
-      masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+      masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
       masm.bind(&nonZero);
     } else if (mir->canTruncateInfinities()) {
       // Truncated division by zero is zero (Infinity|0 == 0)
@@ -1257,7 +1257,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
     masm.cmp32(rhs, Imm32(-1));
     if (mir->trapOnError()) {
       masm.j(Assembler::NotEqual, &notOverflow);
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->trapSiteDesc());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->bytecodeOffset());
     } else if (mir->canTruncateOverflow()) {
       // (-INT32_MIN)|0 == INT32_MIN and INT32_MIN is already in the
       // output register (lhs == eax).
@@ -1397,7 +1397,7 @@ void CodeGenerator::visitModI(LModI* ins) {
       if (mir->trapOnError()) {
         Label nonZero;
         masm.j(Assembler::NonZero, &nonZero);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
         masm.bind(&nonZero);
       } else {
         if (!ool) {
@@ -2015,25 +2015,21 @@ void CodeGeneratorX86Shared::visitOutOfLineWasmTruncateCheck(
   MIRType toType = ool->toType();
   Label* oolRejoin = ool->rejoin();
   TruncFlags flags = ool->flags();
-  const wasm::TrapSiteDesc& trapSiteDesc = ool->trapSiteDesc();
+  wasm::BytecodeOffset off = ool->bytecodeOffset();
 
   if (fromType == MIRType::Float32) {
     if (toType == MIRType::Int32) {
-      masm.oolWasmTruncateCheckF32ToI32(input, output, flags, trapSiteDesc,
-                                        oolRejoin);
+      masm.oolWasmTruncateCheckF32ToI32(input, output, flags, off, oolRejoin);
     } else if (toType == MIRType::Int64) {
-      masm.oolWasmTruncateCheckF32ToI64(input, output64, flags, trapSiteDesc,
-                                        oolRejoin);
+      masm.oolWasmTruncateCheckF32ToI64(input, output64, flags, off, oolRejoin);
     } else {
       MOZ_CRASH("unexpected type");
     }
   } else if (fromType == MIRType::Double) {
     if (toType == MIRType::Int32) {
-      masm.oolWasmTruncateCheckF64ToI32(input, output, flags, trapSiteDesc,
-                                        oolRejoin);
+      masm.oolWasmTruncateCheckF64ToI32(input, output, flags, off, oolRejoin);
     } else if (toType == MIRType::Int64) {
-      masm.oolWasmTruncateCheckF64ToI64(input, output64, flags, trapSiteDesc,
-                                        oolRejoin);
+      masm.oolWasmTruncateCheckF64ToI64(input, output64, flags, off, oolRejoin);
     } else {
       MOZ_CRASH("unexpected type");
     }

@@ -85,9 +85,9 @@ struct CompiledCode {
   FuncCompileOutputVector funcs;
   Bytes bytes;
   CodeRangeVector codeRanges;
-  CallSites callSites;
+  CallSiteVector callSites;
   CallSiteTargetVector callSiteTargets;
-  TrapSites trapSites;
+  TrapSiteVectorArray trapSites;
   SymbolicAccessVector symbolicAccesses;
   jit::CodeLabelVector codeLabels;
   StackMaps stackMaps;

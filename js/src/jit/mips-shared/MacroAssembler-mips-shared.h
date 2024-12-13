@@ -239,12 +239,14 @@ class MacroAssemblerMIPSShared : public Assembler {
     MOZ_CRASH("Not supported for this target");
   }
 
-  void outOfLineWasmTruncateToInt32Check(
-      FloatRegister input, Register output, MIRType fromType, TruncFlags flags,
-      Label* rejoin, const wasm::TrapSiteDesc& trapSiteDesc);
-  void outOfLineWasmTruncateToInt64Check(
-      FloatRegister input, Register64 output, MIRType fromType,
-      TruncFlags flags, Label* rejoin, const wasm::TrapSiteDesc& trapSiteDesc);
+  void outOfLineWasmTruncateToInt32Check(FloatRegister input, Register output,
+                                         MIRType fromType, TruncFlags flags,
+                                         Label* rejoin,
+                                         wasm::BytecodeOffset trapOffset);
+  void outOfLineWasmTruncateToInt64Check(FloatRegister input, Register64 output,
+                                         MIRType fromType, TruncFlags flags,
+                                         Label* rejoin,
+                                         wasm::BytecodeOffset trapOffset);
 
  protected:
   void wasmLoadImpl(const wasm::MemoryAccessDesc& access, Register memoryBase,

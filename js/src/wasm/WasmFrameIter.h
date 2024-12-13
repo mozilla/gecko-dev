@@ -23,8 +23,6 @@
 #include "js/ProfilingFrameIterator.h"
 #include "js/TypeDecls.h"
 
-#include "wasm/WasmCodegenTypes.h"  // for BytecodeOffsetSpan
-
 namespace js {
 
 namespace jit {
@@ -60,81 +58,36 @@ using RegisterState = JS::ProfilingFrameIterator::RegisterState;
 // JitFrameIter.
 
 class WasmFrameIter {
-  //
-  // State that is constant for the entire wasm activation
-  //
+ public:
+  enum class Unwind { True, False };
 
-  jit::JitActivation* activation_ = nullptr;
-  bool isLeavingFrames_ = false;
-  bool enableInlinedFrames_ = false;
-
-  //
-  // State that is updated for every frame
-  //
-
-  const Code* code_ = nullptr;
-  uint32_t funcIndex_ = UINT32_MAX;
-  uint32_t lineOrBytecode_ = UINT32_MAX;
-  BytecodeOffsetSpan inlinedCallerOffsets_;
-  Frame* fp_ = nullptr;
-  Instance* instance_ = nullptr;
-  // The address of the next instruction that will execute in this frame, once
-  // control returns to this frame.
-  uint8_t* resumePCinCurrentFrame_ = nullptr;
-  // See wasm::TrapData for more information.
-  bool failedUnwindSignatureMismatch_ = false;
-  // Whether the current frame is on a different stack from the previous stack.
-  bool currentFrameStackSwitched_ = false;
-
-  //
-  // State that is found after we've unwound the entire wasm activation
-  //
-
-  // The address of the final wasm::Frame::returnAddress_. Only found once
-  // we've iterated over all wasm frames.
-  void** unwoundAddressOfReturnAddress_ = nullptr;
-  // The value of the final wasm::Frame::callerFP_. Only found once we've
-  // iterated over all wasm frames.
-  uint8_t* unwoundCallerFP_ = nullptr;
+ private:
+  jit::JitActivation* activation_;
+  const Code* code_;
+  const CodeRange* codeRange_;
+  unsigned lineOrBytecode_;
+  Frame* fp_;
+  Instance* instance_;
+  uint8_t* unwoundCallerFP_;
   // Whether unwoundCallerFP_ is a JS JIT exit frame.
-  bool unwoundCallerFPIsJSJit_ = false;
+  bool hasUnwoundJitFrame_ = false;
+  Unwind unwind_;
+  void** unwoundAddressOfReturnAddress_;
+  uint8_t* resumePCinCurrentFrame_;
+  // See wasm::TrapData for more information.
+  bool failedUnwindSignatureMismatch_;
+  bool stackSwitched_;
 
   void popFrame();
 
  public:
   // See comment above this class definition.
   explicit WasmFrameIter(jit::JitActivation* activation, Frame* fp = nullptr);
-
-  // Iterate over frames from a known starting (fp, ra).
   WasmFrameIter(FrameWithInstances* fp, void* returnAddress);
-
-  // Cause this WasmFrameIter to remove every popped from its JitActivation so
-  // that any other frame iteration will not see it.
-  //
-  // This is a method instead of a parameter to the constructor because it
-  // needs to be enabled after FrameIter has already created the WasmFrameIter.
-  void setIsLeavingFrames() {
-    MOZ_ASSERT(activation_);
-    MOZ_ASSERT(!isLeavingFrames_);
-    isLeavingFrames_ = true;
-  }
-
-  // Visit inlined frames instead of only 'physical' frames. This is required
-  // to access source information.
-  void enableInlinedFrames() { enableInlinedFrames_ = true; }
-
-  //
-  // Iteration methods
-  //
-
+  const jit::JitActivation* activation() const { return activation_; }
+  void setUnwind(Unwind unwind) { unwind_ = unwind; }
   void operator++();
   bool done() const;
-
-  //
-  // Source information about the current frame
-  //
-
-  bool hasSourceInfo() const;
   const char* filename() const;
   const char16_t* displayURL() const;
   bool mutedErrors() const;
@@ -142,74 +95,19 @@ class WasmFrameIter {
   unsigned lineOrBytecode() const;
   uint32_t funcIndex() const;
   unsigned computeLine(JS::TaggedColumnNumberOneOrigin* column) const;
-
-  //
-  // Physical information about the current (not inlined) frame
-  //
-
-  // The instance that the function for this wasm frame is from.
-  Instance* instance() const {
-    MOZ_ASSERT(!done());
-    // Getting the instance always works even with inlining because we never
-    // inline across instances.
-    return instance_;
-  }
-
-  // The wasm function frame pointer.
-  Frame* frame() const {
-    MOZ_ASSERT(!done());
-    MOZ_ASSERT(!enableInlinedFrames_);
-    return fp_;
-  }
+  const CodeRange* codeRange() const { return codeRange_; }
+  void** unwoundAddressOfReturnAddress() const;
+  bool debugEnabled() const;
+  DebugFrame* debugFrame() const;
+  bool hasUnwoundJitFrame() const;
+  uint8_t* unwoundCallerFP() const { return unwoundCallerFP_; }
+  Frame* frame() const { return fp_; }
+  Instance* instance() const { return instance_; }
+  bool stackSwitched() const { return stackSwitched_; }
 
   // Returns the address of the next instruction that will execute in this
   // frame, once control returns to this frame.
-  uint8_t* resumePCinCurrentFrame() const {
-    MOZ_ASSERT(!done());
-    MOZ_ASSERT(!enableInlinedFrames_);
-    return resumePCinCurrentFrame_;
-  }
-
-  // Whether the current frame is on a different stack from the previous frame.
-  bool currentFrameStackSwitched() const {
-    MOZ_ASSERT(!done());
-    return currentFrameStackSwitched_;
-  }
-
-  //
-  // Debug information about the current frame
-  //
-
-  // Whether this frame has a debuggable wasm frame.
-  bool debugEnabled() const;
-
-  // The debuggable wasm frame, if any.
-  DebugFrame* debugFrame() const;
-
-  //
-  // Information for after we've unwound the entire wasm activation
-  //
-
-  // The address of the final wasm::Frame::returnAddress_.
-  void** unwoundAddressOfReturnAddress() const {
-    MOZ_ASSERT(done());
-    MOZ_ASSERT(unwoundAddressOfReturnAddress_);
-    return unwoundAddressOfReturnAddress_;
-  }
-
-  // The value of the final wasm::Frame::callerFP_.
-  uint8_t* unwoundCallerFP() const {
-    MOZ_ASSERT(done());
-    MOZ_ASSERT(unwoundCallerFP_);
-    return unwoundCallerFP_;
-  }
-
-  // Whether 'unwoundCallerFP' is for a JS JIT frame or not.
-  bool unwoundCallerFPIsJSJit() const {
-    MOZ_ASSERT(done());
-    MOZ_ASSERT_IF(unwoundCallerFPIsJSJit_, unwoundCallerFP_);
-    return unwoundCallerFPIsJSJit_;
-  }
+  uint8_t* resumePCinCurrentFrame() const;
 };
 
 enum class SymbolicAddress;

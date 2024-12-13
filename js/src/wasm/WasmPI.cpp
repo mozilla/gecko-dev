@@ -161,7 +161,7 @@ static void TraceSuspendableStack(JSTracer* trc,
   MOZ_ASSERT(startFP != exitFP);
 
   WasmFrameIter iter(static_cast<FrameWithInstances*>(startFP), returnAddress);
-  MOZ_ASSERT(iter.currentFrameStackSwitched());
+  MOZ_ASSERT(iter.stackSwitched());
   uintptr_t highestByteVisitedInPrevWasmFrame = 0;
   while (true) {
     MOZ_ASSERT(!iter.done());
@@ -174,7 +174,7 @@ static void TraceSuspendableStack(JSTracer* trc,
       break;
     }
     ++iter;
-    if (iter.currentFrameStackSwitched()) {
+    if (iter.stackSwitched()) {
       highestByteVisitedInPrevWasmFrame = 0;
     }
   }
@@ -433,7 +433,7 @@ void SuspenderObject::suspend(JSContext* cx) {
         DebugAPI::onSuspendWasmFrame(cx, iter.debugFrame());
       }
       ++iter;
-      if (iter.currentFrameStackSwitched()) {
+      if (iter.stackSwitched()) {
         break;
       }
     }
@@ -455,7 +455,7 @@ void SuspenderObject::resume(JSContext* cx) {
       MOZ_RELEASE_ASSERT(!iter.done(), "expecting stackSwitched()");
       if (iter.isWasm()) {
         WasmFrameIter& wasmIter = iter.wasmFrame();
-        if (wasmIter.currentFrameStackSwitched()) {
+        if (wasmIter.stackSwitched()) {
           break;
         }
         if (wasmIter.debugEnabled()) {
@@ -1151,7 +1151,6 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
     // Build functions and keep bytecodes around until the end.
-    uint32_t funcBytecodeOffset = CallSite::FIRST_VALID_BYTECODE_OFFSET;
     Bytes bytecode;
     if (!encodeExportedFunction(
             *codeMeta, paramsSize, resultsSize, paramsOffset,
@@ -1160,38 +1159,29 @@ class SuspendingFunctionModuleFactory {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    if (!mg.compileFuncDef(ExportedFnIndex, funcBytecodeOffset,
-                           bytecode.begin(),
+    if (!mg.compileFuncDef(ExportedFnIndex, 0, bytecode.begin(),
                            bytecode.begin() + bytecode.length())) {
       return nullptr;
     }
-    funcBytecodeOffset += bytecode.length();
-
     Bytes bytecode2;
     if (!encodeTrampolineFunction(*codeMeta, paramsSize, bytecode2)) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    if (!mg.compileFuncDef(TrampolineFnIndex, funcBytecodeOffset,
-                           bytecode2.begin(),
+    if (!mg.compileFuncDef(TrampolineFnIndex, 0, bytecode2.begin(),
                            bytecode2.begin() + bytecode2.length())) {
       return nullptr;
     }
-    funcBytecodeOffset += bytecode2.length();
-
     Bytes bytecode3;
     if (!encodeContinueOnSuspendableFunction(*codeMeta, paramsSize,
                                              bytecode3)) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    if (!mg.compileFuncDef(ContinueOnSuspendableFnIndex, funcBytecodeOffset,
-                           bytecode3.begin(),
+    if (!mg.compileFuncDef(ContinueOnSuspendableFnIndex, 0, bytecode3.begin(),
                            bytecode3.begin() + bytecode3.length())) {
       return nullptr;
     }
-    funcBytecodeOffset += bytecode3.length();
-
     if (!mg.finishFuncDefs()) {
       return nullptr;
     }
@@ -1583,30 +1573,23 @@ class PromisingFunctionModuleFactory {
     }
     // Build functions and keep bytecodes around until the end.
     Bytes bytecode;
-    uint32_t funcBytecodeOffset = CallSite::FIRST_VALID_BYTECODE_OFFSET;
     if (!encodeExportedFunction(*codeMeta, paramsSize, bytecode)) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    if (!mg.compileFuncDef(ExportedFnIndex, funcBytecodeOffset,
-                           bytecode.begin(),
+    if (!mg.compileFuncDef(ExportedFnIndex, 0, bytecode.begin(),
                            bytecode.begin() + bytecode.length())) {
       return nullptr;
     }
-    funcBytecodeOffset += bytecode.length();
-
     Bytes bytecode2;
     if (!encodeTrampolineFunction(*codeMeta, paramsSize, bytecode2)) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    if (!mg.compileFuncDef(TrampolineFnIndex, funcBytecodeOffset,
-                           bytecode2.begin(),
+    if (!mg.compileFuncDef(TrampolineFnIndex, 0, bytecode2.begin(),
                            bytecode2.begin() + bytecode2.length())) {
       return nullptr;
     }
-    funcBytecodeOffset += bytecode2.length();
-
     if (!mg.finishFuncDefs()) {
       return nullptr;
     }

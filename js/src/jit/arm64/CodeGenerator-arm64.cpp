@@ -323,7 +323,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
     if (mir->trapOnError()) {
       Label nonZero;
       masm.j(Assembler::NonZero, &nonZero);
-      masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+      masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
       masm.bind(&nonZero);
     } else if (mir->canTruncateInfinities()) {
       // Truncated division by zero is zero: (Infinity|0 = 0).
@@ -349,7 +349,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
 
     // Handle overflow.
     if (mir->trapOnError()) {
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->trapSiteDesc());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->bytecodeOffset());
     } else if (mir->canTruncateOverflow()) {
       // (-INT32_MIN)|0 == INT32_MIN, which is already in lhs.
       masm.move32(lhs, output);
@@ -452,7 +452,7 @@ void CodeGenerator::visitDivPowTwoI(LDivPowTwoI* ins) {
       Label ok;
       masm.Negs(output32, numerator32);
       masm.branch(Assembler::NoOverflow, &ok);
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->trapSiteDesc());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->bytecodeOffset());
       masm.bind(&ok);
     } else {
       // Do not set condition flags.
@@ -561,7 +561,7 @@ void CodeGenerator::visitUDivConstantI(LUDivConstantI* ins) {
     if (ins->mir()->isTruncated()) {
       if (ins->mir()->trapOnError()) {
         masm.wasmTrap(wasm::Trap::IntegerDivideByZero,
-                      ins->mir()->trapSiteDesc());
+                      ins->mir()->bytecodeOffset());
       } else {
         masm.Mov(output32, wzr);
       }
@@ -629,7 +629,7 @@ void CodeGenerator::visitModI(LModI* ins) {
       if (mir->trapOnError()) {
         Label nonZero;
         masm.Cbnz(rhs, &nonZero);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
         masm.bind(&nonZero);
       } else {
         // Truncated division by zero yields integer zero.
@@ -1616,7 +1616,7 @@ void CodeGenerator::visitUDiv(LUDiv* ins) {
       if (mir->trapOnError()) {
         Label nonZero;
         masm.branchTest32(Assembler::NonZero, rhs, rhs, &nonZero);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
         masm.bind(&nonZero);
       } else {
         // ARM64 UDIV instruction will return 0 when divided by 0.
@@ -1660,7 +1660,7 @@ void CodeGenerator::visitUMod(LUMod* ins) {
       if (mir->trapOnError()) {
         Label nonZero;
         masm.Cbnz(rhs, &nonZero);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
         masm.bind(&nonZero);
       } else {
         // Truncated division by zero yields integer zero.
@@ -2299,7 +2299,7 @@ void CodeGenerator::visitWasmAddOffset(LWasmAddOffset* lir) {
   masm.Adds(ARMRegister(out, 32), ARMRegister(base, 32),
             Operand(mir->offset()));
   OutOfLineAbortingWasmTrap* ool = new (alloc())
-      OutOfLineAbortingWasmTrap(mir->trapSiteDesc(), wasm::Trap::OutOfBounds);
+      OutOfLineAbortingWasmTrap(mir->bytecodeOffset(), wasm::Trap::OutOfBounds);
   addOutOfLineCode(ool, mir);
   masm.j(Assembler::CarrySet, ool->entry());
 }
@@ -2312,7 +2312,7 @@ void CodeGenerator::visitWasmAddOffset64(LWasmAddOffset64* lir) {
   masm.Adds(ARMRegister(out.reg, 64), ARMRegister(base.reg, 64),
             Operand(mir->offset()));
   OutOfLineAbortingWasmTrap* ool = new (alloc())
-      OutOfLineAbortingWasmTrap(mir->trapSiteDesc(), wasm::Trap::OutOfBounds);
+      OutOfLineAbortingWasmTrap(mir->bytecodeOffset(), wasm::Trap::OutOfBounds);
   addOutOfLineCode(ool, mir);
   masm.j(Assembler::CarrySet, ool->entry());
 }
@@ -2509,25 +2509,21 @@ void CodeGeneratorARM64::visitOutOfLineWasmTruncateCheck(
   MIRType toType = ool->toType();
   Label* oolRejoin = ool->rejoin();
   TruncFlags flags = ool->flags();
-  const wasm::TrapSiteDesc& trapSiteDesc = ool->trapSiteDesc();
+  wasm::BytecodeOffset off = ool->bytecodeOffset();
 
   if (fromType == MIRType::Float32) {
     if (toType == MIRType::Int32) {
-      masm.oolWasmTruncateCheckF32ToI32(input, output, flags, trapSiteDesc,
-                                        oolRejoin);
+      masm.oolWasmTruncateCheckF32ToI32(input, output, flags, off, oolRejoin);
     } else if (toType == MIRType::Int64) {
-      masm.oolWasmTruncateCheckF32ToI64(input, output64, flags, trapSiteDesc,
-                                        oolRejoin);
+      masm.oolWasmTruncateCheckF32ToI64(input, output64, flags, off, oolRejoin);
     } else {
       MOZ_CRASH("unexpected type");
     }
   } else if (fromType == MIRType::Double) {
     if (toType == MIRType::Int32) {
-      masm.oolWasmTruncateCheckF64ToI32(input, output, flags, trapSiteDesc,
-                                        oolRejoin);
+      masm.oolWasmTruncateCheckF64ToI32(input, output, flags, off, oolRejoin);
     } else if (toType == MIRType::Int64) {
-      masm.oolWasmTruncateCheckF64ToI64(input, output64, flags, trapSiteDesc,
-                                        oolRejoin);
+      masm.oolWasmTruncateCheckF64ToI64(input, output64, flags, off, oolRejoin);
     } else {
       MOZ_CRASH("unexpected type");
     }
@@ -2632,7 +2628,7 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   if (lir->canBeDivideByZero()) {
     Label isNotDivByZero;
     masm.Cbnz(ARMRegister(rhs, 64), &isNotDivByZero);
-    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->trapSiteDesc());
+    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->bytecodeOffset());
     masm.bind(&isNotDivByZero);
   }
 
@@ -2644,7 +2640,7 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
     if (lir->mir()->isMod()) {
       masm.movePtr(ImmWord(0), output);
     } else {
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, lir->trapSiteDesc());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, lir->bytecodeOffset());
     }
     masm.jump(&done);
     masm.bind(&noOverflow);
@@ -2670,7 +2666,7 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   if (lir->canBeDivideByZero()) {
     Label isNotDivByZero;
     masm.Cbnz(ARMRegister(rhs, 64), &isNotDivByZero);
-    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->trapSiteDesc());
+    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->bytecodeOffset());
     masm.bind(&isNotDivByZero);
   }
 
@@ -3868,7 +3864,7 @@ void CodeGenerator::visitWasmReduceSimd128ToInt64(
 static inline wasm::MemoryAccessDesc DeriveMemoryAccessDesc(
     const wasm::MemoryAccessDesc& access, Scalar::Type type) {
   return wasm::MemoryAccessDesc(access.memoryIndex(), type, access.align(),
-                                access.offset32(), access.trapDesc(),
+                                access.offset32(), access.trapOffset(),
                                 access.isHugeMemory());
 }
 
