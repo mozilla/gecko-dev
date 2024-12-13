@@ -17,6 +17,15 @@ function addStylesheet(href) {
   link.href = href;
 }
 
+function disableEscClose() {
+  addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  });
+}
+
 /**
  * Render content based on about:welcome multistage template.
  */
@@ -67,6 +76,10 @@ function renderMultistage(ready) {
     dialog?.classList.remove("spotlight");
     box.removeAttribute("sizeto");
   });
+
+  if (CONFIG?.disableEscClose) {
+    disableEscClose();
+  }
 
   // Load the bundle to render the content as configured.
   document.head.appendChild(document.createElement("script")).src =

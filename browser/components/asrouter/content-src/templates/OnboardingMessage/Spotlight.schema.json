@@ -44,6 +44,10 @@
           "type": "boolean",
           "description": "Show transitions within and between screens"
         },
+        "disableEscClose": {
+          "type": "boolean",
+          "description": "Don't allow the message to be dismissed using the ESC key - for limited use in Spotlight modals only when the message content clearly informs the user that a decision is required to proceed"
+        },
         "disableHistoryUpdates": {
           "type": "boolean",
           "description": "Don't alter the browser session's history stack - used with messaging surfaces like Feature Callouts"

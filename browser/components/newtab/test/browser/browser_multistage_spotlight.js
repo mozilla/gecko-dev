@@ -28,6 +28,13 @@ async function showDialog(dialogOptions) {
   return win;
 }
 
+async function dialogClosed(browser) {
+  await TestUtils.waitForCondition(
+    () => !browser.ownerGlobal.gDialogBox?.isOpen,
+    "Waiting for dialog to close"
+  );
+}
+
 add_task(async function test_specialAction() {
   const sandbox = sinon.createSandbox();
   let message = (await PanelTestProvider.getMessages()).find(
@@ -39,7 +46,7 @@ add_task(async function test_specialAction() {
 
   let win = await showDialog({ message, browser, dispatchStub });
   await waitForClick("button.primary", win);
-  win.close();
+  await win.close();
 
   Assert.equal(
     specialActionStub.callCount,
@@ -85,7 +92,7 @@ add_task(async function test_embedded_import() {
   Assert.equal(panelList.tagName, "PANEL-LIST");
   Assert.equal(panelList.firstChild.tagName, "PANEL-ITEM");
 
-  win.close();
+  await win.close();
   await SpecialPowers.popPrefEnv();
 });
 
@@ -145,4 +152,43 @@ add_task(async function test_embedded_browser() {
 
   win.close();
   await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_disableEscClose() {
+  const sandbox = sinon.createSandbox();
+  let message = (await PanelTestProvider.getMessages()).find(
+    m => m.id === "MULTISTAGE_SPOTLIGHT_MESSAGE"
+  );
+  message.content.disableEscClose = true;
+
+  let browser = gBrowser.selectedBrowser;
+  let stub = sandbox.stub();
+  let win = await showDialog({ message, browser, stub });
+
+  await TestUtils.waitForCondition(() =>
+    win.document.querySelector("button.dismiss-button")
+  );
+
+  EventUtils.synthesizeKey(
+    "KEY_Escape",
+    { key: "Escape", code: "Escape" },
+    win
+  );
+
+  Assert.ok(
+    browser?.ownerGlobal.gDialogBox.isOpen,
+    "Spotlight does not close with ESC key with 'disableEscClose' set to true"
+  );
+
+  win.document.querySelector("button.dismiss-button").click();
+
+  await dialogClosed(browser);
+
+  Assert.ok(
+    true,
+    "Spotlight closes on dismiss button click with 'disableEscClose' set to true"
+  );
+
+  await win.close();
+  sandbox.restore();
 });
