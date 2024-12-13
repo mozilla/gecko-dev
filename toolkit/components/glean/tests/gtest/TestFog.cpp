@@ -125,13 +125,14 @@ using std::tuple;
 
 TEST_F(FOGFixture, TestCppEventWorks) {
   test_only_ipc::no_extra_event.Record();
-  ASSERT_TRUE(test_only_ipc::no_extra_event.TestGetValue("store1"_ns)
+  ASSERT_TRUE(test_only_ipc::no_extra_event.TestGetValue("test-ping"_ns)
                   .unwrap()
                   .isSome());
 
   AnEventExtra extra = {.extra1 = Some("can set extras"_ns)};
   test_only_ipc::an_event.Record(Some(extra));
-  auto optEvents = test_only_ipc::an_event.TestGetValue("store1"_ns).unwrap();
+  auto optEvents =
+      test_only_ipc::an_event.TestGetValue("test-ping"_ns).unwrap();
   ASSERT_TRUE(optEvents.isSome());
 
   auto events = optEvents.extract();
@@ -149,7 +150,7 @@ TEST_F(FOGFixture, TestCppEventsWithDifferentExtraTypes) {
                                .extra3LongerName = Some(false)};
   test_only_ipc::event_with_extra.Record(Some(extra));
   auto optEvents =
-      test_only_ipc::event_with_extra.TestGetValue("store1"_ns).unwrap();
+      test_only_ipc::event_with_extra.TestGetValue("test-ping"_ns).unwrap();
   ASSERT_TRUE(optEvents.isSome());
 
   auto events = optEvents.extract();
@@ -197,7 +198,7 @@ TEST_F(FOGFixture, TestCppCustomDistWorks) {
   test_only_ipc::a_custom_dist.AccumulateSamples({7, 268435458});
 
   DistributionData data =
-      test_only_ipc::a_custom_dist.TestGetValue("store1"_ns).unwrap().ref();
+      test_only_ipc::a_custom_dist.TestGetValue("test-ping"_ns).unwrap().ref();
   ASSERT_EQ(data.sum, 7UL + 268435458);
   ASSERT_EQ(data.count, 2UL);
   for (const auto& entry : data.values) {
@@ -471,7 +472,7 @@ TEST_F(FOGFixture, TestCppUrlWorks) {
   mozilla::glean::test_only_ipc::a_url.Set(kValue);
 
   ASSERT_STREQ(kValue.get(),
-               mozilla::glean::test_only_ipc::a_url.TestGetValue("store1"_ns)
+               mozilla::glean::test_only_ipc::a_url.TestGetValue("test-ping"_ns)
                    .unwrap()
                    .value()
                    .get());

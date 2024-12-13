@@ -28,7 +28,6 @@ import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -44,6 +43,7 @@ import org.mozilla.fenix.GleanMetrics.TrackingProtection
 import org.mozilla.fenix.components.PermissionStorage
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.directionsEq
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.settings.quicksettings.ext.shouldBeEnabled
@@ -85,7 +85,7 @@ class DefaultQuickSettingsControllerTest {
     private lateinit var controller: DefaultQuickSettingsController
 
     @get:Rule
-    val gleanRule = GleanTestRule(testContext)
+    val gleanRule = FenixGleanTestRule(testContext)
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()

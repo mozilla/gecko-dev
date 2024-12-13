@@ -202,7 +202,7 @@ mod test {
 
         assert_eq!(
             vec!["test_string_value", "another test value"],
-            metric.test_get_value("store1").unwrap()
+            metric.test_get_value("test-ping").unwrap()
         );
     }
 
@@ -235,7 +235,7 @@ mod test {
         assert!(ipc::replay_from_buf(&ipc::take_buf().unwrap()).is_ok());
         assert_eq!(
             vec!["test_string_value", "another test value"],
-            parent_metric.test_get_value("store1").unwrap()
+            parent_metric.test_get_value("test-ping").unwrap()
         );
     }
 }

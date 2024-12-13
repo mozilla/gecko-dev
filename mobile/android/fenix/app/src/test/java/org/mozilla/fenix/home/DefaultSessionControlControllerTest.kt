@@ -34,7 +34,6 @@ import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -62,6 +61,7 @@ import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.recenttabs.RecentTab
@@ -82,7 +82,7 @@ class DefaultSessionControlControllerTest {
     val coroutinesTestRule = MainCoroutineRule()
 
     @get:Rule
-    val gleanTestRule = GleanTestRule(testContext)
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     private val activity: HomeActivity = mockk(relaxed = true)
     private val filesDir: File = mockk(relaxed = true)

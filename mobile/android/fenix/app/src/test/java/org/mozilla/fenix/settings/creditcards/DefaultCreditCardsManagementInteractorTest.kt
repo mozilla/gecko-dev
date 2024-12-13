@@ -8,7 +8,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import mozilla.components.concept.storage.CreditCard
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -16,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.CreditCards
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.creditcards.controller.CreditCardsManagementController
 import org.mozilla.fenix.settings.creditcards.interactor.DefaultCreditCardsManagementInteractor
@@ -24,7 +24,7 @@ import org.mozilla.fenix.settings.creditcards.interactor.DefaultCreditCardsManag
 class DefaultCreditCardsManagementInteractorTest {
 
     @get:Rule
-    val gleanTestRule = GleanTestRule(testContext)
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     private val controller: CreditCardsManagementController = mockk(relaxed = true)
 

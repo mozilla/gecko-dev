@@ -34,7 +34,6 @@ import mozilla.components.support.base.facts.Fact
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.webextensions.facts.WebExtensionFacts
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -55,6 +54,7 @@ import org.mozilla.fenix.GleanMetrics.ProgressiveWebApp
 import org.mozilla.fenix.GleanMetrics.SitePermissions
 import org.mozilla.fenix.GleanMetrics.SyncedTabs
 import org.mozilla.fenix.components.metrics.ReleaseMetricController.Companion
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.search.awesomebar.ShortcutsSuggestionProvider
 import org.mozilla.fenix.utils.Settings
@@ -64,7 +64,7 @@ import mozilla.components.compose.browser.awesomebar.AwesomeBarFacts as ComposeA
 class MetricControllerTest {
 
     @get:Rule
-    val gleanTestRule = GleanTestRule(testContext)
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     @MockK(relaxUnitFun = true)
     private lateinit var dataService1: MetricsService

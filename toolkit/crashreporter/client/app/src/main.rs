@@ -243,6 +243,12 @@ fn try_run(config: &mut Arc<Config>) -> anyhow::Result<bool> {
             extra
         };
 
+        // Since Glean v63.0.0, custom pings are required to be instantiated prior to Glean init
+        // in order to ensure they are enabled and able to collect data. This is due to the data
+        // collection state being determined at the ping level now instead of just by the global
+        // Glean collection enabled flag. See Bug 1934931 for more information.
+        _ = &*glean::crash;
+
         // Initialize glean here since it relies on the data directory (which will not change after
         // this point). We could potentially initialize it even later (only just before we need
         // it), however we may use it for more than just the crash ping in the future, in which

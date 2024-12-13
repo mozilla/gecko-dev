@@ -177,7 +177,7 @@ class GleanMetricsService(context: Context) : MetricsService {
      * @param enabled true if enabling upload, false if disabling it.
      */
     fun setUploadEnabled(enabled: Boolean) {
-        Glean.setUploadEnabled(enabled)
+        Glean.setCollectionEnabled(enabled)
         if (enabled) {
             checkAndSetUsageProfileId()
         } else {

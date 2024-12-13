@@ -7,6 +7,7 @@ package mozilla.components.lib.crash.service
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -16,12 +17,15 @@ import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.GleanMetrics.CrashMetrics
 import mozilla.components.support.test.whenever
-import mozilla.telemetry.glean.testing.GleanTestRule
+import mozilla.telemetry.glean.Glean
+import mozilla.telemetry.glean.config.Configuration
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -41,8 +45,25 @@ class GleanCrashReporterServiceTest {
     private val context: Context
         get() = ApplicationProvider.getApplicationContext()
 
-    @get:Rule
-    val gleanRule = GleanTestRule(context)
+    @Before
+    fun setUp() {
+        // We're using the WorkManager in a bunch of places, and Glean will crash
+        // in tests without this line. Let's simply put it here.
+        WorkManagerTestInitHelper.initializeTestWorkManager(context)
+        Glean.registerPings(GleanPings)
+        Glean.resetGlean(
+            context = context,
+            config = Configuration(),
+            clearStores = true,
+        )
+    }
+
+    @After
+    fun tearDown() {
+        // This closes the database to help prevent leaking it during tests.
+        // See Bug1719905 for more info.
+        WorkManagerTestInitHelper.closeWorkDatabase()
+    }
 
     @get:Rule
     val tempFolder = TemporaryFolder()

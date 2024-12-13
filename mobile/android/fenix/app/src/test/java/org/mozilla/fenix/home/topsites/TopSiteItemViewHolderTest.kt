@@ -12,7 +12,6 @@ import io.mockk.verify
 import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -26,6 +25,7 @@ import org.mozilla.fenix.GleanMetrics.TopSites
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.databinding.TopSiteItemBinding
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 
@@ -33,7 +33,7 @@ import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 class TopSiteItemViewHolderTest {
 
     @get:Rule
-    val gleanTestRule = GleanTestRule(testContext)
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     private lateinit var binding: TopSiteItemBinding
     private lateinit var interactor: TopSiteInteractor

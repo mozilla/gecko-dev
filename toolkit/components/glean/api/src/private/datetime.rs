@@ -327,7 +327,7 @@ mod test {
         let expected: glean::Datetime = DateTime::parse_from_rfc3339("2020-05-07T11:58:00+05:00")
             .unwrap()
             .into();
-        assert_eq!(expected, metric.test_get_value("store1").unwrap());
+        assert_eq!(expected, metric.test_get_value("test-ping").unwrap());
     }
 
     #[test]
@@ -341,7 +341,7 @@ mod test {
         let expected: glean::Datetime = DateTime::parse_from_rfc3339("2020-05-07T11:58:00+05:00")
             .unwrap()
             .into();
-        assert_eq!(expected, metric.test_get_value("store1").unwrap());
+        assert_eq!(expected, metric.test_get_value("test-ping").unwrap());
     }
 
     #[test]
@@ -374,6 +374,6 @@ mod test {
         let expected: glean::Datetime = DateTime::parse_from_rfc3339("2020-10-13T16:41:00+05:00")
             .unwrap()
             .into();
-        assert_eq!(expected, parent_metric.test_get_value("store1").unwrap());
+        assert_eq!(expected, parent_metric.test_get_value("test-ping").unwrap());
     }
 }

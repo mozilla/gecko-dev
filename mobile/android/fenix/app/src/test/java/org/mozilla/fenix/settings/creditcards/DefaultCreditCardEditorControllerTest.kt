@@ -19,7 +19,6 @@ import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import mozilla.components.support.utils.CreditCardNetworkType
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -27,6 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.CreditCards
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.creditcards.controller.DefaultCreditCardEditorController
 
@@ -34,7 +34,7 @@ import org.mozilla.fenix.settings.creditcards.controller.DefaultCreditCardEditor
 class DefaultCreditCardEditorControllerTest {
 
     @get:Rule
-    val gleanTestRule = GleanTestRule(testContext)
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     private val storage: AutofillCreditCardsAddressesStorage = mockk(relaxed = true)
     private val navController: NavController = mockk(relaxed = true)

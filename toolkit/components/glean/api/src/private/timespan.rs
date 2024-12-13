@@ -307,7 +307,7 @@ mod test {
             CommonMetricData {
                 name: "timespan_metric".into(),
                 category: "telemetry".into(),
-                send_in_pings: vec!["store1".into()],
+                send_in_pings: vec!["test-ping".into()],
                 disabled: false,
                 ..Default::default()
             },
@@ -320,7 +320,7 @@ mod test {
         // So let's cancel and make sure nothing blows up.
         metric.cancel();
 
-        assert_eq!(None, metric.test_get_value("store1"));
+        assert_eq!(None, metric.test_get_value("test-ping"));
     }
 
     #[test]

@@ -44,7 +44,6 @@ import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -72,6 +71,7 @@ import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.ext.maxActiveTime
 import org.mozilla.fenix.ext.potentialInactiveTabs
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.utils.Settings
@@ -113,7 +113,7 @@ class DefaultTabsTrayControllerTest {
     private val coroutinesTestRule: MainCoroutineRule = MainCoroutineRule()
     private val testDispatcher = coroutinesTestRule.testDispatcher
 
-    val gleanTestRule = GleanTestRule(testContext)
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     @get:Rule
     val chain: RuleChain = RuleChain.outerRule(gleanTestRule).around(coroutinesTestRule)

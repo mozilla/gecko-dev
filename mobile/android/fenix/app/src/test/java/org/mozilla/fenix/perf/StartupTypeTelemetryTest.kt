@@ -17,7 +17,6 @@ import mozilla.components.support.ktx.kotlin.crossProduct
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -26,6 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.PerfStartup
 import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.perf.StartupPathProvider.StartupPath
 import org.mozilla.fenix.perf.StartupStateProvider.StartupState
 
@@ -45,7 +45,7 @@ class StartupTypeTelemetryTest {
     val coroutinesTestRule = MainCoroutineRule()
 
     @get:Rule
-    val gleanTestRule = GleanTestRule(testContext)
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     private lateinit var telemetry: StartupTypeTelemetry
     private lateinit var callbacks: StartupTypeTelemetry.StartupTypeLifecycleObserver

@@ -34,6 +34,7 @@ impl Ping {
         enabled: bool,
         schedules_pings: Vec<String>,
         reason_codes: Vec<String>,
+        follows_collection_enabled: bool,
     ) -> Self {
         if need_ipc() {
             Ping::Child
@@ -48,7 +49,17 @@ impl Ping {
                 enabled,
                 schedules_pings,
                 reason_codes,
+                follows_collection_enabled,
             ))
+        }
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        match self {
+            Ping::Parent(p) => p.set_enabled(enabled),
+            Ping::Child => {
+                panic!("Cannot use ping set_enabled API from non-parent process!");
+            }
         }
     }
 
@@ -109,8 +120,19 @@ mod test {
     };
 
     // Smoke test for what should be the generated code.
-    static PROTOTYPE_PING: Lazy<Ping> =
-        Lazy::new(|| Ping::new("prototype", false, true, true, true, true, vec![], vec![]));
+    static PROTOTYPE_PING: Lazy<Ping> = Lazy::new(|| {
+        Ping::new(
+            "prototype",
+            false,
+            true,
+            true,
+            true,
+            true,
+            vec![],
+            vec![],
+            true,
+        )
+    });
 
     #[test]
     fn smoke_test_custom_ping() {

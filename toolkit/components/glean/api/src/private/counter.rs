@@ -199,7 +199,7 @@ mod test {
         let metric = &metrics::test_only_ipc::a_counter;
         metric.add(1);
 
-        assert_eq!(1, metric.test_get_value("store1").unwrap());
+        assert_eq!(1, metric.test_get_value("test-ping").unwrap());
     }
 
     #[test]
@@ -233,7 +233,7 @@ mod test {
         assert!(ipc::replay_from_buf(&ipc::take_buf().unwrap()).is_ok());
 
         assert!(
-            45 == parent_metric.test_get_value("store1").unwrap(),
+            45 == parent_metric.test_get_value("test-ping").unwrap(),
             "Values from the 'processes' should be summed"
         );
     }
