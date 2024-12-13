@@ -20,6 +20,7 @@ import mozilla.components.concept.sync.DeviceType
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Before
@@ -30,7 +31,6 @@ import org.mozilla.fenix.GleanMetrics.RecentSyncedTabs
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.tabstray.Page
@@ -40,7 +40,7 @@ import org.mozilla.fenix.tabstray.TabsTrayAccessPoint
 class DefaultRecentSyncedTabControllerTest {
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     private val tabsUseCases: TabsUseCases = mockk()
     private val navController: NavController = mockk()

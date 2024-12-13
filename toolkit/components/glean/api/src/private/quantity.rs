@@ -141,7 +141,7 @@ mod test {
         let metric = &metrics::test_only_ipc::a_quantity;
         metric.set(14);
 
-        assert_eq!(14, metric.test_get_value("test-ping").unwrap());
+        assert_eq!(14, metric.test_get_value("store1").unwrap());
     }
 
     #[test]

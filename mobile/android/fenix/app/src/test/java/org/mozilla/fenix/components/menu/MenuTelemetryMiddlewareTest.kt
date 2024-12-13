@@ -13,6 +13,7 @@ import mozilla.components.support.test.robolectric.testContext
 import mozilla.telemetry.glean.internal.CounterMetric
 import mozilla.telemetry.glean.private.EventMetricType
 import mozilla.telemetry.glean.private.NoExtras
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -31,13 +32,12 @@ import org.mozilla.fenix.components.menu.store.BrowserMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class MenuTelemetryMiddlewareTest {
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     @Test
     fun `WHEN adding a bookmark THEN record the bookmark browser menu telemetry`() {

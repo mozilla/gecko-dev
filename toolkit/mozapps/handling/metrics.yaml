@@ -32,5 +32,6 @@ protocolhandler.mailto:
           the callee comes from within Firefox, this value is false
         type: boolean
     send_in_pings:
+      - active
       - events
       - metrics

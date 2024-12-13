@@ -448,19 +448,21 @@ impl Database {
 
     /// Records a metric in the underlying storage system.
     pub fn record(&self, glean: &Glean, data: &CommonMetricDataInternal, value: &Metric) {
+        // If upload is disabled we don't want to record.
+        if !glean.is_upload_enabled() {
+            return;
+        }
+
         let name = data.identifier(glean);
+
         for ping_name in data.storage_names() {
-            if glean.is_ping_enabled(ping_name) {
-                if let Err(e) =
-                    self.record_per_lifetime(data.inner.lifetime, ping_name, &name, value)
-                {
-                    log::error!(
-                        "Failed to record metric '{}' into {}: {:?}",
-                        data.base_identifier(),
-                        ping_name,
-                        e
-                    );
-                }
+            if let Err(e) = self.record_per_lifetime(data.inner.lifetime, ping_name, &name, value) {
+                log::error!(
+                    "Failed to record metric '{}' into {}: {:?}",
+                    data.base_identifier(),
+                    ping_name,
+                    e
+                );
             }
         }
     }
@@ -516,22 +518,22 @@ impl Database {
     where
         F: FnMut(Option<Metric>) -> Metric,
     {
+        // If upload is disabled we don't want to record.
+        if !glean.is_upload_enabled() {
+            return;
+        }
+
         let name = data.identifier(glean);
         for ping_name in data.storage_names() {
-            if glean.is_ping_enabled(ping_name) {
-                if let Err(e) = self.record_per_lifetime_with(
-                    data.inner.lifetime,
+            if let Err(e) =
+                self.record_per_lifetime_with(data.inner.lifetime, ping_name, &name, &mut transform)
+            {
+                log::error!(
+                    "Failed to record metric '{}' into {}: {:?}",
+                    data.base_identifier(),
                     ping_name,
-                    &name,
-                    &mut transform,
-                ) {
-                    log::error!(
-                        "Failed to record metric '{}' into {}: {:?}",
-                        data.base_identifier(),
-                        ping_name,
-                        e
-                    );
-                }
+                    e
+                );
             }
         }
     }
@@ -630,34 +632,6 @@ impl Database {
         }
 
         self.write_with_store(Lifetime::Ping, |mut writer, store| {
-            let mut metrics = Vec::new();
-            {
-                let mut iter = store.iter_from(&writer, storage_name)?;
-                while let Some(Ok((metric_id, _))) = iter.next() {
-                    if let Ok(metric_id) = std::str::from_utf8(metric_id) {
-                        if !metric_id.starts_with(storage_name) {
-                            break;
-                        }
-                        metrics.push(metric_id.to_owned());
-                    }
-                }
-            }
-
-            let mut res = Ok(());
-            for to_delete in metrics {
-                if let Err(e) = store.delete(&mut writer, to_delete) {
-                    log::warn!("Can't delete from store: {:?}", e);
-                    res = Err(e);
-                }
-            }
-
-            measure_commit!(self, writer.commit())?;
-            Ok(res?)
-        })
-    }
-
-    pub fn clear_lifetime_storage(&self, lifetime: Lifetime, storage_name: &str) -> Result<()> {
-        self.write_with_store(lifetime, |mut writer, store| {
             let mut metrics = Vec::new();
             {
                 let mut iter = store.iter_from(&writer, storage_name)?;

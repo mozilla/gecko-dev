@@ -166,7 +166,7 @@ mod test {
                 numerator: 1,
                 denominator: 100
             },
-            metric.test_get_value("test-ping").unwrap()
+            metric.test_get_value("store1").unwrap()
         );
     }
 
@@ -207,7 +207,7 @@ mod test {
                 numerator: 45,
                 denominator: 33
             },
-            parent_metric.test_get_value("test-ping").unwrap(),
+            parent_metric.test_get_value("store1").unwrap(),
             "Values from the 'processes' should be summed"
         );
     }

@@ -7,7 +7,6 @@
 //! This doesn't perform the actual upload but rather handles
 //! retries, upload limitations and error tracking.
 
-use crossbeam_channel::{Receiver, Sender};
 use std::sync::{atomic::Ordering, Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
@@ -60,8 +59,6 @@ struct Inner {
     uploader: Box<dyn PingUploader + 'static>,
     thread_running: AtomicState,
     handle: Mutex<Option<JoinHandle<()>>>,
-    rx: Receiver<()>,
-    tx: Sender<()>,
 }
 
 impl UploadManager {
@@ -75,15 +72,12 @@ impl UploadManager {
         server_endpoint: String,
         new_uploader: Box<dyn PingUploader + 'static>,
     ) -> Self {
-        let (tx, rx) = crossbeam_channel::bounded(1);
         Self {
             inner: Arc::new(Inner {
                 server_endpoint,
                 uploader: new_uploader,
                 thread_running: AtomicState::new(State::Stopped),
                 handle: Mutex::new(None),
-                rx,
-                tx,
             }),
         }
     }
@@ -147,13 +141,7 @@ impl UploadManager {
                         }
                         PingUploadTask::Wait { time } => {
                             log::trace!("Instructed to wait for {:?}ms", time);
-                            let _ = inner.rx.recv_timeout(Duration::from_millis(time));
-
-                            let status = inner.thread_running.load(Ordering::SeqCst);
-                            // asked to shut down. let's do it.
-                            if status == State::ShuttingDown {
-                                break;
-                            }
+                            thread::sleep(Duration::from_millis(time));
                         }
                         PingUploadTask::Done { .. } => {
                             log::trace!("Received PingUploadTask::Done. Exiting.");
@@ -204,9 +192,6 @@ impl UploadManager {
         let thread = handle.take();
 
         if let Some(thread) = thread {
-            // poke the thread in case it's in `Wait`.
-            let _ = self.inner.tx.send(());
-
             thread
                 .join()
                 .expect("couldn't join on the uploader thread.");

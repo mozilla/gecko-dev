@@ -18,6 +18,7 @@ import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Before
@@ -31,7 +32,6 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.recordEventInNimbus
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.geckoview.GeckoSession
 import java.io.IOException
@@ -41,7 +41,7 @@ class SaveToPDFMiddlewareTest {
     private lateinit var appStore: AppStore
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     @get:Rule
     val mainCoroutineTestRule = MainCoroutineRule()

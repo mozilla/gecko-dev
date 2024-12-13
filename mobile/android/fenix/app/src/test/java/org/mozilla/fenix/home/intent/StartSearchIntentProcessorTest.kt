@@ -11,6 +11,7 @@ import io.mockk.Called
 import io.mockk.mockk
 import io.mockk.verify
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Rule
@@ -22,14 +23,13 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.ext.nav
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 
 @RunWith(FenixRobolectricTestRunner::class)
 class StartSearchIntentProcessorTest {
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     private val navController: NavController = mockk(relaxed = true)
     private val out: Intent = mockk(relaxed = true)

@@ -284,7 +284,7 @@ fn set_raw_time_does_nothing_when_timer_running() {
 }
 
 #[test]
-fn timespan_is_tracked_across_upload_toggle() {
+fn timespan_is_not_tracked_across_upload_toggle() {
     let (mut glean, _t) = new_glean(None);
 
     let metric = TimespanMetric::new(
@@ -307,20 +307,23 @@ fn timespan_is_tracked_across_upload_toggle() {
     // We should clear internal state as upload is disabled.
     metric.set_stop(&glean, 40);
 
-    assert_eq!(None, metric.get_value(&glean, "store1"));
-
     // App code eventually starts the timer again.
+    // Upload is disabled, so this should not have any effect.
     metric.set_start(&glean, 100);
     // User enables telemetry upload again.
     glean.set_upload_enabled(true);
     // App code eventually stops the timer.
-    // The full timespan is recorded.
+    // None should be running.
     metric.set_stop(&glean, 200);
 
-    assert_eq!(Some(100), metric.get_value(&glean, "store1"));
+    // Nothing should have been recorded.
+    assert_eq!(None, metric.get_value(&glean, "store1"));
 
-    // No errors have been recorded.
-    assert!(test_get_num_recorded_errors(&glean, metric.meta(), ErrorType::InvalidState).is_err());
+    // Make sure that the error has been recorded
+    assert_eq!(
+        Ok(1),
+        test_get_num_recorded_errors(&glean, metric.meta(), ErrorType::InvalidState)
+    );
 }
 
 #[test]
@@ -331,7 +334,7 @@ fn time_cannot_go_backwards() {
         CommonMetricData {
             name: "raw_timespan".into(),
             category: "test".into(),
-            send_in_pings: vec!["store1".into()],
+            send_in_pings: vec!["test1".into()],
             ..Default::default()
         },
         TimeUnit::Millisecond,
@@ -340,7 +343,7 @@ fn time_cannot_go_backwards() {
     // Time cannot go backwards.
     metric.set_start(&glean, 10);
     metric.set_stop(&glean, 0);
-    assert!(metric.get_value(&glean, "store1").is_none());
+    assert!(metric.get_value(&glean, "test1").is_none());
     assert_eq!(
         Ok(1),
         test_get_num_recorded_errors(&glean, metric.meta(), ErrorType::InvalidValue),

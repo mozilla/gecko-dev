@@ -13,7 +13,6 @@ import mozilla.telemetry.glean.config.Configuration
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.GleanMetrics.GleanBuildInfo
-import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.ext.getCustomGleanServerUrlIfAvailable
 import org.mozilla.fenix.ext.setCustomEndpointIfAvailable
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -48,11 +47,6 @@ fun initializeGlean(applicationContext: Context, logger: Logger, isTelemetryUplo
         pingLifetimeMaxTime = FxNimbus.features.glean.value().pingLifetimeMaxTime,
         pingSchedule = mapOf("baseline" to listOf("usage-reporting")),
     )
-
-    // Since Glean v63.0.0, custom pings need to be registered prior to Glean init
-    // in order to ensure they are enabled and able to collect data.
-    // See https://bugzilla.mozilla.org/1934931 for more information.
-    Glean.registerPings(Pings)
 
     // Set the metric configuration from Nimbus.
     Glean.applyServerKnobsConfig(FxNimbus.features.glean.value().metricsEnabled.toString())

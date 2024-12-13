@@ -12,6 +12,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -23,7 +24,6 @@ import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.onboarding.ReEngagementNotificationWorker
 import org.mozilla.fenix.utils.Settings
@@ -32,7 +32,7 @@ import org.mozilla.fenix.utils.Settings
 class ReEngagementIntentProcessorTest {
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     @Test
     fun `do not process blank intents`() {

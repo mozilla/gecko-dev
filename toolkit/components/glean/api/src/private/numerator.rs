@@ -126,7 +126,7 @@ mod test {
         let metric = &metrics::test_only_ipc::rate_with_external_denominator;
         metric.add_to_numerator(1);
 
-        assert_eq!(1, metric.test_get_value("test-ping").unwrap().numerator);
+        assert_eq!(1, metric.test_get_value("store1").unwrap().numerator);
     }
 
     #[test]
@@ -159,7 +159,7 @@ mod test {
         assert!(ipc::replay_from_buf(&ipc::take_buf().unwrap()).is_ok());
 
         assert!(
-            45 == parent_metric.test_get_value("test-ping").unwrap().numerator,
+            45 == parent_metric.test_get_value("store1").unwrap().numerator,
             "Values from the 'processes' should be summed"
         );
     }

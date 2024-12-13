@@ -29,6 +29,7 @@ import mozilla.components.feature.share.RecentAppsStorage
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -43,7 +44,6 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.appstate.AppAction.ShareAction
 import org.mozilla.fenix.ext.nav
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.share.listadapters.AppShareOption
 
@@ -72,7 +72,7 @@ class ShareControllerTest {
     private val recentAppStorage = mockk<RecentAppsStorage>(relaxed = true)
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()

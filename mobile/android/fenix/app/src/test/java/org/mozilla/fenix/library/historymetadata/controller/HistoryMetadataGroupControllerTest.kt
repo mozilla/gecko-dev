@@ -20,6 +20,7 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -34,7 +35,6 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.directionsEq
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.library.history.History
 import org.mozilla.fenix.library.history.HistoryItemTimeGroup
@@ -47,7 +47,7 @@ import org.mozilla.fenix.GleanMetrics.History as GleanHistory
 class HistoryMetadataGroupControllerTest {
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()

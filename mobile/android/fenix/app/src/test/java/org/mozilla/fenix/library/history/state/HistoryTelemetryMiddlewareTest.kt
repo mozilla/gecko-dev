@@ -6,12 +6,12 @@ package org.mozilla.fenix.library.history.state
 
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.library.history.History
 import org.mozilla.fenix.library.history.HistoryFragmentAction
 import org.mozilla.fenix.library.history.HistoryFragmentState
@@ -24,7 +24,7 @@ import org.mozilla.fenix.GleanMetrics.History as GleanHistory
 @RunWith(RobolectricTestRunner::class)
 class HistoryTelemetryMiddlewareTest {
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     private val middleware = HistoryTelemetryMiddleware(isInPrivateMode = false)
 

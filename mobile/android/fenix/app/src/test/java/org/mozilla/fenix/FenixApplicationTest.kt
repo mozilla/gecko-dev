@@ -20,6 +20,7 @@ import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.feature.addons.migration.DefaultSupportedAddonsChecker
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.BrowsersCache
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -35,7 +36,6 @@ import org.mozilla.fenix.GleanMetrics.SearchDefaultEngine
 import org.mozilla.fenix.GleanMetrics.TopSites
 import org.mozilla.fenix.components.metrics.MozillaProductDetector
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.Shadows.shadowOf
@@ -44,7 +44,7 @@ import org.robolectric.annotation.Config
 @RunWith(FenixRobolectricTestRunner::class)
 class FenixApplicationTest {
 
-    @get:Rule val gleanTestRule = FenixGleanTestRule(ApplicationProvider.getApplicationContext())
+    @get:Rule val gleanTestRule = GleanTestRule(ApplicationProvider.getApplicationContext())
 
     private lateinit var application: FenixApplication
     private lateinit var browsersCache: BrowsersCache

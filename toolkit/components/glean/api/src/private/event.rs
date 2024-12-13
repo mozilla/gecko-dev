@@ -244,7 +244,7 @@ mod test {
             CommonMetricData {
                 name: "event_metric".into(),
                 category: "telemetry".into(),
-                send_in_pings: vec!["test-ping".into()],
+                send_in_pings: vec!["store1".into()],
                 disabled: false,
                 ..Default::default()
             },
@@ -253,7 +253,7 @@ mod test {
         // No extra keys
         metric.record(None);
 
-        let recorded = metric.test_get_value("test-ping").unwrap();
+        let recorded = metric.test_get_value("store1").unwrap();
 
         assert!(recorded.iter().any(|e| e.name == "event_metric"));
     }
@@ -293,7 +293,7 @@ mod test {
 
         assert!(ipc::replay_from_buf(&ipc::take_buf().unwrap()).is_ok());
 
-        let events = parent_metric.test_get_value("test-ping").unwrap();
+        let events = parent_metric.test_get_value("store1").unwrap();
         assert_eq!(events.len(), 4);
 
         // Events from the child process are last, they might get sorted later by Glean.
@@ -318,7 +318,7 @@ mod test {
         };
         event.record(extra);
 
-        let recorded = event.test_get_value("test-ping").unwrap();
+        let recorded = event.test_get_value("store1").unwrap();
 
         assert_eq!(recorded.len(), 1);
         assert!(recorded[0].extra.as_ref().unwrap().get("extra1").unwrap() == "a-valid-value");

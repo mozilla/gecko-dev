@@ -7,6 +7,7 @@ package org.mozilla.fenix.components.metrics
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -16,7 +17,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.MetaAttribution
 import org.mozilla.fenix.GleanMetrics.PlayStoreAttribution
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
 
@@ -25,7 +25,7 @@ internal class InstallReferrerMetricsServiceTest {
     val context: Context = ApplicationProvider.getApplicationContext()
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     @Test
     fun `WHEN retrieving minimum UTM params from setting THEN result should match`() {

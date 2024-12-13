@@ -4,8 +4,8 @@
 
 //! Ping collection, assembly & submission.
 
-use std::fs::{self, create_dir_all, File};
-use std::io::{BufRead, BufReader, Write};
+use std::fs::{create_dir_all, File};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use log::info;
@@ -66,11 +66,6 @@ impl PingMaker {
 
     /// Gets, and then increments, the sequence number for a given ping.
     fn get_ping_seq(&self, glean: &Glean, storage_name: &str) -> usize {
-        // Don't attempt to increase sequence number for disabled ping
-        if !glean.is_ping_enabled(storage_name) {
-            return 0;
-        }
-
         // Sequence numbers are stored as a counter under a name that includes the storage name
         let seq = CounterMetric::new(CommonMetricData {
             name: format!("{}#sequence", storage_name),
@@ -409,45 +404,11 @@ impl PingMaker {
     }
 
     /// Clears any pending pings in the queue.
-    pub fn clear_pending_pings(&self, data_path: &Path, ping_names: &[&str]) -> Result<()> {
+    pub fn clear_pending_pings(&self, data_path: &Path) -> Result<()> {
         let pings_dir = self.get_pings_dir(data_path, None)?;
 
-        // TODO(bug 1932909): Refactor this into its own function
-        // and share it with `upload::directory`.
-        let entries = pings_dir.read_dir()?;
-        for entry in entries.filter_map(|entry| entry.ok()) {
-            if let Ok(file_type) = entry.file_type() {
-                if !file_type.is_file() {
-                    continue;
-                }
-            } else {
-                continue;
-            }
-
-            let file = match File::open(entry.path()) {
-                Ok(file) => file,
-                Err(_) => {
-                    continue;
-                }
-            };
-
-            let mut lines = BufReader::new(file).lines();
-            if let (Some(Ok(path)), Some(Ok(_body)), Ok(metadata)) =
-                (lines.next(), lines.next(), lines.next().transpose())
-            {
-                let PingMetadata { ping_name, .. } = metadata
-                    .and_then(|m| crate::upload::process_metadata(&path, &m))
-                    .unwrap_or_default();
-                let ping_name =
-                    ping_name.unwrap_or_else(|| path.split('/').nth(3).unwrap_or("").into());
-
-                if ping_names.contains(&&ping_name[..]) {
-                    _ = fs::remove_file(entry.path());
-                }
-            } else {
-                continue;
-            }
-        }
+        std::fs::remove_dir_all(&pings_dir)?;
+        create_dir_all(&pings_dir)?;
 
         log::debug!("All pending pings deleted");
 
@@ -465,15 +426,15 @@ mod test {
         let (mut glean, _t) = new_glean(None);
         let ping_maker = PingMaker::new();
 
-        assert_eq!(0, ping_maker.get_ping_seq(&glean, "store1"));
-        assert_eq!(1, ping_maker.get_ping_seq(&glean, "store1"));
+        assert_eq!(0, ping_maker.get_ping_seq(&glean, "custom"));
+        assert_eq!(1, ping_maker.get_ping_seq(&glean, "custom"));
 
         glean.set_upload_enabled(false);
-        assert_eq!(0, ping_maker.get_ping_seq(&glean, "store1"));
-        assert_eq!(0, ping_maker.get_ping_seq(&glean, "store1"));
+        assert_eq!(0, ping_maker.get_ping_seq(&glean, "custom"));
+        assert_eq!(0, ping_maker.get_ping_seq(&glean, "custom"));
 
         glean.set_upload_enabled(true);
-        assert_eq!(0, ping_maker.get_ping_seq(&glean, "store1"));
-        assert_eq!(1, ping_maker.get_ping_seq(&glean, "store1"));
+        assert_eq!(0, ping_maker.get_ping_seq(&glean, "custom"));
+        assert_eq!(1, ping_maker.get_ping_seq(&glean, "custom"));
     }
 }

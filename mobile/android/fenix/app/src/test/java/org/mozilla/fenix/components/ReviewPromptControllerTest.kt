@@ -8,6 +8,7 @@ import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
 import kotlinx.coroutines.test.runTest
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -18,7 +19,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.ReviewPrompt
 import org.mozilla.fenix.HomeActivity
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -37,7 +37,7 @@ class TestReviewSettings(
 class ReviewPromptControllerTest {
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     private lateinit var reviewManager: ReviewManager
 

@@ -6,13 +6,13 @@ package org.mozilla.fenix.settings.trustpanel
 
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.TrackingProtection
-import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelTelemetryMiddleware
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
@@ -23,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 class TrustPanelTelemetryMiddlewareTest {
 
     @get:Rule
-    val gleanTestRule = FenixGleanTestRule(testContext)
+    val gleanTestRule = GleanTestRule(testContext)
 
     @Test
     fun `GIVEN tracking protection is enabled WHEN toggle tracking protection action is dispatched THEN record tracking protection exception added telemetry`() {

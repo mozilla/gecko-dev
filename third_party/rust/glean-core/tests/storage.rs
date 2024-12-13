@@ -26,14 +26,14 @@ fn can_snapshot() {
     let local_metric = StringMetric::new(CommonMetricData {
         name: "can_snapshot_local_metric".into(),
         category: "local".into(),
-        send_in_pings: vec!["store1".into()],
+        send_in_pings: vec!["store".into()],
         ..Default::default()
     });
 
     local_metric.set_sync(&glean, "snapshot 42");
 
     assert!(StorageManager
-        .snapshot(glean.storage(), "store1", true)
+        .snapshot(glean.storage(), "store", true)
         .is_some())
 }
 
@@ -77,7 +77,7 @@ fn storage_is_thread_safe() {
     let threadsafe_metric = CounterMetric::new(CommonMetricData {
         name: "threadsafe".into(),
         category: "global".into(),
-        send_in_pings: vec!["store1".into(), "metrics".into()],
+        send_in_pings: vec!["core".into(), "metrics".into()],
         ..Default::default()
     });
     let threadsafe_metric = Arc::new(threadsafe_metric);
@@ -99,7 +99,7 @@ fn storage_is_thread_safe() {
     child.join().unwrap();
 
     let snapshot = StorageManager
-        .snapshot_as_json(glean.lock().unwrap().storage(), "store1", true)
+        .snapshot_as_json(glean.lock().unwrap().storage(), "core", true)
         .unwrap();
     assert_eq!(json!({"counter": { "global.threadsafe": 4 }}), snapshot);
 }

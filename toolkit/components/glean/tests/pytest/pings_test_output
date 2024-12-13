@@ -24,7 +24,6 @@ pub static not_baseline: Lazy<Ping> = Lazy::new(|| {
         true,
         vec![],
         vec!["background".into(), "dirty_startup".into(), "foreground".into()],
-        true,
     )
 });
 
@@ -44,7 +43,6 @@ pub static not_deletion_request: Lazy<Ping> = Lazy::new(|| {
         true,
         vec![],
         vec![],
-        true,
     )
 });
 
@@ -62,7 +60,6 @@ pub static not_events: Lazy<Ping> = Lazy::new(|| {
         true,
         vec![],
         vec!["background".into(), "max_capacity".into(), "startup".into()],
-        true,
     )
 });
 
@@ -84,7 +81,6 @@ pub static not_metrics: Lazy<Ping> = Lazy::new(|| {
         true,
         vec![],
         vec!["overdue".into(), "reschedule".into(), "today".into(), "tomorrow".into(), "upgrade".into()],
-        true,
     )
 });
 
@@ -100,7 +96,6 @@ pub static not_ohttp: Lazy<Ping> = Lazy::new(|| {
         true,
         vec![],
         vec![],
-        true,
     )
 });
 
@@ -116,7 +111,6 @@ pub static ridealong_test: Lazy<Ping> = Lazy::new(|| {
         true,
         vec![],
         vec![],
-        true,
     )
 });
 
@@ -177,22 +171,6 @@ pub(crate) fn submit_ping_by_id(id: u32, reason: Option<&str>) {
         _ => {
             // TODO: instrument this error.
             log::error!("Cannot submit unknown ping {} by id.", id);
-        }
-    }
-}
-
-#[cfg(feature = "with_gecko")]
-pub(crate) fn set_ping_enabled(id: u32, enabled: bool) {
-    match id {
-        1 => not_baseline.set_enabled(enabled),
-        2 => not_deletion_request.set_enabled(enabled),
-        3 => not_events.set_enabled(enabled),
-        4 => not_metrics.set_enabled(enabled),
-        5 => not_ohttp.set_enabled(enabled),
-        6 => ridealong_test.set_enabled(enabled),
-        _ => {
-            // TODO: instrument this error.
-            log::error!("Cannot set_enabled on unknown ping {} by id.", id);
         }
     }
 }
