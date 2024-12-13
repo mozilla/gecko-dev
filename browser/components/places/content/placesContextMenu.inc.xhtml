@@ -2,9 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-<menupopup id="placesContext"
-           onpopupshowing="return PlacesUIUtils.placesContextShowing(event);"
-           onpopuphiding="PlacesUIUtils.placesContextHiding(event);">
+<menupopup id="placesContext">
+  <script src="chrome://browser/content/places/placesContextMenu.js" />
+
   <menuitem id="placesContext_open"
             command="placesCmd_open"
             data-l10n-id="places-open"
@@ -13,12 +13,10 @@
             node-type="link"
             hide-if-single-click-opens="true"/>
   <menuitem id="placesContext_openBookmarkContainer:tabs"
-            oncommand="PlacesUIUtils.openSelectionInTabs(event);"
             data-l10n-id="places-open-all-bookmarks"
             selection-type="single|none"
             node-type="folder|query_tag"/>
   <menuitem id="placesContext_openBookmarkLinks:tabs"
-            oncommand="PlacesUIUtils.openSelectionInTabs(event);"
             data-l10n-id="places-open-all-bookmarks"
             selection-type="multiple"
             node-type="link_bookmark|separator"/>
@@ -33,17 +31,14 @@
             node-type="link"
             hide-if-private-browsing="true"
             hide-if-usercontext-disabled="true">
-      <menupopup oncommand="PlacesUIUtils.openInContainerTab(event);"
-                 onpopupshowing="return PlacesUIUtils.createContainerTabMenu(event);" />
+      <menupopup id="placesContext_open_newcontainertab_popup"/>
   </menu>
   <menuitem id="placesContext_openContainer:tabs"
-            oncommand="PlacesUIUtils.openSelectionInTabs(event);"
             data-l10n-id="places-open-all-in-tabs"
             selection-type="single|none"
             node-type="query"
             hide-if-node-type="query_tag"/>
   <menuitem id="placesContext_openLinks:tabs"
-            oncommand="PlacesUIUtils.openSelectionInTabs(event);"
             data-l10n-id="places-open-all-in-tabs"
             selection-type="multiple"
             node-type="link"

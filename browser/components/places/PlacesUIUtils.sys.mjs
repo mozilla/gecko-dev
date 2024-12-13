@@ -1392,7 +1392,7 @@ export var PlacesUIUtils = {
     let menupopup = event.target;
     if (menupopup.id != "placesContext") {
       // Ignore any popupshowing events from submenus
-      return true;
+      return;
     }
 
     PlacesUIUtils.lastContextMenuTriggerNode = menupopup.triggerNode;
@@ -1417,21 +1417,23 @@ export var PlacesUIUtils = {
     let isManaged = !!menupopup.triggerNode.closest("#managed-bookmarks");
     if (isManaged) {
       this.managedPlacesContextShowing(event);
-      return true;
+      return;
     }
     menupopup._view = this.getViewForNode(menupopup.triggerNode);
     if (!menupopup._view) {
       // This can happen if we try to invoke the context menu on
       // an uninitialized places toolbar. Just bail out:
       event.preventDefault();
-      return false;
+      return;
     }
     if (!this.openInTabClosesMenu) {
       menupopup.ownerDocument
         .getElementById("placesContext_open:newtab")
         .setAttribute("closemenu", "single");
     }
-    return menupopup._view.buildContextMenu(menupopup);
+    if (!menupopup._view.buildContextMenu(menupopup)) {
+      event.preventDefault();
+    }
   },
 
   placesContextHiding(event) {
