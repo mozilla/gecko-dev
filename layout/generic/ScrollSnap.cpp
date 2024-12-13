@@ -520,31 +520,25 @@ Maybe<SnapDestination> ScrollSnapUtils::GetSnapPointForDestination(
 
   bool snapped = false;
   auto finalPos = calcSnapPoints.GetBestEdge(aSnapInfo.mSnapportSize);
-
-  // Check whether we will snap to the final position on the given axis or not,
-  // and if we will not, reset the final position to the original position so
-  // that even if we need to snap on an axis, but we don't need to on the other
-  // axis, the returned final position can be used as a valid destination.
-  auto checkSnapOnAxis = [&snapped](StyleScrollSnapStrictness aStrictness,
-                                    nscoord aDestination, nscoord aSnapportSize,
-                                    nscoord& aFinalPosition) {
-    // We used 0.3 proximity threshold which is what WebKit uses.
-    constexpr float proximityRatio = 0.3;
-    if (aStrictness == StyleScrollSnapStrictness::None ||
-        (aStrictness == StyleScrollSnapStrictness::Proximity &&
-         std::abs(aDestination - aFinalPosition) >
-             aSnapportSize * proximityRatio)) {
-      aFinalPosition = aDestination;
-      return;
-    }
+  constexpr float proximityRatio = 0.3;
+  if (aSnapInfo.mScrollSnapStrictnessY ==
+          StyleScrollSnapStrictness::Proximity &&
+      std::abs(aDestination.y - finalPos.mPosition.y) >
+          aSnapInfo.mSnapportSize.height * proximityRatio) {
+    finalPos.mPosition.y = aDestination.y;
+  } else if (aSnapInfo.mScrollSnapStrictnessY !=
+             StyleScrollSnapStrictness::None) {
     snapped = true;
-  };
-
-  checkSnapOnAxis(aSnapInfo.mScrollSnapStrictnessY, aDestination.y,
-                  aSnapInfo.mSnapportSize.height, finalPos.mPosition.y);
-  checkSnapOnAxis(aSnapInfo.mScrollSnapStrictnessX, aDestination.x,
-                  aSnapInfo.mSnapportSize.width, finalPos.mPosition.x);
-
+  }
+  if (aSnapInfo.mScrollSnapStrictnessX ==
+          StyleScrollSnapStrictness::Proximity &&
+      std::abs(aDestination.x - finalPos.mPosition.x) >
+          aSnapInfo.mSnapportSize.width * proximityRatio) {
+    finalPos.mPosition.x = aDestination.x;
+  } else if (aSnapInfo.mScrollSnapStrictnessX !=
+             StyleScrollSnapStrictness::None) {
+    snapped = true;
+  }
   return snapped ? Some(finalPos) : Nothing();
 }
 
