@@ -87,7 +87,7 @@ struct CompiledCode {
   CodeRangeVector codeRanges;
   CallSites callSites;
   CallSiteTargetVector callSiteTargets;
-  TrapSiteVectorArray trapSites;
+  TrapSites trapSites;
   SymbolicAccessVector symbolicAccesses;
   jit::CodeLabelVector codeLabels;
   StackMaps stackMaps;

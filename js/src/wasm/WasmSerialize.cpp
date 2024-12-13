@@ -918,11 +918,22 @@ CoderResult CodeTableDesc(Coder<mode>& coder, CoderArg<mode, TableDesc> item) {
 // WasmCodegenTypes.h
 
 template <CoderMode mode>
-CoderResult CodeTrapSiteVectorArray(Coder<mode>& coder,
-                                    CoderArg<mode, TrapSiteVectorArray> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::TrapSiteVectorArray, 520);
+CoderResult CodeTrapSitesForKind(Coder<mode>& coder,
+                                 CoderArg<mode, TrapSitesForKind> item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::TrapSitesForKind, 520);
+#ifdef DEBUG
+  MOZ_TRY(CodePodVector(coder, &item->machineInsns_));
+#endif
+  MOZ_TRY(CodePodVector(coder, &item->pcOffsets_));
+  MOZ_TRY(CodePodVector(coder, &item->bytecodeOffsets_));
+  return Ok();
+}
+
+template <CoderMode mode>
+CoderResult CodeTrapSites(Coder<mode>& coder, CoderArg<mode, TrapSites> item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::TrapSites, 520);
   for (Trap trap : mozilla::MakeEnumeratedRange(Trap::Limit)) {
-    MOZ_TRY(CodePodVector(coder, &(*item)[trap]));
+    MOZ_TRY(CodeTrapSitesForKind(coder, &item->array_[trap]));
   }
   return Ok();
 }
@@ -1352,7 +1363,7 @@ CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
   MOZ_TRY(CodeFuncToCodeRangeMap(coder, &(*item)->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &(*item)->codeRanges));
   MOZ_TRY(CodeCallSites(coder, &(*item)->callSites));
-  MOZ_TRY(CodeTrapSiteVectorArray(coder, &(*item)->trapSites));
+  MOZ_TRY(CodeTrapSites(coder, &(*item)->trapSites));
   MOZ_TRY(CodePodVector(coder, &(*item)->funcExports));
   MOZ_TRY(CodeStackMaps(coder, &(*item)->stackMaps, (*item)->segment->base()));
   MOZ_TRY(CodePodVector(coder, &(*item)->tryNotes));
@@ -1375,7 +1386,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
   MOZ_TRY(CodeFuncToCodeRangeMap(coder, &item->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &item->codeRanges));
   MOZ_TRY(CodeCallSites(coder, &item->callSites));
-  MOZ_TRY(CodeTrapSiteVectorArray(coder, &item->trapSites));
+  MOZ_TRY(CodeTrapSites(coder, &item->trapSites));
   MOZ_TRY(CodePodVector(coder, &item->funcExports));
   MOZ_TRY(CodeStackMaps(coder, &item->stackMaps, item->segment->base()));
   MOZ_TRY(CodePodVector(coder, &item->tryNotes));

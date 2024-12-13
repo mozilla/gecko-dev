@@ -645,7 +645,7 @@ namespace jit {
 class AssemblerShared {
   wasm::CallSites callSites_;
   wasm::CallSiteTargetVector callSiteTargets_;
-  wasm::TrapSiteVectorArray trapSites_;
+  wasm::TrapSites trapSites_;
   wasm::SymbolicAccessVector symbolicAccesses_;
   wasm::TryNoteVector tryNotes_;
   wasm::CodeRangeUnwindInfoVector codeRangesUnwind_;
@@ -705,7 +705,7 @@ class AssemblerShared {
     enoughMemory_ &= callSiteTargets_.emplaceBack(std::forward<Args>(args)...);
   }
   void append(wasm::Trap trap, wasm::TrapSite site) {
-    enoughMemory_ &= trapSites_[trap].append(site);
+    enoughMemory_ &= trapSites_.append(trap, site);
   }
   void append(const wasm::MemoryAccessDesc& access, wasm::TrapMachineInsn insn,
               FaultingCodeOffset assemblerOffsetOfFaultingMachineInsn) {
@@ -737,7 +737,7 @@ class AssemblerShared {
 
   wasm::CallSites& callSites() { return callSites_; }
   wasm::CallSiteTargetVector& callSiteTargets() { return callSiteTargets_; }
-  wasm::TrapSiteVectorArray& trapSites() { return trapSites_; }
+  wasm::TrapSites& trapSites() { return trapSites_; }
   wasm::SymbolicAccessVector& symbolicAccesses() { return symbolicAccesses_; }
   wasm::TryNoteVector& tryNotes() { return tryNotes_; }
   wasm::CodeRangeUnwindInfoVector& codeRangeUnwindInfos() {
