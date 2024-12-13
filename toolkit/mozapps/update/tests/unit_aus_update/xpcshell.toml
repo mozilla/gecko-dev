@@ -5,7 +5,6 @@ skip-if = ["os == 'win' && (ccov || msix)"] # Our updater is disabled in MSIX bu
 prefs = [
   "app.update.staging.enabled=false",
   "app.update.langpack.enabled=false",
-  "app.update.multiSessionInstallLockout.enabled=false",
 ]
 support-files = [
   "../data/shared.js",
@@ -70,8 +69,6 @@ reason = "Feature is Firefox-specific and Windows-specific."
 skip-if = ["socketprocess_networking"] # Bug 1759035
 
 ["mixedUnsupported.js"]
-
-["multiSessionInstallLockout.js"]
 
 ["multiUpdate.js"]
 skip-if = ["socketprocess_networking"] # Bug 1759035

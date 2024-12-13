@@ -14,11 +14,13 @@ async function run_test() {
   Services.prefs.setBoolPref(PREF_APP_UPDATE_STAGING_ENABLED, false);
   start_httpserver();
   setUpdateURL(gURLData + gHTTPHandlerPath);
-
-  await downloadUpdate({
-    incrementalDownloadErrorType: 0,
-    expectedCheckResult: { updateCount: 1 },
+  initMockIncrementalDownload();
+  gIncrementalDownloadErrorType = 0;
+  let patches = getRemotePatchString({});
+  let updates = getRemoteUpdateString({}, patches);
+  gResponseBody = getRemoteUpdatesXMLString(updates);
+  await waitForUpdateCheck(true, { updateCount: 1 }).then(async aArgs => {
+    await waitForUpdateDownload(aArgs.updates, Cr.NS_OK);
   });
-
   stop_httpserver(doTestFinish);
 }

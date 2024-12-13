@@ -39,6 +39,9 @@ loadHelperScript(scriptFile);
 scriptFile = getTestDataFile("sharedUpdateXML.js");
 loadHelperScript(scriptFile);
 
+const SERVICE_URL = URL_HOST + "/" + REL_PATH_DATA + FILE_SIMPLE_MAR;
+const BAD_SERVICE_URL = URL_HOST + "/" + REL_PATH_DATA + "not_here.mar";
+
 // A value of 10 caused the tests to intermittently fail on Mac OS X so be
 // careful when changing this value.
 const SLOW_RESPONSE_INTERVAL = 100;
@@ -146,16 +149,13 @@ function handleRequest(aRequest, aResponse) {
   let size;
   let patches = "";
   let url = "";
-  let port = params.port ?? URL_DEFAULT_PORT;
   if (params.useSlowDownloadMar) {
-    url = URL_DOMAIN + ":" + port + URL_PATH_UPDATE_XML + "?slowDownloadMar=1";
+    url = URL_HTTP_UPDATE_SJS + "?slowDownloadMar=1";
     if (params.useFirstByteEarly) {
       url += "&amp;firstByteEarly=1";
     }
-  } else if (params.badURL) {
-    url = URL_DOMAIN + ":" + port + "/" + REL_PATH_DATA + "not_here.mar";
   } else {
-    url = URL_DOMAIN + ":" + port + "/" + REL_PATH_DATA + FILE_SIMPLE_MAR;
+    url = params.badURL ? BAD_SERVICE_URL : SERVICE_URL;
   }
   if (!params.partialPatchOnly) {
     size = SIZE_SIMPLE_MAR + (params.invalidCompleteSize ? "1" : "");

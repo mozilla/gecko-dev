@@ -9,14 +9,15 @@ async function run_test() {
   Services.prefs.setBoolPref(PREF_APP_UPDATE_STAGING_ENABLED, false);
   start_httpserver();
   setUpdateURL(gURLData + gHTTPHandlerPath);
+  initMockIncrementalDownload();
+  gIncrementalDownloadErrorType = 0;
   Services.prefs.setIntPref(PREF_APP_UPDATE_SOCKET_MAXERRORS, 2);
   Services.prefs.setIntPref(PREF_APP_UPDATE_RETRYTIMEOUT, 0);
-
-  await downloadUpdate({
-    incrementalDownloadErrorType: 0,
-    expectedCheckResult: { updateCount: 1 },
-    expectedDownloadResult: Cr.NS_ERROR_NET_RESET,
+  let patches = getRemotePatchString({});
+  let updates = getRemoteUpdateString({}, patches);
+  gResponseBody = getRemoteUpdatesXMLString(updates);
+  await waitForUpdateCheck(true, { updateCount: 1 }).then(async aArgs => {
+    await waitForUpdateDownload(aArgs.updates, Cr.NS_ERROR_NET_RESET);
   });
-
   stop_httpserver(doTestFinish);
 }

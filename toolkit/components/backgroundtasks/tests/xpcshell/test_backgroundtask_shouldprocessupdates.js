@@ -17,7 +17,7 @@ add_task(async function test_backgroundtask_shouldprocessupdates() {
   // `shouldprocessupdates` is an updating task, but there is another instance
   // running, so we should not process updates.
   let exitCode = await do_backgroundtask("shouldprocessupdates", {
-    extraArgs: ["--test-should-not-process-updates"],
+    extraArgs: ["--test-process-updates"],
   });
   Assert.equal(80, exitCode);
 
@@ -33,15 +33,13 @@ add_task(async function test_backgroundtask_shouldprocessupdates() {
   // Since we've changed the xpcshell executable name, the background task won't
   // see us and think another instance is running.  This time, there is no
   // reason to not process updates.
-  exitCode = await do_backgroundtask("shouldprocessupdates", {
-    extraArgs: ["--test-should-not-process-updates"],
-  });
+  exitCode = await do_backgroundtask("shouldprocessupdates");
   Assert.equal(81, exitCode);
 
   // `shouldnotprocessupdates` is not a recognized updating task, so we should
   // not process updates.
   exitCode = await do_backgroundtask("shouldnotprocessupdates", {
-    extraArgs: ["--test-should-not-process-updates"],
+    extraArgs: ["--test-process-updates"],
   });
   Assert.equal(78, exitCode);
 });

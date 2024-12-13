@@ -8,16 +8,10 @@
 #  include "commonupdatedir.h"
 #  include "updatehelper.h"
 #  include "certificatecheck.h"
-
-#  include <windows.h>
-
 #  define NS_main wmain
 #  define NS_tgetcwd _wgetcwd
 #  define NS_ttoi _wtoi
 #else
-#  include <sys/types.h>
-#  include <sys/wait.h>
-#  include <time.h>
 #  define NS_main main
 #  define NS_tgetcwd getcwd
 #  define NS_ttoi atoi
@@ -215,7 +209,6 @@ int NS_main(int argc, NS_tchar** argv) {
         "   or: post-update-async\n"
         "   or: post-update-environment\n"
         "   or: create-update-dir\n"
-        "   or: wait-for-pid-exit pid timeout\n"
         "\n"
         "  WORKINGDIR  \tThe relative path to the working directory to use.\n"
         "  INFILE      \tThe relative path from the working directory for the "
@@ -418,37 +411,6 @@ int NS_main(int argc, NS_tchar** argv) {
 #else
     // Not implemented on non-Windows platforms
     return 1;
-#endif
-  }
-
-  if (!NS_tstrcmp(argv[1], NS_T("wait-for-pid-exit"))) {
-    const int pid = NS_ttoi(argv[2]);
-    const int maxWaitSeconds = NS_ttoi(argv[3]);
-
-#ifdef XP_WIN
-    HANDLE process = OpenProcess(SYNCHRONIZE, FALSE, pid);
-    if (process == nullptr) {
-      // Windows reacts to "that process already died" here by calling the pid
-      // an invalid parameter.
-      return GetLastError() == ERROR_INVALID_PARAMETER ? 0 : 2;
-    }
-    DWORD result = WaitForSingleObject(process, maxWaitSeconds * 1000);
-    CloseHandle(process);
-    if (result == WAIT_OBJECT_0) {
-      return 0;
-    } else if (result != WAIT_TIMEOUT) {
-      return 2;
-    }
-    return 1;
-#else
-    time_t endTime = time(nullptr) + maxWaitSeconds;
-    while (waitpid(pid, nullptr, WNOHANG) == 0) {
-      if (time(nullptr) > endTime) {
-        return 1;
-      }
-      sleep(1);
-    }
-    return 0;
 #endif
   }
 

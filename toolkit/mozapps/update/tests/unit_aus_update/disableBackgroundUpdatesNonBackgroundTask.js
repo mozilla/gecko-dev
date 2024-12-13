@@ -20,7 +20,20 @@ function setup() {
 setup();
 
 add_task(async function disableBackgroundUpdatesBackgroundTask() {
-  await downloadUpdate({ updateProps: { disableBackgroundUpdates: "true" } });
+  let patches = getRemotePatchString({});
+  let updateString = getRemoteUpdateString(
+    { disableBackgroundUpdates: "true" },
+    patches
+  );
+  gResponseBody = getRemoteUpdatesXMLString(updateString);
+
+  let { updates } = await waitForUpdateCheck(true);
+
+  initMockIncrementalDownload();
+  gIncrementalDownloadErrorType = 3;
+
+  // This will assert that the download completes successfully.
+  await waitForUpdateDownload(updates, Cr.NS_OK);
 });
 
 add_task(async function finish() {
