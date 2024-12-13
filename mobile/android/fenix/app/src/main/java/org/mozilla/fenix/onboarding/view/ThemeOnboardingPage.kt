@@ -104,6 +104,8 @@ fun ThemeOnboardingPage(
 
                 val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
 
+                applyThemeIfRequired(state.themeOptionSelected)
+
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     themeOptions?.let {
                         ThemeOptions(
@@ -123,11 +125,7 @@ fun ThemeOnboardingPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics { testTag = title + "onboarding_card.positive_button" },
-                    onClick = {
-                        val selectedTheme = onboardingStore.state.themeOptionSelected
-                        applyTheme(selectedTheme)
-                        primaryButton.onClick()
-                    },
+                    onClick = { primaryButton.onClick() },
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -153,7 +151,7 @@ fun ThemeOnboardingPage(
 }
 
 /**
- * Applies the selected theme to the application.
+ * Applies the selected theme to the application if different to the current theme.
  *
  * This function uses [AppCompatDelegate] to change the application's theme
  * based on the user's selection. It supports the following themes:
@@ -165,7 +163,7 @@ fun ThemeOnboardingPage(
  * @param selectedTheme The [ThemeOptionType] selected by the user.
  * This determines which theme to apply.
  */
-fun applyTheme(selectedTheme: ThemeOptionType) {
+fun applyThemeIfRequired(selectedTheme: ThemeOptionType) {
     AppCompatDelegate.setDefaultNightMode(
         when (selectedTheme) {
             ThemeOptionType.THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
