@@ -161,6 +161,45 @@ describe("<CardGrid>", () => {
 
     assert.ok(wrapper.find(".list-feed").exists());
   });
+
+  it("should render AdBanner if enabled", () => {
+    const commonProps = {
+      ...INITIAL_STATE,
+      items: 2,
+      data: { recommendations: [{}, {}] },
+      Prefs: {
+        ...INITIAL_STATE.Prefs,
+        values: {
+          ...INITIAL_STATE.Prefs.values,
+          "newtabAdSize.leaderboard": true,
+          "newtabAdSize.billboard": true,
+        },
+      },
+      DiscoveryStream: {
+        ...INITIAL_STATE.DiscoveryStream,
+        spocs: {
+          ...INITIAL_STATE.DiscoveryStream.spocs,
+          data: {
+            newtab_spocs: {
+              items: [
+                {
+                  format: "leaderboard",
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    wrapper = mount(
+      <WrapWithProvider>
+        <CardGrid {...commonProps} />
+      </WrapWithProvider>
+    );
+
+    assert.ok(wrapper.find(".ad-banner-wrapper").exists());
+  });
 });
 
 // Build IntersectionObserver class with the arg `entries` for the intersect callback.

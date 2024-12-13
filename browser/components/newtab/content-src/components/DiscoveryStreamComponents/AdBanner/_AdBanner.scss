@@ -1,63 +1,80 @@
 .ad-banner-wrapper {
+  --billboard-width: 970px;
+  --billboard-height: 250px;
+  --leaderboard-width: 728px;
+  --leaderboard-height: 90px;
+
   grid-column: 1/-1;
-  margin: 24px 0;
   overflow: hidden;
+  // allow the ad banner to take up full width
+  // of screen rather than card-grid width
+  width: 100vw;
+  margin-inline-start: 50%;
+  transform: translate3d(-50%, 0, 0);
 
-  .ad-banner-dismiss {
-    margin: 10px auto;
-    text-align: end;
-    margin-inline-end: 10px;
+  .ad-banner-inner {
+    margin-inline: auto;
 
-    .icon-dismiss {
-      background-size: 20px;
-      border: 0;
-      cursor: pointer;
-    }
-  }
-
-  .ad-banner-sponsored {
-    margin: 13px auto;
-
-    span {
-      text-transform: uppercase;
-      font-size: var(--font-size-small);
-      color: var(--newtab-contextual-text-secondary-color);
-    }
-  }
-
-  &.leaderboard {
     .ad-banner-dismiss {
-      width: 728px;
+      margin-block: 0 var(--space-small);
+      margin-inline: 0 var(--space-xxsmall);
+      text-align: end;
+
+      .icon-dismiss {
+        background-size: var(--size-item-small);
+        border: 0;
+        cursor: pointer;
+      }
     }
 
-    .ad-banner-content {
-      height: 90px;
-      width: 728px;
-      margin: 0 auto;
+    &.leaderboard {
+      max-width: var(--leaderboard-width);
+
+      .ad-banner-dismiss {
+        width: var(--leaderboard-width);
+      }
+
+      .ad-banner-content {
+        height: var(--leaderboard-height);
+        width: var(--leaderboard-width);
+        margin: 0 auto;
+      }
+
+      .ad-banner-sponsored {
+        width: var(--leaderboard-width);
+      }
+
+      @media (width <= 758px) {
+        display: none;
+      }
+    }
+
+    &.billboard {
+      max-width: var(--billboard-width);
+
+      .ad-banner-content {
+        height: var(--billboard-height);
+        width: var(--billboard-width);
+        margin: 0 auto;
+      }
+
+      .ad-banner-sponsored {
+        width: var(--billboard-width);
+      }
+
+      @media (width <= 1015px) {
+        display: none;
+      }
     }
 
     .ad-banner-sponsored {
-      width: 728px;
-    }
+      margin-block: var(--space-small) 0;
 
-    @media (max-width: $break-point-large) {
-      display: none;
-    }
-  }
-
-  &.billboard {
-    .ad-banner-content {
-      height: 250px;
-      width: 970px;
-      margin: 0 auto;
-    }
-
-    .ad-banner-sponsored {
-      width: 970px;
-    }
-
-    @media (max-width: $break-point-widest) {
-      display: none;
+      span {
+        text-transform: uppercase;
+        font-size: var(--font-size-small);
+        color: var(--newtab-contextual-text-secondary-color);
+      }
     }
   }
 }
