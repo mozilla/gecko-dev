@@ -191,14 +191,12 @@ class NotificationMessageBar extends MozLitElement {
       ${notificationShell({
         onDismiss: this.onDismiss,
         dataL10nId: "passwords-delete-password-success-heading",
-        dataL10nArgs: JSON.stringify(this.notification.l10nArgs),
         dataL10nAttrs: "heading",
         type: "success",
         primaryAction: {
           type: "primary",
           slot: "actions",
           dataL10nId: "passwords-delete-password-success-button",
-          onClick: this.onDismiss,
         },
       })}
     `;

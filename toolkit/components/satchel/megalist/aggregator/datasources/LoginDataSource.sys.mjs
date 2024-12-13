@@ -471,10 +471,6 @@ export class LoginDataSource extends DataSourceBase {
 
     if (confirmed) {
       Services.logins.removeAllLogins();
-      this.setNotification({
-        id: "delete-login-success",
-        l10nArgs: { total },
-      });
     }
   }
 
@@ -686,7 +682,6 @@ export class LoginDataSource extends DataSourceBase {
     Services.logins.removeLogin(logins[0]);
     this.setNotification({
       id: "delete-login-success",
-      l10nArgs: { total: 1 },
       viewMode: VIEW_MODES.LIST,
     });
   }

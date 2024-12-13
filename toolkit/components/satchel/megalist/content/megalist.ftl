@@ -216,14 +216,8 @@ passwords-update-password-success-heading =
   .heading = Password saved
 passwords-update-password-success-button = Done
 
-# Message to confirm successful removal of a password/passwords.
-#   $total (number) - Total number of passwords
 passwords-delete-password-success-heading =
-  .heading =
-    { $total ->
-      [1] Password removed
-      *[other] Passwords removed
-    }
+  .heading = Password removed
 passwords-delete-password-success-button = Done
 #
 # Radiobutton label to display total number of passwords
