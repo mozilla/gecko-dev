@@ -294,7 +294,7 @@ function TargetMixin(parentClass) {
             this._url;
       }
 
-      if (this.isWebExtension || this.isContentProcess) {
+      if (this.isContentProcess) {
         return this.targetForm.name;
       }
       return this.title;
@@ -312,18 +312,6 @@ function TargetMixin(parentClass) {
       // XXX Remove the check on `workerDescriptor` as part of Bug 1667404.
       return (
         this.typeName === "workerTarget" || this.typeName === "workerDescriptor"
-      );
-    }
-
-    // @backward-compat { version 133 } Once 133 is released, this attribute can be removed.
-    // This will never be true anymore. Instead the usage in 'name' getter will be irrelevant
-    // as 'title' served by the backend will be correct for WebExtensions.
-    get isWebExtension() {
-      return !!(
-        this.targetForm &&
-        this.targetForm.actor &&
-        (this.targetForm.actor.match(/conn\d+\.webExtension(Target)?\d+/) ||
-          this.targetForm.actor.match(/child\d+\/webExtension(Target)?\d+/))
       );
     }
 
