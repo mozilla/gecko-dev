@@ -349,11 +349,15 @@ add_task(
 add_task(
   async function test_unauthenticated_browser_use_email_mask_opens_fxa_signin() {
     // We need the configured signup url to set up a mock server to respond to
-    // the proper path value.
+    // the proper path value. Note: this test is effectively hard-coded to the "control" variation
     const fxaSigninUrlString =
       await gFxAccounts.constructor.config.promiseConnectAccountURI(
         "relay_integration",
-        { service: "relay" }
+        {
+          service: "relay",
+          entrypoint_experiment: "first_offer_version",
+          entrypoint_variation: "control",
+        }
       );
     const fxaSigninURL = new URL(fxaSigninUrlString);
     // Now that we have a URL object, we can use its components

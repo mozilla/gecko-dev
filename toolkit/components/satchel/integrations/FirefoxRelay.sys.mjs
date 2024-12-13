@@ -697,6 +697,8 @@ class RelayOffered {
             "relay_integration",
             {
               service: "relay",
+              entrypoint_experiment: "first_offer_version",
+              entrypoint_variation: treatment,
             }
           );
         browser.ownerGlobal.openWebLinkIn(fxaUrl, "tab");
