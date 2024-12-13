@@ -27,10 +27,6 @@ const PREF_LIST_FEED_SELECTED_FEED =
   "discoverystream.contextualContent.selectedFeed";
 const PREF_FAKESPOT_ENABLED =
   "discoverystream.contextualContent.fakespot.enabled";
-const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
-const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
-const PREF_LEADERBOARD_POSITION = "newtabAdSize.billboard.position";
-const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 const INTERSECTION_RATIO = 0.5;
 const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -358,8 +354,6 @@ export class _CardGrid extends React.PureComponent {
     const spocsStartupCacheEnabled = prefs[PREF_SPOCS_STARTUPCACHE_ENABLED];
     const listFeedEnabled = prefs[PREF_LIST_FEED_ENABLED];
     const listFeedSelectedFeed = prefs[PREF_LIST_FEED_SELECTED_FEED];
-    const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
-    const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
     // filter out recs that should be in ListFeed
     const recs = this.props.data.recommendations
       .filter(item => !item.feedName)
@@ -371,61 +365,74 @@ export class _CardGrid extends React.PureComponent {
 
     for (let index = 0; index < items; index++) {
       const rec = recs[index];
-      cards.push(
-        topicsLoading ||
-          !rec ||
-          rec.placeholder ||
-          (rec.flight_id &&
-            !spocsStartupCacheEnabled &&
-            this.props.App.isForStartupCache) ? (
-          <PlaceholderDSCard key={`dscard-${index}`} />
-        ) : (
-          <DSCard
+
+      if (rec?.format === "billboard" || rec?.format === "leaderboard") {
+        cards.push(
+          <AdBanner
+            spoc={rec}
             key={`dscard-${rec.id}`}
-            pos={rec.pos}
-            flightId={rec.flight_id}
-            image_src={rec.image_src}
-            raw_image_src={rec.raw_image_src}
-            word_count={rec.word_count}
-            time_to_read={rec.time_to_read}
-            title={rec.title}
-            topic={rec.topic}
-            showTopics={showTopics}
-            selectedTopics={selectedTopics}
-            availableTopics={availableTopics}
-            excerpt={rec.excerpt}
-            url={rec.url}
-            id={rec.id}
-            shim={rec.shim}
-            fetchTimestamp={rec.fetchTimestamp}
-            type={this.props.type}
-            context={rec.context}
-            sponsor={rec.sponsor}
-            sponsored_by_override={rec.sponsored_by_override}
             dispatch={this.props.dispatch}
-            source={rec.domain}
-            publisher={rec.publisher}
-            pocket_id={rec.pocket_id}
-            context_type={rec.context_type}
-            bookmarkGuid={rec.bookmarkGuid}
-            is_collection={this.props.is_collection}
-            saveToPocketCard={saveToPocketCard}
-            ctaButtonSponsors={ctaButtonSponsors}
-            ctaButtonVariant={ctaButtonVariant}
-            spocMessageVariant={spocMessageVariant}
-            recommendation_id={rec.recommendation_id}
+            type={this.props.type}
             firstVisibleTimestamp={this.props.firstVisibleTimestamp}
-            mayHaveThumbsUpDown={mayHaveThumbsUpDown}
-            mayHaveSectionsCards={mayHaveSectionsCards}
-            corpus_item_id={rec.corpus_item_id}
-            scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
-            recommended_at={rec.recommended_at}
-            received_rank={rec.received_rank}
-            format={rec.format}
-            alt_text={rec.alt_text}
           />
-        )
-      );
+        );
+      } else {
+        cards.push(
+          topicsLoading ||
+            !rec ||
+            rec.placeholder ||
+            (rec.flight_id &&
+              !spocsStartupCacheEnabled &&
+              this.props.App.isForStartupCache) ? (
+            <PlaceholderDSCard key={`dscard-${index}`} />
+          ) : (
+            <DSCard
+              key={`dscard-${rec.id}`}
+              pos={rec.pos}
+              flightId={rec.flight_id}
+              image_src={rec.image_src}
+              raw_image_src={rec.raw_image_src}
+              word_count={rec.word_count}
+              time_to_read={rec.time_to_read}
+              title={rec.title}
+              topic={rec.topic}
+              showTopics={showTopics}
+              selectedTopics={selectedTopics}
+              availableTopics={availableTopics}
+              excerpt={rec.excerpt}
+              url={rec.url}
+              id={rec.id}
+              shim={rec.shim}
+              fetchTimestamp={rec.fetchTimestamp}
+              type={this.props.type}
+              context={rec.context}
+              sponsor={rec.sponsor}
+              sponsored_by_override={rec.sponsored_by_override}
+              dispatch={this.props.dispatch}
+              source={rec.domain}
+              publisher={rec.publisher}
+              pocket_id={rec.pocket_id}
+              context_type={rec.context_type}
+              bookmarkGuid={rec.bookmarkGuid}
+              is_collection={this.props.is_collection}
+              saveToPocketCard={saveToPocketCard}
+              ctaButtonSponsors={ctaButtonSponsors}
+              ctaButtonVariant={ctaButtonVariant}
+              spocMessageVariant={spocMessageVariant}
+              recommendation_id={rec.recommendation_id}
+              firstVisibleTimestamp={this.props.firstVisibleTimestamp}
+              mayHaveThumbsUpDown={mayHaveThumbsUpDown}
+              mayHaveSectionsCards={mayHaveSectionsCards}
+              corpus_item_id={rec.corpus_item_id}
+              scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
+              recommended_at={rec.recommended_at}
+              received_rank={rec.received_rank}
+              format={rec.format}
+              alt_text={rec.alt_text}
+            />
+          )
+        );
+      }
     }
 
     if (widgets?.positions?.length && widgets?.data?.length) {
@@ -475,38 +482,6 @@ export class _CardGrid extends React.PureComponent {
             listFeedSelectedFeed
           )
         );
-      }
-    }
-
-    // if a banner ad is enabled and we have any available, place them in the grid
-    const { spocs } = this.props.DiscoveryStream;
-    if ((billboardEnabled || leaderboardEnabled) && spocs.data.newtab_spocs) {
-      const spocTypes = [
-        billboardEnabled && "billboard",
-        leaderboardEnabled && "leaderboard",
-      ].filter(Boolean);
-      // We need to go through the billboards in `newtab_spocs` because they have been normalized
-      // in DiscoveryStreamFeed on line 1024
-      const bannerSpocs = spocs.data.newtab_spocs.items.filter(({ format }) =>
-        spocTypes.includes(format)
-      );
-      if (bannerSpocs.length) {
-        for (const spoc of bannerSpocs) {
-          const row =
-            spoc.format === "leaderboard"
-              ? prefs[PREF_LEADERBOARD_POSITION]
-              : prefs[PREF_BILLBOARD_POSITION];
-          cards.push(
-            <AdBanner
-              spoc={spoc}
-              key={`dscard-${spoc.id}`}
-              dispatch={this.props.dispatch}
-              type={this.props.type}
-              firstVisibleTimestamp={this.props.firstVisibleTimestamp}
-              row={row}
-            />
-          );
-        }
       }
     }
 

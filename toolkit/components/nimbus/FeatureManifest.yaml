@@ -858,13 +858,6 @@ newtabAdSizingExperiment:
         pref: browser.newtabpage.activity-stream.newtabAdSize.leaderboard
       description: >-
         Leaderboard ad size and UI.
-    leaderboard_position:
-      type: string
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.newtabAdSize.leaderboard.position
-      description: >-
-        Leaderboard row position.
     billboard:
       type: boolean
       setPref:
@@ -872,14 +865,6 @@ newtabAdSizingExperiment:
         pref: browser.newtabpage.activity-stream.newtabAdSize.billboard
       description: >-
         Billboard ad size and UI.
-    billboard_position:
-      type: string
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.newtabAdSize.billboard.position
-      description: >-
-        Billboard row position.
-
 newtabLayoutExperiment:
   description: >-
     Change the default layout of new tab by adjusting sizes and spacing of elements.
