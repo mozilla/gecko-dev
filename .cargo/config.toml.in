@@ -5,9 +5,9 @@
 [source.crates-io]
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/FirefoxGraphics/aa-stroke?rev=35a650261605662795a04cc249c465436cbfab45"]
+[source."git+https://github.com/FirefoxGraphics/aa-stroke?rev=c985e1baf196b489a8151de29b8f8ee4a77246ab"]
 git = "https://github.com/FirefoxGraphics/aa-stroke"
-rev = "35a650261605662795a04cc249c465436cbfab45"
+rev = "c985e1baf196b489a8151de29b8f8ee4a77246ab"
 replace-with = "vendored-sources"
 
 [source."git+https://github.com/FirefoxGraphics/wpf-gpu-raster?rev=99979da091fd58fba8477e7fcdf5ec0727102916"]
