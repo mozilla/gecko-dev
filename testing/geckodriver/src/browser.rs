@@ -99,7 +99,7 @@ pub(crate) struct LocalBrowser {
     marionette_port: u16,
     prefs_backup: Option<PrefsBackup>,
     process: FirefoxProcess,
-    profile_path: Option<PathBuf>,
+    pub(crate) profile_path: Option<PathBuf>,
 }
 
 impl LocalBrowser {
