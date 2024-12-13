@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-11-27T20:12:45.410423+00:00'
+updated_at: '2024-12-13T13:27:25.205577+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -345,6 +345,10 @@ people:
     bmo_id: 5842
     name: Masatoshi Kimura
     nick: emk
+  - &emz
+    bmo_id: 636491
+    name: Emma Zühlcke
+    nick: emz
   - &enndeakin
     bmo_id: 6102
     name: Neil Deakin
@@ -870,10 +874,6 @@ people:
     bmo_id: 595166
     name: Paul Bone
     nick: pbone
-  - &pbz
-    bmo_id: 636491
-    name: Paul Zühlcke
-    nick: pbz
   - &pdahiya
     bmo_id: 471708
     name: Punam Dahiya
@@ -1270,7 +1270,7 @@ modules:
     peers:
       - *bvandersloot
       - *dimi
-      - *pbz
+      - *emz
     machine_name: core_antitracking
 
   - name: 'Core: APZ (Graphics submodule)'
@@ -1457,7 +1457,7 @@ modules:
       - *valentin
     peers:
       - *edgul
-      - *pbz
+      - *emz
       - *tschuster
     machine_name: core_cookies
 
@@ -1501,7 +1501,7 @@ modules:
       - *jschanck
     peers:
       - *timhuang
-      - *pbz
+      - *emz
     meta:
       group: dev-platform
       components:
@@ -2502,7 +2502,7 @@ modules:
     owners:
       - *timhuang
     peers:
-      - *pbz
+      - *emz
     machine_name: core_permissions
 
   - name: 'Core: Plugins'
@@ -3789,7 +3789,7 @@ modules:
             - Firefox::Site Identity
             - Firefox::Site Permissions
         owners:
-          - *pbz
+          - *emz
         machine_name: security_and_privacy_ui
 
       - name: Session Restore
@@ -4526,5 +4526,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: a5d1281d126f408849634168889426c5d3ce022d
-  export: dc21ddd81a6b2585f65723029ea684853b6f32fa
+  config: 47203670aa6060cfd7790c4bbf1ef02ff80d49b7
+  export: faee9ad768d4c2fb9d5672b4089e0dd157049838
