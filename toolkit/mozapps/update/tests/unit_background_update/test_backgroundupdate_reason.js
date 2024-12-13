@@ -21,7 +21,7 @@ add_setup(async function test_setup() {
 
   // We need to initialize it once, otherwise operations will be stuck in the
   // pre-init queue.
-  Services.fog.initializeFOG();
+  Services.fog.initializeFOG(undefined, "firefox.desktop.background.update");
 });
 
 // Because we want to use the keys from REASON as strings and send these with
