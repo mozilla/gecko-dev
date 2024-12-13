@@ -123,6 +123,10 @@ const MSG_SHOULD_EQUAL = " should equal the expected value";
 const MSG_SHOULD_EXIST = "the file or directory should exist";
 const MSG_SHOULD_NOT_EXIST = "the file or directory should not exist";
 
+const CONTINUE_CHECK = "continueCheck";
+const CONTINUE_DOWNLOAD = "continueDownload";
+const CONTINUE_STAGING = "continueStaging";
+
 // Time in seconds the helper application should sleep before exiting. The
 // helper can also be made to exit by writing |finish| to its input file.
 const HELPER_SLEEP_TIMEOUT = 180;
@@ -145,6 +149,10 @@ var gTestID;
 var gURLData = URL_HOST + "/";
 var gTestserver;
 var gUpdateCheckCount = 0;
+
+const REL_PATH_DATA = "";
+const APP_UPDATE_SJS_HOST = "http://127.0.0.1";
+const APP_UPDATE_SJS_PATH = "/" + REL_PATH_DATA + "app_update.sjs";
 
 var gIncrementalDownloadErrorType;
 
@@ -4423,7 +4431,7 @@ async function waitForUpdateCheck(aSuccess, aExpectedValues = {}) {
  */
 async function waitForUpdateDownload(aUpdates, aExpectedStatus) {
   let bestUpdate = await gAUS.selectUpdate(aUpdates);
-  let result = await gAUS.downloadUpdate(bestUpdate, false);
+  let result = await gAUS.downloadUpdate(bestUpdate);
   if (result != Ci.nsIApplicationUpdateService.DOWNLOAD_SUCCESS) {
     do_throw("nsIApplicationUpdateService:downloadUpdate returned " + result);
   }
@@ -4447,6 +4455,59 @@ async function waitForUpdateDownload(aUpdates, aExpectedStatus) {
       ]),
     })
   );
+}
+
+/**
+ * Starts an update server to serve SJS scripts.
+ *
+ * A `registerCleanupFunction` call is made in this function to shut the server
+ * down at the end of the test.
+ *
+ * Note that this serves a different purpose from from `start_httpserver`,
+ * below. That server uses the very basic `pathHandler` handler, which basically
+ * just serves whatever is in `gResponseBody`. This, in theory, serves arbitrary
+ * SJS scripts. In practice, however, this is basically used to serve
+ * `toolkit/mozapps/update/tests/data/app_update.sjs` to act as a rudimentary
+ * update server.
+ *
+ * @param  options
+ *         This function takes an optional options object that may include the
+ *         following properties:
+ *           onRequest
+ *             If specified, this function will be called when the server
+ *             handles a request. When invoked, it will be provided with a
+ *             argument: the connection object.
+ * @returns server
+ *          The server that was started.
+ */
+function startSjsServer({ onResponse } = {}) {
+  let { HttpServer } = ChromeUtils.importESModule(
+    "resource://testing-common/httpd.sys.mjs"
+  );
+  const server = new HttpServer();
+
+  server.registerContentType("sjs", "sjs");
+  server.registerDirectory("/", do_get_cwd());
+
+  if (onResponse) {
+    const origHandler = server._handler;
+    server._handler = {
+      handleResponse: connection => {
+        onResponse(connection);
+        return origHandler.handleResponse(connection);
+      },
+    };
+  }
+
+  server.start(-1);
+  let port = server.identity.primaryPort;
+  // eslint-disable-next-line no-global-assign
+  gURLData =
+    APP_UPDATE_SJS_HOST + ":" + port + APP_UPDATE_SJS_PATH + "?port=" + port;
+
+  registerCleanupFunction(resolve => server.stop(resolve));
+
+  return server;
 }
 
 /**
@@ -5190,13 +5251,11 @@ function setUpdateSettingsUseWrongChannel() {
 }
 
 class DownloadHeadersTest {
-  #httpServer = null;
   // Collect requests to inspect header and query parameters.
   #requests = [];
 
   get updateUrl() {
-    // Port must match URL_HOST.
-    return `http://127.0.0.1:${8888}/app_update.sjs?appVersion=999000.0`;
+    return `${gURLData}&appVersion=999000.0`;
   }
 
   async #downloadUpdate() {
@@ -5214,31 +5273,14 @@ class DownloadHeadersTest {
   }
 
   startUpdateServer() {
-    let { HttpServer } = ChromeUtils.importESModule(
-      "resource://testing-common/httpd.sys.mjs"
-    );
-    this.#httpServer = new HttpServer();
-
-    this.#httpServer.registerContentType("sjs", "sjs");
-    this.#httpServer.registerDirectory("/", do_get_cwd());
-
-    // Keep requests around for future inspection.
-    let origHandler = this.#httpServer._handler;
-    this.#httpServer._handler = {
-      // N.b.: fat arrow function captures `this` for `this.#requests` below.
-      handleResponse: connection => {
+    startSjsServer({
+      onResponse: connection => {
         if (connection.request.method.toUpperCase() !== "HEAD") {
           // Windows BITS sends HEAD requests.  Ignore them.
           this.#requests.push(connection.request);
         }
-        return origHandler.handleResponse(connection);
       },
-    };
-
-    // Port must match URL_HOST.
-    this.#httpServer.start(8888);
-
-    registerCleanupFunction(resolve => this.#httpServer.stop(resolve));
+    });
   }
 
   /**
@@ -5499,5 +5541,195 @@ const EXIT_CODE = ${JSON.stringify(TestUpdateMutexCrossProcess.EXIT_CODE)};
   async release() {
     await this.#proc.kill();
     this.#proc = null;
+  }
+}
+
+/**
+ * Checks for updates and waits for the update to download.
+ *
+ * By default, this downloads an update much as `AppUpdater` would: by
+ * instantiating and update checker object and then calling `gAUS.selectUpdate`
+ * and `gAUS.downloadUpdate`. If `checkWithAUS` is specified, we instead do more
+ * of a background update check would do and use
+ * `gAUS.checkForBackgroundUpdates`.
+ *
+ * @param  options
+ *         An optional object can be specified with these properties:
+ *           appUpdateAuto
+ *             Defaults to `true`. If `false`, this exercises the flow for
+ *             downloading with automatic update disabled and asserts that we
+ *             got a `show-prompt` update notification signal.
+ *           checkWithAUS
+ *             If `true`, we will check for updates via the application update
+ *             service (like background update would) rather than by
+ *             instantiating an update checker (like AppUpdater would), which is
+ *             the default.
+ *           expectDownloadRestriction
+ *             If `true`, this function expects that we'll hit a download
+ *             restriction rather than successfully completing the download.
+ *           expectedCheckResult
+ *             If specified, this should be an object with either or both keys
+ *             `updateCount` and `url`, which will be checked asserted to be the
+ *             values returned by the update check.
+ *           expectedDownloadResult
+ *             This function asserts that the download should finish with this
+ *             result. Defaults to `NS_OK`.
+ *           incrementalDownloadErrorType
+ *             This can be used to specify an alternate value of
+ *             `gIncrementalDownloadErrorType`. The default value is `3`, which
+ *             corresponds to `NS_OK`.
+ *           onDownloadStartCallback
+ *             If provided, this callback will be invoked once during the update
+ *             download, specifically when `onStartRequest` is fired. Note that
+ *             in order to use this feature, `slowDownload` must be specified.
+ *           slowDownload
+ *             Set this to `true` to indicate that the update URL specified
+ *             `useSlowDownloadMar=1&useFirstByteEarly=1`. In this case, this
+ *             function will call `continueFileHandler(CONTINUE_DOWNLOAD)` in
+ *             order to trigger that the update download should proceed.
+ *           updateProps
+ *             An object containing non default test values for an nsIUpdate.
+ */
+async function downloadUpdate({
+  appUpdateAuto = true,
+  checkWithAUS,
+  expectDownloadRestriction,
+  expectedCheckResult,
+  expectedDownloadResult = Cr.NS_OK,
+  incrementalDownloadErrorType = 3,
+  onDownloadStartCallback,
+  slowDownload,
+  updateProps = {},
+} = {}) {
+  let downloadFinishedPromise;
+  if (expectDownloadRestriction) {
+    downloadFinishedPromise = new Promise(resolve => {
+      let downloadRestrictionHitListener = (subject, topic) => {
+        Services.obs.removeObserver(downloadRestrictionHitListener, topic);
+        resolve();
+      };
+      Services.obs.addObserver(
+        downloadRestrictionHitListener,
+        "update-download-restriction-hit"
+      );
+    });
+  } else {
+    downloadFinishedPromise = new Promise(resolve =>
+      gAUS.addDownloadListener({
+        onStartRequest: _aRequest => {},
+        onProgress: (_aRequest, _aContext, _aProgress, _aMaxProgress) => {},
+        onStatus: (_aRequest, _aStatus, _aStatusText) => {},
+        onStopRequest(request, status) {
+          gAUS.removeDownloadListener(this);
+          resolve({ status });
+        },
+        QueryInterface: ChromeUtils.generateQI([
+          "nsIRequestObserver",
+          "nsIProgressEventSink",
+        ]),
+      })
+    );
+  }
+
+  let updateAvailablePromise;
+  if (!appUpdateAuto) {
+    updateAvailablePromise = new Promise(resolve => {
+      let observer = (subject, topic, status) => {
+        Services.obs.removeObserver(observer, "update-available");
+        subject.QueryInterface(Ci.nsIUpdate);
+        resolve({ update: subject, status });
+      };
+      Services.obs.addObserver(observer, "update-available");
+    });
+  }
+
+  let waitToStartPromise;
+  if (onDownloadStartCallback) {
+    waitToStartPromise = new Promise(resolve => {
+      let listener = {
+        onStartRequest: async _aRequest => {
+          gAUS.removeDownloadListener(listener);
+          await onDownloadStartCallback();
+          resolve();
+        },
+        onProgress: (_aRequest, _aContext, _aProgress, _aMaxProgress) => {},
+        onStatus: (_aRequest, _aStatus, _aStatusText) => {},
+        onStopRequest(_request, _status) {},
+        QueryInterface: ChromeUtils.generateQI([
+          "nsIRequestObserver",
+          "nsIProgressEventSink",
+        ]),
+      };
+      gAUS.addDownloadListener(listener);
+    });
+  }
+
+  let update;
+  if (checkWithAUS) {
+    const updateCheckStarted = await gAUS.checkForBackgroundUpdates();
+    Assert.ok(updateCheckStarted, "Update check should have started");
+  } else {
+    const patches = getRemotePatchString({});
+    const updateString = getRemoteUpdateString(updateProps, patches);
+    gResponseBody = getRemoteUpdatesXMLString(updateString);
+
+    const { updates } = await waitForUpdateCheck(true, expectedCheckResult);
+
+    initMockIncrementalDownload();
+    gIncrementalDownloadErrorType = incrementalDownloadErrorType;
+
+    update = await gAUS.selectUpdate(updates);
+  }
+
+  if (!appUpdateAuto) {
+    const result = await updateAvailablePromise;
+    Assert.equal(
+      result.status,
+      "show-prompt",
+      "Should attempt to show the update-available prompt"
+    );
+    update = result.update;
+  }
+
+  // The only case where we don't call `downloadUpdate` is the
+  // `checkWithAUS && appUpdateAuto` case. If we are checking like `AppUpdater`
+  // would, that is just the next step in the download process. If we are
+  // checking via an AUS background update without automatic updates enabled,
+  // `downloadUpdate` is what we call in `UpdateListener` to signal that the
+  // user has given permission to update.
+  if (!checkWithAUS || !appUpdateAuto) {
+    const result = await gAUS.downloadUpdate(update);
+    Assert.equal(
+      result,
+      Ci.nsIApplicationUpdateService.DOWNLOAD_SUCCESS,
+      "nsIApplicationUpdateService:downloadUpdate should succeed"
+    );
+  }
+
+  if (waitToStartPromise) {
+    logTestInfo("Waiting for the download to start");
+    await waitToStartPromise;
+    logTestInfo("Download started");
+  }
+
+  if (slowDownload) {
+    await continueFileHandler(CONTINUE_DOWNLOAD);
+  }
+
+  logTestInfo("Waiting for the download to finish");
+  const result = await downloadFinishedPromise;
+
+  if (!expectDownloadRestriction) {
+    Assert.equal(
+      result.status,
+      expectedDownloadResult,
+      "The download should have the expected status"
+    );
+
+    // Wait an extra tick after the download has finished. If we try to check for
+    // another update exactly when our `onStopRequest` callback fires,
+    // `Downloader:onStopRequest` won't have finished yet and this function
+    // ought to resolve only after the entire download process has completed.
+    await TestUtils.waitForTick();
   }
 }
