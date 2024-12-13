@@ -968,12 +968,6 @@ var SidebarController = {
     };
     let fromRects = getRects();
 
-    if (this.sidebarRevampVisibility === "hide-sidebar") {
-      this._state.toggle("launcherVisible");
-    } else {
-      this._state.toggle("launcherExpanded");
-    }
-
     // We need to wait for rAF for lit to re-render, and us to get the final
     // width. This is a bit unfortunate but alas...
     let toRects = await new Promise(resolve => {
@@ -1078,11 +1072,8 @@ var SidebarController = {
   async handleToolbarButtonClick() {
     if (this._animationEnabled && !window.gReduceMotion) {
       this._animateSidebarMain();
-    } else if (this.sidebarRevampVisibility === "hide-sidebar") {
-      this._state.toggle("launcherVisible");
-    } else {
-      this._state.toggle("launcherExpanded");
     }
+    this._state.updateVisibility(!this._state.launcherVisible, true);
   },
 
   /**
@@ -1817,6 +1808,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
       SidebarController.updateToolbarButton();
       SidebarController.recordVisibilitySetting(newValue);
       SidebarController._state.revampVisibility = newValue;
+      SidebarController._state.updateVisibility(newValue != "hide-sidebar");
     }
   }
 );

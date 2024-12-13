@@ -46,6 +46,7 @@ export class SidebarState {
     expandedLauncherWidth: undefined,
   };
   #previousExpandedState = false;
+  #previousLauncherVisible = undefined;
 
   /**
    * Construct a new SidebarState.
@@ -170,6 +171,7 @@ export class SidebarState {
     this.#props.panelOpen = open;
     if (open) {
       // Launcher must be visible to open a panel.
+      this.#previousLauncherVisible = this.launcherVisible;
       this.launcherVisible = true;
 
       // Whenever a panel is shown, the sidebar is collapsed. Upon hiding
@@ -178,9 +180,10 @@ export class SidebarState {
       this.#previousExpandedState = this.launcherExpanded;
       this.launcherExpanded = false;
     } else if (this.revampVisibility === "hide-sidebar") {
-      // When visibility is set to "Hide Sidebar", we always want to revert
-      // back to an expanded state.
-      this.launcherExpanded = true;
+      // When visibility is set to "Hide Sidebar", revert back to an expanded state except
+      // when a panel was opened via keyboard shortcut and the launcher was previously hidden.
+      this.launcherExpanded = this.#previousLauncherVisible;
+      this.launcherVisible = this.#previousLauncherVisible;
     } else {
       this.launcherExpanded = this.#previousExpandedState;
     }
@@ -199,6 +202,30 @@ export class SidebarState {
     return this.#props.launcherVisible;
   }
 
+  updateVisibility(visible, openedByToolbarButton = false) {
+    switch (this.revampVisibility) {
+      case "hide-sidebar":
+        if (!openedByToolbarButton && !visible && this.panelOpen) {
+          // no-op to handle the case when a user changes the visibility setting via the
+          // customize panel, we don't want to close anything on them.
+          return;
+        }
+        // we need this set to true to ensure it has the correct state when toggling the sidebar button
+        this.launcherExpanded = true;
+
+        if (!visible && this.panelOpen) {
+          // Hiding the launcher should also close out any open panels and resets panelOpen
+          this.#controller.hide();
+        }
+        this.launcherVisible = visible;
+        break;
+      case "always-show":
+        this.launcherVisible = true;
+        this.launcherExpanded = !this.launcherExpanded;
+        break;
+    }
+  }
+
   set launcherVisible(visible) {
     if (!this.revampEnabled) {
       // Launcher not supported in legacy sidebar.
@@ -208,15 +235,6 @@ export class SidebarState {
     }
     this.#props.launcherVisible = visible;
     this.#launcherContainerEl.hidden = !visible;
-    if (!visible && this.panelOpen) {
-      // Hiding the launcher should also close out any open panels.
-      this.#controller.hide();
-    }
-    if (visible && !this.panelOpen && this.revampVisibility == "hide-sidebar") {
-      // When using "Show and hide sidebar", the launcher is always expanded,
-      // unless there is currently a panel open.
-      this.launcherExpanded = true;
-    }
     this.#updateTabbrowser(visible);
   }
 

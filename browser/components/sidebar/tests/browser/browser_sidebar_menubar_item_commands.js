@@ -17,6 +17,11 @@ add_setup(async () => {
   });
 });
 
+/**
+ * Check that with the revamped sidebar, a panel that was opened when
+ * the launcher was hidden (via keyboard shortcut) will preserve the visibility
+ * when the panel is closed.
+ */
 add_task(async function test_sidebar_view_commands() {
   const sidebar = document.querySelector("sidebar-main");
   const sidebarBox = document.querySelector("#sidebar-box");
@@ -43,13 +48,13 @@ add_task(async function test_sidebar_view_commands() {
 
   SidebarController.toggle(SidebarController.currentID);
   await sidebar.updateComplete;
-  ok(BrowserTestUtils.isVisible(sidebar), "Sidebar is visible");
-  ok(sidebar.expanded, "Sidebar is expanded when the view is closed");
+  ok(BrowserTestUtils.isHidden(sidebar), "Sidebar is hidden");
+  ok(!sidebar.expanded, "Sidebar is not expanded when the view is closed");
   ok(BrowserTestUtils.isHidden(sidebarBox), "Sidebar box is hidden");
 
   document.getElementById("sidebar-button").doCommand();
   await sidebar.updateComplete;
-  ok(BrowserTestUtils.isHidden(sidebar), "Sidebar is hidden.");
+  ok(BrowserTestUtils.isVisible(sidebar), "Sidebar is visible again.");
   ok(BrowserTestUtils.isHidden(sidebarBox), "Sidebar box is hidden.");
 
   // restore the animation pref
