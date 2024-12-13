@@ -1372,6 +1372,9 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     }
 
     private fun showCrashReporter() {
+        if (!settings().useNewCrashReporterDialog) {
+            return
+        }
         UnsubmittedCrashDialog(
             dispatcher = { action -> components.appStore.dispatch(AppAction.CrashActionWrapper(action)) },
         ).show(supportFragmentManager, UnsubmittedCrashDialog.TAG)
