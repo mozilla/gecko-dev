@@ -5297,6 +5297,17 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   CrashReporter::RecordAnnotationBool(
       CrashReporter::Annotation::StartupCacheValid, cachesOK && versionOK);
 
+#if defined(MOZ_UPDATER) && !defined(MOZ_WIDGET_ANDROID)
+  if (shouldNotProcessUpdatesReason) {
+    nsDependentCString skipStartupReason(ShouldNotProcessUpdatesReasonAsString(
+        shouldNotProcessUpdatesReason.value()));
+    mozilla::glean::update::skip_startup_update_reason.Get(skipStartupReason)
+        .Add(1);
+  } else {
+    mozilla::glean::update::skip_startup_update_reason.Get("none"_ns).Add(1);
+  }
+#endif
+
   // Every time a profile is loaded by a build with a different version,
   // it updates the compatibility.ini file saying what version last wrote
   // the fastload caches.  On subsequent launches if the version matches,
