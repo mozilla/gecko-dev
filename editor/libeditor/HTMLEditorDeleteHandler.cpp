@@ -1309,24 +1309,6 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleDeleteSelection(
                          "AutoDeleteRangesHandler::Run() failed");
     return result;
   }
-
-  // XXX At here, selection may have no range because of mutation event
-  //     listeners can do anything so that we should just return NS_OK instead
-  //     of returning error.
-  const auto atNewStartOfSelection =
-      GetFirstSelectionStartPoint<EditorDOMPoint>();
-  if (NS_WARN_IF(!atNewStartOfSelection.IsSet())) {
-    return Err(NS_ERROR_FAILURE);
-  }
-  if (atNewStartOfSelection.IsInContentNode()) {
-    nsresult rv = DeleteMostAncestorMailCiteElementIfEmpty(
-        MOZ_KnownLive(*atNewStartOfSelection.ContainerAs<nsIContent>()));
-    if (NS_FAILED(rv)) {
-      NS_WARNING(
-          "HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty() failed");
-      return Err(rv);
-    }
-  }
   return EditActionResult::HandledResult();
 }
 
@@ -1348,10 +1330,6 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteRangesWithTransaction(
 
   const bool isDeleteSelection =
       GetTopLevelEditSubAction() == EditSubAction::eDeleteSelectedContent;
-  if (!isDeleteSelection && aStripWrappers != nsIEditor::eStrip) {
-    return result;
-  }
-
   EditorDOMPoint pointToPutCaret = result.unwrap().UnwrapCaretPoint();
   {
     AutoTrackDOMPoint trackCaretPoint(RangeUpdaterRef(), &pointToPutCaret);
@@ -1366,7 +1344,8 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteRangesWithTransaction(
       EditorDOMPoint pointToInsertLineBreak(range->StartRef());
       // Don't remove empty inline elements in the plaintext-only mode because
       // nobody can restore the style again.
-      if (!editingHost->IsContentEditablePlainTextOnly()) {
+      if (aStripWrappers == nsIEditor::eStrip &&
+          !editingHost->IsContentEditablePlainTextOnly()) {
         const OwningNonNull<nsIContent> maybeEmptyContent =
             *pointToInsertLineBreak.ContainerAs<nsIContent>();
         Result<CaretPoint, nsresult> caretPointOrError =
@@ -1388,6 +1367,24 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteRangesWithTransaction(
           continue;
         }
       }
+
+      if ((IsMailEditor() || IsPlaintextMailComposer()) &&
+          MOZ_LIKELY(pointToInsertLineBreak.IsInContentNode())) {
+        AutoTrackDOMPoint trackPointToInsertLineBreak(RangeUpdaterRef(),
+                                                      &pointToInsertLineBreak);
+        nsresult rv = DeleteMostAncestorMailCiteElementIfEmpty(
+            MOZ_KnownLive(*pointToInsertLineBreak.ContainerAs<nsIContent>()));
+        if (NS_FAILED(rv)) {
+          NS_WARNING(
+              "HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty() failed");
+          return Err(rv);
+        }
+        trackPointToInsertLineBreak.FlushAndStopTracking();
+        if (NS_WARN_IF(!pointToInsertLineBreak.IsSetAndValidInComposedDoc())) {
+          continue;
+        }
+      }
+
       if (isDeleteSelection) {
         Result<CreateElementResult, nsresult> insertPaddingBRResult =
             InsertPaddingBRElementIfNeeded(
@@ -2394,10 +2391,11 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     NS_WARNING("There was no selection range");
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
-  if (aHTMLEditor.GetTopLevelEditSubAction() ==
-      EditSubAction::eDeleteSelectedContent) {
-    AutoTrackDOMPoint trackCaretPoint(aHTMLEditor.RangeUpdaterRef(),
-                                      &pointToPutCaret);
+  const bool isDeleteSelection = aHTMLEditor.GetTopLevelEditSubAction() ==
+                                 EditSubAction::eDeleteSelectedContent;
+  AutoTrackDOMPoint trackCaretPoint(aHTMLEditor.RangeUpdaterRef(),
+                                    &pointToPutCaret);
+  if (isDeleteSelection) {
     // Don't remove empty inline elements in the plaintext-only mode because
     // nobody can restore the style again.
     if (MOZ_LIKELY(newCaretPosition.IsInContentNode()) &&
@@ -2417,6 +2415,24 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
         return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
       }
     }
+  }
+  if ((aHTMLEditor.IsMailEditor() || aHTMLEditor.IsPlaintextMailComposer()) &&
+      MOZ_LIKELY(newCaretPosition.IsInContentNode())) {
+    AutoTrackDOMPoint trackNewCaretPosition(aHTMLEditor.RangeUpdaterRef(),
+                                            &newCaretPosition);
+    nsresult rv = aHTMLEditor.DeleteMostAncestorMailCiteElementIfEmpty(
+        MOZ_KnownLive(*newCaretPosition.ContainerAs<nsIContent>()));
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty() failed");
+      return Err(rv);
+    }
+    trackNewCaretPosition.FlushAndStopTracking();
+    if (NS_WARN_IF(!newCaretPosition.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+  }
+  if (isDeleteSelection) {
     Result<CreateElementResult, nsresult> insertPaddingBRResult =
         aHTMLEditor.InsertPaddingBRElementIfNeeded(
             newCaretPosition,
@@ -2435,6 +2451,7 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
       insertPaddingBRResult.unwrap().IgnoreCaretPointSuggestion();
     }
   }
+  trackCaretPoint.FlushAndStopTracking();
   return CaretPoint(std::move(pointToPutCaret));
 }
 
@@ -2579,8 +2596,9 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
   //     that we should use EditorDOMPoint::AtEndOf(visibleTextNode)
   //     instead.  (Perhaps, we don't and/or shouldn't need to do this
   //     if the text node is preformatted.)
-  if (aHTMLEditor.GetTopLevelEditSubAction() ==
-      EditSubAction::eDeleteSelectedContent) {
+  const bool isDeleteSelection = aHTMLEditor.GetTopLevelEditSubAction() ==
+                                 EditSubAction::eDeleteSelectedContent;
+  if (isDeleteSelection) {
     // Don't remove empty inline elements in the plaintext-only mode because
     // nobody can restore the style again.
     if (MOZ_LIKELY(pointToPutCaret.IsInContentNode()) &&
@@ -2603,6 +2621,26 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
         return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
       }
     }
+  }
+
+  if ((aHTMLEditor.IsMailEditor() || aHTMLEditor.IsPlaintextMailComposer()) &&
+      MOZ_LIKELY(pointToPutCaret.IsInContentNode())) {
+    AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
+                                           &pointToPutCaret);
+    nsresult rv = aHTMLEditor.DeleteMostAncestorMailCiteElementIfEmpty(
+        MOZ_KnownLive(*pointToPutCaret.ContainerAs<nsIContent>()));
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty() failed");
+      return Err(rv);
+    }
+    trackPointToPutCaret.FlushAndStopTracking();
+    if (NS_WARN_IF(!pointToPutCaret.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+  }
+
+  if (isDeleteSelection) {
     AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
                                            &pointToPutCaret);
     Result<CreateElementResult, nsresult> insertPaddingBRResult =
@@ -2727,6 +2765,23 @@ HTMLEditor::AutoDeleteRangesHandler::HandleDeleteAtomicContent(
   }
   if (NS_WARN_IF(!pointToPutCaret.IsSet())) {
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+  }
+
+  if ((aHTMLEditor.IsMailEditor() || aHTMLEditor.IsPlaintextMailComposer()) &&
+      MOZ_LIKELY(pointToPutCaret.IsInContentNode())) {
+    AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
+                                           &pointToPutCaret);
+    nsresult rv = aHTMLEditor.DeleteMostAncestorMailCiteElementIfEmpty(
+        MOZ_KnownLive(*pointToPutCaret.ContainerAs<nsIContent>()));
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty() failed");
+      return Err(rv);
+    }
+    trackPointToPutCaret.FlushAndStopTracking();
+    if (NS_WARN_IF(!pointToPutCaret.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
   }
 
   if (aHTMLEditor.GetTopLevelEditSubAction() ==
@@ -3721,6 +3776,22 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
       trackCaretPoint.FlushAndStopTracking();
       caretPointOrError.unwrap().MoveCaretPointTo(
           pointToPutCaret, {SuggestCaret::OnlyIfHasSuggestion});
+    }
+    if ((aHTMLEditor.IsMailEditor() || aHTMLEditor.IsPlaintextMailComposer()) &&
+        MOZ_LIKELY(pointToPutCaret.IsInContentNode())) {
+      AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
+                                             &pointToPutCaret);
+      nsresult rv = aHTMLEditor.DeleteMostAncestorMailCiteElementIfEmpty(
+          MOZ_KnownLive(*pointToPutCaret.ContainerAs<nsIContent>()));
+      if (NS_FAILED(rv)) {
+        NS_WARNING(
+            "HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty() failed");
+        return Err(rv);
+      }
+      trackPointToPutCaret.FlushAndStopTracking();
+      if (NS_WARN_IF(!pointToPutCaret.IsSetAndValidInComposedDoc())) {
+        return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+      }
     }
     if (aHTMLEditor.GetTopLevelEditSubAction() ==
             EditSubAction::eDeleteSelectedContent &&
@@ -5255,6 +5326,39 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
   }();
   MOZ_ASSERT(pointToPutCaret.IsSetAndValidInComposedDoc());
 
+  {
+    AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
+                                           &pointToPutCaret);
+    EditorDOMRange range(aRangeToDelete);
+    nsresult rv = mDeleteRangesHandler->DeleteUnnecessaryNodes(
+        aHTMLEditor, range, aEditingHost);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("AutoDeleteRangesHandler::DeleteUnnecessaryNodes() failed");
+      return Err(rv);
+    }
+    trackPointToPutCaret.FlushAndStopTracking();
+    if (NS_WARN_IF(!pointToPutCaret.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+  }
+
+  if (aHTMLEditor.IsMailEditor() &&
+      MOZ_LIKELY(pointToPutCaret.IsInContentNode())) {
+    AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
+                                           &pointToPutCaret);
+    nsresult rv = aHTMLEditor.DeleteMostAncestorMailCiteElementIfEmpty(
+        MOZ_KnownLive(*pointToPutCaret.ContainerAs<nsIContent>()));
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty() failed");
+      return Err(rv);
+    }
+    trackPointToPutCaret.FlushAndStopTracking();
+    if (NS_WARN_IF(!pointToPutCaret.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+  }
+
   const auto EnsureNoFollowingUnnecessaryLineBreak =
       [&](const EditorDOMPoint& aPoint)
           MOZ_NEVER_INLINE_DEBUG MOZ_CAN_RUN_SCRIPT {
@@ -5393,18 +5497,6 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
       }
       caretPointOrError.unwrap().MoveCaretPointTo(
           pointToPutCaret, {SuggestCaret::OnlyIfHasSuggestion});
-    }
-  }
-
-  {
-    AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
-                                           &pointToPutCaret);
-    EditorDOMRange range(aRangeToDelete);
-    nsresult rv = mDeleteRangesHandler->DeleteUnnecessaryNodes(
-        aHTMLEditor, range, aEditingHost);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("AutoDeleteRangesHandler::DeleteUnnecessaryNodes() failed");
-      return Err(rv);
     }
   }
 
@@ -8055,11 +8147,27 @@ HTMLEditor::AutoDeleteRangesHandler::AutoEmptyBlockAncestorDeleter::Run(
       NS_WARN_IF(nextSibling && nextSibling->GetParentNode() != parentNode)) {
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
+  auto pointToInsertLineBreak = nextSibling
+                                    ? EditorDOMPoint(nextSibling)
+                                    : EditorDOMPoint::AtEndOf(*parentNode);
+  if ((aHTMLEditor.IsMailEditor() || aHTMLEditor.IsPlaintextMailComposer()) &&
+      MOZ_LIKELY(pointToInsertLineBreak.IsInContentNode())) {
+    AutoTrackDOMPoint trackPointToInsertLineBreak(aHTMLEditor.RangeUpdaterRef(),
+                                                  &pointToInsertLineBreak);
+    nsresult rv = aHTMLEditor.DeleteMostAncestorMailCiteElementIfEmpty(
+        MOZ_KnownLive(*pointToInsertLineBreak.ContainerAs<nsIContent>()));
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty() failed");
+      return Err(rv);
+    }
+    trackPointToInsertLineBreak.FlushAndStopTracking();
+    if (NS_WARN_IF(!pointToInsertLineBreak.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+  }
   if (unwrapAncestorBlocks && aHTMLEditor.GetTopLevelEditSubAction() ==
                                   EditSubAction::eDeleteSelectedContent) {
-    const auto pointToInsertLineBreak =
-        nextSibling ? EditorDOMPoint(nextSibling)
-                    : EditorDOMPoint::AtEndOf(*parentNode);
     Result<CreateElementResult, nsresult> insertLineBreakResult =
         aHTMLEditor.InsertPaddingBRElementIfNeeded(
             pointToInsertLineBreak,
