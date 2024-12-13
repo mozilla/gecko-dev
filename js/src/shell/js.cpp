@@ -12897,7 +12897,8 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "enable-explicit-resource-management",
                         "Enable Explicit Resource Management") ||
       !op.addBoolOption('\0', "disable-explicit-resource-management",
-                        "Disable Explicit Resource Management")) {
+                        "Disable Explicit Resource Management") ||
+      !op.addBoolOption('\0', "enable-temporal", "Enable Temporal")) {
     return false;
   }
 
@@ -12998,6 +12999,11 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("disable-explicit-resource-management")) {
     JS::Prefs::set_experimental_explicit_resource_management(false);
+  }
+#endif
+#ifdef JS_HAS_TEMPORAL_API
+  if (op.getBoolOption("enable-temporal")) {
+    JS::Prefs::setAtStartup_experimental_temporal(true);
   }
 #endif
   if (op.getBoolOption("enable-json-parse-with-source")) {
