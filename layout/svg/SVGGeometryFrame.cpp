@@ -702,9 +702,7 @@ bool SVGGeometryFrame::CreateWebRenderCommands(
     mozilla::layers::RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder, DisplaySVGGeometry* aItem,
     bool aDryRun) {
-  if (!StyleVisibility()->IsVisible()) {
-    return true;
-  }
+  MOZ_ASSERT(StyleVisibility()->IsVisible());
 
   SVGGeometryElement* element = static_cast<SVGGeometryElement*>(GetContent());
 
