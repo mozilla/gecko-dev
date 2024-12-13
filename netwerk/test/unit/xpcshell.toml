@@ -811,8 +811,6 @@ skip-if = ["os == 'win' && socketprocess_networking"]
 
 ["test_httpcancel.js"]
 
-["test_bug1830022.js"]
-
 ["test_https_rr_ech_prefs.js"]
 skip-if = ["os == 'android'"]
 run-sequentially = "node server exceptions dont replay well"
