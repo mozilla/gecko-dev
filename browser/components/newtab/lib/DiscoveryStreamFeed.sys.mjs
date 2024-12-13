@@ -120,6 +120,7 @@ const PREF_CONTEXTUAL_CONTENT_FAKESPOT_CTA_URL =
 
 const PREF_SECTIONS_ENABLED = "discoverystream.sections.enabled";
 const PREF_SECTIONS_FOLLOWING = "discoverystream.sections.following";
+const PREF_SECTIONS_BLOCKED = "discoverystream.sections.blocked";
 
 let getHardcodedLayout;
 
@@ -1815,23 +1816,32 @@ export class DiscoveryStreamFeed {
         PREF_MERINO_FEED_EXPERIMENT
       );
 
-      // Raw string of followed topics, ex: "entertainment, news"
+      // Raw string of followed/blocked topics, ex: "entertainment, news"
       const followedSectionsString = prefs[PREF_SECTIONS_FOLLOWING];
+      const blockedSectionsString = prefs[PREF_SECTIONS_BLOCKED];
 
-      // Format followed sections into desired JSON shape for merino:
+      // Format followed sections
+      const followedSections = followedSectionsString
+        ? followedSectionsString.split(",").map(s => s.trim())
+        : [];
+
+      // Format blocked sections
+      const blockedSections = blockedSectionsString
+        ? blockedSectionsString.split(",").map(s => s.trim())
+        : [];
+
+      // Combine followed and blocked sections and format into desired JSON shape for merino.
+      // Example:
       // {
       //   "sectionId": "business",
       //   "isFollowed": true,
       //   "isBlocked": false
       // }
-      const followedSections = followedSectionsString
-        ? followedSectionsString.split(",").map(s => s.trim())
-        : [];
-
-      const sections = followedSections.map(section => ({
+      const sectionTopics = new Set([...followedSections, ...blockedSections]);
+      const sections = Array.from(sectionTopics).map(section => ({
         sectionId: section,
-        isFollowed: true,
-        isBlocked: false,
+        isFollowed: followedSections.includes(section),
+        isBlocked: blockedSections.includes(section),
       }));
 
       headers.append("content-type", "application/json");
