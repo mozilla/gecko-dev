@@ -416,6 +416,7 @@ class pdfpaint(PageloaderTest):
     be rendered.
     """
 
+    alert_threshold = 6.0
     tpmanifest = "${talos}/tests/pdfpaint/pdfpaint.manifest"
     tppagecycles = 1
     timeout = 2000

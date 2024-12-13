@@ -4936,6 +4936,7 @@ For the sample commands found below, note that the capitalization used is import
         by default with only 1 cycle each. The PDFs that are run are found in the Mozilla pdf.js
         repository, and this test pulls those in for testing locally through a toolchain artifact
         called talos-pdfs.
+   * alert_threshold: 6.0
    * pdfpaint: True
    * subtest_alerts: True
    * timeout: 2000

@@ -1306,7 +1306,7 @@ def test_pdfpaint_has_expected_attributes_no_chunk(pdfpaint_dir_info):
     assert test_config["filters"] is not None
     assert test_config["unit"] == "ms"
     assert test_config["lower_is_better"] is True
-    assert test_config["alert_threshold"] == 2.0
+    assert test_config["alert_threshold"] == 6.0
 
 
 @mock.patch("pathlib.Path.unlink", new=mock.MagicMock())
@@ -1338,7 +1338,7 @@ def test_pdfpaint_has_expected_attributes_with_chunk(pdfpaint_dir_info):
     assert test_config["filters"] is not None
     assert test_config["unit"] == "ms"
     assert test_config["lower_is_better"] is True
-    assert test_config["alert_threshold"] == 2.0
+    assert test_config["alert_threshold"] == 6.0
 
 
 def test_pdfpaint_fails_on_bad_chunk(pdfpaint_dir_info):
