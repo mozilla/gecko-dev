@@ -13,7 +13,8 @@ support-files = [
 
 prefs = [
   "app.update.BITS.enabled=true",
- "app.update.langpack.enabled=true",
+  "app.update.langpack.enabled=true",
+  "app.update.multiSessionInstallLockout.enabled=false",
 ]
 
 # BITS Download Tests
