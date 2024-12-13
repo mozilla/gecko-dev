@@ -141,6 +141,9 @@ using ShareableBytecodeOffsetVector =
     ShareableVector<BytecodeOffset, 4, SystemAllocPolicy>;
 using SharedBytecodeOffsetVector = RefPtr<const ShareableBytecodeOffsetVector>;
 using MutableBytecodeOffsetVector = RefPtr<ShareableBytecodeOffsetVector>;
+using InlinedCallerOffsetsHashMap =
+    mozilla::HashMap<uint32_t, SharedBytecodeOffsetVector,
+                     mozilla::DefaultHasher<uint32_t>, SystemAllocPolicy>;
 
 // A TrapMachineInsn describes roughly what kind of machine instruction has
 // caused a trap.  This is used only for validation of trap placement in debug
@@ -254,22 +257,29 @@ struct TrapSite {
 #endif
   uint32_t pcOffset;
   BytecodeOffset bytecode;
+  // If this trap site has been inlined into another function, the inlined
+  // caller functions. The direct ancestor of this function (i.e. the one
+  // directly above it on the stack) is the last entry in the vector.
+  SharedBytecodeOffsetVector inlinedCallerOffsets;
 
   TrapSite()
       :
 #ifdef DEBUG
         insn(TrapMachineInsn::OfficialUD),
 #endif
-        pcOffset(-1) {
+        pcOffset(-1),
+        inlinedCallerOffsets(nullptr) {
   }
   TrapSite(TrapMachineInsn insn, FaultingCodeOffset fco,
-           BytecodeOffset bytecode)
+           BytecodeOffset bytecode,
+           const ShareableBytecodeOffsetVector* inlinedCallerOffsets = nullptr)
       :
 #ifdef DEBUG
         insn(insn),
 #endif
         pcOffset(fco.get()),
-        bytecode(bytecode) {
+        bytecode(bytecode),
+        inlinedCallerOffsets(inlinedCallerOffsets) {
   }
 };
 
@@ -290,16 +300,35 @@ class TrapSitesForKind {
 #endif
   Uint32Vector pcOffsets_;
   BytecodeOffsetVector bytecodeOffsets_;
+  InlinedCallerOffsetsHashMap inlinedCallerOffsets_;
 
  public:
   explicit TrapSitesForKind() = default;
 
-  size_t length() const { return pcOffsets_.length(); }
+  // We limit the maximum amount of trap sites to fit in a uint32_t for better
+  // compaction of the sparse hash map. This is dynamically enforced, but
+  // should be safe. The maximum executable memory in a process is at most
+  // ~2GiB, a trapping machine instruction is at least a byte (realistically
+  // much more), which would put the limit of trap sites far below UINT32_MAX.
+  // We subtract one so that this check is not idempotent on 32-bit systems.
+  static constexpr size_t MAX_LENGTH = UINT32_MAX - 1;
+
+  uint32_t length() const {
+    size_t result = pcOffsets_.length();
+    // Enforced by dynamic checks in mutation functions.
+    MOZ_ASSERT(result <= MAX_LENGTH);
+    return (uint32_t)result;
+  }
 
   bool empty() const { return pcOffsets_.empty(); }
 
   [[nodiscard]]
   bool reserve(size_t length) {
+    // See comment on MAX_LENGTH for details.
+    if (length > MAX_LENGTH) {
+      return false;
+    }
+
 #ifdef DEBUG
     if (!machineInsns_.reserve(length)) {
       return false;
@@ -317,17 +346,42 @@ class TrapSitesForKind {
       return false;
     }
 #endif
+
+    uint32_t index = length();
+    if (site.inlinedCallerOffsets && !site.inlinedCallerOffsets->empty() &&
+        !inlinedCallerOffsets_.putNew(index,
+                                      std::move(site.inlinedCallerOffsets))) {
+      return false;
+    }
+
     return pcOffsets_.append(site.pcOffset) &&
            bytecodeOffsets_.append(site.bytecode);
   }
 
   [[nodiscard]]
   bool appendAll(TrapSitesForKind&& other) {
+    // See comment on MAX_LENGTH for details.
+    mozilla::CheckedUint32 newLength =
+        mozilla::CheckedUint32(length()) + other.length();
+    if (!newLength.isValid() || newLength.value() > MAX_LENGTH) {
+      return false;
+    }
+
 #ifdef DEBUG
     if (!machineInsns_.appendAll(other.machineInsns_)) {
       return false;
     }
 #endif
+
+    uint32_t index = length();
+    for (auto iter = other.inlinedCallerOffsets_.modIter(); !iter.done();
+         iter.next(), index++) {
+      if (!inlinedCallerOffsets_.putNew(index,
+                                        std::move(iter.get().value()))) {
+        return false;
+      }
+    }
+
     return pcOffsets_.appendAll(other.pcOffsets_) &&
            bytecodeOffsets_.appendAll(other.bytecodeOffsets_);
   }
@@ -338,6 +392,7 @@ class TrapSitesForKind {
 #endif
     pcOffsets_.clear();
     bytecodeOffsets_.clear();
+    inlinedCallerOffsets_.clear();
   }
 
   void swap(TrapSitesForKind& other) {
@@ -346,6 +401,7 @@ class TrapSitesForKind {
 #endif
     pcOffsets_.swap(other.pcOffsets_);
     bytecodeOffsets_.swap(other.bytecodeOffsets_);
+    inlinedCallerOffsets_.swap(other.inlinedCallerOffsets_);
   }
 
   void shrinkStorageToFit() {
@@ -354,6 +410,7 @@ class TrapSitesForKind {
 #endif
     pcOffsets_.shrinkStorageToFit();
     bytecodeOffsets_.shrinkStorageToFit();
+    inlinedCallerOffsets_.compact();
   }
 
   void offsetBy(uint32_t offsetInModule) {
@@ -372,6 +429,11 @@ class TrapSitesForKind {
 #ifdef DEBUG
     result += machineInsns_.sizeOfExcludingThis(mallocSizeOf);
 #endif
+    ShareableBytecodeOffsetVector::SeenSet seen;
+    for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
+      result +=
+          iter.get().value()->sizeOfIncludingThisIfNotSeen(mallocSizeOf, &seen);
+    }
     return result + pcOffsets_.sizeOfExcludingThis(mallocSizeOf) +
            bytecodeOffsets_.sizeOfExcludingThis(mallocSizeOf);
   }
@@ -907,14 +969,11 @@ class CallSites {
   // Define our own Uint32Vector without any inline storage so it can be used
   // with swap.
   using Uint32Vector = Vector<uint32_t, 0, SystemAllocPolicy>;
-  using SparseInlinedCallerOffsets =
-      mozilla::HashMap<uint32_t, SharedBytecodeOffsetVector,
-                       mozilla::DefaultHasher<uint32_t>, SystemAllocPolicy>;
 
   CallSiteKindVector kinds_;
   Uint32Vector lineOrBytecodes_;
   Uint32Vector returnAddressOffsets_;
-  SparseInlinedCallerOffsets inlinedCallerOffsets_;
+  InlinedCallerOffsetsHashMap inlinedCallerOffsets_;
 
  public:
   explicit CallSites() {}

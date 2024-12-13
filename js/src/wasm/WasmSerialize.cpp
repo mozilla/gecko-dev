@@ -926,6 +926,8 @@ CoderResult CodeTrapSitesForKind(Coder<mode>& coder,
 #endif
   MOZ_TRY(CodePodVector(coder, &item->pcOffsets_));
   MOZ_TRY(CodePodVector(coder, &item->bytecodeOffsets_));
+  // Inlining requires lazy tiering, which does not support serialization yet.
+  MOZ_RELEASE_ASSERT(item->inlinedCallerOffsets_.empty());
   return Ok();
 }
 
