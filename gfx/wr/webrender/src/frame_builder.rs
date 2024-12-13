@@ -401,6 +401,19 @@ impl FrameBuilder {
 
                 let world_culling_rect = WorldRect::max_rect();
 
+                // For now, snapshots are updated every frame. For the
+                // pictures displaying the snapshot via images pick up
+                // the changes, we have to make sure that the image's
+                // generation counter is incremented early in the frame,
+                // before the main visibility pass visits the image items.
+                let snapshot = scene.prim_store
+                    .pictures[pic_index.0]
+                    .snapshot
+                    .unwrap();
+                let key = snapshot.key.as_image();
+                visibility_state.resource_cache
+                    .increment_image_generation(key);
+
                 update_prim_visibility(
                     *pic_index,
                     None,

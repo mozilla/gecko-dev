@@ -1008,6 +1008,12 @@ impl ResourceCache {
         };
     }
 
+    pub fn increment_image_generation(&mut self, key: ImageKey) {
+        if let Some(image) = self.resources.image_templates.get_mut(key) {
+            image.generation.0 += 1;
+        }
+    }
+
     pub fn delete_image_template(&mut self, image_key: ImageKey) {
         // Remove the template.
         let value = self.resources.image_templates.remove(image_key);
