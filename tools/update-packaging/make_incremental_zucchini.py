@@ -404,9 +404,11 @@ def download_file(url, save_path):
         urllib.request.urlretrieve(url, save_path)
         log(f"File downloaded successfully: {save_path}", "download_file")
     except urllib.error.URLError as e:
-        log(f"Error downloading file: {e}", "download_file")
+        log(f"Error downloading file: {url} -> {e}", "download_file")
+        raise Exception("Failed to download file.")
     except Exception as e:
-        log(f"An unexpected error occurred: {e}", "download_file")
+        log(f"An unexpected error occurred: {url} -> {e}", "download_file")
+        raise Exception("Failed to download file.")
 
 
 def process_single(
