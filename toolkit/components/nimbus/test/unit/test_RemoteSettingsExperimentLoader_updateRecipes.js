@@ -594,7 +594,7 @@ add_task(async function test_updateRecipes_validationTelemetry() {
     );
 
     const gleanEvents = Glean.nimbusEvents.validationFailed
-      .testGetValue()
+      .testGetValue("events")
       .map(event => {
         event = { ...event };
         // We do not care about the timestamp.
@@ -1128,7 +1128,7 @@ add_task(async function test_updateRecipes_rollout_bucketing() {
     "Should unenroll from rollout"
   );
 
-  const unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  const unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   Assert.equal(
     unenrollmentEvents.length,
     1,
@@ -1728,7 +1728,7 @@ add_task(
     Services.fog.testResetFOG();
     await loader.updateRecipes();
 
-    const isReadyEvents = Glean.nimbusEvents.isReady.testGetValue();
+    const isReadyEvents = Glean.nimbusEvents.isReady.testGetValue("events");
 
     Assert.equal(isReadyEvents.length, 1);
 
@@ -1784,7 +1784,7 @@ add_task(
       `Enrollment exists for ${slug} and is active`
     );
 
-    const isReadyEvents = Glean.nimbusEvents.isReady.testGetValue();
+    const isReadyEvents = Glean.nimbusEvents.isReady.testGetValue("events");
 
     Assert.equal(isReadyEvents.length, 3);
     manager.unenroll(EXPERIMENT.slug);

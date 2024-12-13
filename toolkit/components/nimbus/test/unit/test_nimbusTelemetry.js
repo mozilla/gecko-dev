@@ -79,7 +79,7 @@ add_task(async function test_enrollAndUnenroll() {
     "targetingContextValue not recorded by default"
   );
   Assert.equal(
-    Glean.nimbusEvents.enrollmentStatus.testGetValue(),
+    Glean.nimbusEvents.enrollmentStatus.testGetValue("events"),
     null,
     "enrollmentStatus not recorded by default"
   );
@@ -98,7 +98,7 @@ add_task(async function test_enrollAndUnenroll() {
   );
 
   {
-    const events = Glean.nimbusEvents.enrollmentStatus.testGetValue();
+    const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
     Assert.equal(events?.length ?? 0, 1, "enrollmentStatus recorded once");
     Assert.equal(
       events[0].extra.reason,
@@ -120,7 +120,7 @@ add_task(async function test_enrollAndUnenroll() {
   );
 
   {
-    const events = Glean.nimbusEvents.enrollmentStatus.testGetValue();
+    const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
     Assert.equal(events?.length ?? 0, 1, "enrollmentStatus not recorded again");
   }
 
@@ -138,7 +138,7 @@ add_task(async function test_enrollAndUnenroll() {
   );
 
   {
-    const events = Glean.nimbusEvents.enrollmentStatus.testGetValue();
+    const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
     Assert.equal(events?.length ?? 0, 2, "enrollmentStatus recorded again");
     Assert.equal(
       events[1].extra.reason,
@@ -161,7 +161,7 @@ add_task(async function test_enrollAndUnenroll() {
   );
 
   {
-    const events = Glean.nimbusEvents.enrollmentStatus.testGetValue();
+    const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
     Assert.equal(events?.length ?? 0, 2, "enrollmentStatus not recorded again");
   }
 

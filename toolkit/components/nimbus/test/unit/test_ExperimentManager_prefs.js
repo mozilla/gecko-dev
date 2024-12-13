@@ -1820,7 +1820,7 @@ add_task(async function test_prefChange() {
       }
     }
 
-    const gleanEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+    const gleanEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
     const expectedLegacyEvents = Object.keys(configs)
       .filter(enrollmentKind => !expectedEnrollments.includes(enrollmentKind))
       .map(enrollmentKind => ({
@@ -2986,7 +2986,7 @@ add_task(async function test_restorePrefs_manifestChanged() {
       }
     }
 
-    const gleanEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+    const gleanEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
     if (expectedEnrollments.length === 0) {
       const expectedEvents = [EXPERIMENT, ROLLOUT]
         .filter(enrollmentKind => Object.hasOwn(slugs, enrollmentKind))

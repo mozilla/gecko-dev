@@ -64,7 +64,7 @@ add_task(async function test_unenroll_opt_out() {
   await manager.store.addEnrollment(experiment);
 
   // Check that there aren't any Glean unenrollment events yet
-  var unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  var unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   Assert.equal(
     undefined,
     unenrollmentEvents,
@@ -94,7 +94,7 @@ add_task(async function test_unenroll_opt_out() {
   );
 
   // Check that the Glean unenrollment event was recorded.
-  unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   // We expect only one event
   Assert.equal(1, unenrollmentEvents.length);
   // And that one event matches the expected enrolled experiment
@@ -131,7 +131,7 @@ add_task(async function test_unenroll_rollout_opt_out() {
   await manager.store.addEnrollment(rollout);
 
   // Check that there aren't any Glean unenrollment events yet
-  var unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  var unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   Assert.equal(
     undefined,
     unenrollmentEvents,
@@ -161,7 +161,7 @@ add_task(async function test_unenroll_rollout_opt_out() {
   );
 
   // Check that the Glean unenrollment event was recorded.
-  unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   // We expect only one event
   Assert.equal(1, unenrollmentEvents.length);
   // And that one event matches the expected enrolled experiment
@@ -263,7 +263,7 @@ add_task(async function test_send_unenroll_event() {
   await manager.store.addEnrollment(experiment);
 
   // Check that there aren't any Glean unenrollment events yet
-  var unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  var unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   Assert.equal(
     undefined,
     unenrollmentEvents,
@@ -288,7 +288,7 @@ add_task(async function test_send_unenroll_event() {
   );
 
   // Check that the Glean unenrollment event was recorded.
-  unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   // We expect only one event
   Assert.equal(1, unenrollmentEvents.length);
   // And that one event matches the expected enrolled experiment
@@ -334,7 +334,7 @@ add_task(async function test_undefined_reason() {
   );
 
   // Check that the Glean unenrollment event was recorded.
-  let unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  let unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   // We expect only one event
   Assert.equal(1, unenrollmentEvents.length);
   // And that one event reason matches the expected reason
@@ -395,7 +395,7 @@ add_task(async function test_remove_rollout_onFinalize() {
   manager.onFinalize("NimbusTestUtils");
 
   // Check that there aren't any Glean unenroll_failed events
-  var unenrollFailedEvents = Glean.nimbusEvents.unenrollFailed.testGetValue();
+  var unenrollFailedEvents = Glean.nimbusEvents.unenrollFailed.testGetValue("events");
   Assert.equal(
     undefined,
     unenrollFailedEvents,
@@ -425,7 +425,7 @@ add_task(async function test_rollout_telemetry_events() {
   await manager.onStartup();
 
   // Check that there aren't any Glean unenrollment events yet
-  var unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  var unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   Assert.equal(
     undefined,
     unenrollmentEvents,
@@ -435,7 +435,7 @@ add_task(async function test_rollout_telemetry_events() {
   manager.onFinalize("NimbusTestUtils");
 
   // Check that there aren't any Glean unenroll_failed events
-  var unenrollFailedEvents = Glean.nimbusEvents.unenrollFailed.testGetValue();
+  var unenrollFailedEvents = Glean.nimbusEvents.unenrollFailed.testGetValue("events");
   Assert.equal(
     undefined,
     unenrollFailedEvents,
@@ -469,7 +469,7 @@ add_task(async function test_rollout_telemetry_events() {
   );
 
   // Check that the Glean unenrollment event was recorded.
-  unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue();
+  unenrollmentEvents = Glean.nimbusEvents.unenrollment.testGetValue("events");
   // We expect only one event
   Assert.equal(1, unenrollmentEvents.length);
   // And that one event matches the expected enrolled experiment
@@ -557,7 +557,7 @@ add_task(async function test_check_unseen_enrollments_telemetry_events() {
     new Map([[slugs[5], experiments[5]]])
   );
 
-  const events = Glean.nimbusEvents.enrollmentStatus.testGetValue();
+  const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
 
   Assert.equal(events?.length, 7);
 
