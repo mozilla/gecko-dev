@@ -230,9 +230,8 @@ class MOZ_STACK_CLASS SVGColorStopInterpolator
   SVGColorStopInterpolator(
       gfxPattern* aGradient, const nsTArray<ColorStop>& aStops,
       const StyleColorInterpolationMethod& aStyleColorInterpolationMethod,
-      bool aExtendLastStop)
-      : ColorStopInterpolator(aStops, aStyleColorInterpolationMethod,
-                              aExtendLastStop),
+      bool aExtend)
+      : ColorStopInterpolator(aStops, aStyleColorInterpolationMethod, aExtend),
         mGradient(aGradient) {}
 
   void CreateStop(float aPosition, DeviceColor aColor) {
@@ -245,7 +244,7 @@ class MOZ_STACK_CLASS SVGColorStopInterpolator
 
 already_AddRefed<gfxPattern> SVGGradientFrame::GetPaintServerPattern(
     nsIFrame* aSource, const DrawTarget* aDrawTarget,
-    const gfxMatrix& aContextMatrix, StyleSVGPaint nsStyleSVG::*aFillOrStroke,
+    const gfxMatrix& aContextMatrix, StyleSVGPaint nsStyleSVG::* aFillOrStroke,
     float aGraphicOpacity, imgDrawingParams& aImgParams,
     const gfxRect* aOverrideBounds) {
   uint16_t gradientUnits = GetGradientUnits();

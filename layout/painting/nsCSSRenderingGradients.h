@@ -45,20 +45,19 @@ class MOZ_STACK_CLASS ColorStopInterpolator {
   ColorStopInterpolator(
       const nsTArray<ColorStop>& aStops,
       const StyleColorInterpolationMethod& aStyleColorInterpolationMethod,
-      bool aExtendLastStop)
+      bool aExtend)
       : mStyleColorInterpolationMethod(aStyleColorInterpolationMethod),
         mStops(aStops),
-        mExtendLastStop(aExtendLastStop) {}
+        mExtend(aExtend) {}
 
   void CreateStops() {
     // This loop intentionally iterates extra stops at the beginning and end
     // if extending was requested.
-    uint32_t iterStops = mStops.Length() - 1 + (mExtendLastStop ? 2 : 0);
+    uint32_t iterStops = mStops.Length() - 1 + (mExtend ? 2 : 0);
     for (uint32_t i = 0; i < iterStops; i++) {
-      auto thisindex = mExtendLastStop ? (i == 0 ? 0 : i - 1) : i;
-      auto nextindex = mExtendLastStop && (i == iterStops - 1 || i == 0)
-                           ? thisindex
-                           : thisindex + 1;
+      auto thisindex = mExtend ? (i == 0 ? 0 : i - 1) : i;
+      auto nextindex =
+          mExtend && (i == iterStops - 1 || i == 0) ? thisindex : thisindex + 1;
       const auto& start = mStops[thisindex];
       const auto& end = mStops[nextindex];
       float startPosition = start.mPosition;
@@ -68,7 +67,7 @@ class MOZ_STACK_CLASS ColorStopInterpolator {
       // This is never the case on SVG gradients as they only use shorter hue.
       //
       // See https://bugzilla.mozilla.org/show_bug.cgi?id=1885716 for more info.
-      if (mExtendLastStop) {
+      if (mExtend) {
         if (i == 0) {
           startPosition = std::min(startPosition, 0.0f);
         }
@@ -100,7 +99,7 @@ class MOZ_STACK_CLASS ColorStopInterpolator {
   // This indicates that we want to extend the endPosition on the last stop,
   // which only matters if this is a CSS non-repeating gradient with
   // StyleHueInterpolationMethod::Longer (only valid for hsl/hwb/lch/oklch).
-  bool mExtendLastStop;
+  bool mExtend;
 
   // This could be made tunable, but at 1.0/128 the error is largely
   // irrelevant, as WebRender re-encodes it to 128 pairs of stops.
