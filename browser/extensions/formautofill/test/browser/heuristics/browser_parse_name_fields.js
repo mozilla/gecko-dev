@@ -102,4 +102,109 @@ add_heuristic_tests([
       },
     ],
   },
+  {
+    description:
+      "Update name to cc-name when name is the first field of a credit card section",
+    fixtureData: `
+        <html><body><form>
+          <input id="given-name" placeholder="given-name">
+          <input id="family-name" placeholder="family-name">
+          <input id="cc-number" autocomplete="cc-number">
+          <input id="cc-csc" autocomplete="cc-csc">          
+        </form></body></html>`,
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-given-name", reason: "update-heuristic" },
+          { fieldName: "cc-family-name", reason: "update-heuristic" },
+          { fieldName: "cc-number", reason: "autocomplete" },
+          { fieldName: "cc-csc", reason: "autocomplete" },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Do not update name to cc-name when name is the first field of a credit card section and there is a autocomplete attribute",
+    fixtureData: `
+        <html><body><form>
+          <input id="given-name" autocomplete="given-name">
+          <input id="family-name" autocomplete="family-name">
+          <input id="cc-number" autocomplete="cc-number">
+          <input id="cc-csc" autocomplete="cc-csc">          
+        </form></body></html>`,
+    expectedResult: [
+      {
+        invalid: true,
+        fields: [
+          { fieldName: "given-name", reason: "autocomplete" },
+          { fieldName: "family-name", reason: "autocomplete" },
+        ],
+      },
+      {
+        fields: [
+          { fieldName: "cc-number", reason: "autocomplete" },
+          { fieldName: "cc-csc", reason: "autocomplete" },
+        ],
+      },
+    ],
+  },
+  // This is expected behaviour for now. Could be potientially fixed, if we ever encounter a real-world use case.
+  {
+    description:
+      "For now we update first name fields to cc-name when cc-number field is present and no other cc-name-* fields are detected in credit card section",
+    fixtureData: `
+        <html><body><form>
+          <input id="given-name" placeholder="given-name">
+          <input id="family-name" placeholder="family-name">
+          <input id="cc-number" autocomplete="cc-number">
+          <input id="given-name" placeholder="given-name">
+          <input id="family-name" placeholder="family-name">
+          <input id="cc-csc" autocomplete="cc-csc">          
+        </form></body></html>`,
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-given-name", reason: "update-heuristic" },
+          { fieldName: "cc-family-name", reason: "update-heuristic" },
+          { fieldName: "cc-number", reason: "autocomplete" },
+          { fieldName: "cc-csc", reason: "autocomplete" },
+        ],
+      },
+      {
+        invalid: true,
+        fields: [
+          { fieldName: "given-name", reason: "regex-heuristic" },
+          { fieldName: "family-name", reason: "regex-heuristic" },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Do not update name to cc-name when cc-number field is missing in credit card section",
+    fixtureData: `
+        <html><body><form>
+          <input id="given-name" placeholder="given-name">
+          <input id="family-name" placeholder="family-name">
+          <input id="cc-type" autocomplete="cc-type">          
+          <input id="cc-csc" autocomplete="cc-csc">          
+        </form></body></html>`,
+    expectedResult: [
+      {
+        invalid: true,
+        fields: [
+          { fieldName: "given-name", reason: "regex-heuristic" },
+          { fieldName: "family-name", reason: "regex-heuristic" },
+        ],
+      },
+      {
+        invalid: true,
+        fields: [
+          { fieldName: "cc-type", reason: "autocomplete" },
+          { fieldName: "cc-csc", reason: "autocomplete" },
+        ],
+      },
+    ],
+  },
 ]);
