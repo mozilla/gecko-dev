@@ -26,6 +26,7 @@ def check_for_crashes(tmpdir, stackwalk, monkeypatch):
         dump_save_path=None,
         test_name=None,
         quiet=True,
+        keep=None,
     ):
         return mozcrash.check_for_crashes(
             dump_directory,
@@ -34,6 +35,7 @@ def check_for_crashes(tmpdir, stackwalk, monkeypatch):
             dump_save_path,
             test_name,
             quiet,
+            keep,
         )
 
     return wrapper

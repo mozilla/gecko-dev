@@ -425,21 +425,20 @@ class CrashInfo(object):
                     signature = processed_crash.get("signature")
                     pid = processed_crash.get("pid")
 
-        else:
-            if not self.stackwalk_binary:
-                errors.append(
-                    "MINIDUMP_STACKWALK not set, can't process dump. Either set "
-                    "MINIDUMP_STACKWALK or use mach bootstrap --no-system-changes "
-                    "to install minidump-stackwalk."
-                )
-            elif self.stackwalk_binary and not os.path.exists(self.stackwalk_binary):
-                errors.append(
-                    "MINIDUMP_STACKWALK binary not found: %s. Use mach bootstrap "
-                    "--no-system-changes to install minidump-stackwalk."
-                    % self.stackwalk_binary
-                )
-            elif not os.access(self.stackwalk_binary, os.X_OK):
-                errors.append("This user cannot execute the MINIDUMP_STACKWALK binary.")
+        elif not self.stackwalk_binary:
+            errors.append(
+                "MINIDUMP_STACKWALK not set, can't process dump. Either set "
+                "MINIDUMP_STACKWALK or use mach bootstrap --no-system-changes "
+                "to install minidump-stackwalk."
+            )
+        elif self.stackwalk_binary and not os.path.exists(self.stackwalk_binary):
+            errors.append(
+                "MINIDUMP_STACKWALK binary not found: %s. Use mach bootstrap "
+                "--no-system-changes to install minidump-stackwalk."
+                % self.stackwalk_binary
+            )
+        elif not os.access(self.stackwalk_binary, os.X_OK):
+            errors.append("This user cannot execute the MINIDUMP_STACKWALK binary.")
 
         if os.path.exists(extra):
             annotations = self._parse_extra_file(extra)
@@ -549,7 +548,7 @@ class CrashInfo(object):
             except OSError:
                 pass
 
-        shutil.move(path, self.dump_save_path)
+        shutil.copy(path, self.dump_save_path)
         self.logger.info(
             "Saved minidump as {}".format(
                 os.path.join(self.dump_save_path, os.path.basename(path))
@@ -557,7 +556,7 @@ class CrashInfo(object):
         )
 
         if os.path.isfile(extra):
-            shutil.move(extra, self.dump_save_path)
+            shutil.copy(extra, self.dump_save_path)
             self.logger.info(
                 "Saved app info as {}".format(
                     os.path.join(self.dump_save_path, os.path.basename(extra))
