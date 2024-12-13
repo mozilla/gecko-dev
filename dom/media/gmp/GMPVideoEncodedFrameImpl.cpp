@@ -18,6 +18,7 @@ GMPVideoEncodedFrameImpl::GMPVideoEncodedFrameImpl(GMPVideoHostImpl* aHost)
       mDuration(0ll),
       mFrameType(kGMPDeltaFrame),
       mSize(0),
+      mTemporalLayerId(-1),
       mCompleteFrame(false),
       mHost(aHost),
       mBufferType(GMP_BufferSingle) {
@@ -34,6 +35,7 @@ GMPVideoEncodedFrameImpl::GMPVideoEncodedFrameImpl(
       mDuration(aFrameData.mDuration()),
       mFrameType(static_cast<GMPVideoFrameType>(aFrameData.mFrameType())),
       mSize(aFrameData.mSize()),
+      mTemporalLayerId(aFrameData.mTemporalLayerId()),
       mCompleteFrame(aFrameData.mCompleteFrame()),
       mHost(aHost),
       mShmemBuffer(std::move(aShmemBuffer)),
@@ -51,6 +53,7 @@ GMPVideoEncodedFrameImpl::GMPVideoEncodedFrameImpl(
       mDuration(aFrameData.mDuration()),
       mFrameType(static_cast<GMPVideoFrameType>(aFrameData.mFrameType())),
       mSize(aFrameData.mSize()),
+      mTemporalLayerId(aFrameData.mTemporalLayerId()),
       mCompleteFrame(aFrameData.mCompleteFrame()),
       mHost(aHost),
       mArrayBuffer(std::move(aArrayBuffer)),
@@ -92,6 +95,7 @@ void GMPVideoEncodedFrameImpl::RelinquishFrameData(
   aFrameData.mDuration() = mDuration;
   aFrameData.mFrameType() = mFrameType;
   aFrameData.mSize() = mSize;
+  aFrameData.mTemporalLayerId() = mTemporalLayerId;
   aFrameData.mCompleteFrame() = mCompleteFrame;
   aFrameData.mBufferType() = mBufferType;
 }
@@ -280,6 +284,14 @@ GMPBufferType GMPVideoEncodedFrameImpl::BufferType() const {
 
 void GMPVideoEncodedFrameImpl::SetBufferType(GMPBufferType aBufferType) {
   mBufferType = aBufferType;
+}
+
+void GMPVideoEncodedFrameImpl::SetTemporalLayerId(int32_t aLayerId) {
+  mTemporalLayerId = aLayerId;
+}
+
+int32_t GMPVideoEncodedFrameImpl::GetTemporalLayerId() {
+  return mTemporalLayerId;
 }
 
 }  // namespace mozilla::gmp

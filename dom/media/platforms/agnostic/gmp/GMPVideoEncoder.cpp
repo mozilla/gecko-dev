@@ -128,7 +128,7 @@ void GMPVideoEncoder::InitComplete(GMPVideoEncoderProxy* aGMP,
 
   GMPVideoCodec codec{};
 
-  codec.mGMPApiVersion = kGMPVersion35;
+  codec.mGMPApiVersion = kGMPVersion36;
   codec.mCodecType = kGMPVideoCodecH264;
   codec.mMode = ToGMPVideoCodecMode(mConfig.mUsage);
   codec.mWidth = mConfig.mSize.width;
@@ -140,6 +140,20 @@ void GMPVideoEncoder::InitComplete(GMPVideoEncoderProxy* aGMP,
   codec.mMaxFramerate = mConfig.mFramerate;
   codec.mUseThreadedEncode = StaticPrefs::media_gmp_encoder_multithreaded();
   codec.mLogLevel = GetGMPLibraryLogLevel();
+
+  switch (mConfig.mScalabilityMode) {
+    case ScalabilityMode::L1T2:
+      codec.mTemporalLayerNum = 2;
+      break;
+    case ScalabilityMode::L1T3:
+      codec.mTemporalLayerNum = 3;
+      break;
+    default:
+      MOZ_FALLTHROUGH_ASSERT("Unhandled scalability mode!");
+    case ScalabilityMode::None:
+      codec.mTemporalLayerNum = 1;
+      break;
+  }
 
   if (mConfig.mCodecSpecific) {
     const H264Specific& specific = mConfig.mCodecSpecific->as<H264Specific>();
@@ -341,8 +355,16 @@ void GMPVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
       media::TimeUnit::FromMicroseconds(static_cast<int64_t>(timestamp));
   output->mKeyframe = aEncodedFrame->FrameType() == kGMPKeyFrame;
 
-  GMP_LOG_DEBUG("[%p] GMPVideoEncoder::Encoded -- %sframe @ timestamp %" PRIu64,
-                this, output->mKeyframe ? "key" : "", timestamp);
+  int32_t maybeTemporalLayerId = aEncodedFrame->GetTemporalLayerId();
+  auto temporalLayerId = CheckedUint8(maybeTemporalLayerId);
+  if (temporalLayerId.isValid()) {
+    output->mTemporalLayerId = Some(temporalLayerId.value());
+  }
+
+  GMP_LOG_DEBUG("[%p] GMPVideoEncoder::Encoded -- %sframe @ timestamp %" PRIu64
+                ", temporal layer %d",
+                this, output->mKeyframe ? "key" : "", timestamp,
+                maybeTemporalLayerId);
 
   EncodedData encodedDataSet(1);
   encodedDataSet.AppendElement(std::move(output));

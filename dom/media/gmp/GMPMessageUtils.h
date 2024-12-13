@@ -151,6 +151,7 @@ struct ParamTraits<GMPVideoCodec> {
     WriteParam(aWriter, aParam.mRateControlMode);
     WriteParam(aWriter, aParam.mSliceMode);
     WriteParam(aWriter, aParam.mUseThreadedEncode);
+    WriteParam(aWriter, aParam.mTemporalLayerNum);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -158,7 +159,8 @@ struct ParamTraits<GMPVideoCodec> {
     if (!ReadParam(aReader, &(aResult->mGMPApiVersion)) ||
         (aResult->mGMPApiVersion != kGMPVersion33 &&
          aResult->mGMPApiVersion != kGMPVersion34 &&
-         aResult->mGMPApiVersion != kGMPVersion35)) {
+         aResult->mGMPApiVersion != kGMPVersion35 &&
+         aResult->mGMPApiVersion != kGMPVersion36)) {
       return false;
     }
     if (!ReadParam(aReader, &(aResult->mCodecType))) {
@@ -208,7 +210,8 @@ struct ParamTraits<GMPVideoCodec> {
         !ReadParam(aReader, &(aResult->mProfile)) ||
         !ReadParam(aReader, &(aResult->mRateControlMode)) ||
         !ReadParam(aReader, &(aResult->mSliceMode)) ||
-        !ReadParam(aReader, &(aResult->mUseThreadedEncode))) {
+        !ReadParam(aReader, &(aResult->mUseThreadedEncode)) ||
+        !ReadParam(aReader, &(aResult->mTemporalLayerNum))) {
       return false;
     }
 

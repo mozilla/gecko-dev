@@ -102,6 +102,8 @@ class GMPVideoEncodedFrameImpl : public GMPVideoEncodedFrame {
   uint8_t* Buffer() override;
   GMPBufferType BufferType() const override;
   void SetBufferType(GMPBufferType aBufferType) override;
+  void SetTemporalLayerId(int32_t aLayerId) override;
+  int32_t GetTemporalLayerId() override;
 
  private:
   void DestroyBuffer();
@@ -112,6 +114,7 @@ class GMPVideoEncodedFrameImpl : public GMPVideoEncodedFrame {
   uint64_t mDuration;
   GMPVideoFrameType mFrameType;
   uint32_t mSize;
+  int32_t mTemporalLayerId = -1;
   bool mCompleteFrame;
   GMPVideoHostImpl* mHost;
   nsTArray<uint8_t> mArrayBuffer;

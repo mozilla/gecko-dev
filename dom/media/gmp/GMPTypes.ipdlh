@@ -45,6 +45,7 @@ struct GMPVideoEncodedFrameData {
   uint64_t mDuration;   // microseconds
   uint32_t mFrameType;
   uint32_t mSize;
+  int32_t mTemporalLayerId;
   GMPBufferType mBufferType;
   bool mCompleteFrame;
 };

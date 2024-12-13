@@ -87,6 +87,8 @@ class GMPVideoEncodedFrame : public GMPVideoFrame {
   virtual uint8_t* Buffer() = 0;
   virtual GMPBufferType BufferType() const = 0;
   virtual void SetBufferType(GMPBufferType aBufferType) = 0;
+  virtual void SetTemporalLayerId(int32_t aLayerId) = 0;
+  virtual int32_t GetTemporalLayerId() = 0;
 };
 
 #endif  // GMP_VIDEO_FRAME_ENCODED_h_
