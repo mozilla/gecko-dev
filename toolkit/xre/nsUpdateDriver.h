@@ -62,6 +62,20 @@ nsresult ProcessUpdates(nsIFile* greDir, nsIFile* appDir, nsIFile* updRootDir,
                         int argc, char** argv, const char* appVersion,
                         bool restart = true, ProcessType* pid = nullptr);
 
+/**
+ * Checks if the Multi Session Install Lockout is active. This is a window after
+ * an update is downloaded where we won't install updates at startup if another
+ * application instance is running.
+ *
+ * @param  updRootDir
+ *         The root update directory for this installation.
+ * @param  isActive
+ *         Outparam. On success, it is set to `true` if the MSIL lockout is
+ *         active or `false` if it is not.
+ */
+nsresult IsMultiSessionInstallLockoutActive(nsIFile* updRootDir,
+                                            bool& isActive);
+
 // The implementation of the update processor handles the task of loading the
 // updater application for staging an update.
 // XXX ehsan this is living in this file in order to make use of the existing
