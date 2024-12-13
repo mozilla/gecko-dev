@@ -14,6 +14,7 @@
 #include "mozilla/intl/LineBreaker.h"  // for LineBreaker::ComputeBreakPositions
 #include "mozilla/intl/Locale.h"
 #include "mozilla/intl/UnicodeProperties.h"
+#include "mozilla/ScopeExit.h"
 
 using mozilla::AutoRestore;
 using mozilla::intl::LineBreaker;
@@ -102,6 +103,15 @@ static void SetupCapitalization(const char16_t* aWord, uint32_t aLength,
 }
 
 nsresult nsLineBreaker::FlushCurrentWord() {
+  auto cleanup = mozilla::MakeScopeExit([&] {
+    mCurrentWord.Clear();
+    mTextItems.Clear();
+    mCurrentWordContainsComplexChar = false;
+    mCurrentWordContainsMixedLang = false;
+    mCurrentWordLanguage = nullptr;
+    mWordContinuation = false;
+  });
+
   uint32_t length = mCurrentWord.Length();
   AutoTArray<uint8_t, 4000> breakState;
   if (!breakState.AppendElements(length, mozilla::fallible)) {
@@ -185,12 +195,6 @@ nsresult nsLineBreaker::FlushCurrentWord() {
     offset += ti->mLength;
   }
 
-  mCurrentWord.Clear();
-  mTextItems.Clear();
-  mCurrentWordContainsComplexChar = false;
-  mCurrentWordContainsMixedLang = false;
-  mCurrentWordLanguage = nullptr;
-  mWordContinuation = false;
   return NS_OK;
 }
 
