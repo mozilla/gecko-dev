@@ -246,6 +246,17 @@ using FaultingCodeOffsetPair =
     std::pair<FaultingCodeOffset, FaultingCodeOffset>;
 static_assert(sizeof(FaultingCodeOffsetPair) == 8);
 
+class TrapSiteDesc {
+public:
+  TrapSiteDesc() = default;
+
+  BytecodeOffset bytecodeOffset;
+  // If this trap site has been inlined into another function, the inlined
+  // caller functions. The direct ancestor of this function (i.e. the one
+  // directly above it on the stack) is the last entry in the vector.
+  SharedBytecodeOffsetVector inlinedCallerOffsets;
+};
+
 // A TrapSite represents a wasm instruction at a given bytecode offset that
 // can fault at the given pc offset.  When such a fault occurs, a signal/
 // exception handler looks up the TrapSite to confirm the fault is intended/
@@ -419,8 +430,7 @@ class TrapSitesForKind {
     }
   }
 
-  bool lookup(uint32_t trapInstructionOffset,
-              BytecodeOffset* bytecodeOut) const;
+  bool lookup(uint32_t trapInstructionOffset, TrapSiteDesc* trapOut) const;
 
   void checkInvariants(const uint8_t* codeBase) const;
 
@@ -507,12 +517,12 @@ class TrapSites {
   }
 
   [[nodiscard]]
-  bool lookup(uint32_t trapInstructionOffset, Trap* trapOut,
-              BytecodeOffset* bytecodeOut) const {
+  bool lookup(uint32_t trapInstructionOffset, Trap* kindOut,
+              TrapSiteDesc* trapOut) const {
     for (Trap trap : mozilla::MakeEnumeratedRange(Trap::Limit)) {
       const TrapSitesForKind& trapSitesForKind = array_[trap];
-      if (trapSitesForKind.lookup(trapInstructionOffset, bytecodeOut)) {
-        *trapOut = trap;
+      if (trapSitesForKind.lookup(trapInstructionOffset, trapOut)) {
+        *kindOut = trap;
         return true;
       }
     }
@@ -595,7 +605,7 @@ struct TrapData {
   void* unwoundPC;
 
   Trap trap;
-  uint32_t bytecodeOffset;
+  TrapSiteDesc trapSiteDesc;
 
   // A return_call_indirect from the first function in an activation into
   // a signature mismatch may leave us with only one frame. This frame is

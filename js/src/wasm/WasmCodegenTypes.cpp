@@ -37,14 +37,19 @@ ArgTypeVector::ArgTypeVector(const FuncType& funcType)
           ResultType::Vector(funcType.results()))) {}
 
 bool TrapSitesForKind::lookup(uint32_t trapInstructionOffset,
-                              BytecodeOffset* bytecodeOut) const {
+                              TrapSiteDesc* trapOut) const {
   size_t lowerBound = 0;
   size_t upperBound = pcOffsets_.length();
 
   size_t match;
   if (BinarySearch(pcOffsets_, lowerBound, upperBound, trapInstructionOffset,
                    &match)) {
-    *bytecodeOut = bytecodeOffsets_[match];
+    TrapSiteDesc desc;
+    desc.bytecodeOffset = bytecodeOffsets_[match];
+    if (auto lookup = inlinedCallerOffsets_.lookup(match)) {
+      desc.inlinedCallerOffsets = lookup->value();
+    }
+    *trapOut = desc;
     return true;
   }
   return false;

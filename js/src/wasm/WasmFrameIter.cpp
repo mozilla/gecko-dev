@@ -53,16 +53,19 @@ static const Instance* ExtractCalleeInstanceFromFrameWithInstances(
       FrameWithInstances::calleeInstanceOffset());
 }
 
-static uint32_t CallSiteFuncIndex(const CodeMetadata& codeMeta,
-                                  const CallSite& callSite,
-                                  const CodeRange& codeRange) {
-  // If there is no bytecode offset in the call site, then this must be
+static uint32_t FuncIndexForLineOrBytecode(const CodeMetadata& codeMeta,
+                                           uint32_t lineOrBytecode,
+                                           const CodeRange& codeRange) {
+  // If this is asm.js, then this is a line number and we also will not be
+  // doing any inlining. Report the physical func index.
+  //
+  // Or else if there is no bytecode offset in the call site, then this must be
   // something internal we've generated and no inlining should be involved.
-  if (callSite.lineOrBytecode() == CallSite::NO_LINE_OR_BYTECODE) {
+  if (codeMeta.isAsmJS() || lineOrBytecode == CallSite::NO_LINE_OR_BYTECODE) {
     // Fall back to the physical function index of the code range.
     return codeRange.funcIndex();
   }
-  return codeMeta.findFuncIndex(callSite.lineOrBytecode());
+  return codeMeta.findFuncIndex(lineOrBytecode);
 }
 
 /*****************************************************************************/
@@ -87,9 +90,14 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
     MOZ_ASSERT(code_ == LookupCode(unwoundPC));
 
     const CodeRange* codeRange = code_->lookupFuncRange(unwoundPC);
-    funcIndex_ = codeRange->funcIndex();
-
-    lineOrBytecode_ = trapData.bytecodeOffset;
+    lineOrBytecode_ = trapData.trapSiteDesc.bytecodeOffset.offset();
+    funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(), lineOrBytecode_,
+                                            *codeRange);
+    if (trapData.trapSiteDesc.inlinedCallerOffsets) {
+      inlinedCallerOffsets_ = trapData.trapSiteDesc.inlinedCallerOffsets->span();
+    } else {
+      inlinedCallerOffsets_ = BytecodeOffsetSpan();
+    }
     failedUnwindSignatureMismatch_ = trapData.failedUnwindSignatureMismatch;
 
     // The debugEnabled() relies on valid value of resumePCinCurrentFrame_
@@ -142,7 +150,8 @@ WasmFrameIter::WasmFrameIter(FrameWithInstances* fp, void* returnAddress)
 
   MOZ_ASSERT(code_ == &instance_->code());
   lineOrBytecode_ = site.lineOrBytecode();
-  funcIndex_ = CallSiteFuncIndex(code_->codeMeta(), site, *codeRange);
+  funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(),
+                                          site.lineOrBytecode(), *codeRange);
   inlinedCallerOffsets_ = site.inlinedCallerOffsets();
 
   MOZ_ASSERT(!done());
@@ -339,7 +348,8 @@ void WasmFrameIter::popFrame() {
   MOZ_ASSERT(code_ == &instance_->code());
 
   lineOrBytecode_ = site.lineOrBytecode();
-  funcIndex_ = CallSiteFuncIndex(code_->codeMeta(), site, *codeRange);
+  funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(),
+                                          site.lineOrBytecode(), *codeRange);
   inlinedCallerOffsets_ = site.inlinedCallerOffsets();
   failedUnwindSignatureMismatch_ = false;
 
