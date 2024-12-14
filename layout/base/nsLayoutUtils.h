@@ -1576,15 +1576,17 @@ class nsLayoutUtils {
   }
 
   /**
-   * Returns the content-box size that an element should take on, in order for
-   * its margin-box to exactly reach a particular larger size (e.g. to fill its
-   * containing block in a particular axis). This can be used to resolve the
-   * "stretch" size for the child box, for example:
-   * https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
+   * Returns the size that an element's box should take on, in order for its
+   * margin-box to exactly reach a particular larger size (e.g. to fill its
+   * containing block in a particular axis). The box in question can be either
+   * the content-box or the border-box, determined by the aBoxSizing param.
+   *
+   * This function can be used to resolve the "stretch" size for the child box,
+   * for example: https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
    *
    * The returned value is floored at 0.
    *
-   * There's a version for ISizes and BSizes; the only difference is that the
+   * There's a version for ISize and BSize; the only difference is that the
    * BSize version has an assertion to be sure that we're not inadvertently
    * doing arithmetic with the NS_UNCONSTRAINEDSIZE sentinel value in that
    * axis. (This sentinel has special meaning as a block-axis size but not as
@@ -1607,19 +1609,44 @@ class nsLayoutUtils {
    *
    * @param aBorderPadding
    *   The sum of the child box's border and padding in the axis in question.
+   *
+   * @param aBoxSizing
+   *   The StyleBoxSizing enum that represents the box that the caller wants to
+   *   resolve a size for. NOTE: it may or may not be appropriate to actually
+   *   pass the true specified 'box-sizing' value for this param; it depends on
+   *   what box the caller is trying to actually resolve. In many cases, we
+   *   internally work with variables that unconditionally represent a
+   *   content-box size, regardless of the 'box-sizing' value; and for those
+   *   cases, it would be appropriate to unconditionally pass
+   *   StyleBoxSizing::Content to this function, or to just use the
+   *   convenience-wrapper that has "ContentBox" in the function name.
    */
+  static inline nscoord ComputeStretchBSize(
+      nscoord aSizeToFill, nscoord aMargin, nscoord aBorderPadding,
+      mozilla::StyleBoxSizing aBoxSizing) {
+    NS_ASSERTION(aSizeToFill != NS_UNCONSTRAINEDSIZE,
+                 "We don't handle situations with unconstrained "
+                 "aSizeToFill; caller should handle that!");
+    nscoord stretchSize = aSizeToFill - aMargin;
+    if (aBoxSizing == mozilla::StyleBoxSizing::Content) {
+      stretchSize -= aBorderPadding;
+    }
+    return std::max(0, stretchSize);
+  }
+  // Convenience wrapper that assumes we're resolving the content-box size:
+  static inline nscoord ComputeStretchContentBoxBSize(nscoord aSizeToFill,
+                                                      nscoord aMargin,
+                                                      nscoord aBorderPadding) {
+    return ComputeStretchBSize(aSizeToFill, aMargin, aBorderPadding,
+                               mozilla::StyleBoxSizing::Content);
+  }
+  // Similar to the above convenience-wrapper, but now for inline-axis.
+  // TODO(dholbert): would it be useful to add a box-sizing-aware version of
+  // this API for the inline axis too, like we've got for the block axis?
   static inline nscoord ComputeStretchContentBoxISize(nscoord aSizeToFill,
                                                       nscoord aMargin,
                                                       nscoord aBorderPadding) {
     return std::max(0, aSizeToFill - aMargin - aBorderPadding);
-  }
-  static inline nscoord ComputeStretchContentBoxBSize(nscoord aSizeToFill,
-                                                      nscoord aMargin,
-                                                      nscoord aBorderPadding) {
-    NS_ASSERTION(aSizeToFill != NS_UNCONSTRAINEDSIZE,
-                 "We don't handle situations with unconstrained "
-                 "aSizeToFill; caller should handle that!");
-    return ComputeStretchContentBoxISize(aSizeToFill, aMargin, aBorderPadding);
   }
 
   /**
@@ -1670,7 +1697,7 @@ class nsLayoutUtils {
   // a complete type in the header. Type-safety is not harmed given that
   // DarkenColorIfNeeded requires an nsIFrame pointer.
   template <typename Frame, typename T, typename S>
-  static nscolor GetTextColor(Frame* aFrame, T S::*aField) {
+  static nscolor GetTextColor(Frame* aFrame, T S::* aField) {
     nscolor color = aFrame->GetVisitedDependentColor(aField);
     return DarkenColorIfNeeded(aFrame, color);
   }
