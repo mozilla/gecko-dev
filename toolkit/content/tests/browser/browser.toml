@@ -22,7 +22,9 @@ support-files = [
 ]
 
 ["browser_about_logging.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan && swgl"] # Bug 1804081
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1804081 # Bug 1869961
+]
 
 ["browser_about_networking.js"]
 fail-if = ["a11y_checks"] # Bug 1854538 clicked #category-dns may not be focusable
@@ -38,9 +40,8 @@ fail-if = ["a11y_checks"] # Bug 1854538 clicked browser may not be focusable
 
 ["browser_bug295977_autoscroll_overflow.js"]
 skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl", # Bug 1710788 # Bug 1869961
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64'",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl", # Bug 1710788
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && socketprocess_networking", # Bug 1775543
 ]
 
 ["browser_bug451286.js"]
@@ -164,15 +165,10 @@ support-files = [
 ["browser_moz_support_link_open_links_in_chrome.js"]
 
 ["browser_quickfind_editable.js"]
-skip-if = ["verify && debug && os == 'linux'"]
 
 ["browser_remoteness_change_listeners.js"]
 
 ["browser_resume_bkg_video_on_tab_hover.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && asan", # Bug 1388959
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && socketprocess_networking", # Bug 1388959
-]
 
 ["browser_richlistbox_keyboard.js"]
 

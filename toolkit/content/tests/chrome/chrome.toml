@@ -82,7 +82,7 @@ run-if = ["os == 'mac'"]
 
 ["test_autocomplete_with_composition_on_input.html"]
 skip-if = [
-  "apple_catalina", # Bug 1784825
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1784825 # Bug 1929437
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
@@ -90,7 +90,6 @@ skip-if = [
 
 ["test_bug263683.xhtml"]
 skip-if = [
-  "debug && os == 'linux'",
   "debug && os == 'win'",
 ]
 
@@ -133,13 +132,17 @@ support-files = ["bug451540_window.xhtml"]
 ["test_bug562554.xhtml"]
 
 ["test_bug624329.xhtml"]
-fail-if = ["os == 'linux' && os_version == '18.04'"]  # Bug 1600194
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1600194 # Bug 1929437 (secondary)
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1600194 # Bug 1929437 (secondary)
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1600194 # Bug 1929437 (secondary)
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1600194 # Bug 1929437
+]
 
 ["test_bug792324.xhtml"]
 
 ["test_bug1048178.xhtml"]
 skip-if = [
-  "apple_catalina",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
@@ -177,7 +180,7 @@ support-files = [
 
 ["test_findbar.xhtml"]
 skip-if = [
-  "apple_catalina", # macosx1014/15 due to 1550078
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # macosx1014/15 due to 1550078 # Bug 1929437
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
@@ -196,7 +199,6 @@ skip-if = [
 ["test_labelcontrol.xhtml"]
 
 ["test_largemenu.html"]
-skip-if = ["os == 'linux' && !debug"] # Bug 1207174
 
 ["test_maximized_persist.xhtml"]
 support-files = [
@@ -253,13 +255,12 @@ support-files = ["window_navigate_persist.html"]
 
 ["test_notificationbox.xhtml"]
 skip-if = [
-  "os == 'linux' && debug", # Bug 1429649
   "os == 'win'", # Bug 1429649
 ]
 
 ["test_panel.xhtml"]
 skip-if = [
-  "apple_catalina", # macosx1014 due to 1550078
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # macosx1014 due to 1550078 # Bug 1929437
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
@@ -270,7 +271,6 @@ skip-if = [
 
 ["test_panel_focus.xhtml"]
 support-files = "window_panel_focus.xhtml"
-skip-if = ["apple_catalina"]
 
 ["test_panel_hover_menu.xhtml"]
 
@@ -281,19 +281,15 @@ skip-if = ["apple_catalina"]
 ["test_popup_anchor.xhtml"]
 
 ["test_popup_anchoratrect.xhtml"]
-skip-if = ["os == 'linux'"] # 1167694
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # 1167694 # Bug 1929437 (secondary)
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # 1167694 # Bug 1929437 (secondary)
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # 1167694 # Bug 1929437 (secondary)
+]
 
 ["test_popup_attribute.xhtml"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && asan", # Bug 1582610
-  "apple_catalina && debug", # Bug 1281360
-]
 
 ["test_popup_button.xhtml"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && asan", # Bug 1582610
-  "apple_catalina && debug", # Bug 1281360
-]
 
 ["test_popup_coords.xhtml"]
 
@@ -350,9 +346,9 @@ support-files = ["window_preferences_onsyncfrompreference.xhtml"]
 
 ["test_tooltip.xhtml"]
 skip-if = [
-  "apple_catalina", # Bug 1141245, frequent timeouts on OSX 10.14, Windows
-  "os == 'win'", # Bug 1141245, frequent timeouts on OSX 10.14, Windows
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1141245, frequent timeouts on OSX 10.14, Windows # Bug 1929437
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
+  "os == 'win'", # Bug 1141245, frequent timeouts on OSX 10.14, Windows
 ]
 
 ["test_tooltip_noautohide.xhtml"]
