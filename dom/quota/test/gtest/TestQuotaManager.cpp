@@ -2479,4 +2479,59 @@ TEST_F(TestQuotaManager, ShutdownStorage_OngoingWithClientDirectoryLock) {
   });
 }
 
+TEST_F(TestQuotaManager, TotalDirectoryIterations_ClearingEmptyRepository) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+
+  const auto totalDirectoryIterationsBefore = TotalDirectoryIterations();
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value = Await(quotaManager->ClearStoragesForOriginAttributesPattern(
+          OriginAttributesPattern()));
+      ASSERT_TRUE(value.IsResolve());
+    }
+  });
+
+  const auto totalDirectoryIterationsAfter = TotalDirectoryIterations();
+
+  ASSERT_EQ(totalDirectoryIterationsAfter - totalDirectoryIterationsBefore, 0u);
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+TEST_F(TestQuotaManager, TotalDirectoryIterations_ClearingNonEmptyRepository) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(
+      InitializeTemporaryOrigin(GetTestOriginMetadata(),
+                                /* aCreateIfNonExistent */ true));
+
+  const auto totalDirectoryIterationsBefore = TotalDirectoryIterations();
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value = Await(quotaManager->ClearStoragesForOriginAttributesPattern(
+          OriginAttributesPattern()));
+      ASSERT_TRUE(value.IsResolve());
+    }
+  });
+
+  const auto totalDirectoryIterationsAfter = TotalDirectoryIterations();
+
+  ASSERT_EQ(totalDirectoryIterationsAfter - totalDirectoryIterationsBefore, 1u);
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
 }  // namespace mozilla::dom::quota::test

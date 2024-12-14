@@ -6970,6 +6970,12 @@ Maybe<FullOriginMetadata> QuotaManager::GetFullOriginMetadata(
   return Nothing();
 }
 
+uint64_t QuotaManager::TotalDirectoryIterations() const {
+  AssertIsOnIOThread();
+
+  return mIOThreadAccessible.Access()->mTotalDirectoryIterations;
+}
+
 // static
 void QuotaManager::GetStorageId(PersistenceType aPersistenceType,
                                 const nsACString& aOrigin,
@@ -7820,6 +7826,15 @@ auto QuotaManager::ExecuteOriginInitialization(
       mInitializationInfo.MutableOriginInitializationInfoRef(
           aOrigin, CreateIfNonExistent{}),
       aInitialization, aContext, std::forward<Func>(aFunc));
+}
+
+void QuotaManager::IncreaseTotalDirectoryIterations() {
+  AssertIsOnIOThread();
+
+  auto ioThreadData = mIOThreadAccessible.Access();
+
+  AssertNoOverflow(ioThreadData->mTotalDirectoryIterations, 1);
+  ioThreadData->mTotalDirectoryIterations++;
 }
 
 /*******************************************************************************

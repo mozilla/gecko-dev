@@ -66,6 +66,7 @@ class PrincipalInfo;
 namespace mozilla::dom::quota {
 
 class CanonicalQuotaObject;
+class ClearRequestBase;
 class ClientUsageArray;
 class ClientDirectoryLock;
 class DirectoryLockImpl;
@@ -80,6 +81,7 @@ class UniversalDirectoryLock;
 
 class QuotaManager final : public BackgroundThreadObject {
   friend class CanonicalQuotaObject;
+  friend class ClearRequestBase;
   friend class ClearStorageOp;
   friend class DirectoryLockImpl;
   friend class FinalizeOriginEvictionOp;
@@ -618,6 +620,14 @@ class QuotaManager final : public BackgroundThreadObject {
   Maybe<FullOriginMetadata> GetFullOriginMetadata(
       const OriginMetadata& aOriginMetadata);
 
+  /**
+   * Retrieves the total number of directory iterations performed.
+   *
+   * @return The total count of directory iterations, which is currently
+   *         incremented only during clearing operations.
+   */
+  uint64_t TotalDirectoryIterations() const;
+
   // Record a quota client shutdown step, if shutting down.
   // Assumes that the QuotaManager singleton is alive.
   static void MaybeRecordQuotaClientShutdownStep(
@@ -845,6 +855,14 @@ class QuotaManager final : public BackgroundThreadObject {
       -> std::invoke_result_t<Func, const FirstInitializationAttempt<
                                         Initialization, StringGenerator>&>;
 
+  /**
+   * Increments the counter tracking the total number of directory iterations.
+   *
+   * @note This is currently called only during clearing operations to update
+   *       the mTotalDirectoryIterations member.
+   */
+  void IncreaseTotalDirectoryIterations();
+
   template <typename Iterator>
   static void MaybeInsertNonPersistedOriginInfos(
       Iterator aDest, const RefPtr<GroupInfo>& aTemporaryGroupInfo,
@@ -905,6 +923,9 @@ class QuotaManager final : public BackgroundThreadObject {
   struct IOThreadAccessible {
     nsTHashMap<nsCStringHashKey, nsTArray<FullOriginMetadata>>
         mAllTemporaryOrigins;
+    // Tracks the total number of directory iterations.
+    // Note: This is currently incremented only during clearing operations.
+    uint64_t mTotalDirectoryIterations = 0;
   };
   ThreadBound<IOThreadAccessible> mIOThreadAccessible;
 

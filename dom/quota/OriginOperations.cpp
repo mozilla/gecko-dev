@@ -2883,6 +2883,7 @@ void ClearRequestBase::DeleteFilesInternal(
         }
 
         mIterations++;
+        aQuotaManager.IncreaseTotalDirectoryIterations();
 
         return Ok{};
       }),
