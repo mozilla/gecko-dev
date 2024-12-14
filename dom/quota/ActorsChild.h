@@ -100,8 +100,6 @@ class QuotaRequestChild final : public PQuotaRequestChild {
 
   void HandleResponse(const EstimateResponse& aResponse);
 
-  void HandleResponse(const nsTArray<nsCString>& aResponse);
-
   void HandleResponse(const GetFullOriginMetadataResponse& aResponse);
 
   // IPDL methods are only called by IPDL.

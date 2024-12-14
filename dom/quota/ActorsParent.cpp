@@ -6548,6 +6548,18 @@ RefPtr<UInt64Promise> QuotaManager::GetCachedOriginUsage(
   return getCachedOriginUsageOp->OnResults();
 }
 
+RefPtr<CStringArrayPromise> QuotaManager::ListOrigins() {
+  AssertIsOnOwningThread();
+
+  auto listOriginsOp = CreateListOriginsOp(WrapMovingNotNullUnchecked(this));
+
+  RegisterNormalOriginOp(*listOriginsOp);
+
+  listOriginsOp->RunImmediately();
+
+  return listOriginsOp->OnResults();
+}
+
 RefPtr<CStringArrayPromise> QuotaManager::ListCachedOrigins() {
   AssertIsOnOwningThread();
 

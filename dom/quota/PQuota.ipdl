@@ -101,10 +101,6 @@ struct EstimateParams
   PrincipalInfo principalInfo;
 };
 
-struct ListOriginsParams
-{
-};
-
 union RequestParams
 {
   StorageNameParams;
@@ -112,7 +108,6 @@ union RequestParams
   PersistedParams;
   PersistParams;
   EstimateParams;
-  ListOriginsParams;
 };
 
 [ChildImpl=virtual, ParentImpl=virtual]
@@ -186,6 +181,9 @@ parent:
 
   async GetCachedOriginUsage(PrincipalInfo principalInfo)
       returns(UInt64Response response);
+
+  async ListOrigins()
+      returns(CStringArrayResponse response);
 
   async ListCachedOrigins()
       returns(CStringArrayResponse response);

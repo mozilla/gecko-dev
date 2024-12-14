@@ -183,8 +183,8 @@ RefPtr<QuotaRequestBase> CreateEstimateOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const EstimateParams& aParams);
 
-RefPtr<QuotaRequestBase> CreateListOriginsOp(
-    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
+RefPtr<ResolvableNormalOriginOp<CStringArray, /* IsExclusive */ true>>
+CreateListOriginsOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
 
 }  // namespace dom::quota
 }  // namespace mozilla

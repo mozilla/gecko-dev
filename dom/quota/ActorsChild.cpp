@@ -165,27 +165,6 @@ void QuotaRequestChild::HandleResponse(const EstimateResponse& aResponse) {
   mRequest->SetResult(variant);
 }
 
-void QuotaRequestChild::HandleResponse(const nsTArray<nsCString>& aResponse) {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mRequest);
-
-  RefPtr<nsVariant> variant = new nsVariant();
-
-  if (aResponse.IsEmpty()) {
-    variant->SetAsEmptyArray();
-  } else {
-    nsTArray<const char*> stringPointers(aResponse.Length());
-    std::transform(aResponse.cbegin(), aResponse.cend(),
-                   MakeBackInserter(stringPointers),
-                   std::mem_fn(&nsCString::get));
-
-    variant->SetAsArray(nsIDataType::VTYPE_CHAR_STR, nullptr,
-                        stringPointers.Length(), stringPointers.Elements());
-  }
-
-  mRequest->SetResult(variant);
-}
-
 void QuotaRequestChild::HandleResponse(
     const GetFullOriginMetadataResponse& aResponse) {
   AssertIsOnOwningThread();
@@ -239,10 +218,6 @@ mozilla::ipc::IPCResult QuotaRequestChild::Recv__delete__(
 
     case RequestResponse::TEstimateResponse:
       HandleResponse(aResponse.get_EstimateResponse());
-      break;
-
-    case RequestResponse::TListOriginsResponse:
-      HandleResponse(aResponse.get_ListOriginsResponse().origins());
       break;
 
     default:

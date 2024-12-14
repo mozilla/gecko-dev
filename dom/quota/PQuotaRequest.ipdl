@@ -38,11 +38,6 @@ struct EstimateResponse
   uint64_t limit;
 };
 
-struct ListOriginsResponse
-{
-  nsCString[] origins;
-};
-
 union RequestResponse
 {
   nsresult;
@@ -51,7 +46,6 @@ union RequestResponse
   PersistedResponse;
   PersistResponse;
   EstimateResponse;
-  ListOriginsResponse;
 };
 
 [ManualDealloc, ChildImpl=virtual, ParentImpl=virtual]

@@ -183,9 +183,6 @@ bool Quota::VerifyRequestParams(const RequestParams& aParams) const {
       break;
     }
 
-    case RequestParams::TListOriginsParams:
-      break;
-
     case RequestParams::TPersistedParams: {
       const PersistedParams& params = aParams.get_PersistedParams();
 
@@ -268,9 +265,6 @@ PQuotaRequestParent* Quota::AllocPQuotaRequestParent(
 
       case RequestParams::TEstimateParams:
         return CreateEstimateOp(quotaManager, aParams.get_EstimateParams());
-
-      case RequestParams::TListOriginsParams:
-        return CreateListOriginsOp(quotaManager);
 
       default:
         MOZ_CRASH("Should never get here!");
@@ -765,6 +759,24 @@ mozilla::ipc::IPCResult Quota::RecvGetCachedOriginUsage(
   quotaManager->GetCachedOriginUsage(aPrincipalInfo)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              UInt64PromiseResolveOrRejectCallback(this, std::move(aResolver)));
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult Quota::RecvListOrigins(
+    ListCachedOriginsResolver&& aResolver) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveCStringArrayResponseAndReturn(aResolver));
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveCStringArrayResponseAndReturn(aResolver));
+
+  quotaManager->ListOrigins()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      CStringArrayPromiseResolveOrRejectCallback(this, std::move(aResolver)));
 
   return IPC_OK();
 }

@@ -507,6 +507,8 @@ class QuotaManager final : public BackgroundThreadObject {
   RefPtr<UInt64Promise> GetCachedOriginUsage(
       const PrincipalInfo& aPrincipalInfo);
 
+  RefPtr<CStringArrayPromise> ListOrigins();
+
   RefPtr<CStringArrayPromise> ListCachedOrigins();
 
   RefPtr<BoolPromise> ClearStoragesForOrigin(
