@@ -76,7 +76,7 @@ class QuotaManagerDependencyFixture : public testing::Test {
   static auto PerformOnIOThread(Invokable&& aInvokable, Args&&... aArgs)
       -> std::invoke_result_t<Invokable, Args...> {
     QuotaManager* quotaManager = QuotaManager::Get();
-    ASSERT_TRUE(quotaManager);
+    MOZ_RELEASE_ASSERT(quotaManager);
 
     return PerformOnThread(quotaManager->IOThread(),
                            std::forward<Invokable>(aInvokable),
