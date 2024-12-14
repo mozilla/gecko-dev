@@ -482,6 +482,14 @@
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">براؤزنگ شروع کرو</string>
 
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">تھی ڳیا</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">منسوخ</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">خدمت دیاں شرطاں</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">رازداری نوٹس</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">بندوبست کرو</string>
     <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
@@ -891,6 +899,8 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ورتاوا تے فنی ڈیٹا</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ٻیا سِکھو</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s کوں بہتر بݨاوݨ وچ ساݙی مدد کرݨ کیتے تہاݙے براؤزر دی کارکردگی، ورتاوا تے ہارڈویئر تے ڈیٹا کوں من پسند کاری کوں موزلّا نال شیئر کریندے </string>
     <!-- Preference switch for marketing data collection -->
@@ -1193,6 +1203,9 @@
 
     <!-- WebCompat Reporter -->
 
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">ترٹی ہوئی سائٹ دی رپورٹ کرو</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">یوآرایل</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->
@@ -1313,6 +1326,8 @@
     <string name="bookmark_deletion_multiple_snackbar_message_3">چُݨے ہوئے فولڈر مٹیندا پئے</string>
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">اݨ کیتا کرو</string>
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">مٹ ڳیا %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">ڳولݨ ٹرماں درج کرو</string>
 

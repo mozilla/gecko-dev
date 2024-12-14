@@ -70,6 +70,8 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">skrivanje in prikazovanje zavihkov brskalnika</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">dostop do zgodovine brskanja</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Prenesite in uporabljajte modele z umetno inteligenco na svoji napravi</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">razširjanje razvojnih orodij za dostop do vaših podatkov v odprtih zavihkih</string>
     <!-- The version on of add-on. -->

@@ -6,6 +6,24 @@
     <string name="mozac_feature_addons_permissions_all_urls_description">എല്ലാ വെബ്സൈറ്റുകൾക്കുമായുള്ള നിങ്ങളുടെ ഡാറ്റ ലഭ്യമാക്കുക</string>
     <!-- Description for giving an add-on access to users's data on one site. %1$s  will be replaced by the DNS host name for which a web extension is requesting access (e.g., www.mozilla.org). -->
     <string name="mozac_feature_addons_permissions_one_site_description">%1$s-നു് നിങ്ങളുടെ ദത്ത ഉപയോഗിക്കാൻ സമ്മതം കൊടുക്കുക</string>
+    <!-- Description for giving an add-on access to users's data in multiple sites in the domain %1$s. %1$s will be replaced by the DNS domain for which a web extension is requesting access (e.g., mozilla.org). -->
+    <string name="mozac_feature_addons_permissions_sites_in_domain_description">%1$s മേഖലയിന്റെ സൈറ്റുകൾക്കായുള്ള താങ്ങളുടെ ദത്ത ഉപയോഗിക്കുക</string>
+    <!-- When an add-on requires access to more than 4 sites, for example the add-on requires access for 5 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
+     then we will show another collapsed entry saying "Access your data on 1 other site". This entry it's for the singular case, when the add-on is only accessing one extra site. -->
+    <string name="mozac_feature_addons_permissions_one_extra_site_description" tools:ignore="PluralsCandidate">മറ്റ് 1 സൈറ്റിൽ താങ്ങളുടെ ദത്ത ഉപയോഗിക്കുക</string>
+    <!-- When an add-on requires access to more than 4 sites, for example the add-on requires access for 6 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
+     then we will show another collapsed entry saying "Access your data on 2 other sites". This entry it's for the plural case, when the add-on is accessing more than one extra site.
+     %1$d will be replaced by an integer indicating the number of additional hosts for which this web extension is requesting permission. -->
+    <string name="mozac_feature_addons_permissions_extra_sites_description" tools:ignore="PluralsCandidate">മറ്റ് %1$d വെബ്സ്ഥാനങ്ങളിൽ താങ്ങളുടെ ദത്ത ഉപയോഗിക്കുക</string>
+    <!-- When an add-on requires access to more than 4 domains, for example the add-on requires access for 5 domains. We will show the first 4 domains in individual entries, as in mozac_feature_addons_permissions_sites_in_domain_description,
+      then we will show another collapsed entry saying "Access your data on 1 other domain". This entry it's for the singular case, when the add-on is only accessing one extra domain. -->
+    <string name="mozac_feature_addons_permissions_one_extra_domain_description" tools:ignore="PluralsCandidate">മറ്റ് 1 മേഖലകയിൽ താങ്ങളുടെ ദത്ത ഉപയോഗിക്കുക</string>
+    <!-- When an add-on requires access to more than 4 domains, for example the add-on requires access for 6 domains. We will show the first 4 domains in individual entries, as in mozac_feature_addons_permissions_sites_in_domain_description,
+     then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
+     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission. -->
+    <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">മറ്റ് %1$d മേഖലുകളിൽ താങ്ങളുടെ ദത്ത ഉപയോഗിക്കുക</string>
+    <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
+    <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d/%3$d</string>
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ബ്രൌസര്‍ ടാബുകള്‍ പരിശോധിക്കുക</string>
     <!-- Description for unlimited_storage permission. -->
@@ -52,6 +70,8 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">ബ്രൗസർ ടാബുകൾ മറയ്ക്കുകയും കാണിക്കുകയും ചെയ്യുക</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">തിരയൽ നാള്‍വഴി പരിശോധിക്കുക</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">താങ്ങളുടെ ഉപകരണത്തിൽ നിർമിതബുദ്ധിമാതൃക പ്രവർത്തനപ്പിക്കുക</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">ഡെവെലപ്പര്‍ ടൂളുകള്‍ക്ക് തുറന്ന ടാബുകളിലെ ഡാറ്റ എടുക്കാന്‍ അനുമതി നല്‍കുക</string>
     <!-- The version on of add-on. -->
@@ -114,6 +134,8 @@
     <string name="mozac_feature_addons_permissions_dialog_learn_more">കൂടുതല്‍ അറിയുക</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">റദ്ദാക്കുക</string>
+    <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_install_addon_content_description_2">%1$s-നു് സ്ഥാപിക്കുക</string>
     <!-- This is the label of a button to cancel an ongoing add-on installation. -->
     <string name="mozac_feature_addons_install_addon_dialog_cancel">റദ്ദാക്കുക</string>
     <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
@@ -124,6 +146,8 @@
     <string name="mozac_feature_addons_addons_manager">ആഡ്-ഓണ്‍ മാനേജര്‍</string>
     <!-- Button to re-enable the extensions in the "crash" notification -->
     <string name="mozac_feature_extensions_manager_notification_restart_button">വിപുലീകരണങ്ങൾ വീണ്ടും തുടങ്ങുക</string>
+    <!-- Button in the extensions manager that opens AMO in a tab -->
+    <string name="mozac_feature_addons_find_more_extensions_button_text">ഇനിയും വിപുലീകരണങ്ങൾ കണ്ടെത്തുക</string>
     <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on-->
     <string name="mozac_feature_addons_updater_notification_allow_button">അനുവദിക്കുക</string>
     <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated-->
@@ -154,6 +178,10 @@
     <string name="mozac_feature_addons_successfully_installed">%1$s വിജയകരമായി ഇൻസ്റ്റാൾ ചെയ്തു</string>
     <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">%1$s ഇൻസ്റ്റാൾ ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു</string>
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
+    <string name="mozac_feature_addons_extension_failed_to_install">ഈ വിപുലീകരണം സ്ഥാപിക്കാൻ പറ്റിയില്ല.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">വിപുലീകരണം സ്ഥാപിക്കാൻ പറ്റന്നില്ല</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s വിജയകരമായി പ്രവർത്തനസജ്ജമാക്കി</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -172,6 +200,10 @@
     <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">%1$s നീക്കം ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു</string>
     <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
     <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">%1$s ന്റെ മുമ്പത്തെ പതിപ്പിൽ നിന്ന് ഈ ആഡ്-ഓൺ മൈഗ്രേറ്റ് ചെയ്തതാണ്</string>
+    <!-- Text shown in not yet supported add-ons section. -->
+    <string name="mozac_feature_addons_unsupported_caption_2">1 വിപുലീകരണം</string>
+    <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
+    <string name="mozac_feature_addons_unsupported_caption_plural_2">%1$s വിപുലീകരണങ്ങൾ</string>
     <!-- Text link to a sumo page for learning more about unsupported add-ons. -->
     <string name="mozac_feature_addons_unsupported_learn_more">കൂടുതല്‍ അറിയുക</string>
     <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated. -->
@@ -188,10 +220,14 @@
     <string name="mozac_feature_addons_updater_dialog_status">സ്ഥിതി:</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_title">%1$s %2$s ലേക്ക് ചേർത്തു</string>
+    <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_installed_dialog_description_2">%2$s കുറിപ്പടി നിന്നു് %1$s ഉപയോഗിക്കുക</string>
     <!-- Confirmation button text for the dialog when add-on installation is completed. -->
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">ശരി</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">കൂടുതല്‍ അറിയുക</string>
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">വിശദാംശങ്ങൾ കാണിക്കുക</string>
-    </resources>
+    <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_status_incompatible">%1$s താങ്ങളുടെ %2$s (പതിപ്പു് %3$s)-ന്റെ പതിപ്പുമായി പൊരുത്തപ്പെടുന്നില്ല</string>
+</resources>
