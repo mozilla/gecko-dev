@@ -877,6 +877,9 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
 
   BaseCreate(aParent, aInitData);
 
+  HWND parent =
+      aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : nullptr;
+
   mIsRTL = aInitData->mRTL;
   mOpeningAnimationSuppressed = aInitData->mIsAnimationSuppressed;
   mAlwaysOnTop = aInitData->mAlwaysOnTop;
@@ -888,12 +891,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
       .ex = static_cast<LONG_PTR>(WindowExStyle()),
   };
 
-  // Per Windows docs, parent is optional for popup / overlapped windows, and
-  // it can cause issues when we reparent widgets, see bug 1936164.
-  HWND parent = nullptr;
   if (mWindowType != WindowType::Popup) {
-    parent = aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : nullptr;
-
     // See if the caller wants to explicitly set clip children and clip siblings
     if (aInitData->mClipChildren) {
       desiredStyles.style |= WS_CLIPCHILDREN;
