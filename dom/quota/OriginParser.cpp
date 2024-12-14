@@ -490,4 +490,15 @@ bool IsUserContextSuffix(const nsACString& aSuffix, uint32_t aUserContextId) {
   return originAttributes.mUserContextId == aUserContextId;
 }
 
+bool IsUserContextPattern(const OriginAttributesPattern& aPattern,
+                          uint32_t aUserContextId) {
+  const auto& userContextId = aPattern.mUserContextId;
+
+  if (!userContextId.WasPassed()) {
+    return false;
+  }
+
+  return userContextId.Value() == aUserContextId;
+}
+
 }  // namespace mozilla::dom::quota

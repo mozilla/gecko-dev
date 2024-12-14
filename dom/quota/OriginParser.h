@@ -16,6 +16,7 @@
 namespace mozilla {
 
 class OriginAttributes;
+class OriginAttributesPattern;
 
 namespace dom::quota {
 
@@ -124,6 +125,25 @@ bool IsUUIDOrigin(const nsCString& aOrigin);
  * diagnostic assertion failure because of `MOZ_ALWAYS_TRUE`.
  */
 bool IsUserContextSuffix(const nsACString& aSuffix, uint32_t aUserContextId);
+
+/**
+ * Checks whether the given `OriginAttributesPattern` matches a specific
+ * user context, based on the provided `userContextId`.
+ *
+ * This function evaluates the `mUserContextId` attribute of the provided
+ * pattern. If the attribute is not set (`WasPassed` returns false), the
+ * function returns `false`. If it is set, the function compares its value
+ * against the specified `aUserContextId`.
+ *
+ * @param aPattern The `OriginAttributesPattern` to check.
+ * @param aUserContextId The expected `userContextId` to compare against
+ *   the `mUserContextId` attribute in the pattern.
+ *
+ * @return `true` if `mUserContextId` is set and matches `aUserContextId`,
+ * `false` otherwise.
+ */
+bool IsUserContextPattern(const OriginAttributesPattern& aPattern,
+                          uint32_t aUserContextId);
 
 }  // namespace dom::quota
 }  // namespace mozilla

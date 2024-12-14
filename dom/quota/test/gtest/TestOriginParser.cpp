@@ -7,6 +7,7 @@
 #include "OriginParser.h"
 
 #include "gtest/gtest.h"
+#include "mozilla/OriginAttributes.h"
 #include "nsFmtString.h"
 
 namespace mozilla::dom::quota {
@@ -48,6 +49,43 @@ TEST(DOM_Quota_OriginParser_IsUserContextSuffix, False)
   EXPECT_FALSE(IsUserContextSuffix("^userContextId=1"_ns, userContextId));
   EXPECT_FALSE(
       IsUserContextSuffix("^inBrowser=1&userContextId=1"_ns, userContextId));
+}
+
+TEST(DOM_Quota_OriginParser_IsUserContextPattern, True)
+{
+  const uint32_t userContextId = 5;
+
+  {
+    OriginAttributesPattern pattern;
+    pattern.Init(
+        nsFmtString(FMT_STRING(u"{{ \"userContextId\": {} }}"), userContextId));
+    EXPECT_TRUE(IsUserContextPattern(pattern, userContextId));
+  }
+
+  {
+    OriginAttributesPattern pattern;
+    pattern.Init(nsFmtString(
+        FMT_STRING(u"{{ \"userContextId\": 5, \"privateBrowsingId\": 1 }}"),
+        userContextId));
+    EXPECT_TRUE(IsUserContextPattern(pattern, userContextId));
+  }
+}
+
+TEST(DOM_Quota_OriginParser_IsUserContextPattern, False)
+{
+  const uint32_t userContextId = 5;
+
+  {
+    OriginAttributesPattern pattern;
+    pattern.Init(u"{ \"inBrowser\": 1 }"_ns);
+    EXPECT_FALSE(IsUserContextPattern(pattern, userContextId));
+  }
+
+  {
+    OriginAttributesPattern pattern;
+    pattern.Init(u"{ \"userContextId\": 1 }"_ns);
+    EXPECT_FALSE(IsUserContextPattern(pattern, userContextId));
+  }
 }
 
 }  //  namespace mozilla::dom::quota
