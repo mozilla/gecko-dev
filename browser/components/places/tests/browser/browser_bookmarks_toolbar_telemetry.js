@@ -24,25 +24,24 @@ const bookmarksInfo = [
   },
 ];
 
-add_setup(async function () {
-  let toolbarVisibility = Services.prefs.getCharPref(
-    "browser.toolbars.bookmarks.visibility",
-    "newtab"
-  );
-  if (toolbarVisibility != "newtab") {
-    // The first test assumes that we will be changing from the `newtab` state
-    // to `never`. Hence ensure we are on the expected state.
-    await changeToolbarVisibilityViaContextMenu("newtab");
-  }
-
-  registerCleanupFunction(async () => {
-    await changeToolbarVisibilityViaContextMenu(toolbarVisibility);
+// Setup.
+add_task(async function test_bookmarks_toolbar_telemetry() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.toolbars.bookmarks.visibility", "newtab"]],
   });
 
-  Services.telemetry.clearScalars();
-});
+  // This is added during startup
+  await TestUtils.waitForCondition(
+    () =>
+      keyedScalarExists(
+        "browser.ui.toolbar_widgets",
+        "bookmarks-bar_pinned_newtab",
+        true
+      ),
+    `Waiting for "bookmarks-bar_pinned_newtab" to appear in Telemetry snapshot`
+  );
+  ok(true, `"bookmarks-bar_pinned_newtab"=true found in Telemetry`);
 
-add_task(async function test_bookmarks_toolbar_visibility() {
   await changeToolbarVisibilityViaContextMenu("never");
   await assertUIChange(
     "bookmarks-bar_move_newtab_never_toolbar-context-menu",
@@ -60,9 +59,7 @@ add_task(async function test_bookmarks_toolbar_visibility() {
     "bookmarks-bar_move_newtab_always_toolbar-context-menu",
     1
   );
-});
 
-add_task(async function test_bookmarks_counts_across_multiple_windows() {
   // Extra windows are opened to make sure telemetry numbers aren't
   // double counted since there will be multiple instances of the
   // bookmarks toolbar.
