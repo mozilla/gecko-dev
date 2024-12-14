@@ -190,6 +190,7 @@ class AndroidWrench(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
             app_name="org.mozilla.wrench",
             activity_name="android.app.NativeActivity",
             intent=None,
+            grant_runtime_permissions=False,
         )
         self.info("App launched")
         done = self.wait_until_process_done("org.mozilla.wrench", timeout=timeout)
