@@ -258,7 +258,7 @@ static StyleAbsoluteColor Interpolate(const StyleAbsoluteColor& aLeft,
       StyleColorSpace::Srgb,
       StyleHueInterpolationMethod::Shorter,
   };
-  return Servo_InterpolateColor(kMethod, &aRight, &aLeft, aFrac);
+  return Servo_InterpolateColor(kMethod, &aLeft, &aRight, aFrac);
 }
 
 static nscoord FindTileStart(nscoord aDirtyCoord, nscoord aTilePos,

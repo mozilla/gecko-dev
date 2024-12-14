@@ -85,8 +85,8 @@ class MOZ_STACK_CLASS ColorStopInterpolator {
         auto position =
             startPosition + progress * (endPosition - startPosition);
         StyleAbsoluteColor color =
-            Servo_InterpolateColor(mStyleColorInterpolationMethod, &end.mColor,
-                                   &start.mColor, progress);
+            Servo_InterpolateColor(mStyleColorInterpolationMethod,
+                                   &start.mColor, &end.mColor, progress);
         static_cast<T*>(this)->CreateStop(float(position),
                                           gfx::ToDeviceColor(color));
       }

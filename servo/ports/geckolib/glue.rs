@@ -9007,16 +9007,16 @@ pub unsafe extern "C" fn Servo_InvalidateForViewportUnits(
 #[no_mangle]
 pub extern "C" fn Servo_InterpolateColor(
     interpolation: ColorInterpolationMethod,
-    left: &AbsoluteColor,
-    right: &AbsoluteColor,
+    start_color: &AbsoluteColor,
+    end_color: &AbsoluteColor,
     progress: f32,
 ) -> AbsoluteColor {
     style::color::mix::mix(
         interpolation,
-        left,
-        progress,
-        right,
+        start_color,
         1.0 - progress,
+        end_color,
+        progress,
         ColorMixFlags::empty(),
     )
 }
