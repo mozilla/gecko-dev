@@ -36,7 +36,6 @@ add_task(async function test_main() {
       },
     },
     { file: "helper_fission_force_empty_hit_region.html" },
-    { file: "helper_fission_large_subframe.html" },
     { file: "helper_fission_initial_displayport.html" },
     { file: "helper_fission_checkerboard_severity.html" },
     // add additional tests here

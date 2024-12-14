@@ -2,6 +2,7 @@
 <html id="rcd_docelement">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Test that large OOPIF does not get a too-large displayport</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="/tests/SimpleTest/paint_listener.js"></script>
@@ -10,58 +11,60 @@
   <script src="apz_test_native_event_utils.js"></script>
   <script>
 
-fission_subtest_init();
+    async function test() {
+      let iframe = document.getElementById("testframe");
+      await setupCrossOriginIFrame(iframe, "helper_fission_plain.html");
 
-FissionTestHelper.startTestPromise
-  .then(waitUntilApzStable)
-  .then(loadOOPIFrame("testframe", "helper_fission_empty.html"))
-  .then(waitUntilApzStable)
-  .then(test)
-  .then(FissionTestHelper.subtestDone, FissionTestHelper.subtestFailed);
+      const remoteType = await SpecialPowers.spawn(iframe, [], async () => {
+        return await SpecialPowers.spawnChrome([], () => {
+          return windowGlobalParent.domProcess.remoteType;
+        });
+      });
+      if (remoteType === "web") {
+        is(SpecialPowers.effectiveIsolationStrategy(), SpecialPowers.ISOLATION_STRATEGY.IsolateHighValue);
+        ok(true, "Skipping this test since the document on example.com got loaded in the same content process");
+        return;
+      }
 
-// Code that will run inside the iframe.
-let get_iframe_displayport = function() {
-  // Give the page a scroll range. This will make the unclamped displayport
-  // even taller.
-  document.body.style.height = "200vh";
-  // Do a round-trip to APZ to make sure the scroll range is reflected
-  // in the displayport it sets.
-  promiseApzFlushedRepaints().then(() => {
-    // Query the composed displayport and report it to the embedder.
-    let result = getLastContentDisplayportFor("fission_empty_docelement");
-    FissionTestHelper.fireEventInEmbedder("OOPIF:Displayport", result);
-  });
-  return true;
-};
+      // Give the page a scroll range and make sure APZ sets non-empty displayport margins.
+      document.body.style.height = "500vh";
+      await promiseApzFlushedRepaints();
 
-async function test() {
-  let iframeElement = document.getElementById("testframe");
+      let iframeDp = await SpecialPowers.spawn(iframe, [], async () => {
+        // Give the page a scroll range. This will make the unclamped displayport
+        // even taller.
+        content.document.body.style.height = "200vh";
+        await content.wrappedJSObject.promiseApzFlushedRepaints();
 
-  // Give the page a scroll range and make sure APZ sets non-empty displayport margins.
-  document.body.style.height = "500vh";
-  await promiseApzFlushedRepaints();
+        // Query the composed displayport and report it to the embedder.
+        return content.wrappedJSObject.getLastContentDisplayportFor("fission_empty_docelement");
+      });
+      dump("iframe page displayport is " + JSON.stringify(iframeDp) + "\n");
 
-  // Query the iframe's displayport.
-  let displayportPromise = promiseOneEvent(window, "OOPIF:Displayport", null);
-  ok(await FissionTestHelper.sendToOopif(iframeElement, `(${get_iframe_displayport})()`), "Gotten iframe displayport");
-  let iframeDp = (await displayportPromise).data;
-  dump("iframe displayport is " + JSON.stringify(iframeDp) + "\n");
+      // Query the page's displayport.
+      let dp = getLastContentDisplayportFor("rcd_docelement");
+      dump("page displayport is " + JSON.stringify(dp) + "\n");
 
-  // Query the page's displayport.
-  let dp = getLastContentDisplayportFor("rcd_docelement");
-  dump("page displayport is " + JSON.stringify(dp) + "\n");
+      // Check that the iframe's displayport is no more than twice as tall as
+      // the page's displayport. The reason it can be up to twice as tall is
+      // described in bug 1690697; we may be able to assert a tighter bound
+      // after making improvements in that bug.
+      ok(iframeDp.height <= (dp.height * 2), "iframe displayport should be no more than twice as tall as page displayport");
+    }
 
-  // Check that the iframe's displayport is no more than twice as tall as
-  // the page's displayport. The reason it can be up to twice as tall is
-  // described in bug 1690697; we may be able to assert a tighter bound
-  // after making improvements in that bug.
-  ok(iframeDp.height <= (dp.height * 2), "iframe displayport should be no more than twice as tall as page displayport");
-}
+    if (!SpecialPowers.Services.appinfo.fissionAutostart) {
+      ok(true, "This test doesn't need to run with disabling Fission");
+      subtestDone();
+    } else {
+      waitUntilApzStable()
+        .then(test)
+        .then(subtestDone, subtestFailed);
+    }
 
   </script>
 </head>
 <body>
-<!-- Make the iframe's viewport very tall -->
-<iframe style="margin-top: 200px" id="testframe" height="10000px"></iframe>
+  <!-- Make the iframe's viewport very tall // todo: maybe rather use viewport units to make it scrollable -->
+  <iframe style="margin-top: 200px" id="testframe" height="10000px"></iframe>
 </body>
 </html>

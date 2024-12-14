@@ -12,6 +12,11 @@
     var prefs = [
     ];
 
+    var logging_prefs = [
+      ...prefs,
+      ["apz.test.logging_enabled", true],
+    ]
+
     var animation_prefs = [
       ...prefs,
       // To avoid throttling requestAnimationFrame callbacks in invisible
@@ -20,9 +25,8 @@
     ];
 
     var hit_test_prefs = [
-      ...prefs,
+      ...logging_prefs,
       ["test.events.async.enabled", true],
-      ["apz.test.logging_enabled", true],
     ];
 
     var subtests = [
@@ -30,6 +34,7 @@
         "file": "helper_fission_inactivescroller_positionedcontent.html",
         "prefs": hit_test_prefs
       },
+      { "file": "helper_fission_large_subframe.html", "prefs": logging_prefs },
       { "file": "helper_fission_setResolution.html", "prefs": prefs },
       {
         "file": "helper_fission_tap.html",
