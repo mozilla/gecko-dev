@@ -4029,16 +4029,19 @@ void nsBlockFrame::MoveChildFramesOfLine(nsLineBox* aLine,
 }
 
 static inline bool IsNonAutoNonZeroBSize(const StyleSize& aCoord) {
-  // The "extremum length" values (see ExtremumLength) were originally aimed at
+  // The "extremum length" values (see ExtremumLength) that return true from
+  // 'BehavesLikeInitialValueOnBlockAxis()' were originally aimed at
   // inline-size (or width, as it was before logicalization). For now, let them
   // return false here, so we treat them like 'auto' pending a real
   // implementation. (See bug 1126420.)
-  //
-  // FIXME (bug 567039, bug 527285) This isn't correct for the 'fill' value,
-  // which should more likely (but not necessarily, depending on the available
-  // space) be returning true.
   if (aCoord.BehavesLikeInitialValueOnBlockAxis()) {
     return false;
+  }
+  if (aCoord.BehavesLikeStretchOnBlockAxis()) {
+    // We return true for "stretch" because it's essentially equivalent to
+    // "100%" for the purposes of this function (and this function returns true
+    // for nonzero percentage values, in the final return statement below).
+    return true;
   }
   MOZ_ASSERT(aCoord.IsLengthPercentage());
   // If we evaluate the length/percent/calc at a percentage basis of

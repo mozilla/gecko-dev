@@ -1575,6 +1575,25 @@ class nsLayoutUtils {
     return std::max(0, result - aContentEdgeToBoxSizingBoxEdge);
   }
 
+  // Wrapper for ComputeBSizeValue that also handles 'stretch':
+  template <typename SizeOrMaxSize>
+  static nscoord ComputeBSizeValueHandlingStretch(
+      nscoord aContainingBlockBSize, nscoord aMargin, nscoord aBorderPadding,
+      nscoord aContentEdgeToBoxSizingBoxEdge, const SizeOrMaxSize& aSize) {
+    if (aSize.BehavesLikeStretchOnBlockAxis()) {
+      // Note: we don't need to worry about accounting for "box-sizing" when
+      // resolving 'stretch' here. This function unconditionally returns a
+      // content-box size, and the content-box size of a stretched element is
+      // the same regardless of whether whether the author is conceptually
+      // asking us to stretch the content box vs. the border-box.
+      return ComputeStretchContentBoxBSize(aContainingBlockBSize, aMargin,
+                                           aBorderPadding);
+    }
+    return ComputeBSizeValue(aContainingBlockBSize,
+                             aContentEdgeToBoxSizingBoxEdge,
+                             aSize.AsLengthPercentage());
+  }
+
   /**
    * Returns the size that an element's box should take on, in order for its
    * margin-box to exactly reach a particular larger size (e.g. to fill its
@@ -1650,20 +1669,21 @@ class nsLayoutUtils {
   }
 
   /**
-   * The "extremum length" values (see ExtremumLength) were originally aimed at
+   * The "extremum length" values (see ExtremumLength) that return true from
+   * 'BehavesLikeInitialValueOnBlockAxis()' were originally aimed at
    * inline-size (or width, as it was before logicalization). For now, we return
    * true for those here, so that we don't call ComputeBSizeValue with value
    * types that it doesn't understand. (See bug 1113216.)
-   *
-   * FIXME (bug 567039, bug 527285)
-   * This isn't correct for the 'fill' value or for the 'min-*' or 'max-*'
-   * properties, which need to be handled differently by the callers of
-   * IsAutoBSize().
    */
   template <typename SizeOrMaxSize>
   static bool IsAutoBSize(const SizeOrMaxSize& aCoord, nscoord aCBBSize) {
+    // Note: percentages and 'stretch' both behave like 'auto' in the block
+    // axis *if and only if* they're resolved against an unconstrained
+    // block-size (on their containing block). That's what the second half of
+    // this condition is handling.
     return aCoord.BehavesLikeInitialValueOnBlockAxis() ||
-           (aCBBSize == nscoord_MAX && aCoord.HasPercent());
+           (aCBBSize == nscoord_MAX &&
+            (aCoord.HasPercent() || aCoord.BehavesLikeStretchOnBlockAxis()));
   }
 
   static bool IsPaddingZero(const LengthPercentage& aLength) {

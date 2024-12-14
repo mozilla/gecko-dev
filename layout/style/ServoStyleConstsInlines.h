@@ -837,14 +837,20 @@ inline bool StyleFlexBasis::IsAuto() const {
   return IsSize() && AsSize().IsAuto();
 }
 
-#define IMPL_BEHAVES_LIKE_SIZE_METHODS(ty_, isInitialValMethod_)       \
-  template <>                                                          \
-  inline bool ty_::BehavesLikeStretchOnInlineAxis() const {            \
-    return IsStretch() || IsMozAvailable() || IsWebkitFillAvailable(); \
-  }                                                                    \
-  template <>                                                          \
-  inline bool ty_::BehavesLikeInitialValueOnBlockAxis() const {        \
-    return isInitialValMethod_() || !IsLengthPercentage();             \
+#define IMPL_BEHAVES_LIKE_SIZE_METHODS(ty_, isInitialValMethod_)        \
+  template <>                                                           \
+  inline bool ty_::BehavesLikeStretchOnInlineAxis() const {             \
+    return IsStretch() || IsMozAvailable() || IsWebkitFillAvailable();  \
+  }                                                                     \
+  template <>                                                           \
+  inline bool ty_::BehavesLikeStretchOnBlockAxis() const {              \
+    /* TODO(dholbert): Add "|| IsMozAvailable()" in bug 527285. */      \
+    return IsStretch() || IsWebkitFillAvailable();                      \
+  }                                                                     \
+  template <>                                                           \
+  inline bool ty_::BehavesLikeInitialValueOnBlockAxis() const {         \
+    return isInitialValMethod_() ||                                     \
+           (!BehavesLikeStretchOnBlockAxis() && !IsLengthPercentage()); \
   }
 
 IMPL_BEHAVES_LIKE_SIZE_METHODS(StyleSize, IsAuto)

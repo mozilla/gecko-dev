@@ -6394,15 +6394,30 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
                                        aBorderPadding.ISize(aWM) -
                                        boxSizingAdjust.ISize(aWM);
 
-  const auto& styleISize = aSizeOverrides.mStyleISize
-                               ? *aSizeOverrides.mStyleISize
-                               : stylePos->ISize(aWM);
-  const auto& styleBSize = aSizeOverrides.mStyleBSize
-                               ? *aSizeOverrides.mStyleBSize
-                               : stylePos->BSize(aWM);
   const auto& aspectRatio = aSizeOverrides.mAspectRatio
                                 ? *aSizeOverrides.mAspectRatio
                                 : GetAspectRatio();
+  const auto& styleISize = aSizeOverrides.mStyleISize
+                               ? *aSizeOverrides.mStyleISize
+                               : stylePos->ISize(aWM);
+  // For bsize, we consider overrides *and then* we resolve 'stretch' to a
+  // nscoord value, for convenience (so that we can assume that either
+  // isAutoBSize is true, or styleBSize is of type LengthPercentage()).
+  const auto& styleBSize = [&] {
+    const auto& styleBSizeConsideringOverrides =
+        (aSizeOverrides.mStyleBSize) ? *aSizeOverrides.mStyleBSize
+                                     : stylePos->BSize(aWM);
+    if (styleBSizeConsideringOverrides.BehavesLikeStretchOnBlockAxis() &&
+        aCBSize.BSize(aWM) != NS_UNCONSTRAINEDSIZE) {
+      // We've got a 'stretch' BSize; resolve it to a length:
+      nscoord stretchBSize = nsLayoutUtils::ComputeStretchBSize(
+          aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM),
+          stylePos->mBoxSizing);
+      return StyleSize::LengthPercentage(
+          LengthPercentage::FromAppUnits(stretchBSize));
+    }
+    return styleBSizeConsideringOverrides;
+  }();
 
   auto parentFrame = GetParent();
   auto alignCB = parentFrame;
@@ -6438,6 +6453,11 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   const bool isAutoISize = styleISize.IsAuto();
   const bool isAutoBSize =
       nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM));
+
+  MOZ_ASSERT(isAutoBSize || styleBSize.IsLengthPercentage(),
+             "We should have resolved away any non-'auto'-like flavors "
+             "of styleBSize into a LengthPercentage. (If this fails, we "
+             "might run afoul of some AsLengthPercentage() call below.)");
 
   // Compute inline-axis size
   const bool isSubgriddedInInlineAxis =
@@ -6722,16 +6742,16 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
     const bool shouldIgnoreMinMaxBSize =
         isFlexItemBlockAxisMainAxis || isSubgriddedInBlockAxis;
     if (!isAutoMaxBSize && !shouldIgnoreMinMaxBSize) {
-      nscoord maxBSize = nsLayoutUtils::ComputeBSizeValue(
-          aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-          maxBSizeCoord.AsLengthPercentage());
+      nscoord maxBSize = nsLayoutUtils::ComputeBSizeValueHandlingStretch(
+          aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM),
+          boxSizingAdjust.BSize(aWM), maxBSizeCoord);
       result.BSize(aWM) = std::min(maxBSize, result.BSize(aWM));
     }
 
     if (!isAutoMinBSize && !shouldIgnoreMinMaxBSize) {
-      nscoord minBSize = nsLayoutUtils::ComputeBSizeValue(
-          aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-          minBSizeCoord.AsLengthPercentage());
+      nscoord minBSize = nsLayoutUtils::ComputeBSizeValueHandlingStretch(
+          aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM),
+          boxSizingAdjust.BSize(aWM), minBSizeCoord);
       result.BSize(aWM) = std::max(minBSize, result.BSize(aWM));
     }
   }
@@ -6770,20 +6790,32 @@ nscoord nsIFrame::ComputeBSizeValueAsPercentageBasis(
     return NS_UNCONSTRAINEDSIZE;
   }
 
-  const nscoord bSize = nsLayoutUtils::ComputeBSizeValue(
-      aCBBSize, aContentEdgeToBoxSizingBSize, aStyleBSize.AsLengthPercentage());
+  // TODO(dholbert): This is a temporary hack, to be fixed up in bug 1933604.
+  // We don't know have aMargin or aBorderPadding args available,
+  // so we use these dummy zero-valued variables as placeholders in
+  // our call to ComputeBSizeValueHandlingStretch. (This might mean we
+  // end up resolving 'stretch' to something slighlty-too-large for the
+  // purposes of this call, if there's actually nonzero margin/border/padding).
+  const nscoord dummyMargin = 0;
+  const nscoord dummyBorderPadding = 0;
 
-  const nscoord minBSize = nsLayoutUtils::IsAutoBSize(aStyleMinBSize, aCBBSize)
-                               ? 0
-                               : nsLayoutUtils::ComputeBSizeValue(
-                                     aCBBSize, aContentEdgeToBoxSizingBSize,
-                                     aStyleMinBSize.AsLengthPercentage());
+  const nscoord bSize = nsLayoutUtils::ComputeBSizeValueHandlingStretch(
+      aCBBSize, dummyMargin, dummyBorderPadding, aContentEdgeToBoxSizingBSize,
+      aStyleBSize);
 
-  const nscoord maxBSize = nsLayoutUtils::IsAutoBSize(aStyleMaxBSize, aCBBSize)
-                               ? NS_UNCONSTRAINEDSIZE
-                               : nsLayoutUtils::ComputeBSizeValue(
-                                     aCBBSize, aContentEdgeToBoxSizingBSize,
-                                     aStyleMaxBSize.AsLengthPercentage());
+  const nscoord minBSize =
+      nsLayoutUtils::IsAutoBSize(aStyleMinBSize, aCBBSize)
+          ? 0
+          : nsLayoutUtils::ComputeBSizeValueHandlingStretch(
+                aCBBSize, dummyMargin, dummyBorderPadding,
+                aContentEdgeToBoxSizingBSize, aStyleMinBSize);
+
+  const nscoord maxBSize =
+      nsLayoutUtils::IsAutoBSize(aStyleMaxBSize, aCBBSize)
+          ? NS_UNCONSTRAINEDSIZE
+          : nsLayoutUtils::ComputeBSizeValueHandlingStretch(
+                aCBBSize, dummyMargin, dummyBorderPadding,
+                aContentEdgeToBoxSizingBSize, aStyleMaxBSize);
 
   return CSSMinMax(bSize, minBSize, maxBSize);
 }

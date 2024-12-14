@@ -921,8 +921,10 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
 
   template <typename SizeOrMaxSize>
   static bool BSizeCoordDependsOnContainer(const SizeOrMaxSize& aCoord) {
-    return aCoord.IsLengthPercentage() &&
-           aCoord.AsLengthPercentage().HasPercent();
+    if (aCoord.IsLengthPercentage()) {
+      return aCoord.AsLengthPercentage().HasPercent();
+    }
+    return aCoord.BehavesLikeStretchOnBlockAxis();
   }
 };
 

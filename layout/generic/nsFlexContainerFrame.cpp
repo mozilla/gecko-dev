@@ -1606,6 +1606,10 @@ nscoord nsFlexContainerFrame::PartiallyResolveAutoMinSize(
   nscoord specifiedSizeSuggestion = nscoord_MAX;
 
   if (aAxisTracker.IsRowOriented()) {
+    // TODO(dholbert): We need to handle 'stretch' (and its prefixed aliases)
+    // here; that's tracked in bug 1936942.  (Note that we do handle 'stretch'
+    // in our column-oriented "else" clause below, via the call to
+    // ComputeBSizeValueHandlingStretch.)
     if (mainStyleSize.IsLengthPercentage()) {
       // NOTE: We ignore extremum inline-size. This is OK because the caller is
       // responsible for computing the min-content inline-size and min()'ing it
@@ -1615,14 +1619,16 @@ nscoord nsFlexContainerFrame::PartiallyResolveAutoMinSize(
           mainStyleSize.AsLengthPercentage());
     }
   } else {
+    // NOTE: We ignore specified block-sizes that behave as 'auto', as
+    // identified by IsAutoBSize(); that's OK because the caller is responsible
+    // for computing the content-based block-size and and min()'ing it with the
+    // value we return.
     const auto percentageBasisBSize = PercentageBasisForItem().BSize(cbWM);
     if (!nsLayoutUtils::IsAutoBSize(mainStyleSize, percentageBasisBSize)) {
-      // NOTE: We ignore auto and extremum block-size. This is OK because the
-      // caller is responsible for computing the min-content block-size and
-      // min()'ing it with the value we return.
-      specifiedSizeSuggestion = nsLayoutUtils::ComputeBSizeValue(
-          percentageBasisBSize, boxSizingAdjust.BSize(cbWM),
-          mainStyleSize.AsLengthPercentage());
+      specifiedSizeSuggestion = nsLayoutUtils::ComputeBSizeValueHandlingStretch(
+          percentageBasisBSize, aFlexItem.MarginSizeInMainAxis(),
+          aFlexItem.BorderPaddingSizeInMainAxis(), boxSizingAdjust.BSize(cbWM),
+          mainStyleSize);
     }
   }
 
@@ -2340,6 +2346,15 @@ bool FlexItem::IsMinSizeAutoResolutionNeeded() const {
   const auto& mainMinSize =
       Frame()->StylePosition()->MinSize(MainAxis(), ContainingBlockWM());
 
+  // "min-{height,width}:stretch" never produces an automatic minimum size. You
+  // might think it would result in an automatic min-size if the containing
+  // block size is indefinite, but "stretch" is instead treated as 0px in that
+  // case rather than auto. This WPT requires this behavior:
+  // https://wpt.live/css/css-sizing/stretch/indefinite-4.html More details &
+  // discussion here: https://github.com/w3c/csswg-drafts/issues/11006
+  if (mainMinSize.BehavesLikeStretchOnBlockAxis()) {
+    return false;
+  }
   return IsAutoOrEnumOnBSize(mainMinSize, IsInlineAxisMainAxis()) &&
          !Frame()->StyleDisplay()->IsScrollableOverflow();
 }

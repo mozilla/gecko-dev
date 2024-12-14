@@ -500,6 +500,7 @@ renaming_overrides_prefixing = true
   inline bool HasPercent() const;
   inline bool HasLengthAndPercentage() const;
   inline bool BehavesLikeStretchOnInlineAxis() const;
+  inline bool BehavesLikeStretchOnBlockAxis() const;
   inline bool BehavesLikeInitialValueOnBlockAxis() const;
   inline bool BehavesLikeInitialValue(LogicalAxis) const;
 """
@@ -516,6 +517,7 @@ renaming_overrides_prefixing = true
   inline bool HasPercent() const;
   inline bool HasLengthAndPercentage() const;
   inline bool BehavesLikeStretchOnInlineAxis() const;
+  inline bool BehavesLikeStretchOnBlockAxis() const;
   inline bool BehavesLikeInitialValueOnBlockAxis() const;
   inline bool BehavesLikeInitialValue(LogicalAxis) const;
 """

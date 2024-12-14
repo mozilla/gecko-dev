@@ -169,7 +169,7 @@ struct SizeComputationInput {
                    const Maybe<LogicalMargin>& aPadding,
                    const nsStyleDisplay* aDisplay = nullptr);
 
-  /*
+  /**
    * Convert StyleSize or StyleMaxSize to nscoord when percentages depend on the
    * inline size of the containing block, and enumerated values are for inline
    * size, min-inline-size, or max-inline-size.  Does not handle auto inline
@@ -180,6 +180,20 @@ struct SizeComputationInput {
                                    StyleBoxSizing aBoxSizing,
                                    const SizeOrMaxSize&) const;
 
+  /**
+   * Wrapper for SizeComputationInput::ComputeBSizeValue (defined below, which
+   * itself is a wrapper for nsLayoutUtils::ComputeBSizeValue). This one just
+   * handles 'stretch' sizes first.
+   */
+  template <typename SizeOrMaxSize>
+  inline nscoord ComputeBSizeValueHandlingStretch(
+      nscoord aContainingBlockBSize, StyleBoxSizing aBoxSizing,
+      const SizeOrMaxSize& aSize) const;
+
+  /**
+   * Wrapper for nsLayoutUtils::ComputeBSizeValue, which automatically figures
+   * out the value to pass for its aContentEdgeToBoxSizingBoxEdge param.
+   */
   nscoord ComputeBSizeValue(nscoord aContainingBlockBSize,
                             StyleBoxSizing aBoxSizing,
                             const LengthPercentage& aCoord) const;

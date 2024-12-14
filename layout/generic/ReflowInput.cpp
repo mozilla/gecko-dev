@@ -285,6 +285,20 @@ nscoord SizeComputationInput::ComputeISizeValue(
       .mISize;
 }
 
+template <typename SizeOrMaxSize>
+nscoord SizeComputationInput::ComputeBSizeValueHandlingStretch(
+    nscoord aContainingBlockBSize, StyleBoxSizing aBoxSizing,
+    const SizeOrMaxSize& aSize) const {
+  if (aSize.BehavesLikeStretchOnBlockAxis()) {
+    WritingMode wm = GetWritingMode();
+    return nsLayoutUtils::ComputeStretchContentBoxBSize(
+        aContainingBlockBSize, ComputedLogicalMargin(wm).Size(wm).BSize(wm),
+        ComputedLogicalBorderPadding(wm).Size(wm).BSize(wm));
+  }
+  return ComputeBSizeValue(aContainingBlockBSize, aBoxSizing,
+                           aSize.AsLengthPercentage());
+}
+
 nscoord SizeComputationInput::ComputeBSizeValue(
     nscoord aContainingBlockBSize, StyleBoxSizing aBoxSizing,
     const LengthPercentage& aSize) const {
@@ -1489,7 +1503,9 @@ void ReflowInput::CalculateHypotheticalPosition(
 
     nscoord boxBSize;
     const auto& styleBSize = mStylePosition->BSize(wm);
-    if (styleBSize.BehavesLikeInitialValueOnBlockAxis()) {
+    const bool isAutoBSize =
+        nsLayoutUtils::IsAutoBSize(styleBSize, blockContentSize.BSize(wm));
+    if (isAutoBSize) {
       if (mFlags.mIsReplaced && intrinsicSize) {
         // It's a replaced element with an 'auto' block size so the box
         // block size is its intrinsic size plus any border/padding/margin
@@ -1501,6 +1517,16 @@ void ReflowInput::CalculateHypotheticalPosition(
         // positioned frame?)
         boxBSize = 0;
       }
+    } else if (styleBSize.BehavesLikeStretchOnBlockAxis()) {
+      MOZ_ASSERT(blockContentSize.BSize(wm) != NS_UNCONSTRAINEDSIZE,
+                 "If we're 'stretch' with unconstrained size, isAutoBSize "
+                 "should be true which should make us skip this code");
+      // TODO(dholbert) The 'insideBoxSizing' and 'outsideBoxSizing' usages
+      // here aren't quite right, because we're supposed to be passing margin
+      // and borderPadding specifically.  The arithmetic seems to work out in
+      // testcases though.
+      boxBSize = nsLayoutUtils::ComputeStretchContentBoxBSize(
+          blockContentSize.BSize(wm), outsideBoxSizing, insideBoxSizing);
     } else {
       // We need to compute it. It's important we do this, because if it's
       // percentage-based this computed value may be different from the
@@ -3013,9 +3039,8 @@ void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
   if (BSizeBehavesAsInitialValue(minBSize)) {
     SetComputedMinBSize(0);
   } else {
-    SetComputedMinBSize(ComputeBSizeValue(bPercentageBasis,
-                                          mStylePosition->mBoxSizing,
-                                          minBSize.AsLengthPercentage()));
+    SetComputedMinBSize(ComputeBSizeValueHandlingStretch(
+        bPercentageBasis, mStylePosition->mBoxSizing, minBSize));
   }
 
   if (mIsThemed) {
@@ -3026,9 +3051,8 @@ void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
     // Specified value of 'none'
     SetComputedMaxBSize(NS_UNCONSTRAINEDSIZE);
   } else {
-    SetComputedMaxBSize(ComputeBSizeValue(bPercentageBasis,
-                                          mStylePosition->mBoxSizing,
-                                          maxBSize.AsLengthPercentage()));
+    SetComputedMaxBSize(ComputeBSizeValueHandlingStretch(
+        bPercentageBasis, mStylePosition->mBoxSizing, maxBSize));
   }
 
   // If the computed value of 'min-height' is greater than the value of
