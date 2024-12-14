@@ -589,7 +589,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleBorder {
     return mBorderTopColor;
   }
 
-  static mozilla::StyleColor nsStyleBorder::*BorderColorFieldFor(
+  static mozilla::StyleColor nsStyleBorder::* BorderColorFieldFor(
       mozilla::Side aSide) {
     switch (aSide) {
       case mozilla::eSideTop:
