@@ -14,8 +14,10 @@ prefs = [
 ]
 
 ["browser_addAdjacentNewTab.js"]
+tags = "vertical-tabs"
 
 ["browser_addTab_index.js"]
+tags = "vertical-tabs"
 
 ["browser_adoptTab_failure.js"]
 
@@ -25,7 +27,8 @@ prefs = [
 support-files = ["alltabslistener.html"]
 
 ["browser_audioTabIcon.js"]
-tags = "audiochannel"
+tags = "vertical-tabs"
+fail-if =  ["vertical_tab"] # Bug 1935548, fails in the "vertical-tabs" variant
 
 ["browser_beforeunload_duplicate_dialogs.js"]
 https_first_disabled = true
@@ -34,20 +37,24 @@ https_first_disabled = true
 run-if = ["fission"]
 
 ["browser_blank_tab_label.js"]
+tags = "vertical-tabs"
 
 ["browser_bug580956.js"]
 
 ["browser_bug_1387976_restore_lazy_tab_browser_muted_state.js"]
+tags = "vertical-tabs"
 
 ["browser_close_during_beforeunload.js"]
 https_first_disabled = true
 
 ["browser_close_tab_by_dblclick.js"]
+tags = "vertical-tabs"
 
 ["browser_contextmenu_openlink_after_tabnavigated.js"]
 https_first_disabled = true
 skip-if = ["verify && debug && os == 'linux'"]
 support-files = ["test_bug1358314.html"]
+tags = "vertical-tabs"
 
 ["browser_ctrlTab.js"]
 
@@ -59,6 +66,7 @@ support-files = [
 
 ["browser_double_close_tab.js"]
 support-files = ["file_double_close_tab.html"]
+tags = "vertical-tabs"
 
 ["browser_e10s_about_page_triggeringprincipal.js"]
 https_first_disabled = true
@@ -67,6 +75,7 @@ support-files = [
   "file_about_child.html",
   "file_about_parent.html",
 ]
+tags = "vertical-tabs"
 
 ["browser_e10s_about_process.js"]
 
@@ -80,6 +89,7 @@ skip-if = ["debug"] # Bug 1444565, Bug 1457887
 ["browser_e10s_switchbrowser.js"]
 
 ["browser_exclude_fxview_hidden_tabs.js"]
+tags = "vertical-tabs"
 
 ["browser_file_to_http_named_popup.js"]
 
@@ -87,13 +97,17 @@ skip-if = ["debug"] # Bug 1444565, Bug 1457887
 support-files = ["tab_that_closes.html"]
 
 ["browser_hiddentab_contextmenu.js"]
+tags = "vertical-tabs"
 
 ["browser_lastAccessedTab.js"]
 skip-if = ["os == 'windows'"] # Disabled on Windows due to frequent failures (bug 969405)
+tags = "vertical-tabs"
 
 ["browser_lastSeenActive.js"]
+tags = "vertical-tabs"
 
 ["browser_lazy_tab_browser_events.js"]
+tags = "vertical-tabs"
 
 ["browser_link_in_tab_title_and_url_prefilled_blank_page.js"]
 support-files = [
@@ -102,6 +116,7 @@ support-files = [
   "request-timeout.sjs",
   "wait-a-bit.sjs",
 ]
+tags = "vertical-tabs"
 
 ["browser_link_in_tab_title_and_url_prefilled_new_window.js"]
 support-files = [
@@ -110,6 +125,7 @@ support-files = [
   "request-timeout.sjs",
   "wait-a-bit.sjs",
 ]
+tags = "vertical-tabs"
 
 ["browser_link_in_tab_title_and_url_prefilled_normal_page_blank_target.js"]
 support-files = [
@@ -118,6 +134,8 @@ support-files = [
   "request-timeout.sjs",
   "wait-a-bit.sjs",
 ]
+tags = "vertical-tabs"
+fail-if =  ["vertical_tab"] # Bug 1932786, fails in the "vertical-tabs" variant
 
 ["browser_link_in_tab_title_and_url_prefilled_normal_page_by_script.js"]
 support-files = [
@@ -126,6 +144,8 @@ support-files = [
   "request-timeout.sjs",
   "wait-a-bit.sjs",
 ]
+tags = "vertical-tabs"
+fail-if =  ["vertical_tab"] # Bug 1932786, fails in the "vertical-tabs" variant
 
 ["browser_link_in_tab_title_and_url_prefilled_normal_page_no_target.js"]
 support-files = [
@@ -134,6 +154,8 @@ support-files = [
   "request-timeout.sjs",
   "wait-a-bit.sjs",
 ]
+tags = "vertical-tabs"
+fail-if =  ["vertical_tab"] # Bug 1932786, fails in the "vertical-tabs" variant
 
 ["browser_link_in_tab_title_and_url_prefilled_normal_page_other_target.js"]
 support-files = [
@@ -142,80 +164,117 @@ support-files = [
   "request-timeout.sjs",
   "wait-a-bit.sjs",
 ]
+tags = "vertical-tabs"
+fail-if =  ["vertical_tab"] # Bug 1932786, fails in the "vertical-tabs" variant
 
 ["browser_long_data_url_label_truncation.js"]
+tags = "vertical-tabs"
 
 ["browser_middle_click_new_tab_button_loads_clipboard.js"]
+tags = "vertical-tabs"
+fail-if =  ["vertical_tab"] # Bug 1932787, fails in the "vertical-tabs" variant
 
 ["browser_multiselect_tabs_active_tab_selected_by_default.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_bookmark.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_clear_selection_when_tab_switch.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_close.js"]
 
 ["browser_multiselect_tabs_close_duplicate_tabs.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_close_other_tabs.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_close_tabs_to_the_left.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_close_tabs_to_the_right.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_close_using_shortcuts.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_copy_through_drag_and_drop.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_drag_to_bookmarks_toolbar.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_duplicate.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_event.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_move.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_move_to_another_window_drag.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_move_to_new_window_contextmenu.js"]
 https_first_disabled = true
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_mute_unmute.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_open_related.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_pin_unpin.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_play.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_reload.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_reopen_in_container.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_reorder.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_unload.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_unload_telemetry.js"]
 skip-if = [
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929417
 ]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_unload_with_beforeunload.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_using_Ctrl.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_using_Shift.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_using_Shift_and_Ctrl.js"]
+tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_using_keyboard.js"]
 run-if = ["os != 'mac'"] # Skipped because macOS keyboard support requires changing system settings
+tags = "vertical-tabs"
+fail-if =  ["vertical_tab"] # Bug 1932790, fails in the "vertical-tabs" variant
 
 ["browser_multiselect_tabs_using_selectedTabs.js"]
+tags = "vertical-tabs"
 
 ["browser_navigatePinnedTab.js"]
 https_first_disabled = true
+tags = "vertical-tabs"
 
 ["browser_navigate_home_focuses_addressbar.js"]
 
@@ -241,7 +300,9 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1872477
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1872477
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929417
+  "vertical_tab", # Bug 1936170
 ]
+tags = "vertical-tabs"
 
 ["browser_new_tab_in_privilegedabout_process_pref.js"]
 https_first_disabled = true
@@ -249,11 +310,13 @@ https_first_disabled = true
 ["browser_new_tab_insert_position.js"]
 https_first_disabled = true
 support-files = ["file_new_tab_page.html"]
+tags = "vertical-tabs"
 
 ["browser_new_tab_url.js"]
 support-files = ["file_new_tab_page.html"]
 
 ["browser_newwindow_tabstrip_overflow.js"]
+tags = "vertical-tabs"
 
 ["browser_openURI_background.js"]
 
@@ -280,15 +343,20 @@ support-files = [
 ]
 
 ["browser_overflowScroll.js"]
+tags = "vertical-tabs"
+skip-if =  ["vertical_tab"] # Bug 1932964, fails in the "vertical-tabs" variant
 
 ["browser_paste_event_at_middle_click_on_link.js"]
 support-files = ["file_anchor_elements.html"]
 
 ["browser_pinnedTabs.js"]
+tags = "vertical-tabs"
 
 ["browser_pinnedTabs_clickOpen.js"]
+tags = "vertical-tabs"
 
 ["browser_pinnedTabs_closeByKeyboard.js"]
+tags = "vertical-tabs"
 
 ["browser_positional_attributes.js"]
 skip-if = [
@@ -296,6 +364,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && verify",
 ]
+tags = "vertical-tabs"
 
 ["browser_preloadedBrowser_zoom.js"]
 
@@ -306,69 +375,95 @@ https_first_disabled = true
 https_first_disabled = true
 
 ["browser_relatedTabs.js"]
+tags = "vertical-tabs"
 
 ["browser_relatedTabs_reset.js"]
+tags = "vertical-tabs"
 
 ["browser_reload_deleted_file.js"]
+tags = "vertical-tabs"
+skip-if = ["os == 'mac' && vertical_tab"] # Bug 1936168
 
 ["browser_removeTabsToTheEnd.js"]
+tags = "vertical-tabs"
 
 ["browser_removeTabsToTheStart.js"]
+tags = "vertical-tabs"
 
 ["browser_removeTabs_order.js"]
+tags = "vertical-tabs"
 
 ["browser_removeTabs_skipPermitUnload.js"]
+tags = "vertical-tabs"
 
 ["browser_replacewithwindow_commands.js"]
+tags = "vertical-tabs"
 
 ["browser_replacewithwindow_dialog.js"]
 support-files = ["tab_that_opens_dialog.html"]
+tags = "vertical-tabs"
 
 ["browser_restore_isAppTab.js"]
 run-if = ["crashreporter"] # test requires crashreporter due to 1536221
+tags = "vertical-tabs"
 
 ["browser_scroll_size_determination.js"]
 
 ["browser_selectTabAtIndex.js"]
+tags = "vertical-tabs"
 
 ["browser_switch_by_scrolling.js"]
+tags = "vertical-tabs"
 
 ["browser_tabCloseProbes.js"]
+tags = "vertical-tabs"
 
 ["browser_tabCloseSpacer.js"]
 skip-if = ["true"] # Bug 1616418 Bug 1549985
 
 ["browser_tabContextMenu_keyboard.js"]
+tags = "vertical-tabs"
 
 ["browser_tabDrop.js"]
 https_first_disabled = true
+tags = "vertical-tabs"
 
 ["browser_tabReorder.js"]
+tags = "vertical-tabs"
 
 ["browser_tabReorder_overflow.js"]
+tags = "vertical-tabs"
 
 ["browser_tabReorder_vertical.js"]
+tags = "vertical-tabs"
 
 ["browser_tabSpinnerProbe.js"]
+tags = "vertical-tabs"
 
 ["browser_tabSuccessors.js"]
 
 ["browser_tab_a11y_description.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_close_dependent_window.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_detach_restore.js"]
 https_first_disabled = true
+tags = "vertical-tabs"
 
 ["browser_tab_drag_drop_perwindow.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_dragdrop.js"]
 skip-if = ["true"] # Bug 1312436, Bug 1388973
 support-files = ["browser_tab_dragdrop_embed.html"]
+tags = "vertical-tabs"
 
 ["browser_tab_dragdrop2.js"]
 skip-if = ["win11_2009 && bits == 32 && !debug"] # high frequency win7 intermittent: crash
 support-files = ["browser_tab_dragdrop2_frame1.xhtml"]
+tags = "vertical-tabs"
 
 ["browser_tab_groups.js"]
 support-files = ["file_new_tab_page.html"]
@@ -376,51 +471,70 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1920294
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929417 (secondary)
 ]
+tags = "vertical-tabs"
 
 ["browser_tab_groups_a11y.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_groups_keyboard_focus.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_label_during_reload.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_label_picture_in_picture.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_manager_close.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_manager_drag.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_manager_keyboard_access.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_manger_synced_tabs.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_move_active_tab.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_move_to_new_window_reload.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_play.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_preview.js"]
+tags = "vertical-tabs"
 
 ["browser_tab_tooltips.js"]
+tags = "vertical-tabs"
 
 ["browser_tabfocus.js"]
+tags = "vertical-tabs"
 
 ["browser_tabkeynavigation.js"]
+tags = "vertical-tabs"
 
 ["browser_tabs_close_beforeunload.js"]
 support-files = [
   "close_beforeunload_opens_second_tab.html",
   "close_beforeunload.html",
 ]
+tags = "vertical-tabs"
 
 ["browser_tabs_isActive.js"]
 
 ["browser_tabs_owner.js"]
 
 ["browser_tabswitch_contextmenu.js"]
+tags = "vertical-tabs"
 
 ["browser_tabswitch_select.js"]
 support-files = ["open_window_in_new_tab.html"]
+tags = "vertical-tabs"
 
 ["browser_tabswitch_updatecommands.js"]
 
@@ -438,15 +552,18 @@ skip-if = ["true"] #bug 1642084
 ["browser_viewsource_of_data_URI_in_file_process.js"]
 
 ["browser_visibleTabs.js"]
+tags = "vertical-tabs"
 
 ["browser_visibleTabs_bookmarkAllPages.js"]
 
 ["browser_visibleTabs_bookmarkAllTabs.js"]
 
 ["browser_visibleTabs_contextMenu.js"]
+tags = "vertical-tabs"
 
 ["browser_visibleTabs_tabPreview.js"]
 skip-if = ["os == 'win' && !debug"]
 
 ["browser_window_open_modifiers.js"]
 support-files = ["file_window_open.html"]
+tags = "vertical-tabs"
