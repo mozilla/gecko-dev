@@ -86,29 +86,86 @@
     <string name="mozac_feature_prompts_set_time">കാലം നിശ്ചയിക്കുക</string>
     <!-- Option in expanded select password prompt that links to password settings -->
     <string name="mozac_feature_prompts_manage_logins_2">രഹസ്യവാക്കുകളുടെ കൈകാര്യം ചെയ്യുക</string>
+    <!-- Content description for expanding the saved passwords options in the select password prompt -->
+    <string name="mozac_feature_prompts_expand_logins_content_description_2">കരുതിവച്ച രഹസ്യവാക്കുകൾ വലുതാക്കുക</string>
+    <!-- Content description for collapsing the saved passwords options in the select password prompt -->
+    <string name="mozac_feature_prompts_collapse_logins_content_description_2">കരുതിവച്ച രഹസ്യവാക്കുകൾ ചെറുതാക്കുക</string>
     <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
     <string name="mozac_feature_prompts_saved_logins_2">കരുതിവച്ച രഹസ്യവാക്കുകൾ</string>
 
+    <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_content_description">ഒരു കഠിനമായ രഹസ്യവാക്കു് പറഞ്ഞു തരുക</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">ഒരു കഠിനമായ രഹസ്യവാക്കു് ഉപയോഗിക്കുക</string>
 
+    <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_message">ഒരു കഠിനമായ രഹസ്യവാക്കു് ഉപയോഗിക്കുക: %1$s</string>
+
+    <!-- Title for using the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_title">ഒരു കഠിനമായ രഹസ്യവാക്കു് ഉപയോഗിക്കട്ടെ?</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ഒരു ശക്തമായ ക്രമരഹിതമായ രഹസ്യവാക്കു് ഉപയോഗിച്ചു് താങ്ങളുടെ അക്കൗണ്ടുകൾ പരിരക്ഷിക്കുക. പില്കാല ഉപയോഗത്തിനു് ഇതു് താങ്ങളുടെ അക്കൗണ്ടിൽ കരുതിവച്ചിരിക്കും.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">ഒരു ശക്തമായ ക്രമരഹിതമായ രഹസ്യവാക്കു് ഉപയോഗിച്ചു് താങ്ങളുടെ അക്കൗണ്ടു് പരിരക്ഷിക്കുക. പില്കാല ഉപയോഗത്തിനു് ഇതു് താങ്ങളുടെ അക്കൗണ്ടിൽ കരുതിവച്ചിരിക്കും.</string>
+
+    <!-- Pressing this will use the suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_use_password">രഹസ്യവാക്കു് ഉപയോഗിക്കുക</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_dismiss">ഇപ്പോഴല്ല</string>
 
+    <!-- Title for showing the suggest strong password saved confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">രഹസ്യവാക്കു് കരുതിവച്ചു</string>
+    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">രഹസ്യവാക്കു് പുതുച്ചു</string>
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">ഉപയോക്തൃപ്പേരു് പുതുച്ചു</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
-    <string name="mozac_feature_prompt_repost_title">ഈ സൈറ്റിലേക്ക് ദത്ത വീണ്ടും അയയ്‌ക്കണോ?</string>
+    <string name="mozac_feature_prompt_repost_title">ഈ സൈറ്റിലേക്ക് ദത്ത വീണ്ടും അയയ്ക്കണോ?</string>
+    <string name="mozac_feature_prompt_repost_message">ഈ താൾ പുതുക്കുന്നതിലൂടെ പണം കൊടുക്കൽ അയയ്ക്കുകയോ രണ്ടുതവണ അഭിപ്രായം പോസ്റ്റുചെയ്യുകയോ പോലുള്ള സമീപകാല പ്രവർത്തനങ്ങൾ തനിപ്പകർപ്പാക്കാം.</string>
     <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
-    <string name="mozac_feature_prompt_repost_positive_button_text">ദത്ത വീണ്ടും അയയ്‌ക്കുക</string>
+    <string name="mozac_feature_prompt_repost_positive_button_text">ദത്ത വീണ്ടും അയയ്ക്കുക</string>
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
     <string name="mozac_feature_prompt_repost_negative_button_text">റദ്ദാക്കുക</string>
+
+    <!-- Credit Card Autofill -->
+    <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
+    <string name="mozac_feature_prompts_select_credit_card_2">കരുതിവച്ച ചീട്ടു് ഉപയോഗിക്കുക</string>
+    <!-- Content description for expanding the saved card options in the select card prompt. -->
+    <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">കരുതിവച്ച രഹസ്യവാക്കുകൾ വലുതാക്കുക</string>
+    <!-- Content description for collapsing the saved card options in the select prompt. -->
+    <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">കരുതിവച്ച രഹസ്യവാക്കുകൾ ചെറുതാക്കുക</string>
+    <!-- Option in the expanded select card prompt that links to cards settings. -->
+    <string name="mozac_feature_prompts_manage_credit_cards_2">ചീട്ടുകളെ കൈകാര്യം ചെയ്യുക</string>
+    <!-- Text for the title of a save credit card dialog. -->
+    <string name="mozac_feature_prompts_save_credit_card_prompt_title">ഈ ചീട്ടു് സുരക്ഷിതമായി കരുതിവയ്ക്കട്ടെ?</string>
+    <!-- Text for the title of an update credit card dialog. -->
+    <string name="mozac_feature_prompts_update_credit_card_prompt_title">ചീട്ടു് കാലഹരണ തീയതി പുതുക്കണോ?</string>
+
+    <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
+    <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s താങ്ങളുടെ ചീട്ടക്കം രൂപമാറ്റം ചെയ്യും. താങ്ങളുടെ സുരക്ഷസങ്കേതം കരുതിവയ്ക്കപ്പെടില്ല. </string>
 
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
     <string name="mozac_feature_prompts_select_address_2">വിലാസം തിരഞ്ഞെടുക്കുക</string>
 
+    <!-- Content description for expanding the saved addresses options in the select address prompt. -->
+    <string name="mozac_feature_prompts_expand_address_content_description_2">കരുതിവച്ച വിലാസങ്ങൾ വലുതാക്കുക</string>
+    <!-- Content description for collapsing the saved address options in the select address prompt. -->
+    <string name="mozac_feature_prompts_collapse_address_content_description_2">കരുതിവച്ച വിലാസങ്ങൾ ചെറുതാക്കുക</string>
+    <!-- Text for the manage addresses button. -->
+    <string name="mozac_feature_prompts_manage_address">വിലാസങ്ങളെ കൈകാര്യം ചെയ്യുക</string>
+
     <!-- Federated Credential Management prompts -->
     <!--Content description for the Account picture in the Select Account FedCM prompt -->
     <string name="mozac_feature_prompts_account_picture">രൂപരേഖ ചിത്രം</string>
+    <!-- Title of the Identity Credential provider dialog chooser. -->
+    <string name="mozac_feature_prompts_identity_credentials_choose_provider">ഒരു പ്രവേശിക്കൽ ദാതാവിനെ  തിരഞ്ഞെടുക്കുക</string>
+    <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
+    <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">%1$s അക്കൗണ്ടുകൊണ്ടു് പ്രവേശിക്കുക</string>
+    <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s-നു് പ്രവേശിക്കൽ ദാതാവായി  ഉപയോഗിക്കുക</string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">തുടരുക</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

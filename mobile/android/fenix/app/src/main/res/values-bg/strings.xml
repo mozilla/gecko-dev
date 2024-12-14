@@ -286,14 +286,14 @@
     <string name="browser_menu_customize_reader_view">Настройки на режим за четене</string>
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
-    <string name="browser_menu_customize_reader_view_2">Персонализиране изгледа за четене</string>
+    <string name="browser_menu_customize_reader_view_2">Приспособяване на изгледа за четене</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Добавяне</string>
     <!-- Browser menu label for editing a bookmark -->
     <string name="browser_menu_edit">Редактиране</string>
 
     <!-- Button shown on the home page that opens the Customize home settings -->
-    <string name="browser_menu_customize_home_1">Персонализиране на началната страница</string>
+    <string name="browser_menu_customize_home_1">Приспособяване на началната страница</string>
 
     <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
     <string name="browser_menu_sign_in">Вход</string>
