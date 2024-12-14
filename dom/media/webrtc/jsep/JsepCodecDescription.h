@@ -402,10 +402,10 @@ class JsepVideoCodecDescription : public JsepCodecDescription {
   SdpMediaSection::MediaType Type() const override { return type; }
 
   static UniquePtr<JsepVideoCodecDescription> CreateDefaultAV1(bool aUseRtx) {
+    // AV1 has no required RFC 8851 parameters
+    // See:
+    // https://aomediacodec.github.io/av1-rtp-spec/#722-rid-restrictions-mapping-for-av1
     auto codec = MakeUnique<JsepVideoCodecDescription>("99", "AV1", 90000);
-    // Defaults for mandatory params
-    codec->mConstraints.maxFs = 12288;  // Enough for 2048x1536
-    codec->mConstraints.maxFps = Some(60);
     codec->mAv1Config.mProfile = Nothing();
     if (aUseRtx) {
       codec->EnableRtx("100");
