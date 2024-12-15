@@ -12,6 +12,11 @@ def jemalloc_default(target, js_package):
     return target.kernel in ("Darwin", "Linux", "WINNT")
 
 
+# mozjemalloc doesn't work with these sanitisers, it mostly-works with ubsan
+# (so we leave that enabled) except for loading the configuration from the
+# environment, it will fall-back to default settings.
+imply_option("--enable-jemalloc", False, when=asan | msan | tsan)
+
 option(
     "--enable-jemalloc",
     env="MOZ_MEMORY",
