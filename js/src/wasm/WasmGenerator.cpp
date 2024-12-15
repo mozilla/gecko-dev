@@ -18,7 +18,6 @@
 
 #include "wasm/WasmGenerator.h"
 
-#include "mozilla/EnumeratedRange.h"
 #include "mozilla/SHA1.h"
 
 #include <algorithm>
@@ -36,14 +35,10 @@
 #include "wasm/WasmGC.h"
 #include "wasm/WasmIonCompile.h"
 #include "wasm/WasmStubs.h"
-#include "wasm/WasmSummarizeInsn.h"
 
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
-
-using mozilla::EnumeratedArray;
-using mozilla::MakeEnumeratedRange;
 
 bool CompiledCode::swap(MacroAssembler& masm) {
   MOZ_ASSERT(bytes.empty());
@@ -213,8 +208,6 @@ static bool InRange(uint32_t caller, uint32_t callee) {
 
 using OffsetMap =
     HashMap<uint32_t, uint32_t, DefaultHasher<uint32_t>, SystemAllocPolicy>;
-using TrapMaybeOffsetArray =
-    EnumeratedArray<Trap, mozilla::Maybe<uint32_t>, size_t(Trap::Limit)>;
 
 bool ModuleGenerator::linkCallSites() {
   AutoCreatedBy acb(*masm_, "linkCallSites");
@@ -479,14 +472,9 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
     return false;
   }
 
-  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
-    auto trapSiteOp = [=](uint32_t, TrapSite* ts) {
-      ts->offsetBy(offsetInModule);
-    };
-    if (!AppendForEach(&codeBlock_->trapSites[trap], code.trapSites[trap],
-                       trapSiteOp)) {
-      return false;
-    }
+  code.trapSites.offsetBy(offsetInModule);
+  if (!code.trapSites.appendAll(std::move(code.trapSites))) {
+    return false;
   }
 
   for (const SymbolicAccess& access : code.symbolicAccesses) {
@@ -814,14 +802,8 @@ static void CheckCodeBlock(const CodeBlock& codeBlock) {
   }
 
   codeBlock.callSites.checkInvariants();
-
-  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
-    last = 0;
-    for (const TrapSite& trapSite : codeBlock.trapSites[trap]) {
-      MOZ_ASSERT(trapSite.pcOffset >= last);
-      last = trapSite.pcOffset;
-    }
-  }
+  codeBlock.trapSites.checkInvariants(
+      (const uint8_t*)(codeBlock.segment->base()));
 
   last = 0;
   for (const CodeRangeUnwindInfo& info : codeBlock.codeRangeUnwindInfos) {
@@ -850,44 +832,6 @@ static void CheckCodeBlock(const CodeBlock& codeBlock) {
     MOZ_ASSERT(IsPlausibleStackMapKey(maplet.nextInsnAddr),
                "wasm stackmap does not reference a valid insn");
   }
-
-#  if (defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86) ||   \
-       defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_ARM) || \
-       defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_MIPS64))
-  // Check that each trapsite is associated with a plausible instruction.  The
-  // required instruction kind depends on the trapsite kind.
-  //
-  // NOTE: currently enabled on x86_{32,64}, arm{32,64}, loongson64 and mips64.
-  // Ideally it should be extended to riscv64 too.
-  //
-  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
-    const TrapSiteVector& trapSites = codeBlock.trapSites[trap];
-    for (const TrapSite& trapSite : trapSites) {
-      const uint8_t* insnAddr = ((const uint8_t*)(codeBlock.segment->base())) +
-                                uintptr_t(trapSite.pcOffset);
-      // `expected` describes the kind of instruction we expect to see at
-      // `insnAddr`.  Find out what is actually there and check it matches.
-      const TrapMachineInsn expected = trapSite.insn;
-      mozilla::Maybe<TrapMachineInsn> actual =
-          SummarizeTrapInstruction(insnAddr);
-      bool valid = actual.isSome() && actual.value() == expected;
-      // This is useful for diagnosing validation failures.
-      // if (!valid) {
-      //   fprintf(stderr,
-      //           "FAIL: reason=%-22s  expected=%-12s  "
-      //           "pcOffset=%-5u  addr= %p\n",
-      //           NameOfTrap(trap), NameOfTrapMachineInsn(expected),
-      //           trapSite.pcOffset, insnAddr);
-      //   if (actual.isSome()) {
-      //     fprintf(stderr, "FAIL: identified as %s\n",
-      //             actual.isSome() ? NameOfTrapMachineInsn(actual.value())
-      //                             : "(insn not identified)");
-      //   }
-      // }
-      MOZ_ASSERT(valid, "wasm trapsite does not reference a valid insn");
-    }
-  }
-#  endif
 #endif
 }
 
@@ -953,9 +897,6 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
   codeBlock_->callSites.shrinkStorageToFit();
   codeBlock_->trapSites.shrinkStorageToFit();
   codeBlock_->tryNotes.shrinkStorageToFit();
-  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
-    codeBlock_->trapSites[trap].shrinkStorageToFit();
-  }
 
   // Allocate the code storage, copy/link the code from `masm_` into it, set up
   // `codeBlock_->segment / codeBase / codeLength`, and adjust the metadata
@@ -1126,8 +1067,8 @@ bool ModuleGenerator::startCompleteTier() {
   (void)codeBlock_->callSites.reserve(codeSectionSize / ByteCodesPerCallSite);
 
   const size_t ByteCodesPerOOBTrap = 10;
-  (void)codeBlock_->trapSites[Trap::OutOfBounds].reserve(codeSectionSize /
-                                                         ByteCodesPerOOBTrap);
+  (void)codeBlock_->trapSites.reserve(Trap::OutOfBounds,
+                                      codeSectionSize / ByteCodesPerOOBTrap);
 
   // Accumulate all exported functions:
   // - explicitly marked as such;
@@ -1523,16 +1464,12 @@ void ModuleGenerator::warnf(const char* msg, ...) {
 
 size_t CompiledCode::sizeOfExcludingThis(
     mozilla::MallocSizeOf mallocSizeOf) const {
-  size_t trapSitesSize = 0;
-  for (const TrapSiteVector& vec : trapSites) {
-    trapSitesSize += vec.sizeOfExcludingThis(mallocSizeOf);
-  }
-
   return funcs.sizeOfExcludingThis(mallocSizeOf) +
          bytes.sizeOfExcludingThis(mallocSizeOf) +
          codeRanges.sizeOfExcludingThis(mallocSizeOf) +
          callSites.sizeOfExcludingThis(mallocSizeOf) +
-         callSiteTargets.sizeOfExcludingThis(mallocSizeOf) + trapSitesSize +
+         callSiteTargets.sizeOfExcludingThis(mallocSizeOf) +
+         trapSites.sizeOfExcludingThis(mallocSizeOf) +
          symbolicAccesses.sizeOfExcludingThis(mallocSizeOf) +
          tryNotes.sizeOfExcludingThis(mallocSizeOf) +
          codeRangeUnwindInfos.sizeOfExcludingThis(mallocSizeOf) +

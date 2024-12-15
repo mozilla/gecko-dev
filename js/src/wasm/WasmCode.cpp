@@ -1055,11 +1055,7 @@ void CodeBlock::offsetMetadataBy(uint32_t delta) {
     cr.offsetBy(delta);
   }
   callSites.offsetBy(delta);
-  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
-    for (TrapSite& ts : trapSites[trap]) {
-      ts.offsetBy(delta);
-    }
-  }
+  trapSites.offsetBy(delta);
   for (FuncExport& fe : funcExports) {
     fe.offsetBy(delta);
   }
@@ -1114,30 +1110,11 @@ const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {
   return nullptr;
 }
 
-struct TrapSitePCOffset {
-  const TrapSiteVector& trapSites;
-  explicit TrapSitePCOffset(const TrapSiteVector& trapSites)
-      : trapSites(trapSites) {}
-  uint32_t operator[](size_t index) const { return trapSites[index].pcOffset; }
-};
-
 bool CodeBlock::lookupTrap(void* pc, Trap* trapOut,
-                           BytecodeOffset* bytecode) const {
+                           BytecodeOffset* bytecodeOut) const {
+  MOZ_ASSERT(containsCodePC(pc));
   uint32_t target = ((uint8_t*)pc) - segment->base();
-  for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
-    const TrapSiteVector& trapSitesForKind = trapSites[trap];
-
-    size_t upperBound = trapSitesForKind.length();
-    size_t match;
-    if (BinarySearch(TrapSitePCOffset(trapSitesForKind), 0, upperBound, target,
-                     &match)) {
-      MOZ_ASSERT(containsCodePC(pc));
-      *trapOut = trap;
-      *bytecode = trapSitesForKind[match].bytecode;
-      return true;
-    }
-  }
-  return false;
+  return trapSites.lookup(target, trapOut, bytecodeOut);
 }
 
 struct UnwindInfoPCOffset {

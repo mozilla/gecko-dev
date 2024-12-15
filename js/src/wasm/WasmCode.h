@@ -579,7 +579,7 @@ class CodeBlock {
   FuncToCodeRangeMap funcToCodeRange;
   CodeRangeVector codeRanges;
   CallSites callSites;
-  TrapSiteVectorArray trapSites;
+  TrapSites trapSites;
   FuncExportVector funcExports;
   StackMaps stackMaps;
   TryNoteVector tryNotes;
@@ -649,7 +649,7 @@ class CodeBlock {
   bool lookupCallSite(void* pc, CallSite* callSite) const;
   const StackMap* lookupStackMap(uint8_t* pc) const;
   const TryNote* lookupTryNote(const void* pc) const;
-  bool lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const;
+  bool lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecodeOut) const;
   const CodeRangeUnwindInfo* lookupUnwindInfo(void* pc) const;
   FuncExport& lookupFuncExport(uint32_t funcIndex,
                                size_t* funcExportIndex = nullptr);
