@@ -792,13 +792,13 @@
     <!-- Preference for enabling url autocomplete-->
     <string name="preferences_enable_autocomplete_urls">ბმულების თვითდასრულება</string>
     <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
-    <string name="preferences_show_sponsored_suggestions">შემოთავაზებები დამფინანსებლებისგან</string>
+    <string name="preferences_show_sponsored_suggestions">შემოთავაზებები დამკვეთისგან</string>
     <!-- Summary for preference to show sponsored Firefox Suggest search suggestions.
          The first parameter is the name of the application. -->
-    <string name="preferences_show_sponsored_suggestions_summary">დაეხმარეთ %1$s-ს დროდადრო დაფინანსებული შემოთავაზებებით</string>
+    <string name="preferences_show_sponsored_suggestions_summary">მხარდაჭერა დამკვეთის შეთავაზების ნახვით %1$s დროდადრო რომ გაჩვენებთ</string>
     <!-- Preference title for switch preference to show Firefox Suggest search suggestions for web content.
          The first parameter is the name of the application. -->
-    <string name="preferences_show_nonsponsored_suggestions">შემოთავაზებების წყაროა %1$s</string>
+    <string name="preferences_show_nonsponsored_suggestions">შემოგთავაზებთ %1$s</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">შემოთავაზებები ვებსივრციდან თქვენ მიერ მოძიებულის შესაბამისად</string>
     <!-- Preference for open links in third party apps -->
@@ -869,11 +869,11 @@
     <!-- Summary for the customize home screen section with Pocket. The first parameter is product name Pocket -->
     <string name="customize_toggle_pocket_summary">სტატიებს გთავაზობთ %s</string>
     <!-- Title for the customize home screen section with sponsored Pocket stories. -->
-    <string name="customize_toggle_pocket_sponsored">დაფინანსებული ამბები</string>
+    <string name="customize_toggle_pocket_sponsored">ამბები დამკვეთისგან</string>
     <!-- Title for the opening wallpaper settings screen -->
     <string name="customize_wallpapers">ფონები</string>
     <!-- Title for the customize home screen section with sponsored shortcuts. -->
-    <string name="customize_toggle_contile">დაფინანსებული მალსახმობები</string>
+    <string name="customize_toggle_contile">დამკვეთის მალსახმობები</string>
 
     <!-- Wallpapers -->
     <!-- Content description for various wallpapers. The first parameter is the name of the wallpaper -->
@@ -2268,7 +2268,7 @@
     <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
     <string name="search_add_custom_engine_suggest_string_hint">ძიების შეთავაზების API ბმული</string>
     <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-    <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">საძიებო ფრაზისთვის გამოიყენეთ „%s“. მაგალითად:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+    <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">მიუთითეთ „%s“ საძიებო ტექსტად. მაგალითი:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
     <!-- The text for the "Save" button for saving a custom search engine -->
     <string name="search_custom_engine_save_button">შენახვა</string>
 
@@ -2415,9 +2415,9 @@
     <!-- Text for the menu button to open the homepage settings. -->
     <string name="top_sites_menu_settings">პარამეტრები</string>
     <!-- Text for the menu button to navigate to sponsors and privacy support articles. '&amp;' is replaced with the ampersand symbol: & -->
-    <string name="top_sites_menu_sponsor_privacy">ჩვენი დამფინანსებლები და თქვენი პირადულობა</string>
+    <string name="top_sites_menu_sponsor_privacy">ჩვენი დამკვეთები და თქვენი პირადულობა</string>
     <!-- Label text displayed for a sponsored top site. -->
-    <string name="top_sites_sponsored_label">დაფინანსებული</string>
+    <string name="top_sites_sponsored_label">დამკვეთისგან</string>
 
     <!-- Text for the menu item to edit a top site. -->
     <string name="top_sites_edit_top_site">ჩასწორება</string>
@@ -2494,7 +2494,7 @@
     <string name="pocket_stories_feature_learn_more">ვრცლად</string>
 
     <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
-    <string name="pocket_stories_sponsor_indication">დაფინანსებული</string>
+    <string name="pocket_stories_sponsor_indication">დამკვეთისგან</string>
 
     <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off.-->
     <string name="experiments_snackbar">ჩართეთ გაზომვები მონაცემთა გასაგზავნად.</string>
@@ -2543,7 +2543,7 @@
     <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
     <string name="review_quality_check_settings_recommended_products">რეკლამების ჩვენება მიმოხილვის შემმოწმებელში</string>
     <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
-    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">დროდადრო იხილავთ რეკლამებს  ნაწარმის შესაბამისად. ჩვენ მხოლოდ სანდო მიმოხილვების მქონეს გთავაზობთ. %s</string>
+    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">დროდადრო იხილავთ რეკლამებს ნაწარმის შესაბამისად. ჩვენ მხოლოდ სანდო მიმოხილვების მქონეს შემოგთავაზებთ. %s</string>
     <!-- Clickable text that links to review quality check recommended products support article. -->
     <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">ვრცლად</string>
     <!-- Text for turning sidebar off button from review quality check settings section. -->
