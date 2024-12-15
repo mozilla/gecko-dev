@@ -597,7 +597,7 @@ static void CallFuncExport(MacroAssembler& masm, const FuncExport& fe,
   if (funcPtr) {
     masm.call(*funcPtr);
   } else {
-    masm.call(CallSiteDesc(CallSiteDesc::Func), fe.funcIndex());
+    masm.call(CallSiteDesc(CallSiteKind::Func), fe.funcIndex());
   }
 }
 
@@ -1949,7 +1949,7 @@ static bool GenerateImportFunction(jit::MacroAssembler& masm,
   }
 
   // Call the import exit stub.
-  CallSiteDesc desc(CallSiteDesc::Import);
+  CallSiteDesc desc(CallSiteKind::Import);
   MoveSPForJitABI(masm);
   masm.wasmCallImport(desc, CalleeDesc::import(funcImportInstanceOffset));
 

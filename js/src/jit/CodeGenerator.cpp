@@ -9964,7 +9964,7 @@ void CodeGenerator::visitWasmStackSwitchToSuspendable(
   int32_t framePushedAtSuspender = masm.framePushed();
   masm.Push(InstanceReg);
 
-  wasm::CallSiteDesc desc(wasm::CallSiteDesc::Kind::StackSwitch);
+  wasm::CallSiteDesc desc(wasm::CallSiteKind::StackSwitch);
   CodeLabel returnCallsite;
 
   // Aligning stack before trampoline call.
@@ -10114,7 +10114,7 @@ void CodeGenerator::visitWasmStackSwitchToMain(LWasmStackSwitchToMain* lir) {
   int32_t framePushedAtSuspender = masm.framePushed();
   masm.Push(InstanceReg);
 
-  wasm::CallSiteDesc desc(wasm::CallSiteDesc::Kind::StackSwitch);
+  wasm::CallSiteDesc desc(wasm::CallSiteKind::StackSwitch);
   CodeLabel returnCallsite;
 
   // Aligning stack before trampoline call.
@@ -10300,7 +10300,7 @@ void CodeGenerator::visitWasmStackContinueOnSuspendable(
   int32_t framePushedAtSuspender = masm.framePushed();
   masm.Push(InstanceReg);
 
-  wasm::CallSiteDesc desc(wasm::CallSiteDesc::Kind::StackSwitch);
+  wasm::CallSiteDesc desc(wasm::CallSiteKind::StackSwitch);
   CodeLabel returnCallsite;
 
   // Aligning stack before trampoline call.

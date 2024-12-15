@@ -243,6 +243,19 @@ const CodeRange* wasm::LookupInSorted(const CodeRangeVector& codeRanges,
   return &codeRanges[match];
 }
 
+bool CallSites::lookup(uint32_t returnAddressOffset, CallSite* callSite) const {
+  size_t lowerBound = 0;
+  size_t upperBound = returnAddressOffsets_.length();
+
+  size_t match;
+  if (BinarySearch(returnAddressOffsets_, lowerBound, upperBound,
+                   returnAddressOffset, &match)) {
+    *callSite = (*this)[match];
+    return true;
+  }
+  return false;
+}
+
 CallIndirectId CallIndirectId::forAsmJSFunc() {
   return CallIndirectId(CallIndirectIdKind::AsmJS);
 }

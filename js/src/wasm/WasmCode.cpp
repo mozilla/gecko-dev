@@ -1054,9 +1054,7 @@ void CodeBlock::offsetMetadataBy(uint32_t delta) {
   for (CodeRange& cr : codeRanges) {
     cr.offsetBy(delta);
   }
-  for (CallSite& cs : callSites) {
-    cs.offsetBy(delta);
-  }
+  callSites.offsetBy(delta);
   for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
     for (TrapSite& ts : trapSites[trap]) {
       ts.offsetBy(delta);
@@ -1093,26 +1091,9 @@ const CodeRange* CodeBlock::lookupRange(const void* pc) const {
   return LookupInSorted(codeRanges, target);
 }
 
-struct CallSiteRetAddrOffset {
-  const CallSiteVector& callSites;
-  explicit CallSiteRetAddrOffset(const CallSiteVector& callSites)
-      : callSites(callSites) {}
-  uint32_t operator[](size_t index) const {
-    return callSites[index].returnAddressOffset();
-  }
-};
-
-const CallSite* CodeBlock::lookupCallSite(void* pc) const {
+bool CodeBlock::lookupCallSite(void* pc, CallSite* callSite) const {
   uint32_t target = ((uint8_t*)pc) - segment->base();
-  size_t lowerBound = 0;
-  size_t upperBound = callSites.length();
-
-  size_t match;
-  if (BinarySearch(CallSiteRetAddrOffset(callSites), lowerBound, upperBound,
-                   target, &match)) {
-    return &callSites[match];
-  }
-  return nullptr;
+  return callSites.lookup(target, callSite);
 }
 
 const StackMap* CodeBlock::lookupStackMap(uint8_t* pc) const {

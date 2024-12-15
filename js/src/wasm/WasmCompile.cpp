@@ -898,7 +898,7 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
                                  UniqueChars* error,
                                  UniqueCharsVector* warnings,
                                  JS::OptimizedEncodingListener* listener) {
-  Decoder d(bytecode.bytes, 0, error, warnings);
+  Decoder d(bytecode.vector, 0, error, warnings);
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta || !moduleMeta->init(args)) {
@@ -1045,11 +1045,11 @@ static SharedBytes CreateBytecode(const Bytes& env, const Bytes& code,
   }
 
   MutableBytes bytecode = js_new<ShareableBytes>();
-  if (!bytecode || !bytecode->bytes.resize(size)) {
+  if (!bytecode || !bytecode->vector.resize(size)) {
     return nullptr;
   }
 
-  uint8_t* p = bytecode->bytes.begin();
+  uint8_t* p = bytecode->vector.begin();
 
   memcpy(p, env.begin(), env.length());
   p += env.length();
@@ -1197,7 +1197,7 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
   compilerEnv.computeParameters();
 
   UniqueCharsVector warnings;
-  Decoder d(bytecode.bytes, 0, error, &warnings);
+  Decoder d(bytecode.vector, 0, error, &warnings);
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   if (!moduleMeta || !moduleMeta->init(*compileArgs)) {
     return false;

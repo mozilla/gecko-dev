@@ -233,28 +233,28 @@ bool ModuleGenerator::linkCallSites() {
     const CallSiteTarget& target = callSiteTargets_[lastPatchedCallSite_];
     uint32_t callerOffset = callSite.returnAddressOffset();
     switch (callSite.kind()) {
-      case CallSiteDesc::Import:
-      case CallSiteDesc::Indirect:
-      case CallSiteDesc::IndirectFast:
-      case CallSiteDesc::Symbolic:
-      case CallSiteDesc::Breakpoint:
-      case CallSiteDesc::EnterFrame:
-      case CallSiteDesc::LeaveFrame:
-      case CallSiteDesc::CollapseFrame:
-      case CallSiteDesc::FuncRef:
-      case CallSiteDesc::FuncRefFast:
-      case CallSiteDesc::ReturnStub:
-      case CallSiteDesc::StackSwitch:
-      case CallSiteDesc::RequestTierUp:
+      case CallSiteKind::Import:
+      case CallSiteKind::Indirect:
+      case CallSiteKind::IndirectFast:
+      case CallSiteKind::Symbolic:
+      case CallSiteKind::Breakpoint:
+      case CallSiteKind::EnterFrame:
+      case CallSiteKind::LeaveFrame:
+      case CallSiteKind::CollapseFrame:
+      case CallSiteKind::FuncRef:
+      case CallSiteKind::FuncRefFast:
+      case CallSiteKind::ReturnStub:
+      case CallSiteKind::StackSwitch:
+      case CallSiteKind::RequestTierUp:
         break;
-      case CallSiteDesc::ReturnFunc:
-      case CallSiteDesc::Func: {
+      case CallSiteKind::ReturnFunc:
+      case CallSiteKind::Func: {
         auto patch = [this, callSite](uint32_t callerOffset,
                                       uint32_t calleeOffset) {
-          if (callSite.kind() == CallSiteDesc::ReturnFunc) {
+          if (callSite.kind() == CallSiteKind::ReturnFunc) {
             masm_->patchFarJump(CodeOffset(callerOffset), calleeOffset);
           } else {
-            MOZ_ASSERT(callSite.kind() == CallSiteDesc::Func);
+            MOZ_ASSERT(callSite.kind() == CallSiteKind::Func);
             masm_->patchCall(callerOffset, calleeOffset);
           }
         };
@@ -470,10 +470,8 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
     return false;
   }
 
-  auto callSiteOp = [=](uint32_t, CallSite* cs) {
-    cs->offsetBy(offsetInModule);
-  };
-  if (!AppendForEach(&codeBlock_->callSites, code.callSites, callSiteOp)) {
+  code.callSites.offsetBy(offsetInModule);
+  if (!codeBlock_->callSites.appendAll(std::move(code.callSites))) {
     return false;
   }
 
@@ -815,11 +813,7 @@ static void CheckCodeBlock(const CodeBlock& codeBlock) {
     last = codeRange.end();
   }
 
-  last = 0;
-  for (const CallSite& callSite : codeBlock.callSites) {
-    MOZ_ASSERT(callSite.returnAddressOffset() >= last);
-    last = callSite.returnAddressOffset();
-  }
+  codeBlock.callSites.checkInvariants();
 
   for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
     last = 0;

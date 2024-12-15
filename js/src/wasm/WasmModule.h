@@ -158,7 +158,9 @@ class Module : public JS::WasmModule {
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return code_->codeMetaForAsmJS();
   }
-  const Bytes& debugBytecode() const { return codeMeta().debugBytecode->bytes; }
+  const Bytes& debugBytecode() const {
+    return codeMeta().debugBytecode->vector;
+  }
   uint32_t tier1CodeMemoryUsed() const { return code_->tier1CodeMemoryUsed(); }
 
   // Instantiate this module with the given imports:

@@ -578,7 +578,7 @@ class CodeBlock {
   //
   FuncToCodeRangeMap funcToCodeRange;
   CodeRangeVector codeRanges;
-  CallSiteVector callSites;
+  CallSites callSites;
   TrapSiteVectorArray trapSites;
   FuncExportVector funcExports;
   StackMaps stackMaps;
@@ -646,7 +646,7 @@ class CodeBlock {
   }
 
   const CodeRange* lookupRange(const void* pc) const;
-  const CallSite* lookupCallSite(void* pc) const;
+  bool lookupCallSite(void* pc, CallSite* callSite) const;
   const StackMap* lookupStackMap(uint8_t* pc) const;
   const TryNote* lookupTryNote(const void* pc) const;
   bool lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const;
@@ -1154,12 +1154,12 @@ class Code : public ShareableBase<Code> {
   void clearLinkData() const;
 
   // Code metadata lookup:
-  const CallSite* lookupCallSite(void* pc) const {
+  bool lookupCallSite(void* pc, CallSite* callSite) const {
     const CodeBlock* block = blockMap_.lookup(pc);
     if (!block) {
-      return nullptr;
+      return false;
     }
-    return block->lookupCallSite(pc);
+    return block->lookupCallSite(pc, callSite);
   }
   const CodeRange* lookupFuncRange(void* pc) const {
     const CodeBlock* block = blockMap_.lookup(pc);

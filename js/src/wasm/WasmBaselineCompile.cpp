@@ -631,7 +631,7 @@ bool BaseCompiler::beginFunction() {
   fr.storeInstancePtr(InstanceReg);
 
   if (compilerEnv_.debugEnabled()) {
-    insertBreakablePoint(CallSiteDesc::EnterFrame);
+    insertBreakablePoint(CallSiteKind::EnterFrame);
     if (!createStackMap("debug: enter-frame breakpoint")) {
       return false;
     }
@@ -692,12 +692,12 @@ bool BaseCompiler::endFunction() {
     // Store and reload the return value from DebugFrame::return so that
     // it can be clobbered, and/or modified by the debug trap.
     saveRegisterReturnValues(resultType);
-    insertBreakablePoint(CallSiteDesc::Breakpoint);
+    insertBreakablePoint(CallSiteKind::Breakpoint);
     if (!createStackMap("debug: return-point breakpoint",
                         HasDebugFrameWithLiveRefs::Maybe)) {
       return false;
     }
-    insertBreakablePoint(CallSiteDesc::LeaveFrame);
+    insertBreakablePoint(CallSiteKind::LeaveFrame);
     if (!createStackMap("debug: leave-frame breakpoint",
                         HasDebugFrameWithLiveRefs::Maybe)) {
       return false;
@@ -772,7 +772,7 @@ bool BaseCompiler::endFunction() {
 //     SymbolicAddress::HandleDebugTrap.  This contains the detailed logic
 //     needed to handle the breakpoint.
 
-void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
+void BaseCompiler::insertBreakablePoint(CallSiteKind kind) {
   MOZ_ASSERT(!deadCode_);
 #ifndef RABALDR_PIN_INSTANCE
   fr.loadInstancePtr(InstanceReg);
@@ -1095,7 +1095,7 @@ class OutOfLineRequestTierUp : public OutOfLineCode {
 #endif
     // Call the stub
     masm->call(Address(InstanceReg, Instance::offsetOfRequestTierUpStub()));
-    masm->append(CallSiteDesc(lastOpcodeOffset_, CallSiteDesc::RequestTierUp),
+    masm->append(CallSiteDesc(lastOpcodeOffset_, CallSiteKind::RequestTierUp),
                  CodeOffset(masm->currentOffset()));
     // And swap again, if we swapped above.
 #ifndef RABALDR_PIN_INSTANCE
@@ -1600,7 +1600,7 @@ bool BaseCompiler::insertDebugCollapseFrame() {
   if (!compilerEnv_.debugEnabled() || deadCode_) {
     return true;
   }
-  insertBreakablePoint(CallSiteDesc::CollapseFrame);
+  insertBreakablePoint(CallSiteKind::CollapseFrame);
   return createStackMap("debug: collapse-frame breakpoint",
                         HasDebugFrameWithLiveRefs::Maybe);
 }
@@ -1858,13 +1858,13 @@ void BaseCompiler::passArg(ValType type, const Stk& arg, FunctionCall* call) {
 
 CodeOffset BaseCompiler::callDefinition(uint32_t funcIndex,
                                         const FunctionCall& call) {
-  CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Func);
+  CallSiteDesc desc(bytecodeOffset(), CallSiteKind::Func);
   return masm.call(desc, funcIndex);
 }
 
 CodeOffset BaseCompiler::callSymbolic(SymbolicAddress callee,
                                       const FunctionCall& call) {
-  CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Symbolic);
+  CallSiteDesc desc(bytecodeOffset(), CallSiteKind::Symbolic);
   return masm.call(desc, callee);
 }
 
@@ -1903,7 +1903,7 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
 
   loadI32(indexVal, RegI32(WasmTableCallIndexReg));
 
-  CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Indirect);
+  CallSiteDesc desc(bytecodeOffset(), CallSiteKind::Indirect);
   CalleeDesc callee =
       CalleeDesc::wasmTable(codeMeta_, table, tableIndex, callIndirectId);
   OutOfLineCode* oob = addOutOfLineCode(
@@ -2030,7 +2030,7 @@ bool BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
                            mozilla::Maybe<size_t> callRefIndex,
                            CodeOffset* fastCallOffset,
                            CodeOffset* slowCallOffset) {
-  CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::FuncRef);
+  CallSiteDesc desc(bytecodeOffset(), CallSiteKind::FuncRef);
   CalleeDesc callee = CalleeDesc::wasmFuncRef();
 
   loadRef(calleeRef, RegRef(WasmCallRefReg));
@@ -2048,7 +2048,7 @@ bool BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
 
 void BaseCompiler::returnCallRef(const Stk& calleeRef, const FunctionCall& call,
                                  const FuncType& funcType) {
-  CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::FuncRef);
+  CallSiteDesc desc(bytecodeOffset(), CallSiteKind::FuncRef);
   CalleeDesc callee = CalleeDesc::wasmFuncRef();
 
   loadRef(calleeRef, RegRef(WasmCallRefReg));
@@ -2061,7 +2061,7 @@ void BaseCompiler::returnCallRef(const Stk& calleeRef, const FunctionCall& call,
 
 CodeOffset BaseCompiler::callImport(unsigned instanceDataOffset,
                                     const FunctionCall& call) {
-  CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Import);
+  CallSiteDesc desc(bytecodeOffset(), CallSiteKind::Import);
   CalleeDesc callee = CalleeDesc::import(instanceDataOffset);
   return masm.wasmCallImport(desc, callee);
 }
@@ -2078,7 +2078,7 @@ CodeOffset BaseCompiler::builtinInstanceMethodCall(
   // Builtin method calls assume the instance register has been set.
   fr.loadInstancePtr(InstanceReg);
 #endif
-  CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Symbolic);
+  CallSiteDesc desc(bytecodeOffset(), CallSiteKind::Symbolic);
   return masm.wasmCallBuiltinInstanceMethod(desc, instanceArg, builtin.identity,
                                             builtin.failureMode);
 }
@@ -5489,12 +5489,12 @@ bool BaseCompiler::emitReturnCall() {
       BuildReturnCallAdjustmentInfo(this->funcType(), funcType);
 
   if (import) {
-    CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Import);
+    CallSiteDesc desc(bytecodeOffset(), CallSiteKind::Import);
     CalleeDesc callee =
         CalleeDesc::import(codeMeta_.offsetOfFuncImportInstanceData(funcIndex));
     masm.wasmReturnCallImport(desc, callee, retCallInfo);
   } else {
-    CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::ReturnFunc);
+    CallSiteDesc desc(bytecodeOffset(), CallSiteKind::ReturnFunc);
     masm.wasmReturnCall(desc, funcIndex, retCallInfo);
   }
 
@@ -10362,7 +10362,7 @@ bool BaseCompiler::emitBody() {
         // baseline compiler when compilerEnv_.debugEnabled() is set.
         sync();
 
-        insertBreakablePoint(CallSiteDesc::Breakpoint);
+        insertBreakablePoint(CallSiteKind::Breakpoint);
         if (!createStackMap("debug: per-insn breakpoint")) {
           return false;
         }
