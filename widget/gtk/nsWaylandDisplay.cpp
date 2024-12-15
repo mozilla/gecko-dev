@@ -16,6 +16,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/StaticPrefs_general.h"
 #include "mozilla/Sprintf.h"
 #include "WidgetUtilsGtk.h"
 #include "nsGtkKeyUtils.h"
@@ -100,7 +101,7 @@ class WaylandPointerEvent {
   void SetTime(uint32_t aTime) { mTime = aTime; }
 
   void SendScrollEvent() {
-    if (!mWindow) {
+    if (!mWindow || !StaticPrefs::general_smoothScroll()) {
       return;
     }
 
