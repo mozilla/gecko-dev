@@ -356,20 +356,39 @@ export class UrlbarController {
         // Change the tab behavior when urlbar view is open.
         if (
           lazy.UrlbarPrefs.get("scotchBonnet.enableOverride") &&
-          this.view.isOpen &&
-          ((event.shiftKey &&
-            this.view.selectedElement ==
-              this.view.getFirstSelectableElement()) ||
-            (!event.shiftKey &&
-              this.view.selectedElement ==
-                this.view.getLastSelectableElement()))
+          this.view.isOpen
         ) {
-          // If pressing tab + shift when the first or last element has been
-          // selected, move the focus to the Unified Search Button.
-          event.preventDefault();
-          this.view.selectedRowIndex = -1;
-          this.#focusOnDedicatedSearchButton();
-          break;
+          if (
+            (event.shiftKey &&
+              this.view.selectedElement ==
+                this.view.getFirstSelectableElement()) ||
+            (!event.shiftKey &&
+              this.view.selectedElement == this.view.getLastSelectableElement())
+          ) {
+            // If pressing tab + shift when the first or pressing tab when last
+            // element has been selected, move the focus to the Unified Search
+            // Button. Then make urlbar results selectable by tab + shift.
+            event.preventDefault();
+            this.view.selectedRowIndex = -1;
+            this.#focusOnDedicatedSearchButton();
+            break;
+          } else if (
+            !this.view.selectedElement &&
+            this.input.focusedViaMousedown
+          ) {
+            // If user clicks urlbar and not select any element yet, tab key
+            // selects urlbar results and Unified Search Button in order.
+            if (event.shiftKey) {
+              this.view.selectedRowIndex = -1;
+              this.#focusOnDedicatedSearchButton();
+            } else {
+              this.view.selectBy(1, {
+                userPressedTab: true,
+              });
+            }
+            event.preventDefault();
+            break;
+          }
         }
 
         // It's always possible to tab through results when the urlbar was

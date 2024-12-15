@@ -11,6 +11,130 @@ add_setup(async function setup() {
   });
 });
 
+add_task(
+  async function test_focus_by_tab_with_no_selected_element_with_urlbar_focused_by_key() {
+    for (const shiftKey of [false, true]) {
+      info(`Test for shifrKey:${shiftKey}`);
+
+      info("Focus on urlbar by key");
+      await focusOnURLbar(() => {
+        EventUtils.synthesizeKey("l", { accelKey: true });
+      });
+      Assert.ok(!gURLBar.view.selectedElement);
+
+      let ok = false;
+      for (let i = 0; i < 10; i++) {
+        EventUtils.synthesizeKey("KEY_Tab", { shiftKey });
+
+        ok =
+          document.activeElement.id != "urlbar-input" &&
+          document.activeElement.id != "urlbar-searchmode-switcher";
+        if (ok) {
+          break;
+        }
+      }
+
+      Assert.ok(ok, "Focus was moved to a component other than the urlbar");
+      Assert.ok(!gURLBar.view.isOpen);
+    }
+  }
+);
+
+add_task(
+  async function test_focus_by_tab_with_no_selected_element_with_urlbar_focused_by_click() {
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.urlbar.suggest.topsites", false]],
+    });
+
+    let results = [
+      new UrlbarResult(
+        UrlbarUtils.RESULT_TYPE.URL,
+        UrlbarUtils.RESULT_SOURCE.HISTORY,
+        {
+          url: "https://mozilla.org/a",
+        }
+      ),
+      new UrlbarResult(
+        UrlbarUtils.RESULT_TYPE.URL,
+        UrlbarUtils.RESULT_SOURCE.HISTORY,
+        {
+          url: "https://mozilla.org/b",
+        }
+      ),
+    ];
+
+    let provider = new UrlbarTestUtils.TestProvider({ results, priority: 1 });
+    UrlbarProvidersManager.registerProvider(provider);
+
+    const FOCUS_ORDER_ASSERTIONS = [
+      () =>
+        Assert.equal(
+          gURLBar.view.selectedElement,
+          gURLBar.view.getFirstSelectableElement()
+        ),
+      () =>
+        Assert.equal(
+          gURLBar.view.selectedElement,
+          gURLBar.view.getLastSelectableElement()
+        ),
+      () =>
+        Assert.equal(
+          document.activeElement,
+          document.getElementById("urlbar-searchmode-switcher")
+        ),
+    ];
+
+    for (const shiftKey of [true, false]) {
+      info("Focus on urlbar by click");
+      await focusOnURLbar(() => {
+        EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
+      });
+      Assert.ok(!gURLBar.view.selectedElement);
+
+      await BrowserTestUtils.waitForCondition(async () => {
+        if (UrlbarTestUtils.getResultCount(window) != 2) {
+          return false;
+        }
+        let { result } = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+        return result.providerName == provider.name;
+      });
+      Assert.ok(true, "This test needs exact 2 results");
+
+      for (const assert of shiftKey
+        ? [...FOCUS_ORDER_ASSERTIONS].reverse()
+        : FOCUS_ORDER_ASSERTIONS) {
+        EventUtils.synthesizeKey("KEY_Tab", { shiftKey });
+        assert();
+      }
+
+      Assert.ok(gURLBar.view.isOpen);
+      gURLBar.view.close();
+      gURLBar.handleRevert();
+    }
+
+    UrlbarProvidersManager.unregisterProvider(provider);
+    await SpecialPowers.popPrefEnv();
+  }
+);
+
+async function focusOnURLbar(focus) {
+  // We intentionally turn off this a11y check, because the following click is
+  // purposefully targeting a non-interactive element.
+  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
+  EventUtils.synthesizeMouseAtCenter(document.getElementById("browser"), {});
+  AccessibilityUtils.resetEnv();
+  await BrowserTestUtils.waitForCondition(() =>
+    document.activeElement.closest("#browser")
+  );
+
+  focus();
+
+  await BrowserTestUtils.waitForCondition(
+    () => document.activeElement.id == "urlbar-input" && gURLBar.view.isOpen,
+    "Wait for urlbar gets focus"
+  );
+}
+
 /**
  * Test we can open the SearchModeSwitcher with various keys
  *
@@ -377,4 +501,6 @@ add_task(async function test_esc_on_usb() {
     false,
     "The urlbar result view should be closed"
   );
+
+  gURLBar.handleRevert();
 });
