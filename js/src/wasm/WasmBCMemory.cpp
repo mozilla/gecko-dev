@@ -389,7 +389,7 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
        !check->onlyPointerAlignment)) {
     Label ok;
     branchAddNoOverflow(access->offset64(), ptr, &ok);
-    masm.wasmTrap(Trap::OutOfBounds, bytecodeOffset());
+    trap(Trap::OutOfBounds);
     masm.bind(&ok);
     access->clearOffset();
     check->onlyPointerAlignment = true;
@@ -402,7 +402,7 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
     // We only care about the low pointer bits here.
     Label ok;
     branchTestLowZero(ptr, Imm32(access->byteSize() - 1), &ok);
-    masm.wasmTrap(Trap::UnalignedAccess, bytecodeOffset());
+    trap(Trap::UnalignedAccess);
     masm.bind(&ok);
   }
 
@@ -440,7 +440,7 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
 #else
     boundsCheckBelow4GBAccess(access->memoryIndex(), instance, ptr, &ok);
 #endif
-    masm.wasmTrap(Trap::OutOfBounds, bytecodeOffset());
+    trap(Trap::OutOfBounds);
     masm.bind(&ok);
   }
 
@@ -453,7 +453,7 @@ void BaseCompiler::computeEffectiveAddress(MemoryAccessDesc* access) {
     Label ok;
     RegAddressType ptr = pop<RegAddressType>();
     branchAddNoOverflow(access->offset64(), ptr, &ok);
-    masm.wasmTrap(Trap::OutOfBounds, bytecodeOffset());
+    trap(Trap::OutOfBounds);
     masm.bind(&ok);
     access->clearOffset();
     push(ptr);
@@ -2536,7 +2536,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI32(temp);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Simd128, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     loadCommon(&access, check, ValType::V128);
@@ -2553,7 +2553,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI32(temp);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Int64, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     loadCommon(&access, check, ValType::I64);
@@ -2569,7 +2569,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI32(temp);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint32, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     loadCommon(&access, check, ValType::I32);
@@ -2584,7 +2584,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI32(temp);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint16, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     loadCommon(&access, check, ValType::I32);
@@ -2599,7 +2599,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI32(temp);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint8, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     loadCommon(&access, check, ValType::I32);
@@ -2621,7 +2621,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI32(value);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint8, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     storeCommon(&access, check, ValType::I32);
 
@@ -2638,7 +2638,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI32(value);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint16, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     storeCommon(&access, check, ValType::I32);
@@ -2656,7 +2656,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI32(value);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint32, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     storeCommon(&access, check, ValType::I32);
@@ -2675,7 +2675,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushI64(value);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Int64, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     storeCommon(&access, check, ValType::I64);
@@ -2695,7 +2695,7 @@ void BaseCompiler::memCopyInlineM32() {
     pushV128(value);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Simd128, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     storeCommon(&access, check, ValType::V128);
@@ -2770,7 +2770,7 @@ void BaseCompiler::memFillInlineM32() {
     pushI32(val1);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint8, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     storeCommon(&access, check, ValType::I32);
 
@@ -2786,7 +2786,7 @@ void BaseCompiler::memFillInlineM32() {
     pushI32(val2);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint16, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     storeCommon(&access, check, ValType::I32);
@@ -2803,7 +2803,7 @@ void BaseCompiler::memFillInlineM32() {
     pushI32(val4);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint32, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     storeCommon(&access, check, ValType::I32);
@@ -2821,7 +2821,7 @@ void BaseCompiler::memFillInlineM32() {
     pushI64(val8);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Int64, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     storeCommon(&access, check, ValType::I64);
@@ -2840,7 +2840,7 @@ void BaseCompiler::memFillInlineM32() {
     pushV128(val16);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Simd128, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     AccessCheck check;
     check.omitBoundsCheck = omitBoundsCheck;
     storeCommon(&access, check, ValType::V128);

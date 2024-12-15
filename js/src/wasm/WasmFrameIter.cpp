@@ -860,13 +860,13 @@ void wasm::GenerateFunctionPrologue(MacroAssembler& masm,
         }
 
         masm.bind(&fail);
-        masm.wasmTrap(Trap::IndirectCallBadSig, BytecodeOffset(0));
+        masm.wasmTrap(Trap::IndirectCallBadSig, TrapSiteDesc());
         break;
       }
       case CallIndirectIdKind::Immediate: {
         masm.branch32(Assembler::Condition::Equal, WasmTableCallSigReg,
                       Imm32(callIndirectId.immediate()), &functionBody);
-        masm.wasmTrap(Trap::IndirectCallBadSig, BytecodeOffset(0));
+        masm.wasmTrap(Trap::IndirectCallBadSig, TrapSiteDesc());
         break;
       }
       case CallIndirectIdKind::AsmJS:

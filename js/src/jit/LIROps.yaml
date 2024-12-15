@@ -3617,7 +3617,7 @@
     offset: size_t
     type: MIRType
     wideningOp: MWideningOp
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
 
 - name: WasmLoadElement
   result_type: WordSized
@@ -3628,7 +3628,7 @@
     type: MIRType
     wideningOp: MWideningOp
     scale: Scale
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
   num_temps: 1
 
 - name: WasmLoadSlotI64
@@ -3637,7 +3637,7 @@
     containerRef: WordSized
   arguments:
     offset: size_t
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
 
 - name: WasmLoadElementI64
   result_type: Int64
@@ -3645,7 +3645,7 @@
     base: WordSized
     index: WordSized
   arguments:
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
 
 - name: WasmStoreSlot
   operands:
@@ -3655,7 +3655,7 @@
     offset: size_t
     type: MIRType
     narrowingOp: MNarrowingOp
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
 
 - name: WasmStoreSlotI64
   operands:
@@ -3663,7 +3663,7 @@
     containerRef: WordSized
   arguments:
     offset: size_t
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
 
 - name: WasmStoreElement
   operands:
@@ -3674,7 +3674,7 @@
     type: MIRType
     narrowingOp: MNarrowingOp
     scale: Scale
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
   num_temps: 1
 
 - name: WasmStoreElementI64
@@ -3683,7 +3683,7 @@
     index: WordSized
     value: Int64
   arguments:
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
 
 - name: WasmStoreElementRef
   operands:
@@ -3692,7 +3692,7 @@
     index: WordSized
     value: WordSized
   arguments:
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
     preBarrierKind: WasmPreBarrierKind
   num_temps: 2
 
@@ -3715,7 +3715,7 @@
     value: WordSized
   arguments:
     offset: uint32_t
-    maybeTrap: MaybeTrapSiteInfo
+    maybeTrap: wasm::MaybeTrapSiteDesc
     preBarrierKind: WasmPreBarrierKind
   num_temps: 1
   mir_op: true

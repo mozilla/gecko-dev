@@ -126,7 +126,7 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
   [[nodiscard]] bool generate(const WarpSnapshot* snapshot);
   [[nodiscard]] bool generateWasm(
-      wasm::CallIndirectId callIndirectId, wasm::BytecodeOffset trapOffset,
+      wasm::CallIndirectId callIndirectId, const wasm::TrapSiteDesc& entryTrapSiteDesc,
       const wasm::ArgTypeVector& argTys, const RegisterOffsets& trapExitLayout,
       size_t trapExitLayoutNumWords, wasm::FuncOffsets* offsets,
       wasm::StackMaps* stackMaps, wasm::Decoder* decoder);
@@ -204,13 +204,13 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
   void callWasmStructAllocFun(LInstruction* lir, wasm::SymbolicAddress fun,
                               Register typeDefData, Register output,
-                              wasm::BytecodeOffset bytecodeOffset);
+                              const wasm::TrapSiteDesc& trapSiteDesc);
   void visitOutOfLineWasmNewStruct(OutOfLineWasmNewStruct* ool);
 
   void callWasmArrayAllocFun(LInstruction* lir, wasm::SymbolicAddress fun,
                              Register numElements, Register typeDefData,
                              Register output,
-                             wasm::BytecodeOffset bytecodeOffset);
+                             const wasm::TrapSiteDesc& trapSiteDesc);
   void visitOutOfLineWasmNewArray(OutOfLineWasmNewArray* ool);
 
 #ifdef ENABLE_WASM_JSPI
@@ -499,16 +499,16 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 class OutOfLineResumableWasmTrap : public OutOfLineCodeBase<CodeGenerator> {
   LInstruction* lir_;
   size_t framePushed_;
-  wasm::BytecodeOffset bytecodeOffset_;
+  wasm::TrapSiteDesc trapSiteDesc_;
   wasm::Trap trap_;
 
  public:
   OutOfLineResumableWasmTrap(LInstruction* lir, size_t framePushed,
-                             wasm::BytecodeOffset bytecodeOffset,
+                             const wasm::TrapSiteDesc& trapSiteDesc,
                              wasm::Trap trap)
       : lir_(lir),
         framePushed_(framePushed),
-        bytecodeOffset_(bytecodeOffset),
+        trapSiteDesc_(trapSiteDesc),
         trap_(trap) {}
 
   void accept(CodeGenerator* codegen) override {
@@ -516,23 +516,23 @@ class OutOfLineResumableWasmTrap : public OutOfLineCodeBase<CodeGenerator> {
   }
   LInstruction* lir() const { return lir_; }
   size_t framePushed() const { return framePushed_; }
-  wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
+  const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }
   wasm::Trap trap() const { return trap_; }
 };
 
 class OutOfLineAbortingWasmTrap : public OutOfLineCodeBase<CodeGenerator> {
-  wasm::BytecodeOffset bytecodeOffset_;
+  wasm::TrapSiteDesc trapSiteDesc_;
   wasm::Trap trap_;
 
  public:
-  OutOfLineAbortingWasmTrap(wasm::BytecodeOffset bytecodeOffset,
+  OutOfLineAbortingWasmTrap(const wasm::TrapSiteDesc& trapSiteDesc,
                             wasm::Trap trap)
-      : bytecodeOffset_(bytecodeOffset), trap_(trap) {}
+      : trapSiteDesc_(trapSiteDesc), trap_(trap) {}
 
   void accept(CodeGenerator* codegen) override {
     codegen->visitOutOfLineAbortingWasmTrap(this);
   }
-  wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
+  const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }
   wasm::Trap trap() const { return trap_; }
 };
 

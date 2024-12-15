@@ -46,6 +46,10 @@ BytecodeOffset BaseCompiler::bytecodeOffset() const {
   return iter_.bytecodeOffset();
 }
 
+TrapSiteDesc BaseCompiler::trapSiteDesc() const {
+  return TrapSiteDesc(bytecodeOffset());
+}
+
 bool BaseCompiler::isMem32(uint32_t memoryIndex) const {
   return codeMeta_.memories[memoryIndex].addressType() == AddressType::I32;
 }

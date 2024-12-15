@@ -545,7 +545,7 @@ class MemoryAccessDesc {
   uint32_t align_;
   Scalar::Type type_;
   jit::Synchronization sync_;
-  wasm::BytecodeOffset trapOffset_;
+  wasm::TrapSiteDesc trapDesc_;
   wasm::SimdOp widenOp_;
   enum { Plain, ZeroExtend, Splat, Widen } loadOp_;
   // Used for an assertion in MacroAssembler about offset length
@@ -554,14 +554,14 @@ class MemoryAccessDesc {
  public:
   explicit MemoryAccessDesc(
       uint32_t memoryIndex, Scalar::Type type, uint32_t align, uint64_t offset,
-      BytecodeOffset trapOffset, mozilla::DebugOnly<bool> hugeMemory,
+      wasm::TrapSiteDesc trapDesc, mozilla::DebugOnly<bool> hugeMemory,
       jit::Synchronization sync = jit::Synchronization::None())
       : memoryIndex_(memoryIndex),
         offset_(offset),
         align_(align),
         type_(type),
         sync_(sync),
-        trapOffset_(trapOffset),
+        trapDesc_(trapDesc),
         widenOp_(wasm::SimdOp::Limit),
         loadOp_(Plain),
         hugeMemory_(hugeMemory) {
@@ -596,7 +596,7 @@ class MemoryAccessDesc {
   Scalar::Type type() const { return type_; }
   unsigned byteSize() const { return Scalar::byteSize(type()); }
   jit::Synchronization sync() const { return sync_; }
-  BytecodeOffset trapOffset() const { return trapOffset_; }
+  const TrapSiteDesc& trapDesc() const { return trapDesc_; }
   wasm::SimdOp widenSimdOp() const {
     MOZ_ASSERT(isWidenSimd128Load());
     return widenOp_;
@@ -711,7 +711,7 @@ class AssemblerShared {
               FaultingCodeOffset assemblerOffsetOfFaultingMachineInsn) {
     append(wasm::Trap::OutOfBounds,
            wasm::TrapSite(insn, assemblerOffsetOfFaultingMachineInsn,
-                          access.trapOffset()));
+                          access.trapDesc()));
   }
   void append(wasm::SymbolicAccess access) {
     enoughMemory_ &= symbolicAccesses_.append(access);

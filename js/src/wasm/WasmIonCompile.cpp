@@ -517,8 +517,13 @@ class FunctionCompiler {
 
   MBasicBlock* getCurBlock() const { return curBlock_; }
   BytecodeOffset bytecodeOffset() const { return iter_.bytecodeOffset(); }
-  BytecodeOffset bytecodeIfNotAsmJS() const {
-    return codeMeta().isAsmJS() ? BytecodeOffset() : iter_.bytecodeOffset();
+  TrapSiteDesc trapSiteDesc() {
+    return TrapSiteDesc(wasm::BytecodeOffset(bytecodeOffset()),
+                        rootCompiler_.inlinedCallerOffsets());
+  }
+  TrapSiteDesc trapSiteDescWithCallSiteLineNumber() {
+    return TrapSiteDesc(wasm::BytecodeOffset(readCallSiteLineOrBytecode()),
+                        rootCompiler_.inlinedCallerOffsets());
   }
   FeatureUsage featureUsage() const { return iter_.featureUsage(); }
 
@@ -929,14 +934,14 @@ class FunctionCompiler {
     if (type == MIRType::Int64) {
       auto* ins =
           MWasmBuiltinDivI64::New(alloc(), lhs, rhs, instancePointer_, unsignd,
-                                  trapOnError, bytecodeOffset());
+                                  trapOnError, trapSiteDesc());
       curBlock_->add(ins);
       return ins;
     }
 #endif
 
     auto* ins = MDiv::New(alloc(), lhs, rhs, type, unsignd, trapOnError,
-                          bytecodeOffset(), mustPreserveNaN(type));
+                          trapSiteDesc(), mustPreserveNaN(type));
     curBlock_->add(ins);
     return ins;
   }
@@ -971,7 +976,7 @@ class FunctionCompiler {
     if (type == MIRType::Int64) {
       auto* ins =
           MWasmBuiltinModI64::New(alloc(), lhs, rhs, instancePointer_, unsignd,
-                                  trapOnError, bytecodeOffset());
+                                  trapOnError, trapSiteDesc());
       curBlock_->add(ins);
       return ins;
     }
@@ -987,7 +992,7 @@ class FunctionCompiler {
     }
 
     auto* ins = MMod::New(alloc(), lhs, rhs, type, unsignd, trapOnError,
-                          bytecodeOffset());
+                          trapSiteDesc());
     curBlock_->add(ins);
     return ins;
   }
@@ -1099,7 +1104,7 @@ class FunctionCompiler {
     if (inDeadCode()) {
       return nullptr;
     }
-    auto* ins = T::New(alloc(), op, flags, bytecodeOffset());
+    auto* ins = T::New(alloc(), op, flags, trapSiteDesc());
     curBlock_->add(ins);
     return ins;
   }
@@ -1110,7 +1115,7 @@ class FunctionCompiler {
       return nullptr;
     }
     auto* ins = MWasmBuiltinTruncateToInt64::New(alloc(), op, instancePointer_,
-                                                 flags, bytecodeOffset());
+                                                 flags, trapSiteDesc());
     curBlock_->add(ins);
     return ins;
   }
@@ -1147,7 +1152,7 @@ class FunctionCompiler {
     }
 
     auto* ins = MWasmTrapIfNull::New(
-        alloc(), ref, wasm::Trap::NullPointerDereference, bytecodeOffset());
+        alloc(), ref, wasm::Trap::NullPointerDereference, trapSiteDesc());
 
     curBlock_->add(ins);
     return true;
@@ -1558,7 +1563,7 @@ class FunctionCompiler {
     auto target = memoryIndex == 0 ? MWasmBoundsCheck::Memory0
                                    : MWasmBoundsCheck::Unknown;
     auto* ins = MWasmBoundsCheck::New(alloc(), actualBase, boundsCheckLimit,
-                                      bytecodeOffset(), target);
+                                      trapSiteDesc(), target);
     curBlock_->add(ins);
     actualBase = ins;
 
@@ -1606,7 +1611,7 @@ class FunctionCompiler {
     // Emit the alignment check if necessary; it traps if it fails.
     if (alignmentCheck) {
       curBlock_->add(MWasmAlignmentCheck::New(
-          alloc(), *base, access->byteSize(), bytecodeOffset()));
+          alloc(), *base, access->byteSize(), trapSiteDesc()));
     }
 
     // Emit the bounds check if necessary; it traps if it fails.  This may
@@ -1664,7 +1669,7 @@ class FunctionCompiler {
     if (offset == 0) {
       return base;
     }
-    auto* ins = MWasmAddOffset::New(alloc(), base, offset, bytecodeOffset());
+    auto* ins = MWasmAddOffset::New(alloc(), base, offset, trapSiteDesc());
     curBlock_->add(ins);
     access->clearOffset();
     return ins;
@@ -1847,7 +1852,7 @@ class FunctionCompiler {
     }
 
     MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                            bytecodeIfNotAsmJS(),
+                            trapSiteDesc(),
                             hugeMemoryEnabled(addr.memoryIndex));
 
     // Generate better code (on x86)
@@ -1884,7 +1889,7 @@ class FunctionCompiler {
     // Generate better code (on x86) by loading as a double with an
     // operation that sign extends directly.
     MemoryAccessDesc access(addr.memoryIndex, Scalar::Float64, addr.align,
-                            addr.offset, bytecodeIfNotAsmJS(),
+                            addr.offset, trapSiteDesc(),
                             hugeMemoryEnabled(addr.memoryIndex));
     access.setWidenSimd128Load(op);
     return load(addr.base, &access, ValType::V128);
@@ -1897,7 +1902,7 @@ class FunctionCompiler {
     }
 
     MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                            bytecodeIfNotAsmJS(),
+                            trapSiteDesc(),
                             hugeMemoryEnabled(addr.memoryIndex));
     access.setZeroExtendSimd128Load();
     return load(addr.base, &access, ValType::V128);
@@ -1911,7 +1916,7 @@ class FunctionCompiler {
     }
 
     MemoryAccessDesc access(addr.memoryIndex, Scalar::Simd128, addr.align,
-                            addr.offset, bytecodeIfNotAsmJS(),
+                            addr.offset, trapSiteDesc(),
                             hugeMemoryEnabled(addr.memoryIndex));
     MDefinition* memoryBase = maybeLoadMemoryBase(access.memoryIndex());
     MDefinition* base = addr.base;
@@ -1936,7 +1941,7 @@ class FunctionCompiler {
       return;
     }
     MemoryAccessDesc access(addr.memoryIndex, Scalar::Simd128, addr.align,
-                            addr.offset, bytecodeIfNotAsmJS(),
+                            addr.offset, trapSiteDesc(),
                             hugeMemoryEnabled(addr.memoryIndex));
     MDefinition* memoryBase = maybeLoadMemoryBase(access.memoryIndex());
     MDefinition* base = addr.base;
@@ -2109,7 +2114,7 @@ class FunctionCompiler {
     // masking
     auto* length = loadTableLength(tableIndex);
     auto* check = MWasmBoundsCheck::New(
-        alloc(), address, length, bytecodeOffset(), MWasmBoundsCheck::Unknown);
+        alloc(), address, length, trapSiteDesc(), MWasmBoundsCheck::Unknown);
     curBlock_->add(check);
     if (JitOptions.spectreIndexMasking) {
       address = check;
@@ -2129,7 +2134,7 @@ class FunctionCompiler {
     // masking
     auto* length = loadTableLength(tableIndex);
     auto* check = MWasmBoundsCheck::New(
-        alloc(), address, length, bytecodeOffset(), MWasmBoundsCheck::Unknown);
+        alloc(), address, length, trapSiteDesc(), MWasmBoundsCheck::Unknown);
     curBlock_->add(check);
     if (JitOptions.spectreIndexMasking) {
       address = check;
@@ -2162,7 +2167,7 @@ class FunctionCompiler {
       return;
     }
     curBlock_->add(
-        MWasmInterruptCheck::New(alloc(), instancePointer_, bytecodeOffset()));
+        MWasmInterruptCheck::New(alloc(), instancePointer_, trapSiteDesc()));
   }
 
   // Perform a post-write barrier to update the generational store buffer. This
@@ -3230,7 +3235,7 @@ class FunctionCompiler {
 
   [[nodiscard]] MDefinition* stringCast(MDefinition* string) {
     auto* ins = MWasmTrapIfAnyRefIsNotJSString::New(
-        alloc(), string, wasm::Trap::BadCast, bytecodeOffset());
+        alloc(), string, wasm::Trap::BadCast, trapSiteDesc());
     if (!ins) {
       return ins;
     }
@@ -3249,7 +3254,7 @@ class FunctionCompiler {
 
   [[nodiscard]] MDefinition* stringLength(MDefinition* string) {
     auto* ins = MWasmAnyRefJSStringLength::New(
-        alloc(), string, wasm::Trap::BadCast, bytecodeOffset());
+        alloc(), string, wasm::Trap::BadCast, trapSiteDesc());
     if (!ins) {
       return nullptr;
     }
@@ -3415,7 +3420,7 @@ class FunctionCompiler {
     }
 
     auto* ins =
-        MWasmTrap::New(alloc(), wasm::Trap::Unreachable, bytecodeOffset());
+        MWasmTrap::New(alloc(), wasm::Trap::Unreachable, trapSiteDesc());
     curBlock_->end(ins);
     curBlock_ = nullptr;
   }
@@ -4758,9 +4763,9 @@ class FunctionCompiler {
     MNarrowingOp narrowingOp = fieldStoreInfoToMIR(type);
 
     if (!type.isRefRepr()) {
-      MaybeTrapSiteInfo maybeTrap;
+      MaybeTrapSiteDesc maybeTrap;
       if (needsTrapInfo) {
-        maybeTrap.emplace(getTrapSiteInfo());
+        maybeTrap.emplace(trapSiteDesc());
       }
       auto* store = MWasmStoreFieldKA::New(
           alloc(), keepAlive, base, offset, fieldIndex, value, narrowingOp,
@@ -4785,7 +4790,7 @@ class FunctionCompiler {
     // Store the new value
     auto* store = MWasmStoreFieldRefKA::New(
         alloc(), instancePointer_, keepAlive, base, offset, fieldIndex, value,
-        AliasSet::Store(aliasBitset), mozilla::Some(getTrapSiteInfo()),
+        AliasSet::Store(aliasBitset), mozilla::Some(trapSiteDesc()),
         preBarrierKind);
     if (!store) {
       return false;
@@ -4814,7 +4819,7 @@ class FunctionCompiler {
     MNarrowingOp narrowingOp = fieldStoreInfoToMIR(type);
 
     if (!type.isRefRepr()) {
-      MaybeTrapSiteInfo maybeTrap;
+      MaybeTrapSiteDesc maybeTrap;
       Scale scale = scaleFromFieldType(type);
       auto* store = MWasmStoreElementKA::New(
           alloc(), keepAlive, base, index, value, narrowingOp, scale,
@@ -4833,7 +4838,7 @@ class FunctionCompiler {
     // Store the new value
     auto* store = MWasmStoreElementRefKA::New(
         alloc(), instancePointer_, keepAlive, base, index, value,
-        AliasSet::Store(aliasBitset), mozilla::Some(getTrapSiteInfo()),
+        AliasSet::Store(aliasBitset), mozilla::Some(trapSiteDesc()),
         preBarrierKind);
     if (!store) {
       return false;
@@ -4857,9 +4862,9 @@ class FunctionCompiler {
     MIRType mirType;
     MWideningOp mirWideningOp;
     fieldLoadInfoToMIR(type, fieldWideningOp, &mirType, &mirWideningOp);
-    MaybeTrapSiteInfo maybeTrap;
+    MaybeTrapSiteDesc maybeTrap;
     if (needsTrapInfo) {
-      maybeTrap.emplace(getTrapSiteInfo());
+      maybeTrap.emplace(trapSiteDesc());
     }
 
     auto* load = MWasmLoadFieldKA::New(alloc(), keepAlive, base, offset,
@@ -4888,7 +4893,7 @@ class FunctionCompiler {
     Scale scale = scaleFromFieldType(type);
     auto* load = MWasmLoadElementKA::New(
         alloc(), keepAlive, base, index, mirType, mirWideningOp, scale,
-        AliasSet::Load(aliasBitset), mozilla::Some(getTrapSiteInfo()));
+        AliasSet::Load(aliasBitset), mozilla::Some(trapSiteDesc()));
     if (!load) {
       return nullptr;
     }
@@ -4941,7 +4946,7 @@ class FunctionCompiler {
 
     auto* structObject = MWasmNewStructObject::New(
         alloc(), instancePointer_, typeDefData, typeDef.structType(), isOutline,
-        zeroFields, allocKind, bytecodeOffset());
+        zeroFields, allocKind, trapSiteDesc());
     if (!structObject) {
       return nullptr;
     }
@@ -4975,7 +4980,7 @@ class FunctionCompiler {
           alloc(), structObject, WasmStructObject::offsetOfOutlineData(),
           MIRType::Pointer, MWideningOp::None,
           AliasSet::Load(AliasSet::WasmStructOutlineDataPointer),
-          mozilla::Some(getTrapSiteInfo()));
+          mozilla::Some(trapSiteDesc()));
       if (!load) {
         return false;
       }
@@ -5025,7 +5030,7 @@ class FunctionCompiler {
           alloc(), structObject, WasmStructObject::offsetOfOutlineData(),
           MIRType::Pointer, MWideningOp::None,
           AliasSet::Load(AliasSet::WasmStructOutlineDataPointer),
-          mozilla::Some(getTrapSiteInfo()));
+          mozilla::Some(trapSiteDesc()));
       if (!loadOOLptr) {
         return nullptr;
       }
@@ -5095,7 +5100,7 @@ class FunctionCompiler {
         alloc(), arrayObject, WasmArrayObject::offsetOfNumElements(),
         MIRType::Int32, MWideningOp::None,
         AliasSet::Load(AliasSet::WasmArrayNumElements),
-        mozilla::Some(getTrapSiteInfo()));
+        mozilla::Some(trapSiteDesc()));
     if (!numElements) {
       return nullptr;
     }
@@ -5113,7 +5118,7 @@ class FunctionCompiler {
         alloc(), arrayObject, WasmArrayObject::offsetOfData(),
         MIRType::WasmArrayData, MWideningOp::None,
         AliasSet::Load(AliasSet::WasmArrayDataPointer),
-        mozilla::Some(getTrapSiteInfo()));
+        mozilla::Some(trapSiteDesc()));
     if (!data) {
       return nullptr;
     }
@@ -5138,7 +5143,7 @@ class FunctionCompiler {
 
     auto* arrayObject = MWasmNewArrayObject::New(
         alloc(), instancePointer_, numElements, typeDefData, elemSize,
-        zeroFields, bytecodeOffset());
+        zeroFields, trapSiteDesc());
     if (!arrayObject) {
       return nullptr;
     }
@@ -5173,7 +5178,7 @@ class FunctionCompiler {
 
     // Create a bounds check.
     auto* boundsCheck =
-        MWasmBoundsCheck::New(alloc(), index, numElements, bytecodeOffset(),
+        MWasmBoundsCheck::New(alloc(), index, numElements, trapSiteDesc(),
                               MWasmBoundsCheck::Target::Unknown);
     if (!boundsCheck) {
       return nullptr;
@@ -5357,14 +5362,14 @@ class FunctionCompiler {
 
     // Create the bounds checks.
     MInstruction* dstBoundsCheck = MWasmBoundsCheckRange32::New(
-        alloc(), dstArrayIndex, numElements, dstNumElements, bytecodeOffset());
+        alloc(), dstArrayIndex, numElements, dstNumElements, trapSiteDesc());
     if (!dstBoundsCheck) {
       return false;
     }
     curBlock_->add(dstBoundsCheck);
 
     MInstruction* srcBoundsCheck = MWasmBoundsCheckRange32::New(
-        alloc(), srcArrayIndex, numElements, srcNumElements, bytecodeOffset());
+        alloc(), srcArrayIndex, numElements, srcNumElements, trapSiteDesc());
     if (!srcBoundsCheck) {
       return false;
     }
@@ -5464,7 +5469,7 @@ class FunctionCompiler {
 
     // Create a bounds check.
     auto* boundsCheck = MWasmBoundsCheckRange32::New(
-        alloc(), index, numElements, actualNumElements, bytecodeOffset());
+        alloc(), index, numElements, actualNumElements, trapSiteDesc());
     if (!boundsCheck) {
       return false;
     }
@@ -5487,7 +5492,7 @@ class FunctionCompiler {
       return false;
     }
 
-    auto* trap = MWasmTrap::New(alloc(), trapKind, bytecodeOffset());
+    auto* trap = MWasmTrap::New(alloc(), trapKind, trapSiteDesc());
     if (!trap) {
       return false;
     }
@@ -5650,10 +5655,6 @@ class FunctionCompiler {
 
   // Return the current bytecode offset.
   uint32_t readBytecodeOffset() { return iter_.lastOpcodeOffset(); }
-
-  TrapSiteInfo getTrapSiteInfo() {
-    return TrapSiteInfo(wasm::BytecodeOffset(readBytecodeOffset()));
-  }
 
   CallRefHint readCallRefHint() {
     // We don't track anything if we're not using lazy tiering
@@ -5937,9 +5938,8 @@ MDefinition* FunctionCompiler::unary<MWasmBuiltinTruncateToInt32>(
   if (inDeadCode()) {
     return nullptr;
   }
-  auto* ins = MWasmBuiltinTruncateToInt32::New(
-      alloc(), op, instancePointer_,
-      BytecodeOffset(readCallSiteLineOrBytecode()));
+  auto* ins = MWasmBuiltinTruncateToInt32::New(alloc(), op, instancePointer_,
+                                               trapSiteDescWithCallSiteLineNumber());
   curBlock_->add(ins);
   return ins;
 }
@@ -7015,8 +7015,7 @@ bool FunctionCompiler::emitLoad(ValType type, Scalar::Type viewType) {
   }
 
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeIfNotAsmJS(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
   auto* ins = load(addr.base, &access, type);
   if (!inDeadCode() && !ins) {
     return false;
@@ -7035,8 +7034,7 @@ bool FunctionCompiler::emitStore(ValType resultType, Scalar::Type viewType) {
   }
 
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeIfNotAsmJS(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
 
   store(addr.base, &access, value);
   return true;
@@ -7052,8 +7050,7 @@ bool FunctionCompiler::emitTeeStore(ValType resultType, Scalar::Type viewType) {
 
   MOZ_ASSERT(isMem32(addr.memoryIndex));  // asm.js opcode
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeIfNotAsmJS(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
 
   store(addr.base, &access, value);
   return true;
@@ -7078,8 +7075,7 @@ bool FunctionCompiler::emitTeeStoreWithCoercion(ValType resultType,
 
   MOZ_ASSERT(isMem32(addr.memoryIndex));  // asm.js opcode
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeIfNotAsmJS(),
-                          hugeMemoryEnabled(addr.memoryIndex));
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex));
 
   store(addr.base, &access, value);
   return true;
@@ -7224,7 +7220,7 @@ bool FunctionCompiler::emitAtomicCmpXchg(ValType type, Scalar::Type viewType) {
   }
 
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Full());
   auto* ins =
       atomicCompareExchangeHeap(addr.base, &access, type, oldValue, newValue);
@@ -7243,7 +7239,7 @@ bool FunctionCompiler::emitAtomicLoad(ValType type, Scalar::Type viewType) {
   }
 
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Load());
   auto* ins = load(addr.base, &access, type);
   if (!inDeadCode() && !ins) {
@@ -7263,7 +7259,7 @@ bool FunctionCompiler::emitAtomicRMW(ValType type, Scalar::Type viewType,
   }
 
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Full());
   auto* ins = atomicBinopHeap(op, addr.base, &access, type, value);
   if (!inDeadCode() && !ins) {
@@ -7282,7 +7278,7 @@ bool FunctionCompiler::emitAtomicStore(ValType type, Scalar::Type viewType) {
   }
 
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Store());
   store(addr.base, &access, value);
   return true;
@@ -7305,10 +7301,10 @@ bool FunctionCompiler::emitWait(ValType type, uint32_t byteSize) {
     return true;
   }
 
-  MemoryAccessDesc access(
-      addr.memoryIndex, type == ValType::I32 ? Scalar::Int32 : Scalar::Int64,
-      addr.align, addr.offset, BytecodeOffset(bytecodeOffset),
-      hugeMemoryEnabled(addr.memoryIndex));
+  MemoryAccessDesc access(addr.memoryIndex,
+                          type == ValType::I32 ? Scalar::Int32 : Scalar::Int64,
+                          addr.align, addr.offset, trapSiteDesc(),
+                          hugeMemoryEnabled(addr.memoryIndex));
   MDefinition* ptr = computeEffectiveAddress(addr.base, &access);
   if (!ptr) {
     return false;
@@ -7357,7 +7353,7 @@ bool FunctionCompiler::emitNotify() {
   }
 
   MemoryAccessDesc access(addr.memoryIndex, Scalar::Int32, addr.align,
-                          addr.offset, BytecodeOffset(bytecodeOffset),
+                          addr.offset, trapSiteDesc(),
                           hugeMemoryEnabled(addr.memoryIndex));
   MDefinition* ptr = computeEffectiveAddress(addr.base, &access);
   if (!ptr) {
@@ -7390,7 +7386,7 @@ bool FunctionCompiler::emitAtomicXchg(ValType type, Scalar::Type viewType) {
   }
 
   MemoryAccessDesc access(addr.memoryIndex, viewType, addr.align, addr.offset,
-                          bytecodeOffset(), hugeMemoryEnabled(addr.memoryIndex),
+                          trapSiteDesc(), hugeMemoryEnabled(addr.memoryIndex),
                           Synchronization::Full());
   MDefinition* ins = atomicExchangeHeap(addr.base, &access, type, value);
   if (!inDeadCode() && !ins) {
@@ -7487,7 +7483,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
 #ifdef ENABLE_WASM_SIMD
   for (uint32_t i = 0; i < numCopies16; i++) {
     MemoryAccessDesc access(memoryIndex, Scalar::Simd128, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* loadValue = load(src, &access, ValType::V128);
     if (!loadValue || !loadedValues.append(loadValue)) {
       return false;
@@ -7500,7 +7496,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
 #ifdef JS_64BIT
   for (uint32_t i = 0; i < numCopies8; i++) {
     MemoryAccessDesc access(memoryIndex, Scalar::Int64, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* loadValue = load(src, &access, ValType::I64);
     if (!loadValue || !loadedValues.append(loadValue)) {
       return false;
@@ -7512,7 +7508,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
 
   for (uint32_t i = 0; i < numCopies4; i++) {
     MemoryAccessDesc access(memoryIndex, Scalar::Uint32, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* loadValue = load(src, &access, ValType::I32);
     if (!loadValue || !loadedValues.append(loadValue)) {
       return false;
@@ -7523,7 +7519,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
 
   if (numCopies2) {
     MemoryAccessDesc access(memoryIndex, Scalar::Uint16, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* loadValue = load(src, &access, ValType::I32);
     if (!loadValue || !loadedValues.append(loadValue)) {
       return false;
@@ -7534,7 +7530,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
 
   if (numCopies1) {
     MemoryAccessDesc access(memoryIndex, Scalar::Uint8, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* loadValue = load(src, &access, ValType::I32);
     if (!loadValue || !loadedValues.append(loadValue)) {
       return false;
@@ -7550,7 +7546,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
     offset -= sizeof(uint8_t);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint8, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* value = loadedValues.popCopy();
     store(dst, &access, value);
   }
@@ -7559,7 +7555,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
     offset -= sizeof(uint16_t);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint16, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* value = loadedValues.popCopy();
     store(dst, &access, value);
   }
@@ -7568,7 +7564,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
     offset -= sizeof(uint32_t);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint32, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* value = loadedValues.popCopy();
     store(dst, &access, value);
   }
@@ -7578,7 +7574,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
     offset -= sizeof(uint64_t);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Int64, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* value = loadedValues.popCopy();
     store(dst, &access, value);
   }
@@ -7589,7 +7585,7 @@ bool FunctionCompiler::emitMemCopyInline(uint32_t memoryIndex, MDefinition* dst,
     offset -= sizeof(V128);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Simd128, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     auto* value = loadedValues.popCopy();
     store(dst, &access, value);
   }
@@ -7751,7 +7747,7 @@ bool FunctionCompiler::emitMemFillInline(uint32_t memoryIndex,
     offset -= sizeof(uint8_t);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint8, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     store(start, &access, val);
   }
 
@@ -7759,7 +7755,7 @@ bool FunctionCompiler::emitMemFillInline(uint32_t memoryIndex,
     offset -= sizeof(uint16_t);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint16, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     store(start, &access, val2);
   }
 
@@ -7767,7 +7763,7 @@ bool FunctionCompiler::emitMemFillInline(uint32_t memoryIndex,
     offset -= sizeof(uint32_t);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Uint32, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     store(start, &access, val4);
   }
 
@@ -7776,7 +7772,7 @@ bool FunctionCompiler::emitMemFillInline(uint32_t memoryIndex,
     offset -= sizeof(uint64_t);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Int64, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     store(start, &access, val8);
   }
 #endif
@@ -7786,7 +7782,7 @@ bool FunctionCompiler::emitMemFillInline(uint32_t memoryIndex,
     offset -= sizeof(V128);
 
     MemoryAccessDesc access(memoryIndex, Scalar::Simd128, 1, offset,
-                            bytecodeOffset(), hugeMemoryEnabled(memoryIndex));
+                            trapSiteDesc(), hugeMemoryEnabled(memoryIndex));
     store(start, &access, val16);
   }
 #endif
@@ -10598,11 +10594,12 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
 
       CodeGenerator codegen(&rootCompiler.mirGen(), lir, &masm);
 
-      BytecodeOffset prologueTrapOffset(func.lineOrBytecode);
+      TrapSiteDesc prologueTrapSiteDesc(
+          wasm::BytecodeOffset(func.lineOrBytecode));
       FuncOffsets offsets;
       ArgTypeVector args(codeMeta.getFuncType(func.index));
       if (!codegen.generateWasm(CallIndirectId::forFunc(codeMeta, func.index),
-                                prologueTrapOffset, args, trapExitLayout,
+                                prologueTrapSiteDesc, args, trapExitLayout,
                                 trapExitLayoutNumWords, &offsets,
                                 &code->stackMaps, &d)) {
         return false;

@@ -443,7 +443,7 @@ class OutOfLineWasmTruncateCheckBase : public OutOfLineCodeBase<CodeGen> {
   Register output_;
   Register64 output64_;
   TruncFlags flags_;
-  wasm::BytecodeOffset bytecodeOffset_;
+  wasm::TrapSiteDesc trapSiteDesc_;
 
  public:
   OutOfLineWasmTruncateCheckBase(MWasmTruncateToInt32* mir, FloatRegister input,
@@ -454,7 +454,7 @@ class OutOfLineWasmTruncateCheckBase : public OutOfLineCodeBase<CodeGen> {
         output_(output),
         output64_(Register64::Invalid()),
         flags_(mir->flags()),
-        bytecodeOffset_(mir->bytecodeOffset()) {}
+        trapSiteDesc_(mir->trapSiteDesc()) {}
 
   OutOfLineWasmTruncateCheckBase(MWasmBuiltinTruncateToInt64* mir,
                                  FloatRegister input, Register64 output)
@@ -464,7 +464,7 @@ class OutOfLineWasmTruncateCheckBase : public OutOfLineCodeBase<CodeGen> {
         output_(Register::Invalid()),
         output64_(output),
         flags_(mir->flags()),
-        bytecodeOffset_(mir->bytecodeOffset()) {}
+        trapSiteDesc_(mir->trapSiteDesc()) {}
 
   OutOfLineWasmTruncateCheckBase(MWasmTruncateToInt64* mir, FloatRegister input,
                                  Register64 output)
@@ -474,7 +474,7 @@ class OutOfLineWasmTruncateCheckBase : public OutOfLineCodeBase<CodeGen> {
         output_(Register::Invalid()),
         output64_(output),
         flags_(mir->flags()),
-        bytecodeOffset_(mir->bytecodeOffset()) {}
+        trapSiteDesc_(mir->trapSiteDesc()) {}
 
   void accept(CodeGen* codegen) override {
     codegen->visitOutOfLineWasmTruncateCheck(this);
@@ -488,7 +488,7 @@ class OutOfLineWasmTruncateCheckBase : public OutOfLineCodeBase<CodeGen> {
   bool isUnsigned() const { return flags_ & TRUNC_UNSIGNED; }
   bool isSaturating() const { return flags_ & TRUNC_SATURATING; }
   TruncFlags flags() const { return flags_; }
-  wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
+  wasm::TrapSiteDesc trapSiteDesc() const { return trapSiteDesc_; }
 };
 
 }  // namespace jit

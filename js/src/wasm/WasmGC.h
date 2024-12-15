@@ -457,7 +457,7 @@ static inline size_t AlignStackArgAreaSize(size_t unalignedSize) {
 //
 // It is OK for `instance` and `scratch` to be the same register.
 //
-// If `trapOffset` is non-null, then metadata to catch a null access and emit
+// If `trapSiteDesc` is something, then metadata to catch a null access and emit
 // a null pointer exception will be emitted. This will only catch a null access
 // due to an incremental GC being in progress, the write that follows this
 // pre-barrier guard must also be guarded against null.
@@ -465,7 +465,7 @@ template <class Addr>
 void EmitWasmPreBarrierGuard(jit::MacroAssembler& masm, jit::Register instance,
                              jit::Register scratch, Addr addr,
                              jit::Label* skipBarrier,
-                             BytecodeOffset* trapOffset);
+                             MaybeTrapSiteDesc trapSiteDesc);
 
 // Before storing a GC pointer value in memory, call out-of-line prebarrier
 // code. This assumes `PreBarrierReg` contains the address that will be updated.

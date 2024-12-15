@@ -3218,17 +3218,15 @@ void MacroAssembler::nearbyIntFloat32(RoundingMode, FloatRegister,
   MOZ_CRASH("not supported on this platform");
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input,
-                                                  Register output,
-                                                  TruncFlags flags,
-                                                  wasm::BytecodeOffset off,
-                                                  Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI32(
+    FloatRegister input, Register output, TruncFlags flags,
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
   Label notNaN;
   UseScratchRegisterScope temps(this);
   Register scratch = temps.Acquire();
   CompareIsNotNanF32(scratch, input, input);
   ma_branch(&notNaN, Equal, scratch, Operand(1));
-  wasmTrap(wasm::Trap::InvalidConversionToInteger, off);
+  wasmTrap(wasm::Trap::InvalidConversionToInteger, trapSiteDesc);
   bind(&notNaN);
 
   Label isOverflow;
@@ -3253,20 +3251,18 @@ void MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input,
     ma_b(scratch, Imm32(1), rejoin, Equal);
   }
   bind(&isOverflow);
-  wasmTrap(wasm::Trap::IntegerOverflow, off);
+  wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input,
-                                                  Register output,
-                                                  TruncFlags flags,
-                                                  wasm::BytecodeOffset off,
-                                                  Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI32(
+    FloatRegister input, Register output, TruncFlags flags,
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
   Label notNaN;
   UseScratchRegisterScope temps(this);
   Register scratch = temps.Acquire();
   CompareIsNotNanF64(scratch, input, input);
   ma_branch(&notNaN, Equal, scratch, Operand(1));
-  wasmTrap(wasm::Trap::InvalidConversionToInteger, off);
+  wasmTrap(wasm::Trap::InvalidConversionToInteger, trapSiteDesc);
   bind(&notNaN);
 
   Label isOverflow;
@@ -3290,20 +3286,18 @@ void MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input,
     ma_b(scratch, Imm32(1), rejoin, Equal);
   }
   bind(&isOverflow);
-  wasmTrap(wasm::Trap::IntegerOverflow, off);
+  wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF32ToI64(FloatRegister input,
-                                                  Register64 output,
-                                                  TruncFlags flags,
-                                                  wasm::BytecodeOffset off,
-                                                  Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF32ToI64(
+    FloatRegister input, Register64 output, TruncFlags flags,
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
   Label notNaN;
   UseScratchRegisterScope temps(this);
   Register scratch = temps.Acquire();
   CompareIsNotNanF32(scratch, input, input);
   ma_branch(&notNaN, Equal, scratch, Operand(1));
-  wasmTrap(wasm::Trap::InvalidConversionToInteger, off);
+  wasmTrap(wasm::Trap::InvalidConversionToInteger, trapSiteDesc);
   bind(&notNaN);
 
   Label isOverflow;
@@ -3328,20 +3322,18 @@ void MacroAssembler::oolWasmTruncateCheckF32ToI64(FloatRegister input,
     ma_b(scratch, Imm32(1), rejoin, Equal);
   }
   bind(&isOverflow);
-  wasmTrap(wasm::Trap::IntegerOverflow, off);
+  wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
 }
 
-void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
-                                                  Register64 output,
-                                                  TruncFlags flags,
-                                                  wasm::BytecodeOffset off,
-                                                  Label* rejoin) {
+void MacroAssembler::oolWasmTruncateCheckF64ToI64(
+    FloatRegister input, Register64 output, TruncFlags flags,
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
   Label notNaN;
   UseScratchRegisterScope temps(this);
   Register scratch = temps.Acquire();
   CompareIsNotNanF64(scratch, input, input);
   ma_branch(&notNaN, Equal, scratch, Operand(1));
-  wasmTrap(wasm::Trap::InvalidConversionToInteger, off);
+  wasmTrap(wasm::Trap::InvalidConversionToInteger, trapSiteDesc);
   bind(&notNaN);
 
   Label isOverflow;
@@ -3365,7 +3357,7 @@ void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
     ma_b(scratch, Imm32(1), rejoin, Equal);
   }
   bind(&isOverflow);
-  wasmTrap(wasm::Trap::IntegerOverflow, off);
+  wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
 }
 void MacroAssembler::patchCallToNop(uint8_t* call) {
   uint32_t* p = reinterpret_cast<uint32_t*>(call) - 7;
