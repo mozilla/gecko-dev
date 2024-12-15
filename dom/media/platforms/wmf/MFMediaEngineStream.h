@@ -223,6 +223,8 @@ class MFMediaEngineStreamWrapper final : public MediaDataDecoder {
   ConversionRequired NeedsConversion() const override;
   bool ShouldDecoderAlwaysBeRecycled() const override;
 
+  bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
+
  private:
   ~MFMediaEngineStreamWrapper() = default;
 

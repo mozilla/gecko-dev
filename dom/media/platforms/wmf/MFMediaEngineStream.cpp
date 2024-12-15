@@ -111,6 +111,15 @@ bool MFMediaEngineStreamWrapper::ShouldDecoderAlwaysBeRecycled() const {
   return true;
 }
 
+bool MFMediaEngineStreamWrapper::IsHardwareAccelerated(
+    nsACString& aFailureReason) const {
+  if (!mStream) {
+    return false;
+  }
+  // Video is always hardware accelerated.
+  return mStream->AsVideoStream() != nullptr;
+}
+
 MFMediaEngineStream::MFMediaEngineStream()
     : mIsShutdown(false),
       mIsSelected(false),
