@@ -229,6 +229,12 @@ media.playback:
           The value indicates the key system in use when the error occurred. It
           will be null if the error is related to non-EME playback.
         type : string
+      decoder_name:
+        description: The name of the decoder when the error occurred.
+        type: string
+      is_hardware_accelerated:
+        description: True if the decoder used when the error occurred is a hardware decoder.
+        type: boolean
     expires: never
 
 media:

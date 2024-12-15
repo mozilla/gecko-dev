@@ -2431,6 +2431,8 @@ void MediaFormatReader::Update(TrackType aTrack) {
           extraData.keySystem =
               Some(NS_ConvertUTF16toUTF8(mCDMProxy->KeySystem()));
         }
+        extraData.decoderName = Some(decoder.mDescription);
+        extraData.isHardwareAccelerated = Some(decoder.mIsHardwareAccelerated);
         glean::media_playback::decode_error.Record(Some(extraData));
       }
       LOG("Rejecting %s promise for %s : DECODE_ERROR", TrackTypeToStr(aTrack),
