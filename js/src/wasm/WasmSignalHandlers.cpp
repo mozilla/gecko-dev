@@ -521,8 +521,8 @@ struct AutoHandlingTrap {
   }
 
   Trap trap;
-  BytecodeOffset bytecode;
-  if (!codeBlock->lookupTrap(pc, &trap, &bytecode)) {
+  TrapSiteDesc trapDesc;
+  if (!codeBlock->lookupTrap(pc, &trap, &trapDesc)) {
     return false;
   }
 
@@ -545,7 +545,7 @@ struct AutoHandlingTrap {
   // point of the trap to allow stack unwinding or resumption, both of which
   // will call finishWasmTrap().
   jit::JitActivation* activation = cx->activation()->asJit();
-  activation->startWasmTrap(trap, bytecode.offset(), ToRegisterState(context));
+  activation->startWasmTrap(trap, trapDesc, ToRegisterState(context));
   SetContextPC(context, codeBlock->code->trapCode());
   return true;
 }
@@ -984,8 +984,8 @@ bool wasm::MemoryAccessTraps(const RegisterState& regs, uint8_t* addr,
   }
 
   Trap trap;
-  BytecodeOffset bytecode;
-  if (!codeBlock->code->lookupTrap(regs.pc, &trap, &bytecode)) {
+  TrapSiteDesc trapDesc;
+  if (!codeBlock->code->lookupTrap(regs.pc, &trap, &trapDesc)) {
     return false;
   }
   switch (trap) {
@@ -1033,7 +1033,7 @@ bool wasm::MemoryAccessTraps(const RegisterState& regs, uint8_t* addr,
 
   JSContext* cx = TlsContext.get();  // Cold simulator helper function
   jit::JitActivation* activation = cx->activation()->asJit();
-  activation->startWasmTrap(trap, bytecode.offset(), regs);
+  activation->startWasmTrap(trap, trapDesc, regs);
   *newPC = codeBlock->code->trapCode();
   return true;
 #endif
@@ -1050,14 +1050,14 @@ bool wasm::HandleIllegalInstruction(const RegisterState& regs,
   }
 
   Trap trap;
-  BytecodeOffset bytecode;
-  if (!codeBlock->code->lookupTrap(regs.pc, &trap, &bytecode)) {
+  TrapSiteDesc trapDesc;
+  if (!codeBlock->code->lookupTrap(regs.pc, &trap, &trapDesc)) {
     return false;
   }
 
   JSContext* cx = TlsContext.get();  // Cold simulator helper function
   jit::JitActivation* activation = cx->activation()->asJit();
-  activation->startWasmTrap(trap, bytecode.offset(), regs);
+  activation->startWasmTrap(trap, trapDesc, regs);
   *newPC = codeBlock->code->trapCode();
   return true;
 #endif

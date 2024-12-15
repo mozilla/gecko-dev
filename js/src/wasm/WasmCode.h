@@ -649,7 +649,7 @@ class CodeBlock {
   bool lookupCallSite(void* pc, CallSite* callSite) const;
   const StackMap* lookupStackMap(uint8_t* pc) const;
   const TryNote* lookupTryNote(const void* pc) const;
-  bool lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecodeOut) const;
+  bool lookupTrap(void* pc, Trap* kindOut, TrapSiteDesc* trapOut) const;
   const CodeRangeUnwindInfo* lookupUnwindInfo(void* pc) const;
   FuncExport& lookupFuncExport(uint32_t funcIndex,
                                size_t* funcExportIndex = nullptr);
@@ -1186,12 +1186,12 @@ class Code : public ShareableBase<Code> {
     }
     return (*block)->lookupTryNote(pc);
   }
-  bool lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const {
+  bool lookupTrap(void* pc, Trap* kindOut, TrapSiteDesc* trapOut) const {
     const CodeBlock* block = blockMap_.lookup(pc);
     if (!block) {
       return false;
     }
-    return block->lookupTrap(pc, trapOut, bytecode);
+    return block->lookupTrap(pc, kindOut, trapOut);
   }
   const CodeRangeUnwindInfo* lookupUnwindInfo(void* pc) const {
     const CodeBlock* block = blockMap_.lookup(pc);

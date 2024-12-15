@@ -1110,11 +1110,11 @@ const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {
   return nullptr;
 }
 
-bool CodeBlock::lookupTrap(void* pc, Trap* trapOut,
-                           BytecodeOffset* bytecodeOut) const {
+bool CodeBlock::lookupTrap(void* pc, Trap* kindOut,
+                           TrapSiteDesc* trapOut) const {
   MOZ_ASSERT(containsCodePC(pc));
   uint32_t target = ((uint8_t*)pc) - segment->base();
-  return trapSites.lookup(target, trapOut, bytecodeOut);
+  return trapSites.lookup(target, kindOut, trapOut);
 }
 
 struct UnwindInfoPCOffset {
