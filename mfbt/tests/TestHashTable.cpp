@@ -32,6 +32,42 @@ void TestMoveConstructor() {
   MOZ_RELEASE_ASSERT(!map.count());
 }
 
+void CheckSwapMap1(const mozilla::HashMap<int, int>& map1) {
+  MOZ_RELEASE_ASSERT(map1.count() == 2);
+  MOZ_RELEASE_ASSERT(!map1.empty());
+  MOZ_RELEASE_ASSERT(!map1.lookup(3));
+  MOZ_RELEASE_ASSERT(!map1.lookup(4));
+  MOZ_RELEASE_ASSERT(map1.lookup(1)->value() == 10);
+  MOZ_RELEASE_ASSERT(map1.lookup(2)->value() == 20);
+}
+
+void CheckSwapMap2(const mozilla::HashMap<int, int>& map2) {
+  MOZ_RELEASE_ASSERT(map2.count() == 2);
+  MOZ_RELEASE_ASSERT(!map2.empty());
+  MOZ_RELEASE_ASSERT(!map2.lookup(1));
+  MOZ_RELEASE_ASSERT(!map2.lookup(2));
+  MOZ_RELEASE_ASSERT(map2.lookup(3)->value() == 30);
+  MOZ_RELEASE_ASSERT(map2.lookup(4)->value() == 40);
+}
+
+void TestSwap() {
+  using namespace mozilla;
+
+  HashMap<int, int> map1;
+  MOZ_RELEASE_ASSERT(map1.putNew(1, 10));
+  MOZ_RELEASE_ASSERT(map1.putNew(2, 20));
+  CheckSwapMap1(map1);
+
+  HashMap<int, int> map2;
+  MOZ_RELEASE_ASSERT(map2.putNew(3, 30));
+  MOZ_RELEASE_ASSERT(map2.putNew(4, 40));
+  CheckSwapMap2(map2);
+
+  map1.swap(map2);
+  CheckSwapMap2(map1);
+  CheckSwapMap1(map2);
+}
+
 enum SimpleEnum { SIMPLE_1, SIMPLE_2 };
 
 enum class ClassEnum : int {
