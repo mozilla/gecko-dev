@@ -1511,7 +1511,7 @@ static void TraceJitActivation(JSTracer* trc, JitActivation* activation) {
       MOZ_ASSERT(nextPC != 0);
       wasm::WasmFrameIter& wasmFrameIter = frames.asWasm();
 #ifdef ENABLE_WASM_JSPI
-      if (wasmFrameIter.stackSwitched()) {
+      if (wasmFrameIter.currentFrameStackSwitched()) {
         highestByteVisitedInPrevWasmFrame = 0;
       }
 #endif

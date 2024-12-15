@@ -805,7 +805,11 @@ void wasm::HandleExceptionWasm(JSContext* cx, JitFrameIter& iter,
 #endif
 
   MOZ_ASSERT(!iter.done());
-  iter.asWasm().setUnwind(WasmFrameIter::Unwind::True);
+
+  // Make the iterator adjust the JitActivation so that each popped frame
+  // will not be visible to other FrameIters that are created while we're
+  // unwinding (such as by debugging code).
+  iter.asWasm().setIsLeavingFrames();
 
   JitActivation* activation = CallingActivation(cx);
   Rooted<WasmExceptionObject*> wasmExn(cx,

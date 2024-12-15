@@ -161,7 +161,7 @@ static void TraceSuspendableStack(JSTracer* trc,
   MOZ_ASSERT(startFP != exitFP);
 
   WasmFrameIter iter(static_cast<FrameWithInstances*>(startFP), returnAddress);
-  MOZ_ASSERT(iter.stackSwitched());
+  MOZ_ASSERT(iter.currentFrameStackSwitched());
   uintptr_t highestByteVisitedInPrevWasmFrame = 0;
   while (true) {
     MOZ_ASSERT(!iter.done());
@@ -174,7 +174,7 @@ static void TraceSuspendableStack(JSTracer* trc,
       break;
     }
     ++iter;
-    if (iter.stackSwitched()) {
+    if (iter.currentFrameStackSwitched()) {
       highestByteVisitedInPrevWasmFrame = 0;
     }
   }
@@ -433,7 +433,7 @@ void SuspenderObject::suspend(JSContext* cx) {
         DebugAPI::onSuspendWasmFrame(cx, iter.debugFrame());
       }
       ++iter;
-      if (iter.stackSwitched()) {
+      if (iter.currentFrameStackSwitched()) {
         break;
       }
     }
@@ -455,7 +455,7 @@ void SuspenderObject::resume(JSContext* cx) {
       MOZ_RELEASE_ASSERT(!iter.done(), "expecting stackSwitched()");
       if (iter.isWasm()) {
         WasmFrameIter& wasmIter = iter.wasmFrame();
-        if (wasmIter.stackSwitched()) {
+        if (wasmIter.currentFrameStackSwitched()) {
           break;
         }
         if (wasmIter.debugEnabled()) {
