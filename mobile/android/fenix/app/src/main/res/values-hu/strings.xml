@@ -96,12 +96,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Eltüntetés</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Az eddigi leghatékonyabb adatvédelmi funkciónk, amely elkülöníti a webhelyek közötti nyomkövetőket.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">További információk a Teljes sütivédelemről</string>
-
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
     <string name="erase_action_cfr_message">Koppintson ide egy új privát munkamenet indításához. Törli az előzményeket, sütiket – mindent.</string>
@@ -120,12 +114,6 @@
     <string name="address_bar_swipe_cfr_title">Csúsztassa oldalra az eszköztárat a lapok közti váltáshoz.</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Csúsztassa balra vagy jobbra a váltáshoz. Új lap megnyitásához csúsztassa balra az utolsó lapon.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Új: vissza és előre nyilak egy koppintással</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Élvezze a gyorsabb navigációt, amely mindig egy karnyújtásnyira van.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kamera-hozzáférés szükséges. Ugorjon az Android beállításokhoz, koppintson az engedélyekre, majd az engedélyezésre.</string>
@@ -345,17 +333,17 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Egyéni lap menülap bezárása</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate" moz:removedIn="133" tools:ignore="UnusedResources">Olvasó nézet, fordítás, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Olvasó nézet, fordítás, nyomtatás, megosztás, alkalmazás megnyitása</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description" moz:removedIn="133" tools:ignore="UnusedResources">Olvasó nézet, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Olvasó nézet, nyomtatás, megosztás, alkalmazás megnyitása</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_translate_with_report_site">Olvasó nézet, fordítás, %s, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Olvasó nézet, fordítás, %s, nyomtatás, megosztás, alkalmazás megnyitása</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Olvasó nézet, fordítás, nyomtatás, megosztás, alkalmazás megnyitása</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
-    <string name="browser_menu_tools_description_with_report_site">Olvasó nézet, %s, nyomtatás, megosztás, alkalmazás megnyitása</string>
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Olvasó nézet, %s, nyomtatás, megosztás, alkalmazás megnyitása</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Olvasó nézet, nyomtatás, megosztás, alkalmazás megnyitása</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -376,6 +364,8 @@
     <string name="browser_menu_turn_off_reader_view">Olvasó nézet kikapcsolása</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Oldal fordítása…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">Hibás oldal bejelentése…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Lefordítva erre: %1$s</string>
@@ -458,8 +448,6 @@
     <string name="search_engine_icon_content_description_1">Keresőszolgáltatás: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Ismerje meg személyre szabott kezdőlapját. Itt jelennek meg a legutóbbi lapok, könyvjelzők és keresési találatok.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Üdvözöljük egy személyesebb interneten</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -576,6 +564,11 @@
     <string name="onboarding_add_on_add_button_content_description">Kiegészítőikon hozzáadása</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">%1$s csillagra értékelve az 5-ből</string>
+
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Segítsen jobbá tenni a Firefoxot</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Összeomlás-jelentések automatikus elküldése</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -983,7 +976,7 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketing adatok</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Megosztja az alapvető használati adatokat az Adjusttal, a mobilos marketing szolgáltatónkkal</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Megosztja az alapvető használati adatokat az Adjusttal, a mobilos marketing szolgáltatónkkal</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Összeomlás-jelentések automatikus elküldése</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1343,8 +1336,6 @@
     <string name="bookmark_delete_negative">Mégse</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Mappa hozzáadása</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Könyvjelző mentve.</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Mentve itt: „%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1693,8 +1684,6 @@
     <string name="snackbar_tabs_closed">Lapok bezárva</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Bezárt lapok: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Könyvjelzők mentve!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">A könyvjelzők ide lettek mentve: „%s”.</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2607,15 +2596,6 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Most nem</string>
 
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Tudja meg, hogy megbízhat-e ezen termék értékeléseiben – még a vásárlás előtt.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Próbálja ki az értékelés-ellenőrzőt</string>
-
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Megbízhatók ezek az értékelések? Nézze meg a módosított értékelés megtekintéséhez.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Értékelés-ellenőrző megnyitása</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Értékelés-ellenőrző megnyitása</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -3006,11 +2986,6 @@
     <string name="glean_debug_tools_title">Glean hibakeresési eszközök</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">A teljes képernyőből való kilépéshez húzza le felülről, és használja a vissza gesztust</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">A teljes képernyőből való kilépéshez húzza le felülről, és nyomja meg a vissza gombot</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Húzza felülről és használja a vissza gesztust a kilépéshez</string>
@@ -3021,4 +2996,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BÉTA</string>
-</resources>
+
+    </resources>

@@ -421,6 +421,9 @@
     <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">വിപുലീകരണങ്ങൾ കൊണ്ടു് താങ്ങളുടെ ഫയർഫോക്സു് സ്വന്തമാക്കുക</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">കൂടുതൽ വിപുലീകരണങ്ങൾ കാണുക.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -436,8 +439,18 @@
 
     <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">ഡാർക്കു് റീടർ</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">ജംഗമവലക്കുള്ള ഇഷ്ടാനുസൃത ഇരുണ്ടരീതി.</string>
     <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
     <string name="onboarding_add_on_reviews_label">അവലോകനങ്ങൾ: %1$s</string>
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">ആഡ്-ഓൺ അടയാളം</string>
+    <!-- Content description for the an installed add-on icon. -->
+    <string name="onboarding_installed_add_on_icon_content_description">സ്ഥാപിച്ച ആഡ്-ഓൺ അടയാളം</string>
+    <!-- Content description for the an installing add-on icon. -->
+    <string name="onboarding_installing_add_on_icon_content_description">ആഡ് ഓൺ അടയാളം സ്ഥാപിക്കുന്നു</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">ആഡ്-ഓൺ ബട്ടൺ ചേർക്കുക</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">തകർച്ചവിവരങ്ങളെ കുറിച്ചു് അറിയുക</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
@@ -537,6 +550,13 @@
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">അഭ്യർത്ഥനം അയക്കുക</string>
 
+    <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
+    <string name="cookie_banner_handling_report_site_snack_bar_text_2">അഭ്യർത്ഥനം അയച്ചു</string>
+    <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_on_for_site">ഈ സൈറ്റിനു് അണച്ചതു്</string>
+    <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">പിന്തുണ അഭ്യർത്ഥനം അയച്ചു</string>
+
     <!-- Summary of https only preference if https only is set to off -->
     <string name="preferences_https_only_off">അണച്ചതു്</string>
     <!-- Summary of https only preference if https only is set to on in all tabs -->
@@ -612,6 +632,9 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">ബാഹ്യ ഇറക്കിവയ്ക്കൽ മാനേജർ</string>
 
+    <!-- Message to indicate users that we are quitting the application to apply the changes -->
+    <string name="quit_application">മാറ്റങ്ങൾ പ്രാവർത്തികമാക്കാൻ പ്രയോഗത്തിൽ നിന്നും പുറത്തുകടക്കുന്നു…</string>
+
     <!-- Preference for extensions -->
     <string name="preferences_extensions">വിപുലീകരണങ്ങൾ</string>
     <!-- Preference for installing a local extension -->
@@ -655,13 +678,37 @@
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">അടുത്തിടെ സന്ദർശിച്ചതു്</string>
 
+    <!-- Title for the customize home screen section with Pocket. -->
+    <string name="customize_toggle_pocket_2">ചിന്തോദ്ദീപകമായ ലേഖനങ്ങൾ</string>
+    <!-- Title for the customize home screen section with sponsored Pocket stories. -->
+    <string name="customize_toggle_pocket_sponsored">പണം കൊണ്ടു് പ്രസരിപ്പിച്ച കഥകൾ</string>
+    <!-- Title for the opening wallpaper settings screen -->
+    <string name="customize_wallpapers">ചുവർകടലാസുകൾ</string>
+    <!-- Title for the customize home screen section with sponsored shortcuts. -->
+    <string name="customize_toggle_contile">പണം കൊണ്ടു് പ്രസരിപ്പിച്ച കുറുക്കുവഴികൾ</string>
+
+    <!-- Wallpapers -->
+    <!-- Content description for various wallpapers. The first parameter is the name of the wallpaper -->
+    <string name="wallpapers_item_name_content_description">ചുവർകടലാസു് ഇനം: %1$s</string>
+    <!-- Snackbar message for when wallpaper is selected -->
+    <string name="wallpaper_updated_snackbar_message">ചുവർകടലാസു് പുതുച്ചു</string>
     <!-- Snackbar label for action to view selected wallpaper -->
     <string name="wallpaper_updated_snackbar_action">കാണുക</string>
+    <!-- Snackbar message for when wallpaper couldn't be downloaded -->
+    <string name="wallpaper_download_error_snackbar_message">ചുവർകടലാസു് ഇറക്കിവയ്ക്കാൻ പറ്റിയില്ല</string>
     <!-- Snackbar label for action to retry downloading the wallpaper -->
     <string name="wallpaper_download_error_snackbar_action">വീണ്ടും ശ്രമിക്കുക</string>
 
+    <!-- Snackbar message for when wallpaper couldn't be selected because of the disk error -->
+    <string name="wallpaper_select_error_snackbar_message">ചുവർകടലാസു് മാറ്റാൻ പറ്റിയില്ല</string>
     <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
     <string name="wallpaper_learn_more">കൂടുതലറിയുക</string>
+
+    <!-- Button text of the Nimbus message for extensions general availability. -->
+    <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ കാണുക</string>
+
+    <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
+    <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ വീണ്ടും തുടങ്ങി ശ്രമിക്കുക</string>
 
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
@@ -1374,6 +1421,8 @@
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">സ്വകാര്യ തിരയൽ ഉപയോഗിച്ചു് നോക്കു</string>
 
+    <!-- Title A shown in the notification that pops up to re-engage the user -->
+    <string name="notification_re_engagement_A_title">യാതൊന്നും അവശേഷിപ്പിക്കാതെ തിരയുക</string>
     <!-- Title B shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_B_title">താങ്ങളുടെ ആദ്യ തിരയൽ ആരംഭിക്കുക</string>
 
@@ -1524,6 +1573,8 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">പകരം ഇമെയിൽ ഉപയോഗിക്കുക</string>
 
+    <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[അക്കൗണ്ടില്ലേ? <u> ഉപകരണങ്ങൾക്കിടയിൽ ഫയർഫോക്സ് സമന്വയിപ്പിക്കുന്നതിന് ഒരെണ്ണം ഉണ്ടാക്കുക </u>.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">താങ്കളുടെ അക്കൗണ്ടുമായി സമന്വയിപ്പിക്കുന്നത് %s നിർത്തും പക്ഷേ ഈ ഉപകരണത്തിലുള്ള താങ്കളുടെ ബ്രൗസിങ്ങ് ഡാറ്റയൊന്നും നീക്കം ചെയ്യില്ല.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1615,6 +1666,10 @@
     The first parameter is the app name -->
     <string name="open_source_licenses_title">%s| സ്വതന്ത്ര ലൈബ്രറികൾ</string>
 
+    <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_redirect_trackers_title">പിന്തുടർച്ചായന്ത്രം വഴിതിരിച്ചുവിടുക</string>
+    <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_redirect_trackers_description">അറിയപ്പെടുന്ന ദത്താപിന്തുടർച്ച വെബ്‌സൈറ്റുകളിലേക്ക് വഴിതിരിച്ചിടുകൾ സജ്ജമാക്കിയ കുക്കികൾ മായ്ക്കുന്നു.</string>
     <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
     <string name="preference_etp_smartblock_learn_more">കൂടുതലറിയുക</string>
 
@@ -1711,6 +1766,8 @@
     <string name="saved_login_copy_username">ഉപയോക്തൃനാമം പകര്‍ത്തുക</string>
     <!-- Content Description (for screenreaders etc) read for the button to clear a username while editing a login -->
     <string name="saved_login_clear_username">ഉപയോക്തൃപ്പേരു് മായ്ക്കുക</string>
+    <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
+    <string name="saved_login_open_site">അന്വേഷിയിൽ വെബ്സ്ഥാനം തുറക്കുക</string>
     <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
     <string name="saved_login_reveal_password">രഹസ്യവാക്ക് കാണിക്കുക</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
@@ -2000,6 +2057,11 @@
     <string name="inactive_tabs_title">നിഷ്ക്രിയ ടാബുകൾ</string>
     <!-- Content description for closing all inactive tabs -->
     <string name="inactive_tabs_delete_all">എല്ലാ നിഷ്ക്രിയ ടാബുകളും അടയ്ക്കുക</string>
+
+    <!-- Content description for expanding the inactive tabs section. -->
+    <string name="inactive_tabs_expand_content_description">നിഷ്ക്രിയ ടാബുകൾ വലുതാക്കുക</string>
+    <!-- Content description for collapsing the inactive tabs section. -->
+    <string name="inactive_tabs_collapse_content_description">നിഷ്ക്രിയ ടാബുകൾ ചെറുതാക്കുക</string>
 
     <!-- Inactive tabs auto-close message in the tabs tray -->
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
@@ -2390,8 +2452,12 @@
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">താങ്ങളുടെ ഫയർഫോക്സു് അന്വേഷിയേ പുതുക്കുക</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">മാർച്ച് 14-ന് മുമ്പ് പുതുക്കുക</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">താങ്ങളുടെ ഫയർഫോക്സു് നിലനിർത്താനുള്ള അവസാന അവസരം</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">പുതുക്കൽ ചെയ്താൽ നല്ലതായിരുന്നു</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">ആഡ്-ഓണുകളും മറ്റു് ചില വിശേഷതൾ 14-൹ മാർച്ചിനു് പ്രവർത്തിക്കുന്നത് നിർത്തും.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">താങ്ങൾ ഫയർഫോക്സിന്റെ ഒരു പഴയ പതിപ്പിലാണു്</string>
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
