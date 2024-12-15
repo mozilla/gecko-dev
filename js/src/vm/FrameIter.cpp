@@ -402,6 +402,7 @@ void FrameIter::nextJitFrame() {
   }
 
   MOZ_ASSERT(isWasm());
+  wasmFrame().enableInlinedFrames();
   data_.pc_ = nullptr;
 }
 

@@ -53,6 +53,18 @@ static const Instance* ExtractCalleeInstanceFromFrameWithInstances(
       FrameWithInstances::calleeInstanceOffset());
 }
 
+static uint32_t CallSiteFuncIndex(const CodeMetadata& codeMeta,
+                                  const CallSite& callSite,
+                                  const CodeRange& codeRange) {
+  // If there is no bytecode offset in the call site, then this must be
+  // something internal we've generated and no inlining should be involved.
+  if (callSite.lineOrBytecode() == CallSite::NO_LINE_OR_BYTECODE) {
+    // Fall back to the physical function index of the code range.
+    return codeRange.funcIndex();
+  }
+  return codeMeta.findFuncIndex(callSite.lineOrBytecode());
+}
+
 /*****************************************************************************/
 // WasmFrameIter implementation
 
@@ -119,7 +131,6 @@ WasmFrameIter::WasmFrameIter(FrameWithInstances* fp, void* returnAddress)
   const CodeRange* codeRange;
   code_ = LookupCode(returnAddress, &codeRange);
   MOZ_ASSERT(code_ && codeRange->kind() == CodeRange::Function);
-  funcIndex_ = codeRange->funcIndex();
 
   CallSite site;
   MOZ_ALWAYS_TRUE(code_->lookupCallSite(returnAddress, &site));
@@ -131,6 +142,8 @@ WasmFrameIter::WasmFrameIter(FrameWithInstances* fp, void* returnAddress)
 
   MOZ_ASSERT(code_ == &instance_->code());
   lineOrBytecode_ = site.lineOrBytecode();
+  funcIndex_ = CallSiteFuncIndex(code_->codeMeta(), site, *codeRange);
+  inlinedCallerOffsets_ = site.inlinedCallerOffsets();
 
   MOZ_ASSERT(!done());
 }
@@ -179,6 +192,34 @@ static inline void AssertDirectJitCall(const void* fp) {
 }
 
 void WasmFrameIter::popFrame() {
+  // If we're visiting inlined frames, see if this frame was inlined.
+  if (enableInlinedFrames_ && inlinedCallerOffsets_.size() > 0) {
+    // We do not support inlining and debugging
+    MOZ_ASSERT(!code_->codeMeta().debugEnabled);
+
+    // The inlined callee offsets are ordered so that our immediate caller is
+    // the last offset.
+    //
+    // Set our current offset and func index to the last entry, then shift the
+    // span over by one.
+    const BytecodeOffset* first = inlinedCallerOffsets_.data();
+    const BytecodeOffset* last =
+        inlinedCallerOffsets_.data() + inlinedCallerOffsets_.size() - 1;
+    lineOrBytecode_ = last->offset();
+    inlinedCallerOffsets_ = BytecodeOffsetSpan(first, last);
+    MOZ_ASSERT(lineOrBytecode_ != CallSite::NO_LINE_OR_BYTECODE);
+    funcIndex_ = code_->codeMeta().findFuncIndex(lineOrBytecode_);
+    // An inlined frame will never do a stack switch, nor fail a signature
+    // mismatch.
+    currentFrameStackSwitched_ = false;
+    failedUnwindSignatureMismatch_ = false;
+    // Invalidate the resumePC, it should not be accessed anyways
+    resumePCinCurrentFrame_ = nullptr;
+    // Preserve fp_ for unwinding to the next frame when we're done with inline
+    // frames.
+    return;
+  }
+
   uint8_t* returnAddress = fp_->returnAddress();
   const CodeRange* codeRange;
   code_ = LookupCode(returnAddress, &codeRange);
@@ -214,6 +255,7 @@ void WasmFrameIter::popFrame() {
     code_ = nullptr;
     funcIndex_ = UINT32_MAX;
     lineOrBytecode_ = UINT32_MAX;
+    inlinedCallerOffsets_ = BytecodeOffsetSpan();
     resumePCinCurrentFrame_ = nullptr;
 
     MOZ_ASSERT(done());
@@ -236,6 +278,7 @@ void WasmFrameIter::popFrame() {
     code_ = nullptr;
     funcIndex_ = UINT32_MAX;
     lineOrBytecode_ = UINT32_MAX;
+    inlinedCallerOffsets_ = BytecodeOffsetSpan();
 
     if (isLeavingFrames_) {
       // We're exiting via the interpreter entry; we can safely reset
@@ -270,6 +313,7 @@ void WasmFrameIter::popFrame() {
     code_ = nullptr;
     funcIndex_ = UINT32_MAX;
     lineOrBytecode_ = UINT32_MAX;
+    inlinedCallerOffsets_ = BytecodeOffsetSpan();
 
     if (isLeavingFrames_) {
       activation_->setJSExitFP(unwoundCallerFP());
@@ -294,20 +338,29 @@ void WasmFrameIter::popFrame() {
 
   MOZ_ASSERT(code_ == &instance_->code());
 
-  funcIndex_ = codeRange->funcIndex();
   lineOrBytecode_ = site.lineOrBytecode();
+  funcIndex_ = CallSiteFuncIndex(code_->codeMeta(), site, *codeRange);
+  inlinedCallerOffsets_ = site.inlinedCallerOffsets();
   failedUnwindSignatureMismatch_ = false;
 
   MOZ_ASSERT(!done());
 }
 
+bool WasmFrameIter::hasSourceInfo() const {
+  // Source information is not available unless you're visiting inline frames,
+  // or you're debugging and therefore no inlining is happening.
+  return enableInlinedFrames_ || code_->codeMeta().debugEnabled;
+}
+
 const char* WasmFrameIter::filename() const {
   MOZ_ASSERT(!done());
+  MOZ_ASSERT(hasSourceInfo());
   return code_->codeMeta().scriptedCaller().filename.get();
 }
 
 const char16_t* WasmFrameIter::displayURL() const {
   MOZ_ASSERT(!done());
+  MOZ_ASSERT(hasSourceInfo());
   return code_->codeMetaForAsmJS()
              ? code_->codeMetaForAsmJS()->displayURL()  // asm.js
              : nullptr;                                 // wasm
@@ -315,6 +368,7 @@ const char16_t* WasmFrameIter::displayURL() const {
 
 bool WasmFrameIter::mutedErrors() const {
   MOZ_ASSERT(!done());
+  MOZ_ASSERT(hasSourceInfo());
   return code_->codeMetaForAsmJS()
              ? code_->codeMetaForAsmJS()->mutedErrors()  // asm.js
              : false;                                    // wasm
@@ -322,6 +376,7 @@ bool WasmFrameIter::mutedErrors() const {
 
 JSAtom* WasmFrameIter::functionDisplayAtom() const {
   MOZ_ASSERT(!done());
+  MOZ_ASSERT(hasSourceInfo());
 
   JSContext* cx = activation_->cx();
   JSAtom* atom = instance_->getFuncDisplayAtom(cx, funcIndex_);
@@ -335,17 +390,20 @@ JSAtom* WasmFrameIter::functionDisplayAtom() const {
 
 unsigned WasmFrameIter::lineOrBytecode() const {
   MOZ_ASSERT(!done());
+  MOZ_ASSERT(hasSourceInfo());
   return lineOrBytecode_;
 }
 
 uint32_t WasmFrameIter::funcIndex() const {
   MOZ_ASSERT(!done());
+  MOZ_ASSERT(hasSourceInfo());
   return funcIndex_;
 }
 
 unsigned WasmFrameIter::computeLine(
     JS::TaggedColumnNumberOneOrigin* column) const {
   MOZ_ASSERT(!done());
+  MOZ_ASSERT(hasSourceInfo());
   if (instance_->isAsmJS()) {
     if (column) {
       *column =

@@ -173,6 +173,19 @@ bool CodeMetadata::prepareForCompile(CompileMode mode) {
   return true;
 }
 
+uint32_t CodeMetadata::findFuncIndex(uint32_t bytecodeOffset) const {
+  size_t funcDefIndex;
+  if (!mozilla::BinarySearchIf(
+          funcDefRanges, 0, funcDefRanges.length(),
+          [bytecodeOffset](const BytecodeRange& range) {
+            return range.compareOffset(bytecodeOffset);
+          },
+          &funcDefIndex)) {
+    MOZ_CRASH("missing function definition");
+  }
+  return numFuncImports + funcDefIndex;
+}
+
 uint32_t CodeMetadata::findFuncExportIndex(uint32_t funcIndex) const {
   MOZ_ASSERT(funcs[funcIndex].isExported());
 

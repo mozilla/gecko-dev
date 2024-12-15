@@ -23,6 +23,8 @@
 #include "js/ProfilingFrameIterator.h"
 #include "js/TypeDecls.h"
 
+#include "wasm/WasmCodegenTypes.h" // for BytecodeOffsetSpan
+
 namespace js {
 
 namespace jit {
@@ -64,6 +66,7 @@ class WasmFrameIter {
 
   jit::JitActivation* activation_ = nullptr;
   bool isLeavingFrames_ = false;
+  bool enableInlinedFrames_ = false;
 
   //
   // State that is updated for every frame
@@ -72,6 +75,7 @@ class WasmFrameIter {
   const Code* code_ = nullptr;
   uint32_t funcIndex_ = UINT32_MAX;
   uint32_t lineOrBytecode_ = UINT32_MAX;
+  BytecodeOffsetSpan inlinedCallerOffsets_;
   Frame* fp_ = nullptr;
   Instance* instance_ = nullptr;
   // The address of the next instruction that will execute in this frame, once
@@ -115,6 +119,10 @@ class WasmFrameIter {
     isLeavingFrames_ = true;
   }
 
+  // Visit inlined frames instead of only 'physical' frames. This is required
+  // to access source information.
+  void enableInlinedFrames() { enableInlinedFrames_ = true; }
+
   //
   // Iteration methods
   //
@@ -126,6 +134,7 @@ class WasmFrameIter {
   // Source information about the current frame
   //
 
+  bool hasSourceInfo() const;
   const char* filename() const;
   const char16_t* displayURL() const;
   bool mutedErrors() const;
@@ -141,12 +150,15 @@ class WasmFrameIter {
   // The instance that the function for this wasm frame is from.
   Instance* instance() const {
     MOZ_ASSERT(!done());
+    // Getting the instance always works even with inlining because we never
+    // inline across instances.
     return instance_;
   }
 
   // The wasm function frame pointer.
   Frame* frame() const {
     MOZ_ASSERT(!done());
+    MOZ_ASSERT(!enableInlinedFrames_);
     return fp_;
   }
 
@@ -154,6 +166,7 @@ class WasmFrameIter {
   // frame, once control returns to this frame.
   uint8_t* resumePCinCurrentFrame() const {
     MOZ_ASSERT(!done());
+    MOZ_ASSERT(!enableInlinedFrames_);
     return resumePCinCurrentFrame_;
   }
 

@@ -2553,6 +2553,12 @@ class FunctionCompiler {
       return CallRefHint();
     }
 
+    // We don't support asm.js and inlining. asm.js also doesn't support
+    // baseline, which is required for lazy tiering, so we should never get
+    // here. The biggest complication for asm.js is getting correct stack
+    // traces with inlining.
+    MOZ_ASSERT(!codeMeta().isAsmJS());
+
     // If we were given no candidates, give up now.
     if (hints.empty()) {
       return CallRefHint();
