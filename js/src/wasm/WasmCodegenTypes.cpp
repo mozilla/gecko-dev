@@ -162,6 +162,11 @@ void TrapSitesForKind::checkInvariants(const uint8_t* codeBase) const {
     // }
     MOZ_ASSERT(valid, "wasm trapsite does not reference a valid insn");
   }
+
+  for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
+    MOZ_ASSERT(iter.get().key() < length());
+    MOZ_ASSERT(!iter.get().value()->empty());
+  }
 #  endif
 #endif
 }
