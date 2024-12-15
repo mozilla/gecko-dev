@@ -2493,9 +2493,11 @@ class OutOfLineTruncateCheckF32OrF64ToI32 : public OutOfLineCode {
 
   virtual void generate(MacroAssembler* masm) override {
     if (src.tag == AnyReg::F32) {
-      masm->oolWasmTruncateCheckF32ToI32(src.f32(), dest, flags, trapSiteDesc, rejoin());
+      masm->oolWasmTruncateCheckF32ToI32(src.f32(), dest, flags, trapSiteDesc,
+                                         rejoin());
     } else if (src.tag == AnyReg::F64) {
-      masm->oolWasmTruncateCheckF64ToI32(src.f64(), dest, flags, trapSiteDesc, rejoin());
+      masm->oolWasmTruncateCheckF64ToI32(src.f64(), dest, flags, trapSiteDesc,
+                                         rejoin());
     } else {
       MOZ_CRASH("unexpected type");
     }
@@ -2549,9 +2551,11 @@ class OutOfLineTruncateCheckF32OrF64ToI64 : public OutOfLineCode {
 
   virtual void generate(MacroAssembler* masm) override {
     if (src.tag == AnyReg::F32) {
-      masm->oolWasmTruncateCheckF32ToI64(src.f32(), dest, flags, trapSiteDesc, rejoin());
+      masm->oolWasmTruncateCheckF32ToI64(src.f32(), dest, flags, trapSiteDesc,
+                                         rejoin());
     } else if (src.tag == AnyReg::F64) {
-      masm->oolWasmTruncateCheckF64ToI64(src.f64(), dest, flags, trapSiteDesc, rejoin());
+      masm->oolWasmTruncateCheckF64ToI64(src.f64(), dest, flags, trapSiteDesc,
+                                         rejoin());
     } else {
       MOZ_CRASH("unexpected type");
     }

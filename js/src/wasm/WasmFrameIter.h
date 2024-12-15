@@ -23,7 +23,7 @@
 #include "js/ProfilingFrameIterator.h"
 #include "js/TypeDecls.h"
 
-#include "wasm/WasmCodegenTypes.h" // for BytecodeOffsetSpan
+#include "wasm/WasmCodegenTypes.h"  // for BytecodeOffsetSpan
 
 namespace js {
 

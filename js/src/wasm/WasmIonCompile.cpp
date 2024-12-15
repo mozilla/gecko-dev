@@ -932,9 +932,8 @@ class FunctionCompiler {
     // A call to c++ builtin requires instance pointer.
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_ARM)
     if (type == MIRType::Int64) {
-      auto* ins =
-          MWasmBuiltinDivI64::New(alloc(), lhs, rhs, instancePointer_, unsignd,
-                                  trapOnError, trapSiteDesc());
+      auto* ins = MWasmBuiltinDivI64::New(alloc(), lhs, rhs, instancePointer_,
+                                          unsignd, trapOnError, trapSiteDesc());
       curBlock_->add(ins);
       return ins;
     }
@@ -974,9 +973,8 @@ class FunctionCompiler {
     // A call to c++ builtin requires instance pointer.
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_ARM)
     if (type == MIRType::Int64) {
-      auto* ins =
-          MWasmBuiltinModI64::New(alloc(), lhs, rhs, instancePointer_, unsignd,
-                                  trapOnError, trapSiteDesc());
+      auto* ins = MWasmBuiltinModI64::New(alloc(), lhs, rhs, instancePointer_,
+                                          unsignd, trapOnError, trapSiteDesc());
       curBlock_->add(ins);
       return ins;
     }
@@ -5938,8 +5936,8 @@ MDefinition* FunctionCompiler::unary<MWasmBuiltinTruncateToInt32>(
   if (inDeadCode()) {
     return nullptr;
   }
-  auto* ins = MWasmBuiltinTruncateToInt32::New(alloc(), op, instancePointer_,
-                                               trapSiteDescWithCallSiteLineNumber());
+  auto* ins = MWasmBuiltinTruncateToInt32::New(
+      alloc(), op, instancePointer_, trapSiteDescWithCallSiteLineNumber());
   curBlock_->add(ins);
   return ins;
 }

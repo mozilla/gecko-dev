@@ -125,11 +125,14 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   ~CodeGenerator();
 
   [[nodiscard]] bool generate(const WarpSnapshot* snapshot);
-  [[nodiscard]] bool generateWasm(
-      wasm::CallIndirectId callIndirectId, const wasm::TrapSiteDesc& entryTrapSiteDesc,
-      const wasm::ArgTypeVector& argTys, const RegisterOffsets& trapExitLayout,
-      size_t trapExitLayoutNumWords, wasm::FuncOffsets* offsets,
-      wasm::StackMaps* stackMaps, wasm::Decoder* decoder);
+  [[nodiscard]] bool generateWasm(wasm::CallIndirectId callIndirectId,
+                                  const wasm::TrapSiteDesc& entryTrapSiteDesc,
+                                  const wasm::ArgTypeVector& argTys,
+                                  const RegisterOffsets& trapExitLayout,
+                                  size_t trapExitLayoutNumWords,
+                                  wasm::FuncOffsets* offsets,
+                                  wasm::StackMaps* stackMaps,
+                                  wasm::Decoder* decoder);
 
   [[nodiscard]] bool link(JSContext* cx);
 

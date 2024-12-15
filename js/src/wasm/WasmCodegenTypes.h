@@ -388,8 +388,7 @@ class TrapSitesForKind {
     uint32_t index = length();
     for (auto iter = other.inlinedCallerOffsets_.modIter(); !iter.done();
          iter.next(), index++) {
-      if (!inlinedCallerOffsets_.putNew(index,
-                                        std::move(iter.get().value()))) {
+      if (!inlinedCallerOffsets_.putNew(index, std::move(iter.get().value()))) {
         return false;
       }
     }
