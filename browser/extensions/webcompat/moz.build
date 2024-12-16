@@ -62,7 +62,6 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1836103-autostar-novoross.ru-make-map-taller.css",
     "injections/css/bug1836105-cnn.com-fix-blank-pages-when-printing.css",
     "injections/css/bug1836872-docs.google.com-font-submenus-inaccessible.css",
-    "injections/css/bug1848711-vio.com-page-height.css",
     "injections/css/bug1848713-cleanrider.com-slider.css",
     "injections/css/bug1848849-theaa.com-printing-mode-fix.css",
     "injections/css/bug1856915-login.yahoo.com-unhide-password-button-fix.css",

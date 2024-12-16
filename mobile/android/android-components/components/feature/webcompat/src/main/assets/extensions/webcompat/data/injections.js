@@ -699,20 +699,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1848711",
-    platform: "android",
-    domain: "vio.com",
-    bug: "1848711",
-    contentScripts: {
-      matches: ["*://*.vio.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1848711-vio.com-page-height.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1848713",
     platform: "all",
     domain: "cleanrider.com",
