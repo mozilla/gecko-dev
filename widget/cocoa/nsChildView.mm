@@ -249,7 +249,7 @@ nsChildView::~nsChildView() {
   // mGeckoChild are used throughout the ChildView class to tell if it's safe
   // to use a ChildView object.
   [mView widgetDestroyed];  // Safe if mView is nil.
-  SetParent(nullptr);
+  ClearParent();
   TearDownView();  // Safe if called twice.
 }
 
@@ -524,23 +524,15 @@ void nsChildView::Show(bool aState) {
 }
 
 // Change the parent of this widget
-void nsChildView::DidChangeParent(nsIWidget*) {
+void nsChildView::DidClearParent(nsIWidget*) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
   if (mOnDestroyCalled) {
     return;
   }
 
-  nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
-
   // we hold a ref to mView, so this is safe
   [mView removeFromSuperview];
-  mParentView = mParent
-                    ? (NSView<mozView>*)mParent->GetNativeData(NS_NATIVE_WIDGET)
-                    : nullptr;
-  if (mParentView) {
-    [mParentView addSubview:mView];
-  }
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }

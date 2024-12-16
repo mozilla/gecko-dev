@@ -309,8 +309,6 @@ class nsViewManager final {
   static void CollectVMsForWillPaint(nsView* aView, nsViewManager* aParentVM,
                                      nsTArray<RefPtr<nsViewManager>>& aVMs);
 
-  void ReparentChildWidgets(nsView* aView, nsIWidget* aNewWidget);
-  void ReparentWidgets(nsView* aView, nsView* aParent);
   void InvalidateWidgetArea(nsView* aWidgetView,
                             const nsRegion& aDamagedRegion);
 

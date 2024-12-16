@@ -513,14 +513,8 @@ class nsIWidget : public nsISupports {
    */
   bool Destroyed() const { return mOnDestroyCalled; }
 
-  /**
-   * Reparent a widget
-   *
-   * Change the widget's parent. Null parents are allowed.
-   *
-   * @param     aNewParent   new parent
-   */
-  void SetParent(nsIWidget* aNewParent);
+  /** Clear the widget's parent. */
+  void ClearParent();
 
   /**
    * Return the parent Widget of this Widget or nullptr if this is a
@@ -531,8 +525,8 @@ class nsIWidget : public nsISupports {
    */
   nsIWidget* GetParent() const { return mParent; }
 
-  /** Gets called when mParent changes after creation. */
-  virtual void DidChangeParent(nsIWidget* aOldParent) {}
+  /** Gets called when mParent is cleared. */
+  virtual void DidClearParent(nsIWidget* aOldParent) {}
 
   /**
    * Return the top level Widget of this Widget
