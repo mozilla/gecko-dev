@@ -21,8 +21,8 @@ import org.mozilla.fenix.compose.ComposeFragment
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
-import org.mozilla.fenix.webcompat.store.WebCompatNavigationMiddleware
 import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
+import org.mozilla.fenix.webcompat.store.WebCompatReporterNavigationMiddleware
 import org.mozilla.fenix.webcompat.store.WebCompatReporterState
 import org.mozilla.fenix.webcompat.store.WebCompatReporterStorageMiddleware
 import org.mozilla.fenix.webcompat.store.WebCompatReporterStore
@@ -44,7 +44,7 @@ class WebCompatReporterFragment : ComposeFragment() {
                 WebCompatReporterStorageMiddleware(
                     appStore = requireComponents.appStore,
                 ),
-                WebCompatNavigationMiddleware(),
+                WebCompatReporterNavigationMiddleware(),
             ),
         )
     }

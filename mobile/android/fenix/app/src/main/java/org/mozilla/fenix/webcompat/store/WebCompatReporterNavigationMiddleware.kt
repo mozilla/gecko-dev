@@ -10,7 +10,7 @@ import mozilla.components.lib.state.MiddlewareContext
 /**
  * [Middleware] that handles navigation events for the WebCompat Reporter.
  */
-class WebCompatNavigationMiddleware : Middleware<WebCompatReporterState, WebCompatReporterAction> {
+class WebCompatReporterNavigationMiddleware : Middleware<WebCompatReporterState, WebCompatReporterAction> {
 
     override fun invoke(
         context: MiddlewareContext<WebCompatReporterState, WebCompatReporterAction>,
