@@ -322,6 +322,21 @@ var gEditItemOverlay = {
         this._autoshowBookmarksToolbar();
       }
 
+      // Observe changes.
+      if (!this._observersAdded) {
+        this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
+        PlacesUtils.observers.addListener(
+          ["bookmark-title-changed"],
+          this.handlePlacesEvents
+        );
+        window.addEventListener("unload", this);
+
+        let panel = document.getElementById("editBookmarkPanelContent");
+        panel.addEventListener("change", this);
+
+        this._observersAdded = true;
+      }
+
       let showOrCollapse = (
         rowId,
         isAppropriateForInput,
@@ -395,17 +410,6 @@ var gEditItemOverlay = {
           "places-details-pane-items-count",
           { count: uris.length }
         );
-      }
-
-      // Observe changes.
-      if (!this._observersAdded) {
-        this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
-        PlacesUtils.observers.addListener(
-          ["bookmark-title-changed"],
-          this.handlePlacesEvents
-        );
-        window.addEventListener("unload", this);
-        this._observersAdded = true;
       }
 
       let focusElement = () => {
@@ -641,6 +645,8 @@ var gEditItemOverlay = {
         this.handlePlacesEvents
       );
       window.removeEventListener("unload", this);
+      let panel = document.getElementById("editBookmarkPanelContent");
+      panel.removeEventListener("change", this);
       this._observersAdded = false;
     }
 
@@ -1147,6 +1153,25 @@ var gEditItemOverlay = {
         break;
       case "select":
         this._onFolderListSelected();
+        break;
+      case "change":
+        switch (event.target.id) {
+          case "editBMPanel_namePicker":
+            this.onNamePickerChange().catch(console.error);
+            break;
+
+          case "editBMPanel_locationField":
+            this.onLocationFieldChange();
+            break;
+
+          case "editBMPanel_tagsField":
+            this.onTagsFieldChange();
+            break;
+
+          case "editBMPanel_keywordField":
+            this.onKeywordFieldChange();
+            break;
+        }
         break;
     }
   },
