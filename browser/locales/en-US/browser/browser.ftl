@@ -688,9 +688,9 @@ urlbar-result-action-search-history = Search History
 urlbar-result-action-search-tabs = Search Tabs
 urlbar-result-action-search-actions = Search Actions
 
-# Label for a quickaction result used to open a tab group.
-#  $group (String): the name of the tab group to open
-urlbar-result-action-search-tabgroups = Open { $group }
+# Label for a quickaction result used to switch to an open tab group.
+#  $group (String): the name of the tab group to switch to
+urlbar-result-action-switch-to-tabgroup = Switch to { $group }
 
 ## Labels shown above groups of urlbar results
 

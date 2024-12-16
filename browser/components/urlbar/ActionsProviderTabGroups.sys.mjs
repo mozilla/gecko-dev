@@ -46,7 +46,7 @@ class ProviderTabGroups extends ActionsProvider {
           new ActionsResult({
             key: `tabgroup-${i++}`,
             icon: "chrome://browser/skin/tabbrowser/tab-groups.svg",
-            l10nId: "urlbar-result-action-search-tabgroups",
+            l10nId: "urlbar-result-action-switch-to-tabgroup",
             l10nArgs: { group: group.label },
             onPick: (_queryContext, _controller) => {
               this.openGroup(group);
