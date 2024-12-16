@@ -155,12 +155,8 @@ typedef void* nsNativeWidget;
 #define MOZ_WIDGET_INVALID_SCALE 0.0
 
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
-#define NS_IWIDGET_IID                               \
-  {                                                  \
-    0x06396bf6, 0x2dd8, 0x45e5, {                    \
-      0xac, 0x45, 0x75, 0x26, 0x53, 0xb1, 0xc9, 0x80 \
-    }                                                \
-  }
+#define NS_IWIDGET_IID \
+  {0x06396bf6, 0x2dd8, 0x45e5, {0xac, 0x45, 0x75, 0x26, 0x53, 0xb1, 0xc9, 0x80}}
 
 /**
  * Cursor types.
@@ -517,14 +513,8 @@ class nsIWidget : public nsISupports {
    */
   bool Destroyed() const { return mOnDestroyCalled; }
 
-  /**
-   * Reparent a widget
-   *
-   * Change the widget's parent. Null parents are allowed.
-   *
-   * @param     aNewParent   new parent
-   */
-  void SetParent(nsIWidget* aNewParent);
+  /** Clear the widget's parent. */
+  void ClearParent();
 
   /**
    * Return the parent Widget of this Widget or nullptr if this is a
@@ -535,8 +525,8 @@ class nsIWidget : public nsISupports {
    */
   nsIWidget* GetParent() const { return mParent; }
 
-  /** Gets called when mParent changes after creation. */
-  virtual void DidChangeParent(nsIWidget* aOldParent) {}
+  /** Gets called when mParent is cleared. */
+  virtual void DidClearParent(nsIWidget* aOldParent) {}
 
   /**
    * Return the top level Widget of this Widget
