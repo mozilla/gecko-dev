@@ -61,6 +61,9 @@ vendoring:
   keep:
    - opentelemetry-config.mozbuild
 
+  patches:
+   - patches/fix-ambiguous-holds_alternative.patch # Maybe we should upstream this
+
 updatebot:
   maintainer-phab: mvanstraten
   maintainer-bz: mvanstraten@mozilla.com

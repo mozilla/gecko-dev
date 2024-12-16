@@ -113,6 +113,8 @@
 
 #include "gfxPlatform.h"
 
+#include "mozilla/GeckoTrace.h"
+
 using base::AtExitManager;
 using mozilla::ipc::IOThreadParent;
 
@@ -496,6 +498,8 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
   RegisterStrongMemoryReporter(new OggReporter());
   xpc::SelfHostedShmem::GetSingleton().InitMemoryReporter();
 
+  mozilla::gecko_trace::Init();
+
   mozilla::Telemetry::Init();
 
   mozilla::BackgroundHangMonitor::Startup();
@@ -557,6 +561,7 @@ NS_InitMinimalXPCOM() {
   }
 
   mozilla::SharedThreadPool::InitStatics();
+  mozilla::gecko_trace::Init();
   mozilla::Telemetry::Init();
   mozilla::BackgroundHangMonitor::Startup();
 

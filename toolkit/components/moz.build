@@ -42,6 +42,7 @@ DIRS += [
     "finalizationwitness",
     "find",
     "forgetaboutsite",
+    "gecko-trace",
     "glean",
     "httpsonlyerror",
     "jsoncpp/src/lib_json",
