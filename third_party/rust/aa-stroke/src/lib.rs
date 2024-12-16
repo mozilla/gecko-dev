@@ -2,6 +2,7 @@
 use std::default::Default;
 
 use bezierflattener::CBezierFlattener;
+use tri_rasterize::rasterize_to_mask;
 
 use crate::{bezierflattener::{CFlatteningSink, GpPointR, HRESULT, S_OK, CBezier}};
 
@@ -287,6 +288,7 @@ fn arc_segment_tri(path: &mut PathBuilder, xc: f32, yc: f32, radius: f32, a: Vec
             self.last_point = pt.clone();
             return S_OK;
         }
+        fn FirstTangent(&mut self, _: Option<GpPointR>) { }
     }
     let bezier = CBezier::new([GpPointR { x: (xc + r_cos_a), y: (yc + r_sin_a),  },
         GpPointR { x: (xc + r_cos_a - h * r_sin_a), y: (yc + r_sin_a + h * r_cos_a), },
@@ -822,11 +824,11 @@ impl<'z> Stroker<'z> {
 
     pub fn curve_to(&mut self, cx1: Point, cx2: Point, pt: Point) {
         //eprintln!("stroker.curve_to(Point::new({}, {}), Point::new({}, {}), Point::new({}, {}));", cx1.x, cx1.y, cx2.x, cx2.y, pt.x, pt.y);
-        self.curve_to_internal(cx1, cx2, pt, false);
+        self.curve_to_direct(cx1, cx2, pt, false);
     }
 
     pub fn curve_to_capped(&mut self, cx1: Point, cx2: Point, pt: Point) {
-        self.curve_to_internal(cx1, cx2, pt, true);
+        self.curve_to_direct(cx1, cx2, pt, true);
     }
 
     pub fn curve_to_internal(&mut self, cx1: Point, cx2: Point, pt: Point, end: bool) {
@@ -835,6 +837,7 @@ impl<'z> Stroker<'z> {
             fn AcceptPointAndTangent(&mut self, _: &GpPointR, _: &GpPointR, _: bool ) -> HRESULT {
                 panic!()
             }
+            fn FirstTangent(&mut self, _tangent: Option<GpPointR>) { }
 
             fn AcceptPoint(&mut self,
                 pt: &GpPointR,
@@ -859,6 +862,116 @@ impl<'z> Stroker<'z> {
         let mut t = Target{ stroker: self, end };
         let mut f = CBezierFlattener::new(&bezier, &mut t, 0.25);
         f.Flatten(false);
+    }
+
+    // Stroke a curve by flattening to trapezoids insteads instead of rectangles.
+    // This lets us make sure that the normal of the stroked path matches the normal
+    // of the curve and we also avoid having to join the segments
+    pub fn curve_to_direct(&mut self, cx1: Point, cx2: Point, pt: Point, end: bool) {
+        struct Target<'a, 'b> { stroker: &'a mut Stroker<'b>, _end: bool, last_normal: Vector, last_point: GpPointR}
+        impl<'a, 'b> CFlatteningSink for Target<'a, 'b> {
+            fn FirstTangent(&mut self, tangent: Option<GpPointR>) {
+                let tangent = tangent.unwrap();
+                let last_normal = flip(Vector::new(tangent.y, -tangent.x).normalize());
+                let stroked_path = &mut self.stroker.stroked_path;
+                if self.stroker.start_point.is_some() {
+                    if let Some(cur_pt) = self.stroker.cur_pt {
+                        join_line(stroked_path, &self.stroker.style, cur_pt, self.stroker.last_normal, last_normal);
+                    }
+                }
+                self.last_normal = last_normal;
+            }
+            fn AcceptPointAndTangent(&mut self, pt: &GpPointR, tangent: &GpPointR, _last: bool) -> HRESULT {
+                let normal = flip(Vector::new(tangent.y, -tangent.x).normalize());
+                let last_normal = self.last_normal;
+                let cur_pt = Point::new(self.last_point.x, self.last_point.y);
+                let half_width = self.stroker.half_width;
+                let stroked_path = &mut self.stroker.stroked_path;
+
+                if self.stroker.start_point.is_none() {
+                    if !self.stroker.closed_subpath {
+                        // cap beginning
+                        let mut cur_pt = cur_pt;
+                        if stroked_path.aa && self.stroker.style.cap == LineCap::Butt {
+                            // adjust the starting point to make room for the cap
+                            // XXX: this will probably mess things up if the line is shorter than 1/2 pixel long
+                            cur_pt += perp(flip(last_normal)) * 0.5;
+                        }
+                        cap_line(stroked_path, &self.stroker.style, cur_pt, flip(last_normal));
+                    }
+                    // last_normal will have been set by FirstTangent
+                    self.stroker.start_point = Some((cur_pt, last_normal));
+                } else {
+                    // we don't need to join the segments because the quads are sharing normals
+                }
+                if stroked_path.aa {
+                    stroked_path.ramp(
+                        pt.x + normal.x * (half_width - 0.5),
+                        pt.y + normal.y * (half_width - 0.5),
+                        pt.x + normal.x * (half_width + 0.5),
+                        pt.y + normal.y * (half_width + 0.5),
+                        cur_pt.x + last_normal.x * (half_width + 0.5),
+                        cur_pt.y + last_normal.y * (half_width + 0.5),
+                        cur_pt.x + last_normal.x * (half_width - 0.5),
+                        cur_pt.y + last_normal.y * (half_width - 0.5),
+                    );
+                    stroked_path.quad(
+                        cur_pt.x + last_normal.x * (half_width - 0.5),
+                        cur_pt.y + last_normal.y * (half_width - 0.5),
+                        pt.x + normal.x * (half_width - 0.5), pt.y + normal.y * (half_width - 0.5),
+                        pt.x + -normal.x * (half_width - 0.5), pt.y + -normal.y * (half_width - 0.5),
+                        cur_pt.x - last_normal.x * (half_width - 0.5),
+                        cur_pt.y - last_normal.y * (half_width - 0.5),
+                    );
+                    stroked_path.ramp(
+                        cur_pt.x - last_normal.x * (half_width - 0.5),
+                        cur_pt.y - last_normal.y * (half_width - 0.5),
+                        cur_pt.x - last_normal.x * (half_width + 0.5),
+                        cur_pt.y - last_normal.y * (half_width + 0.5),
+                        pt.x - normal.x * (half_width + 0.5),
+                        pt.y - normal.y * (half_width + 0.5),
+                        pt.x - normal.x * (half_width - 0.5),
+                        pt.y - normal.y * (half_width - 0.5),
+                    );
+                } else {
+                    self.stroker.stroked_path.quad(
+                        cur_pt.x + last_normal.x * half_width,
+                        cur_pt.y + last_normal.y * half_width,
+                        pt.x + normal.x * half_width, pt.y + normal.y * half_width,
+                        pt.x + -normal.x * half_width, pt.y + -normal.y * half_width,
+                        cur_pt.x - last_normal.x * half_width,
+                        cur_pt.y - last_normal.y * half_width,
+                    );
+                }
+                self.last_normal = normal;
+                self.last_point = *pt;
+                return S_OK;
+            }
+
+            fn AcceptPoint(&mut self, _p: &GpPointR,
+                _: f32, _: &mut bool, _: bool) -> HRESULT {
+                    panic!();
+            }
+        }
+        let cur_pt = self.cur_pt.unwrap_or(cx1);
+        let bezier = CBezier::new([GpPointR { x: cur_pt.x, y: cur_pt.y,  },
+            GpPointR { x: cx1.x, y: cx1.y, },
+            GpPointR { x: cx2.x, y: cx2.y, },
+            GpPointR { x: pt.x, y: pt.y, }]);
+
+        let mut t = Target{ stroker: self, _end: end,
+            last_normal: Vector::new(0., 0.),
+            last_point: GpPointR { x: cur_pt.x, y: cur_pt.y }
+        };
+        let mut f = CBezierFlattener::new(&bezier, &mut t, 0.25);
+        if f.GetFirstTangent().is_none() {
+            // the bezier is degnerate
+            return if end { self.line_to_capped(pt) } else { self.line_to(pt) };
+        }
+        f.Flatten(true);
+
+        self.last_normal = t.last_normal;
+        self.cur_pt = Some(pt);
     }
 
     pub fn close(&mut self) {
@@ -991,7 +1104,7 @@ fn curve() {
         stroker.curve_to(Point::new(100., 160.), Point::new(100., 180.), Point::new(20., 180.));
         stroker.close();
     let stroked = stroker.finish();
-    assert_eq!(stroked.len(), 1089);
+    assert_eq!(stroked.len(), 624);
 }
 
 #[test]
@@ -1136,3 +1249,34 @@ fn degenerate_miter_join() {
 
 }
 
+
+#[test]
+fn nearly_degenerate_bezier() {
+    let mut stroker = Stroker::new(&StrokeStyle{
+        cap: LineCap::Square,
+        join: LineJoin::Miter,
+        width: 1.0,
+        ..Default::default()});
+
+    stroker.move_to(Point::new(0., 0.0005), false);
+    stroker.curve_to(Point::new(0., 0.0005), Point::new(0., 0.), Point::new(0., 0.));
+    stroker.finish();
+}
+
+
+#[test]
+fn joins_between_curves() {
+    let mut stroker = Stroker::new(&StrokeStyle{
+        cap: LineCap::Square,
+        join: LineJoin::Miter,
+        width: 40.0,
+        ..Default::default()});
+
+    stroker.move_to(Point::new(-80., 20.), false);
+    stroker.curve_to(Point::new(-80., 20.), Point::new(-5., 20.), Point::new(-5., 20.));
+    stroker.curve_to(Point::new(-5., 20.), Point::new(-5., 90.), Point::new(-5., 90.));
+    let vertices = stroker.finish();
+    let result = rasterize_to_mask(&vertices, 1, 1);
+    assert_eq!(result[0], 255);
+
+}
