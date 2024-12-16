@@ -2304,7 +2304,7 @@ void nsWindow::OnGeckoViewReady() {
   acc->OnReady();
 }
 
-void nsWindow::DidChangeParent(nsIWidget*) {
+void nsWindow::DidClearParent(nsIWidget*) {
   // if we are now in the toplevel window's hierarchy, schedule a redraw
   if (FindTopLevel() == nsWindow::TopWindow()) {
     RedrawAll();
