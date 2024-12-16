@@ -505,6 +505,13 @@ nsresult nsMenuBarX::Paint() {
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
+// Dispatching the paint of the menu bar prevents crashes when macOS is actively
+// enumerating the menu items in `NSApp.mainMenu`.
+void nsMenuBarX::PaintAsync() {
+  NS_DispatchToCurrentThread(NS_NewRunnableFunction(
+      "PaintMenuBar", [self = RefPtr{this}] { self->Paint(); }));
+}
+
 /* static */
 void nsMenuBarX::ResetNativeApplicationMenu() {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
