@@ -567,7 +567,7 @@ async function test_emitLatchedEvents(eventPrefix, initialDelta, cmd) {
 function test_addCommand(prefName, id) {
   let cmd = test_commandset.appendChild(document.createXULElement("command"));
   cmd.setAttribute("id", id);
-  cmd.setAttribute("oncommand", "this.callCount++;");
+  cmd.addEventListener("command", event => event.target.callCount++);
 
   cmd.origPrefName = prefName;
   cmd.origPrefValue = Services.prefs.getCharPref(prefName);
