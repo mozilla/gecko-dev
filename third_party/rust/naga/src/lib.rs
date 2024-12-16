@@ -253,6 +253,7 @@ An override expression can be evaluated at pipeline creation time.
 mod arena;
 pub mod back;
 mod block;
+pub mod common;
 #[cfg(feature = "compact")]
 pub mod compact;
 pub mod diagnostic_filter;
@@ -486,6 +487,15 @@ pub struct Scalar {
     pub width: Bytes,
 }
 
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+pub enum PendingArraySize {
+    Expression(Handle<Expression>),
+    Override(Handle<Override>),
+}
+
 /// Size of an array.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
@@ -495,6 +505,8 @@ pub struct Scalar {
 pub enum ArraySize {
     /// The array size is constant.
     Constant(std::num::NonZeroU32),
+    /// The array size is an override-expression.
+    Pending(PendingArraySize),
     /// The array size can change at runtime.
     Dynamic,
 }
@@ -2186,6 +2198,8 @@ pub struct EntryPoint {
     pub early_depth_test: Option<EarlyDepthTest>,
     /// Workgroup size for compute stages
     pub workgroup_size: [u32; 3],
+    /// Override expressions for workgroup size in the global_expressions arena
+    pub workgroup_size_overrides: Option<[Option<Handle<Expression>>; 3]>,
     /// The entrance function.
     pub function: Function,
 }

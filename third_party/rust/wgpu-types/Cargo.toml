@@ -47,6 +47,7 @@ path = "src/lib.rs"
 
 [dependencies.bitflags]
 version = "2.6"
+features = ["serde"]
 
 [dependencies.serde]
 version = "1"
