@@ -1215,6 +1215,7 @@ class HomeFragment : Fragment() {
                         state = HomepageState.build(
                             appState = appState,
                             settings = settings,
+                            browsingModeManager = browsingModeManager,
                         ),
                         interactor = sessionControlInteractor,
                         onTopSitesItemBound = {

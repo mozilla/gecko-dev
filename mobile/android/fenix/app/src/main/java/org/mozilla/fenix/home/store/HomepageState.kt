@@ -7,6 +7,7 @@ package org.mozilla.fenix.home.store
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import mozilla.components.feature.top.sites.TopSite
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.ext.shouldShowRecentSyncedTabs
@@ -82,11 +83,13 @@ internal sealed class HomepageState {
          * Builds a new [HomepageState] from the current [AppState] and [Settings].
          *
          * @param appState State to build the [HomepageState] from.
+         * @param browsingModeManager Manager holding current state of whether the browser is in private mode or not.
          * @param settings [Settings] corresponding to how the homepage should be displayed.
          */
         @Composable
         internal fun build(
             appState: AppState,
+            browsingModeManager: BrowsingModeManager,
             settings: Settings,
         ): HomepageState {
             return with(appState) {
@@ -110,6 +113,7 @@ internal sealed class HomepageState {
                         collectionsState = CollectionsState.build(
                             appState = appState,
                             browserState = components.core.store.state,
+                            browsingModeManager = browsingModeManager,
                         ),
                         pocketState = PocketState.build(appState, settings),
                         showTopSites = settings.showTopSitesFeature && topSites.isNotEmpty(),

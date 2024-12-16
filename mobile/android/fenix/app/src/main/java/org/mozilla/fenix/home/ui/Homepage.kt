@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.History
@@ -282,7 +283,7 @@ private fun CollectionsSection(
                     Collections(
                         collections = collections,
                         expandedCollections = expandedCollections,
-                        showAddTabToCollection = showAddTabToCollection,
+                        showAddTabToCollection = showSaveTabsToCollection,
                         interactor = interactor,
                     )
                 }
@@ -290,19 +291,14 @@ private fun CollectionsSection(
         }
 
         CollectionsState.Gone -> {} // no-op. Nothing is shown where there are no collections.
-        CollectionsState.Placeholder -> {
-            CollectionsPlaceholder()
+        is CollectionsState.Placeholder -> {
+            CollectionsPlaceholder(collectionsState.showSaveTabsToCollection, interactor)
         }
     }
 }
 
 @Composable
-@Suppress("EmptyFunctionBlock")
-private fun CollectionsPlaceholder() {
-}
-
-@Composable
-@Preview
+@PreviewLightDark
 private fun HomepagePreview() {
     FirefoxTheme {
         Homepage(
@@ -312,7 +308,7 @@ private fun HomepagePreview() {
                 syncedTab = FakeHomepagePreview.recentSyncedTab(),
                 bookmarks = FakeHomepagePreview.bookmarks(),
                 recentlyVisited = FakeHomepagePreview.recentHistory(),
-                collectionsState = FakeHomepagePreview.collectionState(),
+                collectionsState = CollectionsState.Placeholder(true),
                 pocketState = FakeHomepagePreview.pocketState(),
                 showTopSites = true,
                 showRecentTabs = true,

@@ -6,8 +6,10 @@ package org.mozilla.fenix.home.collections
 
 import androidx.compose.runtime.Composable
 import mozilla.components.browser.state.selector.normalTabs
+import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.feature.tab.collections.TabCollection
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.appstate.AppState
 
 /**
@@ -20,18 +22,24 @@ sealed class CollectionsState {
      *
      * @property collections List of [TabCollection] to display.
      * @property expandedCollections List of ids corresponding to [TabCollection]s which are currently expanded.
-     * @property showAddTabToCollection  Whether to show the "Add tab" menu item in the collections menu.
+     * @property showSaveTabsToCollection Whether to show the "Save tabs to collection" menu item in the collections
+     * menu.
      */
     data class Content(
         val collections: List<TabCollection>,
         val expandedCollections: Set<Long>,
-        val showAddTabToCollection: Boolean,
+        val showSaveTabsToCollection: Boolean,
     ) : CollectionsState()
 
     /**
      * State in which the placeholder should be displayed.
+     *
+     * @property showSaveTabsToCollection Whether to show the "Save tabs to collection" menu item in the collections
+     * menu.
      */
-    data object Placeholder : CollectionsState()
+    data class Placeholder(
+        val showSaveTabsToCollection: Boolean,
+    ) : CollectionsState()
 
     /**
      * State in which no collections section should be displayed.
@@ -40,16 +48,31 @@ sealed class CollectionsState {
 
     companion object {
         @Composable
-        internal fun build(appState: AppState, browserState: BrowserState): CollectionsState =
+        internal fun build(
+            appState: AppState,
+            browserState: BrowserState,
+            browsingModeManager: BrowsingModeManager,
+        ): CollectionsState =
             with(appState) {
                 when {
                     collections.isNotEmpty() -> Content(
                         collections = collections,
                         expandedCollections = expandedCollections,
-                        showAddTabToCollection = browserState.normalTabs.isNotEmpty(),
+                        showSaveTabsToCollection = browserState.normalTabs.isNotEmpty(),
                     )
 
-                    showCollectionPlaceholder -> Placeholder
+                    showCollectionPlaceholder -> {
+                        val tabCount = if (browsingModeManager.mode.isPrivate) {
+                            browserState.privateTabs.size
+                        } else {
+                            browserState.normalTabs.size
+                        }
+
+                        Placeholder(
+                            showSaveTabsToCollection = tabCount > 0,
+                        )
+                    }
+
                     else -> Gone
                 }
             }

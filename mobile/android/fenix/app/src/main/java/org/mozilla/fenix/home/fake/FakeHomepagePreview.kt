@@ -305,7 +305,7 @@ internal object FakeHomepagePreview {
     internal fun collectionState() = CollectionsState.Content(
         collections = listOf(collection(tabs = listOf(tab()))),
         expandedCollections = setOf(),
-        showAddTabToCollection = true,
+        showSaveTabsToCollection = true,
     )
 
     internal fun collection(tabs: List<Tab> = emptyList()): TabCollection {
