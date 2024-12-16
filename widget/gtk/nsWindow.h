@@ -338,6 +338,7 @@ class nsWindow final : public nsBaseWidget {
   void SetTransparencyMode(TransparencyMode aMode) override;
   TransparencyMode GetTransparencyMode() override;
   void SetInputRegion(const InputRegion&) override;
+  void DidChangeParent(nsIWidget* aOldParent) override;
 
   nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
                                       NativeMouseMessage aNativeMessage,

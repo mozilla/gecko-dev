@@ -393,8 +393,6 @@ nsBaseWidget::~nsBaseWidget() {
     mSwipeTracker = nullptr;
   }
 
-  RemoveAllChildren();
-
   IMEStateManager::WidgetDestroyed(this);
 
   FreeLocalesChangedObserver();
@@ -428,17 +426,22 @@ void nsBaseWidget::BaseCreate(nsIWidget* aParent, widget::InitData* aInitData) {
   }
 }
 
-void nsIWidget::ClearParent() {
+void nsIWidget::SetParent(nsIWidget* aNewParent) {
   nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
-  if (nsCOMPtr<nsIWidget> oldParent = std::move(mParent)) {
-    oldParent->RemoveFromChildList(this);
-    DidClearParent(oldParent);
+  nsCOMPtr<nsIWidget> oldParent = mParent;
+  if (mParent) {
+    mParent->RemoveFromChildList(this);
   }
+  mParent = aNewParent;
+  if (mParent) {
+    mParent->AddToChildList(this);
+  }
+  DidChangeParent(oldParent);
 }
 
 void nsIWidget::RemoveAllChildren() {
   while (nsCOMPtr<nsIWidget> kid = mLastChild) {
-    kid->ClearParent();
+    kid->SetParent(nullptr);
     MOZ_ASSERT(kid != mLastChild);
   }
 }

@@ -1441,11 +1441,13 @@ void nsWindow::DissociateFromNativeWindow() {
   mPrevWndProc.reset();
 }
 
-void nsWindow::DidClearParent(nsIWidget*) {
+void nsWindow::DidChangeParent(nsIWidget*) {
   if (mWindowType == WindowType::Popup || !mWnd) {
     return;
   }
-  ::SetParent(mWnd, nullptr);
+  HWND newParent =
+      mParent ? (HWND)mParent->GetNativeData(NS_NATIVE_WINDOW) : nullptr;
+  ::SetParent(mWnd, newParent);
   RecreateDirectManipulationIfNeeded();
 }
 

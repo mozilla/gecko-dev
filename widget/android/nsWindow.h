@@ -158,7 +158,7 @@ class nsWindow final : public nsBaseWidget {
                                 const LayoutDeviceIntRect& aRect,
                                 InitData* aInitData) override;
   void Destroy() override;
-  void DidClearParent(nsIWidget*) override;
+  void DidChangeParent(nsIWidget* aNewParent) override;
   float GetDPI() override;
   double GetDefaultScaleInternal() override;
   void Show(bool aState) override;

@@ -195,7 +195,7 @@ class nsWindow final : public nsBaseWidget {
   void Destroy() override;
   float GetDPI() override;
   double GetDefaultScaleInternal() override;
-  void DidClearParent(nsIWidget* aOldParent) override;
+  void DidChangeParent(nsIWidget* aOldParent) override;
   int32_t LogToPhys(double aValue);
   mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() override {
     if (mozilla::widget::WinUtils::IsPerMonitorDPIAware()) {

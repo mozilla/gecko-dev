@@ -469,7 +469,7 @@ class nsChildView final : public nsBaseWidget {
 
   nsCocoaWindow* GetAppWindowWidget() const;
 
-  void DidClearParent(nsIWidget*) override;
+  void DidChangeParent(nsIWidget*) override;
 
   mozilla::widget::TextInputHandler* GetTextInputHandler() {
     return mTextInputHandler;

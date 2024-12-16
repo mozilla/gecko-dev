@@ -715,6 +715,29 @@ bool nsWindow::WidgetTypeSupportsAcceleration() {
   return true;
 }
 
+void nsWindow::DidChangeParent(nsIWidget* aOldParent) {
+  LOG("nsWindow::DidChangeParent new parent %p -> %p\n", aOldParent, mParent);
+  if (!mParent) {
+    return;
+  }
+
+  auto* newParent = static_cast<nsWindow*>(mParent);
+  if (mIsDestroyed || newParent->IsDestroyed()) {
+    return;
+  }
+
+  if (!IsTopLevelWidget()) {
+    GdkWindow* window = GetToplevelGdkWindow();
+    GdkWindow* parentWindow = newParent->GetToplevelGdkWindow();
+    gdk_window_reparent(window, parentWindow, 0, 0);
+    SetHasMappedToplevel(newParent->mHasMappedToplevel);
+    return;
+  }
+
+  GtkWindow* newParentWidget = GTK_WINDOW(newParent->GetGtkWidget());
+  GtkWindowSetTransientFor(GTK_WINDOW(mShell), newParentWidget);
+}
+
 static void InitPenEvent(WidgetMouseEvent& aGeckoEvent, GdkEvent* aEvent) {
   // Find the source of the event
   GdkDevice* device = gdk_event_get_source_device(aEvent);

@@ -1959,10 +1959,12 @@ void GeckoViewSupport::AttachAccessibility(
           sessionAccessibility);
 }
 
-auto GeckoViewSupport::OnLoadRequest(
-    mozilla::jni::String::Param aUri, int32_t aWindowType, int32_t aFlags,
-    mozilla::jni::String::Param aTriggeringUri, bool aHasUserGesture,
-    bool aIsTopLevel) const -> java::GeckoResult::LocalRef {
+auto GeckoViewSupport::OnLoadRequest(mozilla::jni::String::Param aUri,
+                                     int32_t aWindowType, int32_t aFlags,
+                                     mozilla::jni::String::Param aTriggeringUri,
+                                     bool aHasUserGesture,
+                                     bool aIsTopLevel) const
+    -> java::GeckoResult::LocalRef {
   GeckoSession::Window::LocalRef window(mGeckoViewWindow);
   if (!window) {
     return nullptr;
@@ -2304,7 +2306,7 @@ void nsWindow::OnGeckoViewReady() {
   acc->OnReady();
 }
 
-void nsWindow::DidClearParent(nsIWidget*) {
+void nsWindow::DidChangeParent(nsIWidget*) {
   // if we are now in the toplevel window's hierarchy, schedule a redraw
   if (FindTopLevel() == nsWindow::TopWindow()) {
     RedrawAll();

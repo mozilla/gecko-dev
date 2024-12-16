@@ -616,6 +616,53 @@ void nsViewManager::DispatchEvent(WidgetGUIEvent* aEvent, nsView* aView,
   *aStatus = nsEventStatus_eIgnore;
 }
 
+// Recursively reparent widgets if necessary
+
+void nsViewManager::ReparentChildWidgets(nsView* aView, nsIWidget* aNewWidget) {
+  MOZ_ASSERT(aNewWidget, "null widget");
+
+  if (nsIWidget* widget = aView->GetWidget()) {
+    // Check to see if the parent widget is the
+    // same as the new parent. If not then reparent
+    // the widget, otherwise there is nothing more
+    // to do for the view and its descendants
+    if (widget->GetParent() != aNewWidget) {
+      widget->SetParent(aNewWidget);
+    }
+    return;
+  }
+
+  // Need to check each of the views children to see
+  // if they have a widget and reparent it.
+
+  for (nsView* kid = aView->GetFirstChild(); kid; kid = kid->GetNextSibling()) {
+    ReparentChildWidgets(kid, aNewWidget);
+  }
+}
+
+// Reparent a view and its descendant views widgets if necessary
+
+void nsViewManager::ReparentWidgets(nsView* aView, nsView* aParent) {
+  MOZ_ASSERT(aParent, "Must have a parent");
+  MOZ_ASSERT(aView, "Must have a view");
+
+  // Quickly determine whether the view has pre-existing children or a
+  // widget. In most cases the view will not have any pre-existing
+  // children when this is called.  Only in the case
+  // where a view has been reparented by removing it from
+  // a reinserting it into a new location in the view hierarchy do we
+  // have to consider reparenting the existing widgets for the view and
+  // it's descendants.
+  if (aView->HasWidget() || aView->GetFirstChild()) {
+    nsIWidget* parentWidget = aParent->GetNearestWidget(nullptr);
+    if (parentWidget) {
+      ReparentChildWidgets(aView, parentWidget);
+      return;
+    }
+    NS_WARNING("Can not find a widget for the parent view");
+  }
+}
+
 void nsViewManager::InsertChild(nsView* aParent, nsView* aChild,
                                 nsView* aSibling, bool aAfter) {
   MOZ_ASSERT(nullptr != aParent, "null ptr");
@@ -635,6 +682,7 @@ void nsViewManager::InsertChild(nsView* aParent, nsView* aChild,
         // insert at end of document order, i.e., before first view
         // this is the common case, by far
         aParent->InsertChild(aChild, nullptr);
+        ReparentWidgets(aChild, aParent);
       } else {
         // insert at beginning of document order, i.e., after last view
         nsView* kid = aParent->GetFirstChild();
@@ -645,6 +693,7 @@ void nsViewManager::InsertChild(nsView* aParent, nsView* aChild,
         }
         // prev is last view or null if there are no children
         aParent->InsertChild(aChild, prev);
+        ReparentWidgets(aChild, aParent);
       }
     } else {
       nsView* kid = aParent->GetFirstChild();
@@ -658,9 +707,11 @@ void nsViewManager::InsertChild(nsView* aParent, nsView* aChild,
       if (aAfter) {
         // insert after 'kid' in document order, i.e. before in view order
         aParent->InsertChild(aChild, prev);
+        ReparentWidgets(aChild, aParent);
       } else {
         // insert before 'kid' in document order, i.e. after in view order
         aParent->InsertChild(aChild, kid);
+        ReparentWidgets(aChild, aParent);
       }
     }
   }
