@@ -95,23 +95,23 @@ add_task(async function test_language_support_checks() {
   const { languagePairs } = await TranslationsParent.getSupportedLanguages();
   for (const { fromLang, toLang } of languagePairs) {
     ok(
-      await TranslationsParent.isSupportedAsFromLang(fromLang),
+      await TranslationsParent.findCompatibleSourceLangTag(fromLang),
       "Each from-language should be supported as a translation source language."
     );
 
     ok(
-      await TranslationsParent.isSupportedAsToLang(toLang),
+      await TranslationsParent.findCompatibleTargetLangTag(toLang),
       "Each to-language should be supported as a translation target language."
     );
 
     is(
-      await TranslationsParent.isSupportedAsToLang(fromLang),
+      Boolean(await TranslationsParent.findCompatibleTargetLangTag(fromLang)),
       languagePairs.some(({ toLang }) => toLang === fromLang),
       "A from-language should be supported as a to-language if it also exists in the to-language list."
     );
 
     is(
-      await TranslationsParent.isSupportedAsFromLang(toLang),
+      Boolean(await TranslationsParent.findCompatibleSourceLangTag(toLang)),
       languagePairs.some(({ fromLang }) => fromLang === toLang),
       "A to-language should be supported as a from-language if it also exists in the from-language list."
     );

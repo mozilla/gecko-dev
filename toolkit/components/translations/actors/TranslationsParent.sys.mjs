@@ -2849,40 +2849,76 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Checks if a given language tag is supported for translation
-   * when translating from this language into other languages.
+   * Finds a compatible source language tag for translation synchronously.
+   * Searches the provided language pairs for a match based on the given language tag.
    *
-   * @param {string} langTag - A BCP-47 language tag.
-   * @returns {Promise<boolean>}
+   * @param {string} langTag - A BCP-47 language tag to match against source languages.
+   * @param {Array<{ fromLang: string, toLang: string }>} languagePairs - An array of language pair objects,
+   *   where each object contains `fromLang` and `toLang` properties.
+   * @returns {string | null} - The compatible source language tag, or `null` if no match is found.
    */
-  static async isSupportedAsFromLang(langTag) {
+  static findCompatibleSourceLangTagSync(langTag, languagePairs) {
     if (!langTag) {
-      return false;
+      return null;
     }
-    let languagePairs = await TranslationsParent.getLanguagePairs();
-    return Boolean(
-      languagePairs.find(({ fromLang }) =>
-        lazy.TranslationsUtils.langTagsMatch(fromLang, langTag)
-      )
+
+    const langPair = languagePairs.find(({ fromLang }) =>
+      lazy.TranslationsUtils.langTagsMatch(fromLang, langTag)
+    );
+
+    return langPair?.fromLang;
+  }
+
+  /**
+   * Finds a compatible source language tag for translation.
+   * Fetches language pairs and then determines a match for the given language tag.
+   *
+   * @param {string} langTag - A BCP-47 language tag to match against source languages.
+   * @returns {Promise<string | null>} - A promise resolving to the compatible source language tag,
+   *   or `null` if no match is found.
+   */
+  static async findCompatibleSourceLangTag(langTag) {
+    const languagePairs = await TranslationsParent.getLanguagePairs();
+    return TranslationsParent.findCompatibleSourceLangTagSync(
+      langTag,
+      languagePairs
     );
   }
 
   /**
-   * Checks if a given language tag is supported for translation
-   * when translating from other languages into this language.
+   * Finds a compatible target language tag for translation synchronously.
+   * Searches the provided language pairs for a match based on the given language tag.
    *
-   * @param {string} langTag - A BCP-47 language tag.
-   * @returns {Promise<boolean>}
+   * @param {string} langTag - A BCP-47 language tag to match against target languages.
+   * @param {Array<{ fromLang: string, toLang: string }>} languagePairs - An array of language pair objects,
+   *   where each object contains `fromLang` and `toLang` properties.
+   * @returns {string | null} - The compatible target language tag, or `null` if no match is found.
    */
-  static async isSupportedAsToLang(langTag) {
+  static findCompatibleTargetLangTagSync(langTag, languagePairs) {
     if (!langTag) {
-      return false;
+      return null;
     }
-    let languagePairs = await TranslationsParent.getLanguagePairs();
-    return Boolean(
-      languagePairs.find(({ toLang }) =>
-        lazy.TranslationsUtils.langTagsMatch(toLang, langTag)
-      )
+
+    const langPair = languagePairs.find(({ toLang }) =>
+      lazy.TranslationsUtils.langTagsMatch(toLang, langTag)
+    );
+
+    return langPair?.toLang;
+  }
+
+  /**
+   * Finds a compatible target language tag for translation.
+   * Fetches language pairs and then determines a match for the given language tag.
+   *
+   * @param {string} langTag - A BCP-47 language tag to match against target languages.
+   * @returns {Promise<string | null>} - A promise resolving to the compatible target language tag,
+   *   or `null` if no match is found.
+   */
+  static async findCompatibleTargetLangTag(langTag) {
+    const languagePairs = await TranslationsParent.getLanguagePairs();
+    return TranslationsParent.findCompatibleTargetLangTagSync(
+      langTag,
+      languagePairs
     );
   }
 
@@ -2898,9 +2934,15 @@ export class TranslationsParent extends JSWindowActorParent {
       excludeLangTags,
     });
 
+    const languagePairs = await TranslationsParent.getLanguagePairs();
     for (const langTag of preferredLanguages) {
-      if (await TranslationsParent.isSupportedAsToLang(langTag)) {
-        return langTag;
+      const compatibleLangTag =
+        TranslationsParent.findCompatibleTargetLangTagSync(
+          langTag,
+          languagePairs
+        );
+      if (compatibleLangTag) {
+        return compatibleLangTag;
       }
     }
 
