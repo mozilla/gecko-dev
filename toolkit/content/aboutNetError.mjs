@@ -266,6 +266,28 @@ function recordTRREventTelemetry(
   }
 }
 
+function setResponseStatus(shortDesc) {
+  let responseStatus;
+  let responseStatusText;
+  try {
+    const netErrorInfo = document.getNetErrorInfo();
+    responseStatus = netErrorInfo.responseStatus;
+    responseStatusText = netErrorInfo.responseStatusText;
+  } catch (ex) {
+    return;
+  }
+
+  if (responseStatus >= 400 && responseStatusText) {
+    let responseStatusLabel = document.createElement("p");
+    document.l10n.setAttributes(
+      responseStatusLabel,
+      "neterror-response-status-code",
+      { responsestatus: responseStatus, responsestatustext: responseStatusText }
+    );
+    shortDesc.appendChild(responseStatusLabel);
+  }
+}
+
 function initPage() {
   // We show an offline support page in case of a system-wide error,
   // when a user cannot connect to the internet and access the SUMO website.
@@ -596,6 +618,7 @@ function initPage() {
     setNetErrorMessageFromParts(longDesc, parts);
   }
 
+  setResponseStatus(shortDesc);
   setNetErrorMessageFromCode();
 }
 
@@ -828,7 +851,10 @@ function setNetErrorMessageFromCode() {
   try {
     errorCode = document.getNetErrorInfo().errorCodeString;
   } catch (ex) {
-    // We don't have a securityInfo when this is for example a DNS error.
+    return;
+  }
+
+  if (!errorCode) {
     return;
   }
 
