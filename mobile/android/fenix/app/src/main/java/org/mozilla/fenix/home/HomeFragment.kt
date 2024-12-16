@@ -779,6 +779,7 @@ class HomeFragment : Fragment() {
                                     isPrivateMode = activity.browsingModeManager.mode.isPrivate,
                                     showDivider = !isMicrosurveyShown && !isToolbarAtBottom,
                                     browserStore = context.components.core.store,
+                                    appStore = context.components.appStore,
                                     menuButton = menuButton,
                                     tabsCounterMenu = tabCounterMenu,
                                     onSearchButtonClick = {
