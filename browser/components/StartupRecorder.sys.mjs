@@ -36,6 +36,7 @@ if (
 let win, canvas;
 let paints = [];
 let afterPaintListener = () => {
+  let startTime = Cu.now();
   let width, height;
   canvas.width = width = win.innerWidth;
   canvas.height = height = win.innerHeight;
@@ -61,6 +62,11 @@ let afterPaintListener = () => {
     width,
     height,
   });
+  ChromeUtils.addProfilerMarker(
+    "startupRecorder",
+    { category: "Test", startTime },
+    `screenshot: ${width}x${height}px`
+  );
 };
 
 /**
@@ -91,7 +97,11 @@ StartupRecorder.prototype = {
   QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 
   record(name) {
-    ChromeUtils.addProfilerMarker("startupRecorder:" + name);
+    ChromeUtils.addProfilerMarker(
+      "startupRecorder",
+      { category: "Test" },
+      name
+    );
     this.data.code[name] = {
       modules: Cu.loadedJSModules.concat(Cu.loadedESModules),
       services: Object.keys(Cc).filter(c => {
