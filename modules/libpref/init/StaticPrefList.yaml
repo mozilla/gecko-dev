@@ -8554,7 +8554,7 @@
 # Use wasm_lazy_tiering to enable it for any module.
 -   name: javascript.options.wasm_lazy_tiering_for_gc
     type: bool
-    value: false
+    value: true
     mirror: always
     set_spidermonkey_pref: always
 
