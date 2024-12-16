@@ -27,7 +27,6 @@
 #include "sdnTextAccessible.h"
 #include "HyperTextAccessible-inl.h"
 #include "ServiceProvider.h"
-#include "Statistics.h"
 #include "ARIAMap.h"
 #include "mozilla/PresShell.h"
 
@@ -564,7 +563,6 @@ MsaaAccessible::QueryInterface(REFIID iid, void** ppv) {
 
     *ppv = static_cast<ISimpleDOMNode*>(new sdnAccessible(WrapNotNull(this)));
   } else if (iid == IID_ISimpleDOMText && localAcc && localAcc->IsTextLeaf()) {
-    statistics::ISimpleDOMUsed();
     *ppv = static_cast<ISimpleDOMText*>(new sdnTextAccessible(this));
     static_cast<IUnknown*>(*ppv)->AddRef();
     return S_OK;

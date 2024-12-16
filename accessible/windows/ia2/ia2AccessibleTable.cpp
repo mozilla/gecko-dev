@@ -16,7 +16,6 @@
 #include "mozilla/a11y/TableAccessible.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
-#include "Statistics.h"
 
 using namespace mozilla::a11y;
 
@@ -34,7 +33,6 @@ ia2AccessibleTable::QueryInterface(REFIID iid, void** ppv) {
   *ppv = nullptr;
 
   if (IID_IAccessibleTable == iid) {
-    statistics::IAccessibleTableUsed();
     *ppv = static_cast<IAccessibleTable*>(this);
     (reinterpret_cast<IUnknown*>(*ppv))->AddRef();
     return S_OK;

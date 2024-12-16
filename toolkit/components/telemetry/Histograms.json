@@ -1,14 +1,4 @@
 {
-  "A11Y_INSTANTIATED_FLAG": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "releaseChannelCollection": "opt-out",
-    "bug_numbers": [1382820],
-    "description": "Flag indicating accessibility support has been instantiated.",
-    "alert_emails": ["accessibility@mozilla.com"]
-  },
   "A11Y_CONSUMERS": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],
@@ -19,22 +9,6 @@
     "bug_numbers": [1382820, 1462238],
     "description": "A list of known accessibility clients that inject into Firefox process space (see https://searchfox.org/mozilla-central/source/accessible/windows/msaa/Compatibility.h).",
     "alert_emails": ["accessibility@mozilla.com", "jteh@mozilla.com"]
-  },
-  "A11Y_ISIMPLEDOM_USAGE_FLAG": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "default",
-    "kind": "flag",
-    "description": "Flag indicating the ISimpleDOM* accessibility interfaces has been used.",
-    "alert_emails": ["accessibility@mozilla.com"]
-  },
-  "A11Y_IATABLE_USAGE_FLAG": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "default",
-    "kind": "flag",
-    "description": "Flag indicating the IAccessibleTable accessibility interface has been used.",
-    "alert_emails": ["accessibility@mozilla.com"]
   },
   "A11Y_TREE_UPDATE_TIMING_MS": {
     "record_in_processes": ["main", "content"],

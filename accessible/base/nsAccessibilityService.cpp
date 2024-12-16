@@ -40,7 +40,6 @@
 #  include "RootAccessibleWrap.h"
 #endif
 #include "States.h"
-#include "Statistics.h"
 #include "TextLeafAccessible.h"
 #include "xpcAccessibleApplication.h"
 
@@ -1591,8 +1590,6 @@ bool nsAccessibilityService::Init(uint64_t aCacheDomains) {
   // Set the active accessibility cache domains. We might want to modify the
   // domains that we activate based on information about the instantiator.
   gCacheDomains = ::GetCacheDomainsForKnownClients(aCacheDomains);
-
-  statistics::A11yInitialized();
 
   static const char16_t kInitIndicator[] = {'1', 0};
   observerService->NotifyObservers(nullptr, "a11y-init-or-shutdown",
