@@ -413,6 +413,12 @@ macosx1470-64-tests:
     - jsreftest
     - marionette
     - marionette-unittest
+    - mochitest-browser-translations
+    - mochitest-chrome
+    - mochitest-chrome-gpu
+    - mochitest-plain
+    - mochitest-plain-gpu
+    - mochitest-remote
     - reftest
     - telemetry-tests-client
     - test-verify
@@ -437,14 +443,8 @@ macosx1015-64-qr-tests:
     - mochitest-browser-a11y
     - mochitest-browser-chrome
     - mochitest-browser-media
-    - mochitest-browser-translations
-    - mochitest-chrome
-    - mochitest-chrome-gpu
     - mochitest-devtools-chrome
     - mochitest-media
-    - mochitest-plain
-    - mochitest-plain-gpu
-    - mochitest-remote
     - mochitest-webgl1-core
     - mochitest-webgl1-ext
     - mochitest-webgl2-core

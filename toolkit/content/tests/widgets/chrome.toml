@@ -21,6 +21,7 @@ prefs = ["app.support.baseURL='https://support.mozilla.org/'"]
 ["test_menubar.xhtml"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1933983
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1933983
 ]
 
 ["test_moz_base_input_element.html"]

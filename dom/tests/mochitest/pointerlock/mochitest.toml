@@ -52,6 +52,7 @@ skip-if = ["display == 'wayland' && os_version == '22.04'"] # Bug 1857057
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1897207
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1897207
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1897207
   "os == 'win' && os_version == '11.2009' && opt", # Bug 1897207
   "os == 'android'", # bug 1897103
   "display == 'wayland' && os_version == '22.04'", # Bug 1857057
