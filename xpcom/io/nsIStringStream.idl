@@ -53,7 +53,7 @@ interface nsIStringInputStream : nsIInputStream
      * SetData - assign data to the input stream (copied on assignment).
      *
      * @param data    - stream data
-     * @param dataLen - stream data length (-1 if length should be computed)
+     * @param dataLen - stream data length
      *
      * NOTE: C++ code should consider using AdoptData or ShareData to avoid
      * making an extra copy of the stream data.
@@ -66,7 +66,7 @@ interface nsIStringInputStream : nsIInputStream
      * the input stream is destroyed.
      *
      * @param data      - stream data
-     * @param dataLen   - stream data length (-1 if length should be computed)
+     * @param dataLen   - stream data length
      */
     [noscript] void adoptData(in charPtr data, in size_t dataLen);
 
@@ -76,7 +76,7 @@ interface nsIStringInputStream : nsIInputStream
      * data buffer must outlive the input stream.
      *
      * @param data      - stream data
-     * @param dataLen   - stream data length (-1 if length should be computed)
+     * @param dataLen   - stream data length
      */
     [noscript] void shareData(in string data, in size_t dataLen);
 

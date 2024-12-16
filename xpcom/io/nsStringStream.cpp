@@ -177,12 +177,10 @@ nsStringInputStream::CopyData(const char* aData, size_t aDataLen) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  size_t length = aDataLen == size_t(-1) ? strlen(aData) : aDataLen;
-
   // NOTE: use a nsVectorSource here to support very large buffers and avoid
   // unnecessary null termination.
   mozilla::Vector<char> vector;
-  if (NS_WARN_IF(!vector.append(aData, length))) {
+  if (NS_WARN_IF(!vector.append(aData, aDataLen))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   auto source = MakeRefPtr<nsVectorSource>(std::move(vector));
@@ -195,12 +193,10 @@ nsStringInputStream::AdoptData(char* aData, size_t aDataLen) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  size_t length = aDataLen == size_t(-1) ? strlen(aData) : aDataLen;
-
   // NOTE: We use a nsVectorSource instead of nsCStringSource for adopted data,
   // to allow for larger data lengths.
   mozilla::Vector<char> vector;
-  vector.replaceRawBuffer(aData, length);
+  vector.replaceRawBuffer(aData, aDataLen);
   auto source = MakeRefPtr<nsVectorSource>(std::move(vector));
   return SetDataSource(source);
 }
@@ -211,8 +207,7 @@ nsStringInputStream::ShareData(const char* aData, size_t aDataLen) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  size_t length = aDataLen == size_t(-1) ? strlen(aData) : aDataLen;
-  auto source = MakeRefPtr<nsBorrowedSource>(Span{aData, length});
+  auto source = MakeRefPtr<nsBorrowedSource>(Span{aData, aDataLen});
   return SetDataSource(source);
 }
 
