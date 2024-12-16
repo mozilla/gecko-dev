@@ -80,7 +80,11 @@ class Validator {
    *                   the success of validation.
    */
   validate(instance) {
-    return this.#inner.validate(Cu.cloneInto(instance, sandbox));
+    try {
+      return this.#inner.validate(Cu.cloneInto(instance, sandbox));
+    } catch (ex) {
+      throw new Error(ex.message, { cause: ex });
+    }
   }
 
   /**
@@ -99,7 +103,11 @@ class Validator {
         }" validator.`
       );
     }
-    this.#inner.addSchema(Cu.cloneInto(schema, sandbox), id);
+    try {
+      this.#inner.addSchema(Cu.cloneInto(schema, sandbox), id);
+    } catch (ex) {
+      throw new Error(ex.message, { cause: ex });
+    }
   }
 }
 
@@ -129,13 +137,17 @@ function validate(
 ) {
   const clonedSchema = Cu.cloneInto(schema, sandbox);
 
-  return sandbox.validate(
-    Cu.cloneInto(instance, sandbox),
-    clonedSchema,
-    draft,
-    sandbox.dereference(clonedSchema),
-    shortCircuit
-  );
+  try {
+    return sandbox.validate(
+      Cu.cloneInto(instance, sandbox),
+      clonedSchema,
+      draft,
+      sandbox.dereference(clonedSchema),
+      shortCircuit
+    );
+  } catch (ex) {
+    throw new Error(ex.message, { cause: ex });
+  }
 }
 
 function detectSchemaDraft(schema, defaultDraft = "2019-09") {
