@@ -832,13 +832,13 @@
     <string name="preference_studies">კვლევები</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox შეძლებს, დროდადრო კვლევების ჩატარებას.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox შეძლებს დროდადრო კვლევების ჩატარებას.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">ვრცლად</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">პროგრამა დაიხურება ცვლილებების ასახვისთვის</string>
+    <string name="studies_restart_app" moz:removedIn="135">პროგრამა დაიხურება ცვლილებების ასახვისთვის</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">მოცილება</string>

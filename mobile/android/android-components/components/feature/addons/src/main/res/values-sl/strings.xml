@@ -72,6 +72,8 @@
     <string name="mozac_feature_addons_permissions_top_sites_description">dostop do zgodovine brskanja</string>
     <!-- Description for trialML permission. -->
     <string name="mozac_feature_addons_permissions_trial_ml_description">Prenesite in uporabljajte modele z umetno inteligenco na svoji napravi</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">dovoljevanje dostopa do vaših podatkov nepotrjenim skriptom tretjih strani</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">razširjanje razvojnih orodij za dostop do vaših podatkov v odprtih zavihkih</string>
     <!-- The version on of add-on. -->

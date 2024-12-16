@@ -239,6 +239,13 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_harmful_uri_title">Prubblema c\'un situ piriculusu</string>
 
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_phishing_uri_title">Prubblemui c\'un situ falloppiu</string>
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_phishing_uri_message"><![CDATA[
+      <p>A pàggina a %1$s fu signalijata comu un situ falloppiu e fu bluccata sicutannu i to prifirenzi di sicurizza.</p>
+    ]]></string>
+
     <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
     <string name="mozac_browser_errorpages_httpsonly_title">Nun è dispunìbbili na virsiuni sicura dû situ</string>
     <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->

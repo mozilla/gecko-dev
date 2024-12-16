@@ -1858,9 +1858,9 @@
     <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Sulu nnê schedi privati</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_cryptominers">Minatura di crittumunita</string>
+    <string name="preference_enhanced_tracking_protection_custom_cryptominers">Pirrijatura di crittumunita</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Giniratura d\'urmi diggitali</string>
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Giniratura di griffi nfurmàtichi canusciuti</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Minutagghi</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1882,7 +1882,7 @@
     <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cookies_description_2">A prutizzioni tutali dî viscotta ìsula i viscotta ô situ chi stai visitannu, accussì i trazzatura dî riti pubblicitari nun i ponnu usari pi sicutàriti d\'un situ a n\'autru.</string>
     <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_cryptominers_title">Minatura di crittumunita</string>
+    <string name="etp_cryptominers_title">Pirrijatura di crittumunita</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Mpidisci a prugrammi malizziusi di guadagnari l\'accessu ô to dispusitivu pi minari crittumunita.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
@@ -1910,11 +1910,11 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Cancella i viscotta mpustati dî rinnirizzi a siti chi si sapi chi tràzzanu l\'utenti.</string>
     <!-- Preference for fingerprinting protection for the custom protection settings -->
-    <string name="etp_suspected_fingerprinters_title">Giniratura d\'urmi diggitali suspetti</string>
+    <string name="etp_suspected_fingerprinters_title">Giniratura di griffi nfurmàtichi suspetti</string>
     <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
-    <string name="etp_suspected_fingerprinters_description">Attiva a prutizzioni contra â ginirazzioni d\'urmi diggitali pi chiḍḍi chi sunnu suspetti.</string>
+    <string name="etp_suspected_fingerprinters_description">Attiva a prutizzioni contra â ginirazzioni di griffi nfurmàtichi pi chiḍḍi chi sunnu suspetti.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_known_fingerprinters_title">Giniratura d\'urmi diggitali canusciuti</string>
+    <string name="etp_known_fingerprinters_title">Giniratura di griffi nfurmàtichi canusciuti</string>
     <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
     <string name="preference_etp_smartblock_learn_more">Cchiù nfurmazzioni</string>
 
