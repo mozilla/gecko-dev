@@ -2130,11 +2130,10 @@ var SelectTranslationsPanel = new (class {
 
     const { unsupportedLanguageMessageBar, tryAnotherSourceMenuList } =
       this.elements;
-    const displayNames = new Services.intl.DisplayNames(undefined, {
-      type: "language",
-    });
+    const languageDisplayNames =
+      TranslationsParent.createLanguageDisplayNames();
     try {
-      const language = displayNames.of(detectedLanguage);
+      const language = languageDisplayNames.of(detectedLanguage);
       if (language) {
         document.l10n.setAttributes(
           unsupportedLanguageMessageBar,

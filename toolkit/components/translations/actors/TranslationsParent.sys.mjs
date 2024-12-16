@@ -1321,16 +1321,15 @@ export class TranslationsParent extends JSWindowActorParent {
     /** @type {Map<string, string>} */
     const displayNames = new Map();
     {
-      const dn = new Services.intl.DisplayNames(undefined, {
-        type: "language",
-      });
+      const languageDisplayNames =
+        TranslationsParent.createLanguageDisplayNames();
 
       for (const langTagSet of [fromLanguages, toLanguages]) {
         for (const langTag of langTagSet.keys()) {
           if (displayNames.has(langTag)) {
             continue;
           }
-          displayNames.set(langTag, dn.of(langTag));
+          displayNames.set(langTag, languageDisplayNames.of(langTag));
         }
       }
     }
@@ -1385,18 +1384,34 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Get the display name for the given language Tag.
+   * Creates and retrieves an `Intl.DisplayNames` object for displaying languages
+   * in translation-related user interfaces across the browser.
    *
-   * @param {string} langTag
-   * @returns {string}
+   * @param {Record<string, string>} [options={}]
+   *  - Optional parameters to customize the display of language names.
+   * @param {string} [options.fallback="code"]
+   *  - Determines the behavior when a language display name is unavailable:
+   *    "code": Fallback to the language code.
+   *    "none": No fallback; return `undefined`.
+   * @param {string} [options.languageDisplay="standard"]
+   *  - Specifies how to display the language names:
+   *    "standard": Display the standard form of the language name e.g. "Chinese (Simplified)"
+   *    "dialect": Display the dialect form if available e.g. "Simplified Chinese"
+   *
+   * @returns {Intl.DisplayNames}
+   *   An `Intl.DisplayNames` object configured to format language names according to the given options.
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DisplayNames
    */
-  static getLanguageDisplayName(langTag) {
-    // Services.intl.getLanguageDisplayNames takes a list of language codes and
-    // returns a list of correspoding display names. Hence the langTag is sent as a list
-    let displayName = Services.intl.getLanguageDisplayNames(undefined, [
-      langTag,
-    ]);
-    return displayName[0];
+  static createLanguageDisplayNames({
+    fallback = "code",
+    languageDisplay = "standard",
+  } = {}) {
+    return new Services.intl.DisplayNames(undefined, {
+      type: "language",
+      languageDisplay,
+      fallback,
+    });
   }
 
   /**
