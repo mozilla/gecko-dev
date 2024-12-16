@@ -701,12 +701,7 @@ export class SearchService {
       let engineData = await lazy.loadAndParseOpenSearchEngine(
         Services.io.newURI(engineURL)
       );
-      engine = new lazy.OpenSearchEngine({ engineData });
-      engine
-        ._setIcon(iconURL, undefined, false)
-        .catch(e =>
-          lazy.logConsole.log("Error while setting search engine icon:", e)
-        );
+      engine = new lazy.OpenSearchEngine({ engineData, faviconURL: iconURL });
     } catch (ex) {
       throw Components.Exception(
         "addEngine: Error adding engine:\n" + ex,

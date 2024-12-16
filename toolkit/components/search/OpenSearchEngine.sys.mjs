@@ -49,6 +49,9 @@ export class OpenSearchEngine extends SearchEngine {
    * @param {OpenSearchProperties} [options.engineData]
    *   The engine data for this search engine that will have been loaded via
    *   `OpenSearchLoader`.
+   * @param {string} [options.faviconURL]
+   *   The website favicon, to be used if the engine data hasn't specified an
+   *   icon.
    */
   constructor(options = {}) {
     super({
@@ -59,6 +62,12 @@ export class OpenSearchEngine extends SearchEngine {
           options.engineData.installURL
         ),
     });
+
+    if (options.faviconURL) {
+      this._setIcon(options.faviconURL, undefined, false).catch(e =>
+        lazy.logConsole.error("Error while setting search engine icon:", e)
+      );
+    }
 
     if (options.engineData) {
       this.#setEngineData(options.engineData);

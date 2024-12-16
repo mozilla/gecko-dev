@@ -95,9 +95,9 @@ add_setup(async function () {
   // for this test.
   let suggestionEngine = await SearchTestUtils.installOpenSearchEngine({
     url: getRootDirectory(gTestPath) + "urlbarTelemetrySearchSuggestions.xml",
+    faviconURL: "https://www.example.com/favicon.ico",
     setAsDefault: true,
   });
-  suggestionEngine._setIcon("https://www.example.com/favicon.ico", false);
   suggestionEngine.alias = ENGINE_ALIAS;
   engineDomain = suggestionEngine.searchUrlDomain;
   engineName = suggestionEngine.name;
