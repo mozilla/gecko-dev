@@ -46,13 +46,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "REVEAL_PASSWORD_ENABLED",
-  "layout.forms.reveal-password-context-menu.enabled",
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "TEXT_RECOGNITION_ENABLED",
   "dom.text-recognition.enabled",
   false
@@ -1377,7 +1370,7 @@ export class nsContextMenu {
   }
 
   initPasswordControlItems() {
-    let shouldShow = this.onPassword && lazy.REVEAL_PASSWORD_ENABLED;
+    let shouldShow = this.onPassword;
     if (shouldShow) {
       let revealPassword = this.document.getElementById(
         "context-reveal-password"

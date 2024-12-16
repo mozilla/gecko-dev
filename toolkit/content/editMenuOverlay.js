@@ -93,13 +93,14 @@ window.addEventListener(
 // Support context menus on html textareas in the parent process:
 window.addEventListener("contextmenu", e => {
   const HTML_NS = "http://www.w3.org/1999/xhtml";
+  let target = e.composedTarget;
   let needsContextMenu =
-    e.composedTarget.ownerDocument == document &&
+    target.ownerDocument == document &&
     !e.defaultPrevented &&
-    e.composedTarget.parentNode.nodeName != "moz-input-box" &&
-    ((["textarea", "input"].includes(e.composedTarget.localName) &&
-      e.composedTarget.namespaceURI == HTML_NS) ||
-      e.composedTarget.closest("search-textbox"));
+    target.parentNode.nodeName != "moz-input-box" &&
+    ((["textarea", "input"].includes(target.localName) &&
+      target.namespaceURI == HTML_NS) ||
+      target.closest("search-textbox"));
 
   if (!needsContextMenu) {
     return;
@@ -119,13 +120,34 @@ window.addEventListener("contextmenu", e => {
         <menuitem data-l10n-id="text-action-paste" command="cmd_paste"></menuitem>
         <menuitem data-l10n-id="text-action-delete" command="cmd_delete"></menuitem>
         <menuitem data-l10n-id="text-action-select-all" command="cmd_selectAll"></menuitem>
+        <menuitem data-l10n-id="text-action-reveal-password" type="checkbox" id="textbox-contextmenu-reveal-password" />
       </menupopup>
     `)
     );
     popup = document.documentElement.lastElementChild;
+    popup
+      .querySelector("#textbox-contextmenu-reveal-password")
+      .addEventListener("command", function () {
+        popup.triggerNode.revealPassword = !popup.triggerNode.revealPassword;
+      });
   }
 
   goUpdateGlobalEditMenuItems(true);
+  const isPasswordInput =
+    target.localName == "input" &&
+    target.namespaceURI == HTML_NS &&
+    target.type == "password";
+  let revealPassword = popup.querySelector(
+    "#textbox-contextmenu-reveal-password"
+  );
+  revealPassword.hidden = !isPasswordInput;
+  if (isPasswordInput) {
+    if (target.revealPassword) {
+      revealPassword.setAttribute("checked", "true");
+    } else {
+      revealPassword.removeAttribute("checked");
+    }
+  }
   popup.openPopupAtScreen(e.screenX, e.screenY, true, e);
   // Don't show any other context menu at the same time. There can be a
   // context menu from an ancestor too but we only want to show this one.

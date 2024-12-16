@@ -52,6 +52,10 @@ text-action-delete =
     .label = Delete
     .accesskey = D
 
+text-action-reveal-password =
+    .label = Reveal Password
+    .accesskey = v
+
 text-action-select-all =
     .label = Select All
     .accesskey = A

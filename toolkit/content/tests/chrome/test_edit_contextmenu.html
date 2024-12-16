@@ -23,6 +23,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1513343
         win.document.querySelector("input"),
         win.document.querySelector("search-textbox"),
         win.document.querySelector("shadow-input").shadowRoot.querySelector("input"),
+        // Intentionally twice to test revealing and un-revealing.
+        win.document.querySelector("input[type=password]"),
+        win.document.querySelector("input[type=password]"),
       ];
       for (const element of elements) {
         await testElement(element, win);
@@ -67,13 +70,24 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1513343
       ok(contextmenu.querySelector("[command=cmd_delete]").hasAttribute("disabled"), "delete disabled");
       ok(!contextmenu.querySelector("[command=cmd_selectAll]").hasAttribute("disabled"), "select all enabled");
 
+      let revealPassword = contextmenu.querySelector("#textbox-contextmenu-reveal-password");
+      let isPassword = element.type == "password";
+      is(revealPassword.hidden, !isPassword, "reveal password");
+
       let popuphidden = new Promise(r => win.addEventListener("popuphidden", r, { once: true }));
+      if (isPassword) {
+        let isRevealed = element.revealPassword;
+        is(revealPassword.getAttribute("checked"), isRevealed ? "true" : null, "reveal password checked");
+        contextmenu.activateItem(revealPassword);
+        await popuphidden;
+        is(element.revealPassword, !isRevealed, "Password was revealed / unrevealed");
+        element.value = "";
+      } else {
+        contextmenu.activateItem(contextmenu.querySelector("[command=cmd_undo]"));
+        await popuphidden;
+        is(element.value, "", "undo worked");
+      }
 
-      contextmenu.activateItem(contextmenu.querySelector("[command=cmd_undo]"));
-
-      await popuphidden;
-
-      is(element.value, "", "undo worked");
       contextmenu.remove();
     }
   </script>

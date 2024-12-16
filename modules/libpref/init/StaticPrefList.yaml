@@ -9888,12 +9888,6 @@
   value: false
   mirror: always
 
-# Enables the Reveal Password context-menu entry.
-- name: layout.forms.reveal-password-context-menu.enabled
-  type: bool
-  value: true
-  mirror: always
-
 # If enabled, textareas won't include 'overflow:auto' scrollbars in their
 # block-axis size (usually height).
 - name: layout.forms.textarea-sizing-excludes-auto-scrollbar.enabled
