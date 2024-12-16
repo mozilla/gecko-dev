@@ -9,7 +9,7 @@
 #define __MOZ_CONTAINER_H__
 
 #ifdef MOZ_WAYLAND
-#  include "MozContainerWayland.h"
+#  include "mozilla/widget/MozContainerWayland.h"
 #endif
 
 #include <gtk/gtk.h>
@@ -38,7 +38,8 @@
 #define MOZ_CONTAINER_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS((obj), MOZ_CONTAINER_TYPE, MozContainerClass))
 #ifdef MOZ_WAYLAND
-#  define MOZ_WL_CONTAINER(obj) (&MOZ_CONTAINER(obj)->data.wl_container)
+#  define MOZ_WL_CONTAINER(obj) (MOZ_CONTAINER(obj)->wl)
+#  define MOZ_WL_SURFACE(obj) (MOZ_CONTAINER(obj)->wl->mSurface)
 #endif
 
 typedef struct _MozContainer MozContainer;
@@ -47,22 +48,23 @@ typedef struct _MozContainerClass MozContainerClass;
 struct _MozContainer {
   GtkContainer container;
   gboolean destroyed;
-  struct Data {
 #ifdef MOZ_WAYLAND
-    MozContainerWayland wl_container;
+  MozContainerWayland* wl;
 #endif
-  } data;
 };
 
 struct _MozContainerClass {
   GtkContainerClass parent_class;
 };
 
+namespace mozilla::widget {
+class WaylandSurface;
+}
+
 GType moz_container_get_type(void);
-GtkWidget* moz_container_new(void);
+GtkWidget* moz_container_new(void* aWindow,
+                             mozilla::widget::WaylandSurface* aSurface);
 void moz_container_unmap(GtkWidget* widget);
-void moz_container_put(MozContainer* container, GtkWidget* child_widget, gint x,
-                       gint y);
 void moz_container_class_init(MozContainerClass* klass);
 
 class nsWindow;

@@ -34,6 +34,7 @@ static void moz_container_size_allocate(GtkWidget* widget,
                                         GtkAllocation* allocation);
 static void moz_container_realize(GtkWidget* widget);
 static void moz_container_unrealize(GtkWidget* widget);
+static void moz_container_destroy(GtkWidget* widget);
 
 /* public methods */
 
@@ -62,24 +63,17 @@ GType moz_container_get_type(void) {
   return moz_container_type;
 }
 
-GtkWidget* moz_container_new(void) {
+GtkWidget* moz_container_new(void* aWindow, WaylandSurface* aSurface) {
   MozContainer* container;
-
   container =
       static_cast<MozContainer*>(g_object_new(MOZ_CONTAINER_TYPE, nullptr));
-
-  return GTK_WIDGET(container);
-}
-
-static void moz_container_destroy(GtkWidget* widget) {
-  auto* container = MOZ_CONTAINER(widget);
-  if (container->destroyed) {
-    return;  // The destroy signal may run multiple times.
+#ifdef MOZ_WAYLAND
+  if (aSurface) {
+    container->wl = new MozContainerWayland(aSurface);
+    MOZ_WL_CONTAINER(container)->mSurface->SetLoggingWidget(aWindow);
   }
-  LOGCONTAINER(("moz_container_destroy() [%p]\n",
-                (void*)moz_container_get_nsWindow(MOZ_CONTAINER(widget))));
-  container->destroyed = TRUE;
-  container->data.~Data();
+#endif
+  return GTK_WIDGET(container);
 }
 
 void moz_container_class_init(MozContainerClass* klass) {
@@ -107,12 +101,29 @@ void moz_container_class_init(MozContainerClass* klass) {
 }
 
 void moz_container_init(MozContainer* container) {
+  LOGCONTAINER(("%s", __FUNCTION__));
   container->destroyed = FALSE;
-  new (&container->data) MozContainer::Data();
+#ifdef MOZ_WAYLAND
+  container->wl = nullptr;
+#endif
   gtk_widget_set_can_focus(GTK_WIDGET(container), TRUE);
   gtk_widget_set_redraw_on_allocate(GTK_WIDGET(container), FALSE);
-  LOGCONTAINER(("%s [%p]\n", __FUNCTION__,
-                (void*)moz_container_get_nsWindow(container)));
+}
+
+static void moz_container_destroy(GtkWidget* widget) {
+  auto* container = MOZ_CONTAINER(widget);
+  if (container->destroyed) {
+    return;  // The destroy signal may run multiple times.
+  }
+  LOGCONTAINER(("moz_container_destroy() [%p]\n",
+                (void*)moz_container_get_nsWindow(MOZ_CONTAINER(widget))));
+  container->destroyed = TRUE;
+#ifdef MOZ_WAYLAND
+  if (container->wl) {
+    delete container->wl;
+    container->wl = nullptr;
+  }
+#endif
 }
 
 void moz_container_map(GtkWidget* widget) {
@@ -229,5 +240,3 @@ nsWindow* moz_container_get_nsWindow(MozContainer* container) {
   gpointer user_data = g_object_get_data(G_OBJECT(container), "nsWindow");
   return static_cast<nsWindow*>(user_data);
 }
-
-#undef LOGCONTAINER
