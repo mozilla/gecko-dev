@@ -105,7 +105,6 @@ class nsMenuBarX : public nsMenuParentX,
   nsMenuX* GetXULHelpMenu();
   void SetSystemHelpMenu();
   nsresult Paint();
-  void PaintAsync();
   void ForceUpdateNativeMenuAt(const nsAString& aIndexString);
   void ForceNativeMenuReload();  // used for testing
   static void ResetNativeApplicationMenu();
