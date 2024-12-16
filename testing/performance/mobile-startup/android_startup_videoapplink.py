@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import time
@@ -36,6 +37,7 @@ class ImageAnalzer:
         self.video_name = ""
         self.package_name = os.environ["BROWSER_BINARY"]
         self.device = ADBDevice()
+        self.cpu_data = {"total": {"time": []}}
         if self.browser == PROD_FENIX:
             self.intent = "org.mozilla.fenix/org.mozilla.fenix.IntentReceiverActivity"
         elif self.browser == PROD_CHRM:
@@ -111,7 +113,7 @@ class ImageAnalzer:
             self.load_page_to_test_startup()
         elif self.test == "mobile_restore":
             self.open_browser_with_view_intent()
-
+        self.process_cpu_info(run)
         recording.kill()
         time.sleep(5)
         self.device.command_output(
@@ -180,6 +182,46 @@ class ImageAnalzer:
         self.device.shell(self.view_intent_command)
         time.sleep(5)
 
+    def process_cpu_info(self, run):
+        cpu_info = self.device.shell_output(
+            f"ps -A -o name=,cpu=,time+=,%cpu= | grep {self.package_name}"
+        ).split("\n")
+        total_time_seconds = tab_processes_time = 0
+        for process in cpu_info:
+            process_name = re.search(r"([\w\d_.:]+)\s", process).group(1)
+            time = re.search(r"\s(\d+):(\d+).(\d+)\s", process)
+            time_seconds = (
+                10 * int(time.group(3))
+                + 1000 * int(time.group(2))
+                + 60 * 1000 * int(time.group(1))
+            )
+            total_time_seconds += time_seconds
+            if "org.mozilla.fenix:tab" in process_name:
+                process_name = "org.mozilla.fenix:tab"
+
+            if process_name not in self.cpu_data.keys():
+                self.cpu_data[process_name] = {}
+                self.cpu_data[process_name]["time"] = []
+
+            if "org.mozilla.fenix:tab" == process_name:
+                tab_processes_time += time_seconds
+                continue
+            self.cpu_data[process_name]["time"] += [time_seconds]
+
+        if tab_processes_time:
+            self.cpu_data["org.mozilla.fenix:tab"]["time"] += [tab_processes_time]
+        self.cpu_data["total"]["time"] += [total_time_seconds]
+
+    def perfmetrics_cpu_data_ingesting(self):
+        for process in self.cpu_data.keys():
+            print(
+                'perfMetrics: {"values": '
+                + str(self.cpu_data[process]["time"])
+                + ', "name": "'
+                + process
+                + '-cpu-time", "shouldAlert": true }'
+            )
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -199,8 +241,10 @@ if __name__ == "__main__":
         nav_done_frame = ImageObject.get_page_loaded_time()
         start_video_timestamp += [ImageObject.get_time_from_frame_num(nav_done_frame)]
     print(
-        'perfMetrics: {"values": ',
-        start_video_timestamp,
-        ', "name": "' + perfherder_names[test] + '", "shouldAlert": true',
-        "}",
+        'perfMetrics: {"values": '
+        + str(start_video_timestamp)
+        + ', "name": "'
+        + perfherder_names[test]
+        + '", "shouldAlert": true}'
     )
+    ImageObject.perfmetrics_cpu_data_ingesting()
