@@ -953,6 +953,7 @@ class MochitestArguments(ArgumentContainer):
         [
             ["--restart-after-failure"],
             {
+                "action": "store_true",
                 "dest": "restartAfterFailure",
                 "default": False,
                 "help": "Terminate the session on first failure and restart where you left off.",
