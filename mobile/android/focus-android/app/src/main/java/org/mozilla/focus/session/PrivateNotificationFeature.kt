@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 
@@ -23,6 +24,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 class PrivateNotificationFeature(
     context: Context,
     private val browserStore: BrowserStore,
+    private val crashReporter: CrashReporting,
     private val permissionRequestHandler: (() -> Unit),
 ) : LifecycleAwareFeature {
 
@@ -35,7 +37,7 @@ class PrivateNotificationFeature(
                 .distinctUntilChanged()
                 .collect { hasPrivateTabs ->
                     if (hasPrivateTabs) {
-                        SessionNotificationService.start(applicationContext, permissionRequestHandler)
+                        SessionNotificationService.start(applicationContext, permissionRequestHandler, crashReporter)
                     } else {
                         SessionNotificationService.stop(applicationContext)
                     }

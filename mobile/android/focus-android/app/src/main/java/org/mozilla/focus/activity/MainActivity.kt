@@ -154,6 +154,7 @@ open class MainActivity : LocaleAwareAppCompatActivity() {
         privateNotificationFeature = PrivateNotificationFeature(
             context = applicationContext,
             browserStore = components.store,
+            crashReporter = components.crashReporter,
             permissionRequestHandler = { requestNotificationPermission() },
         ).also {
             it.start()
