@@ -1469,6 +1469,7 @@ add_task(async function test_select_text_link() {
       true,
       "context-savelink",
       true,
+      ...(hasStripOnShare ? ["context-stripOnShareLink", true] : []),
       "---",
       null,
       "context-copy",

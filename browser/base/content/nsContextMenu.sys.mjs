@@ -1033,7 +1033,7 @@ export class nsContextMenu {
     this.showItem(
       "context-stripOnShareLink",
       lazy.STRIP_ON_SHARE_ENABLED &&
-        this.onLink &&
+        (this.onLink || this.onPlainTextLink) &&
         !this.onMailtoLink &&
         !this.onTelLink &&
         !this.onMozExtLink &&
