@@ -1228,6 +1228,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "1934567",
+    platform: "android",
+    domain: "www.port8.fi",
+    bug: "1934567",
+    contentScripts: {
+      matches: ["*://www.port8.fi/bokning/*"],
+      css: [
+        {
+          file: "injections/css/bug1934567-www.port8.fi-scrolling-fix.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;

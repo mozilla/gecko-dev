@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * www.port8.fi - The site sets Firefox-specific CSS which
+ * breaks scrolling on mobile. This intervention undoes it.
+ */
+
+@media (max-width: 959px) {
+  html.firefox .row div[class*="col-lg-"].pos-bottom,
+  html.firefox .row div[class*="col-lg-"].pos-middle {
+    height: unset !important;
+  }
+}

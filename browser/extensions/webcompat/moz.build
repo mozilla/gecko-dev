@@ -81,6 +81,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1899937-plus.nhk.jp-hide-unsupported.css",
     "injections/css/bug1901000-eyebuydirect.ca-fix-paypal-button.css",
     "injections/css/bug1925508-developer-apple.com-transform-scale.css",
+    "injections/css/bug1934567-www.port8.fi-scrolling-fix.css",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
