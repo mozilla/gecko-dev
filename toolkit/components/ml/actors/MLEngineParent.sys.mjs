@@ -359,7 +359,8 @@ export class MLEngineParent extends JSWindowActorParent {
     const wasmRecords =
       await lazy.TranslationsParent.getMaxSupportedVersionRecords(client, {
         filters: { name: MLEngineParent.WASM_FILENAME },
-        majorVersion: MLEngineParent.WASM_MAJOR_VERSION,
+        minSupportedMajorVersion: MLEngineParent.WASM_MAJOR_VERSION,
+        maxSupportedMajorVersion: MLEngineParent.WASM_MAJOR_VERSION,
       });
 
     if (wasmRecords.length === 0) {

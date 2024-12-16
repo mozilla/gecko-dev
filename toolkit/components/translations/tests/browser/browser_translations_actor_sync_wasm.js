@@ -31,7 +31,8 @@ add_task(async function test_translations_actor_sync_update_wasm() {
       remoteClients.translationsWasm.client,
       {
         filters: { name: "bergamot-translator" },
-        majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+        minSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+        maxSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
       }
     );
 
@@ -79,7 +80,8 @@ add_task(async function test_translations_actor_sync_delete_wasm() {
       remoteClients.translationsWasm.client,
       {
         filters: { name: "bergamot-translator" },
-        majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+        minSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+        maxSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
       }
     );
 

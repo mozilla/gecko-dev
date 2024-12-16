@@ -4,78 +4,311 @@
 "use strict";
 
 add_task(async function test_remote_settings_versioning() {
-  const tests = [
+  const testCases = [
     {
-      majorVersion: 1,
-      existingVersion: "1.0",
-      nextVersion: "1.1",
-      expectation: true,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 3,
+      currentBestVersion: null,
+      contendingVersion: "1.0a1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release version aligned with minimum supported major version without current best version",
     },
     {
-      majorVersion: 1,
-      existingVersion: null,
-      nextVersion: "1.1",
-      expectation: true,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 3,
+      currentBestVersion: null,
+      contendingVersion: "1.0",
+      expectContendingIsBetter: true,
+      description:
+        "Contending release version aligned with minimum supported major version without current best version",
     },
     {
-      majorVersion: 1,
-      existingVersion: null,
-      nextVersion: "1.0beta",
-      expectation: true,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 3,
+      currentBestVersion: null,
+      contendingVersion: "2.0a1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release version between supported major versions without current best version",
     },
     {
-      majorVersion: 1,
-      existingVersion: null,
-      nextVersion: "1.0a",
-      expectation: true,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 3,
+      currentBestVersion: null,
+      contendingVersion: "2.0",
+      expectContendingIsBetter: true,
+      description:
+        "Contending release version between supported major versions without current best version",
     },
     {
-      majorVersion: 2,
-      existingVersion: null,
-      nextVersion: "1.0a",
-      expectation: false,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 3,
+      currentBestVersion: null,
+      contendingVersion: "3.0a1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release version with maximum supported major version without current best version",
     },
     {
-      majorVersion: 2,
-      existingVersion: "2.0",
-      nextVersion: "1.0a",
-      expectation: false,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 3,
+      currentBestVersion: null,
+      contendingVersion: "3.0",
+      expectContendingIsBetter: true,
+      description:
+        "Contending release version aligned with maximum supported major version without current best version",
     },
     {
-      majorVersion: 2,
-      existingVersion: "2.1",
-      nextVersion: "3.2",
-      expectation: false,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 1,
+      currentBestVersion: null,
+      contendingVersion: "1.0a1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release version aligned with minimum and maximum supported major versions without current best version",
     },
     {
-      majorVersion: 2,
-      existingVersion: null,
-      nextVersion: "3.2",
-      expectation: false,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 1,
+      currentBestVersion: null,
+      contendingVersion: "1.0",
+      expectContendingIsBetter: true,
+      description:
+        "Contending release version aligned with minimum and maximum supported major versions without current best version",
     },
     {
-      majorVersion: 1,
-      nextVersion: "1.0",
-      existingVersion: undefined,
-      expectation: true,
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.0a1",
+      contendingVersion: "1.0a2",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release tag version is larger than current pre-release tag version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.0a2",
+      contendingVersion: "1.1a1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release minor version is larger than current pre-release version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.0a2",
+      contendingVersion: "2.0a1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release major version is larger than current pre-release version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.1",
+      contendingVersion: "2.0a1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release major version is larger than current release major version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.0",
+      contendingVersion: "1.1a1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending pre-release minor version is larger than the current release minor version within the same major version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.0",
+      contendingVersion: "1.1",
+      expectContendingIsBetter: true,
+      description:
+        "Contending release minor version is larger than the current release minor version within the same major version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.0a1",
+      contendingVersion: "1.0",
+      expectContendingIsBetter: true,
+      description:
+        "Contending release major version is equal to pre-release major version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.0a2",
+      contendingVersion: "1.0a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release tag version is smaller than current pre-release version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.1a1",
+      contendingVersion: "1.0a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release minor version is smaller than current pre-release minor version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "2.0a1",
+      contendingVersion: "1.0a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release major version is smaller than current pre-release major version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.1a1",
+      contendingVersion: "1.0",
+      expectContendingIsBetter: false,
+      description:
+        "Contending release minor version is smaller than current pre-release minor version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.0",
+      contendingVersion: "1.0a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release version is smaller than the current release version of the same major version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.1",
+      contendingVersion: "1.1a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release version is of the same minor version as current best release version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "1.1",
+      contendingVersion: "1.0",
+      expectContendingIsBetter: false,
+      description:
+        "Contending release minor version is smaller than the current release minor version within the same major version",
+    },
+    {
+      minSupportedMajorVersion: 1,
+      maxSupportedMajorVersion: 2,
+      currentBestVersion: "2.0a1",
+      contendingVersion: "1.0",
+      expectContendingIsBetter: false,
+      description:
+        "Contending release major version is smaller than current pre-release major version",
+    },
+    {
+      minSupportedMajorVersion: 2,
+      maxSupportedMajorVersion: 4,
+      currentBestVersion: null,
+      contendingVersion: "1.0a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release version is smaller than the minimum supported major version without current best version",
+    },
+    {
+      minSupportedMajorVersion: 2,
+      maxSupportedMajorVersion: 4,
+      currentBestVersion: "3.0a1",
+      contendingVersion: "1.0a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release version is smaller than the minimum supported major version with current best version",
+    },
+    {
+      minSupportedMajorVersion: 2,
+      maxSupportedMajorVersion: 4,
+      currentBestVersion: null,
+      contendingVersion: "1.0",
+      expectContendingIsBetter: false,
+      description:
+        "Contending release version is smaller than the minimum supported major version without current best version",
+    },
+    {
+      minSupportedMajorVersion: 2,
+      maxSupportedMajorVersion: 4,
+      currentBestVersion: "3.0a1",
+      contendingVersion: "1.0",
+      expectContendingIsBetter: false,
+      description:
+        "Contending release version is smaller than the minimum supported major version with current best version",
+    },
+    {
+      minSupportedMajorVersion: 2,
+      maxSupportedMajorVersion: 4,
+      currentBestVersion: null,
+      contendingVersion: "5.0a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release version is larger than the maximum supported major version without current best version",
+    },
+    {
+      minSupportedMajorVersion: 2,
+      maxSupportedMajorVersion: 4,
+      currentBestVersion: "3.0a1",
+      contendingVersion: "5.0a1",
+      expectContendingIsBetter: false,
+      description:
+        "Contending pre-release version is larger than the maximum supported major version with current best version",
+    },
+    {
+      minSupportedMajorVersion: 2,
+      maxSupportedMajorVersion: 4,
+      currentBestVersion: null,
+      contendingVersion: "5.0",
+      expectContendingIsBetter: false,
+      description:
+        "Contending release version is larger than the maximum supported major version without current best version",
+    },
+    {
+      minSupportedMajorVersion: 2,
+      maxSupportedMajorVersion: 4,
+      currentBestVersion: "3.0a1",
+      contendingVersion: "5.0",
+      expectContendingIsBetter: false,
+      description:
+        "Contending release version is larger than the maximum supported major version with current best version",
     },
   ];
+
   for (const {
-    majorVersion,
-    existingVersion,
-    nextVersion,
-    expectation,
-  } of tests) {
+    minSupportedMajorVersion,
+    maxSupportedMajorVersion,
+    currentBestVersion,
+    contendingVersion,
+    expectContendingIsBetter,
+    description,
+  } of testCases) {
     is(
       TranslationsParent.isBetterRecordVersion(
-        majorVersion,
-        nextVersion,
-        existingVersion
+        minSupportedMajorVersion,
+        maxSupportedMajorVersion,
+        contendingVersion,
+        currentBestVersion
       ),
-      expectation,
-      `Given a major version of ${majorVersion}, an existing version ${existingVersion} ` +
-        `and a next version of ${nextVersion}, is the next version is ` +
-        `${expectation ? "" : "not "}best.`
+      expectContendingIsBetter,
+      `
+        ${description}:
+
+        Given a supported major version range from min(${minSupportedMajorVersion}) to max(${maxSupportedMajorVersion}),
+        a current best supported version of ${currentBestVersion}, with a contending version of ${contendingVersion},
+        the contending version (${contendingVersion}) is ${expectContendingIsBetter ? "" : "not "} better than the current best version (${currentBestVersion}).
+      `
     );
   }
 });
