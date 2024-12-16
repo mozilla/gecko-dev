@@ -71,7 +71,7 @@ object Versions {
         const val lifecycle = "2.8.7"
         const val localbroadcastmanager = "1.0.0"
         const val media = "1.7.0"
-        const val navigation = "2.8.4"
+        const val navigation = "2.8.5"
         const val paging = "3.3.4"
         const val palette = "1.0.0"
         const val preferences = "1.2.1"

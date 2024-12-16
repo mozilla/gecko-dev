@@ -2,27 +2,6 @@
 <issues format="6" by="lint 8.7.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.1)" variant="all" version="8.7.1">
 
     <issue
-        id="ObsoleteLintCustomCheck"
-        message="Library lint checks out of date;&#xA;these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.navigation.common.lint.NavigationCommonIssueRegistry`)&#xA;which was compiled against an older version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is no longer valid in this version of lint:&#xA;com.android.tools.lint.checks.infrastructure.LintDetectorTest#kotlin(java.lang.String): com.android.tools.lint.checks.infrastructure.TestFile&#xA;(Referenced from androidx/navigation/lint/common/LintUtilKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`EmptyNavDeepLink`,`WrongStartDestinationType`&#xA;&#xA;Recompile the checks against the latest version, or if&#xA;this is a check bundled with a third-party library, see&#xA;if there is a more recent version available.&#xA;&#xA;Version of Lint API this lint check is using is 14.&#xA;The Lint API version currently running is 16 (8.7+).">
-        <location
-            file="build/intermediates/lint-cache/lintReportFenixDebug/migrated-jars/androidx.navigation.common.lint.NavigationCommonIssueRegistry-3d526261eadfd16f..jar"/>
-    </issue>
-
-    <issue
-        id="ObsoleteLintCustomCheck"
-        message="Library lint checks out of date;&#xA;these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.navigation.compose.lint.NavigationComposeIssueRegistry`)&#xA;which was compiled against an older version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is no longer valid in this version of lint:&#xA;com.android.tools.lint.checks.infrastructure.LintDetectorTest#kotlin(java.lang.String): com.android.tools.lint.checks.infrastructure.TestFile&#xA;(Referenced from androidx/navigation/lint/common/LintUtilKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`ComposableDestinationInComposeScope`,`ComposableNavGraphInComposeScope`,`UnrememberedGetBackStackEntry`,`WrongStartDestinationType`&#xA;&#xA;Recompile the checks against the latest version, or if&#xA;this is a check bundled with a third-party library, see&#xA;if there is a more recent version available.&#xA;&#xA;Version of Lint API this lint check is using is 14.&#xA;The Lint API version currently running is 16 (8.7+).">
-        <location
-            file="build/intermediates/lint-cache/lintReportFenixDebug/migrated-jars/androidx.navigation.compose.lint.NavigationComposeIssueRegistry-0eba33012d8b022c..jar"/>
-    </issue>
-
-    <issue
-        id="ObsoleteLintCustomCheck"
-        message="Library lint checks out of date;&#xA;these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.navigation.runtime.lint.NavigationRuntimeIssueRegistry`)&#xA;which was compiled against an older version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is no longer valid in this version of lint:&#xA;com.android.tools.lint.checks.infrastructure.LintDetectorTest#kotlin(java.lang.String): com.android.tools.lint.checks.infrastructure.TestFile&#xA;(Referenced from androidx/navigation/lint/common/LintUtilKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`DeepLinkInActivityDestination`,`WrongStartDestinationType`,`WrongNavigateRouteType`&#xA;&#xA;Recompile the checks against the latest version, or if&#xA;this is a check bundled with a third-party library, see&#xA;if there is a more recent version available.&#xA;&#xA;Version of Lint API this lint check is using is 14.&#xA;The Lint API version currently running is 16 (8.7+).">
-        <location
-            file="build/intermediates/lint-cache/lintReportFenixDebug/migrated-jars/androidx.navigation.runtime.lint.NavigationRuntimeIssueRegistry-b42dcf0e5b11d978..jar"/>
-    </issue>
-
-    <issue
         id="ScrollViewSize"
         message="This LinearLayout should use `android:layout_height=&quot;wrap_content&quot;`"
         errorLine1="        android:layout_height=&quot;match_parent&quot;"
