@@ -393,6 +393,8 @@ nsBaseWidget::~nsBaseWidget() {
     mSwipeTracker = nullptr;
   }
 
+  RemoveAllChildren();
+
   IMEStateManager::WidgetDestroyed(this);
 
   FreeLocalesChangedObserver();
