@@ -310,7 +310,7 @@ export class TranslationsParent extends JSWindowActorParent {
    * https://firefox-source-docs.mozilla.org/toolkit/components/translations/resources/03_bergamot.html
    */
   static BERGAMOT_MAJOR_VERSION = 2;
-  static LANGUAGE_MODEL_MAJOR_VERSION = 1;
+  static LANGUAGE_MODEL_MAJOR_VERSION_MAX = 1;
 
   /**
    * Contains the state that would affect UI. Anytime this state is changed, a dispatch
@@ -1674,7 +1674,7 @@ export class TranslationsParent extends JSWindowActorParent {
         /** @type {TranslationModelRecord[]} */
         const translationModelRecords =
           await TranslationsParent.getMaxSupportedVersionRecords(client, {
-            majorVersion: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION,
+            majorVersion: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX,
             // Names in this collection are not unique, so we are appending the languagePairKey
             // to guarantee uniqueness.
             lookupKey: record =>
