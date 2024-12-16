@@ -306,6 +306,7 @@ impl CBezier {
 }
 
 pub trait CFlatteningSink {
+    fn FirstTangent(&mut self, vecTangent: Option<GpPointR>);
     fn AcceptPointAndTangent(&mut self,
         pt: &GpPointR,
             // The point
@@ -545,6 +546,9 @@ pub fn Flatten(&mut self,
     }*/
 
     self.m_fWithTangents = fWithTangents;
+    if self.m_fWithTangents {
+        self.m_pSink.FirstTangent(self.GetFirstTangent())
+    }
 
     self.m_cSteps = 1;
 
@@ -832,6 +836,7 @@ fn GetLastTangent(&self) -> GpPointR
 fn degenerate_tangent() {
     struct Sink;
     impl CFlatteningSink for Sink {
+        fn FirstTangent(&mut self, _: Option<GpPointR>) { }
         fn AcceptPointAndTangent(&mut self,
             _: &GpPointR, _: &GpPointR, _: bool
             ) -> HRESULT {

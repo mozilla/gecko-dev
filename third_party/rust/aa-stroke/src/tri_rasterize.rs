@@ -141,13 +141,21 @@ fn rast_triangle(buffer: &mut [u8], width: usize, height: usize, tri: &Triangle)
     let mut cy3 = c3 + dx31 * (miny << FIXED_SHIFT) - dy31 * (minx << FIXED_SHIFT);
     //dbg!(minx, maxx, tri, cross);
     /* Perform rasterization */
-    let mut buffer = &mut buffer[miny as usize * width..];
-    for _y in miny..=maxy {
+    for y in miny..=maxy {
         let mut cx1 = cy1;
         let mut cx2 = cy2;
         let mut cx3 = cy3;
 
+        if y < 0 || y >= height as i64 {
+            continue;
+        }
+
+        let buffer = &mut buffer[y as usize * width..];
+
         for x in minx..=maxx {
+            if x < 0 || x >= width as i64 {
+                continue;
+            }
             if cx1 > 0 && cx2 > 0 && cx3 > 0 {
                 // cross is equal to 2*area of the triangle.
                 // we can normalize cx by 2*area to get barycentric coords.
@@ -167,8 +175,6 @@ fn rast_triangle(buffer: &mut [u8], width: usize, height: usize, tri: &Triangle)
         cy1 += fdx12;
         cy2 += fdx23;
         cy3 += fdx31;
-
-        buffer = &mut buffer[width..];
     }
 }
 
