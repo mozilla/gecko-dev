@@ -17,7 +17,7 @@ namespace mozilla::glean {
 
 namespace impl {
 
-using CallbackMapType = nsTHashMap<uint32_t, PingTestCallback>;
+using CallbackMapType = nsTHashMap<uint32_t, FalliblePingTestCallback>;
 using MetricIdToCallbackMutex = StaticDataMutex<UniquePtr<CallbackMapType>>;
 static Maybe<MetricIdToCallbackMutex::AutoLock> GetCallbackMapLock() {
   static MetricIdToCallbackMutex sCallbacks("sCallbacks");
@@ -39,22 +39,37 @@ static Maybe<MetricIdToCallbackMutex::AutoLock> GetCallbackMapLock() {
 }
 
 void Ping::Submit(const nsACString& aReason) const {
+  (void)SubmitInternal(aReason);
+}
+
+nsresult Ping::SubmitInternal(const nsACString& aReason) const {
+  nsresult rv = NS_OK;
   {
-    auto callback = Maybe<PingTestCallback>();
+    auto callback = Maybe<FalliblePingTestCallback>();
     GetCallbackMapLock().apply(
         [&](const auto& lock) { callback = lock.ref()->Extract(mId); });
     // Calling the callback outside of the lock allows it to register a new
     // callback itself.
     if (callback) {
-      callback.extract()(aReason);
+      rv = callback.extract()(aReason);
     }
   }
   fog_submit_ping_by_id(mId, &aReason);
+  return rv;
 }
 
 void Ping::SetEnabled(bool aValue) const { fog_set_ping_enabled(mId, aValue); }
 
 void Ping::TestBeforeNextSubmit(PingTestCallback&& aCallback) const {
+  TestBeforeNextSubmitFallible(
+      [callback = std::move(aCallback)](const nsACString& aReason) -> nsresult {
+        callback(aReason);
+        return NS_OK;
+      });
+}
+
+void Ping::TestBeforeNextSubmitFallible(
+    FalliblePingTestCallback&& aCallback) const {
   {
     GetCallbackMapLock().apply(
         [&](const auto& lock) { lock.ref()->InsertOrUpdate(mId, aCallback); });
@@ -68,8 +83,7 @@ NS_IMPL_ISUPPORTS_CI(GleanPing, nsIGleanPing)
 
 NS_IMETHODIMP
 GleanPing::Submit(const nsACString& aReason) {
-  mPing.Submit(aReason);
-  return NS_OK;
+  return mPing.SubmitInternal(aReason);
 }
 
 NS_IMETHODIMP
@@ -84,9 +98,10 @@ GleanPing::TestBeforeNextSubmit(nsIGleanPingTestCallback* aCallback) {
     return NS_ERROR_INVALID_ARG;
   }
   // Throw the bare ptr into a COM ptr to keep it around in the lambda.
-  nsCOMPtr<nsIGleanPingTestCallback> callback = aCallback;
-  mPing.TestBeforeNextSubmit(
-      [callback](const nsACString& aReason) { callback->Call(aReason); });
+  mPing.TestBeforeNextSubmitFallible(
+      [callback = nsCOMPtr(aCallback)](const nsACString& aReason) -> nsresult {
+        return callback->Call(aReason);
+      });
   return NS_OK;
 }
 

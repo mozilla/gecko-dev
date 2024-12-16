@@ -787,3 +787,15 @@ add_task(async function test_fog_labeled_quantity_works() {
     "Should throw because of a recording error."
   );
 });
+
+add_task(async function test_submit_throws() {
+  GleanPings.onePingOnly.testBeforeNextSubmit(() => {
+    throw new Error("inside callback");
+  });
+
+  Assert.throws(
+    () => GleanPings.onePingOnly.submit(),
+    /inside callback/,
+    "Should throw inside callback"
+  );
+});

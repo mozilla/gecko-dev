@@ -132,14 +132,7 @@ function assertRecordingFailures({
  *        The callback to register with Glean.
  */
 async function recordAndTestPingSubmission(testFn) {
-  GleanPings.nimbusTargetingContext.testBeforeNextSubmit(() => {
-    try {
-      testFn();
-    } catch (ex) {
-      dump(`Encountered an unexpected exception: ${ex}\n${ex.stack}\n`);
-      Assert.ok(false, `Encountered an unexpected exception: ${ex}`);
-    }
-  });
+  GleanPings.nimbusTargetingContext.testBeforeNextSubmit(testFn);
   await recordTargetingContext();
   Services.fog.testResetFOG();
 }
