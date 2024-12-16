@@ -3212,6 +3212,7 @@ static bool GetInterpEntryAndEnsureStubs(JSContext* cx, Instance& instance,
   const FuncExport* funcExport;
   if (!instance.code().getOrCreateInterpEntry(funcIndex, &funcExport,
                                               interpEntry)) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
@@ -3224,6 +3225,7 @@ static bool GetInterpEntryAndEnsureStubs(JSContext* cx, Instance& instance,
   // WasmInstanceObject::getExportedFunction().
   if (!funcExport->hasEagerStubs() && (*funcType)->canHaveJitEntry()) {
     if (!EnsureBuiltinThunksInitialized()) {
+      ReportOutOfMemory(cx);
       return false;
     }
     JSFunction& callee = args.callee().as<JSFunction>();
