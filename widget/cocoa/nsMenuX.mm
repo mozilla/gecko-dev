@@ -1108,6 +1108,7 @@ void nsMenuX::ObserveContentInserted(dom::Document* aDocument,
 }
 
 void nsMenuX::SetupIcon() {
+  SetRebuild(true);
   mIcon->SetupIcon(mContent);
   mNativeMenuItem.image = mIcon->GetIconImage();
 }
