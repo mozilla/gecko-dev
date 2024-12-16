@@ -681,7 +681,7 @@ class FullPageTranslationsTestUtils {
       );
     is(
       locale.innerText,
-      toLanguage,
+      toLanguage.split("-")[0],
       `The expected language tag "${toLanguage}" is shown.`
     );
     is(

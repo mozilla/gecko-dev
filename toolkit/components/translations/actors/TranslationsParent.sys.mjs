@@ -2953,6 +2953,29 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
+   * Attempts to make the language tag more specific if it is a supported macro language tag.
+   * If no special cases apply, the provided language tag is returned as-is.
+   *
+   * @param {string} langTag - A BCP-47 language tag to evaluate and possibly refine.
+   * @returns {Promise<string>} - The refined language tag, or null if processing was interrupted.
+   */
+  maybeRefineMacroLanguageTag(langTag) {
+    if (langTag === "no") {
+      // Choose "Norwegian Bokmål" over "Norwegian Nynorsk" as it is more widely used.
+      //
+      // https://en.wikipedia.org/wiki/Norwegian_language#Bokm%C3%A5l_and_Nynorsk
+      //
+      //   > A 2005 poll indicates that 86.3% use primarily Bokmål as their daily
+      //   > written language, 5.5% use both Bokmål and Nynorsk, and 7.5% use
+      //   > primarily Nynorsk.
+      return "nb";
+    }
+
+    // No special cases were handled above, so pass the langTag through.
+    return langTag;
+  }
+
+  /**
    * Returns the lang tags that should be offered for translation. This is in the parent
    * rather than the child to remove the per-content process memory allocation amount.
    *
@@ -2965,11 +2988,7 @@ export class TranslationsParent extends JSWindowActorParent {
     if (this.languageState.detectedLanguages) {
       return this.languageState.detectedLanguages;
     }
-    const langTags = {
-      docLangTag: null,
-      userLangTag: null,
-      isDocLangTagSupported: false,
-    };
+
     if (!TranslationsParent.getIsTranslationsEngineSupported()) {
       return null;
     }
@@ -2981,55 +3000,71 @@ export class TranslationsParent extends JSWindowActorParent {
       }
     }
 
+    documentElementLang = this.maybeRefineMacroLanguageTag(documentElementLang);
+
     let languagePairs = await TranslationsParent.getLanguagePairs();
     if (this.#isDestroyed) {
       return null;
     }
 
-    const determineIsDocLangTagSupported = () =>
-      Boolean(
-        languagePairs.find(({ fromLang }) =>
-          lazy.TranslationsUtils.langTagsMatch(fromLang, langTags.docLangTag)
-        )
-      );
+    const langTags = {
+      docLangTag: null,
+      userLangTag: null,
+      isDocLangTagSupported: false,
+    };
+
+    /**
+     * Attempts to find a compatible source language tag that matches
+     * langTags.docLangTag. If a match is found, sets langTags.docLangTag
+     * to the normalized value and sets langTags.isDocLangTagSupported to true.
+     */
+    function findCompatibleDocLangTag() {
+      const compatibleLangTag =
+        TranslationsParent.findCompatibleSourceLangTagSync(
+          langTags.docLangTag,
+          languagePairs
+        );
+
+      if (compatibleLangTag) {
+        langTags.docLangTag = compatibleLangTag;
+        langTags.isDocLangTagSupported = true;
+      }
+    }
+
+    /**
+     * Attempts to normalize the langTags.docLangTag value to a language tag that is
+     * compatible as a source language for one of the translation models. If a language
+     * tag is found, sets langTags.isDocLangTagSupported to `true`.
+     */
+    function maybeNormalizeDocLangTag() {
+      if (!langTags.isDocLangTagSupported) {
+        findCompatibleDocLangTag();
+      }
+
+      if (langTags.docLangTag && !langTags.isDocLangTagSupported) {
+        // We have found a docLangTag, but it is still not supported.
+        // Try it again with a canonicalized version.
+        langTags.docLangTag = Intl.getCanonicalLocales(langTags.docLangTag)[0];
+        findCompatibleDocLangTag();
+      }
+    }
 
     // First try to get the langTag from the document's markup.
+    // Attempt to find a supported locale from highest specificity to lowest specificity.
     try {
-      const docLocale = new Intl.Locale(documentElementLang);
-      langTags.docLangTag = docLocale.language;
-      langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
-    } catch (error) {}
+      langTags.docLangTag = new Intl.Locale(documentElementLang).baseName;
+      maybeNormalizeDocLangTag();
+    } catch (error) {
+      // Failed to create a locale from documentElementLang, continue on.
+    }
 
-    if (langTags.docLangTag) {
-      // If it's not supported, try it again with a canonicalized version.
-      if (!langTags.isDocLangTagSupported) {
-        langTags.docLangTag = Intl.getCanonicalLocales(langTags.docLangTag)[0];
-        langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
-      }
-
-      // If it's still not supported, map macro language codes to specific ones.
-      //   https://en.wikipedia.org/wiki/ISO_639_macrolanguage
-      if (!langTags.isDocLangTagSupported) {
-        // If more macro language codes are needed, this logic can be expanded.
-        if (langTags.docLangTag === "no") {
-          // Choose "Norwegian Bokmål" over "Norwegian Nynorsk" as it is more widely used.
-          //
-          // https://en.wikipedia.org/wiki/Norwegian_language#Bokm%C3%A5l_and_Nynorsk
-          //
-          //   > A 2005 poll indicates that 86.3% use primarily Bokmål as their daily
-          //   > written language, 5.5% use both Bokmål and Nynorsk, and 7.5% use
-          //   > primarily Nynorsk.
-          langTags.docLangTag = "nb";
-          langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
-        }
-      }
-    } else {
+    if (!langTags.docLangTag) {
       // If the document's markup had no specified langTag, attempt to identify the page's language.
       langTags.docLangTag = await this.queryIdentifyLanguage();
       if (this.#isDestroyed) {
         return null;
       }
-      langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
+      maybeNormalizeDocLangTag();
     }
 
     if (!langTags.docLangTag) {
