@@ -17690,6 +17690,12 @@
   type: bool
   value: false
   mirror: always
+
+# Use SW emulation of frame callback, for testing only
+- name: widget.wayland.emulate-frame-callback
+  type: bool
+  value: false
+  mirror: once
 #endif
 
 #ifdef MOZ_WIDGET_GTK
