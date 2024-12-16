@@ -9538,9 +9538,7 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
  *
  *
  */
-function useIntersectionObserver(callback, options = {
-  threshold: 0.3
-}) {
+function useIntersectionObserver(callback, threshold = 0.3) {
   const elementsRef = (0,external_React_namespaceObject.useRef)([]);
   (0,external_React_namespaceObject.useEffect)(() => {
     const observer = new IntersectionObserver(entries => {
@@ -9550,13 +9548,15 @@ function useIntersectionObserver(callback, options = {
           observer.unobserve(entry.target);
         }
       });
-    }, options);
+    }, {
+      threshold
+    });
     elementsRef.current.forEach(el => {
       if (el) {
         observer.observe(el);
       }
     });
-  }, [callback, options]);
+  }, [callback, threshold]);
   return elementsRef;
 }
 
@@ -9682,6 +9682,7 @@ function CardSections({
       key: sectionKey,
       id: sectionKey,
       className: "ds-section",
+      "data-section-position": sectionIndex,
       ref: el => {
         sectionRefs.current[sectionIndex] = el;
       }

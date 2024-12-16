@@ -127,6 +127,7 @@ function CardSections({
             key={sectionKey}
             id={sectionKey}
             className="ds-section"
+            data-section-position={sectionIndex}
             ref={el => {
               sectionRefs.current[sectionIndex] = el;
             }}
