@@ -37,6 +37,16 @@ linux64-node-18:
             - linux64-gcc-11
             - linux64-toolchain-sysroot
 
+linux64-aarch64-node-18:
+    treeherder:
+        symbol: TLA64(node-18)
+    run:
+        toolchain-alias:
+            - linux64-aarch64-node
+    fetches:
+        fetch:
+            - nodejs-18-linux64-arm64
+
 macosx64-node-18:
     treeherder:
         symbol: TM(node-18)

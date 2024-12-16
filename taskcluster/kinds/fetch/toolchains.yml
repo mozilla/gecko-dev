@@ -513,6 +513,17 @@ nodejs-12-linux64:
         strip-components: 1
         add-prefix: node/
 
+nodejs-18-linux64-arm64:
+    description: nodejs 18 for arm64 linux
+    fetch:
+        type: static-url
+        url: https://nodejs.org/dist/v18.19.0/node-v18.19.0-linux-arm64.tar.xz
+        sha256: cf94ab72e45b855257545fec1c017bdf30a9e23611561382eaf64576b999e72d
+        size: 23403368
+        artifact-name: nodejs.tar.zst
+        strip-components: 1
+        add-prefix: node/
+
 nodejs-18-macosx64:
     description: nodejs 18 for x64 macOS
     fetch:
