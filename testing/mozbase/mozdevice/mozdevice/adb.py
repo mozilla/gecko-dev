@@ -4467,3 +4467,21 @@ class ADBDevice(ADBCommand):
         output = self.command_output(cmd, timeout=timeout)
         self.reboot(timeout=timeout)
         return output
+
+    def enable_notifications(self, package_id):
+        """Using pm grant we enable notifications for an app
+
+        :param str package_id: The package_id for the app we are enabling notifications for
+        :raises: :exc:`ADBTimeoutError`
+                 :exc:`ADBError`
+        """
+        self.shell(f"pm grant {package_id} android.permission.POST_NOTIFICATIONS")
+
+    def disable_notifications(self, package_id):
+        """Using pm revoke we disable notifications for an app
+
+        :param str package_id: The package_id for the app we are disabling notifications for
+        :raises: :exc:`ADBTimeoutError`
+                 :exc:`ADBError`
+        """
+        self.shell(f"pm revoke {package_id} android.permission.POST_NOTIFICATIONS")

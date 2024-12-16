@@ -178,12 +178,12 @@ hw-a55-aarch64:
         symbol: perftest-a55
     platform: android-hw-a55-14-0-aarch64-shippable/opt
 
-hw-a55-aarch64-shippable-startup-fenix-cold-main-first-frame:
+hw-a55-startup-fenix-cold-main-first-frame:
     worker-type: t-bitbar-gw-perf-a55
     run-on-projects: [trunk-only]
     description: Run android startup perftest on Fenix on a Samsung A55
     treeherder:
-        symbol: perftest(startup-fenix-cmff)
+        symbol: perftest(startup-fenix-cmff-le)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
@@ -207,12 +207,12 @@ hw-a55-aarch64-shippable-startup-fenix-cold-main-first-frame:
             --perfherder
             --AndroidStartUp-product=fenix
 
-hw-a55-aarch64-shippable-startup-fenix-cold-view-nav-start:
+hw-a55-startup-fenix-cold-view-nav-start:
     worker-type: t-bitbar-gw-perf-a55
     run-on-projects: [trunk-only]
     description: Run android startup perftest on Fenix on a Samsung A55
     treeherder:
-        symbol: perftest(startup-fenix-cvns)
+        symbol: perftest(startup-fenix-cvns-le)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
@@ -236,11 +236,11 @@ hw-a55-aarch64-shippable-startup-fenix-cold-view-nav-start:
             --perfherder
             --AndroidStartUp-product=fenix
 
-hw-a55-aarch64-shippable-startup-focus-cold-main-first-frame:
+hw-a55-startup-focus-cold-main-first-frame:
     worker-type: t-bitbar-gw-perf-a55
     description: Run android startup perftest on Focus on a Samsung A55
     treeherder:
-        symbol: perftest(startup-focus-cmff)
+        symbol: perftest(startup-focus-cmff-le)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
@@ -264,11 +264,11 @@ hw-a55-aarch64-shippable-startup-focus-cold-main-first-frame:
             --perfherder
             --AndroidStartUp-product=focus
 
-hw-a55-aarch64-shippable-startup-focus-cold-view-nav-start:
+hw-a55-startup-focus-cold-view-nav-start:
     worker-type: t-bitbar-gw-perf-a55
     description: Run android startup perftest on Focus on a Samsung A55
     treeherder:
-        symbol: perftest(startup-focus-cvns)
+        symbol: perftest(startup-focus-cvns-le)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
@@ -292,12 +292,12 @@ hw-a55-aarch64-shippable-startup-focus-cold-view-nav-start:
             --perfherder
             --AndroidStartUp-product=focus
 
-hw-a55-aarch64-shippable-startup-geckoview-cold-main-first-frame:
+hw-a55-startup-geckoview-cold-main-first-frame:
     worker-type: t-bitbar-gw-perf-a55
     run-on-projects: [trunk-only]
     description: Run android startup perftest on Geckoview on a Samsung A55
     treeherder:
-        symbol: perftest(startup-geckoview-cmff)
+        symbol: perftest(startup-geckoview-cmff-le)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
@@ -321,12 +321,12 @@ hw-a55-aarch64-shippable-startup-geckoview-cold-main-first-frame:
             --perfherder
             --AndroidStartUp-product=geckoview_example
 
-hw-a55-aarch64-shippable-startup-geckoview-cold-view-nav-start:
+hw-a55-startup-geckoview-cold-view-nav-start:
     worker-type: t-bitbar-gw-perf-a55
     run-on-projects: [trunk-only]
     description: Run android startup perftest on Geckoview_example on a Samsung A55
     treeherder:
-        symbol: perftest(startup-geckoview-cvns)
+        symbol: perftest(startup-geckoview-cvns-le)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
@@ -350,11 +350,11 @@ hw-a55-aarch64-shippable-startup-geckoview-cold-view-nav-start:
             --perfherder
             --AndroidStartUp-product=geckoview_example
 
-hw-a55-aarch64-shippable-startup-chrome-m-cold-main-first-frame:
+hw-a55-startup-chrome-m-cold-main-first-frame:
     worker-type: t-bitbar-gw-perf-a55
     description: Run android startup perftest on Chrome on a Samsung A55
     treeherder:
-        symbol: perftest(startup-chrome-m-cmff)
+        symbol: perftest(startup-chrome-m-cmff-le)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
@@ -371,6 +371,194 @@ hw-a55-aarch64-shippable-startup-chrome-m-cold-main-first-frame:
             --AndroidStartUp-test-name=cold_main_first_frame
             --perfherder
             --AndroidStartUp-product=chrome-m
+
+hw-a55-aarch64-shippable-startup-fenix-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [trunk-only]
+    description: Run android startup perftest on Fenix on a Samsung A55
+    treeherder:
+        symbol: perftest-fenix(startup-first-frame)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app fenix
+            testing/performance/mobile-startup/cmff.sh
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
+
+hw-a55-aarch64-shippable-startup-fenix-cold-view-nav-start:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [trunk-only]
+    description: Run android startup perftest on Fenix on a Samsung A55
+    treeherder:
+        symbol: perftest-fenix(startup-navigation-start)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app fenix
+            testing/performance/mobile-startup/cvns.sh
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
+
+hw-a55-aarch64-shippable-startup-focus-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run android startup perftest on Focus on a Samsung A55
+    treeherder:
+        symbol: perftest-focus(startup-first-frame)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-focus-nightly
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app focus
+            testing/performance/mobile-startup/cmff.sh
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --binary org.mozilla.focus.nightly
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
+
+hw-a55-aarch64-shippable-startup-focus-cold-view-nav-start:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run android startup perftest on Focus on a Samsung A55
+    treeherder:
+        symbol: perftest-focus(startup-navigation-start)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-focus-nightly
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app focus
+            testing/performance/mobile-startup/cvns.sh
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --binary org.mozilla.focus.nightly
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
+
+hw-a55-aarch64-shippable-startup-geckoview-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [trunk-only]
+    description: Run android startup perftest on Geckoview on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-first-frame)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: geckoview_example.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: build-android-aarch64-shippable/opt
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app geckoview
+            testing/performance/mobile-startup/cmff.sh
+            --android-install-apk $MOZ_FETCHES_DIR/geckoview_example.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
+
+hw-a55-aarch64-shippable-startup-geckoview-cold-view-nav-start:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [trunk-only]
+    description: Run android startup perftest on Geckoview_example on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-navigation-start)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: geckoview_example.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: build-android-aarch64-shippable/opt
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app geckoview
+            testing/performance/mobile-startup/cvns.sh
+            --android-install-apk $MOZ_FETCHES_DIR/geckoview_example.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
+
+hw-a55-aarch64-shippable-startup-chrome-m-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run android startup perftest on Chrome on a Samsung A55
+    treeherder:
+        symbol: perftest-chrome(startup-first-frame)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: true
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app chrome-m
+            testing/performance/mobile-startup/cmff.sh
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
 
 hw-a55-aarch64-perfstats-gv:
     worker-type: t-bitbar-gw-perf-a55

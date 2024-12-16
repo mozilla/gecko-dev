@@ -108,6 +108,7 @@ class Options:
                 "geckoview",
                 "fenix",
                 "refbrow",
+                "focus",
             ],
             "help": (
                 "Shorthand name of application that is being tested. "

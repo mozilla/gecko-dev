@@ -160,6 +160,8 @@ treeherder:
         'perftest-chrome': 'Performance tests using Chrome Release'
         'perftest-http3': 'Performance tests with HTTP/3'
         'perftest-fenix': 'Performance tests using Fenix'
+        'perftest-geckoview': 'Performance tests using Geckoview Example'
+        'perftest-focus': 'Performance tests using Focus'
         'l10n': 'Localization checks'
         'wc': 'webcompat'
         'Boot': 'Bootstrap'
