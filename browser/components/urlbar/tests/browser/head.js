@@ -386,24 +386,14 @@ async function searchWithTab(
 }
 
 async function focusSwitcher(win = window) {
-  // To happen focus event on urlbar, remove the focus once.
-  // We intentionally turn off this a11y check, because the following click is
-  // purposefully targeting a non-interactive element.
-  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
-  EventUtils.synthesizeMouseAtCenter(
-    win.document.getElementById("browser"),
-    {},
-    win
-  );
-  AccessibilityUtils.resetEnv();
-  await BrowserTestUtils.waitForCondition(() =>
-    win.document.activeElement.closest("#browser")
-  );
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window: win,
+    waitForFocus: true,
+    value: "",
+    fireInputEvent: true,
+  });
+  Assert.ok(win.gURLBar.hasAttribute("focused"));
 
-  let focus = BrowserTestUtils.waitForEvent(win.gURLBar.inputField, "focus");
-  EventUtils.synthesizeKey("l", { accelKey: true }, win);
-  await UrlbarTestUtils.promiseSearchComplete(win);
-  await focus;
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, win);
   let switcher = win.document.getElementById("urlbar-searchmode-switcher");
   await BrowserTestUtils.waitForCondition(

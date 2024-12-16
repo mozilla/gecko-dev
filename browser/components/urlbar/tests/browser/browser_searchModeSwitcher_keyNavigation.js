@@ -456,10 +456,6 @@ add_task(async function test_urlbar_focus_after_switcher_lost() {
 
   info("Move the focus to the switcher button");
   await focusSwitcher();
-  Assert.ok(
-    gURLBar.hasAttribute("focused"),
-    "The #urlbar element still has 'focused' attribute"
-  );
 
   info("Move the focus to browser element");
   // We intentionally turn off this a11y check, because the following click is
