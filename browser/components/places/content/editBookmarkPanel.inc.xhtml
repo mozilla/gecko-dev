@@ -27,8 +27,7 @@
     <menulist id="editBMPanel_folderMenuList"
               class="folder-icon"
               flex="1"
-              size="large"
-              oncommand="gEditItemOverlay.onFolderMenuListCommand(event).catch(Cu.reportError);">
+              size="large">
       <menupopup>
         <!-- Static item for special folders -->
         <menuitem id="editBMPanel_toolbarFolderItem"
@@ -46,8 +45,7 @@
     </menulist>
     <button id="editBMPanel_foldersExpander"
             class="expander-down panel-button"
-            data-l10n-id="bookmark-overlay-folders-expander2"
-            oncommand="gEditItemOverlay.toggleFolderTreeVisibility();"/>
+            data-l10n-id="bookmark-overlay-folders-expander2"/>
   </hbox>
 
   <vbox id="editBMPanel_folderTreeRow"
@@ -56,8 +54,7 @@
     <!-- editBMPanel_folderTree will go here when this is shown -->
     <hbox id="editBMPanel_newFolderBox">
       <button data-l10n-id="bookmark-overlay-new-folder-button"
-              id="editBMPanel_newFolderButton"
-              oncommand="gEditItemOverlay.newFolder().catch(Cu.reportError);"/>
+              id="editBMPanel_newFolderButton"/>
     </hbox>
   </vbox>
 
@@ -90,8 +87,7 @@
     </popupset>
     <button id="editBMPanel_tagsSelectorExpander"
             class="expander-down panel-button"
-            data-l10n-id="bookmark-overlay-tags-expander2"
-            oncommand="gEditItemOverlay.toggleTagsSelector().catch(Cu.reportError);"/>
+            data-l10n-id="bookmark-overlay-tags-expander2"/>
   </hbox>
 
   <div id="tags-field-info"

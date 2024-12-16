@@ -333,6 +333,7 @@ var gEditItemOverlay = {
 
         let panel = document.getElementById("editBookmarkPanelContent");
         panel.addEventListener("change", this);
+        panel.addEventListener("command", this);
 
         this._observersAdded = true;
       }
@@ -603,6 +604,7 @@ var gEditItemOverlay = {
     this._onFolderListSelected();
 
     this._folderMenuList.addEventListener("select", this);
+    this._folderMenuList.addEventListener("command", this);
     this._folderMenuListListenerAdded = true;
 
     // Hide the folders-separator if no folder is annotated as recently-used
@@ -647,11 +649,13 @@ var gEditItemOverlay = {
       window.removeEventListener("unload", this);
       let panel = document.getElementById("editBookmarkPanelContent");
       panel.removeEventListener("change", this);
+      panel.removeEventListener("command", this);
       this._observersAdded = false;
     }
 
     if (this._folderMenuListListenerAdded) {
       this._folderMenuList.removeEventListener("select", this);
+      this._folderMenuList.removeEventListener("command", this);
       this._folderMenuListListenerAdded = false;
     }
 
@@ -1170,6 +1174,24 @@ var gEditItemOverlay = {
 
           case "editBMPanel_keywordField":
             this.onKeywordFieldChange();
+            break;
+        }
+        break;
+      case "command":
+        if (event.currentTarget.id === "editBMPanel_folderMenuList") {
+          this.onFolderMenuListCommand(event).catch(console.error);
+          return;
+        }
+
+        switch (event.target.id) {
+          case "editBMPanel_foldersExpander":
+            this.toggleFolderTreeVisibility();
+            break;
+          case "editBMPanel_newFolderButton":
+            this.newFolder().catch(console.error);
+            break;
+          case "editBMPanel_tagsSelectorExpander":
+            this.toggleTagsSelector().catch(console.error);
             break;
         }
         break;
