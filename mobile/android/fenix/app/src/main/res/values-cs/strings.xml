@@ -353,6 +353,8 @@
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Zobrazení čtečky, %s, Tisk, Sdílet, Otevřít aplikaci</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Zobrazení čtečky, Nahlášení nefunkční stránky, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Zobrazení čtečky, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -602,8 +604,12 @@
     <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Pokračováním vyjadřujete souhlas s dokumentem %1$s Firefoxu.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Podmínky služby</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefoxu záleží na vašem soukromí. Více informací najdete v našem dokumentu %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Zásady ochrany osobních údajů</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Firefox odesílá společnosti Mozilla diagnostické údaje a údaje o interakci, které pomáhají prohlížeč vylepšovat. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Správa</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -1024,6 +1030,10 @@
     <string name="preferences_marketing_data">Marketingová data</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Sdílí základní údaje a používání a technické údaje se společností Adjust, naším partnerem pro marketing</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Sdílejte informace o tom, jak jste Firefox objevili, s marketingovými partnery společnosti Mozilla. Pomáhá nám to rozvíjet Firefox a vytvářet lepší internet</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">Další informace o marketingových datech</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Automaticky odesílat hlášení o pádech</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -2917,10 +2927,18 @@
     <string name="protection_panel_banner_not_secure_description">Vaše připojení není zabezpečené.</string>
     <!-- Title text for the protection panel banner when tracking protection is disabled. -->
     <string name="protection_panel_banner_not_protected_title">Vypnuli jste ochranu</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s je mimo službu. Doporučujeme ochranu opět zapnout.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s je na stráži</string>
     <!-- Description text for the protection panel banner when tracking protection is enabled. -->
     <string name="protection_panel_banner_protected_description">Jste chráněni. Pokud něco zjistíme, dáme vám vědět.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">Rozšířená ochrana proti sledování</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">Pokud na tomto webu něco vypadá nefunkčně, zkuste vypnout ochrany.</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">Ochrana je VYPNUTÁ. Doporučujeme ji znovu zapnout.</string>
 
@@ -3041,6 +3059,9 @@
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">Adresy</string>
 
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Seznam jazyků, pro které je možné zapnout ladění</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Nástroje CFR</string>
@@ -3069,10 +3090,28 @@
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Aktualizovat</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Aktualizujte svůj Firefox</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Dne 14. března vyprší platnost kořenového certifikátu, což způsobí, že některé funkce přestanou fungovat.</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Aktualizujte před 14. březnem</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Platnost kořenového certifikátu vyprší, což způsobí, že vaše verze prohlížeče Firefox přestane správně fungovat.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Zbývá méně než 7 dní na aktualizaci</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">14. března přestanou fungovat doplňky a další funkce Firefoxu, protože vyprší platnost kořenového certifikátu.</string>
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Poslední šance ponechat si Firefox</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Vaše verze prohlížeče Firefox přestane 14. března správně fungovat, protože vyprší platnost kořenového certifikátu.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Aktualizace doporučena</string>
-    </resources>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Doplňky a některé funkce přestanou fungovat 14. března.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Používáte starší verzi prohlížeče Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Chcete-li nadále používat doplňky a další funkce, aktualizujte před 14. březnem.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Některé funkce přestanou zítra fungovat.</string>
+</resources>

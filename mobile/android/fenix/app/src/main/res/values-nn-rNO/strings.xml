@@ -513,16 +513,38 @@
     <!-- Content description for the add-on icon. -->
     <string name="onboarding_add_on_icon_content_description">Ikon for utvidingar</string>
 
+    <!-- Content description for the an installed add-on icon. -->
+    <string name="onboarding_installed_add_on_icon_content_description">Symbol for installerte tillegg</string>
+    <!-- Content description for the an installing add-on icon. -->
+    <string name="onboarding_installing_add_on_icon_content_description">Symbol for installering av tillegg</string>
     <!-- Content description for the add add-on button. -->
     <string name="onboarding_add_on_add_button_content_description">Legg til tilleggs-knapp</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Vurdert %1$s av 5</string>
 
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Hjelp oss med å gjere Firefox betre</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Send inn krasjrapportar automatisk</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Les meir om krasjrapportar</string>
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Les meir om bruksdata</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Ferdig</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Avbryt</string>
 
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Velkomen til Firefox</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Godta og hald fram</string>
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Ved å halde fram, godtek du Firefox %1$s.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Tenestevilkår</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Personvernerklæring</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Handsam</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->

@@ -346,11 +346,15 @@
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Προβολή ανάγνωσης, μετάφραση, %s, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Προβολή ανάγνωσης, μετάφραση, αναφορά μη λειτουργικού ιστότοπου, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Προβολή ανάγνωσης, μετάφραση, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Προβολή ανάγνωσης, %s, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Προβολή ανάγνωσης, αναφορά μη λειτουργικού ιστότοπου, μετάφραση, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Προβολή ανάγνωσης, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -602,9 +606,15 @@
     <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Το Firefox νοιάζεται για το απόρρητό σας. Διαβάστε περισσότερα στη %1$s μας.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Σημείωση απορρήτου</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Για τη βελτίωση του προγράμματος περιήγησης, το Firefox στέλνει δεδομένα διάγνωσης και  αλληλεπίδρασης στη Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Διαχείριση</string>
 
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Επιλογή τοποθεσίας γραμμής εργαλείων</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Κρατήστε τις αναζητήσεις κοντά σας.</string>
     <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_save_and_continue_button">Αποθήκευση και συνέχεια</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
@@ -1024,6 +1034,10 @@
     <string name="preferences_marketing_data">Δεδομένα μάρκετινγκ</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Κοινή χρήση βασικών δεδομένων χρήσης με το Adjust, την υπηρεσία μας για μάρκετινγκ κινητών</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Μοιραστείτε πληροφορίες σχετικά με το πώς ανακαλύψατε το Firefox με τους συνεργάτες μάρκετινγκ της Mozilla. Αυτό μας βοηθά να αναπτύξουμε το Firefox και να δημιουργήσουμε ένα καλύτερο διαδίκτυο.</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">Μάθετε περισσότερα σχετικά με τα δεδομένα μάρκετινγκ</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Αυτόματη υποβολή αναφορών κατάρρευσης</string>
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -2914,9 +2928,21 @@
     <string name="protection_panel_banner_not_secure_description">Η σύνδεση δεν είναι ασφαλής.</string>
     <!-- Title text for the protection panel banner when tracking protection is disabled. -->
     <string name="protection_panel_banner_not_protected_title">Απενεργοποιήσατε την προστασία</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">Η %s είναι εκτός υπηρεσίας. Προτείνουμε να ενεργοποιήσετε ξανά την προστασία.</string>
     <!-- Title text for the protection panel banner when tracking protection is enabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="protection_panel_banner_protected_title">To %s είναι σε επιφυλακή</string>
+
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">Προστατεύεστε. Αν εντοπίσουμε κάτι, θα σας ενημερώσουμε.</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">Ενισχυμένη προστασία από καταγραφή</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">Αν κάτι δεν λειτουργεί σωστά σε αυτόν τον ιστότοπο, δοκιμάστε να απενεργοποιήσετε την προστασία.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Η προστασία είναι ΑΝΕΝΕΡΓΗ. Προτείνουμε να την ενεργοποιήσετε ξανά.</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
@@ -3062,12 +3088,30 @@
     <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
     <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Ενημέρωση τώρα</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Ενημερώστε το πρόγραμμα περιήγησης Firefox σας</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Ένα πιστοποιητικό ρίζας θα λήξει στις 14 Μαρτίου, προκαλώντας διακοπή λειτουργίας ορισμένων λειτουργιών.</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Κάντε ενημέρωση πριν από τις 14 Μαρτίου.</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Ένα πιστοποιητικό ρίζας θα λήξει, προκαλώντας διακοπή λειτουργίας της έκδοσης Firefox σας.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Απομένουν λιγότερες από 7 ημέρες για την ενημέρωση</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Στις 14 Μαρτίου, τα πρόσθετα και άλλες λειτουργίες του Firefox θα σταματήσουν να λειτουργούν επειδή ένα πιστοποιητικό ρίζας θα λήξει.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Τελευταία ευκαιρία για να διατηρήσετε το Firefox σας</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Η έκδοση του Firefox σας θα σταματήσει να λειτουργεί σωστά στις 14 Μαρτίου, επειδή ένα πιστοποιητικό ρίζας θα λήξει.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Προτείνεται ενημέρωση</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Τα πρόσθετα και ορισμένες λειτουργίες θα σταματήσουν να λειτουργούν στις 14 Μαρτίου.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Διαθέτετε μια παλαιότερη έκδοση του Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Κάντε ενημέρωση πριν τις 14 Μαρτίου για να συνεχίσετε να χρησιμοποιείτε τα πρόσθετα και άλλες λειτουργίες.</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Ορισμένες λειτουργίες θα σταματήσουν να λειτουργούν αύριο.</string>
 </resources>

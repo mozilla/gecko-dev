@@ -87,6 +87,9 @@
     <string name="cfr_neg_button_text">വേണ്ട, നന്ദി</string>
 
 
+    <!-- Open in App "contextual feature recommendation" (CFR) -->
+    <!-- Text for the info message. The first parameter is the name of the application.-->
+    <string name="open_in_app_cfr_info_message_2">ഉപയോഗങ്ങളിലെ കണ്ണികൾ തന്നെതാനെ തുറക്കാൻ താങ്ങൾക്കു് %1$s സജ്ജീകരിക്കാം.</string>
     <!-- Text for the positive action button -->
     <string name="open_in_app_cfr_positive_button_text">ക്രമീകരണങ്ങളിലേക്കു പോവുക</string>
     <!-- Text for the negative action button -->
@@ -286,10 +289,16 @@
     <!-- Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
          The first parameter is the name of the app defined in app_name (for example: Fenix)-->
     <string name="browser_menu_new_in_firefox">%1$s -ൽ പുതിയതു്</string>
+    <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
+    <string name="browser_menu_switch_to_desktop_site">ഉപരിഫലക സൈറ്റിലേക്ക് മാറുക</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">മൊപൈൽ സൈറ്റിലേക്കു് മാറുക</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">ഉപകരണങ്ങള്‍</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">പ്രധാന കുറിപ്പടിക്കട്ടയിലേക്കു് മടങ്ങുക</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">പ്രധാന കുറിപ്പടി താളു് അടയ്ക്കുക</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
     <string name="browser_main_menu_content_description_help_button">സഹായം</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -300,6 +309,8 @@
     <string name="browser_save_menu_handlebar_content_description">കരുതിവയ്ക്കൽ കുറിപ്പടി കടലാസു് അടയ്ക്കുക</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
     <string name="browser_tools_menu_handlebar_content_description">കരുക്കുറിപ്പടി കടലാസു് അടയ്ക്കുക</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+    <string name="browser_custom_tab_menu_handlebar_content_description">ഇഷ്ടാനുസൃത ടാബുകുറിപ്പടി താളു് അടയ്ക്കുക</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">കരുതിവയ്ക്കുക</string>
@@ -395,6 +406,8 @@
     <string name="onboarding_home_welcome_title_2">താങ്ങളുടെ സ്വന്തം ഗോളാന്തരവലയിലേക്കു സ്വാഗതം</string>
     <!-- Home onboarding dialog welcome screen description text. -->
     <string name="onboarding_home_welcome_description">ഇനിയും നിറങ്ങൾ. മെച്ചപ്പെട്ട സ്വകാര്യത. ലാഭത്തേക്കാൾ ജനങ്ങളോടുള്ള അതേ പ്രതിബദ്ധത.</string>
+    <!-- Home onboarding dialog sign into sync screen title text. -->
+    <string name="onboarding_home_sync_title_3">ദൃശ്യപ്രതലങ്ങൾ മാറുകാൻ വളരെ എളുപ്പമാണു്</string>
     <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
     <string name="onboarding_home_get_started_button">ഉപയോഗിക്കാൻ തുടങ്ങുക</string>
     <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
@@ -407,6 +420,11 @@
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox സ്വകാര്യത അറിയിപ്പു് </string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_title_nimbus_2">താങ്ങളെ സുരക്ഷിതമായി വയ്ക്കാൻ ഞങ്ങളുടെ കടമയാണു്</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">ദശലക്ഷക്കണക്കിന് ആൾക്കാർ ഫയർഫോക്സിനെ സ്നേഹിക്കുന്നെന്തിന എന്നു് കണ്ടുപ്പിടിക്കുക</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">തനതു അന്വേഷിയായി വയ്ക്കുക</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -451,6 +469,12 @@
     <string name="onboarding_installing_add_on_icon_content_description">ആഡ് ഓൺ അടയാളം സ്ഥാപിക്കുന്നു</string>
     <!-- Content description for the add add-on button. -->
     <string name="onboarding_add_on_add_button_content_description">ആഡ്-ഓൺ ബട്ടൺ ചേർക്കുക</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">5-ൽ %1$s-ആയി സ്ഥാനക്രമിച്ചതു്</string>
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സു് മെച്ചപ്പെടുത്താൻ ഞങ്ങളെ സഹായിക്കുക</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">തകർച്ച വിവരങ്ങൾ തന്നെതാന്നെ അയയ്ക്കുക</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">തകർച്ചവിവരങ്ങളെ കുറിച്ചു് അറിയുക</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
@@ -500,14 +524,22 @@
     <string name="preferences_category_about">വിവരം</string>
     <!-- Preference category for settings related to changing the default search engine -->
     <string name="preferences_category_select_default_search_engine">ഒന്നു് തിരഞ്ഞെടുക്കുക</string>
+    <!-- Summary for preference for settings related to managing search shortcuts for the quick search menu -->
+    <string name="preferences_manage_search_shortcuts_summary">തിരയൽകുറിപ്പടിയിൽ കാണാൻപറ്റുന്ന എഞ്ചിനുകൾ തിരുത്തുക</string>
+    <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
+    <string name="preferences_category_engines_in_search_menu">തിരയൽകുറിപ്പടിയിൽ കാണാൻപറ്റുന്ന എഞ്ചിനുകൾ</string>
     <!-- Preference for settings related to changing the default search engine -->
     <string name="preferences_default_search_engine">സ്വതവേയുള്ള സെര്‍ച്ച് എഞ്ചിന്‍</string>
     <!-- Preference for settings related to Search -->
     <string name="preferences_search">തിരയുക</string>
     <!-- Preference for settings related to Search engines -->
     <string name="preferences_search_engines">തിരയൽ യന്ത്രങ്ങൾ</string>
+    <!-- Preference for settings related to Search engines suggestions-->
+    <string name="preferences_search_engines_suggestions">തിരയൽ യന്ത്രങ്ങളിൽ നിന്നുള്ള നിർദ്ദേശങ്ങൾ</string>
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">വിലാസപ്പട്ട മുൻഗണനകൾ</string>
+    <!-- Preference link to Learn more about Firefox Suggest -->
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">ഫയര്‍ഫോക്സ് സചസ്റ്റിനെപറ്റി കൂടുതലറിയുക</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">ഗൂഗിൾ പ്ലേയിൽ വിലയിരുത്തുക</string>
     <!-- Preference linking to about page for Fenix
@@ -550,12 +582,17 @@
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">അഭ്യർത്ഥനം അയക്കുക</string>
 
+    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">ഈ വെബ്സ്ഥാനത്തിനു പിന്തുണ അഭ്യർത്ഥിക്കുണോ?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">അഭ്യർത്ഥനം അയച്ചു</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_on_for_site">ഈ സൈറ്റിനു് അണച്ചതു്</string>
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">പിന്തുണ അഭ്യർത്ഥനം അയച്ചു</string>
+
+    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site">വെബ്സ്ഥാനം നിലവിൽ പിന്തുണയ്ക്കുന്നില്ല</string>
 
     <!-- Summary of https only preference if https only is set to off -->
     <string name="preferences_https_only_off">അണച്ചതു്</string>
@@ -704,6 +741,12 @@
     <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
     <string name="wallpaper_learn_more">കൂടുതലറിയുക</string>
 
+    <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
+    <string name="wallpapers_onboarding_dialog_explore_more_button_text">ഇനിയും ചുവർകടലാസുകൾ ആരായുക</string>
+
+    <!-- Add-ons general availability nimbus message-->
+    <!-- Title of the Nimbus message for extension general availability-->
+    <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">പുതിയ വിപുലീകരണങ്ങൾ ഇപ്പോൾ ലഭ്യമാണ്</string>
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ കാണുക</string>
 
@@ -1111,6 +1154,8 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">ടാബ് പുനസ്ഥാപിക്കുക</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s-നു വീണ്ടും തുടങ്ങണ്ടി വന്നു</string>
     <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
     <string name="unsubmitted_crash_dialog_checkbox_label">തകർച്ച വിവരങ്ങൾ തന്നെതാന്നെ അയയ്ക്കുക</string>
 
@@ -1766,12 +1811,18 @@
     <string name="saved_login_copy_username">ഉപയോക്തൃനാമം പകര്‍ത്തുക</string>
     <!-- Content Description (for screenreaders etc) read for the button to clear a username while editing a login -->
     <string name="saved_login_clear_username">ഉപയോക്തൃപ്പേരു് മായ്ക്കുക</string>
+    <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
+    <string name="saved_login_clear_hostname">ഹോസ്റ്റ്നാമം കളയുക</string>
     <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
     <string name="saved_login_open_site">അന്വേഷിയിൽ വെബ്സ്ഥാനം തുറക്കുക</string>
     <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
     <string name="saved_login_reveal_password">രഹസ്യവാക്ക് കാണിക്കുക</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">രഹസ്യവാക്ക് മറയ്ക്കുക</string>
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
+    <string name="logins_biometric_prompt_message_2">കരുതിവച്ച രഹസ്യവാക്കുകൾ കാണാൻ പൂട്ടുതുറക്കുക</string>
+    <!-- Title of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_title_2">താങ്ങളുടെ കരുതിവച്ച രഹസ്യവാക്കുകൾ സുരക്ഷിതമാക്കുക</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">പിന്നീട്</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1788,6 +1839,9 @@
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">അവസാനം ഉപയോഗിച്ചത്</string>
 
+    <!-- Content description (not visible, for screen readers etc.) -->
+    <string name="saved_logins_menu_dropdown_chevron_icon_content_description_2">രഹസ്യവാക്കു് കുറിപ്പടി അടുക്കുക</string>
+
     <!-- Autofill -->
     <!-- Preference and title for managing the autofill settings -->
     <string name="preferences_autofill">തന്നെതാനെ പൂരിപ്പിക്കുക</string>
@@ -1795,6 +1849,10 @@
     <string name="preferences_addresses">വിലാസങ്ങള്‍</string>
     <!-- Preference and title for managing the settings for payment methods -->
     <string name="preferences_credit_cards_2">പണം കൊടുക്കൽ മുറകൾ</string>
+    <!-- Preference for saving and autofilling credit cards -->
+    <string name="preferences_credit_cards_save_and_autofill_cards_2">പണം കൊടുക്കൽ രീതികൾ കരുതിവച്ചു് പൂരിപ്പിക്കുക</string>
+    <!-- Preference summary for saving and autofilling payment method data. Parameter will be replaced by app name. -->
+    <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s താങ്ങൾ കരുതിവയ്ക്കുന്ന എല്ലാ പണം കൊടുക്കൽ രീതികളിൽ രൂപമാറ്റം വരുത്താരുണ്ടു്</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">ഉപകരണങ്ങളിലുടനീളം ചീട്ടുകൾ സമന്വയിപ്പിക്കുക</string>
 
@@ -1811,6 +1869,9 @@
 
     <!-- Preference for saving and filling addresses -->
     <string name="preferences_addresses_save_and_autofill_addresses_2">വിലാസങ്ങൾ കരുതവച്ചുിട്ടു് പൂരിപ്പിക്കുക</string>
+
+    <!-- Preference summary for saving and filling address data -->
+    <string name="preferences_addresses_save_and_autofill_addresses_summary_2">ഫോൺ നമ്പറുകളും ഇ-തപാൽ വിലാസങ്ങളും ഉൾപ്പെടുന്നു</string>
 
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">ചീട്ടു് ചേർക്കുക</string>
@@ -1846,6 +1907,10 @@
     <string name="credit_cards_number_validation_error_message_2">സാധുവായൊരു ചീട്ടു് അക്കം നല്കുക</string>
     <!-- Error message for card name on card validation -->
     <string name="credit_cards_name_on_card_validation_error_message_2">പേരു് ഇടുക</string>
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
+    <string name="credit_cards_biometric_prompt_message">കരുതിവച്ച ചീട്ടുകളെ കാണാൻ പൂട്ടുതുറക്കുക</string>
+    <!-- Title of warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_title_2">താങ്ങളുടെ കരുതിവച്ച പണം കൊടുക്കൽ രീതികളെ സുരക്ഷിതമാക്കുക</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">ഇപ്പോൾ സജ്ജമാക്കുക</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -1906,6 +1971,8 @@
     <string name="search_add_custom_engine_name_label">പേരു്</string>
     <!-- Placeholder text shown in the Search Engine Name text field before a user enters text -->
     <string name="search_add_custom_engine_name_hint_2">തിരയല്യന്ത്രത്തിന്റെ പേരു്</string>
+    <!-- Placeholder text shown in the Search String TextField before a user enters text -->
+    <string name="search_add_custom_engine_search_string_hint_2">പരത്താനായ യു.ആർ.എൽ</string>
     <!-- Description text for the Search String TextField. The %s is part of the string -->
     <string name="search_add_custom_engine_search_string_example" formatted="false">അന്വേഷണ വാചകത്തിന് പകരം “%s” എന്നത് ഉപയോഗിക്കുക. ഉദാഹരണം: \nhttps://www.google.com/search?q=%s</string>
 
@@ -2020,6 +2087,9 @@
     <!-- The text displayed when a synced device has no tabs to show in the list of Synced Tabs. -->
     <string name="synced_tabs_no_open_tabs">ടാബൊന്നും തുറന്നിരിക്കുന്നില്ല</string>
 
+    <!-- Content description for collapsing a group of synced tabs. -->
+    <string name="synced_tabs_collapse_group">സമന്വയിപ്പിച്ച ടാബുക്കൂട്ടം ചുരുക്കുക</string>
+
     <!-- Top Sites -->
     <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
     <string name="shortcut_max_limit_title">കുറുക്കുവഴി പരിധി എത്തി</string>
@@ -2115,6 +2185,8 @@
     <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">%s-ന്റെ പരസ്യം</string>
     <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
     <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">ഇപ്പോൾ പരിശോധിക്കുക</string>
+    <!-- Title for warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_title">ഉൽപ്പണം ലഭ്യമല്ല</string>
     <!-- Title for info card displayed after the user reports a product is back in stock. -->
     <string name="review_quality_check_analysis_requested_info_title">വിവരം അറിയിക്കുന്നതിനു് നന്ദി!</string>
     <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
@@ -2210,6 +2282,8 @@
     <string name="translation_error_could_not_translate_warning_text">വിവർത്തനം ചെയ്യുമ്പോൾ ഒരു കുഴപ്പമുണ്ടായി. ദയവായി വീണ്ടും ശ്രമിച്ചു് നോക്കുക.</string>
     <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
     <string name="translation_error_could_not_load_languages_warning_text">ഭാഷാകൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. താങ്ങളുടെ ഗോളാന്തരവല സമ്പർക്കം പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.</string>
+    <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
+    <string name="translation_error_language_not_supported_warning_text">ക്ഷമിക്കണം, ഞങ്ങൾ ഇതുവരെ %1$s-നെ പിന്തുണയ്ക്കുന്നില്ല.</string>
     <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
     <string name="translation_in_progress_snackbar">വിവർത്തനം ചെയ്യുന്നു…</string>
 
@@ -2228,9 +2302,14 @@
     <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
     <string name="translation_option_bottom_sheet_about_translations">%1$s-ലെ വിവർത്തനങ്ങളെക്കുറിച്ച്</string>
 
+    <!-- The title of the warning card informs the user that an error has occurred at page settings. -->
+    <string name="translation_option_bottom_sheet_error_warning_text">ചില ക്രമീകരണങ്ങൾ താല്ക്കാലികമായി ലഭ്യമല്ല.</string>
+
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">വിവർത്തനങ്ങൾ</string>
+    <!-- Toggle switch label that indicates that the browser should signal or indicate when a translation is possible for any page. -->
+    <string name="translation_settings_offer_to_translate">സാധ്യമാകുമ്പോൾ വിവർത്തനം ചെയ്യാൻ വാഗ്ദാനം കൊടുക്കുക</string>
     <!-- Section header text that begins the section of a list of different options the user may select to adjust their translation preferences. -->
     <string name="translation_settings_translation_preference">വിവർത്തനത്തുള്ള മുൻഗണനകള്‍</string>
     <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->

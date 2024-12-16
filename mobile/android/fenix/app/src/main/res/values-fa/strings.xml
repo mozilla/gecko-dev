@@ -12,6 +12,8 @@
     <string name="content_description_private_browsing_button">فعال کردن حالت خصوصی</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">غیرفعال کردن حالت مرور خصوصی</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">مرور ناشناس</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">جست‌وجو یا ورود نشانی</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -94,13 +96,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">رد کردن</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">قوی‌ترین قابلیت حفظ حریم خصوصی ما هم‌اکنون، ردیاب‌های میان‌پایگاهی را منزوی می‌کند.</string>
-
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">دربارهٔ محافظت کامل در برابر کلوچک‌ها بیاموزید</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -114,11 +109,11 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">برای جابجایی بین صفحات در تاریخچه این زبانه، فلش‌ها را نگه دارید.</string>
 
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">جدید: فلش‌های عقب و جلو با یک ضربه</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">از پیمایش سریع‌تر که همیشه در دسترس شماست لذت ببرید.</string>
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">نوار ابزار را به چپ یا راست بکشید تا زبانه‌ها تغییر کنند</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">به چپ یا راست بکشید تا زبانه تغییر کنید. روی زبانه آخر خود به چپ بکشید تا یک زبانه جدید باز کنید.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">دسترسی به دوربین مورد نیاز است. به تنظیمات اندروید بروید، روی مجوزها ضربه بزنید و بعد روی اجازه ضربه بزنید.</string>
@@ -199,6 +194,17 @@
     <string name="browser_menu_stop">توقف</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">افزونه‌ها</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">%s را به سلیقه خود تنظیم کنید</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">شما افزونه‌هایی نصب کرده‌اید، اما فعال نیستند</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">افزونه‌ها مرور شما را بهبود می‌بخشند، از تغییر ظاهر و عملکرد %s تا افزایش حریم خصوصی و ایمنی.</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">برای استفاده از افزونه‌ها، آن‌ها را در تنظیمات فعال کنید یا گزینه «%s» زیر را انتخاب کنید.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">بیشتر بدانید</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -208,6 +214,12 @@
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">افزودن %1$s</string>
+    <!-- Browser menu button that opens AMO in a tab -->
+    <string name="browser_menu_discover_more_extensions">کشف افزونه‌های بیشتر</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">موقتا غیرفعال شده</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">هنوز هیچ افزونه‌ای فعال نیست</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">اطلاعات حساب</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -220,8 +232,18 @@
     <string name="browser_menu_library">کتابخانه</string>
     <!-- Browser menu toggle that requests a desktop site -->
     <string name="browser_menu_desktop_site">پایگاه رومیزی</string>
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_regular_tab">باز کردن در زبانه معمولی</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">افزودن به صفحهٔ خانگی</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">افزودن برنامه به صفحه اصلی</string>
+    <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+    <string name="browser_menu_add_to_homescreen_2">افزودن به صفحه اصلی…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">افزودن برنامه به صفحه اصلی…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">دستگاه‌های Xiaomi ممکن است نیاز به مجوزهای اضافی برای افزودن میانبرها به صفحه اصلی داشته باشند. لطفا تنظیمات خود را بررسی کنید.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">همگام‌سازی مجدد</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -271,6 +293,10 @@
     <string name="browser_menu_new_in_firefox">جدید در %1$s</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">ابزارها</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">راهنما</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">تنظیمات</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ذخیره</string>
@@ -322,11 +348,9 @@
     <string name="search_header_menu_item_2">این بار جست‌وجو در:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">موتور جست‌وجوی %s</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">موتور جست‌وجوی %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">با صفحهٔ خانگی شخصی‌سازی شدهٔ خود آشنا شوید. زبانه‌های اخیر، نشانک‌ها و نتایج جست‌وجوها در این‌جا ظاهر می‌شوند.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">به اینترنتی شخصی‌تر خوش‌آمدید</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -548,6 +572,8 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">بازگشت به داخل</string>
+    <!-- Title for the customize home screen section with bookmarks. -->
+    <string name="customize_toggle_bookmarks">نشانک‌ها</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">بازدید‌های اخیر</string>
@@ -657,13 +683,13 @@
     <string name="exceptions_empty_message_learn_more_link">بیشتر بدانید</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">میزان استفاده و داده فنی</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">میزان استفاده و داده فنی</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">به اشتراک‌گذاری کارایی، کاربرد، سخت‌افزار و اطلاعات سفارشی‌سازی در مورد مرورگر شما با موزیلا به ما کمک می کند تا %1$s بهتری داشته باشیم</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">ارزیابی داده</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">داده‌های کاربردی اولیه را با Adjust، فراهم‌کنندهٔ بازریابی سیستم موبایل ما، اشتراک بگذارید</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">داده‌های کاربردی اولیه را با Adjust، فراهم‌کنندهٔ بازریابی سیستم موبایل ما، اشتراک بگذارید</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">مطالعات</string>
     <!-- Summary for studies preferences -->
@@ -951,6 +977,9 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">بازآوری زبانه‌</string>
 
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">بستن</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">آيا از حذف اين پوشه مطمئن هستيد؟</string>
@@ -960,8 +989,6 @@
     <string name="bookmark_delete_negative">لغو</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">افزودن پوشه</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">نشانک ذخیره شد!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ویرایش</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1270,8 +1297,6 @@
     <string name="snackbar_tabs_closed">زبانه‌های بسته شده</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">زبانه‌های بسته شده: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">نشانک‌ها ذخیره شدند!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">به میان‌برها اضافه شد!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1684,6 +1709,8 @@
     <string name="addresses_edit_address">ویرایش نشانی</string>
     <!-- Title of the "Manage addresses" screen -->
     <string name="addresses_manage_addresses">مدیریت نشانی‌ها</string>
+    <!-- The header for the name of an address. Name represents a person's full name, typically made up of a first, middle and last name, e.g. John Joe Doe. -->
+    <string name="addresses_name">نام</string>
     <!-- The header for the street address of an address -->
     <string name="addresses_street_address">نشانی خیابان</string>
     <!-- The header for the city of an address -->
@@ -1953,6 +1980,23 @@
     <!-- Clickable text that links to review quality check recommended products support article. -->
     <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">بیشتر بدانید</string>
 
+    <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
+    <string name="review_quality_check_contextual_onboarding_learn_more_link">بیشتر بدانید</string>
+    <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">نکات حفظ محرمانگی</string>
+    <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
+    <string name="review_quality_check_contextual_onboarding_terms_use">شرایط استفاده</string>
+    <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
+    <string name="review_quality_check_contextual_onboarding_secondary_button_text">اکنون نه</string>
+    <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
+    <string name="review_quality_check_highlights_show_less">نمایش کمتر</string>
+    <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
+    <string name="review_quality_check_highlights_show_more">نمایش بیشتر</string>
+    <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
+    <string name="review_quality_check_highlights_type_price">قیمت</string>
+    <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting"   -->
+    <string name="surrounded_with_quotes">«%s»</string>
+
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
     <string name="a11y_action_label_collapse">جمع کردن</string>
@@ -1969,6 +2013,12 @@
     <string name="a11y_links_title">پیوندها</string>
 
     <!-- Translations feature-->
+
+
+    <!-- Text that links to additional information about the Firefox translations feature. -->
+    <string name="translations_bottom_sheet_info_message_learn_more">بیشتر بدانید</string>
+    <!-- Button text on the translations dialog to begin a translation of the website. -->
+    <string name="translations_bottom_sheet_positive_button">ترجمه</string>
 
 
     <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
@@ -1988,5 +2038,39 @@
     <string name="download_language_all_languages_item_preference">همه‌ی زبان‌ها</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">حذف</string>
+
+    <!-- The continue button label -->
+    <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">ادامه</string>
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice_2">نکات حفظ محرمانگی</string>
+    <!-- The submit button label text -->
+    <string name="micro_survey_submit_button_label">ارسال</string>
+    <!-- The survey completion confirmation text -->
+    <string name="micro_survey_feedback_confirmation">با تشکر از بازخورد شما!</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_1" tools:ignore="UnusedResources">بسیار راضی</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_2" tools:ignore="UnusedResources">راضی</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_3" tools:ignore="UnusedResources">بی‌طرف</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_4" tools:ignore="UnusedResources">ناراضی</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_5" tools:ignore="UnusedResources">بسیار ناراضی</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">از آن استفاده نمی‌کنم</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">آرم Firefox</string>
+    <!-- Content description for "X" button that is closing microsurvey. -->
+    <string name="microsurvey_close_button_content_description">بستن</string>
+
+    <!-- Debug drawer logins -->
+    <!-- The title of the Logins feature in the Debug Drawer. -->
+    <string name="debug_drawer_logins_title">ورودها</string>
+
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">نشانی‌ها</string>
 
     </resources>
