@@ -58,7 +58,7 @@ object Versions {
         const val browser = "1.8.0"
         const val cardview = "1.0.0"
         const val collection = "1.4.5"
-        const val compose_bom = "2024.10.01"
+        const val compose_bom = "2024.12.01"
         const val concurrent = "1.2.0"
         const val constraintlayout = "2.2.0"
         const val constraintlayout_compose = "1.1.0"
