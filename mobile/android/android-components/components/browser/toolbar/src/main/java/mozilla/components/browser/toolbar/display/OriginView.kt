@@ -18,9 +18,6 @@ import androidx.core.view.isVisible
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.R
 
-private const val TITLE_VIEW_WEIGHT = 5.7f
-private const val URL_VIEW_WEIGHT = 4.3f
-
 /**
  * View displaying the URL and optionally the title of a website.
  */
@@ -89,12 +86,13 @@ internal class OriginView @JvmOverloads constructor(
     init {
         orientation = VERTICAL
 
+        setVerticalGravity(Gravity.CENTER_VERTICAL)
+
         addView(
             titleView,
             LayoutParams(
                 LayoutParams.MATCH_PARENT,
-                0,
-                TITLE_VIEW_WEIGHT,
+                LayoutParams.WRAP_CONTENT,
             ),
         )
 
@@ -102,8 +100,7 @@ internal class OriginView @JvmOverloads constructor(
             urlView,
             LayoutParams(
                 LayoutParams.MATCH_PARENT,
-                0,
-                URL_VIEW_WEIGHT,
+                LayoutParams.WRAP_CONTENT,
             ),
         )
 
