@@ -68,10 +68,9 @@ already_AddRefed<Worker> Worker::Constructor(
       return nullptr;
     }
   } else {
-    compliantStringHolder = Some(nsAutoString(
-        aScriptURL.IsUSVString() ? aScriptURL.GetAsUSVString()
-                                 : aScriptURL.GetAsTrustedScriptURL().mData));
-    compliantString = compliantStringHolder.ptr();
+    compliantString = aScriptURL.IsUSVString()
+                          ? &aScriptURL.GetAsUSVString()
+                          : &aScriptURL.GetAsTrustedScriptURL().mData;
   }
   MOZ_ASSERT(compliantString);
 
