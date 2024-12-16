@@ -39,15 +39,6 @@ add_task(async function test_serverError() {
       "serverError-title",
       "Correct error page title is set"
     );
-
-    const responseStatusLabel = doc.getElementById(
-      "response-status-label"
-    ).textContent;
-    is(
-      responseStatusLabel,
-      "Error code: 500 Internal Server Error",
-      "Correct response status message is set"
-    );
   });
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
