@@ -73,7 +73,6 @@ import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
-import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
@@ -589,8 +588,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isOpenInRegularTabSupported = selectedTab?.let { session ->
                                         // This feature is gated behind Nightly for the time being.
                                         Config.channel.isNightlyOrDebug &&
-                                            // This feature is explicitly for users opening links in private tabs.
-                                            settings.openLinksInAPrivateTab &&
                                             // and is only visible in private tabs.
                                             session.content.private
                                     } ?: false,
