@@ -279,6 +279,7 @@ function setResponseStatus(shortDesc) {
 
   if (responseStatus >= 400 && responseStatusText) {
     let responseStatusLabel = document.createElement("p");
+    responseStatusLabel.id = "response-status-label"; // id for testing
     document.l10n.setAttributes(
       responseStatusLabel,
       "neterror-response-status-code",
