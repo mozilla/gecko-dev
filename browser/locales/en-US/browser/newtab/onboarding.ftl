@@ -418,3 +418,8 @@ onboarding-checklist-pin = Pin { -brand-short-name } to taskbar
 onboarding-checklist-import = Import from previous browser
 onboarding-checklist-extension = Add an extension
 onboarding-checklist-sign-up = Sign up or sign in to your account
+
+## Tab Groups feature onboarding strings
+
+tab-groups-onboarding-feature-callout-title = Try tab groups for less clutter, more focus
+tab-groups-onboarding-feature-callout-subtitle = Get organized by dragging one tab on top of another to create your first group.
