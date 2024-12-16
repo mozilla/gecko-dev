@@ -694,6 +694,7 @@ skip-if = ["os == 'android'"] # bug 1848398 - style cache miss on Android.
 
 ["test_ext_webRequest_type_json.js"]
 prefs = ["javascript.options.experimental.import_attributes=true"]
+skip-if = ["release_or_beta"] # Bug 1777526 - enable JSON modules (import attributes) on non-Nightly
 
 ["test_ext_webRequest_userContextId.js"]
 
