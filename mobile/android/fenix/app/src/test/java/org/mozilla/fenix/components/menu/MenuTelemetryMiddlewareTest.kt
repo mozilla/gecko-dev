@@ -137,7 +137,6 @@ class MenuTelemetryMiddlewareTest {
         store.dispatch(MenuAction.Navigate.CustomizeHomepage).joinBlocking()
 
         assertTelemetryRecorded(AppMenu.customizeHomepage)
-        assertTelemetryRecorded(HomeScreen.customizeHomeClicked)
     }
 
     @Test

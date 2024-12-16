@@ -10,7 +10,6 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.AppMenu
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.HomeMenu
-import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Menu
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
@@ -88,10 +87,7 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
-            MenuAction.Navigate.CustomizeHomepage -> {
-                AppMenu.customizeHomepage.record(NoExtras())
-                HomeScreen.customizeHomeClicked.record(NoExtras())
-            }
+            MenuAction.Navigate.CustomizeHomepage -> AppMenu.customizeHomepage.record(NoExtras())
 
             MenuAction.Navigate.Downloads -> Events.browserMenuAction.record(
                 Events.BrowserMenuActionExtra(

@@ -7755,6 +7755,7 @@ app_menu:
       User has tapped on Customize Homepage in the app menu.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1841156
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932894
     data_reviews:
       - https://github.com/mozilla-mobile/firefox-android/pull/2726
     data_sensitivity:
@@ -10364,7 +10365,7 @@ home_screen:
     expires: never
   customize_home_clicked:
     type: event
-    description: A user clicked on Customize home from the home screen menu.
+    description: A user clicked on Customize home button from the home screen.
     bugs:
       - https://github.com/mozilla-mobile/fenix/pull/21344
     data_reviews:
