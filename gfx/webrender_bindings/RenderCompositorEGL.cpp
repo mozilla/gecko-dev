@@ -159,7 +159,7 @@ RenderedFrameId RenderCompositorEGL::EndFrame(
   // Rendering on Wayland has to be atomic (buffer attach + commit) and
   // wayland surface is also used by main thread so lock it before
   // we paint at SwapBuffers().
-  UniquePtr<MozContainerSurfaceLock> lock;
+  UniquePtr<widget::WaylandSurfaceLock> lock;
   if (auto* gtkWidget = mWidget->AsGTK()) {
     lock = gtkWidget->LockSurface();
   }
