@@ -83,8 +83,10 @@ RefPtr<WaylandBuffer> SurfacePoolWayland::ObtainBufferFromPool(
 
   RefPtr<WaylandBuffer> buffer;
   if (aGL) {
+#if 0
     buffer = widget::WaylandBufferDMABUF::Create(
         LayoutDeviceIntSize::FromUnknownSize(aSize), aGL);
+#endif
   } else {
     buffer = widget::WaylandBufferSHM::Create(
         LayoutDeviceIntSize::FromUnknownSize(aSize));
