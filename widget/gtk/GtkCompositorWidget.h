@@ -11,7 +11,7 @@
 #include "mozilla/widget/CompositorWidget.h"
 #include "WindowSurfaceProvider.h"
 #include "mozilla/UniquePtr.h"
-#include "WaylandSurfaceLock.h"
+#include "MozContainerSurfaceLock.h"
 
 class nsIWidget;
 class nsWindow;
@@ -96,7 +96,7 @@ class GtkCompositorWidget : public CompositorWidget,
   void NotifyClientSizeChanged(const LayoutDeviceIntSize& aClientSize) override;
   GtkCompositorWidget* AsGtkCompositorWidget() override { return this; }
 
-  UniquePtr<WaylandSurfaceLock> LockSurface();
+  UniquePtr<MozContainerSurfaceLock> LockSurface();
 
  private:
 #if defined(MOZ_WAYLAND)

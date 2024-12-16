@@ -148,7 +148,6 @@ bool NativeLayerRootWayland::CommitToScreen() {
 bool NativeLayerRootWayland::CommitToScreen(const MutexAutoLock& aProofOfLock) {
   mFrameInProcess = false;
 
-#if 0
   MozContainerSurfaceLock lock(mContainer);
   struct wl_surface* containerSurface = lock.GetSurface();
   if (!containerSurface) {
@@ -241,7 +240,7 @@ bool NativeLayerRootWayland::CommitToScreen(const MutexAutoLock& aProofOfLock) {
   } else {
     wl_surface_commit(containerSurface);
   }
-#endif
+
   wl_display_flush(widget::WaylandDisplayGet()->GetDisplay());
   return true;
 }
@@ -256,26 +255,22 @@ void NativeLayerRootWayland::RequestFrameCallback(CallbackFunc aCallbackFunc,
   for (const RefPtr<NativeLayerWayland>& layer : mSublayersOnMainThread) {
     layer->RequestFrameCallback(mCallbackMultiplexHelper);
   }
-#if 0
+
   MozContainerSurfaceLock lockContainer(mContainer);
   struct wl_surface* wlSurface = lockContainer.GetSurface();
   if (wlSurface) {
     wl_surface_commit(wlSurface);
     wl_display_flush(widget::WaylandDisplayGet()->GetDisplay());
   }
-#endif
 }
 
-#if 0
 static void sAfterFrameClockAfterPaint(
     GdkFrameClock* aClock, NativeLayerRootWayland* aNativeLayerRoot) {
   aNativeLayerRoot->AfterFrameClockAfterPaint();
 }
-#endif
 
 void NativeLayerRootWayland::AfterFrameClockAfterPaint() {
   MutexAutoLock lock(mMutex);
-#if 0
   MozContainerSurfaceLock lockContainer(mContainer);
   struct wl_surface* containerSurface = lockContainer.GetSurface();
   for (const RefPtr<NativeLayerWayland>& layer : mSublayersOnMainThread) {
@@ -284,11 +279,9 @@ void NativeLayerRootWayland::AfterFrameClockAfterPaint() {
   if (containerSurface) {
     wl_surface_commit(containerSurface);
   }
-#endif
 }
 
 void NativeLayerRootWayland::UpdateLayersOnMainThread() {
-#if 0
   AssertIsOnMainThread();
   MutexAutoLock lock(mMutex);
 
@@ -354,7 +347,6 @@ void NativeLayerRootWayland::UpdateLayersOnMainThread() {
         g_signal_connect_after(frameClock, "after-paint",
                                G_CALLBACK(sAfterFrameClockAfterPaint), this);
   }
-#endif
 }
 
 NativeLayerWayland::NativeLayerWayland(
@@ -604,7 +596,6 @@ void NativeLayerWayland::NotifySurfaceReady() {
 void NativeLayerWayland::DiscardBackbuffers() {}
 
 void NativeLayerWayland::Commit() {
-#if 0
   MutexAutoLock lock(mMutex);
 
   if (mDirtyRegion.IsEmpty() && mHasBufferAttached) {
@@ -621,7 +612,6 @@ void NativeLayerWayland::Commit() {
   mFrontBuffer->AttachAndCommit(mWlSurface);
   mHasBufferAttached = true;
   mDirtyRegion.SetEmpty();
-#endif
 }
 
 void NativeLayerWayland::Unmap() {

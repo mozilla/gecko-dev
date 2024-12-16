@@ -150,18 +150,14 @@ LayoutDeviceIntRegion GtkCompositorWidget::GetTransparentRegion() {
 #ifdef MOZ_WAYLAND
 RefPtr<mozilla::layers::NativeLayerRoot>
 GtkCompositorWidget::GetNativeLayerRoot() {
-#  if 0
   if (gfx::gfxVars::UseWebRenderCompositor()) {
     if (!mNativeLayerRoot) {
-      LOG("GtkCompositorWidget::GetNativeLayerRoot [%p] create\n",
-          (void*)mWidget.get());
       MOZ_ASSERT(mWidget && mWidget->GetMozContainer());
-      mNativeLayerRoot = layers::NativeLayerRootWayland::Create(
-          MOZ_WL_SURFACE(mWidget->GetMozContainer()));
+      mNativeLayerRoot = layers::NativeLayerRootWayland::CreateForMozContainer(
+          mWidget->GetMozContainer());
     }
     return mNativeLayerRoot;
   }
-#  endif
   return nullptr;
 }
 #endif
@@ -212,7 +208,7 @@ bool GtkCompositorWidget::IsPopup() {
 }
 #endif
 
-UniquePtr<WaylandSurfaceLock> GtkCompositorWidget::LockSurface() {
+UniquePtr<MozContainerSurfaceLock> GtkCompositorWidget::LockSurface() {
   return mWidget ? mWidget->LockSurface() : nullptr;
 }
 
