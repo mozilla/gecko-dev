@@ -24,6 +24,7 @@ class SystemSettingsRobot {
     }
 
     fun verifyMakeDefaultBrowser() {
+        mDevice.waitForIdle()
         Log.i(TAG, "verifyMakeDefaultBrowser: Trying to verify the intent to the default apps settings")
         Intents.intended(hasAction(SettingsRobot.DEFAULT_APPS_SETTINGS_ACTION))
         Log.i(TAG, "verifyMakeDefaultBrowser: Verified the intent to the default apps settings")
