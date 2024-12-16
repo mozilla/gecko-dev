@@ -20,6 +20,7 @@ import androidx.compose.ui.test.swipeUp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.TestHelper.mDevice
 
 class RedesignedMainMenuRobot {
 
@@ -243,6 +244,7 @@ class RedesignedMainMenuRobot {
             TAG,
             "clickOpenInAppButton: Clicked the Open in App button from the new main menu design.",
         )
+        mDevice.waitForIdle()
     }
 
     fun verifyNoExtensionsButton(composeTestRule: ComposeTestRule) {
