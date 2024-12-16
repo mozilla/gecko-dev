@@ -445,7 +445,6 @@ static nsCString GetWindowManagerName() {
 // https://wiki.archlinux.org/title/Environment_variables#Examples
 // https://wiki.archlinux.org/title/Xdg-utils#Environment_variables
 const nsCString& GetDesktopEnvironmentIdentifier() {
-  MOZ_ASSERT(NS_IsMainThread());
   static const nsDependentCString sIdentifier = [] {
     nsCString ident = [] {
       auto Env = [](const char* aKey) -> const char* {
