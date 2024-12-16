@@ -58,6 +58,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   TranslationsTelemetry:
     "chrome://global/content/translations/TranslationsTelemetry.sys.mjs",
+  TranslationsUtils:
+    "chrome://global/content/translations/TranslationsUtils.sys.mjs",
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
 });
 
@@ -995,7 +997,10 @@ export class TranslationsParent extends JSWindowActorParent {
   static getPreferredLanguages({ excludeLangTags } = {}) {
     if (TranslationsParent.#preferredLanguages) {
       return TranslationsParent.#preferredLanguages.filter(
-        langTag => !excludeLangTags?.includes(langTag)
+        langTag =>
+          !excludeLangTags?.some(langTagToExclude =>
+            lazy.TranslationsUtils.langTagsMatch(langTagToExclude, langTag)
+          )
       );
     }
 
@@ -1028,7 +1033,10 @@ export class TranslationsParent extends JSWindowActorParent {
     TranslationsParent.#preferredLanguages = [...preferredLanguages];
 
     return TranslationsParent.#preferredLanguages.filter(
-      langTag => !excludeLangTags?.includes(langTag)
+      langTag =>
+        !excludeLangTags?.some(langTagToExclude =>
+          lazy.TranslationsUtils.langTagsMatch(langTagToExclude, langTag)
+        )
     );
   }
 
@@ -1369,10 +1377,13 @@ export class TranslationsParent extends JSWindowActorParent {
       }
     }
 
-    let appLangTag = new Intl.Locale(Services.locale.appLocaleAsBCP47).language;
-
-    // Don't offer to download the app's language.
-    displayNames.delete(appLangTag);
+    const appLangTag = Services.locale.appLocaleAsBCP47;
+    for (const langTag of displayNames.keys()) {
+      if (lazy.TranslationsUtils.langTagsMatch(langTag, appLangTag)) {
+        displayNames.delete(langTag);
+        break;
+      }
+    }
 
     // Sort the list of languages by the display names.
     return [...displayNames.entries()]
@@ -2293,7 +2304,7 @@ export class TranslationsParent extends JSWindowActorParent {
 
     let matchedRecords = new Set();
 
-    if (languageA === languageB) {
+    if (lazy.TranslationsUtils.langTagsMatch(languageA, languageB)) {
       // There are no records if the requested language and app language are the same.
       return matchedRecords;
     }
@@ -2301,7 +2312,10 @@ export class TranslationsParent extends JSWindowActorParent {
     const addLanguagePair = (fromLang, toLang) => {
       let matchFound = false;
       for (const record of records.values()) {
-        if (record.fromLang === fromLang && record.toLang === toLang) {
+        if (
+          lazy.TranslationsUtils.langTagsMatch(record.fromLang, fromLang) &&
+          lazy.TranslationsUtils.langTagsMatch(record.toLang, toLang)
+        ) {
           matchedRecords.add(record);
           matchFound = true;
         }
@@ -2846,7 +2860,11 @@ export class TranslationsParent extends JSWindowActorParent {
       return false;
     }
     let languagePairs = await TranslationsParent.getLanguagePairs();
-    return Boolean(languagePairs.find(({ fromLang }) => fromLang === langTag));
+    return Boolean(
+      languagePairs.find(({ fromLang }) =>
+        lazy.TranslationsUtils.langTagsMatch(fromLang, langTag)
+      )
+    );
   }
 
   /**
@@ -2861,7 +2879,11 @@ export class TranslationsParent extends JSWindowActorParent {
       return false;
     }
     let languagePairs = await TranslationsParent.getLanguagePairs();
-    return Boolean(languagePairs.find(({ toLang }) => toLang === langTag));
+    return Boolean(
+      languagePairs.find(({ toLang }) =>
+        lazy.TranslationsUtils.langTagsMatch(toLang, langTag)
+      )
+    );
   }
 
   /**
@@ -2921,7 +2943,9 @@ export class TranslationsParent extends JSWindowActorParent {
 
     const determineIsDocLangTagSupported = () =>
       Boolean(
-        languagePairs.find(({ fromLang }) => fromLang === langTags.docLangTag)
+        languagePairs.find(({ fromLang }) =>
+          lazy.TranslationsUtils.langTagsMatch(fromLang, langTags.docLangTag)
+        )
       );
 
     // First try to get the langTag from the document's markup.
@@ -2984,7 +3008,13 @@ export class TranslationsParent extends JSWindowActorParent {
       return langTags;
     }
 
-    if (TranslationsParent.getWebContentLanguages().has(langTags.docLangTag)) {
+    if (
+      TranslationsParent.getWebContentLanguages()
+        .keys()
+        .some(langTag =>
+          lazy.TranslationsUtils.langTagsMatch(langTag, langTags.docLangTag)
+        )
+    ) {
       // The doc language has been marked as a known language by the user, do not
       // offer a translation.
       const message =

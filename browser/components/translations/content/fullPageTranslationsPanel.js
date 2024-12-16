@@ -14,6 +14,8 @@ ChromeUtils.defineESModuleGetters(this, {
   PageActions: "resource:///modules/PageActions.sys.mjs",
   TranslationsTelemetry:
     "chrome://browser/content/translations/TranslationsTelemetry.sys.mjs",
+  TranslationsUtils:
+    "chrome://global/content/translations/TranslationsUtils.sys.mjs",
   TranslationsPanelShared:
     "chrome://browser/content/translations/TranslationsPanelShared.sys.mjs",
 });
@@ -445,8 +447,14 @@ var FullPageTranslationsPanel = new (class {
     if (
       requestedTranslationPair &&
       !isEngineReady &&
-      toMenuList.value === requestedTranslationPair.toLanguage &&
-      fromMenuList.value === requestedTranslationPair.fromLanguage
+      TranslationsUtils.langTagsMatch(
+        fromMenuList.value,
+        requestedTranslationPair.fromLanguage
+      ) &&
+      TranslationsUtils.langTagsMatch(
+        toMenuList.value,
+        requestedTranslationPair.toLanguage
+      )
     ) {
       // A translation has been requested, but is not ready yet.
       document.l10n.setAttributes(
@@ -462,16 +470,22 @@ var FullPageTranslationsPanel = new (class {
         "translations-panel-translate-button"
       );
       translateButton.disabled =
-        // The translation languages are the same, don't allow this translation.
-        toMenuList.value === fromMenuList.value ||
         // No "to" language was provided.
         !toMenuList.value ||
         // No "from" language was provided.
         !fromMenuList.value ||
+        // The translation languages are the same, don't allow this translation.
+        TranslationsUtils.langTagsMatch(toMenuList.value, fromMenuList.value) ||
         // This is the requested translation pair.
         (requestedTranslationPair &&
-          requestedTranslationPair.fromLanguage === fromMenuList.value &&
-          requestedTranslationPair.toLanguage === toMenuList.value);
+          TranslationsUtils.langTagsMatch(
+            requestedTranslationPair.fromLanguage,
+            fromMenuList.value
+          ) &&
+          TranslationsUtils.langTagsMatch(
+            requestedTranslationPair.toLanguage,
+            toMenuList.value
+          ));
     }
 
     if (requestedTranslationPair && isEngineReady) {
@@ -611,7 +625,9 @@ var FullPageTranslationsPanel = new (class {
           });
       }
 
-      if (fromMenuList.value === toMenuList.value) {
+      if (
+        TranslationsUtils.langTagsMatch(fromMenuList.value, toMenuList.value)
+      ) {
         // The best possible user-preferred language tag that we were able to find for the
         // toMenuList is the same as the fromMenuList, but same-language to same-language
         // translations are not allowed in Full Page Translations, so we will just show the

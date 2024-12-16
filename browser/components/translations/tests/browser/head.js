@@ -1701,7 +1701,10 @@ class SelectTranslationsTestUtils {
 
         await waitForCondition(
           () =>
-            menuItem.getAttribute("target-language") === expectedTargetLanguage,
+            TranslationsUtils.langTagsMatch(
+              menuItem.getAttribute("target-language"),
+              expectedTargetLanguage
+            ),
           `Waiting for translate-selection context menu item to match the expected target language ${expectedTargetLanguage}`
         );
         await waitForCondition(

@@ -12,6 +12,9 @@ const { EngineProcess } = ChromeUtils.importESModule(
 const { TranslationsPanelShared } = ChromeUtils.importESModule(
   "chrome://browser/content/translations/TranslationsPanelShared.sys.mjs"
 );
+const { TranslationsUtils } = ChromeUtils.importESModule(
+  "chrome://global/content/translations/TranslationsUtils.sys.mjs"
+);
 
 // Avoid about:blank's non-standard behavior.
 const BLANK_PAGE =
