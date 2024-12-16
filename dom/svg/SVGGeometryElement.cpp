@@ -173,8 +173,7 @@ static Point GetPointFrom(const DOMPointInit& aPoint) {
 }
 
 bool SVGGeometryElement::IsPointInFill(const DOMPointInit& aPoint) {
-  // d is a presentation attribute, so make sure style is up to date:
-  FlushStyleIfNeeded();
+  FlushIfNeeded();
 
   RefPtr<Path> path = GetOrBuildPathForHitTest();
   if (!path) {
@@ -188,9 +187,7 @@ bool SVGGeometryElement::IsPointInFill(const DOMPointInit& aPoint) {
 bool SVGGeometryElement::IsPointInStroke(const DOMPointInit& aPoint) {
   // stroke-* attributes and the d attribute are presentation attributes, so we
   // flush the layout before building the path.
-  if (auto* doc = GetComposedDoc()) {
-    doc->FlushPendingNotifications(FlushType::Layout);
-  }
+  Unused << GetPrimaryFrame(FlushType::Layout);
 
   RefPtr<Path> path = GetOrBuildPathForHitTest();
   if (!path) {
@@ -222,15 +219,14 @@ bool SVGGeometryElement::IsPointInStroke(const DOMPointInit& aPoint) {
 }
 
 float SVGGeometryElement::GetTotalLengthForBinding() {
-  // d is a presentation attribute, so make sure style is up to date:
-  FlushStyleIfNeeded();
+  FlushIfNeeded();
   return GetTotalLength();
 }
 
 already_AddRefed<DOMSVGPoint> SVGGeometryElement::GetPointAtLength(
     float distance, ErrorResult& rv) {
-  // d is a presentation attribute, so make sure style is up to date:
-  FlushStyleIfNeeded();
+  FlushIfNeeded();
+
   RefPtr<Path> path = GetOrBuildPathForMeasuring();
   if (!path) {
     rv.ThrowInvalidStateError("No path available for measuring");
@@ -297,20 +293,10 @@ float SVGGeometryElement::GetTotalLength() {
   return flat ? flat->ComputeLength() : 0.f;
 }
 
-void SVGGeometryElement::FlushStyleIfNeeded() {
-  // Note: we still can set d property on other elements which don't have d
-  // attribute, but we don't look at the d property on them, so here we only
-  // care about the element with d attribute, i.e. SVG path element.
-  if (GetPathDataAttrName() != nsGkAtoms::d) {
-    return;
-  }
-
-  RefPtr<Document> doc = GetComposedDoc();
-  if (!doc) {
-    return;
-  }
-
-  doc->FlushPendingNotifications(FlushType::Style);
+void SVGGeometryElement::FlushIfNeeded() {
+  FlushType flushType =
+      GeometryDependsOnCoordCtx() ? FlushType::Layout : FlushType::Style;
+  Unused << GetPrimaryFrame(flushType);
 }
 
 }  // namespace mozilla::dom

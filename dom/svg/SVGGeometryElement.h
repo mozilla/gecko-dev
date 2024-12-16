@@ -253,9 +253,7 @@ class SVGGeometryElement : public SVGGeometryElementBase {
   // SVGElement method
   NumberAttributesInfo GetNumberInfo() override;
 
-  // d is a presentation attribute, so we would like to make sure style is
-  // up-to-date. This function flushes the style if the path attribute is d.
-  MOZ_CAN_RUN_SCRIPT void FlushStyleIfNeeded();
+  MOZ_CAN_RUN_SCRIPT void FlushIfNeeded();
 
   SVGAnimatedNumber mPathLength;
   static NumberInfo sNumberInfo;
