@@ -104,6 +104,8 @@ void ExternalTextureMacIOSurface::GetSnapshot(const ipc::Shmem& aDestShmem,
     src += bytesPerRow;
     dst += stride;
   }
+
+  mSurface->Unlock();
 }
 
 }  // namespace mozilla::webgpu
