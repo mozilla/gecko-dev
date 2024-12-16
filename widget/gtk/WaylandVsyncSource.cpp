@@ -27,7 +27,9 @@ extern mozilla::LazyLogModule gWidgetVsync;
 #    undef LOG
 #    define LOG(str, ...)                             \
       MOZ_LOG(gWidgetVsync, mozilla::LogLevel::Debug, \
-              ("[nsWindow %p]: " str, GetWindowForLogging(), ##__VA_ARGS__))
+              ("[%p]: " str, GetWindowForLogging(), ##__VA_ARGS__))
+#    define LOGS(str, ...) \
+      MOZ_LOG(gWidgetVsync, mozilla::LogLevel::Debug, (str, ##__VA_ARGS__))
 #  else
 #    define LOG(...)
 #  endif /* MOZ_LOGGING */
@@ -35,21 +37,6 @@ extern mozilla::LazyLogModule gWidgetVsync;
 using namespace mozilla::widget;
 
 namespace mozilla {
-
-static void WaylandVsyncSourceCallbackHandler(void* aData,
-                                              struct wl_callback* aCallback,
-                                              uint32_t aTime) {
-  RefPtr context = static_cast<WaylandVsyncSource*>(aData);
-  context->FrameCallback(aCallback, aTime);
-}
-
-static const struct wl_callback_listener WaylandVsyncSourceCallbackListener = {
-    WaylandVsyncSourceCallbackHandler};
-
-static void NativeLayerRootWaylandVsyncCallback(void* aData, uint32_t aTime) {
-  RefPtr context = static_cast<WaylandVsyncSource*>(aData);
-  context->FrameCallback(nullptr, aTime);
-}
 
 static float GetFPS(TimeDuration aVsyncRate) {
   return 1000.0f / float(aVsyncRate.ToMilliseconds());
@@ -74,185 +61,104 @@ Maybe<TimeDuration> WaylandVsyncSource::GetFastestVsyncRate() {
   return retVal;
 }
 
+// Lint forces us to take this reference outside of constructor
+void WaylandVsyncSource::Init() {
+  MutexAutoLock lock(mMutex);
+  WaylandSurfaceLock surfaceLock(mWaylandSurface);
+
+  // mWaylandSurface is shared and referenced by nsWindow,
+  // MozContained and WaylandVsyncSource.
+  //
+  // All references are explicitly removed at nsWindow::Destroy()
+  // by WaylandVsyncSource::Shutdown() and
+  // releases mWaylandSurface / MozContainer release.
+  //
+  // WaylandVsyncSource can be used by layour code after
+  // nsWindow::Destroy()/WaylandVsyncSource::Shutdown() but
+  // only as an empty shell.
+  mWaylandSurface->AddPersistentFrameCallbackLocked(
+      surfaceLock,
+      [this, self = RefPtr{this}](wl_callback* aCallback,
+                                  uint32_t aTime) -> void {
+        {
+          MutexAutoLock lock(mMutex);
+          if (!mVsyncSourceEnabled || !mVsyncEnabled || !mWaylandSurface) {
+            return;
+          }
+          if (aTime && mLastFrameTime == aTime) {
+            return;
+          }
+          mLastFrameTime = aTime;
+        }
+        LOG("WaylandVsyncSource frame callback, routed %d time %d", !aCallback,
+            aTime);
+
+        VisibleWindowCallback(aTime);
+
+        // If attached WaylandSurface becomes hidden/obscured or unmapped,
+        // we will not get any regular frame callback any more and we will
+        // not get any notification of it.
+        // So always set up hidden window callback to catch it up.
+        SetHiddenWindowVSync();
+      },
+      /* aEmulateFrameCallback */ false);
+}
+
 WaylandVsyncSource::WaylandVsyncSource(nsWindow* aWindow)
     : mMutex("WaylandVsyncSource"),
+      mWindow(aWindow),
+      mWaylandSurface(MOZ_WL_SURFACE(aWindow->GetMozContainer())),
       mVsyncRate(TimeDuration::FromMilliseconds(1000.0 / 60.0)),
       mLastVsyncTimeStamp(TimeStamp::Now()),
-      mWindow(aWindow),
-      mIdleTimeout(1000 / StaticPrefs::layout_throttled_frame_rate()) {
+      mHiddenWindowTimeout(1000 / StaticPrefs::layout_throttled_frame_rate()) {
   MOZ_ASSERT(NS_IsMainThread());
   gWaylandVsyncSources.AppendElement(this);
+
+  LOG("WaylandVsyncSource::WaylandVsyncSource()");
+  Init();
 }
 
 WaylandVsyncSource::~WaylandVsyncSource() {
+  LOG("WaylandVsyncSource::~WaylandVsyncSource()");
   gWaylandVsyncSources.RemoveElement(this);
 }
 
-void WaylandVsyncSource::MaybeUpdateSource(MozContainer* aContainer) {
+void WaylandVsyncSource::SetHiddenWindowVSync() {
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+  if (!mHiddenWindowTimerID) {
+    LOG("WaylandVsyncSource::SetHiddenWindowVSync()");
+    mHiddenWindowTimerID = g_timeout_add(
+        mHiddenWindowTimeout,
+        [](void* data) -> gint {
+          RefPtr vsync = static_cast<WaylandVsyncSource*>(data);
+          LOGS("[%p]: Hidden window callback", vsync->GetWindowForLogging());
+          if (vsync->HiddenWindowCallback()) {
+            // We want to fire again, so don't clear mHiddenWindowTimerID
+            return G_SOURCE_CONTINUE;
+          }
+          // No need for g_source_remove, caller does it for us.
+          vsync->mHiddenWindowTimerID = 0;
+          return G_SOURCE_REMOVE;
+        },
+        this);
+  }
+}
+
+void WaylandVsyncSource::EnableVSyncSource() {
   MutexAutoLock lock(mMutex);
-
-  LOG("WaylandVsyncSource::MaybeUpdateSource fps %f", GetFPS(mVsyncRate));
-
-  if (aContainer == mContainer) {
-    LOG("  mContainer is the same, quit.");
-    return;
-  }
-
-  mNativeLayerRoot = nullptr;
-  mContainer = aContainer;
-
-  if (mMonitorEnabled) {
-    LOG("  monitor enabled, ask for Refresh()");
-    mCallbackRequested = false;
-    Refresh(lock);
-  }
+  LOG("WaylandVsyncSource::EnableVSyncSource() WaylandSurface [%p] fps %f",
+      mWaylandSurface.get(), GetFPS(mVsyncRate));
+  mVsyncSourceEnabled = true;
 }
 
-void WaylandVsyncSource::MaybeUpdateSource(
-    const RefPtr<NativeLayerRootWayland>& aNativeLayerRoot) {
+void WaylandVsyncSource::DisableVSyncSource() {
   MutexAutoLock lock(mMutex);
-
-  LOG("WaylandVsyncSource::MaybeUpdateSource aNativeLayerRoot fps %f",
-      GetFPS(mVsyncRate));
-
-  if (aNativeLayerRoot == mNativeLayerRoot) {
-    LOG("  mNativeLayerRoot is the same, quit.");
-    return;
-  }
-
-  mNativeLayerRoot = aNativeLayerRoot;
-  mContainer = nullptr;
-
-  if (mMonitorEnabled) {
-    LOG("  monitor enabled, ask for Refresh()");
-    mCallbackRequested = false;
-    Refresh(lock);
-  }
+  LOG("WaylandVsyncSource::DisableVSyncSource() WaylandSurface [%p]",
+      mWaylandSurface.get());
+  mVsyncSourceEnabled = false;
 }
 
-void WaylandVsyncSource::Refresh(const MutexAutoLock& aProofOfLock)
-    MOZ_REQUIRES(mMutex) {
-  mMutex.AssertCurrentThreadOwns();
-
-  LOG("WaylandVsyncSource::Refresh fps %f\n", GetFPS(mVsyncRate));
-
-  if (!(mContainer || mNativeLayerRoot) || !mMonitorEnabled || !mVsyncEnabled ||
-      mCallbackRequested) {
-    // We don't need to do anything because:
-    // * We are unwanted by our widget or monitor, or
-    // * The last frame callback hasn't yet run to see that it had been shut
-    //   down, so we can reuse it after having set mVsyncEnabled to true.
-    LOG("  quit mContainer %d mNativeLayerRoot %d mMonitorEnabled %d "
-        "mVsyncEnabled %d mCallbackRequested %d",
-        !!mContainer, !!mNativeLayerRoot, mMonitorEnabled, mVsyncEnabled,
-        !!mCallbackRequested);
-    return;
-  }
-
-  if (mContainer) {
-    MozContainerSurfaceLock lock(mContainer);
-    struct wl_surface* surface = lock.GetSurface();
-    LOG("  refresh from mContainer, wl_surface %p", surface);
-    if (!surface) {
-      LOG("  we're missing wl_surface, register Refresh() callback");
-      // The surface hasn't been created yet. Try again when the surface is
-      // ready.
-      RefPtr<WaylandVsyncSource> self(this);
-      moz_container_wayland_add_initial_draw_callback_locked(
-          mContainer, [self]() -> void {
-            MutexAutoLock lock(self->mMutex);
-            self->Refresh(lock);
-          });
-      return;
-    }
-  }
-
-  // Vsync is enabled, but we don't have a callback configured. Set one up so
-  // we can get to work.
-  SetupFrameCallback(aProofOfLock);
-  const TimeStamp lastVSync = TimeStamp::Now();
-  mLastVsyncTimeStamp = lastVSync;
-  TimeStamp outputTimestamp = mLastVsyncTimeStamp + mVsyncRate;
-
-  {
-    MutexAutoUnlock unlock(mMutex);
-    NotifyVsync(lastVSync, outputTimestamp);
-  }
-}
-
-void WaylandVsyncSource::EnableMonitor() {
-  LOG("WaylandVsyncSource::EnableMonitor");
-  MutexAutoLock lock(mMutex);
-  if (mMonitorEnabled) {
-    return;
-  }
-  mMonitorEnabled = true;
-  Refresh(lock);
-}
-
-void WaylandVsyncSource::DisableMonitor() {
-  LOG("WaylandVsyncSource::DisableMonitor");
-  MutexAutoLock lock(mMutex);
-  if (!mMonitorEnabled) {
-    return;
-  }
-  mMonitorEnabled = false;
-  mCallbackRequested = false;
-}
-
-void WaylandVsyncSource::SetupFrameCallback(const MutexAutoLock& aProofOfLock) {
-  mMutex.AssertCurrentThreadOwns();
-  MOZ_ASSERT(!mCallbackRequested);
-
-  LOG("WaylandVsyncSource::SetupFrameCallback");
-
-  if (mNativeLayerRoot) {
-    LOG("  use mNativeLayerRoot");
-    mNativeLayerRoot->RequestFrameCallback(&NativeLayerRootWaylandVsyncCallback,
-                                           this);
-  } else {
-    MozContainerSurfaceLock lock(mContainer);
-    struct wl_surface* surface = lock.GetSurface();
-    LOG("  use mContainer, wl_surface %p", surface);
-    if (!surface) {
-      // We don't have a surface, either due to being called before it was made
-      // available in the mozcontainer, or after it was destroyed. We're all
-      // done regardless.
-      LOG("  missing wl_surface, quit.");
-      return;
-    }
-
-    MozClearPointer(mCallback, wl_callback_destroy);
-    mCallback = wl_surface_frame(surface);
-    wl_callback_add_listener(mCallback, &WaylandVsyncSourceCallbackListener,
-                             this);
-
-    LOG("  register frame callback");
-    wl_surface_commit(surface);
-    wl_display_flush(WaylandDisplayGet()->GetDisplay());
-
-    if (!mIdleTimerID) {
-      mIdleTimerID = g_timeout_add(
-          mIdleTimeout,
-          [](void* data) -> gint {
-            RefPtr vsync = static_cast<WaylandVsyncSource*>(data);
-            if (vsync->IdleCallback()) {
-              // We want to fire again, so don't clear mIdleTimerID
-              return G_SOURCE_CONTINUE;
-            }
-            // No need for g_source_remove, caller does it for us.
-            vsync->mIdleTimerID = 0;
-            return G_SOURCE_REMOVE;
-          },
-          this);
-    }
-  }
-
-  mCallbackRequested = true;
-}
-
-bool WaylandVsyncSource::IdleCallback() {
-  LOG("WaylandVsyncSource::IdleCallback");
+bool WaylandVsyncSource::HiddenWindowCallback() {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
 
   RefPtr<nsWindow> window;
@@ -261,23 +167,29 @@ bool WaylandVsyncSource::IdleCallback() {
   {
     MutexAutoLock lock(mMutex);
 
-    if (!mVsyncEnabled || !mMonitorEnabled) {
+    if (!mVsyncEnabled) {
       // We are unwanted by either our creator or our consumer, so we just stop
       // here without setting up a new frame callback.
-      LOG("  quit, mVsyncEnabled %d mMonitorEnabled %d", mVsyncEnabled,
-          mMonitorEnabled);
+      LOG("WaylandVsyncSource::HiddenWindowCallback(): quit, mVsyncEnabled %d "
+          "mWaylandSurface %p",
+          mVsyncEnabled, mWaylandSurface.get());
       return false;
     }
 
     const auto now = TimeStamp::Now();
     const auto timeSinceLastVSync = now - mLastVsyncTimeStamp;
-    if (timeSinceLastVSync.ToMilliseconds() < mIdleTimeout) {
-      // We're not idle, we want to fire the timer again.
+    if (timeSinceLastVSync.ToMilliseconds() < mHiddenWindowTimeout) {
+      // We're not hidden, keep firing the callback to monitor window state.
+      // If we become hidden we want set window occlusion state from this
+      // callback.
       return true;
     }
 
-    LOG("  fire idle vsync");
-    CalculateVsyncRate(lock, now);
+    LOG("WaylandVsyncSource::HiddenWindowCallback(), time since last VSync %d "
+        "ms",
+        (int)timeSinceLastVSync.ToMilliseconds());
+
+    CalculateVsyncRateLocked(lock, now);
     mLastVsyncTimeStamp = lastVSync = now;
 
     outputTimestamp = mLastVsyncTimeStamp + mVsyncRate;
@@ -290,6 +202,7 @@ bool WaylandVsyncSource::IdleCallback() {
   if (window->IsDestroyed()) {
     return false;
   }
+
   // Make sure to fire vsync now even if we get disabled afterwards.
   // This gives an opportunity to clean up after the visibility state change.
   // FIXME: Do we really need to do this?
@@ -297,8 +210,14 @@ bool WaylandVsyncSource::IdleCallback() {
   return StaticPrefs::widget_wayland_vsync_keep_firing_at_idle();
 }
 
-void WaylandVsyncSource::FrameCallback(wl_callback* aCallback, uint32_t aTime) {
-  LOG("WaylandVsyncSource::FrameCallback");
+void WaylandVsyncSource::VisibleWindowCallback(uint32_t aTime) {
+#  ifdef MOZ_LOGGING
+  if (!aTime) {
+    LOG("WaylandVsyncSource::EmulatedWindowCallback()");
+  } else {
+    LOG("WaylandVsyncSource::VisibleWindowCallback() time %d", aTime);
+  }
+#  endif
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
 
   {
@@ -312,39 +231,31 @@ void WaylandVsyncSource::FrameCallback(wl_callback* aCallback, uint32_t aTime) {
   }
 
   MutexAutoLock lock(mMutex);
-  mCallbackRequested = false;
-
-  // NotifyOcclusionState() can clear and create new mCallback by
-  // EnableVsync()/Refresh(). So don't delete newly created frame callback.
-  if (aCallback && aCallback == mCallback) {
-    MozClearPointer(mCallback, wl_callback_destroy);
-  }
-
-  if (!mVsyncEnabled || !mMonitorEnabled) {
+  if (!mVsyncEnabled) {
     // We are unwanted by either our creator or our consumer, so we just stop
     // here without setting up a new frame callback.
-    LOG("  quit, mVsyncEnabled %d mMonitorEnabled %d", mVsyncEnabled,
-        mMonitorEnabled);
+    LOG("  quit, mVsyncEnabled %d mWaylandSurface %p", mVsyncEnabled,
+        mWaylandSurface.get());
     return;
   }
 
-  // Configure our next frame callback.
-  SetupFrameCallback(lock);
-
-  int64_t tick = BaseTimeDurationPlatformUtils::TicksFromMilliseconds(aTime);
-  const auto callbackTimeStamp = TimeStamp::FromSystemTime(tick);
   const auto now = TimeStamp::Now();
+  TimeStamp vsyncTimestamp;
+  if (aTime) {
+    const auto callbackTimeStamp = TimeStamp::FromSystemTime(
+        BaseTimeDurationPlatformUtils::TicksFromMilliseconds(aTime));
+    // If the callback timestamp is close enough to our timestamp, use it,
+    // otherwise use the current time.
+    vsyncTimestamp = std::abs((now - callbackTimeStamp).ToMilliseconds()) < 50.0
+                         ? callbackTimeStamp
+                         : now;
+  } else {
+    vsyncTimestamp = now;
+  }
 
-  // If the callback timestamp is close enough to our timestamp, use it,
-  // otherwise use the current time.
-  const TimeStamp& vsyncTimestamp =
-      std::abs((now - callbackTimeStamp).ToMilliseconds()) < 50.0
-          ? callbackTimeStamp
-          : now;
-
-  CalculateVsyncRate(lock, vsyncTimestamp);
+  CalculateVsyncRateLocked(lock, vsyncTimestamp);
   mLastVsyncTimeStamp = vsyncTimestamp;
-  const TimeStamp outputTimestamp = vsyncTimestamp + mVsyncRate;
+  const TimeStamp outputTimestamp = mLastVsyncTimeStamp + mVsyncRate;
 
   {
     MutexAutoUnlock unlock(mMutex);
@@ -365,14 +276,14 @@ Maybe<TimeDuration> WaylandVsyncSource::GetVsyncRateIfEnabled() {
   return Some(mVsyncRate);
 }
 
-void WaylandVsyncSource::CalculateVsyncRate(const MutexAutoLock& aProofOfLock,
-                                            TimeStamp aVsyncTimestamp) {
+void WaylandVsyncSource::CalculateVsyncRateLocked(
+    const MutexAutoLock& aProofOfLock, TimeStamp aVsyncTimestamp) {
   mMutex.AssertCurrentThreadOwns();
 
   double duration = (aVsyncTimestamp - mLastVsyncTimeStamp).ToMilliseconds();
   double curVsyncRate = mVsyncRate.ToMilliseconds();
 
-  LOG("WaylandVsyncSource::CalculateVsyncRate start fps %f\n",
+  LOG("WaylandVsyncSource::CalculateVsyncRateLocked start fps %f\n",
       GetFPS(mVsyncRate));
 
   double correction;
@@ -389,24 +300,19 @@ void WaylandVsyncSource::CalculateVsyncRate(const MutexAutoLock& aProofOfLock,
 
 void WaylandVsyncSource::EnableVsync() {
   MOZ_ASSERT(NS_IsMainThread());
-
   MutexAutoLock lock(mMutex);
-
   LOG("WaylandVsyncSource::EnableVsync fps %f\n", GetFPS(mVsyncRate));
   if (mVsyncEnabled || mIsShutdown) {
     LOG("  early quit");
     return;
   }
   mVsyncEnabled = true;
-  Refresh(lock);
 }
 
 void WaylandVsyncSource::DisableVsync() {
   MutexAutoLock lock(mMutex);
-
   LOG("WaylandVsyncSource::DisableVsync fps %f\n", GetFPS(mVsyncRate));
   mVsyncEnabled = false;
-  mCallbackRequested = false;
 }
 
 bool WaylandVsyncSource::IsVsyncEnabled() {
@@ -419,13 +325,13 @@ void WaylandVsyncSource::Shutdown() {
   MutexAutoLock lock(mMutex);
 
   LOG("WaylandVsyncSource::Shutdown fps %f\n", GetFPS(mVsyncRate));
-  mContainer = nullptr;
-  mNativeLayerRoot = nullptr;
+
+  mWaylandSurface = nullptr;
+  mWindow = nullptr;
   mIsShutdown = true;
   mVsyncEnabled = false;
-  mCallbackRequested = false;
-  MozClearHandleID(mIdleTimerID, g_source_remove);
-  MozClearPointer(mCallback, wl_callback_destroy);
+  mVsyncSourceEnabled = false;
+  MozClearHandleID(mHiddenWindowTimerID, g_source_remove);
 }
 
 }  // namespace mozilla
