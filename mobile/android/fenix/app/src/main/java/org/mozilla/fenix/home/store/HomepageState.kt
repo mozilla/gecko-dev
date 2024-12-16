@@ -75,7 +75,14 @@ internal sealed class HomepageState {
         val cardBackgroundColor: Color,
         val buttonBackgroundColor: Color,
         val buttonTextColor: Color,
-    ) : HomepageState()
+    ) : HomepageState() {
+
+        /**
+         * Whether to show customize home button.
+         */
+        val showCustomizeHome: Boolean
+            get() = showTopSites || showRecentTabs || showBookmarks || showRecentlyVisited || showPocketStories
+    }
 
     companion object {
 

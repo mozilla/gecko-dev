@@ -24,6 +24,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.RecentlyVisitedHomepage
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.button.TertiaryButton
 import org.mozilla.fenix.compose.home.HomeSectionHeader
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
@@ -46,6 +47,7 @@ import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.recentvisits.view.RecentVisitMenuItem
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
+import org.mozilla.fenix.home.sessioncontrol.CustomizeHomeIteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
 import org.mozilla.fenix.home.store.HomepageState
@@ -142,6 +144,13 @@ internal fun Homepage(
                         PocketSection(
                             state = pocketState,
                             cardBackgroundColor = cardBackgroundColor,
+                            interactor = interactor,
+                        )
+                    }
+
+                    if (showCustomizeHome) {
+                        CustomizeHomeButton(
+                            buttonBackgroundColor = buttonBackgroundColor,
                             interactor = interactor,
                         )
                     }
@@ -295,6 +304,17 @@ private fun CollectionsSection(
             CollectionsPlaceholder(collectionsState.showSaveTabsToCollection, interactor)
         }
     }
+}
+
+@Composable
+private fun CustomizeHomeButton(buttonBackgroundColor: Color, interactor: CustomizeHomeIteractor) {
+    Spacer(modifier = Modifier.height(68.dp))
+
+    TertiaryButton(
+        text = stringResource(R.string.browser_menu_customize_home_1),
+        backgroundColor = buttonBackgroundColor,
+        onClick = interactor::openCustomizeHomePage,
+    )
 }
 
 @Composable
