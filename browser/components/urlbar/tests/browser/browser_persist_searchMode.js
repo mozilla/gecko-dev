@@ -65,7 +65,11 @@ add_task(async function test_persist_searchmode() {
   });
 
   info("If the user navigates to another host, we exit searchMode");
-  onLoad = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+  onLoad = BrowserTestUtils.browserLoaded(
+    gBrowser,
+    false,
+    "https://example.org/"
+  );
   BrowserTestUtils.startLoadingURIString(
     gBrowser.selectedBrowser,
     "https://example.org"
