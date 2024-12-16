@@ -10094,6 +10094,13 @@
   value: false
   mirror: always
 
+# Does webkit-line-clamp skip painting clamped lines?
+# See bug 1934547.
+- name: layout.css.webkit-line-clamp.skip-paint
+  type: bool
+  value: false
+  mirror: always
+
 # Is 'content:none' supported on (non-pseudo) elements?
 - name: layout.css.element-content-none.enabled
   type: RelaxedAtomicBool
