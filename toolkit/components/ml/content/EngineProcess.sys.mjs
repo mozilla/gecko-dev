@@ -106,10 +106,12 @@ export const ModelHub = {
       case ModelHub.HUGGINGFACE:
         options.modelHubRootUrl = "https://huggingface.co/";
         options.modelHubUrlTemplate = "{model}/resolve/{revision}";
+        options.modelRevision = "main";
         break;
       case ModelHub.MOZILLA:
         options.modelHubRootUrl = "https://model-hub.mozilla.org/";
         options.modelHubUrlTemplate = "{model}/{revision}";
+        options.modelRevision = "main";
         break;
       default:
         throw new Error(`Unknown model hub: ${hub}`);

@@ -37,3 +37,24 @@ add_task(async function test_options_updated_with_options() {
   options.updateOptions(options2);
   Assert.equal(options.taskName, "summarization2");
 });
+
+/**
+ * Check that we get the correct revision when using modelHub
+ */
+add_task(async function test_modelhub_url() {
+  let options = new PipelineOptions({
+    taskName: "summarization",
+    modelId: "test-echo",
+    modelHub: "huggingface",
+  });
+
+  Assert.equal(options.modelRevision, "main");
+
+  options = new PipelineOptions({
+    taskName: "summarization",
+    modelId: "test-echo",
+    modelHub: "mozilla",
+  });
+
+  Assert.equal(options.modelRevision, "main");
+});
