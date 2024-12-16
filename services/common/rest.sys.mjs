@@ -24,7 +24,7 @@ function decodeString(data, charset) {
   let stringStream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stringStream.setData(data, data.length);
+  stringStream.setByteStringData(data);
 
   let converterStream = Cc[
     "@mozilla.org/intl/converter-input-stream;1"
@@ -326,7 +326,7 @@ RESTRequest.prototype = {
       let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
         Ci.nsIStringInputStream
       );
-      stream.setData(data, data.length);
+      stream.setByteStringData(data);
 
       channel.QueryInterface(Ci.nsIUploadChannel);
       channel.setUploadStream(stream, contentType, data.length);

@@ -79,7 +79,7 @@ function tamper(inFilePath, outFilePath, modifications, newEntries) {
         Ci.nsIStringInputStream
       );
       try {
-        sis.setData(newEntry.content, newEntry.content.length);
+        sis.setByteStringData(newEntry.content);
         writer.addEntryStream(
           newEntry.name,
           new Date() * PR_USEC_PER_MSEC,

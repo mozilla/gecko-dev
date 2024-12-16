@@ -339,8 +339,7 @@ bool UDPSocket::Send(const StringOrBlobOrArrayBufferOrArrayBufferView& aData,
     }
 
     if (aData.IsString()) {
-      NS_ConvertUTF16toUTF8 data(aData.GetAsString());
-      aRv = strStream->SetData(data.BeginReading(), data.Length());
+      aRv = strStream->SetUTF8Data(NS_ConvertUTF16toUTF8(aData.GetAsString()));
     } else {
       Vector<char> data;
       if (!AppendTypedArrayDataTo(aData, data)) {

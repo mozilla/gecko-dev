@@ -1997,7 +1997,7 @@ nsUrlClassifierDBService::SendThreatHitReport(nsIChannel* aChannel,
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIStringInputStream> sis(
       do_CreateInstance(NS_STRINGINPUTSTREAM_CONTRACTID));
-  rv = sis->SetData(reportBody.get(), reportBody.Length());
+  rv = sis->SetByteStringData(reportBody);
   NS_ENSURE_SUCCESS(rv, rv);
 
   LOG(("Sending the following ThreatHit report to %s about %s: %s",

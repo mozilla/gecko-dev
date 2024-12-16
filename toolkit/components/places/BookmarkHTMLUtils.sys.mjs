@@ -81,7 +81,7 @@ function base64EncodeString(aString) {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData(aString, aString.length);
+  stream.setByteStringData(aString);
   let encoder = Cc["@mozilla.org/scriptablebase64encoder;1"].createInstance(
     Ci.nsIScriptableBase64Encoder
   );

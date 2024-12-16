@@ -238,7 +238,7 @@ export class NetworkRequest {
       const bodyStream = Cc[
         "@mozilla.org/io/string-input-stream;1"
       ].createInstance(Ci.nsIStringInputStream);
-      bodyStream.setData(body, body.length);
+      bodyStream.setByteStringData(body);
       this.#channel.explicitSetUploadStream(
         bodyStream,
         null,

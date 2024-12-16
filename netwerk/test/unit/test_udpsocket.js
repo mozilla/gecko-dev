@@ -58,7 +58,7 @@ add_test(function test_udp_send_stream() {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData(HELLO_WORLD, HELLO_WORLD.length);
+  stream.setByteStringData(HELLO_WORLD);
   socket.sendBinaryStream("127.0.0.1", socket.port, stream);
 });
 

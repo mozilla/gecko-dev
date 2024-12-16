@@ -19,7 +19,7 @@ function test_multiplex_streams() {
     let s = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
       Ci.nsIStringInputStream
     );
-    s.setData(data, data.length);
+    s.setByteStringData(data);
 
     multiplex.appendStream(s);
   }
@@ -139,7 +139,7 @@ function test_multiplex_bug797871() {
   let s = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  s.setData(data2, data2.length);
+  s.setByteStringData(data2);
 
   multiplex.appendStream(s);
 

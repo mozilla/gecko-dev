@@ -551,7 +551,7 @@ nsresult nsUrlClassifierStreamUpdater::AddRequestBody(
       do_CreateInstance(NS_STRINGINPUTSTREAM_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = strStream->SetData(aRequestBody.BeginReading(), aRequestBody.Length());
+  rv = strStream->SetByteStringData(aRequestBody);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIUploadChannel> uploadChannel = do_QueryInterface(mChannel, &rv);

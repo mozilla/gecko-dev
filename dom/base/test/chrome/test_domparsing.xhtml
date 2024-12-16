@@ -132,7 +132,7 @@ function runTest(win, expectSystem) {
     let istream = Cc["@mozilla.org/io/string-input-stream;1"].
                   createInstance(Ci.nsIStringInputStream);
     for (let charset of [null, "UTF-8"]) {
-      istream.setData(t.input, -1);
+      istream.setByteStringData(t.input);
       is(serializer.serializeToString(parser.parseFromStream(istream, charset, t.input.length, t.type)),
          t.expected, "parseFromStream test for " + t.type + ", charset=" + charset);
     }

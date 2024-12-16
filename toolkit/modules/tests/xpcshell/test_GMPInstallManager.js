@@ -1897,7 +1897,7 @@ function createNewZipFile(zipName, data) {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData(data, data.length);
+  stream.setByteStringData(data);
   let zipWriter = Cc["@mozilla.org/zipwriter;1"].createInstance(
     Ci.nsIZipWriter
   );

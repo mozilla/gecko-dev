@@ -15,7 +15,7 @@ async function runTest(input, url) {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData(input, input.length);
+  stream.setByteStringData(input);
 
   let data = {
     inputStream: stream,

@@ -213,7 +213,7 @@ function base64EncodeString(aString) {
   var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData(aString, aString.length);
+  stream.setByteStringData(aString);
   var encoder = Cc["@mozilla.org/scriptablebase64encoder;1"].createInstance(
     Ci.nsIScriptableBase64Encoder
   );

@@ -25,7 +25,7 @@ const BinaryInputStream = Components.Constructor(
 const StringInputStream = Components.Constructor(
   "@mozilla.org/io/string-input-stream;1",
   "nsIStringInputStream",
-  "setData"
+  "setByteStringData"
 );
 
 const ArrayBufferInputStream = Components.Constructor(
@@ -111,7 +111,7 @@ export class ObliviousHTTP {
       );
       let bodyStream;
       if (typeof body === "string") {
-        bodyStream = new StringInputStream(body, body.length);
+        bodyStream = new StringInputStream(body);
       } else if (body instanceof ArrayBuffer) {
         bodyStream = new ArrayBufferInputStream(body, 0, body.byteLength);
       } else {

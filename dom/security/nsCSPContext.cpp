@@ -1368,8 +1368,7 @@ nsresult nsCSPContext::SendReportsToURIs(
     NS_ASSERTION(sis,
                  "nsIStringInputStream is needed but not available to send CSP "
                  "violation reports");
-    nsAutoCString utf8CSPReport = NS_ConvertUTF16toUTF8(csp_report);
-    rv = sis->SetData(utf8CSPReport.get(), utf8CSPReport.Length());
+    rv = sis->SetUTF8Data(NS_ConvertUTF16toUTF8(csp_report));
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIUploadChannel> uploadChannel(do_QueryInterface(reportChannel));

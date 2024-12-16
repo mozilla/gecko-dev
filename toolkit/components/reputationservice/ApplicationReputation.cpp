@@ -1662,7 +1662,7 @@ nsresult PendingLookup::SendRemoteQueryInternal(Reason& aReason) {
       do_CreateInstance("@mozilla.org/io/string-input-stream;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = sstream->SetData(serialized.c_str(), serialized.length());
+  rv = sstream->CopyData(serialized.c_str(), serialized.length());
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Set up the channel to transmit the request to the service.

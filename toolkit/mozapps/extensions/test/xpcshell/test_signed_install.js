@@ -33,7 +33,7 @@ function createBrokenAddonModify(file) {
   var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData("FOOBAR", -1);
+  stream.setByteStringData("FOOBAR");
   var zipW = Cc["@mozilla.org/zipwriter;1"].createInstance(Ci.nsIZipWriter);
   zipW.open(brokenFile, FileUtils.MODE_RDWR | FileUtils.MODE_APPEND);
   zipW.removeEntry("test.txt", false);
@@ -58,7 +58,7 @@ function createBrokenAddonAdd(file) {
   var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData("FOOBAR", -1);
+  stream.setByteStringData("FOOBAR");
   var zipW = Cc["@mozilla.org/zipwriter;1"].createInstance(Ci.nsIZipWriter);
   zipW.open(brokenFile, FileUtils.MODE_RDWR | FileUtils.MODE_APPEND);
   zipW.addEntryStream(
@@ -82,7 +82,7 @@ function createBrokenAddonRemove(file) {
   var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData("FOOBAR", -1);
+  stream.setByteStringData("FOOBAR");
   var zipW = Cc["@mozilla.org/zipwriter;1"].createInstance(Ci.nsIZipWriter);
   zipW.open(brokenFile, FileUtils.MODE_RDWR | FileUtils.MODE_APPEND);
   zipW.removeEntry("test.txt", false);

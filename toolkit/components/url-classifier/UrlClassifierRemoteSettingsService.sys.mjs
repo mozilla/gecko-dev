@@ -127,7 +127,7 @@ UrlClassifierRemoteSettingsService.prototype = {
     let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
       Ci.nsIStringInputStream
     );
-    stream.setData(payload, payload.length);
+    stream.setByteStringData(payload);
 
     try {
       aListener.onStartRequest(null);

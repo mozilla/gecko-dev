@@ -26,20 +26,13 @@ native MallocSizeOf(mozilla::MallocSizeOf);
 interface nsIStringInputStream : nsIInputStream
 {
     /**
-     * SetData - assign data to the input stream (copied on assignment).
+     * SetData - assign data to the input stream from a byte string.
      *
      * @param data    - stream data
-     * @param dataLen - stream data length (-1 if length should be computed)
      *
-     * NOTE: C++ code should consider using AdoptData or ShareData to avoid
-     * making an extra copy of the stream data.
-     *
-     * NOTE: For JS callers, the given data must not contain null characters
-     * (other than a null terminator) because a null character in the middle of
-     * the data string will be seen as a terminator when the data is converted
-     * from a JS string to a C++ character array.
+     * NOTE: For JS callers, no UTF-8 encoding will be performed.
      */
-    void setData(in string data, in long dataLen);
+    void setByteStringData(in ACString data);
 
     /**
      * SetUTF8Data - encode input data to UTF-8 and assign it to the input
@@ -57,6 +50,17 @@ interface nsIStringInputStream : nsIInputStream
      */
 
     /**
+     * SetData - assign data to the input stream (copied on assignment).
+     *
+     * @param data    - stream data
+     * @param dataLen - stream data length (-1 if length should be computed)
+     *
+     * NOTE: C++ code should consider using AdoptData or ShareData to avoid
+     * making an extra copy of the stream data.
+     */
+    [noscript] void copyData(in string data, in size_t dataLen);
+
+    /**
      * AdoptData - assign data to the input stream.  the input stream takes
      * ownership of the given data buffer and will free it when
      * the input stream is destroyed.
@@ -64,7 +68,7 @@ interface nsIStringInputStream : nsIInputStream
      * @param data      - stream data
      * @param dataLen   - stream data length (-1 if length should be computed)
      */
-    [noscript] void adoptData(in charPtr data, in long dataLen);
+    [noscript] void adoptData(in charPtr data, in size_t dataLen);
 
     /**
      * ShareData - assign data to the input stream.  the input stream references
@@ -74,7 +78,7 @@ interface nsIStringInputStream : nsIInputStream
      * @param data      - stream data
      * @param dataLen   - stream data length (-1 if length should be computed)
      */
-    [noscript] void shareData(in string data, in long dataLen);
+    [noscript] void shareData(in string data, in size_t dataLen);
 
     /**
      * SetDataSource - assign data to the input stream.  the input stream holds

@@ -622,7 +622,7 @@ HashCompleterRequest.prototype = {
       "@mozilla.org/io/string-input-stream;1"
     ].createInstance(Ci.nsIStringInputStream);
 
-    inputStream.setData(aBody, aBody.length);
+    inputStream.setByteStringData(aBody);
 
     let uploadChannel = this._channel.QueryInterface(Ci.nsIUploadChannel);
     uploadChannel.setUploadStream(inputStream, "text/plain", -1);

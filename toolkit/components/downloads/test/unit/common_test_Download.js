@@ -527,7 +527,7 @@ add_task(async function test_adjustChannel() {
     const stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
       Ci.nsIStringInputStream
     );
-    stream.setData(postData, postData.length);
+    stream.setByteStringData(postData);
 
     channel.QueryInterface(Ci.nsIUploadChannel2);
     channel.explicitSetUploadStream(stream, null, -1, "POST", false);

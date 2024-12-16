@@ -772,7 +772,8 @@ nsresult nsUnknownDecoder::ConvertEncodedData(nsIRequest* request,
             do_CreateInstance(NS_STRINGINPUTSTREAM_CONTRACTID);
         if (!rawStream) return NS_ERROR_FAILURE;
 
-        rv = rawStream->SetData((const char*)data, length);
+        // Other OnDataAvailable callers use `ShareData`, can we use that here?
+        rv = rawStream->CopyData((const char*)data, length);
         NS_ENSURE_SUCCESS(rv, rv);
 
         rv = listener->OnDataAvailable(request, rawStream, 0, length);

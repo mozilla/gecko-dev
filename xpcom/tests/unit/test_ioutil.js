@@ -24,6 +24,6 @@ function run_test() {
     Ci.nsIStringInputStream
   );
   var body = "This is a test";
-  s.setData(body, body.length);
+  s.setByteStringData(body);
   Assert.equal(util.inputStreamIsBuffered(s), true);
 }

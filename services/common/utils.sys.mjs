@@ -644,7 +644,7 @@ export var CommonUtils = {
     let is = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
       Ci.nsIStringInputStream
     );
-    is.setData(s, s.length);
+    is.setByteStringData(s);
 
     let listener = Cc["@mozilla.org/network/stream-loader;1"].createInstance(
       Ci.nsIStreamLoader

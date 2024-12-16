@@ -67,7 +67,7 @@ add_task(async function test() {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData(DATA, DATA.length);
+  stream.setByteStringData(DATA);
   zipW.addEntryStream(
     "data",
     time * PR_USEC_PER_MSEC,

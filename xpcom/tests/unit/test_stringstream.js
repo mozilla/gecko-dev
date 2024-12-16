@@ -8,7 +8,7 @@ function run_test() {
     Ci.nsIStringInputStream
   );
   var body = "This is a test";
-  s.setData(body, body.length);
+  s.setByteStringData(body);
   Assert.equal(s.available(), body.length);
 
   var sis = Cc["@mozilla.org/scriptableinputstream;1"].createInstance(

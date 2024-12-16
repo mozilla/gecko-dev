@@ -9,6 +9,7 @@
 
 #include "mozilla/StreamBufferSource.h"
 
+#include "mozilla/Vector.h"
 #include "nsTArray.h"
 
 namespace mozilla {
@@ -75,6 +76,23 @@ class nsBorrowedSource final : public StreamBufferSource {
 
  private:
   const Span<const char> mBuffer;
+};
+
+class nsVectorSource final : public StreamBufferSource {
+ public:
+  explicit nsVectorSource(Vector<char>&& aBuffer)
+      : mBuffer(std::move(aBuffer)) {}
+
+  Span<const char> Data() override { return mBuffer; }
+
+  bool Owning() override { return true; }
+
+  size_t SizeOfExcludingThisEvenIfShared(MallocSizeOf aMallocSizeOf) override {
+    return mBuffer.sizeOfExcludingThis(aMallocSizeOf);
+  }
+
+ private:
+  const Vector<char> mBuffer;
 };
 
 }  // namespace mozilla

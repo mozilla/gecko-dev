@@ -20,7 +20,7 @@ function run_test() {
   var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setData(DATA, DATA.length);
+  stream.setByteStringData(DATA);
   zipW.addEntryStream(
     FILENAME,
     time * PR_USEC_PER_MSEC,

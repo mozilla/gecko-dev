@@ -81,7 +81,7 @@ function async_write_file(aContractId, aDeferOpen) {
   let istream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  istream.setData(TEST_DATA, TEST_DATA.length);
+  istream.setByteStringData(TEST_DATA);
 
   NetUtil.asyncCopy(istream, ostream, function (aResult) {
     // Make sure the copy was successful!
@@ -117,7 +117,7 @@ function test_async_copy() {
       let istream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
         Ci.nsIStringInputStream
       );
-      istream.setData(data, data.length);
+      istream.setByteStringData(data);
       return istream;
     }
 
@@ -444,7 +444,7 @@ function test_asyncFetch_with_nsIInputString() {
   let istream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  istream.setData(TEST_DATA, TEST_DATA.length);
+  istream.setByteStringData(TEST_DATA);
 
   // Read the input stream asynchronously.
   NetUtil.asyncFetch(
@@ -669,7 +669,7 @@ function test_readInputStreamToString_no_bytes_arg() {
   let istream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  istream.setData(TEST_DATA, TEST_DATA.length);
+  istream.setByteStringData(TEST_DATA);
 
   try {
     NetUtil.readInputStreamToString(istream);
@@ -699,7 +699,7 @@ function test_readInputStreamToString_too_many_bytes() {
   let istream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  istream.setData(TEST_DATA, TEST_DATA.length);
+  istream.setByteStringData(TEST_DATA);
 
   try {
     NetUtil.readInputStreamToString(istream, TEST_DATA.length + 10);
@@ -720,7 +720,7 @@ function test_readInputStreamToString_with_charset() {
     Ci.nsIStringInputStream
   );
 
-  istream.setData(TEST_DATA_UTF8, TEST_DATA_UTF8.length);
+  istream.setByteStringData(TEST_DATA_UTF8);
   Assert.equal(
     NetUtil.readInputStreamToString(istream, TEST_DATA_UTF8.length, {
       charset: "UTF-8",
@@ -728,7 +728,7 @@ function test_readInputStreamToString_with_charset() {
     TEST_DATA
   );
 
-  istream.setData(TEST_DATA_SJIS, TEST_DATA_SJIS.length);
+  istream.setByteStringData(TEST_DATA_SJIS);
   Assert.equal(
     NetUtil.readInputStreamToString(istream, TEST_DATA_SJIS.length, {
       charset: "Shift_JIS",
@@ -747,7 +747,7 @@ function test_readInputStreamToString_invalid_sequence() {
     Ci.nsIStringInputStream
   );
 
-  istream.setData(TEST_DATA_UTF8, TEST_DATA_UTF8.length);
+  istream.setByteStringData(TEST_DATA_UTF8);
   try {
     NetUtil.readInputStreamToString(istream, TEST_DATA_UTF8.length, {
       charset: "UTF-8",
@@ -757,7 +757,7 @@ function test_readInputStreamToString_invalid_sequence() {
     Assert.equal(e.result, Cr.NS_ERROR_ILLEGAL_INPUT);
   }
 
-  istream.setData(TEST_DATA_UTF8, TEST_DATA_UTF8.length);
+  istream.setByteStringData(TEST_DATA_UTF8);
   Assert.equal(
     NetUtil.readInputStreamToString(istream, TEST_DATA_UTF8.length, {
       charset: "UTF-8",

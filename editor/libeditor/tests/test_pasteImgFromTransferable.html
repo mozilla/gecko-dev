@@ -52,7 +52,7 @@ add_task(async function() {
     let stringStream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
       Ci.nsIStringInputStream
     );
-    stringStream.setData(bin, bin.length);
+    stringStream.setByteStringData(bin);
 
     let trans = Cc["@mozilla.org/widget/transferable;1"].createInstance(
       Ci.nsITransferable

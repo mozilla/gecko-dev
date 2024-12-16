@@ -43,7 +43,7 @@ function noRedirectStreamObserver(request, buffer) {
   var uploadStream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  uploadStream.setData(requestBody, requestBody.length);
+  uploadStream.setByteStringData(requestBody);
   chan
     .QueryInterface(Ci.nsIUploadChannel)
     .setUploadStream(uploadStream, "text/plain", -1);
@@ -62,7 +62,7 @@ function noHeaderStreamObserver(request, buffer) {
     requestBody.length +
     "\r\n\r\n" +
     requestBody;
-  uploadStream.setData(streamBody, streamBody.length);
+  uploadStream.setByteStringData(streamBody);
   chan
     .QueryInterface(Ci.nsIUploadChannel)
     .setUploadStream(uploadStream, "", -1);
@@ -86,7 +86,7 @@ function run_test() {
   var uploadStream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  uploadStream.setData(requestBody, requestBody.length);
+  uploadStream.setByteStringData(requestBody);
   chan
     .QueryInterface(Ci.nsIUploadChannel)
     .setUploadStream(uploadStream, "text/plain", -1);

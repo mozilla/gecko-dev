@@ -78,7 +78,7 @@ function json_reply(client, response) {
       const input = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
         Ci.nsIStringInputStream
       );
-      input.setData(reallyLong, reallyLong.length);
+      input.setByteStringData(reallyLong);
       try {
         writer.copyFrom(input, () => {
           input.close();

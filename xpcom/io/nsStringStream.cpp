@@ -34,6 +34,7 @@ using mozilla::MallocSizeOf;
 using mozilla::nsBorrowedSource;
 using mozilla::nsCStringSource;
 using mozilla::nsTArraySource;
+using mozilla::nsVectorSource;
 using mozilla::ReentrantMonitorAutoEnter;
 using mozilla::Span;
 using mozilla::StreamBufferSource;
@@ -161,43 +162,56 @@ nsStringInputStream::ToString(char** aResult) {
 /////////
 
 NS_IMETHODIMP
-nsStringInputStream::SetData(const char* aData, int32_t aDataLen) {
-  if (NS_WARN_IF(!aData)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  nsCString string;
-  if (NS_WARN_IF(!string.Assign(aData, aDataLen, fallible))) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  auto source = MakeRefPtr<nsCStringSource>(std::move(string));
-  return SetDataSource(source);
+nsStringInputStream::SetByteStringData(const nsACString& aData) {
+  return nsStringInputStream::SetData(aData);  // Encoding handled by XPConnect
 }
 
 NS_IMETHODIMP
 nsStringInputStream::SetUTF8Data(const nsACString& aData) {
-  return nsStringInputStream::SetData(aData);
+  return nsStringInputStream::SetData(aData);  // Encoding handled by XPConnect
 }
 
 NS_IMETHODIMP
-nsStringInputStream::AdoptData(char* aData, int32_t aDataLen) {
+nsStringInputStream::CopyData(const char* aData, size_t aDataLen) {
   if (NS_WARN_IF(!aData)) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  nsCString string;
-  string.Adopt(aData, aDataLen);
-  auto source = MakeRefPtr<nsCStringSource>(std::move(string));
+  size_t length = aDataLen == size_t(-1) ? strlen(aData) : aDataLen;
+
+  // NOTE: use a nsVectorSource here to support very large buffers and avoid
+  // unnecessary null termination.
+  mozilla::Vector<char> vector;
+  if (NS_WARN_IF(!vector.append(aData, length))) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  auto source = MakeRefPtr<nsVectorSource>(std::move(vector));
   return SetDataSource(source);
 }
 
 NS_IMETHODIMP
-nsStringInputStream::ShareData(const char* aData, int32_t aDataLen) {
+nsStringInputStream::AdoptData(char* aData, size_t aDataLen) {
   if (NS_WARN_IF(!aData)) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  size_t length = aDataLen < 0 ? strlen(aData) : size_t(aDataLen);
+  size_t length = aDataLen == size_t(-1) ? strlen(aData) : aDataLen;
+
+  // NOTE: We use a nsVectorSource instead of nsCStringSource for adopted data,
+  // to allow for larger data lengths.
+  mozilla::Vector<char> vector;
+  vector.replaceRawBuffer(aData, length);
+  auto source = MakeRefPtr<nsVectorSource>(std::move(vector));
+  return SetDataSource(source);
+}
+
+NS_IMETHODIMP
+nsStringInputStream::ShareData(const char* aData, size_t aDataLen) {
+  if (NS_WARN_IF(!aData)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  size_t length = aDataLen == size_t(-1) ? strlen(aData) : aDataLen;
   auto source = MakeRefPtr<nsBorrowedSource>(Span{aData, length});
   return SetDataSource(source);
 }
@@ -424,9 +438,8 @@ void nsStringInputStream::Serialize(InputStreamParams& aParams,
     // `ShareData`), create a new owning source so that it doesn't go away while
     // async copying.
     if (!mSource->Owning()) {
-      auto source =
-          MakeRefPtr<nsCStringSource>(nsDependentCSubstring(mSource->Data()));
-      mSource = source;
+      nsTArray<uint8_t> owned{AsBytes(mSource->Data())};
+      mSource = MakeRefPtr<nsTArraySource>(std::move(owned));
     }
 
     InputStreamHelper::SerializeInputStreamAsPipe(this, aParams);
@@ -475,7 +488,7 @@ nsStringInputStream::Clone(nsIInputStream** aCloneOut) {
   ReentrantMonitorAutoEnter reflock(ref->mMon);
   if (mSource && !mSource->Owning()) {
     auto data = mSource->Data();
-    nsresult rv = ref->SetData(data.Elements(), data.Length());
+    nsresult rv = ref->CopyData(data.Elements(), data.Length());
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -500,7 +513,7 @@ nsresult NS_NewByteInputStream(nsIInputStream** aStreamResult,
   nsresult rv;
   switch (aAssignment) {
     case NS_ASSIGNMENT_COPY:
-      rv = stream->SetData(aStringToRead.Elements(), aStringToRead.Length());
+      rv = stream->CopyData(aStringToRead.Elements(), aStringToRead.Length());
       break;
     case NS_ASSIGNMENT_DEPEND:
       rv = stream->ShareData(aStringToRead.Elements(), aStringToRead.Length());

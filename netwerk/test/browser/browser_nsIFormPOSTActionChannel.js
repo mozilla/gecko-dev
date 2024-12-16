@@ -144,7 +144,7 @@ document.getElementById('form').submit();
     var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
       Ci.nsIStringInputStream
     );
-    stream.setData(data, data.length);
+    stream.setByteStringData(data);
 
     var runnable = {
       run: () => {
