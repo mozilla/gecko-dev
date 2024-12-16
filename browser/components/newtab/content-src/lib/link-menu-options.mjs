@@ -421,4 +421,19 @@ export const LinkMenuOptions = {
       type: at.BLOCK_SECTION,
     }),
   }),
+  SectionUnfollow: ({ followedSections, sectionKey }) => ({
+    id: "newtab-menu-section-unfollow",
+    action: ac.OnlyToMain({
+      type: at.SET_PREF,
+      data: {
+        name: "discoverystream.sections.following",
+        value: [...followedSections.filter(item => item !== sectionKey)].join(
+          ", "
+        ),
+      },
+    }),
+    impression: ac.OnlyToMain({
+      type: at.UNFOLLOW_SECTION,
+    }),
+  }),
 };

@@ -246,6 +246,7 @@ for (const type of [
   "TOP_SITES_UPDATED",
   "TOTAL_BOOKMARKS_REQUEST",
   "TOTAL_BOOKMARKS_RESPONSE",
+  "UNFOLLOW_SECTION",
   "UNINIT",
   "UPDATE_PINNED_SEARCH_SHORTCUTS",
   "UPDATE_SEARCH_SHORTCUTS",
@@ -2031,6 +2032,21 @@ const LinkMenuOptions = {
     action: null,
     impression: actionCreators.OnlyToMain({
       type: actionTypes.BLOCK_SECTION,
+    }),
+  }),
+  SectionUnfollow: ({ followedSections, sectionKey }) => ({
+    id: "newtab-menu-section-unfollow",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SET_PREF,
+      data: {
+        name: "discoverystream.sections.following",
+        value: [...followedSections.filter(item => item !== sectionKey)].join(
+          ", "
+        ),
+      },
+    }),
+    impression: actionCreators.OnlyToMain({
+      type: actionTypes.UNFOLLOW_SECTION,
     }),
   }),
 };
@@ -9829,19 +9845,27 @@ function useIntersectionObserver(callback, threshold = 0.3) {
  * @param props
  * @returns {React.FunctionComponent}
  */
-function SectionContextMenu(props) {
-  const type = props.type || "DISCOVERY_STREAM";
-  const title = props.title || props.source;
-  const {
-    index,
-    dispatch
-  } = props;
-
+function SectionContextMenu({
+  type = "DISCOVERY_STREAM",
+  title,
+  source,
+  index,
+  dispatch,
+  sectionKey,
+  following,
+  followedSections
+}) {
   // Initial context menu options: block this section only.
   const SECTIONS_CONTEXT_MENU_OPTIONS = ["SectionBlock"];
   const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
+  if (following) {
+    SECTIONS_CONTEXT_MENU_OPTIONS.push("SectionUnfollow");
+  }
   const onClick = e => {
     e.preventDefault();
+    setShowContextMenu(!showContextMenu);
+  };
+  const onUpdate = () => {
     setShowContextMenu(!showContextMenu);
   };
   return /*#__PURE__*/external_React_default().createElement("div", {
@@ -9850,15 +9874,19 @@ function SectionContextMenu(props) {
     type: "icon",
     size: "default",
     iconsrc: "chrome://global/skin/icons/more.svg",
-    title: title,
+    title: title || source,
     onClick: onClick
   }), showContextMenu && /*#__PURE__*/external_React_default().createElement(LinkMenu, {
+    onUpdate: onUpdate,
     dispatch: dispatch,
     index: index,
     source: type.toUpperCase(),
     options: SECTIONS_CONTEXT_MENU_OPTIONS,
     shouldSendImpressionStats: false,
-    site: {}
+    site: {
+      sectionKey,
+      followedSections
+    }
   }));
 }
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx
@@ -9992,6 +10020,9 @@ function CardSection({
   }))), /*#__PURE__*/external_React_default().createElement(SectionContextMenu, {
     dispatch: dispatch,
     index: sectionPosition,
+    following: following,
+    followedSections: followedSections,
+    sectionKey: sectionKey,
     title: title,
     type: type
   }));

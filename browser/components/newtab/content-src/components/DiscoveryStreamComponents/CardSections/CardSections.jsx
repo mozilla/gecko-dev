@@ -162,6 +162,9 @@ function CardSection({
       <SectionContextMenu
         dispatch={dispatch}
         index={sectionPosition}
+        following={following}
+        followedSections={followedSections}
+        sectionKey={sectionKey}
         title={title}
         type={type}
       />

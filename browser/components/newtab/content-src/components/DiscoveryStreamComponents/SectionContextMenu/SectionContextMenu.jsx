@@ -11,18 +11,30 @@ import { LinkMenu } from "../../LinkMenu/LinkMenu";
  * @param props
  * @returns {React.FunctionComponent}
  */
-export function SectionContextMenu(props) {
-  const type = props.type || "DISCOVERY_STREAM";
-  const title = props.title || props.source;
-  const { index, dispatch } = props;
-
+export function SectionContextMenu({
+  type = "DISCOVERY_STREAM",
+  title,
+  source,
+  index,
+  dispatch,
+  sectionKey,
+  following,
+  followedSections,
+}) {
   // Initial context menu options: block this section only.
   const SECTIONS_CONTEXT_MENU_OPTIONS = ["SectionBlock"];
-
   const [showContextMenu, setShowContextMenu] = useState(false);
+
+  if (following) {
+    SECTIONS_CONTEXT_MENU_OPTIONS.push("SectionUnfollow");
+  }
 
   const onClick = e => {
     e.preventDefault();
+    setShowContextMenu(!showContextMenu);
+  };
+
+  const onUpdate = () => {
     setShowContextMenu(!showContextMenu);
   };
 
@@ -32,17 +44,21 @@ export function SectionContextMenu(props) {
         type="icon"
         size="default"
         iconsrc="chrome://global/skin/icons/more.svg"
-        title={title}
+        title={title || source}
         onClick={onClick}
       />
       {showContextMenu && (
         <LinkMenu
+          onUpdate={onUpdate}
           dispatch={dispatch}
           index={index}
           source={type.toUpperCase()}
           options={SECTIONS_CONTEXT_MENU_OPTIONS}
           shouldSendImpressionStats={false}
-          site={{}}
+          site={{
+            sectionKey,
+            followedSections,
+          }}
         />
       )}
     </div>
