@@ -60,7 +60,6 @@ fn main() {
     let stroked = stroker.finish();
     dbg!(&stroked);
 
-    println!("num of vertices {}", stroked.len());
     let mask = rasterize_to_mask(&stroked, 200, 200);
     write_image(&mask,"out.png", 200, 200);
 /* 
