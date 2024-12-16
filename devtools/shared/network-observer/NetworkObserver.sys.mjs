@@ -651,6 +651,11 @@ export class NetworkObserver {
         }
       }
 
+      // Note: `size`` is only used by DevTools, WebDriverBiDi relies on
+      // `bodySize` and `decodedBodySize`. Waiting on Bug 1903807 to decide
+      // if those fields should have non-0 values as well.
+      response.size = response.text.length;
+
       // Security information is not relevant for data channel, but it should
       // not be considered as insecure either. Set empty string as security
       // state.

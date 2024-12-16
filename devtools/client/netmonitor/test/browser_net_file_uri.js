@@ -72,10 +72,3 @@ add_task(async function test_file_uris() {
 
   await teardown(monitor);
 });
-
-function hasValidSize(request) {
-  const VALID_SIZE_RE = /^\d+(\.\d+)? \w+/;
-  return VALID_SIZE_RE.test(
-    request.querySelector(".requests-list-size").innerText
-  );
-}

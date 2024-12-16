@@ -1310,7 +1310,7 @@ function validateRequests(requests, monitor, options = {}) {
  * Retrieve the context menu element corresponding to the provided id, for the provided
  * netmonitor instance.
  * @param {Object} monitor
- *        The network monnitor object
+ *        The network monitor object
  * @param {String} id
  *        The id of the context menu item
  */
@@ -1339,7 +1339,7 @@ async function maybeOpenAncestorMenu(menuItem) {
  * Selects and clicks the context menu item, it should
  * also wait for the popup to close.
  * @param {Object} monitor
- *        The network monnitor object
+ *        The network monitor object
  * @param {String} id
  *        The id of the context menu item
  */
@@ -1587,4 +1587,21 @@ function testAutocompleteContents(expected, document) {
       `${expected[i]} found`
     );
   });
+}
+
+/**
+ * Check if a valid numerical size is displayed in the request column for the
+ * provided request.
+ *
+ * @param {Element} request
+ *     A request element from the netmonitor requests list.
+ * @return {boolean}
+ *     True if the size column contains a valid size, false otherwise.
+ *
+ */
+function hasValidSize(request) {
+  const VALID_SIZE_RE = /^\d+(\.\d+)? \w+/;
+  return VALID_SIZE_RE.test(
+    request.querySelector(".requests-list-size").innerText
+  );
 }

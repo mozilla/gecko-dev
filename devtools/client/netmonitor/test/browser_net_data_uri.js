@@ -36,6 +36,7 @@ add_task(async function test_navigation_to_data_uri() {
     "data",
     "The scheme in the displayed request is correct"
   );
+  ok(hasValidSize(firstItem), "The request shows a valid size");
 
   await teardown(monitor);
 });
@@ -78,6 +79,7 @@ add_task(async function test_content_request_to_data_uri() {
     "data",
     "The scheme in the displayed request is correct"
   );
+  ok(hasValidSize(firstItem), "The request shows a valid size");
 
   await teardown(monitor);
 });
