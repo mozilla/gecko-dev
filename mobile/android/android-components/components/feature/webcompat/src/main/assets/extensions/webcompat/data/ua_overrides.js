@@ -958,16 +958,16 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1836140 - UA override for indices.iriworldwide.com
+     * Bug 1933811 - UA override for indices.circana.com
      *
-     * The site's content is not loaded without a UA spoof.
+     * The site's content is inaccessible without a UA spoof.
      */
-    id: "bug1836140",
+    id: "bug1933811",
     platform: "all",
-    domain: "indices.iriworldwide.com",
-    bug: "1836140",
+    domain: "indices.circana.com",
+    bug: "1933811",
     config: {
-      matches: ["*://indices.iriworldwide.com/covid19/*"],
+      matches: ["*://indices.circana.com/*"],
       uaTransformer: originalUA => {
         return originalUA.replace("Firefox/", "Fx/");
       },
