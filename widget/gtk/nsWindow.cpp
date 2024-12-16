@@ -466,8 +466,8 @@ nsWindow::nsWindow()
 
 nsWindow::~nsWindow() {
   LOG("nsWindow::~nsWindow()");
-  MOZ_DIAGNOSTIC_ASSERT(mIsDestroyed);
-  Destroy();
+  // We don't want to release live nsWindow.
+  MOZ_RELEASE_ASSERT(mIsDestroyed, "Releasing live window!");
 }
 
 /* static */
