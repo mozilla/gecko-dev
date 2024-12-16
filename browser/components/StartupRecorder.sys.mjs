@@ -25,9 +25,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 let firstPaintNotification = "widget-first-paint";
-// widget-first-paint fires much later than expected on Linux.
-if (
-  AppConstants.platform == "linux" ||
+// On Linux widget-first-paint fires much later than expected and
+// xul-window-visible fires too early for currently unknown reasons.
+if (AppConstants.platform == "linux") {
+  firstPaintNotification = "document-shown";
+} else if (
   Services.prefs.getBoolPref("browser.startup.preXulSkeletonUI", false)
 ) {
   firstPaintNotification = "xul-window-visible";
@@ -164,9 +166,12 @@ StartupRecorder.prototype = {
           .getInterface(Ci.nsIDOMWindow);
       }
 
+      // In the case we're handling document-shown, we'll have been handed
+      // an HTMLDocument instead of an nsIDOMWindow.
+      let doc = topic == "document-shown" ? subject : subject.document;
+
       if (
-        subject.document.documentElement.getAttribute("windowtype") !=
-        "navigator:browser"
+        doc.documentElement.getAttribute("windowtype") != "navigator:browser"
       ) {
         return;
       }
@@ -182,7 +187,7 @@ StartupRecorder.prototype = {
     if (topic == firstPaintNotification) {
       // Because of the check for navigator:browser we made earlier, we know
       // that if we got here, then the subject must be the first browser window.
-      win = subject;
+      win = topic == "document-shown" ? subject.defaultView : subject;
       canvas = win.document.createElementNS(
         "http://www.w3.org/1999/xhtml",
         "canvas"
