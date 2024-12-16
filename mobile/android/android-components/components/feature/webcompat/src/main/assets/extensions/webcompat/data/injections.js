@@ -278,20 +278,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1765947",
-    platform: "android",
-    domain: "veniceincoming.com",
-    bug: "1765947",
-    contentScripts: {
-      matches: ["*://veniceincoming.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1765947-veniceincoming.com-left-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug11769762",
     platform: "all",
     domain: "tiktok.com",
