@@ -58,6 +58,9 @@ vendoring:
    - sdk/src/trace/samplers/always_on_factory.cc
    - sdk/src/version/*.cc
 
+  keep:
+   - opentelemetry-config.mozbuild
+
 updatebot:
   maintainer-phab: mvanstraten
   maintainer-bz: mvanstraten@mozilla.com
