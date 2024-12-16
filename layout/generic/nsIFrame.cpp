@@ -6945,7 +6945,7 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
 
       const IntrinsicSizeInput input(
           aRenderingContext, Some(aCBSize.ConvertTo(GetWritingMode(), aWM)),
-          Some(LogicalSize(aWM, availBased, bSize)
+          Some(LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, bSize)
                    .ConvertTo(GetWritingMode(), aWM)));
       result.ISize(aWM) = ShrinkISizeToFit(input, availBased, aFlags);
     }
