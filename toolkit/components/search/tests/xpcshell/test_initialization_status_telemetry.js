@@ -56,30 +56,11 @@ add_task(async function test_init_failure_telemetry() {
     await Glean.searchService.initializationStatus.failedLoadEngines.testGetValue(),
     "Should have incremented load engines failure by one."
   );
-
-  // This error is recognized based on the error message so we set it explicitly.
-  await startInitFailure("LoadSettingsAddonManager", "Addon manager failed");
-  Assert.equal(
-    1,
-    await Glean.searchService.initializationStatus.failedLoadSettingsAddonManager.testGetValue(),
-    "Should have incremented get settings addon manager failure by one."
-  );
-
-  await startInitFailure(
-    "LoadSettingsAddonManager",
-    "Addon manager shutting down"
-  );
-  Assert.equal(
-    1,
-    await Glean.searchService.initializationStatus.failedLoadSettingsAddonManager.testGetValue(),
-    "Should not have incremented load get settings addon manager failure."
-  );
 });
 
-async function startInitFailure(errorType, errorMessage) {
+async function startInitFailure(errorType) {
   searchService.reset();
-  searchService.errorToThrowInTest.type = errorType;
-  searchService.errorToThrowInTest.message = errorMessage;
+  searchService.errorToThrowInTest = errorType;
 
   Assert.equal(
     searchService.isInitialized,
@@ -87,22 +68,21 @@ async function startInitFailure(errorType, errorMessage) {
     "Search Service should not be initialized."
   );
 
-  let messageRegex = new RegExp(
-    errorMessage ??
-      `Fake ${errorType} error during search service initialization.`
+  let regex = new RegExp(
+    `Fake ${errorType} error during search service initialization.`
   );
 
   await Assert.rejects(
     Services.search.init(),
-    messageRegex,
+    regex,
     "Should have thrown an error on init."
   );
 
   await Assert.rejects(
     Services.search.promiseInitialized,
-    messageRegex,
+    regex,
     "Should have rejected the promise."
   );
 
-  searchService.errorToThrowInTest = { type: null, message: null };
+  searchService.errorToThrowInTest = null;
 }

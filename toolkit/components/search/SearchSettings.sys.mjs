@@ -804,15 +804,7 @@ export class SearchSettings {
           // If we fail to fetch or decode the icon, we assume it's 16x16.
           switch (uri.scheme) {
             case "moz-extension":
-              try {
-                await lazy.AddonManager.readyPromise;
-              } catch (e) {
-                if (e == "shutting down") {
-                  throw new Error("Addon manager shutting down");
-                } else {
-                  throw new Error("Addon manager failed");
-                }
-              }
+              await lazy.AddonManager.readyPromise;
               break;
             case "data":
               break;
