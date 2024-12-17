@@ -311,11 +311,15 @@ var SelectTranslationsPanel = new (class {
     // First see if any of the detected languages are supported and return it if so.
     const { language, languages } =
       await LanguageDetector.detectLanguage(textToTranslate);
+    const languagePairs = await TranslationsParent.getLanguagePairs();
     for (const { languageCode } of languages) {
-      const isSupported =
-        await TranslationsParent.isSupportedAsFromLang(languageCode);
-      if (isSupported) {
-        return languageCode;
+      const compatibleLangTag =
+        TranslationsParent.findCompatibleSourceLangTagSync(
+          languageCode,
+          languagePairs
+        );
+      if (compatibleLangTag) {
+        return compatibleLangTag;
       }
     }
 
@@ -460,16 +464,16 @@ var SelectTranslationsPanel = new (class {
    * @returns {Promise<void>}
    */
   async #initializeLanguageMenuList(langTag, menuList) {
-    const isLangTagSupported =
+    const compatibleLangTag =
       menuList.id === this.elements.fromMenuList.id
-        ? await TranslationsParent.isSupportedAsFromLang(langTag)
-        : await TranslationsParent.isSupportedAsToLang(langTag);
+        ? await TranslationsParent.findCompatibleSourceLangTag(langTag)
+        : await TranslationsParent.findCompatibleTargetLangTag(langTag);
 
-    if (isLangTagSupported) {
+    if (compatibleLangTag) {
       // Remove the data-l10n-id because the menulist label will
       // be populated from the supported language's display name.
       menuList.removeAttribute("data-l10n-id");
-      menuList.value = langTag;
+      menuList.value = compatibleLangTag;
     } else {
       await this.#deselectLanguage(menuList);
     }
@@ -720,13 +724,13 @@ var SelectTranslationsPanel = new (class {
   async #registerSourceText(sourceText, langPairPromise) {
     const { textArea } = this.elements;
     const { fromLanguage, toLanguage } = await langPairPromise;
-    const isFromLangSupported =
-      await TranslationsParent.isSupportedAsFromLang(fromLanguage);
+    const compatibleFromLang =
+      await TranslationsParent.findCompatibleSourceLangTag(fromLanguage);
 
-    if (isFromLangSupported) {
+    if (compatibleFromLang) {
       this.#changeStateTo("idle", /* retainEntries */ false, {
         sourceText,
-        fromLanguage,
+        fromLanguage: compatibleFromLang,
         toLanguage,
       });
     } else {
