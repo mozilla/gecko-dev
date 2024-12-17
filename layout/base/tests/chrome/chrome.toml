@@ -155,11 +155,7 @@ tags = "openwindow"
 ["test_printer_default_settings.html"]
 
 ["test_printpreview.xhtml"]
-skip-if = [
-  "verify && os == 'win'",
-  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1936466
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1936466
-]
+skip-if = ["verify && os == 'win'"]
 
 ["test_printpreview_bug396024.xhtml"]
 skip-if = ["verify && os == 'win'"]

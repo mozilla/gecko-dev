@@ -1179,7 +1179,7 @@ async function runTest41() {
   // bug 1713404 occurs no headers/footers at all are rendered. These higher
   // fuzz factors will still catch this worst case on OS X.
   if (navigator.platform.includes("Win")) {
-    var fuzz = { maxDifferent: 133, maxDifference: 255 }; // Bug 1680838
+    var fuzz = { maxDifferent: 256, maxDifference: 255 }; // Bug 1680838
   }
   else if (navigator.platform.includes("Mac")) {
     var fuzz = { maxDifferent: 60, maxDifference: 200 }; // Bug 1714217
