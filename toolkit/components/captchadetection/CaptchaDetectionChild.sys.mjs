@@ -15,7 +15,7 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
  * Abstract class for handling captchas.
  */
 class CaptchaHandler {
-  constructor(actor) {
+  constructor(actor, _event) {
     this.actor = actor;
     this.tabId = this.actor.docShell.browserChild.tabId;
     this.isPBM = this.actor.browsingContext.usePrivateBrowsing;
@@ -57,8 +57,8 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
   #enabled;
   #mutationObserver;
 
-  constructor(actor) {
-    super(actor);
+  constructor(actor, event) {
+    super(actor, event);
     this.#enabled = true;
     this.#mutationObserver = new this.actor.contentWindow.MutationObserver(
       this.#mutationHandler.bind(this)
@@ -134,8 +134,8 @@ class CFTurnstileHandler extends CaptchaHandler {
   #observingShadowRoot;
   #mutationObserver;
 
-  constructor(actor) {
-    super(actor);
+  constructor(actor, event) {
+    super(actor, event);
     this.#observingShadowRoot = false;
     if (this.actor.document.body?.openOrClosedShadowRoot) {
       this.#observeShadowRoot(this.actor.document.body.openOrClosedShadowRoot);
@@ -220,6 +220,38 @@ class CFTurnstileHandler extends CaptchaHandler {
 }
 
 /**
+ * Handles Datadome captchas.
+ *
+ * Datadome works by placing an iframe that postMessages to
+ * the parent window. This actor attaches to the iframe
+ * that posts messages to the parent window. Therefore, we
+ * ask the parent actor to initialize a new actor in the
+ * parent window. That actor will then listen for messages
+ * from the iframe and send a message to the parent actor
+ * when the captcha is completed.
+ */
+class DatadomeHandler extends CaptchaHandler {
+  constructor(actor, event) {
+    super(actor, event);
+
+    event.stopImmediatePropagation();
+
+    this.actor
+      .sendQuery("CaptchaDetection:Init", { type: "datadome" })
+      .then(() => {
+        // re-dispatch the event
+        event.target.dispatchEvent(event);
+      });
+  }
+
+  static matches(document) {
+    return document.location.href.startsWith(
+      "https://geo.captcha-delivery.com/captcha/"
+    );
+  }
+}
+
+/**
  * This actor runs in the captcha's frame. It provides information
  * about the captcha's state to the parent actor.
  */
@@ -228,12 +260,16 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     lazy.console.debug("actorCreated");
   }
 
-  static #handlers = [GoogleRecaptchaV2Handler, CFTurnstileHandler];
+  static #handlers = [
+    GoogleRecaptchaV2Handler,
+    CFTurnstileHandler,
+    DatadomeHandler,
+  ];
 
-  #initCaptchaHandler() {
+  #initCaptchaHandler(event) {
     for (const handler of CaptchaDetectionChild.#handlers) {
       if (handler.matches(this.document)) {
-        this.handler = new handler(this);
+        this.handler = new handler(this, event);
         return;
       }
     }
@@ -249,7 +285,7 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
       !this.handler &&
       (event.type === "DOMContentLoaded" || event.type === "pageshow")
     ) {
-      this.#initCaptchaHandler();
+      this.#initCaptchaHandler(event);
       return;
     }
 

@@ -1,0 +1,74 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+const lazy = {};
+
+ChromeUtils.defineLazyGetter(lazy, "console", () => {
+  return console.createInstance({
+    prefix: "CaptchaDetectionCommunicationChild",
+    maxLogLevelPref: "captchadetection.loglevel",
+  });
+});
+
+/**
+ * This actor may run in anywhere the parent actor wants to communicate with.
+ * Only created with getActor() method.
+ */
+export class CaptchaDetectionCommunicationChild extends JSWindowActorChild {
+  actorCreated() {
+    lazy.console.debug("actorCreated()");
+    this.tabId = this.docShell.browserChild.tabId;
+  }
+
+  actorDestroy() {
+    lazy.console.debug("actorDestroy()");
+  }
+
+  #datadomeAddMessageListener() {
+    this.contentWindow.addEventListener("message", event => {
+      if (event.origin !== "https://geo.captcha-delivery.com") {
+        return;
+      }
+
+      let data = null;
+      try {
+        data = JSON.parse(event.data);
+        if (!data) {
+          return;
+        }
+      } catch (e) {
+        return;
+      }
+
+      if (data.eventType === "load" && data.hasOwnProperty("responseType")) {
+        this.sendAsyncMessage("CaptchaState:Update", {
+          tabId: this.tabId,
+          isPBM: this.browsingContext.usePrivateBrowsing,
+          state: {
+            type: "datadome",
+            event: "load",
+            captchaShown: data.responseType === "captcha",
+            blocked: data.responseType === "hardblock",
+          },
+        });
+      } else if (data.eventType === "passed") {
+        this.sendAsyncMessage("CaptchaState:Update", {
+          tabId: this.tabId,
+          isPBM: this.browsingContext.usePrivateBrowsing,
+          state: {
+            type: "datadome",
+            event: "passed",
+          },
+        });
+      }
+    });
+  }
+
+  receiveMessage(message) {
+    lazy.console.debug("Received message", message);
+    if (message.name === "Datadome:AddMessageListener") {
+      this.#datadomeAddMessageListener();
+    }
+  }
+}
