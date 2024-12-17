@@ -196,12 +196,11 @@ void ResolvePromiseAsync(Promise* aPromise) {
 
 bool GetContextAttributes(CookieStore* aCookieStore, bool* aThirdPartyContext,
                           bool* aPartitionForeign, bool* aUsingStorageAccess,
-                          bool* aIsOn3PCBExceptionList, Promise* aPromise) {
+                          Promise* aPromise) {
   MOZ_ASSERT(aCookieStore);
   MOZ_ASSERT(aThirdPartyContext);
   MOZ_ASSERT(aPartitionForeign);
   MOZ_ASSERT(aUsingStorageAccess);
-  MOZ_ASSERT(aIsOn3PCBExceptionList);
   MOZ_ASSERT(aPromise);
 
   if (NS_IsMainThread()) {
@@ -225,7 +224,6 @@ bool GetContextAttributes(CookieStore* aCookieStore, bool* aThirdPartyContext,
 
     *aPartitionForeign = document->CookieJarSettings()->GetPartitionForeign();
     *aUsingStorageAccess = document->UsingStorageAccess();
-    *aIsOn3PCBExceptionList = document->IsOn3PCBExceptionList();
     return true;
   }
 
@@ -236,7 +234,6 @@ bool GetContextAttributes(CookieStore* aCookieStore, bool* aThirdPartyContext,
   *aPartitionForeign =
       workerPrivate->CookieJarSettings()->GetPartitionForeign();
   *aUsingStorageAccess = workerPrivate->UsingStorageAccess();
-  *aIsOn3PCBExceptionList = workerPrivate->IsOn3PCBExceptionList();
   return true;
 }
 
@@ -379,11 +376,9 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
         bool thirdPartyContext = true;
         bool partitionForeign = true;
         bool usingStorageAccess = false;
-        bool isOn3PCBExceptionList = false;
 
         if (!GetContextAttributes(self, &thirdPartyContext, &partitionForeign,
-                                  &usingStorageAccess, &isOn3PCBExceptionList,
-                                  promise)) {
+                                  &usingStorageAccess, promise)) {
           return;
         }
 
@@ -412,8 +407,8 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
                 aOptions.mDomain.IsEmpty() ? nsString(baseDomain)
                                            : nsString(aOptions.mDomain),
                 cookiePrincipal->OriginAttributesRef(), thirdPartyContext,
-                partitionForeign, usingStorageAccess, isOn3PCBExceptionList,
-                nsString(aOptions.mName), nsString(aOptions.mValue),
+                partitionForeign, usingStorageAccess, nsString(aOptions.mName),
+                nsString(aOptions.mValue),
                 // If expires is not set, it's a session cookie.
                 aOptions.mExpires.IsNull(),
                 aOptions.mExpires.IsNull()
@@ -504,11 +499,9 @@ already_AddRefed<Promise> CookieStore::Delete(
         bool thirdPartyContext = true;
         bool partitionForeign = true;
         bool usingStorageAccess = false;
-        bool isOn3PCBExceptionList = false;
 
         if (!GetContextAttributes(self, &thirdPartyContext, &partitionForeign,
-                                  &usingStorageAccess, &isOn3PCBExceptionList,
-                                  promise)) {
+                                  &usingStorageAccess, promise)) {
           return;
         }
 
@@ -537,9 +530,8 @@ already_AddRefed<Promise> CookieStore::Delete(
                 aOptions.mDomain.IsEmpty() ? nsString(baseDomain)
                                            : nsString(aOptions.mDomain),
                 cookiePrincipal->OriginAttributesRef(), thirdPartyContext,
-                partitionForeign, usingStorageAccess, isOn3PCBExceptionList,
-                nsString(aOptions.mName), path, aOptions.mPartitioned,
-                operationID);
+                partitionForeign, usingStorageAccess, nsString(aOptions.mName),
+                path, aOptions.mPartitioned, operationID);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
           return;
@@ -713,11 +705,9 @@ already_AddRefed<Promise> CookieStore::GetInternal(
         bool thirdPartyContext = true;
         bool partitionForeign = true;
         bool usingStorageAccess = false;
-        bool isOn3PCBExceptionList = false;
 
         if (!GetContextAttributes(self, &thirdPartyContext, &partitionForeign,
-                                  &usingStorageAccess, &isOn3PCBExceptionList,
-                                  promise)) {
+                                  &usingStorageAccess, promise)) {
           return;
         }
 
@@ -741,8 +731,8 @@ already_AddRefed<Promise> CookieStore::GetInternal(
                     ? Some(partitionedCookiePrincipal->OriginAttributesRef())
                     : Nothing(),
                 thirdPartyContext, partitionForeign, usingStorageAccess,
-                isOn3PCBExceptionList, aOptions.mName.WasPassed(),
-                nsString(name), path, aOnlyTheFirstMatch);
+                aOptions.mName.WasPassed(), nsString(name), path,
+                aOnlyTheFirstMatch);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
           return;

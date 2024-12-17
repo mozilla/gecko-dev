@@ -6641,10 +6641,6 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& aRv) {
     return;
   }
 
-  nsCOMPtr<nsILoadInfo> loadInfo =
-      GetChannel() ? GetChannel()->LoadInfo() : nullptr;
-  bool on3pcbException = loadInfo && loadInfo->GetIsOn3PCBExceptionList();
-
   for (auto& principal : principals) {
     nsAutoCString baseDomain;
     nsresult rv = CookieCommons::GetBaseDomain(principal, baseDomain);
@@ -6689,10 +6685,9 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& aRv) {
         continue;
       }
 
-      if (thirdParty &&
-          !CookieCommons::ShouldIncludeCrossSiteCookie(
-              cookie, CookieJarSettings()->GetPartitionForeign(),
-              IsInPrivateBrowsing(), UsingStorageAccess(), on3pcbException)) {
+      if (thirdParty && !CookieCommons::ShouldIncludeCrossSiteCookie(
+                            cookie, CookieJarSettings()->GetPartitionForeign(),
+                            IsInPrivateBrowsing(), UsingStorageAccess())) {
         continue;
       }
 
@@ -6827,14 +6822,9 @@ void Document::SetCookie(const nsAString& aCookieString, ErrorResult& aRv) {
                                                  nullptr, &thirdParty);
   }
 
-  nsCOMPtr<nsILoadInfo> loadInfo =
-      GetChannel() ? GetChannel()->LoadInfo() : nullptr;
-  bool on3pcbException = loadInfo && loadInfo->GetIsOn3PCBExceptionList();
-
-  if (thirdParty &&
-      !CookieCommons::ShouldIncludeCrossSiteCookie(
-          cookie, CookieJarSettings()->GetPartitionForeign(),
-          IsInPrivateBrowsing(), UsingStorageAccess(), on3pcbException)) {
+  if (thirdParty && !CookieCommons::ShouldIncludeCrossSiteCookie(
+                        cookie, CookieJarSettings()->GetPartitionForeign(),
+                        IsInPrivateBrowsing(), UsingStorageAccess())) {
     return;
   }
 
@@ -19374,15 +19364,6 @@ bool Document::UsingStorageAccess() {
 
   nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
   return loadInfo->GetStoragePermission() != nsILoadInfo::NoStoragePermission;
-}
-
-bool Document::IsOn3PCBExceptionList() const {
-  if (!mChannel) {
-    return false;
-  }
-  nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
-
-  return loadInfo->GetIsOn3PCBExceptionList();
 }
 
 bool Document::HasStorageAccessPermissionGrantedByAllowList() {

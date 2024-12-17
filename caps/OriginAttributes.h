@@ -141,11 +141,6 @@ class OriginAttributes : public dom::OriginAttributesDictionary {
                                 nsAString& outScheme, nsAString& outBaseDomain,
                                 int32_t& outPort,
                                 bool& outForeignByAncestorContext);
-
-  // Parse a partitionKey and extract the site from it. Returns false if the
-  // partitionKey cannot be parsed because the format is invalid.
-  static bool ExtractSiteFromPartitionKey(const nsAString& aPartitionKey,
-                                          nsAString& aOutSite);
 };
 
 class OriginAttributesPattern : public dom::OriginAttributesPatternDictionary {

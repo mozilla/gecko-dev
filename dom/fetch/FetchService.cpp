@@ -277,7 +277,6 @@ RefPtr<FetchServicePromises> FetchService::FetchInstance::Fetch() {
     mFetchDriver->SetAssociatedBrowsingContextID(
         args.mAssociatedBrowsingContextID);
     mFetchDriver->SetIsThirdPartyWorker(Some(args.mIsThirdPartyContext));
-    mFetchDriver->SetIsOn3PCBExceptionList(args.mIsOn3PCBExceptionList);
   }
 
   mFetchDriver->EnableNetworkInterceptControl();

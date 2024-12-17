@@ -573,10 +573,10 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetFrameBrowsingContextID(),
       aLoadInfo->GetInitialSecurityCheckDone(),
       aLoadInfo->GetIsInThirdPartyContext(), isThirdPartyContextToTopWindow,
-      aLoadInfo->GetIsOn3PCBExceptionList(), aLoadInfo->GetIsFormSubmission(),
-      aLoadInfo->GetIsGETRequest(), aLoadInfo->GetSendCSPViolationEvents(),
-      aLoadInfo->GetOriginAttributes(), redirectChainIncludingInternalRedirects,
-      redirectChain, aLoadInfo->GetHasInjectedCookieForCookieBannerHandling(),
+      aLoadInfo->GetIsFormSubmission(), aLoadInfo->GetIsGETRequest(),
+      aLoadInfo->GetSendCSPViolationEvents(), aLoadInfo->GetOriginAttributes(),
+      redirectChainIncludingInternalRedirects, redirectChain,
+      aLoadInfo->GetHasInjectedCookieForCookieBannerHandling(),
       aLoadInfo->GetSchemelessInput(), aLoadInfo->GetHttpsUpgradeTelemetry(),
       ipcClientInfo, ipcReservedClientInfo, ipcInitialClientInfo, ipcController,
       aLoadInfo->CorsUnsafeHeaders(), aLoadInfo->GetForcePreflight(),
@@ -865,9 +865,8 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       loadInfoArgs.browsingContextID(), loadInfoArgs.frameBrowsingContextID(),
       loadInfoArgs.initialSecurityCheckDone(),
       loadInfoArgs.isInThirdPartyContext(), isThirdPartyContextToTopWindow,
-      loadInfoArgs.isOn3PCBExceptionList(), loadInfoArgs.isFormSubmission(),
-      loadInfoArgs.isGETRequest(), loadInfoArgs.sendCSPViolationEvents(),
-      loadInfoArgs.originAttributes(),
+      loadInfoArgs.isFormSubmission(), loadInfoArgs.isGETRequest(),
+      loadInfoArgs.sendCSPViolationEvents(), loadInfoArgs.originAttributes(),
       std::move(redirectChainIncludingInternalRedirects),
       std::move(redirectChain), std::move(ancestorPrincipals),
       ancestorBrowsingContextIDs, loadInfoArgs.corsUnsafeHeaders(),
@@ -976,7 +975,7 @@ void LoadInfoToParentLoadInfoForwarder(
       aLoadInfo->GetRequestBlockingReason(), aLoadInfo->GetStoragePermission(),
       overriddenFingerprintingSettingsArg, aLoadInfo->GetIsMetaRefresh(),
       isThirdPartyContextToTopWindow, aLoadInfo->GetIsInThirdPartyContext(),
-      aLoadInfo->GetIsOn3PCBExceptionList(), unstrippedURI);
+      unstrippedURI);
 }
 
 nsresult MergeParentLoadInfoForwarder(
@@ -1087,10 +1086,6 @@ nsresult MergeParentLoadInfoForwarder(
 
   rv = aLoadInfo->SetIsInThirdPartyContext(
       aForwarderArgs.isInThirdPartyContext());
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = aLoadInfo->SetIsOn3PCBExceptionList(
-      aForwarderArgs.isOn3PCBExceptionList());
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aLoadInfo->SetUnstrippedURI(aForwarderArgs.unstrippedURI());

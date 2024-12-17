@@ -87,8 +87,6 @@ struct RemoteWorkerData
 
   uint64_t? overriddenFingerprintingSettings;
 
-  bool isOn3PCBExceptionList;
-
   OriginTrials originTrials;
 
   OptionalServiceWorkerData serviceWorkerData;

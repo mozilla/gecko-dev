@@ -484,8 +484,7 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
     moreCookies =
         parser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
                      dateHeader, true, isForeignAndNotAddon, mustBePartitioned,
-                     storagePrincipalOriginAttributes.IsPrivateBrowsing(),
-                     loadInfo->GetIsOn3PCBExceptionList());
+                     storagePrincipalOriginAttributes.IsPrivateBrowsing());
     if (!parser.ContainsCookie()) {
       continue;
     }

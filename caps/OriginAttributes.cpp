@@ -61,7 +61,7 @@ static void PopulateTopLevelInfoFromURI(const bool aIsTopLevelDocument,
                                         bool aForeignByAncestorContext,
                                         bool aIsFirstPartyEnabled, bool aForced,
                                         bool aUseSite,
-                                        nsString OriginAttributes::* aTarget,
+                                        nsString OriginAttributes::*aTarget,
                                         OriginAttributes& aOriginAttributes) {
   nsresult rv;
 
@@ -512,25 +512,6 @@ bool OriginAttributes::ParsePartitionKey(const nsAString& aPartitionKey,
 
   // scheme and base domain are required.
   return fieldIndex > 1;
-}
-
-/* static */
-bool OriginAttributes::ExtractSiteFromPartitionKey(
-    const nsAString& aPartitionKey, nsAString& aOutSite) {
-  nsAutoString scheme, host;
-  int32_t port;
-  bool unused;
-  if (!ParsePartitionKey(aPartitionKey, scheme, host, port, unused)) {
-    return false;
-  }
-
-  if (port == -1) {
-    aOutSite.Assign(scheme + u"://"_ns + host);
-  } else {
-    aOutSite.Assign(scheme + u"://"_ns + host + u":"_ns);
-    aOutSite.AppendInt(port);
-  }
-  return true;
 }
 
 }  // namespace mozilla
