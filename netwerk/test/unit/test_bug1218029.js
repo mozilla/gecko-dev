@@ -72,7 +72,7 @@ function execute_test(test) {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.data = test.data;
+  stream.setByteStringData(test.data);
 
   let contentTypeCalled = 0;
 

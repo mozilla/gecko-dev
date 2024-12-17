@@ -54,7 +54,7 @@ function init_content_length(ch) {
   var content = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  content.data = REQUEST_DATA;
+  content.setByteStringData(REQUEST_DATA);
 
   ch.QueryInterface(Ci.nsIUploadChannel).setUploadStream(
     content,

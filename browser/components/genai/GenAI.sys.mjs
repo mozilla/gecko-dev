@@ -785,7 +785,9 @@ export const GenAI = {
       options.headers = Cc[
         "@mozilla.org/io/string-input-stream;1"
       ].createInstance(Ci.nsIStringInputStream);
-      options.headers.data = `${header}: ${encodeURIComponent(prompt)}\r\n`;
+      options.headers.setByteStringData(
+        `${header}: ${encodeURIComponent(prompt)}\r\n`
+      );
     } else {
       url.searchParams.set("q", prompt);
     }

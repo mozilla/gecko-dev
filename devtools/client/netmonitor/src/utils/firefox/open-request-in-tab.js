@@ -58,7 +58,7 @@ function getInputStreamFromString(data) {
   const stringStream = Cc[
     "@mozilla.org/io/string-input-stream;1"
   ].createInstance(Ci.nsIStringInputStream);
-  stringStream.data = data;
+  stringStream.setByteStringData(data);
   return stringStream;
 }
 
