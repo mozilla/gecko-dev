@@ -163,8 +163,7 @@ void setproctitle(const char* fmt, ...) {
 
     for (size_t remI = 0; need_to_save > 0 && remI < kEnvElems; ++remI) {
       const char* thisEnv = kEnvSkip[remI];
-      size_t thisEnvSize = sizeof(kEnvSkip[remI]);
-      int diff = strncmp(environ[i], thisEnv, thisEnvSize);
+      int diff = strncmp(environ[i], thisEnv, strlen(thisEnv));
       if (diff == 0) {
         need_to_save -= static_cast<ssize_t>(var_size);
         skip = true;
@@ -176,7 +175,7 @@ void setproctitle(const char* fmt, ...) {
       continue;
     }
 
-    char* env_start = g_argv_end + environ_size;
+    char* env_start = g_argv_start + size + 1 + environ_size;
     if ((env_start + var_size) < g_envp_end) {
       const size_t var_size_copied =
           snprintf(env_start, var_size, "%s", environ[i]);
