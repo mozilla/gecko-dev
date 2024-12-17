@@ -78,6 +78,7 @@ export class DSLinkMenu extends React.PureComponent {
                 ? {
                     section: this.props.section,
                     section_position: this.props.section_position,
+                    is_secton_followed: this.props.is_secton_followed,
                   }
                 : {}),
             }}

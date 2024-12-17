@@ -75,6 +75,13 @@ export const LinkMenuOptions = {
         typedBonus: site.typedBonus,
         url: site.url,
         sponsored_tile_id: site.sponsored_tile_id,
+        ...(site.section
+          ? {
+              section: site.section,
+              section_position: site.section_position,
+              is_secton_followed: site.is_secton_followed,
+            }
+          : {}),
       },
     }),
     userEvent: "OPEN_NEW_WINDOW",
@@ -127,6 +134,7 @@ export const LinkMenuOptions = {
           ? {
               section: site.section,
               section_position: site.section_position,
+              is_secton_followed: site.is_secton_followed,
             }
           : {}),
       })),

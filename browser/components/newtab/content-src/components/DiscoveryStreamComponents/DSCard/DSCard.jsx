@@ -344,6 +344,7 @@ export class _DSCard extends React.PureComponent {
                 ? {
                     section: this.props.section,
                     section_position: this.props.sectionPosition,
+                    is_secton_followed: this.props.sectionFollowed,
                   }
                 : {}),
             },
@@ -372,6 +373,7 @@ export class _DSCard extends React.PureComponent {
                   ? {
                       section: this.props.section,
                       section_position: this.props.sectionPosition,
+                      is_secton_followed: this.props.sectionFollowed,
                     }
                   : {}),
               },
@@ -420,6 +422,7 @@ export class _DSCard extends React.PureComponent {
               ? {
                   section: this.props.section,
                   section_position: this.props.sectionPosition,
+                  is_secton_followed: this.props.sectionFollowed,
                 }
               : {}),
           },
@@ -446,6 +449,7 @@ export class _DSCard extends React.PureComponent {
                 ? {
                     section: this.props.section,
                     section_position: this.props.sectionPosition,
+                    is_secton_followed: this.props.sectionFollowed,
                   }
                 : {}),
             },
@@ -481,6 +485,13 @@ export class _DSCard extends React.PureComponent {
           thumbs_up: true,
           thumbs_down: false,
           topic: this.props.topic,
+          ...(this.props.section
+            ? {
+                section: this.props.section,
+                section_position: this.props.sectionPosition,
+                is_secton_followed: this.props.sectionFollowed,
+              }
+            : {}),
         },
       })
     );
@@ -561,6 +572,13 @@ export class _DSCard extends React.PureComponent {
             thumbs_up: false,
             thumbs_down: true,
             topic: this.props.topic,
+            ...(this.props.section
+              ? {
+                  section: this.props.section,
+                  section_position: this.props.sectionPosition,
+                  is_secton_followed: this.props.sectionFollowed,
+                }
+              : {}),
           },
         })
       );
@@ -835,6 +853,7 @@ export class _DSCard extends React.PureComponent {
                   ? {
                       section: this.props.section,
                       section_position: this.props.sectionPosition,
+                      is_secton_followed: this.props.sectionFollowed,
                     }
                   : {}),
               },
@@ -923,6 +942,7 @@ export class _DSCard extends React.PureComponent {
                 is_list_card={this.props.isListCard}
                 section={this.props.section}
                 section_position={this.props.sectionPosition}
+                is_secton_followed={this.props.sectionFollowed}
                 format={format}
                 isSectionsCard={this.props.mayHaveSectionsCards}
               />

@@ -1689,6 +1689,13 @@ const LinkMenuOptions = {
         typedBonus: site.typedBonus,
         url: site.url,
         sponsored_tile_id: site.sponsored_tile_id,
+        ...(site.section
+          ? {
+              section: site.section,
+              section_position: site.section_position,
+              is_secton_followed: site.is_secton_followed,
+            }
+          : {}),
       },
     }),
     userEvent: "OPEN_NEW_WINDOW",
@@ -1741,6 +1748,7 @@ const LinkMenuOptions = {
           ? {
               section: site.section,
               section_position: site.section_position,
+              is_secton_followed: site.is_secton_followed,
             }
           : {}),
       })),
@@ -2300,7 +2308,8 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
         } : {}),
         ...(this.props.section ? {
           section: this.props.section,
-          section_position: this.props.section_position
+          section_position: this.props.section_position,
+          is_secton_followed: this.props.is_secton_followed
         } : {})
       }
     })));
@@ -2466,7 +2475,8 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             } : {}),
             ...(link.section ? {
               section: link.section,
-              section_position: link.section_position
+              section_position: link.section_position,
+              is_secton_followed: link.is_secton_followed
             } : {})
           })),
           firstVisibleTimestamp: this.props.firstVisibleTimestamp
@@ -3294,7 +3304,8 @@ class _DSCard extends (external_React_default()).PureComponent {
             } : {}),
             ...(this.props.section ? {
               section: this.props.section,
-              section_position: this.props.sectionPosition
+              section_position: this.props.sectionPosition,
+              is_secton_followed: this.props.sectionFollowed
             } : {})
           }
         }));
@@ -3319,7 +3330,8 @@ class _DSCard extends (external_React_default()).PureComponent {
             } : {}),
             ...(this.props.section ? {
               section: this.props.section,
-              section_position: this.props.sectionPosition
+              section_position: this.props.sectionPosition,
+              is_secton_followed: this.props.sectionFollowed
             } : {})
           }]
         }));
@@ -3364,7 +3376,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           } : {}),
           ...(this.props.section ? {
             section: this.props.section,
-            section_position: this.props.sectionPosition
+            section_position: this.props.sectionPosition,
+            is_secton_followed: this.props.sectionFollowed
           } : {})
         }
       }));
@@ -3386,7 +3399,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           } : {}),
           ...(this.props.section ? {
             section: this.props.section,
-            section_position: this.props.sectionPosition
+            section_position: this.props.sectionPosition,
+            is_secton_followed: this.props.sectionFollowed
           } : {})
         }]
       }));
@@ -3417,7 +3431,12 @@ class _DSCard extends (external_React_default()).PureComponent {
         received_rank: this.props.received_rank,
         thumbs_up: true,
         thumbs_down: false,
-        topic: this.props.topic
+        topic: this.props.topic,
+        ...(this.props.section ? {
+          section: this.props.section,
+          section_position: this.props.sectionPosition,
+          is_secton_followed: this.props.sectionFollowed
+        } : {})
       }
     }));
 
@@ -3484,7 +3503,12 @@ class _DSCard extends (external_React_default()).PureComponent {
           received_rank: this.props.received_rank,
           thumbs_up: false,
           thumbs_down: true,
-          topic: this.props.topic
+          topic: this.props.topic,
+          ...(this.props.section ? {
+            section: this.props.section,
+            section_position: this.props.sectionPosition,
+            is_secton_followed: this.props.sectionFollowed
+          } : {})
         }
       }));
 
@@ -3701,7 +3725,8 @@ class _DSCard extends (external_React_default()).PureComponent {
         category: this.props.category,
         ...(this.props.section ? {
           section: this.props.section,
-          section_position: this.props.sectionPosition
+          section_position: this.props.sectionPosition,
+          is_secton_followed: this.props.sectionFollowed
         } : {})
       }],
       dispatch: this.props.dispatch,
@@ -3773,6 +3798,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       is_list_card: this.props.isListCard,
       section: this.props.section,
       section_position: this.props.sectionPosition,
+      is_secton_followed: this.props.sectionFollowed,
       format: format,
       isSectionsCard: this.props.mayHaveSectionsCards
     }))));
@@ -10140,7 +10166,8 @@ function CardSection({
       spocMessageVariant: spocMessageVariant,
       sectionsClassNames: classNames.join(" "),
       section: sectionKey,
-      sectionPosition: sectionPosition
+      sectionPosition: sectionPosition,
+      sectionFollowed: following
     });
   })));
 }

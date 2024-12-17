@@ -266,6 +266,7 @@ function CardSection({
               sectionsClassNames={classNames.join(" ")}
               section={sectionKey}
               sectionPosition={sectionPosition}
+              sectionFollowed={following}
             />
           );
         })}

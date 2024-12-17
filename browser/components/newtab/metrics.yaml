@@ -1197,6 +1197,7 @@ pocket:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1854245
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1862670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937200
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
@@ -1274,6 +1275,10 @@ pocket:
         description: >
           If click belongs in a section, the numberic position of the section
         type: string
+      is_secton_followed:
+        description: >
+          If click belongs in a section, if that section is followed
+        type: boolean
     send_in_pings:
       - newtab
 
@@ -1288,6 +1293,7 @@ pocket:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1854245
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1862670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937200
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
@@ -1301,6 +1307,7 @@ pocket:
       - najiang@mozilla.com
       - lina@mozilla.com
       - sdowne@mozilla.com
+      - mcrawford@mozilla.ccocm
     expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
@@ -1337,6 +1344,10 @@ pocket:
         description: >
           If click belongs in a section, the numberic position of the section
         type: string
+      is_secton_followed:
+        description: >
+          If click belongs in a section, if that section is followed
+        type: boolean
     send_in_pings:
       - newtab
 
@@ -1346,12 +1357,14 @@ pocket:
       Recorded when a pocket tile is dismissed.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937200
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
     data_sensitivity:
       - interaction
     notification_emails:
       - sdowne@mozilla.com
+      - mcrawford@mozilla.com
     expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
@@ -1376,6 +1389,10 @@ pocket:
         description: >
           If click belongs in a section, the numberic position of the section
         type: string
+      is_secton_followed:
+        description: >
+          If click belongs in a section, if that section is followed
+        type: boolean
     send_in_pings:
       - newtab
 
@@ -1391,6 +1408,7 @@ pocket:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1854245
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1862670
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937200
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
@@ -1440,6 +1458,10 @@ pocket:
         description: >
           If click belongs in a section, the numberic position of the section
         type: string
+      is_secton_followed:
+        description: >
+          If click belongs in a section, if that section is followed
+        type: boolean
     send_in_pings:
       - newtab
 
@@ -1543,6 +1565,7 @@ pocket:
       options in the context menu.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1902099
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937200
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1902099
     data_sensitivity:
@@ -1572,6 +1595,18 @@ pocket:
       is_list_card:
         description: >
           Where the article card is in the list component
+        type: boolean
+      section:
+        description: >
+          If event belongs in a section, the name of the section
+        type: string
+      section_position:
+        description: >
+          If event belongs in a section, the numberic position of the section
+        type: string
+      is_secton_followed:
+        description: >
+          If event belongs in a section, if that section is followed
         type: boolean
     send_in_pings:
       - newtab

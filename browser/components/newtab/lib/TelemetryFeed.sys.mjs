@@ -762,6 +762,7 @@ export class TelemetryFeed {
       },
     });
     const session = this.sessions.get(au.getPortIdOfSender(action));
+
     switch (action.data?.event) {
       case "CLICK": {
         const {
@@ -783,6 +784,7 @@ export class TelemetryFeed {
           format,
           section,
           section_position,
+          is_secton_followed,
         } = action.data.value ?? {};
         if (
           action.data.source === "POPULAR_TOPICS" ||
@@ -806,6 +808,7 @@ export class TelemetryFeed {
               ? {
                   section,
                   section_position,
+                  is_secton_followed,
                 }
               : {}),
             matches_selected_topic,
@@ -861,6 +864,9 @@ export class TelemetryFeed {
           thumbs_up,
           thumbs_down,
           topic,
+          section,
+          section_position,
+          is_secton_followed,
         } = action.data.value ?? {};
         Glean.pocket.thumbVotingInteraction.record({
           newtab_visit_id: session.session_id,
@@ -879,6 +885,13 @@ export class TelemetryFeed {
           thumbs_up,
           thumbs_down,
           topic,
+          ...(section
+            ? {
+                section,
+                section_position,
+                is_secton_followed,
+              }
+            : {}),
         });
         break;
       }
@@ -901,6 +914,7 @@ export class TelemetryFeed {
           format,
           section,
           section_position,
+          is_secton_followed,
         } = action.data.value ?? {};
         Glean.pocket.save.record({
           newtab_visit_id: session.session_id,
@@ -910,6 +924,7 @@ export class TelemetryFeed {
             ? {
                 section,
                 section_position,
+                is_secton_followed,
               }
             : {}),
           topic,
@@ -1393,6 +1408,7 @@ export class TelemetryFeed {
             ? {
                 section: datum.section,
                 section_position: datum.section_position,
+                is_secton_followed: datum.is_secton_followed,
               }
             : {}),
           // We conditionally add in a few props.
@@ -1469,6 +1485,7 @@ export class TelemetryFeed {
             ? {
                 section: tile.section,
                 section_position: tile.section_position,
+                is_secton_followed: tile.is_secton_followed,
               }
             : {}),
           position: tile.pos,
