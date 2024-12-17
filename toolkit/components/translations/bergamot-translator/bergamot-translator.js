@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function loadBergamot(Module) {
-  var BERGAMOT_VERSION_FULL = "v0.5.0+f901047";
+  var BERGAMOT_VERSION_FULL = "v0.5.0+b475d25";
   null;
 
   var Module = typeof Module != "undefined" ? Module : {};
