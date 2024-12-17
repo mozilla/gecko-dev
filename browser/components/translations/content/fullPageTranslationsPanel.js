@@ -1607,10 +1607,11 @@ var FullPageTranslationsPanel = new (class {
                   ),
                 }
               );
-              // Show the locale of the page in the button.
+              // Show the language tag of translated the page in the button.
               buttonLocale.hidden = false;
               buttonCircleArrows.hidden = true;
-              buttonLocale.innerText = requestedTranslationPair.toLanguage;
+              buttonLocale.innerText =
+                requestedTranslationPair.toLanguage.split("-")[0];
             } else {
               document.l10n.setAttributes(
                 button,
