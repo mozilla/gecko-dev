@@ -92,4 +92,41 @@ add_autofill_heuristic_tests([
       },
     ],
   },
+  {
+    description:
+      "two fields with identical field names with duplicated offscreen field",
+    fixtureData: `
+        <html><body><form>
+          <p>First Name: <input id="fname-b"></p>
+          <p>Last Name: <input id="lname-b"></p>
+          <p>Address: <input id="address"></p>
+          <p>Country: <input id="country-b"></p>
+          <p style="position: absolute; left: -9999px;">Country: <input id="country-c"></p>
+          <p>Postal Code: <input id="postalcode-b" autocomplete="postal-code"></p>
+        </form></body></html>
+      `,
+    profile: TEST_PROFILE,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "given-name", autofill: TEST_PROFILE["given-name"] },
+          { fieldName: "family-name", autofill: TEST_PROFILE["family-name"] },
+          {
+            fieldName: "street-address",
+            autofill: TEST_PROFILE["street-address"],
+          },
+          { fieldName: "country", autofill: TEST_PROFILE.country },
+          { fieldName: "country", autofill: TEST_PROFILE.country },
+          {
+            fieldName: "postal-code",
+            reason: "autocomplete",
+            autofill: TEST_PROFILE["postal-code"],
+          },
+        ],
+      },
+    ],
+  },
 ]);

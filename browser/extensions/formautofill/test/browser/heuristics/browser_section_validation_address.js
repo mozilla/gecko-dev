@@ -29,13 +29,11 @@ add_heuristic_tests([
     ],
   },
   {
-    description: `An address section is invalid when it contains less than threee fields`,
+    description: `An address section is invalid when it contains less than three fields`,
     fixtureData: `
         <html><body>
             <input id="postal-code" autocomplete="postal-code">
             <input id="email" autocomplete="email">
-
-            <input id="postal-code" autocomplete="postal-code">
         </body></html>
       `,
     expectedResult: [
@@ -46,11 +44,6 @@ add_heuristic_tests([
           { fieldName: "postal-code", reason: "autocomplete" },
           { fieldName: "email", reason: "autocomplete" },
         ],
-      },
-      {
-        description: "A section with one field",
-        invalid: true,
-        fields: [{ fieldName: "postal-code", reason: "autocomplete" }],
       },
     ],
   },

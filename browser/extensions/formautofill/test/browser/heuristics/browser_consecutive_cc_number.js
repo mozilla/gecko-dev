@@ -44,15 +44,11 @@ add_heuristic_tests([
     expectedResult: [
       {
         invalid: true,
-        fields: [{ fieldName: "cc-number", reason: "fathom" }],
-      },
-      {
-        invalid: true,
-        fields: [{ fieldName: "cc-number", reason: "fathom" }],
-      },
-      {
-        invalid: true,
-        fields: [{ fieldName: "cc-number", reason: "fathom" }],
+        fields: [
+          { fieldName: "cc-number", reason: "fathom" },
+          { fieldName: "cc-number", reason: "fathom" },
+          { fieldName: "cc-number", reason: "fathom" },
+        ],
       },
     ],
     prefs: [
@@ -74,15 +70,12 @@ add_heuristic_tests([
                  </form>`,
     expectedResult: [
       {
-        invalid: true,
-        fields: [{ fieldName: "cc-number", reason: "fathom" }],
-      },
-      {
         default: {
           reason: "fathom",
         },
         invalid: true,
         fields: [
+          { fieldName: "cc-number" },
           { fieldName: "cc-number", part: 1 },
           { fieldName: "cc-number", part: 2 },
           { fieldName: "cc-number", part: 3 },
@@ -110,15 +103,9 @@ add_heuristic_tests([
                  </form>`,
     expectedResult: [
       {
-        invalid: true,
-        fields: [{ fieldName: "cc-number", reason: "fathom" }],
-      },
-      {
-        invalid: true,
-        fields: [{ fieldName: "cc-number", reason: "fathom" }],
-      },
-      {
         fields: [
+          { fieldName: "cc-number", reason: "fathom" },
+          { fieldName: "cc-number", reason: "fathom" },
           { fieldName: "cc-number", reason: "fathom" },
           { fieldName: "cc-name", reason: "fathom" },
           { fieldName: "cc-exp-month", reason: "regex-heuristic" },
@@ -148,11 +135,8 @@ add_heuristic_tests([
                  </form>`,
     expectedResult: [
       {
-        invalid: true,
-        fields: [{ fieldName: "cc-number", reason: "fathom" }],
-      },
-      {
         fields: [
+          { fieldName: "cc-number", reason: "fathom" },
           { fieldName: "cc-number", part: 1, reason: "fathom" },
           { fieldName: "cc-number", part: 2, reason: "fathom" },
           { fieldName: "cc-number", part: 3, reason: "fathom" },

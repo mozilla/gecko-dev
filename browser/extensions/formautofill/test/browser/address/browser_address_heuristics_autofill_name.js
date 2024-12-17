@@ -223,7 +223,7 @@ add_heuristic_tests([
     ],
   },
   {
-    description: `two adjacent name sections: name(0) is invalid and not filled, name(1) is a new section and detected as name`,
+    description: `two adjacent name sections`,
     fixtureData: `
                <form>
                    <input placeholder="Name">
@@ -234,16 +234,11 @@ add_heuristic_tests([
 
     expectedResult: [
       {
-        invalid: true,
         fields: [
           {
             fieldName: "name",
             reason: "regex-heuristic",
           },
-        ],
-      },
-      {
-        fields: [
           {
             fieldName: "name",
             reason: "regex-heuristic",
@@ -331,11 +326,8 @@ add_heuristic_tests([
                </form>`,
     expectedResult: [
       {
-        invalid: true,
-        fields: [{ fieldName: "given-name", reason: "regex-heuristic" }],
-      },
-      {
         fields: [
+          { fieldName: "given-name", reason: "regex-heuristic" },
           { fieldName: "given-name", reason: "regex-heuristic" },
           { fieldName: "email", reason: "regex-heuristic" },
           { fieldName: "tel", reason: "regex-heuristic" },
