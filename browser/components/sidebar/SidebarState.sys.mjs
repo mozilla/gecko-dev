@@ -205,24 +205,9 @@ export class SidebarState {
     return this.#props.launcherVisible;
   }
 
-  updateVisibility(
-    visible,
-    openedByToolbarButton = false,
-    onToolbarButtonRemoval = false
-  ) {
+  updateVisibility(visible, openedByToolbarButton = false) {
     switch (this.revampVisibility) {
       case "hide-sidebar":
-        if (onToolbarButtonRemoval) {
-          // If we are hiding the sidebar because we removed the toolbar button, close everything
-          this.#previousLauncherVisible = false;
-          this.launcherVisible = false;
-          this.launcherExpanded = true;
-
-          if (this.panelOpen) {
-            this.#controller.hide();
-          }
-          return;
-        }
         if (!openedByToolbarButton && !visible && this.panelOpen) {
           // no-op to handle the case when a user changes the visibility setting via the
           // customize panel, we don't want to close anything on them.
