@@ -878,7 +878,7 @@ export class TranslationsParent extends JSWindowActorParent {
         try {
           // Wrap this in a try statement since users can manually edit this pref.
           TranslationsParent.#webContentLanguages.add(
-            new Intl.Locale(locale).language
+            new Intl.Locale(locale).baseName
           );
         } catch {
           // The locale was invalid, discard it.
@@ -893,13 +893,14 @@ export class TranslationsParent extends JSWindowActorParent {
         // The user hasn't customized their accept languages, this means that English
         // is always provided as a fallback language, even if it is not available.
         TranslationsParent.#webContentLanguages.delete("en");
+        TranslationsParent.#webContentLanguages.delete("en-US");
       }
 
       if (TranslationsParent.#webContentLanguages.size === 0) {
         // The user has removed all of their web content languages, default to the
         // app locale.
         TranslationsParent.#webContentLanguages.add(
-          new Intl.Locale(Services.locale.appLocaleAsBCP47).language
+          new Intl.Locale(Services.locale.appLocaleAsBCP47).baseName
         );
       }
     }
@@ -970,7 +971,7 @@ export class TranslationsParent extends JSWindowActorParent {
     const userSettingsLangTags = new Set();
     for (const locale of userSettingsLocales) {
       try {
-        userSettingsLangTags.add(new Intl.Locale(locale).language);
+        userSettingsLangTags.add(new Intl.Locale(locale).baseName);
       } catch (_) {
         // The locale was invalid, discard it.
       }
@@ -2089,8 +2090,9 @@ export class TranslationsParent extends JSWindowActorParent {
    * @param {string} language The BCP 47 language tag.
    */
   static async deleteLanguageFiles(language) {
-    const appLanguage = new Intl.Locale(Services.locale.appLocaleAsBCP47)
-      .language;
+    const appLanguage = lazy.TranslationsUtils.normalizeLangTagForTranslations(
+      Services.locale.appLocaleAsBCP47
+    );
     return TranslationsParent.deleteLanguageFilesToAndFromPair(
       language,
       appLanguage,
@@ -2369,8 +2371,9 @@ export class TranslationsParent extends JSWindowActorParent {
     requestedLanguage,
     includePivotRecords
   ) {
-    const appLanguage = new Intl.Locale(Services.locale.appLocaleAsBCP47)
-      .language;
+    const appLanguage = lazy.TranslationsUtils.normalizeLangTagForTranslations(
+      Services.locale.appLocaleAsBCP47
+    );
 
     return TranslationsParent.getRecordsForTranslatingToAndFromPair(
       requestedLanguage,

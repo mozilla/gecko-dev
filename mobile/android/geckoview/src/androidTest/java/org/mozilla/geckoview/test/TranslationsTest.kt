@@ -6,6 +6,7 @@ package org.mozilla.geckoview.test
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import junit.framework.TestCase.fail
@@ -332,17 +333,20 @@ class TranslationsTest : BaseSessionTest() {
         sessionRule.setPrefsUntilTestEnd(mapOf("intl.accept_languages" to "fr-CA, it, de"))
         val preferredLanguages = TranslationsController.RuntimeTranslation.preferredLanguages()
         sessionRule.waitForResult(preferredLanguages).let { languages ->
-            assertTrue(
+            assertEquals(
                 "French is the first language preference.",
-                languages[0] == "fr",
+                "fr-CA",
+                languages[0],
             )
-            assertTrue(
+            assertEquals(
                 "Italian is the second language preference.",
-                languages[1] == "it",
+                "it",
+                languages[1],
             )
-            assertTrue(
+            assertEquals(
                 "German is the third language preference.",
-                languages[2] == "de",
+                "de",
+                languages[2],
             )
             // "en" is likely the 4th preference via system language;
             // however, this is difficult to guarantee/set in automation.
