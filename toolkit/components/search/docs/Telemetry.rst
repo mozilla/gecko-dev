@@ -89,6 +89,6 @@ search.service.initializaitonStatus
 
   A labeled counter for the type of initialization statuses that can occur on
   start up. Labels include: ``failedSettings``, ``failedFetchEngines``,
-  ``failedLoadEngines``, ``success``.
+  ``failedLoadEngines``, ``failedLoadSettingsAddonManager``, ``success``.
 
   A counter for initialization successes on start up.
