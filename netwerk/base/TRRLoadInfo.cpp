@@ -162,6 +162,16 @@ TRRLoadInfo::SetIsThirdPartyContextToTopWindow(
 }
 
 NS_IMETHODIMP
+TRRLoadInfo::GetIsOn3PCBExceptionList(bool* aIsOn3PCBExceptionList) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRLoadInfo::SetIsOn3PCBExceptionList(bool aIsOn3PCBExceptionList) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 TRRLoadInfo::GetCookiePolicy(uint32_t* aResult) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
