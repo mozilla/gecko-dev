@@ -15,6 +15,7 @@
 #include "MozContainer.h"
 #include "nsWaylandDisplay.h"
 #include "VsyncSource.h"
+#include "WaylandSurface.h"
 
 namespace mozilla {
 
@@ -48,50 +49,53 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
 
   static Maybe<TimeDuration> GetFastestVsyncRate();
 
-  void MaybeUpdateSource(MozContainer* aContainer);
-  void MaybeUpdateSource(
-      const RefPtr<NativeLayerRootWayland>& aNativeLayerRoot);
+  void EnableVSyncSource();
+  void DisableVSyncSource();
 
-  void EnableMonitor();
-  void DisableMonitor();
+  // Regular VSync callback. Runs for visible windows only.
+  // aTime = 0 means emulated frame and use current time.
+  void VisibleWindowCallback(uint32_t aTime = 0);
 
-  void FrameCallback(wl_callback* aCallback, uint32_t aTime);
+  // Idle callback for hidden windows.
   // Returns whether we should keep firing.
-  bool IdleCallback();
+  bool HiddenWindowCallback();
 
   TimeDuration GetVsyncRate() override;
 
+  // Called from gecko code. It generally enables/disables VSync state
+  // regardless of actual VSync source.
   void EnableVsync() override;
-
   void DisableVsync() override;
-
   bool IsVsyncEnabled() override;
-
   void Shutdown() override;
 
  private:
   Maybe<TimeDuration> GetVsyncRateIfEnabled();
 
-  void Refresh(const MutexAutoLock& aProofOfLock);
-  void SetupFrameCallback(const MutexAutoLock& aProofOfLock);
-  void CalculateVsyncRate(const MutexAutoLock& aProofOfLock,
-                          TimeStamp aVsyncTimestamp);
+  void CalculateVsyncRateLocked(const MutexAutoLock& aProofOfLock,
+                                TimeStamp aVsyncTimestamp);
   void* GetWindowForLogging() { return mWindow; };
 
+  void SetHiddenWindowVSync();
+
+  void Init();
+
   Mutex mMutex;
+
+  // Main thread only, except for logging.
+  RefPtr<nsWindow> mWindow;
+  RefPtr<widget::WaylandSurface> mWaylandSurface MOZ_GUARDED_BY(mMutex);
+
   bool mIsShutdown MOZ_GUARDED_BY(mMutex) = false;
   bool mVsyncEnabled MOZ_GUARDED_BY(mMutex) = false;
-  bool mMonitorEnabled MOZ_GUARDED_BY(mMutex) = false;
-  bool mCallbackRequested MOZ_GUARDED_BY(mMutex) = false;
-  MozContainer* mContainer MOZ_GUARDED_BY(mMutex) = nullptr;
-  RefPtr<NativeLayerRootWayland> mNativeLayerRoot MOZ_GUARDED_BY(mMutex);
+  bool mVsyncSourceEnabled MOZ_GUARDED_BY(mMutex) = false;
+
   TimeDuration mVsyncRate MOZ_GUARDED_BY(mMutex);
   TimeStamp mLastVsyncTimeStamp MOZ_GUARDED_BY(mMutex);
-  wl_callback* mCallback MOZ_GUARDED_BY(mMutex) = nullptr;
+  uint32_t mLastFrameTime MOZ_GUARDED_BY(mMutex) = 0;
 
-  guint mIdleTimerID = 0;   // Main thread only.
-  nsWindow* const mWindow;  // Main thread only, except for logging.
-  const guint mIdleTimeout;
+  guint mHiddenWindowTimerID = 0;    // Main thread only.
+  const guint mHiddenWindowTimeout;  // Main thread only.
 };
 
 }  // namespace mozilla
