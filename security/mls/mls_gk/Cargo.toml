@@ -1,0 +1,20 @@
+[package]
+name = "mls_gk"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nserror = { path = "../../../xpcom/rust/nserror" }
+nsstring = { path = "../../../xpcom/rust/nsstring" }
+xpcom = { path = "../../../xpcom/rust/xpcom" }
+static_prefs = { path = "../../../modules/libpref/init/static_prefs" }
+
+mls-platform-api = { git = "https://github.com/beurdouche/mls-platform-api", rev="4dcf3ccbb4d04f4084bba25a9ad0f9248a7a5d02", features = ["gecko"] }
+nss-gk-api = { git = "https://github.com/beurdouche/nss-gk-api", rev = "9bec3c1a7509f3c594cb3394c9353bcb1a1dd853", default-features = false }
+thin-vec = { version = "^0.2.12", features = ["gecko-ffi"] }
+hex = "^0.4.3"
+rusqlite = "^0.31.0"
+log = "^0.4.20"

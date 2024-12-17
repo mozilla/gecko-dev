@@ -107,6 +107,38 @@ notes = "This is a first-party crate which is also published to crates.io. We ce
 audit-as-crates-io = true
 notes = "This is a pinned version of the upstream code, presumably to get a fix that hadn't been released yet. We should consider switching to the latest official release."
 
+[policy.mls-rs]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
+
+[policy.mls-rs-codec]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
+
+[policy.mls-rs-codec-derive]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
+
+[policy.mls-rs-core]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
+
+[policy.mls-rs-crypto-hpke]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
+
+[policy.mls-rs-crypto-traits]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
+
+[policy.mls-rs-identity-x509]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
+
+[policy.mls-rs-provider-sqlite]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
+
 [policy.mozbuild]
 audit-as-crates-io = false
 notes = "The crates.io version of this is just a placeholder to allow public crates to depend on mozbuild."
@@ -145,6 +177,10 @@ audit-as-crates-io = false
 [policy.naga]
 audit-as-crates-io = true
 notes = "Part of the wgpu repository, pinned as the rest of wgpu crates."
+
+[policy.nss-gk-api]
+audit-as-crates-io = true
+notes = "This is a pinned version of the upstream code, pending update of the crate."
 
 [policy.peek-poke]
 audit-as-crates-io = false
