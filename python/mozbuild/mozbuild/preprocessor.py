@@ -874,7 +874,7 @@ class Preprocessor:
             except Exception:
                 raise Preprocessor.Error(self, "FILE_NOT_FOUND", _to_text(args))
         self.checkLineNumbers = bool(
-            re.search(r"\.(js|jsm|java|webidl)(?:\.in)?$", args.name)
+            re.search(r"\.(js|jsm|mjs|java|webidl)(?:\.in)?$", args.name)
         )
         oldFile = self.context["FILE"]
         oldLine = self.context["LINE"]
