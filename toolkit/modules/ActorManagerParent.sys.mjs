@@ -245,6 +245,8 @@ let JSWINDOWACTORS = {
       "https://geo.captcha-delivery.com/captcha/*",
       // hCaptcha
       "https://newassets.hcaptcha.com/captcha/v1/*/static/hcaptcha.html",
+      // AWS WAF Captcha
+      "https://*.amazonaws.com/latest*",
     ],
     messageManagerGroups: ["browsers"],
     allFrames: true,

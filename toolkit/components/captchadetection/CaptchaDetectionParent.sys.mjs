@@ -14,6 +14,8 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
 ChromeUtils.defineESModuleGetters(lazy, {
   CaptchaDetectionPingUtils:
     "resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs",
+  CaptchaResponseObserver:
+    "resource://gre/modules/CaptchaResponseObserver.sys.mjs",
 });
 
 /**
@@ -55,8 +57,18 @@ const tabState = new TabState();
  * or communicating with parent browsing context.
  */
 class CaptchaDetectionParent extends JSWindowActorParent {
+  #responseObserver;
+
   actorCreated() {
     lazy.console.debug("actorCreated");
+  }
+
+  actorDestroy() {
+    lazy.console.debug("actorDestroy()");
+
+    if (this.#responseObserver) {
+      this.#responseObserver.unregister();
+    }
   }
 
   #updateGRecaptchaV2State({ tabId, isPBM, state: { type, changes } }) {
@@ -161,8 +173,93 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     }
   }
 
+  #recordAWSWafEvent({
+    isPBM,
+    state: { event, success, numSolutionsRequired },
+  }) {
+    if (event === "shown") {
+      // We don't call maybeSubmitPing here because we might end up
+      // submitting the ping without the "completed" event.
+      // maybeSubmitPing will be called when "completed" event is
+      // received, or when the daily maybeSubmitPing is called.
+      const shownMetric = "awswafPs" + (isPBM ? "Pbm" : "");
+      Glean.captchaDetection[shownMetric].add(1);
+    } else if (event === "completed") {
+      const suffix = isPBM ? "Pbm" : "";
+      const resultMetric = "awswaf" + (success ? "Pc" : "Pf") + suffix;
+      Glean.captchaDetection[resultMetric].add(1);
+
+      const solutionsRequiredMetric =
+        Glean.captchaDetection["awswafSolutionsRequired" + suffix];
+      solutionsRequiredMetric.accumulateSingleSample(numSolutionsRequired);
+
+      lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+    }
+  }
+
+  async #awsWafInit() {
+    this.#responseObserver = new lazy.CaptchaResponseObserver(
+      channel =>
+        channel.loadInfo?.browsingContextID === this.browsingContext.id &&
+        channel.URI &&
+        channel.URI.scheme === "https" &&
+        channel.URI.host.endsWith(".captcha.awswaf.com") &&
+        channel.URI.filePath.endsWith("/verify"),
+      (_channel, statusCode, responseBody) => {
+        if (statusCode !== Cr.NS_OK) {
+          return;
+        }
+
+        let body;
+        try {
+          body = JSON.parse(responseBody);
+          if (!body) {
+            lazy.console.debug("handleResponseBody", "Failed to parse JSON");
+            return;
+          }
+        } catch (e) {
+          lazy.console.debug(
+            "handleResponseBody",
+            "Failed to parse JSON",
+            e,
+            responseBody
+          );
+          return;
+        }
+
+        // Check for the presence of the expected keys
+        if (
+          !["success", "num_solutions_required"].every(key =>
+            body.hasOwnProperty(key)
+          )
+        ) {
+          lazy.console.debug("handleResponseBody", "Missing keys", body);
+          return;
+        }
+
+        this.#recordAWSWafEvent({
+          isPBM: this.browsingContext.usePrivateBrowsing,
+          state: {
+            event: "completed",
+            success: body.success,
+            numSolutionsRequired: body.num_solutions_required,
+          },
+        });
+      }
+    );
+    this.#responseObserver.register();
+  }
+
+  #onTabClosed(tabId) {
+    tabState.clear(tabId);
+
+    if (this.#responseObserver) {
+      this.#responseObserver.unregister();
+    }
+  }
+
   async receiveMessage(message) {
-    lazy.console.debug("receiveMessage", JSON.stringify(message));
+    lazy.console.debug("receiveMessage", message);
 
     switch (message.name) {
       case "CaptchaState:Update":
@@ -188,6 +285,9 @@ class CaptchaDetectionParent extends JSWindowActorParent {
           case "hCaptcha":
             this.#recordHCaptchaState(message.data);
             break;
+          case "awsWaf":
+            this.#recordAWSWafEvent(message.data);
+            break;
         }
         break;
       case "TabState:Closed":
@@ -195,15 +295,18 @@ class CaptchaDetectionParent extends JSWindowActorParent {
         // => message.data = {
         //   tabId: number,
         // }
-        tabState.clear(message.data.tabId);
+        this.#onTabClosed(message.data.tabId);
         break;
       case "CaptchaDetection:Init":
         // message.name === "CaptchaDetection:Init"
         // => message.data = {
         //   type: string,
         // }
-        if (message.data.type === "datadome") {
-          return this.#datadomeInit();
+        switch (message.data.type) {
+          case "datadome":
+            return this.#datadomeInit();
+          case "awsWaf":
+            return this.#awsWafInit();
         }
         break;
       default:
