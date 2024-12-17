@@ -96,53 +96,58 @@ export const DefaultMeta = ({
   topic,
   isSectionsCard,
   showTopics,
-}) => (
-  <div className="meta">
-    <div className="info-wrap">
-      {ctaButtonVariant !== "variant-b" && format !== "rectangle" && (
-        <DSSource
-          source={source}
-          timeToRead={timeToRead}
-          newSponsoredLabel={newSponsoredLabel}
-          context={context}
-          sponsor={sponsor}
-          sponsored_by_override={sponsored_by_override}
-        />
-      )}
-      {format !== "rectangle" && (
-        <>
-          <h3 className="title clamp">{title}</h3>
-          {excerpt && <p className="excerpt clamp">{excerpt}</p>}
-        </>
-      )}
-      {/* Rectangle format is returned for English clients only.*/}
-      {format === "rectangle" && (
-        <>
-          <h3 className="title clamp">Sponsored</h3>
-          <p className="excerpt clamp">
-            Sponsored content supports our mission to build a better web.
-          </p>
-        </>
-      )}
-    </div>
-    {!isListCard &&
-      format !== "rectangle" &&
-      !mayHaveSectionsCards &&
-      mayHaveThumbsUpDown && (
-        <DSThumbsUpDownButtons
-          onThumbsDownClick={onThumbsDownClick}
-          onThumbsUpClick={onThumbsUpClick}
-          sponsor={sponsor}
-          isThumbsDownActive={state.isThumbsDownActive}
-          isThumbsUpActive={state.isThumbsUpActive}
-        />
-      )}
-    {isSectionsCard && (
-      <div className="sections-card-footer">
-        {!isListCard &&
-          format !== "rectangle" &&
-          mayHaveSectionsCards &&
-          mayHaveThumbsUpDown && (
+}) => {
+  const shouldHaveThumbs =
+    !isListCard &&
+    format !== "rectangle" &&
+    mayHaveSectionsCards &&
+    mayHaveThumbsUpDown;
+  const shouldHaveFooterSection =
+    isSectionsCard && (shouldHaveThumbs || showTopics);
+  return (
+    <div className="meta">
+      <div className="info-wrap">
+        {ctaButtonVariant !== "variant-b" && format !== "rectangle" && (
+          <DSSource
+            source={source}
+            timeToRead={timeToRead}
+            newSponsoredLabel={newSponsoredLabel}
+            context={context}
+            sponsor={sponsor}
+            sponsored_by_override={sponsored_by_override}
+          />
+        )}
+        {format !== "rectangle" && (
+          <>
+            <h3 className="title clamp">{title}</h3>
+            {excerpt && <p className="excerpt clamp">{excerpt}</p>}
+          </>
+        )}
+        {/* Rectangle format is returned for English clients only.*/}
+        {format === "rectangle" && (
+          <>
+            <h3 className="title clamp">Sponsored</h3>
+            <p className="excerpt clamp">
+              Sponsored content supports our mission to build a better web.
+            </p>
+          </>
+        )}
+      </div>
+      {!isListCard &&
+        format !== "rectangle" &&
+        !mayHaveSectionsCards &&
+        mayHaveThumbsUpDown && (
+          <DSThumbsUpDownButtons
+            onThumbsDownClick={onThumbsDownClick}
+            onThumbsUpClick={onThumbsUpClick}
+            sponsor={sponsor}
+            isThumbsDownActive={state.isThumbsDownActive}
+            isThumbsUpActive={state.isThumbsUpActive}
+          />
+        )}
+      {shouldHaveFooterSection && (
+        <div className="sections-card-footer">
+          {shouldHaveThumbs && (
             <DSThumbsUpDownButtons
               onThumbsDownClick={onThumbsDownClick}
               onThumbsUpClick={onThumbsUpClick}
@@ -151,39 +156,40 @@ export const DefaultMeta = ({
               isThumbsUpActive={state.isThumbsUpActive}
             />
           )}
-        {showTopics && (
-          <span
-            className="ds-card-topic"
-            data-l10n-id={`newtab-topic-label-${topic}`}
-          />
-        )}
-      </div>
-    )}
-    {!newSponsoredLabel && (
-      <DSContextFooter
-        context_type={context_type}
-        context={context}
-        sponsor={sponsor}
-        sponsored_by_override={sponsored_by_override}
-        cta_button_variant={ctaButtonVariant}
-        source={source}
-        dispatch={dispatch}
-        spocMessageVariant={spocMessageVariant}
-        mayHaveSectionsCards={mayHaveSectionsCards}
-      />
-    )}
-    {/* Sponsored label is normally in the way of any message.
-        newSponsoredLabel cards sponsored label is moved to just under the thumbnail,
-        so we can display both, so we specifically don't pass in context. */}
-    {newSponsoredLabel && (
-      <DSMessageFooter
-        context_type={context_type}
-        context={null}
-        saveToPocketCard={saveToPocketCard}
-      />
-    )}
-  </div>
-);
+          {showTopics && (
+            <span
+              className="ds-card-topic"
+              data-l10n-id={`newtab-topic-label-${topic}`}
+            />
+          )}
+        </div>
+      )}
+      {!newSponsoredLabel && (
+        <DSContextFooter
+          context_type={context_type}
+          context={context}
+          sponsor={sponsor}
+          sponsored_by_override={sponsored_by_override}
+          cta_button_variant={ctaButtonVariant}
+          source={source}
+          dispatch={dispatch}
+          spocMessageVariant={spocMessageVariant}
+          mayHaveSectionsCards={mayHaveSectionsCards}
+        />
+      )}
+      {/* Sponsored label is normally in the way of any message.
+          newSponsoredLabel cards sponsored label is moved to just under the thumbnail,
+          so we can display both, so we specifically don't pass in context. */}
+      {newSponsoredLabel && (
+        <DSMessageFooter
+          context_type={context_type}
+          context={null}
+          saveToPocketCard={saveToPocketCard}
+        />
+      )}
+    </div>
+  );
+};
 
 export class _DSCard extends React.PureComponent {
   constructor(props) {
@@ -767,6 +773,7 @@ export class _DSCard extends React.PureComponent {
         </button>
       );
     };
+
     return (
       <article
         className={`ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
