@@ -29,8 +29,9 @@ namespace mozilla {
 class ServoStyleSet;
 
 namespace dom {
+class Document;
 class Element;
-}
+}  // namespace dom
 
 /**
  * A stack class used to pass some common restyle state in a slightly more
@@ -197,6 +198,7 @@ class ServoRestyleState {
 enum class ServoPostTraversalFlags : uint32_t;
 
 class RestyleManager {
+  friend class dom::Document;
   friend class ServoStyleSet;
 
  public:
