@@ -1409,6 +1409,9 @@ class Document : public nsINode,
   // Returns whether this document is using unpartitioned cookies
   bool UsingStorageAccess();
 
+  // Returns whether the document is on the 3PCB exception list.
+  bool IsOn3PCBExceptionList() const;
+
   // Returns whether the storage access permission of the document is granted by
   // the allow list.
   bool HasStorageAccessPermissionGrantedByAllowList();

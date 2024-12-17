@@ -727,6 +727,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
 
       storageAccess, isThirdPartyContextToTopWindow, shouldResistFingerprinting,
       overriddenFingerprintingSettingsArg,
+      false /* TODO: We will set the value in a later patch */,
       // Origin trials are associated to a window, so it doesn't make sense on
       // service workers.
       OriginTrials(), std::move(serviceWorkerData), regInfo->AgentClusterId(),

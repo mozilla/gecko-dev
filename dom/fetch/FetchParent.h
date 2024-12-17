@@ -99,6 +99,7 @@ class FetchParent final : public PFetchParent {
   uint64_t mAssociatedBrowsingContextID{0};
   bool mIsThirdPartyContext{true};
   bool mIsWorkerFetch{false};
+  bool mIsOn3PCBExceptionList{false};
 
   Atomic<bool> mIsDone{false};
   Atomic<bool> mActorDestroyed{false};

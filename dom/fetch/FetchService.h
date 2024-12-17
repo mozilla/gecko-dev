@@ -107,6 +107,7 @@ class FetchService final : public nsIObserver {
     MozPromiseRequestHolder<FetchServiceResponseEndPromise>
         mResponseEndPromiseHolder;
     RefPtr<GenericPromise::Private> mFetchParentPromise;
+    bool mIsOn3PCBExceptionList;
   };
 
   // Used for content process main thread fetch()

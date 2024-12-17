@@ -106,6 +106,7 @@ IPCResult FetchParent::RecvFetchOp(FetchOpArgs&& aArgs) {
   mNeedOnDataAvailable = aArgs.needOnDataAvailable();
   mHasCSPEventListener = aArgs.hasCSPEventListener();
   mIsThirdPartyContext = aArgs.isThirdPartyContext();
+  mIsOn3PCBExceptionList = aArgs.isOn3PCBExceptionList();
 
   if (mHasCSPEventListener) {
     mCSPEventListener =
@@ -181,7 +182,7 @@ IPCResult FetchParent::RecvFetchOp(FetchOpArgs&& aArgs) {
                self->mBackgroundEventTarget, self->mID,
                self->mIsThirdPartyContext,
                MozPromiseRequestHolder<FetchServiceResponseEndPromise>(),
-               self->mPromise})));
+               self->mPromise, self->mIsOn3PCBExceptionList})));
     } else {
       MOZ_ASSERT(self->mRequest->GetKeepalive());
       self->mResponsePromises =
