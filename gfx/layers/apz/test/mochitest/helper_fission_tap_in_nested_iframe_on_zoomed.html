@@ -65,7 +65,7 @@
           iframe.addEventListener("load", resolve, { once: true });
         });
         await SpecialPowers.spawn(iframe, [], async () => {
-          await content.wrappedJSObject.promiseApzFlushedRepaints(content.window);
+          await content.wrappedJSObject.promiseApzFlushedRepaints();
         });
       });
 

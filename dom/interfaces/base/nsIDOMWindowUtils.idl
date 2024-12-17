@@ -1714,8 +1714,11 @@ interface nsIDOMWindowUtils : nsISupports {
    * the observer service once the flush is complete. If the function returns
    * false, an error occurred or a flush is not needed, and the notification
    * will not fire. This is intended to be used by test code only!
+   *
+   * @param aElement if you want to do the flush inside popup windows, you need to
+   *        the element inside the poup window.
    */
-  boolean flushApzRepaints();
+  boolean flushApzRepaints([optional] in Element aElement);
 
   /**
    * Sets a flag on the element to forcibly disable APZ on it. This affects

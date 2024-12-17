@@ -3066,8 +3066,8 @@ nsDOMWindowUtils::SetAsyncZoom(Element* aRootElement, float aValue) {
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::FlushApzRepaints(bool* aOutResult) {
-  nsIWidget* widget = GetWidget();
+nsDOMWindowUtils::FlushApzRepaints(Element* aElement, bool* aOutResult) {
+  nsIWidget* widget = GetWidgetForElement(aElement);
   if (!widget) {
     *aOutResult = false;
     return NS_OK;

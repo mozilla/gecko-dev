@@ -16,7 +16,7 @@
       const scale = 2.0;
 
       SpecialPowers.getDOMWindowUtils(window).setResolutionAndScaleTo(scale);
-      await promiseApzFlushedRepaints(window);
+      await promiseApzFlushedRepaints();
       await waitUntilApzStable();
 
       const originalWidth = originalHeight = 100;
