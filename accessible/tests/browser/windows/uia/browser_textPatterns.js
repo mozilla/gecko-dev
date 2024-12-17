@@ -1856,3 +1856,55 @@ addUiaTask(
   },
   { uiaEnabled: true, uiaDisabled: true, chrome: true }
 );
+
+/**
+ * Test the TextRange pattern's ScrollIntoView method.
+ */
+addUiaTask(
+  `
+<style>
+  body {
+    margin: 0;
+  }
+</style>
+<p>p1</p>
+<hr style="height: 200vh;">
+<p id="p2">p2</p>
+<hr style="height: 200vh;">
+<p>p3</p>
+  `,
+  async function testTextRangeScrollIntoView(browser, docAcc) {
+    const [docLeft, docTop, , docBottom] = await runPython(`
+      global doc
+      doc = getDocUia()
+      rect = doc.CurrentBoundingRectangle
+      return (rect.left, rect.top, rect.right, rect.bottom)
+    `);
+
+    info("Scrolling p2 to top");
+    let scrolled = waitForEvent(EVENT_SCROLLING_END, docAcc);
+    await runPython(`
+      global docText, p2, range
+      docText = getUiaPattern(doc, "Text")
+      p2 = findUiaByDomId(doc, "p2")
+      range = docText.RangeFromChild(p2)
+      range.ScrollIntoView(True)
+    `);
+    await scrolled;
+    let [left, top, , height] = await runPython(
+      `range.GetBoundingRectangles()`
+    );
+    is(left, docLeft, "range is at left of document");
+    is(top, docTop, "range is at top of document");
+
+    info("Scrolling p2 to bottom");
+    scrolled = waitForEvent(EVENT_SCROLLING_END, docAcc);
+    await runPython(`
+      range.ScrollIntoView(False)
+    `);
+    await scrolled;
+    [left, top, , height] = await runPython(`range.GetBoundingRectangles()`);
+    is(left, docLeft, "range is at left of document");
+    is(top + height, docBottom, "range is at bottom of document");
+  }
+);

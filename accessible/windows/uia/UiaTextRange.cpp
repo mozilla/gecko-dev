@@ -7,6 +7,7 @@
 #include "UiaTextRange.h"
 
 #include "nsAccUtils.h"
+#include "nsIAccessibleTypes.h"
 #include "TextLeafRange.h"
 #include <comdef.h>
 #include <unordered_set>
@@ -653,8 +654,18 @@ UiaTextRange::AddToSelection() { return E_NOTIMPL; }
 STDMETHODIMP
 UiaTextRange::RemoveFromSelection() { return E_NOTIMPL; }
 
-STDMETHODIMP
-UiaTextRange::ScrollIntoView(BOOL aAlignToTop) { return E_NOTIMPL; }
+// XXX Use MOZ_CAN_RUN_SCRIPT_BOUNDARY for now due to bug 1543294.
+MOZ_CAN_RUN_SCRIPT_BOUNDARY STDMETHODIMP
+UiaTextRange::ScrollIntoView(BOOL aAlignToTop) {
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  range.ScrollIntoView(aAlignToTop
+                           ? nsIAccessibleScrollType::SCROLL_TYPE_TOP_LEFT
+                           : nsIAccessibleScrollType::SCROLL_TYPE_BOTTOM_RIGHT);
+  return S_OK;
+}
 
 STDMETHODIMP
 UiaTextRange::GetChildren(__RPC__deref_out_opt SAFEARRAY** aRetVal) {
