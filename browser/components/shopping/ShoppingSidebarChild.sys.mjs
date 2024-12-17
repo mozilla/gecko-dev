@@ -5,7 +5,11 @@
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { RemotePageChild } from "resource://gre/actors/RemotePageChild.sys.mjs";
 
-import { ShoppingProduct } from "chrome://global/content/shopping/ShoppingProduct.mjs";
+import {
+  ShoppingProduct,
+  isProductURL,
+  isSupportedSiteURL,
+} from "chrome://global/content/shopping/ShoppingProduct.mjs";
 
 let lazy = {};
 
@@ -56,6 +60,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }
   }
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "isIntegratedSidebar",
+  "browser.shopping.experience2023.integratedSidebar",
+  false
+);
 
 export class ShoppingSidebarChild extends RemotePageChild {
   constructor() {
@@ -84,21 +94,7 @@ export class ShoppingSidebarChild extends RemotePageChild {
     }
     switch (message.name) {
       case "ShoppingSidebar:UpdateProductURL":
-        let { url, isReload } = message.data;
-        let uri = url ? Services.io.newURI(url) : null;
-        // If we're going from null to null, bail out:
-        if (!this.#productURI && !uri) {
-          return null;
-        }
-
-        // If we haven't reloaded, check if the URIs represent the same product
-        // as sites might change the URI after they have loaded (Bug 1852099).
-        if (!isReload && this.isSameProduct(uri, this.#productURI)) {
-          return null;
-        }
-
-        this.#productURI = uri;
-        this.updateContent({ haveUpdatedURI: true });
+        this.handleURLUpdate(message.data);
         break;
       case "ShoppingSidebar:ShowKeepClosedMessage":
         this.sendToContent("ShowKeepClosedMessage");
@@ -111,6 +107,32 @@ export class ShoppingSidebarChild extends RemotePageChild {
           ?.wrappedJSObject.showingKeepClosedMessage;
     }
     return null;
+  }
+
+  handleURLUpdate(data) {
+    let { url, isReload, isSupportedSite } = data;
+    let uri = url ? Services.io.newURI(url) : null;
+
+    // If we're going from null to null, bail out:
+    if (!this.#productURI && !uri) {
+      return;
+    }
+
+    // If we haven't reloaded, check if the URIs represent the same product
+    // as sites might change the URI after they have loaded (Bug 1852099).
+    if (!isReload && this.isSameProduct(uri, this.#productURI)) {
+      return;
+    }
+
+    if (!uri || isProductURL(uri) || !lazy.isIntegratedSidebar) {
+      this.#productURI = uri;
+      this.updateContent({ haveUpdatedURI: true });
+    } else {
+      this.#productURI = null;
+      // If the URI is not a product page, we should display an empty state.
+      // That empty state could be for either a support or unsupported site.
+      this.updateContent({ isProductPage: false, isSupportedSite });
+    }
   }
 
   isSameProduct(newURI, currentURI) {
@@ -249,11 +271,16 @@ export class ShoppingSidebarChild extends RemotePageChild {
    *        fetching the URI from the parent, and assume `this.#productURI`
    *        is current. Defaults to false.
    * @param {bool} options.isPolledRequest = false
+   * @param {bool} options.focusCloseButton = false
+   * @param {bool} options.isProductPage = true
+   * @param {bool} options.isSupportedSite = false
    */
   async updateContent({
     haveUpdatedURI = false,
     isPolledRequest = false,
     focusCloseButton = false,
+    isProductPage = true,
+    isSupportedSite = false,
   } = {}) {
     // updateContent is an async function, and when we're off making requests or doing
     // other things asynchronously, the actor can be destroyed, the user
@@ -287,8 +314,17 @@ export class ShoppingSidebarChild extends RemotePageChild {
         data: null,
         recommendationData: null,
         focusCloseButton,
+        isProductPage,
+        isSupportedSite,
       });
     }
+
+    // If this is not a product page then there
+    // is nothing else we need to do.
+    if (!isProductPage) {
+      return;
+    }
+
     if (this.canFetchAndShowData) {
       if (!this.#productURI) {
         // If we already have a URI and it's just null, bail immediately.
@@ -296,16 +332,23 @@ export class ShoppingSidebarChild extends RemotePageChild {
           return;
         }
         let url = await this.sendQuery("GetProductURL");
-        if (!url) {
-          return;
-        }
 
         // Bail out if we opted out in the meantime, or don't have a URI.
         if (!canContinue(null, false)) {
           return;
         }
 
-        this.#productURI = Services.io.newURI(url);
+        let uri = url ? Services.io.newURI(url) : null;
+        if (!uri || isProductURL(uri) || !lazy.isIntegratedSidebar) {
+          this.#productURI = uri;
+        } else {
+          this.#productURI = null;
+          this.sendToContent("Update", {
+            isProductPage: false,
+            isSupportedSite: isSupportedSiteURL(uri),
+          });
+          return;
+        }
       }
 
       let uri = this.#productURI;
@@ -385,10 +428,6 @@ export class ShoppingSidebarChild extends RemotePageChild {
       }
 
       this.sendToContent("Update", {
-        adsEnabled: this.adsEnabled,
-        adsEnabledByUser: this.adsEnabledByUser,
-        autoOpenEnabled: this.autoOpenEnabled,
-        autoOpenEnabledByUser: this.autoOpenEnabledByUser,
         showOnboarding: false,
         data,
         productUrl: this.#productURI.spec,
@@ -410,9 +449,6 @@ export class ShoppingSidebarChild extends RemotePageChild {
         return;
       }
       let url = await this.sendQuery("GetProductURL");
-      if (!url) {
-        return;
-      }
 
       // Similar to canContinue() above, check to see if things
       // have changed while we were waiting. Bail out if the user
@@ -421,12 +457,21 @@ export class ShoppingSidebarChild extends RemotePageChild {
         return;
       }
 
-      this.#productURI = Services.io.newURI(url);
+      let uri = url ? Services.io.newURI(url) : null;
+      let isProduct = isProductURL(uri);
+      if (!uri || isProduct || !lazy.isIntegratedSidebar) {
+        this.#productURI = uri;
+      } else {
+        this.#productURI = null;
+      }
+
       // Send the productURI to content for Onboarding's dynamic text
       this.sendToContent("Update", {
         showOnboarding: true,
         data: null,
-        productUrl: this.#productURI.spec,
+        productUrl: this.#productURI?.spec,
+        isProductPage: isProduct,
+        isSupportedSite: !isProduct && isSupportedSiteURL(uri),
       });
     }
   }

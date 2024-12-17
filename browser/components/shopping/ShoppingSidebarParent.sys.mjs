@@ -37,7 +37,7 @@ export class ShoppingSidebarParent extends JSWindowActorParent {
   static INTEGRATED_SIDEBAR_PANEL_PREF =
     "browser.shopping.experience2023.integratedSidebar";
 
-  updateProductURL(uri, flags) {
+  updateCurrentURL(uri, flags) {
     this.sendAsyncMessage("ShoppingSidebar:UpdateProductURL", {
       url: uri?.spec ?? null,
       isReload: !!(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_RELOAD),
@@ -50,12 +50,7 @@ export class ShoppingSidebarParent extends JSWindowActorParent {
     }
     switch (message.name) {
       case "GetProductURL":
-        let sidebarBrowser = this.browsingContext.top.embedderElement;
-        let panel = sidebarBrowser.closest(".browserSidebarContainer");
-        let associatedTabbedBrowser = panel.querySelector(
-          "browser[messagemanagergroup=browsers]"
-        );
-        return associatedTabbedBrowser.currentURI?.spec ?? null;
+        return this.getCurrentURL();
       case "DisableShopping":
         Services.prefs.setBoolPref(
           ShoppingSidebarParent.SHOPPING_ACTIVE_PREF,
@@ -68,6 +63,18 @@ export class ShoppingSidebarParent extends JSWindowActorParent {
         break;
     }
     return null;
+  }
+
+  /**
+   * Gets the URL of the current tab.
+   */
+  getCurrentURL() {
+    let sidebarBrowser = this.browsingContext.top.embedderElement;
+    let panel = sidebarBrowser.closest(".browserSidebarContainer");
+    let associatedTabbedBrowser = panel.querySelector(
+      "browser[messagemanagergroup=browsers]"
+    );
+    return associatedTabbedBrowser.currentURI?.spec ?? null;
   }
 
   /**
@@ -368,13 +375,13 @@ class ShoppingSidebarManagerClass {
         browserPanel.appendChild(splitter);
         browserPanel.appendChild(sidebar);
       } else {
-        actor?.updateProductURL(aLocationURI, aFlags);
+        actor?.updateCurrentURL(aLocationURI, aFlags);
         sidebar.hidden = false;
         let splitter = browserPanel.querySelector(".shopping-sidebar-splitter");
         splitter.hidden = false;
       }
     } else if (sidebar && !sidebar.hidden) {
-      actor?.updateProductURL(null);
+      actor?.updateCurrentURL(null);
       sidebar.hidden = true;
       let splitter = browserPanel.querySelector(".shopping-sidebar-splitter");
       splitter.hidden = true;
