@@ -7,6 +7,7 @@ prefs = [
 ]
 
 ["browser_dragDrop_after_opening_fxViewTab.js"]
+skip-if = ["!headless"] # Bug 1936459
 
 ["browser_entrypoint_management.js"]
 
