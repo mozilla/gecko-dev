@@ -243,6 +243,8 @@ let JSWINDOWACTORS = {
       "https://*/cdn-cgi/challenge-platform/*/turnstile/if/ov2/*",
       // DataDome Captcha
       "https://geo.captcha-delivery.com/captcha/*",
+      // hCaptcha
+      "https://newassets.hcaptcha.com/captcha/v1/*/static/hcaptcha.html",
     ],
     messageManagerGroups: ["browsers"],
     allFrames: true,

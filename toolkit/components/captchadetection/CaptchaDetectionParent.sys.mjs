@@ -136,6 +136,31 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
   }
 
+  #recordHCaptchaState({ isPBM, tabId, state: { type, changes } }) {
+    lazy.console.debug("recordHCaptchaEvent", changes);
+
+    if (changes === "shown") {
+      // I don't think HCaptcha supports auto-completion, but we act
+      // as if it does just in case.
+      tabState.update(tabId, state => {
+        state.set(type + changes, true);
+      });
+
+      // We don't call maybeSubmitPing here because we might end up
+      // submitting the ping without the "passed" event.
+      // maybeSubmitPing will be called when "passed" event is
+      // received, or when the daily maybeSubmitPing is called.
+      const shownMetric = "hcaptchaPs" + (isPBM ? "Pbm" : "");
+      Glean.captchaDetection[shownMetric].add(1);
+    } else if (changes === "passed") {
+      const autoCompleted = !tabState.get(tabId)?.has(type + "shown");
+      const resultMetric =
+        "hcaptcha" + (autoCompleted ? "Ac" : "Pc") + (isPBM ? "Pbm" : "");
+      Glean.captchaDetection[resultMetric].add(1);
+      lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+    }
+  }
+
   async receiveMessage(message) {
     lazy.console.debug("receiveMessage", JSON.stringify(message));
 
@@ -159,6 +184,10 @@ class CaptchaDetectionParent extends JSWindowActorParent {
             break;
           case "datadome":
             this.#recordDatadomeEvent(message.data);
+            break;
+          case "hCaptcha":
+            this.#recordHCaptchaState(message.data);
+            break;
         }
         break;
       case "TabState:Closed":

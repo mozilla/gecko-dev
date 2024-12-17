@@ -252,6 +252,110 @@ class DatadomeHandler extends CaptchaHandler {
 }
 
 /**
+ * Handles hCaptcha captchas.
+ *
+ * hCaptcha works by placing two iframes in the page. One for
+ * the challenge and one for the checkbox. This handler listens
+ * for the challenge being shown or the checkbox being checked.
+ * When either of these events happen, the handler sends a
+ * message to the parent actor. The handler then disconnects
+ * the mutation observer to avoid further processing.
+ */
+class HCaptchaHandler extends CaptchaHandler {
+  #shown;
+  #checked;
+  #mutationObserver;
+
+  constructor(actor, event) {
+    super(actor, event);
+
+    let params = null;
+    try {
+      params = new URLSearchParams(this.actor.document.location.hash.slice(1));
+    } catch {
+      // invalid URL
+      return;
+    }
+
+    const frameType = params.get("frame");
+    if (frameType === "challenge") {
+      this.#initChallengeHandler();
+    } else if (frameType === "checkbox") {
+      this.#initCheckboxHandler();
+    }
+  }
+
+  static matches(document) {
+    return (
+      document.location.href.startsWith(
+        "https://newassets.hcaptcha.com/captcha/v1/"
+      ) && document.location.href.includes("/static/hcaptcha.html")
+    );
+  }
+
+  #initChallengeHandler() {
+    this.#shown = false;
+    this.#mutationObserver = new this.actor.contentWindow.MutationObserver(
+      this.#challengeMutationHandler.bind(this)
+    );
+    this.#mutationObserver.observe(this.actor.document.body, {
+      attributes: true,
+      attributeFilter: ["aria-hidden"],
+    });
+  }
+
+  #challengeMutationHandler(_mutations, observer) {
+    if (this.#shown) {
+      return;
+    }
+
+    this.#shown = this.actor.document.body.ariaHidden !== "true";
+    if (!this.#shown) {
+      return;
+    }
+
+    this.updateState({
+      type: "hCaptcha",
+      changes: "shown",
+    });
+    observer.disconnect();
+  }
+
+  #initCheckboxHandler() {
+    this.#checked = false;
+    this.#mutationObserver = new this.actor.contentWindow.MutationObserver(
+      this.#checkboxMutationHandler.bind(this)
+    );
+    this.#mutationObserver.observe(this.actor.document, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["aria-checked"],
+    });
+  }
+
+  #checkboxMutationHandler(_mutations, observer) {
+    if (this.#checked) {
+      return;
+    }
+
+    const checkbox = this.actor.document.getElementById("checkbox");
+    if (checkbox?.ariaChecked === "true") {
+      this.#checked = true;
+      this.updateState({
+        type: "hCaptcha",
+        changes: "passed",
+      });
+      observer.disconnect();
+    }
+  }
+
+  onActorDestroy() {
+    super.onActorDestroy();
+    this.#mutationObserver.disconnect();
+  }
+}
+
+/**
  * This actor runs in the captcha's frame. It provides information
  * about the captcha's state to the parent actor.
  */
@@ -264,6 +368,7 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     GoogleRecaptchaV2Handler,
     CFTurnstileHandler,
     DatadomeHandler,
+    HCaptchaHandler,
   ];
 
   #initCaptchaHandler(event) {
