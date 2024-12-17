@@ -32,6 +32,7 @@ pub type Res<T> = Result<T, Error>;
 #[derive(Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub enum Error {
     AeadError,
+    AeadTruncated,
     CertificateLoading,
     CipherInitFailure,
     CreateSslSocket,
@@ -40,6 +41,7 @@ pub enum Error {
     InternalError,
     IntegerOverflow,
     InvalidEpoch,
+    InvalidInput,
     MixedHandshakeMethod,
     NoDataAvailable,
     NssError {
@@ -52,6 +54,8 @@ pub enum Error {
     StringError,
     TimeTravelError,
     UnsupportedCipher,
+    UnsupportedCurve,
+    UnsupportedHash,
     UnsupportedVersion,
 }
 
@@ -128,8 +132,7 @@ pub fn is_blocked(result: &Res<()>) -> bool {
     }
 }
 
-pub trait IntoResult
-{
+pub trait IntoResult {
     /// The `Ok` type for the result.
     type Ok;
 
@@ -158,7 +161,7 @@ macro_rules! impl_into_result {
                 $crate::err::into_result(self)
             }
         }
-    }
+    };
 }
 
 impl IntoResult for SECStatus {
