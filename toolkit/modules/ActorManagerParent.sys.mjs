@@ -249,10 +249,28 @@ let JSWINDOWACTORS = {
       "https://*.amazonaws.com/latest*",
       // Arkose Labs Captcha
       "https://client-api.arkoselabs.com/fc/assets/ec-game-core/game-core/*",
+      // Mochitest
+      ...(Cu.isInAutomation
+        ? [
+            "https://example.com/tests/toolkit/components/captchadetection/tests/mochitest/*",
+            "https://example.org/tests/toolkit/components/captchadetection/tests/mochitest/*",
+          ]
+        : []),
     ],
     messageManagerGroups: ["browsers"],
     allFrames: true,
-    enablePreference: "datareporting.healthreport.uploadEnabled",
+    _reporting: false,
+    onAddActor(register, _unregister) {
+      if (
+        Services.prefs.getBoolPref(
+          "datareporting.healthreport.uploadEnabled",
+          false
+        ) ||
+        Cu.isInAutomation
+      ) {
+        register();
+      }
+    },
   },
 
   CaptchaDetectionCommunication: {

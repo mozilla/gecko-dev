@@ -109,7 +109,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
         (autoCompleted ? "Ac" : "Pc") +
         (isPBM ? "Pbm" : "");
       Glean.captchaDetection[resultMetric].add(1);
-      lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+      this.#onMetricSet();
     }
   }
 
@@ -122,6 +122,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       (isPBM ? "Pbm" : "");
     Glean.captchaDetection[resultMetric].add(1);
     lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+    this.#onMetricSet();
   }
 
   async #datadomeInit() {
@@ -160,7 +161,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       Glean.captchaDetection["datadomePc" + suffix].add(1);
     }
 
-    lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+    this.#onMetricSet();
   }
 
   /** @type {CaptchaStateUpdateFunction} */
@@ -185,7 +186,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       const resultMetric =
         "hcaptcha" + (autoCompleted ? "Ac" : "Pc") + (isPBM ? "Pbm" : "");
       Glean.captchaDetection[resultMetric].add(1);
-      lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+      this.#onMetricSet();
     }
   }
 
@@ -210,7 +211,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
         Glean.captchaDetection["awswafSolutionsRequired" + suffix];
       solutionsRequiredMetric.accumulateSingleSample(numSolutionsRequired);
 
-      lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+      this.#onMetricSet();
     }
   }
 
@@ -235,7 +236,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
         Glean.captchaDetection["arkoselabsSolutionsRequired" + suffix];
       solutionsRequiredMetric.accumulateSingleSample(solutionsSubmitted);
 
-      lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+      this.#onMetricSet();
     }
   }
 
@@ -360,6 +361,39 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     if (this.#responseObserver) {
       this.#responseObserver.unregister();
     }
+  }
+
+  async #onMetricSet() {
+    lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+    if (Cu.isInAutomation) {
+      await this.#notifyTestMetricIsSet();
+    }
+  }
+
+  async #notifyTestMetricIsSet() {
+    if (!Cu.isInAutomation) {
+      throw new Error("This method should only be called in automation");
+    }
+
+    const parent = this.browsingContext.parentWindowContext;
+    if (!parent) {
+      lazy.console.error("No parent window context");
+      return;
+    }
+
+    let actor = null;
+    try {
+      actor = parent.getActor("CaptchaDetectionCommunication");
+      if (!actor) {
+        lazy.console.error("CaptchaDetection actor not found in parent window");
+        return;
+      }
+    } catch (e) {
+      lazy.console.error("Error getting actor", e);
+      return;
+    }
+
+    await actor.sendQuery("Testing:MetricIsSet");
   }
 
   async receiveMessage(message) {

@@ -17,3 +17,5 @@ EXTRA_JS_MODULES += [
     "CaptchaDetectionPingUtils.sys.mjs",
     "CaptchaResponseObserver.sys.mjs",
 ]
+
+MOCHITEST_MANIFESTS += ["tests/mochitest/mochitest.toml"]

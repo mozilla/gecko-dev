@@ -65,10 +65,26 @@ export class CaptchaDetectionCommunicationChild extends JSWindowActorChild {
     });
   }
 
+  #testingMetricIsSet() {
+    if (!Cu.isInAutomation) {
+      throw new Error("This method is only for testing.");
+    }
+
+    this.contentWindow.postMessage(
+      "Testing:MetricIsSet",
+      this.contentWindow.location.origin
+    );
+  }
+
   receiveMessage(message) {
     lazy.console.debug("Received message", message);
-    if (message.name === "Datadome:AddMessageListener") {
-      this.#datadomeAddMessageListener();
+    switch (message.name) {
+      case "Datadome:AddMessageListener":
+        this.#datadomeAddMessageListener();
+        break;
+      case "Testing:MetricIsSet":
+        this.#testingMetricIsSet();
+        break;
     }
   }
 }
