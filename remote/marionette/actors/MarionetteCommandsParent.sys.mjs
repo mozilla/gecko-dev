@@ -343,7 +343,7 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
         return lazy.capture.toHash(canvas);
 
       case lazy.capture.Format.Base64:
-        return lazy.capture.toBase64(canvas);
+        return lazy.capture.toBase64(canvas, "image/png");
 
       default:
         throw new TypeError(`Invalid capture format: ${format}`);

@@ -14,7 +14,6 @@ const CONTEXT_2D = "2d";
 const BG_COLOUR = "rgb(255,255,255)";
 const MAX_CANVAS_DIMENSION = 32767;
 const MAX_CANVAS_AREA = 472907776;
-const PNG_MIME = "image/png";
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 /**
@@ -156,12 +155,16 @@ capture.canvas = async function (
  *
  * @param {HTMLCanvasElement} canvas
  *     The canvas to encode.
+ * @param {string} type
+ *     The image format to output such as `image/png`.
+ * @param {number} encoderOptions
+ *     A number between 0 and 1 representing the image quality. Defaults to `1.0`.
  *
  * @returns {string}
  *     A Base64 encoded string.
  */
-capture.toBase64 = function (canvas) {
-  let u = canvas.toDataURL(PNG_MIME);
+capture.toBase64 = function (canvas, type, encoderOptions = 1.0) {
+  let u = canvas.toDataURL(type, encoderOptions);
   return u.substring(u.indexOf(",") + 1);
 };
 
@@ -175,7 +178,7 @@ capture.toBase64 = function (canvas) {
  *     A hex digest of the SHA-256 hash of the base64 encoded string.
  */
 capture.toHash = function (canvas) {
-  let u = capture.toBase64(canvas);
+  let u = capture.toBase64(canvas, "image/png");
   let buffer = new TextEncoder().encode(u);
   return crypto.subtle.digest("SHA-256", buffer).then(hash => hex(hash));
 };

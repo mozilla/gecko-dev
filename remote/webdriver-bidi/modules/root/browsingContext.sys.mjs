@@ -296,6 +296,18 @@ class BrowsingContextModule extends RootBiDiModule {
    */
 
   /**
+   * Used as an argument for the browsingContext.captureScreenshot command to
+   * represent the output image format.
+   *
+   * @typedef ImageFormat
+   *
+   * @property {string} type
+   *     The output screenshot format such as `image/png`.
+   * @property {number=} quality
+   *     A number between 0 and 1 representing the screenshot quality.
+   */
+
+  /**
    * Used as an argument for browsingContext.captureScreenshot command
    * to represent an element which is going to be a target of the command.
    *
@@ -315,6 +327,8 @@ class BrowsingContextModule extends RootBiDiModule {
    *     A box or an element of which a screenshot should be taken.
    *     If not present, take a screenshot of the whole viewport.
    * @param {OriginType=} options.origin
+   * @param {ImageFormat=} options.format
+   *    Configuration options for the output image.
    *
    * @throws {NoSuchFrameError}
    *     If the browsing context cannot be found.
@@ -324,6 +338,7 @@ class BrowsingContextModule extends RootBiDiModule {
       clip = null,
       context: contextId,
       origin = OriginType.viewport,
+      format = { type: "image/png", quality: undefined },
     } = options;
 
     lazy.assert.string(
@@ -339,14 +354,38 @@ class BrowsingContextModule extends RootBiDiModule {
         lazy.pprint`got ${origin}`
     )(origin);
 
+    lazy.assert.object(
+      format,
+      lazy.pprint`Expected "format" to be an object, got ${format}`
+    );
+
+    const { quality, type: formatType } = format;
+
+    lazy.assert.string(
+      formatType,
+      lazy.pprint`Expected "type" to be a string, got ${formatType}`
+    );
+
+    if (quality !== undefined) {
+      lazy.assert.number(
+        quality,
+        lazy.pprint`Expected "quality" to be a number, got ${quality}`
+      );
+
+      lazy.assert.that(
+        imageQuality => imageQuality >= 0 && imageQuality <= 1,
+        lazy.pprint`Expected "quality" to be in the range of 0 to 1, got ${quality}`
+      )(quality);
+    }
+
     if (clip !== null) {
       lazy.assert.object(
         clip,
         lazy.pprint`Expected "clip" to be an object, got ${clip}`
       );
 
-      const { type } = clip;
-      switch (type) {
+      const { type: clipType } = clip;
+      switch (clipType) {
         case ClipRectangleType.Box: {
           const { x, y, width, height } = clip;
 
@@ -385,7 +424,7 @@ class BrowsingContextModule extends RootBiDiModule {
           throw new lazy.error.InvalidArgumentError(
             `Expected "type" to be one of ${Object.values(
               ClipRectangleType
-            )}, ` + lazy.pprint`got ${type}`
+            )}, ` + lazy.pprint`got ${clipType}`
           );
       }
     }
@@ -420,7 +459,7 @@ class BrowsingContextModule extends RootBiDiModule {
     );
 
     return {
-      data: lazy.capture.toBase64(canvas),
+      data: lazy.capture.toBase64(canvas, formatType, quality),
     };
   }
 
