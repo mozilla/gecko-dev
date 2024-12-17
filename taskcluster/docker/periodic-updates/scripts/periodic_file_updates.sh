@@ -334,6 +334,8 @@ function compare_remote_settings_files {
       # Note that "attachment_type" and "generation_time" are specific to addons-bloomfilters.
       update_remote_settings_attachment "${bucket}" "${collection}" addons-mlbf.bin \
         'map(select(.attachment_type == "bloomfilter-base")) | sort_by(.generation_time) | last'
+      update_remote_settings_attachment "${bucket}" "${collection}" softblocks-addons-mlbf.bin \
+        'map(select(.attachment_type == "softblocks-bloomfilter-base")) | sort_by(.generation_time) | last'
     fi
     # TODO: Bug 1873448. This cannot handle new/removed files currently, due to the
     # build system making it difficult.
