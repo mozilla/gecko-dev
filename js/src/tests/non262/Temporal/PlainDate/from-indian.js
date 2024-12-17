@@ -1,4 +1,4 @@
-// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
 
 // https://github.com/unicode-org/icu4x/issues/5070
 

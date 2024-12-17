@@ -1,4 +1,4 @@
-// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
 
 // Input which has to skip the first two candidates when starting the search from
 // December 31, 1972.

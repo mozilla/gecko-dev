@@ -1,4 +1,4 @@
-// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
 
 // Ensure kevi'ah is correct.
 //

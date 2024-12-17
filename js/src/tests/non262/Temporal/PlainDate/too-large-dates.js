@@ -1,4 +1,4 @@
-// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
 
 // Ignore the result, just make sure we don't crash with a debug assertion.
 function WithCalendar(date, calendar) {

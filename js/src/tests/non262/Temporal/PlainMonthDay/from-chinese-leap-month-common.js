@@ -1,4 +1,4 @@
-// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
 
 // Common leap months should find a result not too far into the past.
 //
