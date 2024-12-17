@@ -6,7 +6,6 @@ package org.mozilla.fenix.home.fake
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import com.google.firebase.util.nextAlphanumericString
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.recover.RecoverableTab
@@ -45,6 +44,7 @@ import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.WallpaperState
 import java.io.File
+import java.util.UUID
 import kotlin.random.Random
 
 /**
@@ -252,7 +252,7 @@ internal object FakeHomepagePreview {
                 add(
                     RecentTab.Tab(
                         TabSessionState(
-                            id = randomString(),
+                            id = randomId(),
                             content = ContentState(
                                 url = URL,
                             ),
@@ -393,8 +393,5 @@ internal object FakeHomepagePreview {
 
     private fun randomLong() = random.nextLong()
 
-    private fun randomString(length: Int = random.nextInt(from = 3, until = 11)) =
-        random.nextAlphanumericString(
-            length = length,
-        )
+    private fun randomId() = UUID.randomUUID().toString()
 }
