@@ -693,16 +693,17 @@ interface nsIDOMWindowUtils : nsISupports {
    *
    * Widget support: Windows 8.0+, Winrt/Win32. Other widgets will throw.
    *
-   * NOTE: The synthesized native event will be fired asynchronously, and upon
-   * completion the observer, if provided, will be notified with a "touchpoint"
-   * topic.
-   *
    * @param aPointerId The touch point id to create or update.
    * @param aTouchState one or more of the touch states listed above
    * @param aScreenX, aScreenY screen coords of this event
    * @param aPressure 0.0 -> 1.0 float val indicating pressure
    * @param aOrientation 0 -> 359 degree value indicating the
    * orientation of the pointer. Use 90 for normal taps.
+   * @param aObserver The synthesized native event will be fired asynchronously,
+   * and upon completion the observer, if provided, will be notified with a
+   * "touchpoint" topic.
+   * @param aElement If the touch point needs to happen on a popup window,
+   * aElement inside the popup window needs to be specified.
    */
   void sendNativeTouchPoint(in unsigned long aPointerId,
                             in unsigned long aTouchState,
@@ -710,7 +711,8 @@ interface nsIDOMWindowUtils : nsISupports {
                             in long aScreenY,
                             in double aPressure,
                             in unsigned long aOrientation,
-                            [optional] in nsIObserver aObserver);
+                            [optional] in nsIObserver aObserver,
+                            [optional] in Element aElement);
   /**
    * These values indicate touchpad pinch phase states :
    * PHASE_BEGIN

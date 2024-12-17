@@ -782,7 +782,16 @@ async function synthesizeNativeTouch(
     target: aTarget,
   });
   var utils = utilsForTarget(aTarget);
-  utils.sendNativeTouchPoint(aTouchId, aType, pt.x, pt.y, 1, 90, aObserver);
+  utils.sendNativeTouchPoint(
+    aTouchId,
+    aType,
+    pt.x,
+    pt.y,
+    1,
+    90,
+    aObserver,
+    aTarget instanceof Element ? aTarget : null
+  );
   return true;
 }
 

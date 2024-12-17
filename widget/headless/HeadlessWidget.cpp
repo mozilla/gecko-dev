@@ -230,6 +230,9 @@ void HeadlessWidget::MoveInternal(int32_t aX, int32_t aY) {
 }
 
 LayoutDeviceIntPoint HeadlessWidget::WidgetToScreenOffset() {
+  if (mWindowType == WindowType::Popup) {
+    return mBounds.TopLeft();
+  }
   return GetTopLevelWidget()->GetBounds().TopLeft();
 }
 
