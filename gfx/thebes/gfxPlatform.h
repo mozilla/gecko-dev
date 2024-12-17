@@ -599,13 +599,28 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    * an effect on layout, such as font rendering settings that influence
    * metrics, or installed fonts.
    *
-   * By default it also broadcast it to child processes, but some callers might
-   * not need it if they implement their own notification.
+   * Normally this is initiated in the parent process, and also broadcast to
+   * child processes, but some callers might not need this if they implement
+   * their own notification.
    */
-  enum class NeedsReframe : bool { No, Yes };
-  enum class BroadcastToChildren : bool { No, Yes };
-  static void ForceGlobalReflow(NeedsReframe,
-                                BroadcastToChildren = BroadcastToChildren::Yes);
+  enum class GlobalReflowFlags : uint8_t {
+    None = 0,
+    // Font data has been updated such that new fonts and/or character coverage
+    // may be available; existing font-lookup caches should be invalidated and
+    // font selection re-done.
+    FontsChanged = (1 << 0),
+    // Content should be fully reframed; this is used when font entry records
+    // may have been invalidated such that existing textruns in the frame tree
+    // are no longer safe to work with. Rather than reflow the existing frame
+    // tree we will discard and re-create it.
+    NeedsReframe = (1 << 1),
+    // (If this is the parent process), broadcast this reflow request to all
+    // child processes.
+    BroadcastToChildren = (1 << 2),
+    // For serialization.
+    ALL_BITS = FontsChanged | NeedsReframe | BroadcastToChildren,
+  };
+  static void ForceGlobalReflow(GlobalReflowFlags aFlags);
 
   static void FlushFontAndWordCaches();
 
@@ -1006,6 +1021,8 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   // basis for error-case iterators.
   const gfxSkipChars kEmptySkipChars;
 };
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(gfxPlatform::GlobalReflowFlags)
 
 CMSMode GfxColorManagementMode();
 

@@ -2389,16 +2389,9 @@ mozilla::ipc::IPCResult ContentChild::RecvUpdateSharedData(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvFontListChanged() {
-  gfxPlatformFontList::PlatformFontList()->FontListChanged();
-
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentChild::RecvForceGlobalReflow(
-    bool aNeedsReframe) {
-  gfxPlatform::ForceGlobalReflow(aNeedsReframe ? gfxPlatform::NeedsReframe::Yes
-                                               : gfxPlatform::NeedsReframe::No);
+    const gfxPlatform::GlobalReflowFlags& aFlags) {
+  gfxPlatform::ForceGlobalReflow(aFlags);
 
   return IPC_OK();
 }

@@ -312,8 +312,8 @@ class ContentChild final : public PContentChild,
       SharedMemoryHandle&& aMapHandle, const uint32_t& aMapSize,
       nsTArray<IPCBlob>&& aBlobs, nsTArray<nsCString>&& aChangedKeys);
 
-  mozilla::ipc::IPCResult RecvFontListChanged();
-  mozilla::ipc::IPCResult RecvForceGlobalReflow(bool aNeedsReframe);
+  mozilla::ipc::IPCResult RecvForceGlobalReflow(
+      const gfxPlatform::GlobalReflowFlags& aFlags);
 
   mozilla::ipc::IPCResult RecvGeolocationUpdate(nsIDOMGeoPosition* aPosition);
 

@@ -2710,8 +2710,11 @@ void gfxFcPlatformFontList::CheckFontUpdates(nsITimer* aTimer, void* aThis) {
   FcConfig* current = FcConfigGetCurrent();
   if (current != pfl->GetLastConfig()) {
     pfl->UpdateFontList();
-
-    gfxPlatform::ForceGlobalReflow(gfxPlatform::NeedsReframe::Yes);
+    gfxPlatform::GlobalReflowFlags flags =
+        gfxPlatform::GlobalReflowFlags::NeedsReframe |
+        gfxPlatform::GlobalReflowFlags::FontsChanged |
+        gfxPlatform::GlobalReflowFlags::BroadcastToChildren;
+    gfxPlatform::ForceGlobalReflow(flags);
     mozilla::dom::ContentParent::NotifyUpdatedFonts(true);
   }
 }

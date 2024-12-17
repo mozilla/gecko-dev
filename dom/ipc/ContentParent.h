@@ -103,12 +103,8 @@ class RemoteWorkerServiceParent;
 class ThreadsafeContentParentHandle;
 struct CancelContentJSOptions;
 
-#define NS_CONTENTPARENT_IID                         \
-  {                                                  \
-    0xeeec9ebf, 0x8ecf, 0x4e38, {                    \
-      0x81, 0xda, 0xb7, 0x34, 0x13, 0x7e, 0xac, 0xf3 \
-    }                                                \
-  }
+#define NS_CONTENTPARENT_IID \
+  {0xeeec9ebf, 0x8ecf, 0x4e38, {0x81, 0xda, 0xb7, 0x34, 0x13, 0x7e, 0xac, 0xf3}}
 
 class ContentParent final : public PContentParent,
                             public nsIDOMProcessParent,
@@ -284,7 +280,6 @@ class ContentParent final : public PContentParent,
 
   static void BroadcastStringBundle(const StringBundleDescriptor&);
 
-  static void BroadcastFontListChanged();
   static void BroadcastShmBlockAdded(uint32_t aGeneration, uint32_t aIndex);
 
   static void BroadcastThemeUpdate(widget::ThemeChangeKind);
