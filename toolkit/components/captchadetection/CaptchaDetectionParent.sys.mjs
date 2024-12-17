@@ -246,8 +246,12 @@ class CaptchaDetectionParent extends JSWindowActorParent {
         channel.loadInfo?.browsingContextID === this.browsingContext.id &&
         channel.URI &&
         channel.URI.scheme === "https" &&
-        channel.URI.host.endsWith(".captcha.awswaf.com") &&
-        channel.URI.filePath.endsWith("/verify"),
+        channel.URI.host.endsWith(
+          Cu.isInAutomation ? "example.com" : ".captcha.awswaf.com"
+        ) &&
+        channel.URI.filePath.endsWith(
+          Cu.isInAutomation ? "aws_waf_api.sjs" : "/verify"
+        ),
       (_channel, statusCode, responseBody) => {
         if (statusCode !== Cr.NS_OK) {
           return;
