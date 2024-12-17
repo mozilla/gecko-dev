@@ -4,7 +4,6 @@
 
 const {
   DebounceCallback,
-  IdlePromise,
   PollPromise,
   Sleep,
   TimedPromise,
@@ -228,26 +227,6 @@ add_task(async function test_Sleep() {
   }
   Assert.throws(() => new Sleep(1.2), /RangeError/);
   Assert.throws(() => new Sleep(-1), /RangeError/);
-});
-
-add_task(async function test_IdlePromise() {
-  let called = false;
-  let win = {
-    requestAnimationFrame(callback) {
-      called = true;
-      callback();
-    },
-  };
-  await IdlePromise(win);
-  ok(called);
-});
-
-add_task(async function test_IdlePromiseAbortWhenWindowClosed() {
-  let win = {
-    closed: true,
-    requestAnimationFrame() {},
-  };
-  await IdlePromise(win);
 });
 
 add_task(function test_DebounceCallback_constructor() {

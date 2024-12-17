@@ -8,7 +8,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
-  executeSoon: "chrome://remote/content/shared/Sync.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
 });
 
@@ -300,32 +299,6 @@ export function MessageManagerDestroyedPromise(messageManager) {
 }
 
 /**
- * Throttle until the main thread is idle and `window` has performed
- * an animation frame (in that order).
- *
- * @param {ChromeWindow} win
- *     Window to request the animation frame from.
- *
- * @returns {Promise}
- */
-export function IdlePromise(win) {
-  const animationFramePromise = new Promise(resolve => {
-    lazy.executeSoon(() => {
-      win.requestAnimationFrame(resolve);
-    });
-  });
-
-  // Abort if the underlying window gets closed
-  const windowClosedPromise = new PollPromise(resolve => {
-    if (win.closed) {
-      resolve();
-    }
-  });
-
-  return Promise.race([animationFramePromise, windowClosedPromise]);
-}
-
-/**
  * Wraps a callback function, that, as long as it continues to be
  * invoked, will not be triggered.  The given function will be
  * called after the timeout duration is reached, after no more
@@ -490,8 +463,8 @@ export function waitForObserverTopic(topic, options = {}) {
       timer?.cancel();
     }
 
-    function observer(subject, topic, data) {
-      lazy.logger.trace(`Received observer notification ${topic}`);
+    function observer(subject, _topic, data) {
+      lazy.logger.trace(`Received observer notification ${_topic}`);
       try {
         if (checkFn && !checkFn(subject, data)) {
           return;

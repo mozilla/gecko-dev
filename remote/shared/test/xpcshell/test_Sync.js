@@ -85,6 +85,7 @@ class MockAppender extends Log.Appender {
 add_task(async function test_AnimationFramePromise() {
   let called = false;
   let win = {
+    addEventListener(_event, _listener) {},
     requestAnimationFrame(callback) {
       called = true;
       callback();
@@ -94,12 +95,30 @@ add_task(async function test_AnimationFramePromise() {
   ok(called);
 });
 
-add_task(async function test_AnimationFramePromiseAbortWhenWindowClosed() {
-  let win = {
-    closed: true,
-    requestAnimationFrame() {},
+add_task(async function test_AnimationFramePromiseAbortOnPageHide() {
+  let resolvePageHideEvent;
+
+  const mockWindow = {
+    addEventListener(event, listener) {
+      if (event === "pagehide") {
+        resolvePageHideEvent = listener;
+      }
+    },
+    removeEventListener() {},
+    requestAnimationFrame(callback) {
+      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+      setTimeout(() => callback(), 10000);
+    },
   };
-  await AnimationFramePromise(win);
+
+  const trackedPromise = trackPromise(AnimationFramePromise(mockWindow));
+
+  ok(trackedPromise.isPending(), "AnimationFramePromise is pending");
+
+  // Simulate "pagehide" event.
+  resolvePageHideEvent({});
+
+  await trackedPromise;
 });
 
 add_task(async function test_DeferredPending() {

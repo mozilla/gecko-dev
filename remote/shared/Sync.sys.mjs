@@ -18,6 +18,9 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
 /**
  * Throttle until the `window` has performed an animation frame.
  *
+ * The animation frame is requested after the main thread has processed
+ * all the already queued-up runnables.
+ *
  * @param {ChromeWindow} win
  *     Window to request the animation frame from.
  *
@@ -25,17 +28,15 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
  */
 export function AnimationFramePromise(win) {
   const animationFramePromise = new Promise(resolve => {
-    win.requestAnimationFrame(resolve);
+    executeSoon(() => {
+      win.requestAnimationFrame(resolve);
+    });
   });
 
-  // Abort if the underlying window gets closed
-  const windowClosedPromise = new PollPromise(resolve => {
-    if (win.closed) {
-      resolve();
-    }
-  });
+  // Abort if the underlying window is no longer active (closed, BFCache)
+  const unloadPromise = new EventPromise(win, "pagehide");
 
-  return Promise.race([animationFramePromise, windowClosedPromise]);
+  return Promise.race([animationFramePromise, unloadPromise]);
 }
 
 /**

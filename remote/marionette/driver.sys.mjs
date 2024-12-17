@@ -7,6 +7,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   action: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   Addon: "chrome://remote/content/marionette/addon.sys.mjs",
+  AnimationFramePromise: "chrome://remote/content/shared/Sync.sys.mjs",
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   browser: "chrome://remote/content/marionette/browser.sys.mjs",
@@ -23,7 +24,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   EventPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   getMarionetteCommandsActorProxy:
     "chrome://remote/content/marionette/actors/MarionetteCommandsParent.sys.mjs",
-  IdlePromise: "chrome://remote/content/marionette/sync.sys.mjs",
   l10n: "chrome://remote/content/marionette/l10n.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   Marionette: "chrome://remote/content/components/Marionette.sys.mjs",
@@ -2931,7 +2931,7 @@ GeckoDriver.prototype.minimizeWindow = async function () {
       { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
     );
     win.removeEventListener("sizemodechange", cb);
-    await new lazy.IdlePromise(win);
+    await new lazy.AnimationFramePromise(win);
   }
 
   return this.curBrowser.rect;
@@ -2983,7 +2983,7 @@ GeckoDriver.prototype.maximizeWindow = async function () {
       { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
     );
     win.removeEventListener("sizemodechange", cb);
-    await new lazy.IdlePromise(win);
+    await new lazy.AnimationFramePromise(win);
   }
 
   return this.curBrowser.rect;
@@ -3033,7 +3033,7 @@ GeckoDriver.prototype.fullscreenWindow = async function () {
     );
     win.removeEventListener("sizemodechange", cb);
   }
-  await new lazy.IdlePromise(win);
+  await new lazy.AnimationFramePromise(win);
 
   return this.curBrowser.rect;
 };
@@ -3056,7 +3056,7 @@ GeckoDriver.prototype.dismissDialog = async function () {
   await dialogClosed;
 
   const win = this.getCurrentWindow();
-  await new lazy.IdlePromise(win);
+  await new lazy.AnimationFramePromise(win);
 };
 
 /**
@@ -3077,7 +3077,7 @@ GeckoDriver.prototype.acceptDialog = async function () {
   await dialogClosed;
 
   const win = this.getCurrentWindow();
-  await new lazy.IdlePromise(win);
+  await new lazy.AnimationFramePromise(win);
 };
 
 /**
@@ -3970,7 +3970,7 @@ async function exitFullscreen(win) {
     { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
   );
   win.removeEventListener("sizemodechange", cb);
-  await new lazy.IdlePromise(win);
+  await new lazy.AnimationFramePromise(win);
 }
 
 async function restoreWindow(win) {
@@ -3988,5 +3988,5 @@ async function restoreWindow(win) {
     { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
   );
   win.removeEventListener("sizemodechange", cb);
-  await new lazy.IdlePromise(win);
+  await new lazy.AnimationFramePromise(win);
 }
