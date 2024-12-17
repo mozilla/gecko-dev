@@ -1,6 +1,6 @@
 [DEFAULT]
-tags = "appupdate"
-head = "head_update.js"
+tags = "appupdate base"
+head = "head_no_service.js"
 skip-if = ["os == 'win' && (ccov || msix)"] # Our updater is disabled in MSIX builds
 support-files = [
   "../data/shared.js",

@@ -18,11 +18,11 @@ MARIONETTE_MANIFESTS += ["marionette/manifest.toml"]
 
 XPCSHELL_TESTS_MANIFESTS += [
     "unit_aus_update/xpcshell.toml",
-    "unit_base_updater/xpcshell.toml",
+    "unit_update_binary/xpcshell_base.toml",
 ]
 
 if CONFIG["MOZ_MAINTENANCE_SERVICE"]:
-    XPCSHELL_TESTS_MANIFESTS += ["unit_service_updater/xpcshell.toml"]
+    XPCSHELL_TESTS_MANIFESTS += ["unit_update_binary/xpcshell_service.toml"]
 
 if CONFIG["MOZ_BUILD_APP"] == "browser" and CONFIG["MOZ_UPDATE_AGENT"]:
     XPCSHELL_TESTS_MANIFESTS += ["unit_background_update/xpcshell.toml"]

@@ -43,7 +43,7 @@ async function run_test() {
   await checkUpdateManager(
     gIsServiceTest ? STATE_PENDING_SVC : STATE_PENDING, // aStatusFileState
     true, // aHasActiveUpdate
-    STATE_PENDING, // aUpdateStatusState
+    gIsServiceTest ? STATE_PENDING_SVC : STATE_PENDING, // aUpdateStatusState
     BACKGROUND_TASK_SHARING_VIOLATION,
     0 // aUpdateCount
   );

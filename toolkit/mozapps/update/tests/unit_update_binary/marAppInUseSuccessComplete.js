@@ -1,9 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-/* General Complete MAR File Patch Apply Test */
+/* Application in use complete MAR file patch apply success test */
 
 async function run_test() {
   if (!setupTestCommon()) {
@@ -11,15 +10,20 @@ async function run_test() {
   }
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
-  preventDistributionFiles();
-  await setupUpdaterTest(FILE_COMPLETE_MAR, true);
+  await setupUpdaterTest(FILE_COMPLETE_MAR, false);
+  if (!gIsServiceTest) {
+    await runHelperFileInUse(DIR_MACOS + gCallbackBinFile, false);
+  } else {
+    await runHelperFileInUse(DIR_RESOURCES + gCallbackBinFile, false);
+  }
   runUpdate(STATE_SUCCEEDED, false, 0, true);
+  await waitForHelperExit();
   await checkPostUpdateAppLog();
   checkAppBundleModTime();
   await testPostUpdateProcessing();
   checkPostUpdateRunningFile(true);
   checkFilesAfterUpdateSuccess(getApplyDirFile);
-  checkUpdateLogContents(LOG_COMPLETE_SUCCESS, false, false, true);
+  checkUpdateLogContents(LOG_COMPLETE_SUCCESS);
   await waitForUpdateXMLFiles();
   await checkUpdateManager(STATE_NONE, false, STATE_SUCCEEDED, 0, 1);
   checkCallbackLog();

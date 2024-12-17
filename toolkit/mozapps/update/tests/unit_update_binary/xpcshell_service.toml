@@ -5,8 +5,9 @@ skip-if = [
   "os == 'win' && asan", # updater binary must be signed for these tests, but it isn't in this build config
   "os == 'win' && msix", # Updates are disabled for MSIX builds
 ]
-tags = "appupdate"
-head = "head_update.js"
+dupe-manifest = true
+tags = "appupdate service"
+head = "head_service.js"
 support-files = [
   "../data/shared.js",
   "../data/sharedUpdateXML.js",
@@ -21,114 +22,114 @@ run-sequentially = "Uses the Mozilla Maintenance Service."
 ["fallbackOnSvcFailure.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["invalidArgInstallDirPathTooLongFailureSvc.js"]
+["invalidArgInstallDirPathTooLongFailure.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["invalidArgInstallDirPathTraversalFailureSvc.js"]
+["invalidArgInstallDirPathTraversalFailure.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["invalidArgInstallWorkingDirPathNotSameFailureSvc_win.js"]
+["invalidArgInstallWorkingDirPathNotSameFailure_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["invalidArgPatchDirPathSuffixFailureSvc.js"]
+["invalidArgPatchDirPathSuffixFailure.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["invalidArgPatchDirPathTraversalFailureSvc.js"]
+["invalidArgPatchDirPathTraversalFailure.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["invalidArgStageDirNotInInstallDirFailureSvc_win.js"]
+["invalidArgStageDirNotInInstallDirFailure_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["invalidArgWorkingDirPathLocalUNCFailureSvc_win.js"]
+["invalidArgWorkingDirPathLocalUNCFailure_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["invalidArgWorkingDirPathRelativeFailureSvc.js"]
+["invalidArgWorkingDirPathRelativeFailure.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marAppApplyDirLockedStageFailureSvc_win.js"]
+["marAppApplyDirLockedStageFailure_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marAppApplyUpdateAppBinInUseStageSuccessSvc_win.js"]
+["marAppApplyUpdateAppBinInUseStageSuccess_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 skip-if = ["ccov && os == 'win'"] #Bug 1651090
 
-["marAppApplyUpdateStageSuccessSvc.js"]
+["marAppApplyUpdateStageSuccess.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marAppApplyUpdateSuccessSvc.js"]
+["marAppApplyUpdateSuccess.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marAppInUseBackgroundTaskFailureSvc_win.js"]
+["marAppInUseBackgroundTaskFailure_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marAppInUseStageFailureCompleteSvc_win.js"]
+["marAppInUseStageFailureComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marAppInUseSuccessCompleteSvc.js"]
+["marAppInUseSuccessComplete.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marCallbackAppStageSuccessCompleteSvc_win.js"]
+["marCallbackAppStageSuccessComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marCallbackAppStageSuccessPartialSvc_win.js"]
+["marCallbackAppStageSuccessPartial_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marCallbackAppSuccessCompleteSvc_win.js"]
+["marCallbackAppSuccessComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marCallbackAppSuccessPartialSvc_win.js"]
+["marCallbackAppSuccessPartial_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFailurePartialSvc.js"]
+["marFailurePartial.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFileInUseStageFailureCompleteSvc_win.js"]
+["marFileInUseStageFailureComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFileInUseStageFailurePartialSvc_win.js"]
+["marFileInUseStageFailurePartial_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFileInUseSuccessCompleteSvc_win.js"]
+["marFileInUseSuccessComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFileInUseSuccessPartialSvc_win.js"]
+["marFileInUseSuccessPartial_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFileLockedFailureCompleteSvc_win.js"]
+["marFileLockedFailureComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFileLockedFailurePartialSvc_win.js"]
+["marFileLockedFailurePartial_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFileLockedStageFailureCompleteSvc_win.js"]
+["marFileLockedStageFailureComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marFileLockedStageFailurePartialSvc_win.js"]
+["marFileLockedStageFailurePartial_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marRMRFDirFileInUseStageFailureCompleteSvc_win.js"]
+["marRMRFDirFileInUseStageFailureComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marRMRFDirFileInUseStageFailurePartialSvc_win.js"]
+["marRMRFDirFileInUseStageFailurePartial_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marRMRFDirFileInUseSuccessCompleteSvc_win.js"]
+["marRMRFDirFileInUseSuccessComplete_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marRMRFDirFileInUseSuccessPartialSvc_win.js"]
+["marRMRFDirFileInUseSuccessPartial_win.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marStageFailurePartialSvc.js"]
+["marStageFailurePartial.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marStageSuccessCompleteSvc.js"]
+["marStageSuccessComplete.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marStageSuccessPartialSvc.js"]
+["marStageSuccessPartial.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marSuccessCompleteSvc.js"]
+["marSuccessComplete.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."
 
-["marSuccessPartialSvc.js"]
+["marSuccessPartial.js"]
 run-sequentially = "Uses the Mozilla Maintenance Service."

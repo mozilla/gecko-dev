@@ -8,6 +8,7 @@ async function run_test() {
   if (!setupTestCommon()) {
     return;
   }
+  const STATE_AFTER_STAGE = gIsServiceTest ? STATE_PENDING_SVC : STATE_PENDING;
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
   setTestFilesAndDirsForFailure();
@@ -23,9 +24,9 @@ async function run_test() {
   checkUpdateLogContains(STATE_FAILED_WRITE_ERROR + "\n" + CALL_QUIT);
   await waitForUpdateXMLFiles(true, false);
   await checkUpdateManager(
-    STATE_PENDING_SVC,
+    STATE_AFTER_STAGE,
     true,
-    STATE_PENDING_SVC,
+    STATE_AFTER_STAGE,
     WRITE_ERROR,
     0
   );

@@ -2,47 +2,38 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-/* File in use inside removed dir complete MAR file staged patch apply failure
-   test */
+/* File locked complete MAR file staged patch apply failure test */
 
 async function run_test() {
   if (!setupTestCommon()) {
     return;
   }
-  const STATE_AFTER_STAGE = gIsServiceTest ? STATE_APPLIED_SVC : STATE_APPLIED;
-  const STATE_AFTER_RUNUPDATE = gIsServiceTest
-    ? STATE_PENDING_SVC
-    : STATE_PENDING;
+  const STATE_AFTER_STAGE = gIsServiceTest ? STATE_PENDING_SVC : STATE_PENDING;
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
+  setTestFilesAndDirsForFailure();
   await setupUpdaterTest(FILE_COMPLETE_MAR, false);
-  await runHelperFileInUse(
-    gTestDirs[4].relPathDir +
-      gTestDirs[4].subDirs[0] +
-      gTestDirs[4].subDirFiles[0],
-    true
-  );
+  await runHelperLockFile(getTestFileByName("searchpluginspng0.png"));
   await stageUpdate(STATE_AFTER_STAGE, true);
   checkPostUpdateRunningFile(false);
-  checkFilesAfterUpdateSuccess(getStageDirFile, true);
-  checkUpdateLogContents(LOG_COMPLETE_SUCCESS, true);
+  // Files aren't checked after staging since this test locks a file which
+  // prevents reading the file.
+  checkUpdateLogContains(ERR_ENSURE_COPY);
   // Switch the application to the staged application that was updated.
-  runUpdate(STATE_AFTER_RUNUPDATE, true, 1, true);
+  runUpdate(STATE_FAILED_WRITE_ERROR, false, 1, false);
   await waitForHelperExit();
   await testPostUpdateProcessing();
   checkPostUpdateRunningFile(false);
-  setTestFilesAndDirsForFailure();
   checkFilesAfterUpdateFailure(getApplyDirFile);
   checkUpdateLogContains(ERR_RENAME_FILE);
-  checkUpdateLogContains(
-    ERR_MOVE_DESTDIR_7 + "\n" + STATE_FAILED_WRITE_ERROR + "\n" + CALL_QUIT
-  );
+  checkUpdateLogContains(ERR_BACKUP_CREATE_7);
+  checkUpdateLogContains(STATE_FAILED_WRITE_ERROR + "\n" + CALL_QUIT);
   await waitForUpdateXMLFiles(true, false);
   await checkUpdateManager(
-    STATE_AFTER_RUNUPDATE,
+    STATE_AFTER_STAGE,
     true,
-    STATE_AFTER_RUNUPDATE,
-    0,
+    STATE_AFTER_STAGE,
+    WRITE_ERROR,
     0
   );
   checkCallbackLog();

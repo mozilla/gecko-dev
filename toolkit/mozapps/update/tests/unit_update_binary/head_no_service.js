@@ -5,3 +5,4 @@
 /* import-globals-from ../data/xpcshellUtilsAUS.js */
 load("xpcshellUtilsAUS.js");
 gIsServiceTest = false;
+LOG_FUNCTION(`gIsServiceTest =? ${gIsServiceTest}`);
