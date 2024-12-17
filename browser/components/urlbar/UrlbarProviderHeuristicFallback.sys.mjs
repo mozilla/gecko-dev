@@ -116,13 +116,18 @@ class ProviderHeuristicFallback extends UrlbarProvider {
       return;
     }
 
-    result = await this._engineSearchResult(queryContext);
-    if (instance != this.queryInstance) {
-      return;
-    }
-    if (result) {
-      result.heuristic = true;
-      addCallback(this, result);
+    if (
+      lazy.UrlbarPrefs.get("keyword.enabled") ||
+      queryContext.restrictSource == UrlbarUtils.RESULT_SOURCE.SEARCH
+    ) {
+      result = await this._engineSearchResult(queryContext);
+      if (instance != this.queryInstance) {
+        return;
+      }
+      if (result) {
+        result.heuristic = true;
+        addCallback(this, result);
+      }
     }
   }
 

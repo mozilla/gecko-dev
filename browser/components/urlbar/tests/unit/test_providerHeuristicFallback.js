@@ -353,6 +353,14 @@ add_task(async function () {
     ],
   });
 
+  info("Non-search restriction token and invalid URL, keyword.enabled = false");
+  query = "bacon *";
+  context = createContext(query, { isPrivate: false });
+  await check_results({
+    context,
+    matches: [],
+  });
+
   Services.prefs.setBoolPref("keyword.enabled", true);
   info("visit two word query, keyword.enabled = true");
   query = "bacon lovers";
