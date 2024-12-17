@@ -16,6 +16,19 @@
         }
       },
       "additionalProperties": true
+    },
+    "nimbusTargetingEnvironment": {
+      "type": "object",
+      "properties": {
+        "recordAttrs": {
+          "description": "A list of attributes that should be recorded in the nimbus_targeting_environment.targeting_context_value metric. If not provided, it will default to all attributes.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

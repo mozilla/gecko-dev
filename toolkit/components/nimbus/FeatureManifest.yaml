@@ -3737,6 +3737,12 @@ nimbusTelemetry:
        - nimbus_targeting_context
        - nimbus_targeting_environment
       type: json
+
+    nimbusTargetingEnvironment:
+      description: >
+        Configuration for the nimbus_targeting_environment telemetry category.
+      type: json
+
   schema:
     uri: resource://nimbus/schemas/NimbusTelemetryFeature.schema.json
     path: toolkit/components/nimbus/schemas/NimbusTelemetryFeature.schema.json

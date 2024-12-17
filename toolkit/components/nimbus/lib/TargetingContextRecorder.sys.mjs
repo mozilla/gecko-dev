@@ -348,6 +348,10 @@ async function recordTargetingContextAttributes() {
     )
   ).ctx;
 
+  const recordAttrs =
+    lazy.NimbusFeatures.nimbusTelemetry.getVariable(
+      "nimbusTargetingEnvironment"
+    )?.recordAttrs ?? null;
   const values = {};
 
   for (const [attr, transform] of Object.entries(ATTRIBUTE_TRANSFORMS)) {
@@ -355,7 +359,10 @@ async function recordTargetingContextAttributes() {
     try {
       const value = await transform(await context[attr]);
 
-      values[metric] = value;
+      if (recordAttrs === null || recordAttrs.includes(attr)) {
+        values[metric] = value;
+      }
+
       Glean.nimbusTargetingContext[metric].set(value);
     } catch (ex) {
       Glean.nimbusTargetingEnvironment.attrEvalErrors[metric].add();
