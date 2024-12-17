@@ -3723,14 +3723,23 @@ nimbusIsReady:
 
 nimbusTelemetry:
   description: A feature that enables or disables Nimbus telemetry.
-  owner: chumphreys@mozilla.com
+  owner: nimbus-team@mozilla.com
   hasExposure: false
   applications:
     - firefox-desktop
   variables:
     gleanMetricConfiguration:
-      description: A Glean metric configuration JSON blob.
+      description: >
+       A Glean metric configuration JSON blob.
+
+       This is limited to configuring the following categories:
+       - nimbus_events
+       - nimbus_targeting_context
+       - nimbus_targeting_environment
       type: json
+  schema:
+    uri: resource://nimbus/schemas/NimbusTelemetryFeature.schema.json
+    path: toolkit/components/nimbus/schemas/NimbusTelemetryFeature.schema.json
 
 httpsFirst:
   description: >-

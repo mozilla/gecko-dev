@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "gleanMetricConfiguration": {
+      "type": "object",
+      "properties": {
+        "metrics_enabled": {
+          "type": "object",
+          "patternProperties": {
+            "^nimbus_targeting_environment\\..*": { "type": "boolean" },
+            "^nimbus_targeting_context\\..*": { "type": "boolean" },
+            "^nimbus_events\\..*": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
