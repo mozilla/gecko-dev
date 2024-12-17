@@ -82,7 +82,9 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
   Mutex mMutex MOZ_UNANNOTATED;
 
   MozContainer* mContainer = nullptr;
+#if 0
   wl_surface* mWlSurface = nullptr;
+#endif
   RefPtr<widget::WaylandBufferSHM> mShmBuffer;
 
   nsTArray<RefPtr<NativeLayerWayland>> mSublayers;
@@ -91,9 +93,11 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
   bool mNewLayers = false;
 
   bool mFrameInProcess = false;
+#if 0
   bool mCallbackRequested = false;
 
   gulong mGdkAfterPaintId = 0;
+#endif
   RefPtr<CallbackMultiplexHelper> mCallbackMultiplexHelper;
 };
 
