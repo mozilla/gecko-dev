@@ -11,6 +11,7 @@ let SW_URL;
 
 add_task(async function () {
   info("Subtest #1");
+  await pushPref("devtools.debugger.features.windowless-service-workers", true);
   await pushPref("devtools.debugger.threads-visible", true);
   await pushPref("dom.serviceWorkers.testing.enabled", true);
 

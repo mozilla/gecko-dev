@@ -10,6 +10,7 @@
 const SW_URL = EXAMPLE_URL + "service-worker.sjs";
 
 add_task(async function () {
+  await pushPref("devtools.debugger.features.windowless-service-workers", true);
   await pushPref("devtools.debugger.threads-visible", true);
   await pushPref("dom.serviceWorkers.testing.enabled", true);
 
