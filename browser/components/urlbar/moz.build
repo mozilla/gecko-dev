@@ -67,7 +67,6 @@ EXTRA_JS_MODULES += [
 EXTRA_JS_MODULES["urlbar/private"] += [
     "private/AddonSuggestions.sys.mjs",
     "private/AdmWikipedia.sys.mjs",
-    "private/BaseFeature.sys.mjs",
     "private/BlockedSuggestions.sys.mjs",
     "private/ExposureSuggestions.sys.mjs",
     "private/FakespotSuggestions.sys.mjs",
@@ -78,7 +77,8 @@ EXTRA_JS_MODULES["urlbar/private"] += [
     "private/PocketSuggestions.sys.mjs",
     "private/SuggestBackendMl.sys.mjs",
     "private/SuggestBackendRust.sys.mjs",
-    "private/Weather.sys.mjs",
+    "private/SuggestFeature.sys.mjs",
+    "private/WeatherSuggestions.sys.mjs",
     "private/YelpSuggestions.sys.mjs",
 ]
 

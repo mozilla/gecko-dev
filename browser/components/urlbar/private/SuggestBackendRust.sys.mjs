@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
+import { SuggestBackend } from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
@@ -74,7 +74,7 @@ const gSuggestionTypesByCtor = new WeakMap();
  * [5] https://searchfox.org/mozilla-central/source/toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs
  * [6] https://searchfox.org/mozilla-central/source/toolkit/components/uniffi-bindgen-gecko-js/config.toml
  */
-export class SuggestBackendRust extends BaseFeature {
+export class SuggestBackendRust extends SuggestBackend {
   constructor(...args) {
     super(...args);
     this.#ingestQueue = new lazy.TaskQueue();
@@ -146,14 +146,18 @@ export class SuggestBackendRust extends BaseFeature {
    *
    * @param {string} searchString
    *   The search string.
-   * @param {Array} types
+   * @param {object} options
+   *   Options object.
+   * @param {UrlbarQueryContext} options._queryContext
+   *   The query context.
+   * @param {Array} options.types
    *   This is only intended to be used in special circumstances and normally
    *   should not be specified. Array of suggestion types to query. By default
    *   all enabled suggestion types are queried.
    * @returns {Array}
    *   Matching Rust suggestions.
    */
-  async query(searchString, types = null) {
+  async query(searchString, { _queryContext, types = null } = {}) {
     if (!this.#store) {
       return [];
     }
@@ -237,7 +241,7 @@ export class SuggestBackendRust extends BaseFeature {
    *
    * @param {string} type
    *   A Rust suggestion type name as defined in `suggest.udl`, e.g., "Amp",
-   *   "Wikipedia", "Mdn", etc. See also `BaseFeature.rustSuggestionTypes`.
+   *   "Wikipedia", "Mdn", etc. See also `SuggestProvider.rustSuggestionTypes`.
    * @returns {object} config
    *   The config data for the type.
    */
@@ -252,7 +256,7 @@ export class SuggestBackendRust extends BaseFeature {
    * session or (b) the last time this method was called the suggestion type or
    * its feature was disabled.
    *
-   * @param {BaseFeature} feature
+   * @param {SuggestProvider} feature
    *   A feature that manages Rust suggestion types.
    * @param {object} options
    *   Options object.
@@ -261,6 +265,10 @@ export class SuggestBackendRust extends BaseFeature {
    *   ones that aren't stale.
    */
   ingestEnabledSuggestions(feature, { evenIfFresh = false } = {}) {
+    if (!feature.rustSuggestionTypes) {
+      return;
+    }
+
     for (let type of feature.rustSuggestionTypes) {
       if (
         !this.isEnabled ||
@@ -413,8 +421,8 @@ export class SuggestBackendRust extends BaseFeature {
     );
 
     // Do an initial ingest for all enabled suggestion types. When a type
-    // becomes enabled after this point, its `BaseFeature` will update and call
-    // `ingestEnabledSuggestions()`, which will be its initial ingest.
+    // becomes enabled after this point, its `SuggestProvider` will update and
+    // call `ingestEnabledSuggestions()`, which will be its initial ingest.
     this.#ingestAll();
   }
 

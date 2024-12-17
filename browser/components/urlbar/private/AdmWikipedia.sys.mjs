@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
+import { SuggestProvider } from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs";
 
 const lazy = {};
 
@@ -19,7 +19,7 @@ const NONSPONSORED_IAB_CATEGORIES = new Set(["5 - Education"]);
  * A feature that manages sponsored adM and non-sponsored Wikpedia (sometimes
  * called "expanded Wikipedia") suggestions in remote settings.
  */
-export class AdmWikipedia extends BaseFeature {
+export class AdmWikipedia extends SuggestProvider {
   get shouldEnable() {
     return (
       lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored") ||

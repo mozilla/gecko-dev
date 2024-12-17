@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
+import { SuggestProvider } from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs";
 
 const lazy = {};
 
@@ -28,7 +28,7 @@ const RESULT_MENU_COMMAND = {
 /**
  * A feature for Yelp suggestions.
  */
-export class YelpSuggestions extends BaseFeature {
+export class YelpSuggestions extends SuggestProvider {
   get shouldEnable() {
     return (
       lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored") &&
@@ -389,9 +389,9 @@ export class YelpSuggestions extends BaseFeature {
     let cache;
 
     this.logger.debug("Querying Rust backend to populate metadata cache");
-    let rs = await lazy.QuickSuggest.rustBackend.query("coffee in atlanta", [
-      "Yelp",
-    ]);
+    let rs = await lazy.QuickSuggest.rustBackend.query("coffee in atlanta", {
+      types: ["Yelp"],
+    });
     if (!rs.length) {
       this.logger.debug("Rust didn't return any Yelp suggestions!");
       cache = {};

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
+import { SuggestProvider } from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs";
 
 const lazy = {};
 
@@ -23,7 +23,7 @@ const RESULT_MENU_COMMAND = {
 /**
  * A feature that manages Pocket suggestions in remote settings.
  */
-export class PocketSuggestions extends BaseFeature {
+export class PocketSuggestions extends SuggestProvider {
   get shouldEnable() {
     return (
       lazy.UrlbarPrefs.get("pocketFeatureGate") &&

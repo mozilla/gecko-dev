@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
+import { SuggestBackend } from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs";
 
 const lazy = {};
 
@@ -17,7 +17,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * same time. Features can support both backends and decide which one to use per
  * query.
  */
-export class SuggestBackendMl extends BaseFeature {
+export class SuggestBackendMl extends SuggestBackend {
   get shouldEnable() {
     return (
       lazy.UrlbarPrefs.get("quickSuggestMlEnabled") &&
@@ -46,11 +46,19 @@ export class SuggestBackendMl extends BaseFeature {
    *
    * @param {string} searchString
    *   The search string.
+   * @param {object} options
+   *   Options object.
+   * @param {UrlbarQueryContext} options.queryContext
+   *   The query context.
    * @returns {Array}
    *   An array of matching suggestions. `MLSuggest` returns at most one
    *   suggestion.
    */
-  async query(searchString) {
+  async query(searchString, { queryContext }) {
+    // `MLSuggest` requires the query to be trimmed and lowercase, which
+    // the original `searchString` isn't necessarily.
+    searchString = queryContext.trimmedLowerCaseSearchString;
+
     this.logger.debug("Handling query", { searchString });
 
     // Don't waste time calling into `MLSuggest` if no ML intents are enabled.

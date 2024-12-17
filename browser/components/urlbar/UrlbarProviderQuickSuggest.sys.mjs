@@ -129,7 +129,9 @@ class ProviderQuickSuggest extends UrlbarProvider {
     // Fetch suggestions from all enabled sources.
     let promises = [];
     if (lazy.QuickSuggest.rustBackend?.isEnabled) {
-      promises.push(lazy.QuickSuggest.rustBackend.query(searchString));
+      promises.push(
+        lazy.QuickSuggest.rustBackend.query(searchString, { queryContext })
+      );
     }
     if (
       lazy.UrlbarPrefs.get("quicksuggest.dataCollection.enabled") &&
@@ -139,7 +141,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     }
     let mlBackend = lazy.QuickSuggest.getFeature("SuggestBackendMl");
     if (mlBackend.isEnabled) {
-      promises.push(mlBackend.query(queryContext.trimmedLowerCaseSearchString));
+      promises.push(mlBackend.query(searchString, { queryContext }));
     }
 
     // Wait for both sources to finish.

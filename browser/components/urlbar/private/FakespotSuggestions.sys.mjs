@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
+import { SuggestProvider } from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs";
 
 const lazy = {};
 
@@ -77,7 +77,7 @@ const REVIEWS_OVERFLOW = 99999;
 /**
  * A feature that supports Fakespot suggestions.
  */
-export class FakespotSuggestions extends BaseFeature {
+export class FakespotSuggestions extends SuggestProvider {
   constructor() {
     super();
     lazy.UrlbarResult.addDynamicResultType("fakespot");

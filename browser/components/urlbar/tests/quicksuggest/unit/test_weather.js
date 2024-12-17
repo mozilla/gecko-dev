@@ -21,6 +21,8 @@ const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE_WEATHER";
 
 const { WEATHER_SUGGESTION } = MerinoTestUtils;
 
+let gWeather;
+
 add_setup(async () => {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     prefs: [
@@ -34,6 +36,8 @@ add_setup(async () => {
   });
 
   await MerinoTestUtils.initWeather();
+
+  gWeather = QuickSuggest.getFeature("WeatherSuggestions");
 });
 
 // The feature should be properly enabled according to `weather.featureGate`.
@@ -92,7 +96,7 @@ async function doBasicDisableAndEnableTest(pref) {
     histograms,
     response: "success",
     latencyRecorded: true,
-    client: QuickSuggest.weather._test_merino,
+    client: gWeather._test_merino,
   });
 }
 
@@ -119,7 +123,7 @@ add_task(async function noSuggestion() {
     histograms,
     response: "no_suggestion",
     latencyRecorded: true,
-    client: QuickSuggest.weather._test_merino,
+    client: gWeather._test_merino,
   });
 
   MerinoTestUtils.server.response.body.suggestions = suggestions;
@@ -207,7 +211,7 @@ add_task(async function networkError() {
     histograms,
     response: "network_error",
     latencyRecorded: false,
-    client: QuickSuggest.weather._test_merino,
+    client: gWeather._test_merino,
   });
 });
 
@@ -233,7 +237,7 @@ add_task(async function httpError() {
     histograms,
     response: "http_error",
     latencyRecorded: true,
-    client: QuickSuggest.weather._test_merino,
+    client: gWeather._test_merino,
   });
 
   MerinoTestUtils.server.reset();
@@ -252,11 +256,11 @@ add_task(async function clientTimeout() {
   MerinoTestUtils.server.response.delay = 400;
 
   // Make the client time out immediately.
-  QuickSuggest.weather._test_setTimeoutMs(1);
+  gWeather._test_setTimeoutMs(1);
 
   // Set up a promise that will be resolved when the client finally receives the
   // response.
-  let responsePromise = QuickSuggest.weather._test_merino.waitForNextResponse();
+  let responsePromise = gWeather._test_merino.waitForNextResponse();
 
   let context = createContext("weather", {
     providers: [UrlbarProviderQuickSuggest.name],
@@ -272,7 +276,7 @@ add_task(async function clientTimeout() {
     response: "timeout",
     latencyRecorded: false,
     latencyStopwatchRunning: true,
-    client: QuickSuggest.weather._test_merino,
+    client: gWeather._test_merino,
   });
 
   // Await the response.
@@ -284,10 +288,10 @@ add_task(async function clientTimeout() {
     histograms,
     response: null,
     latencyRecorded: true,
-    client: QuickSuggest.weather._test_merino,
+    client: gWeather._test_merino,
   });
 
-  QuickSuggest.weather._test_setTimeoutMs(-1);
+  gWeather._test_setTimeoutMs(-1);
   delete MerinoTestUtils.server.response.delay;
 });
 
@@ -985,9 +989,5 @@ function assertDisabled({ message }) {
   if (message) {
     info(message);
   }
-  Assert.strictEqual(
-    QuickSuggest.weather._test_merino,
-    null,
-    "Merino client is null"
-  );
+  Assert.strictEqual(gWeather._test_merino, null, "Merino client is null");
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
+import { SuggestFeature } from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs";
 
 const lazy = {};
 
@@ -14,7 +14,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 /**
  * A set of blocked suggestions for quick suggest.
  */
-export class BlockedSuggestions extends BaseFeature {
+export class BlockedSuggestions extends SuggestFeature {
   constructor() {
     super();
     this.#taskQueue = new lazy.TaskQueue();

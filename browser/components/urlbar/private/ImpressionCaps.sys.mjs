@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
+import { SuggestFeature } from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs";
 
 const lazy = {};
 
@@ -19,7 +19,7 @@ const IMPRESSION_COUNTERS_RESET_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 /**
  * Impression caps and stats for quick suggest suggestions.
  */
-export class ImpressionCaps extends BaseFeature {
+export class ImpressionCaps extends SuggestFeature {
   constructor() {
     super();
     lazy.UrlbarPrefs.addObserver(this);

@@ -575,7 +575,7 @@ async function doShowLessFrequentlyTest({
   }
   await QuickSuggestTestUtils.setRemoteSettingsRecords(records);
 
-  let feature = QuickSuggest.weather;
+  let feature = QuickSuggest.getFeature("WeatherSuggestions");
   let expectedResult = QuickSuggestTestUtils.weatherResult();
 
   for (let { input, before, after } of tests) {
