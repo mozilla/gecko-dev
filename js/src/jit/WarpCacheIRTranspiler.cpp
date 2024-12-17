@@ -3534,7 +3534,8 @@ bool WarpCacheIRTranspiler::emitBigIntPtrNot(IntPtrOperandId inputId,
 }
 
 bool WarpCacheIRTranspiler::emitConcatStringsResult(StringOperandId lhsId,
-                                                    StringOperandId rhsId) {
+                                                    StringOperandId rhsId,
+                                                    uint32_t stubOffset) {
   MDefinition* lhs = getOperand(lhsId);
   MDefinition* rhs = getOperand(rhsId);
 

@@ -331,6 +331,10 @@ class JitZone {
     return stubs_[kind];
   }
 
+  static constexpr size_t offsetOfStringConcatStub() {
+    return offsetof(JitZone, stubs_) +
+           size_t(StubKind::StringConcat) * sizeof(uintptr_t);
+  }
   static constexpr size_t offsetOfRegExpMatcherStub() {
     return offsetof(JitZone, stubs_) +
            size_t(StubKind::RegExpMatcher) * sizeof(uintptr_t);

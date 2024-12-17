@@ -3243,6 +3243,7 @@
   args:
     lhs: StringId
     rhs: StringId
+    stub: JitCodeField
 
 - name: CallStringObjectConcatResult
   shared: false

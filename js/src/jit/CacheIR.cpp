@@ -14480,13 +14480,20 @@ AttachDecision BinaryArithIRGenerator::tryAttachStringConcat() {
     return AttachDecision::NoAction;
   }
 
+  JitCode* code = cx_->zone()->jitZone()->ensureStubExists(
+      cx_, JitZone::StubKind::StringConcat);
+  if (!code) {
+    cx_->recoverFromOutOfMemory();
+    return AttachDecision::NoAction;
+  }
+
   ValOperandId lhsId(writer.setInputOperandId(0));
   ValOperandId rhsId(writer.setInputOperandId(1));
 
   StringOperandId lhsStrId = emitToStringGuard(lhsId, lhs_);
   StringOperandId rhsStrId = emitToStringGuard(rhsId, rhs_);
 
-  writer.concatStringsResult(lhsStrId, rhsStrId);
+  writer.concatStringsResult(lhsStrId, rhsStrId, code);
 
   writer.returnFromIC();
   trackAttached("BinaryArith.StringConcat");
