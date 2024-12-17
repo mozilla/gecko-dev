@@ -542,7 +542,7 @@ async function test_http2_concurrent_post(concurrent_channels, serverPort) {
       var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
         Ci.nsIStringInputStream
       );
-      stream.setByteStringData(posts[2]);
+      stream.data = posts[2];
       var uchan = concurrent_channels[i].QueryInterface(Ci.nsIUploadChannel);
       uchan.setUploadStream(stream, "text/plain", stream.available());
       concurrent_channels[i].requestMethod = "POST";
@@ -734,7 +734,7 @@ function do_post(content, chan, listener, method) {
   var stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setByteStringData(content);
+  stream.data = content;
 
   var uchan = chan.QueryInterface(Ci.nsIUploadChannel);
   uchan.setUploadStream(stream, "text/plain", stream.available());

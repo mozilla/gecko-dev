@@ -53,7 +53,7 @@ add_task(async function test_slow_upload() {
         let sstream = Cc[
           "@mozilla.org/io/string-input-stream;1"
         ].createInstance(Ci.nsIStringInputStream);
-        sstream.setByteStringData(CONTENT);
+        sstream.data = CONTENT;
 
         let mime = Cc[
           "@mozilla.org/network/mime-input-stream;1"

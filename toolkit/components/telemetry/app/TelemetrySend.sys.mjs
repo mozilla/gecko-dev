@@ -189,7 +189,7 @@ export function gzipCompressString(string) {
   let stringStream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stringStream.setByteStringData(string);
+  stringStream.data = string;
   converter.onStartRequest(null, null);
   converter.onDataAvailable(null, stringStream, 0, string.length);
   converter.onStopRequest(null, null, null);
@@ -230,9 +230,7 @@ export function sendStandalonePing(endpoint, payload, extraHeaders = {}) {
 
     const utf8Payload = new TextEncoder().encode(payload);
 
-    payloadStream.setByteStringData(
-      gzipCompressString(arrayToString(utf8Payload))
-    );
+    payloadStream.data = gzipCompressString(arrayToString(utf8Payload));
     request.sendInputStream(payloadStream);
   });
 }
@@ -1365,13 +1363,10 @@ export var TelemetrySendImpl = {
       "@mozilla.org/io/string-input-stream;1"
     ].createInstance(Ci.nsIStringInputStream);
     startTime = Utils.monotonicNow();
-    const compressedPing = Policy.gzipCompressString(
-      arrayToString(utf8Payload)
-    );
-    payloadStream.setByteStringData(compressedPing);
+    payloadStream.data = Policy.gzipCompressString(arrayToString(utf8Payload));
 
     // Check the size and drop pings which are too big.
-    const compressedPingSizeBytes = compressedPing.length;
+    const compressedPingSizeBytes = payloadStream.data.length;
     if (compressedPingSizeBytes > lazy.TelemetryStorage.MAXIMUM_PING_SIZE) {
       this._log.error(
         "_doPing - submitted ping exceeds the size limit, size: " +

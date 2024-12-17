@@ -111,7 +111,7 @@ function truncateEntry(entry, entryInput) {
   let content = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  content.setByteStringData("");
+  content.data = "";
 
   return [entry, content];
 }

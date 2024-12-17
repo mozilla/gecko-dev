@@ -368,7 +368,7 @@ export var UrlbarUtils = {
     let dataStream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
       Ci.nsIStringInputStream
     );
-    dataStream.setByteStringData(postDataString);
+    dataStream.data = postDataString;
 
     let mimeStream = Cc[
       "@mozilla.org/network/mime-input-stream;1"

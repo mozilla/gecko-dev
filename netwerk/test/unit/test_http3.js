@@ -442,7 +442,7 @@ function do_post(content, chan, listener, method) {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.setByteStringData(content);
+  stream.data = content;
 
   let uchan = chan.QueryInterface(Ci.nsIUploadChannel);
   uchan.setUploadStream(stream, "text/plain", stream.available());

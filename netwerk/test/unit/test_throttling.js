@@ -30,7 +30,7 @@ function run_test() {
   let sstream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  sstream.setByteStringData("x".repeat(size));
+  sstream.data = "x".repeat(size);
 
   let mime = Cc["@mozilla.org/network/mime-input-stream;1"].createInstance(
     Ci.nsIMIMEInputStream

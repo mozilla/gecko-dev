@@ -16,7 +16,7 @@ add_task(async function test_loadURI_persists_postData() {
   var dataStream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  dataStream.setByteStringData(gPostData);
+  dataStream.data = gPostData;
 
   var postStream = Cc[
     "@mozilla.org/network/mime-input-stream;1"

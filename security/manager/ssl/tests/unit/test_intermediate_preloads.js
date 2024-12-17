@@ -29,7 +29,7 @@ function getHashCommon(aStr, useBase64) {
   let stringStream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stringStream.setByteStringData(aStr);
+  stringStream.data = aStr;
   hasher.updateFromStream(stringStream, -1);
 
   return hasher.finish(useBase64);

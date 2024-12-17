@@ -62,7 +62,7 @@ function make_channel(url, body, cb) {
         var synthesized = Cc[
           "@mozilla.org/io/string-input-stream;1"
         ].createInstance(Ci.nsIStringInputStream);
-        synthesized.setByteStringData(body);
+        synthesized.data = body;
 
         channel.startSynthesizedResponse(synthesized, null, null, "", false);
         channel.finishSynthesizedResponse();
@@ -160,7 +160,7 @@ add_test(function () {
       var synthesized = Cc[
         "@mozilla.org/io/string-input-stream;1"
       ].createInstance(Ci.nsIStringInputStream);
-      synthesized.setByteStringData(NON_REMOTE_BODY);
+      synthesized.data = NON_REMOTE_BODY;
       channel.synthesizeHeader("Content-Length", NON_REMOTE_BODY.length);
       channel.startSynthesizedResponse(synthesized, null, null, "", false);
       channel.finishSynthesizedResponse();
@@ -185,7 +185,7 @@ add_test(function () {
     var synthesized = Cc[
       "@mozilla.org/io/string-input-stream;1"
     ].createInstance(Ci.nsIStringInputStream);
-    synthesized.setByteStringData(NON_REMOTE_BODY);
+    synthesized.data = NON_REMOTE_BODY;
 
     // set the content-type to ensure that the stream converter doesn't hold up notifications
     // and cause the test to fail
@@ -233,7 +233,7 @@ add_test(function () {
     var synthesized = Cc[
       "@mozilla.org/io/string-input-stream;1"
     ].createInstance(Ci.nsIStringInputStream);
-    synthesized.setByteStringData(NON_REMOTE_BODY);
+    synthesized.data = NON_REMOTE_BODY;
 
     let channel = intercepted.channel;
     intercepted.startSynthesizedResponse(synthesized, null, null, "", false);
@@ -255,7 +255,7 @@ add_test(function () {
     var synthesized = Cc[
       "@mozilla.org/io/string-input-stream;1"
     ].createInstance(Ci.nsIStringInputStream);
-    synthesized.setByteStringData(NON_REMOTE_BODY);
+    synthesized.data = NON_REMOTE_BODY;
 
     intercepted.channel.cancel(Cr.NS_BINDING_ABORTED);
 
