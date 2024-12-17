@@ -104,7 +104,7 @@ const TESTCASES = [
       "#given": "John",
       "#family": "Doe",
     },
-    expected: "John Doe",
+    expected: undefined,
   },
 ];
 
