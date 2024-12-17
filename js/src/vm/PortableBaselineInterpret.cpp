@@ -697,7 +697,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
     DECLARE_CACHEOP_CASE(LoadObjectTruthyResult);
     DECLARE_CACHEOP_CASE(LoadValueResult);
     DECLARE_CACHEOP_CASE(LoadOperandResult);
-    DECLARE_CACHEOP_CASE(CallStringConcatResult);
+    DECLARE_CACHEOP_CASE(ConcatStringsResult);
     DECLARE_CACHEOP_CASE(CompareStringResult);
     DECLARE_CACHEOP_CASE(CompareInt32Result);
     DECLARE_CACHEOP_CASE(CompareNullUndefinedResult);
@@ -3367,7 +3367,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
-      CACHEOP_CASE(CallStringConcatResult) {
+      CACHEOP_CASE(ConcatStringsResult) {
         StringOperandId lhsId = cacheIRReader.stringOperandId();
         StringOperandId rhsId = cacheIRReader.stringOperandId();
         {

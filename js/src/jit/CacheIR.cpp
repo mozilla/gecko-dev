@@ -14486,7 +14486,7 @@ AttachDecision BinaryArithIRGenerator::tryAttachStringConcat() {
   StringOperandId lhsStrId = emitToStringGuard(lhsId, lhs_);
   StringOperandId rhsStrId = emitToStringGuard(rhsId, rhs_);
 
-  writer.callStringConcatResult(lhsStrId, rhsStrId);
+  writer.concatStringsResult(lhsStrId, rhsStrId);
 
   writer.returnFromIC();
   trackAttached("BinaryArith.StringConcat");

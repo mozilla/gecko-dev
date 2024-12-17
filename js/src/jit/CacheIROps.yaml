@@ -3236,7 +3236,7 @@
     shape: ShapeField
     site: AllocSiteField
 
-- name: CallStringConcatResult
+- name: ConcatStringsResult
   shared: true
   transpile: true
   cost_estimate: 5
