@@ -3006,6 +3006,7 @@ nsresult WorkerPrivate::GetLoadInfo(
         aParent->GetOverriddenFingerprintingSettings();
     loadInfo.mParentController = aParent->GlobalScope()->GetController();
     loadInfo.mWatchedByDevTools = aParent->IsWatchedByDevTools();
+    loadInfo.mIsOn3PCBExceptionList = aParent->IsOn3PCBExceptionList();
   } else {
     AssertIsOnMainThread();
 
@@ -3153,6 +3154,7 @@ nsresult WorkerPrivate::GetLoadInfo(
               RFPTarget::IsAlwaysEnabledForPrecompute);
       loadInfo.mOverriddenFingerprintingSettings =
           document->GetOverriddenFingerprintingSettings();
+      loadInfo.mIsOn3PCBExceptionList = document->IsOn3PCBExceptionList();
 
       // This is an hack to deny the storage-access-permission for workers of
       // sub-iframes.
@@ -3225,6 +3227,7 @@ nsresult WorkerPrivate::GetLoadInfo(
 
       loadInfo.mOriginAttributes = OriginAttributes();
       loadInfo.mIsThirdPartyContext = false;
+      loadInfo.mIsOn3PCBExceptionList = false;
     }
 
     MOZ_ASSERT(loadInfo.mLoadingPrincipal);
