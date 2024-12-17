@@ -308,9 +308,77 @@ export class TranslationsParent extends JSWindowActorParent {
    *
    * Release docs:
    * https://firefox-source-docs.mozilla.org/toolkit/components/translations/resources/03_bergamot.html
+   *
+   * Release History:
+   *
+   * 1.x WASM Major Versions
+   *
+   *   - Compatible with all 1.x Translation models.
+   *
+   * 2.x WASM Major Versions
+   *
+   *   - Compatible with all 1.x Translation models.
+   *
+   *   - Compatible with all 2.x Translation models.
+   *
+   *     Notes: The 2.x WASM binary introduces segmentation changes that are necessary
+   *            to translate CJK languages.
    */
   static BERGAMOT_MAJOR_VERSION = 2;
-  static LANGUAGE_MODEL_MAJOR_VERSION_MAX = 1;
+
+  /**
+   * The BERGAMOT_MAJOR_VERSION defined above has only a single value, because there will
+   * only ever be one instance of the WASM binary that is downloaded for all translations.
+   *
+   * However, the current Bergamot WASM binary may be backward compatible with existing models.
+   * As such, the models use a range of major versions that are compatible with the current
+   * WASM binary and/or source code changes.
+   *
+   * By incrementing only the maximum major version, this allows us to introduce new model types
+   * that are compatible only with the latest source code or WASM binary while continuing to utilize
+   * old model types that are backward compatible with the changes.
+   *
+   *   - Models with versions less than the new maximum major version:
+   *       - Available to past versions of Firefox.
+   *       - Available to the current version of Firefox.
+   *
+   *   - Models with versions equal to the new maximum major version:
+   *       - Not available to past versions of Firefox.
+   *       - Available to the current version of Firefox.
+   *
+   * By incrementing both the minimum and maximum major versions to the same value, this allows us to
+   * introduce a hard cutoff point at which prior models are no longer compatible with the current version
+   * of Firefox.
+   *
+   *   - Models with versions less than the new minimum and maximum major versions:
+   *       - Available to past versions of Firefox.
+   *       - Not available to current and future versions of Firefox.
+   *
+   *   - Models with versions equal to the new minimum and maximum major versions:
+   *       - Not available to past versions of Firefox.
+   *       - Available to the current version of Firefox.
+   *
+   * Release History:
+   *
+   * 1.x Model Major Versions
+   *
+   *   - Compatible with 1.x Bergamot WASM binaries.
+   *   - Compatible with 2.x Bergamot WASM binaries.
+   *
+   *   Notes: 1.x models are referred to as "tiny" models, and are the models that were shipped with the original
+   *          release of Translations in Firefox.
+   *
+   * 2.x Model Major Versions
+   *
+   *   - Compatible with 2.x Bergamot WASM binaries.
+   *
+   *   Notes: 2.x models are defined by any of two characteristics. The first characteristic is any CJK language model.
+   *          Only the 2.x WASM binaries support the segmentation concerns needed to interop with CJK language models.
+   *          The second characteristic is any "base" language model, which is larger than the "tiny" 1.x models.
+   *          Compatibility for base models is dependent on the code changes in Bug 1926100.
+   */
+  static LANGUAGE_MODEL_MAJOR_VERSION_MIN = 1;
+  static LANGUAGE_MODEL_MAJOR_VERSION_MAX = 2;
 
   /**
    * Contains the state that would affect UI. Anytime this state is changed, a dispatch
@@ -1556,7 +1624,7 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Retrieves the maximum major version of each record in the RemoteSettingsClient.
+   * Retrieves the maximum compatible major version of each record in the RemoteSettingsClient.
    *
    * If the client contains two different-version copies of the same record (e.g. 1.0 and 1.1)
    * then only the 1.1-version record will be returned in the resulting collection.
@@ -1568,7 +1636,10 @@ export class TranslationsParent extends JSWindowActorParent {
    *     Filters should correspond to properties on the RemoteSettings records themselves.
    *     For example, A filter to retrieve only records with a `fromLang` value of "en" and a `toLang` value of "es":
    *     { filters: { fromLang: "en", toLang: "es" } }
-   *   @param {number} options.majorVersion
+   *   @param {number} options.minSupportedMajorVersion
+   *     The minimum major record version that is supported in this build of Firefox.
+   *   @param {number} options.maxSupportedMajorVersion
+   *     The maximum major record version that is supported in this build of Firefox.
    *   @param {Function} [options.lookupKey=(record => record.name)]
    *     The function to use to extract a lookup key from each record.
    *     This function should take a record as input and return a string that represents the lookup key for the record.
@@ -1578,10 +1649,17 @@ export class TranslationsParent extends JSWindowActorParent {
    */
   static async getMaxSupportedVersionRecords(
     remoteSettingsClient,
-    { filters = {}, majorVersion, lookupKey = record => record.name } = {}
+    {
+      filters = {},
+      minSupportedMajorVersion,
+      maxSupportedMajorVersion,
+      lookupKey = record => record.name,
+    } = {}
   ) {
-    if (!majorVersion) {
-      throw new Error("Expected the records to have a major version.");
+    if (!minSupportedMajorVersion || !maxSupportedMajorVersion) {
+      throw new Error(
+        "A minimum and maximum major version must be specified to retrieve records."
+      );
     }
     try {
       await chaosMode(1 / 4);
@@ -1623,7 +1701,8 @@ export class TranslationsParent extends JSWindowActorParent {
       }
       if (
         TranslationsParent.isBetterRecordVersion(
-          majorVersion,
+          minSupportedMajorVersion,
+          maxSupportedMajorVersion,
           record.version,
           existing?.version
         )
@@ -1636,20 +1715,36 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Applies the constraint of matching for the best matching major version.
+   * Determines if the contending record version is a better record version than the current best record version.
    *
-   * @param {number} majorVersion
-   * @param {string} nextVersion
-   * @param {string} [existingVersion]
+   * For the contending version to be considered better, it must fall within the supported-version range and be
+   * a larger version than the current best version (if a current best version is provided).
+   *
+   * @param {number} minSupportedMajorVersion - The minimum major record version that is supported in this build of Firefox.
+   * @param {number} maxSupportedMajorVersion - The maximum major record version that is supported in this build of Firefox.
+   * @param {string} contendingVersion - The version of the contending record that is actively being evaluated.
+   * @param {string} [currentBestVersion] - The version of a previously encountered record that is currently best.
    */
-  static isBetterRecordVersion(majorVersion, nextVersion, existingVersion) {
+  static isBetterRecordVersion(
+    minSupportedMajorVersion,
+    maxSupportedMajorVersion,
+    contendingVersion,
+    currentBestVersion
+  ) {
     return (
-      // Check that this is a major version record we can support.
-      Services.vc.compare(`${majorVersion}.0a`, nextVersion) <= 0 &&
-      Services.vc.compare(`${majorVersion + 1}.0a`, nextVersion) > 0 &&
-      // Check that the new record is bigger version number
-      (!existingVersion ||
-        Services.vc.compare(existingVersion, nextVersion) < 0)
+      // Check that the contending version is within range of the minimum major version.
+      Services.vc.compare(
+        `${minSupportedMajorVersion}.0a`,
+        contendingVersion
+      ) <= 0 &&
+      // Check that the contending version is within range of the maximum major version.
+      Services.vc.compare(
+        `${maxSupportedMajorVersion + 1}.0a`,
+        contendingVersion
+      ) > 0 &&
+      // Check that the new record greater than the current best version.
+      (!currentBestVersion ||
+        Services.vc.compare(currentBestVersion, contendingVersion) < 0)
     );
   }
 
@@ -1674,7 +1769,10 @@ export class TranslationsParent extends JSWindowActorParent {
         /** @type {TranslationModelRecord[]} */
         const translationModelRecords =
           await TranslationsParent.getMaxSupportedVersionRecords(client, {
-            majorVersion: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX,
+            minSupportedMajorVersion:
+              TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MIN,
+            maxSupportedMajorVersion:
+              TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX,
             // Names in this collection are not unique, so we are appending the languagePairKey
             // to guarantee uniqueness.
             lookupKey: record =>
@@ -1875,7 +1973,8 @@ export class TranslationsParent extends JSWindowActorParent {
         const wasmRecords =
           await TranslationsParent.getMaxSupportedVersionRecords(client, {
             filters: { name: "bergamot-translator" },
-            majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+            minSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+            maxSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
           });
 
         if (wasmRecords.length === 0) {
