@@ -206,7 +206,7 @@ class TestBuild(unittest.TestCase):
                 "override chrome://foo/bar.svg#hello "
                 "chrome://bar/bar.svg#hello\n",
                 "bin/chrome/foo/bar.js": "bar.js\n",
-                "bin/chrome/foo/child/baz.sys.mjs": '//@line 2 "%s/baz.sys.mjs"\nbaz.sys.mjs: FOO is foo\n'
+                "bin/chrome/foo/child/baz.jsm": '//@line 2 "%s/baz.jsm"\nbaz.jsm: FOO is foo\n'
                 % (test_path),
                 "bin/chrome/foo/child/hoge.js": '//@line 2 "%s/bar.js"\nbar.js: FOO is foo\n'
                 % (test_path),
@@ -219,12 +219,12 @@ class TestBuild(unittest.TestCase):
                 "bin/components/foo.js": "foo.js\n",
                 "bin/defaults/pref/prefs.js": "prefs.js\n",
                 "bin/foo.ini": "foo.ini\n",
-                "bin/modules/baz.sys.mjs": '//@line 2 "%s/baz.sys.mjs"\nbaz.sys.mjs: FOO is foo\n'
+                "bin/modules/baz.jsm": '//@line 2 "%s/baz.jsm"\nbaz.jsm: FOO is foo\n'
                 % (test_path),
-                "bin/modules/child/bar.sys.mjs": "bar.sys.mjs\n",
-                "bin/modules/child2/qux.sys.mjs": '//@line 4 "%s/qux.sys.mjs"\nqux.sys.mjs: BAR is not defined\n'  # NOQA: E501
+                "bin/modules/child/bar.jsm": "bar.jsm\n",
+                "bin/modules/child2/qux.jsm": '//@line 4 "%s/qux.jsm"\nqux.jsm: BAR is not defined\n'  # NOQA: E501
                 % (test_path),
-                "bin/modules/foo.sys.mjs": "foo.sys.mjs\n",
+                "bin/modules/foo.jsm": "foo.jsm\n",
                 "bin/res/resource": "resource\n",
                 "bin/res/child/resource2": "resource2\n",
                 "bin/app/baz.ini": "baz.ini: FOO is bar\n",
@@ -237,7 +237,7 @@ class TestBuild(unittest.TestCase):
                 "override chrome://foo/bar.svg#hello "
                 "chrome://bar/bar.svg#hello\n",
                 "bin/app/chrome/foo/bar.js": "bar.js\n",
-                "bin/app/chrome/foo/child/baz.sys.mjs": '//@line 2 "%s/baz.sys.mjs"\nbaz.sys.mjs: FOO is bar\n'
+                "bin/app/chrome/foo/child/baz.jsm": '//@line 2 "%s/baz.jsm"\nbaz.jsm: FOO is bar\n'
                 % (test_path),
                 "bin/app/chrome/foo/child/hoge.js": '//@line 2 "%s/bar.js"\nbar.js: FOO is bar\n'
                 % (test_path),
@@ -251,12 +251,12 @@ class TestBuild(unittest.TestCase):
                 "bin/app/defaults/preferences/prefs.js": "prefs.js\n",
                 "bin/app/foo.css": "foo.css: FOO is bar\n",
                 "bin/app/foo.ini": "foo.ini\n",
-                "bin/app/modules/baz.sys.mjs": '//@line 2 "%s/baz.sys.mjs"\nbaz.sys.mjs: FOO is bar\n'
+                "bin/app/modules/baz.jsm": '//@line 2 "%s/baz.jsm"\nbaz.jsm: FOO is bar\n'
                 % (test_path),
-                "bin/app/modules/child/bar.sys.mjs": "bar.sys.mjs\n",
-                "bin/app/modules/child2/qux.sys.mjs": '//@line 2 "%s/qux.sys.mjs"\nqux.sys.mjs: BAR is defined\n'  # NOQA: E501
+                "bin/app/modules/child/bar.jsm": "bar.jsm\n",
+                "bin/app/modules/child2/qux.jsm": '//@line 2 "%s/qux.jsm"\nqux.jsm: BAR is defined\n'  # NOQA: E501
                 % (test_path),
-                "bin/app/modules/foo.sys.mjs": "foo.sys.mjs\n",
+                "bin/app/modules/foo.jsm": "foo.jsm\n",
             },
         )
 

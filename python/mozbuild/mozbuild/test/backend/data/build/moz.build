@@ -4,19 +4,19 @@ CONFIGURE_SUBST_FILES += [
 ]
 
 EXTRA_JS_MODULES += [
-    "foo.sys.mjs",
+    "foo.jsm",
 ]
 
 EXTRA_JS_MODULES.child += [
-    "bar.sys.mjs",
+    "bar.jsm",
 ]
 
 EXTRA_PP_JS_MODULES += [
-    "baz.sys.mjs",
+    "baz.jsm",
 ]
 
 EXTRA_PP_JS_MODULES.child2 += [
-    "qux.sys.mjs",
+    "qux.jsm",
 ]
 
 FINAL_TARGET_FILES += [
