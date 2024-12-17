@@ -1,6 +1,35 @@
 {
   "data": [
     {
+      "schema": 1733747771074,
+      "attachment": {
+        "hash": "4f47f1db32cdd167d67f6536fbcc77008a0d8f30bcdc795491ae4e982270a0aa",
+        "size": 4009,
+        "filename": "filter.bin",
+        "location": "staging/addons-bloomfilters/e84710f2-982e-484c-af8a-1c6b3b24796b.bin",
+        "mimetype": "application/octet-stream"
+      },
+      "key_format": "{guid}:{version}",
+      "attachment_type": "softblocks-bloomfilter-base",
+      "generation_time": 1733756984775,
+      "id": "e7896477-e9bc-4847-92df-6350f01db2e2",
+      "last_modified": 1733757084503
+    },
+    {
+      "stash": {
+        "blocked": [
+          "video@download.helper.signed:9.1.0.44"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1733394426405,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1733747705364,
+      "id": "1dab7ca6-597a-46d5-9e16-6db2080cf4f9",
+      "last_modified": 1733747770938
+    },
+    {
       "stash": {
         "blocked": [
           "modenhancerforyoutube@johnrigoni.me:0.0.0.10",
@@ -106,5 +135,5 @@
       "last_modified": 1730745429265
     }
   ],
-  "timestamp": 1732624571832
+  "timestamp": 1733757084503
 }

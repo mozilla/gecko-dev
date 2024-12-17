@@ -24,4 +24,6 @@ if not CONFIG["MOZ_BUILD_APP"].startswith("mobile/"):
     FINAL_TARGET_FILES.defaults.settings.blocklists["addons-bloomfilters"] += [
         "addons-bloomfilters/addons-mlbf.bin",
         "addons-bloomfilters/addons-mlbf.bin.meta.json",
+        "addons-bloomfilters/softblocks-addons-mlbf.bin",
+        "addons-bloomfilters/softblocks-addons-mlbf.bin.meta.json",
     ]
