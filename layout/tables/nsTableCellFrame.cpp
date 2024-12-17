@@ -421,14 +421,13 @@ void nsTableCellFrame::BlockDirAlignChild(
   nscoord kidBStart = 0;
   switch (verticalAlign) {
     case StyleVerticalAlignKeyword::Baseline:
-      if (!GetContentEmpty()) {
+      if (auto baseline = GetCellBaseline()) {
         // Align the baselines of the child frame with the baselines of
         // other children in the same row which have 'vertical-align: baseline'
-        kidBStart = bStartInset + aMaxAscent - GetCellBaseline();
+        kidBStart = bStartInset + aMaxAscent - *baseline;
         break;
       }
-      // Empty cells don't participate in baseline alignment -
-      // fallback to start alignment.
+      // fallback to start alignment
       [[fallthrough]];
     case StyleVerticalAlignKeyword::Top:
       // Align the top of the child frame with the top of the content area,
@@ -544,18 +543,24 @@ nsIFrame* nsTableCellFrame::CellContentFrame() const {
   return inner;
 }
 
-nscoord nsTableCellFrame::GetCellBaseline() const {
+Maybe<nscoord> nsTableCellFrame::GetCellBaseline() const {
+  // Empty cells don't participate in baseline alignment - fallback to
+  // start alignment.
+  if (GetContentEmpty()) {
+    return {};
+  }
   // Ignore the position of the inner frame relative to the cell frame
   // since we want the position as though the inner were top-aligned.
   const auto wm = GetWritingMode();
   nscoord result;
-  if (!StyleDisplay()->IsContainLayout() &&
-      nsLayoutUtils::GetFirstLineBaseline(wm, Inner(), &result)) {
-    // `result` already includes the padding-start from the inner frame.
-    return result + GetLogicalUsedBorder(wm).BStart(wm);
+  if (StyleDisplay()->IsContainLayout() ||
+      !nsLayoutUtils::GetFirstLineBaseline(wm, Inner(), &result)) {
+    // Synthesize a baseline from our content box, see bug 1591219.
+    return Some(CellContentFrame()->ContentBSize(wm) +
+                GetLogicalUsedBorderAndPadding(wm).BStart(wm));
   }
-  return CellContentFrame()->ContentBSize(wm) +
-         GetLogicalUsedBorderAndPadding(wm).BStart(wm);
+  // `result` already includes the padding-start from the inner frame.
+  return Some(result + GetLogicalUsedBorder(wm).BStart(wm));
 }
 
 int32_t nsTableCellFrame::GetRowSpan() {

@@ -139,7 +139,7 @@ class nsTableCellFrame : public nsContainerFrame,
    * Get the first-line baseline of the cell relative to its block-start border
    * edge, as if the cell were vertically aligned to the top of the row.
    */
-  nscoord GetCellBaseline() const;
+  Maybe<nscoord> GetCellBaseline() const;
 
   /**
    * return the cell's specified row span. this is what was specified in the

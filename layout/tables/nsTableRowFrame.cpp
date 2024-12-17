@@ -432,11 +432,10 @@ void nsTableRowFrame::ResetBSize() {
   mMaxCellDescent = 0;
 }
 
-void nsTableRowFrame::UpdateBSize(nscoord aBSize, nscoord aAscent,
-                                  nscoord aDescent, nsTableFrame* aTableFrame,
+void nsTableRowFrame::UpdateBSize(nscoord aBSize, nsTableFrame* aTableFrame,
                                   nsTableCellFrame* aCellFrame) {
   if (!aTableFrame || !aCellFrame) {
-    NS_ASSERTION(false, "invalid call");
+    MOZ_ASSERT_UNREACHABLE("Invalid call");
     return;
   }
 
@@ -450,17 +449,15 @@ void nsTableRowFrame::UpdateBSize(nscoord aBSize, nscoord aAscent,
   }
 
   if (aCellFrame->HasVerticalAlignBaseline()) {
-    NS_ASSERTION(
-        aAscent != NS_UNCONSTRAINEDSIZE && aDescent != NS_UNCONSTRAINEDSIZE,
-        "invalid call");
-    // see if this is a long ascender
-    if (mMaxCellAscent < aAscent) {
-      mMaxCellAscent = aAscent;
-    }
-    // see if this is a long descender and without rowspan
-    if (mMaxCellDescent < aDescent) {
-      if (aTableFrame->GetEffectiveRowSpan(*aCellFrame) == 1) {
-        mMaxCellDescent = aDescent;
+    if (auto ascent = aCellFrame->GetCellBaseline()) {
+      // see if this is a long ascender
+      if (mMaxCellAscent < *ascent) {
+        mMaxCellAscent = *ascent;
+      }
+      nscoord descent = aBSize - *ascent;
+      if (mMaxCellDescent < descent &&
+          aTableFrame->GetEffectiveRowSpan(*aCellFrame) == 1) {
+        mMaxCellDescent = descent;
       }
     }
   }
@@ -492,18 +489,7 @@ nscoord nsTableRowFrame::CalcBSize(const ReflowInput& aReflowInput) {
         !GetPrevInFlow()) {
       desSize.BSize(wm) = CalcCellActualBSize(kidFrame, desSize.BSize(wm), wm);
     }
-    // bsize may have changed, adjust descent to absorb any excess difference
-    nscoord ascent;
-    if (!kidFrame->PrincipalChildList()
-             .FirstChild()
-             ->PrincipalChildList()
-             .FirstChild()) {
-      ascent = desSize.BSize(wm);
-    } else {
-      ascent = kidFrame->GetCellBaseline();
-    }
-    nscoord descent = desSize.BSize(wm) - ascent;
-    UpdateBSize(desSize.BSize(wm), ascent, descent, tableFrame, kidFrame);
+    UpdateBSize(desSize.BSize(wm), tableFrame, kidFrame);
   }
   return GetInitialBSize();
 }
@@ -806,18 +792,7 @@ void nsTableRowFrame::ReflowChildren(nsPresContext* aPresContext,
         }
         // bsize may have changed, adjust descent to absorb any excess
         // difference
-        nscoord ascent;
-        if (!kidFrame->PrincipalChildList()
-                 .FirstChild()
-                 ->PrincipalChildList()
-                 .FirstChild()) {
-          ascent = desiredSize.BSize(wm);
-        } else {
-          ascent = kidFrame->GetCellBaseline();
-        }
-        nscoord descent = desiredSize.BSize(wm) - ascent;
-        UpdateBSize(desiredSize.BSize(wm), ascent, descent, &aTableFrame,
-                    kidFrame);
+        UpdateBSize(desiredSize.BSize(wm), &aTableFrame, kidFrame);
       } else {
         cellMaxBSize = std::max(cellMaxBSize, desiredSize.BSize(wm));
         int32_t rowSpan = aTableFrame.GetEffectiveRowSpan(*kidFrame);

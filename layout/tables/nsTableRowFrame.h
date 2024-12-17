@@ -116,9 +116,8 @@ class nsTableRowFrame : public nsContainerFrame {
   nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-  void UpdateBSize(nscoord aBSize, nscoord aAscent, nscoord aDescent,
-                   nsTableFrame* aTableFrame = nullptr,
-                   nsTableCellFrame* aCellFrame = nullptr);
+  void UpdateBSize(nscoord aBSize, nsTableFrame* aTableFrame,
+                   nsTableCellFrame* aCellFrame);
 
   void ResetBSize();
 
