@@ -6641,6 +6641,10 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& aRv) {
     return;
   }
 
+  nsCOMPtr<nsILoadInfo> loadInfo =
+      GetChannel() ? GetChannel()->LoadInfo() : nullptr;
+  bool on3pcbException = loadInfo && loadInfo->GetIsOn3PCBExceptionList();
+
   for (auto& principal : principals) {
     nsAutoCString baseDomain;
     nsresult rv = CookieCommons::GetBaseDomain(principal, baseDomain);
@@ -6685,9 +6689,10 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& aRv) {
         continue;
       }
 
-      if (thirdParty && !CookieCommons::ShouldIncludeCrossSiteCookie(
-                            cookie, CookieJarSettings()->GetPartitionForeign(),
-                            IsInPrivateBrowsing(), UsingStorageAccess())) {
+      if (thirdParty &&
+          !CookieCommons::ShouldIncludeCrossSiteCookie(
+              cookie, CookieJarSettings()->GetPartitionForeign(),
+              IsInPrivateBrowsing(), UsingStorageAccess(), on3pcbException)) {
         continue;
       }
 
@@ -6822,9 +6827,14 @@ void Document::SetCookie(const nsAString& aCookieString, ErrorResult& aRv) {
                                                  nullptr, &thirdParty);
   }
 
-  if (thirdParty && !CookieCommons::ShouldIncludeCrossSiteCookie(
-                        cookie, CookieJarSettings()->GetPartitionForeign(),
-                        IsInPrivateBrowsing(), UsingStorageAccess())) {
+  nsCOMPtr<nsILoadInfo> loadInfo =
+      GetChannel() ? GetChannel()->LoadInfo() : nullptr;
+  bool on3pcbException = loadInfo && loadInfo->GetIsOn3PCBExceptionList();
+
+  if (thirdParty &&
+      !CookieCommons::ShouldIncludeCrossSiteCookie(
+          cookie, CookieJarSettings()->GetPartitionForeign(),
+          IsInPrivateBrowsing(), UsingStorageAccess(), on3pcbException)) {
     return;
   }
 

@@ -50,7 +50,7 @@ class CookieParser final {
              CookieStatus aStatus, nsCString& aCookieHeader,
              const nsACString& aDateHeader, bool aFromHttp,
              bool aIsForeignAndNotAddon, bool aPartitionedOnly,
-             bool aIsInPrivateBrowsing);
+             bool aIsInPrivateBrowsing, bool aOn3pcbException);
 
   bool ContainsCookie() const {
     MOZ_ASSERT_IF(mContainsCookie, mRejection == NoRejection);
