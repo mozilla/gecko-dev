@@ -19,10 +19,10 @@ It causes various reftest regressions.
  9 files changed, 18 insertions(+), 19 deletions(-)
 
 diff --git a/llvm/lib/Passes/PassBuilderPipelines.cpp b/llvm/lib/Passes/PassBuilderPipelines.cpp
-index 5a7c327de958..8fae92ebae75 100644
+index d737ea5ab070..54f8c09a0751 100644
 --- a/llvm/lib/Passes/PassBuilderPipelines.cpp
 +++ b/llvm/lib/Passes/PassBuilderPipelines.cpp
-@@ -702,9 +702,10 @@ PassBuilder::buildFunctionSimplificationPipeline(OptimizationLevel Level,
+@@ -703,9 +703,10 @@ PassBuilder::buildFunctionSimplificationPipeline(OptimizationLevel Level,
    // Delete small array after loop unroll.
    FPM.addPass(SROAPass(SROAOptions::ModifyCFG));
  
@@ -37,10 +37,10 @@ index 5a7c327de958..8fae92ebae75 100644
    // Eliminate redundancies.
    FPM.addPass(MergedLoadStoreMotionPass());
 diff --git a/llvm/lib/Transforms/Vectorize/VectorCombine.cpp b/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
-index b9caf8c0df9b..e4468d2b3c91 100644
+index db77d6c95579..b0d921f109cc 100644
 --- a/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
 +++ b/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
-@@ -2868,23 +2868,6 @@ bool VectorCombine::run() {
+@@ -3009,23 +3009,6 @@ bool VectorCombine::run() {
      bool IsFixedVectorType = isa<FixedVectorType>(I.getType());
      auto Opcode = I.getOpcode();
  
@@ -63,8 +63,8 @@ index b9caf8c0df9b..e4468d2b3c91 100644
 -
      // This transform works with scalable and fixed vectors
      // TODO: Identify and allow other scalable transforms
-     if (isa<VectorType>(I.getType())) {
-@@ -2907,10 +2890,12 @@ bool VectorCombine::run() {
+     if (IsVectorType) {
+@@ -3048,10 +3031,12 @@ bool VectorCombine::run() {
      if (IsFixedVectorType) {
        switch (Opcode) {
        case Instruction::InsertElement:
@@ -151,7 +151,7 @@ index 48a9433d2499..531dc0361873 100644
  ; CHECK-O23SZ-NEXT: Running pass: GVNPass
  ; CHECK-O23SZ-NEXT: Running analysis: MemoryDependenceAnalysis
 diff --git a/llvm/test/Transforms/PhaseOrdering/X86/vec-load-combine.ll b/llvm/test/Transforms/PhaseOrdering/X86/vec-load-combine.ll
-index 2296531bd1de..9032b318b092 100644
+index 85f6fceb5bdb..2d20250dfd81 100644
 --- a/llvm/test/Transforms/PhaseOrdering/X86/vec-load-combine.ll
 +++ b/llvm/test/Transforms/PhaseOrdering/X86/vec-load-combine.ll
 @@ -12,13 +12,20 @@ $getAt = comdat any
