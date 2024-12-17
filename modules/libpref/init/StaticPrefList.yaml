@@ -13471,7 +13471,11 @@
 # every page reload.
 - name: network.dns.only_refresh_on_fresh_connection
   type: RelaxedAtomicBool
+#ifdef EARLY_BETA_OR_EARLIER
+  value: false
+#else
   value: true
+#endif
   mirror: always
 
 # When true, DNS resolutions will downgrade DNS
