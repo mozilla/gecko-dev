@@ -1081,7 +1081,6 @@ export class SearchService {
   /**
    * An object containing the id of the AppProvidedSearchEngine for the default
    * engine, as suggested by the configuration.
-   * For the legacy configuration, this is the user visible name.
    *
    * This is prefixed with _ rather than # because it is
    * called in a test.
@@ -1093,7 +1092,6 @@ export class SearchService {
   /**
    * An object containing the id of the AppProvidedSearchEngine for the default
    * engine for private browsing mode, as suggested by the configuration.
-   * For the legacy configuration, this is the user visible name.
    *
    * @type {object}
    */
@@ -1582,7 +1580,12 @@ export class SearchService {
       let activePolicies = Services.policies.getActivePolicies();
       if (activePolicies.SearchEngines) {
         if (activePolicies.SearchEngines.Default) {
-          return this.#getEngineByName(activePolicies.SearchEngines.Default);
+          let policyEngine = this.#getEngineByName(
+            activePolicies.SearchEngines.Default
+          );
+          if (policyEngine) {
+            return policyEngine;
+          }
         }
         if (activePolicies.SearchEngines.Remove?.includes(defaultEngine.name)) {
           defaultEngine = null;

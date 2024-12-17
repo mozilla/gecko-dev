@@ -8,9 +8,12 @@
 "use strict";
 
 const CONFIG = [
-  { identifier: "appDefaultEngine" },
+  // Let it start with z so it is not the first one lexicographically
+  // and we can test if the globalDefault is respected.
+  { identifier: "zAppDefaultEngine" },
   { identifier: "otherEngine" },
   { identifier: "otherEngineToMakeDefault" },
+  { globalDefault: "zAppDefaultEngine" },
 ];
 
 SearchSettings.SETTINGS_INVALIDATION_DELAY = 100;
@@ -137,7 +140,7 @@ add_task(async function test_enterprise_policy_hidden_default() {
   await setupPolicyEngineWithJson({
     policies: {
       SearchEngines: {
-        Remove: ["appDefaultEngine"],
+        Remove: ["zAppDefaultEngine"],
       },
     },
   });
@@ -145,7 +148,7 @@ add_task(async function test_enterprise_policy_hidden_default() {
   Services.search.resetToAppDefaultEngine();
 
   Assert.ok(
-    Services.search.getEngineById("appDefaultEngine").hidden,
+    Services.search.getEngineById("zAppDefaultEngine").hidden,
     "Should have removed the application default engine"
   );
 
@@ -167,4 +170,19 @@ add_task(async function test_enterprise_policy_default() {
     Services.search.defaultEngine.identifier,
     "otherEngineToMakeDefault"
   );
+});
+
+add_task(async function test_enterprise_policy_invalid_default() {
+  consoleAllowList.push("Search engine lookup failed");
+  await setupPolicyEngineWithJson({
+    policies: {
+      SearchEngines: {
+        Default: "Invalid Engine",
+      },
+    },
+  });
+
+  Services.search.resetToAppDefaultEngine();
+
+  Assert.equal(Services.search.defaultEngine.identifier, "zAppDefaultEngine");
 });
