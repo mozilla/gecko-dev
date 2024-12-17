@@ -103,6 +103,11 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">പുതിയ വഴികാട്ടല്വവസ്ഥയൊപ്പം ഇനിയും വേഗത്തിൽ പരതുക</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">ഒരു വെബ്‌സൈറ്റിൽ, കൂടുതൽ തിരച്ചിൽ സ്ഥലത്തിനായി താങ്ങൾ താഴേക്ക് ഗതിമാറ്റുമ്പോൾ ഈ പട്ട അകന്നുപോകുന്നു.</string>
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">ഈ ടാബിന്റെ നാൾവഴിത്തിലേ താളുകൾക്കിടയിൽ ചാടാൻ അമ്പടയാളങ്ങൾ പിടിച്ചുവയ്ക്കുക.</string>
+
     <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_title">ടാബുകൾ മാറാൻ കരുപ്പട്ട സ്വൈപ്പുചെയ്യുക</string>
@@ -221,7 +226,7 @@
     <!-- Browser menu button that opens a user's library -->
     <string name="browser_menu_library">ലൈബ്രറി</string>
     <!-- Browser menu toggle that requests a desktop site -->
-    <string name="browser_menu_desktop_site">ഡെസ്ക്ടോപ്പ് സൈറ്റ്</string>
+    <string name="browser_menu_desktop_site">ഉപരിഫലക സൈറ്റു്</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
     <string name="browser_menu_open_in_regular_tab">സാധാരണ ടാബിൽ തുറക്കുക</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
@@ -232,6 +237,8 @@
     <string name="browser_menu_add_to_homescreen_2">ആമുഖതാളിലേക്കു് ചേർക്കുക…</string>
     <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
     <string name="browser_menu_add_app_to_homescreen_2">പ്രയോഗയന്ത്രാംശത്തിനു് ആമുഖതാളിലേക്കു് ചേർക്കുക…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi ഉപകരണങ്ങൾക്കു് ആമുഖപ്രതലത്തിലേക്കു് കുറുക്കുവഴികൾ ചേർക്കാൻ കൂടുതൽ അനുമതികൾ വേണ്ടപ്പെടും. ദയവായി താങ്ങളുടെ ക്രമീകരണങ്ങളിൽ നോക്കുക.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">വീണ്ടും സമന്വയിപ്പിക്കുക</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -311,6 +318,24 @@
     <string name="browser_tools_menu_handlebar_content_description">കരുക്കുറിപ്പടി കടലാസു് അടയ്ക്കുക</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ഇഷ്ടാനുസൃത ടാബുകുറിപ്പടി താളു് അടയ്ക്കുക</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">വായന കാഴ്ച, വിവർത്തനം, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">വായന കാഴ്ച, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">വായന കാഴ്ച, വിവർത്തനം, %s, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">വായന കാഴ്ച, വിവർത്തനം, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">വായന കാഴ്ച, വിവർത്തനം, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">വായന കാഴ്ച, %s, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">വായന കാഴ്ച, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">വായന കാഴ്ച, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക </string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">കരുതിവയ്ക്കുക</string>
@@ -342,6 +367,9 @@
     <!-- Menu "contextual feature recommendation" (CFR) -->
     <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
     <string name="menu_cfr_title">പുതിയതു്: ധാരാരേഖിതപെട്ട കുറിപ്പടിക്കട്ട</string>
+
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">സ്വകാര്യ തിരയലും കരുതിവയ്ക്കൽ പ്രവർത്തനങ്ങളും എല്ലാം പെട്ടന്നു് കണ്ടെത്തുക.</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -882,13 +910,18 @@
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">ടാബുകൾ തുറക്കുന്നതിന് കരുപ്പട്ട മുകളിലേക്ക് സ്വൈപ്പുചെയ്യുക</string>
 
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">വിലാസപ്പട്ടയും കരുപ്പട്ടയും മറയ്ക്കാൻ ഗതിമാറ്റുക</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">ടാബുകൾ മാറാൻ വിലാസപ്പട്ട ഒരുവശത്തേക്കു് നീക്കുക</string>
+
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
     <string name="library_downloads">ഡൗണ്‍ലോഡുകള്‍</string>
     <!-- Option in library to open Bookmarks page -->
     <string name="library_bookmarks">അടയാളക്കുറിപ്പുകള്‍</string>
     <!-- Option in library to open Desktop Bookmarks root page -->
-    <string name="library_desktop_bookmarks_root">ഡെസ്ക്ടോപ്പ് അടയാളക്കുറിപ്പുകള്‍</string>
+    <string name="library_desktop_bookmarks_root">ഉപരിഫലക അടയാളക്കുറിപ്പുകള്‍</string>
     <!-- Option in library to open Desktop Bookmarks "menu" page -->
     <string name="library_desktop_bookmarks_menu">അടയാളക്കുറിപ്പുകളുടെ മെനു</string>
     <!-- Option in library to open Desktop Bookmarks "toolbar" page -->
@@ -896,7 +929,7 @@
     <!-- Option in library to open Desktop Bookmarks "unfiled" page -->
     <string name="library_desktop_bookmarks_unfiled">മറ്റു് അടയാളക്കുറിപ്പുകള്‍</string>
     <!-- Option in Library to open History page -->
-    <string name="library_history">ചരിത്രം</string>
+    <string name="library_history">നാൾവഴി</string>
 
     <!-- Option in Library to open a new tab -->
     <string name="library_new_tab">പുതിയ ടാബ്</string>
@@ -987,11 +1020,16 @@
     <!-- Category header of a preference that allows a user to enable or disable the inactive tabs feature -->
     <string name="preferences_inactive_tabs">പഴയ ടാബുകൾ നിഷ്ക്രിയത അറായിലേക്കു് മാറ്റുക</string>
 
+    <!-- Title of inactive tabs preference -->
+    <string name="preferences_inactive_tabs_title">രണ്ടാഴ്ചയായി താങ്ങൾ കാണാത്ത ടാബുകൾ നിഷ്ക്രിയ വിഭാഗത്തിലേക്കു് മാറ്റും.</string>
+
     <!-- Studies -->
     <!-- Title of the remove studies button -->
     <string name="studies_remove">മാറ്റുക</string>
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">സജീവം</string>
+    <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
+    <string name="studies_description_2">%1$s ചിലപ്പോൾ പഠനങ്ങൾ വല്ലപ്പോഴു് സ്ഥാപിച്ചുനടത്തും.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">കൂടുതലറിയുക</string>
     <!-- Dialog message shown after removing a study -->
@@ -1971,6 +2009,8 @@
     <string name="search_add_custom_engine_name_label">പേരു്</string>
     <!-- Placeholder text shown in the Search Engine Name text field before a user enters text -->
     <string name="search_add_custom_engine_name_hint_2">തിരയല്യന്ത്രത്തിന്റെ പേരു്</string>
+    <!-- Label for the TextField in which user enters custom search engine URL -->
+    <string name="search_add_custom_engine_url_label">തെരച്ചിലിനുള്ള വാക്യസൂത്രത്തിന്റെ യൂ.ആർ.എൽ</string>
     <!-- Placeholder text shown in the Search String TextField before a user enters text -->
     <string name="search_add_custom_engine_search_string_hint_2">പരത്താനായ യു.ആർ.എൽ</string>
     <!-- Description text for the Search String TextField. The %s is part of the string -->
@@ -2181,6 +2221,8 @@
     <string name="review_quality_check_settings_title">ക്രമീകരണങ്ങള്‍</string>
     <!-- Clickable text that links to review quality check recommended products support article. -->
     <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">കൂടുതലറിയുക</string>
+    <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
+    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">പരിഗണിക്കാൻ കൂടുതൽ</string>
     <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
     <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">%s-ന്റെ പരസ്യം</string>
     <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
@@ -2288,9 +2330,18 @@
     <string name="translation_in_progress_snackbar">വിവർത്തനം ചെയ്യുന്നു…</string>
 
 
+    <!-- Title for the data saving mode warning dialog used in the translation request dialog.
+    This dialog will be presented when the user attempts to perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="translations_download_language_file_dialog_title">ദത്ത കരുതിവയ്ക്കൽ രീതിയിൽ ഭാഷ ഇറക്കിവയ്ക്കണോ (%1$s)?</string>
+
+
     <!-- Translations options dialog -->
     <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
     <string name="translation_option_bottom_sheet_title_heading">വിവർത്തന സാധ്യതകൾ</string>
+    <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
+    <string name="translation_option_bottom_sheet_always_translate">വിവർത്തനം ചെയ്യാൻ എപ്പോഴും വാഗ്ദാനം ചെയ്യുക</string>
     <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. The first parameter is the language name, for example, "Spanish". -->
     <string name="translation_option_bottom_sheet_always_translate_in_language">എപ്പോഴും %1$s-നു് വിവർത്തനം ചെയ്യുക</string>
     <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. The first parameter is the language name, for example, "Spanish". -->
@@ -2302,6 +2353,8 @@
     <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
     <string name="translation_option_bottom_sheet_about_translations">%1$s-ലെ വിവർത്തനങ്ങളെക്കുറിച്ച്</string>
 
+    <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
+    <string name="translation_option_bottom_sheet_close_content_description">വിവർത്തനതാളു് അടയ്ക്കുക</string>
     <!-- The title of the warning card informs the user that an error has occurred at page settings. -->
     <string name="translation_option_bottom_sheet_error_warning_text">ചില ക്രമീകരണങ്ങൾ താല്ക്കാലികമായി ലഭ്യമല്ല.</string>
 
@@ -2310,6 +2363,8 @@
     <string name="translation_settings_toolbar_title">വിവർത്തനങ്ങൾ</string>
     <!-- Toggle switch label that indicates that the browser should signal or indicate when a translation is possible for any page. -->
     <string name="translation_settings_offer_to_translate">സാധ്യമാകുമ്പോൾ വിവർത്തനം ചെയ്യാൻ വാഗ്ദാനം കൊടുക്കുക</string>
+    <!-- Toggle switch label that indicates that downloading files required for translating is permitted when using data saver mode in Android. -->
+    <string name="translation_settings_always_download">എപ്പോഴും ദത്തകരുതിവയ്ക്കൽ രീതിയിൽ ഇറക്കിവയ്ക്കുക</string>
     <!-- Section header text that begins the section of a list of different options the user may select to adjust their translation preferences. -->
     <string name="translation_settings_translation_preference">വിവർത്തനത്തുള്ള മുൻഗണനകള്‍</string>
     <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
@@ -2326,10 +2381,18 @@
     <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
     <string name="automatic_translation_error_warning_text">ഭാഷാകൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. കുറച്ചു് നേരം കഴിഞ്ഞു് തിരിച്ചു് വരുക.</string>
 
+    <!-- Automatic translation options preference screen -->
+    <!-- Preference option for offering to translate. Radio button title text.-->
+    <string name="automatic_translation_option_offer_to_translate_title_preference">വിവർത്തനം ചെയ്യാൻ വാഗ്ദാനം നല്കുക (എപ്പോഴും)</string>
     <!-- Preference option for always translate. Radio button title text. -->
     <string name="automatic_translation_option_always_translate_title_preference">എപ്പോഴും വിവർത്തനം ചെയ്യുക</string>
+    <!-- Preference option for always translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_always_translate_summary_preference">താൾ ലഭ്യമാവുമ്പോൾ %1$s ഉടനെ ഈ ഭാഷയിന്റെ തന്നെതാനെ വിവർത്തനം ചെയ്യും.</string>
     <!-- Preference option for never translate. Radio button title text.-->
     <string name="automatic_translation_option_never_translate_title_preference">ഒരിക്കലും വിവർത്തനം ചെയ്യരുതു്</string>
+
+    <!-- Preference option for never translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_never_translate_summary_preference">ഈ ഭാഷായിൽ എഴുതിയ വെബ്സ്ഥാനങ്ങളിൽ വിവർത്തനം ചെയ്യാൻ %1$s ഒരിക്കലും വാഗ്ദാനം ചെയ്യില്ല.</string>
 
     <!-- Never translate site preference screen -->
     <!-- Title of the never translate site preference screen that will appear on the toolbar.-->
@@ -2337,6 +2400,8 @@
     <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_item_list_content_description_preference">%1$s മാറ്റുക</string>
+    <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
+    <string name="never_translate_site_error_warning_text">വെബ്സ്ഥാനങ്ങൾ ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല. കുറച്ചു് നേരം കഴിഞ്ഞു് തിരിച്ചു് വരുക.</string>
     <!-- The Delete site dialogue title will appear when the user clicks on a list item.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_dialog_title_preference">%1$s-നു് മായ്ക്കുട്ടെ?</string>
@@ -2399,6 +2464,11 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">റദ്ദാക്കുക</string>
 
+    <!-- Title for the data saving mode warning dialog used by the translations feature.
+    This dialog will be presented when the user attempts to download a language or perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file.-->
+    <string name="download_language_file_dialog_title">ദത്ത കരുതിവയ്ക്കൽ രീതിയിൽ ഭാഷ ഇറക്കിവയ്ക്കണോ (%1$s)?</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">എപ്പോഴും ദത്തകരുതിവയ്ക്കൽ രീതിയിൽ ഇറക്കിവയ്ക്കുക</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2522,6 +2592,24 @@
     <!-- Debug drawer addresses -->
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">വിലാസങ്ങള്‍</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">CFR കരുകൾ</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR-കൾ പുനഃക്രമീകരിക്കുക</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">പുറത്തുകടക്കാൻ മുകളിൽ നിന്ന് വലിച്ചിട്ട് തിരികെ പോവാനുള്ള ആംഗ്യം ഉപയോഗിക്കുക</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">പുറത്തുകടക്കാൻ മുകളിൽ നിന്ന് വലിച്ചിട്ട് &quot;തിരികെ&quot; എന്നു് എഴുതിയ ബട്ടണിൽ അമർത്തുക</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">ബീറ്റ</string>
 
     <!-- Root certificate expiration warnings -->
     <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
