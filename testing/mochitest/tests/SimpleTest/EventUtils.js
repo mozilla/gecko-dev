@@ -1194,7 +1194,7 @@ function _sendWheelAndPaint(
         waitForPaints,
         "apz-repaints-flushed"
       );
-      if (!utils.flushApzRepaints(aWindow)) {
+      if (!utils.flushApzRepaints()) {
         waitForPaints();
       }
     }, 0);
