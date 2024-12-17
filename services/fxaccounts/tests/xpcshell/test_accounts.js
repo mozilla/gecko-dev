@@ -1537,6 +1537,87 @@ add_task(async function test_listAttachedOAuthClients() {
   ]);
 });
 
+add_task(async function test_listAttachedOAuthClients_withCaching() {
+  const ONE_HOUR = 60 * 60 * 1000;
+  const ONE_DAY = 24 * ONE_HOUR;
+
+  const timestamp = Date.now();
+
+  let fxa = new MockFxAccounts();
+  let alice = getTestUser("alice");
+  alice.verified = true;
+
+  let client = fxa._internal.fxAccountsClient;
+  let originalResponse = {
+    body: [
+      {
+        clientId: "a2270f727f45f648",
+        deviceId: "deadbeef",
+        sessionTokenId: null,
+        name: "Firefox Preview (no session token)",
+        scope: ["profile", SCOPE_APP_SYNC],
+        lastAccessTime: Date.now(),
+      },
+      {
+        clientId: "802d56ef2a9af9fa",
+        deviceId: null,
+        sessionTokenId: null,
+        name: "Firefox Monitor",
+        scope: ["profile"],
+        lastAccessTime: Date.now() - ONE_DAY - ONE_HOUR,
+      },
+    ],
+    headers: { "x-timestamp": timestamp.toString() },
+  };
+
+  // Mock the client method.
+  client.attachedClients = async () => {
+    return originalResponse;
+  };
+
+  await fxa.setSignedInUser(alice);
+
+  // First call: should fetch from server
+  const clientsFirstCall = await fxa.listAttachedOAuthClients();
+  Assert.deepEqual(clientsFirstCall, [
+    { id: "a2270f727f45f648", lastAccessedDaysAgo: 0 },
+    { id: "802d56ef2a9af9fa", lastAccessedDaysAgo: 1 },
+  ]);
+
+  // Now modify the client so if it calls again, we would get different clients.
+  const updatedResponse = {
+    body: [
+      {
+        clientId: "updated-client",
+        lastAccessTime: Date.now() - ONE_DAY * 3,
+      },
+    ],
+    headers: { "x-timestamp": (timestamp + 1000).toString() },
+  };
+  client.attachedClients = async () => {
+    return updatedResponse;
+  };
+
+  // Second call without forceRefresh: should return cached data, not the updated one.
+  const clientsSecondCall = await fxa.listAttachedOAuthClients();
+  Assert.deepEqual(
+    clientsSecondCall,
+    [
+      { id: "a2270f727f45f648", lastAccessedDaysAgo: 0 },
+      { id: "802d56ef2a9af9fa", lastAccessedDaysAgo: 1 },
+    ],
+    "Should return cached clients from the first call, ignoring the updated mock"
+  );
+
+  // Now force refresh
+  const clientsForceRefresh = await fxa.listAttachedOAuthClients(true);
+  Assert.deepEqual(
+    clientsForceRefresh,
+    [{ id: "updated-client", lastAccessedDaysAgo: 3 }],
+    "Forcing a refresh should return the updated data"
+  );
+});
+
 add_task(async function test_getSignedInUserProfile() {
   let alice = getTestUser("alice");
   alice.verified = true;

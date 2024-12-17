@@ -198,7 +198,6 @@ const FXA_USERNAME_PREF = "services.sync.username";
 
 const { activityStreamProvider: asProvider } = NewTabUtils;
 
-const FXA_ATTACHED_CLIENTS_UPDATE_INTERVAL = 4 * 60 * 60 * 1000; // Four hours
 const FRECENT_SITES_UPDATE_INTERVAL = 6 * 60 * 60 * 1000; // Six hours
 const FRECENT_SITES_IGNORE_BLOCKED = false;
 const FRECENT_SITES_NUM_ITEMS = 25;
@@ -231,32 +230,6 @@ export function CachedTargetingGetter(
       const now = Date.now();
       if (now - this._lastUpdated >= updateInterval) {
         this._value = await getter[property](options);
-        this._lastUpdated = now;
-      }
-      return this._value;
-    },
-  };
-}
-
-function CacheListAttachedOAuthClients() {
-  return {
-    _lastUpdated: 0,
-    _value: null,
-    expire() {
-      this._lastUpdated = 0;
-      this._value = null;
-    },
-    get() {
-      const now = Date.now();
-      if (now - this._lastUpdated >= FXA_ATTACHED_CLIENTS_UPDATE_INTERVAL) {
-        this._value = new Promise(resolve => {
-          lazy.fxAccounts
-            .listAttachedOAuthClients()
-            .then(clients => {
-              resolve(clients);
-            })
-            .catch(() => resolve([]));
-        });
         this._lastUpdated = now;
       }
       return this._value;
@@ -363,7 +336,6 @@ export const QueryCache = {
     TotalBookmarksCount: new CachedTargetingGetter("getTotalBookmarksCount"),
     CheckBrowserNeedsUpdate: new CheckBrowserNeedsUpdate(),
     RecentBookmarks: new CachedTargetingGetter("getRecentBookmarks"),
-    ListAttachedOAuthClients: new CacheListAttachedOAuthClients(),
     UserMonthlyActivity: new CachedTargetingGetter("getUserMonthlyActivity"),
     UnhandledCampaignAction: new CacheUnhandledCampaignAction(),
   },
@@ -829,7 +801,12 @@ const TargetingGetters = {
   },
   get attachedFxAOAuthClients() {
     return this.usesFirefoxSync
-      ? QueryCache.queries.ListAttachedOAuthClients.get()
+      ? new Promise(resolve =>
+          lazy.fxAccounts
+            .listAttachedOAuthClients()
+            .then(clients => resolve(clients))
+            .catch(() => resolve([]))
+        )
       : [];
   },
   get platformName() {

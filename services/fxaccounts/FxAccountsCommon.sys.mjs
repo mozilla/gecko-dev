@@ -49,6 +49,7 @@ export let DATA_FORMAT_VERSION = 1;
 export let DEFAULT_STORAGE_FILENAME = "signedInUser.json";
 
 export let OAUTH_TOKEN_FOR_SYNC_LIFETIME_SECONDS = 3600 * 6; // 6 hours
+export let ATTACHED_CLIENTS_CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours in ms
 
 // After we start polling for account verification, we stop polling when this
 // many milliseconds have elapsed.

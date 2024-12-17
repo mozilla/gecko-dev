@@ -2,7 +2,6 @@ import {
   ASRouterTargeting,
   CachedTargetingGetter,
   getSortedMessages,
-  QueryCache,
 } from "modules/ASRouterTargeting.sys.mjs";
 import { OnboardingMessageProvider } from "modules/OnboardingMessageProvider.sys.mjs";
 import { ASRouterPreferences } from "modules/ASRouterPreferences.sys.mjs";
@@ -271,55 +270,6 @@ describe("#isTriggerMatch", () => {
     trigger.param = { type: 538091584 };
 
     assert.isTrue(Boolean(ASRouterTargeting.isTriggerMatch(trigger, message)));
-  });
-});
-describe("#CacheListAttachedOAuthClients", () => {
-  const fourHours = 4 * 60 * 60 * 1000;
-  let sandbox;
-  let clock;
-  let fakeFxAccount;
-  let authClientsCache;
-  let globals;
-
-  beforeEach(() => {
-    globals = new GlobalOverrider();
-    sandbox = sinon.createSandbox();
-    clock = sinon.useFakeTimers();
-    fakeFxAccount = {
-      listAttachedOAuthClients: () => {},
-    };
-    globals.set("fxAccounts", fakeFxAccount);
-    authClientsCache = QueryCache.queries.ListAttachedOAuthClients;
-    sandbox
-      .stub(global.fxAccounts, "listAttachedOAuthClients")
-      .returns(Promise.resolve({}));
-  });
-
-  afterEach(() => {
-    authClientsCache.expire();
-    sandbox.restore();
-    clock.restore();
-  });
-
-  it("should only make additional request every 4 hours", async () => {
-    clock.tick(fourHours);
-
-    await authClientsCache.get();
-    assert.calledOnce(global.fxAccounts.listAttachedOAuthClients);
-
-    clock.tick(fourHours);
-    await authClientsCache.get();
-    assert.calledTwice(global.fxAccounts.listAttachedOAuthClients);
-  });
-
-  it("should not make additional request before 4 hours", async () => {
-    clock.tick(fourHours);
-
-    await authClientsCache.get();
-    assert.calledOnce(global.fxAccounts.listAttachedOAuthClients);
-
-    await authClientsCache.get();
-    assert.calledOnce(global.fxAccounts.listAttachedOAuthClients);
   });
 });
 describe("ASRouterTargeting", () => {

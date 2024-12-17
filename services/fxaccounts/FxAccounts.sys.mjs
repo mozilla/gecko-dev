@@ -9,6 +9,7 @@ import { clearTimeout, setTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { FxAccountsStorageManager } from "resource://gre/modules/FxAccountsStorage.sys.mjs";
 
 import {
+  ATTACHED_CLIENTS_CACHE_DURATION,
   ERRNO_INVALID_AUTH_TOKEN,
   ERROR_AUTH_ERROR,
   ERROR_INVALID_PARAMETER,
@@ -412,7 +413,9 @@ export class FxAccounts {
   /**
    * Returns an array listing all the OAuth clients connected to the
    * authenticated user's account. This includes browsers and web sessions - no
-   * filtering is done of the set returned by the FxA server.
+   * filtering is done of the set returned by the FxA server. This is using a cached
+   * result if it's not older than 4 hours. If the cached data is too old or
+   * missing, it fetches new data and updates the cache.
    *
    * @typedef {Object} AttachedClient
    * @property {String} id - OAuth `client_id` of the client.
@@ -421,8 +424,39 @@ export class FxAccounts {
    *
    * @returns {Array.<AttachedClient>} A list of attached clients.
    */
-  async listAttachedOAuthClients() {
-    // We expose last accessed times in 'days ago'
+  async listAttachedOAuthClients(forceRefresh = false) {
+    const now = Date.now();
+
+    // Check if cached data is still valid
+    if (
+      this._cachedClients &&
+      now - this._cachedClientsTimestamp < ATTACHED_CLIENTS_CACHE_DURATION &&
+      !forceRefresh
+    ) {
+      return this._cachedClients;
+    }
+
+    // Cache is empty or expired, fetch new data
+    let clients = null;
+    try {
+      clients = await this._fetchAttachedOAuthClients();
+      this._cachedClients = clients;
+      this._cachedClientsTimestamp = now;
+    } catch (error) {
+      log.error("Could not update attached clients list ", error);
+      clients = [];
+    }
+
+    return clients;
+  }
+
+  /**
+   * This private method actually fetches the clients from the server.
+   * It should not be called directly by consumers of this API.
+   * @returns {Array.<AttachedClient>}
+   * @private
+   */
+  async _fetchAttachedOAuthClients() {
     const ONE_DAY = 24 * 60 * 60 * 1000;
 
     return this._withSessionToken(async sessionToken => {
@@ -789,6 +823,11 @@ FxAccountsInternal.prototype = {
     }
 
     this.currentTimer = null;
+    // This holds the list of attached clients from the /account/attached_clients endpoint
+    // Most calls to that endpoint generally don't need fresh data so we try to prevent
+    // as many network requests as possible
+    this._cachedAttachedClients = null;
+    this._cachedAttachedClientsTimestamp = 0;
     // This object holds details about, and storage for, the current user. It
     // is replaced when a different user signs in. Instead of using it directly,
     // you should try and use `withCurrentAccountState`.
