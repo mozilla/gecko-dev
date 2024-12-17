@@ -283,8 +283,8 @@ constexpr auto kStorageName = u"storage"_ns;
 const int32_t kLocalStorageArchiveVersion = 4;
 
 const char kProfileDoChangeTopic[] = "profile-do-change";
-const char kSessionstoreWindowsRestoredTopic[] =
-    "sessionstore-windows-restored";
+const char kContextualIdentityServiceLoadFinishedTopic[] =
+    "contextual-identity-service-load-finished";
 const char kPrivateBrowsingObserverTopic[] = "last-pb-context-exited";
 
 const int32_t kCacheVersion = 2;
@@ -1496,9 +1496,10 @@ nsresult QuotaManager::Observer::Init() {
   Registrar profileDoChangeRegistrar(obs, this, kProfileDoChangeTopic);
   QM_TRY(MOZ_TO_RESULT(profileDoChangeRegistrar.Register()));
 
-  Registrar sessionstoreWindowsRestoredRegistrar(
-      obs, this, kSessionstoreWindowsRestoredTopic);
-  QM_TRY(MOZ_TO_RESULT(sessionstoreWindowsRestoredRegistrar.Register()));
+  Registrar contextualIdentityServiceLoadFinishedRegistrar(
+      obs, this, kContextualIdentityServiceLoadFinishedTopic);
+  QM_TRY(
+      MOZ_TO_RESULT(contextualIdentityServiceLoadFinishedRegistrar.Register()));
 
   Registrar profileBeforeChangeQmRegistrar(
       obs, this, PROFILE_BEFORE_CHANGE_QM_OBSERVER_ID);
@@ -1513,7 +1514,7 @@ nsresult QuotaManager::Observer::Init() {
 
   xpcomShutdownRegistrar.Commit();
   profileDoChangeRegistrar.Commit();
-  sessionstoreWindowsRestoredRegistrar.Commit();
+  contextualIdentityServiceLoadFinishedRegistrar.Commit();
   profileBeforeChangeQmRegistrar.Commit();
   wakeNotificationRegistrar.Commit();
   lastPbContextExitedRegistrar.Commit();
@@ -1534,7 +1535,7 @@ nsresult QuotaManager::Observer::Shutdown() {
   MOZ_ALWAYS_SUCCEEDS(
       obs->RemoveObserver(this, PROFILE_BEFORE_CHANGE_QM_OBSERVER_ID));
   MOZ_ALWAYS_SUCCEEDS(
-      obs->RemoveObserver(this, kSessionstoreWindowsRestoredTopic));
+      obs->RemoveObserver(this, kContextualIdentityServiceLoadFinishedTopic));
   MOZ_ALWAYS_SUCCEEDS(obs->RemoveObserver(this, kProfileDoChangeTopic));
   MOZ_ALWAYS_SUCCEEDS(obs->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID));
 
@@ -1617,10 +1618,11 @@ QuotaManager::Observer::Observe(nsISupports* aSubject, const char* aTopic,
     return NS_OK;
   }
 
-  if (!strcmp(aTopic, kSessionstoreWindowsRestoredTopic)) {
+  if (!strcmp(aTopic, kContextualIdentityServiceLoadFinishedTopic)) {
     if (NS_WARN_IF(!gBasePath)) {
       NS_WARNING(
-          "profile-do-change must precede sessionstore-windows-restored!");
+          "profile-do-change must precede "
+          "contextual-identity-service-load-finished!");
       return NS_OK;
     }
 
