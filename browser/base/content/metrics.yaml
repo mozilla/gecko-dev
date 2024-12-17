@@ -22,7 +22,7 @@ privacy.sanitize:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1856417#c4
     notification_emails:
       - wwen@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires: 140
     extra_keys:
       context:
@@ -41,7 +41,7 @@ privacy.sanitize:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1856417#c4
     notification_emails:
       - wwen@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires: 140
     extra_keys:
       context:
@@ -72,7 +72,7 @@ privacy.sanitize:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1856417#c4
     notification_emails:
       - wwen@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires: 140
     extra_keys:
       time_span:
@@ -91,7 +91,7 @@ privacy.sanitize:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1856417#c4
     notification_emails:
       - wwen@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires:
       140
 
@@ -117,7 +117,7 @@ security.ui.protectionspopup:
       - https://bugzil.la/1739287
       - https://bugzil.la/1787249
     notification_emails: &security_ui_protectionspopup_open_emails
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never
     telemetry_mirror: SecurityUiProtectionspopup_Open_ProtectionsPopup
@@ -170,7 +170,7 @@ security.ui.protectionspopup:
       - https://bugzil.la/1787249
       - https://bugzil.la/1798669
     notification_emails: &security_ui_protectionspopup_click_emails
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - tihuang@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never

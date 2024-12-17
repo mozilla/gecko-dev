@@ -39,7 +39,7 @@ security.ui.protections:
       - https://bugzil.la/1739287
       - https://bugzil.la/1787249
     notification_emails: &security_ui_protections_show_emails
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never
     extra_keys: &security_ui_protections_show_extra
@@ -93,7 +93,7 @@ security.ui.protections:
       - https://bugzil.la/1739287
       - https://bugzil.la/1787249
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never
     extra_keys:
@@ -139,7 +139,7 @@ security.ui.protections:
       - https://bugzil.la/1739287
       - https://bugzil.la/1787249
     notification_emails: &security_ui_protections_click_emails
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never
     extra_keys: &security_ui_protections_click_extra

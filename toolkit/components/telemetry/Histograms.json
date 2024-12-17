@@ -8811,7 +8811,7 @@
   "STORAGE_ACCESS_API_UI": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
-    "alert_emails": ["pbz@mozilla.com", "tihuang@mozilla.com"],
+    "alert_emails": ["emz@mozilla.com", "tihuang@mozilla.com"],
     "bug_numbers": [1513309, 1588844, 1643432, 1689262, 1730043, 1832670],
     "expires_in_version": "never",
     "kind": "categorical",
@@ -11344,7 +11344,7 @@
     "description": "A count of the query stripping. ('Navigation' = There was a top-level loading via navigation, 'Redirect' = There was a top-level loading via redirect, 'StripForNavigation' = There was a stripping happened for a top-level navigation, 'StripForRedirect' = There was a stripping happened for a top-level redirect.",
     "alert_emails": [
       "tihuang@mozilla.com",
-      "pbz@mozilla.com",
+      "emz@mozilla.com",
       "seceng-telemetry@mozilla.com"
     ],
     "bug_numbers": [1706616]
@@ -11361,7 +11361,7 @@
     "description": "If query params get stripped, how many per navigation/redirect.",
     "alert_emails": [
       "tihuang@mozilla.com",
-      "pbz@mozilla.com",
+      "emz@mozilla.com",
       "seceng-telemetry@mozilla.com"
     ],
     "bug_numbers": [1762374]
@@ -11399,7 +11399,7 @@
     "description": "Counts how often specific query parameters are stripped.",
     "alert_emails": [
       "tihuang@mozilla.com",
-      "pbz@mozilla.com",
+      "emz@mozilla.com",
       "seceng-telemetry@mozilla.com"
     ],
     "bug_numbers": [1762374, 1830058]
@@ -14334,7 +14334,7 @@
     "kind": "linear",
     "high": 100,
     "n_buckets": 50,
-    "alert_emails": ["amadan@mozilla.com", "pbz@mozilla.com"],
+    "alert_emails": ["amadan@mozilla.com", "emz@mozilla.com"],
     "bug_numbers": [1833105],
     "description": "The number of query parameters removed, if any, when strip on share is used"
   },
@@ -14346,7 +14346,7 @@
     "kind": "exponential",
     "high": 1000,
     "n_buckets": 100,
-    "alert_emails": ["amadan@mozilla.com", "pbz@mozilla.com"],
+    "alert_emails": ["amadan@mozilla.com", "emz@mozilla.com"],
     "bug_numbers": [1833105],
     "description": "The decrease in the length of the URL when strip on share is used, only if at least one parameter is stripped"
   },

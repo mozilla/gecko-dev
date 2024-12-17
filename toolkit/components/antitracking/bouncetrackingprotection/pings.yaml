@@ -18,4 +18,4 @@ bounce-tracking-protection:
   data_reviews:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1889444#c16
   notification_emails:
-    - pbz@mozilla.com
+    - emz@mozilla.com

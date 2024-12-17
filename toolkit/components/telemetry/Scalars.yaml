@@ -1901,7 +1901,7 @@ cookie.banners:
     keyed: true
     notification_emails:
       - tihuang@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -1918,7 +1918,7 @@ cookie.banners:
     keyed: true
     notification_emails:
       - tihuang@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -1933,7 +1933,7 @@ cookie.banners:
     kind: boolean
     notification_emails:
       - tihuang@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -2381,7 +2381,7 @@ datasanitization:
     expires: never
     kind: uint
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     release_channel_collection: opt-out
     products:

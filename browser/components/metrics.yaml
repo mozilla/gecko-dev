@@ -488,7 +488,7 @@ datasanitization:
       - https://bugzil.la/1678210
       - https://bugzil.la/1744559
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never
     unit: unknown

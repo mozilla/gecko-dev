@@ -22,7 +22,7 @@ cookie.banners:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797081#c3
     notification_emails:
       - tihuang@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires: never
     labels:
       - disabled
@@ -41,7 +41,7 @@ cookie.banners:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797081#c3
     notification_emails:
       - tihuang@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires: never
     labels:
       - disabled
@@ -59,7 +59,7 @@ cookie.banners:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1809700#c3
     notification_emails:
       - tihuang@mozilla.com
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires: never
     telemetry_mirror: COOKIE_BANNERS_SERVICE_DETECT_ONLY
   google_gdpr_choice_cookie:
@@ -76,7 +76,7 @@ cookie.banners:
     data_sensitivity:
       - stored_content
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - tihuang@mozilla.com
     expires: never
   google_gdpr_choice_cookie_event:
@@ -91,7 +91,7 @@ cookie.banners:
     data_sensitivity:
       - stored_content
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - tihuang@mozilla.com
     expires: never
     extra_keys:
@@ -119,7 +119,7 @@ cookie.banners:
     data_sensitivity:
       - stored_content
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - tihuang@mozilla.com
     expires: never
     extra_keys:

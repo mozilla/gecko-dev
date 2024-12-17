@@ -131,7 +131,7 @@ aboutprivatebrowsing:
       This is recorded when a user clicks a link on the private browsing newtab.
     bug_numbers: [1709344, 1754635, 1781973, 1811146, 1841925, 1871197, 1922596]
     notification_emails:
-      - "pbz@mozilla.com"
+      - "emz@mozilla.com"
       - "tihuang@mozilla.com"
     expiry_version: "139"
     products:
@@ -2248,7 +2248,7 @@ security.ui.protections:
     record_in_processes: ["content"]
     release_channel_collection: opt-out
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     products:
       - firefox
@@ -2272,7 +2272,7 @@ security.ui.protections:
     record_in_processes: ["content"]
     release_channel_collection: opt-out
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     products:
       - firefox
@@ -2313,7 +2313,7 @@ security.ui.protections:
     record_in_processes: ["content"]
     release_channel_collection: opt-out
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     products:
       - firefox
@@ -2337,7 +2337,7 @@ security.ui.protectionspopup:
       How many times the protections panel was opened.
     expiry_version: never
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - seceng-telemetry@mozilla.com
     release_channel_collection: opt-out
     record_in_processes:
@@ -2377,7 +2377,7 @@ security.ui.protectionspopup:
       User interaction by click events in the protections panel.
     expiry_version: never
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - tihuang@mozilla.com
       - seceng-telemetry@mozilla.com
     release_channel_collection: opt-out

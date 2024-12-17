@@ -29,7 +29,7 @@ private_browsing.reset_pbm:
     data_sensitivity:
       - interaction
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires: never
   reset_action:
     type: event
@@ -46,7 +46,7 @@ private_browsing.reset_pbm:
     data_sensitivity:
       - interaction
     notification_emails:
-      - pbz@mozilla.com
+      - emz@mozilla.com
     expires: never
 
 aboutprivatebrowsing:
@@ -74,7 +74,7 @@ aboutprivatebrowsing:
       - https://bugzil.la/1871197
       - https://phabricator.services.mozilla.com/D225937
     notification_emails: &aboutprivatebrowsing_click_emails
-      - pbz@mozilla.com
+      - emz@mozilla.com
       - tihuang@mozilla.com
     expires: 139
     no_lint:

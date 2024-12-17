@@ -2852,7 +2852,7 @@ legacyHeartbeat:
 
 queryStripping:
   description: Query parameter stripping anti-tracking feature.
-  owner: pbz@mozilla.com
+  owner: emz@mozilla.com
   hasExposure: false
   variables:
     enabledNormalBrowsing:
@@ -3504,7 +3504,7 @@ bookmarks:
 
 cookieBannerHandling:
   description: Automatically handle cookie banners on the user's behalf.
-  owner: pbz@mozilla.com
+  owner: emz@mozilla.com
   hasExposure: false
   variables:
     modeNormalBrowsing:
@@ -3931,7 +3931,7 @@ certCompression:
 
 bounceTrackingProtection:
   description: Controls the Bounce Tracking Protection feature.
-  owner: pbz@mozilla.com
+  owner: emz@mozilla.com
   hasExposure: false
   variables:
     enabled:
