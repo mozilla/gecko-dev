@@ -790,7 +790,8 @@ interface nsIDOMWindowUtils : nsISupports {
                           in long aTiltX,
                           in long aTiltY,
                           in long aButton,
-                          [optional] in nsIObserver aObserver);
+                          [optional] in nsIObserver aObserver,
+                          [optional] in Element aElement);
 
   /**
    * Cancel any existing touch points or long tap delays. Calling this is safe

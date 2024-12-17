@@ -1238,8 +1238,9 @@ nsDOMWindowUtils::SendNativePenInput(uint32_t aPointerId,
                                      int32_t aScreenY, double aPressure,
                                      uint32_t aRotation, int32_t aTiltX,
                                      int32_t aTiltY, int32_t aButton,
-                                     nsIObserver* aObserver) {
-  nsCOMPtr<nsIWidget> widget = GetWidget();
+                                     nsIObserver* aObserver,
+                                     Element* aElement) {
+  nsCOMPtr<nsIWidget> widget = GetWidgetForElement(aElement);
   if (!widget) {
     return NS_ERROR_FAILURE;
   }

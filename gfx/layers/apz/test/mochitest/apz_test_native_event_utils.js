@@ -803,11 +803,21 @@ function sendBasicNativePointerInput(
   aX,
   aY,
   aObserver,
+  aElement,
   { pressure = 1, twist = 0, tiltX = 0, tiltY = 0, button = 0 } = {}
 ) {
   switch (aPointerType) {
     case "touch":
-      utils.sendNativeTouchPoint(aId, aState, aX, aY, pressure, 90, aObserver);
+      utils.sendNativeTouchPoint(
+        aId,
+        aState,
+        aX,
+        aY,
+        pressure,
+        90,
+        aObserver,
+        aElement
+      );
       break;
     case "pen":
       utils.sendNativePenInput(
@@ -820,7 +830,8 @@ function sendBasicNativePointerInput(
         tiltX,
         tiltY,
         button,
-        aObserver
+        aObserver,
+        aElement
       );
       break;
     default:
@@ -851,6 +862,7 @@ async function promiseNativePointerInput(
       pt.x,
       pt.y,
       resolve,
+      aTarget instanceof Element ? aTarget : null,
       options
     );
   });
@@ -951,6 +963,7 @@ async function synthesizeNativePointerSequences(
             currentPositions[j].x,
             currentPositions[j].y,
             observer,
+            aTarget instanceof Element ? aTarget : null,
             options
           );
           currentPositions[j] = null;
@@ -964,6 +977,7 @@ async function synthesizeNativePointerSequences(
           aPositions[i][j].x,
           aPositions[i][j].y,
           null,
+          aTarget instanceof Element ? aTarget : null,
           options
         );
         currentPositions[j] = aPositions[i][j];
