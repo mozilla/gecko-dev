@@ -211,6 +211,7 @@ add_task(async function handle_database_corruption() {
 
   // Memory gone, e.g. after a browser restart.
   delete ExtensionBlocklistMLBF._mlbfData;
+  delete ExtensionBlocklistMLBF._mlbfDataSoftBlocks;
   delete ExtensionBlocklistMLBF._stashes;
   Assert.equal(
     await Blocklist.getAddonBlocklistState(blockedAddon),
