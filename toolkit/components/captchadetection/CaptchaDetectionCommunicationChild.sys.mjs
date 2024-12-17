@@ -19,6 +19,7 @@ export class CaptchaDetectionCommunicationChild extends JSWindowActorChild {
   actorCreated() {
     lazy.console.debug("actorCreated()");
     this.tabId = this.docShell.browserChild.tabId;
+    this.addedMessageListener = false;
   }
 
   actorDestroy() {
@@ -26,8 +27,16 @@ export class CaptchaDetectionCommunicationChild extends JSWindowActorChild {
   }
 
   #datadomeAddMessageListener() {
+    if (this.addedMessageListener) {
+      return;
+    }
+    this.addedMessageListener = true;
+
     this.contentWindow.addEventListener("message", event => {
-      if (event.origin !== "https://geo.captcha-delivery.com") {
+      if (
+        event.origin !== "https://geo.captcha-delivery.com" &&
+        !Cu.isInAutomation
+      ) {
         return;
       }
 
