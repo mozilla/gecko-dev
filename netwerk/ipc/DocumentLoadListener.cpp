@@ -156,9 +156,11 @@ static auto CreateDocumentLoadInfo(CanonicalBrowsingContext* aBrowsingContext,
         sandboxFlags);
   }
 
-  if (aLoadState->IsExemptFromHTTPSFirstMode()) {
+  bool isPrivateWin = aBrowsingContext->UsePrivateBrowsing();
+  if (aLoadState->IsExemptFromHTTPSFirstMode() &&
+      nsHTTPSOnlyUtils::IsHttpsFirstModeEnabled(isPrivateWin)) {
     uint32_t httpsOnlyStatus = loadInfo->GetHttpsOnlyStatus();
-    httpsOnlyStatus |= nsILoadInfo::HTTPS_FIRST_EXEMPT_NEXT_LOAD;
+    httpsOnlyStatus |= nsILoadInfo::HTTPS_ONLY_EXEMPT;
     loadInfo->SetHttpsOnlyStatus(httpsOnlyStatus);
   }
 
