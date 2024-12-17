@@ -1045,9 +1045,11 @@ void WaylandSurface::DetachedLocked(const WaylandSurfaceLock& aProofOfLock,
              aWaylandBuffer.get());
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
 
-  bool removed =
-      CheckAndRemoveWaylandBuffer(aWaylandBuffer, /* aRemove */ true);
-  MOZ_DIAGNOSTIC_ASSERT(removed, "Wayland buffer is not attached?");
+  if (!CheckAndRemoveWaylandBuffer(aWaylandBuffer, /* aRemove */ true)) {
+    MOZ_DIAGNOSTIC_ASSERT(false, "Wayland buffer is not attached?");
+    NS_WARNING(
+        "WaylandSurface::DetachedLocked(): Wayland buffer is not attached?");
+  }
 }
 
 // Place this WaylandSurface above aLowerSurface
