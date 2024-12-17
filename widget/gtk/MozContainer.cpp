@@ -12,6 +12,9 @@
 #include <stdio.h>
 #include "mozilla/WidgetUtilsGtk.h"
 #include "nsWindow.h"
+#ifdef MOZ_WAYLAND
+#  include "WaylandSurface.h"
+#endif
 
 #ifdef MOZ_LOGGING
 #  include "mozilla/Logging.h"
@@ -63,7 +66,8 @@ GType moz_container_get_type(void) {
   return moz_container_type;
 }
 
-GtkWidget* moz_container_new(void* aWindow, WaylandSurface* aSurface) {
+GtkWidget* moz_container_new(void* aWindow,
+                             mozilla::widget::WaylandSurface* aSurface) {
   MozContainer* container;
   container =
       static_cast<MozContainer*>(g_object_new(MOZ_CONTAINER_TYPE, nullptr));

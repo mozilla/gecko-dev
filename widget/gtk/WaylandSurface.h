@@ -12,6 +12,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/Atomics.h"
 #include "WaylandSurfaceLock.h"
+#include "mozilla/GRefPtr.h"
 
 /* Workaround for bug at wayland-util.h,
  * present in wayland-devel < 1.12

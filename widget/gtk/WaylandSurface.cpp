@@ -8,6 +8,10 @@
 #include "WaylandSurface.h"
 #include "WaylandBuffer.h"
 #include <wayland-egl.h>
+#include "nsGtkUtils.h"
+#include "mozilla/StaticPrefs_widget.h"
+#include <dlfcn.h>
+#include <fcntl.h>
 
 /*
   TODO:
@@ -19,15 +23,13 @@
 */
 
 #undef LOG
-#undef LOGVERBOSE
-
 #ifdef MOZ_LOGGING
-#  undef LOGWAYLAND
-
 #  include "mozilla/Logging.h"
 #  include "nsTArray.h"
 #  include "Units.h"
 #  include "nsWindow.h"
+#  undef LOGWAYLAND
+#  undef LOGVERBOSE
 extern mozilla::LazyLogModule gWidgetWaylandLog;
 extern mozilla::LazyLogModule gWidgetLog;
 #  define LOGWAYLAND(str, ...)                           \
@@ -42,6 +44,7 @@ extern mozilla::LazyLogModule gWidgetLog;
     MOZ_LOG(gWidgetWaylandLog, mozilla::LogLevel::Verbose, (__VA_ARGS__))
 #else
 #  define LOGWAYLAND(...)
+#  undef LOGVERBOSE
 #  define LOGVERBOSE(...)
 #  define LOGS(...)
 #  define LOGS_VERBOSE(...)
