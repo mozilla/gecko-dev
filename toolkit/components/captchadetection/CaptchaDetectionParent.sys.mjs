@@ -54,24 +54,37 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
     lazy.console.debug("actorCreated");
   }
 
-  #updateGRecaptchaV2State({ tabId, state: { type, changes } }) {
+  #updateGRecaptchaV2State({ tabId, isPBM, state: { type, changes } }) {
     lazy.console.debug("updateGRecaptchaV2State", changes);
 
-    tabState.update(tabId, state => {
-      state.set(type + changes, true);
-    });
+    if (changes === "ImagesShown") {
+      tabState.update(tabId, state => {
+        state.set(type + changes, true);
+      });
 
-    if (changes === "GotCheckmark") {
+      const shownMetric = "googleRecaptchaV2Ps" + (isPBM ? "Pbm" : "");
+      Glean.captchaDetection[shownMetric].add(1);
+    } else if (changes === "GotCheckmark") {
       const autoCompleted = !tabState.get(tabId)?.has(type + "ImagesShown");
       lazy.console.debug(
         "GotCheckmark" +
           (autoCompleted ? " (auto-completed)" : " (manually-completed)")
       );
+      const resultMetric =
+        "googleRecaptchaV2" +
+        (autoCompleted ? "Ac" : "Pc") +
+        (isPBM ? "Pbm" : "");
+      Glean.captchaDetection[resultMetric].add(1);
     }
   }
 
-  #recordCFTurnstileResult({ state: { result } }) {
+  #recordCFTurnstileResult({ isPBM, state: { result } }) {
     lazy.console.debug("recordCFTurnstileResult", result);
+    const resultMetric =
+      "cloudflareTurnstile" +
+      (result === "Succeeded" ? "Cc" : "Cf") +
+      (isPBM ? "Pbm" : "");
+    Glean.captchaDetection[resultMetric].add(1);
   }
 
   async receiveMessage(message) {
