@@ -227,8 +227,6 @@ add_task(async function test_dismiss_Relay_optin_shows_Relay_again_later() {
       const secondaryDismissButton = notificationPopup.querySelector(
         "button.popup-notification-secondary-button"
       );
-      // TODO: also test the toolbarbutton.popup-notification-closebutton of the popup
-      // const buttonToClick = notificationPopup.querySelector("toolbarbutton.popup-notification-closebutton");
       await clickButtonAndWaitForPopupToClose(secondaryDismissButton);
 
       await openACPopup(acPopup, browser, "#form-basic-username");

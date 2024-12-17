@@ -210,6 +210,7 @@ async function showErrorAsync(browser, messageId, messageArgs) {
     {
       autofocus: true,
       removeOnDismissal: true,
+      hideClose: true,
       popupIconURL: "chrome://browser/content/logos/relay.svg",
       learnMoreURL: gConfig.learnMoreURL,
     }
@@ -396,6 +397,7 @@ async function showReusableMasksAsync(browser, origin, error) {
     {
       autofocus: true,
       removeOnDismissal: true,
+      hideClose: true,
       eventCallback: onNotificationEvent,
     }
   );
@@ -730,6 +732,7 @@ class RelayOffered {
       {
         autofocus: true,
         removeOnDismissal: true,
+        hideClose: true,
         learnMoreURL,
         eventCallback: event => {
           switch (event) {
@@ -803,6 +806,7 @@ class RelayOffered {
       {
         autofocus: true,
         removeOnDismissal: true,
+        hideClose: true,
         learnMoreURL: gConfig.learnMoreURL,
         eventCallback: event => {
           switch (event) {
