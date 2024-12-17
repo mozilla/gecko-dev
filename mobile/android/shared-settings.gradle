@@ -5,8 +5,10 @@
 import org.yaml.snakeyaml.Yaml
 
 buildscript {
-    if (!gradle.hasProperty("mozconfig")){
+    if (!gradle.root.hasProperty("mozconfig")){
         apply from: file('./gradle/mozconfig.gradle')
+    } else {
+        gradle.ext.mozconfig = gradle.root.mozconfig
     }
 
     repositories {
@@ -25,8 +27,10 @@ buildscript {
     }
 }
 
-if (!gradle.hasProperty("mozconfig")){
+if (!gradle.root.hasProperty("mozconfig")){
     apply from: file('./gradle/mozconfig.gradle')
+} else {
+    gradle.ext.mozconfig = gradle.root.mozconfig
 }
 
 // Synchronized library configuration for all modules

@@ -1,6 +1,8 @@
 pluginManagement {
-    if (!gradle.hasProperty("mozconfig")){
+    if (!gradle.root.hasProperty("mozconfig")){
         apply from: file('mobile/android/gradle/mozconfig.gradle')
+    } else {
+        gradle.ext.mozconfig = gradle.root.mozconfig
     }
 
     repositories {

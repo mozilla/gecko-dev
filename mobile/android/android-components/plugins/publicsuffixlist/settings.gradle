@@ -5,8 +5,10 @@
 // Prevents gradle builds from looking for a root settings.gradle
 
 pluginManagement {
-    if (!gradle.hasProperty("mozconfig")){
+    if (!gradle.root.hasProperty("mozconfig")){
         apply from: file('../../../gradle/mozconfig.gradle')
+    } else {
+        gradle.ext.mozconfig = gradle.root.mozconfig
     }
 
     repositories {
