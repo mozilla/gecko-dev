@@ -670,9 +670,27 @@
                      class="subviewbutton subviewbutton-nav subviewbutton-iconic"
                      closemenu="none"
                      hidden="true"/>
+      <!-- My Services panel - visible if the user has any of the listed services below set up on their account-->
+      <vbox id="PanelUI-fxa-menu-services" hidden="true">
+        <toolbarseparator />
+          <label id="PanelUI-fxa-menu-services-header" crop="end" class="PanelUI-fxa-menu-section-title" data-l10n-id="appmenu-services-header" />
+        <!-- Relay -->
+          <vbox>
+            <toolbarbutton id="PanelUI-services-menu-relay-button" class="fxa-cta-button subviewbutton subviewbutton-iconic">
+              <vbox flex="1">
+                <hbox align="center">
+                  <image class="PanelUI-fxa-menu-relay-button ctaMenuLogo" role="presentation" />
+                  <label id="fxa-menu-header-title" crop="end" data-l10n-id="appmenuitem-relay-title" />
+                </hbox>
+                <label id="cta-menu-header-description" crop="end" data-l10n-id="appmenuitem-services-relay-description" />
+              </vbox>
+            </toolbarbutton>
+          </vbox>
+      </vbox>
       <!-- updateCTAPanel will control if we show this panel -->
       <vbox id="PanelUI-fxa-cta-menu" hidden="true">
         <toolbarseparator id="PanelUI-products-separator" />
+        <label id="fxa-menu-other-protection-tools-header" crop="end" class="PanelUI-fxa-menu-section-title" data-l10n-id="appmenu-other-protection-header" />
         <toolbarbutton id="PanelUI-fxa-menu-monitor-button" class="fxa-cta-button subviewbutton subviewbutton-iconic">
           <vbox flex="1">
             <hbox align="center">

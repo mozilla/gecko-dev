@@ -12,6 +12,7 @@
   display: none;
 }
 
+.PanelUI-fxa-menu-section-title,
 .PanelUI-remotetabs-clientcontainer > label[itemtype="client"] {
   padding-inline-start: 10px;
 }

@@ -313,8 +313,12 @@ appmenuitem-monitor-title = { -monitor-brand-short-name }
 appmenuitem-monitor-description = Get data breach alerts
 appmenuitem-relay-title = { -relay-brand-short-name }
 appmenuitem-relay-description = Mask your real email and phone
+appmenuitem-services-relay-description = Launch email masks dashboard
 appmenuitem-vpn-title = { -mozilla-vpn-brand-name }
 appmenuitem-vpn-description = Protect your online activity
+
+appmenu-services-header = My services
+appmenu-other-protection-header = Try other protection tools from { -vendor-short-name }:
 
 ## Profiles panel
 

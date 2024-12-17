@@ -718,10 +718,14 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   margin: 0;
 }
 
-#PanelUI-fxa-cta-menu .fxa-cta-button {
-  margin: var(--space-xsmall);
+#PanelUI-fxa-cta-menu,
+#PanelUI-fxa-menu-services {
+  .fxa-cta-button {
+    margin: var(--space-xsmall);
+  }
 }
 
+.PanelUI-fxa-menu-section-title,
 .PanelUI-remotetabs-clientcontainer > label[itemtype="client"] {
   color: var(--text-color-deemphasized);
   font-size: 11px;
@@ -889,7 +893,8 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   list-style-image: url(chrome://browser/skin/fxa/monitor.svg);
 }
 
-#PanelUI-fxa-menu-relay-button {
+#PanelUI-fxa-menu-relay-button,
+#PanelUI-services-menu-relay-button {
   list-style-image: url(chrome://browser/content/logos/relay.svg);
 }
 
