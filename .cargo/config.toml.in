@@ -15,21 +15,6 @@ git = "https://github.com/FirefoxGraphics/wpf-gpu-raster"
 rev = "99979da091fd58fba8477e7fcdf5ec0727102916"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/beurdouche/mls-platform-api?rev=4dcf3ccbb4d04f4084bba25a9ad0f9248a7a5d02"]
-git = "https://github.com/beurdouche/mls-platform-api"
-rev = "4dcf3ccbb4d04f4084bba25a9ad0f9248a7a5d02"
-replace-with = "vendored-sources"
-
-[source."git+https://github.com/beurdouche/mls-rs?rev=27c6bc41d3d7698d2b170625503513d446460bde"]
-git = "https://github.com/beurdouche/mls-rs"
-rev = "27c6bc41d3d7698d2b170625503513d446460bde"
-replace-with = "vendored-sources"
-
-[source."git+https://github.com/beurdouche/nss-gk-api?rev=9bec3c1a7509f3c594cb3394c9353bcb1a1dd853"]
-git = "https://github.com/beurdouche/nss-gk-api"
-rev = "9bec3c1a7509f3c594cb3394c9353bcb1a1dd853"
-replace-with = "vendored-sources"
-
 [source."git+https://github.com/chris-zen/coremidi.git?rev=fc68464b5445caf111e41f643a2e69ccce0b4f83"]
 git = "https://github.com/chris-zen/coremidi.git"
 rev = "fc68464b5445caf111e41f643a2e69ccce0b4f83"
