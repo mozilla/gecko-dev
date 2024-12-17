@@ -1,19 +1,19 @@
 DIST_SUBDIR = "app"
 
 EXTRA_JS_MODULES += [
-    "../foo.jsm",
+    "../foo.sys.mjs",
 ]
 
 EXTRA_JS_MODULES.child += [
-    "../bar.jsm",
+    "../bar.sys.mjs",
 ]
 
 EXTRA_PP_JS_MODULES += [
-    "../baz.jsm",
+    "../baz.sys.mjs",
 ]
 
 EXTRA_PP_JS_MODULES.child2 += [
-    "../qux.jsm",
+    "../qux.sys.mjs",
 ]
 
 FINAL_TARGET_FILES += [
