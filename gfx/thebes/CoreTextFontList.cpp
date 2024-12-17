@@ -1311,9 +1311,7 @@ void CoreTextFontList::RegisteredFontsChangedNotificationCallback(
   // scratch
   fl->UpdateFontList();
 
-  auto flags = gfxPlatform::GlobalReflowFlags::NeedsReframe |
-               gfxPlatform::GlobalReflowFlags::FontsChanged;
-  gfxPlatform::ForceGlobalReflow(flags);
+  gfxPlatform::ForceGlobalReflow(gfxPlatform::NeedsReframe::Yes);
   dom::ContentParent::NotifyUpdatedFonts(true);
 }
 

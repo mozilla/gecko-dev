@@ -35,7 +35,6 @@
 #include "mozilla/Vector.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/dom/UserActivation.h"
-#include "gfxPlatform.h"
 #include "nsCSSPropertyID.h"
 #include "nsDebug.h"
 #include "nsIContentPolicy.h"
@@ -839,12 +838,6 @@ struct ParamTraits<mozilla::dom::UserActivation::Modifiers> {
   static bool Read(MessageReader* aReader, paramType* aResult) {
     return ReadParam(aReader, &aResult->mModifiers);
   };
-};
-
-template <>
-struct ParamTraits<gfxPlatform::GlobalReflowFlags>
-    : public BitFlagsEnumSerializer<gfxPlatform::GlobalReflowFlags,
-                                    gfxPlatform::GlobalReflowFlags::ALL_BITS> {
 };
 
 } /* namespace IPC */

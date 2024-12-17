@@ -100,7 +100,6 @@ using mozilla::dom::NativeThreadId from "mozilla/dom/NativeThreadId.h";
 using mozilla::hal::ProcessPriority from "mozilla/HalTypes.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/2D.h";
 using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
-using gfxPlatform::GlobalReflowFlags from "gfxPlatform.h";
 using mozilla::dom::TabId from "mozilla/dom/ipc/IdType.h";
 using mozilla::dom::ContentParentId from "mozilla/dom/ipc/IdType.h";
 using mozilla::EventMessage from "mozilla/EventForwards.h";
@@ -699,10 +698,17 @@ child:
     [Priority=mediumhigh] async RebuildFontList(bool aFullRebuild);
 
     /**
+     * The shared font list has been modified, potentially adding matches
+     * for src:local() names that were previously not known, so content
+     * may need to be reflowed.
+     */
+    async FontListChanged();
+
+    /**
      * The font list or prefs have been updated in such a way that we might need
      * to do a reflow and maybe reframe.
      */
-    async ForceGlobalReflow(GlobalReflowFlags aFlags);
+    async ForceGlobalReflow(bool aNeedsReframe);
 
     /**
      * A new shmem block has been added to the font list; the child process

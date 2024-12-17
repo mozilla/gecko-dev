@@ -2244,11 +2244,10 @@ void gfxPlatform::FlushFontAndWordCaches() {
 }
 
 /* static */
-void gfxPlatform::ForceGlobalReflow(GlobalReflowFlags aFlags) {
+void gfxPlatform::ForceGlobalReflow(NeedsReframe aNeedsReframe,
+                                    BroadcastToChildren aBroadcastToChildren) {
   MOZ_ASSERT(NS_IsMainThread());
-  bool reframe = !!(aFlags & GlobalReflowFlags::NeedsReframe);
-  // The font list may have changed, so discard stale missing-char cache.
-  gfxPlatformFontList::PlatformFontList()->ForgetMissingChars();
+  const bool reframe = aNeedsReframe == NeedsReframe::Yes;
   // Send a notification that will be observed by PresShells in this process
   // only.
   if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
@@ -2256,11 +2255,11 @@ void gfxPlatform::ForceGlobalReflow(GlobalReflowFlags aFlags) {
     obs->NotifyObservers(nullptr, "font-info-updated", needsReframe);
   }
   if (XRE_IsParentProcess() &&
-      aFlags & GlobalReflowFlags::BroadcastToChildren) {
+      aBroadcastToChildren == BroadcastToChildren::Yes) {
     // Propagate the change to child processes.
     for (auto* process :
          dom::ContentParent::AllProcesses(dom::ContentParent::eLive)) {
-      Unused << process->SendForceGlobalReflow(aFlags);
+      Unused << process->SendForceGlobalReflow(reframe);
     }
   }
 }
