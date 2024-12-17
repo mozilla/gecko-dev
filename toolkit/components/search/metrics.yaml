@@ -377,6 +377,7 @@ search.service:
                            settings.
       failedLoadEngines - failed to create all the search engines from the
                           configuration or user installed engines.
+      failedLoadSettingsAddonManager - the addon manager ready promise was rejected. (from FF135)
       success - search service successfully initialized.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1849013
@@ -391,6 +392,7 @@ search.service:
       - failedSettings
       - failedFetchEngines
       - failedLoadEngines
+      - failedLoadSettingsAddonManager
       - success
 
 browser.searchinit:

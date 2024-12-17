@@ -115,7 +115,7 @@ add_task(async function setup() {
   // Force search service to fail, so we do not have any engines that can
   // interfere with this test.
   // Search engine integration is tested in test_URIFixup_search.js.
-  Services.search.wrappedJSObject.errorToThrowInTest = "Settings";
+  Services.search.wrappedJSObject.errorToThrowInTest.type = "Settings";
 
   // When search service fails, we want the promise rejection to be uncaught
   // so we can continue running the test.
