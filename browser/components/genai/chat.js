@@ -63,8 +63,10 @@ function request(url = lazy.providerPref) {
 function renderChat() {
   const browser = document.createXULElement("browser");
   browser.setAttribute("disableglobalhistory", "true");
-  browser.setAttribute("type", "content");
+  browser.setAttribute("maychangeremoteness", "true");
+  browser.setAttribute("nodefaultsrc", "true");
   browser.setAttribute("remote", "true");
+  browser.setAttribute("type", "content");
   return document.body.appendChild(browser);
 }
 

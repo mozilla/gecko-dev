@@ -73,6 +73,7 @@ add_task(async function test_sidebar_onboarding() {
   Assert.equal(events[0].extra.provider, "none", "Opened with no provider");
   Assert.equal(events[0].extra.step, "1", "First step");
   const browser = await browserPromise;
+  Assert.ok(browser.hasAttribute("maychangeremoteness"), "Supports fission");
   Assert.equal(browser.currentURI.spec, "about:blank", "Nothing loaded yet");
 
   label.click();
