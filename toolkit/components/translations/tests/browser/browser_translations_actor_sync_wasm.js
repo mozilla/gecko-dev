@@ -26,13 +26,14 @@ add_task(async function test_translations_actor_sync_update_wasm() {
   );
 
   const newWasmRecord = createWasmRecord();
-  const [oldWasmRecord] = await TranslationsParent.getMaxVersionRecords(
-    remoteClients.translationsWasm.client,
-    {
-      filters: { name: "bergamot-translator" },
-      majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
-    }
-  );
+  const [oldWasmRecord] =
+    await TranslationsParent.getMaxSupportedVersionRecords(
+      remoteClients.translationsWasm.client,
+      {
+        filters: { name: "bergamot-translator" },
+        majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+      }
+    );
 
   newWasmRecord.id = oldWasmRecord.id;
   newWasmRecord.version = `${TranslationsParent.BERGAMOT_MAJOR_VERSION}.1`;
@@ -73,13 +74,14 @@ add_task(async function test_translations_actor_sync_delete_wasm() {
     `The version ${TranslationsParent.BERGAMOT_MAJOR_VERSION}.0 model is downloaded.`
   );
 
-  const [oldWasmRecord] = await TranslationsParent.getMaxVersionRecords(
-    remoteClients.translationsWasm.client,
-    {
-      filters: { name: "bergamot-translator" },
-      majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
-    }
-  );
+  const [oldWasmRecord] =
+    await TranslationsParent.getMaxSupportedVersionRecords(
+      remoteClients.translationsWasm.client,
+      {
+        filters: { name: "bergamot-translator" },
+        majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+      }
+    );
 
   await modifyRemoteSettingsRecords(remoteClients.translationsWasm.client, {
     recordsToDelete: [oldWasmRecord],

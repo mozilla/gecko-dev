@@ -1576,7 +1576,7 @@ export class TranslationsParent extends JSWindowActorParent {
    *     non-unique name values, it may be necessary to provide an alternative function here.
    * @returns {Array<TranslationModelRecord | WasmRecord>}
    */
-  static async getMaxVersionRecords(
+  static async getMaxSupportedVersionRecords(
     remoteSettingsClient,
     { filters = {}, majorVersion, lookupKey = record => record.name } = {}
   ) {
@@ -1673,7 +1673,7 @@ export class TranslationsParent extends JSWindowActorParent {
 
         /** @type {TranslationModelRecord[]} */
         const translationModelRecords =
-          await TranslationsParent.getMaxVersionRecords(client, {
+          await TranslationsParent.getMaxSupportedVersionRecords(client, {
             majorVersion: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION,
             // Names in this collection are not unique, so we are appending the languagePairKey
             // to guarantee uniqueness.
@@ -1872,13 +1872,11 @@ export class TranslationsParent extends JSWindowActorParent {
         lazy.console.log(`Getting remote bergamot-translator wasm records.`);
 
         /** @type {WasmRecord[]} */
-        const wasmRecords = await TranslationsParent.getMaxVersionRecords(
-          client,
-          {
+        const wasmRecords =
+          await TranslationsParent.getMaxSupportedVersionRecords(client, {
             filters: { name: "bergamot-translator" },
             majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
-          }
-        );
+          });
 
         if (wasmRecords.length === 0) {
           // The remote settings client provides an empty list of records when there is
