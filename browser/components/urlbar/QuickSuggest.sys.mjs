@@ -13,7 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 // Suggest features classes. On init, `QuickSuggest` creates an instance of each
-// class and keeps it in the `#features` map. See `SuggestFeature`.
+// class and keeps it in the `#featuresByName` map. See `SuggestFeature`.
 const FEATURES = {
   AddonSuggestions:
     "resource:///modules/urlbar/private/AddonSuggestions.sys.mjs",
@@ -28,6 +28,8 @@ const FEATURES = {
   MDNSuggestions: "resource:///modules/urlbar/private/MDNSuggestions.sys.mjs",
   PocketSuggestions:
     "resource:///modules/urlbar/private/PocketSuggestions.sys.mjs",
+  SuggestBackendMerino:
+    "resource:///modules/urlbar/private/SuggestBackendMerino.sys.mjs",
   SuggestBackendMl:
     "resource:///modules/urlbar/private/SuggestBackendMl.sys.mjs",
   SuggestBackendRust:
@@ -97,11 +99,25 @@ class _QuickSuggest {
   }
 
   /**
+   * @returns {Array}
+   *   Enabled Suggest backends.
+   */
+  get enabledBackends() {
+    // This getter may be accessed before `init()` is called, so the backends
+    // may not be registered yet. Don't assume they're non-null.
+    return [
+      this.rustBackend,
+      this.#featuresByName.get("SuggestBackendMerino"),
+      this.#featuresByName.get("SuggestBackendMl"),
+    ].filter(b => b?.isEnabled);
+  }
+
+  /**
    * @returns {SuggestBackendRust}
    *   The Rust backend, which manages the Rust component.
    */
   get rustBackend() {
-    return this.#features.SuggestBackendRust;
+    return this.#featuresByName.get("SuggestBackendRust");
   }
 
   /**
@@ -119,7 +135,7 @@ class _QuickSuggest {
    *   The blocked suggestions feature.
    */
   get blockedSuggestions() {
-    return this.#features.BlockedSuggestions;
+    return this.#featuresByName.get("BlockedSuggestions");
   }
 
   /**
@@ -127,7 +143,7 @@ class _QuickSuggest {
    *   The impression caps feature.
    */
   get impressionCaps() {
-    return this.#features.ImpressionCaps;
+    return this.#featuresByName.get("ImpressionCaps");
   }
 
   /**
@@ -159,16 +175,16 @@ class _QuickSuggest {
    * Initializes Suggest. It's safe to call more than once.
    */
   init() {
-    if (Object.keys(this.#features).length) {
+    if (this.#featuresByName.size) {
       // Already initialized.
       return;
     }
 
-    // Create an instance of each feature and keep it in `#features`.
+    // Create an instance of each feature and keep it in `#featuresByName`.
     for (let [name, uri] of Object.entries(FEATURES)) {
       let { [name]: ctor } = ChromeUtils.importESModule(uri);
       let feature = new ctor();
-      this.#features[name] = feature;
+      this.#featuresByName.set(name, feature);
       if (feature.merinoProvider) {
         this.#featuresByMerinoProvider.set(feature.merinoProvider, feature);
       }
@@ -209,7 +225,7 @@ class _QuickSuggest {
    *   The feature object, an instance of a subclass of `SuggestFeature`.
    */
   getFeature(name) {
-    return this.#features[name];
+    return this.#featuresByName.get(name);
   }
 
   /**
@@ -497,13 +513,13 @@ class _QuickSuggest {
     // for a urlbar Nimbus variable.
 
     // Update features.
-    for (let feature of Object.values(this.#features)) {
+    for (let feature of this.#featuresByName.values()) {
       feature.update();
     }
   }
 
   // Maps from Suggest feature class names to feature instances.
-  #features = {};
+  #featuresByName = new Map();
 
   // Maps from Merino provider names to Suggest feature instances.
   #featuresByMerinoProvider = new Map();

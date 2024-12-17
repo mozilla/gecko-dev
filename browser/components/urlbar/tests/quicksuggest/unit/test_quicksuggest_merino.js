@@ -29,14 +29,6 @@ const EXPECTED_MERINO_URLBAR_RESULT = QuickSuggestTestUtils.ampResult({
   requestId: "request_id",
 });
 
-// `UrlbarProviderQuickSuggest.#merino` is lazily created on the first Merino
-// fetch, so it's easiest to create `gClient` lazily too.
-ChromeUtils.defineLazyGetter(
-  this,
-  "gClient",
-  () => UrlbarProviderQuickSuggest._test_merino
-);
-
 add_setup(async () => {
   await MerinoTestUtils.server.start();
 
@@ -88,7 +80,7 @@ add_task(async function merinoDisabled() {
     histograms,
     response: null,
     latencyRecorded: false,
-    client: UrlbarProviderQuickSuggest._test_merino,
+    client: merinoClient(),
   });
 
   UrlbarPrefs.set("merino.endpointURL", mockEndpointUrl);
@@ -151,11 +143,11 @@ add_task(async function higherScore() {
     histograms,
     response: "success",
     latencyRecorded: true,
-    client: gClient,
+    client: merinoClient(),
   });
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // When the Merino suggestion has a lower score than the remote settings
@@ -181,11 +173,11 @@ add_task(async function lowerScore() {
     histograms,
     response: "success",
     latencyRecorded: true,
-    client: gClient,
+    client: merinoClient(),
   });
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // When the Merino and remote settings suggestions have the same score, the
@@ -211,11 +203,11 @@ add_task(async function sameScore() {
     histograms,
     response: "success",
     latencyRecorded: true,
-    client: gClient,
+    client: merinoClient(),
   });
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // When the Merino suggestion does not include a score, the remote settings
@@ -245,11 +237,11 @@ add_task(async function noMerinoScore() {
     histograms,
     response: "success",
     latencyRecorded: true,
-    client: gClient,
+    client: merinoClient(),
   });
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // When remote settings doesn't return a suggestion but Merino does, the Merino
@@ -272,11 +264,11 @@ add_task(async function noSuggestion_remoteSettings() {
     histograms,
     response: "success",
     latencyRecorded: true,
-    client: gClient,
+    client: merinoClient(),
   });
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // When Merino doesn't return a suggestion but remote settings does, the remote
@@ -301,11 +293,11 @@ add_task(async function noSuggestion_merino() {
     histograms,
     response: "no_suggestion",
     latencyRecorded: true,
-    client: gClient,
+    client: merinoClient(),
   });
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // When Merino returns multiple suggestions, the one with the largest score
@@ -388,11 +380,11 @@ add_task(async function multipleMerinoSuggestions() {
     histograms,
     response: "success",
     latencyRecorded: true,
-    client: gClient,
+    client: merinoClient(),
   });
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // Timestamp templates in URLs should be replaced with real timestamps.
@@ -439,7 +431,7 @@ add_task(async function timestamps() {
   });
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // When both suggestion types are disabled but data collection is enabled, we
@@ -476,13 +468,13 @@ add_task(async function suggestedDisabled_dataCollectionEnabled() {
     histograms,
     response: "success",
     latencyRecorded: true,
-    client: gClient,
+    client: merinoClient(),
   });
 
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
   await QuickSuggestTestUtils.forceSync();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // Test whether the blocking for Merino results works.
@@ -510,7 +502,7 @@ add_task(async function block() {
 
   await QuickSuggest.blockedSuggestions.clear();
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
 
 // Tests a Merino suggestion that is a top pick/best match.
@@ -568,5 +560,9 @@ add_task(async function bestMatch() {
   Assert.ok(context.results[0].isBestMatch, "Result is a best match");
 
   MerinoTestUtils.server.reset();
-  gClient.resetSession();
+  merinoClient().resetSession();
 });
+
+function merinoClient() {
+  return QuickSuggest.getFeature("SuggestBackendMerino")?.client;
+}

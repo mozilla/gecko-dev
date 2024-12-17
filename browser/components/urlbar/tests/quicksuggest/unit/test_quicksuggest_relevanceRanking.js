@@ -145,7 +145,7 @@ add_task(async function test_interest_mode() {
   Services.prefs.setStringPref(PREF_RANKING_MODE, "interest");
 
   const suggestions = makeTestSuggestions();
-  await UrlbarProviderQuickSuggest._test_applyRanking(suggestions);
+  await applyRanking(suggestions);
 
   Assert.greater(
     suggestions[0].score,
@@ -165,7 +165,7 @@ add_task(async function test_default_mode() {
   Services.prefs.setStringPref(PREF_RANKING_MODE, "default");
 
   const suggestions = makeTestSuggestions();
-  await UrlbarProviderQuickSuggest._test_applyRanking(suggestions);
+  await applyRanking(suggestions);
 
   Assert.equal(
     suggestions[0].score,
@@ -185,11 +185,25 @@ add_task(async function test_random_mode() {
   Services.prefs.setStringPref(PREF_RANKING_MODE, "random");
 
   const suggestions = makeTestSuggestions();
-  await UrlbarProviderQuickSuggest._test_applyRanking(suggestions);
+  await applyRanking(suggestions);
 
-  const highest = Math.max(...suggestions.map(suggestion => suggestion.score));
+  for (let s of suggestions) {
+    Assert.ok(typeof s.score == "number", "Suggestion should have a score");
+    Assert.greaterOrEqual(s.score, 0, "Suggestion score should be >= 0");
+    Assert.lessOrEqual(s.score, 1, "Suggestion score should be <= 1");
+    Assert.notEqual(
+      s.score,
+      0.2,
+      "Suggestion score should be different from its initial value (probably!)"
+    );
+  }
 
-  Assert.greater(highest, 0.2, "The highest score should be boosted");
+  let uniqueScores = new Set(suggestions.map(s => s.score));
+  Assert.equal(
+    uniqueScores.size,
+    suggestions.length,
+    "Suggestion scores should be unique (probably!)"
+  );
 
   Services.prefs.clearUserPref(PREF_RANKING_MODE);
 });
@@ -237,7 +251,7 @@ add_task(async function test_telemetry_interest_mode() {
   Assert.equal(null, Glean.suggestRelevance.outcome.decreased.testGetValue());
 
   const suggestions = makeTestSuggestions();
-  await UrlbarProviderQuickSuggest._test_applyRanking(suggestions);
+  await applyRanking(suggestions);
 
   // The scoring should succeed for both suggestions with one boosted score
   // and one decreased score.
@@ -260,7 +274,7 @@ add_task(async function test_telemetry_interest_mode_with_failures() {
   Assert.equal(null, Glean.suggestRelevance.outcome.decreased.testGetValue());
 
   const suggestions = makeTestSuggestionsWithInvalidCategories();
-  await UrlbarProviderQuickSuggest._test_applyRanking(suggestions);
+  await applyRanking(suggestions);
 
   // The scoring should fail.
   Assert.equal(null, Glean.suggestRelevance.status.success.testGetValue());
@@ -270,3 +284,9 @@ add_task(async function test_telemetry_interest_mode_with_failures() {
 
   Services.prefs.clearUserPref(PREF_RANKING_MODE);
 });
+
+async function applyRanking(suggestions) {
+  for (let s of suggestions) {
+    await UrlbarProviderQuickSuggest._test_applyRanking(s);
+  }
+}

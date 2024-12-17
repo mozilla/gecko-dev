@@ -75,6 +75,7 @@ EXTRA_JS_MODULES["urlbar/private"] += [
     "private/MDNSuggestions.sys.mjs",
     "private/MLSuggest.sys.mjs",
     "private/PocketSuggestions.sys.mjs",
+    "private/SuggestBackendMerino.sys.mjs",
     "private/SuggestBackendMl.sys.mjs",
     "private/SuggestBackendRust.sys.mjs",
     "private/SuggestFeature.sys.mjs",

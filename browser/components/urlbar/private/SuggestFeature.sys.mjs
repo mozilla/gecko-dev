@@ -330,4 +330,17 @@ export class SuggestBackend extends SuggestFeature {
    * cleaned up when a query is canceled.
    */
   cancelQuery() {}
+
+  /**
+   * The subclass should override this method as necessary. It's called on the
+   * backend in response to `UrlbarProviderQuickSuggest.onSearchSessionEnd()`.
+   *
+   * @param {UrlbarQueryContext} queryContext
+   *    The query context.
+   * @param {UrlbarController} controller
+   *    The controller.
+   * @param {object} details
+   *    Details object.
+   */
+  onSearchSessionEnd(queryContext, controller, details) {}
 }
