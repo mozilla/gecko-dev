@@ -368,10 +368,13 @@ void nsCocoaUtils::CleanUpAfterNativeAppModalDialog() {
   if (!hiddenWindowMenuBar) return;
 
   NSWindow* mainWindow = [NSApp mainWindow];
-  if (!mainWindow)
-    hiddenWindowMenuBar->Paint();
-  else
+  if (!mainWindow) {
+    // We do an async paint in order to prevent crashes when macOS is actively
+    // enumerating the menu items in `NSApp.mainMenu`.
+    hiddenWindowMenuBar->PaintAsync();
+  } else {
     [WindowDelegate paintMenubarForWindow:mainWindow];
+  }
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
