@@ -163,16 +163,15 @@ function getByL10nId(l10nId, doc = document) {
  * @param {string} langTag - A BCP-47 language tag.
  */
 const getIntlDisplayName = (() => {
-  let displayNames = null;
+  let languageDisplayNames = null;
 
   return langTag => {
-    if (!displayNames) {
-      displayNames = new Services.intl.DisplayNames(undefined, {
-        type: "language",
+    if (!languageDisplayNames) {
+      languageDisplayNames = TranslationsParent.createLanguageDisplayNames({
         fallback: "none",
       });
     }
-    return displayNames.of(langTag);
+    return languageDisplayNames.of(langTag);
   };
 })();
 
