@@ -1372,7 +1372,7 @@ function createRecordsForLanguagePair(fromLang, toLang) {
       fromLang,
       toLang,
       fileType,
-      version: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION + ".0",
+      version: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX + ".0",
       last_modified: Date.now(),
       schema: Date.now(),
       attachment: JSON.parse(JSON.stringify(attachment)), // Making a deep copy.
