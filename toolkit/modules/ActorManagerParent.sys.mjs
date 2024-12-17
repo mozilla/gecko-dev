@@ -247,6 +247,8 @@ let JSWINDOWACTORS = {
       "https://newassets.hcaptcha.com/captcha/v1/*/static/hcaptcha.html",
       // AWS WAF Captcha
       "https://*.amazonaws.com/latest*",
+      // Arkose Labs Captcha
+      "https://client-api.arkoselabs.com/fc/assets/ec-game-core/game-core/*",
     ],
     messageManagerGroups: ["browsers"],
     allFrames: true,

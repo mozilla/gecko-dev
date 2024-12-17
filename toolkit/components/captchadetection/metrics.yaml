@@ -267,6 +267,74 @@ captcha_detection:
     data_sensitivity:
       - interaction
 
+  arkoselabs_ps:
+    type: counter
+    description: >
+      How many times the ArkoseLabs challenge was shown.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_pc:
+    type: counter
+    description: >
+      How many times the ArkoseLabs challenge was successfully completed.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_pf:
+    type: counter
+    description: >
+      How many times the ArkoseLabs challenge was failed.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_solutions_required:
+    type: custom_distribution
+    range_min: 1
+    range_max: 25 # I really hope it doesn't require more than 25 solutions or no one tries to solve it
+    bucket_count: 25
+    histogram_type: linear
+    description: >
+      The number of solutions required to complete the ArkoseLabs challenge.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   # Captcha states in private browsing
   google_recaptcha_v2_ps_pbm:
     type: counter
@@ -500,6 +568,74 @@ captcha_detection:
     histogram_type: linear
     description: >
       The number of solutions required to complete the AWS WAF challenge.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_ps_pbm:
+    type: counter
+    description: >
+      How many times the ArkoseLabs challenge was shown.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_pc_pbm:
+    type: counter
+    description: >
+      How many times the ArkoseLabs challenge was successfully completed.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_pf_pbm:
+    type: counter
+    description: >
+      How many times the ArkoseLabs challenge was failed.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  arkoselabs_solutions_required_pbm:
+    type: custom_distribution
+    range_min: 1
+    range_max: 25 # I really hope it doesn't require more than 25 solutions or no one tries to solve it
+    bucket_count: 25
+    histogram_type: linear
+    description: >
+      The number of solutions required to complete the ArkoseLabs challenge.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
     data_reviews:

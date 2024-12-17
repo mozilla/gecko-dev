@@ -404,6 +404,29 @@ class AWSWafHandler extends CaptchaHandler {
 }
 
 /**
+ * Handles Arkose Labs captchas.
+ *
+ * Similar to AWS WAF, we listen for network requests to the
+ * captcha API. When the response is received, we check for
+ * the presence of the expected keys and send a message to
+ * the parent actor with the state of the captcha.
+ */
+class ArkoseLabsHandler extends CaptchaHandler {
+  constructor(actor) {
+    super(actor);
+    this.actor.sendAsyncMessage("CaptchaDetection:Init", {
+      type: "arkoseLabs",
+    });
+  }
+
+  static matches(document) {
+    return document.location.href.startsWith(
+      "https://client-api.arkoselabs.com/fc/assets/ec-game-core/game-core/"
+    );
+  }
+}
+
+/**
  * This actor runs in the captcha's frame. It provides information
  * about the captcha's state to the parent actor.
  */
@@ -418,6 +441,7 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     DatadomeHandler,
     HCaptchaHandler,
     AWSWafHandler,
+    ArkoseLabsHandler,
   ];
 
   #initCaptchaHandler(event) {
