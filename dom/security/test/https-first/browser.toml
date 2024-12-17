@@ -64,6 +64,9 @@ support-files = [
 ["browser_navigation.js"]
 support-files = ["file_navigation.html"]
 
+["browser_redirect_exemption_clearing.js"]
+support-files = ["file_redirect_exemption_clearing.sjs"]
+
 ["browser_schemeless.js"]
 skip-if = ["!debug && tsan"] #Bug 1890170
 
