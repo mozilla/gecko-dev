@@ -97,6 +97,8 @@ exports.WatcherActor = class WatcherActor extends Actor {
       this._browserElement = browsingContext.embedderElement;
     }
 
+    this.watcherConnectionPrefix = conn.allocID("watcher");
+
     // Sometimes we get iframe targets before the top-level targets
     // mostly when doing bfcache navigations, lets cache the early iframes targets and
     // flush them after the top-level target is available. See Bug 1726568 for details.
@@ -498,6 +500,9 @@ exports.WatcherActor = class WatcherActor extends Actor {
     // for a parent process page and lives in the parent process.
     const actors = TargetActorRegistry.getTargetActors(
       this.sessionContext,
+      // Note that we aren't using watcherConnectionPrefix as the ParentProcessTargetActor
+      // are registered in `this.conn` (i.e The connection which is bound to the client)
+      // directly and not in the DevToolsServerConnection running in the content process with `watcherConnectionPrefix`
       this.conn.prefix
     );
 

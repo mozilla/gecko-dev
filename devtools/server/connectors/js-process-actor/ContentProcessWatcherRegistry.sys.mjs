@@ -392,7 +392,7 @@ function createWatcherDataObject(watcherActorID, sessionData) {
   // Ensure appending a final slash, otherwise the prefix may be the same between childID 1 and 10...
   const forwardingPrefix =
     parentConnectionPrefix +
-    "process" +
+    ".process" +
     ChromeUtils.domProcessChild.childID +
     "/";
 

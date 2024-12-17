@@ -104,6 +104,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_aboutdebugging_devtoolstoolbox_breakpoint.js"]
 
+["browser_aboutdebugging_devtoolstoolbox_concurrent.js"]
+
 ["browser_aboutdebugging_devtoolstoolbox_contextmenu.js"]
 
 ["browser_aboutdebugging_devtoolstoolbox_contextmenu_markupview.js"]

@@ -107,8 +107,9 @@ export const ParentProcessWatcherRegistry = {
         // The "session context" object help understand what should be debugged and which target should be created.
         // See WatcherActor constructor for more info.
         sessionContext: watcher.sessionContext,
-        // The DevToolsServerConnection prefix will be used to compute actor IDs created in the content process
-        connectionPrefix: watcher.conn.prefix,
+        // The DevToolsServerConnection prefix will be used to compute actor IDs created in the content process.
+        // This prefix is unique per watcher, as we may have many watchers for a single connection.
+        connectionPrefix: watcher.watcherConnectionPrefix,
       };
       sessionDataByWatcherActor.set(watcherActorID, sessionData);
       watcherActors.set(watcherActorID, watcher);
