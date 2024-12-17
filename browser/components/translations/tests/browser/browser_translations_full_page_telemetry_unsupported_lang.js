@@ -192,7 +192,7 @@ add_task(async function test_translations_telemetry_unsupported_lang() {
         to_language: "en",
         auto_translate: false,
         document_language: "es",
-        top_preferred_language: "en-US",
+        top_preferred_language: "en",
         request_target: "full_page",
       },
     }

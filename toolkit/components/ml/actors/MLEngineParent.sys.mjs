@@ -356,12 +356,13 @@ export class MLEngineParent extends JSWindowActorParent {
    */
   static async #getWasmArrayRecord(client) {
     /** @type {WasmRecord[]} */
-    const wasmRecords =
-      await lazy.TranslationsParent.getMaxSupportedVersionRecords(client, {
+    const wasmRecords = await lazy.TranslationsParent.getMaxVersionRecords(
+      client,
+      {
         filters: { name: MLEngineParent.WASM_FILENAME },
-        minSupportedMajorVersion: MLEngineParent.WASM_MAJOR_VERSION,
-        maxSupportedMajorVersion: MLEngineParent.WASM_MAJOR_VERSION,
-      });
+        majorVersion: MLEngineParent.WASM_MAJOR_VERSION,
+      }
+    );
 
     if (wasmRecords.length === 0) {
       // The remote settings client provides an empty list of records when there is

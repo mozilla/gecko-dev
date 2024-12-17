@@ -36,7 +36,7 @@ add_task(async function test_preferred_language() {
     test() {
       Assert.deepEqual(
         TranslationsParent.getPreferredLanguages(),
-        ["en-US"],
+        ["en"],
         "When all locales are English, only English is preferred."
       );
     },
@@ -49,7 +49,7 @@ add_task(async function test_preferred_language() {
     test() {
       Assert.deepEqual(
         TranslationsParent.getPreferredLanguages(),
-        ["en-US", "es-ES"],
+        ["en", "es"],
         "When the operating system differs, it is added to the end of the preferred languages."
       );
     },
@@ -67,12 +67,11 @@ add_task(async function test_preferred_language() {
           "cs",
           "hu",
           // appLocales, notice that "en" is the last fallback.
-          "pt-BR",
+          "pt",
           "pl",
-          "en-US",
+          "en",
           // systemLocales
-          "zh-TW",
-          "zh-CN",
+          "zh",
           "de",
         ],
         "Demonstrate an unrealistic but complicated locale situation."

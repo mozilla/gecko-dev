@@ -58,8 +58,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   TranslationsTelemetry:
     "chrome://global/content/translations/TranslationsTelemetry.sys.mjs",
-  TranslationsUtils:
-    "chrome://global/content/translations/TranslationsUtils.sys.mjs",
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
 });
 
@@ -310,77 +308,9 @@ export class TranslationsParent extends JSWindowActorParent {
    *
    * Release docs:
    * https://firefox-source-docs.mozilla.org/toolkit/components/translations/resources/03_bergamot.html
-   *
-   * Release History:
-   *
-   * 1.x WASM Major Versions
-   *
-   *   - Compatible with all 1.x Translation models.
-   *
-   * 2.x WASM Major Versions
-   *
-   *   - Compatible with all 1.x Translation models.
-   *
-   *   - Compatible with all 2.x Translation models.
-   *
-   *     Notes: The 2.x WASM binary introduces segmentation changes that are necessary
-   *            to translate CJK languages.
    */
   static BERGAMOT_MAJOR_VERSION = 2;
-
-  /**
-   * The BERGAMOT_MAJOR_VERSION defined above has only a single value, because there will
-   * only ever be one instance of the WASM binary that is downloaded for all translations.
-   *
-   * However, the current Bergamot WASM binary may be backward compatible with existing models.
-   * As such, the models use a range of major versions that are compatible with the current
-   * WASM binary and/or source code changes.
-   *
-   * By incrementing only the maximum major version, this allows us to introduce new model types
-   * that are compatible only with the latest source code or WASM binary while continuing to utilize
-   * old model types that are backward compatible with the changes.
-   *
-   *   - Models with versions less than the new maximum major version:
-   *       - Available to past versions of Firefox.
-   *       - Available to the current version of Firefox.
-   *
-   *   - Models with versions equal to the new maximum major version:
-   *       - Not available to past versions of Firefox.
-   *       - Available to the current version of Firefox.
-   *
-   * By incrementing both the minimum and maximum major versions to the same value, this allows us to
-   * introduce a hard cutoff point at which prior models are no longer compatible with the current version
-   * of Firefox.
-   *
-   *   - Models with versions less than the new minimum and maximum major versions:
-   *       - Available to past versions of Firefox.
-   *       - Not available to current and future versions of Firefox.
-   *
-   *   - Models with versions equal to the new minimum and maximum major versions:
-   *       - Not available to past versions of Firefox.
-   *       - Available to the current version of Firefox.
-   *
-   * Release History:
-   *
-   * 1.x Model Major Versions
-   *
-   *   - Compatible with 1.x Bergamot WASM binaries.
-   *   - Compatible with 2.x Bergamot WASM binaries.
-   *
-   *   Notes: 1.x models are referred to as "tiny" models, and are the models that were shipped with the original
-   *          release of Translations in Firefox.
-   *
-   * 2.x Model Major Versions
-   *
-   *   - Compatible with 2.x Bergamot WASM binaries.
-   *
-   *   Notes: 2.x models are defined by any of two characteristics. The first characteristic is any CJK language model.
-   *          Only the 2.x WASM binaries support the segmentation concerns needed to interop with CJK language models.
-   *          The second characteristic is any "base" language model, which is larger than the "tiny" 1.x models.
-   *          Compatibility for base models is dependent on the code changes in Bug 1926100.
-   */
-  static LANGUAGE_MODEL_MAJOR_VERSION_MIN = 1;
-  static LANGUAGE_MODEL_MAJOR_VERSION_MAX = 2;
+  static LANGUAGE_MODEL_MAJOR_VERSION = 1;
 
   /**
    * Contains the state that would affect UI. Anytime this state is changed, a dispatch
@@ -878,7 +808,7 @@ export class TranslationsParent extends JSWindowActorParent {
         try {
           // Wrap this in a try statement since users can manually edit this pref.
           TranslationsParent.#webContentLanguages.add(
-            new Intl.Locale(locale).baseName
+            new Intl.Locale(locale).language
           );
         } catch {
           // The locale was invalid, discard it.
@@ -893,14 +823,13 @@ export class TranslationsParent extends JSWindowActorParent {
         // The user hasn't customized their accept languages, this means that English
         // is always provided as a fallback language, even if it is not available.
         TranslationsParent.#webContentLanguages.delete("en");
-        TranslationsParent.#webContentLanguages.delete("en-US");
       }
 
       if (TranslationsParent.#webContentLanguages.size === 0) {
         // The user has removed all of their web content languages, default to the
         // app locale.
         TranslationsParent.#webContentLanguages.add(
-          new Intl.Locale(Services.locale.appLocaleAsBCP47).baseName
+          new Intl.Locale(Services.locale.appLocaleAsBCP47).language
         );
       }
     }
@@ -971,7 +900,7 @@ export class TranslationsParent extends JSWindowActorParent {
     const userSettingsLangTags = new Set();
     for (const locale of userSettingsLocales) {
       try {
-        userSettingsLangTags.add(new Intl.Locale(locale).baseName);
+        userSettingsLangTags.add(new Intl.Locale(locale).language);
       } catch (_) {
         // The locale was invalid, discard it.
       }
@@ -998,10 +927,7 @@ export class TranslationsParent extends JSWindowActorParent {
   static getPreferredLanguages({ excludeLangTags } = {}) {
     if (TranslationsParent.#preferredLanguages) {
       return TranslationsParent.#preferredLanguages.filter(
-        langTag =>
-          !excludeLangTags?.some(langTagToExclude =>
-            lazy.TranslationsUtils.langTagsMatch(langTagToExclude, langTag)
-          )
+        langTag => !excludeLangTags?.includes(langTag)
       );
     }
 
@@ -1034,10 +960,7 @@ export class TranslationsParent extends JSWindowActorParent {
     TranslationsParent.#preferredLanguages = [...preferredLanguages];
 
     return TranslationsParent.#preferredLanguages.filter(
-      langTag =>
-        !excludeLangTags?.some(langTagToExclude =>
-          lazy.TranslationsUtils.langTagsMatch(langTagToExclude, langTag)
-        )
+      langTag => !excludeLangTags?.includes(langTag)
     );
   }
 
@@ -1330,15 +1253,16 @@ export class TranslationsParent extends JSWindowActorParent {
     /** @type {Map<string, string>} */
     const displayNames = new Map();
     {
-      const languageDisplayNames =
-        TranslationsParent.createLanguageDisplayNames();
+      const dn = new Services.intl.DisplayNames(undefined, {
+        type: "language",
+      });
 
       for (const langTagSet of [fromLanguages, toLanguages]) {
         for (const langTag of langTagSet.keys()) {
           if (displayNames.has(langTag)) {
             continue;
           }
-          displayNames.set(langTag, languageDisplayNames.of(langTag));
+          displayNames.set(langTag, dn.of(langTag));
         }
       }
     }
@@ -1378,13 +1302,10 @@ export class TranslationsParent extends JSWindowActorParent {
       }
     }
 
-    const appLangTag = Services.locale.appLocaleAsBCP47;
-    for (const langTag of displayNames.keys()) {
-      if (lazy.TranslationsUtils.langTagsMatch(langTag, appLangTag)) {
-        displayNames.delete(langTag);
-        break;
-      }
-    }
+    let appLangTag = new Intl.Locale(Services.locale.appLocaleAsBCP47).language;
+
+    // Don't offer to download the app's language.
+    displayNames.delete(appLangTag);
 
     // Sort the list of languages by the display names.
     return [...displayNames.entries()]
@@ -1396,34 +1317,18 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Creates and retrieves an `Intl.DisplayNames` object for displaying languages
-   * in translation-related user interfaces across the browser.
+   * Get the display name for the given language Tag.
    *
-   * @param {Record<string, string>} [options={}]
-   *  - Optional parameters to customize the display of language names.
-   * @param {string} [options.fallback="code"]
-   *  - Determines the behavior when a language display name is unavailable:
-   *    "code": Fallback to the language code.
-   *    "none": No fallback; return `undefined`.
-   * @param {string} [options.languageDisplay="standard"]
-   *  - Specifies how to display the language names:
-   *    "standard": Display the standard form of the language name e.g. "Chinese (Simplified)"
-   *    "dialect": Display the dialect form if available e.g. "Simplified Chinese"
-   *
-   * @returns {Intl.DisplayNames}
-   *   An `Intl.DisplayNames` object configured to format language names according to the given options.
-   *
-   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DisplayNames
+   * @param {string} langTag
+   * @returns {string}
    */
-  static createLanguageDisplayNames({
-    fallback = "code",
-    languageDisplay = "standard",
-  } = {}) {
-    return new Services.intl.DisplayNames(undefined, {
-      type: "language",
-      languageDisplay,
-      fallback,
-    });
+  static getLanguageDisplayName(langTag) {
+    // Services.intl.getLanguageDisplayNames takes a list of language codes and
+    // returns a list of correspoding display names. Hence the langTag is sent as a list
+    let displayName = Services.intl.getLanguageDisplayNames(undefined, [
+      langTag,
+    ]);
+    return displayName[0];
   }
 
   /**
@@ -1651,7 +1556,7 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Retrieves the maximum compatible major version of each record in the RemoteSettingsClient.
+   * Retrieves the maximum major version of each record in the RemoteSettingsClient.
    *
    * If the client contains two different-version copies of the same record (e.g. 1.0 and 1.1)
    * then only the 1.1-version record will be returned in the resulting collection.
@@ -1663,10 +1568,7 @@ export class TranslationsParent extends JSWindowActorParent {
    *     Filters should correspond to properties on the RemoteSettings records themselves.
    *     For example, A filter to retrieve only records with a `fromLang` value of "en" and a `toLang` value of "es":
    *     { filters: { fromLang: "en", toLang: "es" } }
-   *   @param {number} options.minSupportedMajorVersion
-   *     The minimum major record version that is supported in this build of Firefox.
-   *   @param {number} options.maxSupportedMajorVersion
-   *     The maximum major record version that is supported in this build of Firefox.
+   *   @param {number} options.majorVersion
    *   @param {Function} [options.lookupKey=(record => record.name)]
    *     The function to use to extract a lookup key from each record.
    *     This function should take a record as input and return a string that represents the lookup key for the record.
@@ -1674,19 +1576,12 @@ export class TranslationsParent extends JSWindowActorParent {
    *     non-unique name values, it may be necessary to provide an alternative function here.
    * @returns {Array<TranslationModelRecord | WasmRecord>}
    */
-  static async getMaxSupportedVersionRecords(
+  static async getMaxVersionRecords(
     remoteSettingsClient,
-    {
-      filters = {},
-      minSupportedMajorVersion,
-      maxSupportedMajorVersion,
-      lookupKey = record => record.name,
-    } = {}
+    { filters = {}, majorVersion, lookupKey = record => record.name } = {}
   ) {
-    if (!minSupportedMajorVersion || !maxSupportedMajorVersion) {
-      throw new Error(
-        "A minimum and maximum major version must be specified to retrieve records."
-      );
+    if (!majorVersion) {
+      throw new Error("Expected the records to have a major version.");
     }
     try {
       await chaosMode(1 / 4);
@@ -1728,8 +1623,7 @@ export class TranslationsParent extends JSWindowActorParent {
       }
       if (
         TranslationsParent.isBetterRecordVersion(
-          minSupportedMajorVersion,
-          maxSupportedMajorVersion,
+          majorVersion,
           record.version,
           existing?.version
         )
@@ -1742,36 +1636,20 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Determines if the contending record version is a better record version than the current best record version.
+   * Applies the constraint of matching for the best matching major version.
    *
-   * For the contending version to be considered better, it must fall within the supported-version range and be
-   * a larger version than the current best version (if a current best version is provided).
-   *
-   * @param {number} minSupportedMajorVersion - The minimum major record version that is supported in this build of Firefox.
-   * @param {number} maxSupportedMajorVersion - The maximum major record version that is supported in this build of Firefox.
-   * @param {string} contendingVersion - The version of the contending record that is actively being evaluated.
-   * @param {string} [currentBestVersion] - The version of a previously encountered record that is currently best.
+   * @param {number} majorVersion
+   * @param {string} nextVersion
+   * @param {string} [existingVersion]
    */
-  static isBetterRecordVersion(
-    minSupportedMajorVersion,
-    maxSupportedMajorVersion,
-    contendingVersion,
-    currentBestVersion
-  ) {
+  static isBetterRecordVersion(majorVersion, nextVersion, existingVersion) {
     return (
-      // Check that the contending version is within range of the minimum major version.
-      Services.vc.compare(
-        `${minSupportedMajorVersion}.0a`,
-        contendingVersion
-      ) <= 0 &&
-      // Check that the contending version is within range of the maximum major version.
-      Services.vc.compare(
-        `${maxSupportedMajorVersion + 1}.0a`,
-        contendingVersion
-      ) > 0 &&
-      // Check that the new record greater than the current best version.
-      (!currentBestVersion ||
-        Services.vc.compare(currentBestVersion, contendingVersion) < 0)
+      // Check that this is a major version record we can support.
+      Services.vc.compare(`${majorVersion}.0a`, nextVersion) <= 0 &&
+      Services.vc.compare(`${majorVersion + 1}.0a`, nextVersion) > 0 &&
+      // Check that the new record is bigger version number
+      (!existingVersion ||
+        Services.vc.compare(existingVersion, nextVersion) < 0)
     );
   }
 
@@ -1795,11 +1673,8 @@ export class TranslationsParent extends JSWindowActorParent {
 
         /** @type {TranslationModelRecord[]} */
         const translationModelRecords =
-          await TranslationsParent.getMaxSupportedVersionRecords(client, {
-            minSupportedMajorVersion:
-              TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MIN,
-            maxSupportedMajorVersion:
-              TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX,
+          await TranslationsParent.getMaxVersionRecords(client, {
+            majorVersion: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION,
             // Names in this collection are not unique, so we are appending the languagePairKey
             // to guarantee uniqueness.
             lookupKey: record =>
@@ -1997,12 +1872,13 @@ export class TranslationsParent extends JSWindowActorParent {
         lazy.console.log(`Getting remote bergamot-translator wasm records.`);
 
         /** @type {WasmRecord[]} */
-        const wasmRecords =
-          await TranslationsParent.getMaxSupportedVersionRecords(client, {
+        const wasmRecords = await TranslationsParent.getMaxVersionRecords(
+          client,
+          {
             filters: { name: "bergamot-translator" },
-            minSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
-            maxSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
-          });
+            majorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
+          }
+        );
 
         if (wasmRecords.length === 0) {
           // The remote settings client provides an empty list of records when there is
@@ -2090,9 +1966,8 @@ export class TranslationsParent extends JSWindowActorParent {
    * @param {string} language The BCP 47 language tag.
    */
   static async deleteLanguageFiles(language) {
-    const appLanguage = lazy.TranslationsUtils.normalizeLangTagForTranslations(
-      Services.locale.appLocaleAsBCP47
-    );
+    const appLanguage = new Intl.Locale(Services.locale.appLocaleAsBCP47)
+      .language;
     return TranslationsParent.deleteLanguageFilesToAndFromPair(
       language,
       appLanguage,
@@ -2306,7 +2181,7 @@ export class TranslationsParent extends JSWindowActorParent {
 
     let matchedRecords = new Set();
 
-    if (lazy.TranslationsUtils.langTagsMatch(languageA, languageB)) {
+    if (languageA === languageB) {
       // There are no records if the requested language and app language are the same.
       return matchedRecords;
     }
@@ -2314,10 +2189,7 @@ export class TranslationsParent extends JSWindowActorParent {
     const addLanguagePair = (fromLang, toLang) => {
       let matchFound = false;
       for (const record of records.values()) {
-        if (
-          lazy.TranslationsUtils.langTagsMatch(record.fromLang, fromLang) &&
-          lazy.TranslationsUtils.langTagsMatch(record.toLang, toLang)
-        ) {
+        if (record.fromLang === fromLang && record.toLang === toLang) {
           matchedRecords.add(record);
           matchFound = true;
         }
@@ -2371,9 +2243,8 @@ export class TranslationsParent extends JSWindowActorParent {
     requestedLanguage,
     includePivotRecords
   ) {
-    const appLanguage = lazy.TranslationsUtils.normalizeLangTagForTranslations(
-      Services.locale.appLocaleAsBCP47
-    );
+    const appLanguage = new Intl.Locale(Services.locale.appLocaleAsBCP47)
+      .language;
 
     return TranslationsParent.getRecordsForTranslatingToAndFromPair(
       requestedLanguage,
@@ -2852,77 +2723,33 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * Finds a compatible source language tag for translation synchronously.
-   * Searches the provided language pairs for a match based on the given language tag.
+   * Checks if a given language tag is supported for translation
+   * when translating from this language into other languages.
    *
-   * @param {string} langTag - A BCP-47 language tag to match against source languages.
-   * @param {Array<{ fromLang: string, toLang: string }>} languagePairs - An array of language pair objects,
-   *   where each object contains `fromLang` and `toLang` properties.
-   * @returns {string | null} - The compatible source language tag, or `null` if no match is found.
+   * @param {string} langTag - A BCP-47 language tag.
+   * @returns {Promise<boolean>}
    */
-  static findCompatibleSourceLangTagSync(langTag, languagePairs) {
+  static async isSupportedAsFromLang(langTag) {
     if (!langTag) {
-      return null;
+      return false;
     }
-
-    const langPair = languagePairs.find(({ fromLang }) =>
-      lazy.TranslationsUtils.langTagsMatch(fromLang, langTag)
-    );
-
-    return langPair?.fromLang;
+    let languagePairs = await TranslationsParent.getLanguagePairs();
+    return Boolean(languagePairs.find(({ fromLang }) => fromLang === langTag));
   }
 
   /**
-   * Finds a compatible source language tag for translation.
-   * Fetches language pairs and then determines a match for the given language tag.
+   * Checks if a given language tag is supported for translation
+   * when translating from other languages into this language.
    *
-   * @param {string} langTag - A BCP-47 language tag to match against source languages.
-   * @returns {Promise<string | null>} - A promise resolving to the compatible source language tag,
-   *   or `null` if no match is found.
+   * @param {string} langTag - A BCP-47 language tag.
+   * @returns {Promise<boolean>}
    */
-  static async findCompatibleSourceLangTag(langTag) {
-    const languagePairs = await TranslationsParent.getLanguagePairs();
-    return TranslationsParent.findCompatibleSourceLangTagSync(
-      langTag,
-      languagePairs
-    );
-  }
-
-  /**
-   * Finds a compatible target language tag for translation synchronously.
-   * Searches the provided language pairs for a match based on the given language tag.
-   *
-   * @param {string} langTag - A BCP-47 language tag to match against target languages.
-   * @param {Array<{ fromLang: string, toLang: string }>} languagePairs - An array of language pair objects,
-   *   where each object contains `fromLang` and `toLang` properties.
-   * @returns {string | null} - The compatible target language tag, or `null` if no match is found.
-   */
-  static findCompatibleTargetLangTagSync(langTag, languagePairs) {
+  static async isSupportedAsToLang(langTag) {
     if (!langTag) {
-      return null;
+      return false;
     }
-
-    const langPair = languagePairs.find(({ toLang }) =>
-      lazy.TranslationsUtils.langTagsMatch(toLang, langTag)
-    );
-
-    return langPair?.toLang;
-  }
-
-  /**
-   * Finds a compatible target language tag for translation.
-   * Fetches language pairs and then determines a match for the given language tag.
-   *
-   * @param {string} langTag - A BCP-47 language tag to match against target languages.
-   * @returns {Promise<string | null>} - A promise resolving to the compatible target language tag,
-   *   or `null` if no match is found.
-   */
-  static async findCompatibleTargetLangTag(langTag) {
-    const languagePairs = await TranslationsParent.getLanguagePairs();
-    return TranslationsParent.findCompatibleTargetLangTagSync(
-      langTag,
-      languagePairs
-    );
+    let languagePairs = await TranslationsParent.getLanguagePairs();
+    return Boolean(languagePairs.find(({ toLang }) => toLang === langTag));
   }
 
   /**
@@ -2937,42 +2764,13 @@ export class TranslationsParent extends JSWindowActorParent {
       excludeLangTags,
     });
 
-    const languagePairs = await TranslationsParent.getLanguagePairs();
     for (const langTag of preferredLanguages) {
-      const compatibleLangTag =
-        TranslationsParent.findCompatibleTargetLangTagSync(
-          langTag,
-          languagePairs
-        );
-      if (compatibleLangTag) {
-        return compatibleLangTag;
+      if (await TranslationsParent.isSupportedAsToLang(langTag)) {
+        return langTag;
       }
     }
 
     return PIVOT_LANGUAGE;
-  }
-
-  /**
-   * Attempts to make the language tag more specific if it is a supported macro language tag.
-   * If no special cases apply, the provided language tag is returned as-is.
-   *
-   * @param {string} langTag - A BCP-47 language tag to evaluate and possibly refine.
-   * @returns {Promise<string>} - The refined language tag, or null if processing was interrupted.
-   */
-  maybeRefineMacroLanguageTag(langTag) {
-    if (langTag === "no") {
-      // Choose "Norwegian Bokmål" over "Norwegian Nynorsk" as it is more widely used.
-      //
-      // https://en.wikipedia.org/wiki/Norwegian_language#Bokm%C3%A5l_and_Nynorsk
-      //
-      //   > A 2005 poll indicates that 86.3% use primarily Bokmål as their daily
-      //   > written language, 5.5% use both Bokmål and Nynorsk, and 7.5% use
-      //   > primarily Nynorsk.
-      return "nb";
-    }
-
-    // No special cases were handled above, so pass the langTag through.
-    return langTag;
   }
 
   /**
@@ -2988,7 +2786,11 @@ export class TranslationsParent extends JSWindowActorParent {
     if (this.languageState.detectedLanguages) {
       return this.languageState.detectedLanguages;
     }
-
+    const langTags = {
+      docLangTag: null,
+      userLangTag: null,
+      isDocLangTagSupported: false,
+    };
     if (!TranslationsParent.getIsTranslationsEngineSupported()) {
       return null;
     }
@@ -3000,71 +2802,53 @@ export class TranslationsParent extends JSWindowActorParent {
       }
     }
 
-    documentElementLang = this.maybeRefineMacroLanguageTag(documentElementLang);
-
     let languagePairs = await TranslationsParent.getLanguagePairs();
     if (this.#isDestroyed) {
       return null;
     }
 
-    const langTags = {
-      docLangTag: null,
-      userLangTag: null,
-      isDocLangTagSupported: false,
-    };
-
-    /**
-     * Attempts to find a compatible source language tag that matches
-     * langTags.docLangTag. If a match is found, sets langTags.docLangTag
-     * to the normalized value and sets langTags.isDocLangTagSupported to true.
-     */
-    function findCompatibleDocLangTag() {
-      const compatibleLangTag =
-        TranslationsParent.findCompatibleSourceLangTagSync(
-          langTags.docLangTag,
-          languagePairs
-        );
-
-      if (compatibleLangTag) {
-        langTags.docLangTag = compatibleLangTag;
-        langTags.isDocLangTagSupported = true;
-      }
-    }
-
-    /**
-     * Attempts to normalize the langTags.docLangTag value to a language tag that is
-     * compatible as a source language for one of the translation models. If a language
-     * tag is found, sets langTags.isDocLangTagSupported to `true`.
-     */
-    function maybeNormalizeDocLangTag() {
-      if (!langTags.isDocLangTagSupported) {
-        findCompatibleDocLangTag();
-      }
-
-      if (langTags.docLangTag && !langTags.isDocLangTagSupported) {
-        // We have found a docLangTag, but it is still not supported.
-        // Try it again with a canonicalized version.
-        langTags.docLangTag = Intl.getCanonicalLocales(langTags.docLangTag)[0];
-        findCompatibleDocLangTag();
-      }
-    }
+    const determineIsDocLangTagSupported = () =>
+      Boolean(
+        languagePairs.find(({ fromLang }) => fromLang === langTags.docLangTag)
+      );
 
     // First try to get the langTag from the document's markup.
-    // Attempt to find a supported locale from highest specificity to lowest specificity.
     try {
-      langTags.docLangTag = new Intl.Locale(documentElementLang).baseName;
-      maybeNormalizeDocLangTag();
-    } catch (error) {
-      // Failed to create a locale from documentElementLang, continue on.
-    }
+      const docLocale = new Intl.Locale(documentElementLang);
+      langTags.docLangTag = docLocale.language;
+      langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
+    } catch (error) {}
 
-    if (!langTags.docLangTag) {
+    if (langTags.docLangTag) {
+      // If it's not supported, try it again with a canonicalized version.
+      if (!langTags.isDocLangTagSupported) {
+        langTags.docLangTag = Intl.getCanonicalLocales(langTags.docLangTag)[0];
+        langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
+      }
+
+      // If it's still not supported, map macro language codes to specific ones.
+      //   https://en.wikipedia.org/wiki/ISO_639_macrolanguage
+      if (!langTags.isDocLangTagSupported) {
+        // If more macro language codes are needed, this logic can be expanded.
+        if (langTags.docLangTag === "no") {
+          // Choose "Norwegian Bokmål" over "Norwegian Nynorsk" as it is more widely used.
+          //
+          // https://en.wikipedia.org/wiki/Norwegian_language#Bokm%C3%A5l_and_Nynorsk
+          //
+          //   > A 2005 poll indicates that 86.3% use primarily Bokmål as their daily
+          //   > written language, 5.5% use both Bokmål and Nynorsk, and 7.5% use
+          //   > primarily Nynorsk.
+          langTags.docLangTag = "nb";
+          langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
+        }
+      }
+    } else {
       // If the document's markup had no specified langTag, attempt to identify the page's language.
       langTags.docLangTag = await this.queryIdentifyLanguage();
       if (this.#isDestroyed) {
         return null;
       }
-      maybeNormalizeDocLangTag();
+      langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
     }
 
     if (!langTags.docLangTag) {
@@ -3088,13 +2872,7 @@ export class TranslationsParent extends JSWindowActorParent {
       return langTags;
     }
 
-    if (
-      TranslationsParent.getWebContentLanguages()
-        .keys()
-        .some(langTag =>
-          lazy.TranslationsUtils.langTagsMatch(langTag, langTags.docLangTag)
-        )
-    ) {
+    if (TranslationsParent.getWebContentLanguages().has(langTags.docLangTag)) {
       // The doc language has been marked as a known language by the user, do not
       // offer a translation.
       const message =

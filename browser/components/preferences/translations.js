@@ -543,7 +543,7 @@ let gTranslationsPane = {
 
     // When the preferences is opened for the first time
     // the translations settings HTML page is initialized with
-    // the existing settings by adding all languages from the latest preferences
+    // the exisitng settings by adding all languages from the latest preferences
     for (const lang of added) {
       this.addTranslateLanguage(lang, languageList, prefix);
       // if a language is added to Always translate list,
@@ -743,19 +743,9 @@ let gTranslationsPane = {
    */
   addTranslateLanguage(langTag, languageList, translatePrefix) {
     // While adding the first language, add the Header and language List div
-    const languageDisplayNames =
-      TranslationsParent.createLanguageDisplayNames();
 
-    let languageDisplayName;
-    try {
-      languageDisplayName = languageDisplayNames.of(langTag);
-    } catch (error) {
-      console.warn(
-        `Failed to retrieve language display name for '${langTag}'.`
-      );
-      return;
-    }
-
+    const languageDisplayName =
+      TranslationsParent.getLanguageDisplayName(langTag);
     const languageLabel = this.createLangLabel(
       languageDisplayName,
       langTag,
@@ -965,13 +955,10 @@ let gTranslationsPane = {
     } catch (error) {
       console.error(error);
 
-      const languageDisplayNames =
-        TranslationsParent.createLanguageDisplayNames();
-
       this.showErrorMessage(
         eventButton.parentNode,
         "translations-settings-language-download-error",
-        languageDisplayNames.of(langTag)
+        TranslationsParent.getLanguageDisplayName(langTag)
       );
       const hasAllFilesForLanguage =
         await TranslationsParent.hasAllFilesForLanguage(langTag);
@@ -1031,14 +1018,10 @@ let gTranslationsPane = {
     } catch (error) {
       // The download phases are invalidated with the error and must be reloaded.
       console.error(error);
-
-      const languageDisplayNames =
-        TranslationsParent.createLanguageDisplayNames();
-
       this.showErrorMessage(
         eventButton.parentNode,
         "translations-settings-language-remove-error",
-        languageDisplayNames.of(langTag)
+        TranslationsParent.getLanguageDisplayName(langTag)
       );
       const hasAllFilesForLanguage =
         await TranslationsParent.hasAllFilesForLanguage(langTag);

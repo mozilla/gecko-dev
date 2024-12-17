@@ -163,15 +163,16 @@ function getByL10nId(l10nId, doc = document) {
  * @param {string} langTag - A BCP-47 language tag.
  */
 const getIntlDisplayName = (() => {
-  let languageDisplayNames = null;
+  let displayNames = null;
 
   return langTag => {
-    if (!languageDisplayNames) {
-      languageDisplayNames = TranslationsParent.createLanguageDisplayNames({
+    if (!displayNames) {
+      displayNames = new Services.intl.DisplayNames(undefined, {
+        type: "language",
         fallback: "none",
       });
     }
-    return languageDisplayNames.of(langTag);
+    return displayNames.of(langTag);
   };
 })();
 
@@ -681,7 +682,7 @@ class FullPageTranslationsTestUtils {
       );
     is(
       locale.innerText,
-      toLanguage.split("-")[0],
+      toLanguage,
       `The expected language tag "${toLanguage}" is shown.`
     );
     is(
@@ -1701,10 +1702,7 @@ class SelectTranslationsTestUtils {
 
         await waitForCondition(
           () =>
-            TranslationsUtils.langTagsMatch(
-              menuItem.getAttribute("target-language"),
-              expectedTargetLanguage
-            ),
+            menuItem.getAttribute("target-language") === expectedTargetLanguage,
           `Waiting for translate-selection context menu item to match the expected target language ${expectedTargetLanguage}`
         );
         await waitForCondition(

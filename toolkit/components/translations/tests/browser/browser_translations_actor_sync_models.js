@@ -28,14 +28,14 @@ add_task(async function test_translations_actor_sync_update_models() {
 
   is(
     decoder.decode(oldModels.model.buffer),
-    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 model is downloaded.`
+    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 model is downloaded.`
   );
 
   const recordsToCreate = createRecordsForLanguagePair("en", "es");
   for (const newModelRecord of recordsToCreate) {
     newModelRecord.id = oldModels[newModelRecord.fileType].record.id;
-    newModelRecord.version = `${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1`;
+    newModelRecord.version = `${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1`;
   }
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
@@ -53,8 +53,8 @@ add_task(async function test_translations_actor_sync_update_models() {
 
   is(
     decoder.decode(updatedModel.buffer),
-    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1`,
-    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1 model is downloaded.`
+    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1`,
+    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1 model is downloaded.`
   );
 
   return cleanup();
@@ -83,8 +83,8 @@ add_task(async function test_translations_actor_sync_delete_models() {
 
   is(
     decoder.decode(model.buffer),
-    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 model is downloaded.`
+    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 model is downloaded.`
   );
 
   info(
@@ -132,8 +132,8 @@ add_task(async function test_translations_actor_sync_create_models() {
   const { languageModelFiles: originalFiles } = await modelsPromise;
   is(
     decoder.decode(originalFiles.model.buffer),
-    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 model is downloaded.`
+    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 model is downloaded.`
   );
 
   const recordsToCreate = createRecordsForLanguagePair("en", "fr");
@@ -153,17 +153,17 @@ add_task(async function test_translations_actor_sync_create_models() {
 
   is(
     decoder.decode(vocab.buffer),
-    `Mocked download: test-translation-models vocab.enfr.spm ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
+    `Mocked download: test-translation-models vocab.enfr.spm ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
     "The en to fr vocab is downloaded."
   );
   is(
     decoder.decode(lex.buffer),
-    `Mocked download: test-translation-models lex.50.50.enfr.s2t.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
+    `Mocked download: test-translation-models lex.50.50.enfr.s2t.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
     "The en to fr lex is downloaded."
   );
   is(
     decoder.decode(model.buffer),
-    `Mocked download: test-translation-models model.enfr.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
+    `Mocked download: test-translation-models model.enfr.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
     "The en to fr model is downloaded."
   );
 
@@ -192,13 +192,13 @@ add_task(
     const { languageModelFiles: originalFiles } = await modelsPromise;
     is(
       decoder.decode(originalFiles.model.buffer),
-      `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-      `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 model is downloaded.`
+      `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+      `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 model is downloaded.`
     );
 
     const recordsToCreate = createRecordsForLanguagePair("en", "es");
     for (const newModelRecord of recordsToCreate) {
-      newModelRecord.version = `${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1`;
+      newModelRecord.version = `${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1`;
     }
 
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
@@ -216,18 +216,18 @@ add_task(
 
     is(
       decoder.decode(vocab.buffer),
-      `Mocked download: test-translation-models vocab.enes.spm ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1`,
-      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1 vocab is downloaded.`
+      `Mocked download: test-translation-models vocab.enes.spm ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1`,
+      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1 vocab is downloaded.`
     );
     is(
       decoder.decode(lex.buffer),
-      `Mocked download: test-translation-models lex.50.50.enes.s2t.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1`,
-      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1 lex is downloaded.`
+      `Mocked download: test-translation-models lex.50.50.enes.s2t.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1`,
+      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1 lex is downloaded.`
     );
     is(
       decoder.decode(model.buffer),
-      `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1`,
-      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1 model is downloaded.`
+      `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1`,
+      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1 model is downloaded.`
     );
 
     return cleanup();
@@ -256,8 +256,8 @@ add_task(
     const { languageModelFiles: originalFiles } = await modelsPromise;
     is(
       decoder.decode(originalFiles.model.buffer),
-      `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-      `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 model is downloaded.`
+      `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+      `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 model is downloaded.`
     );
 
     const recordsToCreate = createRecordsForLanguagePair("en", "es");
@@ -280,18 +280,18 @@ add_task(
 
     is(
       decoder.decode(vocab.buffer),
-      `Mocked download: test-translation-models vocab.enes.spm ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 vocab is downloaded.`
+      `Mocked download: test-translation-models vocab.enes.spm ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 vocab is downloaded.`
     );
     is(
       decoder.decode(lex.buffer),
-      `Mocked download: test-translation-models lex.50.50.enes.s2t.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 lex is downloaded.`
+      `Mocked download: test-translation-models lex.50.50.enes.s2t.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 lex is downloaded.`
     );
     is(
       decoder.decode(model.buffer),
-      `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 model is downloaded.`
+      `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+      `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 model is downloaded.`
     );
 
     return cleanup();
@@ -313,7 +313,7 @@ add_task(async function test_translations_actor_sync_rollback_models() {
 
   const newRecords = createRecordsForLanguagePair("en", "es");
   for (const newModelRecord of newRecords) {
-    newModelRecord.version = `${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1`;
+    newModelRecord.version = `${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1`;
   }
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
@@ -330,8 +330,8 @@ add_task(async function test_translations_actor_sync_rollback_models() {
   const { languageModelFiles: originalFiles } = await modelsPromise;
   is(
     decoder.decode(originalFiles.model.buffer),
-    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1`,
-    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.1 model is downloaded.`
+    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1`,
+    `The version ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.1 model is downloaded.`
   );
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
@@ -349,18 +349,18 @@ add_task(async function test_translations_actor_sync_rollback_models() {
 
   is(
     decoder.decode(vocab.buffer),
-    `Mocked download: test-translation-models vocab.enes.spm ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-    `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 vocab is downloaded.`
+    `Mocked download: test-translation-models vocab.enes.spm ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+    `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 vocab is downloaded.`
   );
   is(
     decoder.decode(lex.buffer),
-    `Mocked download: test-translation-models lex.50.50.enes.s2t.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-    `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 lex is downloaded.`
+    `Mocked download: test-translation-models lex.50.50.enes.s2t.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+    `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 lex is downloaded.`
   );
   is(
     decoder.decode(model.buffer),
-    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0`,
-    `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MAX}.0 model is downloaded.`
+    `Mocked download: test-translation-models model.enes.intgemm.alphas.bin ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0`,
+    `The ${TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION}.0 model is downloaded.`
   );
 
   return cleanup();

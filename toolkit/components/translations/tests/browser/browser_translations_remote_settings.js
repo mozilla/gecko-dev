@@ -271,12 +271,10 @@ add_task(async function test_get_records_with_multiple_versions() {
       .client,
   });
 
-  const retrievedRecords =
-    await TranslationsParent.getMaxSupportedVersionRecords(client, {
-      lookupKey,
-      minSupportedMajorVersion: 1,
-      maxSupportedMajorVersion: 1,
-    });
+  const retrievedRecords = await TranslationsParent.getMaxVersionRecords(
+    client,
+    { lookupKey, majorVersion: 1 }
+  );
 
   for (const record of retrievedRecords) {
     is(

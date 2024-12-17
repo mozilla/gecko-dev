@@ -311,15 +311,11 @@ var SelectTranslationsPanel = new (class {
     // First see if any of the detected languages are supported and return it if so.
     const { language, languages } =
       await LanguageDetector.detectLanguage(textToTranslate);
-    const languagePairs = await TranslationsParent.getLanguagePairs();
     for (const { languageCode } of languages) {
-      const compatibleLangTag =
-        TranslationsParent.findCompatibleSourceLangTagSync(
-          languageCode,
-          languagePairs
-        );
-      if (compatibleLangTag) {
-        return compatibleLangTag;
+      const isSupported =
+        await TranslationsParent.isSupportedAsFromLang(languageCode);
+      if (isSupported) {
+        return languageCode;
       }
     }
 
@@ -464,16 +460,16 @@ var SelectTranslationsPanel = new (class {
    * @returns {Promise<void>}
    */
   async #initializeLanguageMenuList(langTag, menuList) {
-    const compatibleLangTag =
+    const isLangTagSupported =
       menuList.id === this.elements.fromMenuList.id
-        ? await TranslationsParent.findCompatibleSourceLangTag(langTag)
-        : await TranslationsParent.findCompatibleTargetLangTag(langTag);
+        ? await TranslationsParent.isSupportedAsFromLang(langTag)
+        : await TranslationsParent.isSupportedAsToLang(langTag);
 
-    if (compatibleLangTag) {
+    if (isLangTagSupported) {
       // Remove the data-l10n-id because the menulist label will
       // be populated from the supported language's display name.
       menuList.removeAttribute("data-l10n-id");
-      menuList.value = compatibleLangTag;
+      menuList.value = langTag;
     } else {
       await this.#deselectLanguage(menuList);
     }
@@ -724,13 +720,13 @@ var SelectTranslationsPanel = new (class {
   async #registerSourceText(sourceText, langPairPromise) {
     const { textArea } = this.elements;
     const { fromLanguage, toLanguage } = await langPairPromise;
-    const compatibleFromLang =
-      await TranslationsParent.findCompatibleSourceLangTag(fromLanguage);
+    const isFromLangSupported =
+      await TranslationsParent.isSupportedAsFromLang(fromLanguage);
 
-    if (compatibleFromLang) {
+    if (isFromLangSupported) {
       this.#changeStateTo("idle", /* retainEntries */ false, {
         sourceText,
-        fromLanguage: compatibleFromLang,
+        fromLanguage,
         toLanguage,
       });
     } else {
@@ -2134,10 +2130,11 @@ var SelectTranslationsPanel = new (class {
 
     const { unsupportedLanguageMessageBar, tryAnotherSourceMenuList } =
       this.elements;
-    const languageDisplayNames =
-      TranslationsParent.createLanguageDisplayNames();
+    const displayNames = new Services.intl.DisplayNames(undefined, {
+      type: "language",
+    });
     try {
-      const language = languageDisplayNames.of(detectedLanguage);
+      const language = displayNames.of(detectedLanguage);
       if (language) {
         document.l10n.setAttributes(
           unsupportedLanguageMessageBar,

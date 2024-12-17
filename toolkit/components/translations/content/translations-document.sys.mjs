@@ -7,8 +7,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
-  TranslationsUtils:
-    "chrome://global/content/translations/TranslationsUtils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -525,6 +523,18 @@ export class TranslationsDocument {
      * @type {string}
      */
     this.documentLanguage = documentLanguage;
+    if (documentLanguage.length !== 2) {
+      throw new Error(
+        "Expected the document language to be a valid 2 letter BCP 47 language tag: " +
+          documentLanguage
+      );
+    }
+    if (toLanguage.length !== 2) {
+      throw new Error(
+        "Expected the destination language to be a valid 2 letter BCP 47 language tag: " +
+          toLanguage
+      );
+    }
 
     /** @type {QueuedTranslator} */
     this.translator = new QueuedTranslator(
@@ -1834,9 +1844,7 @@ export class TranslationsDocument {
     }
 
     // First, cheaply check if language tags match, without canonicalizing.
-    if (
-      lazy.TranslationsUtils.langTagsMatch(this.documentLanguage, node.lang)
-    ) {
+    if (langTagsMatch(this.documentLanguage, node.lang)) {
       return true;
     }
 
@@ -1845,10 +1853,7 @@ export class TranslationsDocument {
       // throws, so don't trust that the language tags are formatting correctly.
       const [language] = Intl.getCanonicalLocales(node.lang);
 
-      return lazy.TranslationsUtils.langTagsMatch(
-        this.documentLanguage,
-        language
-      );
+      return langTagsMatch(this.documentLanguage, language);
     } catch (_error) {
       return false;
     }
@@ -1871,6 +1876,28 @@ function isNodeHidden(node) {
   // This flushes the style, which is a performance cost.
   const style = element.ownerGlobal.getComputedStyle(element);
   return style.display === "none" || style.visibility === "hidden";
+}
+
+/**
+ * This function cheaply checks that language tags match.
+ *
+ * @param {string} knownLanguage
+ * @param {string} otherLanguage
+ */
+function langTagsMatch(knownLanguage, otherLanguage) {
+  if (knownLanguage === otherLanguage) {
+    // A simple direct match.
+    return true;
+  }
+  if (knownLanguage.length !== 2) {
+    throw new Error("Expected the knownLanguage to be of length 2.");
+  }
+  // Check if the language tags part match, e.g. "en" and "en-US".
+  return (
+    knownLanguage[0] === otherLanguage[0] &&
+    knownLanguage[1] === otherLanguage[1] &&
+    otherLanguage[2] === "-"
+  );
 }
 
 /**

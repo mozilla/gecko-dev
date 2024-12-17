@@ -93,8 +93,6 @@ skip-if = ["true"]
 
 ["browser_translations_full_page_panel_retry.js"]
 
-["browser_translations_full_page_panel_script_tags.js"]
-
 ["browser_translations_full_page_panel_settings_unsupported_lang.js"]
 
 ["browser_translations_full_page_panel_switch_languages.js"]
@@ -184,8 +182,6 @@ skip-if = ["true"]
 ["browser_translations_select_panel_retranslate_on_change_language_directly.js"]
 
 ["browser_translations_select_panel_retranslate_on_change_language_from_dropdown_menu.js"]
-
-["browser_translations_select_panel_script_tags.js"]
 
 ["browser_translations_select_panel_select_current_language_directly.js"]
 

@@ -2577,11 +2577,12 @@ export class nsContextMenu {
       let displayName;
 
       try {
-        const languageDisplayNames =
-          lazy.TranslationsParent.createLanguageDisplayNames();
-        displayName = languageDisplayNames.of(toLanguage);
+        const displayNames = new Services.intl.DisplayNames(undefined, {
+          type: "language",
+        });
+        displayName = displayNames.of(toLanguage);
       } catch {
-        // languageDisplayNames.of threw, do nothing.
+        // Services.intl.DisplayNames.of threw, do nothing.
       }
 
       if (displayName) {
