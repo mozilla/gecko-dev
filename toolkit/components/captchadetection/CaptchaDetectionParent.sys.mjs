@@ -70,6 +70,10 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
     }
   }
 
+  #recordCFTurnstileResult({ state: { result } }) {
+    lazy.console.debug("recordCFTurnstileResult", result);
+  }
+
   async receiveMessage(message) {
     lazy.console.debug("receiveMessage", JSON.stringify(message));
 
@@ -87,6 +91,9 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
         switch (message.data.state.type) {
           case "g-recaptcha-v2":
             this.#updateGRecaptchaV2State(message.data);
+            break;
+          case "cf-turnstile":
+            this.#recordCFTurnstileResult(message.data);
             break;
         }
         break;

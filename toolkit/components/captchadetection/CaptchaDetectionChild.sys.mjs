@@ -118,6 +118,108 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
 }
 
 /**
+ * Handles Cloudflare Turnstile captchas.
+ *
+ * Cloudflare Turnstile captchas have a success and fail div
+ * that are displayed when the captcha is completed. This
+ * handler listens for the success or fail div to be displayed
+ * and sends a message to the parent actor when either of
+ * these events happen. The handler then disconnects the
+ * mutation observer to avoid further processing.
+ * We use two mutation observers to detect shadowroot
+ * creation and then observe the shadowroot for the success
+ * or fail div.
+ */
+class CFTurnstileHandler extends CaptchaHandler {
+  #observingShadowRoot;
+  #mutationObserver;
+
+  constructor(actor) {
+    super(actor);
+    this.#observingShadowRoot = false;
+    if (this.actor.document.body?.openOrClosedShadowRoot) {
+      this.#observeShadowRoot(this.actor.document.body.openOrClosedShadowRoot);
+      return;
+    }
+    this.#mutationObserver = new this.actor.contentWindow.MutationObserver(
+      this.#mutationHandler.bind(this)
+    );
+    this.#mutationObserver.observe(this.actor.document.documentElement, {
+      attributes: true,
+    });
+  }
+
+  static matches(document) {
+    return (
+      document.location.href.includes("/cdn-cgi/challenge-platform/") &&
+      document.location.href.includes("/turnstile/if/ov2")
+    );
+  }
+
+  #mutationHandler(_mutations, observer) {
+    lazy.console.debug(_mutations);
+    if (this.#observingShadowRoot) {
+      return;
+    }
+
+    const shadowRoot = this.actor.document.body?.openOrClosedShadowRoot;
+    if (!shadowRoot) {
+      return;
+    }
+    observer.disconnect();
+    lazy.console.debug("Found shadowRoot", shadowRoot);
+
+    this.#observeShadowRoot(shadowRoot);
+  }
+
+  #observeShadowRoot(shadowRoot) {
+    if (this.#observingShadowRoot) {
+      return;
+    }
+    this.#observingShadowRoot = true;
+
+    this.#mutationObserver = new this.actor.contentWindow.MutationObserver(
+      (_mutations, observer) => {
+        const fail = shadowRoot.getElementById("fail");
+        const success = shadowRoot.getElementById("success");
+        if (!fail || !success) {
+          return;
+        }
+
+        if (fail.style.display !== "none") {
+          lazy.console.debug("Captcha failed");
+          this.updateState({
+            type: "cf-turnstile",
+            result: "Failed",
+          });
+          observer.disconnect();
+          return;
+        }
+
+        if (success.style.display !== "none") {
+          lazy.console.debug("Captcha succeeded");
+          this.updateState({
+            type: "cf-turnstile",
+            result: "Succeeded",
+          });
+          observer.disconnect();
+        }
+      }
+    ).observe(shadowRoot, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style"],
+    });
+  }
+
+  onActorDestroy() {
+    super.onActorDestroy();
+    this.#mutationObserver.disconnect();
+  }
+}
+
+/**
  * This actor runs in the captcha's frame. It provides information
  * about the captcha's state to the parent actor.
  */
@@ -126,7 +228,7 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     lazy.console.debug("actorCreated");
   }
 
-  static #handlers = [GoogleRecaptchaV2Handler];
+  static #handlers = [GoogleRecaptchaV2Handler, CFTurnstileHandler];
 
   #initCaptchaHandler() {
     for (const handler of CaptchaDetectionChild.#handlers) {
