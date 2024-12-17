@@ -423,3 +423,13 @@ onboarding-checklist-sign-up = Sign up or sign in to your account
 
 tab-groups-onboarding-feature-callout-title = Try tab groups for less clutter, more focus
 tab-groups-onboarding-feature-callout-subtitle = Get organized by dragging one tab on top of another to create your first group.
+
+## Multi Profiles feature onboarding messages
+
+multi-profile-spotlight-title = Say hello to { -brand-product-name } profiles
+multi-profile-spotlight-body = Easily switch between browsing for work and fun. Profiles keep your browsing info, including search history and passwords, totally separate so you can stay organized.
+multi-profile-spotlight-cta = Create a profile
+
+multi-profile-callout-title = Create different profiles for work and fun
+multi-profile-callout-subtitle = Profiles let you keep your browsing info, like search history and passwords, totally separate.
+multi-profile-callout-cta = Create a profile
