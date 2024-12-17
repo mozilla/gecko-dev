@@ -369,9 +369,9 @@ const MESSAGES = () => [
               darkModeImageURL:
                 "chrome://browser/content/callout-tab-pickup-dark.svg",
               reducedMotionImageURL:
-                "chrome://activity-stream/content/data/content/assets/glyph-pin-16.svg",
+                "chrome://browser/content/callout-tab-pickup.svg",
               darkModeReducedMotionImageURL:
-                "chrome://activity-stream/content/data/content/assets/firefox.svg",
+                "chrome://browser/content/callout-tab-pickup-dark.svg",
               alt: "sample alt text",
             },
             hero_text: {
