@@ -172,21 +172,18 @@ class TabPreview @JvmOverloads constructor(
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         if (context.settings().navigationToolbarEnabled) {
-            val isTablet = context.isLargeWindow()
             val isLargeWindow = (AcornWindowSize.getWindowSize(context).isNotSmall())
 
             initNavBarLandscapeChanges(isLargeWindow)
 
-            if (!isTablet) {
-                updateNavBarForConfigurationChange(
-                    context = context,
-                    parent = this,
-                    toolbarView = mockToolbarView,
-                    bottomToolbarContainerView = bottomToolbarContainerView?.toolbarContainerView,
-                    reinitializeNavBar = ::initializeView,
-                    reinitializeMicrosurveyPrompt = {},
-                )
-            }
+            updateNavBarForConfigurationChange(
+                context = context,
+                parent = this,
+                toolbarView = mockToolbarView,
+                bottomToolbarContainerView = bottomToolbarContainerView?.toolbarContainerView,
+                reinitializeNavBar = ::initializeView,
+                reinitializeMicrosurveyPrompt = {},
+            )
         }
     }
 

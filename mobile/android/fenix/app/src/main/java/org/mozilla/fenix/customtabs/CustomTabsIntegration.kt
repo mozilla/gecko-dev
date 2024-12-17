@@ -179,7 +179,6 @@ class CustomTabsIntegration(
                         updateToolbarLayout(
                             context = context,
                             isNavBarEnabled = isNavBarEnabled,
-                            isNavBarVisible = isNavBarVisible,
                             isWindowSizeSmall = AcornWindowSize.getWindowSize(context) == AcornWindowSize.Small,
                         )
                     }
@@ -194,11 +193,10 @@ class CustomTabsIntegration(
 
     override fun onBackPressed() = feature.onBackPressed()
 
-    @VisibleForTesting
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     internal fun updateToolbarLayout(
         context: Context,
         isNavBarEnabled: Boolean,
-        isNavBarVisible: Boolean,
         isWindowSizeSmall: Boolean,
     ) {
         if (isNavBarEnabled) {
@@ -208,15 +206,15 @@ class CustomTabsIntegration(
             )
 
             browserToolbarView.updateMenuVisibility(
-                isVisible = !isNavBarVisible,
+                isVisible = !isWindowSizeSmall,
             )
 
             updateOpenInAction(
-                isNavbarVisible = isNavBarVisible,
+                isNavbarVisible = isWindowSizeSmall,
                 context = context,
             )
 
-            feature.updateMenuVisibility(isVisible = !isNavBarVisible)
+            feature.updateMenuVisibility(isVisible = !isWindowSizeSmall)
         }
     }
 

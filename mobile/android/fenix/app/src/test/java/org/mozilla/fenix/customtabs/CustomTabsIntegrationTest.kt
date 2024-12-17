@@ -106,7 +106,7 @@ class CustomTabsIntegrationTest {
         appStore.dispatch(AppAction.OrientationChange(orientation = OrientationMode.fromInteger(Configuration.ORIENTATION_LANDSCAPE)))
         coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
 
-        verify { integration.updateToolbarLayout(any(), any(), any(), any()) }
+        verify { integration.updateToolbarLayout(any(), any(), any()) }
     }
 
     @Test
@@ -264,7 +264,6 @@ class CustomTabsIntegrationTest {
         integration.updateToolbarLayout(
             context = testContext,
             isNavBarEnabled = true,
-            isNavBarVisible = false,
             isWindowSizeSmall = false,
         )
 
@@ -279,7 +278,6 @@ class CustomTabsIntegrationTest {
         integration.updateToolbarLayout(
             context = testContext,
             isNavBarEnabled = false,
-            isNavBarVisible = false,
             isWindowSizeSmall = false,
         )
 

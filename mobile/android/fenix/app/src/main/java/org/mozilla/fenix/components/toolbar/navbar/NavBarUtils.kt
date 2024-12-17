@@ -8,7 +8,6 @@ import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import mozilla.components.compose.base.theme.AcornWindowSize
-import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.toolbar.ToolbarContainerView
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.ext.settings
@@ -20,7 +19,7 @@ import org.mozilla.fenix.ext.settings
  */
 fun Context.shouldAddNavigationBar(
     isWindowSmall: Boolean = AcornWindowSize.getWindowSize(this) == AcornWindowSize.Small,
-) = settings().navigationToolbarEnabled && isWindowSmall && !isTabStripEnabled()
+) = settings().navigationToolbarEnabled && isWindowSmall
 
 /**
  *
