@@ -223,6 +223,26 @@ let JSWINDOWACTORS = {
     allFrames: true,
   },
 
+  CaptchaDetection: {
+    parent: {
+      esModuleURI: "resource://gre/actors/CaptchaDetectionParent.sys.mjs",
+    },
+    child: {
+      esModuleURI: "resource://gre/actors/CaptchaDetectionChild.sys.mjs",
+      events: {
+        DOMContentLoaded: {},
+      },
+    },
+    matches: [
+      "https://www.google.com/recaptcha/api2/*",
+      "https://www.google.com/recaptcha/enterprise/*",
+      "https://*/cdn-cgi/challenge-platform/*/turnstile/if/ov2/*",
+    ],
+    messageManagerGroups: ["browsers"],
+    allFrames: true,
+    enablePreference: "datareporting.healthreport.uploadEnabled",
+  },
+
   CookieBanner: {
     parent: {
       esModuleURI: "resource://gre/actors/CookieBannerParent.sys.mjs",
