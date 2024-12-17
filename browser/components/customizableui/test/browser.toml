@@ -334,6 +334,8 @@ skip-if = ["(verify && debug && (os == 'linux' || os == 'mac'))"]
 
 ["browser_remove_customized_specials.js"]
 
+["browser_remove_sidebar_button_and_sidebar.js"]
+
 ["browser_reset_builtin_widget_currentArea.js"]
 
 ["browser_reset_dom_events.js"]

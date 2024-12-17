@@ -349,6 +349,8 @@ var SidebarController = {
       this._handleLauncherResize(entry)
     );
 
+    CustomizableUI.addListener(this);
+
     if (this.sidebarRevampEnabled) {
       if (!customElements.get("sidebar-main")) {
         ChromeUtils.importESModule(
@@ -454,6 +456,8 @@ var SidebarController = {
     Services.obs.removeObserver(this, "intl:app-locales-changed");
     Services.obs.removeObserver(this, "tabstrip-orientation-change");
     delete this._tabstripOrientationObserverAdded;
+
+    CustomizableUI.removeListener(this);
 
     if (this._observer) {
       this._observer.disconnect();
@@ -1681,6 +1685,13 @@ var SidebarController = {
           updateToggleControlLabel(triggerbutton);
         }
       }
+    }
+  },
+
+  onWidgetRemoved(aWidgetId) {
+    if (aWidgetId == "sidebar-button") {
+      Services.prefs.setStringPref("sidebar.visibility", "hide-sidebar");
+      this._state.updateVisibility(false, false, true);
     }
   },
 
