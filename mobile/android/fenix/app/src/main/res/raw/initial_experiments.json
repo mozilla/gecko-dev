@@ -64,20 +64,20 @@
     },
     {
       "schemaVersion": "1.12.0",
-      "slug": "long-term-holdback-2024-h2-velocity-android",
-      "id": "long-term-holdback-2024-h2-velocity-android",
+      "slug": "long-term-holdback-2025-h1-growth-android",
+      "id": "long-term-holdback-2025-h1-growth-android",
       "arguments": {},
       "application": "org.mozilla.firefox",
       "appName": "fenix",
       "appId": "org.mozilla.firefox",
       "channel": "release",
-      "userFacingName": "Long term holdback 2024 H2 Velocity Android",
-      "userFacingDescription": "Long-term holdback for H2 Velocity experiments",
+      "userFacingName": "Long term holdback 2025 H1 Growth Android",
+      "userFacingDescription": "Long-term holdback for growth experiments",
       "isEnrollmentPaused": false,
       "isRollout": false,
       "bucketConfig": {
         "randomizationUnit": "nimbus_id",
-        "namespace": "fenix-no-feature-fenix-release-3",
+        "namespace": "fenix-no-feature-fenix-release-4",
         "start": 0,
         "count": 10000,
         "total": 10000
@@ -122,7 +122,7 @@
         }
       ],
       "targeting": "((is_already_enrolled) || ((app_version|versionCompare('123.!') >= 0)))",
-      "startDate": "2024-09-19",
+      "startDate": "2024-12-12",
       "enrollmentEndDate": null,
       "endDate": null,
       "proposedDuration": 100,
@@ -131,7 +131,196 @@
       "featureValidationOptOut": false,
       "localizations": null,
       "locales": null,
-      "publishedDate": "2024-09-19T17:57:21.676623Z",
+      "publishedDate": "2024-12-12T20:20:50.686475Z",
+      "isFirefoxLabsOptIn": false,
+      "firefoxLabsTitle": null,
+      "firefoxLabsDescription": null,
+      "firefoxLabsGroup": null,
+      "requiresRestart": false
+    },
+    {
+      "schemaVersion": "1.12.0",
+      "slug": "promote-add-ons-in-onboarding-release",
+      "id": "promote-add-ons-in-onboarding-release",
+      "arguments": {},
+      "application": "org.mozilla.firefox",
+      "appName": "fenix",
+      "appId": "org.mozilla.firefox",
+      "channel": "release",
+      "userFacingName": "Promote Add Ons in Onboarding - Release",
+      "userFacingDescription": "Test Promoting Add Ons in Onboarding v2",
+      "isEnrollmentPaused": false,
+      "isRollout": false,
+      "bucketConfig": {
+        "randomizationUnit": "nimbus_id",
+        "namespace": "fenix-juno-onboarding-release-10",
+        "start": 0,
+        "count": 10000,
+        "total": 10000
+      },
+      "featureIds": [
+        "juno-onboarding"
+      ],
+      "probeSets": [],
+      "outcomes": [
+        {
+          "slug": "onboarding",
+          "priority": "primary"
+        },
+        {
+          "slug": "sponsored_tiles",
+          "priority": "secondary"
+        },
+        {
+          "slug": "default-browser",
+          "priority": "secondary"
+        }
+      ],
+      "branches": [
+        {
+          "slug": "control",
+          "ratio": 1,
+          "feature": {
+            "featureId": "this-is-included-for-mobile-pre-96-support",
+            "enabled": false,
+            "value": {}
+          },
+          "features": [
+            {
+              "featureId": "juno-onboarding",
+              "enabled": true,
+              "value": {}
+            }
+          ]
+        },
+        {
+          "slug": "treatment-a",
+          "ratio": 1,
+          "feature": {
+            "featureId": "this-is-included-for-mobile-pre-96-support",
+            "enabled": false,
+            "value": {}
+          },
+          "features": [
+            {
+              "featureId": "juno-onboarding",
+              "enabled": true,
+              "value": {
+                "cards": {
+                  "add-ons": {
+                    "title": "onboarding_add_on_header",
+                    "card-type": "add-ons",
+                    "body": "onboarding_add_on_sub_header",
+                    "image-res": "ic_onboarding_add_ons",
+                    "ordering": 40,
+                    "primary-button-label": "onboarding_add_on_start_browsing_button_2",
+                    "extra-data": {
+                      "add-ons-data": [
+                        {
+                          "id": "uBlock0@raymondhill.net",
+                          "install-url": "https://addons.mozilla.org/firefox/downloads/file/4359936/ublock_origin-1.60.0.xpi",
+                          "name": "onboarding_add_on_ublock_name",
+                          "description": "onboarding_add_on_ublock_description",
+                          "icon-res": "ic_add_on_ublock",
+                          "average-rating": "4.79",
+                          "review-count": "18,811"
+                        },
+                        {
+                          "id": "jid1-MnnxcxisBPnSXQ@jetpack",
+                          "install-url": "https://addons.mozilla.org/firefox/downloads/file/4321653/privacy_badger17-2024.7.17.xpi",
+                          "name": "onboarding_add_on_privacy_badger_name",
+                          "description": "onboarding_add_on_privacy_badger_description",
+                          "icon-res": "ic_add_on_privacy_badger",
+                          "average-rating": "4.8",
+                          "review-count": "2,545"
+                        },
+                        {
+                          "id": "{2e5ff8c8-32fe-46d0-9fc8-6b8986621f3c}",
+                          "install-url": "https://addons.mozilla.org/firefox/downloads/file/4309046/search_by_image-7.1.0.xpi",
+                          "name": "onboarding_add_on_search_by_image_name",
+                          "description": "onboarding_add_on_search_by_image_description",
+                          "icon-res": "ic_add_on_search_by_image",
+                          "average-rating": "4.61",
+                          "review-count": "1,563"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "slug": "treatment-b",
+          "ratio": 1,
+          "feature": {
+            "featureId": "this-is-included-for-mobile-pre-96-support",
+            "enabled": false,
+            "value": {}
+          },
+          "features": [
+            {
+              "featureId": "juno-onboarding",
+              "enabled": true,
+              "value": {
+                "cards": {
+                  "add-ons": {
+                    "title": "onboarding_add_on_header",
+                    "card-type": "add-ons",
+                    "body": "onboarding_add_on_sub_header",
+                    "image-res": "ic_onboarding_add_ons",
+                    "ordering": 40,
+                    "primary-button-label": "onboarding_add_on_start_browsing_button_2",
+                    "extra-data": {
+                      "add-ons-data": [
+                        {
+                          "id": "jid1-MnnxcxisBPnSXQ@jetpack",
+                          "install-url": "https://addons.mozilla.org/firefox/downloads/file/4321653/privacy_badger17-2024.7.17.xpi",
+                          "name": "onboarding_add_on_privacy_badger_name",
+                          "description": "onboarding_add_on_privacy_badger_description",
+                          "icon-res": "ic_add_on_privacy_badger",
+                          "average-rating": "4.8",
+                          "review-count": "2,545"
+                        },
+                        {
+                          "id": "addon@darkreader.org",
+                          "install-url": "https://addons.mozilla.org/firefox/downloads/file/4359254/darkreader-4.9.94.xpi",
+                          "name": "onboarding_add_on_dark_reader_name",
+                          "description": "onboarding_add_on_dark_reader_description",
+                          "icon-res": "ic_add_on_dark_reader",
+                          "average-rating": "4.50",
+                          "review-count": "5,964"
+                        },
+                        {
+                          "id": "{2e5ff8c8-32fe-46d0-9fc8-6b8986621f3c}",
+                          "install-url": "https://addons.mozilla.org/firefox/downloads/file/4309046/search_by_image-7.1.0.xpi",
+                          "name": "onboarding_add_on_search_by_image_name",
+                          "description": "onboarding_add_on_search_by_image_description",
+                          "icon-res": "ic_add_on_search_by_image",
+                          "average-rating": "4.61",
+                          "review-count": "1,563"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "targeting": "((is_already_enrolled) || ((isFirstRun == 'true') && (app_version|versionCompare('134.!') >= 0) && (enrollments_map['long-term-holdback-2025-h1-growth-android'] == 'delivery')))",
+      "startDate": "2024-12-12",
+      "enrollmentEndDate": null,
+      "endDate": null,
+      "proposedDuration": 28,
+      "proposedEnrollment": 14,
+      "referenceBranch": "control",
+      "featureValidationOptOut": false,
+      "localizations": null,
+      "locales": null,
+      "publishedDate": "2024-12-12T20:37:45.763407Z",
       "isFirefoxLabsOptIn": false,
       "firefoxLabsTitle": null,
       "firefoxLabsDescription": null,
