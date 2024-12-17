@@ -236,8 +236,8 @@ class LoadInfo final : public nsILoadInfo {
       uint64_t aBrowsingContextID, uint64_t aFrameBrowsingContextID,
       bool aInitialSecurityCheckDone, bool aIsThirdPartyContext,
       const Maybe<bool>& aIsThirdPartyContextToTopWindow,
-      bool aIsFormSubmission, bool aIsGETRequest, bool aSendCSPViolationEvents,
-      const OriginAttributes& aOriginAttributes,
+      bool aIsOn3PCBExceptionList, bool aIsFormSubmission, bool aIsGETRequest,
+      bool aSendCSPViolationEvents, const OriginAttributes& aOriginAttributes,
       RedirectHistoryArray&& aRedirectChainIncludingInternalRedirects,
       RedirectHistoryArray&& aRedirectChain,
       nsTArray<nsCOMPtr<nsIPrincipal>>&& aAncestorPrincipals,
@@ -348,6 +348,7 @@ class LoadInfo final : public nsILoadInfo {
   // NB: TYPE_DOCUMENT implies !third-party.
   bool mIsThirdPartyContext = false;
   Maybe<bool> mIsThirdPartyContextToTopWindow;
+  bool mIsOn3PCBExceptionList = false;
   bool mIsFormSubmission = false;
   bool mIsGETRequest = true;
   bool mSendCSPViolationEvents = true;

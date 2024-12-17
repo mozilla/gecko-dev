@@ -647,6 +647,7 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mInitialSecurityCheckDone(rhs.mInitialSecurityCheckDone),
       mIsThirdPartyContext(rhs.mIsThirdPartyContext),
       mIsThirdPartyContextToTopWindow(rhs.mIsThirdPartyContextToTopWindow),
+      mIsOn3PCBExceptionList(rhs.mIsOn3PCBExceptionList),
       mIsFormSubmission(rhs.mIsFormSubmission),
       mIsGETRequest(rhs.mIsGETRequest),
       mSendCSPViolationEvents(rhs.mSendCSPViolationEvents),
@@ -721,9 +722,9 @@ LoadInfo::LoadInfo(
     bool aForceInheritPrincipalDropped, uint64_t aInnerWindowID,
     uint64_t aBrowsingContextID, uint64_t aFrameBrowsingContextID,
     bool aInitialSecurityCheckDone, bool aIsThirdPartyContext,
-    const Maybe<bool>& aIsThirdPartyContextToTopWindow, bool aIsFormSubmission,
-    bool aIsGETRequest, bool aSendCSPViolationEvents,
-    const OriginAttributes& aOriginAttributes,
+    const Maybe<bool>& aIsThirdPartyContextToTopWindow,
+    bool aIsOn3PCBExceptionList, bool aIsFormSubmission, bool aIsGETRequest,
+    bool aSendCSPViolationEvents, const OriginAttributes& aOriginAttributes,
     RedirectHistoryArray&& aRedirectChainIncludingInternalRedirects,
     RedirectHistoryArray&& aRedirectChain,
     nsTArray<nsCOMPtr<nsIPrincipal>>&& aAncestorPrincipals,
@@ -788,6 +789,7 @@ LoadInfo::LoadInfo(
       mInitialSecurityCheckDone(aInitialSecurityCheckDone),
       mIsThirdPartyContext(aIsThirdPartyContext),
       mIsThirdPartyContextToTopWindow(aIsThirdPartyContextToTopWindow),
+      mIsOn3PCBExceptionList(aIsOn3PCBExceptionList),
       mIsFormSubmission(aIsFormSubmission),
       mIsGETRequest(aIsGETRequest),
       mSendCSPViolationEvents(aSendCSPViolationEvents),
@@ -1110,6 +1112,18 @@ NS_IMETHODIMP
 LoadInfo::SetIsThirdPartyContextToTopWindow(
     bool aIsThirdPartyContextToTopWindow) {
   mIsThirdPartyContextToTopWindow = Some(aIsThirdPartyContextToTopWindow);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetIsOn3PCBExceptionList(bool* aIsOn3PCBExceptionList) {
+  *aIsOn3PCBExceptionList = mIsOn3PCBExceptionList;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetIsOn3PCBExceptionList(bool aIsOn3PCBExceptionList) {
+  mIsOn3PCBExceptionList = aIsOn3PCBExceptionList;
   return NS_OK;
 }
 
