@@ -326,6 +326,14 @@ class HCaptchaHandler extends CaptchaHandler {
   }
 
   static matches(document) {
+    if (Cu.isInAutomation) {
+      return (
+        document
+          .getElementById("captchaType")
+          ?.getAttribute("data-captcha-type") === "hCaptcha"
+      );
+    }
+
     return (
       document.location.href.startsWith(
         "https://newassets.hcaptcha.com/captcha/v1/"
