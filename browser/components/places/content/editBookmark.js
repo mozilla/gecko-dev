@@ -1295,7 +1295,6 @@ ChromeUtils.defineLazyGetter(gEditItemOverlay, "_folderTree", () => {
           is="places-tree"
           data-l10n-id="bookmark-overlay-folders-tree"
           editable="true"
-          onselect="gEditItemOverlay.onFolderTreeSelect();"
           disableUserActions="true"
           hidecolumnpicker="true">
       <treecols>
@@ -1305,7 +1304,11 @@ ChromeUtils.defineLazyGetter(gEditItemOverlay, "_folderTree", () => {
     </tree>
   `)
   );
-  return gEditItemOverlay._element("folderTree");
+  const folderTree = gEditItemOverlay._element("folderTree");
+  folderTree.addEventListener("select", () =>
+    gEditItemOverlay.onFolderTreeSelect()
+  );
+  return folderTree;
 });
 
 for (let elt of [
