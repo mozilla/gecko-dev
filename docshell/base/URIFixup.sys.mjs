@@ -794,10 +794,17 @@ function isDomainKnown(asciiHost) {
 function checkAndFixPublicSuffix(info) {
   let uri = info.fixedURI;
   let asciiHost = uri?.asciiHost;
+
+  // If the original input ends in a "。" character (U+3002), we consider the
+  // input a search query if there is no valid suffix.
+  // While the "。" character is equivalent to a period in domains, it's more
+  // commonly used to terminate search phrases. We're preserving the historical
+  // behavior of the ascii period for now, as that may be more commonly expected
+  // by technical users.
   if (
     !asciiHost ||
     !asciiHost.includes(".") ||
-    asciiHost.endsWith(".") ||
+    (asciiHost.endsWith(".") && !info.originalInput.endsWith("。")) ||
     isDomainKnown(asciiHost)
   ) {
     return { suffix: "", hasUnknownSuffix: false };

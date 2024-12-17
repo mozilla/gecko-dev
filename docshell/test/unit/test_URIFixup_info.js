@@ -771,6 +771,23 @@ var testcases = [
     input: "jar:file:///omni.ja!/",
     fixedURI: "jar:file:///omni.ja!/",
   },
+  {
+    input: "example.comm.",
+    fixedURI: "http://example.comm./",
+    protocolChange: true,
+  },
+  {
+    input: "example。com。",
+    fixedURI: "http://example.com./",
+    protocolChange: true,
+  },
+  {
+    input: "example。comm。",
+    fixedURI: "http://example.comm./",
+    protocolChange: true,
+    keywordLookup: true,
+    affectedByDNSForSingleWordHosts: true,
+  },
 ];
 
 if (AppConstants.platform == "win") {
