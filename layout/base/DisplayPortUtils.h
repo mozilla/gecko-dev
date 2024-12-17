@@ -303,6 +303,8 @@ class DisplayPortUtils {
    */
   static Maybe<nsRect> GetRootDisplayportBase(PresShell* aPresShell);
 
+  static nsRect GetDisplayportBase(nsIFrame* aFrame);
+
   /**
    * Whether to tell the given element will use empty displayport marings.
    * NOTE: This function should be called only for the element having any type

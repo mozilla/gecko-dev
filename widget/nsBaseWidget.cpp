@@ -944,13 +944,18 @@ bool nsBaseWidget::ComputeShouldAccelerate() {
           StaticPrefs::gfx_webrender_unaccelerated_widget_force());
 }
 
-bool nsBaseWidget::UseAPZ() {
+bool nsBaseWidget::UseAPZ() const {
   return (gfxPlatform::AsyncPanZoomEnabled() &&
           (mWindowType == WindowType::TopLevel ||
            mWindowType == WindowType::Child ||
-           ((mWindowType == WindowType::Popup ||
-             mWindowType == WindowType::Dialog) &&
-            HasRemoteContent() && StaticPrefs::apz_popups_enabled())));
+           (StaticPrefs::apz_popups_enabled() &&
+            ((mWindowType == WindowType::Dialog && HasRemoteContent()) ||
+             UseAPZForPopup()))));
+}
+
+bool nsBaseWidget::UseAPZForPopup() const {
+  MOZ_ASSERT(gfxPlatform::AsyncPanZoomEnabled());
+  return mWindowType == WindowType::Popup && mPopupType != PopupType::Tooltip;
 }
 
 void nsBaseWidget::CreateCompositor() {

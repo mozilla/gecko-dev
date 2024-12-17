@@ -98,6 +98,7 @@ class ChromeProcessController : public mozilla::layers::GeckoContentController {
   void HandleDoubleTap(const mozilla::CSSPoint& aPoint, Modifiers aModifiers,
                        const ScrollableLayerGuid& aGuid,
                        const DoubleTapToZoomMetrics& aDoubleTapToZoomMetrics);
+  nsIFrame* GetWidgetFrame() const;
 };
 
 }  // namespace layers

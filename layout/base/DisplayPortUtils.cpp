@@ -945,14 +945,20 @@ Maybe<nsRect> DisplayPortUtils::GetRootDisplayportBase(PresShell* aPresShell) {
 
   nsRect baseRect;
   if (frame) {
-    baseRect = nsRect(nsPoint(0, 0),
-                      nsLayoutUtils::CalculateCompositionSizeForFrame(frame));
+    baseRect = GetDisplayportBase(frame);
   } else {
     baseRect = nsRect(nsPoint(0, 0),
                       aPresShell->GetPresContext()->GetVisibleArea().Size());
   }
 
   return Some(baseRect);
+}
+
+nsRect DisplayPortUtils::GetDisplayportBase(nsIFrame* aFrame) {
+  MOZ_ASSERT(aFrame);
+
+  return nsRect(nsPoint(),
+                nsLayoutUtils::CalculateCompositionSizeForFrame(aFrame));
 }
 
 bool DisplayPortUtils::WillUseEmptyDisplayPortMargins(nsIContent* aContent) {

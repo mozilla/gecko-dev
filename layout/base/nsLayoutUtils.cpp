@@ -3012,6 +3012,15 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
         /* aSetBase = */ true);
   }
 
+  // In the case where we use APZ for the given popup frame, we need to set the
+  // displayport base.
+  if (aFrame->IsMenuPopupFrame() &&
+      nsLayoutUtils::AsyncPanZoomEnabled(aFrame) &&
+      !DisplayPortUtils::HasDisplayPort(aFrame->GetContent())) {
+    MOZ_ASSERT(XRE_IsParentProcess());
+    APZCCallbackHelper::InitializeRootDisplayport(aFrame);
+  }
+
   nsRegion visibleRegion;
   if (aFlags & PaintFrameFlags::WidgetLayers) {
     // This layer tree will be reused, so we'll need to calculate it
@@ -8786,15 +8795,20 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
   bool isRootScrollContainerFrame = aScrollFrame == rootScrollContainerFrame;
   Document* document = presShell->GetDocument();
 
-  if (scrollId != ScrollableLayerGuid::NULL_SCROLL_ID &&
-      !presContext->GetParentPresContext()) {
-    if ((aScrollFrame && isRootScrollContainerFrame)) {
-      metadata.SetIsLayersIdRoot(true);
-    } else {
-      MOZ_ASSERT(document, "A non-root-scroll frame must be in a document");
-      if (aContent == document->GetDocumentElement()) {
+  if (scrollId != ScrollableLayerGuid::NULL_SCROLL_ID) {
+    if (!presContext->GetParentPresContext()) {
+      if ((aScrollFrame && isRootScrollContainerFrame)) {
         metadata.SetIsLayersIdRoot(true);
+      } else {
+        MOZ_ASSERT(document, "A non-root-scroll frame must be in a document");
+        if (aContent == document->GetDocumentElement()) {
+          metadata.SetIsLayersIdRoot(true);
+        }
       }
+    } else if (aForFrame->IsMenuPopupFrame()) {
+      // In the case of popup windows, the menu popup frame becomes the root.
+      MOZ_ASSERT(XRE_IsParentProcess());
+      metadata.SetIsLayersIdRoot(true);
     }
   }
 

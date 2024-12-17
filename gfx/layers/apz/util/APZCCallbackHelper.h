@@ -95,6 +95,10 @@ class APZCCallbackHelper {
      given presShell. */
   static void InitializeRootDisplayport(PresShell* aPresShell);
 
+  /* Similar to above InitializeRootDisplayport but for an nsIFrame.
+     The nsIFrame needs to be a popup menu frame. */
+  static void InitializeRootDisplayport(nsIFrame* aFrame);
+
   /* Get the pres context associated with the document enclosing |aContent|. */
   static nsPresContext* GetPresContextForContent(nsIContent* aContent);
 

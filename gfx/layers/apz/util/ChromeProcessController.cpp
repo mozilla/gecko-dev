@@ -10,6 +10,7 @@
 #include "base/task.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/APZEventState.h"
@@ -49,6 +50,14 @@ ChromeProcessController::ChromeProcessController(
 ChromeProcessController::~ChromeProcessController() = default;
 
 void ChromeProcessController::InitializeRoot() {
+  nsIFrame* widgetFrame = GetWidgetFrame();
+  if (widgetFrame && widgetFrame->IsMenuPopupFrame()) {
+    // For popup window, the menu frame should be the root and have
+    // the display port.
+    APZCCallbackHelper::InitializeRootDisplayport(widgetFrame);
+    return;
+  }
+
   APZCCallbackHelper::InitializeRootDisplayport(GetPresShell());
 }
 
@@ -358,4 +367,17 @@ void ChromeProcessController::NotifyScaleGestureComplete(
         "layers::ChromeProcessController::NotifyScaleGestureComplete",
         &APZCCallbackHelper::NotifyScaleGestureComplete, mWidget, aScale));
   }
+}
+
+nsIFrame* ChromeProcessController::GetWidgetFrame() const {
+  if (!mWidget) {
+    return nullptr;
+  }
+
+  nsView* view = nsView::GetViewFor(mWidget);
+  if (!view) {
+    return nullptr;
+  }
+
+  return view->GetFrame();
 }

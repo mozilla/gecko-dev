@@ -476,6 +476,36 @@ void APZCCallbackHelper::InitializeRootDisplayport(PresShell* aPresShell) {
   }
 }
 
+void APZCCallbackHelper::InitializeRootDisplayport(nsIFrame* aFrame) {
+  MOZ_ASSERT(XRE_IsParentProcess(),
+             "The root displayport should be only used in the parent process");
+  MOZ_ASSERT(aFrame && aFrame->IsMenuPopupFrame(),
+             "This function is only available for popup frames.");
+
+  nsIContent* content = aFrame->GetContent();
+  if (!content) {
+    return;
+  }
+
+  uint32_t presShellId;
+  ScrollableLayerGuid::ViewID viewId;
+  if (APZCCallbackHelper::GetOrCreateScrollIdentifiers(content, &presShellId,
+                                                       &viewId)) {
+    MOZ_LOG(sDisplayportLog, LogLevel::Debug,
+            ("Initializing root displayport on scrollId=%" PRIu64, viewId));
+    nsRect baseRect = DisplayPortUtils::GetDisplayportBase(aFrame);
+    DisplayPortUtils::SetDisplayPortBaseIfNotSet(content, baseRect);
+
+    DisplayPortUtils::SetDisplayPortMargins(
+        content, aFrame->PresShell(), DisplayPortMargins::Empty(content),
+        DisplayPortUtils::ClearMinimalDisplayPortProperty::Yes, 0);
+
+    // Unlike normal root displayport, we don't need to walk up the frame tree
+    // to set zero margin displayport for ancestor frames since this popup frame
+    // is the root frame of the popuped window.
+  }
+}
+
 nsPresContext* APZCCallbackHelper::GetPresContextForContent(
     nsIContent* aContent) {
   dom::Document* doc = aContent->GetComposedDoc();
