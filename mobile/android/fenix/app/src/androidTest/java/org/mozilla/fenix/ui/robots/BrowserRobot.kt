@@ -394,6 +394,22 @@ class BrowserRobot {
         }
     }
 
+    fun createBookmarkFromRedesignedBookmarksMenu(composeTestRule: ComposeTestRule, url: Uri, folder: String? = null) {
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(url) {
+            // needs to wait for the right url to load before saving a bookmark
+            verifyUrl(url.toString())
+        }.openThreeDotMenu {
+        }.bookmarkPage {
+        }.takeIf { !folder.isNullOrBlank() }?.let {
+            it.openThreeDotMenu {
+            }.editBookmarkPage {
+                setParentFolderFromRedesignedBookmarksMenu(composeTestRule, folder!!)
+                navigateUpFromRedesignedBookmarksMenu(composeTestRule)
+            }
+        }
+    }
+
     fun longClickPDFImage() = longClickPageObject(itemWithResId("pdfjs_internal_id_13R"))
 
     fun verifyPDFReaderToolbarItems() =

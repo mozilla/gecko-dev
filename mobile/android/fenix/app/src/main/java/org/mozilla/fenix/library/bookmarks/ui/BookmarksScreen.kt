@@ -45,10 +45,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -949,6 +953,7 @@ private fun EditFolderTopBar(
     )
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun AddFolderScreen(
     store: BookmarksStore,
@@ -964,11 +969,17 @@ private fun AddFolderScreen(
                 onValueChange = { newText -> store.dispatch(AddFolderAction.TitleChanged(newText)) },
                 placeholder = "",
                 errorText = "",
-                modifier = Modifier.padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 32.dp,
-                ),
+                modifier =
+                Modifier
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 32.dp,
+                    )
+                    .semantics {
+                        testTagsAsResourceId = true
+                        testTag = "bookmarks.add.folder.name.text.field"
+                    },
                 label = stringResource(R.string.bookmark_name_label_normal_case),
             )
 
@@ -1050,6 +1061,7 @@ private fun EditBookmarkScreen(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun BookmarkEditor(
     bookmarkItem: BookmarkItem.Bookmark,
@@ -1062,11 +1074,21 @@ private fun BookmarkEditor(
     ) {
         Favicon(url = bookmarkItem.previewImageUrl, size = 64.dp)
 
-        Column {
+        Column(
+            Modifier
+                .semantics {
+                    testTagsAsResourceId = true
+                },
+        ) {
             ClearableTextField(
                 value = bookmarkItem.title,
                 onValueChange = onTitleChanged,
                 placeholder = stringResource(R.string.bookmark_name_label_normal_case),
+                modifier =
+                Modifier
+                    .semantics {
+                        testTag = "edit.bookmark.item.title.text.field"
+                    },
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1075,6 +1097,11 @@ private fun BookmarkEditor(
                 value = bookmarkItem.url,
                 onValueChange = onURLChanged,
                 placeholder = stringResource(R.string.bookmark_url_label),
+                modifier =
+                Modifier
+                    .semantics {
+                        testTag = "edit.bookmark.item.url.text.field"
+                    },
             )
         }
     }

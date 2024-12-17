@@ -6,7 +6,11 @@ package org.mozilla.fenix.ui.robots
 
 import android.net.Uri
 import android.util.Log
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
@@ -21,6 +25,7 @@ import org.hamcrest.Matchers.allOf
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityComposeTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -145,6 +150,18 @@ class LibrarySubMenusMultipleSelectionToolbarRobot {
         Log.i(TAG, "clickMultiSelectionDelete: Clicked the multi-selection delete button")
     }
 
+    fun clickRedesignedBookmarksMenuMultiSelectDeleteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickRedesignedBookmarksMenuMultiSelectDeleteButton: Trying to click the multi-selection delete button")
+        redesignedBookmarksDeleteButton(composeTestRule).performClick()
+        Log.i(TAG, "clickRedesignedBookmarksMenuMultiSelectDeleteButton: Clicked the multi-selection delete button")
+    }
+
+    fun clickRedesignedBookmarksMenuMultiSelectThreeDotButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickRedesignedBookmarksMenuMultiSelectThreeDotButton: Trying to click the multi-selection three dot button")
+        composeTestRule.onNodeWithContentDescription(getStringResource(R.string.content_description_menu)).performClick()
+        Log.i(TAG, "clickRedesignedBookmarksMenuMultiSelectThreeDotButton: Clicked the multi-selection three dot button")
+    }
+
     class Transition {
         fun closeToolbarReturnToHistory(interact: HistoryRobot.() -> Unit): HistoryRobot.Transition {
             Log.i(TAG, "closeToolbarReturnToHistory: Trying to click the navigate up toolbar button")
@@ -176,6 +193,18 @@ class LibrarySubMenusMultipleSelectionToolbarRobot {
             return TabDrawerRobot.Transition(composeTestRule)
         }
 
+        fun clickOpenInNewTabButtonFromRedesignedBookmarksMenu(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
+            Log.i(TAG, "clickOpenInNewTabButtonFromRedesignedBookmarksMenu: Trying to click the multi-select \"Open in a new tab\" context menu button")
+            redesignedBookmarksOpenInNewTabButton(composeTestRule).performClick()
+            Log.i(TAG, "clickOpenInNewTabButtonFromRedesignedBookmarksMenu: Clicked the multi-select \"Open in a new tab\" context menu button")
+            Log.i(TAG, "clickOpenInNewTabButtonFromRedesignedBookmarksMenu: Trying to verify that the tabs tray exists")
+            composeTestRule.onNodeWithTag(TabsTrayTestTag.tabsTray).assertExists()
+            Log.i(TAG, "clickOpenInNewTabButtonFromRedesignedBookmarksMenu: Verified that the tabs tray exists")
+
+            TabDrawerRobot(composeTestRule).interact()
+            return TabDrawerRobot.Transition(composeTestRule)
+        }
+
         fun clickOpenPrivateTab(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
             Log.i(TAG, "clickOpenPrivateTab: Trying to click the multi-select \"Open in a private tab\" context menu button")
             openInPrivateTabButton().click()
@@ -200,6 +229,12 @@ private fun shareBookmarksButton() = onView(withId(R.id.share_bookmark_multi_sel
 
 private fun openInNewTabButton() = onView(withText("Open in new tab"))
 
+private fun redesignedBookmarksOpenInNewTabButton(composeTestRule: ComposeTestRule) =
+    composeTestRule.onNodeWithText(getStringResource(R.string.bookmark_menu_open_in_new_tab_button))
+
 private fun openInPrivateTabButton() = onView(withText("Open in private tab"))
+
+private fun redesignedBookmarksDeleteButton(composeTestRule: ComposeTestRule) =
+    composeTestRule.onNodeWithText(getStringResource(R.string.bookmark_menu_delete_button))
 
 private fun deleteButton() = onView(withText("Delete"))

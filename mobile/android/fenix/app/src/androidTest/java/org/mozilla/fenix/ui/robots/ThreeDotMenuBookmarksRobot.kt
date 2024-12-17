@@ -7,9 +7,14 @@
 package org.mozilla.fenix.ui.robots
 
 import android.util.Log
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.matcher.ViewMatchers.withText
+import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityComposeTestRule
 import org.mozilla.fenix.helpers.click
 
@@ -24,6 +29,15 @@ class ThreeDotMenuBookmarksRobot {
             Log.i(TAG, "clickEdit: Trying to click the \"Edit\" button")
             editButton().click()
             Log.i(TAG, "clickEdit: Clicked the \"Edit\" button")
+
+            BookmarksRobot().interact()
+            return BookmarksRobot.Transition()
+        }
+
+        fun clickEditFromRedesignedBookmarksMenu(composeTestRule: ComposeTestRule, interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+            Log.i(TAG, "clickEditFromRedesignedBookmarksMenu: Trying to click the \"Edit\" button")
+            redesignedBookmarkMenuEditButton(composeTestRule).performClick()
+            Log.i(TAG, "clickEditFromRedesignedBookmarksMenu: Clicked the \"Edit\" button")
 
             BookmarksRobot().interact()
             return BookmarksRobot.Transition()
@@ -45,6 +59,15 @@ class ThreeDotMenuBookmarksRobot {
 
             BookmarksRobot().interact()
             return BookmarksRobot.Transition()
+        }
+
+        fun clickShareFromRedesignedBookmarksMenu(composeTestRule: ComposeTestRule, interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
+            Log.i(TAG, "clickShareFromRedesignedBookmarksMenu: Trying to click the \"Share\" button")
+            redesignedBookmarkMenuShareButton(composeTestRule).performClick()
+            Log.i(TAG, "clickShareFromRedesignedBookmarksMenu: Clicked the \"Share\" button")
+
+            ShareOverlayRobot().interact()
+            return ShareOverlayRobot.Transition()
         }
 
         fun clickOpenInNewTab(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
@@ -91,14 +114,27 @@ class ThreeDotMenuBookmarksRobot {
             BookmarksRobot().interact()
             return BookmarksRobot.Transition()
         }
+
+        fun clickDeleteFromRedesignedBookmarksMenu(composeTestRule: ComposeTestRule, interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+            Log.i(TAG, "clickDeleteFromRedesignedBookmarksMenu: Trying to click the \"Delete\" button")
+            redesignedBookmarkMenuDeleteButton(composeTestRule).performClick()
+            Log.i(TAG, "clickDeleteFromRedesignedBookmarksMenu: Clicked the \"Delete\" button")
+
+            BookmarksRobot().interact()
+            return BookmarksRobot.Transition()
+        }
     }
 }
 
 private fun editButton() = onView(withText("Edit"))
 
+private fun redesignedBookmarkMenuEditButton(composeTestRule: ComposeTestRule) = composeTestRule.onNodeWithText(getStringResource(R.string.bookmark_menu_edit_button))
+
 private fun copyButton() = onView(withText("Copy"))
 
 private fun shareButton() = onView(withText("Share"))
+
+private fun redesignedBookmarkMenuShareButton(composeTestRule: ComposeTestRule) = composeTestRule.onNodeWithText(getStringResource(R.string.bookmark_menu_share_button))
 
 private fun openInNewTabButton() = onView(withText("Open in new tab"))
 
@@ -109,3 +145,5 @@ private fun openAllInTabsButton() = onView(withText("Open all in new tabs"))
 private fun openAllInPrivateTabsButton() = onView(withText("Open all in private tabs"))
 
 private fun deleteButton() = onView(withText("Delete"))
+
+private fun redesignedBookmarkMenuDeleteButton(composeTestRule: ComposeTestRule) = composeTestRule.onNodeWithText(getStringResource(R.string.bookmark_menu_delete_button))

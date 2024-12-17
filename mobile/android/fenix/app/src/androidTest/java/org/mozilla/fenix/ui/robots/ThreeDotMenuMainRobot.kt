@@ -342,6 +342,19 @@ class ThreeDotMenuMainRobot {
             return BookmarksRobot.Transition()
         }
 
+        fun openRedesignedBookmarksMenu(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
+            Log.i(TAG, "openRedesignedBookmarks: Trying to perform swipe down action on the three dot menu")
+            threeDotMenuRecyclerView().perform(swipeDown())
+            Log.i(TAG, "openRedesignedBookmarks: Performed swipe down action on the three dot menu")
+            mDevice.waitNotNull(Until.findObject(By.text("Bookmarks")), waitingTime)
+            Log.i(TAG, "openRedesignedBookmarks: Trying to click the \"Bookmarks\" button")
+            bookmarksButton().click()
+            Log.i(TAG, "openRedesignedBookmarks: Clicked the \"Bookmarks\" button")
+
+            BookmarksRobot().interact()
+            return BookmarksRobot.Transition()
+        }
+
         fun clickNewTabButton(interact: SearchRobot.() -> Unit): SearchRobot.Transition {
             Log.i(TAG, "clickNewTabButton: Trying to click the \"New tab\" button")
             normalBrowsingNewTabButton().click()
