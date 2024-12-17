@@ -1,0 +1,77 @@
+
+
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test for Messaging Layer Security</title>
+  <!-- SimpleTest Helpers -->
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <!-- Local Helpers -->
+  <script src="head_mls.js"></script>
+</head>
+<body>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+async function test_scenario() {
+
+  const mls = new MLS();
+
+  // Alice: Create signature keypair and credential
+  const alice = await mls.generateIdentity();
+  const alice_credential = await mls.generateCredential("alice");
+
+  // Bob: Create signature keypair and credential
+  const bob = await mls.generateIdentity();
+  const bob_credential = await mls.generateCredential("bob");
+
+
+  // Bob: Generate a key package
+  const bob_key_package = await mls.generateKeyPackage(bob, bob_credential);
+
+  // Alice: Create a group
+  let group_alice = await mls.groupCreate(alice, alice_credential);
+
+  // Alice: Add Bob to the group
+  let commit_output = await group_alice.add(bob_key_package);
+
+  // Alice: process her Add commit
+  await group_alice.receive(commit_output.commit);
+
+  // Bob: Join the group
+  let group_bob = await mls.groupJoin(bob, commit_output.welcome);
+
+  // Test: compare group identifier from Alice and Bob
+  is(byteArrayToHexString(group_alice.groupId), byteArrayToHexString(group_bob.groupId), "Alice GID == Bob GID");
+
+  // Alice & Bob: Export a secret
+  const context_bytes = new Uint8Array([99, 111, 110, 116, 101, 120, 116]); // "context" in ASCII
+
+  const exportAlice = await group_alice.exportSecret("label", context_bytes, 15);
+  const exportBob = await group_bob.exportSecret("label", context_bytes, 15);
+
+  // Test: compare exporter from Alice and Bob
+  is(byteArrayToHexString(exportAlice.exporter), byteArrayToHexString(exportBob.exporter), "Exporter Alice == Exporter Bob");
+
+  // Bob: send a message to the group
+  const message = new Uint8Array([72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 32, 33]); // "Hello World !" in ASCII
+  const ctx = await group_bob.send(message);
+
+  // Alice: receive a message from the group
+  const pt = await group_alice.receive(ctx);
+  info("Alice received a message from Bob: " + JSON.stringify(pt));
+
+  // Test: compare the message and the decrypted message
+  is(byteArrayToHexString(message), byteArrayToHexString(pt.content), "Plaintext == Decrypted Message");
+
+  SimpleTest.finish();
+}
+
+SimpleTest.waitForExplicitFinish();
+test_scenario();
+
+</script>
+</pre>
+</body>
+</html>

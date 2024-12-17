@@ -296,6 +296,10 @@ class BackgroundParentImpl : public PBackgroundParent {
   mozilla::ipc::IPCResult RecvHasMIDIDevice(
       HasMIDIDeviceResolver&& aResolver) override;
 
+  mozilla::ipc::IPCResult RecvCreateMLSTransaction(
+      Endpoint<PMLSTransactionParent>&& aEndpoint,
+      NotNull<nsIPrincipal*> aPrincipal) override;
+
   mozilla::ipc::IPCResult RecvStorageActivity(
       const PrincipalInfo& aPrincipalInfo) override;
 
