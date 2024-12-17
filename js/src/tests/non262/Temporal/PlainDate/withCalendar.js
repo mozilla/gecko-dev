@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
 
 // Lunisolar/lunar calendars can't accurately predict celestial orbits for dates
 // far into the past/future. 

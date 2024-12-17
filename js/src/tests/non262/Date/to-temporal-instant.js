@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
 
 const min = new Date(-8640000000000000).toTemporalInstant();
 const max = new Date(8640000000000000).toTemporalInstant();

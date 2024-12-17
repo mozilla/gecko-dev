@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
 
 // Non-leap month should find a result in years around 1972.
 //

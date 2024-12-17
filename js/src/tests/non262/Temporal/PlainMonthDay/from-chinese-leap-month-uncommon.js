@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.hasOwnProperty("Temporal")) slow
+// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal")) slow
 
 // Uncommon leap month with 30 days can be far into the past. Computing the
 // results can take its time, therefore the test is marked as "slow".

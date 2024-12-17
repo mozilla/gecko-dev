@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
 
 // Test we get consistent results for Temporal and Intl.DateTimeFormat, even
 // though the former uses ICU4X, whereas the latter uses ICU4C for calendrical
