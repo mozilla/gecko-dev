@@ -12,6 +12,7 @@ Services.scriptloader.loadSubScript(
 add_task(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["apz.popups.enabled", false], // bug 1934722
       ["layout.animation.prerender.partial", true],
       ["layout.animation.prerender.viewport-ratio-limit", 1.125],
     ],
