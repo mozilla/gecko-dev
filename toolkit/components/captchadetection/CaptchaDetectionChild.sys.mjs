@@ -12,6 +12,112 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
 });
 
 /**
+ * Abstract class for handling captchas.
+ */
+class CaptchaHandler {
+  constructor(actor) {
+    this.actor = actor;
+    this.tabId = this.actor.docShell.browserChild.tabId;
+    this.isPBM = this.actor.browsingContext.usePrivateBrowsing;
+  }
+
+  static matches(_document) {
+    throw new Error("abstract method");
+  }
+
+  updateState(state) {
+    this.actor.sendAsyncMessage("CaptchaState:Update", {
+      tabId: this.tabId,
+      isPBM: this.isPBM,
+      state,
+    });
+  }
+
+  onActorDestroy() {
+    lazy.console.debug("CaptchaHandler destroyed");
+  }
+
+  handleEvent(event) {
+    lazy.console.debug("CaptchaHandler got event:", event);
+  }
+}
+
+/**
+ * Handles Google Recaptcha v2 captchas.
+ *
+ * ReCaptcha v2 places two iframes in the page. One for the
+ * challenge and one for the checkmark. This handler listens
+ * for the checkmark being clicked or the challenge being
+ * shown. When either of these events happen, the handler
+ * sends a message to the parent actor. The handler then
+ * disconnects the mutation observer to avoid further
+ * processing.
+ */
+class GoogleRecaptchaV2Handler extends CaptchaHandler {
+  #enabled;
+  #mutationObserver;
+
+  constructor(actor) {
+    super(actor);
+    this.#enabled = true;
+    this.#mutationObserver = new this.actor.contentWindow.MutationObserver(
+      this.#mutationHandler.bind(this)
+    );
+    this.#mutationObserver.observe(this.actor.document, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style"],
+    });
+  }
+
+  static matches(document) {
+    return [
+      "https://www.google.com/recaptcha/api2/",
+      "https://www.google.com/recaptcha/enterprise/",
+    ].some(match => document.location.href.startsWith(match));
+  }
+
+  #mutationHandler(_mutations, observer) {
+    if (!this.#enabled) {
+      return;
+    }
+
+    const token = this.actor.document.getElementById("recaptcha-token");
+    const initialized = token && token.value !== "";
+    if (!initialized) {
+      return;
+    }
+
+    const checkmark = this.actor.document.getElementById("recaptcha-anchor");
+    if (checkmark && checkmark.ariaChecked === "true") {
+      this.updateState({
+        type: "g-recaptcha-v2",
+        changes: "GotCheckmark",
+      });
+      this.#enabled = false;
+      observer.disconnect();
+      return;
+    }
+
+    const images = this.actor.document.getElementById("rc-imageselect");
+    if (images) {
+      this.updateState({
+        type: "g-recaptcha-v2",
+        changes: "ImagesShown",
+      });
+      this.#enabled = false;
+      observer.disconnect();
+    }
+  }
+
+  onActorDestroy() {
+    super.onActorDestroy();
+    this.#mutationObserver.disconnect();
+  }
+}
+
+/**
  * This actor runs in the captcha's frame. It provides information
  * about the captcha's state to the parent actor.
  */
@@ -20,7 +126,37 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     lazy.console.debug("actorCreated");
   }
 
+  static #handlers = [GoogleRecaptchaV2Handler];
+
+  #initCaptchaHandler() {
+    for (const handler of CaptchaDetectionChild.#handlers) {
+      if (handler.matches(this.document)) {
+        this.handler = new handler(this);
+        return;
+      }
+    }
+  }
+
+  actorDestroy() {
+    lazy.console.debug("actorDestroy()");
+    this.handler?.onActorDestroy();
+  }
+
   handleEvent(event) {
-    lazy.console.debug("handleEvent", event);
+    if (
+      !this.handler &&
+      (event.type === "DOMContentLoaded" || event.type === "pageshow")
+    ) {
+      this.#initCaptchaHandler();
+      return;
+    }
+
+    if (event.type === "pagehide") {
+      this.sendAsyncMessage("TabState:Closed", {
+        tabId: this.docShell.browserChild.tabId,
+      });
+    }
+
+    this.handler?.handleEvent(event);
   }
 }
