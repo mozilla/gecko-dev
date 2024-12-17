@@ -28,8 +28,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
-  CaptchaDetectionPingUtils:
-    "resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
   CloseRemoteTab: "resource://gre/modules/FxAccountsCommands.sys.mjs",
   CommonDialog: "resource://gre/modules/CommonDialog.sys.mjs",
@@ -2057,8 +2055,6 @@ BrowserGlue.prototype = {
       "browser.contentblocking.features.strict",
       this._setPrefExpectationsAndUpdate
     );
-
-    lazy.CaptchaDetectionPingUtils.init();
 
     this._verifySandboxUserNamespaces(aWindow);
   },

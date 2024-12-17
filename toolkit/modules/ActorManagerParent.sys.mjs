@@ -223,67 +223,6 @@ let JSWINDOWACTORS = {
     allFrames: true,
   },
 
-  CaptchaDetection: {
-    parent: {
-      esModuleURI: "resource://gre/actors/CaptchaDetectionParent.sys.mjs",
-    },
-    child: {
-      esModuleURI: "resource://gre/actors/CaptchaDetectionChild.sys.mjs",
-      events: {
-        DOMContentLoaded: { capture: true },
-        pageshow: {},
-        pagehide: {},
-      },
-    },
-    matches: [
-      // Google reCAPTCHA v2
-      "https://www.google.com/recaptcha/api2/*",
-      "https://www.google.com/recaptcha/enterprise/*",
-      // CF Turnstile
-      "https://*/cdn-cgi/challenge-platform/*/turnstile/if/ov2/*",
-      // DataDome Captcha
-      "https://geo.captcha-delivery.com/captcha/*",
-      // hCaptcha
-      "https://newassets.hcaptcha.com/captcha/v1/*/static/hcaptcha.html",
-      // AWS WAF Captcha
-      "https://*.amazonaws.com/latest*",
-      // Arkose Labs Captcha
-      "https://client-api.arkoselabs.com/fc/assets/ec-game-core/game-core/*",
-      // Mochitest
-      ...(Cu.isInAutomation
-        ? [
-            "https://example.com/tests/toolkit/components/captchadetection/tests/mochitest/*",
-            "https://example.org/tests/toolkit/components/captchadetection/tests/mochitest/*",
-          ]
-        : []),
-    ],
-    messageManagerGroups: ["browsers"],
-    allFrames: true,
-    _reporting: false,
-    onAddActor(register, _unregister) {
-      if (
-        Services.prefs.getBoolPref(
-          "datareporting.healthreport.uploadEnabled",
-          false
-        ) ||
-        Cu.isInAutomation
-      ) {
-        register();
-      }
-    },
-  },
-
-  CaptchaDetectionCommunication: {
-    parent: {
-      esModuleURI: "resource://gre/actors/CaptchaDetectionParent.sys.mjs",
-    },
-    child: {
-      esModuleURI:
-        "resource://gre/actors/CaptchaDetectionCommunicationChild.sys.mjs",
-    },
-    allFrames: true,
-  },
-
   CookieBanner: {
     parent: {
       esModuleURI: "resource://gre/actors/CookieBannerParent.sys.mjs",
