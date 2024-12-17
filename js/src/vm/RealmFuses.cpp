@@ -72,7 +72,7 @@ const char* js::RealmFuses::fuseNames[] = {
 // I'd love it if we had a better answer.
 const char* js::RealmFuses::getFuseName(RealmFuses::FuseIndex index) {
   uint8_t rawIndex = uint8_t(index);
-  MOZ_ASSERT(rawIndex > 0 && index < RealmFuses::FuseIndex::LastFuseIndex);
+  MOZ_ASSERT(index < RealmFuses::FuseIndex::LastFuseIndex);
   return fuseNames[rawIndex];
 }
 
