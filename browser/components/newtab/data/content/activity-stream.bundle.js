@@ -161,6 +161,7 @@ for (const type of [
   "FAKESPOT_DISMISS",
   "FAKE_FOCUS_SEARCH",
   "FILL_SEARCH_TERM",
+  "FOLLOW_SECTION",
   "HANDOFF_SEARCH_TO_AWESOMEBAR",
   "HIDE_PERSONALIZE",
   "HIDE_PRIVACY_INFO",
@@ -2026,15 +2027,25 @@ const LinkMenuOptions = {
       type: actionTypes.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: () => ({
+  SectionBlock: ({ section, sectionPosition }) => ({
     id: "newtab-menu-section-block",
-    // Note: action TBA. It will send a list of blocked sections back to the API.
-    action: null,
-    impression: actionCreators.OnlyToMain({
+    // Note: Action TBA. It will send a list of blocked sections back to the API.
+    // TODO: Move current action (at.BLOCK_SECTION) to impression event when action is no longer TBA
+    action: actionCreators.OnlyToMain({
       type: actionTypes.BLOCK_SECTION,
+      data: {
+        section,
+        section_position: sectionPosition,
+        event_source: "CONTEXT_MENU",
+      },
     }),
   }),
-  SectionUnfollow: ({ followedSections, sectionKey }) => ({
+  SectionUnfollow: ({
+    followedSections,
+    section,
+    sectionKey,
+    sectionPosition,
+  }) => ({
     id: "newtab-menu-section-unfollow",
     action: actionCreators.OnlyToMain({
       type: actionTypes.SET_PREF,
@@ -2047,6 +2058,11 @@ const LinkMenuOptions = {
     }),
     impression: actionCreators.OnlyToMain({
       type: actionTypes.UNFOLLOW_SECTION,
+      data: {
+        section,
+        section_position: sectionPosition,
+        event_source: "CONTEXT_MENU",
+      },
     }),
   }),
 };
@@ -9852,7 +9868,9 @@ function SectionContextMenu({
   dispatch,
   sectionKey,
   following,
-  followedSections
+  followedSections,
+  section,
+  sectionPosition
 }) {
   // Initial context menu options: block this section only.
   const SECTIONS_CONTEXT_MENU_OPTIONS = ["SectionBlock"];
@@ -9881,10 +9899,12 @@ function SectionContextMenu({
     index: index,
     source: type.toUpperCase(),
     options: SECTIONS_CONTEXT_MENU_OPTIONS,
-    shouldSendImpressionStats: false,
+    shouldSendImpressionStats: true,
     site: {
+      followedSections,
+      section,
       sectionKey,
-      followedSections
+      sectionPosition
     }
   }));
 }
@@ -9987,10 +10007,28 @@ function CardSection({
   const mayHaveCombinedThumbsUpDown = mayHaveSectionsCardsThumbsUpDown && mayHaveThumbsUpDown;
   const onFollowClick = (0,external_React_namespaceObject.useCallback)(() => {
     dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, [...followedSections, sectionKey].join(", ")));
-  }, [dispatch, sectionKey, followedSections]);
+    // Telemetry Event Dispatch
+    dispatch(actionCreators.OnlyToMain({
+      type: "FOLLOW_SECTION",
+      data: {
+        section: sectionKey,
+        section_position: sectionPosition,
+        event_source: "MOZ_BUTTON"
+      }
+    }));
+  }, [dispatch, followedSections, sectionKey, sectionPosition]);
   const onUnfollowClick = (0,external_React_namespaceObject.useCallback)(() => {
     dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, [...followedSections.filter(item => item !== sectionKey)].join(", ")));
-  }, [dispatch, sectionKey, followedSections]);
+    // Telemetry Event Dispatch
+    dispatch(actionCreators.OnlyToMain({
+      type: "UNFOLLOW_SECTION",
+      data: {
+        section: sectionKey,
+        section_position: sectionPosition,
+        event_source: "MOZ_BUTTON"
+      }
+    }));
+  }, [dispatch, followedSections, sectionKey, sectionPosition]);
   const {
     maxTile
   } = getMaxTiles(responsiveLayouts);
@@ -10006,7 +10044,9 @@ function CardSection({
     className: following ? "section-follow following" : "section-follow"
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     onClick: following ? onUnfollowClick : onFollowClick,
-    type: following ? "destructive" : "default"
+    type: following ? "destructive" : "default",
+    index: sectionPosition,
+    section: sectionKey
   }, /*#__PURE__*/external_React_default().createElement("span", {
     className: "section-button-follow-text",
     "data-l10n-id": "newtab-section-follow-button"
@@ -10023,7 +10063,9 @@ function CardSection({
     followedSections: followedSections,
     sectionKey: sectionKey,
     title: title,
-    type: type
+    type: type,
+    section: sectionKey,
+    sectionPosition: sectionPosition
   }));
   return /*#__PURE__*/external_React_default().createElement("section", {
     className: "ds-section",

@@ -413,15 +413,25 @@ export const LinkMenuOptions = {
       type: at.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: () => ({
+  SectionBlock: ({ section, sectionPosition }) => ({
     id: "newtab-menu-section-block",
-    // Note: action TBA. It will send a list of blocked sections back to the API.
-    action: null,
-    impression: ac.OnlyToMain({
+    // Note: Action TBA. It will send a list of blocked sections back to the API.
+    // TODO: Move current action (at.BLOCK_SECTION) to impression event when action is no longer TBA
+    action: ac.OnlyToMain({
       type: at.BLOCK_SECTION,
+      data: {
+        section,
+        section_position: sectionPosition,
+        event_source: "CONTEXT_MENU",
+      },
     }),
   }),
-  SectionUnfollow: ({ followedSections, sectionKey }) => ({
+  SectionUnfollow: ({
+    followedSections,
+    section,
+    sectionKey,
+    sectionPosition,
+  }) => ({
     id: "newtab-menu-section-unfollow",
     action: ac.OnlyToMain({
       type: at.SET_PREF,
@@ -434,6 +444,11 @@ export const LinkMenuOptions = {
     }),
     impression: ac.OnlyToMain({
       type: at.UNFOLLOW_SECTION,
+      data: {
+        section,
+        section_position: sectionPosition,
+        event_source: "CONTEXT_MENU",
+      },
     }),
   }),
 };

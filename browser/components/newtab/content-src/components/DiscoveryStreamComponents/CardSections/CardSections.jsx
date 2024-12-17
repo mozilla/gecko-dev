@@ -116,7 +116,18 @@ function CardSection({
         [...followedSections, sectionKey].join(", ")
       )
     );
-  }, [dispatch, sectionKey, followedSections]);
+    // Telemetry Event Dispatch
+    dispatch(
+      ac.OnlyToMain({
+        type: "FOLLOW_SECTION",
+        data: {
+          section: sectionKey,
+          section_position: sectionPosition,
+          event_source: "MOZ_BUTTON",
+        },
+      })
+    );
+  }, [dispatch, followedSections, sectionKey, sectionPosition]);
 
   const onUnfollowClick = useCallback(() => {
     dispatch(
@@ -125,7 +136,18 @@ function CardSection({
         [...followedSections.filter(item => item !== sectionKey)].join(", ")
       )
     );
-  }, [dispatch, sectionKey, followedSections]);
+    // Telemetry Event Dispatch
+    dispatch(
+      ac.OnlyToMain({
+        type: "UNFOLLOW_SECTION",
+        data: {
+          section: sectionKey,
+          section_position: sectionPosition,
+          event_source: "MOZ_BUTTON",
+        },
+      })
+    );
+  }, [dispatch, followedSections, sectionKey, sectionPosition]);
 
   const { maxTile } = getMaxTiles(responsiveLayouts);
   const displaySections = section.data.slice(0, maxTile);
@@ -144,6 +166,8 @@ function CardSection({
         <moz-button
           onClick={following ? onUnfollowClick : onFollowClick}
           type={following ? "destructive" : "default"}
+          index={sectionPosition}
+          section={sectionKey}
         >
           <span
             className="section-button-follow-text"
@@ -167,6 +191,8 @@ function CardSection({
         sectionKey={sectionKey}
         title={title}
         type={type}
+        section={sectionKey}
+        sectionPosition={sectionPosition}
       />
     </div>
   );

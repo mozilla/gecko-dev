@@ -3,7 +3,6 @@ import { mount } from "enzyme";
 import { Provider } from "react-redux";
 import { INITIAL_STATE, reducers } from "common/Reducers.sys.mjs";
 import { CardSections } from "content-src/components/DiscoveryStreamComponents/CardSections/CardSections";
-import { actionCreators as ac } from "common/Actions.mjs";
 import { combineReducers, createStore } from "redux";
 import { DSCard } from "../../../../../content-src/components/DiscoveryStreamComponents/DSCard/DSCard";
 const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
@@ -232,6 +231,7 @@ describe("<CardSections />", () => {
         },
       },
     };
+
     wrapper = mount(
       <WrapWithProvider state={state}>
         <CardSections
@@ -274,15 +274,60 @@ describe("<CardSections />", () => {
 
     let button = wrapper.find(".section-follow moz-button").first();
     button.simulate("click", {});
-    assert.calledWith(
-      dispatch.getCall(0),
-      ac.SetPref(PREF_FOLLOWED_SECTIONS, "section_key_2, section_key_1")
-    );
+
+    assert.calledWith(dispatch.getCall(0), {
+      type: "SET_PREF",
+      data: {
+        name: "discoverystream.sections.following",
+        value: "section_key_2, section_key_1",
+      },
+      meta: {
+        from: "ActivityStream:Content",
+        to: "ActivityStream:Main",
+      },
+    });
+
+    assert.calledWith(dispatch.getCall(1), {
+      type: "FOLLOW_SECTION",
+      data: {
+        section: "section_key_1",
+        section_position: 0,
+        event_source: "MOZ_BUTTON",
+      },
+      meta: {
+        from: "ActivityStream:Content",
+        to: "ActivityStream:Main",
+        skipLocal: true,
+      },
+    });
+
     button = wrapper.find(".section-follow.following moz-button");
     button.simulate("click", {});
-    assert.calledWith(
-      dispatch.getCall(1),
-      ac.SetPref(PREF_FOLLOWED_SECTIONS, "")
-    );
+
+    assert.calledWith(dispatch.getCall(2), {
+      type: "SET_PREF",
+      data: {
+        name: "discoverystream.sections.following",
+        value: "",
+      },
+      meta: {
+        from: "ActivityStream:Content",
+        to: "ActivityStream:Main",
+      },
+    });
+
+    assert.calledWith(dispatch.getCall(3), {
+      type: "UNFOLLOW_SECTION",
+      data: {
+        section: "section_key_2",
+        section_position: 1,
+        event_source: "MOZ_BUTTON",
+      },
+      meta: {
+        from: "ActivityStream:Content",
+        to: "ActivityStream:Main",
+        skipLocal: true,
+      },
+    });
   });
 });

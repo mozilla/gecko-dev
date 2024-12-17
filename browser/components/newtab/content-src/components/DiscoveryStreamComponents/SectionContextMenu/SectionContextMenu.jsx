@@ -20,6 +20,8 @@ export function SectionContextMenu({
   sectionKey,
   following,
   followedSections,
+  section,
+  sectionPosition,
 }) {
   // Initial context menu options: block this section only.
   const SECTIONS_CONTEXT_MENU_OPTIONS = ["SectionBlock"];
@@ -54,10 +56,12 @@ export function SectionContextMenu({
           index={index}
           source={type.toUpperCase()}
           options={SECTIONS_CONTEXT_MENU_OPTIONS}
-          shouldSendImpressionStats={false}
+          shouldSendImpressionStats={true}
           site={{
-            sectionKey,
             followedSections,
+            section,
+            sectionKey,
+            sectionPosition,
           }}
         />
       )}
