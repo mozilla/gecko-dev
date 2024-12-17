@@ -429,6 +429,7 @@ let JSWINDOWACTORS = {
     },
     matches: ["about:shoppingsidebar"],
     remoteTypes: ["privilegedabout"],
+    messageManagerGroups: ["shopping-sidebar", "browsers", "review-checker"],
   },
 
   AboutWelcome: {

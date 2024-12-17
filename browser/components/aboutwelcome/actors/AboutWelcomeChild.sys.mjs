@@ -898,11 +898,16 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
     this.showOnboarding = showOnboarding;
 
     // Display onboarding if a user hasn't opted-in
-    const optInReady = showOnboarding && productUrl;
+    // The sidebar panel that is integrated into the main sidebar
+    // can be opened for any URL, so we shouldn't check if this is
+    // a productURL for that.
+    const optInReady = lazy.isIntegratedSidebar
+      ? showOnboarding
+      : showOnboarding && productUrl;
     if (optInReady) {
       // Render opt-in message
       AboutWelcomeShoppingChild.optedInSession = true;
-      this.AWSetProductURL(new URL(productUrl).hostname);
+      this.AWSetProductURL(productUrl);
       this.renderMessage();
       return;
     }
@@ -997,9 +1002,13 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
   }
 
   AWSetProductURL(productUrl) {
+    let productHostname;
+    if (productUrl) {
+      productHostname = new URL(productUrl).hostname;
+    }
     let content = lazy.isIntegratedSidebar
-      ? this._AWGetOptInSidebarVariantContent(productUrl)
-      : this._AWGetOptInDefaultContent(productUrl);
+      ? this._AWGetOptInSidebarVariantContent(productHostname)
+      : this._AWGetOptInDefaultContent(productHostname);
     optInDynamicContent = content;
   }
 

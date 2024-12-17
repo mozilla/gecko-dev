@@ -311,11 +311,32 @@ export class AboutWelcomeParent extends JSWindowActorParent {
 
 export class AboutWelcomeShoppingParent extends AboutWelcomeParent {
   /**
+   * Use gBrowser as the browser in messages from the sidebar content.
+   *
+   * @param {{name: string, data?: any}} message
+   * @override
+   */
+  receiveMessage(message) {
+    const { name, data } = message;
+    let browser;
+
+    if (this.manager.rootFrameLoader) {
+      let { ownerElement } = this.manager.rootFrameLoader;
+      let { topChromeWindow } = ownerElement.ownerGlobal.browsingContext;
+      browser = topChromeWindow.gBrowser;
+      return this.onContentMessage(name, data, browser);
+    }
+
+    lazy.log.warn(`Not handling ${name} because the browser doesn't exist.`);
+    return null;
+  }
+
+  /**
    * Handle messages from AboutWelcomeChild.sys.mjs
    *
    * @param {string} type
    * @param {any=} data
-   * @param {Browser} the xul:browser rendering the page
+   * @param {Browser} the global xul:browser
    */
   onContentMessage(type, data, browser) {
     // Only handle the messages that are relevant to the shopping page.
