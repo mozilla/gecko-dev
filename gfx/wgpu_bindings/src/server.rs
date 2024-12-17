@@ -1893,11 +1893,18 @@ impl Global {
                     return;
                 }
 
-                let use_external_texture = if let Some(id) = swap_chain_id {
+                let mut use_external_texture = if let Some(id) = swap_chain_id {
                     unsafe { wgpu_server_use_external_texture_for_swap_chain(self.owner, id) }
                 } else {
                     false
                 };
+
+                let limits = self.device_limits(self_id);
+                if desc.size.width > limits.max_texture_dimension_2d
+                    || desc.size.height > limits.max_texture_dimension_2d
+                {
+                    use_external_texture = false;
+                }
 
                 if use_external_texture {
                     #[cfg(target_os = "windows")]
