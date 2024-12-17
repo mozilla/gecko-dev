@@ -2444,3 +2444,50 @@ async function toggleJsTracer(toolbox) {
     }
   }
 }
+
+/**
+ * Retrieve the context menu element corresponding to the provided id, for the provided
+ * netmonitor instance.
+ * @param {Object} monitor
+ *        The network monnitor object
+ * @param {String} id
+ *        The id of the context menu item
+ */
+function getContextMenuItem(monitor, id) {
+  const Menu = require("resource://devtools/client/framework/menu.js");
+  return Menu.getMenuElementById(id, monitor.panelWin.document);
+}
+
+/*
+ * Selects and clicks the context menu item, it should
+ * also wait for the popup to close.
+ * @param {Object} monitor
+ *        The network monnitor object
+ * @param {String} id
+ *        The id of the context menu item
+ */
+async function selectContextMenuItem(monitor, id) {
+  const contextMenuItem = getContextMenuItem(monitor, id);
+
+  const popup = contextMenuItem.parentNode;
+  await maybeOpenAncestorMenu(contextMenuItem);
+  const hidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
+  popup.activateItem(contextMenuItem);
+  await hidden;
+}
+
+async function maybeOpenAncestorMenu(menuItem) {
+  const parentPopup = menuItem.parentNode;
+  if (parentPopup.state == "shown") {
+    return;
+  }
+  const shown = BrowserTestUtils.waitForEvent(parentPopup, "popupshown");
+  if (parentPopup.state == "showing") {
+    await shown;
+    return;
+  }
+  const parentMenu = parentPopup.parentNode;
+  await maybeOpenAncestorMenu(parentMenu);
+  parentMenu.openMenu(true);
+  await shown;
+}

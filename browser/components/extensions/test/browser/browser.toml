@@ -59,8 +59,6 @@ skip-if = [
 
 ["browser_ext_activeScript.js"]
 
-["browser_ext_addon_debugging_netmonitor.js"]
-
 ["browser_ext_autocompletepopup.js"]
 disabled = "bug 1438663 # same focus issue as Bug 1438663"
 
