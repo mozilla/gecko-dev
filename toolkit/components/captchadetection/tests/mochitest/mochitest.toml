@@ -8,6 +8,16 @@ support-files = [
   "CaptchaTestingUtils.js"
 ]
 
+["test_cf_turnstile_fail.html"]
+support-files = [
+  "cf_turnstile.html"
+]
+
+["test_cf_turnstile_success.html"]
+support-files = [
+  "cf_turnstile.html"
+]
+
 ["test_g_recaptcha_v2_ac.html"]
 support-files = [
   "g_recaptcha_v2_checkbox.html"
