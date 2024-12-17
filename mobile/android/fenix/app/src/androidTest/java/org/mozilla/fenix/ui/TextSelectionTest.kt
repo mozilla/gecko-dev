@@ -31,6 +31,7 @@ class TextSelectionTest : TestSetup() {
     @get:Rule
     val activityIntentTestRule = HomeActivityIntentTestRule(
         isLocationPermissionEnabled = SitePermissionsRules.Action.BLOCKED,
+        isPageLoadTranslationsPromptEnabled = false,
     )
 
     @Rule

@@ -18,8 +18,6 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.allowOrPreventSystemUIFromRe
 import org.mozilla.fenix.helpers.AppAndSystemHelper.enableOrDisableBackGestureNavigationOnDevice
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.TestHelper.mDevice
-import org.mozilla.fenix.nimbus.FxNimbus
-import org.mozilla.fenix.nimbus.Translations
 import org.mozilla.fenix.ui.robots.notificationShade
 
 /**
@@ -51,16 +49,6 @@ open class TestSetup {
 
         // Enable the back gesture from the edge of the screen on the device.
         enableOrDisableBackGestureNavigationOnDevice(backGestureNavigationEnabled = true)
-
-        Log.i(TAG, "TestSetup: Trying to disable the translations prompt")
-        // Prevents translations from opening a popup
-        FxNimbus.features.translations.withInitializer { _, _ ->
-            Translations(
-                mainFlowToolbarEnabled = false,
-                mainFlowBrowserMenuEnabled = true,
-            )
-        }
-        Log.i(TAG, "TestSetup: Disabled the translations prompt")
 
         runBlocking {
             // Check and clear the downloads folder, in case the tearDown method is not executed.

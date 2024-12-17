@@ -113,6 +113,17 @@ interface FeatureSettingsHelper {
      */
     var shouldUseBottomToolbar: Boolean
 
+    /**
+     * Enable or disable the translations prompt after a page that can be translated is loaded.
+     */
+    fun enableOrDisablePageLoadTranslationsPrompt(enableTranslationsPrompt: Boolean) {
+        if (enableTranslationsPrompt) {
+            FxNimbusHelper.enablePageLoadTranslationsPrompt()
+        } else {
+            FxNimbusHelper.disablePageLoadTranslationsPrompt()
+        }
+    }
+
     fun applyFlagUpdates()
 
     fun resetAllFeatureFlags()

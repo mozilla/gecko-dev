@@ -45,6 +45,7 @@ class RedesignedMenuTest : TestSetup() {
                 isSetAsDefaultBrowserPromptEnabled = false,
                 isMenuRedesignEnabled = true,
                 isMenuRedesignCFREnabled = false,
+                isPageLoadTranslationsPromptEnabled = false,
             ),
         ) { it.activity }
 
