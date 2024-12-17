@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ArkoseLabs Puzzle Completion Detection Test</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+    <script src="GleanTest.js"></script>
+    <script src="CaptchaTestingUtils.js"></script>
+  </head>
+  <body>
+    <p id="display"></p>
+    <div id="content" style="display: none"></div>
+    <pre id="test"></pre>
+
+    <script>
+      add_task(async function () {
+        await GleanTest.testResetFOG();
+
+        const challenge =
+          await CaptchaTestingUtils.createIframeAndWaitForMessage(
+            "arkose_labs.html",
+            document.body,
+            "ready"
+          );
+        const mockedRequest1 =
+          CaptchaTestingUtils.waitForMessage("mocked-request");
+        challenge.contentWindow.postMessage("mock-solution", "*");
+        await mockedRequest1;
+
+        const mockedRequest2 =
+          CaptchaTestingUtils.waitForMessage("mocked-request");
+        const metricSet = CaptchaTestingUtils.waitForMetricSet();
+        challenge.contentWindow.postMessage("mock-solved", "*");
+        await Promise.all([mockedRequest2, metricSet]);
+
+        const puzzleCompletedCount =
+          await GleanTest.captchaDetection.arkoselabsPc.testGetValue();
+        is(puzzleCompletedCount, 1, "The puzzle completion count should be 1");
+
+        const solutionsRequired =
+          await GleanTest.captchaDetection.arkoselabsSolutionsRequired.testGetValue();
+        is(
+          solutionsRequired.sum,
+          2,
+          "The number of solutions required should be 2"
+        );
+
+        await CaptchaTestingUtils.clearPrefs();
+      });
+    </script>
+  </body>
+</html>
