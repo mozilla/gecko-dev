@@ -15,7 +15,7 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { PdfJsTelemetry } from "resource://pdf.js/PdfJsTelemetry.sys.mjs";
-import { playNotFoundSound } from "resource://gre/modules/FinderSound.sys.mjs";
+import { playSound } from "resource://gre/modules/FinderSound.sys.mjs";
 
 const lazy = {};
 
@@ -424,8 +424,11 @@ export class PdfjsParent extends JSWindowActorParent {
           this._lastNotFoundStringLength = data.rawQuery.length;
 
           if (searchLengthened && !data.entireWord) {
-            playNotFoundSound();
+            playSound("not-found");
           }
+          break;
+        case Ci.nsITypeAheadFind.FIND_WRAPPED:
+          playSound("wrapped");
           break;
         case Ci.nsITypeAheadFind.FIND_PENDING:
           break;

@@ -9,7 +9,7 @@ import { Rect } from "resource://gre/modules/Geometry.sys.mjs";
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
-import { playNotFoundSound } from "resource://gre/modules/FinderSound.sys.mjs";
+import { playSound } from "resource://gre/modules/FinderSound.sys.mjs";
 
 const lazy = {};
 
@@ -235,7 +235,7 @@ Finder.prototype = {
       this._lastFindResult.result == Ci.nsITypeAheadFind.FIND_NOTFOUND &&
       !this._fastFind.entireWord
     ) {
-      playNotFoundSound();
+      playSound("not-found");
     }
 
     return this._lastFindResult;
@@ -275,6 +275,10 @@ Finder.prototype = {
     };
     this._setResults(results);
     this.updateHighlightAndMatchCount(results);
+
+    if (this._lastFindResult.result == Ci.nsITypeAheadFind.FIND_WRAPPED) {
+      playSound("wrapped");
+    }
 
     return this._lastFindResult;
   },

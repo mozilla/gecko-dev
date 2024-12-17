@@ -72,6 +72,62 @@ add_task(async function test_notfound_sound() {
   gBrowser.removeTab(tab);
 });
 
+add_task(async function test_wrapped_sound() {
+  const url =
+    "data:text/html;base64," +
+    btoa('<body><iframe srcdoc="foo foo bar"/></iframe>');
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["accessibility.typeaheadfind.wrappedSoundURL", "beep"]],
+  });
+
+  let finder = tab.linkedBrowser.finder;
+  let listener = {
+    onFindResult() {
+      ok(false, "callback wasn't replaced");
+    },
+  };
+  finder.addResultListener(listener);
+
+  let promiseFind, findResult;
+
+  function waitForFind() {
+    return new Promise(resolve => {
+      listener.onFindResult = resolve;
+    });
+  }
+
+  MockSound.reset();
+  promiseFind = waitForFind();
+  finder.fastFind("foo", false, false);
+  findResult = await promiseFind;
+
+  promiseFind = waitForFind();
+  finder.findAgain("foo", false, false, false);
+  findResult = await promiseFind;
+
+  is(findResult.result, Ci.nsITypeAheadFind.FIND_FOUND, 'Find "foo" 2 times');
+  SimpleTest.isDeeply(
+    MockSound.played,
+    [],
+    "No sound played for first 2 finds"
+  );
+
+  // 3rd find will trigger "wrapped"
+  promiseFind = waitForFind();
+  finder.findAgain("foo", false, false, false);
+  findResult = await promiseFind;
+  is(
+    findResult.result,
+    Ci.nsITypeAheadFind.FIND_WRAPPED,
+    'Find "foo" 3rd time'
+  );
+  SimpleTest.isDeeply(MockSound.played, ["beep"], '"beep" for wrapped event');
+
+  gBrowser.removeTab(tab);
+});
+
 add_task(async function test_notfound_sound_in_remote_findbar() {
   const url = "about:about";
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
@@ -129,6 +185,65 @@ add_task(async function test_notfound_sound_in_remote_findbar() {
     'String "confoobar" not found'
   );
   SimpleTest.isDeeply(MockSound.played, [], "No sound when entireWord is on");
+
+  gBrowser.removeTab(tab);
+});
+
+add_task(async function test_wrapped_sound_in_remote_findbar() {
+  const url = kFixtureBaseURL + "file_FinderSample.html";
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["accessibility.typeaheadfind.wrappedSoundURL", "beep"]],
+  });
+
+  let finder = tab.linkedBrowser.finder;
+  let listener = {
+    onFindResult() {
+      ok(false, "callback wasn't replaced");
+    },
+  };
+  finder.addResultListener(listener);
+
+  let promiseFind, findResult;
+
+  function waitForFind() {
+    return new Promise(resolve => {
+      listener.onFindResult = resolve;
+    });
+  }
+
+  MockSound.reset();
+  promiseFind = waitForFind();
+  finder.fastFind("Roland", false, false);
+  findResult = await promiseFind;
+
+  promiseFind = waitForFind();
+  finder.findAgain("Roland", false, false, false);
+  findResult = await promiseFind;
+
+  // Known: "Roland" appears in <body> 2 times
+  is(
+    findResult.result,
+    Ci.nsITypeAheadFind.FIND_FOUND,
+    'Find "Roland" 2 times'
+  );
+  SimpleTest.isDeeply(
+    MockSound.played,
+    [],
+    "No sound played for first 2 finds"
+  );
+
+  // 3rd find will trigger "wrapped"
+  promiseFind = waitForFind();
+  finder.findAgain("Roland", false, false, false);
+  findResult = await promiseFind;
+  is(
+    findResult.result,
+    Ci.nsITypeAheadFind.FIND_WRAPPED,
+    'Find "Roland" 3rd time'
+  );
+  SimpleTest.isDeeply(MockSound.played, ["beep"], '"beep" for wrapped event');
 
   gBrowser.removeTab(tab);
 });

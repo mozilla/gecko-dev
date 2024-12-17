@@ -85,6 +85,13 @@ async function doFind(findbar, searchText, waitFunc) {
   return promise;
 }
 
+async function doFindNext(findbar, waitFunc) {
+  info("performing findNext");
+  let promise = waitFunc(findbar);
+  findbar.onFindAgainCommand();
+  return promise;
+}
+
 add_task(async function test_findbar_in_pdf() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
@@ -153,6 +160,50 @@ add_task(async function test_findbar_in_pdf_with_notfound_sound() {
 
       await waitForPdfJSClose(browser);
       findbar.toggleEntireWord(false);
+    }
+  );
+});
+
+add_task(async function test_findbar_in_pdf_with_wrapped_sound() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["accessibility.typeaheadfind.wrappedSoundURL", "beep"]],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:blank" },
+    async browser => {
+      await waitForPdfJS(browser, TEST_PDF_URL);
+      const tab = gBrowser.getTabForBrowser(browser);
+      let findbar = await gBrowser.getFindBar(tab);
+      let findResult;
+
+      MockSound.reset();
+
+      // Known: "B2G" appears in the doc 2 times
+      findResult = await doFind(findbar, "B2G", waitForPdfjsResult);
+      is(findResult.result, Ci.nsITypeAheadFind.FIND_FOUND, 'Find 1st "B2G"');
+
+      findResult = await doFindNext(findbar, waitForPdfjsResult);
+      is(findResult.result, Ci.nsITypeAheadFind.FIND_FOUND, 'Find 2nd "B2G"');
+      SimpleTest.isDeeply(
+        MockSound.played,
+        [],
+        'No sound for first 2 "B2G" finding'
+      );
+
+      findResult = await doFindNext(findbar, waitForPdfjsResult);
+      is(
+        findResult.result,
+        Ci.nsITypeAheadFind.FIND_WRAPPED,
+        'Find "B2G" 3rd time'
+      );
+      SimpleTest.isDeeply(
+        MockSound.played,
+        ["beep"],
+        '"beep" for wrapped event'
+      );
+
+      await waitForPdfJSClose(browser);
     }
   );
 });

@@ -5,6 +5,7 @@
 
 const kSoundEnabledPref = "accessibility.typeaheadfind.enablesound";
 const kNotFoundSoundPref = "accessibility.typeaheadfind.soundURL";
+const kWrappedSoundPref = "accessibility.typeaheadfind.wrappedSoundURL";
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
@@ -24,14 +25,21 @@ XPCOMUtils.defineLazyPreferenceGetter(
   ""
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "wrappedSoundURL",
+  kWrappedSoundPref,
+  ""
+);
+
 let gSound = null;
 
 export function resetSound() {
   gSound = null;
 }
 
-export function initNotFoundSound() {
-  if (!gSound && lazy.isSoundEnabled && lazy.notFoundSoundURL) {
+export function initSound() {
+  if (!gSound && lazy.isSoundEnabled) {
     try {
       gSound = Cc["@mozilla.org/sound;1"].getService(Ci.nsISound);
       gSound.init();
@@ -39,17 +47,33 @@ export function initNotFoundSound() {
   }
 }
 
-export function playNotFoundSound() {
-  if (!lazy.isSoundEnabled || !lazy.notFoundSoundURL) {
+export function playSound(event) {
+  if (!lazy.isSoundEnabled) {
     return;
   }
 
-  initNotFoundSound();
+  initSound();
   if (!gSound) {
     return;
   }
 
-  let soundUrl = lazy.notFoundSoundURL;
+  let soundUrl;
+
+  switch (event) {
+    case "not-found":
+      soundUrl = lazy.notFoundSoundURL;
+      break;
+    case "wrapped":
+      soundUrl = lazy.wrappedSoundURL;
+      break;
+    default:
+      return;
+  }
+
+  if (soundUrl === "") {
+    return;
+  }
+
   if (soundUrl == "beep") {
     gSound.beep();
   } else {

@@ -8,8 +8,8 @@ const kModalHighlightPref = "findbar.modalHighlight";
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import {
-  initNotFoundSound,
-  playNotFoundSound,
+  initSound,
+  playSound,
 } from "resource://gre/modules/FinderSound.sys.mjs";
 
 const lazy = {};
@@ -312,7 +312,7 @@ FinderParent.prototype = {
     }
 
     if (searchLengthened) {
-      initNotFoundSound();
+      initSound();
     }
 
     // Add the initial browsing context twice to allow looping around.
@@ -408,7 +408,11 @@ FinderParent.prototype = {
         !aFindNext &&
         !response.entireWord
       ) {
-        playNotFoundSound();
+        playSound("not-found");
+      }
+
+      if (response.result == Ci.nsITypeAheadFind.FIND_WRAPPED) {
+        playSound("wrapped");
       }
     }
   },
