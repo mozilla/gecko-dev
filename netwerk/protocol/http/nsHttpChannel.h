@@ -55,12 +55,8 @@ using DNSPromise = MozPromise<nsCOMPtr<nsIDNSRecord>, nsresult, false>;
 //-----------------------------------------------------------------------------
 
 // Use to support QI nsIChannel to nsHttpChannel
-#define NS_HTTPCHANNEL_IID                           \
-  {                                                  \
-    0x301bf95b, 0x7bb3, 0x4ae1, {                    \
-      0xa9, 0x71, 0x40, 0xbc, 0xfa, 0x81, 0xde, 0x12 \
-    }                                                \
-  }
+#define NS_HTTPCHANNEL_IID \
+  {0x301bf95b, 0x7bb3, 0x4ae1, {0xa9, 0x71, 0x40, 0xbc, 0xfa, 0x81, 0xde, 0x12}}
 
 class nsHttpChannel final : public HttpBaseChannel,
                             public HttpAsyncAborter<nsHttpChannel>,
@@ -626,7 +622,6 @@ class nsHttpChannel final : public HttpBaseChannel,
   bool mCacheOpenWithPriority{false};
   uint32_t mCacheQueueSizeWhenOpen{0};
 
-  Atomic<bool, Relaxed> mCachedContentIsValid{false};
   Atomic<bool> mIsAuthChannel{false};
   Atomic<bool> mAuthRetryPending{false};
 
@@ -701,6 +696,10 @@ class nsHttpChannel final : public HttpBaseChannel,
   // Broken up into two bitfields to avoid alignment requirements of uint64_t.
   // (Too many bits used for one uint32_t.)
   MOZ_ATOMIC_BITFIELDS(mAtomicBitfields6, 32, (
+    // True if network request gets to OnStart before we get a response from the cache
+    (uint32_t, NetworkWonRace, 1),
+    // Valid values are CachedContentValid
+    (uint32_t, CachedContentIsValid, 2),
     // Only set to true when we receive an HTTPSSVC record before the
     // transaction is created.
     (uint32_t, HTTPSSVCTelemetryReported, 1),
@@ -708,6 +707,11 @@ class nsHttpChannel final : public HttpBaseChannel,
     (uint32_t, AuthRedirectedChannel, 1)
   ))
   // clang-format on
+  enum CachedContentValidity : uint8_t { Unset = 0, Invalid = 1, Valid = 2 };
+
+  bool CachedContentIsValid() {
+    return LoadCachedContentIsValid() == CachedContentValidity::Valid;
+  }
 
   nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
