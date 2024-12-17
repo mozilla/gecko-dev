@@ -36,6 +36,9 @@ tags = "webextensions"
 ["browser_aboutdebugging_addons_debug_inspector.js"]
 tags = "webextensions"
 
+["browser_aboutdebugging_addons_debug_netmonitor.js"]
+tags = "webextensions"
+
 ["browser_aboutdebugging_addons_debug_nobg.js"]
 tags = "webextensions"
 
