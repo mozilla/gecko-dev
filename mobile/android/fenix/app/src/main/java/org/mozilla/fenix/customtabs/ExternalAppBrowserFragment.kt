@@ -236,6 +236,8 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
 
     @Suppress("LongMethod")
     private fun initializeNavBar() {
+        NavigationBar.customTabInitializeTimespan.start()
+
         // Update the contents of the bottomToolbarContainer with the CustomTabNavBar configuration
         // only if a navbar should be used and it was initialized in the parent.
         // Follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888300
@@ -328,5 +330,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                 }
             }
         }
+
+        NavigationBar.customTabInitializeTimespan.stop()
     }
 }

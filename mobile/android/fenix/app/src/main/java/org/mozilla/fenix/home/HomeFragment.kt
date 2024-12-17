@@ -614,6 +614,8 @@ class HomeFragment : Fragment() {
         activity: HomeActivity,
         isConfigChange: Boolean = false,
     ) {
+        NavigationBar.homeInitializeTimespan.start()
+
         val context = requireContext()
         val isToolbarAtBottom = context.isToolbarAtBottom()
 
@@ -825,6 +827,8 @@ class HomeFragment : Fragment() {
                 }
             },
         )
+
+        NavigationBar.homeInitializeTimespan.stop()
     }
 
     @VisibleForTesting

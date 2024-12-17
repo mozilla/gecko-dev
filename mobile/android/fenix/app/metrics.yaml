@@ -12501,6 +12501,63 @@ navigation_bar:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+  home_initialize_timespan:
+    type: timespan
+    time_unit: millisecond
+    send_in_pings:
+      - metrics
+    description: >
+      The time that it takes to initialize navigation bar in home screen.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937141
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232102
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Performance
+  browser_initialize_timespan:
+    type: timespan
+    time_unit: millisecond
+    send_in_pings:
+      - metrics
+    description: >
+      The time that it takes to initialize navigation bar in a browser tab (normal or private).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937141
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232102
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Performance
+  custom_tab_initialize_timespan:
+    type: timespan
+    time_unit: millisecond
+    send_in_pings:
+      - metrics
+    description: >
+      The time that it takes to initialize navigation bar in custom tab.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937141
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232102
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Performance
 
 address_toolbar:
   share_tapped:

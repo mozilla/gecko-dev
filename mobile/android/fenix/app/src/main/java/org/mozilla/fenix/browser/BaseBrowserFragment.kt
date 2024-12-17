@@ -1477,6 +1477,8 @@ abstract class BaseBrowserFragment :
         context: Context,
         activity: HomeActivity,
     ) {
+        NavigationBar.browserInitializeTimespan.start()
+
         val isToolbarAtBottom = context.isToolbarAtBottom()
 
         // The toolbar view has already been added directly to the container.
@@ -1560,6 +1562,8 @@ abstract class BaseBrowserFragment :
             owner = this,
             view = view,
         )
+
+        NavigationBar.browserInitializeTimespan.stop()
     }
 
     @Suppress("LongMethod")
