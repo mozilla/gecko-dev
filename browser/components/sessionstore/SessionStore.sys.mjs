@@ -2787,35 +2787,23 @@ var SessionStoreInternal = {
     }
     // remove all closed tabs containing a reference to the given domain
     for (let ix in this._windows) {
-      let closedTabsLists = [
-        this._windows[ix]._closedTabs,
-        ...this._windows[ix].closedGroups.map(g => g.tabs),
-      ];
-
-      for (let closedTabs of closedTabsLists) {
-        for (let i = closedTabs.length - 1; i >= 0; i--) {
-          if (closedTabs[i].state.entries.some(containsDomain, this)) {
-            closedTabs.splice(i, 1);
-            this._closedObjectsChanged = true;
-          }
+      let closedTabs = this._windows[ix]._closedTabs;
+      for (let i = closedTabs.length - 1; i >= 0; i--) {
+        if (closedTabs[i].state.entries.some(containsDomain, this)) {
+          closedTabs.splice(i, 1);
+          this._closedObjectsChanged = true;
         }
       }
     }
     // remove all open & closed tabs containing a reference to the given
     // domain in closed windows
     for (let ix = this._closedWindows.length - 1; ix >= 0; ix--) {
-      let closedTabsLists = [
-        this._closedWindows[ix]._closedTabs,
-        ...this._closedWindows[ix].closedGroups.map(g => g.tabs),
-      ];
+      let closedTabs = this._closedWindows[ix]._closedTabs;
       let openTabs = this._closedWindows[ix].tabs;
       let openTabCount = openTabs.length;
-
-      for (let closedTabs of closedTabsLists) {
-        for (let i = closedTabs.length - 1; i >= 0; i--) {
-          if (closedTabs[i].state.entries.some(containsDomain, this)) {
-            closedTabs.splice(i, 1);
-          }
+      for (let i = closedTabs.length - 1; i >= 0; i--) {
+        if (closedTabs[i].state.entries.some(containsDomain, this)) {
+          closedTabs.splice(i, 1);
         }
       }
       for (let j = openTabs.length - 1; j >= 0; j--) {
