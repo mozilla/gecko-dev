@@ -11,6 +11,14 @@ prefs = ["sidebar.revamp=false"]
 
 ["browser_test_animations_without_apz_sampler.js"]
 
+["browser_test_touch_event_in_popup_panel.js"]
+support-files = [
+  "!/testing/mochitest/tests/SimpleTest/paint_listener.js",
+]
+skip-if = [
+  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
+]
+
 ["browser_test_autoscrolling_in_extension_popup_window.js"]
 
 ["browser_test_autoscrolling_in_oop_frame.js"]
