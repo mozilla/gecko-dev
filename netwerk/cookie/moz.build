@@ -34,6 +34,7 @@ EXPORTS.mozilla.net = [
     "CookieServiceChild.h",
     "CookieServiceParent.h",
     "CookieStorage.h",
+    "ThirdPartyCookieBlockingExceptions.h",
 ]
 UNIFIED_SOURCES += [
     "Cookie.cpp",
@@ -48,6 +49,7 @@ UNIFIED_SOURCES += [
     "CookieServiceChild.cpp",
     "CookieServiceParent.cpp",
     "CookieStorage.cpp",
+    "ThirdPartyCookieBlockingExceptions.cpp",
 ]
 XPCSHELL_TESTS_MANIFESTS += [
     "test/unit/xpcshell.toml",

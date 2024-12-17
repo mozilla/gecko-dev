@@ -72,6 +72,7 @@
 #include "nsContentUtils.h"
 #include "nsContentSecurityManager.h"
 #include "nsIClassOfService.h"
+#include "CookieService.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
@@ -7139,6 +7140,10 @@ nsresult nsHttpChannel::BeginConnect() {
   }
 
   MaybeStartDNSPrefetch();
+
+  // Update whether the channel is on the third-party cookie blocking exception
+  // list.
+  CookieService::Update3PCBExceptionInfo(this);
 
   rv = CallOrWaitForResume(
       [](nsHttpChannel* self) { return self->PrepareToConnect(); });
