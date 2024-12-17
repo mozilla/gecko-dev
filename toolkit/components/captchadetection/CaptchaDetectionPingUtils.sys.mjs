@@ -4,6 +4,7 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
+/** @type {lazy} */
 const lazy = {};
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
   return console.createInstance({
@@ -174,3 +175,9 @@ export class CaptchaDetectionPingUtils {
     this.hasPrefObservers = true;
   }
 }
+
+/**
+ * @typedef lazy
+ * @type {object}
+ * @property {ConsoleInstance} console - console instance.
+ */

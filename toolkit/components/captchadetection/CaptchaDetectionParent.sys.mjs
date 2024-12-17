@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/** @type {lazy} */
 const lazy = {};
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -30,6 +31,10 @@ class TabState {
     this.#state = new Map();
   }
 
+  /**
+   * @param {number} tabId - The tab id.
+   * @returns {Map<any, any>} - The state of the tab.
+   */
   get(tabId) {
     return this.#state.get(tabId);
   }
@@ -38,6 +43,10 @@ class TabState {
     return new Map();
   }
 
+  /**
+   * @param {number} tabId - The tab id.
+   * @param {(state: ReturnType<TabState['get']>) => void} updateFunction - The function to update the state.
+   */
   update(tabId, updateFunction) {
     if (!this.#state.has(tabId)) {
       this.#state.set(tabId, TabState.#defaultValue());
@@ -45,6 +54,9 @@ class TabState {
     updateFunction(this.#state.get(tabId));
   }
 
+  /**
+   * @param {number} tabId - The tab id.
+   */
   clear(tabId) {
     this.#state.delete(tabId);
   }
@@ -71,6 +83,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     }
   }
 
+  /** @type {CaptchaStateUpdateFunction} */
   #updateGRecaptchaV2State({ tabId, isPBM, state: { type, changes } }) {
     lazy.console.debug("updateGRecaptchaV2State", changes);
 
@@ -100,6 +113,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     }
   }
 
+  /** @type {CaptchaStateUpdateFunction} */
   #recordCFTurnstileResult({ isPBM, state: { result } }) {
     lazy.console.debug("recordCFTurnstileResult", result);
     const resultMetric =
@@ -132,6 +146,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     await actor.sendQuery("Datadome:AddMessageListener");
   }
 
+  /** @type {CaptchaStateUpdateFunction} */
   #recordDatadomeEvent({ isPBM, state: { event, ...payload } }) {
     lazy.console.debug("recordDatadomeEvent", event, payload);
     const suffix = isPBM ? "Pbm" : "";
@@ -148,6 +163,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
   }
 
+  /** @type {CaptchaStateUpdateFunction} */
   #recordHCaptchaState({ isPBM, tabId, state: { type, changes } }) {
     lazy.console.debug("recordHCaptchaEvent", changes);
 
@@ -173,6 +189,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     }
   }
 
+  /** @type {CaptchaStateUpdateFunction} */
   #recordAWSWafEvent({
     isPBM,
     state: { event, success, numSolutionsRequired },
@@ -197,6 +214,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     }
   }
 
+  /** @type {CaptchaStateUpdateFunction} */
   #recordArkoseLabsEvent({
     isPBM,
     state: { event, solved, solutionsSubmitted },
@@ -349,15 +367,6 @@ class CaptchaDetectionParent extends JSWindowActorParent {
 
     switch (message.name) {
       case "CaptchaState:Update":
-        // message.name === "CaptchaState:Update"
-        // => message.data = {
-        //   tabId: number,
-        //   isPBM: boolean,
-        //   state: {
-        //     type: string,
-        //     ...<type specific payload>
-        //   }
-        // }
         switch (message.data.state.type) {
           case "g-recaptcha-v2":
             this.#updateGRecaptchaV2State(message.data);
@@ -408,3 +417,21 @@ export {
   CaptchaDetectionParent,
   CaptchaDetectionParent as CaptchaDetectionCommunicationParent,
 };
+
+/**
+ * @typedef lazy
+ * @type {object}
+ * @property {ConsoleInstance} console - console instance.
+ * @property {typeof import("./CaptchaDetectionPingUtils.sys.mjs").CaptchaDetectionPingUtils} CaptchaDetectionPingUtils - CaptchaDetectionPingUtils module.
+ * @property {typeof import("./CaptchaResponseObserver.sys.mjs").CaptchaResponseObserver} CaptchaResponseObserver - CaptchaResponseObserver module.
+ */
+
+/**
+ * @typedef CaptchaStateUpdateMessageData
+ * @property {number} tabId - The tab id.
+ * @property {boolean} isPBM - Whether the tab is in PBM.
+ * @property {object} state - The state of the captcha.
+ * @property {string} state.type - The type of the captcha.
+ *
+ * @typedef {(message: CaptchaStateUpdateMessageData) => void} CaptchaStateUpdateFunction
+ */
