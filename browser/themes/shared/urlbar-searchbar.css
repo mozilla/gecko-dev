@@ -1128,19 +1128,21 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
     background-color: var(--urlbar-box-focus-bgcolor);
   }
 
-  #urlbar:is([focused], [searchmode]) & {
-    background-color: var(--urlbar-box-focus-bgcolor);
-  }
-
   /* No need space if page information icons such as lock and shield is shown */
   #urlbar[pageproxystate=valid] & {
     margin-inline-end: 0;
   }
 
   #urlbar[searchmode] & {
+    background-color: var(--urlbar-box-bgcolor);
     margin-inline-end: 0;
     border-start-end-radius: 0;
     border-end-end-radius: 0;
+  }
+
+  /* The background rule should match to #searchmode-switcher-chicklet */
+  #urlbar[focused] & {
+    background-color: var(--urlbar-box-focus-bgcolor);
   }
 
   /* stylelint-disable media-query-no-invalid */
