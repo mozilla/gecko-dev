@@ -165,6 +165,8 @@
     <string name="mozac_browser_errorpages_no_internet_title_2">താങ്ങളുടെ അന്തരവല സമ്പർക്കത്തിൽ കുഴപ്പം ഉണ്ടു്</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">നിങ്ങളുടെ നെറ്റ്‌വർക്ക് കണക്ഷൻ പരിശോധിക്കുക അല്ലെങ്കിൽ കുറച്ച് നിമിഷങ്ങൾക്ക് ശേഷം പേജ് വീണ്ടും ലഭ്യമാക്കാൻ ശ്രമിക്കുക.</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">മറ്റൊരു ഉപകരണത്തോറു ബന്ധപ്പെടാൻ ശ്രമിക്കുക. താങ്ങളുടെ മോഡം പരിശോധിക്കുക. വൈഫൈ-ലേക്കു് വിച്ഛേതിച്ചും വീണ്ടും ബന്ധപ്പെടിയിട്ടു് ശ്രമിക്കുക </string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_error_code">പിഴസൂചി: NS_ERROR_OFFLINE</string>
 
@@ -231,6 +233,8 @@
 
     <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
     <string name="mozac_browser_errorpages_httpsonly_title">സൂക്ഷമമുള്ള വെബ്സ്ഥാനം ലഭ്യമല്ല</string>
+    <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will be replaced with the URL of the website. -->
+    <string name="mozac_browser_errorpages_httpsonly_message"><![CDATA[മെച്ചപ്പെടുത്തിയ സുരക്ഷയ്ക്കായി താങ്ങൾ HTTPS-മാത്രം രീതി പ്രവർത്തനക്ഷമമാക്കി, <em>%1$s</em>-ന്റെ ഒരു HTTPS പതിപ്പ് ലഭ്യമല്ല.]]></string>
     <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
     <string name="mozac_browser_errorpages_httpsonly_button">HTTP സൈറ്റിലേക്കു് തുടരുക</string>
 </resources>

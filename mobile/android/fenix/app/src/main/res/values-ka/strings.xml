@@ -2389,9 +2389,9 @@
     <string name="synced_tabs_no_open_tabs">გახსნილი ჩანართები არაა</string>
 
     <!-- Content description for expanding a group of synced tabs. -->
-    <string name="synced_tabs_expand_group">დასინქრონებული ჩანართების გაშლა</string>
+    <string name="synced_tabs_expand_group">დასინქ. ჩანართების გაშლა</string>
     <!-- Content description for collapsing a group of synced tabs. -->
-    <string name="synced_tabs_collapse_group">დასინქრონებული ჩანართების აკეცვა</string>
+    <string name="synced_tabs_collapse_group">დასინქ. ჩანართები აკეცვა</string>
 
     <!-- Top Sites -->
     <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
@@ -2686,7 +2686,7 @@
     <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. The first parameter is the name of the application, for example, "Fenix". -->
     <string name="translations_bottom_sheet_title_first_time">მოსინჯეთ პირადი თარგმანები, რომელსაც გთავაზობთ %1$s</string>
     <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. The first parameter is clickable text with a link, for example, "Learn more". -->
-    <string name="translations_bottom_sheet_info_message">პირადულობის დასაცავად თარგმანი არასდროს დატოვებს მოწყობილობას. სხვა ენები და სიახლეები მალე დაემატება! %1$s</string>
+    <string name="translations_bottom_sheet_info_message">პირადი მონაცემების დასაცავად თარგმანი მოწყობილობაშივე რჩება. მალე სხვა ენებიც დაემატება და გაუმჯობესდება! %1$s</string>
     <!-- Text that links to additional information about the Firefox translations feature. -->
     <string name="translations_bottom_sheet_info_message_learn_more">ვრცლად</string>
     <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->

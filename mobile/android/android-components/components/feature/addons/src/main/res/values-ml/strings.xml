@@ -3,7 +3,7 @@
     <!-- Description for privacy add-on permission. -->
     <string name="mozac_feature_addons_permissions_privacy_description">സ്വകാര്യതാ ക്രമീകരണങ്ങൾ വായിക്കുക പരിഷ്കരിക്കുക</string>
     <!-- Description for all_urls add-on permission. -->
-    <string name="mozac_feature_addons_permissions_all_urls_description">എല്ലാ വെബ്സൈറ്റുകൾക്കുമായുള്ള നിങ്ങളുടെ ഡാറ്റ ലഭ്യമാക്കുക</string>
+    <string name="mozac_feature_addons_permissions_all_urls_description">എല്ലാ വെബ്സൈറ്റുകൾക്കുമായുള്ള നിങ്ങളുടെ ദത്ത ലഭ്യമാക്കുക</string>
     <!-- Description for giving an add-on access to users's data on one site. %1$s  will be replaced by the DNS host name for which a web extension is requesting access (e.g., www.mozilla.org). -->
     <string name="mozac_feature_addons_permissions_one_site_description">%1$s-നു് നിങ്ങളുടെ ദത്ത ഉപയോഗിക്കാൻ സമ്മതം കൊടുക്കുക</string>
     <!-- Description for giving an add-on access to users's data in multiple sites in the domain %1$s. %1$s will be replaced by the DNS domain for which a web extension is requesting access (e.g., mozilla.org). -->
@@ -72,6 +72,8 @@
     <string name="mozac_feature_addons_permissions_top_sites_description">തിരയൽ നാള്‍വഴി പരിശോധിക്കുക</string>
     <!-- Description for trialML permission. -->
     <string name="mozac_feature_addons_permissions_trial_ml_description">താങ്ങളുടെ ഉപകരണത്തിൽ നിർമിതബുദ്ധിമാതൃക പ്രവർത്തനപ്പിക്കുക</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">മൂന്നാം കക്ഷിയായ നിർദേശലിപികളെ താങ്ങളുടെ ദത്ത ഉപയോഗിക്കാൻ അനുമതി നല്കുക</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">ഡെവെലപ്പര്‍ ടൂളുകള്‍ക്ക് തുറന്ന ടാബുകളിലെ ഡാറ്റ എടുക്കാന്‍ അനുമതി നല്‍കുക</string>
     <!-- The version on of add-on. -->
@@ -120,6 +122,8 @@
     <string name="mozac_feature_addons_report">വിവരം അറിയിക്കുക</string>
     <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_permissions_dialog_title">%1$s ചേര്‍ക്കണോ?</string>
+    <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s ഇനിയും അനുമതികളിനു് ചോദിക്കുന്നു.</string>
     <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
     <string name="mozac_feature_addons_permissions_dialog_subtitle">നിങ്ങളുടെ അനുമതി ആവശ്യമാണ്:</string>
     <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
@@ -140,10 +144,14 @@
     <string name="mozac_feature_addons_install_addon_dialog_cancel">റദ്ദാക്കുക</string>
     <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
     <string name="mozac_feature_addons_user_rating_count_2">അവലോകനങ്ങൾ: %1$s</string>
+    <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
+    <string name="mozac_feature_addons_rating_content_description_2">സ്ഥാനക്രമം: 5-ൽ %1$.02f </string>
     <!-- This is the title of page where all the add-ons are listed-->
     <string name="mozac_feature_addons_addons">ആഡ്-ഓണുകള്‍</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
     <string name="mozac_feature_addons_addons_manager">ആഡ്-ഓണ്‍ മാനേജര്‍</string>
+    <!-- The title of the "crash" notification in the extensions manager -->
+    <string name="mozac_feature_extensions_manager_notification_title_text">വിപുലീകരണങ്ങൾ താല്ക്കാലികമായി പ്രവർത്തനരഹിതമാക്കി</string>
     <!-- Button to re-enable the extensions in the "crash" notification -->
     <string name="mozac_feature_extensions_manager_notification_restart_button">വിപുലീകരണങ്ങൾ വീണ്ടും തുടങ്ങുക</string>
     <!-- Button in the extensions manager that opens AMO in a tab -->
@@ -158,6 +166,8 @@
     <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d പുതിയ അനുമതികൾ ആവശ്യമാണ്</string>
     <!-- The content of the notification displayed when an add-on needs a new permission-->
     <string name="mozac_feature_addons_updater_notification_content_singular">ഒരു പുതിയ അനുമതി ആവശ്യമാണ്</string>
+    <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
+    <string name="mozac_feature_addons_updater_notification_channel_2">വിപുലീകരണ പരിഷ്കരണങ്ങൾ</string>
     <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
     <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">പിന്തുണയുള്ള ആഡ്-ഓണുകൾക്കായുള്ള പരിശോധകർ</string>
     <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available.-->
@@ -172,6 +182,10 @@
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">ഇവയെ %1$s ലേക്ക് ചേർക്കുക</string>
     <!-- This is the caption for not yet supported screen caption -->
     <string name="mozac_feature_addons_not_yet_supported_caption2">ശുപാർശ ചെയ്യപ്പെട്ട വിപുലീകരണങ്ങളുടെ പ്രാരംഭ തിരഞ്ഞെടുപ്പിനായി ഞങ്ങൾ നിലവിൽ പിന്തുണ സജ്ജീകരിക്കുകയാണ്.</string>
+    <!-- This is the caption for the extension installation progress overlay -->
+    <string name="mozac_extension_install_progress_caption">വിപുലീകരണം ഇറക്കിവയ്ക്കുകയും പരിശോധിക്കുകയും ചെയ്യുന്നു…</string>
+    <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
+    <string name="mozac_feature_addons_failed_to_query_extensions">വിപുലീകരണങ്ങൾ ക്ഷണിക്കാൻ കഴിഞ്ഞില്ല.</string>
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
     <string name="mozac_feature_addons_failed_to_translate">വിവർത്തനം കണ്ടെത്തിയില്ല,%1$s ഭാഷയ്‌ക്ക് സ്ഥിരസ്ഥിതി ഭാഷ %2$s അല്ല</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
@@ -182,6 +196,18 @@
     <string name="mozac_feature_addons_extension_failed_to_install">ഈ വിപുലീകരണം സ്ഥാപിക്കാൻ പറ്റിയില്ല.</string>
     <!-- Text shown when installing an add-on has failed. -->
     <string name="mozac_feature_addons_cant_install_extension">വിപുലീകരണം സ്ഥാപിക്കാൻ പറ്റന്നില്ല</string>
+    <!-- Text shown when attempting to install an extension and a network error happened. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_network_error">ഒരു സമ്പർക്കപിഴ കാരണം ഈ വിപുലീകരണം സ്ഥാപിക്കാൻ കഴിഞ്ഞില്ല.</string>
+    <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">അഴിമതി കാരണം ഈ വിപുലീകരണം സ്ഥാപിക്കാൻ കഴിഞ്ഞില്ല.</string>
+    <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">ഈ വിപുലീകരണം ആധാരിക്കുപെടാത്തുകൊണ്ടു സ്ഥാപിക്കാൻ കഴിഞ്ഞില്ല.</string>
+    <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_blocklisted_2">%1$s മോസില്ലയുടെ നയങ്ങൾ ലംഘിക്കുന്നതിനാൽ %2$s-ൽ സ്ഥാപിക്കാൻ കഴിയില്ല.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s മോസില്ലയുടെ നയങ്ങൾ ലംഘിക്കുന്ന കാരണം സ്ഥാപിക്കാൻ കഴിയില്ല.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_soft_blocked_1">%1$s മോസില്ലയുടെ നയങ്ങൾ ലംഘിക്കുന്നതിനാൽ %2$s-ൽ സ്ഥാപിക്കാൻ കഴിയില്ല.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s വിജയകരമായി പ്രവർത്തനസജ്ജമാക്കി</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->

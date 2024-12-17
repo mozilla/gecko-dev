@@ -70,6 +70,8 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Ukrywanie i wyświetlanie kart przeglądarki</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Dostęp do historii przeglądania</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Zezwalaj niezweryfikowanym skryptom zewnętrznym na dostęp do danych użytownika</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Dostęp do danych użytkownika i otwartych kart poprzez rozszerzone narzędzia programistyczne</string>
     <!-- The version on of add-on. -->

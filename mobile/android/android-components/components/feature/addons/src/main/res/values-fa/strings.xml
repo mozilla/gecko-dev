@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">پنهان کردن و نمایش زبانه‌های مرورگر</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">دسترسی به تاریخچه مرورکردن</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">دریافت و اجرای مدل‌های هوش مصنوعی بر روی دستگاه شما</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">اجازه دادن به اسکریپت‌های شخص ثالث تایید نشده برای دسترسی به داده‌های شما</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">گسترش ابزارتوسعه‌دهندگان برای دسترسی به داده‌های شما بر روی زبانه‌های باز</string>
     <!-- The version on of add-on. -->
@@ -130,6 +134,8 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">اجازه دادن</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">رد کردن</string>
+    <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+    <string name="mozac_feature_addons_permissions_dialog_learn_more">بیشتر بدانید</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">لغو</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
@@ -201,11 +207,15 @@
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s نمی‌تواند نصب شود زیرا با %2$s %3$s سازگار نیست.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">امکان نصب %1$s به دلیل ریسک بالای مشکلات پایداری و امنیتی وجود ندارد.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">امکان نصب %1$s به دلیل ریسک بالای مشکلات پایداری و امنیتی وجود ندارد.</string>
+    <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_blocklisted_2">%1$s خط‌مشی‌های Mozilla را نقض می‌کند و نمی‌تواند بر روی %2$s نصب شود.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s نمی‌تواند نصب شود زیرا فقط توسط سازمانی که از سیاست‌های سازمانی استفاده می‌کند قابل نصب است، که در این سکو پشتیبانی نمی‌شود.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked">%1$s با سیاست‌های موزیلا مغایرت دارد و نمی‌تواند نصب شود.</string>
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s با سیاست‌های موزیلا مغایرت دارد و نمی‌تواند نصب شود.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_soft_blocked_1">%1$s خط‌مشی‌های Mozilla را نقض می‌کند و نمی‌تواند بر روی %2$s نصب شود.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s با موفقیت فعال شد</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -253,9 +263,13 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">مشاهده جزئیات</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s به دلیل مشکلات امنیتی یا پایداری غیرفعال گردیده است.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s به دلیل مشکلات امنیتی یا پایداری غیرفعال گردیده است.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">این افزونه به دلیل نقض خط‌مشی‌های Mozilla مسدود شده و غیرفعال شده است.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked">این افزونه با سیاست‌های موزیلا مغایرت دارد و غیرفعال شده است. می‌توانید آن را فعال کنید، اما ممکن است خطرناک باشد.</string>
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">این افزونه با سیاست‌های موزیلا مغایرت دارد و غیرفعال شده است. می‌توانید آن را فعال کنید، اما ممکن است خطرناک باشد.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">این افزونه به دلیل نقض خط‌مشی‌های Mozilla محدود شده و غیرفعال شده است. می‌توانید آن را فعال کنید، اما این ممکن است خطرناک باشد.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
     <string name="mozac_feature_addons_status_softblocked_re_enabled">این افزونه با سیاست‌های Mozilla مغایرت دارد. استفاده از آن ممکن است خطرناک باشد.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->

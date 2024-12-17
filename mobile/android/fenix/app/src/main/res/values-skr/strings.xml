@@ -229,8 +229,12 @@
     <string name="browser_menu_open_in_regular_tab">باقائدہ ٹیب وچ کھولو</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">ہوم سکرین تے شامل کرو</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">ہوم سکرین تے ایپ شامل کرو</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">ہوم سکرین تے شامل کرو۔۔۔</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">ہوم سکرین تے ایپ شامل کرو۔۔۔</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">زیومی آلات کوں ہوم اسکرین تے شارٹ کٹ شامل کرݨ کیتے اضافی اجازتاں دی لوڑ تھی سڳدی ہے۔ مہربانی کر کے آپݨی ترتیبات چیک کرو۔</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->

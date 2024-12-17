@@ -11,6 +11,21 @@
     <string name="mozac_feature_media_sharing_camera_and_microphone">ക്യാമറയും മൈക്രോഫോണും ഓണാണ്</string>
 
 
+    <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_text">ക്യാമറ ഉപയോഗിക്കുന്ന ടാബു് തുറക്കാൻ ഇവിടെ അമർത്തുക.</string>
+    <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_microphone_text">മൈക്രോഫോൺ ഉപയോഗിക്കുന്ന ടാബു് തുറക്കാൻ ഇവിടെ അമർത്തുക.</string>
+    <!-- Text of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_text">മൈക്രോഫോണും ക്യാമറായും ഉപയോഗിക്കുന്ന ടാബു് തുറക്കാൻ ഇവിടെ അമർത്തുക.</string>
+
+
+    <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_reminder_text">ഓർമ്മപ്പെടുത്തൽ: %1$s ഇപ്പോഴും താങ്ങളുടെ ക്യാമറ ഉപയോഗിക്കുന്നു. ടാബു് തുറക്കാൻ ഇവിടെ അമർത്തുക.</string>
+    <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_microphone_reminder_text_2">ഓർമ്മപ്പെടുത്തൽ: %1$s ഇപ്പോഴും താങ്ങളുടെ മൈക്രോഫോൺ ഉപയോഗിക്കുന്നു. ടാബു് തുറക്കാൻ ഇവിടെ അമർത്തുക.</string>
+    <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">ഓർമ്മപ്പെടുത്തൽ: %1$s ഇപ്പോഴും താങ്ങളുടെ ക്യാമറായും മൈക്രോഫോണും ഉപയോഗിക്കുന്നു. ടാബു് തുറക്കാൻ ഇവിടെ അമർത്തുക.</string>
+
     <!--This is the title of the "play" action media shown in the media notification while web content is playing media. Clicking it will resume playing paused media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
     <string name="mozac_feature_media_notification_action_play">പ്ലേ ചെയ്യുക</string>
 
