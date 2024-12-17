@@ -486,6 +486,8 @@ class SettingsSearchTest : TestSetup() {
                 activityTestRule,
                 "mozilla firefox",
                 searchTerm = "mozilla ",
+                shouldUseSearchShort = true,
+                searchEngineName = "DuckDuckGo",
             )
         }.dismissSearchBar {
         }.openThreeDotMenu {

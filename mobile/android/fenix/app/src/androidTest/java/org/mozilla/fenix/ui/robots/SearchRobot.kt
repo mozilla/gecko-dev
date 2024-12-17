@@ -91,6 +91,8 @@ class SearchRobot {
         searchTerm: String,
         shouldEditKeyword: Boolean = false,
         numberOfDeletionSteps: Int = 0,
+        shouldUseSearchShort: Boolean = false,
+        searchEngineName: String = "",
     ) {
         rule.waitForIdle()
         for (i in 1..RETRY_COUNT) {
@@ -114,6 +116,10 @@ class SearchRobot {
                     mDevice.pressBack()
                     homeScreen {
                     }.openSearch {
+                        if (shouldUseSearchShort) {
+                            clickSearchSelectorButton()
+                            selectTemporarySearchMethod(searchEngineName)
+                        }
                         typeSearch(searchTerm)
                         if (shouldEditKeyword) {
                             deleteSearchKeywordCharacters(numberOfDeletionSteps = numberOfDeletionSteps)
