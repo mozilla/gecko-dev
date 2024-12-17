@@ -13,6 +13,7 @@
     --tab-min-height: 41px;
   }
   --tab-group-label-height: max(1.5em, var(--tab-min-height) - 14px);
+  --tab-group-label-padding: 4px;
   --tab-group-line-thickness: 2px;
   /* Collapsed tabs should be square, so set width to match the min height */
   --tab-collapsed-background-width: var(--tab-min-height);
@@ -780,13 +781,18 @@
 @media (-moz-bool-pref: "sidebar.verticalTabs") {
   tab-group {
     flex-direction: column;
+    position: relative;
 
-    &:not([collapsed]) {
-      border-inline-start: var(--tab-group-line-thickness) solid light-dark(var(--tab-group-color), var(--tab-group-color-invert));
-
-      #tabbrowser-tabs:not([expanded]) & > .tabbrowser-tab {
-        margin-inline-start: calc(-1 * var(--tab-group-line-thickness));
-      }
+    &:not([collapsed])::before {
+      content: "";
+      display: block;
+      position: absolute;
+      inset-inline-start: var(--tab-group-line-thickness);
+      inset-block-start: var(--space-medium);
+      inset-block-end: 0;
+      width: var(--tab-group-line-thickness);
+      background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+      border-radius: 1px;
     }
 
     &[collapsed] > .tabbrowser-tab {
@@ -796,8 +802,11 @@
     #tabbrowser-tabs[expanded] & {
       margin-inline-start: var(--space-medium);
 
-      &:not([collapsed]) {
-        border-start-start-radius: calc(var(--tab-border-radius) + 1px);
+      &:not([collapsed])::before {
+        inset-inline-start: 0;
+
+        /* Move the line down by the height of the group label */
+        inset-block-start: calc(var(--tab-group-label-height) + 2 * var(--tab-group-label-padding) + var(--space-medium));
       }
     }
   }
@@ -836,6 +845,10 @@
     width: var(--tab-collapsed-width);
     height: var(--tab-collapsed-width);
   }
+
+  #tabbrowser-tabs[orient="vertical"][expanded] & {
+    contain: inline-size;
+  }
 }
 
 .tab-group-label {
@@ -851,33 +864,43 @@
   min-height: var(--tab-group-label-height);
   min-width: var(--tab-group-label-height);
   max-width: 10em;
-  padding-inline: 4px;
+  padding-inline: var(--tab-group-label-padding);
   color: light-dark(var(--tab-group-color-pale), var(--tab-group-label-text-dark));
   background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
   margin: auto 0;
 
+  tab-group[collapsed] > .tab-group-label-container > & {
+    background-color: light-dark(var(--tab-group-color-pale), var(--tab-group-color));
+    color: light-dark(var(--tab-group-color), var(--tab-group-color-pale));
+    outline: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-pale));
+    outline-offset: -1px;
+  }
+
   #tabbrowser-tabs[orient="vertical"]:not([expanded]) & {
-    width: var(--tab-collapsed-background-width);
-    min-height: var(--tab-collapsed-background-width);
-    max-width: var(--tab-collapsed-background-width);
+    width: 24px;
+    min-height: 24px;
+    max-width: 24px;
     margin: auto;
     font-size: 0;
 
     &:first-letter {
       font: message-box;
-      line-height: var(--tab-collapsed-background-width);
+      font-weight: var(--font-weight-bold);
+      line-height: 24px;
     }
+  }
+
+  #tabbrowser-tabs[orient="vertical"][expanded] & {
+    max-width: none;
+    margin-block: var(--space-small);
+    margin-inline-end: var(--space-medium);
+    padding-block: var(--tab-group-label-padding);
+    text-align: start;
   }
 
   #tabbrowser-tabs[tablist-has-focus] &.tablist-keyboard-focus {
     outline: var(--focus-outline);
     outline-offset: var(--focus-outline-offset);
-  }
-
-  tab-group[collapsed] > .tab-group-label-container > & {
-    background-color: light-dark(var(--tab-group-color-pale), var(--tab-group-color));
-    color: light-dark(var(--tab-group-color), var(--tab-group-color-pale));
-    border: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-pale));
   }
 }
 
