@@ -6,7 +6,6 @@ import { Provider } from "react-redux";
 import React from "react";
 import { DSCard } from "../../../../../content-src/components/DiscoveryStreamComponents/DSCard/DSCard";
 import { actionCreators as ac } from "common/Actions.mjs";
-// import { SafeAnchor } from "../../../../../content-src/components/DiscoveryStreamComponents/SafeAnchor/SafeAnchor";
 
 const DEFAULT_PROPS = {
   type: "foo",
@@ -26,12 +25,11 @@ describe("Discovery Stream <ListFeed>", () => {
   let wrapper;
   let sandbox;
   let dispatch;
-  // let useStateSpy
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
     dispatch = sandbox.stub();
-    // useStateSpy = sinon.spy(React, "useState"); // Spy on useState
+
     wrapper = mount(
       <WrapWithProvider>
         <ListFeed dispatch={dispatch} {...DEFAULT_PROPS} />
