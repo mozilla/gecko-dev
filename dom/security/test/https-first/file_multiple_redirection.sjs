@@ -94,7 +94,9 @@ function handleRequest(request, response) {
   if (query.includes("downgrade")) {
     response.setStatusLine(request.httpVersion, 302, "Found");
     let redirect_uri =
-      request.scheme === "https" ? REDIRECT_DOWNGRADE_URI : REDIRECT_URI_HTTP;
+      request.scheme === "https"
+        ? REDIRECT_DOWNGRADE_URI_HTTP
+        : REDIRECT_URI_HTTP;
     response.setHeader("Location", redirect_uri, false);
     return;
   }
