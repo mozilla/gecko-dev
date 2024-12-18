@@ -12,7 +12,6 @@
     --input-margin-block-adjust: calc((1lh - var(--input-height)) / 2);
     --icon-margin-block-adjust: calc((1lh - var(--icon-size-default)) / 2);
     --input-margin-inline-start-adjust: calc(-1 * var(--input-space-offset));
-    display: block;
   }
 
   :host(:not(:state(has-label))) {

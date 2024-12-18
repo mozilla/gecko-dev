@@ -38,8 +38,6 @@ skip-if = [
 
 ["test_moz_five_star.html"]
 
-["test_moz_input_text.html"]
-
 ["test_moz_label.html"]
 
 ["test_moz_lit_element.html"]
