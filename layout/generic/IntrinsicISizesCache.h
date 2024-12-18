@@ -61,8 +61,9 @@ struct IntrinsicISizesCache final {
 
   nscoord Get(bool aDependentOnPercentBSize, IntrinsicISizeType aType,
               const IntrinsicSizeInput& aInput) const {
-    if (!aDependentOnPercentBSize ||
-        !aInput.HasSomePercentageBasisForChildren()) {
+    const bool usePercentageAwareCache =
+        aDependentOnPercentBSize && aInput.HasSomePercentageBasisForChildren();
+    if (!usePercentageAwareCache) {
       if (auto* ool = GetOutOfLine()) {
         return ool->mCacheWithoutPercentageBasis.Get(aType);
       }
@@ -83,9 +84,9 @@ struct IntrinsicISizesCache final {
     // strict about it, though, because of how we (ab)use the high bit
     // (see kHighBit)
     aValue = std::max(aValue, 0);
-    const bool usePercentAwareCache =
+    const bool usePercentageAwareCache =
         aDependentOnPercentBSize && aInput.HasSomePercentageBasisForChildren();
-    if (usePercentAwareCache) {
+    if (usePercentageAwareCache) {
       auto* ool = EnsureOutOfLine();
       ool->mLastPercentageBasis = aInput.mPercentageBasisForChildren;
       ool->mCacheWithPercentageBasis.Set(aType, aValue);
