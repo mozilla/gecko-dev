@@ -1,0 +1,116 @@
+
+
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test for Messaging Layer Security</title>
+  <!-- SimpleTest Helpers -->
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <!-- Local Helpers -->
+  <script src="head_mls.js"></script>
+</head>
+<body>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+async function test_group_close() {
+
+  const mls = new MLS();
+
+  // Generate Identity KeyPairs for Alice and Bob
+  let alice = await mls.generateIdentity();
+  let bob = await mls.generateIdentity();
+
+  // Generate Credentials for Alice and Bob
+  let credential_alice = await mls.generateCredential("alice");
+  let credential_bob = await mls.generateCredential("bob");
+
+  // Generate a KeyPackage for Bob
+  let kp_bob = await mls.generateKeyPackage(bob, credential_bob);
+
+  // Creation of a Group by Alice
+  let group_alice = await mls.groupCreate(alice, credential_alice);
+
+  // Alice adds Bob to a group
+  let commit_output = await group_alice.add(kp_bob);
+
+  // Alice receives her commit
+  await group_alice.receive(commit_output.commit);
+
+  // Bob joins the group
+  let group_bob = await mls.groupJoin(bob, commit_output.welcome);
+
+  // Test: compare the group identifier after the join
+  is(byteArrayToHexString(group_alice.groupId), byteArrayToHexString(group_bob.groupId), "Alice Group ID == Bob Group ID");
+
+  // Test: compare the group members after the join
+  let members_alice_1 = await group_alice.details();
+  let members_bob_1 = await group_bob.details();
+
+  // Test: the group should have exactly two members at epoch 1
+  is(members_alice_1.members.length, 2, "There should be exactly two members in the group");
+  is(members_bob_1.members.length, 2, "There should be exactly two members in the group");
+
+  // Test: Bob should be in the group according to Alice's view
+  is(members_alice_1.members.some(member => byteArrayToHexString(member.clientId) === byteArrayToHexString(bob.content)), true, "Bob should be in the group");
+
+  // Test: Alice should be in the group according to Alice's view
+  is(members_alice_1.members.some(member => byteArrayToHexString(member.clientId) === byteArrayToHexString(alice.content)), true, "Alice should be in the group");
+
+  // Test: Bob should be in the group according to Bob's view
+  is(members_bob_1.members.some(member => byteArrayToHexString(member.clientId) === byteArrayToHexString(bob.content)), true, "Bob should be in the group");
+
+  // Test: Alice should be in the group according to Bob's view
+  is(members_bob_1.members.some(member => byteArrayToHexString(member.clientId) === byteArrayToHexString(alice.content)), true, "Alice should be in the group");
+  // Bob closes the group
+  let commit_output_2 = await group_bob.close();
+
+  // Info: print the commit output
+  info("Commit Output:", JSON.stringify(commit_output_2));
+
+  // Alice receives the close of the group
+  let group_and_epoch_final_alice = await group_alice.receive(commit_output_2.commit);
+
+  // Info: print the group and epoch final alice
+  info("Group and Epoch Final Alice:", JSON.stringify(group_and_epoch_final_alice.groupIdEpoch));
+
+  // Bob processes its close of the group
+  // This leaves Bob alone in the new epoch which is NOT 0xFF..FF
+  let group_and_epoch_final_bob = await group_bob.receive(commit_output_2.commit);
+
+  // Info: print the group and epoch final Bob
+  info("Group and Epoch Final Bob:", JSON.stringify(group_and_epoch_final_bob.groupIdEpoch));
+
+  // Test: compare the group members after the close
+  let members_alice_2 = await group_alice.details();
+  let members_bob_2 = await group_bob.details();
+
+  // This is counter intuitive, but true: Alice has two members in the group
+  // after being removed by Bob, basically because she is left in her epoch.
+  // Technically she can send messages in the previous epoch, but not in the current one.
+  is(members_alice_2.members.length, 2, "Alice should have two members in the group");
+  is(members_bob_2.members.length, 1, "Bob should be alone in the group");
+
+  // Test: check that alice has transitioned to the 0xFF..FF epoch
+  is(byteArrayToHexString(group_and_epoch_final_alice.groupEpoch), "ffffffffffffffff", "Alice should have a returned epoch set to 0xFF..FF");
+
+  // Test: check that bob has transitioned to epoch 2
+  const expectedEpoch = new Uint8Array(new BigUint64Array([2n]).buffer);
+  is(byteArrayToHexString(group_and_epoch_final_bob.groupEpoch), byteArrayToHexString(expectedEpoch), "Bob should have transitioned to epoch 2");
+
+  // Bob is alone in the group and can remove its state
+  let bob_deleted = await group_bob.deleteState();
+
+  is(bob_deleted, undefined, "Bob should have deleted his state for this group");
+
+  SimpleTest.finish();
+}
+
+SimpleTest.waitForExplicitFinish();
+test_group_close();
+
+</script>
+</pre>
+</body>
+</html>

@@ -765,6 +765,7 @@ WEBIDL_FILES = [
     "MIDIPort.webidl",
     "MimeType.webidl",
     "MimeTypeArray.webidl",
+    "MLS.webidl",
     "MouseEvent.webidl",
     "MouseScrollEvent.webidl",
     "MozFrameLoaderOwner.webidl",
