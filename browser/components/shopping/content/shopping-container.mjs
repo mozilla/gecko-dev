@@ -464,6 +464,9 @@ export class ShoppingContainer extends MozLitElement {
     }
 
     RPMSetPref(SHOPPING_SIDEBAR_ACTIVE_PREF, false);
+    window.dispatchEvent(
+      new CustomEvent("CloseShoppingSidebar", { bubbles: true, composed: true })
+    );
     Glean.shopping.surfaceClosed.record({ source: "closeButton" });
   }
 }

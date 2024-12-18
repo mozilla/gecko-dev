@@ -815,6 +815,7 @@ let JSWINDOWACTORS = {
         AdClicked: { wantUntrusted: true },
         AdImpression: { wantUntrusted: true },
         DisableShopping: { wantUntrusted: true },
+        CloseShoppingSidebar: { wantUntrusted: true },
       },
     },
     matches: ["about:shoppingsidebar"],

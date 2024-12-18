@@ -193,3 +193,35 @@ add_task(async function test_integrated_sidebar_updates_on_tab_switch() {
     await BrowserTestUtils.removeTab(newProductTab);
   });
 });
+
+add_task(async function test_integrated_sidebar_close() {
+  await BrowserTestUtils.withNewTab(CONTENT_PAGE, async function () {
+    let sandbox = sinon.createSandbox();
+    // Stub SidebarController.hide as actually closing the sidebar
+    // will not allow withReviewCheckerSidebar to finish.
+    let hideStub = sandbox.stub(SidebarController, "hide");
+    await SidebarController.show("viewReviewCheckerSidebar");
+
+    ok(SidebarController.isOpen, "Sidebar is open");
+
+    await withReviewCheckerSidebar(async () => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+      let closeButtonEl = await ContentTaskUtils.waitForCondition(
+        () => shoppingContainer.closeButtonEl,
+        "close button is present."
+      );
+      closeButtonEl.click();
+    });
+
+    Assert.ok(
+      hideStub.calledOnce,
+      "SidebarController.hide() is called to close the sidebar."
+    );
+
+    sandbox.restore();
+  });
+});

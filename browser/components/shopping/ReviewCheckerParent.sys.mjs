@@ -63,6 +63,9 @@ export class ReviewCheckerParent extends JSWindowActorParent {
           2
         );
         break;
+      case "CloseShoppingSidebar":
+        this.closeSidebarPanel();
+        break;
     }
     return null;
   }
@@ -92,6 +95,15 @@ export class ReviewCheckerParent extends JSWindowActorParent {
       this.updateProductURL(aLocationURI, aFlags);
     } else {
       this.updateProductURL(null);
+    }
+  }
+
+  closeSidebarPanel() {
+    let window = this.browsingContext.topChromeWindow;
+    let { SidebarController } = window;
+
+    if (SidebarController?.isOpen) {
+      SidebarController.hide();
     }
   }
 }

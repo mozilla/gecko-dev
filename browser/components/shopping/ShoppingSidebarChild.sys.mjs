@@ -167,6 +167,9 @@ export class ShoppingSidebarChild extends RemotePageChild {
       case "DisableShopping":
         this.sendAsyncMessage("DisableShopping");
         break;
+      case "CloseShoppingSidebar":
+        this.sendAsyncMessage("CloseShoppingSidebar");
+        break;
     }
   }
 
