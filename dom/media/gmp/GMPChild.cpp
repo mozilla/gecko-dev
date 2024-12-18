@@ -583,6 +583,9 @@ void GMPChild::ActorDestroy(ActorDestroyReason aWhy) {
   if (mGMPLoader) {
     mGMPLoader->Shutdown();
   }
+
+  ShutdownPlatformAPI();
+
   if (AbnormalShutdown == aWhy) {
     NS_WARNING("Abnormal shutdown of GMP process!");
     ProcessChild::QuickExit();
