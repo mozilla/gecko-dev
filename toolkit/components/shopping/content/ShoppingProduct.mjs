@@ -179,23 +179,6 @@ export class ShoppingProduct extends EventEmitter {
   }
 
   /**
-   * Check if an invalid Product is a supported site.
-   *
-   * @param {Product} product
-   *  Product to check.
-   * @returns {boolean}
-   */
-  static isSupportedSite(product) {
-    return !!(
-      product &&
-      !product.valid &&
-      product.host &&
-      product.sitename &&
-      product.tld
-    );
-  }
-
-  /**
    * Check if a the instances product is a valid product.
    *
    * @returns {boolean}
@@ -800,22 +783,4 @@ export function isProductURL(url) {
   }
   let productInfo = ShoppingProduct.fromURL(url);
   return ShoppingProduct.isProduct(productInfo);
-}
-
-/**
- * Check if a URL is a valid product site.
- *
- * @param {URL | nsIURI } url
- *  URL to check.
- * @returns {boolean}
- */
-export function isSupportedSiteURL(url) {
-  if (url instanceof Ci.nsIURI) {
-    url = URL.fromURI(url);
-  }
-  if (!URL.isInstance(url)) {
-    return false;
-  }
-  let productInfo = ShoppingProduct.fromURL(url);
-  return ShoppingProduct.isSupportedSite(productInfo);
 }

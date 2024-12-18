@@ -4,7 +4,7 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  isSupportedSiteURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
+  isProductURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ShoppingUtils: "resource:///modules/ShoppingUtils.sys.mjs",
 });
@@ -35,19 +35,19 @@ export class ReviewCheckerParent extends JSWindowActorParent {
     }
   }
 
-  updateCurrentURL(uri, flags, isSupportedSite) {
+  updateProductURL(uri, flags) {
     this.sendAsyncMessage("ShoppingSidebar:UpdateProductURL", {
       url: uri?.spec ?? null,
       isReload: !!(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_RELOAD),
-      isSupportedSite,
     });
   }
 
-  getCurrentURL() {
+  currentProductUrl() {
     let window = this.browsingContext.topChromeWindow;
     let { selectedBrowser } = window.gBrowser;
     let uri = selectedBrowser.currentURI;
-    return uri.spec ?? null;
+    let isProduct = lazy.isProductURL(uri);
+    return isProduct ? uri.spec : null;
   }
 
   async receiveMessage(message) {
@@ -56,7 +56,7 @@ export class ReviewCheckerParent extends JSWindowActorParent {
     }
     switch (message.name) {
       case "GetProductURL":
-        return this.getCurrentURL();
+        return this.currentProductUrl();
       case "DisableShopping":
         Services.prefs.setIntPref(
           ReviewCheckerParent.SHOPPING_OPTED_IN_PREF,
@@ -87,10 +87,11 @@ export class ReviewCheckerParent extends JSWindowActorParent {
 
     lazy.ShoppingUtils.onLocationChange(aLocationURI, aFlags);
 
-    this.updateCurrentURL(
-      aLocationURI,
-      aFlags,
-      lazy.isSupportedSiteURL(aLocationURI)
-    );
+    let isProduct = lazy.isProductURL(aLocationURI);
+    if (isProduct) {
+      this.updateProductURL(aLocationURI, aFlags);
+    } else {
+      this.updateProductURL(null);
+    }
   }
 }
