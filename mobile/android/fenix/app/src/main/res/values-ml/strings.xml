@@ -350,7 +350,7 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">വായനാകാഴ്ച തുടങ്ങുക</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">വായനാകാഴ്ച അണക്കുക</string>
+    <string name="browser_menu_turn_off_reader_view">വായനാകാഴ്ച അണക്കുക</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">ഈ താളിന്റെ വിവർത്തനം ചെയ്യുക…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -478,8 +478,12 @@
     <string name="onboarding_add_on_explore_more_extensions_2">കൂടുതൽ വിപുലീകരണങ്ങൾ കാണുക</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">തിരയുകാൻ തുടങ്ങുക</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">യുബ്ലോക്കു് ഓരിജിൻ</string>
     <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">പരസ്യങ്ങൾ നല്ലോണം തടയുക.</string>
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">പ്രിവസി ബാജർ</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">ചിത്രം കൊണ്ടു് തിരയുക</string>
 
@@ -523,14 +527,34 @@
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">സ്വകാര്യതാ അറിയിപ്പ്</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">കൈകാര്യം ചെയ്യുക</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">കരുതിവച്ചു് തുടരുക</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">തിരയലുകൾ കൈയെത്തും ദൂരത്ത് വയ്ക്കുക.</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">കരുതിവച്ചിട്ടു് തുടരുക</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">ഒഴിവാക്കുക</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">മുകള്‍ഭാഗം</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">കീഴ്ഭാഗം</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description">%1$s കരുപ്പട്ടയിന്റെ ചിത്രം</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">ഒരു അലങ്കാരം തിരഞ്ഞെടുക്കുക</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">ഒഴിവാക്കുക</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">ഇരുണ്ടത്</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">ഇളം നിറമുള്ള</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">ഗണിനികവ്യവസ്ഥാപോലെ</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">ചിത്രീകരിച്ച കലാകാരന്മാരുടെയും രചയിതാക്കന്മാരുടെയും കരുരളും കാണിക്കുന്ന അലങ്കാരം തിരഞ്ഞെടുക്കൽ കാഴ്ചയുടെ വലിയ തലക്കെട്ട് ചിത്രം.</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">%1$s അലങ്കാരത്തിന്റെ ചിത്രം</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -552,6 +576,8 @@
     <string name="preferences_category_about">വിവരം</string>
     <!-- Preference category for settings related to changing the default search engine -->
     <string name="preferences_category_select_default_search_engine">ഒന്നു് തിരഞ്ഞെടുക്കുക</string>
+    <!-- Preference for settings related to managing search shortcuts for the quick search menu -->
+    <string name="preferences_manage_search_shortcuts_2">ഇതര തിരയൽ യന്ത്രങ്ങളെ നിയന്ത്രിക്കുക</string>
     <!-- Summary for preference for settings related to managing search shortcuts for the quick search menu -->
     <string name="preferences_manage_search_shortcuts_summary">തിരയൽകുറിപ്പടിയിൽ കാണാൻപറ്റുന്ന എഞ്ചിനുകൾ തിരുത്തുക</string>
     <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
@@ -566,6 +592,8 @@
     <string name="preferences_search_engines_suggestions">തിരയൽ യന്ത്രങ്ങളിൽ നിന്നുള്ള നിർദ്ദേശങ്ങൾ</string>
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">വിലാസപ്പട്ട മുൻഗണനകൾ</string>
+    <!-- Preference Category for settings to Firefox Suggest -->
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">വിലാസ പട്ട - ഫയർഫോക്സ് നിർദ്ദേശം</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
     <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">ഫയര്‍ഫോക്സ് സചസ്റ്റിനെപറ്റി കൂടുതലറിയുക</string>
     <!-- Preference link to rating Fenix on the Play Store -->
@@ -621,6 +649,19 @@
 
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site">വെബ്സ്ഥാനം നിലവിൽ പിന്തുണയ്ക്കുന്നില്ല</string>
+
+    <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
+    <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">%1$s-നു് കുക്കീസു് പൊന്തുവരൽ തടയൽയന്ത്രം തുടങ്ങണോ?</string>
+    <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
+    <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">%1$s-നു് കുക്കീസു് പൊന്തുവരൽ തടയൽയന്ത്രം അണക്കണോ?</string>
+    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s-ൾക്കു് കുക്കീ അഭ്യാർത്ഥങ്ങളെ തന്നെതാനെ നിരസിക്കാൻ ഒക്കത്തില്ല. ഭാവിയിൽ ഈ സൈറ്റിനെ പിന്തുണയ്ക്കാൻ താങ്ങൾക്കൊരു അഭ്യാർത്ഥനം അയയ്ക്കാം.</string>
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+    <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">%1$s-നു് അണച്ചാൽ %1$s കുക്കീകളും മായച്ചിട്ടു് വെബ്സ്ഥാനം വീണ്ടും ലഭ്യമാക്കും. ഇതിന്റെ കാരണം താങ്ങളെ ചിലപ്പോൾ സൈറ്റുകൾ നിന്നു് പുറത്തു് കടപ്പിക്കും അല്ലെങ്കിൽ  ഷോപ്പിംഗു് കാർട്ടുകൾ ഒഴിക്കപ്പെടാം.</string>
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+    <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">താങ്ങൾ %1$s-നെ തുടങ്ങിയാൽ ഈ സൈറ്റിലെ എല്ലാ കുക്കി പൊന്തുവരലുകൾ തന്നെതാനെ നിരസിക്കാൻ %1$s ശ്രമിക്കും.</string>
+    <!--Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name -->
+    <string name="cookie_banner_cfr_title">%1$s താങ്ങൾക്കായി കുക്കികൾ നിരസിച്ചു</string>
 
     <!-- Summary of https only preference if https only is set to off -->
     <string name="preferences_https_only_off">അണച്ചതു്</string>
@@ -865,6 +906,12 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">വിപണനത്തിനായുള്ള ഡാറ്റ</string>
 
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">വില്പനദത്തയെ കുറിച്ചു് കൂടുതൽ അറിയുക</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">തകർച്ച വിവരങ്ങൾ തന്നെതാന്നെ അയയ്ക്കുക</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">തകർച്ച സംഭവിച്ചു് ശേഷം വീണ്ടും പ്രയോഗം തുടങ്ങുമ്പോഴു് തകർച്ചദത്ത തന്നെതാനെ മോസ്സില്ലയ്ക്കു് പങ്കിടുന്നു</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">പഠനങ്ങൾ</string>
 
@@ -1033,14 +1080,14 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">കൂടുതലറിയുക</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">മാറ്റങ്ങൾ ബാധകമാക്കാൻ പ്രയോഗയന്ത്രാംശം പുറത്തുകടക്കും</string>
+    <string name="studies_restart_app" moz:removedIn="135">മാറ്റങ്ങൾ ബാധകമാക്കാൻ പ്രയോഗയന്ത്രാംശം പുറത്തുകടക്കും</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">ശരി</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">ശരി</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">റദ്ദാക്കുക</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">റദ്ദാക്കുക</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">മാറ്റങ്ങൾ പ്രാവർത്തികമാക്കാൻ പ്രയോഗത്തിൽ നിന്നും പുറത്തുകടക്കുന്നു…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">മാറ്റങ്ങൾ പ്രാവർത്തികമാക്കാൻ പ്രയോഗത്തിൽ നിന്നും പുറത്തുകടക്കുന്നു…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -1205,6 +1252,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">ഈ ഫോൾഡർ നീക്കം ചെയ്യണമെന്ന് താങ്കൾക്ക് ഉറപ്പാണോ?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">തിരഞ്ഞെടുക്കപ്പെട്ട ഇനങ്ങൾ മായ്ക്കണമെന്നു് ഉറപ്പുണ്ടോ?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s തിരഞ്ഞെടുത്ത ഇനങ്ങൾ മായ്ക്കും.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1506,6 +1555,9 @@
 
     <!-- Title A shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_A_title">യാതൊന്നും അവശേഷിപ്പിക്കാതെ തിരയുക</string>
+    <!-- Text A shown in the notification that pops up to re-engage the user.
+    %1$s is a placeholder that will be replaced by the app name. -->
+    <string name="notification_re_engagement_A_text">%1$s-ൽ സ്വകാര്യ തിരച്ചിൽ താങ്ങളുടെ വിവരങ്ങൾ കരുതിവയ്ക്കാരില്ല.</string>
     <!-- Title B shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_B_title">താങ്ങളുടെ ആദ്യ തിരയൽ ആരംഭിക്കുക</string>
 
@@ -1808,6 +1860,12 @@
 
     <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
     <string name="preferences_passwords_autofill2">%1$s-ൽ തന്നെതാന്നെ പൂരിപ്പിക്കുക</string>
+    <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
+    <string name="preferences_passwords_autofill_description">%1$s ഉപയോഗിക്കുമ്പോഴു് രഹസ്യവാക്കുകളും ഉപയോക്തൃപ്പേരുകളും പൂരിപ്പിച്ചിട്ടു് കരുതിവയ്ക്കുക.</string>
+    <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
+    <string name="preferences_android_autofill">മറ്റു് പ്രയോഗങ്ങളിൽ തന്നെതാനെ പൂരിപ്പിക്കുക</string>
+    <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
+    <string name="preferences_android_autofill_description">താങ്ങളുടെ ഉപകരണത്തിലെ മറ്റ് പ്രയോഗങ്ങളിൽ ഉപയോക്തൃനാമങ്ങളും രഹസ്യവാക്കുകളും പൂരിപ്പിക്കുക.</string>
     <!-- Preference option for adding a password -->
     <string name="preferences_logins_add_login_2">രഹസ്യവാക്കു് ചേർക്കുക</string>
 
@@ -1955,6 +2013,8 @@
     <string name="credit_cards_warning_dialog_later">പിന്നീട്</string>
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">താങ്കളുടെ ഉപകരണത്തിന്റെ പൂട്ട് തുറക്കുക</string>
+    <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
+    <string name="credit_cards_biometric_prompt_unlock_message_2">താങ്ങളുടെ കരുതിവച്ച പണം കൊടുക്കൽ രീതികൾ ഉപയോഗിക്കാൻ പൂട്ടുതുറക്കുക</string>
     <!-- Title of the "Add address" screen -->
     <string name="addresses_add_address">വിലാസം ചേർക്കുക</string>
     <!-- Title of the "Edit address" screen -->
@@ -2019,6 +2079,8 @@
     <!-- Accessibility description for the form in which details about the custom search engine are entered -->
     <string name="search_add_custom_engine_form_description">ഇഷ്‌ടാനുസൃത തിരച്ചിൽ എഞ്ചിന്റെ വിശദാംശങ്ങൾ</string>
 
+    <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
+    <string name="search_add_custom_engine_suggest_url_label">തിരയൽ നിർദ്ദേശം ഏ.പീ.ഐ (ഐച്ഛികം)</string>
     <!-- The text for the "Save" button for saving a custom search engine -->
     <string name="search_custom_engine_save_button">കരുതിവയ്ക്കുക</string>
 
@@ -2082,6 +2144,12 @@
     <string name="dialog_delete_negative">റദ്ദാക്കുക</string>
     <!--  The saved password options menu description. -->
     <string name="login_options_menu_2">രഹസ്യവാക്കു് സാധ്യതകൾ</string>
+    <!--  The editable text field for a website address. -->
+    <string name="saved_login_hostname_description_3">വെബ്സ്ഥാന വിലാസത്തിനുള്ള ഒരു തിരുത്താനാകുന്ന പാഠതലം.</string>
+    <!--  The editable text field for a username. -->
+    <string name="saved_login_username_description_3">ഉപയോക്തൃപ്പേരിനുള്ള ഒരു തിരുത്താനാകുന്ന പാഠതലം.</string>
+    <!--  The editable text field for a login's password. -->
+    <string name="saved_login_password_description_2">രഹസ്യവാക്കിനുള്ള ഒരു തിരുത്താനാകുന്ന പാഠതലം.</string>
     <!--  The button description to save changes to an edited password. -->
     <string name="save_changes_to_login_2">മാറ്റങ്ങൾ കരുതിവയ്ക്കുക.</string>
     <!--  The page title for editing a saved password. -->
@@ -2127,12 +2195,16 @@
     <!-- The text displayed when a synced device has no tabs to show in the list of Synced Tabs. -->
     <string name="synced_tabs_no_open_tabs">ടാബൊന്നും തുറന്നിരിക്കുന്നില്ല</string>
 
+    <!-- Content description for expanding a group of synced tabs. -->
+    <string name="synced_tabs_expand_group">സമന്വയിപ്പിച്ച ടാബുക്കൂട്ടം വലുതാക്കുക</string>
     <!-- Content description for collapsing a group of synced tabs. -->
     <string name="synced_tabs_collapse_group">സമന്വയിപ്പിച്ച ടാബുക്കൂട്ടം ചുരുക്കുക</string>
 
     <!-- Top Sites -->
     <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
     <string name="shortcut_max_limit_title">കുറുക്കുവഴി പരിധി എത്തി</string>
+    <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
+    <string name="shortcut_max_limit_content">ഒരു പുതിയ കുറുക്കുവഴി ചേർക്കാൻ മറ്റു് ഒരെണ്ണം മാറ്റുക. സൈറ്റിനു് അമർത്തിപ്പിടിക്കുക, പിന്നെ മാറ്റുക എന്നു് സാധ്യത തിരഞ്ഞെടുക്കൂ.</string>
     <!-- Confirmation dialog button text when top sites limit is reached. -->
     <string name="top_sites_max_limit_confirmation_button">ശരി, മനസ്സിലായി</string>
 
@@ -2179,6 +2251,12 @@
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
     <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">കഴിഞ്ഞ ഒരു മാസത്തോളമായി താങ്ങൾ ശ്രദ്ധിക്കാത്ത ടാബുകൾ ഫയർഫോക്സിന് അടയ്ക്കാനാവും.</string>
 
+    <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
+    <string name="inactive_tabs_auto_close_message_snackbar">തന്നെതാനെ അടയ്ക്കൽ പ്രവർത്തനക്ഷമമാക്കി</string>
+
+    <!-- Awesome bar suggestion's headers -->
+    <!-- Search suggestions title for Firefox Suggest. -->
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">ഫയർഫോക്സ് നിർദ്ദേശം</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google തിരയൽ</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
@@ -2219,6 +2297,8 @@
     <string name="review_quality_check_info_learn_more">%s നെക്കുറിച്ചു് കൂടുതലറിയുക.</string>
     <!-- Text for title of settings section. -->
     <string name="review_quality_check_settings_title">ക്രമീകരണങ്ങള്‍</string>
+    <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
+    <string name="review_quality_check_settings_recommended_products">അവലോകന പരിശോധനക്കരുയിൽ പരസ്യങ്ങൾ കാണിക്കുക</string>
     <!-- Clickable text that links to review quality check recommended products support article. -->
     <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">കൂടുതലറിയുക</string>
     <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
