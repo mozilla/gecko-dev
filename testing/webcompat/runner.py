@@ -22,7 +22,7 @@ def run(
     device_serial=None,
     package_name=None,
     environ=None,
-    bug=None,
+    bugs=None,
     debug=False,
     interventions=None,
     shims=None,
@@ -92,10 +92,6 @@ def run(
                 args.append("--addon")
                 args.append(addon)
 
-            if bug:
-                args.append("--bug")
-                args.append(bug)
-
             if do2fa:
                 args.append("--do2fa")
 
@@ -133,8 +129,8 @@ def run(
             else:
                 name = "smartblock-shims"
 
-            if bug is not None:
-                args.extend(["-k", bug])
+            if bugs is not None:
+                args.extend(["-k", " or ".join(bugs)])
 
             args.append(path)
             try:
@@ -178,7 +174,6 @@ class WDConfig:
         parser.addoption(
             "--browser", action="store", choices=["firefox"], help="Name of the browser"
         )
-        parser.addoption("--bug", action="store", help="Bug number to run tests for")
         parser.addoption(
             "--do2fa",
             action="store_true",

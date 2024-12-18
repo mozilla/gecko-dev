@@ -55,7 +55,7 @@ def create_parser_interventions():
         default="9222",
         help="Port on which to run WebDriver BiDi websocket",
     )
-    parser.add_argument("-b", "--bug", help="Bug to run tests for")
+    parser.add_argument("-b", "--bugs", nargs="*", help="Bugs to run tests for")
     parser.add_argument(
         "--do2fa",
         action="store_true",
@@ -289,7 +289,7 @@ class InterventionTest(MozbuildObject):
                     device_serial=kwargs.get("device_serial"),
                     package_name=kwargs.get("package_name"),
                     addon=kwargs.get("addon"),
-                    bug=kwargs["bug"],
+                    bugs=kwargs["bugs"],
                     debug=kwargs["debug"],
                     interventions=interventions_setting,
                     config=kwargs["config"],
@@ -317,7 +317,7 @@ class InterventionTest(MozbuildObject):
                     device_serial=kwargs.get("device_serial"),
                     package_name=kwargs.get("package_name"),
                     addon=kwargs.get("addon"),
-                    bug=kwargs["bug"],
+                    bugs=kwargs["bugs"],
                     debug=kwargs["debug"],
                     shims=shims_setting,
                     config=kwargs["config"],
