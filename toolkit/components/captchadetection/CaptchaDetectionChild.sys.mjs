@@ -88,6 +88,14 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
   }
 
   static matches(document) {
+    if (Cu.isInAutomation) {
+      return (
+        document
+          .getElementById("captchaType")
+          ?.getAttribute("data-captcha-type") === "g-recaptcha-v2"
+      );
+    }
+
     return [
       "https://www.google.com/recaptcha/api2/",
       "https://www.google.com/recaptcha/enterprise/",

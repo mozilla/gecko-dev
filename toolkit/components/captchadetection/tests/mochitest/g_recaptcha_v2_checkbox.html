@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <div id="captchaType" data-captcha-type="g-recaptcha-v2"></div>
+    <input
+      id="recaptcha-token"
+      type="hidden"
+      value="test value, doesn't have any special meaning"
+    />
+
+    <span role="checkbox" id="recaptcha-anchor" aria-checked="false"> </span>
+
+    <script>
+      window.onmessage = function (event) {
+        if (event.data === "display-checkmark") {
+          const anchor = document.getElementById("recaptcha-anchor");
+          anchor.setAttribute("aria-checked", "true");
+          // Mutation handler only fires when style changes, so we need to change
+          // any style property to trigger the mutation observer.
+          anchor.style.color = "green";
+        }
+      };
+      window.parent.postMessage("ready", "*");
+    </script>
+  </body>
+</html>

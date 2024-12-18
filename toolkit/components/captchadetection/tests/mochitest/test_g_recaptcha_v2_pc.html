@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Google ReCaptcha V2 Manual/Puzzle Completion Detection Test</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+    <script src="GleanTest.js"></script>
+    <script src="CaptchaTestingUtils.js"></script>
+  </head>
+  <body>
+    <p id="display"></p>
+    <div id="content" style="display: none"></div>
+    <pre id="test"></pre>
+
+    <script>
+      add_task(async function () {
+        await GleanTest.testResetFOG();
+
+        const imagesFrame =
+          await CaptchaTestingUtils.createIframeAndWaitForMessage(
+            "g_recaptcha_v2_images.html",
+            document.body,
+            "ready"
+          );
+
+        const showedImages =
+          CaptchaTestingUtils.waitForMessage("showed-images");
+        imagesFrame.contentWindow.postMessage("show-images", "*");
+        await showedImages;
+
+        const checkboxFrame =
+          await CaptchaTestingUtils.createIframeAndWaitForMessage(
+            "g_recaptcha_v2_checkbox.html",
+            document.body,
+            "ready"
+          );
+
+        const metricSet = CaptchaTestingUtils.waitForMetricSet();
+        checkboxFrame.contentWindow.postMessage("display-checkmark", "*");
+        await metricSet;
+
+        const puzzleCompletedCount =
+          await GleanTest.captchaDetection.googleRecaptchaV2Pc.testGetValue();
+        is(puzzleCompletedCount, 1, "The puzzle completion count should be 1");
+
+        await CaptchaTestingUtils.clearPrefs();
+      });
+    </script>
+  </body>
+</html>

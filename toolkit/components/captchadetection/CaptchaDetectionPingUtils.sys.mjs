@@ -168,9 +168,12 @@ export class CaptchaDetectionPingUtils {
       );
     });
 
-    ChromeUtils.idleDispatch(() =>
-      CaptchaDetectionPingUtils.maybeSubmitPing(false)
-    );
+    // maybeSubmitPing changes lastSubmission, and causes tests to fail.
+    if (!Cu.isInAutomation) {
+      ChromeUtils.idleDispatch(() =>
+        CaptchaDetectionPingUtils.maybeSubmitPing(false)
+      );
+    }
 
     this.hasPrefObservers = true;
   }

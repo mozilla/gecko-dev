@@ -1,0 +1,20 @@
+[DEFAULT]
+prefs = [
+  "captchadetection.loglevel=Debug"
+]
+scheme="https"
+support-files = [
+  "GleanTest.js",
+  "CaptchaTestingUtils.js"
+]
+
+["test_g_recaptcha_v2_ac.html"]
+support-files = [
+  "g_recaptcha_v2_checkbox.html"
+]
+
+["test_g_recaptcha_v2_pc.html"]
+support-files = [
+  "g_recaptcha_v2_checkbox.html",
+  "g_recaptcha_v2_images.html"
+]
