@@ -84,7 +84,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 StaticRefPtr<nsIIOService> nsScriptSecurityManager::sIOService;
-std::atomic<bool> nsScriptSecurityManager::sStrictFileOriginPolicy = true;
 
 namespace {
 
@@ -218,8 +217,9 @@ inline void SetPendingException(JSContext* cx, const char16_t* aMsg) {
 /* static */
 bool nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
                                                   nsIURI* aTargetURI) {
-  return NS_SecurityCompareURIs(aSourceURI, aTargetURI,
-                                sStrictFileOriginPolicy);
+  return NS_SecurityCompareURIs(
+      aSourceURI, aTargetURI,
+      StaticPrefs::security_fileuri_strict_origin_policy_AtStartup());
 }
 
 // SecurityHashURI is consistent with SecurityCompareURIs because
@@ -1541,12 +1541,9 @@ nsScriptSecurityManager::CanGetService(JSContext* cx, const nsCID& aCID) {
 }
 
 const char sJSEnabledPrefName[] = "javascript.enabled";
-const char sFileOriginPolicyPrefName[] =
-    "security.fileuri.strict_origin_policy";
 
-static const char* kObservedPrefs[] = {sJSEnabledPrefName,
-                                       sFileOriginPolicyPrefName,
-                                       "capability.policy.", nullptr};
+static const char* kObservedPrefs[] = {sJSEnabledPrefName, "capability.policy.",
+                                       nullptr};
 
 /////////////////////////////////////////////
 // Constructor, Destructor, Initialization //
@@ -1681,8 +1678,6 @@ inline void nsScriptSecurityManager::ScriptSecurityPrefChanged(
   MOZ_ASSERT(mPrefInitialized);
   mIsJavaScriptEnabled =
       Preferences::GetBool(sJSEnabledPrefName, mIsJavaScriptEnabled);
-  sStrictFileOriginPolicy =
-      Preferences::GetBool(sFileOriginPolicyPrefName, false);
   mFileURIAllowlist.reset();
 }
 

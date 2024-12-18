@@ -7,6 +7,7 @@
 extern "C" {
 
 bool Gecko_StrictFileOriginPolicy() {
-  return mozilla::StaticPrefs::security_fileuri_strict_origin_policy();
+  return mozilla::StaticPrefs::
+      security_fileuri_strict_origin_policy_AtStartup();
 }
 }

@@ -10,6 +10,8 @@
 #include "nsIScriptSecurityManager.h"
 
 #include "mozilla/Maybe.h"
+#include "mozilla/StaticPrefs_security.h"
+
 #include "nsIPrincipal.h"
 #include "nsCOMPtr.h"
 #include "nsServiceManagerUtils.h"
@@ -77,8 +79,6 @@ class nsScriptSecurityManager final : public nsIScriptSecurityManager {
                               const nsACString& targetSpec,
                               bool aFromPrivateWindow,
                               uint64_t aInnerWindowID = 0);
-
-  static bool GetStrictFileOriginPolicy() { return sStrictFileOriginPolicy; }
 
   void DeactivateDomainPolicy();
 
