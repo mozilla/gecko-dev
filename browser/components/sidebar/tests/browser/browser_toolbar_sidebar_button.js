@@ -14,7 +14,10 @@ const SIDEBAR_VISIBILITY_PREF = "sidebar.visibility";
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
-    set: [[SIDEBAR_BUTTON_INTRODUCED_PREF, false]],
+    set: [
+      [SIDEBAR_BUTTON_INTRODUCED_PREF, false],
+      [SIDEBAR_VISIBILITY_PREF, "always-show"],
+    ],
   });
   let navbarDefaults = gAreas.get("nav-bar").get("defaultPlacements");
   let hadSavedState = !!CustomizableUI.getTestOnlyInternalProp("gSavedState");
@@ -78,14 +81,9 @@ add_task(async function test_expanded_state_for_always_show() {
   info(
     `Current window's sidebarMain.expanded: ${window.SidebarController.sidebarMain?.expanded}`
   );
-  await SpecialPowers.pushPrefEnv({
-    set: [[SIDEBAR_VISIBILITY_PREF, "always-show"]],
-  });
   const win = await BrowserTestUtils.openNewBrowserWindow();
-
   const { SidebarController, document } = win;
   const { sidebarMain, toolbarButton } = SidebarController;
-
   await SidebarController.promiseInitialized;
   info(`New window's sidebarMain.expanded: ${sidebarMain?.expanded}`);
 
@@ -294,6 +292,15 @@ add_task(async function test_sidebar_button_runtime_pref_enabled() {
     CustomizableUI.AREA_NAVBAR,
     "The sidebar button is in the nav-bar"
   );
+
+  // When the button was removed, "hide-sidebar" was set automatically. Revert for the next test.
+  // Expanded is the default when "hide-sidebar" is set - click the button to revert to collapsed for the next test.
+  await SpecialPowers.pushPrefEnv({
+    set: [[SIDEBAR_VISIBILITY_PREF, "always-show"]],
+  });
+  const sidebar = document.querySelector("sidebar-main");
+  button.click();
+  Assert.ok(!sidebar.expanded, "Sidebar collapsed by click");
 });
 
 /**
@@ -329,4 +336,6 @@ add_task(async function test_keyboard_shortcut() {
     "false",
     "Glean event recorded that sidebar was collapsed/hidden with keyboard shortcut"
   );
+
+  Services.fog.testResetFOG();
 });

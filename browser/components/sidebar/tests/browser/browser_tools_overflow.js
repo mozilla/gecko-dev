@@ -5,6 +5,7 @@ add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["sidebar.verticalTabs", true],
+      ["sidebar.visibility", "always-show"],
       ["browser.ml.chat.enabled", true],
       ["browser.shopping.experience2023.integratedSidebar", true],
       ["sidebar.main.tools", "aichat,reviewchecker,syncedtabs,history"],
