@@ -88,7 +88,10 @@ struct IntrinsicISizesCache final {
         aDependentOnPercentBSize && aInput.HasSomePercentageBasisForChildren();
     if (usePercentageAwareCache) {
       auto* ool = EnsureOutOfLine();
-      ool->mLastPercentageBasis = aInput.mPercentageBasisForChildren;
+      if (ool->mLastPercentageBasis != aInput.mPercentageBasisForChildren) {
+        ool->mLastPercentageBasis = aInput.mPercentageBasisForChildren;
+        ool->mCacheWithPercentageBasis.Clear();
+      }
       ool->mCacheWithPercentageBasis.Set(aType, aValue);
     } else if (auto* ool = GetOutOfLine()) {
       ool->mCacheWithoutPercentageBasis.Set(aType, aValue);
