@@ -62,6 +62,12 @@ class QuotaManagerDependencyFixture : public testing::Test {
 
   static void InitializeTemporaryClient(const ClientMetadata& aClientMetadata);
 
+  static CStringArray ListOrigins();
+  static CStringArray ListCachedOrigins();
+
+  static void ClearStoragesForOriginAttributesPattern(
+      const nsAString& aPattern);
+
   static uint64_t TotalDirectoryIterations();
 
   /* Convenience method for tasks which must be called on PBackground thread */

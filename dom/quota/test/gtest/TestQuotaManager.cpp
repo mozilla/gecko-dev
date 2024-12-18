@@ -33,6 +33,17 @@ class TestQuotaManager : public QuotaManagerDependencyFixture {
   }
 };
 
+class TestQuotaManagerAndClearStorage : public TestQuotaManager {
+ public:
+  void TearDown() override { ASSERT_NO_FATAL_FAILURE(ClearStorage()); }
+};
+
+using BoolPairTestParams = std::pair<bool, bool>;
+
+class TestQuotaManagerAndClearStorageWithBoolPair
+    : public TestQuotaManagerAndClearStorage,
+      public testing::WithParamInterface<BoolPairTestParams> {};
+
 class TestQuotaManagerAndShutdownFixture
     : public QuotaManagerDependencyFixture {
  public:
@@ -2556,6 +2567,120 @@ TEST_F(TestQuotaManager, TotalDirectoryIterations_ClearingNonEmptyRepository) {
 
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 }
+
+TEST_P(TestQuotaManagerAndClearStorageWithBoolPair,
+       ClearStoragesForOriginAttributesPattern_ThumbnailPrivateIdentity) {
+  const BoolPairTestParams& param = GetParam();
+
+  const bool createThumbnailPrivateIdentityOrigins = param.first;
+  const bool keepTemporaryStorageInitialized = param.second;
+
+  const uint32_t thumbnailPrivateIdentityId = PerformOnIOThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    MOZ_RELEASE_ASSERT(quotaManager);
+
+    return quotaManager->GetThumbnailPrivateIdentityId();
+  });
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(
+      GetOriginMetadata(""_ns, "mozilla.org"_ns, "http://www.mozilla.org"_ns),
+      /* aCreateIfNonExistent */ true));
+
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(
+      GetOriginMetadata("^userContextId=1"_ns, "mozilla.org"_ns,
+                        "http://www.mozilla.org"_ns),
+      /* aCreateIfNonExistent */ true));
+
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(
+      GetOriginMetadata("^userContextId=1"_ns, "mozilla.com"_ns,
+                        "http://www.mozilla.com"_ns),
+      /* aCreateIfNonExistent */ true));
+
+  if (createThumbnailPrivateIdentityOrigins) {
+    ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(
+        GetOriginMetadata(nsFmtCString(FMT_STRING("^userContextId={}"),
+                                       thumbnailPrivateIdentityId),
+                          "mozilla.org"_ns, "http://www.mozilla.org"_ns),
+        /* aCreateIfNonExistent */ true));
+
+    ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(
+        GetOriginMetadata(nsFmtCString(FMT_STRING("^userContextId={}"),
+                                       thumbnailPrivateIdentityId),
+                          "mozilla.com"_ns, "http://www.mozilla.com"_ns),
+        /* aCreateIfNonExistent */ true));
+  }
+
+  if (!keepTemporaryStorageInitialized) {
+    ASSERT_NO_FATAL_FAILURE(ShutdownTemporaryStorage());
+  }
+
+  const auto iterationsBefore = TotalDirectoryIterations();
+
+  ClearStoragesForOriginAttributesPattern(nsFmtString(
+      FMT_STRING(u"{{ \"userContextId\": {} }}"), thumbnailPrivateIdentityId));
+
+  const auto iterationsAfter = TotalDirectoryIterations();
+
+  const auto iterations = iterationsAfter - iterationsBefore;
+
+  uint64_t expectedIterations = createThumbnailPrivateIdentityOrigins ? 5u
+                                : !keepTemporaryStorageInitialized    ? 3u
+                                                                      : 0u;
+  ASSERT_EQ(iterations, expectedIterations);
+
+  const auto matchesUserContextId =
+      [thumbnailPrivateIdentityId](const auto& origin) {
+        return FindInReadable(nsFmtCString(FMT_STRING("userContextId={}"),
+                                           thumbnailPrivateIdentityId),
+                              origin);
+      };
+
+  const auto origins = ListOrigins();
+
+  const bool anyOriginsMatch =
+      std::any_of(origins.cbegin(), origins.cend(), matchesUserContextId);
+  ASSERT_FALSE(anyOriginsMatch);
+
+  const auto cachedOrigins = ListCachedOrigins();
+
+  const bool anyCachedOriginsMatch = std::any_of(
+      cachedOrigins.cbegin(), cachedOrigins.cend(), matchesUserContextId);
+  ASSERT_FALSE(anyCachedOriginsMatch);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    , TestQuotaManagerAndClearStorageWithBoolPair,
+    testing::Values(
+        std::make_pair(/* createThumbnailPrivateIdentityOrigins */ true,
+                       /* keepTemporaryStorageInitialized */ true),
+        std::make_pair(/* createThumbnailPrivateIdentityOrigins */ true,
+                       /* keepTemporaryStorageInitialized */ false),
+        std::make_pair(/* createThumbnailPrivateIdentityOrigins */ false,
+                       /* keepTemporaryStorageInitialized */ true),
+        std::make_pair(/* createThumbnailPrivateIdentityOrigins */ false,
+                       /* keepTemporaryStorageInitialized */ false)),
+    [](const testing::TestParamInfo<BoolPairTestParams>& aParam)
+        -> std::string {
+      const BoolPairTestParams& param = aParam.param;
+
+      const bool createThumbnailPrivateIdentityOrigins = param.first;
+      const bool keepTemporaryStorageInitialized = param.second;
+
+      std::stringstream ss;
+
+      ss << (createThumbnailPrivateIdentityOrigins
+                 ? "CreateThumbnailPrivateIdentityOrigins"
+                 : "NoThumbnailPrivateIdentityOrigins")
+         << "_"
+         << (keepTemporaryStorageInitialized ? "KeepTemporaryStorageInitialized"
+                                             : "ShutdownTemporaryStorage");
+
+      return ss.str();
+    });
 
 TEST_F(TestQuotaManagerAndShutdownFixture,
        ThumbnailPrivateIdentityTemporaryOriginCount) {

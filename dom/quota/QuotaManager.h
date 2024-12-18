@@ -68,6 +68,7 @@ class PrincipalInfo;
 namespace mozilla::dom::quota {
 
 class CanonicalQuotaObject;
+class ClearDataOp;
 class ClearRequestBase;
 class ClientUsageArray;
 class ClientDirectoryLock;
@@ -88,6 +89,7 @@ class GTEST_CLASS(TestQuotaManagerAndShutdownFixture,
 
 class QuotaManager final : public BackgroundThreadObject {
   friend class CanonicalQuotaObject;
+  friend class ClearDataOp;
   friend class ClearRequestBase;
   friend class ClearStorageOp;
   friend class DirectoryLockImpl;
