@@ -150,6 +150,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   formAutofillStorage: "resource://autofill/FormAutofillStorage.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   PlacesDBUtils: "resource://gre/modules/PlacesDBUtils.sys.mjs",
+  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
 });
 
@@ -248,10 +249,20 @@ export class ProfilesParent extends JSWindowActorParent {
         let loginCount = (await lazy.LoginHelper.getAllUserFacingLogins())
           .length;
 
+        let db = await lazy.PlacesUtils.promiseDBConnection();
+        let bookmarksQuery = `SELECT count(*) FROM moz_bookmarks b
+                    JOIN moz_bookmarks t ON t.id = b.parent
+                    AND t.parent <> :tags_folder
+                    WHERE b.type = :type_bookmark`;
+        let bookmarksQueryParams = {
+          tags_folder: lazy.PlacesUtils.tagsFolderId,
+          type_bookmark: lazy.PlacesUtils.bookmarks.TYPE_BOOKMARK,
+        };
+        let bookmarkCount = (
+          await db.executeCached(bookmarksQuery, bookmarksQueryParams)
+        )[0].getResultByIndex(0);
+
         let stats = await lazy.PlacesDBUtils.getEntitiesStatsAndCounts();
-        let bookmarkCount = stats.find(
-          item => item.entity == "moz_bookmarks"
-        ).count;
         let visitCount = stats.find(
           item => item.entity == "moz_historyvisits"
         ).count;
