@@ -63,7 +63,7 @@ class RedesignedMenuTest : TestSetup() {
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar() {
             expandRedesignedMenu(composeTestRule)
-            verifyHomeRedesignedMainMenuItems(composeTestRule, false)
+            verifyHomeRedesignedMainMenuItems(composeTestRule)
         }
     }
 
@@ -77,7 +77,7 @@ class RedesignedMenuTest : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.url) {
         }.openThreeDotMenuFromRedesignedToolbar {
             expandRedesignedMenu(composeTestRule)
-            verifyPageMainMenuItems(composeTestRule, false)
+            verifyPageMainMenuItems(composeTestRule)
         }
     }
 
@@ -313,7 +313,7 @@ class RedesignedMenuTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
         }.openThreeDotMenuFromRedesignedToolbar {
             expandRedesignedMenu(composeTestRule)
-        }.openNoExtensionsMenuFromRedesignedMainMenu(composeTestRule) {
+        }.openExtensionsMenuFromRedesignedMainMenu(composeTestRule) {
             verifyRecommendedAddonsViewFromRedesignedMainMenu(composeTestRule)
         }
     }
@@ -327,7 +327,7 @@ class RedesignedMenuTest : TestSetup() {
 
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar {
-        }.openNoExtensionsMenuFromRedesignedMainMenu(composeTestRule) {
+        }.openExtensionsMenuFromRedesignedMainMenu(composeTestRule) {
             waitForAddonsListProgressBarToBeGone()
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
@@ -342,7 +342,7 @@ class RedesignedMenuTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
         }.openThreeDotMenuFromRedesignedToolbar {
             expandRedesignedMenu(composeTestRule)
-        }.openPageViewExtensionsMenuFromRedesignedMainMenu(composeTestRule, "$addonName (0)") {
+        }.openExtensionsMenuFromRedesignedMainMenu(composeTestRule) {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
         }.openDetailedMenuForAddon(addonName) {
         }.removeAddon(composeTestRule.activityRule) {
@@ -364,7 +364,7 @@ class RedesignedMenuTest : TestSetup() {
 
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar {
-        }.openNoExtensionsMenuFromRedesignedMainMenu(composeTestRule) {
+        }.openExtensionsMenuFromRedesignedMainMenu(composeTestRule) {
             waitForAddonsListProgressBarToBeGone()
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
@@ -379,7 +379,7 @@ class RedesignedMenuTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
         }.openThreeDotMenuFromRedesignedToolbar {
             expandRedesignedMenu(composeTestRule)
-        }.openPageViewExtensionsMenuFromRedesignedMainMenu(composeTestRule, "$addonName (0)") {
+        }.openExtensionsMenuFromRedesignedMainMenu(composeTestRule) {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
         }.goBack {
         }
