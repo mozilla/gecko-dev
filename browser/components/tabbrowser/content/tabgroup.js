@@ -15,9 +15,13 @@
       <html:slot/>
       `;
 
+    /** @type {string} */
+    #label;
+
     /** @type {MozTextLabel} */
     #labelElement;
 
+    /** @type {string} */
     #colorCode;
 
     constructor() {
@@ -44,8 +48,8 @@
       this.#labelElement = this.querySelector(".tab-group-label");
       this.#labelElement.addEventListener("click", this);
 
-      this.#updateLabelAriaAttributes(this.label);
-      this.#updateCollapsedAriaAttributes(this.collapsed);
+      this.#updateLabelAriaAttributes();
+      this.#updateCollapsedAriaAttributes();
 
       this.createdDate = Date.now();
 
@@ -121,12 +125,17 @@
     }
 
     get label() {
-      return this.getAttribute("label");
+      return this.#label;
     }
 
     set label(val) {
-      this.setAttribute("label", val);
-      this.#updateLabelAriaAttributes(val);
+      this.#label = val;
+
+      // Add a zero width space so we always create a text node and get
+      // consistent layout even if the group name is empty.
+      this.setAttribute("label", "\u200b" + val);
+
+      this.#updateLabelAriaAttributes();
     }
 
     get collapsed() {
@@ -138,26 +147,20 @@
         return;
       }
       this.toggleAttribute("collapsed", val);
-      this.#updateCollapsedAriaAttributes(val);
+      this.#updateCollapsedAriaAttributes();
       const eventName = val ? "TabGroupCollapse" : "TabGroupExpand";
       this.dispatchEvent(new CustomEvent(eventName, { bubbles: true }));
     }
 
-    /**
-     * @param {string} label
-     */
-    #updateLabelAriaAttributes(label) {
-      const ariaLabel = label == "" ? "unnamed" : label;
+    #updateLabelAriaAttributes() {
+      const ariaLabel = this.#label || "unnamed";
       const ariaDescription = `${ariaLabel} tab group`;
       this.#labelElement?.setAttribute("aria-label", ariaLabel);
       this.#labelElement?.setAttribute("aria-description", ariaDescription);
     }
 
-    /**
-     * @param {boolean} collapsed
-     */
-    #updateCollapsedAriaAttributes(collapsed) {
-      const ariaExpanded = collapsed ? "false" : "true";
+    #updateCollapsedAriaAttributes() {
+      const ariaExpanded = this.collapsed ? "false" : "true";
       this.#labelElement?.setAttribute("aria-expanded", ariaExpanded);
     }
 
