@@ -24,7 +24,12 @@ mod nss_ssl {
     use crate::err::PRErrorCode;
     use crate::nss_prelude::*;
     use crate::p11::CERTCertList;
-    use crate::prio::{PRFileDesc, PRFileInfo, PRFileInfo64, PRIOVec};
+    use crate::prio::{
+        PRFileDesc,
+        PRFileInfo,
+        PRFileInfo64,
+        PRIOVec,
+    };
 
     include!(concat!(env!("OUT_DIR"), "/nss_ssl.rs"));
 }

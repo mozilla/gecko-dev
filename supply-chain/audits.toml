@@ -1679,11 +1679,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "2.3.2 -> 2.3.3"
 
-[[audits.debug_tree]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.4.0"
-
 [[audits.debugid]]
 who = "Gabriele Svelto <gsvelto@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -3036,11 +3031,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.1.9 -> 0.1.10"
 
-[[audits.maybe-async]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.2.10"
-
 [[audits.md-5]]
 who = "Dana Keeler <dkeeler@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -3228,95 +3218,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.8.8 -> 1.0.1"
 
-[[audits.mls-rs]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.39.1"
-
-[[audits.mls-rs]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.39.1 -> 0.39.1@git:eedb37e50e3fca51863f460755afd632137da57c"
-importable = false
-
-[[audits.mls-rs-codec]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.5.3"
-
-[[audits.mls-rs-codec]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.5.3 -> 0.5.3@git:eedb37e50e3fca51863f460755afd632137da57c"
-importable = false
-
-[[audits.mls-rs-codec-derive]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.1.1"
-notes = "No unsafe code"
-
-[[audits.mls-rs-codec-derive]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.1.1 -> 0.1.1@git:eedb37e50e3fca51863f460755afd632137da57c"
-importable = false
-
-[[audits.mls-rs-core]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.18.0"
-
-[[audits.mls-rs-core]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.18.0 -> 0.18.0@git:eedb37e50e3fca51863f460755afd632137da57c"
-importable = false
-
-[[audits.mls-rs-crypto-hpke]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.9.0"
-
-[[audits.mls-rs-crypto-hpke]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.9.0 -> 0.9.0@git:eedb37e50e3fca51863f460755afd632137da57c"
-importable = false
-
-[[audits.mls-rs-crypto-traits]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.10.0"
-
-[[audits.mls-rs-crypto-traits]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.10.0 -> 0.10.0@git:eedb37e50e3fca51863f460755afd632137da57c"
-importable = false
-
-[[audits.mls-rs-identity-x509]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.11.0"
-
-[[audits.mls-rs-identity-x509]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.11.0 -> 0.11.0@git:eedb37e50e3fca51863f460755afd632137da57c"
-importable = false
-
-[[audits.mls-rs-provider-sqlite]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.11.0"
-
-[[audits.mls-rs-provider-sqlite]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.11.0 -> 0.11.0@git:eedb37e50e3fca51863f460755afd632137da57c"
-importable = false
-
 [[audits.moz_cbor]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
@@ -3456,12 +3357,6 @@ who = "John M. Schanck <jschanck@mozilla.com>"
 criteria = "safe-to-deploy"
 version = "0.2.1"
 notes = "Maintained by the CryptoEng team at Mozilla."
-
-[[audits.nss-gk-api]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.3.0 -> 0.3.0@git:e48a946811ffd64abc78de3ee284957d8d1c0d63"
-importable = false
 
 [[audits.ntapi]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -5833,20 +5728,6 @@ notes = "This is custom derives for `ZeroFrom` that is from zerofrom crate. This
 who = "Makoto Kato <m_kato@ga2.so-net.ne.jp>"
 criteria = "safe-to-deploy"
 version = "0.1.3"
-
-[[audits.zeroize]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "1.8.1"
-notes = """
-This code DOES contain unsafe code required to internally call volatiles
-for deleting data. This is expected and documented behavior.
-"""
-
-[[audits.zeroize_derive]]
-who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "1.4.2"
 
 [[audits.zerovec]]
 who = "Makoto Kato <m_kato@ga2.so-net.ne.jp>"

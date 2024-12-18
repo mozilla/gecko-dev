@@ -10,8 +10,8 @@ use std::mem;
 use std::os::raw::c_uint;
 use std::ptr::null_mut;
 
-use crate::nss_prelude::*;
 use crate::prtypes::*;
+use crate::nss_prelude::*;
 
 /// Implement a smart pointer for NSS objects.
 ///
@@ -59,7 +59,7 @@ macro_rules! scoped_ptr {
                 unsafe { $dtor(self.ptr) };
             }
         }
-    };
+    }
 }
 
 macro_rules! impl_clone {
@@ -72,7 +72,7 @@ macro_rules! impl_clone {
                 Self { ptr }
             }
         }
-    };
+    }
 }
 
 impl SECItem {
@@ -165,7 +165,7 @@ impl SECItemMut {
                 type_: SECItemType::siBuffer,
                 data: null_mut(),
                 len: 0,
-            },
+            }
         }
     }
 }
