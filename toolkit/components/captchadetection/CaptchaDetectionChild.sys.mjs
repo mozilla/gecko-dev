@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/** @type {lazy} */
 const lazy = {};
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -15,7 +16,12 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
  * Abstract class for handling captchas.
  */
 class CaptchaHandler {
+  /**
+   * @param {CaptchaDetectionChild} actor - The window actor.
+   * @param {Event} _event - The initial event that created the actor.
+   */
   constructor(actor, _event) {
+    /** @type {CaptchaDetectionChild} */
     this.actor = actor;
     this.tabId = this.actor.docShell.browserChild.tabId;
     this.isPBM = this.actor.browsingContext.usePrivateBrowsing;
@@ -37,10 +43,16 @@ class CaptchaHandler {
     lazy.console.debug("CaptchaHandler destroyed");
   }
 
+  /**
+   * @param {Event} event - The event to handle.
+   */
   handleEvent(event) {
     lazy.console.debug("CaptchaHandler got event:", event);
   }
 
+  /**
+   * @param {ReceiveMessageArgument} message - The message to handle.
+   */
   receiveMessage(message) {
     lazy.console.debug("CaptchaHandler got message:", message);
   }
@@ -434,6 +446,10 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     lazy.console.debug("actorCreated");
   }
 
+  /**
+   * @constant
+   * @type {Array<CaptchaHandler>}
+   */
   static #handlers = [
     GoogleRecaptchaV2Handler,
     CFTurnstileHandler,
@@ -443,6 +459,9 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     ArkoseLabsHandler,
   ];
 
+  /**
+   * @param {Event} event - The event that created the actor.
+   */
   #initCaptchaHandler(event) {
     for (const handler of CaptchaDetectionChild.#handlers) {
       if (handler.matches(this.document)) {
@@ -457,6 +476,9 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     this.handler?.onActorDestroy();
   }
 
+  /**
+   * @param {Event} event - The event to handle.
+   */
   handleEvent(event) {
     if (
       !this.handler &&
@@ -475,9 +497,18 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     this.handler?.handleEvent(event);
   }
 
+  /**
+   * @param {ReceiveMessageArgument} message - The message to handle.
+   */
   receiveMessage(message) {
     if (this.handler) {
       this.handler.receiveMessage(message);
     }
   }
 }
+
+/**
+ * @typedef lazy
+ * @type {object}
+ * @property {ConsoleInstance} console - console instance.
+ */

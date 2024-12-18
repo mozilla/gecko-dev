@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/** @type {lazy} */
 const lazy = {};
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -24,7 +25,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * captcha services.
  */
 export class CaptchaResponseObserver {
+  /**
+   * @param {function(nsIHttpChannel): boolean} shouldIntercept - A function that returns true if the response should be intercepted.
+   * @param {function(nsIHttpChannel, nsresult, string): void} onResponseBody - A function that is called when the response body is available.
+   */
   constructor(shouldIntercept, onResponseBody) {
+    /** @type {Map<nsIChannel, nsIPipe>} */
     this.requestToTeePipe = new WeakMap();
     this.shouldIntercept = shouldIntercept;
     this.onResponseBody = onResponseBody;
@@ -63,6 +69,10 @@ export class CaptchaResponseObserver {
 
   onStartRequest() {}
 
+  /**
+   * @param {nsIHttpChannel} channel - The channel.
+   * @param {nsIXPCComponents_Values} statusCode - The status code, not to be confused with the HTTP status code.
+   */
   async onStopRequest(channel, statusCode) {
     const pipe = this.requestToTeePipe.get(channel);
 
@@ -112,3 +122,10 @@ export class CaptchaResponseObserver {
     Ci.nsIRequestObserver,
   ]);
 }
+
+/**
+ * @typedef lazy
+ * @type {object}
+ * @property {ConsoleInstance} console - console instance.
+ * @property {typeof import("services/common/utils.sys.mjs").CommonUtils} CommonUtils - CommonUtils instance.
+ */
