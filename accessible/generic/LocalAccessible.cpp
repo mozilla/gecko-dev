@@ -4209,6 +4209,16 @@ void LocalAccessible::MaybeQueueCacheUpdateForStyleChanges() {
         // content within them doesn't currently scroll.
         mDoc->QueueCacheUpdate(this, CacheDomain::ScrollPosition);
       }
+    } else {
+      ScrollContainerFrame* scrollContainerFrame = do_QueryFrame(frame);
+      if (!scrollContainerFrame &&
+          (newOverflow.Equals("auto"_ns) || newOverflow.Equals("scroll"_ns))) {
+        // A document's body element can lose its scroll frame if the root
+        // element (eg. <html>) is restyled to overflow scroll/auto. In that
+        // case we will not get any useful notifications for the body element
+        // except for a reframe to a non-scrolling frame.
+        mDoc->QueueCacheUpdate(this, CacheDomain::ScrollPosition);
+      }
     }
 
     nsAutoCString oldDisplay, newDisplay;

@@ -103,3 +103,64 @@ addAccessibleTask(
   },
   { chrome: true, iframe: true, remoteIframe: true }
 );
+
+addAccessibleTask(
+  `<style>
+      html, body {
+        height: 100%;
+        margin: 0;
+      }
+
+      html {
+        overflow: hidden;
+      }
+
+      body {
+        overflow: auto;
+      }
+
+      button {
+        display: block;
+        height: 100vh;
+        width: 100%;
+      }
+    </style>
+    <button id="btn1">Hello</button>
+    <button id="btn2">World</button>`,
+  async function (browser, accDoc) {
+    const dpr = await getContentDPR(browser);
+
+    let btn1 = findAccessibleChildByID(accDoc, "btn1");
+    let btn2 = findAccessibleChildByID(accDoc, "btn2");
+
+    let [, , width, height] = Layout.getBounds(accDoc, dpr);
+
+    await testChildAtPoint(
+      dpr,
+      width / 2,
+      height / 2,
+      accDoc,
+      accDoc.firstChild,
+      btn1
+    );
+
+    await invokeContentTask(browser, [], async () => {
+      content.document.documentElement.style.overflow = "initial";
+      await new Promise(resolve => {
+        content.requestAnimationFrame(() => {
+          content.scrollTo(0, content.scrollMaxY);
+          resolve();
+        });
+      });
+    });
+
+    await testChildAtPoint(
+      dpr,
+      width / 2,
+      height / 2,
+      accDoc,
+      accDoc.firstChild,
+      btn2
+    );
+  }
+);
