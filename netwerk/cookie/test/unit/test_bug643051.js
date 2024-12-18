@@ -27,7 +27,9 @@ add_task(async () => {
 
   let set = "foo=bar\nbaz=foo";
   let expected = "foo=bar; baz=foo";
-  Services.cookies.setCookieStringFromHttp(uri, set, channel);
+  set
+    .split("\n")
+    .forEach(s => Services.cookies.setCookieStringFromHttp(uri, s, channel));
 
   let actual = Services.cookies.getCookieStringFromHttp(uri, channel);
   Assert.equal(actual, expected);

@@ -3572,7 +3572,7 @@ void HttpBaseChannel::SetChannelBlockedByOpaqueResponse() {
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::SetCookie(const nsACString& aCookieHeader) {
+HttpBaseChannel::SetCookieHeaders(const nsTArray<nsCString>& aCookieHeaders) {
   if (mLoadFlags & LOAD_ANONYMOUS) return NS_OK;
 
   if (IsBrowsingContextDiscarded()) {
@@ -3580,14 +3580,19 @@ HttpBaseChannel::SetCookie(const nsACString& aCookieHeader) {
   }
 
   // empty header isn't an error
-  if (aCookieHeader.IsEmpty()) {
+  if (aCookieHeaders.IsEmpty()) {
     return NS_OK;
   }
 
   nsICookieService* cs = gHttpHandler->GetCookieService();
   NS_ENSURE_TRUE(cs, NS_ERROR_FAILURE);
 
-  return cs->SetCookieStringFromHttp(mURI, aCookieHeader, this);
+  for (const nsCString& cookieHeader : aCookieHeaders) {
+    nsresult rv = cs->SetCookieStringFromHttp(mURI, cookieHeader, this);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
