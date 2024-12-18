@@ -7686,18 +7686,20 @@ var SessionStoreInternal = {
    * @returns {MozTabbrowserTabGroup}
    */
   openSavedTabGroup(tabGroupId, targetWindow) {
-    if (targetWindow && !targetWindow.__SSi) {
+    if (!targetWindow) {
+      targetWindow = this._getTopWindow();
+    }
+    if (!targetWindow.__SSi) {
       throw Components.Exception(
         "Target window is not tracked",
         Cr.NS_ERROR_INVALID_ARG
       );
-    } else if (PrivateBrowsingUtils.isWindowPrivate(targetWindow)) {
+    }
+    if (PrivateBrowsingUtils.isWindowPrivate(targetWindow)) {
       throw Components.Exception(
         "Cannot open a saved tab group in a private window",
         Cr.NS_ERROR_INVALID_ARG
       );
-    } else if (!targetWindow) {
-      targetWindow = this._getTopWindow();
     }
 
     let tabGroupData = this.getSavedTabGroup(tabGroupId);
