@@ -23,13 +23,15 @@
             <image class="tab-sharing-icon-overlay" role="presentation"/>
             <image class="tab-icon-overlay" role="presentation"/>
           </stack>
-          <html:moz-button type="icon ghost" size="small" class="tab-audio-button" tabindex="-1"></html:moz-button>
           <vbox class="tab-label-container"
                 align="start"
                 pack="center"
                 flex="1">
             <label class="tab-text tab-label" role="presentation"/>
             <hbox class="tab-secondary-label">
+              <label class="tab-icon-sound-label tab-icon-sound-playing-label" data-l10n-id="browser-tab-audio-playing2" role="presentation"/>
+              <label class="tab-icon-sound-label tab-icon-sound-muted-label" data-l10n-id="browser-tab-audio-muted2" role="presentation"/>
+              <label class="tab-icon-sound-label tab-icon-sound-blocked-label" data-l10n-id="browser-tab-audio-blocked" role="presentation"/>
               <label class="tab-icon-sound-label tab-icon-sound-pip-label" data-l10n-id="browser-tab-audio-pip" role="presentation"/>
               <label class="tab-icon-sound-label tab-icon-sound-tooltip-label" role="presentation"/>
             </hbox>
@@ -83,7 +85,7 @@
         ".tab-content":
           "pinned,selected=visuallyselected,multiselected,titlechanged,attention",
         ".tab-icon-stack":
-          "sharing,pictureinpicture,crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked",
+          "sharing,pictureinpicture,crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked,indicator-replaces-favicon",
         ".tab-throbber":
           "fadein,pinned,busy,progress,selected=visuallyselected",
         ".tab-icon-pending":
@@ -92,15 +94,13 @@
           "src=image,triggeringprincipal=iconloadingprincipal,requestcontextid,fadein,pinned,selected=visuallyselected,busy,crashed,sharing,pictureinpicture",
         ".tab-sharing-icon-overlay": "sharing,selected=visuallyselected,pinned",
         ".tab-icon-overlay":
-          "sharing,pictureinpicture,crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked",
-        ".tab-audio-button":
-          "soundplaying,soundplaying-scheduledremoval,pinned,muted,activemedia-blocked",
+          "sharing,pictureinpicture,crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked,indicator-replaces-favicon",
         ".tab-label-container":
           "pinned,selected=visuallyselected,labeldirection",
         ".tab-label":
           "text=label,accesskey,fadein,pinned,selected=visuallyselected,attention",
         ".tab-label-container .tab-secondary-label":
-          "pinned,blocked,selected=visuallyselected,pictureinpicture",
+          "soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked,pictureinpicture",
         ".tab-close-button": "fadein,pinned,selected=visuallyselected",
       };
     }
@@ -310,16 +310,8 @@
       return this.overlayIcon?.matches(":hover");
     }
 
-    get _overAudioButton() {
-      return this.audioButton?.matches(":hover");
-    }
-
     get overlayIcon() {
       return this.querySelector(".tab-icon-overlay");
-    }
-
-    get audioButton() {
-      return this.querySelector(".tab-audio-button");
     }
 
     get throbber() {
@@ -379,6 +371,24 @@
       if (event.target.classList.contains("tab-close-button")) {
         this.mOverCloseButton = true;
       }
+      if (this._overPlayingIcon) {
+        const selectedTabs = gBrowser.selectedTabs;
+        const contextTabInSelection = selectedTabs.includes(this);
+        const affectedTabsLength = contextTabInSelection
+          ? selectedTabs.length
+          : 1;
+        let stringID;
+        if (this.hasAttribute("activemedia-blocked")) {
+          stringID = "browser-tab-unblock";
+        } else {
+          stringID = this.linkedBrowser.audioMuted
+            ? "browser-tab-unmute"
+            : "browser-tab-mute";
+        }
+        this.setSecondaryTabTooltipLabel(stringID, {
+          count: affectedTabsLength,
+        });
+      }
 
       if (!this.visible) {
         return;
@@ -398,6 +408,9 @@
     on_mouseout(event) {
       if (event.target.classList.contains("tab-close-button")) {
         this.mOverCloseButton = false;
+      }
+      if (event.target == this.overlayIcon) {
+        this.setSecondaryTabTooltipLabel(null);
       }
 
       // If the new target is not part of this tab then this is a mouseleave event.
@@ -438,8 +451,7 @@
         this.style.MozUserFocus = "ignore";
       } else if (
         event.target.classList.contains("tab-close-button") ||
-        event.target.classList.contains("tab-icon-overlay") ||
-        event.target.classList.contains("tab-audio-button")
+        event.target.classList.contains("tab-icon-overlay")
       ) {
         eventMaySelectTab = false;
       }
@@ -504,18 +516,14 @@
       if (
         gBrowser.multiSelectedTabsCount > 0 &&
         !event.target.classList.contains("tab-close-button") &&
-        !event.target.classList.contains("tab-icon-overlay") &&
-        !event.target.classList.contains("tab-audio-button")
+        !event.target.classList.contains("tab-icon-overlay")
       ) {
         // Tabs were previously multi-selected and user clicks on a tab
         // without holding Ctrl/Cmd Key
         gBrowser.clearMultiSelectedTabs();
       }
 
-      if (
-        event.target.classList.contains("tab-icon-overlay") ||
-        event.target.classList.contains("tab-audio-button")
-      ) {
+      if (event.target.classList.contains("tab-icon-overlay")) {
         if (this.activeMediaBlocked) {
           if (this.multiselected) {
             gBrowser.resumeDelayedMediaOnMultiSelectedTabs(this);

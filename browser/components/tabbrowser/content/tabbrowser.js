@@ -2077,6 +2077,9 @@
         // process so the browser can no longer be considered to be
         // crashed.
         tab.removeAttribute("crashed");
+        // we call updatetabIndicatorAttr here, rather than _tabAttrModified, so as
+        // to be consistent with how "crashed" attribute changes are handled elsewhere
+        this.tabContainer.updateTabIndicatorAttr(tab);
       }
 
       // If the findbar has been initialised, reset its browser reference.
@@ -6418,13 +6421,8 @@
       event.stopPropagation();
       let tab = event.target.triggerNode?.closest("tab");
       if (!tab) {
-        if (event.target.triggerNode?.getRootNode()?.host?.closest("tab")) {
-          // Check if triggerNode is within shadowRoot of moz-button
-          tab = event.target.triggerNode?.getRootNode().host.closest("tab");
-        } else {
-          event.preventDefault();
-          return;
-        }
+        event.preventDefault();
+        return;
       }
 
       const tooltip = event.target;
@@ -6433,7 +6431,7 @@
       const tabCount = this.selectedTabs.includes(tab)
         ? this.selectedTabs.length
         : 1;
-      if (tab._overPlayingIcon || tab._overAudioButton) {
+      if (tab._overPlayingIcon) {
         let l10nId;
         const l10nArgs = { tabCount };
         if (tab.selected) {
@@ -7047,6 +7045,7 @@
             // process so the browser can no longer be considered to be
             // crashed.
             tab.removeAttribute("crashed");
+            gBrowser.tabContainer.updateTabIndicatorAttr(tab);
           }
 
           if (this.isFindBarInitialized(tab)) {
@@ -7371,6 +7370,7 @@
           delete this.mBrowser.initialPageLoadedFromUserAction;
           // If the browser is loading it must not be crashed anymore
           this.mTab.removeAttribute("crashed");
+          gBrowser.tabContainer.updateTabIndicatorAttr(this.mTab);
         }
 
         if (this._shouldShowProgress(aRequest)) {
