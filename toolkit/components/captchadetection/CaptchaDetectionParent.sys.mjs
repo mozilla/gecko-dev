@@ -197,6 +197,30 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     }
   }
 
+  #recordArkoseLabsEvent({
+    isPBM,
+    state: { event, solved, solutionsSubmitted },
+  }) {
+    if (event === "shown") {
+      // We don't call maybeSubmitPing here because we might end up
+      // submitting the ping without the "completed" event.
+      // maybeSubmitPing will be called when "completed" event is
+      // received, or when the daily maybeSubmitPing is called.
+      const shownMetric = "arkoselabsPs" + (isPBM ? "Pbm" : "");
+      Glean.captchaDetection[shownMetric].add(1);
+    } else if (event === "completed") {
+      const suffix = isPBM ? "Pbm" : "";
+      const resultMetric = "arkoselabs" + (solved ? "Pc" : "Pf") + suffix;
+      Glean.captchaDetection[resultMetric].add(1);
+
+      const solutionsRequiredMetric =
+        Glean.captchaDetection["arkoselabsSolutionsRequired" + suffix];
+      solutionsRequiredMetric.accumulateSingleSample(solutionsSubmitted);
+
+      lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+    }
+  }
+
   async #awsWafInit() {
     this.#responseObserver = new lazy.CaptchaResponseObserver(
       channel =>
@@ -245,6 +269,68 @@ class CaptchaDetectionParent extends JSWindowActorParent {
             numSolutionsRequired: body.num_solutions_required,
           },
         });
+      }
+    );
+    this.#responseObserver.register();
+  }
+
+  async #arkoseLabsInit() {
+    let solutionsSubmitted = 0;
+    this.#responseObserver = new lazy.CaptchaResponseObserver(
+      channel =>
+        channel.loadInfo?.browsingContextID === this.browsingContext.id &&
+        channel.URI &&
+        channel.URI.spec === "https://client-api.arkoselabs.com/fc/ca/",
+      (_channel, statusCode, responseBody) => {
+        if (statusCode !== Cr.NS_OK) {
+          return;
+        }
+
+        let body;
+        try {
+          body = JSON.parse(responseBody);
+          if (!body) {
+            lazy.console.debug(
+              "ResponseObserver:ResponseBody",
+              "Failed to parse JSON"
+            );
+            return;
+          }
+        } catch (e) {
+          lazy.console.debug(
+            "ResponseObserver:ResponseBody",
+            "Failed to parse JSON",
+            e,
+            responseBody
+          );
+          return;
+        }
+
+        // Check for the presence of the expected keys
+        if (["response", "solved"].some(key => !body.hasOwnProperty(key))) {
+          lazy.console.debug(
+            "ResponseObserver:ResponseBody",
+            "Missing keys",
+            body
+          );
+          return;
+        }
+
+        solutionsSubmitted++;
+        if (body.solved === null) {
+          return;
+        }
+
+        this.#recordArkoseLabsEvent({
+          isPBM: this.browsingContext.usePrivateBrowsing,
+          state: {
+            event: "completed",
+            solved: body.solved,
+            solutionsSubmitted,
+          },
+        });
+
+        solutionsSubmitted = 0;
       }
     );
     this.#responseObserver.register();
@@ -307,6 +393,8 @@ class CaptchaDetectionParent extends JSWindowActorParent {
             return this.#datadomeInit();
           case "awsWaf":
             return this.#awsWafInit();
+          case "arkoseLabs":
+            return this.#arkoseLabsInit();
         }
         break;
       default:
