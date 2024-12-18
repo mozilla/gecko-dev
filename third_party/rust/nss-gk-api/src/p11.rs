@@ -12,6 +12,7 @@
 use crate::err::{secstatus_to_res, Error, Res};
 use crate::util::SECItemMut;
 
+use pkcs11_bindings::CKA_EC_POINT;
 use pkcs11_bindings::CKA_VALUE;
 
 use std::convert::TryFrom;
@@ -33,8 +34,8 @@ pub fn hex_with_len(buf: impl AsRef<[u8]>) -> String {
 #[allow(clippy::unreadable_literal)]
 #[allow(unknown_lints, clippy::borrow_as_ptr)]
 mod nss_p11 {
-    use crate::prtypes::*;
     use crate::nss_prelude::*;
+    use crate::prtypes::*;
     include!(concat!(env!("OUT_DIR"), "/nss_p11.rs"));
 }
 
@@ -48,7 +49,11 @@ pub const AES_BLOCK_SIZE: usize = nss_p11::AES_BLOCK_SIZE as usize;
 scoped_ptr!(Certificate, CERTCertificate, CERT_DestroyCertificate);
 scoped_ptr!(CertList, CERTCertList, CERT_DestroyCertList);
 
-scoped_ptr!(SubjectPublicKeyInfo, CERTSubjectPublicKeyInfo, SECKEY_DestroySubjectPublicKeyInfo);
+scoped_ptr!(
+    SubjectPublicKeyInfo,
+    CERTSubjectPublicKeyInfo,
+    SECKEY_DestroySubjectPublicKeyInfo
+);
 
 scoped_ptr!(PublicKey, SECKEYPublicKey, SECKEY_DestroyPublicKey);
 impl_clone!(PublicKey, SECKEY_CopyPublicKey);
@@ -73,6 +78,19 @@ impl PublicKey {
         })?;
         buf.truncate(usize::try_from(len).unwrap());
         Ok(buf)
+    }
+
+    pub fn key_data_alt(&self) -> Res<Vec<u8>> {
+        let mut key_item = SECItemMut::make_empty();
+        secstatus_to_res(unsafe {
+            PK11_ReadRawAttribute(
+                PK11ObjectType::PK11_TypePubKey,
+                (**self).cast(),
+                CKA_EC_POINT,
+                key_item.as_mut(),
+            )
+        })?;
+        Ok(key_item.as_slice().to_owned())
     }
 }
 
@@ -138,7 +156,7 @@ impl SymKey {
     ///
     /// # Errors
     /// Internal errors in case of failures in NSS.
-    pub fn as_bytes(&self) -> Res<&[u8]> {
+    pub fn key_data(&self) -> Res<&[u8]> {
         secstatus_to_res(unsafe { PK11_ExtractKeyValue(**self) })?;
 
         let key_item = unsafe { PK11_GetKeyData(**self) };
@@ -148,11 +166,15 @@ impl SymKey {
             Some(key) => Ok(unsafe { std::slice::from_raw_parts(key.data, key.len as usize) }),
         }
     }
+
+    pub fn as_bytes(&self) -> Res<&[u8]> {
+        self.key_data()
+    }
 }
 
 impl std::fmt::Debug for SymKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if let Ok(b) = self.as_bytes() {
+        if let Ok(b) = self.key_data() {
             write!(f, "SymKey {}", hex_with_len(b))
         } else {
             write!(f, "Opaque SymKey")

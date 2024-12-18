@@ -1,0 +1,6 @@
+a
+├╼ b
+│ └╼ c
+│   └╼ Nothing to see here
+└╼ c
+  └╼ Nothing to see here

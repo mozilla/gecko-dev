@@ -1,0 +1,17 @@
+[
+    {
+      "algorithm": "ECDSA",
+      "private_key" : "e6eecf9e626cca8e18079b92c5ee269e54ca128eafd48947ff51aba00ac0e5d6",
+      "public_key" : "040a051e386f67c4a6e1e5cbee7d37745b588ebe720f755916286f9629697a391711d86aeac96708d23a2623d8c6edbb54d9a43f64066931800f351d9e75ebee1e",
+      "hash": "48", 
+      "signature":""
+    },
+    {
+        "algorithm": "EDDSA",
+        "private_key" : "f3c8f4c48df878146e8cd3bf6df4e50e389ba7074e15c2352dcd5d308d4ca81f",
+        "public_key" : "d8e18963d809d487d9549accaec6742e7eeba24d8a0d3b14b7e3caea06893dcc",
+        "hash": "2b7ed0bc7795694ab4acd35903fe8cd7d80f6a1c8688a6c3414409457514a1457855bbb219e30a1beea8fe869082d99fc8282f9050d024e59eaf0730ba9db70a", 
+        "signature":"3d90de5e5743dfc28225bfadb341b116cbf8a3f1ceedbf4adc350ef5d3471843a418614dcb6e614862614cf7af1496f9340b3c844ea4dceab1d3d155eb7ecc00"
+      }
+  ]
+  
