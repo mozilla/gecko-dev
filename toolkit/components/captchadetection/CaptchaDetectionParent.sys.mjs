@@ -54,7 +54,7 @@ const tabState = new TabState();
  * This actor parent is responsible for recording the state of captchas
  * or communicating with parent browsing context.
  */
-export class CaptchaDetectionParent extends JSWindowActorParent {
+class CaptchaDetectionParent extends JSWindowActorParent {
   actorCreated() {
     lazy.console.debug("actorCreated");
   }
@@ -98,6 +98,44 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
     lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
   }
 
+  async #datadomeInit() {
+    const parent = this.browsingContext.parentWindowContext;
+    if (!parent) {
+      lazy.console.error("Datadome captcha loaded in a top-level window?");
+      return;
+    }
+
+    let actor = null;
+    try {
+      actor = parent.getActor("CaptchaDetectionCommunication");
+      if (!actor) {
+        lazy.console.error("CaptchaDetection actor not found in parent window");
+        return;
+      }
+    } catch (e) {
+      lazy.console.error("Error getting actor", e);
+      return;
+    }
+
+    await actor.sendQuery("Datadome:AddMessageListener");
+  }
+
+  #recordDatadomeEvent({ isPBM, state: { event, ...payload } }) {
+    lazy.console.debug("recordDatadomeEvent", event, payload);
+    const suffix = isPBM ? "Pbm" : "";
+    if (event === "load") {
+      if (payload.captchaShown) {
+        Glean.captchaDetection["datadomePs" + suffix].add(1);
+      } else if (payload.blocked) {
+        Glean.captchaDetection["datadomeBl" + suffix].add(1);
+      }
+    } else if (event === "passed") {
+      Glean.captchaDetection["datadomePc" + suffix].add(1);
+    }
+
+    lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
+  }
+
   async receiveMessage(message) {
     lazy.console.debug("receiveMessage", JSON.stringify(message));
 
@@ -119,6 +157,8 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
           case "cf-turnstile":
             this.#recordCFTurnstileResult(message.data);
             break;
+          case "datadome":
+            this.#recordDatadomeEvent(message.data);
         }
         break;
       case "TabState:Closed":
@@ -128,9 +168,23 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
         // }
         tabState.clear(message.data.tabId);
         break;
+      case "CaptchaDetection:Init":
+        // message.name === "CaptchaDetection:Init"
+        // => message.data = {
+        //   type: string,
+        // }
+        if (message.data.type === "datadome") {
+          return this.#datadomeInit();
+        }
+        break;
       default:
         lazy.console.error("Unknown message", message);
     }
     return null;
   }
 }
+
+export {
+  CaptchaDetectionParent,
+  CaptchaDetectionParent as CaptchaDetectionCommunicationParent,
+};

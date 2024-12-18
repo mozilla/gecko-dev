@@ -15,9 +15,9 @@ $tags:
 # Do note that many puzzle based captchas are also challenges, as they also factor in the user's browser fingerprint, IP address trust score and etc.
 
 # We use some abbreviations in some metric names.
-# Puzzle related: pc = puzzle completed, ac = auto completed
+# Puzzle related: pc = puzzle completed, ac = auto completed, ps = puzzle shown
 # Challenge related: cc = challenge completed, cf = challenge failed
-# General: PBM = Private Browsing Mode
+# General: PBM = Private Browsing Mode, bl = blocked
 
 captcha_detection:
   # Captcha states in normal browsing
@@ -101,6 +101,56 @@ captcha_detection:
     data_sensitivity:
       - interaction
 
+  # Datadome uses interstitials to block access to the website.
+  # So it is enough to count the number of times the puzzle was shown.
+  datadome_ps:
+    type: counter
+    description: >
+      The number of times the Datadome puzzle was shown.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  datadome_bl:
+    type: counter
+    description: >
+      How many times the Datadome blocked a user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  datadome_pc:
+    type: counter
+    description: >
+      How many times the user passed a Datadome puzzle.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   # Captcha states in private browsing
   google_recaptcha_v2_ps_pbm:
     type: counter
@@ -170,6 +220,54 @@ captcha_detection:
     type: counter
     description: >
       Number of times the Cloudflare Turnstile challenge was failed since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  datadome_ps_pbm:
+    type: counter
+    description: >
+      The number of times the Datadome puzzle was shown.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  datadome_bl_pbm:
+    type: counter
+    description: >
+      How many times the Datadome blocked a user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  datadome_pc_pbm:
+    type: counter
+    description: >
+      How many times the user completed a Datadome puzzle.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
     data_reviews:

@@ -51,6 +51,7 @@ export class CaptchaDetectionPingUtils {
   }
 
   static #setPrivacyMetrics() {
+    lazy.console.debug("Setting privacy metrics.");
     for (const [metricName, { type, name }] of Object.entries(
       CaptchaDetectionPingUtils.prefsOfInterest
     )) {

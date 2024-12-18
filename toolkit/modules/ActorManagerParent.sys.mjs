@@ -230,19 +230,34 @@ let JSWINDOWACTORS = {
     child: {
       esModuleURI: "resource://gre/actors/CaptchaDetectionChild.sys.mjs",
       events: {
-        DOMContentLoaded: {},
+        DOMContentLoaded: { capture: true },
         pageshow: {},
         pagehide: {},
       },
     },
     matches: [
+      // Google reCAPTCHA v2
       "https://www.google.com/recaptcha/api2/*",
       "https://www.google.com/recaptcha/enterprise/*",
+      // CF Turnstile
       "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2/av0/rcv/*",
+      // DataDome Captcha
+      "https://geo.captcha-delivery.com/captcha/*",
     ],
     messageManagerGroups: ["browsers"],
     allFrames: true,
     enablePreference: "datareporting.healthreport.uploadEnabled",
+  },
+
+  CaptchaDetectionCommunication: {
+    parent: {
+      esModuleURI: "resource://gre/actors/CaptchaDetectionParent.sys.mjs",
+    },
+    child: {
+      esModuleURI:
+        "resource://gre/actors/CaptchaDetectionCommunicationChild.sys.mjs",
+    },
+    allFrames: true,
   },
 
   CookieBanner: {

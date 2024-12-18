@@ -9,6 +9,7 @@ with Files("**"):
 
 FINAL_TARGET_FILES.actors += [
     "CaptchaDetectionChild.sys.mjs",
+    "CaptchaDetectionCommunicationChild.sys.mjs",
     "CaptchaDetectionParent.sys.mjs",
 ]
 
