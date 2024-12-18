@@ -19,6 +19,12 @@ const PanelUI = {
   get kEvents() {
     return ["popupshowing", "popupshown", "popuphiding", "popuphidden"];
   },
+
+  /// Notification events used for overwriting notification actions
+  get kNotificationEvents() {
+    return ["buttoncommand", "secondarybuttoncommand", "learnmoreclick"];
+  },
+
   /**
    * Used for lazily getting and memoizing elements from the document. Lazy
    * getters are set in init, and memoizing happens after the first retrieval.
@@ -163,6 +169,9 @@ const PanelUI = {
 
     if (this._notificationPanel) {
       for (let event of this.kEvents) {
+        this.notificationPanel.removeEventListener(event, this);
+      }
+      for (let event of this.kNotificationEvents) {
         this.notificationPanel.removeEventListener(event, this);
       }
     }
@@ -322,6 +331,16 @@ const PanelUI = {
         break;
       case "command":
         this.onCommand(aEvent);
+        break;
+      case "buttoncommand":
+        this._onNotificationButtonEvent(aEvent, "buttoncommand");
+        break;
+      case "secondarybuttoncommand":
+        this._onNotificationButtonEvent(aEvent, "secondarybuttoncommand");
+        break;
+      case "learnmoreclick":
+        // Don't fall back to PopupNotifications.
+        aEvent.preventDefault();
         break;
     }
   },
@@ -968,6 +987,9 @@ const PanelUI = {
       for (let event of this.kEvents) {
         this._notificationPanel.addEventListener(event, this);
       }
+      for (let event of this.kNotificationEvents) {
+        this._notificationPanel.addEventListener(event, this);
+      }
     }
     return this._notificationPanel;
   },
@@ -1006,14 +1028,6 @@ const PanelUI = {
     let popupnotification = document.getElementById(popupnotificationID);
 
     popupnotification.setAttribute("id", popupnotificationID);
-    popupnotification.setAttribute(
-      "buttoncommand",
-      "PanelUI._onNotificationButtonEvent(event, 'buttoncommand');"
-    );
-    popupnotification.setAttribute(
-      "secondarybuttoncommand",
-      "PanelUI._onNotificationButtonEvent(event, 'secondarybuttoncommand');"
-    );
 
     if (notification.options.message) {
       let desc = this._formatDescriptionMessage(notification);
@@ -1082,6 +1096,8 @@ const PanelUI = {
   },
 
   _onNotificationButtonEvent(event, type) {
+    event.preventDefault();
+
     let notificationEl = getNotificationFromElement(event.originalTarget);
 
     if (!notificationEl) {

@@ -255,13 +255,27 @@ export class ExtensionControlledPopup {
     let addon = await lazy.AddonManager.getAddonByID(extensionId);
     this.populateDescription(doc, addon);
 
-    // Setup the command handler.
-    let handleCommand = async event => {
+    // Setup the buttoncommand handler.
+    let handleButtonCommand = async event => {
+      event.preventDefault();
       panel.hidePopup();
-      if (event.originalTarget == popupnotification.button) {
-        // Main action is to keep changes.
-        await this.setConfirmation(extensionId);
-      } else if (this.preferencesLocation) {
+
+      // Main action is to keep changes.
+      await this.setConfirmation(extensionId);
+
+      // If the page this is appearing on is the New Tab page then the URL bar may
+      // have been focused when the doorhanger stole focus away from it. Once an
+      // action is taken the focus state should be restored to what the user was
+      // expecting.
+      if (urlBarWasFocused) {
+        win.gURLBar.focus();
+      }
+    };
+    let handleSecondaryButtonCommand = async event => {
+      event.preventDefault();
+      panel.hidePopup();
+
+      if (this.preferencesLocation) {
         // Secondary action opens Preferences, if a preferencesLocation option is included.
         let options = this.Entrypoint
           ? { urlParams: { entrypoint: this.Entrypoint } }
@@ -275,20 +289,24 @@ export class ExtensionControlledPopup {
         await addon.disable();
       }
 
-      // If the page this is appearing on is the New Tab page then the URL bar may
-      // have been focused when the doorhanger stole focus away from it. Once an
-      // action is taken the focus state should be restored to what the user was
-      // expecting.
       if (urlBarWasFocused) {
         win.gURLBar.focus();
       }
     };
-    panel.addEventListener("command", handleCommand);
+    panel.addEventListener("buttoncommand", handleButtonCommand);
+    panel.addEventListener(
+      "secondarybuttoncommand",
+      handleSecondaryButtonCommand
+    );
     panel.addEventListener(
       "popuphidden",
       () => {
         popupnotification.hidden = true;
-        panel.removeEventListener("command", handleCommand);
+        panel.removeEventListener("buttoncommand", handleButtonCommand);
+        panel.removeEventListener(
+          "secondarybuttoncommand",
+          handleSecondaryButtonCommand
+        );
       },
       { once: true }
     );

@@ -1047,13 +1047,9 @@ PopupNotifications.prototype = {
 
       popupnotification.setAttribute("id", popupnotificationID);
       popupnotification.setAttribute("popupid", n.id);
-      popupnotification.setAttribute(
-        "oncommand",
-        "PopupNotifications._onCommand(event);"
-      );
-      popupnotification.setAttribute(
-        "closebuttoncommand",
-        `PopupNotifications._dismiss(event, true);`
+
+      popupnotification.addEventListener("command", event =>
+        this._onCommand(event)
       );
 
       popupnotification.toggleAttribute(
@@ -1067,34 +1063,11 @@ PopupNotifications.prototype = {
           "buttonaccesskey",
           n.mainAction.accessKey
         );
-        popupnotification.setAttribute(
-          "buttoncommand",
-          "PopupNotifications._onButtonEvent(event, 'buttoncommand');"
-        );
-        popupnotification.setAttribute(
-          "dropmarkerpopupshown",
-          "PopupNotifications._onButtonEvent(event, 'dropmarkerpopupshown');"
-        );
-        popupnotification.setAttribute(
-          "learnmoreclick",
-          "PopupNotifications._onButtonEvent(event, 'learnmoreclick');"
-        );
-        popupnotification.setAttribute(
-          "menucommand",
-          "PopupNotifications._onMenuCommand(event);"
-        );
       } else {
         // Enable the default button to let the user close the popup if the close button is hidden
-        popupnotification.setAttribute(
-          "buttoncommand",
-          "PopupNotifications._onButtonEvent(event, 'buttoncommand');"
-        );
         popupnotification.toggleAttribute("buttonhighlight", true);
         popupnotification.removeAttribute("buttonlabel");
         popupnotification.removeAttribute("buttonaccesskey");
-        popupnotification.removeAttribute("dropmarkerpopupshown");
-        popupnotification.removeAttribute("learnmoreclick");
-        popupnotification.removeAttribute("menucommand");
       }
 
       let classes = "popup-notification-icon";
@@ -1154,10 +1127,6 @@ PopupNotifications.prototype = {
         popupnotification.setAttribute(
           "secondarybuttonaccesskey",
           secondaryAction.accessKey
-        );
-        popupnotification.setAttribute(
-          "secondarybuttoncommand",
-          "PopupNotifications._onButtonEvent(event, 'secondarybuttoncommand');"
         );
 
         for (let i = 1; i < n.secondaryActions.length; i++) {

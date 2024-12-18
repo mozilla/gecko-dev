@@ -25,18 +25,14 @@
         ".popup-notification-description > span:last-of-type":
           "text=secondendlabel,popupid",
         ".popup-notification-hint-text": "text=hinttext",
-        ".popup-notification-closebutton":
-          "oncommand=closebuttoncommand,hidden=closebuttonhidden",
-        ".popup-notification-learnmore-link":
-          "onclick=learnmoreclick,href=learnmoreurl",
+        ".popup-notification-closebutton": "hidden=closebuttonhidden",
+        ".popup-notification-learnmore-link": "href=learnmoreurl",
         ".popup-notification-warning": "hidden=warninghidden,text=warninglabel",
         ".popup-notification-secondary-button":
-          "oncommand=secondarybuttoncommand,label=secondarybuttonlabel,accesskey=secondarybuttonaccesskey,hidden=secondarybuttonhidden,dropmarkerhidden",
-        ".popup-notification-dropmarker":
-          "onpopupshown=dropmarkerpopupshown,hidden=dropmarkerhidden",
-        ".popup-notification-dropmarker > menupopup": "oncommand=menucommand",
+          "label=secondarybuttonlabel,accesskey=secondarybuttonaccesskey,hidden=secondarybuttonhidden,dropmarkerhidden",
+        ".popup-notification-dropmarker": "hidden=dropmarkerhidden",
         ".popup-notification-primary-button":
-          "oncommand=buttoncommand,label=buttonlabel,accesskey=buttonaccesskey,default=buttonhighlight,disabled=mainactiondisabled",
+          "label=buttonlabel,accesskey=buttonaccesskey,default=buttonhighlight,disabled=mainactiondisabled",
       };
     }
 
@@ -85,7 +81,7 @@
           <description class="popup-notification-hint-text"></description>
           <vbox class="popup-notification-bottom-content" align="start">
             <label class="popup-notification-learnmore-link" is="text-link" data-l10n-id="popup-notification-learn-more"></label>
-            <checkbox class="popup-notification-checkbox" oncommand="PopupNotifications._onCheckboxCommand(event)"/>
+            <checkbox class="popup-notification-checkbox"/>
             <description class="popup-notification-warning"/>
           </vbox>
         </vbox>
@@ -107,6 +103,17 @@
       if (this._hasSlotted) {
         return;
       }
+
+      if (
+        this.hasAttribute("buttoncommand") ||
+        this.hasAttribute("secondarybuttoncommand") ||
+        this.hasAttribute("learnmoreclick")
+      ) {
+        throw new Error(
+          "The attributes 'buttoncommand', 'secondarybuttoncommand' and 'learnmoreclick' are not supported anymore use `addEventListener` instead"
+        );
+      }
+
       this._hasSlotted = true;
       MozXULElement.insertFTLIfNeeded("toolkit/global/notification.ftl");
       MozXULElement.insertFTLIfNeeded("toolkit/global/popupnotification.ftl");
@@ -152,6 +159,40 @@
       }
 
       this.initializeAttributeInheritance();
+
+      let customEventDelegator = (type, event) => {
+        let customEvent = new CustomEvent(type, {
+          cancelable: true,
+          bubbles: true,
+        });
+        // Give listeners the chance to prevent the default behavior.
+        if (this.dispatchEvent(customEvent)) {
+          PopupNotifications._onButtonEvent(event, type);
+        }
+      };
+
+      this.button.addEventListener("command", event =>
+        customEventDelegator("buttoncommand", event)
+      );
+      this.secondaryButton.addEventListener("command", event =>
+        customEventDelegator("secondarybuttoncommand", event)
+      );
+      this.checkbox.addEventListener("command", event => {
+        PopupNotifications._onCheckboxCommand(event);
+      });
+      this.closebutton.addEventListener("command", event => {
+        PopupNotifications._dismiss(event, true);
+      });
+      this.menubutton.addEventListener("popupshown", event => {
+        PopupNotifications._onButtonEvent(event, "dropmarkerpopupshown");
+      });
+      this.menupopup.addEventListener("command", event => {
+        PopupNotifications._onMenuCommand(event);
+      });
+      this.querySelector(".popup-notification-learnmore-link").addEventListener(
+        "click",
+        event => customEventDelegator("learnmoreclick", event)
+      );
     }
 
     appendNotificationContent(el) {
