@@ -43,6 +43,13 @@ void nsAccUtils::SetAccGroupAttrs(AccAttributes* aAttributes, int32_t aLevel,
   }
 }
 
+void nsAccUtils::SetAccGroupAttrs(AccAttributes* aAttributes,
+                                  Accessible* aAcc) {
+  GroupPos groupPos = aAcc->GroupPosition();
+  nsAccUtils::SetAccGroupAttrs(aAttributes, groupPos.level, groupPos.setSize,
+                               groupPos.posInSet);
+}
+
 int32_t nsAccUtils::GetLevelForXULContainerItem(nsIContent* aContent) {
   nsCOMPtr<nsIDOMXULContainerItemElement> item =
       aContent->AsElement()->AsXULContainerItem();

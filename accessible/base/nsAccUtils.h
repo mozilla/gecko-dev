@@ -36,6 +36,7 @@ class nsAccUtils {
    */
   static void SetAccGroupAttrs(AccAttributes* aAttributes, int32_t aLevel,
                                int32_t aSetSize, int32_t aPosInSet);
+  static void SetAccGroupAttrs(AccAttributes* aAttributes, Accessible* aAcc);
 
   /**
    * Compute group level for nsIDOMXULContainerItemElement node.

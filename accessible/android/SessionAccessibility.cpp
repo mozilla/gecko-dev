@@ -694,6 +694,7 @@ void SessionAccessibility::PopulateNodeInfo(
   }
 
   RefPtr<AccAttributes> attributes = aAccessible->Attributes();
+  nsAccUtils::SetAccGroupAttrs(attributes, aAccessible);
 
   nsAutoString geckoRole;
   nsAutoString roleDescription;

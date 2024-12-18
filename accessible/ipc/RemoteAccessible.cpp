@@ -1651,10 +1651,6 @@ already_AddRefed<AccAttributes> RemoteAccessible::Attributes() {
       attributes->SetAttribute(nsGkAtoms::tag, *tag);
     }
 
-    GroupPos groupPos = GroupPosition();
-    nsAccUtils::SetAccGroupAttrs(attributes, groupPos.level, groupPos.setSize,
-                                 groupPos.posInSet);
-
     bool hierarchical = false;
     uint32_t itemCount = AccGroupInfo::TotalItemCount(this, &hierarchical);
     if (itemCount) {

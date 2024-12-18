@@ -666,6 +666,7 @@ AtkAttributeSet* getAttributesCB(AtkObject* aAtkObj) {
     return nullptr;
   }
   RefPtr<AccAttributes> attributes = acc->Attributes();
+  nsAccUtils::SetAccGroupAttrs(attributes, acc);
   return ConvertToAtkAttributeSet(attributes);
 }
 
