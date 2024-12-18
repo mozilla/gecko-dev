@@ -151,6 +151,54 @@ captcha_detection:
     data_sensitivity:
       - interaction
 
+  hcaptcha_ps:
+    type: counter
+    description: >
+      Number of times the hCaptcha puzzle was shown.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  hcaptcha_pc:
+    type: counter
+    description: >
+      Number of times the user completed an hCaptcha puzzle.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  hcaptcha_ac:
+    type: counter
+    description: >
+      Number of times the user completed an hCaptcha challenge automatically.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
   # Captcha states in private browsing
   google_recaptcha_v2_ps_pbm:
     type: counter
@@ -268,6 +316,54 @@ captcha_detection:
     type: counter
     description: >
       How many times the user completed a Datadome puzzle.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  hcaptcha_ps_pbm:
+    type: counter
+    description: >
+      Number of times the hCaptcha puzzle was shown.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  hcaptcha_pc_pbm:
+    type: counter
+    description: >
+      Number of times the user completed an hCaptcha puzzle.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  hcaptcha_ac_pbm:
+    type: counter
+    description: >
+      Number of times the user completed an hCaptcha challenge automatically.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
     data_reviews:
