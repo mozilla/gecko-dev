@@ -193,6 +193,16 @@ class ChromeUtils {
 
   static void ClearStyleSheetCache(GlobalObject& aGlobal);
 
+  static void ClearMessagingLayerSecurityStateByPrincipal(
+      GlobalObject&, nsIPrincipal* aPrincipal, ErrorResult& aRv);
+
+  static void ClearMessagingLayerSecurityStateBySite(
+      GlobalObject& aGlobal, const nsACString& aSchemelessSite,
+      const dom::OriginAttributesPatternDictionary& aPattern, ErrorResult& aRv);
+
+  static void ClearMessagingLayerSecurityState(GlobalObject& aGlobal,
+                                               ErrorResult& aRv);
+
   static void ClearScriptCacheByPrincipal(GlobalObject&,
                                           nsIPrincipal* aForPrincipal);
 
