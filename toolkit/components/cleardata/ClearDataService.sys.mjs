@@ -556,6 +556,38 @@ const CSSCacheCleaner = {
   },
 };
 
+const MessagingLayerSecurityStateCleaner = {
+  async deleteByHost(aHost, aOriginAttributes) {
+    // Delete data from both HTTP and HTTPS sites.
+    let httpURI = Services.io.newURI("http://" + aHost);
+    let httpsURI = Services.io.newURI("https://" + aHost);
+    let httpPrincipal = Services.scriptSecurityManager.createContentPrincipal(
+      httpURI,
+      aOriginAttributes
+    );
+    let httpsPrincipal = Services.scriptSecurityManager.createContentPrincipal(
+      httpsURI,
+      aOriginAttributes
+    );
+    ChromeUtils.clearMessagingLayerSecurityStateByPrincipal(httpsPrincipal);
+    // The WebAPI doesn't allow for non-secure contexts but
+    // we are keeping this out of caution.
+    ChromeUtils.clearMessagingLayerSecurityStateByPrincipal(httpPrincipal);
+  },
+  async deleteByPrincipal(aPrincipal) {
+    ChromeUtils.clearMessagingLayerSecurityStateByPrincipal(aPrincipal);
+  },
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    ChromeUtils.clearMessagingLayerSecurityStateBySite(
+      aSchemelessSite,
+      aOriginAttributesPattern
+    );
+  },
+  async deleteAll() {
+    ChromeUtils.clearMessagingLayerSecurityState();
+  },
+};
+
 const JSCacheCleaner = {
   async deleteByHost(aHost, aOriginAttributes) {
     // Delete data from both HTTP and HTTPS sites.
@@ -2213,6 +2245,11 @@ const FLAGS_MAP = [
   {
     flag: Ci.nsIClearDataService.CLEAR_CSS_CACHE,
     cleaners: [CSSCacheCleaner],
+  },
+
+  {
+    flag: Ci.nsIClearDataService.CLEAR_MESSAGING_LAYER_SECURITY_STATE,
+    cleaners: [MessagingLayerSecurityStateCleaner],
   },
 
   {
