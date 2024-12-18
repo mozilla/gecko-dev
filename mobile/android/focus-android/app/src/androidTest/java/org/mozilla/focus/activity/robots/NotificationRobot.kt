@@ -14,7 +14,6 @@ import org.mozilla.focus.R
 import org.mozilla.focus.helpers.TestHelper.getStringResource
 import org.mozilla.focus.helpers.TestHelper.mDevice
 import org.mozilla.focus.helpers.TestHelper.waitingTime
-import org.mozilla.focus.helpers.TestHelper.waitingTimeShort
 
 class NotificationRobot {
 
@@ -22,13 +21,13 @@ class NotificationRobot {
     private val QS_PANEL = "com.android.systemui:id/quick_qs_panel"
 
     fun clearNotifications() {
-        if (clearButton.waitForExists(waitingTimeShort)) {
-            clearButton.click()
+        if (clearButton().exists()) {
+            clearButton().click()
         } else {
-            notificationTray.scrollIntoView(clearButton)
-            if (clearButton.exists()) {
-                clearButton.click()
-            } else if (notificationTray.exists()) {
+            scrollToEnd()
+            if (clearButton().exists()) {
+                clearButton().click()
+            } else if (notificationTray().exists()) {
                 mDevice.pressBack()
             }
         }
@@ -87,7 +86,7 @@ class NotificationRobot {
         val downloadFilename = mDevice.findObject(UiSelector().text(fileName))
 
         while (!notificationFound) {
-            notificationTray.swipeUp(2)
+            notificationTray().swipeUp(2)
             notificationFound = mDevice.findObject(notification).waitForExists(waitingTime)
         }
 
@@ -141,13 +140,16 @@ private val notificationOpenButton = mDevice.findObject(
     UiSelector().description(getStringResource(R.string.notification_action_open)),
 )
 
-private val notificationTray = UiScrollable(
+private fun notificationTray() = UiScrollable(
     UiSelector().resourceId("com.android.systemui:id/notification_stack_scroller"),
-)
-    .setAsVerticalList()
+).setAsVerticalList()
 
-private val clearButton =
-    mDevice.findObject(UiSelector().textContains("Clear all"))
+private fun clearButton() =
+    mDevice.findObject(UiSelector().resourceId("com.android.systemui:id/dismiss_text"))
+
+private fun scrollToEnd() {
+    notificationTray().scrollToEnd(1)
+}
 
 private fun mediaNotificationControlButton(action: String) =
     mDevice.findObject(UiSelector().description(action))
