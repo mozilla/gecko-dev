@@ -1734,25 +1734,18 @@ static bool WasmExtractCode(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-struct DisasmBuffer {
-  JSStringBuilder builder;
-  bool oom;
-  explicit DisasmBuffer(JSContext* cx) : builder(cx), oom(false) {}
-};
-
 static bool HasDisassembler(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   args.rval().setBoolean(jit::HasDisassembler());
   return true;
 }
 
-MOZ_THREAD_LOCAL(DisasmBuffer*) disasmBuf;
+MOZ_THREAD_LOCAL(JSSprinter*) disasmPrinter;
 
 static void captureDisasmText(const char* text) {
-  DisasmBuffer* buf = disasmBuf.get();
-  if (!buf->builder.append(text, strlen(text)) || !buf->builder.append('\n')) {
-    buf->oom = true;
-  }
+  JSSprinter* printer = disasmPrinter.get();
+  printer->put(text);
+  printer->printf("\n");
 }
 
 static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
@@ -1855,22 +1848,10 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     fclose(f);
   }
 
-  DisasmBuffer buf(cx);
-  disasmBuf.set(&buf);
-  auto onFinish = mozilla::MakeScopeExit([&] { disasmBuf.set(nullptr); });
+  disasmPrinter.set(&sprinter);
+  auto onFinish = mozilla::MakeScopeExit([&] { disasmPrinter.set(nullptr); });
 
   jit::Disassemble(jit_begin, jit_end - jit_begin, &captureDisasmText);
-
-  if (buf.oom) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-  JSString* sresult = buf.builder.finishString();
-  if (!sresult) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-  sprinter.putString(cx, sresult);
 
   JSString* str = sprinter.release(cx);
   if (!str) {
@@ -1898,6 +1879,9 @@ static bool DisassembleBaselineICs(JSContext* cx, unsigned argc, Value* vp) {
   if (!sprinter.init()) {
     return false;
   }
+
+  disasmPrinter.set(&sprinter);
+  auto onFinish = mozilla::MakeScopeExit([&] { disasmPrinter.set(nullptr); });
 
   RootedFunction fun(cx, &args[0].toObject().as<JSFunction>());
 
@@ -1940,22 +1924,8 @@ static bool DisassembleBaselineICs(JSContext* cx, unsigned argc, Value* vp) {
       sprinter.printf(";   IR:\n");
       SpewCacheIROps(sprinter, ";        ", cacheIRStub->stubInfo());
 #endif
-      DisasmBuffer buf(cx);
-      disasmBuf.set(&buf);
-      auto onFinish = mozilla::MakeScopeExit([&] { disasmBuf.set(nullptr); });
 
       jit::Disassemble(jit_begin, jit_end - jit_begin, &captureDisasmText);
-
-      if (buf.oom) {
-        ReportOutOfMemory(cx);
-        return false;
-      }
-      JSString* sresult = buf.builder.finishString();
-      if (!sresult) {
-        ReportOutOfMemory(cx);
-        return false;
-      }
-      sprinter.putString(cx, sresult);
       stub = cacheIRStub->next();
       stubNum++;
     }
@@ -1986,17 +1956,16 @@ template <typename DisasmFunction>
 static bool DisassembleIt(JSContext* cx, bool asString, MutableHandleValue rval,
                           DisasmFunction&& disassembleIt) {
   if (asString) {
-    DisasmBuffer buf(cx);
-    disasmBuf.set(&buf);
-    auto onFinish = mozilla::MakeScopeExit([&] { disasmBuf.set(nullptr); });
-    disassembleIt(captureDisasmText);
-    if (buf.oom) {
-      ReportOutOfMemory(cx);
+    JSSprinter sprinter(cx);
+    if (!sprinter.init()) {
       return false;
     }
-    JSString* sresult = buf.builder.finishString();
+    disasmPrinter.set(&sprinter);
+    auto onFinish = mozilla::MakeScopeExit([&] { disasmPrinter.set(nullptr); });
+    disassembleIt(captureDisasmText);
+
+    JSString* sresult = sprinter.release(cx);
     if (!sresult) {
-      ReportOutOfMemory(cx);
       return false;
     }
     rval.setString(sresult);
@@ -10867,7 +10836,7 @@ static const JSFunctionSpecWithHelp FdLibMTestingFunctions[] = {
 };
 // clang-format on
 
-bool js::InitTestingFunctions() { return disasmBuf.init(); }
+bool js::InitTestingFunctions() { return disasmPrinter.init(); }
 
 bool js::DefineTestingFunctions(JSContext* cx, HandleObject obj,
                                 bool fuzzingSafe_, bool disableOOMFunctions_) {
