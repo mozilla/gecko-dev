@@ -116,7 +116,7 @@ addAccessibleTask(
       }
 
       body {
-        overflow: auto;
+        overflow: hidden auto;
       }
 
       button {
