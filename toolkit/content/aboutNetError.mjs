@@ -46,7 +46,6 @@ const KNOWN_ERROR_TITLE_IDS = new Set([
   "unsafeContentType-title",
   "netReset-title",
   "netTimeout-title",
-  "httpErrorPage-title",
   "serverError-title",
   "unknownProtocolFound-title",
   "proxyConnectFailure-title",
@@ -263,32 +262,6 @@ function recordTRREventTelemetry(
         }
       );
     });
-  }
-}
-
-function setResponseStatus(shortDesc) {
-  let responseStatus;
-  let responseStatusText;
-  try {
-    const netErrorInfo = document.getNetErrorInfo();
-    responseStatus = netErrorInfo.responseStatus;
-    responseStatusText = netErrorInfo.responseStatusText;
-  } catch (ex) {
-    return;
-  }
-
-  if (responseStatus >= 400) {
-    let responseStatusLabel = document.createElement("p");
-    responseStatusLabel.id = "response-status-label"; // id for testing
-    document.l10n.setAttributes(
-      responseStatusLabel,
-      "neterror-response-status-code",
-      {
-        responsestatus: responseStatus,
-        responsestatustext: responseStatusText ?? "",
-      }
-    );
-    shortDesc.appendChild(responseStatusLabel);
   }
 }
 
@@ -622,7 +595,6 @@ function initPage() {
     setNetErrorMessageFromParts(longDesc, parts);
   }
 
-  setResponseStatus(shortDesc);
   setNetErrorMessageFromCode();
 }
 
@@ -745,7 +717,8 @@ function getNetErrorDescParts() {
     case "connectionFailure":
     case "netInterrupt":
     case "netReset":
-    case "netTimeout": {
+    case "netTimeout":
+    case "serverError": {
       let errorTags = [
         ["li", "neterror-load-error-try-again"],
         ["li", "neterror-load-error-connection"],
@@ -757,10 +730,6 @@ function getNetErrorDescParts() {
       return errorTags;
     }
 
-    case "httpErrorPage": // 4xx
-      return [["li", "neterror-http-error-page"]];
-    case "serverError": // 5xx
-      return [["li", "neterror-load-error-try-again"]];
     case "blockedByPolicy":
     case "deniedPortAccess":
     case "malformedURI":
@@ -855,10 +824,7 @@ function setNetErrorMessageFromCode() {
   try {
     errorCode = document.getNetErrorInfo().errorCodeString;
   } catch (ex) {
-    return;
-  }
-
-  if (!errorCode) {
+    // We don't have a securityInfo when this is for example a DNS error.
     return;
   }
 

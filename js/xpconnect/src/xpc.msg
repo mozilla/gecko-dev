@@ -157,7 +157,6 @@ XPC_MSG_DEF(NS_ERROR_NET_TIMEOUT_EXTERNAL           , "The request has been canc
 XPC_MSG_DEF(NS_ERROR_OFFLINE                        , "The requested action could not be completed in the offline state")
 XPC_MSG_DEF(NS_ERROR_PORT_ACCESS_NOT_ALLOWED        , "Establishing a connection to an unsafe or otherwise banned port was prohibited")
 XPC_MSG_DEF(NS_ERROR_NET_RESET                      , "The connection was established, but no data was ever received")
-XPC_MSG_DEF(NS_ERROR_NET_EMPTY_RESPONSE             , "The connection was established, but the browser received an empty page with an error response")
 XPC_MSG_DEF(NS_ERROR_NET_ERROR_RESPONSE             , "The connection was established, but the browser received an error response from the server")
 XPC_MSG_DEF(NS_ERROR_NET_INTERRUPT                  , "The connection was established, but the data transfer was interrupted")
 XPC_MSG_DEF(NS_ERROR_NET_PARTIAL_TRANSFER           , "A transfer was only partially done when it completed")
