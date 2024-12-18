@@ -20,6 +20,7 @@ RUSTUP_HASHES = {
     "aarch64-apple-darwin": "6d56735284181b2eb804ed7f57f76cf5ff924251e8ab69d9b5822c3be1ca1dc7",
     "x86_64-apple-darwin": "39101feb178a7e3e4443b09b36338e794a9e00385e5f44a2f7789aefb91354a9",
     "x86_64-unknown-linux-gnu": "ed7773edaf1d289656bdec2aacad12413b38ad0193fff54b2231f5140a4b07c5",
+    "aarch64-unknown-linux-gnu": "f80a0a792b3ab905ab4919474daf4d3f60e574fc6987e69bfba2fd877241a8de",
     "x86_64-pc-windows-msvc": "a586cf9de3e4aa791fd5796b6a5f99ca05591ccef8bb94e53af5b69f0261fb03",
     "x86_64-unknown-netbsd": "8b29918e765f2cec3b81a911652b164471c42f8f31241f7401bb89582d6a3ed5",
 }
@@ -57,6 +58,8 @@ def platform():
         # Bravely assume we'll be building 64-bit Firefox.
         return "x86_64-pc-windows-msvc"
     elif sys.platform.startswith("linux"):
+        if platform_mod.machine() == "aarch64":
+            return "aarch64-unknown-linux-gnu"
         return "x86_64-unknown-linux-gnu"
     elif sys.platform.startswith("freebsd"):
         return "x86_64-unknown-freebsd"
