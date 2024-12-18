@@ -399,7 +399,7 @@ export class EngineURL {
       var stringStream = Cc[
         "@mozilla.org/io/string-input-stream;1"
       ].createInstance(Ci.nsIStringInputStream);
-      stringStream.data = dataString;
+      stringStream.setByteStringData(dataString);
 
       postData = Cc["@mozilla.org/network/mime-input-stream;1"].createInstance(
         Ci.nsIMIMEInputStream

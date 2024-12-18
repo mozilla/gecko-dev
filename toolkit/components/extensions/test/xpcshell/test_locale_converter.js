@@ -16,7 +16,7 @@ function StringStream(string) {
     Ci.nsIStringInputStream
   );
 
-  stream.data = string;
+  stream.setByteStringData(string);
   return stream;
 }
 

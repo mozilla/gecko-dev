@@ -6,7 +6,7 @@ function makeInputStream(aString) {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
     Ci.nsIStringInputStream
   );
-  stream.data = aString;
+  stream.setByteStringData(aString);
   return stream; // XPConnect will QI this to nsIInputStream for us.
 }
 
