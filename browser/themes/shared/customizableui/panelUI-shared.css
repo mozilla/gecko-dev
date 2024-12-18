@@ -159,7 +159,19 @@ menupopup {
   }
 }
 
-#fxa-toolbar-menu-button[badge-status="login_failed"] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
+#fxa-toolbar-menu-button[badge-status="sync-disabled"] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
+  box-shadow: none;
+  min-width: 12px;
+  min-height: 12px;
+  -moz-context-properties: stroke, fill;
+  background: url(chrome://browser/skin/notification-fill-12.svg) no-repeat center;
+  background-size: 12px;
+  stroke: var(--arrowpanel-background);
+  fill: var(--warning-icon-bgcolor);
+  filter: drop-shadow(0 0 5px var(--warning-icon-bgcolor));
+}
+
+#fxa-toolbar-menu-button:is([badge-status="login_failed"], [badge-status="sync-disabled"]) > .toolbarbutton-badge-stack > .toolbarbutton-badge {
   display: flex;
 }
 
