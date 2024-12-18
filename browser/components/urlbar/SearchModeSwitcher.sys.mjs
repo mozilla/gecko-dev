@@ -6,6 +6,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
@@ -223,6 +224,10 @@ export class SearchModeSwitcher {
    *   The name of the pref relative to `browser.urlbar`.
    */
   onPrefChanged(pref) {
+    if (!this.#input.window || this.#input.window.closed) {
+      return;
+    }
+
     switch (pref) {
       case "scotchBonnet.enableOverride": {
         if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
@@ -242,6 +247,10 @@ export class SearchModeSwitcher {
   }
 
   async #updateSearchIcon() {
+    if (!this.#input.window || this.#input.window.closed) {
+      return;
+    }
+
     try {
       await lazy.UrlbarSearchUtils.init();
     } catch {
@@ -310,7 +319,9 @@ export class SearchModeSwitcher {
     if (!searchMode || searchMode.engineName) {
       let engine = searchMode
         ? lazy.UrlbarSearchUtils.getEngineByName(searchMode.engineName)
-        : lazy.UrlbarSearchUtils.getDefaultEngine();
+        : lazy.UrlbarSearchUtils.getDefaultEngine(
+            lazy.PrivateBrowsingUtils.isWindowPrivate(this.#input.window)
+          );
       let icon = (await engine.getIconURL()) ?? SearchModeSwitcher.DEFAULT_ICON;
       return { label: engine.name, icon };
     }

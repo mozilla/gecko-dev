@@ -249,19 +249,10 @@ add_task(async function test_search_icon_change() {
   });
 
   let newWin = await BrowserTestUtils.openNewBrowserWindow();
-  let searchModeSwitcherButton = newWin.document.getElementById(
-    "searchmode-switcher-icon"
-  );
-
-  let regex = /url\("([^"]+)"\)/;
-  let searchModeSwitcherIconUrl = newWin
-    .getComputedStyle(searchModeSwitcherButton)
-    .listStyleImage.match(regex);
-
   const searchGlassIconUrl = UrlbarUtils.ICON.SEARCH_GLASS;
 
   Assert.equal(
-    searchModeSwitcherIconUrl[1],
+    getSeachModeSwitcherIcon(newWin),
     searchGlassIconUrl,
     "The search mode switcher should have the search glass icon url since \
      we are not in search mode."
@@ -284,12 +275,8 @@ add_task(async function test_search_icon_change() {
     .getEngineByName(engineName)
     .getIconURL();
 
-  searchModeSwitcherIconUrl = newWin
-    .getComputedStyle(searchModeSwitcherButton)
-    .listStyleImage.match(regex);
-
   Assert.equal(
-    searchModeSwitcherIconUrl[1],
+    getSeachModeSwitcherIcon(newWin),
     bingSearchEngineIconUrl,
     "The search mode switcher should have the bing icon url since we are in \
      search mode"
@@ -304,16 +291,13 @@ add_task(async function test_search_icon_change() {
   newWin.document.querySelector("#searchmode-switcher-close").click();
   await UrlbarTestUtils.assertSearchMode(newWin, null);
 
-  searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
-    () =>
-      newWin
-        .getComputedStyle(searchModeSwitcherButton)
-        .listStyleImage.match(regex),
+  let searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
+    () => getSeachModeSwitcherIcon(newWin),
     "Waiting for the search mode switcher icon to update after exiting search mode."
   );
 
   Assert.equal(
-    searchModeSwitcherIconUrl[1],
+    searchModeSwitcherIconUrl,
     searchGlassIconUrl,
     "The search mode switcher should have the search glass icon url since \
      keyword.enabled is false"
@@ -388,13 +372,13 @@ add_task(async function test_suggestions_after_no_search_mode() {
 });
 
 add_task(async function open_engine_page_directly() {
-  await SearchTestUtils.installSearchExtension(
+  let searchExtension = await SearchTestUtils.installSearchExtension(
     {
       name: "MozSearch",
       search_url: "https://example.com/",
       favicon_url: "https://example.com/favicon.ico",
     },
-    { setAsDefault: true }
+    { setAsDefault: true, skipUnload: true }
   );
 
   const TEST_DATA = [
@@ -466,6 +450,7 @@ add_task(async function open_engine_page_directly() {
     await PlacesUtils.history.clear();
     await BrowserTestUtils.closeWindow(newWin);
   }
+  await searchExtension.unload();
 });
 
 add_task(async function test_enter_searchmode_by_key_if_single_result() {
@@ -726,25 +711,14 @@ add_task(async function test_search_service_fail() {
     set: [["keyword.enabled", false]],
   });
 
-  let searchModeSwitcherButton = newWin.document.getElementById(
-    "searchmode-switcher-icon"
-  );
-
-  const searchGlassIconUrl = UrlbarUtils.ICON.SEARCH_GLASS;
-
-  // match and capture the URL inside `url("...")`
-  let regex = /url\("([^"]+)"\)/;
   let searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
-    () =>
-      newWin
-        .getComputedStyle(searchModeSwitcherButton)
-        .listStyleImage.match(regex),
+    () => getSeachModeSwitcherIcon(newWin),
     "Waiting for the search mode switcher icon to update after exiting search mode."
   );
 
   Assert.equal(
-    searchModeSwitcherIconUrl[1],
-    searchGlassIconUrl,
+    searchModeSwitcherIconUrl,
+    UrlbarUtils.ICON.SEARCH_GLASS,
     "The search mode switcher should have the search glass icon url since the search service init failed."
   );
 
@@ -771,6 +745,7 @@ add_task(async function test_search_service_fail() {
   Services.search.wrappedJSObject.forceInitializationStatusForTests("success");
 
   await BrowserTestUtils.closeWindow(newWin);
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_search_mode_switcher_engine_no_icon() {
@@ -784,25 +759,15 @@ add_task(async function test_search_mode_switcher_engine_no_icon() {
     { skipUnload: true }
   );
 
-  let searchModeSwitcherButton = window.document.getElementById(
-    "searchmode-switcher-icon"
-  );
-
   let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
 
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
   popup.querySelector(`toolbarbutton[label=${testEngineName}]`).click();
   await popupHidden;
 
-  let regex = /url\("([^"]+)"\)/;
-  let searchModeSwitcherIconUrl =
-    searchModeSwitcherButton.style.listStyleImage.match(regex);
-
-  const searchGlassIconUrl = UrlbarUtils.ICON.SEARCH_GLASS;
-
   Assert.equal(
-    searchModeSwitcherIconUrl[1],
-    searchGlassIconUrl,
+    getSeachModeSwitcherIcon(window),
+    UrlbarUtils.ICON.SEARCH_GLASS,
     "The search mode switcher should display the default search glass icon when the engine has no icon."
   );
 
@@ -812,3 +777,76 @@ add_task(async function test_search_mode_switcher_engine_no_icon() {
 
   await searchExtension.unload();
 });
+
+add_task(async function test_search_mode_switcher_private_engine_icon() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.search.separatePrivateDefault.ui.enabled", true]],
+  });
+
+  const testEngineName = "DefaultPrivateEngine";
+  let searchExtension = await SearchTestUtils.installSearchExtension(
+    {
+      name: testEngineName,
+      search_url: "https://www.example.com/search?q=",
+      icons: {
+        16: "private.png",
+      },
+    },
+    { skipUnload: true }
+  );
+
+  const defaultPrivateEngine = Services.search.getEngineByName(testEngineName);
+  const defaultEngine = await Services.search.getDefault();
+
+  Services.search.setDefaultPrivate(
+    defaultPrivateEngine,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
+
+  Assert.notEqual(
+    defaultEngine.id,
+    defaultPrivateEngine.id,
+    "Default engine is not private engine."
+  );
+  Assert.equal(
+    (await Services.search.getDefault()).id,
+    defaultEngine.id,
+    "Default engine is still correct."
+  );
+  Assert.equal(
+    (await Services.search.getDefaultPrivate()).id,
+    defaultPrivateEngine.id,
+    "Default private engine is correct."
+  );
+
+  Assert.equal(
+    getSeachModeSwitcherIcon(window),
+    await defaultEngine.getIconURL(),
+    "Is the icon of the default engine."
+  );
+
+  info("Open a private window");
+  let privateWin = await BrowserTestUtils.openNewBrowserWindow({
+    private: true,
+  });
+
+  Assert.equal(
+    getSeachModeSwitcherIcon(privateWin),
+    `moz-extension://${searchExtension.uuid}/private.png`,
+    "Is the icon of the default private engine."
+  );
+
+  await BrowserTestUtils.closeWindow(privateWin);
+  await searchExtension.unload();
+  await SpecialPowers.popPrefEnv();
+});
+
+function getSeachModeSwitcherIcon(window) {
+  let searchModeSwitcherButton = window.document.getElementById(
+    "searchmode-switcher-icon"
+  );
+
+  // match and capture the URL inside `url("...")`
+  let re = /url\("([^"]+)"\)/;
+  return searchModeSwitcherButton.style.listStyleImage.match(re)?.[1] ?? null;
+}
