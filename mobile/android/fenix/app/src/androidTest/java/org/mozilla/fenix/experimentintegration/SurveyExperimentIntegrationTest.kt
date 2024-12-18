@@ -12,8 +12,8 @@ import org.junit.Test
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.HomeActivityTestRule
 import org.mozilla.fenix.helpers.TestHelper
-import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.homeScreen
+import org.mozilla.fenix.ui.robots.surveyScreen
 
 /**
  *  Tests for verifying functionality of the message survey surface
@@ -49,7 +49,7 @@ class SurveyExperimentIntegrationTest {
 
     @Test
     fun checkSurveyNavigatesCorrectly() {
-        browserScreen {
+        surveyScreen {
             verifySurveyButton()
         }.clickSurveyButton {
             verifyUrl(surveyURL)
@@ -60,7 +60,7 @@ class SurveyExperimentIntegrationTest {
 
     @Test
     fun checkSurveyNoThanksNavigatesCorrectly() {
-        browserScreen {
+        surveyScreen {
             verifySurveyNoThanksButton()
         }.clickNoThanksSurveyButton {
             verifyTabCounter("0")
@@ -71,7 +71,7 @@ class SurveyExperimentIntegrationTest {
 
     @Test
     fun checkHomescreenSurveyDismissesCorrectly() {
-        browserScreen {
+        surveyScreen {
             verifyHomeScreenSurveyCloseButton()
         }.clickHomeScreenSurveyCloseButton {
             verifyTabCounter("0")
@@ -84,7 +84,7 @@ class SurveyExperimentIntegrationTest {
     @Test
     fun checkSurveyLandscapeLooksCorrect() {
         activityTestRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        browserScreen {
+        surveyScreen {
             verifySurveyNoThanksButton()
             verifySurveyButton()
         }.clickNoThanksSurveyButton {

@@ -19,7 +19,7 @@ import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.HomeScreenSection
 import org.mozilla.fenix.nimbus.Homescreen
-import org.mozilla.fenix.ui.robots.browserScreen
+import org.mozilla.fenix.ui.robots.surveyScreen
 
 /**
  *  Tests for verifying basic functionality of the Nimbus Survey surface message
@@ -94,7 +94,7 @@ class NimbusMessagingSurveyTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2809390
     @Test
     fun checkSurveyNavigatesCorrectly() {
-        browserScreen {
+        surveyScreen {
             verifySurveyButton()
         }.clickSurveyButton {
             assertNotEquals("", getCurrentUrl())
@@ -104,7 +104,7 @@ class NimbusMessagingSurveyTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2809389
     @Test
     fun checkSurveyNoThanksNavigatesCorrectly() {
-        browserScreen {
+        surveyScreen {
             verifySurveyNoThanksButton()
         }.clickNoThanksSurveyButton {
             verifyTabCounter("0")
@@ -115,7 +115,7 @@ class NimbusMessagingSurveyTest : TestSetup() {
     @Test
     fun checkSurveyLandscapeLooksCorrect() {
         activityTestRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        browserScreen {
+        surveyScreen {
             verifySurveyNoThanksButton()
             verifySurveyButton()
         }.clickNoThanksSurveyButton {
