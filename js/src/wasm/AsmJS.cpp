@@ -2082,6 +2082,10 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
   }
   bool declareImport(TaggedParserAtomIndex name, FuncType&& sig,
                      unsigned ffiIndex, uint32_t* importIndex) {
+    if (sig.args().length() > MaxParams) {
+      return failCurrentOffset("too many parameters");
+    }
+
     FuncImportMap::AddPtr p =
         funcImportMap_.lookupForAdd(NamedSig::Lookup(name, sig));
     if (p) {
