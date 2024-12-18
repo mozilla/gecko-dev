@@ -283,7 +283,11 @@ def run_xpcshell_test(command_context, test_objects=None, **params):
         install_portal_test_dependencies = False
         if "manifest" in params and params["manifest"]:
             # When run from "mach test", the manifest is available now.
-            tags = " ".join(params["manifest"].get("tags", "")).split(" ")
+            try:
+                tags = " ".join(params["manifest"].get("tags")).split(" ")
+            except KeyError:
+                # .get("tags") may raise KeyError.
+                tags = []
             if "webextensions" in tags and "portal" in tags:
                 install_portal_test_dependencies = True
         else:
