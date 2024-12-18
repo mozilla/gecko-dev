@@ -357,6 +357,18 @@ onboarding-new-tabs-title = Tell us where you’d like your tabs
 # Setup screen for vertical tabs - "Switch it up" refers to switching between horizontal and vertical tabs.
 onboarding-new-tabs-subtitle = Switch it up whenever you want in the sidebar settings.
 
+# Setup screen for vertical tabs - too many tabs variation
+onboarding-many-tabs-title = Your tabs, your way
+
+# Setup screen for vertical tabs - subtitle for too many tabs variation
+onboarding-many-tabs-subtitle = Keep a lot of tabs open? Try your tabs on the side for a more streamlined view. Or keep it classic with tabs on the top. Switch anytime.
+
+# Setup screen for vertical tabs - focused variation
+onboarding-focused-tabs-title = Choose your tab layout
+
+# Setup screen for vertical tabs - subtitle for focused variation
+onboarding-focused-tabs-subtitle = For a streamlined view that can help you stay focused, try your tabs on the side. Or keep it classic with tabs on the top. Switch anytime.
+
 # Text underneath an image used for selecting browser tabs to appear on the side of the browser.
 onboarding-new-vertical-tabs-label = Tabs on the side
 
