@@ -65,7 +65,7 @@ add_task(async () => {
   // Make sure APZ is ready in the popup.
   await promiseApzFlushedRepaints(panel);
 
-  await synthesizeNativeTouchDrag(container, 10, 10, 0, -20);
+  await synthesizeNativeTouchDrag(container, 50, 50, 0, -20);
 
   await scrollPromise;
 
