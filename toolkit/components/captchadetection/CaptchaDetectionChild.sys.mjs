@@ -40,6 +40,10 @@ class CaptchaHandler {
   handleEvent(event) {
     lazy.console.debug("CaptchaHandler got event:", event);
   }
+
+  receiveMessage(message) {
+    lazy.console.debug("CaptchaHandler got message:", message);
+  }
 }
 
 /**
@@ -355,6 +359,50 @@ class HCaptchaHandler extends CaptchaHandler {
 }
 
 /**
+ * Handles AWS WAF captchas.
+ *
+ * To detect the state of AWS WAF captchas, we listen for
+ * network requests to the captcha API. When the response
+ * is received, we check for the presence of the expected
+ * keys and send a message to the parent actor with the
+ * state of the captcha.
+ */
+class AWSWafHandler extends CaptchaHandler {
+  constructor(actor, event) {
+    super(actor, event);
+
+    this.actor.sendAsyncMessage("CaptchaDetection:Init", { type: "awsWaf" });
+    this.updateState({
+      type: "awsWaf",
+      changes: "shown",
+    });
+  }
+
+  static matches(document) {
+    if (
+      !document.location.pathname == "/latest" ||
+      !document.location.hostname.endsWith(".amazonaws.com") ||
+      !document.location.hostname.includes(".execute-api.")
+    ) {
+      return false;
+    }
+
+    if (!document.getElementById("captcha-container")) {
+      return false;
+    }
+
+    // Query selector is only run after checking URL and #captcha-container.
+    // It is already highly likely that we are on a AWS WAF page,
+    // but we want to be extra sure.
+    return (
+      document.head?.querySelectorAll(
+        "script[src*='.token.awswaf.com'][src*='/challenge.js'], script[src*='.captcha.awswaf.com'][src*='/captcha.js']"
+      ).length === 2
+    );
+  }
+}
+
+/**
  * This actor runs in the captcha's frame. It provides information
  * about the captcha's state to the parent actor.
  */
@@ -368,6 +416,7 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     CFTurnstileHandler,
     DatadomeHandler,
     HCaptchaHandler,
+    AWSWafHandler,
   ];
 
   #initCaptchaHandler(event) {
@@ -400,5 +449,11 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     }
 
     this.handler?.handleEvent(event);
+  }
+
+  receiveMessage(message) {
+    if (this.handler) {
+      this.handler.receiveMessage(message);
+    }
   }
 }
