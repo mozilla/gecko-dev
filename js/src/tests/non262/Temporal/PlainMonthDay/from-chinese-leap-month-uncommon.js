@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.hasOwnProperty("Temporal")) slow
+// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal")) slow
 
 // Uncommon leap month with 30 days can be far into the past. Computing the
 // results can take its time, therefore the test is marked as "slow".
@@ -31,22 +31,6 @@ const monthCodes = [
   "M11L",
   "M12L",
 ];
-
-function assertSameISOFields(actual, expected) {
-  let actualFields = actual.getISOFields();
-  let expectedFields = expected.getISOFields();
-
-  assertEq(typeof actualFields.isoYear, "number");
-  assertEq(typeof actualFields.isoMonth, "number");
-  assertEq(typeof actualFields.isoDay, "number");
-
-  assertEq(actualFields.isoMonth > 0, true);
-  assertEq(actualFields.isoDay > 0, true);
-
-  assertEq(actualFields.isoYear, expectedFields.isoYear);
-  assertEq(actualFields.isoMonth, expectedFields.isoMonth);
-  assertEq(actualFields.isoDay, expectedFields.isoDay);
-}
 
 const calendar = "chinese";
 

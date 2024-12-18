@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.hasOwnProperty("Temporal"))
+// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))
 
 const monthCodes = [
   "M01",
