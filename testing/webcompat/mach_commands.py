@@ -38,6 +38,15 @@ def unzip(fileobj, dest):
         zip_data.extractall(path=dest)
 
 
+def writable_dir(path):
+    if not os.path.isdir(path):
+        raise argparse.ArgumentTypeError("{0} is not a valid dir".format(path))
+    if os.access(path, os.W_OK):
+        return path
+    else:
+        raise argparse.ArgumentTypeError("{0} is not a writable dir".format(path))
+
+
 def create_parser_interventions():
     from mozlog import commandline
 
@@ -94,6 +103,12 @@ def create_parser_interventions():
         action="store",
         choices=["android", "desktop"],
         help="Platform to target",
+    )
+    parser.add_argument(
+        "--failure-screenshots-dir",
+        action="store",
+        type=writable_dir,
+        help="Path to save failure screenshots",
     )
     parser.add_argument(
         "-s",
@@ -296,6 +311,7 @@ class InterventionTest(MozbuildObject):
                     headless=kwargs["headless"],
                     do2fa=kwargs["do2fa"],
                     log_level=log_level,
+                    failure_screenshots_dir=kwargs.get("failure_screenshots_dir"),
                     no_failure_screenshots=kwargs.get("no_failure_screenshots"),
                 )
 
@@ -323,6 +339,7 @@ class InterventionTest(MozbuildObject):
                     config=kwargs["config"],
                     headless=kwargs["headless"],
                     do2fa=kwargs["do2fa"],
+                    failure_screenshots_dir=kwargs.get("failure_screenshots_dir"),
                     no_failure_screenshots=kwargs.get("no_failure_screenshots"),
                 )
 

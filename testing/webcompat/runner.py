@@ -31,6 +31,7 @@ def run(
     addon=None,
     do2fa=False,
     log_level="INFO",
+    failure_screenshots_dir=None,
     no_failure_screenshots=None,
 ):
     """"""
@@ -98,6 +99,10 @@ def run(
             if config:
                 args.append("--config")
                 args.append(config)
+
+            if failure_screenshots_dir:
+                args.append("--failure-screenshots-dir")
+                args.append(failure_screenshots_dir)
 
             if no_failure_screenshots:
                 args.append("--no-failure-screenshots")
@@ -179,6 +184,11 @@ class WDConfig:
             action="store_true",
             default=False,
             help="Do two-factor auth live in supporting tests",
+        )
+        parser.addoption(
+            "--failure-screenshots-dir",
+            action="store",
+            help="Path to save failure screenshots",
         )
         parser.addoption(
             "--no-failure-screenshots",

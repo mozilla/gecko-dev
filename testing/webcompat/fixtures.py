@@ -201,20 +201,24 @@ async def test_failed_check(request):
         and request.node.rep_call.failed
     ):
         session = request.node.funcargs["session"]
+        file_name = f'{request.node.nodeid}_failure_{datetime.today().strftime("%Y-%m-%d_%H:%M")}.png'.replace(
+            "/", "_"
+        ).replace(
+            "::", "__"
+        )
+        dest_dir = request.config.getoption("failure_screenshots_dir")
         try:
-            file_name = f'{request.node.nodeid}_failure_{datetime.today().strftime("%Y-%m-%d_%H:%M")}.png'.replace(
-                "/", "_"
-            ).replace(
-                "::", "__"
-            )
-            await take_screenshot(session, file_name)
+            await take_screenshot(session, file_name, dest_dir=dest_dir)
             print("Saved failure screenshot to: ", file_name)
         except Exception as e:
             print("Error saving screenshot: ", e)
 
 
-async def take_screenshot(session, file_name):
-    cwd = pathlib.Path(os.getcwd())
+async def take_screenshot(session, file_name, dest_dir=None):
+    if dest_dir:
+        cwd = pathlib.Path(dest_dir)
+    else:
+        cwd = pathlib.Path(os.getcwd())
     path = cwd / file_name
 
     top = await session.bidi_session.browsing_context.get_tree()
