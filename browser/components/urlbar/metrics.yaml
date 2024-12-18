@@ -2191,3 +2191,39 @@ urlbar.quickaction:
       - fx-search-telemetry@mozilla.com
     expires: never
     telemetry_mirror: QUICKACTION_PICKED
+
+urlbar.unifiedsearchbutton:
+  opened:
+    type: counter
+    description: >
+      Counts how many times Unified Search Button popup is opened.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.unifiedsearchbutton.opened.
+    bugs:
+      - https://bugzil.la/1936673
+    data_reviews:
+      - https://bugzil.la/1936673
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_UNIFIEDSEARCHBUTTON_OPENED
+
+  picked:
+    type: labeled_counter
+    description: >
+      Counts how many times Unified Search Button items were selected.
+      The key is followings.
+      * builtin_search: Builtin search engine.
+      * addon_search: Addon search engine.
+      * local_search: Local search engine such as Bookmarks.
+      * settings: Settings menu.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.unifiedsearchbutton.picked.
+    bugs:
+      - https://bugzil.la/1936673
+    data_reviews:
+      - https://bugzil.la/1936673
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_UNIFIEDSEARCHBUTTON_PICKED

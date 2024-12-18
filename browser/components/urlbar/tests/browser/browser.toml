@@ -459,6 +459,8 @@ support-files = ["has-a-link.html"]
 
 ["browser_searchModeSwitcher_opensearchInstall.js"]
 
+["browser_searchModeSwitcher_telemetry.js"]
+
 ["browser_searchMode_alias_replacement.js"]
 support-files = [
   "searchSuggestionEngine.xml",

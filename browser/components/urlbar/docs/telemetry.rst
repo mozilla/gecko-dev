@@ -513,6 +513,19 @@ urlbar.quickaction.picked
   key is in the form $key-$n where $n is the number of characters the user typed
   in order for the suggestion to show. See bug 1783155.
 
+urlbar.unifiedsearchbutton.opened
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  A uint recording the number of times the user opens search mode popup via
+  Unified Search Button.
+  See bug 1936673.
+
+urlbar.unifiedsearchbutton.picked
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  A uint recording the number of times the user selected a search mode via
+  Unified Search Button. See bug 1936673.
+
 places.*
 ~~~~~~~~
 

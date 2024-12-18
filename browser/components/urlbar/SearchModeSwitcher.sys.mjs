@@ -123,6 +123,8 @@ export class SearchModeSwitcher {
       position: "bottomleft topleft",
       triggerEvent: event,
     }).catch(console.error);
+
+    Glean.urlbarUnifiedsearchbutton.opened.add(1);
   }
 
   #openPreferences(event) {
@@ -140,6 +142,8 @@ export class SearchModeSwitcher {
 
     this.#input.window.openPreferences("paneSearch");
     this.#popup.hidePopup();
+
+    Glean.urlbarUnifiedsearchbutton.picked.settings.add(1);
   }
 
   /**
@@ -442,6 +446,18 @@ export class SearchModeSwitcher {
     }
 
     this.#popup.hidePopup();
+
+    if (engine) {
+      Glean.urlbarUnifiedsearchbutton.picked[
+        engine.isAppProvided ? "builtin_search" : "addon_search"
+      ].add(1);
+    } else if (restrict) {
+      Glean.urlbarUnifiedsearchbutton.picked.local_search.add(1);
+    } else {
+      console.warn(
+        `Unexpected search: ${JSON.stringify({ engine, restrict, openEngineHomePage })}`
+      );
+    }
   }
 
   #enableObservers() {
@@ -530,7 +546,10 @@ export class SearchModeSwitcher {
     let observer = engineObj => {
       Services.obs.removeObserver(observer, topic);
       let eng = Services.search.getEngineByName(engineObj.wrappedJSObject.name);
-      this.search({ engine: eng, openEngineHomePage: e.shiftKey });
+      this.search({
+        engine: eng,
+        openEngineHomePage: e.shiftKey,
+      });
     };
     Services.obs.addObserver(observer, topic);
 

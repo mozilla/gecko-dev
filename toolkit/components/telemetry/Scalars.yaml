@@ -7316,6 +7316,43 @@ quickaction:
     record_in_processes:
       - main
 
+urlbar.unifiedsearchbutton:
+  opened:
+    bug_numbers:
+      - 1936673
+    description: >
+      Counts how many times Unified Search popup is opened.
+    expires: never
+    kind: uint
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+
+  picked:
+    bug_numbers:
+      - 1936673
+    description: >
+      Counts how many times Unified Search Button items were selected.
+      The key is following.
+      * builtin_search: Builtin search engine.
+      * addon_search: Addon search engine.
+      * local_search: Local search engine such as Bookmarks.
+      * settings: Settings menu.
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - main
+
 migration:
   uninstaller_profile_refresh:
     bug_numbers:
