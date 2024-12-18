@@ -471,6 +471,14 @@ class ArkoseLabsHandler extends CaptchaHandler {
   }
 
   static matches(document) {
+    if (Cu.isInAutomation) {
+      return (
+        document
+          .getElementById("captchaType")
+          ?.getAttribute("data-captcha-type") === "arkoseLabs"
+      );
+    }
+
     return document.location.href.startsWith(
       "https://client-api.arkoselabs.com/fc/assets/ec-game-core/game-core/"
     );

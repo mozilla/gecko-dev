@@ -302,7 +302,9 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       channel =>
         channel.loadInfo?.browsingContextID === this.browsingContext.id &&
         channel.URI &&
-        channel.URI.spec === "https://client-api.arkoselabs.com/fc/ca/",
+        (Cu.isInAutomation
+          ? channel.URI.filePath.endsWith("arkose_labs_api.sjs")
+          : channel.URI.spec === "https://client-api.arkoselabs.com/fc/ca/"),
       (_channel, statusCode, responseBody) => {
         if (statusCode !== Cr.NS_OK) {
           return;

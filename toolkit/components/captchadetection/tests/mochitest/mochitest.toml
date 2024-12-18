@@ -8,6 +8,12 @@ support-files = [
   "CaptchaTestingUtils.js"
 ]
 
+["test_arkose_labs.html"]
+support-files = [
+  "arkose_labs_api.sjs",
+  "arkose_labs.html"
+]
+
 ["test_aws_waf.html"]
 support-files = [
   "aws_waf_api.sjs",
