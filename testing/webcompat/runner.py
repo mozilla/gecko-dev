@@ -178,9 +178,7 @@ class WDConfig:
         parser.addoption(
             "--browser", action="store", choices=["firefox"], help="Name of the browser"
         )
-        parser.addoption(
-            "-B", "--bug", action="store", help="Bug number to run tests for"
-        )
+        parser.addoption("--bug", action="store", help="Bug number to run tests for")
         parser.addoption(
             "--do2fa",
             action="store_true",
@@ -188,7 +186,6 @@ class WDConfig:
             help="Do two-factor auth live in supporting tests",
         )
         parser.addoption(
-            "-S",
             "--no-failure-screenshots",
             action="store_true",
             default=False,
@@ -216,7 +213,7 @@ class WDConfig:
             help="Android package to run/connect to",
         )
         parser.addoption(
-            "-H", "--headless", action="store_true", help="Run browser in headless mode"
+            "--headless", action="store_true", help="Run browser in headless mode"
         )
 
 

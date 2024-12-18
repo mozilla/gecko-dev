@@ -55,7 +55,7 @@ def create_parser_interventions():
         default="9222",
         help="Port on which to run WebDriver BiDi websocket",
     )
-    parser.add_argument("-B", "--bug", help="Bug to run tests for")
+    parser.add_argument("-b", "--bug", help="Bug to run tests for")
     parser.add_argument(
         "--do2fa",
         action="store_true",
@@ -96,7 +96,7 @@ def create_parser_interventions():
         help="Platform to target",
     )
     parser.add_argument(
-        "-S",
+        "-s",
         "--no-failure-screenshots",
         action="store_true",
         default=False,
