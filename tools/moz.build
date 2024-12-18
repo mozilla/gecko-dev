@@ -48,7 +48,7 @@ with Files("update-packaging/**"):
     BUG_COMPONENT = ("Release Engineering", "General")
 
 with Files("update-verify/**"):
-    BUG_COMPONENT = ("Release Engineering", "Release Automation: Updates")
+    BUG_COMPONENT = ("Release Engineering", "Release Automation")
 
 with Files("vcs/**"):
     BUG_COMPONENT = ("Firefox Build System", "General")
