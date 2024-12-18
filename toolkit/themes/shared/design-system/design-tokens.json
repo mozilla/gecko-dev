@@ -951,6 +951,33 @@
       "value": "calc(8 * {space.xsmall})"
     }
   },
+  "table": {
+    "row": {
+      "background": {
+        "color": {
+          "@base": {
+            "value": {
+              "default": "{background.color.canvas}"
+            }
+          },
+          "alternate": {
+            "comment": "TODO Bug 1821203 - Gray use needs to be consolidated",
+            "value": {
+              "forcedColors": "{background.color.canvas}",
+              "brand": {
+                "light": "#f0f0f4",
+                "dark": "{color.gray.80}"
+              },
+              "platform": {
+                "light": "rgba(0,0,0,5%)",
+                "dark": "rgba(255,255,255,5%)"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "text": {
     "color": {
       "@base": {

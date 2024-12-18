@@ -177,6 +177,9 @@
     --space-xlarge: calc(6 * var(--space-xsmall));
     --space-xxlarge: calc(8 * var(--space-xsmall));
 
+    /** Table Row **/
+    --table-row-background-color: var(--background-color-canvas);
+
     /** Text **/
     --text-color-disabled: color-mix(in srgb, currentColor 40%, transparent);
     --text-color-deemphasized: color-mix(in srgb, currentColor 69%, transparent);
@@ -289,6 +292,9 @@
 
       /** Focus Outline **/
       --focus-outline-color: var(--text-color);
+
+      /** Table Row **/
+      --table-row-background-color-alternate: var(--background-color-canvas); /* TODO Bug 1821203 - Gray use needs to be consolidated */
 
       /** Text **/
       --text-color-disabled: GrayText;

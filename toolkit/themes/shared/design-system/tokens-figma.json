@@ -409,6 +409,16 @@
     "dark": "#ff9aa2ff",
     "forcedColors": "CanvasText"
   },
+  "table/row/background/color": {
+    "light": "#ffffffff",
+    "dark": "#1c1b22ff",
+    "forcedColors": "Canvas"
+  },
+  "table/row/background/color/alternate": {
+    "light": "#f0f0f4ff",
+    "dark": "#23222bff",
+    "forcedColors": "Canvas"
+  },
   "text/color": {
     "light": "#15141aff",
     "dark": "#fbfbfeff",

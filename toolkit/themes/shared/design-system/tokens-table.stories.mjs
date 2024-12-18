@@ -52,6 +52,7 @@ const THEMED_TABLES = [
   "outline",
   "icon-color",
   "link",
+  "table-row",
 ];
 
 /**
@@ -389,6 +390,7 @@ class TokensTable extends LitElement {
     switch (category) {
       case "attention-dot":
       case "color":
+      case "table-row":
         return "background-color";
       case "text-color":
         return "color";

@@ -764,6 +764,28 @@ export const storybookTables = {
     { value: "calc(6 * var(--space-xsmall))", name: "--space-xlarge" },
     { value: "calc(8 * var(--space-xsmall))", name: "--space-xxlarge" },
   ],
+  "table-row": [
+    {
+      value: { default: "var(--background-color-canvas)" },
+      name: "--table-row-background-color",
+    },
+    {
+      value: {
+        forcedColors: "var(--background-color-canvas)",
+        brand: {
+          light: "#f0f0f4",
+          dark: "var(--color-gray-80)",
+          default: "light-dark(#f0f0f4, var(--color-gray-80))",
+        },
+        platform: {
+          light: "rgba(0,0,0,5%)",
+          dark: "rgba(255,255,255,5%)",
+          default: "light-dark(rgba(0,0,0,5%), rgba(255,255,255,5%))",
+        },
+      },
+      name: "--table-row-background-color-alternate",
+    },
+  ],
 };
 
 export const variableLookupTable = {
@@ -1218,6 +1240,20 @@ export const variableLookupTable = {
   "space-large": "calc(4 * var(--space-xsmall))",
   "space-xlarge": "calc(6 * var(--space-xsmall))",
   "space-xxlarge": "calc(8 * var(--space-xsmall))",
+  "table-row-background-color": { default: "var(--background-color-canvas)" },
+  "table-row-background-color-alternate": {
+    forcedColors: "var(--background-color-canvas)",
+    brand: {
+      light: "#f0f0f4",
+      dark: "var(--color-gray-80)",
+      default: "light-dark(#f0f0f4, var(--color-gray-80))",
+    },
+    platform: {
+      light: "rgba(0,0,0,5%)",
+      dark: "rgba(255,255,255,5%)",
+      default: "light-dark(rgba(0,0,0,5%), rgba(255,255,255,5%))",
+    },
+  },
   "text-color": {
     prefersContrast: "CanvasText",
     brand: {
