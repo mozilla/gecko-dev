@@ -807,17 +807,30 @@ void LiveRange::tryToMoveDefAndUsesInto(LiveRange* other) {
   MOZ_ASSERT(&other->vreg() == &vreg());
   MOZ_ASSERT(this != other);
 
-  // Move over all uses which fit in |other|'s boundaries.
-  for (UsePositionIterator iter = usesBegin(); iter;) {
-    UsePosition* use = *iter;
-    if (other->covers(use->pos)) {
-      uses_.removeAndIncrement(iter);
-      noteRemovedUse(use);
-      other->addUse(use);
-    } else {
-      iter++;
-    }
+  // This method shouldn't be called for two non-intersecting live ranges
+  // because it's a no-op in that case.
+  MOZ_ASSERT(intersects(other));
+
+  CodePosition otherFrom = other->from();
+  CodePosition otherTo = other->to();
+
+  // The uses are sorted by position, so first skip all uses before |other|
+  // starts.
+  UsePositionIterator iter = usesBegin();
+  while (iter && iter->pos < otherFrom) {
+    iter++;
   }
+
+  // Move over all uses which fit in |other|'s boundaries.
+  while (iter && iter->pos < otherTo) {
+    UsePosition* use = *iter;
+    MOZ_ASSERT(other->covers(use->pos));
+    uses_.removeAndIncrement(iter);
+    noteRemovedUse(use);
+    other->addUse(use);
+  }
+
+  MOZ_ASSERT_IF(iter, !other->covers(iter->pos));
 
   // Distribute the definition to |other| as well, if possible.
   if (hasDefinition() && from() == other->from()) {
