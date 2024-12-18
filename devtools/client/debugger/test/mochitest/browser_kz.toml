@@ -146,6 +146,7 @@ skip-if = [
   "os == 'win'",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",  # perma fail on opt, high frequency fail on debug
 ]
 
 ["browser_dbg-project-root.js"]

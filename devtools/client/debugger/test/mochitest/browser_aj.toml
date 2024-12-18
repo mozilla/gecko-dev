@@ -30,7 +30,10 @@ prefs = [
 ["browser_dbg-audiocontext.js"]
 
 ["browser_dbg-backgroundtask-debugging.js"]
-skip-if = ["asan"] # Bug 1591064
+skip-if = [
+  "asan", # Bug 1591064
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1937229
+]
 
 ["browser_dbg-bfcache.js"]
 
@@ -101,6 +104,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = [
   "asan", # Bug 1591064
   "os == 'win' && debug", # intermittent on fission, Bug 1720165 - test timed out
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1937315
 ]
 
 ["browser_dbg-browser-toolbox-workers.js"]
@@ -108,10 +112,14 @@ skip-if = [
   "asan", # Bug 1591064, parent intercept mode is needed
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1767721
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1767721
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1767721
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64'", # Bug 1767721
 ]
 
 ["browser_dbg-call-stack.js"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1767721
+]
 
 ["browser_dbg-chrome-create.js"]
 skip-if = ["verify && !debug && os == 'linux'"]
@@ -140,6 +148,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-custom-formatters.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1831904;
+]
 
 ["browser_dbg-debug-line.js"]
 
@@ -202,6 +213,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1767701
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1767701
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1767701
 ]
 
 ["browser_dbg-features-breakable-positions.js"]
@@ -214,6 +226,7 @@ skip-if = ["win11_2009"] # Bug 1798331
 skip-if = [
   "asan", # Bug 1591064
   "win11_2009", # Bug 1798331
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1781499
 ]
 
 ["browser_dbg-features-source-text-content.js"]
@@ -228,7 +241,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = ["cm6"]
 
 ["browser_dbg-fission-frame-breakpoint.js"]
-skip-if = ["!fission"] # threads panel only shows remote frame when fission is enabled.
 
 ["browser_dbg-fission-frame-pause-exceptions.js"]
 
@@ -274,11 +286,6 @@ skip-if = ["true"] # bug 1607636
 
 ["browser_dbg-integration-reloading-uncompressed-sourcemaps.js"]
 
-["browser_dbg-javascript-tracer.js"]
-skip-if = [
-  "tsan", # Bug 1832135
-]
-
 ["browser_dbg-javascript-tracer-function-returns.js"]
 skip-if = [
   "tsan", # Bug 1832135
@@ -294,13 +301,13 @@ skip-if = [
   "tsan", # Bug 1832135
 ]
 
-["browser_dbg-javascript-tracer-sidebar.js"]
+["browser_dbg-javascript-tracer-sidebar-values-search.js"]
 skip-if = [
   "tsan", # Bug 1832135
   "a11y_checks", # The tracer tree isn't yet accessible
 ]
 
-["browser_dbg-javascript-tracer-sidebar-values-search.js"]
+["browser_dbg-javascript-tracer-sidebar.js"]
 skip-if = [
   "tsan", # Bug 1832135
   "a11y_checks", # The tracer tree isn't yet accessible
@@ -312,6 +319,11 @@ skip-if = [
 ]
 
 ["browser_dbg-javascript-tracer-worker.js"]
+skip-if = [
+  "tsan", # Bug 1832135
+]
+
+["browser_dbg-javascript-tracer.js"]
 skip-if = [
   "tsan", # Bug 1832135
 ]

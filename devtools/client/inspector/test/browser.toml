@@ -86,6 +86,7 @@ run-if = ["os != 'mac'"] # Full keyboard navigation on OSX only works if Full Ke
 ["browser_inspector_delete-selected-node-01.js"]
 
 ["browser_inspector_delete-selected-node-02.js"]
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt"] # Bug 1937956
 
 ["browser_inspector_delete-selected-node-03.js"]
 

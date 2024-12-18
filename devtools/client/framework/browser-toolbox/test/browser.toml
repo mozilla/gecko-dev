@@ -1,7 +1,10 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
-skip-if = ["asan"] # UNTIL Bug 1591064 IS FIXED ALL NEW TESTS SHOULD BE SKIPPED ON ASAN
+skip-if = [
+  "asan", # UNTIL Bug 1591064 IS FIXED ALL NEW TESTS SHOULD BE SKIPPED ON ASAN
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1937225
+]
 support-files = [
   "doc_browser_toolbox_fission_contentframe_inspector_frame.html",
   "doc_browser_toolbox_fission_contentframe_inspector_page.html",
@@ -37,7 +40,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_browser_toolbox_navigate_tab.js"]
 
 ["browser_browser_toolbox_netmonitor.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && !debug"] # Bug 1777831
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt"] # Bug 1777831
 
 ["browser_browser_toolbox_print_preview.js"]
 

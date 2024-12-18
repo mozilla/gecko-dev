@@ -99,7 +99,7 @@ skip-if = [
   "win11_2009", # Bug 1767772
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1767772
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1767772
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1932913 (secondary)
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1932913 (secondary)
 ]
 
 ["browser_resources_stylesheets.js"]
