@@ -19,6 +19,7 @@
 #include "nsIWidget.h"
 #include "WidgetUtils.h"
 #include "nsPIDOMWindow.h"
+#include "gfxPlatform.h"
 
 using mozilla::dom::HTMLInputElement;
 
@@ -83,6 +84,11 @@ NS_IMETHODIMP nsColorPicker::Init(
 
 NS_IMETHODIMP nsColorPicker::Open(
     nsIColorPickerShownCallback* aColorPickerShownCallback) {
+  // Don't attempt to open a real color-picker in headless mode.
+  if (gfxPlatform::IsHeadless()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   auto maybeColor = HTMLInputElement::ParseSimpleColor(mInitialColor);
   if (maybeColor.isNothing()) {
     return NS_ERROR_FAILURE;
