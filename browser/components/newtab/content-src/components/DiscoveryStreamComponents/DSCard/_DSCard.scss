@@ -229,10 +229,13 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
   }
 
   .ds-card-link {
-    position: absolute;
-    height: 100%;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: initial;
     text-decoration: none;
+    grid-template-columns: auto 1fr;
+    gap: inherit;
+    flex-grow: 1;
 
     &:focus {
       @include ds-focus;
@@ -241,11 +244,12 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
   }
 
-  > .ds-card-topic {
+  .ds-card-topic {
     position: absolute;
     z-index: 1;
     background: light-dark(#F0F0F4, var(--newtab-background-color-secondary));
     border-radius: var(--border-radius-small);
+    color: var(--newtab-text-primary-color);
     padding: var(--space-small);
     margin: var(--space-small);
     font-size: 14px;
@@ -537,6 +541,9 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       height: 28px;
       font-size: var(--newtab-font-size-xsmall);
       color: var(--newtab-text-topic-label-color);
+      margin: initial;
+      padding: initial;
+      background-color: initial;
     }
 
     .card-stp-button-hover-background {

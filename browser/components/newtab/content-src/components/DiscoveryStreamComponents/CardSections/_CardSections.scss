@@ -1,12 +1,12 @@
 @mixin section-card-small {
   grid-row: span 1;
   grid-column: span 1;
-  display: flex;
-  flex-direction: row;
-  position: relative;
-  align-items: center;
-  gap: var(--space-medium);
   padding: var(--space-large);
+
+
+  &.ds-card.sections-card-ui {
+    padding: unset;
+  }
 
   .stp-context-menu {
     display: block;
@@ -16,8 +16,18 @@
     display: none;
   }
 
+  .ds-card-link {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    align-items: center;
+    gap: var(--space-medium);
+    padding: var(--space-large);
+
+  }
+
   .img-wrapper {
-    width: 120px;
+    width: 125px;
     flex-shrink: 0;
     flex-grow: 0;
     aspect-ratio: 1/1;
@@ -44,10 +54,6 @@
     }
   }
 
-  .ds-card-link {
-    inset-inline-end: 0;
-  }
-
   .meta {
     padding: var(--space-xsmall) 0;
     align-self: flex-start;
@@ -72,13 +78,14 @@
   }
 
   .card-stp-button-position-wrapper {
-    inset-inline-end: 28px;
+    inset-inline-end: 10px;
 
     .card-stp-button {
       display: none;
     }
   }
 }
+
 
 @mixin section-card-medium {
   grid-row: span 2;
@@ -87,6 +94,8 @@
   padding: 0;
   align-items: initial;
   gap: initial;
+
+
 
   .stp-context-menu {
     display: none;
@@ -104,12 +113,19 @@
     display: block;
   }
 
+  .ds-card-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+  }
+
   .img-wrapper {
     width: 100%;
     position: relative;
     // reset values inherited from small card mixin
-    flex-grow: initial;
-    flex-shrink: initial;
+    flex-grow: 0;
+    flex-shrink: 0;
     aspect-ratio: initial;
   }
 
@@ -137,6 +153,7 @@
   }
 }
 
+
 // DS Large Card
 @mixin section-card-large {
   grid-row: span 2;
@@ -145,15 +162,16 @@
   &.ds-card.sections-card-ui {
     @media (min-width: $break-point-layout-variant ) and (max-width: $break-point-widest ),
       (min-width: $break-point-sections-variant ) {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: var(--space-xlarge);
-      padding: var(--space-xxlarge);
-      align-items: center;
+      align-content: flex-start;
+
+      .ds-card-link {
+        flex-direction: row;
+        gap: var(--space-xlarge);
+        padding: var(--space-xxlarge);
+      }
 
       .img-wrapper {
-        width: 220px;
-        height: 220px;
+        width: 265px;
       }
 
       .ds-image.img {
@@ -182,6 +200,10 @@
           font-size: var(--font-size-root);
         }
       }
+
+      .card-stp-button-hover-background {
+        inset-inline-start: 0;
+      }
     }
   }
 }
@@ -190,10 +212,6 @@
 // Use (almost all) default wrapper widths with the sections-grid breakpoints
 .has-sections-grid .ds-outer-wrapper-breakpoint-override {
   .ds-layout-topsites {
-    width: 100vw;
-    margin-inline-start: 50%;
-    transform: translate3d(-50%, 0, 0);
-
     > div {
       width: 266px;
       margin-inline: auto;

@@ -459,7 +459,10 @@ export class _DSCard extends React.PureComponent {
     }
   }
 
-  onThumbsUpClick() {
+  onThumbsUpClick(event) {
+    event.stopPropagation();
+    event.preventDefault();
+
     // Toggle active state for thumbs up button to show CSS animation
     const currentState = this.state.isThumbsUpActive;
 
@@ -511,7 +514,10 @@ export class _DSCard extends React.PureComponent {
     );
   }
 
-  onThumbsDownClick() {
+  onThumbsDownClick(event) {
+    event.stopPropagation();
+    event.preventDefault();
+
     // Toggle active state for thumbs down button to show CSS animation
     const currentState = this.state.isThumbsDownActive;
     this.setState({ isThumbsDownActive: !currentState });
@@ -801,27 +807,6 @@ export class _DSCard extends React.PureComponent {
         data-position-three={this.props["data-position-one"]}
         data-position-four={this.props["data-position-one"]}
       >
-        {this.props.showTopics &&
-          !this.props.mayHaveSectionsCards &&
-          this.props.topic &&
-          !isListCard && (
-            <span
-              className="ds-card-topic"
-              data-l10n-id={`newtab-topic-label-${this.props.topic}`}
-            />
-          )}
-        <div className="img-wrapper">
-          <DSImage
-            extraClassNames="img"
-            source={this.props.image_src}
-            rawSource={this.props.raw_image_src}
-            sizes={sizes}
-            url={this.props.url}
-            title={this.props.title}
-            isRecentSave={isRecentSave}
-            alt_text={alt_text}
-          />
-        </div>
         <SafeAnchor
           className="ds-card-link"
           dispatch={this.props.dispatch}
@@ -829,6 +814,27 @@ export class _DSCard extends React.PureComponent {
           url={this.props.url}
           title={this.props.title}
         >
+          {this.props.showTopics &&
+            !this.props.mayHaveSectionsCards &&
+            this.props.topic &&
+            !isListCard && (
+              <span
+                className="ds-card-topic"
+                data-l10n-id={`newtab-topic-label-${this.props.topic}`}
+              />
+            )}
+          <div className="img-wrapper">
+            <DSImage
+              extraClassNames="img"
+              source={this.props.image_src}
+              rawSource={this.props.raw_image_src}
+              sizes={sizes}
+              url={this.props.url}
+              title={this.props.title}
+              isRecentSave={isRecentSave}
+              alt_text={alt_text}
+            />
+          </div>
           <ImpressionStats
             flightId={this.props.flightId}
             rows={[
@@ -863,46 +869,48 @@ export class _DSCard extends React.PureComponent {
             source={this.props.type}
             firstVisibleTimestamp={this.props.firstVisibleTimestamp}
           />
-        </SafeAnchor>
-        {ctaButtonVariant === "variant-b" && (
-          <div className="cta-header">Shop Now</div>
-        )}
-        {isFakespot ? (
-          <div className="meta">
-            <div className="info-wrap">
-              <h3 className="title clamp">{this.props.title}</h3>
-            </div>
-          </div>
-        ) : (
-          <DefaultMeta
-            source={source}
-            title={this.props.title}
-            excerpt={excerpt}
-            newSponsoredLabel={newSponsoredLabel}
-            timeToRead={timeToRead}
-            context={this.props.context}
-            context_type={this.props.context_type}
-            sponsor={this.props.sponsor}
-            sponsored_by_override={this.props.sponsored_by_override}
-            saveToPocketCard={saveToPocketCard}
-            ctaButtonVariant={ctaButtonVariant}
-            dispatch={this.props.dispatch}
-            spocMessageVariant={this.props.spocMessageVariant}
-            mayHaveThumbsUpDown={this.props.mayHaveThumbsUpDown}
-            mayHaveSectionsCards={this.props.mayHaveSectionsCards}
-            onThumbsUpClick={this.onThumbsUpClick}
-            onThumbsDownClick={this.onThumbsDownClick}
-            state={this.state}
-            isListCard={isListCard}
-            showTopics={this.props.showTopics}
-            isSectionsCard={
-              this.props.mayHaveSectionsCards && this.props.topic && !isListCard
-            }
-            format={format}
-            topic={this.props.topic}
-          />
-        )}
 
+          {ctaButtonVariant === "variant-b" && (
+            <div className="cta-header">Shop Now</div>
+          )}
+          {isFakespot ? (
+            <div className="meta">
+              <div className="info-wrap">
+                <h3 className="title clamp">{this.props.title}</h3>
+              </div>
+            </div>
+          ) : (
+            <DefaultMeta
+              source={source}
+              title={this.props.title}
+              excerpt={excerpt}
+              newSponsoredLabel={newSponsoredLabel}
+              timeToRead={timeToRead}
+              context={this.props.context}
+              context_type={this.props.context_type}
+              sponsor={this.props.sponsor}
+              sponsored_by_override={this.props.sponsored_by_override}
+              saveToPocketCard={saveToPocketCard}
+              ctaButtonVariant={ctaButtonVariant}
+              dispatch={this.props.dispatch}
+              spocMessageVariant={this.props.spocMessageVariant}
+              mayHaveThumbsUpDown={this.props.mayHaveThumbsUpDown}
+              mayHaveSectionsCards={this.props.mayHaveSectionsCards}
+              onThumbsUpClick={this.onThumbsUpClick}
+              onThumbsDownClick={this.onThumbsDownClick}
+              state={this.state}
+              isListCard={isListCard}
+              showTopics={this.props.showTopics}
+              isSectionsCard={
+                this.props.mayHaveSectionsCards &&
+                this.props.topic &&
+                !isListCard
+              }
+              format={format}
+              topic={this.props.topic}
+            />
+          )}
+        </SafeAnchor>
         <div
           className={`card-stp-button-hover-background ${compactPocketSavedButtonClassName}`}
         >
