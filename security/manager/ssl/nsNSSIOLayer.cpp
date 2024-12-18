@@ -1327,33 +1327,12 @@ void GatherCertificateCompressionTelemetry(SECStatus rv,
       break;
   }
 
-  mozilla::glean::cert_compression::used.Get(decoder).Add(1);
-
   if (rv != SECSuccess) {
     mozilla::glean::cert_compression::failures.Get(decoder).Add(1);
     return;
   }
   // Glam requires us to send 0 in case of success.
   mozilla::glean::cert_compression::failures.Get(decoder).Add(0);
-
-  PRUint64 diffActualEncodedLen = actualCertLen - encodedCertLen;
-  if (actualCertLen >= encodedCertLen) {
-    switch (alg) {
-      case zlib:
-        mozilla::glean::cert_compression::zlib_saved_bytes
-            .AccumulateSingleSample(diffActualEncodedLen);
-        break;
-
-      case brotli:
-        mozilla::glean::cert_compression::brotli_saved_bytes
-            .AccumulateSingleSample(diffActualEncodedLen);
-        break;
-      case zstd:
-        mozilla::glean::cert_compression::zstd_saved_bytes
-            .AccumulateSingleSample(diffActualEncodedLen);
-        break;
-    }
-  }
 }
 
 SECStatus zlibCertificateDecode(const SECItem* input, unsigned char* output,
