@@ -841,8 +841,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   }
 }
 
-#fxa-avatar-image,
-#PanelUI-fxa-menu-account-settings-button {
+#fxa-avatar-image {
   list-style-image: var(--avatar-image-url);
 }
 
@@ -1486,10 +1485,6 @@ toolbarbutton[itemtype="showmorebutton"],
 .remote-tabs-undo-button {
   font-size: 0.8em;
   font-weight: var(--font-weight-bold);
-}
-
-#PanelUI-fxa-menu-account-settings-button > .toolbarbutton-icon {
-  border-radius: 50%;
 }
 
 .toolbaritem-combined-buttons {
