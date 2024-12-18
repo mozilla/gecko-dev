@@ -16,6 +16,12 @@ add_setup(async function setup() {
 add_task(async function test_search_mode_app_provided_engines() {
   let cleanup = await installPersistTestEngines();
 
+  let switcher = document.getElementById("urlbar-searchmode-switcher");
+  await BrowserTestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(switcher),
+    `Wait until unified search button is visible`
+  );
+
   let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
 
   info("Press on the example menu button and enter search mode");
