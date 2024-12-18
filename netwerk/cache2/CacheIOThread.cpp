@@ -173,7 +173,7 @@ nsresult CacheIOThread::Dispatch(already_AddRefed<nsIRunnable> aRunnable,
 
   nsCOMPtr<nsIRunnable> runnable(aRunnable);
 
-  // Runnable is always expected to be non-null, hard null-check bellow.
+  // Runnable is always expected to be non-null, hard null-check below.
   MOZ_ASSERT(runnable);
 
   MonitorAutoLock lock(mMonitor);
