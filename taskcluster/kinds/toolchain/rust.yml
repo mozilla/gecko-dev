@@ -24,15 +24,28 @@ linux64-rust-1.76:
         ]
         toolchain-alias:
             - linux64-rust-base
-            - linux64-rust-toolchain
 
-linux64-rust-macos-1.76:
-    description: "rust repack with macos-cross support"
+linux64-rust-1.78:
     treeherder:
-        symbol: TL(rust-macos-1.76)
+        symbol: TL(rust-1.78)
     run:
         arguments: [
-            '--channel', '1.76.0',
+            '--channel', '1.78.0',
+            '--host', 'x86_64-unknown-linux-gnu',
+            '--target', 'x86_64-unknown-linux-gnu',
+            '--target', 'i686-unknown-linux-gnu',
+            '--target', 'wasm32-wasi',
+        ]
+        toolchain-alias:
+            - linux64-rust-toolchain
+
+linux64-rust-macos-1.78:
+    description: "rust repack with macos-cross support"
+    treeherder:
+        symbol: TL(rust-macos-1.78)
+    run:
+        arguments: [
+            '--channel', '1.78.0',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-apple-darwin',
@@ -40,13 +53,13 @@ linux64-rust-macos-1.76:
         ]
         toolchain-alias: linux64-rust-macos-toolchain
 
-linux64-rust-windows-1.76:
+linux64-rust-windows-1.78:
     description: "rust repack with windows-cross support"
     treeherder:
-        symbol: TL(rust-win-1.76)
+        symbol: TL(rust-win-1.78)
     run:
         arguments: [
-            '--channel', '1.76.0',
+            '--channel', '1.78.0',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-pc-windows-msvc',
