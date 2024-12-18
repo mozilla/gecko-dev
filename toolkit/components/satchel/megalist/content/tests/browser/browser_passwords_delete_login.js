@@ -25,7 +25,13 @@ add_task(async function test_delete_login_success() {
   const megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
 
-  await openEditLoginForm(megalist, getMegalistParent(), 0);
+  const passwordCard = megalist.querySelector("password-card");
+  await waitForReauth(() => passwordCard.editBtn.click());
+  await BrowserTestUtils.waitForCondition(
+    () => megalist.querySelector("login-form"),
+    "Login form failed to render"
+  );
+
   const loginForm = megalist.querySelector("login-form").shadowRoot;
   const deleteLoginBtn = loginForm.querySelector(".delete-login-button");
   deleteLoginBtn.click();

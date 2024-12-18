@@ -158,10 +158,12 @@ async function addLocalOriginLogin() {
 function waitForNotification(megalist, notificationId) {
   info(`Wait for notification with id ${notificationId}.`);
   const notifcationPromise = BrowserTestUtils.waitForCondition(() => {
-    const notificationMsgBar = megalist.querySelector(
-      "notification-message-bar"
+    const notifMsgBars = Array.from(
+      megalist.querySelectorAll("notification-message-bar")
     );
-    return notificationMsgBar?.notification.id === notificationId;
+    return notifMsgBars?.find(
+      notifMsgBar => notifMsgBar.notification.id === notificationId
+    );
   }, `Notification with id ${notificationId} did not render.`);
   return notifcationPromise;
 }
@@ -185,18 +187,13 @@ function getMegalistParent() {
   );
 }
 
-async function openEditLoginForm(megalist, megalistParent, cardIndex) {
-  const passwordCard = megalist.querySelectorAll("password-card")[cardIndex];
-  const authExpirationTime = megalistParent.authExpirationTime();
+async function waitForReauth(callBackFn) {
+  const authExpirationTime = getMegalistParent().authExpirationTime();
   let reauthObserved = Promise.resolve();
 
   if (OSKeyStore.canReauth() && Date.now() > authExpirationTime) {
     reauthObserved = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
   }
-  passwordCard.editBtn.click();
-  await reauthObserved;
-  return BrowserTestUtils.waitForCondition(
-    () => megalist.querySelector("login-form"),
-    "Login form failed to render"
-  );
+  await callBackFn();
+  return reauthObserved;
 }
