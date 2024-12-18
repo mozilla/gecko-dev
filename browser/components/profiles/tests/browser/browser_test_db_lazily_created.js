@@ -19,4 +19,9 @@ add_task(async function test_dbLazilyCreated() {
     SelectableProfileService.initialized,
     `Selectable Profile Service should be initialized because the store id is ${SelectableProfileService.groupToolkitProfile.storeID}`
   );
+
+  ok(
+    SelectableProfileService.groupToolkitProfile.showProfileSelector,
+    "Once the user has created a second profile, ShowSelector should be set to true"
+  );
 });

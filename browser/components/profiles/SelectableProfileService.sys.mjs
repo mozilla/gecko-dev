@@ -1066,6 +1066,9 @@ class SelectableProfileServiceClass {
     if (!this.#currentProfile) {
       let path = this.#profileService.currentProfile.rootDir;
       this.#currentProfile = await this.#createProfile(path);
+
+      // And also set the profile selector window to show at startup (bug 1933911).
+      this.showProfileSelectorWindow(true);
     }
   }
 
