@@ -369,6 +369,8 @@
     <string name="browser_menu_turn_on_reader_view">Activar vista de lectura</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Desactivar vista de lectura</string>
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Mover a una pestaña no privada</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traducir página…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -612,14 +614,34 @@
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Elegí la ubicación de la barra de herramientas</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Mantené las búsquedas a tu alcance.</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">Guardar y continuar</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">Guardar y continuar</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Omitir</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Parte superior</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Parte inferior</string>
+
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">Imagen de encabezado grande de la vista de selección de la barra de herramientas que muestra una barra de herramientas ilustrada.</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Elegí un tema</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Ver la web de la mejor manera.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Guarda y empieza a navegar</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">Omitir</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Oscuro</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Claro</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Sistema automático</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Imagen de encabezado grande de la vista de selección de temas que muestra herramientas ilustradas de artista y creador.</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1207,14 +1229,14 @@
     <string name="studies_learn_more">Conocer más</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">La aplicación se cerrará para aplicar los cambios</string>
+    <string name="studies_restart_app" moz:removedIn="135">La aplicación se cerrará para aplicar los cambios</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">Aceptar</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">Aceptar</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Cancelar</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Cancelar</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Saliendo de la aplicación para aplicar cambios…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Saliendo de la aplicación para aplicar cambios…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
