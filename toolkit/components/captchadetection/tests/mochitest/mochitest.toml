@@ -18,6 +18,11 @@ support-files = [
   "cf_turnstile.html"
 ]
 
+["test_datadome.html"]
+support-files = [
+  "datadome.html"
+]
+
 ["test_g_recaptcha_v2_ac.html"]
 support-files = [
   "g_recaptcha_v2_checkbox.html"

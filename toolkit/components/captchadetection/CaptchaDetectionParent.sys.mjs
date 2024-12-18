@@ -161,7 +161,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       Glean.captchaDetection["datadomePc" + suffix].add(1);
     }
 
-    this.#onMetricSet();
+    this.#onMetricSet(0);
   }
 
   /** @type {CaptchaStateUpdateFunction} */
@@ -363,22 +363,33 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     }
   }
 
-  async #onMetricSet() {
+  async #onMetricSet(parentDepth = 1) {
     lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
     if (Cu.isInAutomation) {
-      await this.#notifyTestMetricIsSet();
+      await this.#notifyTestMetricIsSet(parentDepth);
     }
   }
 
-  async #notifyTestMetricIsSet() {
+  /**
+   * Notify the `parentDepth`'nth parent browsing context that the test metric is set.
+   *
+   * @param {number} parentDepth - The depth of the parent window context.
+   * The reason we need this param is because Datadome calls this method
+   * not from the captcha iframe, but its parent browsing context. So
+   * it overrides the depth to 0.
+   */
+  async #notifyTestMetricIsSet(parentDepth = 1) {
     if (!Cu.isInAutomation) {
       throw new Error("This method should only be called in automation");
     }
 
-    const parent = this.browsingContext.parentWindowContext;
-    if (!parent) {
-      lazy.console.error("No parent window context");
-      return;
+    let parent = this.browsingContext.currentWindowContext;
+    for (let i = 0; i < parentDepth; i++) {
+      parent = parent.parentWindowContext;
+      if (!parent) {
+        lazy.console.error("No parent window context");
+        return;
+      }
     }
 
     let actor = null;

@@ -276,6 +276,14 @@ class DatadomeHandler extends CaptchaHandler {
   }
 
   static matches(document) {
+    if (Cu.isInAutomation) {
+      return (
+        document
+          .getElementById("captchaType")
+          ?.getAttribute("data-captcha-type") === "datadome"
+      );
+    }
+
     return document.location.href.startsWith(
       "https://geo.captcha-delivery.com/captcha/"
     );
