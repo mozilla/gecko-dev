@@ -92,7 +92,7 @@ nsresult NotificationParent::FireClickEvent() {
     nsAutoCString originSuffix;
     MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
     MOZ_TRY(swm->SendNotificationClickEvent(
-        originSuffix, NS_ConvertUTF16toUTF8(mScope), mId, mOptions.title(),
+        originSuffix, mScope, mId, mOptions.title(),
         NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())), mOptions.lang(),
         mOptions.body(), mOptions.tag(), mOptions.icon(),
         mOptions.dataSerialized()));
@@ -112,7 +112,7 @@ nsresult NotificationParent::FireCloseEvent() {
     nsAutoCString originSuffix;
     MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
     MOZ_TRY(swm->SendNotificationCloseEvent(
-        originSuffix, NS_ConvertUTF16toUTF8(mScope), mId, mOptions.title(),
+        originSuffix, mScope, mId, mOptions.title(),
         NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())), mOptions.lang(),
         mOptions.body(), mOptions.tag(), mOptions.icon(),
         mOptions.dataSerialized()));

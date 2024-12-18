@@ -1122,7 +1122,7 @@ ServiceWorkerManager::SendPushSubscriptionChangeEvent(
 
 nsresult ServiceWorkerManager::SendNotificationEvent(
     const nsAString& aEventName, const nsACString& aOriginSuffix,
-    const nsACString& aScope, const nsAString& aID, const nsAString& aTitle,
+    const nsAString& aScope, const nsAString& aID, const nsAString& aTitle,
     const nsAString& aDir, const nsAString& aLang, const nsAString& aBody,
     const nsAString& aTag, const nsAString& aIcon, const nsAString& aData) {
   OriginAttributes attrs;
@@ -1130,20 +1130,20 @@ nsresult ServiceWorkerManager::SendNotificationEvent(
     return NS_ERROR_INVALID_ARG;
   }
 
-  ServiceWorkerInfo* info = GetActiveWorkerInfoForScope(attrs, aScope);
+  ServiceWorkerInfo* info =
+      GetActiveWorkerInfoForScope(attrs, NS_ConvertUTF16toUTF8(aScope));
   if (!info) {
     return NS_ERROR_FAILURE;
   }
 
   ServiceWorkerPrivate* workerPrivate = info->WorkerPrivate();
-  return workerPrivate->SendNotificationEvent(aEventName, aID, aTitle, aDir,
-                                              aLang, aBody, aTag, aIcon, aData,
-                                              NS_ConvertUTF8toUTF16(aScope));
+  return workerPrivate->SendNotificationEvent(
+      aEventName, aID, aTitle, aDir, aLang, aBody, aTag, aIcon, aData, aScope);
 }
 
 NS_IMETHODIMP
 ServiceWorkerManager::SendNotificationClickEvent(
-    const nsACString& aOriginSuffix, const nsACString& aScope,
+    const nsACString& aOriginSuffix, const nsAString& aScope,
     const nsAString& aID, const nsAString& aTitle, const nsAString& aDir,
     const nsAString& aLang, const nsAString& aBody, const nsAString& aTag,
     const nsAString& aIcon, const nsAString& aData) {
@@ -1154,7 +1154,7 @@ ServiceWorkerManager::SendNotificationClickEvent(
 
 NS_IMETHODIMP
 ServiceWorkerManager::SendNotificationCloseEvent(
-    const nsACString& aOriginSuffix, const nsACString& aScope,
+    const nsACString& aOriginSuffix, const nsAString& aScope,
     const nsAString& aID, const nsAString& aTitle, const nsAString& aDir,
     const nsAString& aLang, const nsAString& aBody, const nsAString& aTag,
     const nsAString& aIcon, const nsAString& aData) {

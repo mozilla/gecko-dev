@@ -295,7 +295,7 @@ interface nsIServiceWorkerManager : nsISupports
                            in AString aScope);
 
   void sendNotificationClickEvent(in ACString aOriginSuffix,
-                                  in ACString scope,
+                                  in AString scope,
                                   in AString aID,
                                   in AString aTitle,
                                   in AString aDir,
@@ -306,7 +306,7 @@ interface nsIServiceWorkerManager : nsISupports
                                   in AString aData);
 
   void sendNotificationCloseEvent(in ACString aOriginSuffix,
-                                  in ACString scope,
+                                  in AString scope,
                                   in AString aID,
                                   in AString aTitle,
                                   in AString aDir,
