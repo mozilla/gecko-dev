@@ -2521,16 +2521,7 @@ TEST_F(TestQuotaManager, TotalDirectoryIterations_ClearingEmptyRepository) {
 
   const auto totalDirectoryIterationsBefore = TotalDirectoryIterations();
 
-  PerformOnBackgroundThread([]() {
-    QuotaManager* quotaManager = QuotaManager::Get();
-    ASSERT_TRUE(quotaManager);
-
-    {
-      auto value = Await(quotaManager->ClearStoragesForOriginAttributesPattern(
-          OriginAttributesPattern()));
-      ASSERT_TRUE(value.IsResolve());
-    }
-  });
+  ClearStoragesForOriginAttributesPattern(u""_ns);
 
   const auto totalDirectoryIterationsAfter = TotalDirectoryIterations();
 
@@ -2550,16 +2541,7 @@ TEST_F(TestQuotaManager, TotalDirectoryIterations_ClearingNonEmptyRepository) {
 
   const auto totalDirectoryIterationsBefore = TotalDirectoryIterations();
 
-  PerformOnBackgroundThread([]() {
-    QuotaManager* quotaManager = QuotaManager::Get();
-    ASSERT_TRUE(quotaManager);
-
-    {
-      auto value = Await(quotaManager->ClearStoragesForOriginAttributesPattern(
-          OriginAttributesPattern()));
-      ASSERT_TRUE(value.IsResolve());
-    }
-  });
+  ClearStoragesForOriginAttributesPattern(u""_ns);
 
   const auto totalDirectoryIterationsAfter = TotalDirectoryIterations();
 
