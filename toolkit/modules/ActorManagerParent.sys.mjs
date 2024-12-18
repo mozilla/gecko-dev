@@ -238,7 +238,7 @@ let JSWINDOWACTORS = {
     matches: [
       "https://www.google.com/recaptcha/api2/*",
       "https://www.google.com/recaptcha/enterprise/*",
-      "https://*/cdn-cgi/challenge-platform/*/turnstile/if/ov2/*",
+      "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2/av0/rcv/*",
     ],
     messageManagerGroups: ["browsers"],
     allFrames: true,
