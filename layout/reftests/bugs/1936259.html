@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; }
+
+.ImagesViewer-LayoutMain {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  height: 200px;
+}
+
+.ImagesViewer-LayoutScene {
+  flex-grow: 1;
+  position: relative;
+}
+
+.ImagesViewer-View {
+  height: 100%;
+  position: absolute;
+}
+.MMImageWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 300px;
+}
+
+.MMImageContainer {
+  display: block;
+  margin-right: auto;
+  max-height: 100%;
+}
+
+.MMImage-Preview {
+  width: 100%;
+  height: 100%;
+  background: lime;
+}
+</style>
+
+<!-- This test is adapted from Bug 1936259 comment 7 reduced testcase 3.  -->
+<p>There should be a 200x200 lime square.</p>
+<div class="ImagesViewer-LayoutMain">
+  <div class="ImagesViewer-LayoutScene">
+    <div class="ImagesViewer-View">
+      <div class="SwipeImage MMImageWrapper">
+        <div class="MMImageContainer">
+          <canvas class="MMImage-Preview" width="300" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
