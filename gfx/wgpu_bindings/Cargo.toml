@@ -19,7 +19,7 @@ package = "wgpu-core"
 git = "https://github.com/gfx-rs/wgpu"
 rev = "5543961a71cc8e5399b696fae3f6aae82c019717"
 # TODO: remove the replay feature on the next update containing https://github.com/gfx-rs/wgpu/pull/5182
-features = ["serde", "replay", "trace", "strict_asserts", "wgsl", "api_log_info"]
+features = ["serde", "replay", "trace", "strict_asserts", "wgsl", "api_log_info", "indirect-validation"]
 
 # We want the wgpu-core Metal backend on macOS and iOS.
 # (We should consider also enabling "vulkan" for Vulkan Portability.)
