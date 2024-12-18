@@ -231,6 +231,8 @@ let JSWINDOWACTORS = {
       esModuleURI: "resource://gre/actors/CaptchaDetectionChild.sys.mjs",
       events: {
         DOMContentLoaded: {},
+        pageshow: {},
+        pagehide: {},
       },
     },
     matches: [
