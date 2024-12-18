@@ -76,20 +76,10 @@ dictionary NotificationOptions {
   boolean silent = false;
   VibratePattern vibrate;
   any data = null;
-  NotificationBehavior mozbehavior = {};
 };
 
 dictionary GetNotificationOptions {
   DOMString tag = "";
-};
-
-[GenerateToJSON]
-dictionary NotificationBehavior {
-  boolean noscreen = false;
-  boolean noclear = false;
-  boolean showOnlyOnce = false;
-  DOMString soundFile = "";
-  sequence<unsigned long> vibrationPattern;
 };
 
 enum NotificationPermission {

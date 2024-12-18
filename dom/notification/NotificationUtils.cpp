@@ -202,15 +202,10 @@ nsresult PersistNotification(nsIPrincipal* aPrincipal, const nsString& aId,
     return rv;
   }
 
-  nsAutoString behavior;
-  if (!aOptions.behavior().ToJSON(behavior)) {
-    return NS_ERROR_FAILURE;
-  }
-
   rv = notificationStorage->Put(
       origin, aId, aOptions.title(), GetEnumString(aOptions.dir()),
       aOptions.lang(), aOptions.body(), aOptions.tag(), aOptions.icon(),
-      aAlertName, aOptions.dataSerialized(), behavior, aScope);
+      aAlertName, aOptions.dataSerialized(), aScope);
 
   if (NS_FAILED(rv)) {
     return rv;

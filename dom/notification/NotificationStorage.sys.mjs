@@ -79,7 +79,6 @@ export class NotificationStorage {
     icon,
     alertName,
     data,
-    behavior,
     serviceWorkerRegistrationScope
   ) {
     lazy.console.debug(`PUT: ${origin} ${id}: ${title}`);
@@ -95,7 +94,6 @@ export class NotificationStorage {
       timestamp: new Date().getTime(),
       origin,
       data,
-      mozbehavior: behavior,
       serviceWorkerRegistrationScope,
     };
 
@@ -187,7 +185,6 @@ export class NotificationStorage {
             notification.tag,
             notification.icon,
             notification.data,
-            notification.mozbehavior,
             notification.serviceWorkerRegistrationScope
           )
         );

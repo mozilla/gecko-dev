@@ -114,7 +114,6 @@ class ServiceWorkerPrivate final : public RemoteWorkerObserver {
                                  const nsAString& aDir, const nsAString& aLang,
                                  const nsAString& aBody, const nsAString& aTag,
                                  const nsAString& aIcon, const nsAString& aData,
-                                 const nsAString& aBehavior,
                                  const nsAString& aScope);
 
   nsresult SendFetchEvent(nsCOMPtr<nsIInterceptedChannel> aChannel,

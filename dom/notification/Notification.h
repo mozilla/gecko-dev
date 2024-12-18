@@ -170,8 +170,7 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
                NotificationDirection aDir, const nsAString& aLang,
                const nsAString& aTag, const nsAString& aIconUrl,
                bool aRequireInteraction, bool aSilent,
-               nsTArray<uint32_t>&& aVibrate,
-               const NotificationBehavior& aBehavior);
+               nsTArray<uint32_t>&& aVibrate);
 
   static already_AddRefed<Notification> CreateInternal(
       nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
@@ -201,7 +200,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   const bool mSilent;
   nsTArray<uint32_t> mVibrate;
   nsString mDataAsBase64;
-  const NotificationBehavior mBehavior;
 
   // It's null until GetData is first called
   JS::Heap<JS::Value> mData;
@@ -228,9 +226,7 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   bool CreateActor();
   bool SendShow(Promise* aPromise);
 
-  static nsresult ResolveIconAndSoundURL(nsIGlobalObject* aGlobal,
-                                         nsString& aIconURL,
-                                         nsString& aSoundURL);
+  static nsresult ResolveIconURL(nsIGlobalObject* aGlobal, nsString& aIconURL);
 };
 
 }  // namespace mozilla::dom

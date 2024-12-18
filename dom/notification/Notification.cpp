@@ -17,7 +17,6 @@
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Unused.h"
-#include "mozilla/dom/AppNotificationServiceOptionsBinding.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Document.h"
@@ -68,7 +67,6 @@ struct NotificationStrings {
   const nsString mTag;
   const nsString mIcon;
   const nsString mData;
-  const nsString mBehavior;
   const nsString mServiceWorkerRegistrationScope;
 };
 
@@ -82,7 +80,6 @@ class ScopeCheckingGetCallback : public nsINotificationStorageCallback {
                     const nsAString& aDir, const nsAString& aLang,
                     const nsAString& aBody, const nsAString& aTag,
                     const nsAString& aIcon, const nsAString& aData,
-                    const nsAString& aBehavior,
                     const nsAString& aServiceWorkerRegistrationScope) final {
     AssertIsOnMainThread();
     MOZ_ASSERT(!aID.IsEmpty());
@@ -93,11 +90,15 @@ class ScopeCheckingGetCallback : public nsINotificationStorageCallback {
     }
 
     NotificationStrings strings = {
-        nsString(aID),       nsString(aTitle),
-        nsString(aDir),      nsString(aLang),
-        nsString(aBody),     nsString(aTag),
-        nsString(aIcon),     nsString(aData),
-        nsString(aBehavior), nsString(aServiceWorkerRegistrationScope),
+        nsString(aID),
+        nsString(aTitle),
+        nsString(aDir),
+        nsString(aLang),
+        nsString(aBody),
+        nsString(aTag),
+        nsString(aIcon),
+        nsString(aData),
+        nsString(aServiceWorkerRegistrationScope),
     };
 
     mStrings.AppendElement(std::move(strings));
@@ -133,8 +134,6 @@ class NotificationStorageCallback final : public ScopeCheckingGetCallback {
           mWindow, mStrings[i].mID, mStrings[i].mTitle, mStrings[i].mDir,
           mStrings[i].mLang, mStrings[i].mBody, mStrings[i].mTag,
           mStrings[i].mIcon, mStrings[i].mData,
-          /* mStrings[i].mBehavior, not
-           * supported */
           mStrings[i].mServiceWorkerRegistrationScope);
       if (result.isErr()) {
         continue;
@@ -416,8 +415,7 @@ Notification::Notification(nsIGlobalObject* aGlobal, const nsAString& aID,
                            NotificationDirection aDir, const nsAString& aLang,
                            const nsAString& aTag, const nsAString& aIconUrl,
                            bool aRequireInteraction, bool aSilent,
-                           nsTArray<uint32_t>&& aVibrate,
-                           const NotificationBehavior& aBehavior)
+                           nsTArray<uint32_t>&& aVibrate)
     : DOMEventTargetHelper(aGlobal),
       mID(aID),
       mTitle(aTitle),
@@ -429,7 +427,6 @@ Notification::Notification(nsIGlobalObject* aGlobal, const nsAString& aID,
       mRequireInteraction(aRequireInteraction),
       mSilent(aSilent),
       mVibrate(std::move(aVibrate)),
-      mBehavior(aBehavior),
       mData(JS::NullValue()) {
   KeepAliveIfHasListenersFor(nsGkAtoms::onclick);
   KeepAliveIfHasListenersFor(nsGkAtoms::onshow);
@@ -578,13 +575,12 @@ already_AddRefed<Notification> Notification::CreateInternal(
   // that does not return failure, set notification’s icon URL to the return
   // value. (Otherwise icon URL is not set.)
   nsString iconUrl = aOptions.mIcon;
-  NotificationBehavior behavior{aOptions.mMozbehavior};
-  ResolveIconAndSoundURL(aGlobal, iconUrl, behavior.mSoundFile);
+  ResolveIconURL(aGlobal, iconUrl);
 
   RefPtr<Notification> notification = new Notification(
       aGlobal, id, aTitle, aOptions.mBody, aOptions.mDir, aOptions.mLang,
       aOptions.mTag, iconUrl, aOptions.mRequireInteraction, silent,
-      std::move(vibrate), behavior);
+      std::move(vibrate));
   return notification.forget();
 }
 
@@ -715,9 +711,8 @@ NotificationPermission Notification::GetPermissionInternal(
                                    aWindow->IsSecureContext(), aPurpose);
 }
 
-nsresult Notification::ResolveIconAndSoundURL(nsIGlobalObject* aGlobal,
-                                              nsString& iconUrl,
-                                              nsString& soundUrl) {
+nsresult Notification::ResolveIconURL(nsIGlobalObject* aGlobal,
+                                      nsString& aIconUrl) {
   nsresult rv = NS_OK;
 
   nsCOMPtr<nsIURI> baseUri = nullptr;
@@ -745,22 +740,13 @@ nsresult Notification::ResolveIconAndSoundURL(nsIGlobalObject* aGlobal,
   }
 
   if (baseUri) {
-    if (iconUrl.Length() > 0) {
+    if (aIconUrl.Length() > 0) {
       nsCOMPtr<nsIURI> srcUri;
-      rv = NS_NewURI(getter_AddRefs(srcUri), iconUrl, encoding, baseUri);
+      rv = NS_NewURI(getter_AddRefs(srcUri), aIconUrl, encoding, baseUri);
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString src;
         srcUri->GetSpec(src);
-        CopyUTF8toUTF16(src, iconUrl);
-      }
-    }
-    if (soundUrl.Length() > 0) {
-      nsCOMPtr<nsIURI> srcUri;
-      rv = NS_NewURI(getter_AddRefs(srcUri), soundUrl, encoding, baseUri);
-      if (NS_SUCCEEDED(rv)) {
-        nsAutoCString src;
-        srcUri->GetSpec(src);
-        CopyUTF8toUTF16(src, soundUrl);
+        CopyUTF8toUTF16(src, aIconUrl);
       }
     }
   }
@@ -1135,7 +1121,7 @@ bool Notification::CreateActor() {
       mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
   IPCNotificationOptions options(mTitle, mDir, mLang, mBody, mTag, mIconUrl,
                                  mRequireInteraction, mSilent, mVibrate,
-                                 mDataAsBase64, mBehavior);
+                                 mDataAsBase64);
 
   // Note: We are not using the typical PBackground managed actor here as we
   // want the actor to be in the main thread of the main process. Instead we

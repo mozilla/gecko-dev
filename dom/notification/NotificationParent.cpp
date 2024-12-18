@@ -91,15 +91,11 @@ nsresult NotificationParent::FireClickEvent() {
           mozilla::components::ServiceWorkerManager::Service()) {
     nsAutoCString originSuffix;
     MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
-    nsAutoString behavior;
-    if (!mOptions.behavior().ToJSON(behavior)) {
-      return NS_ERROR_FAILURE;
-    }
     MOZ_TRY(swm->SendNotificationClickEvent(
         originSuffix, NS_ConvertUTF16toUTF8(mScope), mId, mOptions.title(),
         NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())), mOptions.lang(),
         mOptions.body(), mOptions.tag(), mOptions.icon(),
-        mOptions.dataSerialized(), behavior));
+        mOptions.dataSerialized()));
 
     return NS_OK;
   }
@@ -115,15 +111,11 @@ nsresult NotificationParent::FireCloseEvent() {
           mozilla::components::ServiceWorkerManager::Service()) {
     nsAutoCString originSuffix;
     MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
-    nsAutoString behavior;
-    if (!mOptions.behavior().ToJSON(behavior)) {
-      return NS_ERROR_FAILURE;
-    }
     MOZ_TRY(swm->SendNotificationCloseEvent(
         originSuffix, NS_ConvertUTF16toUTF8(mScope), mId, mOptions.title(),
         NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())), mOptions.lang(),
         mOptions.body(), mOptions.tag(), mOptions.icon(),
-        mOptions.dataSerialized(), behavior));
+        mOptions.dataSerialized()));
     return NS_OK;
   }
   return NS_ERROR_FAILURE;

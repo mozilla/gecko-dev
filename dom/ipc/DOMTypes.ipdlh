@@ -58,7 +58,6 @@ using mozilla::TimeStamp from "mozilla/TimeStamp.h";
 [RefCounted] using class mozilla::RemoteLazyInputStream from "mozilla/RemoteLazyInputStream.h";
 [MoveOnly] using class mozilla::ipc::BigBuffer from "mozilla/ipc/BigBuffer.h";
 using mozilla::dom::NotificationDirection from "mozilla/dom/NotificationBinding.h";
-using mozilla::dom::NotificationBehavior from "mozilla/dom/NotificationBinding.h";
 
 namespace mozilla {
 namespace dom {
@@ -348,7 +347,6 @@ struct IPCNotificationOptions {
   bool silent;
   uint32_t[] vibrate;
   nsString dataSerialized;
-  NotificationBehavior behavior;
 };
 
 } // namespace dom

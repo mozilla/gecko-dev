@@ -27,7 +27,6 @@ interface nsINotificationStorageCallback : nsISupports
               in AString tag,
               in AString icon,
               in AString data,
-              in AString behavior,
               in AString serviceWorkerRegistrationScope);
 
   /**
@@ -75,7 +74,6 @@ interface nsINotificationStorage : nsISupports
            in AString icon,
            in AString alertName,
            in AString data,
-           in AString behavior,
            in AString serviceWorkerRegistrationScope);
 
   /**

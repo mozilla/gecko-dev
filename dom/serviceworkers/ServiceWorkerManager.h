@@ -65,12 +65,12 @@ class ServiceWorkerUpdateFinishCallback {
   virtual void UpdateFailed(ErrorResult& aStatus) = 0;
 };
 
-#define NS_SERVICEWORKERMANAGER_IMPL_IID             \
-  { /* f4f8755a-69ca-46e8-a65d-775745535990 */       \
-    0xf4f8755a, 0x69ca, 0x46e8, {                    \
-      0xa6, 0x5d, 0x77, 0x57, 0x45, 0x53, 0x59, 0x90 \
-    }                                                \
-  }
+#define NS_SERVICEWORKERMANAGER_IMPL_IID      \
+  {/* f4f8755a-69ca-46e8-a65d-775745535990 */ \
+   0xf4f8755a,                                \
+   0x69ca,                                    \
+   0x46e8,                                    \
+   {0xa6, 0x5d, 0x77, 0x57, 0x45, 0x53, 0x59, 0x90}}
 
 /*
  * The ServiceWorkerManager is a per-process global that deals with the
@@ -418,8 +418,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
                                  const nsAString& aTitle, const nsAString& aDir,
                                  const nsAString& aLang, const nsAString& aBody,
                                  const nsAString& aTag, const nsAString& aIcon,
-                                 const nsAString& aData,
-                                 const nsAString& aBehavior);
+                                 const nsAString& aData);
 
   // Used by remove() and removeAll() when clearing history.
   // MUST ONLY BE CALLED FROM UnregisterIfMatchesHost!

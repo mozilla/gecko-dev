@@ -975,7 +975,7 @@ nsresult ServiceWorkerPrivate::SendNotificationEvent(
     const nsAString& aEventName, const nsAString& aID, const nsAString& aTitle,
     const nsAString& aDir, const nsAString& aLang, const nsAString& aBody,
     const nsAString& aTag, const nsAString& aIcon, const nsAString& aData,
-    const nsAString& aBehavior, const nsAString& aScope) {
+    const nsAString& aScope) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aEventName.EqualsLiteral(NOTIFICATION_CLICK_EVENT_NAME)) {
@@ -996,7 +996,6 @@ nsresult ServiceWorkerPrivate::SendNotificationEvent(
   args.tag() = nsString(aTag);
   args.icon() = nsString(aIcon);
   args.data() = nsString(aData);
-  args.behavior() = nsString(aBehavior);
   args.scope() = nsString(aScope);
   args.disableOpenClickDelay() = gDOMDisableOpenClickDelay;
 

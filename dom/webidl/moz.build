@@ -423,7 +423,6 @@ WEBIDL_FILES = [
     "AnimationTimeline.webidl",
     "AnonymousContent.webidl",
     "AppInfo.webidl",
-    "AppNotificationServiceOptions.webidl",
     "APZTestData.webidl",
     "ARIAMixin.webidl",
     "Attr.webidl",
