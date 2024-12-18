@@ -8,10 +8,6 @@ const { ExperimentAPI } = ChromeUtils.importESModule(
 const { NewTabUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/NewTabUtils.sys.mjs"
 );
-const { Region } = ChromeUtils.importESModule(
-  "resource://gre/modules/Region.sys.mjs"
-);
-
 const {
   ATTRIBUTE_TRANSFORMS,
   PREFS,
@@ -40,23 +36,7 @@ async function setupNimbusForTest() {
   await manager.onStartup();
   await manager.store.ready();
 
-  const localeService = Services.locale;
-  const mockLocaleService = new Proxy(localeService, {
-    get(obj, prop) {
-      if (prop === "appLocaleAsBCP47") {
-        return "en-US";
-      }
-
-      return obj[prop];
-    },
-  });
-
-  Services.locale = mockLocaleService;
-
-  sandbox.stub(Region, "home").get(() => "US");
-
   const cleanup = async () => {
-    Services.locale = localeService;
     sandbox.restore();
     await assertEmptyStore(manager.store, { cleanup: true });
 

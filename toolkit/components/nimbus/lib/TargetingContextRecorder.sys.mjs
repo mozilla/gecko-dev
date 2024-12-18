@@ -145,7 +145,6 @@ export const ATTRIBUTE_TRANSFORMS = Object.freeze({
   isFirstStartup: typeAssertions.boolean,
   isFxAEnabled: typeAssertions.boolean,
   isMSIX: typeAssertions.boolean,
-  locale: typeAssertions.string,
   memoryMB: typeAssertions.quantity,
   os: pick(
     "isLinux",
@@ -155,7 +154,6 @@ export const ATTRIBUTE_TRANSFORMS = Object.freeze({
     "windowsVersion"
   ),
   profileAgeCreated: typeAssertions.quantity,
-  region: typeAssertions.string,
   totalBookmarksCount: typeAssertions.quantity,
   userMonthlyActivity: userMonthlyActivity =>
     userMonthlyActivity.map(([numberOfURLsVisited, date]) => ({
