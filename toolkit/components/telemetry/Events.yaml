@@ -1409,7 +1409,11 @@ messaging_experiments:
       "fxms_message_8",
       "fxms_message_9",
       "fxms_message_10",
-      "fxms_message_11"
+      "fxms_message_11",
+      "fxms_message_12",
+      "fxms_message_13",
+      "fxms_message_14",
+      "fxms_message_15"
     ]
     methods: ["reach"]
     release_channel_collection: opt-out

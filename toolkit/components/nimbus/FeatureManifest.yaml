@@ -1825,6 +1825,50 @@ fxms-message-11:
     path: "browser/components/asrouter/content-src/schemas/MessagingExperiment.schema.json"
   variables: {}
 
+fxms-message-12:
+  description: "Firefox Messaging System message 12"
+  owner: omc@mozilla.com
+  hasExposure: true
+  exposureDescription: >-
+    "Exposure is sent if the message is about to be shown after trigger and targeting conditions on the message matched."
+  schema:
+    uri: "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json"
+    path: "browser/components/asrouter/content-src/schemas/MessagingExperiment.schema.json"
+  variables: {}
+
+fxms-message-13:
+  description: "Firefox Messaging System message 13"
+  owner: omc@mozilla.com
+  hasExposure: true
+  exposureDescription: >-
+    "Exposure is sent if the message is about to be shown after trigger and targeting conditions on the message matched."
+  schema:
+    uri: "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json"
+    path: "browser/components/asrouter/content-src/schemas/MessagingExperiment.schema.json"
+  variables: {}
+
+fxms-message-14:
+  description: "Firefox Messaging System message 14"
+  owner: omc@mozilla.com
+  hasExposure: true
+  exposureDescription: >-
+    "Exposure is sent if the message is about to be shown after trigger and targeting conditions on the message matched."
+  schema:
+    uri: "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json"
+    path: "browser/components/asrouter/content-src/schemas/MessagingExperiment.schema.json"
+  variables: {}
+
+fxms-message-15:
+  description: "Firefox Messaging System message 15"
+  owner: omc@mozilla.com
+  hasExposure: true
+  exposureDescription: >-
+    "Exposure is sent if the message is about to be shown after trigger and targeting conditions on the message matched."
+  schema:
+    uri: "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json"
+    path: "browser/components/asrouter/content-src/schemas/MessagingExperiment.schema.json"
+  variables: {}
+
 whatsNewPage:
   description: "A Firefox Messaging System message for the What's new page channel"
   owner: omc@mozilla.com
