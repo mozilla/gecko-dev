@@ -1003,10 +1003,7 @@ nsresult nsMultiMixedConv::ProcessHeader() {
       mResponseHeaderValue.CompressWhitespace();
       if (!StaticPrefs::network_cookie_prevent_set_cookie_from_multipart() &&
           httpInternal) {
-        AutoTArray<nsCString, 1> cookieHeaderArray;
-        cookieHeaderArray.AppendElement(mResponseHeaderValue);
-        DebugOnly<nsresult> rv =
-            httpInternal->SetCookieHeaders(cookieHeaderArray);
+        DebugOnly<nsresult> rv = httpInternal->SetCookie(mResponseHeaderValue);
         MOZ_ASSERT(NS_SUCCEEDED(rv));
       }
       break;

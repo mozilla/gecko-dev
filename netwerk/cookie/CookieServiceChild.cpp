@@ -478,12 +478,14 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
   CookieCommons::GetServerDateHeader(aChannel, dateHeader);
 
   nsTArray<CookieStruct> cookiesToSend, partitionedCookiesToSend;
+  bool moreCookies;
   do {
     CookieParser parser(crc, aHostURI);
-    parser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
-                 dateHeader, true, isForeignAndNotAddon, mustBePartitioned,
-                 storagePrincipalOriginAttributes.IsPrivateBrowsing(),
-                 loadInfo->GetIsOn3PCBExceptionList());
+    moreCookies =
+        parser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
+                     dateHeader, true, isForeignAndNotAddon, mustBePartitioned,
+                     storagePrincipalOriginAttributes.IsPrivateBrowsing(),
+                     loadInfo->GetIsOn3PCBExceptionList());
     if (!parser.ContainsCookie()) {
       continue;
     }
@@ -529,7 +531,7 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
     NotifyObservers(cookie, cookieOriginAttributes, action);
 
     cookiesToSendRef.AppendElement(parser.CookieData());
-  } while (0);
+  } while (moreCookies);
 
   // Asynchronously call the parent.
   if (CanSend()) {

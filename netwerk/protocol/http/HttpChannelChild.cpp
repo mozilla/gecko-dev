@@ -489,8 +489,8 @@ void HttpChannelChild::OnStartRequest(
                                       false);
   }
 
-  if (!aArgs.cookieHeaders().IsEmpty()) {
-    SetCookieHeaders(aArgs.cookieHeaders());
+  if (!aArgs.cookie().IsEmpty()) {
+    SetCookie(aArgs.cookie());
   }
 
   // Note: this is where we would notify "http-on-after-examine-response"
