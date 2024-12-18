@@ -33,3 +33,14 @@ support-files = [
   "g_recaptcha_v2_checkbox.html",
   "g_recaptcha_v2_images.html"
 ]
+
+["test_hcaptcha_ac.html"]
+support-files = [
+  "hcaptcha_checkbox.html"
+]
+
+["test_hcaptcha_pc.html"]
+support-files = [
+  "hcaptcha_checkbox.html",
+  "hcaptcha_puzzle.html"
+]
