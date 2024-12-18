@@ -78,6 +78,24 @@ class InlineForwardList : protected InlineForwardListNode<T> {
     MOZ_ASSERT(!empty());
     return static_cast<T*>(tail_);
   }
+  // Move all items from |other| to the end of this list.
+  void extendBack(InlineForwardList<T>&& other) {
+    MOZ_ASSERT(this != &other);
+    if (other.empty()) {
+      return;
+    }
+#ifdef DEBUG
+    modifyCount_++;
+    other.modifyCount_++;
+#endif
+    MOZ_ASSERT(tail_->next == nullptr);
+    tail_->next = other.next;
+    tail_ = other.tail_;
+    other.tail_ = &other;
+    other.next = nullptr;
+    MOZ_ASSERT(!empty());
+    MOZ_ASSERT(other.empty());
+  }
   void insertAfter(Node* at, Node* item) {
     MOZ_ASSERT(item->next == nullptr);
 #ifdef DEBUG

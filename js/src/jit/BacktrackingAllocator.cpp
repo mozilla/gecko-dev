@@ -825,6 +825,28 @@ void LiveRange::tryToMoveDefAndUsesInto(LiveRange* other) {
   }
 }
 
+void LiveRange::moveAllUsesToTheEndOf(LiveRange* other) {
+  MOZ_ASSERT(&other->vreg() == &vreg());
+  MOZ_ASSERT(this != other);
+  MOZ_ASSERT(other->contains(this));
+
+  if (uses_.empty()) {
+    return;
+  }
+
+  // Assert |other->uses_| remains sorted after adding our uses at the end.
+  MOZ_ASSERT_IF(!other->uses_.empty(),
+                SortBefore(other->uses_.back(), *uses_.begin()));
+
+  other->uses_.extendBack(std::move(uses_));
+  MOZ_ASSERT(!hasUses());
+
+  other->usesSpillWeight_ += usesSpillWeight_;
+  other->numFixedUses_ += numFixedUses_;
+  usesSpillWeight_ = 0;
+  numFixedUses_ = 0;
+}
+
 bool LiveRange::contains(LiveRange* other) const {
   return from() <= other->from() && to() >= other->to();
 }
@@ -1006,7 +1028,7 @@ bool VirtualRegister::addInitialRange(TempAllocator& alloc, CodePosition from,
       }
 
       MOZ_ASSERT(!existing->hasDefinition());
-      existing->tryToMoveDefAndUsesInto(merged);
+      existing->moveAllUsesToTheEndOf(merged);
       MOZ_ASSERT(!existing->hasUses());
     }
 

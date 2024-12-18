@@ -291,7 +291,9 @@ class LiveRange : public TempObject, public InlineForwardListNode<LiveRange> {
   void setBundle(LiveBundle* bundle) { bundle_ = bundle; }
 
   void addUse(UsePosition* use);
+
   void tryToMoveDefAndUsesInto(LiveRange* other);
+  void moveAllUsesToTheEndOf(LiveRange* other);
 
   void setHasDefinition() {
     MOZ_ASSERT(!hasDefinition_);
