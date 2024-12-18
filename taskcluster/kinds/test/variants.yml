@@ -535,18 +535,3 @@ async-event-dispatching:
         mozharness:
             extra-options:
                 - "--setpref=remote.events.async.enabled=true"
-
-vertical-tabs:
-    description: "{description} limited to tests identified as being applicable to also run with vertical tabs enabled"
-    component: "Firefox::Tabbed Browser"
-    expiration: "2025-05-01"
-    suffix: "vt"
-    mozinfo: "vertical_tab"
-    merge:
-        worker:
-            env:
-                MOZHARNESS_TEST_TAG:
-                    - "vertical-tabs"
-        mozharness:
-            extra-options:
-                - "--setpref=sidebar.verticalTabs=true"
