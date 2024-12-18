@@ -1406,6 +1406,9 @@ impl Task for BackgroundReadStashTask {
         let Ok(mut ss) = self.security_state.write() else {
             return;
         };
+        if let Err(e) = ss.open_db() {
+            error!("error opening security state db: {}", e.message);
+        }
         ss.crlite_filters.append(&mut delta_filters);
         ss.crlite_stash = maybe_crlite_stash;
     }
