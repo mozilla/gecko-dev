@@ -9,9 +9,13 @@
 #include "mozilla/Monitor.h"
 #include "GMPChild.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/ReentrantMonitor.h"
+#include "mozilla/StaticMonitor.h"
+#include "nsTArray.h"
+#include "nsThreadUtils.h"
+#include "base/task.h"
 #include "base/thread.h"
 #include "base/time.h"
-#include "mozilla/ReentrantMonitor.h"
 
 #ifdef XP_WIN
 #  include "mozilla/UntrustedModulesProcessor.h"
@@ -24,76 +28,74 @@ namespace mozilla::gmp {
 static MessageLoop* sMainLoop = nullptr;
 static GMPChild* sChild = nullptr;
 
+static StaticMonitor sMainLoopMonitor;
+static nsTArray<RefPtr<Runnable>>* sMainLoopPendingEvents
+    MOZ_GUARDED_BY(sMainLoopMonitor) = nullptr;
+static bool sMainLoopHasPendingProcess MOZ_GUARDED_BY(sMainLoopMonitor) = false;
+
 static bool IsOnChildMainThread() {
   return sMainLoop && sMainLoop == MessageLoop::current();
 }
 
 // We just need a refcounted wrapper for GMPTask objects.
-class GMPRunnable final {
+class GMPRunnable final : public Runnable {
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GMPRunnable)
+  explicit GMPRunnable(GMPTask* aTask)
+      : Runnable("mozilla::gmp::GMPRunnable"), mTask(aTask) {
+    MOZ_ASSERT(mTask);
+  }
 
-  explicit GMPRunnable(GMPTask* aTask) : mTask(aTask) { MOZ_ASSERT(mTask); }
-
-  void Run() {
+  NS_IMETHOD Run() override {
     mTask->Run();
     mTask->Destroy();
     mTask = nullptr;
+    return NS_OK;
   }
 
  private:
-  ~GMPRunnable() = default;
-
   GMPTask* mTask;
 };
 
-class GMPSyncRunnable final {
+class GMPSyncRunnable final : public Runnable {
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GMPSyncRunnable)
-
   GMPSyncRunnable(GMPTask* aTask, MessageLoop* aMessageLoop)
-      : mDone(false),
+      : Runnable("mozilla::gmp::GMPSyncRunnable"),
+        mDone(false),
         mTask(aTask),
-        mMessageLoop(aMessageLoop),
         mMonitor("GMPSyncRunnable") {
     MOZ_ASSERT(mTask);
-    MOZ_ASSERT(mMessageLoop);
   }
 
-  void Post() {
+  void WaitUntilDone() {
     // We assert here for two reasons.
     // 1) Nobody should be blocking the main thread.
     // 2) This prevents deadlocks when doing sync calls to main which if the
     //    main thread tries to do a sync call back to the calling thread.
     MOZ_ASSERT(!IsOnChildMainThread());
 
-    mMessageLoop->PostTask(NewRunnableMethod("gmp::GMPSyncRunnable::Run", this,
-                                             &GMPSyncRunnable::Run));
     MonitorAutoLock lock(mMonitor);
     while (!mDone) {
       lock.Wait();
     }
   }
 
-  void Run() {
+  NS_IMETHOD Run() override {
     mTask->Run();
     mTask->Destroy();
     mTask = nullptr;
     MonitorAutoLock lock(mMonitor);
     mDone = true;
     lock.Notify();
+    return NS_OK;
   }
 
  private:
-  ~GMPSyncRunnable() = default;
-
   bool mDone MOZ_GUARDED_BY(mMonitor);
   GMPTask* mTask;
-  MessageLoop* mMessageLoop;
   Monitor mMonitor;
 };
 
-class GMPThreadImpl : public GMPThread {
+class GMPThreadImpl final : public GMPThread {
  public:
   GMPThreadImpl();
   virtual ~GMPThreadImpl();
@@ -117,15 +119,65 @@ GMPErr CreateThread(GMPThread** aThread) {
   return GMPNoErr;
 }
 
+bool SpinPendingGmpEventsUntil(const SpinPendingPredicate& aPred,
+                               uint32_t aTimeoutMs) {
+  MOZ_ASSERT(IsOnChildMainThread());
+
+  auto timeout = TimeDuration::FromMilliseconds(aTimeoutMs);
+
+  while (!aPred()) {
+    nsTArray<RefPtr<Runnable>> pendingEvents;
+    {
+      StaticMonitorAutoLock lock(sMainLoopMonitor);
+      while (sMainLoopPendingEvents->IsEmpty()) {
+        if (lock.Wait(timeout) == CVStatus::Timeout) {
+          return false;
+        }
+      }
+      pendingEvents = std::move(*sMainLoopPendingEvents);
+    }
+
+    for (auto& event : pendingEvents) {
+      event->Run();
+    }
+  }
+
+  return true;
+}
+
+static void ProcessPendingGmpEvents() {
+  MOZ_ASSERT(IsOnChildMainThread());
+
+  nsTArray<RefPtr<Runnable>> pendingEvents;
+  {
+    StaticMonitorAutoLock lock(sMainLoopMonitor);
+    pendingEvents = std::move(*sMainLoopPendingEvents);
+    sMainLoopHasPendingProcess = false;
+  }
+
+  for (auto& event : pendingEvents) {
+    event->Run();
+  }
+}
+
+static void QueueForMainThread(RefPtr<Runnable>&& aRunnable) {
+  StaticMonitorAutoLock lock(sMainLoopMonitor);
+  sMainLoopPendingEvents->AppendElement(std::move(aRunnable));
+  if (!sMainLoopHasPendingProcess) {
+    sMainLoop->PostTask(NewRunnableFunction(
+        "mozilla::gmp::ProcessPendingGmpEvents", &ProcessPendingGmpEvents));
+    sMainLoopHasPendingProcess = true;
+  }
+  lock.Notify();
+}
+
 GMPErr RunOnMainThread(GMPTask* aTask) {
   if (!aTask || !sMainLoop) {
     return GMPGenericErr;
   }
 
   RefPtr<GMPRunnable> r = new GMPRunnable(aTask);
-  sMainLoop->PostTask(
-      NewRunnableMethod("gmp::GMPRunnable::Run", r, &GMPRunnable::Run));
-
+  QueueForMainThread(std::move(r));
   return GMPNoErr;
 }
 
@@ -135,13 +187,13 @@ GMPErr SyncRunOnMainThread(GMPTask* aTask) {
   }
 
   RefPtr<GMPSyncRunnable> r = new GMPSyncRunnable(aTask, sMainLoop);
-
-  r->Post();
+  QueueForMainThread(RefPtr{r});
+  r->WaitUntilDone();
 
   return GMPNoErr;
 }
 
-class MOZ_CAPABILITY("mutex") GMPMutexImpl : public GMPMutex {
+class MOZ_CAPABILITY("mutex") GMPMutexImpl final : public GMPMutex {
  public:
   GMPMutexImpl();
   virtual ~GMPMutexImpl();
@@ -205,6 +257,13 @@ void InitPlatformAPI(GMPPlatformAPI& aPlatformAPI, GMPChild* aChild) {
     sChild = aChild;
   }
 
+  {
+    StaticMonitorAutoLock lock(sMainLoopMonitor);
+    if (!sMainLoopPendingEvents) {
+      sMainLoopPendingEvents = new nsTArray<RefPtr<Runnable>>();
+    }
+  }
+
   aPlatformAPI.version = 0;
   aPlatformAPI.createthread = &CreateThread;
   aPlatformAPI.runonmainthread = &RunOnMainThread;
@@ -213,6 +272,14 @@ void InitPlatformAPI(GMPPlatformAPI& aPlatformAPI, GMPChild* aChild) {
   aPlatformAPI.createrecord = &CreateRecord;
   aPlatformAPI.settimer = &SetTimerOnMainThread;
   aPlatformAPI.getcurrenttime = &GetClock;
+}
+
+void ShutdownPlatformAPI() {
+  StaticMonitorAutoLock lock(sMainLoopMonitor);
+  if (sMainLoopPendingEvents) {
+    delete sMainLoopPendingEvents;
+    sMainLoopPendingEvents = nullptr;
+  }
 }
 
 void SendFOGData(ipc::ByteBuf&& buf) {

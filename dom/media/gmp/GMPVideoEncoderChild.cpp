@@ -6,6 +6,7 @@
 #include "GMPVideoEncoderChild.h"
 #include "GMPContentChild.h"
 #include <stdio.h>
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/Unused.h"
 #include "GMPVideoEncodedFrameImpl.h"
 #include "GMPVideoi420FrameImpl.h"
@@ -166,6 +167,16 @@ mozilla::ipc::IPCResult GMPVideoEncoderChild::RecvSetPeriodicKeyFrames(
 }
 
 void GMPVideoEncoderChild::ActorDestroy(ActorDestroyReason why) {
+  // If there are no decoded frames, then we know that OpenH264 has destroyed
+  // any outstanding references to its pending encode frames. This means it
+  // should be safe to destroy the encoder since there should not be any pending
+  // sync callbacks.
+  if (!SpinPendingGmpEventsUntil(
+          [&]() -> bool { return mVideoHost.IsDecodedFramesEmpty(); },
+          StaticPrefs::media_gmp_coder_shutdown_timeout_ms())) {
+    NS_WARNING("Timed out waiting for synchronous events!");
+  }
+
   if (mVideoEncoder) {
     // Ignore any return code. It is OK for this to fail without killing the
     // process.

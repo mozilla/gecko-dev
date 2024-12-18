@@ -64,6 +64,8 @@ class GMPVideoDecoderChild final : public PGMPVideoDecoderChild,
   GMPContentChild* mPlugin;
   GMPVideoDecoder* mVideoDecoder;
   GMPVideoHostImpl mVideoHost;
+  bool mOutstandingDrain = false;
+  bool mOutstandingReset = false;
 };
 
 }  // namespace mozilla::gmp
