@@ -1227,7 +1227,8 @@ export class TelemetryFeed {
   handleCardSectionUserEvent(action) {
     const session = this.sessions.get(au.getPortIdOfSender(action));
     if (session) {
-      const { section, section_position, event_source } = action.data;
+      const { section, section_position, event_source, is_secton_followed } =
+        action.data;
       switch (action.type) {
         case "BLOCK_SECTION":
           Glean.newtab.sectionsBlockSection.record({
@@ -1242,6 +1243,7 @@ export class TelemetryFeed {
             newtab_visit_id: session.session_id,
             section,
             section_position,
+            is_secton_followed,
           });
           break;
         case "FOLLOW_SECTION":

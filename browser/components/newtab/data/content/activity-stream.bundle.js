@@ -10051,10 +10051,11 @@ function CardSection({
       type: actionTypes.CARD_SECTION_IMPRESSION,
       data: {
         section: sectionKey,
-        section_position: sectionPosition
+        section_position: sectionPosition,
+        is_secton_followed: following
       }
     }));
-  }, [dispatch, sectionKey, sectionPosition]);
+  }, [dispatch, sectionKey, sectionPosition, following]);
 
   // Ref to hold the section element
   const sectionRefs = useIntersectionObserver(handleIntersection);

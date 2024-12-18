@@ -667,12 +667,14 @@ newtab:
       Recorded when a section is viewport and triggers an impression event
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1927916
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1938215
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1927916
     data_sensitivity:
       - interaction
     notification_emails:
       - nbarrett@mozilla.com
+      - mcrawford@mozilla.com
     expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
@@ -684,6 +686,10 @@ newtab:
         description: >
           position of section on newtab
         type: string
+      is_secton_followed:
+        description: >
+          If click belongs in a section, if that section is followed
+        type: boolean
     send_in_pings:
       - newtab
 
