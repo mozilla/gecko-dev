@@ -1472,10 +1472,6 @@ pref("network.http.throttle.enable", false);
 pref("network.http.throttle.suspend-for", 900);
 pref("network.http.throttle.resume-for", 100);
 
-// V2 prefs
-pref("network.http.throttle.read-limit-bytes", 8000);
-pref("network.http.throttle.read-interval-ms", 500);
-
 // Common prefs
 // Delay we resume throttled background responses after the last unthrottled
 // response has finished.  Prevents resuming too soon during an active page load

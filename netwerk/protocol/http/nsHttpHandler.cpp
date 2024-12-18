@@ -643,12 +643,12 @@ nsresult nsHttpHandler::InitConnectionMgr() {
     mConnMgr = new nsHttpConnectionMgr();
   }
 
-  return mConnMgr->Init(
-      mMaxUrgentExcessiveConns, mMaxConnections,
-      mMaxPersistentConnectionsPerServer, mMaxPersistentConnectionsPerProxy,
-      mMaxRequestDelay, mThrottleEnabled, mThrottleSuspendFor,
-      mThrottleResumeFor, mThrottleReadLimit, mThrottleReadInterval,
-      mThrottleHoldTime, mThrottleMaxTime, mBeConservativeForProxy);
+  return mConnMgr->Init(mMaxUrgentExcessiveConns, mMaxConnections,
+                        mMaxPersistentConnectionsPerServer,
+                        mMaxPersistentConnectionsPerProxy, mMaxRequestDelay,
+                        mThrottleEnabled, mThrottleSuspendFor,
+                        mThrottleResumeFor, mThrottleHoldTime, mThrottleMaxTime,
+                        mBeConservativeForProxy);
 }
 
 nsresult nsHttpHandler::AddStandardRequestHeaders(
@@ -1608,24 +1608,6 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
     if (NS_SUCCEEDED(rv) && mConnMgr) {
       Unused << mConnMgr->UpdateParam(
           nsHttpConnectionMgr::THROTTLING_RESUME_FOR, mThrottleResumeFor);
-    }
-  }
-
-  if (PREF_CHANGED(HTTP_PREF("throttle.read-limit-bytes"))) {
-    rv = Preferences::GetInt(HTTP_PREF("throttle.read-limit-bytes"), &val);
-    mThrottleReadLimit = (uint32_t)std::clamp(val, 0, 500000);
-    if (NS_SUCCEEDED(rv) && mConnMgr) {
-      Unused << mConnMgr->UpdateParam(
-          nsHttpConnectionMgr::THROTTLING_READ_LIMIT, mThrottleReadLimit);
-    }
-  }
-
-  if (PREF_CHANGED(HTTP_PREF("throttle.read-interval-ms"))) {
-    rv = Preferences::GetInt(HTTP_PREF("throttle.read-interval-ms"), &val);
-    mThrottleReadInterval = (uint32_t)std::clamp(val, 0, 120000);
-    if (NS_SUCCEEDED(rv) && mConnMgr) {
-      Unused << mConnMgr->UpdateParam(
-          nsHttpConnectionMgr::THROTTLING_READ_INTERVAL, mThrottleReadInterval);
     }
   }
 

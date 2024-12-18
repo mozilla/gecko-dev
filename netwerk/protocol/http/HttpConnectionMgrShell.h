@@ -60,8 +60,7 @@ class HttpConnectionMgrShell : public nsISupports {
       uint16_t maxPersistentConnectionsPerHost,
       uint16_t maxPersistentConnectionsPerProxy, uint16_t maxRequestDelay,
       bool throttleEnabled, uint32_t throttleSuspendFor,
-      uint32_t throttleResumeFor, uint32_t throttleReadLimit,
-      uint32_t throttleReadInterval, uint32_t throttleHoldTime,
+      uint32_t throttleResumeFor, uint32_t throttleHoldTime,
       uint32_t throttleMaxTime, bool beConservativeForProxy) = 0;
 
   [[nodiscard]] virtual nsresult Shutdown() = 0;
@@ -180,8 +179,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(HttpConnectionMgrShell,
       uint16_t maxPersistentConnectionsPerHost,                                \
       uint16_t maxPersistentConnectionsPerProxy, uint16_t maxRequestDelay,     \
       bool throttleEnabled, uint32_t throttleSuspendFor,                       \
-      uint32_t throttleResumeFor, uint32_t throttleReadLimit,                  \
-      uint32_t throttleReadInterval, uint32_t throttleHoldTime,                \
+      uint32_t throttleResumeFor, uint32_t throttleHoldTime,                   \
       uint32_t throttleMaxTime, bool beConservativeForProxy) override;         \
   virtual nsresult Shutdown() override;                                        \
   virtual nsresult UpdateRequestTokenBucket(EventTokenBucket* aBucket)         \

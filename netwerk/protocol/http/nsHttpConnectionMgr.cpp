@@ -126,8 +126,7 @@ nsresult nsHttpConnectionMgr::Init(
     uint16_t maxUrgentExcessiveConns, uint16_t maxConns,
     uint16_t maxPersistConnsPerHost, uint16_t maxPersistConnsPerProxy,
     uint16_t maxRequestDelay, bool throttleEnabled, uint32_t throttleSuspendFor,
-    uint32_t throttleResumeFor, uint32_t throttleReadLimit,
-    uint32_t throttleReadInterval, uint32_t throttleHoldTime,
+    uint32_t throttleResumeFor, uint32_t throttleHoldTime,
     uint32_t throttleMaxTime, bool beConservativeForProxy) {
   LOG(("nsHttpConnectionMgr::Init\n"));
 
@@ -143,8 +142,6 @@ nsresult nsHttpConnectionMgr::Init(
     mThrottleEnabled = throttleEnabled;
     mThrottleSuspendFor = throttleSuspendFor;
     mThrottleResumeFor = throttleResumeFor;
-    mThrottleReadLimit = throttleReadLimit;
-    mThrottleReadInterval = throttleReadInterval;
     mThrottleHoldTime = throttleHoldTime;
     mThrottleMaxTime = TimeDuration::FromMilliseconds(throttleMaxTime);
 
@@ -2722,12 +2719,6 @@ void nsHttpConnectionMgr::OnMsgUpdateParam(int32_t inParam, ARefBase*) {
       break;
     case THROTTLING_RESUME_FOR:
       mThrottleResumeFor = value;
-      break;
-    case THROTTLING_READ_LIMIT:
-      mThrottleReadLimit = value;
-      break;
-    case THROTTLING_READ_INTERVAL:
-      mThrottleReadInterval = value;
       break;
     case THROTTLING_HOLD_TIME:
       mThrottleHoldTime = value;

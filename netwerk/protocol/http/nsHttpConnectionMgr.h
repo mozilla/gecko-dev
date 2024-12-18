@@ -240,8 +240,6 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   bool mThrottleEnabled{false};
   uint32_t mThrottleSuspendFor{0};
   uint32_t mThrottleResumeFor{0};
-  uint32_t mThrottleReadLimit{0};
-  uint32_t mThrottleReadInterval{0};
   uint32_t mThrottleHoldTime{0};
   TimeDuration mThrottleMaxTime;
   bool mBeConservativeForProxy{true};

@@ -593,8 +593,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   bool mThrottleEnabled{true};
   uint32_t mThrottleSuspendFor{3000};
   uint32_t mThrottleResumeFor{200};
-  uint32_t mThrottleReadLimit{8000};
-  uint32_t mThrottleReadInterval{500};
   uint32_t mThrottleHoldTime{600};
   uint32_t mThrottleMaxTime{3000};
 
