@@ -992,5 +992,14 @@ MSG_DEF(JSMSG_DISPOSABLE_STACK_DISPOSED, 0, JSEXN_REFERENCEERR, "DisposableStack
 
 // Iterator.range
 MSG_DEF(JSMSG_ITERATOR_RANGE_INVALID_START, 0, JSEXN_TYPEERR, "The 'start' argument must be a number or BigInt")
+MSG_DEF(JSMSG_ITERATOR_RANGE_INVALID_START_RANGEERR, 0, JSEXN_RANGEERR, "The 'start' argument cannot be NaN")
+MSG_DEF(JSMSG_ITERATOR_RANGE_INVALID_END_RANGEERR, 0, JSEXN_RANGEERR, "The 'end' argument cannot be NaN")
+MSG_DEF(JSMSG_ITERATOR_RANGE_INVALID_END, 0, JSEXN_TYPEERR, "The 'end' argument must be a number or BigInt")
+MSG_DEF(JSMSG_ITERATOR_RANGE_START_INFINITY, 0, JSEXN_RANGEERR, "The 'start' argument must be a finite number")
+MSG_DEF(JSMSG_ITERATOR_RANGE_STEP_NAN, 0, JSEXN_RANGEERR, "The 'step' argument must not be NaN")
+MSG_DEF(JSMSG_ITERATOR_RANGE_STEP_NOT_NUMBER, 0, JSEXN_TYPEERR, "The 'step' argument must be a number")
+MSG_DEF(JSMSG_ITERATOR_RANGE_STEP_NOT_FINITE, 0, JSEXN_RANGEERR, "The 'step' argument must be a finite number")
+MSG_DEF(JSMSG_ITERATOR_RANGE_STEP_ZERO, 0, JSEXN_RANGEERR, "The 'step' argument must not be zero when 'start' is not equal to 'end'")
+MSG_DEF(JSMSG_ITERATOR_RANGE_INVALID_STEP, 0, JSEXN_TYPEERR, "The 'step' or options argument must be a valid number, BigInt, or an Object with valid properties")
 
 //clang-format on

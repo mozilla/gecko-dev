@@ -1062,7 +1062,91 @@ function IteratorZipKeyed(predicate) {
  * https://tc39.es/proposal-iterator.range/#sec-iterator.range
  */
 function CreateNumericRangeIterator(start, end, optionOrStep, isNumberRange) {
-  return false;
+  // Step 1: If start is NaN, throw a RangeError exception.
+  if (isNumberRange && Number_isNaN(start)) {
+    ThrowRangeError(JSMSG_ITERATOR_RANGE_INVALID_START_RANGEERR);
+  }
+
+  // Step 2: If end is NaN, throw a RangeError exception.
+  if (isNumberRange && Number_isNaN(end)) {
+    ThrowRangeError(JSMSG_ITERATOR_RANGE_INVALID_END_RANGEERR);
+  }
+
+  // Step 3: If type is NUMBER-RANGE, then
+  if (isNumberRange) {
+    // Step 3.a. Assert: start is a Number.
+    assert(typeof start === 'number', "The 'start' argument must be a number");
+
+    // Step 3.b. If end is not a Number, throw a TypeError exception.
+    if (typeof end !== 'number') {
+      ThrowTypeError(JSMSG_ITERATOR_RANGE_INVALID_END);
+    }
+
+    // Step 3.c. Let zero be 0ℤ.
+    var zero = 0;
+
+    // Step 3.d. Let one be 1ℤ.
+    var one = 1;
+  }
+
+  // Step 5: If start is +∞ or -∞, throw a RangeError exception.
+  if (!Number_isFinite(start)) {
+    ThrowRangeError(JSMSG_ITERATOR_RANGE_START_INFINITY);
+  }
+
+  // Step 6: Let inclusiveEnd be false.
+  var inclusiveEnd = false;
+
+  // Step 7: If optionOrStep is undefined or null, then
+  // Step 7.a. Let step be undefined.
+  var step;
+
+  // Step 8: Else if optionOrStep is an Object, then
+  if (optionOrStep !== null && typeof optionOrStep === 'object') {
+    // Step 8.a. Let step be ? Get(optionOrStep, "step").
+    step = optionOrStep.step;
+
+    // Step 8.b. Set inclusiveEnd to ToBoolean(? Get(optionOrStep, "inclusive")).
+    // eslint-disable-next-line no-unused-vars
+    inclusiveEnd = ToBoolean(optionOrStep.inclusiveEnd);
+  }
+  // Step 9: Else if type is NUMBER-RANGE and optionOrStep is a Number, then
+  else if (isNumberRange && typeof optionOrStep === 'number') {
+    // Step 9.a. Let step be optionOrStep.
+    step = optionOrStep;
+  }
+  // Step 11: Else, throw a TypeError exception.
+  else if (optionOrStep !== undefined && optionOrStep !== null) {
+    ThrowTypeError(JSMSG_ITERATOR_RANGE_INVALID_STEP);
+  }
+
+  // Step 12: If step is undefined or null, then
+  if (step === undefined || step === null) {
+    // Step 12.a. If end > start, let step be one.
+    // Step 12.b. Else let step be -one.
+    step = end > start ? one : -one;
+  }
+
+  // Step 13: If step is NaN, throw a RangeError exception.
+  if (Number_isNaN(step)) {
+    ThrowRangeError(JSMSG_ITERATOR_RANGE_STEP_NAN);
+  }
+
+  // Step 14: If type is NUMBER-RANGE and step is not a Number, throw a TypeError exception.
+  if (isNumberRange && typeof step !== 'number') {
+    ThrowTypeError(JSMSG_ITERATOR_RANGE_STEP_NOT_NUMBER);
+  }
+
+  // Step 16: If step is +∞ or -∞, throw a RangeError exception.
+  if (!Number_isFinite(step)) {
+    ThrowRangeError(JSMSG_ITERATOR_RANGE_STEP_NOT_FINITE);
+  }
+
+  // Step 17: If step is zero and start is not end, throw a RangeError exception.
+  if (step === zero && start !== end) {
+    ThrowRangeError(JSMSG_ITERATOR_RANGE_STEP_ZERO);
+  }
+
 }
 
 /**
@@ -1084,5 +1168,6 @@ function IteratorRange(start, end, optionOrStep) {
 
   // Step 3. Throw a TypeError exception.
   ThrowTypeError(JSMSG_ITERATOR_RANGE_INVALID_START);
+
 }
 #endif
