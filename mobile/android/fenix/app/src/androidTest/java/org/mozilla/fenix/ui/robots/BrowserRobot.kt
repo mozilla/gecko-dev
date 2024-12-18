@@ -1559,6 +1559,9 @@ fun clickContextMenuItem(item: String) {
     Log.i(TAG, "clickContextMenuItem: Trying to click context menu item: $item")
     mDevice.findObject(text(item)).click()
     Log.i(TAG, "clickContextMenuItem: Clicked context menu item: $item")
+    Log.i(TAG, "clickContextMenuItem: Waiting for $waitingTimeShort ms for $packageName window to be updated")
+    mDevice.waitForWindowUpdate(packageName, waitingTimeShort)
+    Log.i(TAG, "clickContextMenuItem: Waiting for $waitingTimeShort ms for $packageName window to be updated")
 }
 
 fun setPageObjectText(webPageItem: UiObject, text: String) {
