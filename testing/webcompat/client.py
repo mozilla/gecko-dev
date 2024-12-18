@@ -78,95 +78,56 @@ class Client:
             element,
         )
 
-    async def apz_click(self, element=None, x=None, y=None, no_up=False):
-        if x is not None and y is not None:
-            pt = [x, y]
-        elif element is not None:
-            pt = self.get_element_screen_position(element)
+    async def send_apz_mouse_event(
+        self, event_type, coords=None, element=None, button=0
+    ):
+        # note: use button=2 for context menu/right click (0 is left button)
+        if event_type == "down":
+            message = "BUTTON_DOWN"
+        elif event_type == "up":
+            message = "BUTTON_UP"
+        elif event_type == "move":
+            message = "MOVE"
         else:
-            raise ValueError("need element or x and y")
+            raise ValueError("event_type must be 'down', 'up' or 'move'")
+        if coords is None:
+            if element is None:
+                raise ValueError("require coords and/or element")
+            coords = self.get_element_screen_position(element)
         with self.using_context("chrome"):
             return self.execute_async_script(
                 """
-              const [pt, no_up, done] = arguments;
-              const utils = window.windowUtils;
-              const scale = window.devicePixelRatio;
-              const res = utils.getResolution();
-              const ele = window.document.documentElement;
-              window.windowUtils.sendNativeMouseEvent(
-                pt[0] * scale * res,
-                pt[1] * scale * res,
-                utils.NATIVE_MOUSE_MESSAGE_BUTTON_DOWN,
-                0,
-                0,
-                ele,
-                () => {
-                  if (no_up) {
-                    return done();
-                  }
-                  utils.sendNativeMouseEvent(
-                    pt[0] * scale * res,
-                    pt[1] * scale * res,
-                    utils.NATIVE_MOUSE_MESSAGE_BUTTON_UP,
+                const [coords, message, button, done] = arguments;
+                const { devicePixelRatio, windowUtils } = window;
+                const resolution = windowUtils.getResolution();
+                const toScreenCoords = x => x * devicePixelRatio * resolution;
+                windowUtils.sendNativeMouseEvent(
+                    toScreenCoords(coords[0]),
+                    toScreenCoords(coords[1]),
+                    windowUtils[`NATIVE_MOUSE_MESSAGE_${message}`],
+                    button,
                     0,
-                    0,
-                    ele,
-                    done
-                  );
-                }
-              );
+                    window.document.documentElement,
+                    () => { done(coords); },
+                );
             """,
-                pt,
-                no_up,
+                coords,
+                message,
+                button,
             )
 
-    async def apz_drag(self, element, x=0, y=0, no_up=False):
-        pt1 = self.get_element_screen_position(element)
-        pt2 = [pt1[0] + x, pt1[1] + y]
-        with self.using_context("chrome"):
-            return self.execute_async_script(
-                """
-              const [pt1, pt2, no_up, done] = arguments;
-              const utils = window.windowUtils;
-              const scale = window.devicePixelRatio;
-              const res = utils.getResolution();
-              const ele = window.document.documentElement;
-              window.windowUtils.sendNativeMouseEvent(
-                pt1[0] * scale * res,
-                pt1[1] * scale * res,
-                utils.NATIVE_MOUSE_MESSAGE_BUTTON_DOWN,
-                0,
-                0,
-                ele,
-                () => {
-                  utils.sendNativeMouseEvent(
-                    pt2[0] * scale * res,
-                    pt2[1] * scale * res,
-                    utils.NATIVE_MOUSE_MESSAGE_MOVE,
-                    0,
-                    0,
-                    ele,
-                    () => {
-                      if (no_up) {
-                        return done();
-                      }
-                      utils.sendNativeMouseEvent(
-                        pt2[0] * scale * res,
-                        pt2[1] * scale * res,
-                        utils.NATIVE_MOUSE_MESSAGE_BUTTON_UP,
-                        0,
-                        0,
-                        ele,
-                        done
-                      );
-                    }
-                  );
-                })
-            """,
-                pt1,
-                pt2,
-                no_up,
-            )
+    async def apz_down(self, **kwargs):
+        return await self.send_apz_mouse_event("down", **kwargs)
+
+    async def apz_up(self, **kwargs):
+        return await self.send_apz_mouse_event("up", **kwargs)
+
+    async def apz_move(self, **kwargs):
+        return await self.send_apz_mouse_event("move", **kwargs)
+
+    async def apz_click(self, **kwargs):
+        await self.apz_down(**kwargs)
+        return await self.apz_up(**kwargs)
 
     def apz_scroll(self, element, dx=0, dy=0, dz=0):
         pt = self.get_element_screen_position(element)
@@ -174,12 +135,14 @@ class Client:
             return self.execute_script(
                 """
                 const [pt, delta] = arguments;
-                const utils = window.windowUtils;
+                const windowUtils = window.windowUtils;
                 const scale = window.devicePixelRatio;
-                const res = utils.getResolution();
+                const resolution = windowUtils.getResolution();
+                const toScreenCoords = x => x * scale * resolution;
+                const coords = pt.map(toScreenCoords);
                 window.windowUtils.sendWheelEvent(
-                    pt[0] * scale * res,
-                    pt[1] * scale * res,
+                    coords[0],
+                    coords[1],
                     delta[0],
                     delta[1],
                     delta[2],
@@ -1068,12 +1031,19 @@ class Client:
                 left_to_try.append(finder)
         return closed_one
 
-    def click(self, element, force=False, popups=None, popups_timeout=None):
+    def click(
+        self, element, force=False, popups=None, popups_timeout=None, button=None
+    ):
         tries = 0
         while True:
             self.scroll_into_view(element)
             try:
-                element.click()
+                if button:
+                    self.mouse.pointer_move(0, 0, origin=element).pointer_down(
+                        button
+                    ).pointer_up(button).perform()
+                else:
+                    element.click()
                 return
             except webdriver.error.ElementClickInterceptedException as c:
                 if force:

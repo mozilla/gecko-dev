@@ -1,5 +1,7 @@
+import asyncio
+
 import pytest
-from webdriver.error import NoSuchElementException, StaleElementReferenceException
+from webdriver.error import NoSuchElementException
 
 URL = "https://www.tiktok.com/"
 
@@ -87,13 +89,13 @@ async def check_captcha_slider_moves(client, in_headless_mode):
 
     draggable = client.await_css(DRAGGABLE_CSS, is_displayed=True)
 
-    # Our method for dragging is somehow unreliable, so we drag a
-    # few times to try to ensure the image rotates.
-    try:
-        for i in range(10):
-            await client.apz_drag(draggable, x=10)
-    except StaleElementReferenceException:
-        pass
+    coords = await client.apz_down(element=draggable)
+    await asyncio.sleep(0.1)
+    coords = await client.apz_move(coords=(coords[0] + 5, coords[1]))
+    await asyncio.sleep(0.1)
+    coords = await client.apz_move(coords=(coords[0] + 5, coords[1]))
+    await asyncio.sleep(0.1)
+    await client.apz_move(coords=(coords[0] + 5, coords[1]))
 
     # Finally, we wait for the MutationObservers to process the results.
     return client.execute_async_script("window.__checkSliderWorks.then(arguments[0])")

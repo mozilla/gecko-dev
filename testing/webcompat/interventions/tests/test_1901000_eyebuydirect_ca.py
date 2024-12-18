@@ -1,7 +1,7 @@
 import time
 
 import pytest
-from webdriver.error import NoSuchElementException, UnexpectedAlertOpenException
+from webdriver.error import NoSuchElementException
 
 URL = "https://www.eyebuydirect.ca/"
 
@@ -47,31 +47,17 @@ async def can_click_paypal_button(client):
     # the broken case, the underlying top frame will receive it instead. As such,
     # we check which frame receives a mousedown. But in order to do so, we need
     # to use chrome js functions, as WebDriver currently does not send mouse
-    # events via APZ. And to simplify the task of detection which frame received
-    # the event, we simply alert from whatever frame received it, catch the
-    # 'unexpected' alert, and read what was alerted. On top of that, we need to
-    # wait for the frame to finish loading, and the only reliable way I've found
-    # to do that is just to switch to the frame's context and wait for a hero
-    # element to appear in the DOM, and then add our mousedown listener.
+    # events via APZ. And we have to click a few times, as it's possible that the
+    # first clicks will still target the top frame, despite simulating APZ clicks.
     frame = client.await_css(f"{PAYPAL_CHECKOUT_CSS} iframe")
-    client.execute_script(
-        """
-        document.documentElement.addEventListener("mousedown", e => {
-            if (e.target.nodeName !== "IFRAME") {
-                alert("Clicked on the wrong node: " + e.target.outerHTML);
-            }
-            alert("top");
-        }, true);
-    """
-    )
 
     while True:
         client.switch_to_frame(frame)
-        buttons = client.await_css("#buttons-container")
+        buttons = client.await_css("#buttons-container", timeout=20)
         client.execute_script(
             """
-            arguments[0].addEventListener("mousedown", () => {
-                alert("frame");
+            arguments[0].addEventListener("mousedown", e => {
+                window.__clicked = true;
             }, true);
         """,
             buttons,
@@ -80,18 +66,17 @@ async def can_click_paypal_button(client):
 
     client.switch_to_frame()
 
-    clicks = 10
-    try:
-        for i in range(clicks):
-            await client.apz_click(frame, no_up=True)
-            time.sleep(0.5)
-    except UnexpectedAlertOpenException as e:
-        s = str(e)
-        if "wrong node" in s:
-            raise e
-        return "frame" in s
+    # Now we mousedown over the PayPal button. Note that we only send mousedown
+    # events here to limit the chances that we will trigger any reaction from
+    # the page aside from our own mousedown-detection listener above. We try
+    # to mousedown multiple times as it does not always work the first time
+    # for some unknown reason (and may still fail outright intermittently).
+    for i in range(10):
+        await client.apz_down(element=frame)
+        time.sleep(0.2)
 
-    raise ValueError(f"no alert opened after {clicks} clicks")
+    client.switch_to_frame(frame)
+    return client.execute_script("return !!window.__clicked")
 
 
 @pytest.mark.skip_platforms("android")

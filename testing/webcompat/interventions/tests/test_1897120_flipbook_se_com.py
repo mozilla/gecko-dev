@@ -18,9 +18,9 @@ async def check_if_esc_zooms_out(client):
     # differs with the interventions off, so ZOOMER_CSS has two values.
     zoomer = None
     for i in range(10):
-        await client.apz_click(x=400, y=400)
+        await client.apz_click(coords=(400, 400))
         await asyncio.sleep(0.1)
-        await client.apz_click(x=400, y=400)
+        await client.apz_click(coords=(400, 400))
         await asyncio.sleep(0.5)
         zoomer = client.find_css(ZOOMER_CSS)
         if zoomer:
