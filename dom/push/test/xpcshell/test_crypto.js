@@ -105,29 +105,16 @@ add_task(async function test_crypto_getCryptoParamsFromHeaders() {
       },
     },
     {
-      desc: "aesgcm128 with Encryption-Key and rs = 2",
+      desc: "aesgcm with Crypto-Key and rs = 2",
       headers: {
-        encoding: "aesgcm128",
-        encryption_key: "keyid=legacy; dh=LqrDQuVl9lY",
-        encryption: "keyid=legacy; salt=YngI8B7YapM; rs=2",
+        encoding: "aesgcm",
+        crypto_key: "dh=LqrDQuVl9lY",
+        encryption: "salt=YngI8B7YapM; rs=2",
       },
       params: {
         senderKey: "LqrDQuVl9lY",
         salt: "YngI8B7YapM",
         rs: 2,
-      },
-    },
-    {
-      desc: "aesgcm128 with Encryption-Key",
-      headers: {
-        encoding: "aesgcm128",
-        encryption_key: "keyid=v2; dh=VA6wmY1IpiE",
-        encryption: "keyid=v2; salt=khtpyXhpDKM",
-      },
-      params: {
-        senderKey: "VA6wmY1IpiE",
-        salt: "khtpyXhpDKM",
-        rs: 4096,
       },
     },
   ];
@@ -164,14 +151,32 @@ add_task(async function test_crypto_getCryptoParamsFromHeaders() {
         crypto_key: "keyid=v2; dh=VA6wmY1IpiE",
         encryption: "keyid=v2; salt=F0Im7RtGgNY",
       },
-      exception: /Missing Encryption-Key header/,
+      exception: /Unexpected encoding/,
+    },
+    {
+      desc: "aesgcm128 with Encryption-Key and rs = 2",
+      headers: {
+        encoding: "aesgcm128",
+        encryption_key: "keyid=legacy; dh=LqrDQuVl9lY",
+        encryption: "keyid=legacy; salt=YngI8B7YapM; rs=2",
+      },
+      exception: /Unexpected encoding/,
+    },
+    {
+      desc: "aesgcm128 with Encryption-Key",
+      headers: {
+        encoding: "aesgcm128",
+        encryption_key: "keyid=v2; dh=VA6wmY1IpiE",
+        encryption: "keyid=v2; salt=khtpyXhpDKM",
+      },
+      exception: /Unexpected encoding/,
     },
     {
       desc: "Invalid encoding",
       headers: {
         encoding: "nonexistent",
       },
-      exception: /Missing encryption header/,
+      exception: /Unexpected encoding/,
     },
     {
       desc: "Missing salt header",
@@ -625,8 +630,8 @@ add_task(async function test_aesgcm_err() {
   }
 });
 
-add_task(async function test_aesgcm128_ok() {
-  let expectedSuccesses = [
+add_task(async function test_aesgcm128_err() {
+  let expectedFailures = [
     {
       desc: "padSize = 1, rs = 4096, pad = 2",
       result: "aesgcm128 encrypted message",
@@ -639,15 +644,8 @@ add_task(async function test_aesgcm128_ok() {
         encryption: "salt=btxxUtclbmgcc30b9rT3Bg; rs=4096",
         encoding: "aesgcm128",
       },
+      expected: /Unsupported Content-Encoding/,
     },
-  ];
-  for (let test of expectedSuccesses) {
-    await assertDecrypts(test, test.headers);
-  }
-});
-
-add_task(async function test_aesgcm128_err() {
-  let expectedFailures = [
     {
       // aesgcm128 doesn't use an auth secret, but we've mixed one in during
       // encryption, so the decryption key and nonce won't match.
@@ -662,7 +660,7 @@ add_task(async function test_aesgcm128_err() {
         encryption: "salt=aGBpoKklLtrLcAUCcCr7JQ",
         encoding: "aesgcm128",
       },
-      expected: /Missing Encryption-Key header/,
+      expected: /Unsupported Content-Encoding/,
     },
     {
       // The first byte of each record must be the pad length.
@@ -676,7 +674,7 @@ add_task(async function test_aesgcm128_err() {
         encryption: "salt=Czx2i18rar8XWOXAVDnUuw",
         encoding: "aesgcm128",
       },
-      expected: /Missing Encryption-Key header/,
+      expected: /Unsupported Content-Encoding/,
     },
     {
       desc: "Truncated input",
@@ -689,7 +687,7 @@ add_task(async function test_aesgcm128_err() {
         encryption: "salt=c6JQl9eJ0VvwrUVCQDxY7Q; rs=25",
         encoding: "aesgcm128",
       },
-      expected: /Missing Encryption-Key header/,
+      expected: /Unsupported Content-Encoding/,
     },
     {
       desc: "Padding length > rs",
@@ -702,7 +700,7 @@ add_task(async function test_aesgcm128_err() {
         encryption: "salt=NQVTKhB0rpL7ZzKkotTGlA; rs=1",
         encoding: "aesgcm128",
       },
-      expected: /Missing Encryption-Key header/,
+      expected: /Unsupported Content-Encoding/,
     },
   ];
   for (let test of expectedFailures) {

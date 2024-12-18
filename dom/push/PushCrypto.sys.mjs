@@ -23,9 +23,8 @@ const DEFAULT_KEYID = "";
 
 // `Encryption` header missing or malformed.
 const BAD_ENCRYPTION_HEADER = "PushMessageBadEncryptionHeader";
-// `Crypto-Key` or legacy `Encryption-Key` header missing.
+// `Crypto-Key` header missing.
 const BAD_CRYPTO_KEY_HEADER = "PushMessageBadCryptoKeyHeader";
-const BAD_ENCRYPTION_KEY_HEADER = "PushMessageBadEncryptionKeyHeader";
 // `Content-Encoding` header missing or contains unsupported encoding.
 const BAD_ENCODING_HEADER = "PushMessageBadEncodingHeader";
 // `dh` parameter of `Crypto-Key` header missing or not base64url-encoded.
@@ -138,33 +137,23 @@ function getCryptoParamsFromPayload(payload) {
   };
 }
 
-// Extracts the sender public key, salt, and record size from the `Crypto-Key`,
-// `Encryption-Key`, and `Encryption` headers for the aesgcm and aesgcm128
-// schemes.
+// Extracts the sender public key, salt, and record size from the `Crypto-Key`
+// and `Encryption` headers for the aesgcm scheme.
 export function getCryptoParamsFromHeaders(headers) {
   if (!headers) {
     return null;
   }
 
-  var keymap;
-  if (headers.encoding == AESGCM_ENCODING) {
-    // aesgcm uses the Crypto-Key header, 2 bytes for the pad length, and an
-    // authentication secret.
-    // https://tools.ietf.org/html/draft-ietf-httpbis-encryption-encoding-01
-    keymap = getEncryptionKeyParams(headers.crypto_key);
-    if (!keymap) {
-      throw new CryptoError("Missing Crypto-Key header", BAD_CRYPTO_KEY_HEADER);
-    }
-  } else if (headers.encoding == AESGCM128_ENCODING) {
-    // aesgcm128 uses Encryption-Key, 1 byte for the pad length, and no secret.
-    // https://tools.ietf.org/html/draft-thomson-http-encryption-02
-    keymap = getEncryptionKeyParams(headers.encryption_key);
-    if (!keymap) {
-      throw new CryptoError(
-        "Missing Encryption-Key header",
-        BAD_ENCRYPTION_KEY_HEADER
-      );
-    }
+  if (headers.encoding !== AESGCM_ENCODING) {
+    throw new CryptoError("Unexpected encoding", BAD_CRYPTO);
+  }
+
+  // aesgcm uses the Crypto-Key header, 2 bytes for the pad length, and an
+  // authentication secret.
+  // https://tools.ietf.org/html/draft-ietf-httpbis-encryption-encoding-01
+  let keymap = getEncryptionKeyParams(headers.crypto_key);
+  if (!keymap) {
+    throw new CryptoError("Missing Crypto-Key header", BAD_CRYPTO_KEY_HEADER);
   }
 
   var enc = getEncryptionParams(headers.encryption);
@@ -432,8 +421,7 @@ class Decoder {
 
 class OldSchemeDecoder extends Decoder {
   async decode() {
-    // For aesgcm and aesgcm128, the ciphertext length can't fall on a record
-    // boundary.
+    // For aesgcm, the ciphertext length can't fall on a record boundary.
     if (
       this.ciphertext.byteLength > 0 &&
       this.ciphertext.byteLength % this.chunkSize === 0
@@ -445,7 +433,6 @@ class OldSchemeDecoder extends Decoder {
 
   /**
    * For aesgcm, the padding length is a 16-bit unsigned big endian integer.
-   * For aesgcm128, the padding is an 8-bit integer.
    */
   unpadChunk(decoded) {
     if (decoded.length < this.padSize) {
@@ -468,7 +455,7 @@ class OldSchemeDecoder extends Decoder {
   }
 
   /**
-   * aesgcm and aesgcm128 don't account for the authentication tag as part of
+   * aesgcm doesn't account for the authentication tag as part of
    * the record size.
    */
   get chunkSize() {
@@ -578,34 +565,6 @@ class aesgcmDecoder extends OldSchemeDecoder {
   }
 }
 
-/** Oldest encryption scheme (draft-thomson-http-encryption-02). */
-
-const AESGCM128_ENCODING = "aesgcm128";
-const AESGCM128_KEY_INFO = UTF8.encode("Content-Encoding: aesgcm128");
-
-class aesgcm128Decoder extends OldSchemeDecoder {
-  constructor(privateKey, publicKey, cryptoParams, ciphertext) {
-    super(privateKey, publicKey, null, cryptoParams, ciphertext);
-  }
-
-  /**
-   * The aesgcm128 scheme ignores the authentication secret, and uses
-   * "Content-Encoding: <blah>" for the context string. It should eventually
-   * be removed: bug 1230038.
-   */
-  deriveKeyAndNonce(ikm) {
-    let prkKdf = new hkdf(this.salt, ikm);
-    return Promise.all([
-      prkKdf.extract(AESGCM128_KEY_INFO, 16),
-      prkKdf.extract(NONCE_INFO, 12),
-    ]);
-  }
-
-  get padSize() {
-    return 1;
-  }
-}
-
 export var PushCrypto = {
   concatArray,
 
@@ -670,27 +629,18 @@ export var PushCrypto = {
         cryptoParams,
         cryptoParams.ciphertext
       );
-    } else if (encoding == AESGCM128_ENCODING || encoding == AESGCM_ENCODING) {
-      // aesgcm and aesgcm128 include the salt, record size, and sender public
+    } else if (encoding == AESGCM_ENCODING) {
+      // aesgcm includes the salt, record size, and sender public
       // key in the `Crypto-Key` and `Encryption` HTTP headers.
       let cryptoParams = getCryptoParamsFromHeaders(headers);
-      if (headers.encoding == AESGCM_ENCODING) {
-        Glean.webPush.contentEncoding.aesgcm.add();
-        decoder = new aesgcmDecoder(
-          privateKey,
-          publicKey,
-          authenticationSecret,
-          cryptoParams,
-          payload
-        );
-      } else {
-        decoder = new aesgcm128Decoder(
-          privateKey,
-          publicKey,
-          cryptoParams,
-          payload
-        );
-      }
+      Glean.webPush.contentEncoding.aesgcm.add();
+      decoder = new aesgcmDecoder(
+        privateKey,
+        publicKey,
+        authenticationSecret,
+        cryptoParams,
+        payload
+      );
     }
 
     if (!decoder) {

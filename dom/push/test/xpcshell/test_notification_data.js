@@ -139,11 +139,8 @@ add_task(async function test_notification_ack_data() {
         data: "NwrrOWPxLE8Sv5Rr0Kep7n0-r_j3rsYrUw_CXPo",
         version: "v1",
       },
-      ackCode: 100,
-      receive: {
-        scope: "https://example.com/page/1",
-        data: "Some message",
-      },
+      ackCode: 101,
+      receive: null,
     },
     {
       channelID: "subscription2",
@@ -157,11 +154,8 @@ add_task(async function test_notification_ack_data() {
         },
         data: "Zt9dEdqgHlyAL_l83385aEtb98ZBilz5tgnGgmwEsl5AOCNgesUUJ4p9qUU",
       },
-      ackCode: 100,
-      receive: {
-        scope: "https://example.com/page/2",
-        data: "Some message",
-      },
+      ackCode: 101,
+      receive: null,
     },
     {
       channelID: "subscription3",
@@ -176,11 +170,8 @@ add_task(async function test_notification_ack_data() {
         },
         data: "LKru3ZzxBZuAxYtsaCfaj_fehkrIvqbVd1iSwnwAUgnL-cTeDD-83blxHXTq7r0z9ydTdMtC3UjAcWi8LMnfY-BFzi0qJAjGYIikDA",
       },
-      ackCode: 100,
-      receive: {
-        scope: "https://example.com/page/3",
-        data: "Some message",
-      },
+      ackCode: 101,
+      receive: null,
     },
     // A message encoded with `aesgcm` (2 bytes of padding, authenticated).
     {

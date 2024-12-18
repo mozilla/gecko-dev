@@ -3,7 +3,6 @@ tags = "condprof"
 support-files = [
   "worker.js",
   "frame.html",
-  "webpush.js",
   "lifetime_worker.js",
   "test_utils.js",
   "mockpushserviceparent.js",
@@ -14,7 +13,6 @@ support-files = [
 ["test_data.html"]
 skip-if = [
   "os == 'android'",
-  "os == 'win'", # Bug 1373346
 ]
 scheme = "https"
 
@@ -42,7 +40,6 @@ skip-if = ["os == 'android'"]
 ["test_register.html"]
 skip-if = [
   "os == 'android'",
-  "os == 'win'" # Bug 1373346
 ]
 
 ["test_register_key.html"]
@@ -55,13 +52,11 @@ skip-if = ["true"]
 ["test_subscription_change.html"]
 skip-if = [
   "os == 'android'",
-  "os == 'win'" # Bug 1373346
 ]
 
 ["test_try_registering_offline_disabled.html"]
 skip-if = [
   "os == 'android'",
-  "os == 'win'" # Bug 1373346
 ]
 
 ["test_unregister.html"]

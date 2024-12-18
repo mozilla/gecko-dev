@@ -11,7 +11,6 @@ http://creativecommons.org/licenses/publicdomain/
   <title>Test for Bug 1185544</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="text/javascript" src="/tests/dom/push/test/test_utils.js"></script>
-  <script type="text/javascript" src="/tests/dom/push/test/webpush.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
   <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
 </head>
@@ -24,8 +23,6 @@ http://creativecommons.org/licenses/publicdomain/
 </pre>
 
 <script class="testbody" type="text/javascript">
-  /* globals webPushEncrypt */
-
   var userAgentID = "ac44402c-85fc-41e4-a0d0-483316d15351";
   var channelID = null;
 
@@ -90,92 +87,6 @@ http://creativecommons.org/licenses/publicdomain/
       new Uint8Array(data.auth),
       "Mismatched auth secret"
     );
-  });
-
-  var version = 0;
-  function sendEncryptedMsg(pushSub, message) {
-    return webPushEncrypt(pushSub, message)
-      .then((encryptedData) => {
-        mockSocket.serverSendMsg(JSON.stringify({
-          messageType: "notification",
-          version: version++,
-          channelID,
-          data: encryptedData.data,
-          headers: {
-            encryption: encryptedData.encryption,
-            encryption_key: encryptedData.encryption_key,
-            encoding: encryptedData.encoding,
-          },
-        }));
-      });
-  }
-
-  function waitForMessage(pushSub, message) {
-    return Promise.all([
-      controlledFrame.waitOnWorkerMessage("finished"),
-      sendEncryptedMsg(pushSub, message),
-    ]).then(([msg]) => msg);
-  }
-
-  add_task(async function sendPushMessageFromPage() {
-    var typedArray = new Uint8Array([226, 130, 40, 240, 40, 140, 188]);
-    var json = { hello: "world" };
-
-    var message = await waitForMessage(pushSubscription, "Text message from page");
-    is(message.data.text, "Text message from page", "Wrong text message data");
-
-    message = await waitForMessage(
-      pushSubscription,
-      typedArray
-    );
-    isDeeply(new Uint8Array(message.data.arrayBuffer), typedArray,
-      "Wrong array buffer message data");
-    isDeeply(message.data.bytes, typedArray, "Wrong bytes message data");
-
-    message = await waitForMessage(
-      pushSubscription,
-      JSON.stringify(json)
-    );
-    ok(message.data.json.ok, "Unexpected error parsing JSON");
-    isDeeply(message.data.json.value, json, "Wrong JSON message data");
-
-    message = await waitForMessage(
-      pushSubscription,
-      ""
-    );
-    ok(message, "Should include data for empty messages");
-    is(message.data.text, "", "Wrong text for empty message");
-    is(message.data.arrayBuffer.byteLength, 0, "Wrong buffer length for empty message");
-    ok(!message.data.json.ok, "Expected JSON parse error for empty message");
-
-    message = await waitForMessage(
-      pushSubscription,
-      new Uint8Array([0x48, 0x69, 0x21, 0x20, 0xf0, 0x9f, 0x91, 0x80])
-    );
-    is(message.data.text, "Hi! \ud83d\udc40", "Wrong text for message with emoji");
-    var text = await new Promise((resolve, reject) => {
-      var reader = new FileReader();
-      reader.onloadend = () => {
-        if (reader.error) {
-          reject(reader.error);
-        } else {
-          resolve(reader.result);
-        }
-      };
-      reader.readAsText(message.data.blob);
-    });
-    is(text, "Hi! \ud83d\udc40", "Wrong blob data for message with emoji");
-
-    var finishedPromise = controlledFrame.waitOnWorkerMessage("finished");
-    // Send a blank message.
-    mockSocket.serverSendMsg(JSON.stringify({
-      messageType: "notification",
-      version: "vDummy",
-      channelID,
-    }));
-
-    var msg = await finishedPromise;
-    ok(!msg.data, "Should exclude data for blank messages");
   });
 
   add_task(async function unsubscribe() {
