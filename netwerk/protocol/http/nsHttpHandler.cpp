@@ -646,7 +646,7 @@ nsresult nsHttpHandler::InitConnectionMgr() {
   return mConnMgr->Init(
       mMaxUrgentExcessiveConns, mMaxConnections,
       mMaxPersistentConnectionsPerServer, mMaxPersistentConnectionsPerProxy,
-      mMaxRequestDelay, mThrottleEnabled, mThrottleVersion, mThrottleSuspendFor,
+      mMaxRequestDelay, mThrottleEnabled, mThrottleSuspendFor,
       mThrottleResumeFor, mThrottleReadLimit, mThrottleReadInterval,
       mThrottleHoldTime, mThrottleMaxTime, mBeConservativeForProxy);
 }
@@ -1591,11 +1591,6 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
       Unused << mConnMgr->UpdateParam(nsHttpConnectionMgr::THROTTLING_ENABLED,
                                       static_cast<int32_t>(mThrottleEnabled));
     }
-  }
-
-  if (PREF_CHANGED(HTTP_PREF("throttle.version"))) {
-    Unused << Preferences::GetInt(HTTP_PREF("throttle.version"), &val);
-    mThrottleVersion = (uint32_t)std::clamp(val, 1, 2);
   }
 
   if (PREF_CHANGED(HTTP_PREF("throttle.suspend-for"))) {

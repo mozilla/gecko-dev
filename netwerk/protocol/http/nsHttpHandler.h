@@ -187,9 +187,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   uint32_t TailBlockingDelayMax() { return mTailDelayMax; }
   uint32_t TailBlockingTotalMax() { return mTailTotalMax; }
 
-  uint32_t ThrottlingReadLimit() {
-    return mThrottleVersion == 1 ? 0 : mThrottleReadLimit;
-  }
+  uint32_t ThrottlingReadLimit() { return 0; }
   int32_t SendWindowSize() { return mSendWindowSize * 1024; }
 
   // TCP Keepalive configuration values.
@@ -593,7 +591,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   uint8_t mMaxPersistentConnectionsPerProxy{4};
 
   bool mThrottleEnabled{true};
-  uint32_t mThrottleVersion{2};
   uint32_t mThrottleSuspendFor{3000};
   uint32_t mThrottleResumeFor{200};
   uint32_t mThrottleReadLimit{8000};

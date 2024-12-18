@@ -125,11 +125,10 @@ nsresult nsHttpConnectionMgr::EnsureSocketThreadTarget() {
 nsresult nsHttpConnectionMgr::Init(
     uint16_t maxUrgentExcessiveConns, uint16_t maxConns,
     uint16_t maxPersistConnsPerHost, uint16_t maxPersistConnsPerProxy,
-    uint16_t maxRequestDelay, bool throttleEnabled, uint32_t throttleVersion,
-    uint32_t throttleSuspendFor, uint32_t throttleResumeFor,
-    uint32_t throttleReadLimit, uint32_t throttleReadInterval,
-    uint32_t throttleHoldTime, uint32_t throttleMaxTime,
-    bool beConservativeForProxy) {
+    uint16_t maxRequestDelay, bool throttleEnabled, uint32_t throttleSuspendFor,
+    uint32_t throttleResumeFor, uint32_t throttleReadLimit,
+    uint32_t throttleReadInterval, uint32_t throttleHoldTime,
+    uint32_t throttleMaxTime, bool beConservativeForProxy) {
   LOG(("nsHttpConnectionMgr::Init\n"));
 
   {
@@ -142,7 +141,6 @@ nsresult nsHttpConnectionMgr::Init(
     mMaxRequestDelay = maxRequestDelay;
 
     mThrottleEnabled = throttleEnabled;
-    mThrottleVersion = throttleVersion;
     mThrottleSuspendFor = throttleSuspendFor;
     mThrottleResumeFor = throttleResumeFor;
     mThrottleReadLimit = throttleReadLimit;
@@ -2978,13 +2976,11 @@ void nsHttpConnectionMgr::RemoveActiveTransaction(
     return;
   }
 
-  if (mThrottleVersion == 1) {
-    if (!mThrottlingInhibitsReading) {
-      // There is then nothing to wake up.  Affected transactions will not be
-      // put to sleep automatically on next tick.
-      LOG(("  reading not currently inhibited"));
-      return;
-    }
+  if (!mThrottlingInhibitsReading) {
+    // There is then nothing to wake up.  Affected transactions will not be
+    // put to sleep automatically on next tick.
+    LOG(("  reading not currently inhibited"));
+    return;
   }
 
   if (mActiveTabUnthrottledTransactionsExist) {
@@ -3047,14 +3043,8 @@ bool nsHttpConnectionMgr::ShouldThrottle(nsHttpTransaction* aTrans) {
 
   LOG(("nsHttpConnectionMgr::ShouldThrottle trans=%p", aTrans));
 
-  if (mThrottleVersion == 1) {
-    if (!mThrottlingInhibitsReading || !mThrottleEnabled) {
-      return false;
-    }
-  } else {
-    if (!mThrottleEnabled) {
-      return false;
-    }
+  if (!mThrottlingInhibitsReading || !mThrottleEnabled) {
+    return false;
   }
 
   uint64_t tabId = aTrans->BrowserId();
@@ -3184,15 +3174,10 @@ void nsHttpConnectionMgr::EnsureThrottleTickerIfNeeded() {
 
   mThrottleTicker = NS_NewTimer();
   if (mThrottleTicker) {
-    if (mThrottleVersion == 1) {
-      MOZ_ASSERT(!mThrottlingInhibitsReading);
+    MOZ_ASSERT(!mThrottlingInhibitsReading);
 
-      mThrottleTicker->Init(this, mThrottleSuspendFor, nsITimer::TYPE_ONE_SHOT);
-      mThrottlingInhibitsReading = true;
-    } else {
-      mThrottleTicker->Init(this, mThrottleReadInterval,
-                            nsITimer::TYPE_ONE_SHOT);
-    }
+    mThrottleTicker->Init(this, mThrottleSuspendFor, nsITimer::TYPE_ONE_SHOT);
+    mThrottlingInhibitsReading = true;
   }
 
   LogActiveTransactions('^');
@@ -3215,9 +3200,7 @@ void nsHttpConnectionMgr::DestroyThrottleTicker() {
   mThrottleTicker->Cancel();
   mThrottleTicker = nullptr;
 
-  if (mThrottleVersion == 1) {
-    mThrottlingInhibitsReading = false;
-  }
+  mThrottlingInhibitsReading = false;
 
   LogActiveTransactions('v');
 }
@@ -3225,49 +3208,27 @@ void nsHttpConnectionMgr::DestroyThrottleTicker() {
 void nsHttpConnectionMgr::ThrottlerTick() {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  if (mThrottleVersion == 1) {
-    mThrottlingInhibitsReading = !mThrottlingInhibitsReading;
+  mThrottlingInhibitsReading = !mThrottlingInhibitsReading;
 
-    LOG(("nsHttpConnectionMgr::ThrottlerTick inhibit=%d",
-         mThrottlingInhibitsReading));
+  LOG(("nsHttpConnectionMgr::ThrottlerTick inhibit=%d",
+       mThrottlingInhibitsReading));
 
-    // If there are only background transactions to be woken after a delay, keep
-    // the ticker so that we woke them only for the resume-for interval and then
-    // throttle them again until the background-resume delay passes.
-    if (!mThrottlingInhibitsReading && !mDelayedResumeReadTimer &&
-        (!IsThrottleTickerNeeded() || !InThrottlingTimeWindow())) {
-      LOG(("  last tick"));
-      mThrottleTicker = nullptr;
-    }
+  // If there are only background transactions to be woken after a delay, keep
+  // the ticker so that we woke them only for the resume-for interval and then
+  // throttle them again until the background-resume delay passes.
+  if (!mThrottlingInhibitsReading && !mDelayedResumeReadTimer &&
+      (!IsThrottleTickerNeeded() || !InThrottlingTimeWindow())) {
+    LOG(("  last tick"));
+    mThrottleTicker = nullptr;
+  }
 
-    if (mThrottlingInhibitsReading) {
-      if (mThrottleTicker) {
-        mThrottleTicker->Init(this, mThrottleSuspendFor,
-                              nsITimer::TYPE_ONE_SHOT);
-      }
-    } else {
-      if (mThrottleTicker) {
-        mThrottleTicker->Init(this, mThrottleResumeFor,
-                              nsITimer::TYPE_ONE_SHOT);
-      }
-
-      ResumeReadOf(mActiveTransactions[false], true);
-      ResumeReadOf(mActiveTransactions[true]);
+  if (mThrottlingInhibitsReading) {
+    if (mThrottleTicker) {
+      mThrottleTicker->Init(this, mThrottleSuspendFor, nsITimer::TYPE_ONE_SHOT);
     }
   } else {
-    LOG(("nsHttpConnectionMgr::ThrottlerTick"));
-
-    // If there are only background transactions to be woken after a delay, keep
-    // the ticker so that we still keep the low read limit for that time.
-    if (!mDelayedResumeReadTimer &&
-        (!IsThrottleTickerNeeded() || !InThrottlingTimeWindow())) {
-      LOG(("  last tick"));
-      mThrottleTicker = nullptr;
-    }
-
     if (mThrottleTicker) {
-      mThrottleTicker->Init(this, mThrottleReadInterval,
-                            nsITimer::TYPE_ONE_SHOT);
+      mThrottleTicker->Init(this, mThrottleResumeFor, nsITimer::TYPE_ONE_SHOT);
     }
 
     ResumeReadOf(mActiveTransactions[false], true);
@@ -3278,18 +3239,8 @@ void nsHttpConnectionMgr::ThrottlerTick() {
 void nsHttpConnectionMgr::DelayedResumeBackgroundThrottledTransactions() {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  if (mThrottleVersion == 1) {
-    if (mDelayedResumeReadTimer) {
-      return;
-    }
-  } else {
-    // If the mThrottleTicker doesn't exist, there is nothing currently
-    // being throttled.  Hence, don't invoke the hold time interval.
-    // This is called also when a single download transaction becomes
-    // marked as throttleable.  We would otherwise block it unnecessarily.
-    if (mDelayedResumeReadTimer || !mThrottleTicker) {
-      return;
-    }
+  if (mDelayedResumeReadTimer) {
+    return;
   }
 
   LOG(("nsHttpConnectionMgr::DelayedResumeBackgroundThrottledTransactions"));

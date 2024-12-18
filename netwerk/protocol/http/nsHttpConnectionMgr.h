@@ -238,7 +238,6 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   uint16_t mMaxPersistConnsPerProxy{0};
   uint16_t mMaxRequestDelay{0};  // in seconds
   bool mThrottleEnabled{false};
-  uint32_t mThrottleVersion{2};
   uint32_t mThrottleSuspendFor{0};
   uint32_t mThrottleResumeFor{0};
   uint32_t mThrottleReadLimit{0};
