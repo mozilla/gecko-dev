@@ -15593,9 +15593,9 @@
 
 # Whether strict file origin policy is in effect. "False" is traditional.
 - name: security.fileuri.strict_origin_policy
-  type: bool
+  type: RelaxedAtomicBool
   value: true
-  mirror: once
+  mirror: always
 
 # The level to which we sandbox the content process. firefox.js sets the
 # default to different values on a per-OS basis, and has documentation
