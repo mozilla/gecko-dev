@@ -317,8 +317,6 @@ class MessageChannel : HasResultCodes {
   void ReportConnectionError(const char* aFunctionName,
                              const uint32_t aMsgTyp) const
       MOZ_REQUIRES(*mMonitor);
-  void ReportMessageRouteError(const char* channelName) const
-      MOZ_EXCLUDES(*mMonitor);
   bool MaybeHandleError(Result code, const Message& aMsg,
                         const char* channelName) MOZ_EXCLUDES(*mMonitor);
 

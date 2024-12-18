@@ -127,7 +127,6 @@ void BackgroundChildImpl::ProcessingError(Result aCode, const char* aReason) {
       HANDLE_CASE(MsgNotAllowed);
       HANDLE_CASE(MsgPayloadError);
       HANDLE_CASE(MsgProcessingError);
-      HANDLE_CASE(MsgRouteError);
       HANDLE_CASE(MsgValueError);
 
 #undef HANDLE_CASE

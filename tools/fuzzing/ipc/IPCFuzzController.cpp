@@ -675,6 +675,9 @@ void IPCFuzzController::OnMessageError(
   }
 
   switch (code) {
+    case ipc::HasResultCodes::MsgDropped:
+      Nyx::instance().handle_event("MOZ_IPC_DROPPED", nullptr, 0, nullptr);
+      break;
     case ipc::HasResultCodes::MsgNotKnown:
       // Seeing this error should be rare - one potential reason is if a sync
       // message is sent as async and vice versa. Other than that, we shouldn't
@@ -700,9 +703,6 @@ void IPCFuzzController::OnMessageError(
     case ipc::HasResultCodes::MsgProcessingError:
       Nyx::instance().handle_event("MOZ_IPC_PROCESS_ERROR", nullptr, 0,
                                    nullptr);
-      break;
-    case ipc::HasResultCodes::MsgRouteError:
-      Nyx::instance().handle_event("MOZ_IPC_ROUTE_ERROR", nullptr, 0, nullptr);
       break;
     default:
       MOZ_FUZZING_NYX_ABORT("unknown Result code");

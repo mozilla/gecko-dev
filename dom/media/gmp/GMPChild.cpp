@@ -614,8 +614,6 @@ void GMPChild::ProcessingError(Result aCode, const char* aReason) {
       MOZ_CRASH("aborting because of MsgPayloadError");
     case MsgProcessingError:
       MOZ_CRASH("aborting because of MsgProcessingError");
-    case MsgRouteError:
-      MOZ_CRASH("aborting because of MsgRouteError");
     case MsgValueError:
       MOZ_CRASH("aborting because of MsgValueError");
     default:

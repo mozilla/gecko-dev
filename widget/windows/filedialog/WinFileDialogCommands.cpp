@@ -310,8 +310,6 @@ void LogProcessingError(LogModule* aModule, ipc::IProtocol* aCaller,
           return "PayloadError";
         case ipc::HasResultCodes::MsgProcessingError:
           return "ProcessingError";
-        case ipc::HasResultCodes::MsgRouteError:
-          return "RouteError";
         case ipc::HasResultCodes::MsgValueError:
           return "ValueError";
         default:

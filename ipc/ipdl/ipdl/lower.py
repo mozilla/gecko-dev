@@ -425,11 +425,11 @@ class _Result:
         return Type("Result")
 
     Processed = ExprVar("MsgProcessed")
+    Dropped = ExprVar("MsgDropped")
     NotKnown = ExprVar("MsgNotKnown")
     NotAllowed = ExprVar("MsgNotAllowed")
     PayloadError = ExprVar("MsgPayloadError")
     ProcessingError = ExprVar("MsgProcessingError")
-    RouteError = ExprVar("MsgRouteError")
     ValuError = ExprVar("MsgValueError")  # [sic]
 
 
@@ -4120,7 +4120,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
 
             if dispatches:
                 if hasReply:
-                    ondeadactor = [StmtReturn(_Result.RouteError)]
+                    ondeadactor = [StmtReturn(_Result.Dropped)]
                 else:
                     ondeadactor = [
                         self.logMessage(

@@ -712,6 +712,7 @@ bool MessageChannel::OpenOnSameThread(MessageChannel* aTargetChan,
 bool MessageChannel::Send(UniquePtr<Message> aMsg, int32_t* aSeqno) {
   MOZ_RELEASE_ASSERT(!aMsg->is_sync());
   MOZ_RELEASE_ASSERT(aMsg->nested_level() != IPC::Message::NESTED_INSIDE_SYNC);
+  MOZ_RELEASE_ASSERT(aMsg->routing_id() != MSG_ROUTING_NONE);
   AssertWorkerThread();
   mMonitor->AssertNotCurrentThreadOwns();
 
@@ -722,11 +723,6 @@ bool MessageChannel::Send(UniquePtr<Message> aMsg, int32_t* aSeqno) {
   }
   if (aSeqno) {
     *aSeqno = aMsg->seqno();
-  }
-
-  if (MSG_ROUTING_NONE == aMsg->routing_id()) {
-    ReportMessageRouteError("MessageChannel::Send");
-    return false;
   }
 
   MonitorAutoLock lock(*mMonitor);
@@ -1853,11 +1849,6 @@ void MessageChannel::ReportConnectionError(const char* aFunctionName,
   mListener->ProcessingError(MsgDropped, errorMsg);
 }
 
-void MessageChannel::ReportMessageRouteError(const char* channelName) const {
-  PrintErrorMessage(mSide, channelName, "Need a route");
-  mListener->ProcessingError(MsgRouteError, "MsgRouteError");
-}
-
 bool MessageChannel::MaybeHandleError(Result code, const Message& aMsg,
                                       const char* channelName) {
   if (MsgProcessed == code) return true;
@@ -1868,6 +1859,9 @@ bool MessageChannel::MaybeHandleError(Result code, const Message& aMsg,
 
   const char* errorMsg = nullptr;
   switch (code) {
+    case MsgDropped:
+      errorMsg = "Message dropped: message could not be delivered";
+      break;
     case MsgNotKnown:
       errorMsg = "Unknown message: not processed";
       break;
@@ -1881,9 +1875,6 @@ bool MessageChannel::MaybeHandleError(Result code, const Message& aMsg,
       errorMsg =
           "Processing error: message was deserialized, but the handler "
           "returned false (indicating failure)";
-      break;
-    case MsgRouteError:
-      errorMsg = "Route error: message sent to unknown actor ID";
       break;
     case MsgValueError:
       errorMsg =

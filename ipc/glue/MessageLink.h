@@ -36,7 +36,6 @@ struct HasResultCodes {
     MsgNotAllowed,
     MsgPayloadError,
     MsgProcessingError,
-    MsgRouteError,
     MsgValueError
   };
 };
