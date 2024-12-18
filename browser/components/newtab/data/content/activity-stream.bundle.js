@@ -4227,7 +4227,8 @@ const AdBanner = ({
   spoc,
   dispatch,
   firstVisibleTimestamp,
-  row
+  row,
+  type
 }) => {
   const getDimensions = format => {
     switch (format) {
@@ -4261,8 +4262,9 @@ const AdBanner = ({
         flight_id: spoc.flight_id,
         format: spoc.format,
         id: spoc.id,
-        is_pocket_card: spoc.is_pocket_card,
-        position: spoc.pos,
+        card_type: "spoc",
+        is_pocket_card: true,
+        position: row,
         sponsor: spoc.sponsor,
         title: spoc.title,
         url: spoc.url || spoc.shim.url,
@@ -4271,6 +4273,24 @@ const AdBanner = ({
         score: spoc.score,
         alt_text: spoc.alt_text
       }]
+    }));
+  };
+  const onLinkCLick = () => {
+    dispatch(actionCreators.DiscoveryStreamUserEvent({
+      event: "CLICK",
+      source: type.toUpperCase(),
+      // Banner ads dont have a position, but a row number
+      action_position: row,
+      value: {
+        card_type: "spoc",
+        tile_id: spoc.id,
+        ...(spoc.shim?.click ? {
+          shim: spoc.shim.click
+        } : {}),
+        fetchTimestamp: spoc.fetchTimestamp,
+        firstVisibleTimestamp,
+        format: spoc.format
+      }
     }));
   };
 
@@ -4293,16 +4313,18 @@ const AdBanner = ({
   })), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
     className: "ad-banner-link",
     url: spoc.url,
-    title: spoc.title
+    title: spoc.title,
+    onLinkClick: onLinkCLick,
+    dispatch: dispatch
   }, /*#__PURE__*/external_React_default().createElement(ImpressionStats_ImpressionStats, {
     flightId: spoc.flight_id,
     rows: [{
       id: spoc.id,
-      pos: spoc.pos,
-      corpus_item_id: spoc.corpus_item_id,
-      scheduled_corpus_item_id: spoc.scheduled_corpus_item_id,
+      card_type: "spoc",
+      pos: row,
       recommended_at: spoc.recommended_at,
-      received_rank: spoc.received_rank
+      received_rank: spoc.received_rank,
+      format: spoc.format
     }],
     dispatch: dispatch,
     firstVisibleTimestamp: firstVisibleTimestamp
@@ -4349,7 +4371,7 @@ const PREF_LIST_FEED_SELECTED_FEED = "discoverystream.contextualContent.selected
 const PREF_FAKESPOT_ENABLED = "discoverystream.contextualContent.fakespot.enabled";
 const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
-const PREF_LEADERBOARD_POSITION = "newtabAdSize.billboard.position";
+const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
