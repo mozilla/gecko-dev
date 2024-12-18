@@ -1358,7 +1358,10 @@ impl MarionetteConnection {
         // Save minidump files of potential crashes from the profile if requested.
         if let Ok(path) = env::var("MINIDUMP_SAVE_PATH") {
             if let Err(e) = self.save_minidumps(&path) {
-                error!("Failed to save minidump files to the requested location: {}", e);
+                error!(
+                    "Failed to save minidump files to the requested location: {}",
+                    e
+                );
             }
         } else {
             debug!("To store minidump files of Firefox crashes the MINIDUMP_SAVE_PATH environment variable needs to be set.");
@@ -1370,17 +1373,27 @@ impl MarionetteConnection {
     }
 
     fn save_minidumps(&self, save_path: &str) -> WebDriverResult<()> {
-        if PathBuf::from(&save_path).is_dir() {
-            if let Browser::Local(browser) = &self.browser {
+        if !PathBuf::from(&save_path).is_dir() {
+            if let Err(e) = fs::create_dir(save_path) {
+                warn!(
+                    "The specified folder '{}' for minidumps doesn't exist and creation failed: {}",
+                    save_path, e
+                );
+
+                return Ok(());
+            }
+        }
+
+        match &self.browser {
+            Browser::Local(browser) => {
                 if let Some(profile_path) = &browser.profile_path {
                     copy_minidumps_files(profile_path.as_path(), Path::new(&save_path))?;
                 }
             }
-        } else {
-            warn!(
-                "The specified folder '{}' for minidumps doesn't exist",
-                save_path,
-            );
+            Browser::Remote(browser) => {
+                browser.handler.copy_minidumps_files(save_path)?;
+            }
+            Browser::Existing(_) => return Ok(()),
         }
 
         Ok(())

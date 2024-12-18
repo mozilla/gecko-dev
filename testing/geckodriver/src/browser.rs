@@ -267,7 +267,7 @@ fn read_marionette_port(profile_path: &Path) -> Option<u16> {
 #[derive(Debug)]
 /// A remote instance, running on a (target) Android device.
 pub(crate) struct RemoteBrowser {
-    handler: AndroidHandler,
+    pub(crate) handler: AndroidHandler,
     marionette_port: u16,
     prefs_backup: Option<PrefsBackup>,
 }
