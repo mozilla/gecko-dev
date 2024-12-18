@@ -228,6 +228,8 @@ parent:
   async StopIdleMaintenance();
 
   async AbortOperationsForProcess(ContentParentId contentParentId);
+
+  async SetThumbnailPrivateIdentityId(uint32_t aThumbnailPrivateIdentityId);
 };
 
 } // namespace quota

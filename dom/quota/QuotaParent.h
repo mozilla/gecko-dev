@@ -157,6 +157,9 @@ class Quota final : public PQuotaParent {
 
   virtual mozilla::ipc::IPCResult RecvAbortOperationsForProcess(
       const ContentParentId& aContentParentId) override;
+
+  virtual mozilla::ipc::IPCResult RecvSetThumbnailPrivateIdentityId(
+      const uint32_t& aThumbnailPrivateIdentityId) override;
 };
 
 already_AddRefed<PQuotaParent> AllocPQuotaParent();

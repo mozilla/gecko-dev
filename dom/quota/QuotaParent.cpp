@@ -1116,4 +1116,33 @@ mozilla::ipc::IPCResult Quota::RecvAbortOperationsForProcess(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult Quota::RecvSetThumbnailPrivateIdentityId(
+    const uint32_t& aThumbnailPrivateIdentityId) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()), IPC_OK());
+
+  if (!TrustParams()) {
+    QM_TRY(MOZ_TO_RESULT(!BackgroundParent::IsOtherProcessActor(Manager())),
+           QM_CUF_AND_IPC_FAIL(this));
+  }
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(), IPC_OK());
+
+  MOZ_ALWAYS_SUCCEEDS(quotaManager->IOThread()->Dispatch(
+      NS_NewRunnableFunction(
+          "dom::quota::Quota::RecvSetThumbnailPrivateIdentityId",
+          [aThumbnailPrivateIdentityId]() {
+            QuotaManager* quotaManager = QuotaManager::Get();
+            MOZ_ASSERT(quotaManager);
+
+            quotaManager->SetThumbnailPrivateIdentityId(
+                aThumbnailPrivateIdentityId);
+          }),
+      NS_DISPATCH_NORMAL));
+
+  return IPC_OK();
+}
+
 }  // namespace mozilla::dom::quota

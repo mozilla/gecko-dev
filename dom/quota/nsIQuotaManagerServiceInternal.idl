@@ -14,4 +14,22 @@
 [scriptable, builtinclass, uuid(7df37702-e977-4107-9b1d-289439e7d37b)]
 interface nsIQuotaManagerServiceInternal : nsISupports
 {
+  /**
+   * Sets the thumbnail private identity id.
+   *
+   * This method is used internally by Quota Manager to cache the thumbnail
+   * private identity id on the QuotaManager IO thread. The cached id is
+   * intended to be used by various optimizations, such as counting thumbnail
+   * private identity temporary origins.
+   *
+   * @param aThumbnailPrivateIdentityId The new thumbnail private identity id
+   *                                    to set.
+   *
+   * @note This method is called internally from the handler for the
+   *       `contextual-identity-service-load-finished` observer topic. The id
+   *       is obtained on the main thread within that handler before being
+   *       passed to this method.
+   */
+  void setThumbnailPrivateIdentityId(
+      in unsigned long aThumbnailPrivateIdentityId);
 };
