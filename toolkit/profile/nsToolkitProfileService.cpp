@@ -2348,7 +2348,7 @@ nsToolkitProfileService::GetProfileCount(uint32_t* aResult) {
 // have changed since rthey were loaded.
 nsresult WriteProfileInfo(nsIFile* profilesDBFile, nsIFile* installDBFile,
                           const nsCString& installSection,
-                          const CurrentProfileData* profileInfo) {
+                          const GroupProfileData* profileInfo) {
   nsINIParser profilesIni;
   nsresult rv = profilesIni.Init(profilesDBFile);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2455,12 +2455,12 @@ nsISerialEventTarget* nsToolkitProfileService::AsyncQueue() {
 }
 
 NS_IMETHODIMP
-nsToolkitProfileService::AsyncFlushCurrentProfile(JSContext* aCx,
-                                                  dom::Promise** aPromise) {
+nsToolkitProfileService::AsyncFlushGroupProfile(JSContext* aCx,
+                                                dom::Promise** aPromise) {
 #ifndef MOZ_HAS_REMOTE
   return NS_ERROR_FAILURE;
 #else
-  if (!mCurrent) {
+  if (!mGroupProfile) {
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
@@ -2477,12 +2477,12 @@ nsToolkitProfileService::AsyncFlushCurrentProfile(JSContext* aCx,
     return result.StealNSResult();
   }
 
-  UniquePtr<CurrentProfileData> profileData = MakeUnique<CurrentProfileData>();
-  profileData->mStoreID = mCurrent->mStoreID;
-  profileData->mShowSelector = mCurrent->mShowProfileSelector;
+  UniquePtr<GroupProfileData> profileData = MakeUnique<GroupProfileData>();
+  profileData->mStoreID = mGroupProfile->mStoreID;
+  profileData->mShowSelector = mGroupProfile->mShowProfileSelector;
 
   bool isRelative;
-  GetProfileDescriptor(mCurrent, profileData->mPath, &isRelative);
+  GetProfileDescriptor(mGroupProfile, profileData->mPath, &isRelative);
 
   nsCOMPtr<nsIRemoteService> rs = GetRemoteService();
   RefPtr<nsRemoteService> remoteService =
@@ -2517,7 +2517,7 @@ nsToolkitProfileService::AsyncFlushCurrentProfile(JSContext* aCx,
   // This keeps the promise alive after this method returns.
   nsMainThreadPtrHandle<dom::Promise> promiseHolder(
       new nsMainThreadPtrHolder<dom::Promise>(
-          "nsToolkitProfileService::AsyncFlushCurrentProfile", promise));
+          "nsToolkitProfileService::AsyncFlushGroupProfile", promise));
 
   p->Then(GetCurrentSerialEventTarget(), __func__,
           [requestHolder, promiseHolder](
@@ -2591,7 +2591,7 @@ nsToolkitProfileService::AsyncFlush(JSContext* aCx, dom::Promise** aPromise) {
   // This keeps the promise alive after this method returns.
   nsMainThreadPtrHandle<dom::Promise> promiseHolder(
       new nsMainThreadPtrHolder<dom::Promise>(
-          "nsToolkitProfileService::AsyncFlushCurrentProfile", promise));
+          "nsToolkitProfileService::AsyncFlushGroupProfile", promise));
 
   p->Then(GetCurrentSerialEventTarget(), __func__,
           [requestHolder, promiseHolder](

@@ -21,7 +21,7 @@
 
 class nsStartupLock;
 
-struct CurrentProfileData {
+struct GroupProfileData {
   nsCString mPath;
   nsCString mStoreID;
   bool mShowSelector;
@@ -136,7 +136,7 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   nsresult GetLocalDirFromRootDir(nsIFile* aRootDir, nsIFile** aResult);
   void FlushProfileData(
       const nsMainThreadPtrHandle<nsStartupLock>& aStartupLock,
-      const CurrentProfileData* aProfileInfo);
+      const GroupProfileData* aProfileInfo);
   void BuildIniData(nsCString& aProfilesIniData, nsCString& aInstallsIniData);
   nsresult FlushData(const nsCString& aProfilesIniData,
                      const nsCString& aInstallsIniData);

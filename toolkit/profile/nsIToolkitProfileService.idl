@@ -170,7 +170,7 @@ interface nsIToolkitProfileService : nsISupports
     Promise asyncFlush();
 
     /**
-     * Flushes the mutable data about the current profile to disk on a
+     * Flushes the mutable data about the current group profile to disk on a
      * background thread after acquiring the startup lock. Unlike other flushing
      * methods this can usually succeed even if the files on disk have changed
      * since the profiles were loaded.
@@ -178,7 +178,7 @@ interface nsIToolkitProfileService : nsISupports
      * promise returned will resolve when the last call to flush completes.
      */
     [implicit_jscontext]
-    Promise asyncFlushCurrentProfile();
+    Promise asyncFlushGroupProfile();
 
     /**
      * Removes profile directories from disk. Will wait for up to aTimeout

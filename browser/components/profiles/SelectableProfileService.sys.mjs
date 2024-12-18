@@ -180,7 +180,7 @@ class SelectableProfileServiceClass {
       await this.#profileService.asyncFlush();
     } catch (e) {
       try {
-        await this.#profileService.asyncFlushCurrentProfile();
+        await this.#profileService.asyncFlushGroupProfile();
       } catch (ex) {
         console.error(
           `Failed to flush changes to the profiles database: ${ex}`
