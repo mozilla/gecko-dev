@@ -8,6 +8,12 @@ support-files = [
   "CaptchaTestingUtils.js"
 ]
 
+["test_aws_waf.html"]
+support-files = [
+  "aws_waf_api.sjs",
+  "aws_waf.html"
+]
+
 ["test_cf_turnstile_fail.html"]
 support-files = [
   "cf_turnstile.html"

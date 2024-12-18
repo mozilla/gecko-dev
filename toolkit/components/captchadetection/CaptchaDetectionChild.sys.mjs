@@ -423,6 +423,14 @@ class AWSWafHandler extends CaptchaHandler {
   }
 
   static matches(document) {
+    if (Cu.isInAutomation) {
+      return (
+        document
+          .getElementById("captchaType")
+          ?.getAttribute("data-captcha-type") === "awsWaf"
+      );
+    }
+
     if (
       !document.location.pathname == "/latest" ||
       !document.location.hostname.endsWith(".amazonaws.com") ||
