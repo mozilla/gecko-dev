@@ -11,6 +11,11 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
   });
 });
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  CaptchaDetectionPingUtils:
+    "resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs",
+});
+
 /**
  * Holds the state of each tab.
  * The state is an object with the following structure:
@@ -62,6 +67,10 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
         state.set(type + changes, true);
       });
 
+      // We don't call maybeSubmitPing here because we might end up
+      // submitting the ping without the "GotCheckmark" event.
+      // maybeSubmitPing will be called when "GotCheckmark" event is
+      // received, or when the daily maybeSubmitPing is called.
       const shownMetric = "googleRecaptchaV2Ps" + (isPBM ? "Pbm" : "");
       Glean.captchaDetection[shownMetric].add(1);
     } else if (changes === "GotCheckmark") {
@@ -75,6 +84,7 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
         (autoCompleted ? "Ac" : "Pc") +
         (isPBM ? "Pbm" : "");
       Glean.captchaDetection[resultMetric].add(1);
+      lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
     }
   }
 
@@ -85,6 +95,7 @@ export class CaptchaDetectionParent extends JSWindowActorParent {
       (result === "Succeeded" ? "Cc" : "Cf") +
       (isPBM ? "Pbm" : "");
     Glean.captchaDetection[resultMetric].add(1);
+    lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
   }
 
   async receiveMessage(message) {
