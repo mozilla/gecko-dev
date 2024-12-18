@@ -114,3 +114,9 @@ browser.menus.create({
   contexts: ["image"],
   onclick,
 });
+
+browser.permissions.contains({ permissions: ["trialML"] }).then(granted => {
+  if (!granted) {
+    browser.tabs.create({ url: browser.runtime.getURL("settings.html") });
+  }
+});
