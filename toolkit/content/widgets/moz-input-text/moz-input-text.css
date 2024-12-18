@@ -1,0 +1,30 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:host {
+  --input-text-max-width: 17em;
+  --input-text-min-height: var(--button-min-height);
+  --input-text-border-color: var(--border-color-interactive);
+  --input-text-border-color-disabled: var(--border-color-interactive-disabled);
+  --input-text-border: var(--border-width) solid var(--input-text-border-color);
+  --input-text-border-radius: var(--border-radius-small);
+  --input-text-background-color-disabled: var(--button-background-color-disabled);
+  --input-text-opacity-disabled: var(--button-opacity-disabled);
+}
+
+#input {
+  width: 100%;
+  max-width: var(--input-text-max-width);
+  min-height: var(--input-text-min-height);
+  padding-inline: var(--space-medium);
+  border: var(--input-text-border);
+  border-radius: var(--input-text-border-radius);
+  box-sizing: border-box;
+
+  &:disabled {
+    border-color: var(--input-text-border-color-disabled);
+    background-color: var(--input-text-background-color-disabled);
+    opacity: var(--input-text-opacity-disabled);
+  }
+}
