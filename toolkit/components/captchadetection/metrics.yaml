@@ -1,0 +1,361 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - "Core :: Privacy: Anti-Tracking"
+
+# Puzzle = Type of captcha that asks the user to solve a challenge, like selecting all images with traffic lights.
+# Challange = Any type of captcha that is not a puzzle. Captchas that depend on browser fingerprint, IP address trust score and etc. are considered challenges.
+# Captcha = A generic term for puzzles and challenges.
+# Do note that many puzzle based captchas are also challenges, as they also factor in the user's browser fingerprint, IP address trust score and etc.
+
+# We use some abbreviations in some metric names.
+# Puzzle related: pc = puzzle completed, ac = auto completed
+# Challenge related: cc = challenge completed, cf = challenge failed
+# General: PBM = Private Browsing Mode
+
+captcha_detection:
+  # Captcha states in normal browsing
+  google_recaptcha_v2_ps:
+    type: counter
+    description: >
+      Number of times the user has seen a Google reCAPTCHA v2 puzzle since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  google_recaptcha_v2_pc:
+    type: counter
+    description: >
+      Number of times the user completed a Google reCAPTCHA v2 puzzle since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  google_recaptcha_v2_ac:
+    type: counter
+    description: >
+      Number of times the user completed a Google reCAPTCHA v2 challenge automatically since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  cloudflare_turnstile_cc:
+    type: counter
+    description: >
+      Number of times the Cloudflare Turnstile challenge was successfully completed since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  cloudflare_turnstile_cf:
+    type: counter
+    description: >
+      Number of times the Cloudflare Turnstile challenge was failed since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  # Captcha states in private browsing
+  google_recaptcha_v2_ps_pbm:
+    type: counter
+    description: >
+      Number of times the user has seen a Google reCAPTCHA v2 puzzle since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  google_recaptcha_v2_pc_pbm:
+    type: counter
+    description: >
+      Number of times the user completed a Google reCAPTCHA v2 puzzle since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  google_recaptcha_v2_ac_pbm:
+    type: counter
+    description: >
+      Number of times the user completed a Google reCAPTCHA v2 challenge automatically since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  cloudflare_turnstile_cc_pbm:
+    type: counter
+    description: >
+      Number of times the Cloudflare Turnstile challenge was successfully completed since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  cloudflare_turnstile_cf_pbm:
+    type: counter
+    description: >
+      Number of times the Cloudflare Turnstile challenge was failed since last ping submission.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  # Privacy settings in normal browsing at the time of the ping
+  network_cookie_cookiebehavior:
+    type: string
+    description: >
+      The user's cookie behavior setting at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  privacy_trackingprotection_enabled:
+    type: boolean
+    description: >
+      Whether the user has enabled tracking protection at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  privacy_trackingprotection_cryptomining_enabled:
+    type: boolean
+    description: >
+      Whether the user has enabled cryptomining protection at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  privacy_trackingprotection_fingerprinting_enabled:
+    type: boolean
+    description: >
+      Whether the user has enabled known fingerprinters protection at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  privacy_fingerprintingprotection:
+    type: boolean
+    description: >
+      Whether the user has enabled suspected fingerprinters protection at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  network_cookie_cookiebehavior_optinpartitioning:
+    type: boolean
+    description: >
+      Whether the user has enabled cookie partitioning at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  privacy_resistfingerprinting:
+    type: boolean
+    description: >
+      Whether the user has enabled resist fingerprinting at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  # Privacy settings in private browsing at the time of the ping
+  privacy_trackingprotection_pbm_enabled:
+    type: boolean
+    description: >
+      Whether the user has enabled tracking protection in PBM at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  privacy_fingerprintingprotection_pbm:
+    type: boolean
+    description: >
+      Whether the user has enabled suspected fingerprinters protection in PBM at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  network_cookie_cookiebehavior_optinpartitioning_pbm:
+    type: boolean
+    description: >
+      Whether the user has enabled cookie partioning in PBM at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  privacy_resistfingerprinting_pbmode:
+    type: boolean
+    description: >
+      Whether the user has enabled resist fingerprinting in PBM at the time of data collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226021#7994299
+    notification_emails:
+      - tritter@mozilla.com
+    send_in_pings:
+      - captcha-detection
+    expires: never
+    data_sensitivity:
+      - interaction
