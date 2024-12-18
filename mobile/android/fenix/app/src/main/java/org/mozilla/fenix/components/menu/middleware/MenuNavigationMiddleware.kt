@@ -253,7 +253,7 @@ class MenuNavigationMiddleware(
                 is MenuAction.Navigate.WebCompatReporter -> {
                     val session = customTab ?: currentState.browserMenuState?.selectedTab
                     session?.content?.url?.let { tabUrl ->
-                        if (FeatureFlags.webCompatReporter) {
+                        if (FeatureFlags.webCompatReporter && settings.isTelemetryEnabled) {
                             navController.nav(
                                 id = R.id.menuDialogFragment,
                                 directions = MenuDialogFragmentDirections
