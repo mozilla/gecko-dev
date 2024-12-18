@@ -127,15 +127,7 @@ void maybeErrAttributesOnEndTag(nsHtml5HtmlAttributes* attrs);
 
 void maybeErrSlashInEndTag(bool selfClosing);
 
-char16_t errNcrNonCharacter(char16_t ch);
-
-void errAstralNonCharacter(int32_t ch);
-
 void errNcrSurrogate();
-
-char16_t errNcrControlChar(char16_t ch);
-
-void errNcrCr();
 
 void errNcrInC1Range();
 
@@ -170,8 +162,6 @@ void errExpectedSystemId();
 void errMissingSpaceBeforeDoctypeName();
 
 void errNestedComment();
-
-void errNcrControlChar();
 
 void errNcrZero();
 
