@@ -6936,8 +6936,24 @@ void QuotaManager::SetThumbnailPrivateIdentityId(
     uint32_t aThumbnailPrivateIdentityId) {
   AssertIsOnIOThread();
 
-  mIOThreadAccessible.Access()->mThumbnailPrivateIdentityId =
-      Some(aThumbnailPrivateIdentityId);
+  auto ioThreadData = mIOThreadAccessible.Access();
+
+  ioThreadData->mThumbnailPrivateIdentityId = Some(aThumbnailPrivateIdentityId);
+  ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount = 0;
+
+  for (auto iter = ioThreadData->mAllTemporaryOrigins.Iter(); !iter.Done();
+       iter.Next()) {
+    auto& array = iter.Data();
+
+    for (const auto& originMetadata : array) {
+      if (IsUserContextSuffix(originMetadata.mSuffix,
+                              GetThumbnailPrivateIdentityId())) {
+        AssertNoOverflow(
+            ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount, 1);
+        ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount++;
+      }
+    }
+  }
 }
 
 uint64_t QuotaManager::GetGroupLimit() const {
@@ -7600,9 +7616,10 @@ void QuotaManager::AddTemporaryOrigin(
   AssertIsOnIOThread();
   MOZ_ASSERT(IsBestEffortPersistenceType(aFullOriginMetadata.mPersistenceType));
 
-  auto& array =
-      mIOThreadAccessible.Access()->mAllTemporaryOrigins.LookupOrInsert(
-          aFullOriginMetadata.mGroup);
+  auto ioThreadData = mIOThreadAccessible.Access();
+
+  auto& array = ioThreadData->mAllTemporaryOrigins.LookupOrInsert(
+      aFullOriginMetadata.mGroup);
 
   DebugOnly<bool> containsOrigin = array.Contains(
       aFullOriginMetadata, [](const auto& aLeft, const auto& aRight) {
@@ -7614,6 +7631,14 @@ void QuotaManager::AddTemporaryOrigin(
   MOZ_ASSERT(!containsOrigin);
 
   array.AppendElement(aFullOriginMetadata);
+
+  if (IsThumbnailPrivateIdentityIdKnown() &&
+      IsUserContextSuffix(aFullOriginMetadata.mSuffix,
+                          GetThumbnailPrivateIdentityId())) {
+    AssertNoOverflow(
+        ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount, 1);
+    ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount++;
+  }
 }
 
 void QuotaManager::RemoveTemporaryOrigin(
@@ -7621,8 +7646,10 @@ void QuotaManager::RemoveTemporaryOrigin(
   AssertIsOnIOThread();
   MOZ_ASSERT(IsBestEffortPersistenceType(aOriginMetadata.mPersistenceType));
 
-  auto entry = mIOThreadAccessible.Access()->mAllTemporaryOrigins.Lookup(
-      aOriginMetadata.mGroup);
+  auto ioThreadData = mIOThreadAccessible.Access();
+
+  auto entry =
+      ioThreadData->mAllTemporaryOrigins.Lookup(aOriginMetadata.mGroup);
   if (!entry) {
     return;
   }
@@ -7640,6 +7667,14 @@ void QuotaManager::RemoveTemporaryOrigin(
   if (array.IsEmpty()) {
     entry.Remove();
   }
+
+  if (IsThumbnailPrivateIdentityIdKnown() &&
+      IsUserContextSuffix(aOriginMetadata.mSuffix,
+                          GetThumbnailPrivateIdentityId())) {
+    AssertNoUnderflow(
+        ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount, 1);
+    ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount--;
+  }
 }
 
 void QuotaManager::RemoveTemporaryOrigins(PersistenceType aPersistenceType) {
@@ -7652,20 +7687,45 @@ void QuotaManager::RemoveTemporaryOrigins(PersistenceType aPersistenceType) {
        iter.Next()) {
     auto& array = iter.Data();
 
-    array.RemoveElementsBy([aPersistenceType](const auto& originMetadata) {
-      return originMetadata.mPersistenceType == aPersistenceType;
+    uint32_t thumbnailPrivateIdentityTemporaryOriginCount = 0;
+
+    array.RemoveElementsBy([this, aPersistenceType,
+                            &thumbnailPrivateIdentityTemporaryOriginCount](
+                               const auto& originMetadata) {
+      const bool match = originMetadata.mPersistenceType == aPersistenceType;
+      if (!match) {
+        return false;
+      }
+
+      if (IsThumbnailPrivateIdentityIdKnown() &&
+          IsUserContextSuffix(originMetadata.mSuffix,
+                              GetThumbnailPrivateIdentityId())) {
+        AssertNoOverflow(thumbnailPrivateIdentityTemporaryOriginCount, 1);
+        thumbnailPrivateIdentityTemporaryOriginCount++;
+      }
+
+      return true;
     });
 
     if (array.IsEmpty()) {
       iter.Remove();
     }
+
+    AssertNoUnderflow(
+        ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount,
+        thumbnailPrivateIdentityTemporaryOriginCount);
+    ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount -=
+        thumbnailPrivateIdentityTemporaryOriginCount;
   }
 }
 
 void QuotaManager::RemoveTemporaryOrigins() {
   AssertIsOnIOThread();
 
-  mIOThreadAccessible.Access()->mAllTemporaryOrigins.Clear();
+  auto ioThreadData = mIOThreadAccessible.Access();
+
+  ioThreadData->mAllTemporaryOrigins.Clear();
+  ioThreadData->mThumbnailPrivateIdentityTemporaryOriginCount = 0;
 }
 
 PrincipalMetadataArray QuotaManager::GetAllTemporaryGroups() const {
@@ -7706,6 +7766,14 @@ OriginMetadataArray QuotaManager::GetAllTemporaryOrigins() const {
   }
 
   return originMetadataArray;
+}
+
+uint32_t QuotaManager::ThumbnailPrivateIdentityTemporaryOriginCount() const {
+  AssertIsOnIOThread();
+  MOZ_ASSERT(IsThumbnailPrivateIdentityIdKnown());
+
+  return mIOThreadAccessible.Access()
+      ->mThumbnailPrivateIdentityTemporaryOriginCount;
 }
 
 void QuotaManager::NoteInitializedOrigin(PersistenceType aPersistenceType,
