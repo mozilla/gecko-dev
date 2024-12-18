@@ -107,8 +107,8 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2331 use counter metrics (excludes denominators).
-# Total of 356 'page' use counters.
+# Total of 2409 use counter metrics (excludes denominators).
+# Total of 372 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
     type: counter
@@ -1313,6 +1313,278 @@ use.counter.page:
     notification_emails:
       - dom-core@mozilla.com
       - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_statedelete:
+    type: counter
+    description: >
+      Whether a page called called MLS.stateDelete.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_statedeletegroup:
+    type: counter
+    description: >
+      Whether a page called called MLS.stateDeleteGroup.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatesignaturekeypair:
+    type: counter
+    description: >
+      Whether a page called called MLS.generateSignatureKeypair.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatecredentialbasic:
+    type: counter
+    description: >
+      Whether a page called called MLS.generateCredentialBasic.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatekeypackage:
+    type: counter
+    description: >
+      Whether a page called called MLS.generateKeyPackage.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupcreate:
+    type: counter
+    description: >
+      Whether a page called called MLS.groupCreate.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupjoin:
+    type: counter
+    description: >
+      Whether a page called called MLS.groupJoin.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupadd:
+    type: counter
+    description: >
+      Whether a page called called MLS.groupAdd.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeadd:
+    type: counter
+    description: >
+      Whether a page called called MLS.groupProposeAdd.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupremove:
+    type: counter
+    description: >
+      Whether a page called called MLS.groupRemove.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeremove:
+    type: counter
+    description: >
+      Whether a page called called MLS.groupProposeRemove.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupclose:
+    type: counter
+    description: >
+      Whether a page called called MLS.groupClose.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupmembers:
+    type: counter
+    description: >
+      Whether a page called called MLS.groupMembers.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_receive:
+    type: counter
+    description: >
+      Whether a page called called MLS.receive.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_send:
+    type: counter
+    description: >
+      Whether a page called called MLS.send.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_deriveexporter:
+    type: counter
+    description: >
+      Whether a page called called MLS.deriveExporter.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
     expires: never
     send_in_pings:
       - use-counters
@@ -6162,7 +6434,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-# Total of 356 'document' use counters.
+# Total of 372 'document' use counters.
 use.counter.doc:
   svgsvgelement_getelementbyid:
     type: counter
@@ -7367,6 +7639,278 @@ use.counter.doc:
     notification_emails:
       - dom-core@mozilla.com
       - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_statedelete:
+    type: counter
+    description: >
+      Whether a document called called MLS.stateDelete.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_statedeletegroup:
+    type: counter
+    description: >
+      Whether a document called called MLS.stateDeleteGroup.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatesignaturekeypair:
+    type: counter
+    description: >
+      Whether a document called called MLS.generateSignatureKeypair.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatecredentialbasic:
+    type: counter
+    description: >
+      Whether a document called called MLS.generateCredentialBasic.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatekeypackage:
+    type: counter
+    description: >
+      Whether a document called called MLS.generateKeyPackage.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupcreate:
+    type: counter
+    description: >
+      Whether a document called called MLS.groupCreate.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupjoin:
+    type: counter
+    description: >
+      Whether a document called called MLS.groupJoin.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupadd:
+    type: counter
+    description: >
+      Whether a document called called MLS.groupAdd.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeadd:
+    type: counter
+    description: >
+      Whether a document called called MLS.groupProposeAdd.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupremove:
+    type: counter
+    description: >
+      Whether a document called called MLS.groupRemove.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeremove:
+    type: counter
+    description: >
+      Whether a document called called MLS.groupProposeRemove.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupclose:
+    type: counter
+    description: >
+      Whether a document called called MLS.groupClose.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupmembers:
+    type: counter
+    description: >
+      Whether a document called called MLS.groupMembers.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_receive:
+    type: counter
+    description: >
+      Whether a document called called MLS.receive.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_send:
+    type: counter
+    description: >
+      Whether a document called called MLS.send.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_deriveexporter:
+    type: counter
+    description: >
+      Whether a document called called MLS.deriveExporter.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
     expires: never
     send_in_pings:
       - use-counters
@@ -12216,7 +12760,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-# Total of 33 'dedicated worker' use counters.
+# Total of 49 'dedicated worker' use counters.
 use.counter.worker.dedicated:
   pushmanager_subscribe:
     type: counter
@@ -12643,6 +13187,278 @@ use.counter.worker.dedicated:
     send_in_pings:
       - use-counters
 
+  mls_statedelete:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.stateDelete.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_statedeletegroup:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.stateDeleteGroup.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatesignaturekeypair:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.generateSignatureKeypair.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatecredentialbasic:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.generateCredentialBasic.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatekeypackage:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.generateKeyPackage.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupcreate:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.groupCreate.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupjoin:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.groupJoin.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupadd:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.groupAdd.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeadd:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.groupProposeAdd.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupremove:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.groupRemove.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeremove:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.groupProposeRemove.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupclose:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.groupClose.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupmembers:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.groupMembers.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_receive:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.receive.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_send:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.send.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_deriveexporter:
+    type: counter
+    description: >
+      Whether a dedicated worker called called MLS.deriveExporter.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   private_browsing_idbfactory_open:
     type: counter
     description: >
@@ -12779,7 +13595,7 @@ use.counter.worker.dedicated:
     send_in_pings:
       - use-counters
 
-# Total of 33 'shared worker' use counters.
+# Total of 49 'shared worker' use counters.
 use.counter.worker.shared:
   pushmanager_subscribe:
     type: counter
@@ -13206,6 +14022,278 @@ use.counter.worker.shared:
     send_in_pings:
       - use-counters
 
+  mls_statedelete:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.stateDelete.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_statedeletegroup:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.stateDeleteGroup.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatesignaturekeypair:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.generateSignatureKeypair.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatecredentialbasic:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.generateCredentialBasic.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatekeypackage:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.generateKeyPackage.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupcreate:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.groupCreate.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupjoin:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.groupJoin.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupadd:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.groupAdd.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeadd:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.groupProposeAdd.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupremove:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.groupRemove.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeremove:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.groupProposeRemove.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupclose:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.groupClose.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupmembers:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.groupMembers.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_receive:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.receive.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_send:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.send.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_deriveexporter:
+    type: counter
+    description: >
+      Whether a shared worker called called MLS.deriveExporter.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   private_browsing_idbfactory_open:
     type: counter
     description: >
@@ -13342,7 +14430,7 @@ use.counter.worker.shared:
     send_in_pings:
       - use-counters
 
-# Total of 33 'service worker' use counters.
+# Total of 49 'service worker' use counters.
 use.counter.worker.service:
   pushmanager_subscribe:
     type: counter
@@ -13765,6 +14853,278 @@ use.counter.worker.service:
     notification_emails:
       - dom-core@mozilla.com
       - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_statedelete:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.stateDelete.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_statedeletegroup:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.stateDeleteGroup.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatesignaturekeypair:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.generateSignatureKeypair.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatecredentialbasic:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.generateCredentialBasic.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_generatekeypackage:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.generateKeyPackage.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupcreate:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.groupCreate.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupjoin:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.groupJoin.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupadd:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.groupAdd.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeadd:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.groupProposeAdd.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupremove:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.groupRemove.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupproposeremove:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.groupProposeRemove.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupclose:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.groupClose.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_groupmembers:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.groupMembers.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_receive:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.receive.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_send:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.send.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  mls_deriveexporter:
+    type: counter
+    description: >
+      Whether a service worker called called MLS.deriveExporter.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - beurdouche@mozilla.com
     expires: never
     send_in_pings:
       - use-counters
@@ -15779,7 +17139,7 @@ use.counter.deprecated_ops.doc:
     send_in_pings:
       - use-counters
 
-# Total of 705 'CSS (page)' use counters.
+# Total of 704 'CSS (page)' use counters.
 use.counter.css.page:
   css_align_content:
     type: counter
@@ -27766,7 +29126,7 @@ use.counter.css.page:
     send_in_pings:
       - use-counters
 
-# Total of 705 'CSS (document)' use counters.
+# Total of 704 'CSS (document)' use counters.
 use.counter.css.doc:
   css_align_content:
     type: counter
