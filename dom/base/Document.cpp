@@ -19812,7 +19812,7 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
 
-  constexpr nsLiteralString sink = u"Document parseHTMLUnsafe "_ns;
+  constexpr nsLiteralString sink = u"Document parseHTMLUnsafe"_ns;
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
