@@ -174,6 +174,14 @@ class CFTurnstileHandler extends CaptchaHandler {
   }
 
   static matches(document) {
+    if (Cu.isInAutomation) {
+      return (
+        document
+          .getElementById("captchaType")
+          ?.getAttribute("data-captcha-type") === "cf-turnstile"
+      );
+    }
+
     return document.location.href.startsWith(
       "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2/av0/rcv/"
     );
