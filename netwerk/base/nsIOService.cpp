@@ -990,6 +990,29 @@ nsIOService::HostnameIsLocalIPAddress(nsIURI* aURI, bool* aResult) {
 }
 
 NS_IMETHODIMP
+nsIOService::HostnameIsIPAddressAny(nsIURI* aURI, bool* aResult) {
+  NS_ENSURE_ARG_POINTER(aURI);
+
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
+  NS_ENSURE_ARG_POINTER(innerURI);
+
+  nsAutoCString host;
+  nsresult rv = innerURI->GetAsciiHost(host);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  *aResult = false;
+
+  NetAddr addr;
+  if (NS_SUCCEEDED(addr.InitFromString(host)) && addr.IsIPAddrAny()) {
+    *aResult = true;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsIOService::HostnameIsSharedIPAddress(nsIURI* aURI, bool* aResult) {
   NS_ENSURE_ARG_POINTER(aURI);
 

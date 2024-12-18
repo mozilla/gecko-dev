@@ -236,6 +236,14 @@ interface nsIIOService : nsISupports
      */
     boolean hostnameIsSharedIPAddress(in nsIURI aURI);
 
+     /* Checks if a URI host is a INADDR_ANY
+     *
+     * @param nsIURI the URI that contains the hostname to check
+     * @return true if the URI hostname is a INADDR_ANY
+     */
+     boolean hostnameIsIPAddressAny(in nsIURI aURI);
+
+
     /**
      * Checks if characters not allowed in DNS are present in the hostname
      * and if the hostname ends in a number it also checks if it's a valid
