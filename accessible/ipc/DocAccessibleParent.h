@@ -98,11 +98,6 @@ class DocAccessibleParent : public RemoteAccessible,
   virtual mozilla::ipc::IPCResult RecvEvent(const uint64_t& aID,
                                             const uint32_t& aType) override;
 
-  virtual mozilla::ipc::IPCResult RecvShowEvent(
-      nsTArray<AccessibleData>&& aNewTree, const bool& aEventSuppressed,
-      const bool& aComplete, const bool& aFromUser) override;
-  virtual mozilla::ipc::IPCResult RecvHideEvent(const uint64_t& aRootID,
-                                                const bool& aFromUser) override;
   mozilla::ipc::IPCResult RecvStateChangeEvent(const uint64_t& aID,
                                                const uint64_t& aState,
                                                const bool& aEnabled) final;
@@ -113,10 +108,8 @@ class DocAccessibleParent : public RemoteAccessible,
       const bool& aIsAtEndOfLine, const int32_t& aGranularity,
       const bool& aFromUser) final;
 
-  virtual mozilla::ipc::IPCResult RecvTextChangeEvent(
-      const uint64_t& aID, const nsAString& aStr, const int32_t& aStart,
-      const uint32_t& aLen, const bool& aIsInsert,
-      const bool& aFromUser) override;
+  virtual mozilla::ipc::IPCResult RecvMutationEvents(
+      nsTArray<MutationEventData>&& aData) override;
 
   virtual mozilla::ipc::IPCResult RecvFocusEvent(
       const uint64_t& aID, const LayoutDeviceIntRect& aCaretRect) override;
@@ -342,6 +335,16 @@ class DocAccessibleParent : public RemoteAccessible,
    * being removed, so shut it down.
    */
   void ShutdownOrPrepareForMove(RemoteAccessible* aAcc);
+
+  mozilla::ipc::IPCResult ProcessShowEvent(nsTArray<AccessibleData>&& aNewTree,
+                                           const bool& aEventSuppressed,
+                                           const bool& aComplete,
+                                           const bool& aFromUser);
+  mozilla::ipc::IPCResult ProcessHideEvent(const uint64_t& aRootID,
+                                           const bool& aFromUser);
+  mozilla::ipc::IPCResult ProcessTextChangeEvent(
+      const uint64_t& aID, const nsAString& aStr, const int32_t& aStart,
+      const uint32_t& aLen, const bool& aIsInsert, const bool& aFromUser);
 
   nsTArray<uint64_t> mChildDocs;
 

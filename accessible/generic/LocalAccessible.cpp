@@ -872,13 +872,15 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
           break;
 
         case nsIAccessibleEvent::EVENT_HIDE:
-          ipcDoc->SendHideEvent(id, aEvent->IsFromUserInput());
+          ipcDoc->AppendMutationEventData(
+              HideEventData{id, aEvent->IsFromUserInput()});
           break;
 
         case nsIAccessibleEvent::EVENT_INNER_REORDER:
         case nsIAccessibleEvent::EVENT_REORDER:
           if (IsTable()) {
-            SendCache(CacheDomain::Table, CacheUpdateType::Update);
+            SendCache(CacheDomain::Table, CacheUpdateType::Update,
+                      /*aAppendEventData*/ true);
           }
 
 #if defined(XP_WIN)
@@ -897,7 +899,8 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
           // reorder events on the application acc aren't necessary to tell the
           // parent about new top level documents.
           if (!aEvent->GetAccessible()->IsApplication()) {
-            ipcDoc->SendEvent(id, aEvent->GetEventType());
+            ipcDoc->AppendMutationEventData(
+                ReorderEventData{id, aEvent->GetEventType()});
           }
           break;
         case nsIAccessibleEvent::EVENT_STATE_CHANGE: {
@@ -917,10 +920,10 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
         case nsIAccessibleEvent::EVENT_TEXT_INSERTED:
         case nsIAccessibleEvent::EVENT_TEXT_REMOVED: {
           AccTextChangeEvent* event = downcast_accEvent(aEvent);
-          const nsString& text = event->ModifiedText();
-          ipcDoc->SendTextChangeEvent(
-              id, text, event->GetStartOffset(), event->GetLength(),
-              event->IsTextInserted(), event->IsFromUserInput());
+          ipcDoc->AppendMutationEventData(TextChangeEventData{
+              id, event->ModifiedText(), event->GetStartOffset(),
+              event->GetLength(), event->IsTextInserted(),
+              event->IsFromUserInput()});
           break;
         }
         case nsIAccessibleEvent::EVENT_SELECTION:
@@ -3317,7 +3320,8 @@ AccGroupInfo* LocalAccessible::GetOrCreateGroupInfo() {
 }
 
 void LocalAccessible::SendCache(uint64_t aCacheDomain,
-                                CacheUpdateType aUpdateType) {
+                                CacheUpdateType aUpdateType,
+                                bool aAppendEventData) {
   if (!IPCAccessibilityActive() || !Document()) {
     return;
   }
@@ -3347,7 +3351,12 @@ void LocalAccessible::SendCache(uint64_t aCacheDomain,
   }
   nsTArray<CacheData> data;
   data.AppendElement(CacheData(ID(), fields));
-  ipcDoc->SendCache(aUpdateType, data);
+  if (aAppendEventData) {
+    ipcDoc->AppendMutationEventData(
+        CacheEventData{std::move(aUpdateType), std::move(data)});
+  } else {
+    ipcDoc->SendCache(aUpdateType, data);
+  }
 
   if (profiler_thread_is_being_profiled_for_markers()) {
     nsAutoCString updateTypeStr;

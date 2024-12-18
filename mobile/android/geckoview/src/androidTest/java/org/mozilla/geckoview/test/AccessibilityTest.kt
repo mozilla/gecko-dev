@@ -2172,6 +2172,10 @@ class AccessibilityTest : BaseSessionTest() {
         sessionRule.waitUntilCalled(object : EventDelegate {
             @AssertCalled(count = 1)
             override fun onFocused(event: AccessibilityEvent) {}
+
+            // Focus fires a caret moved event which produces this event.
+            @AssertCalled(count = 1)
+            override fun onTextSelectionChanged(event: AccessibilityEvent) {}
         })
 
         mainSession.evaluateJS("document.querySelector('input[aria-label=Naame]').value = 'Tobiasas'")

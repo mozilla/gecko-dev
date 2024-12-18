@@ -280,7 +280,13 @@ class NotificationController final : public EventQueue,
   void DropMutationEvent(AccTreeMutationEvent* aEvent);
 
   /**
-   * Fire all necessary mutation events.
+   * For content process documents:
+   *   Assess and queue all necessary mutation events. This function queues the
+   *   events on DocAccessibleChild. To fire the queued events, call
+   *   DocAccessibleChild::SendQueuedMutationEvents. This function may fire
+   *   events that must occur before mutation events.
+   * For parent process documents:
+   *   Fire all necessary mutation events immediately.
    */
   void ProcessMutationEvents();
 

@@ -1750,6 +1750,7 @@ void DocAccessible::DoInitialUpdate() {
       for (auto idx = 0U; idx < mChildren.Length(); idx++) {
         ipcDoc->InsertIntoIpcTree(mChildren.ElementAt(idx), true);
       }
+      ipcDoc->SendQueuedMutationEvents();
     }
   }
 }

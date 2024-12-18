@@ -459,6 +459,20 @@ void EventQueue::ProcessEventQueue() {
     if (!mDocument) {
       return;
     }
+
+    // Some mutation events may be queued incidentally by this function. Send
+    // them immediately so they stay in order. This can happen due to code in
+    // DoInitialUpdate and TextUpdater that calls FireDelayedEvent for mutation
+    // events, rather than QueueMutationEvent. DoInitialUpdate can do this with
+    // reorder events, and TextUpdater can do this with text inserted/removed
+    // events. Process these events now to avoid sending them out-of-order.
+    if (eventType == nsIAccessibleEvent::EVENT_REORDER ||
+        eventType == nsIAccessibleEvent::EVENT_TEXT_INSERTED ||
+        eventType == nsIAccessibleEvent::EVENT_TEXT_REMOVED) {
+      if (auto* ipcDoc = mDocument->IPCDoc()) {
+        ipcDoc->SendQueuedMutationEvents();
+      }
+    }
   }
 
   if (mDocument && IPCAccessibilityActive() &&

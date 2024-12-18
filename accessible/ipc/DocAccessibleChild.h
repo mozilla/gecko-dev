@@ -48,10 +48,16 @@ class DocAccessibleChild : public PDocAccessibleChild {
   }
 
   /**
-   * Serializes a shown tree and sends it to the chrome process.
+   * Serializes a shown tree and appends the show event data to the mutation
+   * event queue with AppendMutationEventData. This function may queue multiple
+   * show events depending on the size of the flattened tree.
    */
   void InsertIntoIpcTree(LocalAccessible* aChild, bool aSuppressShowEvent);
   void ShowEvent(AccShowEvent* aShowEvent);
+
+  void AppendMutationEventData(MutationEventData aData, uint32_t aAccCount = 1);
+  void SendQueuedMutationEvents();
+  size_t MutationEventQueueLength() const;
 
   virtual void ActorDestroy(ActorDestroyReason) override {
     if (!mDoc) {
@@ -168,6 +174,30 @@ class DocAccessibleChild : public PDocAccessibleChild {
   HyperTextAccessible* IdToHyperTextAccessible(const uint64_t& aID) const;
 
   DocAccessible* mDoc;
+
+  // Utility structure that encapsulates mutation event batching.
+  struct MutationEventBatcher {
+    void AppendMutationEventData(MutationEventData aData, uint32_t aAccCount);
+    void SendQueuedMutationEvents(DocAccessibleChild& aDocAcc);
+    uint32_t GetCurrentBatchAccCount() const { return mCurrentBatchAccCount; }
+    size_t EventCount() const { return mMutationEventData.Length(); }
+
+   private:
+    // A collection of mutation events to be sent in batches.
+    nsTArray<MutationEventData> mMutationEventData;
+
+    // Indices that demarcate batch endpoint boundaries. All indices are one
+    // past the end, to make them suitable for working with Spans. The start
+    // index of the first batch is implicitly 0.
+    nsTArray<size_t> mBatchBoundaries;
+
+    // The number of accessibles in the current (latest) batch. A show event may
+    // have many accessibles shown, where each accessible in the show event
+    // counts separately here. Every other mutation event adds one to this
+    // count.
+    uint32_t mCurrentBatchAccCount = 0;
+  };
+  MutationEventBatcher mMutationEventBatcher;
 
   friend void DocAccessible::DoInitialUpdate();
 };

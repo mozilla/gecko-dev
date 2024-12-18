@@ -20,6 +20,13 @@
 namespace mozilla {
 namespace a11y {
 
+// Exceeding the IPDL maximum message size will cause a crash. Try to avoid
+// this by only including kMaxAccsPerMessage Accessibles in a single IPDL
+// call. If there are Accessibles beyond this, they will be split across
+// multiple calls.
+static constexpr uint32_t kMaxAccsPerMessage =
+    IPC::Channel::kMaximumMessageSize / (2 * 1024);
+
 /* static */
 void DocAccessibleChild::FlattenTree(LocalAccessible* aRoot,
                                      nsTArray<LocalAccessible*>& aTree) {
@@ -80,34 +87,62 @@ void DocAccessibleChild::InsertIntoIpcTree(LocalAccessible* aChild,
   nsTArray<LocalAccessible*> shownTree;
   FlattenTree(aChild, shownTree);
   uint32_t totalAccs = shownTree.Length();
-  // Exceeding the IPDL maximum message size will cause a crash. Try to avoid
-  // this by only including kMaxAccsPerMessage Accessibels in a single IPDL
-  // call. If there are Accessibles beyond this, they will be split across
-  // multiple calls.
-  constexpr uint32_t kMaxAccsPerMessage =
-      IPC::Channel::kMaximumMessageSize / (2 * 1024);
-  nsTArray<AccessibleData> data(std::min(kMaxAccsPerMessage, totalAccs));
-  for (LocalAccessible* child : shownTree) {
-    if (data.Length() == kMaxAccsPerMessage) {
+  nsTArray<AccessibleData> data(std::min(
+      kMaxAccsPerMessage - mMutationEventBatcher.GetCurrentBatchAccCount(),
+      totalAccs));
+
+  for (uint32_t accIndex = 0; accIndex < totalAccs; ++accIndex) {
+    // This batch of mutation events has no more room left without exceeding our
+    // limit. Write the show event data to the queue.
+    if (data.Length() + mMutationEventBatcher.GetCurrentBatchAccCount() ==
+        kMaxAccsPerMessage) {
       if (ipc::ProcessChild::ExpectingShutdown()) {
         return;
       }
-      SendShowEvent(data, aSuppressShowEvent, false, false);
-      data.ClearAndRetainStorage();
+      // Note: std::move used on aSuppressShowEvent to force selection of the
+      // ShowEventData constructor that takes all rvalue reference arguments.
+      const uint32_t accCount = data.Length();
+      AppendMutationEventData(
+          ShowEventData{std::move(data), std::move(aSuppressShowEvent), false,
+                        false},
+          accCount);
+
+      // Reset data to avoid relying on state of moved-from object.
+      // Preallocate an appropriate capacity to avoid resizing.
+      data = nsTArray<AccessibleData>(
+          std::min(kMaxAccsPerMessage, totalAccs - accIndex));
     }
+    LocalAccessible* child = shownTree[accIndex];
     data.AppendElement(SerializeAcc(child));
   }
   if (ipc::ProcessChild::ExpectingShutdown()) {
     return;
   }
   if (!data.IsEmpty()) {
-    SendShowEvent(data, aSuppressShowEvent, true, false);
+    const uint32_t accCount = data.Length();
+    AppendMutationEventData(
+        ShowEventData{std::move(data), std::move(aSuppressShowEvent), true,
+                      false},
+        accCount);
   }
 }
 
 void DocAccessibleChild::ShowEvent(AccShowEvent* aShowEvent) {
   LocalAccessible* child = aShowEvent->GetAccessible();
-  InsertIntoIpcTree(child, false);
+  InsertIntoIpcTree(child, /* aSuppressShowEvent */ false);
+}
+
+void DocAccessibleChild::AppendMutationEventData(MutationEventData aData,
+                                                 uint32_t aAccCount) {
+  mMutationEventBatcher.AppendMutationEventData(std::move(aData), aAccCount);
+}
+
+void DocAccessibleChild::SendQueuedMutationEvents() {
+  mMutationEventBatcher.SendQueuedMutationEvents(*this);
+}
+
+size_t DocAccessibleChild::MutationEventQueueLength() const {
+  return mMutationEventBatcher.EventCount();
 }
 
 mozilla::ipc::IPCResult DocAccessibleChild::RecvTakeFocus(const uint64_t& aID) {
@@ -426,6 +461,55 @@ HyperTextAccessible* DocAccessibleChild::IdToHyperTextAccessible(
     const uint64_t& aID) const {
   LocalAccessible* acc = IdToAccessible(aID);
   return acc && acc->IsHyperText() ? acc->AsHyperText() : nullptr;
+}
+
+void DocAccessibleChild::MutationEventBatcher::AppendMutationEventData(
+    MutationEventData aData, uint32_t aAccCount) {
+  // We want to send the mutation events in batches. The number of events in a
+  // batch is unscientific. The goal is to avoid sending more data than would
+  // overwhelm the IPC mechanism (see IPC::Channel::kMaximumMessageSize), but we
+  // stop short of measuring actual message size here. We also don't want to
+  // send too many events in one message, since that could choke up the parent
+  // process as it tries to fire all the events synchronously. To address these
+  // constraints, we construct batches of mutation event data, limiting our
+  // events by number of Accessibles touched.
+  MOZ_ASSERT(aAccCount <= kMaxAccsPerMessage,
+             "More accessibles given than can fit in a single batch");
+
+  // If the latest batch cannot accommodate the number of new Accessibles,
+  // create a new batch by marking the batch boundary.
+  if (mCurrentBatchAccCount + aAccCount > kMaxAccsPerMessage) {
+    mBatchBoundaries.AppendElement(mMutationEventData.Length());
+    mCurrentBatchAccCount = 0;
+  }
+  mMutationEventData.AppendElement(std::move(aData));
+  mCurrentBatchAccCount += aAccCount;
+}
+
+void DocAccessibleChild::MutationEventBatcher::SendQueuedMutationEvents(
+    DocAccessibleChild& aDocAcc) {
+  // Set up the final batch boundary at the end of the event data.
+  mBatchBoundaries.AppendElement(mMutationEventData.Length());
+
+  // Loop over all of the batch boundaries and send the data within.
+  size_t batchStartIndex = 0;
+  for (size_t batchEndIndex : mBatchBoundaries) {
+    Span<const MutationEventData> batch{
+        mMutationEventData.Elements() + batchStartIndex,
+        mMutationEventData.Elements() + batchEndIndex};
+    if (ipc::ProcessChild::ExpectingShutdown()) {
+      break;
+    }
+    if (!batch.IsEmpty()) {
+      aDocAcc.SendMutationEvents(batch);
+    }
+    batchStartIndex = batchEndIndex;
+  }
+
+  // Reset the batcher state.
+  mMutationEventData.Clear();
+  mBatchBoundaries.Clear();
+  mCurrentBatchAccCount = 0;
 }
 
 }  // namespace a11y

@@ -1007,6 +1007,12 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
   CoalesceMutationEvents();
   ProcessMutationEvents();
 
+  // ProcessMutationEvents for content process documents merely queues mutation
+  // events. Send those events in a batch now if applicable.
+  if (mDocument && mDocument->IPCDoc()) {
+    mDocument->IPCDoc()->SendQueuedMutationEvents();
+  }
+
   // When firing mutation events, mObservingState is set to
   // eRefreshProcessing. Any calls to ScheduleProcessing() that
   // occur before mObservingState is reset will be dropped because we only
@@ -1027,6 +1033,13 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
   }
 
   ProcessEventQueue();
+
+  // There should not be any more mutation events in the mutation event queue.
+  // ProcessEventQueue should have sent all of them.
+  if (mDocument && mDocument->IPCDoc()) {
+    MOZ_ASSERT(mDocument->IPCDoc()->MutationEventQueueLength() == 0,
+               "Mutation event queue is non-empty.");
+  }
 
   if (IPCAccessibilityActive()) {
     size_t newDocCount = newChildDocs.Length();
