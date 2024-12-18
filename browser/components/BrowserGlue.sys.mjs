@@ -4735,8 +4735,10 @@ BrowserGlue.prototype = {
           template: "multistage",
           id: data?.id || "ABOUT_WELCOME_MODAL",
           backdrop: data?.backdrop,
-          screens: data?.screens,
+          screens: data?.modalScreens || data?.screens,
           UTMTerm: data?.UTMTerm,
+          disableEscClose: data?.requireAction,
+          // displayed as a window modal by default
         },
       },
     };

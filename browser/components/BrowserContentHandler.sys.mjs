@@ -817,7 +817,12 @@ nsBrowserContentHandler.prototype = {
           case OVERRIDE_NEW_PROFILE:
             // New profile.
             gFirstRunProfile = true;
-            if (lazy.NimbusFeatures.aboutwelcome.getVariable("showModal")) {
+            // If we're showing the main onboarding content in a modal, skip
+            // showing about:welcome as the homepage.
+            if (
+              lazy.NimbusFeatures.aboutwelcome.getVariable("showModal") &&
+              !lazy.NimbusFeatures.aboutwelcome.getVariable("modalScreens")
+            ) {
               break;
             }
             overridePage = Services.urlFormatter.formatURLPref(
