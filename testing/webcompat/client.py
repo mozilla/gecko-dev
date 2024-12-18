@@ -14,7 +14,6 @@ import webdriver
 from PIL import Image
 from webdriver.bidi.error import InvalidArgumentException, NoSuchFrameException
 from webdriver.bidi.modules.script import ContextTarget
-from webdriver.error import UnsupportedOperationException
 
 
 class Client:
@@ -56,13 +55,10 @@ class Client:
                 self.context = orig_context
 
     def set_screen_size(self, width, height):
-        try:
-            route = "window/size"
-            body = {"width": width, "height": height}
-            self.session.send_session_command("POST", route, body)
+        if self.session.capabilities.get("setWindowRect"):
+            self.session.window.size = (width, height)
             return True
-        except UnsupportedOperationException:
-            return False
+        return False
 
     def get_element_screen_position(self, element):
         return self.execute_script(
