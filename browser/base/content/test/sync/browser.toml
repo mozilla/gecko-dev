@@ -15,6 +15,8 @@ support-files = ["head.js"]
 https_first_disabled = true
 support-files = ["browser_fxa_web_channel.html"]
 
+["browser_signed_out_avatar_variants.js"]
+
 ["browser_sync.js"]
 
 ["browser_synced_tabs_view.js"]
