@@ -53,6 +53,7 @@ import org.mozilla.fenix.compose.IconButton
 import org.mozilla.fenix.compose.LongPressIconButton
 import org.mozilla.fenix.compose.utils.KeyboardState
 import org.mozilla.fenix.compose.utils.keyboardAsState
+import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
@@ -104,6 +105,9 @@ fun BrowserNavBar(
     onVisibilityUpdated: (Boolean) -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
+    // DO NOT ADD ANYTHING ABOVE THIS getProfilerTime CALL!
+    val profilerStartTime = components.core.engine.profiler?.getProfilerTime()
+
     val tabCount = browserStore.observeAsState(initialValue = 0) { browserState ->
         if (isPrivateMode) {
             browserState.privateTabs.size
@@ -152,6 +156,13 @@ fun BrowserNavBar(
             onMenuButtonClick = onMenuButtonClick,
         )
     }
+
+    // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
+    components.core.engine.profiler?.addMarker(
+        MarkersFragmentLifecycleCallbacks.MARKER_NAME,
+        profilerStartTime,
+        "NavigationBar.BrowserNavBar",
+    )
 }
 
 /**
@@ -187,6 +198,9 @@ fun HomeNavBar(
     onMenuButtonClick: () -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
+    // DO NOT ADD ANYTHING ABOVE THIS getProfilerTime CALL!
+    val profilerStartTime = components.core.engine.profiler?.getProfilerTime()
+
     val tabCount = browserStore.observeAsState(initialValue = 0) { browserState ->
         if (isPrivateMode) {
             browserState.privateTabs.size
@@ -245,6 +259,13 @@ fun HomeNavBar(
             )
         }
     }
+
+    // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
+    components.core.engine.profiler?.addMarker(
+        MarkersFragmentLifecycleCallbacks.MARKER_NAME,
+        profilerStartTime,
+        "NavigationBar.HomeNavBar",
+    )
 }
 
 /**
@@ -283,6 +304,9 @@ fun CustomTabNavBar(
     onVisibilityUpdated: (Boolean) -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
+    // DO NOT ADD ANYTHING ABOVE THIS getProfilerTime CALL!
+    val profilerStartTime = components.core.engine.profiler?.getProfilerTime()
+
     // A follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888573
     val canGoBack by browserStore.observeAsState(initialValue = false) {
         it.findCustomTab(customTabSessionId)?.content?.canGoBack ?: false
@@ -319,6 +343,13 @@ fun CustomTabNavBar(
             onMenuButtonClick = onMenuButtonClick,
         )
     }
+
+    // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
+    components.core.engine.profiler?.addMarker(
+        MarkersFragmentLifecycleCallbacks.MARKER_NAME,
+        profilerStartTime,
+        "NavigationBar.CustomTabNavBar",
+    )
 }
 
 /**
