@@ -1206,6 +1206,8 @@ class Artifacts(object):
             target_64bit = True
 
         if self._defines.get("XP_LINUX", False):
+            if self._substs["TARGET_CPU"] == "aarch64":
+                return "linux64-aarch64" + target_suffix
             return ("linux64" if target_64bit else "linux") + target_suffix
         if self._defines.get("XP_WIN", False):
             if self._substs["TARGET_CPU"] == "aarch64":

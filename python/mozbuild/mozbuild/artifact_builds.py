@@ -16,6 +16,8 @@ JOB_CHOICES = {
     "linux-debug",
     "linux64-opt",
     "linux64-debug",
+    "linux64-aarch64-opt",
+    "linux64-aarch64-debug",
     "macosx64-opt",
     "macosx64-debug",
     "macosx64-aarch64-debug",
