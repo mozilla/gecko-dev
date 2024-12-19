@@ -88,6 +88,7 @@ add_task(async function () {
         selected: 2,
         title: "mozilla.org",
         _closedTabs: [],
+        closedGroups: [],
       },
       // _closedWindows[1]
       {
@@ -140,6 +141,7 @@ add_task(async function () {
         ],
         selected: 5,
         _closedTabs: [],
+        closedGroups: [],
       },
       // _closedWindows[2]
       {
@@ -187,6 +189,7 @@ add_task(async function () {
             title: REMEMBER,
           },
         ],
+        closedGroups: [],
       },
     ],
   };

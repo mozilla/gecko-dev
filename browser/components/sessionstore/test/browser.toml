@@ -207,6 +207,8 @@ skip-if = ["ccov"] # Bug 1625525
 
 ["browser_privatetabs.js"]
 
+["browser_purge_domaindata.js"]
+
 ["browser_purge_shistory.js"]
 
 ["browser_remoteness_flip_on_restore.js"]
