@@ -1354,6 +1354,7 @@ fxa_avatar_menu:
         The current state of the user. Possible states are "not_configured", "unverified",
         "signedin" and "login_failed".
       fxa_avatar: Boolean for whether or not account has set an avatar
+      fxa_sync_on: Boolean for whether or not sync was configured at the time the event fired
 
 fxa_app_menu:
   click:
@@ -1389,6 +1390,7 @@ fxa_app_menu:
         The current state of the user. Possible states are "not_configured", "unverified",
         "signedin" and "login_failed".
       fxa_avatar: Boolean for whether or not account has set an avatar
+      fxa_sync_on: Boolean for whether or not sync was configured at the time the event fired.
 
 messaging_experiments:
   reach:

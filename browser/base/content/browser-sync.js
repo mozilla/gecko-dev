@@ -1322,6 +1322,7 @@ var gSync = {
       let extraOptions = {
         fxa_status: state.status,
         fxa_avatar: hasAvatar ? "true" : "false",
+        fxa_sync_on: state.syncEnabled,
       };
 
       let eventName = this._getEntryPointForElement(sourceElement);

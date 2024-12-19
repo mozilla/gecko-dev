@@ -97,6 +97,10 @@ fxa_avatar_menu:
         description: >
           Boolean for whether or not account has set an avatar
         type: string
+      fxa_sync_on:
+        description: >
+          Boolean for whether or not sync was configured at the time the event fired.
+        type: string
     telemetry_mirror: Fxa_avatar_menu_Click_AccountSettings
     no_lint:
       - COMMON_PREFIX
@@ -368,6 +372,10 @@ fxa_app_menu:
       fxa_avatar:
         description: >
           Boolean for whether or not account has set an avatar
+        type: string
+      fxa_sync_on:
+        description: >
+          Boolean for whether or not sync was configured at the time the event fired.
         type: string
     telemetry_mirror: Fxa_app_menu_Click_AccountSettings
     no_lint:
