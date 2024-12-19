@@ -731,9 +731,9 @@ add_task(async function test_new_sync_setup_ui_exp_enabled() {
   // Enroll in the experiment with the feature enabled
   await ExperimentAPI.ready();
   let doCleanup = await ExperimentFakes.enrollWithFeatureConfig({
-    featureId: NimbusFeatures.syncDecouplingUpdates.featureId,
+    featureId: NimbusFeatures.syncSetupFlow.featureId,
     value: {
-      syncSetup: true,
+      enabled: true,
     },
   });
 
@@ -784,9 +784,9 @@ add_task(async function test_new_sync_setup_ui_no_exp() {
   // Enroll in the experiment with the feature disabled
   await ExperimentAPI.ready();
   let doCleanup = await ExperimentFakes.enrollWithFeatureConfig({
-    featureId: NimbusFeatures.syncDecouplingUpdates.featureId,
+    featureId: NimbusFeatures.syncSetupFlow.featureId,
     value: {
-      syncSetup: false,
+      enabled: false,
     },
   });
 

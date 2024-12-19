@@ -753,7 +753,11 @@ var gSync = {
       document,
       "PanelUI-fxa-menu-sync-prefs-button"
     );
-    syncPrefsButtonEl.hidden = !UIState.get().syncEnabled;
+    const syncEnabled = UIState.get().syncEnabled;
+    syncPrefsButtonEl.hidden = !syncEnabled;
+    if (!syncEnabled) {
+      this._disableSyncOffIndicator();
+    }
 
     // We should ensure that we do not show the sign out button
     // if the user is not signed in
@@ -1028,10 +1032,7 @@ var gSync = {
     }
   },
 
-  async toggleAccountPanel(
-    anchor = document.getElementById("fxa-toolbar-menu-button"),
-    aEvent
-  ) {
+  async toggleAccountPanel(anchor = null, aEvent) {
     // Don't show the panel if the window is in customization mode.
     if (document.documentElement.hasAttribute("customizing")) {
       return;
@@ -1046,10 +1047,15 @@ var gSync = {
       return;
     }
 
-    if (
-      anchor == document.getElementById("fxa-toolbar-menu-button") &&
-      anchor.getAttribute("open") != "true"
-    ) {
+    const fxaToolbarMenuBtn = document.getElementById(
+      "fxa-toolbar-menu-button"
+    );
+
+    if (anchor === null) {
+      anchor = fxaToolbarMenuBtn;
+    }
+
+    if (anchor == fxaToolbarMenuBtn && anchor.getAttribute("open") != "true") {
       if (ASRouter.initialized) {
         await ASRouter.sendTriggerMessage({
           browser: gBrowser.selectedBrowser,
@@ -1080,7 +1086,7 @@ var gSync = {
         this.updateFxAPanel(UIState.get());
         this.updateCTAPanel(anchor);
         PanelUI.showSubView("PanelUI-fxa", anchor, aEvent);
-      } else if (anchor == document.getElementById("fxa-toolbar-menu-button")) {
+      } else if (anchor == fxaToolbarMenuBtn) {
         // The fxa toolbar button doesn't have much context before the user
         // clicks it so instead of going straight to the login page,
         // we take them to a page that has more information
@@ -1117,9 +1123,34 @@ var gSync = {
     }
   },
 
+  _disableSyncOffIndicator() {
+    const newSyncSetupEnabled =
+      NimbusFeatures.syncSetupFlow.getVariable("enabled");
+    const SYNC_PANEL_ACCESSED_PREF =
+      "identity.fxaccounts.toolbar.syncSetup.panelAccessed";
+    // If the user was enrolled in the experiment and hasn't previously accessed
+    // the panel, we disable the sync off indicator
+    if (
+      newSyncSetupEnabled &&
+      !Services.prefs.getBoolPref(SYNC_PANEL_ACCESSED_PREF, false)
+    ) {
+      // Turn off the indicator so the user doesn't see it in subsequent openings
+      Services.prefs.setBoolPref(SYNC_PANEL_ACCESSED_PREF, true);
+    }
+  },
+
+  _shouldShowSyncOffIndicator() {
+    const newSyncSetupEnabled =
+      NimbusFeatures.syncSetupFlow.getVariable("enabled");
+    if (newSyncSetupEnabled) {
+      NimbusFeatures.syncSetupFlow.recordExposureEvent();
+    }
+    return newSyncSetupEnabled;
+  },
+
   updateFxAPanel(state = {}) {
     const isNewSyncSetupFlowEnabled =
-      NimbusFeatures.syncDecouplingUpdates.getVariable("syncSetup");
+      NimbusFeatures.syncSetupFlow.getVariable("enabled");
     const mainWindowEl = document.documentElement;
 
     const menuHeaderTitleEl = PanelMultiView.getViewNode(
@@ -1222,6 +1253,9 @@ var gSync = {
         if (state.syncEnabled) {
           syncNowButtonEl.removeAttribute("hidden");
           syncSetupEl.hidden = true;
+        } else if (this._shouldShowSyncOffIndicator()) {
+          let fxaButton = document.getElementById("fxa-toolbar-menu-button");
+          fxaButton?.setAttribute("badge-status", "sync-disabled");
         }
         break;
 
