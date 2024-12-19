@@ -4,7 +4,6 @@ tags = "resistfingerprinting"
 support-files = [
   "coop_header.sjs",
   "file_dummy.html",
-  "file_pdf.pdf",
   "file_keyBoardEvent.sjs",
   "file_navigator.html",
   "file_navigator.worker.js",

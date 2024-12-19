@@ -340,32 +340,17 @@ class _RFPHelper {
     });
   }
 
-  _noLetterBoxingFor({ contentPrincipal, currentURI }) {
-    // we don't want letterboxing on...
-    return (
-      // ... privileged pages
-      contentPrincipal.isSystemPrincipal ||
-      // pdf.js
-      contentPrincipal.origin.startsWith("resource://pdf.js") ||
-      // ... about: URIs EXCEPT about:blank and about:srcdoc
-      // (see IsContentAccessibleAboutURI)
-      (currentURI.schemeIs("about") &&
-        currentURI.filePath != "blank" &&
-        currentURI.filePath != "srcdoc") ||
-      // ... source code
-      currentURI.schemeIs("view-source") ||
-      // ... browser extensions
-      contentPrincipal.addonPolicy
-    );
-  }
-
   _addOrClearContentMargin(aBrowser) {
+    let tab = aBrowser.getTabBrowser().getTabForBrowser(aBrowser);
+
     // We won't do anything for lazy browsers.
     if (!aBrowser.isConnected) {
       return;
     }
-    if (this._noLetterBoxingFor(aBrowser)) {
-      // this tab doesn't need letterboxing
+
+    // We should apply no margin around an empty tab or a tab with system
+    // principal.
+    if (tab.isEmpty || aBrowser.contentPrincipal.isSystemPrincipal) {
       this._clearContentViewMargin(aBrowser);
     } else {
       this._roundContentView(aBrowser);
