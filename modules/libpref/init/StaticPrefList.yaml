@@ -2565,7 +2565,7 @@
 # Whether the scheduler interface will be exposed
 - name: dom.enable_web_task_scheduling
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # If this is true, it's allowed to fire "cut", "copy" and "paste" events.
