@@ -697,12 +697,12 @@ async function promisePartFileReady(aDownload) {
       await promiseTimeout(50);
     } while (!(await IOUtils.exists(aDownload.target.partFilePath)));
   } catch (ex) {
-    if (!(ex instanceof IOUtils.Error)) {
+    if (!DOMException.isInstance(ex)) {
       throw ex;
     }
     // This indicates that the file has been created and cannot be accessed.
     // The specific error might vary with the platform.
-    info("Expected exception while checking existence: " + ex.toString());
+    info("IOUtils exception while checking existence: " + ex.name);
     // Wait some more time to allow the write to complete.
     await promiseTimeout(100);
   }
