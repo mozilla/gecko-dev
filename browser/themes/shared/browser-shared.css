@@ -1142,6 +1142,10 @@ popupnotificationcontent {
   font-weight: var(--font-weight-bold);
   font-size: 1.5em;
   margin: auto;
+
+  > p {
+    margin-block: auto;
+  }
 }
 
 .popup-notification-description[popupid="relay-integration-offer-notification"] > div:first-of-type {
