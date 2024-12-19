@@ -298,6 +298,10 @@ tags = "os_integration"
 
 ["browser_tab_groups_save_on_removeAllTabsBut.js"]
 
+["browser_tab_groups_save_on_removeTabsToTheEnd.js"]
+
+["browser_tab_groups_save_on_removeTabsToTheStart.js"]
+
 ["browser_tab_groups_save_on_window_close.js"]
 
 ["browser_tab_groups_saved.js"]

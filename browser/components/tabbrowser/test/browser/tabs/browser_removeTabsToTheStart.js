@@ -13,13 +13,6 @@ add_task(async function removeTabsToTheStart() {
   let lastTab = await addTab();
   gBrowser.pinTab(pinnedTab);
 
-  // Check that there is only one closable tab from lastTab to the start
-  is(
-    gBrowser.getTabsToTheStartFrom(lastTab).length,
-    1,
-    "One unpinned tab towards the start"
-  );
-
   // Remove tabs to the start
   gBrowser.removeTabsToTheStartFrom(lastTab);
 

@@ -9,13 +9,6 @@ add_task(async function removeTabsToTheEnd() {
   let lastTab = await addTab();
   gBrowser.pinTab(pinnedTab);
 
-  // Check that there is only one closable tab from firstTab to the end
-  is(
-    gBrowser.getTabsToTheEndFrom(firstTab).length,
-    1,
-    "One unpinned tab towards the end"
-  );
-
   // Remove tabs to the end
   gBrowser.removeTabsToTheEndFrom(firstTab);
 
