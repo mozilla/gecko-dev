@@ -317,6 +317,27 @@ export class MozBaseInputElement extends MozLitElement {
     this.inputEl.focus();
   }
 
+  blur() {
+    this.inputEl.blur();
+  }
+
+  /**
+   * Dispatches an event from the host element so that outside
+   * listeners can react to these events
+   *
+   * @param {Event} event
+   * @memberof MozBaseInputElement
+   */
+  redispatchEvent(event) {
+    let { bubbles, cancelable, composed, type } = event;
+    let newEvent = new Event(type, {
+      bubbles,
+      cancelable,
+      composed,
+    });
+    this.dispatchEvent(newEvent);
+  }
+
   inputTemplate() {
     throw new Error(
       "inputTemplate() must be implemented and provide the input element"

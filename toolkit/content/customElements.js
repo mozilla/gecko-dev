@@ -830,6 +830,10 @@
             "moz-five-star",
             "chrome://global/content/elements/moz-five-star.mjs",
           ],
+          [
+            "moz-input-text",
+            "chrome://global/content/elements/moz-input-text.mjs",
+          ],
           ["moz-label", "chrome://global/content/elements/moz-label.mjs"],
           [
             "moz-message-bar",

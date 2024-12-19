@@ -77,18 +77,6 @@ export default class MozSelect extends MozBaseInputElement {
     this.value = event.target.value;
   }
 
-  /**
-   * Dispatches an event from the host element so that outside
-   * listeners can react to these events
-   *
-   * @param {Event} event
-   * @memberof MozSelect
-   */
-  redispatchEvent(event) {
-    let newEvent = new Event(event.type, event);
-    this.dispatchEvent(newEvent);
-  }
-
   inputTemplate() {
     return html`
       <select
