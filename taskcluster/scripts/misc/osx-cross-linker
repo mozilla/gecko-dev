@@ -1,8 +1,0 @@
-#!/bin/sh
-
-exec $MOZ_FETCHES_DIR/clang/bin/clang -v \
-  -fuse-ld=lld \
-  -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET:-10.12} \
-  -target $TARGET \
-  -isysroot $MOZ_FETCHES_DIR/MacOSX14.4.sdk \
-  "$@"
