@@ -3304,74 +3304,6 @@ void IMENotification::TextChangeDataBase::Test() {
 #ifdef DEBUG
 //////////////////////////////////////////////////////////////
 //
-// Convert a GUI event message code to a string.
-// Makes it a lot easier to debug events.
-//
-// See gtk/nsWidget.cpp and windows/nsWindow.cpp
-// for a DebugPrintEvent() function that uses
-// this.
-//
-//////////////////////////////////////////////////////////////
-/* static */
-nsAutoString nsBaseWidget::debug_GuiEventToString(WidgetGUIEvent* aGuiEvent) {
-  NS_ASSERTION(nullptr != aGuiEvent, "cmon, null gui event.");
-
-  nsAutoString eventName(u"UNKNOWN"_ns);
-
-#  define _ASSIGN_eventName(_value, _name) \
-    case _value:                           \
-      eventName.AssignLiteral(_name);      \
-      break
-
-  switch (aGuiEvent->mMessage) {
-    _ASSIGN_eventName(eBlur, "eBlur");
-    _ASSIGN_eventName(eDrop, "eDrop");
-    _ASSIGN_eventName(eDragEnter, "eDragEnter");
-    _ASSIGN_eventName(eDragExit, "eDragExit");
-    _ASSIGN_eventName(eDragOver, "eDragOver");
-    _ASSIGN_eventName(eEditorInput, "eEditorInput");
-    _ASSIGN_eventName(eFocus, "eFocus");
-    _ASSIGN_eventName(eFocusIn, "eFocusIn");
-    _ASSIGN_eventName(eFocusOut, "eFocusOut");
-    _ASSIGN_eventName(eFormSelect, "eFormSelect");
-    _ASSIGN_eventName(eFormChange, "eFormChange");
-    _ASSIGN_eventName(eFormReset, "eFormReset");
-    _ASSIGN_eventName(eFormSubmit, "eFormSubmit");
-    _ASSIGN_eventName(eImageAbort, "eImageAbort");
-    _ASSIGN_eventName(eLoadError, "eLoadError");
-    _ASSIGN_eventName(eKeyDown, "eKeyDown");
-    _ASSIGN_eventName(eKeyPress, "eKeyPress");
-    _ASSIGN_eventName(eKeyUp, "eKeyUp");
-    _ASSIGN_eventName(eMouseEnterIntoWidget, "eMouseEnterIntoWidget");
-    _ASSIGN_eventName(eMouseExitFromWidget, "eMouseExitFromWidget");
-    _ASSIGN_eventName(eMouseDown, "eMouseDown");
-    _ASSIGN_eventName(eMouseUp, "eMouseUp");
-    _ASSIGN_eventName(eMouseDoubleClick, "eMouseDoubleClick");
-    _ASSIGN_eventName(eMouseMove, "eMouseMove");
-    _ASSIGN_eventName(ePointerClick, "ePointerClick");
-    _ASSIGN_eventName(ePointerAuxClick, "ePointerAuxClick");
-    _ASSIGN_eventName(eLoad, "eLoad");
-    _ASSIGN_eventName(ePopState, "ePopState");
-    _ASSIGN_eventName(eBeforeScriptExecute, "eBeforeScriptExecute");
-    _ASSIGN_eventName(eAfterScriptExecute, "eAfterScriptExecute");
-    _ASSIGN_eventName(eUnload, "eUnload");
-    _ASSIGN_eventName(eHashChange, "eHashChange");
-    _ASSIGN_eventName(eReadyStateChange, "eReadyStateChange");
-    _ASSIGN_eventName(eXULBroadcast, "eXULBroadcast");
-    _ASSIGN_eventName(eXULCommandUpdate, "eXULCommandUpdate");
-
-#  undef _ASSIGN_eventName
-
-    default: {
-      eventName.AssignLiteral("UNKNOWN: ");
-      eventName.AppendInt(aGuiEvent->mMessage);
-    } break;
-  }
-
-  return nsAutoString(eventName);
-}
-//////////////////////////////////////////////////////////////
-//
 // Code to deal with paint and event debug prefs.
 //
 //////////////////////////////////////////////////////////////
@@ -3483,11 +3415,8 @@ void nsBaseWidget::debug_DumpEvent(FILE* aFileOut, nsIWidget* aWidget,
 
   if (!debug_GetCachedBoolPref("nglayout.debug.event_dumping")) return;
 
-  NS_LossyConvertUTF16toASCII tempString(
-      debug_GuiEventToString(aGuiEvent).get());
-
   fprintf(aFileOut, "%4d %-26s widget=%-8p name=%-12s id=0x%-6x refpt=%d,%d\n",
-          _GetPrintCount(), tempString.get(), (void*)aWidget, aWidgetName,
+          _GetPrintCount(), ToChar(aGuiEvent->mMessage), (void*)aWidget, aWidgetName,
           aWindowID, aGuiEvent->mRefPoint.x.value,
           aGuiEvent->mRefPoint.y.value);
 }

@@ -737,9 +737,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
 #ifdef DEBUG
  protected:
-  static nsAutoString debug_GuiEventToString(
-      mozilla::WidgetGUIEvent* aGuiEvent);
-
   static void debug_DumpInvalidate(FILE* aFileOut, nsIWidget* aWidget,
                                    const LayoutDeviceIntRect* aRect,
                                    const char* aWidgetName, int32_t aWindowID);
