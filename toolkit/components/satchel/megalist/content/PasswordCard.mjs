@@ -23,6 +23,7 @@ export class PasswordCard extends MozLitElement {
     reauthCommandHandler: { type: Function },
     onPasswordRevealClick: { type: Function },
     handleEditButtonClick: { type: Function },
+    handleViewAlertClick: { type: Function },
   };
 
   static get queries() {
@@ -133,7 +134,7 @@ export class PasswordCard extends MozLitElement {
   }
 
   onViewAlertClick() {
-    // TODO: implement me
+    this.handleViewAlertClick();
   }
 
   #onOriginLineClick(lineIndex) {
@@ -183,7 +184,7 @@ export class PasswordCard extends MozLitElement {
           this.#onCopyButtonClick(this.username.lineIndex);
           return true;
         }}
-        ?alert=${this.username.value.length === 0}
+        ?alert=${!this.username.value.length}
       >
       </login-line>
     `;

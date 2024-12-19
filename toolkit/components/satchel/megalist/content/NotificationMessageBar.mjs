@@ -20,6 +20,7 @@ const actionButton = action => {
 };
 
 const notificationShell = ({
+  dismissable = true,
   onDismiss,
   messageHandler,
   dataL10nId,
@@ -34,7 +35,7 @@ const notificationShell = ({
   return html`
     <moz-message-bar
       @message-bar:user-dismissed=${onDismiss}
-      dismissable
+      ?dismissable=${dismissable}
       type=${type}
       data-l10n-id=${dataL10nId}
       data-l10n-args=${ifDefined(dataL10nArgs)}
@@ -50,7 +51,7 @@ const notificationShell = ({
             href=${link.url}
             @click=${e => {
               e.preventDefault();
-              messageHandler(link.onClick);
+              messageHandler("OpenLink", { value: link.url });
             }}
           ></a>`,
         () => nothing
@@ -93,9 +94,8 @@ class NotificationMessageBar extends MozLitElement {
       messageL10nArgs: this.notification.l10nArgs,
       type: "success",
       link: {
-        url: "about:loginsimportreport",
+        url: this.notification.url,
         dataL10nId: "passwords-import-detailed-report",
-        onClick: this.notification.commands.onLinkClick,
       },
       primaryAction: {
         type: "primary",
@@ -113,9 +113,8 @@ class NotificationMessageBar extends MozLitElement {
       dataL10nId: "passwords-import-error-heading-and-message",
       type: "error",
       link: {
-        url: "https://support.mozilla.org/kb/import-login-data-file",
+        url: this.notification.url,
         dataL10nId: "passwords-import-learn-more",
-        onClick: this.notification.commands.onLinkClick,
       },
       primaryAction: {
         type: "primary",
@@ -221,27 +220,85 @@ class NotificationMessageBar extends MozLitElement {
   }
 
   #renderDiscardChanges() {
+    return html`${notificationShell({
+      onDismiss: this.onDismiss,
+      dataL10nId: "passwords-discard-changes-heading-and-message",
+      type: "warning",
+      primaryAction: {
+        type: "destructive",
+        dataL10nId: "passwords-discard-changes-confirm-button",
+        onClick: () =>
+          this.messageHandler("ConfirmDiscardChanges", {
+            value: {
+              fromSidebar: this.notification.fromSidebar,
+              passwordIndex: this.notification.passwordIndex,
+            },
+          }),
+      },
+      secondaryAction: {
+        dataL10nId: "passwords-discard-changes-go-back-button",
+        onClick: this.onDismiss,
+      },
+    })}`;
+  }
+
+  #renderBreachedOriginWarning() {
     return html`
       ${notificationShell({
+        dismissable: false,
         onDismiss: this.onDismiss,
-        dataL10nId: "passwords-discard-changes-heading-and-message",
-        type: "warning",
-        primaryAction: {
-          type: "destructive",
-          dataL10nId: "passwords-discard-changes-confirm-button",
-          onClick: () =>
-            this.messageHandler("ConfirmDiscardChanges", {
-              value: { fromSidebar: this.notification.fromSidebar },
-            }),
+        messageHandler: this.messageHandler,
+        dataL10nId: "passwords-breached-origin-heading-and-message",
+        type: "error",
+        link: {
+          url: this.notification.url,
+          dataL10nId: "passwords-breached-origin-link-message",
         },
-        secondaryAction: {
-          dataL10nId: "passwords-discard-changes-go-back-button",
-          onClick: this.onDismiss,
+        primaryAction: {
+          slot: "actions",
+          dataL10nId: "passwords-change-password-button",
+          onClick: this.notification.onButtonClick,
         },
       })}
     `;
   }
 
+  #renderNoUsernameWarning() {
+    return html`
+      ${notificationShell({
+        dismissable: false,
+        onDismiss: this.onDismiss,
+        dataL10nId: "passwords-no-username-heading-and-message",
+        type: "info",
+        primaryAction: {
+          slot: "actions",
+          dataL10nId: "passwords-add-username-button",
+          onClick: this.notification.onButtonClick,
+        },
+      })}
+    `;
+  }
+
+  #renderVulnerablePasswordWarning() {
+    return html`
+      ${notificationShell({
+        dismissable: false,
+        onDismiss: this.onDismiss,
+        messageHandler: this.messageHandler,
+        dataL10nId: "passwords-vulnerable-password-heading-and-message",
+        type: "warning",
+        link: {
+          url: this.notification.url,
+          dataL10nId: "passwords-vulnerabe-password-link-message",
+        },
+        primaryAction: {
+          slot: "actions",
+          dataL10nId: "passwords-change-password-button",
+          onClick: this.notification.onButtonClick,
+        },
+      })}
+    `;
+  }
   render() {
     switch (this.notification?.id) {
       case "import-success":
@@ -260,6 +317,12 @@ class NotificationMessageBar extends MozLitElement {
         return this.#renderDeleteLoginSuccess();
       case "discard-changes":
         return this.#renderDiscardChanges();
+      case "breached-origin-warning":
+        return this.#renderBreachedOriginWarning();
+      case "no-username-warning":
+        return this.#renderNoUsernameWarning();
+      case "vulnerable-password-warning":
+        return this.#renderVulnerablePasswordWarning();
       default:
         return "";
     }
