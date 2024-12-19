@@ -86,6 +86,10 @@ export const MenuMessage = {
       );
     });
 
+    msgElement.addEventListener("FxAMenuMessage:SignUp", () => {
+      win.PanelUI.hide();
+    });
+
     msgContainer.appendChild(msgElement);
 
     if (force) {
@@ -139,6 +143,14 @@ export const MenuMessage = {
 
     msgElement.addEventListener("FxAMenuMessage:Close", () => {
       fxaPanelView.removeAttribute(MenuMessage.SHOWING_FXA_MENU_MESSAGE_ATTR);
+    });
+
+    msgElement.addEventListener("FxAMenuMessage:SignUp", () => {
+      let panelNode = fxaPanelView.closest("panel");
+
+      if (panelNode) {
+        lazy.PanelMultiView.hidePopup(panelNode);
+      }
     });
 
     msgContainer.appendChild(msgElement);

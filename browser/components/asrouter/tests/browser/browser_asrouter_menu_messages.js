@@ -219,13 +219,15 @@ function assertNoMessageInMenuSource(source, win = window) {
  *   The browser window to open the AppMenu for.
  * @param {Function} taskFn
  *   An optional async function to call after the panel is opened and before
- *   it is closed again.
+ *   it is closed again. The taskFn is passed the msgElement as its first
+ *   argument, and the containing <panel> as the second.
  * @returns {Promise<undefined>}
  */
 async function reopenMenuSource(source, expectedMessage, win = window, taskFn) {
   await hideAllPopups(win);
 
   let promiseViewShown;
+  let panel;
 
   if (source === MenuMessage.SOURCES.APP_MENU) {
     promiseViewShown = BrowserTestUtils.waitForEvent(
@@ -233,6 +235,7 @@ async function reopenMenuSource(source, expectedMessage, win = window, taskFn) {
       "ViewShown"
     );
     win.PanelUI.show();
+    panel = win.PanelUI.panel;
   } else if (source === MenuMessage.SOURCES.PXI_MENU) {
     promiseViewShown = BrowserTestUtils.waitForEvent(
       PanelMultiView.getViewNode(win.document, "PanelUI-fxa"),
@@ -242,6 +245,7 @@ async function reopenMenuSource(source, expectedMessage, win = window, taskFn) {
       win.document.getElementById("fxa-toolbar-menu-button"),
       new MouseEvent("mousedown")
     );
+    panel = win.document.getElementById("customizationui-widget-panel");
   }
 
   info(`Waiting for menu source ${source} to open`);
@@ -256,7 +260,7 @@ async function reopenMenuSource(source, expectedMessage, win = window, taskFn) {
   }
 
   if (taskFn) {
-    await taskFn(messageEl);
+    await taskFn(messageEl, panel);
   }
 
   await hideAllPopups(win);
@@ -396,7 +400,8 @@ add_task(async function test_trigger() {
  * Tests that a registered MenuMessage of type fxa_cta will cause an
  * fxa-menu-message element to appear in either menu source panel with the right
  * attributes. This also tests that upon becoming visible, an impression is
- * recorded.
+ * recorded. This also tests that clicking upon a non-button part of the message
+ * doesn't cause the panel to be closed.
  */
 add_task(async function test_show_fxa_cta_message() {
   let sandbox = sinon.createSandbox();
@@ -406,7 +411,25 @@ add_task(async function test_show_fxa_cta_message() {
   await withTestMessage(sandbox, gTestFxAMessage, async () => {
     await withEachSource(async source => {
       info(`Testing source ${source}`);
-      await reopenMenuSource(source, gTestFxAMessage);
+      await reopenMenuSource(
+        source,
+        gTestFxAMessage,
+        window,
+        async (msgElement, panel) => {
+          // Let's make sure that the panel stays open if we dispatch a
+          // generic click event on the message. This isn't an interactive
+          // element, so we intentionally turn off the a11y check.
+          AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
+          msgElement.click();
+          AccessibilityUtils.resetEnv();
+
+          Assert.equal(
+            panel.state,
+            "open",
+            "Panel should still be in the open state."
+          );
+        }
+      );
 
       Assert.ok(
         ASRouter.addImpression.calledWith(gTestFxAMessage),
@@ -520,8 +543,13 @@ add_task(async function test_fxa_cta_actions() {
         source,
         gTestFxAMessage,
         window,
-        async messageEl => {
+        async (messageEl, panel) => {
           messageEl.signUpButton.click();
+          Assert.notEqual(
+            panel.state,
+            "open",
+            "Panel should have started to close."
+          );
         }
       );
 
