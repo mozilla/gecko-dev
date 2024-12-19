@@ -24,6 +24,7 @@ import zstandard
 
 SUPPORTED_TARGETS = {
     "x86_64-unknown-linux-gnu": ("Linux", "x86_64"),
+    "aarch64-unknown-linux-gnu": ("Linux", "aarch64"),
     "x86_64-pc-windows-msvc": ("Windows", "AMD64"),
     "aarch64-pc-windows-msvc": ("Windows", "ARM64"),
     "x86_64-apple-darwin": ("Darwin", "x86_64"),
@@ -247,7 +248,15 @@ def build_one_stage(
             "-DLLVM_ENABLE_BINDINGS=OFF",
             "-DLLVM_ENABLE_CURL=OFF",
             "-DLLVM_INCLUDE_TESTS=OFF",
+            "-DLLVM_HOST_TRIPLE=%s" % target,
+            "-DCMAKE_C_COMPILER_TARGET=%s" % target,
+            "-DCMAKE_CXX_COMPILER_TARGET=%s" % target,
+            "-DCMAKE_ASM_COMPILER_TARGET=%s" % target,
         ]
+        if is_cross_compile(target):
+            cmake_args += [
+                "-DCMAKE_SYSTEM_NAME=%s" % SUPPORTED_TARGETS[target][0],
+            ]
         if is_llvm_toolchain(cc[0], cxx[0]):
             cmake_args += ["-DLLVM_ENABLE_LLD=ON"]
         elif is_windows(target) and is_cross_compile(target):
@@ -306,10 +315,6 @@ def build_one_stage(
             cmake_args += ["-DCMAKE_LIBTOOL=%s" % slashify_path(libtool)]
         if is_darwin(target):
             arch = "arm64" if target.startswith("aarch64") else "x86_64"
-            if is_cross_compile(target):
-                cmake_args += [
-                    "-DCMAKE_SYSTEM_NAME=Darwin",
-                ]
             cmake_args += [
                 "-DCMAKE_SYSTEM_VERSION=%s" % os.environ["MACOSX_DEPLOYMENT_TARGET"],
                 "-DCMAKE_OSX_SYSROOT=%s" % slashify_path(os.getenv("OSX_SYSROOT")),
@@ -321,10 +326,6 @@ def build_one_stage(
                 "-DCMAKE_OSX_ARCHITECTURES=%s" % arch,
                 "-DDARWIN_osx_ARCHS=%s" % arch,
                 "-DDARWIN_osx_SYSROOT=%s" % slashify_path(os.getenv("OSX_SYSROOT")),
-                "-DLLVM_DEFAULT_TARGET_TRIPLE=%s" % target,
-                "-DCMAKE_C_COMPILER_TARGET=%s" % target,
-                "-DCMAKE_CXX_COMPILER_TARGET=%s" % target,
-                "-DCMAKE_ASM_COMPILER_TARGET=%s" % target,
             ]
             if arch == "arm64":
                 cmake_args += [
