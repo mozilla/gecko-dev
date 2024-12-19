@@ -1465,8 +1465,22 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
+#allTabsMenu-groupsView {
+  flex: auto;
+  flex-grow: 0;
+
+  &:empty,
+  &:empty + toolbarseparator {
+    display: none;
+  }
+}
+
 .all-tabs-item {
   margin-inline: var(--arrowpanel-menuitem-margin-inline);
+
+  &.grouped {
+    margin-inline-start: calc(var(--arrowpanel-menuitem-margin-inline) * 2);
+  }
   border-radius: var(--arrowpanel-menuitem-border-radius);
 
   &[selected] {
@@ -1494,6 +1508,19 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
         width: 2px;
       }
     }
+  }
+}
+
+.all-tabs-group-item {
+  > .subviewbutton-iconic > .toolbarbutton-icon {
+    list-style-image: url("chrome://browser/skin/tabbrowser/tab-group-chicklet.svg");
+    fill: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+  }
+
+  > .all-tabs-group-saved-group > .toolbarbutton-icon {
+    -moz-context-properties: fill, stroke;
+    fill: transparent;
+    stroke: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
   }
 }
 

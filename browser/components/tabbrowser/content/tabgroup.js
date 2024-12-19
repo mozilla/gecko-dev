@@ -138,6 +138,15 @@
       this.#updateLabelAriaAttributes();
     }
 
+    // alias for label
+    get name() {
+      return this.label;
+    }
+
+    set name(newName) {
+      this.label = newName;
+    }
+
     get collapsed() {
       return this.hasAttribute("collapsed");
     }
@@ -223,6 +232,19 @@
 
     on_TabSelect() {
       this.collapsed = false;
+    }
+
+    /**
+     * If one of this group's tabs is the selected tab, this will do nothing.
+     * Otherwise, it will expand the group if collapsed, and select the first
+     * tab in its list.
+     */
+    select() {
+      this.collapsed = false;
+      if (gBrowser.selectedTab.group == this) {
+        return;
+      }
+      gBrowser.selectedTab = this.tabs[0];
     }
   }
 
