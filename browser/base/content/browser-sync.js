@@ -668,6 +668,12 @@ var gSync = {
       this.updateCTAPanel();
     }
 
+    const avatarIconVariant =
+      NimbusFeatures.fxaButtonVisibility.getVariable("avatarIconVariant");
+    if (avatarIconVariant) {
+      this.applyAvatarIconVariant(avatarIconVariant);
+    }
+
     this._initialized = true;
   },
 
@@ -2576,6 +2582,24 @@ var gSync = {
     }
 
     return { headerTitleL10nId, headerDescription };
+  },
+
+  /**
+   * Updates the FxA button to show the right avatar variant in the event that
+   * this client is not currently signed into an account.
+   *
+   * @param {string} variant
+   *   One of the string constants for the avatarIconVariant variable on the
+   *   fxaButtonVisibility feature.
+   */
+  applyAvatarIconVariant(variant) {
+    const ICON_VARIANTS = ["control", "human-circle", "fox-circle"];
+
+    if (!ICON_VARIANTS.includes(variant)) {
+      return;
+    }
+
+    document.documentElement.setAttribute("fxa-avatar-icon-variant", variant);
   },
 
   openLink(url) {
