@@ -63,3 +63,14 @@ win64-cbindgen:
             - linux64-clang-toolchain
             - linux64-rust-windows-toolchain
             - vs-toolchain
+
+win64-aarch64-cbindgen:
+    treeherder:
+        symbol: TWA64(cbindgen)
+    run:
+        arguments: ['aarch64-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-windows-toolchain
+            - vs-toolchain
