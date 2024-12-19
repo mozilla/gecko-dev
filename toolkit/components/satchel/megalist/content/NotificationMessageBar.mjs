@@ -129,6 +129,22 @@ class NotificationMessageBar extends MozLitElement {
     })}`;
   }
 
+  #renderExportPasswordsSuccess() {
+    return html`
+      ${notificationShell({
+        onDismiss: this.onDismiss,
+        dataL10nId: "passwords-export-success-heading",
+        type: "success",
+        primaryAction: {
+          type: "primary",
+          slot: "actions",
+          dataL10nId: "passwords-export-success-button",
+          onClick: this.onDismiss,
+        },
+      })}
+    `;
+  }
+
   #renderAddLoginSuccess() {
     return html`
       ${notificationShell({
@@ -232,6 +248,8 @@ class NotificationMessageBar extends MozLitElement {
         return this.#renderImportSuccess();
       case "import-error":
         return this.#renderImportError();
+      case "export-passwords-success":
+        return this.#renderExportPasswordsSuccess();
       case "add-login-success":
         return this.#renderAddLoginSuccess();
       case "login-already-exists-warning":
