@@ -2237,13 +2237,14 @@ var BookmarkingUI = {
     let otherBookmarksButton = document.createXULElement("toolbarbutton");
     otherBookmarksButton.setAttribute("type", "menu");
     otherBookmarksButton.setAttribute("container", "true");
-    otherBookmarksButton.setAttribute(
-      "onpopupshowing",
-      "document.getElementById('PlacesToolbar')._placesView._onOtherBookmarksPopupShowing(event);"
-    );
     otherBookmarksButton.id = "OtherBookmarks";
     otherBookmarksButton.className = "bookmark-item";
     otherBookmarksButton.hidden = "true";
+    otherBookmarksButton.addEventListener("popupshowing", event =>
+      document
+        .getElementById("PlacesToolbar")
+        ._placesView._onOtherBookmarksPopupShowing(event)
+    );
 
     MozXULElement.insertFTLIfNeeded("browser/places.ftl");
     document.l10n.setAttributes(otherBookmarksButton, "other-bookmarks-folder");
