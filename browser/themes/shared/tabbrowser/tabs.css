@@ -1476,15 +1476,16 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 }
 
 .all-tabs-item {
+  border-radius: var(--arrowpanel-menuitem-border-radius);
   margin-inline: var(--arrowpanel-menuitem-margin-inline);
 
   &.grouped {
-    margin-inline-start: calc(var(--arrowpanel-menuitem-margin-inline) * 2);
+    /* Indent further by the size of a favicon and the favicon's end margin. */
+    margin-inline-start: calc(var(--arrowpanel-menuitem-margin-inline) + 16px + 8px);
   }
-  border-radius: var(--arrowpanel-menuitem-border-radius);
 
   &[selected] {
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
   }
 
   > toolbarbutton {
