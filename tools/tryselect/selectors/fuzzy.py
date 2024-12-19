@@ -88,7 +88,7 @@ class FuzzyParser(BaseTryParser):
             },
         ],
         [
-            ["--disable-target-task-filter"],
+            ["--disable-target-task-filter", "--all-tasks"],
             {
                 "action": "store_true",
                 "default": False,
