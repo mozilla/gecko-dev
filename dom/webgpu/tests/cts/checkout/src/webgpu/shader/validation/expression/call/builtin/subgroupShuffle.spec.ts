@@ -37,28 +37,6 @@ fn foo() {
     t.expectCompileResult(t.params.enable, wgsl);
   });
 
-g.test('requires_subgroups_f16')
-  .desc('Validates that the subgroups feature is required')
-  .params(u => u.combine('enable', [false, true] as const).combine('op', kOps))
-  .beforeAllSubcases(t => {
-    const features: GPUFeatureName[] = ['shader-f16', 'subgroups' as GPUFeatureName];
-    if (t.params.enable) {
-      features.push('subgroups-f16' as GPUFeatureName);
-    }
-    t.selectDeviceOrSkipTestCase(features);
-  })
-  .fn(t => {
-    const wgsl = `
-enable f16;
-enable subgroups;
-${t.params.enable ? 'enable subgroups_f16;' : ''}
-fn foo() {
-  _ = ${t.params.op}(0h, 0);
-}`;
-
-    t.expectCompileResult(t.params.enable, wgsl);
-  });
-
 const kStages: Record<string, (op: string) => string> = {
   constant: (op: string) => {
     return `
@@ -92,6 +70,60 @@ g.test('early_eval')
   .fn(t => {
     const code = kStages[t.params.stage](t.params.op);
     t.expectCompileResult(t.params.stage === 'runtime', code);
+  });
+
+g.test('param2_early_eval')
+  .desc('Ensures id/delta/mask parameters must be in the range [0, 128) for const and override')
+  .params(u =>
+    u
+      .combine('op', kOps)
+      .combine('value', [-1, 0, 127, 128] as const)
+      .filter(t => {
+        // Only subgroupShuffle supports an i32 parameter.
+        return t.op === 'subgroupShuffle' || t.value !== -1;
+      })
+      .beginSubcases()
+      .combine('stage', ['constant', 'override', 'runtime'] as const)
+  )
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
+  })
+  .fn(t => {
+    let arg = `const_param`;
+    if (t.params.stage === 'override') {
+      arg = `override_param`;
+    } else if (t.params.stage === 'runtime') {
+      arg = `let_param`;
+    }
+
+    const type = t.params.value === -1 ? `i32` : `u32`;
+
+    const wgsl = `
+enable subgroups;
+
+const const_param : ${type} = ${t.params.value};
+override override_param : ${type} = 0;
+
+fn foo() {
+  let let_param : ${type} = ${t.params.value};
+  _ = ${t.params.op}(0, ${arg});
+}`;
+
+    const value_ok = t.params.value >= 0 && t.params.value < 128;
+    const compile_expect = value_ok || t.params.stage !== 'constant';
+    const pipeline_expect = value_ok || t.params.stage !== 'override';
+    t.expectCompileResult(compile_expect, wgsl);
+    if (compile_expect) {
+      const constants: Record<string, number> = {};
+      constants['override_param'] = t.params.value;
+      t.expectPipelineResult({
+        expectedResult: pipeline_expect,
+        code: wgsl,
+        constants,
+        reference: [],
+        statements: ['foo();'],
+      });
+    }
   });
 
 g.test('must_use')

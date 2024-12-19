@@ -79,6 +79,10 @@ const kEncoderCommandInfo =
 };
 const kEncoderCommands = keysOf(kEncoderCommandInfo);
 
+// MAINTENANCE_TODO: Remove multiDrawIndirect and multiDrawIndexedIndirect once https://github.com/gpuweb/gpuweb/pull/2315 is merged.
+
+
+
 
 const kRenderPassEncoderCommandInfo =
 
@@ -87,6 +91,8 @@ const kRenderPassEncoderCommandInfo =
   drawIndexed: {},
   drawIndexedIndirect: {},
   drawIndirect: {},
+  multiDrawIndexedIndirect: {},
+  multiDrawIndirect: {},
   setIndexBuffer: {},
   setBindGroup: {},
   setVertexBuffer: {},
@@ -298,6 +304,12 @@ combine('command', kRenderPassEncoderCommands).
 beginSubcases().
 combine('finishBeforeCommand', [false, true])
 ).
+beforeAllSubcases((t) => {
+  const { command } = t.params;
+  if (command === 'multiDrawIndirect' || command === 'multiDrawIndexedIndirect') {
+    t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect');
+  }
+}).
 fn((t) => {
   const { command, finishBeforeCommand } = t.params;
 
@@ -344,6 +356,18 @@ fn((t) => {
       case 'drawIndexedIndirect':
         {
           renderPass.drawIndexedIndirect(buffer, 0);
+        }
+        break;
+      case 'multiDrawIndirect':
+        {
+
+          renderPass.multiDrawIndirect(buffer, 0, 1);
+        }
+        break;
+      case 'multiDrawIndexedIndirect':
+        {
+
+          renderPass.multiDrawIndexedIndirect(buffer, 0, 1);
         }
         break;
       case 'setBindGroup':

@@ -199,11 +199,15 @@ const builtinNeedsMipLevelWeights = (builtin: TextureBuiltin) =>
 /**
  * Splits in array into multiple arrays where every Nth value goes to a different array
  */
-function unzip<T>(array: T[], num: number) {
+function unzip<T>(array: T[], num: number, srcStride?: number) {
+  srcStride = srcStride === undefined ? num : srcStride;
   const arrays: T[][] = range(num, () => []);
-  array.forEach((v, i) => {
-    arrays[i % num].push(v);
-  });
+  const numEntries = Math.ceil(array.length / srcStride);
+  for (let i = 0; i < numEntries; ++i) {
+    for (let j = 0; j < num; ++j) {
+      arrays[j].push(array[i * srcStride + j]);
+    }
+  }
   return arrays;
 }
 
@@ -259,14 +263,16 @@ export function graphWeights(height: number, weights: number[]) {
 /**
  * Validates the weights go from 0 to 1 in increasing order.
  */
-function validateWeights(stage: string, weights: number[]) {
-  const showWeights = () => `
+function validateWeights(t: GPUTest, stage: string, weights: number[]) {
+  const showWeights = t.rec.debugging
+    ? () => `
 ${weights.map((v, i) => `${i.toString().padStart(2)}: ${v}`).join('\n')}
 
 e = expected
 A = actual
 ${graphWeights(32, weights)}
-`;
+`
+    : () => ``;
 
   // Validate the weights
   assert(
@@ -395,11 +401,12 @@ ${graphWeights(32, weights)}
 export async function queryMipLevelMixWeightsForDevice(t: GPUTest, stage: ShaderStage) {
   const { device } = t;
   const kNumWeightTypes = 2;
+  assert(kNumWeightTypes <= 4);
   const module = device.createShaderModule({
     code: `
       @group(0) @binding(0) var tex: texture_2d<f32>;
       @group(0) @binding(1) var smp: sampler;
-      @group(0) @binding(2) var<storage, read_write> result: array<f32>;
+      @group(0) @binding(2) var<storage, read_write> result: array<vec4f>;
 
       struct VSOutput {
         @builtin(position) pos: vec4f,
@@ -419,13 +426,6 @@ export async function queryMipLevelMixWeightsForDevice(t: GPUTest, stage: Shader
           0);
       }
 
-      fn recordMixLevels(wNdx: u32, r: vec4f) {
-        let ndx = wNdx * ${kNumWeightTypes};
-        for (var i: u32 = 0; i < ${kNumWeightTypes}; i++) {
-          result[ndx + i] = r[i];
-        }
-      }
-
       fn getPosition(vNdx: u32) -> vec4f {
         let pos = array(
           vec2f(-1,  3),
@@ -436,26 +436,30 @@ export async function queryMipLevelMixWeightsForDevice(t: GPUTest, stage: Shader
         return vec4f(p, 0, 1);
       }
 
+      // -- for getting fragment stage weights --
+
       @vertex fn vs(@builtin(vertex_index) vNdx: u32, @builtin(instance_index) iNdx: u32) -> VSOutput {
         return VSOutput(getPosition(vNdx), iNdx, vec4f(0));
       }
 
-      @fragment fn fsRecord(v: VSOutput) -> @location(0) vec4f {
-        recordMixLevels(v.ndx, getMixLevels(v.ndx));
-        return vec4f(0);
+      @fragment fn fsRecord(v: VSOutput) -> @location(0) vec4u {
+        return bitcast<vec4u>(getMixLevels(v.ndx));
       }
 
+      // -- for getting compute stage weights --
+
       @compute @workgroup_size(1) fn csRecord(@builtin(global_invocation_id) id: vec3u) {
-        recordMixLevels(id.x, getMixLevels(id.x));
+        result[id.x] = getMixLevels(id.x);
       }
+
+      // -- for getting vertex stage weights --
 
       @vertex fn vsRecord(@builtin(vertex_index) vNdx: u32, @builtin(instance_index) iNdx: u32) -> VSOutput {
         return VSOutput(getPosition(vNdx), iNdx, getMixLevels(iNdx));
       }
 
-      @fragment fn fsSaveVs(v: VSOutput) -> @location(0) vec4f {
-        recordMixLevels(v.ndx, v.result);
-        return vec4f(0);
+      @fragment fn fsSaveVs(v: VSOutput) -> @location(0) vec4u {
+        return bitcast<vec4u>(v.result);
       }
     `,
   });
@@ -481,18 +485,18 @@ export async function queryMipLevelMixWeightsForDevice(t: GPUTest, stage: Shader
   });
 
   const target = t.createTextureTracked({
-    size: [1, 1],
-    format: 'rgba8unorm',
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    size: [kMipLevelWeightSteps + 1, 1],
+    format: 'rgba32uint',
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
   });
 
   const storageBuffer = t.createBufferTracked({
-    size: 4 * (kMipLevelWeightSteps + 1) * kNumWeightTypes,
+    size: 4 * 4 * (kMipLevelWeightSteps + 1),
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
   });
 
   const resultBuffer = t.createBufferTracked({
-    size: storageBuffer.size,
+    size: align(storageBuffer.size, 256), // padded for copyTextureToBuffer
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
   });
 
@@ -502,7 +506,7 @@ export async function queryMipLevelMixWeightsForDevice(t: GPUTest, stage: Shader
       entries: [
         { binding: 0, resource: texture.createView() },
         { binding: 1, resource: sampler },
-        { binding: 2, resource: { buffer: storageBuffer } },
+        ...(stage === 'compute' ? [{ binding: 2, resource: { buffer: storageBuffer } }] : []),
       ],
     });
 
@@ -518,13 +522,14 @@ export async function queryMipLevelMixWeightsForDevice(t: GPUTest, stage: Shader
       pass.setBindGroup(0, createBindGroup(pipeline));
       pass.dispatchWorkgroups(kMipLevelWeightSteps + 1);
       pass.end();
+      encoder.copyBufferToBuffer(storageBuffer, 0, resultBuffer, 0, storageBuffer.size);
       break;
     }
     case 'fragment': {
       const pipeline = device.createRenderPipeline({
         layout: 'auto',
         vertex: { module, entryPoint: 'vs' },
-        fragment: { module, entryPoint: 'fsRecord', targets: [{ format: 'rgba8unorm' }] },
+        fragment: { module, entryPoint: 'fsRecord', targets: [{ format: 'rgba32uint' }] },
       });
       const pass = encoder.beginRenderPass({
         colorAttachments: [
@@ -537,15 +542,19 @@ export async function queryMipLevelMixWeightsForDevice(t: GPUTest, stage: Shader
       });
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, createBindGroup(pipeline));
-      pass.draw(3, kMipLevelWeightSteps + 1);
+      for (let x = 0; x <= kMipLevelWeightSteps; ++x) {
+        pass.setViewport(x, 0, 1, 1, 0, 1);
+        pass.draw(3, 1, 0, x);
+      }
       pass.end();
+      encoder.copyTextureToBuffer({ texture: target }, { buffer: resultBuffer }, [target.width]);
       break;
     }
     case 'vertex': {
       const pipeline = device.createRenderPipeline({
         layout: 'auto',
         vertex: { module, entryPoint: 'vsRecord' },
-        fragment: { module, entryPoint: 'fsSaveVs', targets: [{ format: 'rgba8unorm' }] },
+        fragment: { module, entryPoint: 'fsSaveVs', targets: [{ format: 'rgba32uint' }] },
       });
       const pass = encoder.beginRenderPass({
         colorAttachments: [
@@ -558,23 +567,29 @@ export async function queryMipLevelMixWeightsForDevice(t: GPUTest, stage: Shader
       });
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, createBindGroup(pipeline));
-      pass.draw(3, kMipLevelWeightSteps + 1);
+      for (let x = 0; x <= kMipLevelWeightSteps; ++x) {
+        pass.setViewport(x, 0, 1, 1, 0, 1);
+        pass.draw(3, 1, 0, x);
+      }
       pass.end();
+      encoder.copyTextureToBuffer({ texture: target }, { buffer: resultBuffer }, [target.width]);
       break;
     }
   }
-  encoder.copyBufferToBuffer(storageBuffer, 0, resultBuffer, 0, resultBuffer.size);
   device.queue.submit([encoder.finish()]);
 
   await resultBuffer.mapAsync(GPUMapMode.READ);
-  const result = Array.from(new Float32Array(resultBuffer.getMappedRange()));
+  // need to map a sub-portion since we may have padded the buffer.
+  const result = Array.from(
+    new Float32Array(resultBuffer.getMappedRange(0, (kMipLevelWeightSteps + 1) * 16))
+  );
   resultBuffer.unmap();
   resultBuffer.destroy();
 
-  const [sampleLevelWeights, gradWeights] = unzip(result, kNumWeightTypes);
+  const [sampleLevelWeights, gradWeights] = unzip(result, kNumWeightTypes, 4);
 
-  validateWeights(stage, sampleLevelWeights);
-  validateWeights(stage, gradWeights);
+  validateWeights(t, stage, sampleLevelWeights);
+  validateWeights(t, stage, gradWeights);
 
   texture.destroy();
   storageBuffer.destroy();
@@ -3415,25 +3430,72 @@ async function identifySamplePoints<T extends Dimensionality>(
   // example when blockWidth = 2, blockHeight = 2
   //
   //     0   1   2   3
-  //   +===+===+===+===+
-  // 0 # a |   #   |   #
-  //   +---+---+---+---+
-  // 1 #   |   #   |   #
-  //   +===+===+===+===+
-  // 2 #   |   #   |   #
-  //   +---+---+---+---+
-  // 3 #   |   #   | b #
-  //   +===+===+===+===+
+  //   ╔═══╤═══╦═══╤═══╗
+  // 0 ║ a │   ║   │   ║
+  //   ╟───┼───╫───┼───╢
+  // 1 ║   │   ║   │   ║
+  //   ╠═══╪═══╬═══╪═══╣
+  // 2 ║   │   ║   │   ║
+  //   ╟───┼───╫───┼───╢
+  // 3 ║   │   ║   │ b ║
+  //   ╚═══╧═══╩═══╧═══╝
+
+  /* prettier-ignore */
+  const blockParts = {
+    top:      { left: '╔', fill: '═══', right: '╗', block: '╦', texel: '╤' },
+    mid:      { left: '╠', fill: '═══', right: '╣', block: '╬', texel: '╪' },
+    bot:      { left: '╚', fill: '═══', right: '╝', block: '╩', texel: '╧' },
+    texelMid: { left: '╟', fill: '───', right: '╢', block: '╫', texel: '┼' },
+    value:    { left: '║', fill: '   ', right: '║', block: '║', texel: '│' },
+  } as const;
+  /* prettier-ignore */
+  const nonBlockParts = {
+    top:      { left: '┌', fill: '───', right: '┐', block: '┬', texel: '┬' },
+    mid:      { left: '├', fill: '───', right: '┤', block: '┼', texel: '┼' },
+    bot:      { left: '└', fill: '───', right: '┘', block: '┴', texel: '┴' },
+    texelMid: { left: '├', fill: '───', right: '┤', block: '┼', texel: '┼' },
+    value:    { left: '│', fill: '   ', right: '│', block: '│', texel: '│' },
+  } as const;
 
   const lines: string[] = [];
   const letter = (idx: number) => String.fromCodePoint(idx < 30 ? 97 + idx : idx + 9600 - 30); // 97: 'a'
   let idCount = 0;
 
   const { blockWidth, blockHeight } = kTextureFormatInfo[texture.descriptor.format];
-  const [blockHChar, blockVChar] = Math.max(blockWidth, blockHeight) > 1 ? ['=', '#'] : ['-', '|'];
-  const blockHCell = '+'.padStart(4, blockHChar); // generates ---+ or ===+
   // range + concatenate results.
   const rangeCat = <T>(num: number, fn: (i: number) => T) => range(num, fn).join('');
+  const joinFn = (arr: string[], fn: (i: number) => string) => {
+    const joins = range(arr.length - 1, fn);
+    return arr.map((s, i) => `${s}${joins[i] ?? ''}`).join('');
+  };
+  const parts = Math.max(blockWidth, blockHeight) > 1 ? blockParts : nonBlockParts;
+  /**
+   * Makes a row that's [left, fill, texel, fill, block, fill, texel, fill, right]
+   * except if `contents` is supplied then it would be
+   * [left, contents[0], texel, contents[1], block, contents[2], texel, contents[3], right]
+   */
+  const makeRow = (
+    blockPaddedWidth: number,
+    width: number,
+    {
+      left,
+      fill,
+      right,
+      block,
+      texel,
+    }: {
+      left: string;
+      fill: string;
+      right: string;
+      block: string;
+      texel: string;
+    },
+    contents?: string[]
+  ) => {
+    return `${left}${joinFn(contents ?? range(blockPaddedWidth, x => fill), x => {
+      return (x + 1) % blockWidth === 0 ? block : texel;
+    })}${right}`;
+  };
 
   for (let mipLevel = 0; mipLevel < mipLevelCount; ++mipLevel) {
     const level = levels[mipLevel];
@@ -3463,31 +3525,39 @@ async function identifySamplePoints<T extends Dimensionality>(
         continue;
       }
 
+      const blockPaddedHeight = align(height, blockHeight);
+      const blockPaddedWidth = align(width, blockWidth);
       lines.push(`   ${rangeCat(width, x => `  ${x.toString().padEnd(2)}`)}`);
-      lines.push(`   +${rangeCat(width, () => blockHCell)}`);
-      for (let y = 0; y < height; y++) {
-        {
-          let line = `${y.toString().padStart(2)} ${blockVChar}`;
-          for (let x = 0; x < width; x++) {
-            const colChar = (x + 1) % blockWidth === 0 ? blockVChar : '|';
-            const texelIdx = x + y * texelsPerRow;
-            const weight = layerEntries.get(texelIdx);
-            if (weight !== undefined) {
-              line += ` ${letter(idCount + orderedTexelIndices.length)} ${colChar}`;
-              orderedTexelIndices.push(texelIdx);
-            } else {
-              line += `   ${colChar}`;
-            }
-          }
-          lines.push(line);
-        }
-        if (y < height - 1) {
-          lines.push(
-            `   +${rangeCat(width, () => ((y + 1) % blockHeight === 0 ? blockHCell : '---+'))}`
-          );
-        }
+      lines.push(`   ${makeRow(blockPaddedWidth, width, parts.top)}`);
+      for (let y = 0; y < blockPaddedHeight; y++) {
+        lines.push(
+          `${y.toString().padStart(2)} ${makeRow(
+            blockPaddedWidth,
+            width,
+            parts.value,
+            range(blockPaddedWidth, x => {
+              const texelIdx = x + y * texelsPerRow;
+              const weight = layerEntries.get(texelIdx);
+              const outside = y >= height || x >= width;
+              if (outside || weight === undefined) {
+                return outside ? '░░░' : '   ';
+              } else {
+                const id = letter(idCount + orderedTexelIndices.length);
+                orderedTexelIndices.push(texelIdx);
+                return ` ${id} `;
+              }
+            })
+          )}`
+        );
+        // It's either a block row, a texel row, or the last row.
+        const end = y < blockPaddedHeight - 1;
+        const lineParts = end
+          ? (y + 1) % blockHeight === 0
+            ? parts.mid
+            : parts.texelMid
+          : parts.bot;
+        lines.push(`   ${makeRow(blockPaddedWidth, width, lineParts)}`);
       }
-      lines.push(`   +${range(width, () => blockHCell).join('')}`);
 
       const pad2 = (n: number) => n.toString().padStart(2);
       const pad3 = (n: number) => n.toString().padStart(3);

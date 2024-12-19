@@ -1655,16 +1655,16 @@ g.test('subgroup_size')
     t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
   })
   .fn(async t => {
-    interface SubgroupLimits extends GPUSupportedLimits {
-      minSubgroupSize: number;
-      maxSubgroupSize: number;
+    interface SubgroupProperties extends GPUAdapterInfo {
+      subgroupMinSize: number;
+      subgroupMaxSize: number;
     }
-    const { minSubgroupSize, maxSubgroupSize } = t.device.limits as SubgroupLimits;
+    const { subgroupMinSize, subgroupMaxSize } = t.device.adapterInfo as SubgroupProperties;
 
     const fsShader = `
 enable subgroups;
 
-const maxSubgroupSize = ${kMaximiumSubgroupSize}u;
+const subgroupMaxSize = ${kMaximiumSubgroupSize}u;
 const noError = ${kSubgroupShaderNoError}u;
 
 const width = ${t.params.size[0]};
@@ -1686,7 +1686,7 @@ fn fsMain(
 
   var subgroupSizeBallotedInvocations: u32 = 0u;
   var ballotedSubgroupSize: u32 = 0u;
-  for (var i: u32 = 0; i <= maxSubgroupSize; i++) {
+  for (var i: u32 = 0; i <= subgroupMaxSize; i++) {
     let ballotSubgroupSizeEqualI = countOneBits(subgroupBallot(sg_size == i));
     let countSubgroupSizeEqualI = ballotSubgroupSizeEqualI.x + ballotSubgroupSizeEqualI.y + ballotSubgroupSizeEqualI.z + ballotSubgroupSizeEqualI.w;
     subgroupSizeBallotedInvocations += countSubgroupSizeEqualI;
@@ -1716,8 +1716,8 @@ fn fsMain(
         return checkSubgroupSizeConsistency(
           data,
           t.params.format,
-          minSubgroupSize,
-          maxSubgroupSize,
+          subgroupMinSize,
+          subgroupMaxSize,
           t.params.size[0],
           t.params.size[1]
         );
@@ -1816,7 +1816,7 @@ enable subgroups;
 const width = ${t.params.size[0]};
 const height = ${t.params.size[1]};
 
-const maxSubgroupSize = ${kMaximiumSubgroupSize}u;
+const subgroupMaxSize = ${kMaximiumSubgroupSize}u;
 // A non-zero magic number indicating no expectation error, in order to prevent the
 // false no-error result from zero-initialization.
 const noError = ${kSubgroupShaderNoError}u;
@@ -1830,8 +1830,8 @@ fn fsMain(
 
   var error: u32 = noError;
 
-  // Validate that reported subgroup size is no larger than maxSubgroupSize
-  if (sg_size > maxSubgroupSize) {
+  // Validate that reported subgroup size is no larger than subgroupMaxSize
+  if (sg_size > subgroupMaxSize) {
     error++;
   }
 
@@ -1843,7 +1843,7 @@ fn fsMain(
   // Validate that each subgroup id is assigned to at most one active invocation
   // in the subgroup
   var countAssignedId: u32 = 0u;
-  for (var i: u32 = 0; i < maxSubgroupSize; i++) {
+  for (var i: u32 = 0; i < subgroupMaxSize; i++) {
     let ballotIdEqualsI = countOneBits(subgroupBallot(id == i));
     let countInvocationIdEqualsI = ballotIdEqualsI.x + ballotIdEqualsI.y + ballotIdEqualsI.z + ballotIdEqualsI.w;
     // Validate an id assigned at most once

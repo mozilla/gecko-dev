@@ -10,8 +10,6 @@ local_invocation_index. Tests should avoid assuming there is.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../common/util/data_tables.js';
 import { iterRange } from '../../../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../../../format_info.js';
-import { align } from '../../../../../util/math.js';
 import { PRNG } from '../../../../../util/prng.js';
 
 import {
@@ -22,6 +20,7 @@ import {
   kFramebufferSizes,
   runComputeTest,
   runFragmentTest,
+  getUintsPerFramebuffer,
 } from './subgroup_util.js';
 
 export const g = makeTestGroup(SubgroupTest);
@@ -279,12 +278,7 @@ function checkFragmentAll(
   width: number,
   height: number
 ): Error | undefined {
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
-  const blocksPerRow = width / blockWidth;
-  // 256 minimum comes from image copy requirements.
-  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
-  const uintsPerRow = bytesPerRow / 4;
-  const uintsPerTexel = (bytesPerBlock ?? 1) / blockWidth / blockHeight / 4;
+  const { uintsPerRow, uintsPerTexel } = getUintsPerFramebuffer(format, width, height);
 
   // Iteration skips last row and column to avoid helper invocations because it is not
   // guaranteed whether or not they participate in the subgroup operation.

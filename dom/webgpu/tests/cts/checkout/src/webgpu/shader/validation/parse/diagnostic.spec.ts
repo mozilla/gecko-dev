@@ -6,7 +6,7 @@ import { ShaderValidationTest } from '../shader_validation_test.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
 
-const kSpecDiagnosticRules = ['derivative_uniformity'];
+const kSpecDiagnosticRules = ['derivative_uniformity', 'subgroup_uniformity'];
 const kSpecDiagnosticSeverities = ['off', 'info', 'warning', 'error'];
 const kDiagnosticTypes = ['attribute', 'directive'];
 
@@ -124,9 +124,14 @@ g.test('warning_unknown_rule')
 g.test('valid_locations')
   .specURL('https://gpuweb.github.io/gpuweb/wgsl/#diagnostics')
   .desc(`Tests valid locations`)
-  .params(u => u.combine('type', kDiagnosticTypes).combine('location', keysOf(kValidLocations)))
+  .params(u =>
+    u
+      .combine('type', kDiagnosticTypes)
+      .combine('location', keysOf(kValidLocations))
+      .combine('rule', kSpecDiagnosticRules)
+  )
   .fn(t => {
-    const diag = generateDiagnostic(t.params.type, 'info', 'derivative_uniformity');
+    const diag = generateDiagnostic(t.params.type, 'info', t.params.rule);
     const code = kValidLocations[t.params.location](diag);
     let res = true;
     if (t.params.type === 'directive') {
@@ -143,9 +148,14 @@ g.test('valid_locations')
 g.test('invalid_locations')
   .specURL('https://gpuweb.github.io/gpuweb/wgsl/#diagnostics')
   .desc(`Tests invalid locations`)
-  .params(u => u.combine('type', kDiagnosticTypes).combine('location', keysOf(kInvalidLocations)))
+  .params(u =>
+    u
+      .combine('type', kDiagnosticTypes)
+      .combine('location', keysOf(kInvalidLocations))
+      .combine('rule', kSpecDiagnosticRules)
+  )
   .fn(t => {
-    const diag = generateDiagnostic(t.params.type, 'info', 'derivative_uniformity');
+    const diag = generateDiagnostic(t.params.type, 'info', t.params.rule);
     t.expectCompileResult(true, kInvalidLocations[t.params.location](''));
     t.expectCompileResult(false, kInvalidLocations[t.params.location](diag));
   });

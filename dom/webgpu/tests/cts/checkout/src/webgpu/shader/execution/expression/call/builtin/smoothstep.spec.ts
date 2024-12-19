@@ -28,7 +28,7 @@ export const g = makeTestGroup(GPUTest);
 function validForConst(c: Case): boolean {
   const low = (c.input as Value[])[0] as ScalarValue;
   const high = (c.input as Value[])[1] as ScalarValue;
-  return low.value < high.value;
+  return low.value !== high.value;
 }
 
 g.test('abstract_float')

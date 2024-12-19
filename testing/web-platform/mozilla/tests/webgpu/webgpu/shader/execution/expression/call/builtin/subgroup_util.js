@@ -1,7 +1,9 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert, iterRange } from '../../../../../../common/util/util.js';import { Float16Array } from '../../../../../../external/petamoriken/float16/float16.js';import { kTextureFormatInfo } from '../../../../../format_info.js';
+**/import { assert, iterRange, unreachable } from '../../../../../../common/util/util.js';import { Float16Array } from '../../../../../../external/petamoriken/float16/float16.js';import { kTextureFormatInfo } from '../../../../../format_info.js';
 import { GPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
+import { kBit } from '../../../../../util/constants.js';
+import { Type, VectorType, scalarTypeOf } from '../../../../../util/conversion.js';
 
 import { sparseScalarF16Range, sparseScalarF32Range, align } from '../../../../../util/math.js';
 import { PRNG } from '../../../../../util/prng.js';
@@ -439,6 +441,26 @@ export const kFramebufferSizes = [
 
 
 /**
+ * Returns the number of uints per row and per texel in the framebuffer
+ *
+ * @param format The format
+ * @param width The width
+ * @param height The height
+ */
+export function getUintsPerFramebuffer(format, width, height) {
+  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  assert(bytesPerBlock !== undefined);
+
+  const blocksPerRow = width / blockWidth;
+  // 256 minimum arises from image copy requirements.
+  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
+  const uintsPerRow = bytesPerRow / 4;
+  const uintsPerTexel = (bytesPerBlock ?? 1) / blockWidth / blockHeight / 4;
+
+  return { uintsPerRow, uintsPerTexel };
+}
+
+/**
  * Runs a subgroup builtin test for fragment shaders
  *
  * This test draws a full screen triangle.
@@ -552,4 +574,112 @@ fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
   const data = readback.data;
 
   t.expectOK(checker(data));
+}
+
+/**
+ * Generates scalar values for type
+ *
+ * Generates 4 32-bit values whose bit patterns represent
+ * interesting values of the data type.
+ * @param type The data type
+ */
+function generateScalarValues(type) {
+  const scalarTy = scalarTypeOf(type);
+  switch (scalarTy) {
+    case Type.u32:
+      return [kBit.u32.min, kBit.u32.max, 1111, 2222];
+    case Type.i32:
+      return [
+      kBit.i32.positive.min,
+      kBit.i32.positive.max,
+      kBit.i32.negative.min,
+      0xffffffff // -1
+      ];
+    case Type.f32:
+      return [
+      kBit.f32.positive.zero,
+      kBit.f32.positive.nearest_max,
+      kBit.f32.negative.nearest_min,
+      0xbf800000 // -1
+      ];
+    case Type.f16:
+      return [
+      kBit.f16.positive.zero,
+      kBit.f16.positive.nearest_max,
+      kBit.f16.negative.nearest_min,
+      0xbc00 // -1
+      ];
+    default:
+      unreachable(`Unsupported type: ${type.toString()}`);
+  }
+  return [0, 0, 0, 0];
+}
+
+/**
+ * Generates input bit patterns for the input type
+ *
+ * Generates 4 values of type in a Uint32Array.
+ * 16-bit types are appropriately packed.
+ * @param type The data type
+ */
+export function generateTypedInputs(type) {
+  const scalarValues = generateScalarValues(type);
+  let elements = 1;
+  if (type instanceof VectorType) {
+    elements = type.width;
+  }
+  if (type.requiresF16()) {
+    switch (elements) {
+      case 1:
+        return new Uint32Array([
+        scalarValues[0] | scalarValues[1] << 16,
+        scalarValues[2] | scalarValues[3] << 16]
+        );
+      case 2:
+        return new Uint32Array([
+        scalarValues[0] | scalarValues[0] << 16,
+        scalarValues[1] | scalarValues[1] << 16,
+        scalarValues[2] | scalarValues[2] << 16,
+        scalarValues[3] | scalarValues[3] << 16]
+        );
+      case 3:
+        return new Uint32Array([
+        scalarValues[0] | scalarValues[0] << 16,
+        scalarValues[0] | kDataSentinel << 16,
+        scalarValues[1] | scalarValues[1] << 16,
+        scalarValues[1] | kDataSentinel << 16,
+        scalarValues[2] | scalarValues[2] << 16,
+        scalarValues[2] | kDataSentinel << 16,
+        scalarValues[3] | scalarValues[3] << 16,
+        scalarValues[3] | kDataSentinel << 16]
+        );
+      case 4:
+        return new Uint32Array([
+        scalarValues[0] | scalarValues[0] << 16,
+        scalarValues[0] | scalarValues[0] << 16,
+        scalarValues[1] | scalarValues[1] << 16,
+        scalarValues[1] | scalarValues[1] << 16,
+        scalarValues[2] | scalarValues[2] << 16,
+        scalarValues[2] | scalarValues[2] << 16,
+        scalarValues[3] | scalarValues[3] << 16,
+        scalarValues[3] | scalarValues[3] << 16]
+        );
+      default:
+        unreachable(`Unsupported type: ${type.toString()}`);
+    }
+    return new Uint32Array([0]);
+  } else {
+    const bound = elements === 3 ? 4 : elements;
+    const values = [];
+    for (let i = 0; i < 4; i++) {
+      for (let j = 0; j < bound; j++) {
+        if (j < elements) {
+          values.push(scalarValues[i]);
+        } else {
+          values.push(kDataSentinel);
+        }
+      }
+    }
+    return new Uint32Array(values);
+  }
 }

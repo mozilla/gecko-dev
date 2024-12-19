@@ -10,7 +10,6 @@ local_invocation_index. Tests should avoid assuming there is.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
 import { iterRange } from '../../../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../../../format_info.js';
 import {
   kConcreteSignedIntegerScalarsAndVectors,
   kConcreteUnsignedIntegerScalarsAndVectors,
@@ -18,7 +17,6 @@ import {
   Type,
   VectorType,
 } from '../../../../../util/conversion.js';
-import { align } from '../../../../../util/math.js';
 import { PRNG } from '../../../../../util/prng.js';
 
 import {
@@ -29,6 +27,7 @@ import {
   runComputeTest,
   runFragmentTest,
   kFramebufferSizes,
+  getUintsPerFramebuffer,
 } from './subgroup_util.js';
 
 export const g = makeTestGroup(SubgroupTest);
@@ -434,7 +433,7 @@ fn main(
 /**
  * Checks bitwise ops results from a fragment shader.
  *
- * Avoids the last row and column to skip potential helper invocations.
+ * Avoids subgroups in last row or column to skip potential helper invocations.
  * @param data Framebuffer output
  *             * component 0 is result
  *             * component 1 is generated subgroup id
@@ -452,23 +451,50 @@ function checkBitwiseFragment(
   width: number,
   height: number
 ): Error | undefined {
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
-  const blocksPerRow = width / blockWidth;
-  // 256 minimum comes from image copy requirements.
-  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
-  const uintsPerRow = bytesPerRow / 4;
-  const uintsPerTexel = (bytesPerBlock ?? 1) / blockWidth / blockHeight / 4;
+  const { uintsPerRow, uintsPerTexel } = getUintsPerFramebuffer(format, width, height);
 
-  // Iteration skips last row and column to avoid helper invocations because it is not
-  // guaranteed whether or not they participate in the subgroup operation.
+  // Determine if the subgroup should be included in the checks.
+  const inBounds = new Map<number, boolean>();
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const offset = uintsPerRow * row + col * uintsPerTexel;
+      const subgroup_id = data[offset + 1];
+      if (subgroup_id === 0) {
+        return new Error(`Internal error: helper invocation at (${col}, ${row})`);
+      }
+
+      let ok = inBounds.get(subgroup_id) ?? true;
+      ok = ok && row !== height - 1 && col !== width - 1;
+      inBounds.set(subgroup_id, ok);
+    }
+  }
+
+  let anyInBounds = false;
+  for (const [_, value] of inBounds) {
+    const ok = Boolean(value);
+    anyInBounds = anyInBounds || ok;
+  }
+  if (!anyInBounds) {
+    // This variant would not reliably test behavior.
+    return undefined;
+  }
+
+  // Iteration skips subgroups in the last row or column to avoid helper
+  // invocations because it is not guaranteed whether or not they participate
+  // in the subgroup operation.
   const expected = new Map<number, number>();
-  for (let row = 0; row < height - 1; row++) {
-    for (let col = 0; col < width - 1; col++) {
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
       const offset = uintsPerRow * row + col * uintsPerTexel;
       const subgroup_id = data[offset + 1];
 
       if (subgroup_id === 0) {
         return new Error(`Internal error: helper invocation at (${col}, ${row})`);
+      }
+
+      const subgroupInBounds = inBounds.get(subgroup_id) ?? true;
+      if (!subgroupInBounds) {
+        continue;
       }
 
       let v = expected.get(subgroup_id) ?? identity(op);
@@ -477,14 +503,19 @@ function checkBitwiseFragment(
     }
   }
 
-  for (let row = 0; row < height - 1; row++) {
-    for (let col = 0; col < width - 1; col++) {
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
       const offset = uintsPerRow * row + col * uintsPerTexel;
       const res = data[offset];
       const subgroup_id = data[offset + 1];
 
       if (subgroup_id === 0) {
         // Inactive in the fragment.
+        continue;
+      }
+
+      const subgroupInBounds = inBounds.get(subgroup_id) ?? true;
+      if (!subgroupInBounds) {
         continue;
       }
 
@@ -515,6 +546,14 @@ g.test('fragment,all_active')
   })
   .fn(async t => {
     const numInputs = t.params.size[0] * t.params.size[1];
+
+    interface SubgroupProperties extends GPUAdapterInfo {
+      subgroupMinSize: number;
+    }
+    const { subgroupMinSize } = t.device.adapterInfo as SubgroupProperties;
+    const innerTexels = (t.params.size[0] - 1) * (t.params.size[1] - 1);
+    t.skipIf(innerTexels < subgroupMinSize, 'Too few texels to be reliable');
+
     const inputData = generateInputData(t.params.case, numInputs, identity(t.params.op));
 
     const ident = identity(t.params.op) === 0 ? '0' : '0xffffffff';

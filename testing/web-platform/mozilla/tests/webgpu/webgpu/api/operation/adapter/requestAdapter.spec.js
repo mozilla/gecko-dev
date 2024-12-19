@@ -6,6 +6,7 @@ Tests for GPU.requestAdapter.
 Test all possible options to requestAdapter.
 default, low-power, and high performance should all always return adapters.
 forceFallbackAdapter may or may not return an adapter.
+invalid featureLevel values should not return an adapter.
 
 GPU.requestAdapter can technically return null for any reason
 but we need test functionality so the test requires an adapter except
@@ -26,6 +27,8 @@ undefined,
 'high-performance'];
 
 const forceFallbackOptions = [undefined, false, true];
+const validFeatureLevels = [undefined, 'core', 'compatibility'];
+const invalidFeatureLevels = ['cor', 'Core', 'compatability', '', ' '];
 
 async function testAdapter(t, adapter) {
   assert(adapter !== null, 'Failed to get adapter.');
@@ -118,6 +121,20 @@ fn(async (t) => {
   }
 
   await testAdapter(t, adapter);
+});
+
+g.test('requestAdapter_invalid_featureLevel').
+desc(`request adapter with invalid featureLevel string values return null`).
+params((u) => u.combine('featureLevel', [...validFeatureLevels, ...invalidFeatureLevels])).
+fn(async (t) => {
+  const { featureLevel } = t.params;
+  const adapter = await getGPU(t.rec).requestAdapter({ featureLevel });
+
+  if (!validFeatureLevels.includes(featureLevel)) {
+    assert(adapter === null);
+  } else {
+    await testAdapter(t, adapter);
+  }
 });
 
 g.test('requestAdapter_no_parameters').

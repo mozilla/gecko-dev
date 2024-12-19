@@ -5,7 +5,7 @@ import {
   isStencilTextureFormat,
   kTextureFormatInfo,
 } from '../format_info.js';
-import { GPUTest } from '../gpu_test.js';
+import { GPUTestBase } from '../gpu_test.js';
 
 import { getTextureCopyLayout } from './texture/layout.js';
 import { TexelView } from './texture/texel_view.js';
@@ -328,7 +328,7 @@ const s_copyBufferToTextureViaRenderPipelines = new WeakMap<
 >();
 
 function copyBufferToTextureViaRender(
-  t: GPUTest,
+  t: GPUTestBase,
   encoder: GPUCommandEncoder,
   source: GPUTexelCopyBufferInfo,
   sourceFormat: GPUTextureFormat,
@@ -500,7 +500,7 @@ function copyBufferToTextureViaRender(
  * from `texelViews[i]`.
  */
 export function createTextureFromTexelViews(
-  t: GPUTest,
+  t: GPUTestBase,
   texelViews: TexelView[],
   desc: Omit<GPUTextureDescriptor, 'format'> & { format?: GPUTextureFormat }
 ): GPUTexture {

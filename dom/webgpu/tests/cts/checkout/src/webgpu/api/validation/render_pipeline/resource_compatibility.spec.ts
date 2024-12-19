@@ -1,5 +1,5 @@
 export const description = `
-Tests for resource compatibilty between pipeline layout and shader modules
+Tests for resource compatibility between pipeline layout and shader modules
   `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';

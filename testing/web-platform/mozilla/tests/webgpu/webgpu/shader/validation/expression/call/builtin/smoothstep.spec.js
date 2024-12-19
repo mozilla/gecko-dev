@@ -51,8 +51,8 @@ beforeAllSubcases((t) => {
 fn((t) => {
   const type = kValuesTypes[t.params.type];
 
-  // We expect to fail if low >= high.
-  const expectedResult = t.params.value1 < t.params.value2;
+  // We expect to fail if low == high.
+  const expectedResult = t.params.value1 !== t.params.value2;
 
   validateConstOrOverrideBuiltinEval(
     t,
@@ -66,7 +66,7 @@ fn((t) => {
 const kStages = [...kConstantAndOverrideStages, 'runtime'];
 
 g.test('partial_eval_errors').
-desc('Validates that low < high').
+desc('Validates that low != high').
 params((u) =>
 u.
 combine('lowStage', kStages).
@@ -127,7 +127,7 @@ fn foo() {
   let tmp = smoothstep(${lowArg}, ${highArg}, x);
 }`;
 
-  const error = t.params.low >= t.params.high;
+  const error = t.params.low === t.params.high;
   const shader_error =
   error && t.params.lowStage === 'constant' && t.params.highStage === 'constant';
   const pipeline_error =
@@ -349,7 +349,7 @@ fn((t) => {
   validateConstOrOverrideBuiltinEval(
     t,
     builtin,
-    /* expectedResult */t.params.low < t.params.high,
+    /* expectedResult */t.params.low !== t.params.high,
     [f32(t.params.low), f32(t.params.high), f32(0)],
     t.params.stage
   );

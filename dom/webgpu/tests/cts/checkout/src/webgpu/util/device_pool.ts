@@ -23,19 +23,25 @@ class TestFailedButDeviceReusable extends Error {}
 class FeaturesNotSupported extends Error {}
 export class TestOOMedShouldAttemptGC extends Error {}
 
+export type DescriptorModifierFn = (
+  adapter: GPUAdapter,
+  desc: CanonicalDeviceDescriptor | undefined
+) => CanonicalDeviceDescriptor;
+
 export class DevicePool {
   private holders: 'uninitialized' | 'failed' | DescriptorToHolderMap = 'uninitialized';
 
   /** Acquire a device from the pool and begin the error scopes. */
   async acquire(
     recorder: TestCaseRecorder,
-    descriptor?: UncanonicalizedDeviceDescriptor
+    descriptor: UncanonicalizedDeviceDescriptor | undefined,
+    descriptorModifierFn: DescriptorModifierFn | undefined
   ): Promise<DeviceProvider> {
     let errorMessage = '';
     if (this.holders === 'uninitialized') {
       this.holders = new DescriptorToHolderMap();
       try {
-        await this.holders.getOrCreate(recorder, undefined);
+        await this.holders.getOrCreate(recorder, undefined, descriptorModifierFn);
       } catch (ex) {
         this.holders = 'failed';
         if (ex instanceof Error) {
@@ -49,7 +55,7 @@ export class DevicePool {
       `WebGPU device failed to initialize${errorMessage}; not retrying`
     );
 
-    const holder = await this.holders.getOrCreate(recorder, descriptor);
+    const holder = await this.holders.getOrCreate(recorder, descriptor, descriptorModifierFn);
 
     assert(holder.state === 'free', 'Device was in use on DevicePool.acquire');
     holder.state = 'acquired';
@@ -143,7 +149,8 @@ class DescriptorToHolderMap {
    */
   async getOrCreate(
     recorder: TestCaseRecorder,
-    uncanonicalizedDescriptor: UncanonicalizedDeviceDescriptor | undefined
+    uncanonicalizedDescriptor: UncanonicalizedDeviceDescriptor | undefined,
+    descriptorModifierFn: DescriptorModifierFn | undefined
   ): Promise<DeviceHolder> {
     const [descriptor, key] = canonicalizeDescriptor(uncanonicalizedDescriptor);
     // Quick-reject descriptors that are known to be unsupported already.
@@ -167,7 +174,7 @@ class DescriptorToHolderMap {
     // No existing item was found; add a new one.
     let value;
     try {
-      value = await DeviceHolder.create(recorder, descriptor);
+      value = await DeviceHolder.create(recorder, descriptor, descriptorModifierFn);
     } catch (ex) {
       if (ex instanceof FeaturesNotSupported) {
         this.unsupported.add(key);
@@ -209,7 +216,7 @@ export type UncanonicalizedDeviceDescriptor = {
   /** @deprecated this field cannot be used */
   features?: undefined;
 };
-type CanonicalDeviceDescriptor = Omit<
+export type CanonicalDeviceDescriptor = Omit<
   Required<GPUDeviceDescriptor>,
   'label' | 'nonGuaranteedFeatures' | 'nonGuaranteedLimits'
 >;
@@ -305,11 +312,15 @@ class DeviceHolder implements DeviceProvider {
   // If the device is lost, DeviceHolder.lost gets set.
   static async create(
     recorder: TestCaseRecorder,
-    descriptor: CanonicalDeviceDescriptor | undefined
+    descriptor: CanonicalDeviceDescriptor | undefined,
+    descriptorModifierFn: DescriptorModifierFn | undefined
   ): Promise<DeviceHolder> {
     const gpu = getGPU(recorder);
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null, 'requestAdapter returned null');
+    if (descriptorModifierFn) {
+      descriptor = descriptorModifierFn(adapter, descriptor);
+    }
     if (!supportsFeature(adapter, descriptor)) {
       throw new FeaturesNotSupported('One or more features are not supported');
     }

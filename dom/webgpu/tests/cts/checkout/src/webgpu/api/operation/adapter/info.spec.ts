@@ -7,6 +7,7 @@ import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
 import { getGPU } from '../../../../common/util/navigator_gpu.js';
 import { assert, objectEquals } from '../../../../common/util/util.js';
+import { isPowerOfTwo } from '../../../util/math.js';
 
 export const g = makeTestGroup(Fixture);
 
@@ -134,5 +135,55 @@ different orders to make sure that they are consistent regardless of the access 
         }
       }
       t.expect(objectEquals(deviceInfo, adapterInfo));
+    }
+  });
+
+// This can be removed once 'subgroups' lands.
+// See https://github.com/gpuweb/gpuweb/pull/4963
+interface SubgroupProperties extends GPUAdapterInfo {
+  subgroupMinSize?: number;
+  subgroupMaxSize?: number;
+}
+
+const kSubgroupMinSizeBound = 4;
+const kSubgroupMaxSizeBound = 128;
+
+g.test('subgroup_sizes')
+  .desc(
+    `
+Verify GPUAdapterInfo.subgroupMinSize, GPUAdapterInfo.subgroupMaxSize.
+If the subgroups feature is supported, they must both exist.
+If they exist, they must both exist and be powers of two, and
+4 <= subgroupMinSize <= subgroupMaxSize <= 128.
+`
+  )
+  .fn(async t => {
+    const gpu = getGPU(t.rec);
+    const adapter = await gpu.requestAdapter();
+    assert(adapter !== null);
+    const { subgroupMinSize, subgroupMaxSize } = adapter.info as SubgroupProperties;
+    // Once 'subgroups' lands, the properties should be defined with default values 4 and 128
+    // when adapter does not support the feature.
+    // https://github.com/gpuweb/gpuweb/pull/4963
+    if (adapter.features.has('subgroups')) {
+      t.expect(
+        subgroupMinSize !== undefined,
+        'GPUAdapterInfo.subgroupMinSize must exist when subgroups supported'
+      );
+      t.expect(
+        subgroupMaxSize !== undefined,
+        'GPUAdapterInfo.subgroupMaxSize must exist when subgroups supported'
+      );
+    }
+    t.expect(
+      (subgroupMinSize === undefined) === (subgroupMinSize === undefined),
+      'GPUAdapterInfo.subgropuMinSize and GPUAdapterInfo.subgroupMaxSize must both be defined, or neither should be'
+    );
+    if (subgroupMinSize !== undefined && subgroupMaxSize !== undefined) {
+      t.expect(isPowerOfTwo(subgroupMinSize));
+      t.expect(isPowerOfTwo(subgroupMaxSize));
+      t.expect(kSubgroupMinSizeBound <= subgroupMinSize);
+      t.expect(subgroupMinSize <= subgroupMaxSize);
+      t.expect(subgroupMaxSize <= kSubgroupMaxSizeBound);
     }
   });

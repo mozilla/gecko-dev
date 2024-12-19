@@ -1,14 +1,16 @@
 export const description = `
 This test dedicatedly tests validation of GPUFragmentState of createRenderPipeline.
+
+TODO(#3363): Make this into a MaxLimitTest and increase kMaxColorAttachments.
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert, range } from '../../../../common/util/util.js';
 import {
+  getDefaultLimits,
   IsDualSourceBlendingFactor,
   kBlendFactors,
   kBlendOperations,
-  kMaxColorAttachmentsToTest,
 } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
 import {
@@ -27,6 +29,10 @@ import {
 import { kTexelRepresentationInfo } from '../../../util/texture/texel_data.js';
 
 import { ColorTargetState, CreateRenderPipelineValidationTest } from './common.js';
+
+// MAINTENANCE_TODO: This should be changed to kMaxColorAttachmentsToTest
+// when this is made a MaxLimitTest (see above).
+const kMaxColorAttachments = getDefaultLimits('core').maxColorAttachments.default;
 
 export const g = makeTestGroup(CreateRenderPipelineValidationTest);
 
@@ -169,7 +175,7 @@ g.test('limits,maxColorAttachmentBytesPerSample,aligned')
       .beginSubcases()
       .combine(
         'attachmentCount',
-        range(kMaxColorAttachmentsToTest, i => i + 1)
+        range(kMaxColorAttachments, i => i + 1)
       )
       .combine('isAsync', [false, true])
   )

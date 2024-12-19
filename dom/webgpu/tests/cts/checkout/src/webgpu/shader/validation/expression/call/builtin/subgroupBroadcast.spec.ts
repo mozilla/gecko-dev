@@ -30,28 +30,6 @@ fn foo() {
     t.expectCompileResult(t.params.enable, wgsl);
   });
 
-g.test('requires_subgroups_f16')
-  .desc('Validates that the subgroups feature is required')
-  .params(u => u.combine('enable', [false, true] as const))
-  .beforeAllSubcases(t => {
-    const features: GPUFeatureName[] = ['shader-f16', 'subgroups' as GPUFeatureName];
-    if (t.params.enable) {
-      features.push('subgroups-f16' as GPUFeatureName);
-    }
-    t.selectDeviceOrSkipTestCase(features);
-  })
-  .fn(t => {
-    const wgsl = `
-enable f16;
-enable subgroups;
-${t.params.enable ? 'enable subgroups_f16;' : ''}
-fn foo() {
-  _ = subgroupBroadcast(0h, 0);
-}`;
-
-    t.expectCompileResult(t.params.enable, wgsl);
-  });
-
 const kArgumentTypes = objectsToRecord(kAllScalarsAndVectors);
 
 const kStages: Record<string, string> = {
@@ -244,6 +222,38 @@ fn foo() {
 }`;
 
     t.expectCompileResult(kIdCases[t.params.value].valid, wgsl);
+  });
+
+g.test('id_values')
+  .desc('Validates that id must be in the range [0, 128)')
+  .params(u =>
+    u
+      .combine('value', [-1, 0, 127, 128] as const)
+      .beginSubcases()
+      .combine('type', ['literal', 'const', 'expr'] as const)
+  )
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
+  })
+  .fn(t => {
+    let arg = `${t.params.value}`;
+    if (t.params.type === 'const') {
+      arg = `c`;
+    } else if (t.params.type === 'expr') {
+      arg = `c + 0`;
+    }
+
+    const wgsl = `
+enable subgroups;
+
+const c = ${t.params.value};
+
+fn foo() {
+  _ = subgroupBroadcast(0, ${arg});
+}`;
+
+    const expect = t.params.value >= 0 && t.params.value < 128;
+    t.expectCompileResult(expect, wgsl);
   });
 
 g.test('stage')

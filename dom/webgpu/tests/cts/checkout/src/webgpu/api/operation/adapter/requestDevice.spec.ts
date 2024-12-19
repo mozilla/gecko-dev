@@ -224,16 +224,24 @@ g.test('limits,unknown')
   .desc(
     `
     Test that specifying limits that aren't part of the supported limit set causes
-    requestDevice to reject.`
+    requestDevice to reject unless the value is undefined.
+    Also tests that the invalid requestDevice() call does not expire the adapter.`
   )
   .fn(async t => {
     const gpu = getGPU(t.rec);
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
 
-    const requiredLimits: Record<string, number> = { unknownLimitName: 9000 };
+    t.shouldReject(
+      'OperationError',
+      t.requestDeviceTracked(adapter, { requiredLimits: { unknownLimitName: 9000 } })
+    );
+    // Adapter is still alive because the requestDevice() call was invalid.
 
-    t.shouldReject('OperationError', t.requestDeviceTracked(adapter, { requiredLimits }));
+    const device = await t.requestDeviceTracked(adapter, {
+      requiredLimits: { unknownLimitName: undefined },
+    });
+    assert(device !== null);
   });
 
 g.test('limits,supported')
@@ -241,10 +249,14 @@ g.test('limits,supported')
     `
     Test that each supported limit can be specified with valid values.
     - Tests each limit with the default values given by the spec
-    - Tests each limit with the supported values given by the adapter`
+    - Tests each limit with the supported values given by the adapter
+    - Tests each limit with undefined`
   )
   .params(u =>
-    u.combine('limit', kLimits).beginSubcases().combine('limitValue', ['default', 'adapter'])
+    u
+      .combine('limit', kLimits)
+      .beginSubcases()
+      .combine('limitValue', ['default', 'adapter', 'undefined'])
   )
   .fn(async t => {
     const { limit, limitValue } = t.params;
@@ -254,20 +266,27 @@ g.test('limits,supported')
     assert(adapter !== null);
 
     const limitInfo = getDefaultLimitsForAdapter(adapter);
-    let value: number = -1;
+    let value: number | undefined = -1;
+    let result: number = -1;
     switch (limitValue) {
       case 'default':
         value = limitInfo[limit].default;
+        result = value;
         break;
       case 'adapter':
         value = adapter.limits[limit];
+        result = value;
+        break;
+      case 'undefined':
+        value = undefined;
+        result = limitInfo[limit].default;
         break;
     }
 
     const device = await t.requestDeviceTracked(adapter, { requiredLimits: { [limit]: value } });
     assert(device !== null);
     t.expect(
-      device.limits[limit] === value,
+      device.limits[limit] === result,
       'Devices reported limit should match the required limit'
     );
   });

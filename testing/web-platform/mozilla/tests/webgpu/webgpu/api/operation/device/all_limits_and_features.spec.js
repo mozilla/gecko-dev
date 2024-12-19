@@ -1,0 +1,95 @@
+/**
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Test you can request an device with all features and limits`;
+import { makeTestGroup } from '../../../../common/framework/test_group.js';
+import {
+
+  GPUTest,
+  GPUTestSubcaseBatchState,
+  initUncanonicalizedDeviceDescriptor } from
+'../../../gpu_test.js';
+
+
+/**
+ * Gets the adapter limits as a standard JavaScript object.
+ */
+function getAdapterLimitsAsDeviceRequiredLimits(adapter) {
+  const requiredLimits = {};
+  const adapterLimits = adapter.limits;
+  for (const key in adapter.limits) {
+    requiredLimits[key] = adapterLimits[key];
+  }
+  return requiredLimits;
+}
+
+function setAllLimitsToAdapterLimitsAndAddAllFeatures(
+adapter,
+desc)
+{
+  const descWithMaxLimits = {
+    defaultQueue: {},
+    ...desc,
+    requiredFeatures: [...adapter.features],
+    requiredLimits: getAdapterLimitsAsDeviceRequiredLimits(adapter)
+  };
+  return descWithMaxLimits;
+}
+
+/**
+ * Used by MaxLimitsTest to request a device with all the max limits of the adapter.
+ */
+export class AllLimitsAndFeaturesGPUTestSubcaseBatchState extends GPUTestSubcaseBatchState {
+  selectDeviceOrSkipTestCase(
+  descriptor,
+  descriptorModifierFn)
+  {
+    const wrapper = (adapter, desc) => {
+      desc = descriptorModifierFn ? descriptorModifierFn(adapter, desc) : desc;
+      return setAllLimitsToAdapterLimitsAndAddAllFeatures(adapter, desc);
+    };
+    super.selectDeviceOrSkipTestCase(initUncanonicalizedDeviceDescriptor(descriptor), wrapper);
+  }
+}
+
+/**
+ * A Test that requests all the max limits from the adapter on the device.
+ */
+export class AllLimitsAndFeaturesLimitsTest extends GPUTest {
+  static MakeSharedState(
+  recorder,
+  params)
+  {
+    return new AllLimitsAndFeaturesGPUTestSubcaseBatchState(recorder, params);
+  }
+}
+
+export const g = makeTestGroup(AllLimitsAndFeaturesLimitsTest);
+
+g.test('everything').
+desc(
+  `
+Test we can request all features and limits.
+
+It is expected that, even though this is generally not recommended, because
+it is possible, make sure it works and continues to work going forward so that
+changes to WebGPU do not break sites requesting everything.
+`
+).
+fn((t) => {
+  // Test that all the limits on the device match the adapter.
+  const adapterLimits = t.adapter.limits;
+  const deviceLimits = t.device.limits;
+  for (const key in t.adapter.limits) {
+    const deviceLimit = deviceLimits[key];
+    const adapterLimit = adapterLimits[key];
+    t.expect(
+      deviceLimit === adapterLimit,
+      `device.limits.${key} (${deviceLimit}) === adapter.limits.${key} (${adapterLimit})`
+    );
+  }
+
+  // Test that all the adapter features are on the device.
+  for (const feature of t.adapter.features) {
+    t.expect(t.device.features.has(feature), `device has feature: ${feature}`);
+  }
+});

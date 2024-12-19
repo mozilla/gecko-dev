@@ -402,7 +402,7 @@ fn(async (t) => {
 
 
 
-  const { minSubgroupSize, maxSubgroupSize } = t.device.limits;
+  const { subgroupMinSize, subgroupMaxSize } = t.device.adapterInfo;
 
   const wgx = t.params.sizes[0];
   const wgy = t.params.sizes[1];
@@ -518,8 +518,8 @@ fn main(@builtin(subgroup_size) size : u32,
     checkSubgroupSizeConsistency(
       sizesData,
       compareData,
-      minSubgroupSize,
-      maxSubgroupSize,
+      subgroupMinSize,
+      subgroupMaxSize,
       wgThreads
     )
   );
