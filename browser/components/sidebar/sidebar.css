@@ -6,7 +6,8 @@
 @import url("chrome://browser/skin/browser-colors.css");
 
 :root {
-  --sidebar-box-border: 0.5px solid var(--border-color-deemphasized);
+  --sidebar-box-border-color: light-dark(color-mix(in srgb, currentColor 10%, transparent), var(--border-color-deemphasized));
+  --sidebar-box-border: 0.5px solid var(--sidebar-box-border-color);
   --sidebar-box-background: light-dark(rgba(0, 0, 0, .03), rgba(255, 255, 255, .05));
   --sidebar-box-color: currentColor;
   background-color: transparent;
@@ -20,6 +21,10 @@ body {
 }
 
 moz-card {
+  --card-gap: var(--space-small);
+  --card-padding: 8px;
+  --card-heading-padding-inline: 12px;
+
   margin-block-start: var(--space-medium);
   box-shadow: none;
   background-color: var(--sidebar-box-background);
@@ -64,11 +69,12 @@ fxview-search-textbox {
     background-color: var(--sidebar-box-background);
     color: var(--sidebar-box-color);
     border: var(--sidebar-box-border);
-    border-radius: 2em;
+    border-radius: var(--border-radius-medium);
   }
 
   &::part(container) {
     width: 100%;
+    height: var(--size-item-large)
   }
 }
 

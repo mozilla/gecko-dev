@@ -12,10 +12,6 @@
   fill: currentColor;
   font-size: 15px;
 
-  .header-close-button::part(button) {
-    background-image: url("chrome://global/skin/icons/close-12.svg");
-  }
-
   h4 {
     margin-block: var(--space-large);
   }

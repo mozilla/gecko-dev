@@ -286,8 +286,8 @@ export class SidebarHistory extends SidebarPage {
             aria-haspopup="menu"
             aria-expanded="false"
             view=${this.view}
-            size="small"
             type="icon ghost"
+            iconsrc="chrome://global/skin/icons/more.svg"
           >
           </moz-button>
         </div>

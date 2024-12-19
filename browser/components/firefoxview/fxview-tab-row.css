@@ -119,22 +119,6 @@
   background-image: url("chrome://global/skin/media/audio.svg");
 }
 
-.fxview-tab-row-button.delete-button::part(button) {
-  background-image: url("chrome://global/skin/icons/delete.svg");
-}
-
-.fxview-tab-row-button.dismiss-button::part(button) {
-  background-image: url("chrome://global/skin/icons/close.svg");
-  -moz-context-properties: fill;
-  fill: currentColor;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-.fxview-tab-row-button.options-button::part(button) {
-  background-image: url("chrome://global/skin/icons/more.svg");
-}
-
 .fxview-tab-row-button.undo-button::part(button) {
   font-size: var(--font-size-small);
   font-weight: 400;
