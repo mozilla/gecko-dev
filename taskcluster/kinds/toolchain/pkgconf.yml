@@ -26,6 +26,16 @@ linux64-pkgconf:
             - linux64-clang-toolchain
             - sysroot-x86_64-linux-gnu
 
+linux64-aarch64-pkgconf:
+    treeherder:
+        symbol: TLA64(pkgconf)
+    run:
+        arguments: ['aarch64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - sysroot-aarch64-linux-gnu
+
 macosx64-pkgconf:
     treeherder:
         symbol: TM(pkgconf)
