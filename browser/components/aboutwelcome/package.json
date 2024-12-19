@@ -1,7 +1,5 @@
 {
-  "name": "about-welcome",
   "description": "Task running for the about:welcome page",
-  "version": "1.0.0",
   "author": "Mozilla (https://mozilla.org/)",
   "dependencies": {
     "@fluent/bundle": "0.18.0",

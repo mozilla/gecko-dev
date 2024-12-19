@@ -1,6 +1,4 @@
 {
-  "name": "sorted-es6",
-  "version": "1.0.0",
   "description": "Rebuild assets for sourcemaps3 test",
   "main": "sorted.js",
   "scripts": {

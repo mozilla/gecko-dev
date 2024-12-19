@@ -1,5 +1,4 @@
 {
-  "name": "sourcemapped-webpack3-babel6",
   "private": true,
   "dependencies": {
     "babel-core": "^6.26.3",

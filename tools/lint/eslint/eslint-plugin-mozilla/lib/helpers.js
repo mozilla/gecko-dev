@@ -648,7 +648,7 @@ module.exports = {
           let possibleFile = path.join(dirName, "package.json");
           if (fs.existsSync(possibleFile)) {
             let packageData = require(possibleFile);
-            if (packageData.name == "mozilla-central") {
+            if (packageData.nonPublishedName == "mozilla-central") {
               return dirName;
             }
           }

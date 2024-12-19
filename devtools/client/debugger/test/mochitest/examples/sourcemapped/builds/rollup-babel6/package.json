@@ -1,5 +1,4 @@
 {
-  "name": "sourcemapped-rollup",
   "private": true,
   "dependencies": {
     "babel-core": "^6.26.3",

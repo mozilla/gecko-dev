@@ -1,6 +1,4 @@
 {
-  "name": "babel-sourcemaps",
-  "version": "1.0.0",
   "description": "Rebuild assets for babel's test fixtures",
   "scripts": {
     "build": "node ./build.js"

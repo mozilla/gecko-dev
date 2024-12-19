@@ -1,5 +1,4 @@
 {
-  "name": "sourcemapped-rollup",
   "private": true,
   "dependencies": {
     "lodash": "^4.17.5",

@@ -1,6 +1,4 @@
 {
-  "name": "code-reload",
-  "version": "1.0.0",
   "description": "Examples folders for testing sourcemps on code reload",
   "main": "index.js",
   "author": "Hubert B Manilla <hmanilla@mozilla.com>",

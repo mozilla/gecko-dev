@@ -1,7 +1,5 @@
 {
-  "name": "activity-streams",
   "description": "A rich visual history feed and a reimagined home page make it easier than ever to find exactly what you're looking for in Firefox.\n\nLearn more about this Test Pilot experiment at https://testpilot.firefox.com/.",
-  "version": "1.14.3",
   "author": "Mozilla (https://mozilla.org/)",
   "bugs": {
     "url": "https://github.com/mozilla/activity-stream/issues"

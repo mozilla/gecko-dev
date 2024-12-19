@@ -1,6 +1,4 @@
 {
-  "name": "save-to-pocket-ff",
-  "version": "1.0.0",
   "description": "Task running for Save to Pocket Extension",
   "scripts": {
     "start": "npm run build && npm run watch",

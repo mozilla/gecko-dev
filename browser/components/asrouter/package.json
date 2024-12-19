@@ -1,7 +1,5 @@
 {
-  "name": "ASRouter",
   "description": "Task running for ASRouter",
-  "version": "1.0.0",
   "author": "Mozilla (https://mozilla.org/)",
   "dependencies": {
     "@fluent/bundle": "0.18.0",

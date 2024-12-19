@@ -1,6 +1,4 @@
 {
-  "name": "sourcemaps-reload-compressed",
-  "version": "1.0.0",
   "description": "Rebuild assets for sourcemaps-reload-compressed test, see README.md in the same folder",
   "scripts": {
     "pack": "cp -r ../sourcemaps-reload-uncompressed/v* ./ && cd v1 && webpack && cd ../v2 && webpack && cd ../v3 && webpack",

@@ -1,6 +1,4 @@
 {
-  "name": "app",
-  "version": "0.1.0",
   "private": true,
   "dependencies": {
     "immutable": "^3.8.2",

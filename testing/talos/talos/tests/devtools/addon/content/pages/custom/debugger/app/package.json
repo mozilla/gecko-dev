@@ -1,7 +1,5 @@
 {
-  "name": "create-reate-test-app",
   "description": "A test app forked from meta's create-react-app and modified to test sourcemap debugging scenarios",
-  "version": "0.1.0",
   "private": true,
   "homepage": "./",
   "dependencies": {

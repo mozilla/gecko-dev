@@ -1,5 +1,4 @@
 {
-  "name": "sourcemapped-webpack3",
   "private": true,
   "dependencies": {
     "lodash": "^4.17.10",

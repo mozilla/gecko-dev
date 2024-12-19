@@ -1,6 +1,4 @@
 {
-  "name": "webconsole-tests",
-  "version": "0.0.1",
   "scripts": {
     "test": "TZ=Europe/Prague jest",
     "test-ci": "TZ=Europe/Prague jest --json"

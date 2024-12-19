@@ -7,13 +7,11 @@
 
 "use strict";
 
-const { name, version } = require("../package.json");
-
 // ------------------------------------------------------------------------------
 // Plugin Definition
 // ------------------------------------------------------------------------------
 module.exports = {
-  meta: { name, version },
+  meta: { name: "eslint-plugin-spidermonkey-js", version: "0.1.1" },
   processors: {
     processor: require("./processors/self-hosted"),
   },
