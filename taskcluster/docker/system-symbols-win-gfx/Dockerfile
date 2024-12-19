@@ -12,14 +12,14 @@ VOLUME /builds/worker/checkouts
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
-        7zip build-essential curl jq python3-pip unzip wget zip && \
+        build-essential curl file jq python3-pip unzip wget zip && \
     apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 COPY run.sh /builds/worker/run.sh
 
 RUN chown -R worker:worker /builds/worker
 
-RUN pip3 install --break-system-packages crashstats-tools==1.4.0
+RUN pip3 install --break-system-packages crashstats-tools==2.1.0
 
 # Set a default command useful for debugging
 CMD ["/bin/bash", "--login"]

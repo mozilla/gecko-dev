@@ -50,7 +50,7 @@ pushd "${MOZ_FETCHES_DIR}/symbol-scrapers/windows-graphics-drivers"
     download_extract_sha256sums "${sha256}"
   fi
 
-  DUMP_SYMS="${MOZ_FETCHES_DIR}/dump_syms/dump_syms" /bin/bash -x script.sh
+  PATH="${MOZ_FETCHES_DIR}/7zz/:${PATH}" DUMP_SYMS="${MOZ_FETCHES_DIR}/dump_syms/dump_syms" /bin/bash -x script.sh
   zip -r9 "/builds/worker/artifacts/${SHA256SUMS}" SHA256SUMS
 popd
 

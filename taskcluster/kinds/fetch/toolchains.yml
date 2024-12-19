@@ -466,6 +466,16 @@ fix-stacks:
         repo: https://github.com/mozilla/fix-stacks/
         revision: 1fb1bcc8cb4dd65fbe342853954651563a0a88e7
 
+7zz:
+    description: 7-zip 24.09 source code
+    fetch:
+        type: static-url
+        url: https://downloads.sourceforge.net/sevenzip/7-Zip/24.09/7z2409-src.tar.xz
+        sha256: 49c05169f49572c1128453579af1632a952409ced028259381dac30726b6133a
+        size: 1511288
+        artifact-name: 7z-src.tar.zst
+        add-prefix: 7zz/
+
 winchecksec:
     description: winchecksec source code
     fetch:
@@ -627,7 +637,7 @@ symbol-scrapers:
     fetch:
         type: git
         repo: https://github.com/mozilla/symbol-scrapers
-        revision: 7fb9ca5c50f0d2ec526e080f7deb2c225ef6fbf2
+        revision: 692f4e1d9fc818d5f66abdc2ff593ae2dd364343
 
 xz-5.4.4:
     description: xz 5.4.4 source code

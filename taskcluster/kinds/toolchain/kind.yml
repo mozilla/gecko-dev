@@ -24,6 +24,7 @@ task-defaults:
         using: toolchain-script
 
 tasks-from:
+    - 7zz.yml
     - android.yml
     - cargo-vet.yml
     - cbindgen.yml

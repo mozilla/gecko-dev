@@ -1,0 +1,27 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+task-defaults:
+    attributes:
+        local-toolchain: true
+    description: "7-zip toolchain build"
+    worker:
+        max-run-time: 1800
+    worker-type: b-linux-gcp
+    run:
+        script: build-7zz.sh
+        toolchain-artifact: public/build/7zz.tar.zst
+    fetches:
+        fetch:
+            - 7zz
+
+linux64-7zz:
+    treeherder:
+        symbol: TL(7zz)
+    run:
+        arguments: ['x86_64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - sysroot-x86_64-linux-gnu
