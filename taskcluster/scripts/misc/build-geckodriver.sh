@@ -25,7 +25,7 @@ case "$TARGET" in
 # OSX cross builds are a bit harder
 *-apple-darwin)
   export PATH="$MOZ_FETCHES_DIR/clang/bin:$PATH"
-  RUSTFLAGS="-Clinker=$MOZ_FETCHES_DIR/clang/bin/clang++ -C link-arg=-isysroot=$MOZ_FETCHES_DIR/MacOSX14.4.sdk -C link-arg=-fuse-ld=lld -C link-arg=--target=$TARGET"
+  RUSTFLAGS="-Clinker=$MOZ_FETCHES_DIR/clang/bin/clang++ -C link-arg=-isysroot -C link-arg=$MOZ_FETCHES_DIR/MacOSX14.4.sdk -C link-arg=-fuse-ld=lld -C link-arg=--target=$TARGET"
   if test "$TARGET" = "aarch64-apple-darwin"; then
       export MACOSX_DEPLOYMENT_TARGET=11.0
   else
