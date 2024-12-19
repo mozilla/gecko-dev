@@ -3416,8 +3416,8 @@ void nsBaseWidget::debug_DumpEvent(FILE* aFileOut, nsIWidget* aWidget,
   if (!debug_GetCachedBoolPref("nglayout.debug.event_dumping")) return;
 
   fprintf(aFileOut, "%4d %-26s widget=%-8p name=%-12s id=0x%-6x refpt=%d,%d\n",
-          _GetPrintCount(), ToChar(aGuiEvent->mMessage), (void*)aWidget, aWidgetName,
-          aWindowID, aGuiEvent->mRefPoint.x.value,
+          _GetPrintCount(), ToChar(aGuiEvent->mMessage), (void*)aWidget,
+          aWidgetName, aWindowID, aGuiEvent->mRefPoint.x.value,
           aGuiEvent->mRefPoint.y.value);
 }
 //////////////////////////////////////////////////////////////
