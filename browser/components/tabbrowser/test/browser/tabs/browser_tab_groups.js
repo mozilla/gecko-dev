@@ -441,7 +441,7 @@ add_task(async function test_tabGroupDeletesWhenLastTabClosed() {
 
 add_task(async function test_tabGroupMoveToNewWindow() {
   let tabUri = "https://example.com/tab-group-test";
-  let groupedTab = BrowserTestUtils.addTab(gBrowser, tabUri);
+  let groupedTab = await addTab(tabUri);
   let group = gBrowser.addTabGroup([groupedTab], {
     color: "blue",
     label: "test",
@@ -1022,16 +1022,12 @@ add_task(async function test_tabGroupContextMenuMoveTabToExistingGroup() {
 add_task(
   async function test_tabGroupContextMenuMoveTabToExistingGroupInDifferentWindow() {
     let otherWindow = await BrowserTestUtils.openNewBrowserWindow();
-    let otherTab = BrowserTestUtils.addTab(
-      otherWindow.gBrowser,
-      "about:blank",
-      {
-        skipAnimation: true,
-      }
-    );
+    let otherTab = await addTabTo(otherWindow.gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
     let group = otherWindow.gBrowser.addTabGroup([otherTab]);
 
-    let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    let tab = await addTab("about:blank", {
       skipAnimation: true,
     });
 
