@@ -75,8 +75,10 @@ void nsMacRemoteServer::HandleCommandLine(CFDataRef aData) {
       if (!raise || [raise boolValue]) {
         // Activating the application brings the most recent window to the
         // foreground.
-        [[NSRunningApplication currentApplication]
-            activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+        ProcessSerialNumber psn;
+        if (::GetCurrentProcess(&psn) == noErr) {
+          ::SetFrontProcess(&psn);
+        }
       }
     }
   }

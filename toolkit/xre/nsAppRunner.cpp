@@ -4304,7 +4304,9 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
     // adding this argument.  This new process, which is taking over for
     // the old one, should make itself the active application.
     ProcessSerialNumber psn;
-    if (::GetCurrentProcess(&psn) == noErr) ::SetFrontProcess(&psn);
+    if (::GetCurrentProcess(&psn) == noErr) {
+      ::SetFrontProcess(&psn);
+    }
   }
 #endif
 
