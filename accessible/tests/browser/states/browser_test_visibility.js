@@ -159,7 +159,13 @@ addAccessibleTask(
 
 // test dynamic translation
 addAccessibleTask(
-  `<div id="container" style="position: absolute; left: -300px; top: 100px;">Hello</div><button id="b" onclick="container.style.transform = 'translateX(400px)'">Move</button>`,
+  `<div id="container" style="position: absolute; left: -300px; top: 100px;">Hello</div>
+   <button id="b">Move</button>
+   <script>
+    document.getElementById("b").onclick = () => {
+      container.style.transform = 'translateX(400px)'
+    };
+   </script>`,
   async function (browser, accDoc) {
     const container = findAccessibleChildByID(accDoc, "container");
     await untilCacheOk(
