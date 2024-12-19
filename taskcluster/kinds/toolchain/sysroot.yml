@@ -185,14 +185,3 @@ linux64-toolchain-sysroot:
             - libicu-dev
             # For libdmg-hfsplus
             - liblzma-dev
-
-linux64-aarch64-toolchain-sysroot:
-    description: "Sysroot for aarch64 linux64 toolchain builds"
-    treeherder:
-        symbol: TLA64(sysroot-toolchain)
-    run:
-        arguments:
-            - arm64
-            # For clang
-            - binutils-dev
-            - libxml2-dev
