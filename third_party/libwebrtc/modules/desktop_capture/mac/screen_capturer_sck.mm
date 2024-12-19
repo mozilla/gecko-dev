@@ -26,7 +26,7 @@
 using webrtc::DesktopFrameIOSurface;
 
 #define SCK_AVAILABLE @available(macOS 14.0, *)
-#define SCCSPICKER_AVAILABLE @available(macOS 15.0, *)
+#define SCCSPICKER_AVAILABLE @available(macOS 14.0, *)
 
 namespace webrtc {
 class ScreenCapturerSck;
