@@ -19,6 +19,13 @@ x86_64-unknown-linux-gnu)
     export TARGET_CFLAGS="--sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu -fuse-ld=lld"
     export TARGET_CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 --sysroot=$MOZ_FETCHES_DIR/sysroot-x86_64-linux-gnu -fuse-ld=lld"
     ;;
+aarch64-unknown-linux-gnu)
+    export RUSTFLAGS="-Clinker=$MOZ_FETCHES_DIR/clang/bin/clang++ -C link-arg=--sysroot=$MOZ_FETCHES_DIR/sysroot-aarch64-linux-gnu -C link-arg=-fuse-ld=lld -C link-arg=--target=$TARGET"
+    export CC=$MOZ_FETCHES_DIR/clang/bin/clang
+    export CXX=$MOZ_FETCHES_DIR/clang/bin/clang++
+    export TARGET_CFLAGS="--sysroot=$MOZ_FETCHES_DIR/sysroot-aarch64-linux-gnu -fuse-ld=lld"
+    export TARGET_CXXFLAGS="--sysroot=$MOZ_FETCHES_DIR/sysroot-aarch64-linux-gnu -fuse-ld=lld"
+    ;;
 *-apple-darwin)
     # Cross-compiling for Mac on Linux.
     export PATH="$MOZ_FETCHES_DIR/clang/bin:$PATH"

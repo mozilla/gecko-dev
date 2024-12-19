@@ -31,6 +31,17 @@ linux64-cbindgen:
             - linux64-rust-toolchain
             - sysroot-x86_64-linux-gnu
 
+linux64-aarch64-cbindgen:
+    treeherder:
+        symbol: TLA64(cbindgen)
+    run:
+        arguments: ['aarch64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-toolchain
+            - sysroot-aarch64-linux-gnu
+
 macosx64-cbindgen:
     treeherder:
         symbol: TM(cbindgen)
