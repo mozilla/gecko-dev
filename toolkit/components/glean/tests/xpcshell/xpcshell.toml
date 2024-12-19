@@ -34,3 +34,6 @@ skip-if = ["os == 'android'"] # Android inits its own FOG, so the test won't wor
 
 ["test_OHTTP.js"]
 skip-if = ["os == 'android'"] # FOG isn't responsible for monitoring prefs and controlling upload on Android
+
+["test_ProfilerMarkers.js"]
+skip-if = ["!gecko_profiler"] # Skip this test if we build without the profiler
