@@ -3234,13 +3234,20 @@ bool arena_t::Purge(bool aForce) {
       return false;
     }
 
-    // Take a single chunk and purge some of its dirty pages.  This will perform
-    // only one system call. The caller can use a loop to purge more memory.
+    // Take a single chunk and attempt to purge some of its dirty pages.  The
+    // loop below will purge memory from the chunk until either:
+    //  * The dirty page count for the arena hits its target,
+    //  * Another thread attempts to delete this chunk, or
+    //  * The chunk has no more dirty pages.
+    // In any of these cases the loop will break and Purge() will return, which
+    // means it may return before the arena meets its dirty page count target,
+    // the return value is used by the caller to call Purge() again where it
+    // will take the next chunk with dirty pages.
     chunk = mChunksDirty.Last();
     if (!chunk) {
       // There are chunks with dirty pages (because mNumDirty > 0 above) but
       // they're not in mChunksDirty.  That can happen if they're busy being
-      // purged.
+      // purged by other threads.
       return false;
     }
     MOZ_ASSERT(chunk->ndirty > 0);
