@@ -281,6 +281,8 @@ support-files = ["settings/v1-migrate-to-webextension.json"]
 
 ["test_webextensions_startup_remove.js"]
 
+["test_webextensions_uninstall_appProvided.js"]
+
 ["test_webextensions_upgrade.js"]
 
 ["test_webextensions_valid.js"]
