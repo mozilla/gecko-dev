@@ -440,8 +440,8 @@ export const PREFS_CONFIG = new Map([
     "newtabAdSize.leaderboard.position",
     {
       title:
-        "position for leaderboard spoc - should corralate to a row in DS grid",
-      value: "3",
+        "CSV string of positions for leaderboard spocs - should corralate to a row in DS grid",
+      value: "1",
     },
   ],
   [
@@ -455,8 +455,8 @@ export const PREFS_CONFIG = new Map([
     "newtabAdSize.billboard.position",
     {
       title:
-        "position for billboard spoc - should corralate to a row in DS grid",
-      value: "3",
+        "number string of positions for billboard spocs - should corralate to a row in DS grid",
+      value: "1",
     },
   ],
   [
