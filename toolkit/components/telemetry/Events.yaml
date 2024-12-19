@@ -3994,3 +3994,28 @@ browser.backup:
       backup_step: >
         The string representation of the step that backup creation was in
         when the error occurred.
+
+profiles:
+  default:
+    objects: ["updated"]
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+    description: >
+      Recorded when a new profile from a profile group becomes the default
+      startup profile for the group. This may happen when a profile other
+      than the current default is launched from the profile selector window,
+      or when the user has multiple profiles running at the same time and
+      switches app focus to a profile other than the current default. An
+      event is not recorded if the current default profile is launched or
+      gains app focus.
+    bug_numbers: [1693362]
+    notification_emails:
+      - "jhirsch@mozilla.com"
+      - "dtownsend@mozilla.com"
+      - "nbaumgardner@mozilla.com"
+    bug_numbers:
+      - 1918813
+    expiry_version: never
+    products:
+      - "firefox"

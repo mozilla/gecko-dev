@@ -22,6 +22,14 @@ add_task(async function test_updateDefaultProfileOnWindowSwitch() {
     `The SelectableProfileService rootDir is correct`
   );
 
+  Services.telemetry.clearEvents();
+  Services.fog.testResetFOG();
+  is(
+    null,
+    Glean.profilesDefault.updated.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+
   // Override
   gProfileService.currentProfile.rootDir = "bad";
 
@@ -40,7 +48,17 @@ add_task(async function test_updateDefaultProfileOnWindowSwitch() {
     `The SelectableProfileService rootDir is correct`
   );
 
-  await BrowserTestUtils.closeWindow(w);
+  let testEvents = Glean.profilesDefault.updated.testGetValue();
+  Assert.equal(
+    1,
+    testEvents.length,
+    "Should have recorded the default profile updated event exactly once"
+  );
+  TelemetryTestUtils.assertEvents([["profiles", "default", "updated"]], {
+    category: "profiles",
+    method: "default",
+  });
 
+  await BrowserTestUtils.closeWindow(w);
   await SelectableProfileService.uninit();
 });

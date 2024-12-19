@@ -841,6 +841,7 @@ class SelectableProfileServiceClass {
     }
     this.#groupToolkitProfile.rootDir = await aProfile.rootDir;
     await this.#attemptFlushProfileService();
+    Glean.profilesDefault.updated.record();
   }
 
   /**
