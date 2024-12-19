@@ -75,6 +75,7 @@ def original_path():
 def bootstrap_toolchain_tasks(host):
     prefix = {
         ("x86_64", "GNU", "Linux"): "linux64",
+        ("aarch64", "GNU", "Linux"): "linux64-aarch64",
         ("x86_64", "OSX", "Darwin"): "macosx64",
         ("aarch64", "OSX", "Darwin"): "macosx64-aarch64",
         ("x86_64", "WINNT", "WINNT"): "win64",
