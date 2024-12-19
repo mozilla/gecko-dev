@@ -7,8 +7,6 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
-  GroupsPanel: "resource:///modules/GroupsList.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   TabsPanel: "resource:///modules/TabsList.sys.mjs",
 });
 
@@ -21,7 +19,6 @@ var gTabsPanel = {
     containerTabsView: "allTabsMenu-containerTabsView",
     hiddenTabsButton: "allTabsMenu-hiddenTabsButton",
     hiddenTabsView: "allTabsMenu-hiddenTabsView",
-    groupsView: "allTabsMenu-groupsView",
   },
   _initialized: false,
   _initializedElements: false,
@@ -63,11 +60,6 @@ var gTabsPanel = {
       containerNode: this.allTabsViewTabs,
       filterFn: tab => !tab.hidden,
       dropIndicator: this.dropIndicator,
-      showGroups: true,
-    });
-    this.groupsPanel = new GroupsPanel({
-      view: this.allTabsView,
-      containerNode: this.groupsView,
     });
 
     this.allTabsView.addEventListener("ViewShowing", () => {

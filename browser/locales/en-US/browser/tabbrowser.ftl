@@ -191,7 +191,6 @@ tabbrowser-manager-close-tab =
 
 ## Tab Groups
 
-tab-group-name-default = Unnamed Group
 tab-group-editor-title-create = Create tab group
 tab-group-editor-title-edit = Manage tab group
 tab-group-editor-name-label = Name
@@ -200,8 +199,6 @@ tab-group-editor-name-field =
 tab-group-editor-cancel =
   .label = Cancel
   .accesskey = C
-
-tab-group-menu-header = Tab groups
 
 tab-context-unnamed-group =
     .label = Unnamed group

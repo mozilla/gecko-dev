@@ -9,7 +9,6 @@ JAR_MANIFESTS += ["jar.mn"]
 
 EXTRA_JS_MODULES += [
     "AsyncTabSwitcher.sys.mjs",
-    "GroupsList.sys.mjs",
     "NewTabPagePreloading.sys.mjs",
     "OpenInTabsUtils.sys.mjs",
     "TabsList.sys.mjs",

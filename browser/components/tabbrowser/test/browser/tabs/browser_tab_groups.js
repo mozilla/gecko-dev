@@ -590,33 +590,6 @@ add_task(async function test_moveTabBetweenGroups() {
   await removeTabGroup(group2);
 });
 
-add_task(async function test_tabGroupSelect() {
-  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let tab3 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let tab1Added = BrowserTestUtils.waitForEvent(tab1, "TabGrouped");
-  let tab2Added = BrowserTestUtils.waitForEvent(tab2, "TabGrouped");
-  let group = gBrowser.addTabGroup([tab1, tab2]);
-  await Promise.allSettled([tab1Added, tab2Added]);
-  gBrowser.selectTabAtIndex(tab3._tPos);
-  Assert.ok(tab3.selected, "Tab 3 is selected");
-  group.select();
-  Assert.ok(group.tabs[0].selected, "First tab is selected");
-  gBrowser.selectTabAtIndex(group.tabs[1]._tPos);
-  Assert.ok(group.tabs[1].selected, "Second tab is selected");
-  group.select();
-  Assert.ok(group.tabs[1].selected, "Second tab is still selected");
-  group.collapsed = true;
-  Assert.ok(group.collapsed, "Group is collapsed");
-  Assert.ok(tab3.selected, "Tab 3 is selected");
-  group.select();
-  Assert.ok(!group.collapsed, "Group is no longer collapsed");
-  Assert.ok(group.tabs[0].selected, "First tab in group is selected");
-
-  await removeTabGroup(group);
-  BrowserTestUtils.removeTab(tab3);
-});
-
 // Context menu tests
 // ---
 
