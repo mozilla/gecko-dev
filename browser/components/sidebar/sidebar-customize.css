@@ -88,8 +88,7 @@ moz-checkbox {
 #manage-settings {
   display: flex;
   align-items: center;
-  gap: var(--space-small);
-  padding-inline-start: var(--space-medium);
+  gap: var(--space-large);
 }
 
 .customize-group {

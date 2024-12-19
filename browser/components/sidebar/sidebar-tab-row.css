@@ -7,6 +7,7 @@
 
   :host(:hover) & {
     display: inline;
+    justify-self: end;
   }
 }
 
@@ -19,20 +20,7 @@
 }
 
 .fxview-tab-row-main {
-  padding-block: 4px;
-  padding-inline: 8px 4px;
-  border-radius: var(--border-radius-medium);
-  gap: 8px;
+  height: 32px;
+  box-sizing: border-box;
   flex: 1;
-
-  &:hover, &:hover:active {
-    background-color: unset;
-  }
-}
-
-.fxview-tab-row-button {
-  --button-outer-padding-block: 4px;
-  --button-outer-padding-inline: 4px;
-  --button-size-icon: 24px;
-  --button-min-height: 24px;
 }

@@ -694,25 +694,6 @@ export class FxviewTabRowBase extends MozLitElement {
     </span>`;
   }
 
-  getIconSrc(actionClass) {
-    let iconSrc;
-    switch (actionClass) {
-      case "delete-button":
-        iconSrc = "chrome://global/skin/icons/delete.svg";
-        break;
-      case "dismiss-button":
-        iconSrc = "chrome://global/skin/icons/close.svg";
-        break;
-      case "options-button":
-        iconSrc = "chrome://global/skin/icons/more.svg";
-        break;
-      default:
-        iconSrc = null;
-        break;
-    }
-    return iconSrc;
-  }
-
   secondaryButtonTemplate() {
     return html`${when(
       this.secondaryL10nId && this.secondaryActionHandler,
@@ -732,7 +713,6 @@ export class FxviewTabRowBase extends MozLitElement {
           this.currentActiveElementId === "fxview-tab-row-secondary-button"
             ? "0"
             : "-1"}"
-          iconSrc=${this.getIconSrc(this.secondaryActionClass)}
         ></moz-button>`
     )}`;
   }
@@ -756,7 +736,6 @@ export class FxviewTabRowBase extends MozLitElement {
           this.currentActiveElementId === "fxview-tab-row-tertiary-button"
             ? "0"
             : "-1"}"
-          iconSrc=${this.getIconSrc(this.tertiaryActionClass)}
         ></moz-button>`
     )}`;
   }

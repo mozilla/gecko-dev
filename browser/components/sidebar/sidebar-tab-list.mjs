@@ -107,7 +107,6 @@ export class SidebarTabRow extends FxviewTabRowBase {
           id="fxview-tab-row-secondary-button"
           type="icon ghost"
           @click=${this.secondaryActionHandler}
-          iconSrc=${this.getIconSrc(this.secondaryActionClass)}
         ></moz-button>`
     )}`;
   }

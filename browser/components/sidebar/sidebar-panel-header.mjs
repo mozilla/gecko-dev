@@ -29,17 +29,17 @@ export class SidebarPanelHeader extends MozLitElement {
     return html`
       <link rel="stylesheet" href="chrome://browser/content/sidebar/sidebar-panel-header.css"></link>
       <div class="sidebar-panel-header">
-        <h4 class="text-truncated-ellipsis">${this.heading}</h4>
-        <moz-button
-          iconsrc="chrome://global/skin/icons/close.svg"
-          data-l10n-id="sidebar-panel-header-close-button"
-          @click=${this.closeSidebarPanel}
-          view=${this.view}
-          size="default"
-          type="icon ghost"
-        >
-        </moz-button>
-      </div>
+      <h4 class="text-truncated-ellipsis">${this.heading}</h4>
+      <moz-button
+        class="header-close-button"
+        data-l10n-id="sidebar-panel-header-close-button"
+        @click=${this.closeSidebarPanel}
+        view=${this.view}
+        size="default"
+        type="icon ghost"
+      >
+      </moz-button>
+    </div>
     `;
   }
 }
