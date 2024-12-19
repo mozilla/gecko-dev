@@ -76,10 +76,17 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        requirePreference<SwitchPreference>(R.string.pref_key_marketing_telemetry).apply {
-            isChecked = (context.settings().isMarketingTelemetryEnabled) && (!Config.channel.isMozillaOnline)
-            onPreferenceChangeListener = SharedPreferenceUpdater()
-            isVisible = !Config.channel.isMozillaOnline && shouldShowMarketingTelemetryPreference()
+        val marketingTelemetryPref =
+            requirePreference<SwitchPreference>(R.string.pref_key_marketing_telemetry).apply {
+                isChecked =
+                    context.settings().isMarketingTelemetryEnabled && !Config.channel.isMozillaOnline
+                onPreferenceChangeListener = SharedPreferenceUpdater()
+                isVisible =
+                    !Config.channel.isMozillaOnline && shouldShowMarketingTelemetryPreference()
+            }
+
+        requirePreference<Preference>(R.string.pref_key_learn_about_marketing_telemetry).apply {
+            isVisible = marketingTelemetryPref.isVisible
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_crash_reporting_always_report).apply {
