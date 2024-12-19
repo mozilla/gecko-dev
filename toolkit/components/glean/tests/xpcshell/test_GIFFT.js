@@ -349,6 +349,83 @@ add_task(function test_gifft_labeled_counter() {
     },
     value.snapshot()
   );
+
+  // What about a labeled_counter that maps to a keyed count hgram?
+  Assert.equal(
+    undefined,
+    Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram.aLabel.testGetValue()
+  );
+  Assert.equal(
+    undefined,
+    Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram.anotherLabel.testGetValue()
+  );
+
+  Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram.aLabel.add(2);
+  Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram.anotherLabel.add(1);
+
+  Assert.equal(
+    2,
+    Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram.aLabel.testGetValue()
+  );
+  Assert.equal(
+    1,
+    Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram.anotherLabel.testGetValue()
+  );
+
+  value = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_COUNT");
+  Assert.deepEqual(
+    {
+      aLabel: {
+        bucket_count: 3,
+        histogram_type: 4,
+        sum: 2,
+        range: [1, 2],
+        values: { 0: 1, 1: 0 },
+      },
+      anotherLabel: {
+        bucket_count: 3,
+        histogram_type: 4,
+        sum: 1,
+        range: [1, 2],
+        values: { 0: 1, 1: 0 },
+      },
+    },
+    value.snapshot()
+  );
+
+  // What about a labeled_counter that maps to a categorical hgram?
+  Assert.equal(
+    undefined,
+    Glean.testOnlyIpc.aLabeledCounterForCategorical.CommonLabel.testGetValue()
+  );
+  Assert.equal(
+    undefined,
+    Glean.testOnlyIpc.aLabeledCounterForCategorical.Label4.testGetValue()
+  );
+
+  Glean.testOnlyIpc.aLabeledCounterForCategorical.CommonLabel.add(1);
+  Glean.testOnlyIpc.aLabeledCounterForCategorical.Label4.add(1);
+
+  Assert.equal(
+    1,
+    Glean.testOnlyIpc.aLabeledCounterForCategorical.CommonLabel.testGetValue()
+  );
+  Assert.equal(
+    1,
+    Glean.testOnlyIpc.aLabeledCounterForCategorical.Label4.testGetValue()
+  );
+
+  value = Telemetry.getHistogramById("TELEMETRY_TEST_CATEGORICAL_OPTOUT");
+  Assert.deepEqual(
+    {
+      bucket_count: 51,
+      histogram_type: 5,
+      sum: 1,
+      range: [1, 50],
+      values: { 0: 1, 1: 1, 2: 0 },
+    },
+    value.snapshot()
+  );
 });
 
 add_task(async function test_gifft_timespan() {

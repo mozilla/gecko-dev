@@ -6,6 +6,7 @@
 
 #include "mozilla/glean/bindings/Counter.h"
 
+#include "nsITelemetry.h"
 #include "nsString.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/dom/GleanMetricsBinding.h"
@@ -13,6 +14,40 @@
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "GIFFTFwd.h"
+
+using mozilla::Telemetry::HistogramID;
+
+/* static */
+void accumulateToBoolean(HistogramID aId, const nsACString& aLabel,
+                         int32_t aAmount) {
+  MOZ_ASSERT(aAmount == 1,
+             "When mirroring to boolean histograms, we only support "
+             "accumulating one sample at a time.");
+  if (aLabel.EqualsASCII("true")) {
+    mozilla::Telemetry::Accumulate(aId, true);
+  } else if (aLabel.EqualsASCII("false")) {
+    mozilla::Telemetry::Accumulate(aId, false);
+  } else {
+    MOZ_ASSERT_UNREACHABLE(
+        "When mirroring to boolean histograms, we only support labels 'true' "
+        "and 'false'");
+  }
+}
+
+/* static */
+void accumulateToKeyedCount(HistogramID aId, const nsCString& aLabel,
+                            int32_t aAmount) {
+  mozilla::Telemetry::Accumulate(aId, aLabel, aAmount);
+}
+
+/* static */
+void accumulateToCategorical(HistogramID aId, const nsCString& aLabel,
+                             int32_t aAmount) {
+  MOZ_ASSERT(aAmount == 1,
+             "When mirroring to categorical histograms, we only support "
+             "accumulating one sample at a time.");
+  mozilla::Telemetry::AccumulateCategorical(aId, aLabel);
+}
 
 namespace mozilla::glean {
 
@@ -37,18 +72,22 @@ void CounterMetric::Add(int32_t aAmount) const {
         GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
           auto tuple = lock.ref()->MaybeGet(mId);
           if (tuple) {
-            MOZ_ASSERT(aAmount == 1,
-                       "When mirroring to boolean histograms, we only support "
-                       "accumulating one sample at a time.");
-            auto& label = std::get<1>(tuple.ref());
-            if (label.EqualsASCII("true")) {
-              Telemetry::Accumulate(std::get<0>(tuple.ref()), true);
-            } else if (label.EqualsASCII("false")) {
-              Telemetry::Accumulate(std::get<0>(tuple.ref()), false);
-            } else {
-              MOZ_ASSERT_UNREACHABLE(
-                  "When mirroring to boolean histograms, we only support "
-                  "labels 'true' and 'false'");
+            HistogramID hId = std::get<0>(tuple.ref());
+            switch (TelemetryHistogram::GetHistogramType(hId)) {
+              case nsITelemetry::HISTOGRAM_BOOLEAN:
+                accumulateToBoolean(hId, std::get<1>(tuple.ref()), aAmount);
+                break;
+              case nsITelemetry::HISTOGRAM_COUNT:
+                accumulateToKeyedCount(hId, std::get<1>(tuple.ref()), aAmount);
+                break;
+              case nsITelemetry::HISTOGRAM_CATEGORICAL:
+                accumulateToCategorical(hId, std::get<1>(tuple.ref()), aAmount);
+                break;
+              default:
+                MOZ_ASSERT_UNREACHABLE(
+                    "Asked to mirror labeled_counter to unsupported histogram "
+                    "type.");
+                break;
             }
           }
         });

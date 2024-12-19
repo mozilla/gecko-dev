@@ -9,6 +9,7 @@
 
 namespace mozilla::Telemetry {
 enum class ScalarID : uint32_t;
+enum HistogramID : uint32_t;
 }  // namespace mozilla::Telemetry
 
 namespace TelemetryScalar {
@@ -23,5 +24,9 @@ void Set(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
          uint32_t aValue);
 void Set(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, bool aValue);
 }  // namespace TelemetryScalar
+
+namespace TelemetryHistogram {
+uint8_t GetHistogramType(mozilla::Telemetry::HistogramID aId);
+}  // namespace TelemetryHistogram
 
 #endif /* mozilla_glean_GIFFTFwd_h */

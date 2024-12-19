@@ -86,6 +86,8 @@ nsresult GetKeyedHistogramById(const nsACString& name, JSContext* cx,
 
 const char* GetHistogramName(mozilla::Telemetry::HistogramID id);
 
+uint8_t GetHistogramType(mozilla::Telemetry::HistogramID id);
+
 nsresult CreateHistogramSnapshots(JSContext* aCx,
                                   JS::MutableHandle<JS::Value> aResult,
                                   const nsACString& aStore,

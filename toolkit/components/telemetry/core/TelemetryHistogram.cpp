@@ -2878,6 +2878,16 @@ const char* TelemetryHistogram::GetHistogramName(HistogramID id) {
   return h.name();
 }
 
+uint8_t TelemetryHistogram::GetHistogramType(HistogramID id) {
+  if (NS_WARN_IF(!internal_IsHistogramEnumId(id))) {
+    MOZ_ASSERT_UNREACHABLE("Histogram usage requires valid ids.");
+    return std::numeric_limits<uint8_t>::max();
+  }
+
+  const HistogramInfo& h = gHistogramInfos[id];
+  return h.histogramType;
+}
+
 nsresult TelemetryHistogram::CreateHistogramSnapshots(
     JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
     const nsACString& aStore, unsigned int aDataset, bool aClearSubsession,

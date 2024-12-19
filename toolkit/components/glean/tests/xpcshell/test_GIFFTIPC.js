@@ -109,6 +109,17 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
   Glean.testOnlyIpc.aLabeledCounterForHgram.false.add(1);
   Glean.testOnlyIpc.aLabeledCounterForHgram.false.add(1);
 
+  Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram.a_label.add(
+    A_LABEL_COUNT
+  );
+  Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram.another_label.add(
+    ANOTHER_LABEL_COUNT
+  );
+
+  Glean.testOnlyIpc.aLabeledCounterForCategorical.CommonLabel.add(1);
+  Glean.testOnlyIpc.aLabeledCounterForCategorical.Label6.add(1);
+  Glean.testOnlyIpc.aLabeledCounterForCategorical.Label6.add(1);
+
   Glean.testOnlyIpc.irate.addToNumerator(IRATE_NUMERATOR);
   Glean.testOnlyIpc.irate.addToDenominator(IRATE_DENOMINATOR);
 
@@ -287,6 +298,52 @@ add_task(
       histSnapshot.content.TELEMETRY_TEST_BOOLEAN
     );
 
+    const keyedHistSnapshot = Telemetry.getSnapshotForKeyedHistograms(
+      "main",
+      false,
+      false
+    );
+    const keyedCountHgramCounters =
+      Glean.testOnlyIpc.aLabeledCounterForKeyedCountHgram;
+    Assert.equal(keyedCountHgramCounters.a_label.testGetValue(), A_LABEL_COUNT);
+    Assert.equal(
+      keyedCountHgramCounters.another_label.testGetValue(),
+      ANOTHER_LABEL_COUNT
+    );
+    Assert.deepEqual(
+      {
+        a_label: {
+          bucket_count: 3,
+          histogram_type: 4,
+          sum: A_LABEL_COUNT,
+          range: [1, 2],
+          values: { 0: 1, 1: 0 },
+        },
+        another_label: {
+          bucket_count: 3,
+          histogram_type: 4,
+          sum: ANOTHER_LABEL_COUNT,
+          range: [1, 2],
+          values: { 0: 1, 1: 0 },
+        },
+      },
+      keyedHistSnapshot.content.TELEMETRY_TEST_KEYED_COUNT
+    );
+
+    const catCounters = Glean.testOnlyIpc.aLabeledCounterForCategorical;
+    Assert.equal(catCounters.CommonLabel.testGetValue(), 1);
+    Assert.equal(catCounters.Label6.testGetValue(), 2);
+    Assert.deepEqual(
+      {
+        bucket_count: 51,
+        histogram_type: 5,
+        sum: 6,
+        range: [1, 50],
+        values: { 0: 1, 3: 2, 4: 0 },
+      },
+      histSnapshot.content.TELEMETRY_TEST_CATEGORICAL_OPTOUT
+    );
+
     // labeled_string
     // Doesn't work over IPC
 
@@ -380,11 +437,6 @@ add_task(
         `Only two buckets have a sample ${bucket} ${count}`
       );
     }
-    const keyedHistSnapshot = Telemetry.getSnapshotForKeyedHistograms(
-      "main",
-      false,
-      false
-    );
     const keyedHistData = keyedHistSnapshot.content.TELEMETRY_TEST_KEYED_LINEAR;
     Assert.ok("weird_jars" in keyedHistData, "Key's present");
     Assert.equal(

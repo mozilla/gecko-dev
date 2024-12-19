@@ -80,13 +80,23 @@ def ensure_compatible_histogram(metric, probe):
         ), f"Metric {metric.identifier()} is a `counter` mapping to a histogram, but {probe.name()} isn't a 'count' Histogram (is '{probe.kind()}')."
         return
     elif metric.type == "labeled_counter":
-        assert (
-            probe.kind() == "boolean"
-        ), f"Metric {metric.identifier()} is a `labeled_counter` mapping to a histogram, but {probe.name()} isn't a 'boolean' Histogram (is '{probe.kind()}')."
-        assert metric.ordered_labels == [
-            "false",
-            "true",
-        ], f"Metric {metric.identifier()} is a `labeled_counter` mapping to a boolean histogram, but it doesn't have labels ['false', 'true'] (has {metric.ordered_labels} instead)."
+        if probe.kind() == "boolean":
+            assert metric.ordered_labels == [
+                "false",
+                "true",
+            ], f"Metric {metric.identifier()} is a `labeled_counter` mapping to a boolean histogram, but it doesn't have labels ['false', 'true'] (has {metric.ordered_labels} instead)."
+        elif probe.kind() == "count":
+            assert (
+                probe.keyed()
+            ), f"Metric {metric.identifier()} is a `labeled_counter` mapping to un-keyed 'count' histogram {probe.name()}."
+        elif probe.kind() == "categorical":
+            assert (
+                metric.ordered_labels == probe.labels()
+            ), f"Metric {metric.identifier()} is a `labeled_counter` mapping to categorical histogram {probe.name()}, but the labels don't match."
+        else:
+            assert (
+                False
+            ), f"Metric {metric.identifier()} is a `labeled_counter` mapping to a histogram, but {probe.name()} isn't a 'boolean, keyed 'count', or 'categorical' Histogram (is '{probe.kind()}')."
         return
 
     assert probe.kind() in [
