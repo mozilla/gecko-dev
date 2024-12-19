@@ -67,12 +67,12 @@ WINDOWS_WORKER_TYPES = {
         "hardware": "win11-64-2009-hw",
     },
     "windows11-64-2009-ccov": {
-        "virtual": "win11-64-2009-ssd",
-        "virtual-with-gpu": "win11-64-2009-ssd-gpu",
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
     },
     "windows11-64-2009-ccov-qr": {
-        "virtual": "win11-64-2009-ssd",
-        "virtual-with-gpu": "win11-64-2009-ssd-gpu",
+        "virtual": "win11-64-2009",
+        "virtual-with-gpu": "win11-64-2009-gpu",
     },
     "windows11-64-2009-devedition": {
         "virtual": "win11-64-2009",
