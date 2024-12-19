@@ -211,6 +211,9 @@ module.exports = function (config) {
                 functions: 0,
                 branches: 0,
               },
+            "content-src/components/DiscoveryStreamComponents/AdBanner/AdBanner.jsx": {
+              branches: 66.67,
+            },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,
