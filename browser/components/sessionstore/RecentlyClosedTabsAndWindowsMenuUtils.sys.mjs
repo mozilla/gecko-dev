@@ -439,13 +439,14 @@ function createEntry(
   }
 
   if (aIsWindowsFragment) {
-    element.setAttribute("oncommand", `undoCloseWindow("${aIndex}");`);
+    element.addEventListener("command", event =>
+      event.target.ownerGlobal.undoCloseWindow(aIndex)
+    );
   } else if (typeof aClosedTab.sourceClosedId == "number") {
     // sourceClosedId is used to look up the closed window to remove it when the tab is restored
     let sourceClosedId = aClosedTab.sourceClosedId;
     element.setAttribute("source-closed-id", sourceClosedId);
     element.setAttribute("value", aClosedTab.closedId);
-    element.removeAttribute("oncommand");
     element.addEventListener(
       "command",
       () => {
@@ -461,9 +462,8 @@ function createEntry(
     let sourceWindowId = aClosedTab.sourceWindowId;
     element.setAttribute("value", aIndex);
     element.setAttribute("source-window-id", sourceWindowId);
-    element.setAttribute(
-      "oncommand",
-      `undoCloseTab(${aIndex}, "${sourceWindowId}");`
+    element.addEventListener("command", event =>
+      event.target.ownerGlobal.undoCloseTab(aIndex, sourceWindowId)
     );
   }
 
