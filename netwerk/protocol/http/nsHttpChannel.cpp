@@ -7955,14 +7955,11 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
 
     bool isTrr;
     bool echConfigUsed;
-
-    if (!StaticPrefs::network_dns_use_override_as_peer_address()) {
-      mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
-                                        mEffectiveTRRMode, mTRRSkipReason,
-                                        echConfigUsed);
-      StoreResolvedByTRR(isTrr);
-      StoreEchConfigUsed(echConfigUsed);
-    }
+    mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
+                                      mEffectiveTRRMode, mTRRSkipReason,
+                                      echConfigUsed);
+    StoreResolvedByTRR(isTrr);
+    StoreEchConfigUsed(echConfigUsed);
   }
 
   // don't enter this block if we're reading from the cache...
@@ -8367,8 +8364,7 @@ static void RecordIPAddressSpaceTelemetry(bool aLoadSuccess, nsIURI* aURI,
   }
 
   // if the load was not successful, then there is nothing to record here
-  if (!aLoadSuccess &&
-      !StaticPrefs::network_dns_use_override_as_peer_address()) {
+  if (!aLoadSuccess) {
     return;
   }
 
@@ -9288,17 +9284,14 @@ nsHttpChannel::OnTransportStatus(nsITransport* trans, nsresult status,
     bool isTrr = false;
     bool echConfigUsed = false;
     if (mTransaction) {
-      if (!StaticPrefs::network_dns_use_override_as_peer_address()) {
-        mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
-                                          mEffectiveTRRMode, mTRRSkipReason,
-                                          echConfigUsed);
-      }
+      mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
+                                        mEffectiveTRRMode, mTRRSkipReason,
+                                        echConfigUsed);
+
     } else {
       nsCOMPtr<nsISocketTransport> socketTransport = do_QueryInterface(trans);
       if (socketTransport) {
-        if (!StaticPrefs::network_dns_use_override_as_peer_address()) {
-          socketTransport->GetPeerAddr(&mPeerAddr);
-        }
+        socketTransport->GetPeerAddr(&mPeerAddr);
         socketTransport->GetSelfAddr(&mSelfAddr);
         socketTransport->ResolvedByTRR(&isTrr);
         socketTransport->GetEffectiveTRRMode(&mEffectiveTRRMode);
@@ -9845,15 +9838,6 @@ nsHttpChannel::OnLookupComplete(nsICancelable* request, nsIDNSRecord* rec,
     mCaps &= ~NS_HTTP_REFRESH_DNS;
     if (mTransaction) {
       mTransaction->SetDNSWasRefreshed();
-    }
-  }
-
-  if (StaticPrefs::network_dns_use_override_as_peer_address()) {
-    nsTArray<NetAddr> addresses;
-    nsCOMPtr<nsIDNSAddrRecord> record = do_QueryInterface(rec);
-    Unused << record->GetAddresses(addresses);
-    if (addresses.Length()) {
-      mPeerAddr = addresses[0];
     }
   }
 
