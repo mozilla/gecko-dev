@@ -2054,7 +2054,7 @@ toolbar#nav-bar {
             # opening in profiler.firefox.com.
             self.profiler_tempdir = tempfile.mkdtemp()
             browserEnv["MOZ_PROFILER_SHUTDOWN"] = os.path.join(
-                self.profiler_tempdir, "mochitest-profile.json"
+                self.profiler_tempdir, "profile_mochitest.json"
             )
             browserEnv["MOZ_PROFILER_STARTUP"] = "1"
 
@@ -2064,7 +2064,7 @@ toolbar#nav-bar {
             browserEnv["MOZ_PROFILER_STARTUP"] = "1"
             if "MOZ_UPLOAD_DIR" in browserEnv:
                 browserEnv["MOZ_PROFILER_SHUTDOWN"] = os.path.join(
-                    browserEnv["MOZ_UPLOAD_DIR"], "mochitest-profile.json"
+                    browserEnv["MOZ_UPLOAD_DIR"], "profile_mochitest.json"
                 )
             else:
                 self.log.error(
