@@ -5,6 +5,7 @@
 import { SelectableProfile } from "./SelectableProfile.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { DeferredTask } from "resource://gre/modules/DeferredTask.sys.mjs";
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
 
@@ -22,6 +23,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
 ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
   return new Localization(["browser/profiles.ftl"], true);
 });
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "PROFILES_ENABLED",
+  "browser.profiles.enabled",
+  false
+);
 
 const PROFILES_CRYPTO_SALT_LENGTH_BYTES = 16;
 const NOTIFY_TIMEOUT = 200;
@@ -124,10 +132,7 @@ class SelectableProfileServiceClass {
       return true;
     }
 
-    return (
-      Services.prefs.getBoolPref("browser.profiles.enabled", false) &&
-      !!this.#groupToolkitProfile
-    );
+    return lazy.PROFILES_ENABLED && !!this.#groupToolkitProfile;
   }
 
   /**
@@ -149,7 +154,7 @@ class SelectableProfileServiceClass {
       );
     await this.init();
 
-    let enabled = Services.prefs.getBoolPref("browser.profiles.enabled", false);
+    let enabled = lazy.PROFILES_ENABLED;
     if (enabled) {
       // Various parts of the UI listen to the pref to trigger updating so toggle it here.
       Services.prefs.setBoolPref("browser.profiles.enabled", false);
@@ -374,8 +379,6 @@ class SelectableProfileServiceClass {
       this.#asyncShutdownBlocker
     );
 
-    lazy.EveryWindow.unregisterCallback(this.#everyWindowCallbackId);
-
     try {
       Services.obs.removeObserver(
         this.themeObserver,
@@ -403,6 +406,8 @@ class SelectableProfileServiceClass {
     this.#storeID = null;
     this.#badge = null;
 
+    lazy.EveryWindow.unregisterCallback(this.#everyWindowCallbackId);
+
     this.#initialized = false;
   }
 
@@ -423,6 +428,10 @@ class SelectableProfileServiceClass {
           );
         }
 
+        // Update the window title because the currentProfile, needed in the
+        // .*-with-profile titles, didn't exist when the title was initially set.
+        window.gBrowser.updateTitlebar();
+
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
@@ -431,6 +440,8 @@ class SelectableProfileServiceClass {
         window.addEventListener("activate", this);
       },
       window => {
+        window.gBrowser.updateTitlebar();
+
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
