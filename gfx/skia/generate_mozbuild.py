@@ -28,8 +28,8 @@ if CONFIG['MOZ_OPTIMIZE']:
         skia_opt_flags += ['-O2']
     elif CONFIG['CC_TYPE'] in ('clang', 'gcc'):
         skia_opt_flags += ['-O3']
-if CONFIG['TARGET_CPU'] in ('loongarch64'):
-    skia_opt_flags += ['-mno-lsx']
+if CONFIG['TARGET_CPU'] == 'loongarch64':
+    skia_opt_flags += ['-mlasx']
 
 """
 
@@ -110,6 +110,19 @@ if CONFIG['TARGET_CPU'] in ('mips32', 'mips64'):
 # Work around bug 1841199.
 if CONFIG['TARGET_CPU'] in ('mips32', 'mips64', 'ppc64'):
     DEFINES['musttail'] = 'nomusttail'
+
+if CONFIG['TARGET_CPU'] == 'loongarch64':
+    # In ABI1.0, the compilers disable 128bit SIMD defautly; in ABI2.0, it
+    # enable defaultly. The below flags can maintain compatibility.
+    CXXFLAGS += ['-mlsx']
+    if (
+        CONFIG['CC_TYPE'] == 'clang'
+        and int(CONFIG["CC_VERSION"].split(".")[0]) >= 18
+    ):
+        CXXFLAGS += ['-flax-vector-conversions=all']
+    else:
+        # gcc, clang8 for loongarch64.
+        CXXFLAGS += ['-flax-vector-conversions']
 """
 
 import json
