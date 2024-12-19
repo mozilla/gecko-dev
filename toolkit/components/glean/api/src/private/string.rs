@@ -8,11 +8,6 @@ use std::sync::Arc;
 use super::{CommonMetricData, MetricId};
 use crate::ipc::need_ipc;
 
-#[cfg(feature = "with_gecko")]
-use super::profiler_utils::StringLikeMetricMarker;
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
-
 /// A string metric.
 ///
 /// Record an Unicode string value with arbitrary content.
@@ -95,9 +90,9 @@ impl glean::traits::String for StringMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "String::set",
-                        gecko_profiler_category!(Telemetry),
+                        super::profiler_utils::TelemetryProfilerCategory,
                         Default::default(),
-                        StringLikeMetricMarker::new(*id, &value),
+                        super::profiler_utils::StringLikeMetricMarker::new(*id, &value),
                     );
                 }
                 inner.set(value);

@@ -132,10 +132,9 @@ impl Counter for CounterMetric {
 
         #[cfg(feature = "with_gecko")]
         if gecko_profiler::can_accept_markers() {
-            use gecko_profiler::gecko_profiler_category;
             gecko_profiler::add_marker(
                 "Counter::add",
-                gecko_profiler_category!(Telemetry),
+                super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
                 super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
             );

@@ -12,10 +12,7 @@ use super::{CommonMetricData, MetricId};
 use crate::ipc::{need_ipc, with_ipc_payload};
 
 #[cfg(feature = "with_gecko")]
-use super::profiler_utils::{lookup_canonical_metric_name, LookupError};
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
+use super::profiler_utils::{lookup_canonical_metric_name, LookupError, TelemetryProfilerCategory};
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -38,7 +35,7 @@ impl gecko_profiler::ProfilerMarker for BooleanMetricMarker {
         schema.add_key_label_format_searchable(
             "id",
             "Metric",
-            Format::String,
+            Format::UniqueString,
             Searchable::Searchable,
         );
         schema.add_key_label_format("val", "Value", Format::String);
@@ -46,7 +43,7 @@ impl gecko_profiler::ProfilerMarker for BooleanMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        json_writer.string_property(
+        json_writer.unique_string_property(
             "id",
             lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
         );
@@ -122,7 +119,7 @@ impl Boolean for BooleanMetric {
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::add_marker(
                     "Boolean::set",
-                    gecko_profiler_category!(Telemetry),
+                    TelemetryProfilerCategory,
                     Default::default(),
                     BooleanMetricMarker {
                         id: *id,
@@ -142,7 +139,7 @@ impl Boolean for BooleanMetric {
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::add_marker(
                     "Boolean::set",
-                    gecko_profiler_category!(Telemetry),
+                    TelemetryProfilerCategory,
                     Default::default(),
                     BooleanMetricMarker {
                         id: *id,

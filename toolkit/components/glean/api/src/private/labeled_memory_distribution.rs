@@ -13,10 +13,8 @@ use std::collections::HashMap;
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{
     truncate_vector_for_marker, DistributionMetricMarker, DistributionValues,
+    TelemetryProfilerCategory,
 };
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::{gecko_profiler_category, MarkerOptions};
 
 /// A memory distribution metric that knows it's a labeled memory distribution's submetric.
 ///
@@ -45,8 +43,8 @@ impl LabeledMemoryDistributionMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "MemoryDistribution::accumulate",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default(),
+                        TelemetryProfilerCategory,
+                        Default::default(),
                         DistributionMetricMarker::new(
                             *id,
                             Some(label.clone()),
@@ -82,8 +80,8 @@ impl MemoryDistribution for LabeledMemoryDistributionMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "MemoryDistribution::accumulate",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default(),
+                        TelemetryProfilerCategory,
+                        Default::default(),
                         DistributionMetricMarker::new(
                             *id,
                             Some(label.clone()),

@@ -10,11 +10,6 @@ use glean::traits::StringList;
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 
-#[cfg(feature = "with_gecko")]
-use super::profiler_utils::StringLikeMetricMarker;
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
-
 /// A string list metric.
 ///
 /// This allows appending a string value with arbitrary content to a list.
@@ -75,9 +70,9 @@ impl StringList for StringListMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "StringList::add",
-                        gecko_profiler_category!(Telemetry),
+                        super::profiler_utils::TelemetryProfilerCategory,
                         Default::default(),
-                        StringLikeMetricMarker::new(*id, &value),
+                        super::profiler_utils::StringLikeMetricMarker::new(*id, &value),
                     );
                 }
                 inner.add(value);
@@ -114,9 +109,9 @@ impl StringList for StringListMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "StringList::set",
-                        gecko_profiler_category!(Telemetry),
+                        super::profiler_utils::TelemetryProfilerCategory,
                         Default::default(),
-                        StringLikeMetricMarker::new_owned(
+                        super::profiler_utils::StringLikeMetricMarker::new_owned(
                             *id,
                             format!("[{}]", value.clone().join(",")),
                         ),

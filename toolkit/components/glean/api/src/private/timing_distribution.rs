@@ -20,10 +20,8 @@ use glean::traits::TimingDistribution;
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{
     lookup_canonical_metric_name, truncate_vector_for_marker, LookupError,
+    TelemetryProfilerCategory,
 };
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::{gecko_profiler_category, MarkerOptions, MarkerTiming};
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -93,7 +91,7 @@ impl gecko_profiler::ProfilerMarker for TimingDistributionMetricMarker {
         schema.add_key_label_format_searchable(
             "label",
             "Label",
-            Format::String,
+            Format::UniqueString,
             Searchable::Searchable,
         );
         schema.add_key_label_format_searchable(
@@ -114,18 +112,14 @@ impl gecko_profiler::ProfilerMarker for TimingDistributionMetricMarker {
             lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
         );
 
-        match &self.label {
-            Some(s) => json_writer.string_property("label", s.as_str()),
-            _ => {}
+        if let Some(l) = &self.label {
+            json_writer.unique_string_property("label", l.as_str());
         };
 
-        match &self.timer_id {
-            Some(id) => {
-                // We don't care about exactly what the timer id is - so just
-                // perform a bitwise cast, as that provides a 1:1 mapping.
-                json_writer.int_property("timer_id", *id as i64);
-            }
-            _ => {}
+        if let Some(id) = &self.timer_id {
+            // We don't care about exactly what the timer id is - so just
+            // perform a bitwise cast, as that provides a 1:1 mapping.
+            json_writer.int_property("timer_id", *id as i64);
         };
 
         match &self.value {
@@ -392,8 +386,9 @@ impl TimingDistribution for TimingDistributionMetric {
             if gecko_profiler::can_accept_markers() {
                 gecko_profiler::add_marker(
                     "TimingDistribution::start",
-                    gecko_profiler_category!(Telemetry),
-                    MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                    TelemetryProfilerCategory,
+                    gecko_profiler::MarkerOptions::default()
+                        .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                     TimingDistributionMetricMarker::new(*metric_id, None, Some(timer_id.id), None),
                 );
             }
@@ -431,8 +426,9 @@ impl TimingDistribution for TimingDistributionMetric {
             if gecko_profiler::can_accept_markers() {
                 gecko_profiler::add_marker(
                     "TimingDistribution::stop",
-                    gecko_profiler_category!(Telemetry),
-                    MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                    TelemetryProfilerCategory,
+                    gecko_profiler::MarkerOptions::default()
+                        .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                     TimingDistributionMetricMarker::new(*metric_id, None, Some(id.id), None),
                 );
             }
@@ -467,8 +463,9 @@ impl TimingDistribution for TimingDistributionMetric {
             if gecko_profiler::can_accept_markers() {
                 gecko_profiler::add_marker(
                     "TimingDistribution::cancel",
-                    gecko_profiler_category!(Telemetry),
-                    MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                    TelemetryProfilerCategory,
+                    gecko_profiler::MarkerOptions::default()
+                        .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                     TimingDistributionMetricMarker::new(*metric_id, None, Some(id.id), None),
                 );
             }
@@ -504,8 +501,8 @@ impl TimingDistribution for TimingDistributionMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "TimingDistribution::accumulate",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default(),
+                        TelemetryProfilerCategory,
+                        Default::default(),
                         TimingDistributionMetricMarker::new(
                             *id,
                             None,
@@ -541,8 +538,8 @@ impl TimingDistribution for TimingDistributionMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "TimingDistribution::accumulate",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default(),
+                        TelemetryProfilerCategory,
+                        Default::default(),
                         TimingDistributionMetricMarker::new(
                             *id,
                             None,
@@ -568,8 +565,8 @@ impl TimingDistribution for TimingDistributionMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "TimingDistribution::accumulate",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default(),
+                        TelemetryProfilerCategory,
+                        Default::default(),
                         TimingDistributionMetricMarker::new(
                             *id,
                             None,
@@ -626,8 +623,8 @@ impl TimingDistribution for TimingDistributionMetric {
             if gecko_profiler::can_accept_markers() {
                 gecko_profiler::add_marker(
                     "TimingDistribution::accumulate",
-                    gecko_profiler_category!(Telemetry),
-                    MarkerOptions::default(),
+                    TelemetryProfilerCategory,
+                    Default::default(),
                     TimingDistributionMetricMarker::new(
                         *metric_id,
                         None,

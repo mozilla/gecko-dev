@@ -94,6 +94,13 @@ pub(crate) mod profiler_utils {
     use super::max_string_byte_length;
     pub(crate) use super::truncate_string_for_marker;
 
+    // Declare the telemetry profiling category as a constant here.
+    // This lets us avoid re-importing gecko_profiler ... within metric files,
+    // which keeps the importing a bit cleaner, and reduces profiler intrusion.
+    #[allow(non_upper_case_globals)]
+    pub const TelemetryProfilerCategory: gecko_profiler::ProfilingCategoryPair =
+        gecko_profiler::ProfilingCategoryPair::Telemetry(None);
+
     #[derive(Debug)]
     pub(crate) enum LookupError {
         NullPointer,
@@ -239,21 +246,21 @@ pub(crate) mod profiler_utils {
     #[derive(serde::Serialize, serde::Deserialize, Debug)]
     pub(crate) struct StringLikeMetricMarker {
         id: super::MetricId,
-        value: String,
+        val: String,
     }
 
     impl StringLikeMetricMarker {
-        pub fn new(id: super::MetricId, value: &String) -> StringLikeMetricMarker {
+        pub fn new(id: super::MetricId, val: &String) -> StringLikeMetricMarker {
             StringLikeMetricMarker {
                 id: id,
-                value: truncate_string_for_marker(value.clone()),
+                val: truncate_string_for_marker(val.clone()),
             }
         }
 
-        pub fn new_owned(id: super::MetricId, value: String) -> StringLikeMetricMarker {
+        pub fn new_owned(id: super::MetricId, val: String) -> StringLikeMetricMarker {
             StringLikeMetricMarker {
                 id: id,
-                value: truncate_string_for_marker(value),
+                val: truncate_string_for_marker(val),
             }
         }
     }
@@ -274,7 +281,7 @@ pub(crate) mod profiler_utils {
                 Format::UniqueString,
                 Searchable::Searchable,
             );
-            schema.add_key_label_format("value", "Value", Format::String);
+            schema.add_key_label_format("val", "Value", Format::String);
             schema
         }
 
@@ -284,8 +291,8 @@ pub(crate) mod profiler_utils {
                 lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
             );
 
-            debug_assert!(self.value.len() <= max_string_byte_length());
-            json_writer.string_property("value", self.value.as_str());
+            debug_assert!(self.val.len() <= max_string_byte_length());
+            json_writer.string_property("val", self.val.as_str());
         }
     }
 
@@ -296,15 +303,15 @@ pub(crate) mod profiler_utils {
     {
         id: super::MetricId,
         label: Option<String>,
-        value: T,
+        val: T,
     }
 
     impl<T> IntLikeMetricMarker<T>
     where
         T: Into<i64>,
     {
-        pub fn new(id: super::MetricId, label: Option<String>, value: T) -> IntLikeMetricMarker<T> {
-            IntLikeMetricMarker { id, label, value }
+        pub fn new(id: super::MetricId, label: Option<String>, val: T) -> IntLikeMetricMarker<T> {
+            IntLikeMetricMarker { id, label, val }
         }
     }
 
@@ -319,9 +326,9 @@ pub(crate) mod profiler_utils {
         fn marker_type_display() -> gecko_profiler::MarkerSchema {
             use gecko_profiler::schema::*;
             let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
-            schema.set_tooltip_label("{marker.data.id} {marker.data.label} {marker.data.value}");
+            schema.set_tooltip_label("{marker.data.id} {marker.data.label} {marker.data.val}");
             schema.set_table_label(
-                "{marker.name} - {marker.data.id} {marker.data.label}: {marker.data.value}",
+                "{marker.name} - {marker.data.id} {marker.data.label}: {marker.data.val}",
             );
             schema.add_key_label_format_searchable(
                 "id",
@@ -329,11 +336,11 @@ pub(crate) mod profiler_utils {
                 Format::UniqueString,
                 Searchable::Searchable,
             );
-            schema.add_key_label_format("value", "Value", Format::Integer);
+            schema.add_key_label_format("val", "Value", Format::Integer);
             schema.add_key_label_format_searchable(
                 "label",
                 "Label",
-                Format::String,
+                Format::UniqueString,
                 Searchable::Searchable,
             );
             schema
@@ -344,9 +351,9 @@ pub(crate) mod profiler_utils {
                 "id",
                 lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
             );
-            json_writer.int_property("value", self.value.clone().into());
+            json_writer.int_property("val", self.val.clone().into());
             if let Some(l) = &self.label {
-                json_writer.string_property("label", &l);
+                json_writer.unique_string_property("label", &l);
             };
         }
     }
@@ -406,7 +413,7 @@ pub(crate) mod profiler_utils {
             schema.add_key_label_format_searchable(
                 "label",
                 "Label",
-                Format::String,
+                Format::UniqueString,
                 Searchable::Searchable,
             );
             schema.add_key_label_format("sample", "Sample", Format::String);
@@ -421,7 +428,7 @@ pub(crate) mod profiler_utils {
             );
 
             if let Some(l) = &self.label {
-                json_writer.string_property("label", l.as_str());
+                json_writer.unique_string_property("label", l.as_str());
             };
 
             match &self.value {

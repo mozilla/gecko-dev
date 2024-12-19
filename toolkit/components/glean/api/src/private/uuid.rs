@@ -10,11 +10,6 @@ use super::{CommonMetricData, MetricId};
 
 use crate::ipc::need_ipc;
 
-#[cfg(feature = "with_gecko")]
-use super::profiler_utils::StringLikeMetricMarker;
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
-
 /// A UUID metric.
 ///
 /// Stores UUID values.
@@ -67,9 +62,9 @@ impl glean::traits::Uuid for UuidMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "Uuid::set",
-                        gecko_profiler_category!(Telemetry),
+                        super::profiler_utils::TelemetryProfilerCategory,
                         Default::default(),
-                        StringLikeMetricMarker::new(*id, &value),
+                        super::profiler_utils::StringLikeMetricMarker::new(*id, &value),
                     );
                 }
                 inner.set(value)
@@ -99,9 +94,9 @@ impl glean::traits::Uuid for UuidMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "Uuid::generateAndSet",
-                        gecko_profiler_category!(Telemetry),
+                        super::profiler_utils::TelemetryProfilerCategory,
                         Default::default(),
-                        StringLikeMetricMarker::new(*id, &uuid),
+                        super::profiler_utils::StringLikeMetricMarker::new(*id, &uuid),
                     );
                 }
                 Uuid::parse_str(&uuid).unwrap()

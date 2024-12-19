@@ -11,10 +11,8 @@ use glean::traits::ObjectSerialize;
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{
     lookup_canonical_metric_name, truncate_string_for_marker, LookupError,
+    TelemetryProfilerCategory,
 };
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -81,7 +79,7 @@ impl<K: ObjectSerialize + Clone> ObjectMetric<K> {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "Object::set",
-                        gecko_profiler_category!(Telemetry),
+                        TelemetryProfilerCategory,
                         Default::default(),
                         ObjectMetricMarker {
                             id: *id,
@@ -121,7 +119,7 @@ impl<K: ObjectSerialize + Clone> ObjectMetric<K> {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "Object::set",
-                        gecko_profiler_category!(Telemetry),
+                        TelemetryProfilerCategory,
                         Default::default(),
                         ObjectMetricMarker {
                             id: *id,

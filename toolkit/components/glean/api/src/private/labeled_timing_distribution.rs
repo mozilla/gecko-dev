@@ -19,9 +19,6 @@ use crate::ipc::with_ipc_payload;
 #[cfg(feature = "with_gecko")]
 use super::timing_distribution::{TDMPayload, TimingDistributionMetricMarker};
 
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::{gecko_profiler_category, MarkerOptions, MarkerTiming};
-
 /// A timing distribution metric that knows it's a labeled timing distribution's submetric.
 ///
 /// Due to having to support GIFFT from Rust, this type ends up looking a little different from the rest.
@@ -70,8 +67,9 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             if gecko_profiler::can_accept_markers() {
                 gecko_profiler::add_marker(
                     "TimingDistribution::start",
-                    gecko_profiler_category!(Telemetry),
-                    MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                    super::profiler_utils::TelemetryProfilerCategory,
+                    gecko_profiler::MarkerOptions::default()
+                        .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                     TimingDistributionMetricMarker::new(
                         self.id,
                         Some(self.label.clone()),
@@ -130,8 +128,9 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             if gecko_profiler::can_accept_markers() {
                 gecko_profiler::add_marker(
                     "TimingDistribution::stop",
-                    gecko_profiler_category!(Telemetry),
-                    MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                    super::profiler_utils::TelemetryProfilerCategory,
+                    gecko_profiler::MarkerOptions::default()
+                        .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                     TimingDistributionMetricMarker::new(
                         self.id,
                         Some(self.label.clone()),
@@ -166,8 +165,9 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             if gecko_profiler::can_accept_markers() {
                 gecko_profiler::add_marker(
                     "TimingDistribution::cancel",
-                    gecko_profiler_category!(Telemetry),
-                    MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                    super::profiler_utils::TelemetryProfilerCategory,
+                    gecko_profiler::MarkerOptions::default()
+                        .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                     TimingDistributionMetricMarker::new(
                         self.id,
                         Some(self.label.clone()),
@@ -184,8 +184,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
         if gecko_profiler::can_accept_markers() {
             gecko_profiler::add_marker(
                 "TimingDistribution::accumulate",
-                gecko_profiler_category!(Telemetry),
-                MarkerOptions::default(),
+                super::profiler_utils::TelemetryProfilerCategory,
+                Default::default(),
                 TimingDistributionMetricMarker::new(
                     self.id,
                     Some(self.label.clone()),
@@ -202,8 +202,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
         if gecko_profiler::can_accept_markers() {
             gecko_profiler::add_marker(
                 "TimingDistribution::accumulate",
-                gecko_profiler_category!(Telemetry),
-                MarkerOptions::default(),
+                super::profiler_utils::TelemetryProfilerCategory,
+                Default::default(),
                 TimingDistributionMetricMarker::new(
                     self.id,
                     Some(self.label.clone()),
@@ -220,8 +220,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
         if gecko_profiler::can_accept_markers() {
             gecko_profiler::add_marker(
                 "TimingDistribution::accumulate",
-                gecko_profiler_category!(Telemetry),
-                MarkerOptions::default(),
+                super::profiler_utils::TelemetryProfilerCategory,
+                Default::default(),
                 TimingDistributionMetricMarker::new(
                     self.id,
                     Some(self.label.clone()),
@@ -289,8 +289,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             if gecko_profiler::can_accept_markers() {
                 gecko_profiler::add_marker(
                     "TimingDistribution::accumulate",
-                    gecko_profiler_category!(Telemetry),
-                    MarkerOptions::default(),
+                    super::profiler_utils::TelemetryProfilerCategory,
+                    Default::default(),
                     TimingDistributionMetricMarker::new(
                         self.id,
                         Some(self.label.clone()),

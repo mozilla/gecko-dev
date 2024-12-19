@@ -11,10 +11,8 @@ use crate::ipc::need_ipc;
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{
     lookup_canonical_metric_name, truncate_string_for_marker, LookupError,
+    TelemetryProfilerCategory,
 };
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -37,7 +35,7 @@ impl gecko_profiler::ProfilerMarker for UrlMetricMarker {
         schema.add_key_label_format_searchable(
             "id",
             "Metric",
-            Format::String,
+            Format::UniqueString,
             Searchable::Searchable,
         );
         schema.add_key_label_format_searchable("val", "Value", Format::Url, Searchable::Searchable);
@@ -45,7 +43,7 @@ impl gecko_profiler::ProfilerMarker for UrlMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        json_writer.string_property(
+        json_writer.unique_string_property(
             "id",
             lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
         );
@@ -102,7 +100,7 @@ impl glean::traits::Url for UrlMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "Url::set",
-                        gecko_profiler_category!(Telemetry),
+                        TelemetryProfilerCategory,
                         Default::default(),
                         UrlMetricMarker {
                             id: *id,

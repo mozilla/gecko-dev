@@ -15,10 +15,8 @@ use crate::ipc::{need_ipc, with_ipc_payload};
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{
     truncate_vector_for_marker, DistributionMetricMarker, DistributionValues,
+    TelemetryProfilerCategory,
 };
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::{gecko_profiler_category, MarkerOptions};
 
 /// A memory distribution metric.
 ///
@@ -96,8 +94,8 @@ impl MemoryDistributionMetric {
         if gecko_profiler::can_accept_markers() {
             gecko_profiler::add_marker(
                 "MemoryDistribution::accumulate",
-                gecko_profiler_category!(Telemetry),
-                MarkerOptions::default(),
+                TelemetryProfilerCategory,
+                Default::default(),
                 DistributionMetricMarker::new(
                     id,
                     None,
@@ -183,8 +181,8 @@ impl MemoryDistribution for MemoryDistributionMetric {
         if gecko_profiler::can_accept_markers() {
             gecko_profiler::add_marker(
                 "MemoryDistribution::accumulate",
-                gecko_profiler_category!(Telemetry),
-                MarkerOptions::default(),
+                TelemetryProfilerCategory,
+                Default::default(),
                 DistributionMetricMarker::new(id, None, DistributionValues::Sample(sample)),
             );
         }

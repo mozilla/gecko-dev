@@ -14,10 +14,8 @@ use glean::traits::Datetime;
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{
     glean_to_chrono_datetime, local_now_with_offset, lookup_canonical_metric_name, LookupError,
+    TelemetryProfilerCategory,
 };
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -54,9 +52,24 @@ impl gecko_profiler::ProfilerMarker for DatetimeMetricMarker {
             "id",
             lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
         );
-        // chrono::DateTime format results in an intermediate struct that we need
-        // to format *again*.
-        let datestring = format!("{}", self.time.format("%+"));
+        // We need to be careful formatting our datestring so that we can match
+        // it to an equivalently formatted string in JavaScript when we're
+        // testing these markers. JavaScript's `toISOString` *always* converts
+        // to a string in line with the "date time string format", which
+        // is /like/ but not the /same/ as ISO 8601 format. It is simplified,
+        // and when printing with `toISOString`, JS always prints with the zone
+        // offset set to `Z`, i.e. UTC. Therefore, we need to convert the date
+        // into a naive date time, i.e. one that is unaware of timezones, and
+        // then format it according to the JS date time format. For more
+        // details, see the following spec:
+        // https://tc39.es/ecma262/multipage/numbers-and-dates.html#sec-date-time-string-format
+        let naive = self.time.naive_utc();
+        // We could use the default `%+` formatting for ISO 8601, but let's be
+        // specific instead, and use the precise JS format, which is
+        // `YYYY-MM-DDTHH:mm:ss.sssZ`. Note that this is expressed differently
+        // in the language of chrono's formatting library. For details see:
+        // https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers
+        let datestring = format!("{}", naive.format("%Y-%m-%dT%H:%M:%S%.3fZ"));
         json_writer.string_property("time", datestring.as_str());
     }
 }
@@ -148,7 +161,7 @@ impl DatetimeMetric {
                         if gecko_profiler::can_accept_markers() {
                             gecko_profiler::add_marker(
                                 "Datetime::set",
-                                gecko_profiler_category!(Telemetry),
+                                TelemetryProfilerCategory,
                                 Default::default(),
                                 DatetimeMetricMarker { id: *id, time: d },
                             );
@@ -179,7 +192,7 @@ impl DatetimeMetric {
                             );
                             gecko_profiler::add_text_marker(
                                 "Datetime::set",
-                                gecko_profiler_category!(Telemetry),
+                                TelemetryProfilerCategory,
                                 Default::default(),
                                 payload.as_str(),
                             );
@@ -225,7 +238,7 @@ impl Datetime for DatetimeMetric {
                                 .map(|c| {
                                     gecko_profiler::add_marker(
                                         "Datetime::set",
-                                        gecko_profiler_category!(Telemetry),
+                                        TelemetryProfilerCategory,
                                         Default::default(),
                                         DatetimeMetricMarker { id: *id, time: c },
                                     );
@@ -235,7 +248,7 @@ impl Datetime for DatetimeMetric {
                             // Otherwise, record the marker with the time now
                             gecko_profiler::add_marker(
                                 "Datetime::set",
-                                gecko_profiler_category!(Telemetry),
+                                TelemetryProfilerCategory,
                                 Default::default(),
                                 DatetimeMetricMarker {
                                     id: *id,

@@ -14,10 +14,7 @@ use glean::traits::Event;
 pub use glean::traits::{EventRecordingError, ExtraKeys, NoExtraKeys};
 
 #[cfg(feature = "with_gecko")]
-use super::profiler_utils::{lookup_canonical_metric_name, LookupError};
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
+use super::profiler_utils::{lookup_canonical_metric_name, LookupError, TelemetryProfilerCategory};
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -29,7 +26,7 @@ struct EventMetricMarker {
 #[cfg(feature = "with_gecko")]
 impl gecko_profiler::ProfilerMarker for EventMetricMarker {
     fn marker_type_name() -> &'static str {
-        "Event"
+        "EventMetric"
     }
 
     fn marker_type_display() -> gecko_profiler::MarkerSchema {
@@ -40,7 +37,7 @@ impl gecko_profiler::ProfilerMarker for EventMetricMarker {
         schema.add_key_label_format_searchable(
             "id",
             "Metric",
-            Format::String,
+            Format::UniqueString,
             Searchable::Searchable,
         );
         schema.add_key_label_format("extra", "Extra", Format::String);
@@ -48,7 +45,7 @@ impl gecko_profiler::ProfilerMarker for EventMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        json_writer.string_property(
+        json_writer.unique_string_property(
             "id",
             lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
         );
@@ -60,7 +57,7 @@ impl gecko_profiler::ProfilerMarker for EventMetricMarker {
                 "{{{}}}",
                 self.extra
                     .iter()
-                    .map(|(k, v)| format!("{}: \"{}\"", k, v))
+                    .map(|(k, v)| format!(r#""{}": "{}""#, k, v))
                     .collect::<Vec<_>>()
                     .join(", ")
             );
@@ -139,7 +136,7 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::add_marker(
                     "Event::record",
-                    gecko_profiler_category!(Telemetry),
+                    TelemetryProfilerCategory,
                     Default::default(),
                     EventMetricMarker {
                         id: *id,
@@ -152,7 +149,7 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::add_marker(
                     "Event::record",
-                    gecko_profiler_category!(Telemetry),
+                    TelemetryProfilerCategory,
                     Default::default(),
                     EventMetricMarker {
                         id: c.0,
@@ -186,7 +183,7 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> Event for EventMetric<K> {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "Event::record",
-                        gecko_profiler_category!(Telemetry),
+                        TelemetryProfilerCategory,
                         Default::default(),
                         EventMetricMarker {
                             id: *id,

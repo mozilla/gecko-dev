@@ -13,10 +13,7 @@ use glean::traits::Timespan;
 use crate::ipc::need_ipc;
 
 #[cfg(feature = "with_gecko")]
-use super::profiler_utils::{lookup_canonical_metric_name, LookupError};
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::{gecko_profiler_category, MarkerOptions, MarkerTiming};
+use super::profiler_utils::{lookup_canonical_metric_name, LookupError, TelemetryProfilerCategory};
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -115,8 +112,8 @@ impl TimespanMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "TimeSpan::setRaw",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default(),
+                        TelemetryProfilerCategory,
+                        Default::default(),
                         TimespanMetricMarker {
                             id: *id,
                             value: Some(duration),
@@ -159,8 +156,9 @@ impl Timespan for TimespanMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "TimeSpan::start",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                        TelemetryProfilerCategory,
+                        gecko_profiler::MarkerOptions::default()
+                            .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                         TimespanMetricMarker {
                             id: *id,
                             value: None,
@@ -188,8 +186,9 @@ impl Timespan for TimespanMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "TimeSpan::stop",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                        TelemetryProfilerCategory,
+                        gecko_profiler::MarkerOptions::default()
+                            .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                         TimespanMetricMarker {
                             id: *id,
                             value: None,
@@ -217,8 +216,9 @@ impl Timespan for TimespanMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "TimeSpan::cancel",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default().with_timing(MarkerTiming::instant_now()),
+                        TelemetryProfilerCategory,
+                        gecko_profiler::MarkerOptions::default()
+                            .with_timing(gecko_profiler::MarkerTiming::instant_now()),
                         TimespanMetricMarker {
                             id: *id,
                             value: None,
@@ -246,8 +246,8 @@ impl Timespan for TimespanMetric {
                 if gecko_profiler::can_accept_markers() {
                     gecko_profiler::add_marker(
                         "TimeSpan::setRaw",
-                        gecko_profiler_category!(Telemetry),
-                        MarkerOptions::default(),
+                        TelemetryProfilerCategory,
+                        Default::default(),
                         TimespanMetricMarker {
                             id: *id,
                             // This up-cast is safe, as we know that "elapsed"
