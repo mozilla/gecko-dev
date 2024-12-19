@@ -1845,14 +1845,12 @@ static inline JSFunction* NewFunctionClone(JSContext* cx, HandleFunction fun,
     return nullptr;
   }
 
-  constexpr uint16_t NonCloneableFlags =
-      FunctionFlags::RESOLVED_LENGTH | FunctionFlags::RESOLVED_NAME;
-
-  FunctionFlags flags = fun->flags();
-  flags.clearFlags(NonCloneableFlags);
+  // The following flags shouldn't be set or cloned.
+  MOZ_ASSERT(!fun->flags().hasResolvedLength());
+  MOZ_ASSERT(!fun->flags().hasResolvedName());
 
   clone->setArgCount(fun->nargs());
-  clone->setFlags(flags);
+  clone->setFlags(fun->flags());
 
   // Note: |clone| and |fun| are same-zone so we don't need to call markAtom.
   clone->initAtom(fun->maybePartialDisplayAtom());
