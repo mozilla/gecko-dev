@@ -102,9 +102,14 @@ class TabsListBase {
    */
   _populate() {
     let fragment = this.doc.createDocumentFragment();
+    let currentGroupId;
 
     for (let tab of this.gBrowser.tabs) {
       if (this.filterFn(tab)) {
+        if (tab.group && tab.group.id != currentGroupId) {
+          fragment.appendChild(this._createGroupRow(tab.group));
+          currentGroupId = tab.group.id;
+        }
         fragment.appendChild(this._createRow(tab));
       }
     }
@@ -121,6 +126,10 @@ class TabsListBase {
    * Remove the menuitems from the DOM, cleanup internal state and listeners.
    */
   _cleanup() {
+    this.doc
+      .querySelectorAll(".all-tabs-group-button")
+      .forEach(node => node.remove());
+
     for (let item of this.rows) {
       item.remove();
     }
@@ -262,6 +271,9 @@ export class TabsPanel extends TabsListBase {
           this.gBrowser.removeTab(event.target.tab);
           break;
         }
+        if (event.target.classList.contains("all-tabs-group-button")) {
+          this.gBrowser.getTabGroupById(event.target.groupId).select();
+        }
       // fall through
       default:
         super.handleEvent(event);
@@ -275,7 +287,10 @@ export class TabsPanel extends TabsListBase {
     // The loading throbber can't be set until the toolbarbutton is rendered,
     // so set the image attributes again now that the elements are in the DOM.
     for (let row of this.rows) {
-      this._setImageAttributes(row, row.tab);
+      // Ensure this isn't a group label
+      if (row.tab) {
+        this._setImageAttributes(row, row.tab);
+      }
     }
   }
 
@@ -324,6 +339,10 @@ export class TabsPanel extends TabsListBase {
       });
     }
 
+    if (tab.group) {
+      row.classList.add("grouped");
+    }
+
     row.appendChild(button);
 
     let muteButton = doc.createXULElement("toolbarbutton");
@@ -349,6 +368,49 @@ export class TabsPanel extends TabsListBase {
 
     this._setRowAttributes(row, tab);
 
+    return row;
+  }
+
+  _createGroupRow(group) {
+    let { doc } = this;
+    let row = doc.createXULElement("toolbaritem");
+    row.setAttribute("class", "all-tabs-item all-tabs-group-item");
+    row.setAttribute("context", "none");
+    row.style.setProperty(
+      "--tab-group-color",
+      `var(--tab-group-color-${group.color})`
+    );
+    row.style.setProperty(
+      "--tab-group-color-invert",
+      `var(--tab-group-color-${group.color}-invert)`
+    );
+    row.style.setProperty(
+      "--tab-group-color-pale",
+      `var(--tab-group-color-${group.color}-pale)`
+    );
+    row.addEventListener("command", this);
+    let button = doc.createXULElement("toolbarbutton");
+    button.setAttribute(
+      "class",
+      "all-tabs-button all-tabs-group-button subviewbutton subviewbutton-iconic"
+    );
+    button.setAttribute("flex", "1");
+    button.setAttribute("crop", "end");
+    button.group = group;
+    button.groupId = group.id;
+
+    if (group.label) {
+      button.label = group.label;
+    } else {
+      doc.l10n
+        .formatValues([{ id: "tab-group-name-default" }])
+        .then(([msg]) => {
+          button.label = msg;
+        });
+    }
+
+    button.image = "chrome://browser/skin/tabbrowser/tab-group-chicklet.svg";
+    row.appendChild(button);
     return row;
   }
 
