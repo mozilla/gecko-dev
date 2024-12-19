@@ -91,18 +91,11 @@ impl MemoryDistributionMetric {
             }
         };
         #[cfg(feature = "with_gecko")]
-        if gecko_profiler::can_accept_markers() {
-            gecko_profiler::add_marker(
-                "MemoryDistribution::accumulate",
-                TelemetryProfilerCategory,
-                Default::default(),
-                DistributionMetricMarker::new(
-                    id,
-                    None,
-                    DistributionValues::Samples(marker_samples),
-                ),
-            );
-        }
+        gecko_profiler::lazy_add_marker!(
+            "MemoryDistribution::accumulate",
+            TelemetryProfilerCategory,
+            DistributionMetricMarker::new(id, None, DistributionValues::Samples(marker_samples))
+        );
     }
 
     pub fn start_buffer(&self) -> LocalMemoryDistribution<'_> {
@@ -178,14 +171,11 @@ impl MemoryDistribution for MemoryDistributionMetric {
             }
         };
         #[cfg(feature = "with_gecko")]
-        if gecko_profiler::can_accept_markers() {
-            gecko_profiler::add_marker(
-                "MemoryDistribution::accumulate",
-                TelemetryProfilerCategory,
-                Default::default(),
-                DistributionMetricMarker::new(id, None, DistributionValues::Sample(sample)),
-            );
-        }
+        gecko_profiler::lazy_add_marker!(
+            "MemoryDistribution::accumulate",
+            TelemetryProfilerCategory,
+            DistributionMetricMarker::new(id, None, DistributionValues::Sample(sample))
+        );
     }
 
     /// **Test-only API.**

@@ -97,17 +97,14 @@ impl glean::traits::Url for UrlMetric {
             UrlMetric::Parent { id, inner } => {
                 let value: String = value.into();
                 #[cfg(feature = "with_gecko")]
-                if gecko_profiler::can_accept_markers() {
-                    gecko_profiler::add_marker(
-                        "Url::set",
-                        TelemetryProfilerCategory,
-                        Default::default(),
-                        UrlMetricMarker {
-                            id: *id,
-                            val: truncate_string_for_marker(value.clone()),
-                        },
-                    );
-                }
+                gecko_profiler::lazy_add_marker!(
+                    "Url::set",
+                    TelemetryProfilerCategory,
+                    UrlMetricMarker {
+                        id: *id,
+                        val: truncate_string_for_marker(value.clone()),
+                    }
+                );
                 inner.set(value)
             }
             UrlMetric::Child(_) => {

@@ -134,27 +134,25 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
             #[allow(unused)]
             EventMetric::Parent { id, inner } => {
                 #[cfg(feature = "with_gecko")]
-                gecko_profiler::add_marker(
+                gecko_profiler::lazy_add_marker!(
                     "Event::record",
                     TelemetryProfilerCategory,
-                    Default::default(),
                     EventMetricMarker {
                         id: *id,
                         extra: extra.clone(),
-                    },
+                    }
                 );
                 inner.record_with_time(timestamp, extra);
             }
             EventMetric::Child(c) => {
                 #[cfg(feature = "with_gecko")]
-                gecko_profiler::add_marker(
+                gecko_profiler::lazy_add_marker!(
                     "Event::record",
                     TelemetryProfilerCategory,
-                    Default::default(),
                     EventMetricMarker {
                         id: c.0,
                         extra: extra.clone(),
-                    },
+                    }
                 );
                 with_ipc_payload(move |payload| {
                     if let Some(v) = payload.events.get_mut(&c.0) {
@@ -180,19 +178,16 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> Event for EventMetric<K> {
             EventMetric::Parent { id, inner } => {
                 let extra = extra.into();
                 #[cfg(feature = "with_gecko")]
-                if gecko_profiler::can_accept_markers() {
-                    gecko_profiler::add_marker(
-                        "Event::record",
-                        TelemetryProfilerCategory,
-                        Default::default(),
-                        EventMetricMarker {
-                            id: *id,
-                            extra: extra
-                                .clone()
-                                .map_or(HashMap::new(), |extra| extra.into_ffi_extra()),
-                        },
-                    );
-                }
+                gecko_profiler::lazy_add_marker!(
+                    "Event::record",
+                    TelemetryProfilerCategory,
+                    EventMetricMarker {
+                        id: *id,
+                        extra: extra
+                            .clone()
+                            .map_or(HashMap::new(), |extra| extra.into_ffi_extra()),
+                    }
+                );
                 inner.record(extra);
             }
             EventMetric::Child(_) => {

@@ -76,32 +76,29 @@ impl<K: ObjectSerialize + Clone> ObjectMetric<K> {
             #[allow(unused)]
             ObjectMetric::Parent { id, inner } => {
                 #[cfg(feature = "with_gecko")]
-                if gecko_profiler::can_accept_markers() {
-                    gecko_profiler::add_marker(
-                        "Object::set",
-                        TelemetryProfilerCategory,
-                        Default::default(),
-                        ObjectMetricMarker {
-                            id: *id,
-                            // It might be better to store the "raw"
-                            // Result<Value, ObjectError> in the marker, as we
-                            // are writing a lot of strings here. That would,
-                            // however, require us to parameterise the marker
-                            // type with `K`, the type parameter to
-                            // ObjectMetric. This would be treated by
-                            // rust's `typeid` as another concrete type,
-                            // meaning that it would have a unique tag for
-                            // (de)serialisation, and may quickly exhaust our
-                            // (current) marker (de)serialisation tag limit.
-                            value: truncate_string_for_marker(
-                                value.clone().into_serialized_object().map_or_else(
-                                    |e| glean::traits::ObjectError::to_string(&e),
-                                    |v| serde_json::Value::to_string(&v),
-                                ),
+                gecko_profiler::lazy_add_marker!(
+                    "Object::set",
+                    TelemetryProfilerCategory,
+                    ObjectMetricMarker {
+                        id: *id,
+                        // It might be better to store the "raw"
+                        // Result<Value, ObjectError> in the marker, as we
+                        // are writing a lot of strings here. That would,
+                        // however, require us to parameterise the marker
+                        // type with `K`, the type parameter to
+                        // ObjectMetric. This would be treated by
+                        // rust's `typeid` as another concrete type,
+                        // meaning that it would have a unique tag for
+                        // (de)serialisation, and may quickly exhaust our
+                        // (current) marker (de)serialisation tag limit.
+                        value: truncate_string_for_marker(
+                            value.clone().into_serialized_object().map_or_else(
+                                |e| glean::traits::ObjectError::to_string(&e),
+                                |v| serde_json::Value::to_string(&v),
                             ),
-                        },
-                    );
-                }
+                        ),
+                    }
+                );
                 inner.set(value);
             }
             ObjectMetric::Child => {
@@ -116,17 +113,14 @@ impl<K: ObjectSerialize + Clone> ObjectMetric<K> {
             #[allow(unused)]
             ObjectMetric::Parent { id, inner } => {
                 #[cfg(feature = "with_gecko")]
-                if gecko_profiler::can_accept_markers() {
-                    gecko_profiler::add_marker(
-                        "Object::set",
-                        TelemetryProfilerCategory,
-                        Default::default(),
-                        ObjectMetricMarker {
-                            id: *id,
-                            value: truncate_string_for_marker(value.clone()),
-                        },
-                    );
-                }
+                gecko_profiler::lazy_add_marker!(
+                    "Object::set",
+                    TelemetryProfilerCategory,
+                    ObjectMetricMarker {
+                        id: *id,
+                        value: truncate_string_for_marker(value.clone()),
+                    }
+                );
                 inner.set_string(value);
             }
             ObjectMetric::Child => {

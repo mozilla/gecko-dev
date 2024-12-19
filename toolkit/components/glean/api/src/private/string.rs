@@ -87,14 +87,11 @@ impl glean::traits::String for StringMetric {
             StringMetric::Parent { id, inner } => {
                 let value = value.into();
                 #[cfg(feature = "with_gecko")]
-                if gecko_profiler::can_accept_markers() {
-                    gecko_profiler::add_marker(
-                        "String::set",
-                        super::profiler_utils::TelemetryProfilerCategory,
-                        Default::default(),
-                        super::profiler_utils::StringLikeMetricMarker::new(*id, &value),
-                    );
-                }
+                gecko_profiler::lazy_add_marker!(
+                    "String::set",
+                    super::profiler_utils::TelemetryProfilerCategory,
+                    super::profiler_utils::StringLikeMetricMarker::new(*id, &value)
+                );
                 inner.set(value);
             }
             StringMetric::Child(_) => {
