@@ -1,0 +1,24 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsINetAddr;
+
+[scriptable, builtinclass, uuid(8ef68853-dbea-4113-9dce-273b45d431c5)]
+interface nsIMockNetworkLayerController : nsISupports
+{
+
+  nsINetAddr createScriptableNetAddr(in AUTF8String aIP, in uint16_t aPort);
+
+  /**
+   * Adds an override for this specific NetAddr.
+   */
+  void addNetAddrOverride(in nsINetAddr aFrom, in nsINetAddr aTo);
+
+  /**
+   * Clears all the NetAddr overrides that were previously set.
+   */
+  void clearNetAddrOverrides();
+};

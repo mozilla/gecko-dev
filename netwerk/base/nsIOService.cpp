@@ -242,6 +242,7 @@ static const char* gCallbackPrefsForSocketProcess[] = {
     "network.connectivity-service.",
     "network.captive-portal-service.testMode",
     "network.socket.ip_addr_any.disabled",
+    "network.socket.attach_mock_network_layer",
     nullptr,
 };
 
