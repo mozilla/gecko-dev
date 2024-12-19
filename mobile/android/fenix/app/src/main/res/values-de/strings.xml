@@ -372,7 +372,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Leseansicht deaktivieren</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Zu nicht privaten Tab verschieben</string>dsa
+    <string name="browser_menu_open_in_normal_tab">In nicht privaten Tab verschieben</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Seite übersetzen…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -640,9 +640,9 @@
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_light_option">Hell</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_system_option">System automatisch</string>
+    <string name="onboarding_customize_theme_system_option">Automatische Systemeinstellung</string>
     <!-- Onboarding theme selection card content description for the main image. -->
-    <string name="onboarding_customize_theme_main_image_content_description">Große Kopfzeilengrafik der Theme-Auswahlansicht mit illustrierten Künstlern und Entwicklern.</string>
+    <string name="onboarding_customize_theme_main_image_content_description">Große Kopfzeilengrafik der Theme-Auswahlansicht mit illustrierten Künstler- und Entwicklerwerkzeugen.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Grafik des Themes %1$s</string>
 

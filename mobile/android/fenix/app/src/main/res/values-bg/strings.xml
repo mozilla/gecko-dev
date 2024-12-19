@@ -366,7 +366,7 @@
     <!-- Browser menu label that the saves the currently visited page as a PDF -->
     <string name="browser_menu_save_as_pdf">Запазване като PDF…</string>
     <!-- Browser menu label for turning ON reader view of the current visited page -->
-    <string name="browser_menu_turn_on_reader_view">Включете изгледа за четене</string>
+    <string name="browser_menu_turn_on_reader_view">Включване на изгледа за четене</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Изключете изгледа за четене</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
