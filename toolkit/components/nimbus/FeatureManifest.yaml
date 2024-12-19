@@ -2827,16 +2827,6 @@ fxaButtonVisibility:
       setPref:
         branch: user
         pref: identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled
-    avatarIconVariant:
-      description: >-
-        Controls the icon that appears in the toolbar button when in the
-        signed-out state.
-
-        One of the following values:
-          - control
-          - human-circle
-          - fox-circle
-      type: string
 
 syncDecouplingUpdates:
   description: Prefs to control the updated Mozilla account panel flow for users without sync enabled.

@@ -811,73 +811,11 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   height: 16px;
 }
 
-#fxa-avatar-image:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
-}
-
 :root {
   --avatar-image-url: url(chrome://browser/skin/fxa/avatar.svg);
 
   &[fxastatus="not_configured"] {
     --avatar-image-url: url(chrome://browser/skin/fxa/avatar-empty.svg);
-  }
-
-  /**
-   * If we're not showing the glowing badge, we'll switch to the cutout variant
-   * of avatar-empty. If we ARE showing the glowing badge, we don't want the
-   * cutout to appear.
-   */
-  &[fxastatus="not_configured"][fxa-avatar-icon-variant="human-circle"] {
-    #fxa-toolbar-menu-button {
-      --avatar-image-url: url(chrome://browser/skin/fxa/avatar-empty-circle.svg);
-    }
-
-    #fxa-toolbar-menu-button[showing-callout] {
-      --avatar-image-url: url(chrome://browser/skin/fxa/avatar-empty.svg);
-    }
-  }
-
-  /**
-   * Similar to the above for the fox variant of the icon, we only want to show
-   * the cutout variant if we're showing the glowing badge.
-   */
-  &[fxastatus="not_configured"][fxa-avatar-icon-variant="fox-circle"] {
-    #fxa-toolbar-menu-button {
-      --avatar-image-url: url(chrome://browser/skin/fxa/avatar-fox-circle.svg);
-    }
-
-    #fxa-toolbar-menu-button[showing-callout] {
-      --avatar-image-url: url(chrome://browser/skin/fxa/avatar-fox.svg);
-    }
-  }
-
-  /**
-   * This overrides the hidden state of the badge so that we can repurpose it
-   * for the "circle" that fills the little cut-out in the -circle avatar
-   * variants. We only do this if we're not currently showing the glowing badge
-   * on the button.
-   *
-   * This is pretty gross, but it's just for the signed-out avatar experiment,
-   * and I'm hoping we're okay accepting this until we decide whether or not
-   * one of these variants should be the default signed-out avatar. At that
-   * point, I'm hoping we can shift to something less gross (bug 1938106).
-   */
-  &[fxastatus="not_configured"][fxa-avatar-icon-variant$="-circle"] #fxa-toolbar-menu-button:not([showing-callout]) .toolbarbutton-badge {
-    background-color: transparent;
-    border: 0;
-    box-shadow: none;
-    position: relative;
-    display: block;
-    height: 6px;
-    width: 6px;
-    background-image: url(chrome://browser/skin/fxa/circle.svg);
-    background-repeat: no-repeat;
-    background-position: center;
-    top: 16px;
-    inset-inline-start: 3px;
-    -moz-context-properties: stroke, fill;
-    stroke: var(--toolbarbutton-icon-fill);
-    fill: transparent;
   }
 
   &:not([fxatoolbarmenu]) #fxa-toolbar-menu-button {
@@ -903,7 +841,8 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   }
 }
 
-#fxa-avatar-image {
+#fxa-avatar-image,
+#PanelUI-fxa-menu-account-settings-button {
   list-style-image: var(--avatar-image-url);
 }
 
@@ -1547,6 +1486,10 @@ toolbarbutton[itemtype="showmorebutton"],
 .remote-tabs-undo-button {
   font-size: 0.8em;
   font-weight: var(--font-weight-bold);
+}
+
+#PanelUI-fxa-menu-account-settings-button > .toolbarbutton-icon {
+  border-radius: 50%;
 }
 
 .toolbaritem-combined-buttons {
