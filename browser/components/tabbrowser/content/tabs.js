@@ -88,13 +88,15 @@
       // Override arrowscrollbox.js method, since our scrollbox's children are
       // inherited from the scrollbox binding parent (this).
       this.arrowScrollbox._getScrollableElements = () => {
-        return this.allTabs.filter(this.arrowScrollbox._canScrollToElement);
+        return this.ariaFocusableItems.filter(
+          this.arrowScrollbox._canScrollToElement
+        );
       };
-      let arePositioningPinnedTabs = () => {
-        return this.hasAttribute("positionpinnedtabs");
-      };
-      this.arrowScrollbox._canScrollToElement = tab => {
-        return (!tab.pinned || !arePositioningPinnedTabs()) && tab.visible;
+      this.arrowScrollbox._canScrollToElement = element => {
+        if (isTab(element)) {
+          return !element.pinned || !this.hasAttribute("positionpinnedtabs");
+        }
+        return true;
       };
 
       // Override for performance reasons. This is the size of a single element
@@ -103,7 +105,9 @@
       // _getScrollableElements and dividing the box size by that number.
       // However in the tabstrip case we already know the answer to this as,
       // when we're overflowing, it is always the same as the tab min width or
-      // height.
+      // height. For tab group labels, the number won't exactly match, but
+      // that shouldn't be a problem in practice since the arrowscrollbox
+      // stops at element bounds when finishing scrolling.
       Object.defineProperty(this.arrowScrollbox, "lineScrollAmount", {
         get: () =>
           this.verticalMode ? this.#tabMinHeight : this._tabMinWidthPref,
