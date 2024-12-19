@@ -3660,9 +3660,11 @@ bool SharedContextWebgl::DrawPathAccel(
     DrawTargetWebgl* oldTarget = mCurrentTarget;
     {
       RefPtr<const Path> path;
-      if (color || !aPathXform) {
+      if (!aPathXform || (color && !aStrokeOptions)) {
         // If the pattern is transform invariant or there is no pathXform, then
-        // it is safe to use the path directly.
+        // it is safe to use the path directly. Solid colors are transform
+        // invariant, except when there are stroke options such as line width or
+        // dashes that should not be scaled by pathXform.
         path = aPath;
         pathDT->SetTransform(pathXform * Matrix::Translation(offset));
       } else {
