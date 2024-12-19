@@ -911,13 +911,15 @@ export class _TopSiteList extends React.PureComponent {
       topSitesUI.push(topSiteLink);
     }
     return (
-      <ul
-        className={`top-sites-list${
-          this.state.draggedSite ? " dnd-active" : ""
-        }`}
-      >
-        {topSitesUI}
-      </ul>
+      <div className="top-sites-list-wrapper">
+        <ul
+          className={`top-sites-list${
+            this.state.draggedSite ? " dnd-active" : ""
+          }`}
+        >
+          {topSitesUI}
+        </ul>
+      </div>
     );
   }
 }

@@ -212,7 +212,11 @@
 // Use (almost all) default wrapper widths with the sections-grid breakpoints
 .has-sections-grid .ds-outer-wrapper-breakpoint-override {
   .ds-layout-topsites {
-    > div {
+    position: relative;
+    width: 100vw;
+    inset-inline-start: calc(50% - 50vw);
+
+    .top-sites-list-wrapper {
       width: 266px;
       margin-inline: auto;
 
@@ -247,11 +251,11 @@
 .has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override,
 .has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override {
   .ds-layout-topsites {
+    position: relative;
     width: 100vw;
-    margin-inline-start: 50%;
-    transform: translate3d(-50%, 0, 0);
+    inset-inline-start: calc(50% - 50vw);
 
-    > div {
+    .top-sites-list-wrapper {
       margin-inline: auto;
       width: 346px;
 

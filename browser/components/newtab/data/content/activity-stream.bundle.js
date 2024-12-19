@@ -8616,9 +8616,11 @@ class _TopSiteList extends (external_React_default()).PureComponent {
       }
       topSitesUI.push(topSiteLink);
     }
-    return /*#__PURE__*/external_React_default().createElement("ul", {
+    return /*#__PURE__*/external_React_default().createElement("div", {
+      className: "top-sites-list-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("ul", {
       className: `top-sites-list${this.state.draggedSite ? " dnd-active" : ""}`
-    }, topSitesUI);
+    }, topSitesUI));
   }
 }
 const TopSiteList = (0,external_ReactRedux_namespaceObject.connect)(state => ({
