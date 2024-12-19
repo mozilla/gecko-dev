@@ -51,6 +51,8 @@ export class ShoppingContainer extends MozLitElement {
     autoOpenEnabled: { type: Boolean },
     autoOpenEnabledByUser: { type: Boolean },
     showingKeepClosedMessage: { type: Boolean },
+    isProductPage: { type: Boolean },
+    isSupportedSite: { type: Boolean },
   };
 
   static get queries() {
@@ -114,22 +116,27 @@ export class ShoppingContainer extends MozLitElement {
     focusCloseButton,
     autoOpenEnabled,
     autoOpenEnabledByUser,
+    isProductPage,
+    isSupportedSite,
   }) {
     // If we're not opted in or there's no shopping URL in the main browser,
     // the actor will pass `null`, which means this will clear out any existing
     // content in the sidebar.
     this.data = data;
-    this.showOnboarding = showOnboarding;
+    this.showOnboarding = showOnboarding ?? this.showOnboarding;
     this.productUrl = productUrl;
     this.recommendationData = recommendationData;
     this.isOffline = !navigator.onLine;
     this.isAnalysisInProgress = isAnalysisInProgress;
-    this.adsEnabled = adsEnabled;
-    this.adsEnabledByUser = adsEnabledByUser;
+    this.adsEnabled = adsEnabled ?? this.adsEnabled;
+    this.adsEnabledByUser = adsEnabledByUser ?? this.adsEnabledByUser;
     this.analysisProgress = analysisProgress;
     this.focusCloseButton = focusCloseButton;
-    this.autoOpenEnabled = autoOpenEnabled;
-    this.autoOpenEnabledByUser = autoOpenEnabledByUser;
+    this.autoOpenEnabled = autoOpenEnabled ?? this.autoOpenEnabled;
+    this.autoOpenEnabledByUser =
+      autoOpenEnabledByUser ?? this.autoOpenEnabledByUser;
+    this.isProductPage = isProductPage ?? true;
+    this.isSupportedSite = isSupportedSite;
   }
 
   _updateRecommendations({ recommendationData }) {
@@ -200,7 +207,7 @@ export class ShoppingContainer extends MozLitElement {
       hostname = new URL(this.productUrl)?.hostname;
       return hostname;
     } catch (e) {
-      console.error(`Unknown product url ${this.productUrl}.`);
+      console.warn(`Unknown product url ${this.productUrl}.`);
       return null;
     }
   }

@@ -11,6 +11,12 @@ const { SpecialMessageActions } = ChromeUtils.importESModule(
   "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
 );
 
+const PRODUCT_URI = Services.io.newURI(
+  "https://example.com/product/B09TJGHL5F"
+);
+const SHOPPING_SIDEBAR_ACTOR = "ShoppingSidebar";
+const REVIEW_CHECKER_ACTOR = "ReviewChecker";
+
 /**
  * Toggle prefs involved in automatically activating the sidebar on PDPs if the
  * user has not opted in. Onboarding should only try to auto-activate the
@@ -97,7 +103,10 @@ add_task(async function test_showOnboarding_notOptedIn() {
   await Services.fog.testFlushAllChildren();
 
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.shopping.experience2023.integratedSidebar", false]],
+    set: [
+      ["browser.shopping.experience2023.integratedSidebar", false],
+      ["browser.shopping.experience2023.shoppingSidebar", true],
+    ],
   });
 
   await BrowserTestUtils.withNewTab(
@@ -109,9 +118,9 @@ add_task(async function test_showOnboarding_notOptedIn() {
       // Get the actor to update the product URL, since no content will render without one
       let actor =
         gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getExistingActor(
-          "ShoppingSidebar"
+          SHOPPING_SIDEBAR_ACTOR
         );
-      actor.updateProductURL("https://example.com/product/B09TJGHL5F");
+      actor.updateCurrentURL(PRODUCT_URI);
 
       await SpecialPowers.spawn(browser, [], async () => {
         let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -157,6 +166,7 @@ add_task(async function test_showOnboarding_notOptedIn() {
       info("Failed to get Glean value due to unknown bug. See bug 1862389.");
     }
   }
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
@@ -172,7 +182,10 @@ add_task(async function test_showOnboarding_notOptedIn_integrated_sidebar() {
   await Services.fog.testFlushAllChildren();
 
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.shopping.experience2023.integratedSidebar", true]],
+    set: [
+      ["browser.shopping.experience2023.integratedSidebar", true],
+      ["browser.shopping.experience2023.shoppingSidebar", false],
+    ],
   });
 
   await BrowserTestUtils.withNewTab(
@@ -184,9 +197,9 @@ add_task(async function test_showOnboarding_notOptedIn_integrated_sidebar() {
       // Get the actor to update the product URL, since no content will render without one
       let actor =
         gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getExistingActor(
-          "ShoppingSidebar"
+          REVIEW_CHECKER_ACTOR
         );
-      actor.updateProductURL("https://example.com/product/B09TJGHL5F");
+      actor.updateCurrentURL(PRODUCT_URI);
 
       await SpecialPowers.spawn(browser, [], async () => {
         let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -232,6 +245,7 @@ add_task(async function test_showOnboarding_notOptedIn_integrated_sidebar() {
       info("Failed to get Glean value due to unknown bug. See bug 1862389.");
     }
   }
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
@@ -249,9 +263,9 @@ add_task(async function test_hideOnboarding_optedIn() {
       // Get the actor to update the product URL, since no content will render without one
       let actor =
         gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getExistingActor(
-          "ShoppingSidebar"
+          SHOPPING_SIDEBAR_ACTOR
         );
-      actor.updateProductURL("https://example.com/product/B09TJGHL5F");
+      actor.updateCurrentURL(PRODUCT_URI);
 
       await SpecialPowers.spawn(browser, [], async () => {
         await ContentTaskUtils.waitForCondition(
@@ -281,7 +295,10 @@ add_task(async function test_hideOnboarding_onClose() {
   setOnboardingPrefs({ active: false, optedIn: 0, telemetryEnabled: true });
 
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.shopping.experience2023.integratedSidebar", false]],
+    set: [
+      ["browser.shopping.experience2023.integratedSidebar", false],
+      ["browser.shopping.experience2023.shoppingSidebar", true],
+    ],
   });
 
   await BrowserTestUtils.withNewTab(
@@ -293,9 +310,9 @@ add_task(async function test_hideOnboarding_onClose() {
       // Get the actor to update the product URL, since no content will render without one
       let actor =
         gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getExistingActor(
-          "ShoppingSidebar"
+          SHOPPING_SIDEBAR_ACTOR
         );
-      actor.updateProductURL("https://example.com/product/B09TJGHL5F");
+      actor.updateCurrentURL(PRODUCT_URI);
 
       await SpecialPowers.spawn(browser, [], async () => {
         let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -329,6 +346,7 @@ add_task(async function test_hideOnboarding_onClose() {
   Assert.greater(events.length, 0);
   Assert.equal(events[0].category, "shopping");
   Assert.equal(events[0].name, "surface_not_now_clicked");
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
@@ -686,9 +704,9 @@ add_task(async function test_hideOnboarding_OptIn_AfterSurveySeen() {
     async browser => {
       let actor =
         gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getExistingActor(
-          "ShoppingSidebar"
+          SHOPPING_SIDEBAR_ACTOR
         );
-      actor.updateProductURL("https://example.com/product/B09TJGHL5F");
+      actor.updateCurrentURL(PRODUCT_URI);
 
       await SpecialPowers.spawn(browser, [], async () => {
         let shoppingContainer = await ContentTaskUtils.waitForCondition(

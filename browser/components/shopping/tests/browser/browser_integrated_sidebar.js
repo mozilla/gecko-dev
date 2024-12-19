@@ -225,3 +225,90 @@ add_task(async function test_integrated_sidebar_close() {
     sandbox.restore();
   });
 });
+
+add_task(async function test_integrated_sidebar_empty_states() {
+  await BrowserTestUtils.withNewTab(CONTENT_PAGE, async function (browser) {
+    await SidebarController.show("viewReviewCheckerSidebar");
+
+    await withReviewCheckerSidebar(async () => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+      await shoppingContainer.updateComplete;
+      await ContentTaskUtils.waitForCondition(
+        () => typeof shoppingContainer.isProductPage !== "undefined",
+        "isProductPage is set."
+      );
+      await ContentTaskUtils.waitForCondition(
+        () => typeof shoppingContainer.isSupportedSite !== "undefined",
+        "isSupportedSite is set."
+      );
+      Assert.ok(
+        !shoppingContainer.isProductPage,
+        "Current page is not a product page"
+      );
+      Assert.ok(
+        shoppingContainer.isSupportedSite,
+        "Current page is a supported site"
+      );
+    });
+
+    BrowserTestUtils.startLoadingURIString(browser, PRODUCT_TEST_URL);
+    await BrowserTestUtils.browserLoaded(browser);
+
+    await withReviewCheckerSidebar(async () => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+      await shoppingContainer.updateComplete;
+      await ContentTaskUtils.waitForCondition(
+        () => typeof shoppingContainer.isProductPage !== "undefined",
+        "isProductPage is set."
+      );
+      await ContentTaskUtils.waitForCondition(
+        () => typeof shoppingContainer.isSupportedSite !== "undefined",
+        "isSupportedSite is set."
+      );
+      Assert.ok(
+        shoppingContainer.isProductPage,
+        "Current page is a product page"
+      );
+      Assert.ok(
+        !shoppingContainer.isSupportedSite,
+        "Current page is not a supported site"
+      );
+    });
+
+    BrowserTestUtils.startLoadingURIString(browser, "about:newtab");
+    await BrowserTestUtils.browserLoaded(browser);
+
+    await withReviewCheckerSidebar(async () => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+      await shoppingContainer.updateComplete;
+      await ContentTaskUtils.waitForCondition(
+        () => typeof shoppingContainer.isProductPage !== "undefined",
+        "isProductPage is set."
+      );
+      await ContentTaskUtils.waitForCondition(
+        () => typeof shoppingContainer.isSupportedSite !== "undefined",
+        "isSupportedSite is set."
+      );
+      Assert.ok(
+        !shoppingContainer.isProductPage,
+        "Current page is not a product page"
+      );
+      Assert.ok(
+        !shoppingContainer.isSupportedSite,
+        "Current page is not a supported site"
+      );
+    });
+  });
+});
