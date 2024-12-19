@@ -947,9 +947,7 @@ class Skipfails(object):
                                     f"  Bug {bugid} already has the compressed log attached for this task"
                                 )
             else:
-                raise ValueError(
-                    f'More than one bug found for summary: "{bug_summary}"'
-                )
+                raise Exception(f'More than one bug found for summary: "{bug_summary}"')
         bug_reference = f"Bug {bugid}" + bug_reference
         extra = self.get_extra(task_id)
         json.dumps(extra)
@@ -960,6 +958,24 @@ class Skipfails(object):
         else:
             comment += f"\nskip-if condition: {skip_if} # {bug_reference}"
         return (comment, bug_reference, bugid, attachments)
+
+    def resolve_failure_filename(self, path: str, kind: str, manifest: str) -> str:
+        filename = DEF
+        if kind == Kind.TOML:
+            filename = self.get_filename_in_manifest(manifest.split(":")[-1], path)
+        elif kind == Kind.WPT:
+            filename = os.path.basename(path)
+        elif kind == Kind.LIST:
+            filename = path
+        return filename
+
+    def resolve_failure_manifest(self, path: str, kind: str, manifest: str) -> str:
+        if kind == Kind.WPT:
+            _path, resolved_manifest, _query, _anyjs = self.wpt_paths(path)
+            if resolved_manifest:
+                return resolved_manifest
+            raise Exception(f"Could not resolve WPT manifest for path {path}")
+        return manifest
 
     def skip_failure(
         self,
@@ -993,26 +1009,12 @@ class Skipfails(object):
         else:
             skip_if = self.task_to_skip_if(manifest, task_id, kind, path)
         if skip_if is None:
-            self.warning(
+            raise Exception(
                 f"Unable to calculate skip-if condition from manifest={manifest} from failure label={label}"
             )
-            return
-        filename = DEF
-        zero = False
-        if kind == Kind.TOML:
-            filename = self.get_filename_in_manifest(manifest.split(":")[-1], path)
-        elif kind == Kind.WPT:
-            _path, resolved_manifest, _query, _anyjs = self.wpt_paths(path)
-            if resolved_manifest:
-                manifest = resolved_manifest
-            filename = os.path.basename(path)
-        elif kind == Kind.LIST:
-            filename = path
-            if status == PASS:
-                self.info(f"Unexpected status: {status}")
-            if status == PASS or classification == Classification.DISABLE_INTERMITTENT:
-                zero = True  # refest lower ranges should include zero
 
+        filename = self.resolve_failure_filename(path, kind, manifest)
+        manifest = self.resolve_failure_manifest(path, kind, manifest)
         manifest_path = self.full_path(manifest)
         manifest_str = ""
         additional_comment = ""
@@ -1046,8 +1048,7 @@ class Skipfails(object):
             try:
                 mp.read(manifest_path)
             except IOError:
-                self.info(f"Unable to find path: {manifest_path}")
-                return
+                raise Exception(f"Unable to find path: {manifest_path}")
 
             document = mp.source_documents[manifest_path]
             try:
@@ -1068,14 +1069,19 @@ class Skipfails(object):
                 self.error(
                     f"cannot determine line to edit in manifest: {manifest_path}"
                 )
-            # elif skip_if.find("winWidget") >= 0 and skip_if.find("!is64Bit") >= 0:
-            #     self.error(
-            #         "Skipping failures for Windows 32-bit are temporarily disabled"
-            #     )
             elif not os.path.exists(manifest_path):
                 self.error(f"manifest does not exist: {manifest_path}")
             else:
                 manifest_str = io.open(manifest_path, "r", encoding="utf-8").read()
+                if status == PASS:
+                    self.info(f"Unexpected status: {status}")
+                if (
+                    status == PASS
+                    or classification == Classification.DISABLE_INTERMITTENT
+                ):
+                    zero = True  # refest lower ranges should include zero
+                else:
+                    zero = False
                 manifest_str, additional_comment = self.reftest_add_fuzzy_if(
                     manifest_str,
                     filename,
@@ -1420,7 +1426,7 @@ class Skipfails(object):
             component = cp.component
         return product, component
 
-    def get_filename_in_manifest(self, manifest, path):
+    def get_filename_in_manifest(self, manifest: str, path: str) -> str:
         """return relative filename for path in manifest"""
 
         filename = os.path.basename(path)
