@@ -111,7 +111,7 @@ describe("Discovery Stream <AdBanner>", () => {
   it("should pass row prop as `gridRow` to aside element", () => {
     const aside = wrapper.find(".ad-banner-wrapper");
     const clampedRow = Math.max(1, Math.min(9, DEFAULT_PROPS.row));
-    assert.deepEqual(aside.prop("style"), { gridRow: clampedRow})
+    assert.deepEqual(aside.prop("style"), { gridRow: clampedRow });
   });
 
   it("should have the dismiss button be visible", () => {
@@ -126,26 +126,26 @@ describe("Discovery Stream <AdBanner>", () => {
   });
 
   it("should call onLinkClick when banner is clicked", () => {
-   const link = wrapper.find(".ad-banner-link a");
-   link.simulate("click");
-   assert.calledThrice(dispatch);
-   const secondCall = dispatch.getCall(2);
-   assert.deepEqual(
-     secondCall.args[0],
-     ac.DiscoveryStreamUserEvent({
-       event: "CLICK",
-       source: "FOO",
-       // Banner ads dont have a position, but a row number
-       action_position: DEFAULT_PROPS.row,
-       value: {
-         card_type: "spoc",
-         tile_id: DEFAULT_PROPS.spoc.id,
+    const link = wrapper.find(".ad-banner-link a");
+    link.simulate("click");
+    assert.calledThrice(dispatch);
+    const secondCall = dispatch.getCall(2);
+    assert.deepEqual(
+      secondCall.args[0],
+      ac.DiscoveryStreamUserEvent({
+        event: "CLICK",
+        source: "FOO",
+        // Banner ads dont have a position, but a row number
+        action_position: DEFAULT_PROPS.row,
+        value: {
+          card_type: "spoc",
+          tile_id: DEFAULT_PROPS.spoc.id,
 
-         fetchTimestamp: DEFAULT_PROPS.spoc.fetchTimestamp,
-         firstVisibleTimestamp:  DEFAULT_PROPS.firstVisibleTimestamp,
-         format:  DEFAULT_PROPS.spoc.format,
-       },
-     })
-   );
+          fetchTimestamp: DEFAULT_PROPS.spoc.fetchTimestamp,
+          firstVisibleTimestamp: DEFAULT_PROPS.firstVisibleTimestamp,
+          format: DEFAULT_PROPS.spoc.format,
+        },
+      })
+    );
   });
 });
