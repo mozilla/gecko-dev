@@ -1160,8 +1160,6 @@ Geolocation::NotifyError(uint16_t aErrorCode) {
     return NS_OK;
   }
 
-  mozilla::Telemetry::Accumulate(mozilla::Telemetry::GEOLOCATION_ERROR, true);
-
   for (uint32_t i = mPendingCallbacks.Length(); i > 0; i--) {
     RefPtr<nsGeolocationRequest> request = mPendingCallbacks[i - 1];
     request->NotifyErrorAndShutdown(aErrorCode);

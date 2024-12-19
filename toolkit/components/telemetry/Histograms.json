@@ -1311,14 +1311,6 @@
     "description": "Geolocation results' accuracy radius in meters. Smaller radius is more accurate.",
     "alert_emails": ["shong@mozilla.com"]
   },
-  "GEOLOCATION_ERROR": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "145",
-    "kind": "flag",
-    "releaseChannelCollection": "opt-out",
-    "description": "Has seen location error"
-  },
   "GEOLOCATION_WIN8_SOURCE_IS_MLS": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
