@@ -374,6 +374,8 @@ class SelectableProfileServiceClass {
       this.#asyncShutdownBlocker
     );
 
+    lazy.EveryWindow.unregisterCallback(this.#everyWindowCallbackId);
+
     try {
       Services.obs.removeObserver(
         this.themeObserver,
@@ -401,8 +403,6 @@ class SelectableProfileServiceClass {
     this.#storeID = null;
     this.#badge = null;
 
-    lazy.EveryWindow.unregisterCallback(this.#everyWindowCallbackId);
-
     this.#initialized = false;
   }
 
@@ -423,10 +423,6 @@ class SelectableProfileServiceClass {
           );
         }
 
-        // Update the window title because the currentProfile, needed in the
-        // .*-with-profile titles, didn't exist when the title was initially set.
-        window.gBrowser.updateTitlebar();
-
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
@@ -435,8 +431,6 @@ class SelectableProfileServiceClass {
         window.addEventListener("activate", this);
       },
       window => {
-        window.gBrowser.updateTitlebar();
-
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;

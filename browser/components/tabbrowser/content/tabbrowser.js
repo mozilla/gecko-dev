@@ -1117,17 +1117,7 @@
         docElement.getAttribute("privatebrowsingmode") == "temporary"
           ? "Private"
           : "Default";
-
-      if (
-        SelectableProfileService?.isEnabled &&
-        SelectableProfileService.currentProfile
-      ) {
-        dataSuffix += "WithProfile";
-      }
-      let defaultTitle = docElement.dataset["title" + dataSuffix].replace(
-        "PROFILENAME",
-        () => SelectableProfileService.currentProfile.name.replace(/\0/g, "")
-      );
+      let defaultTitle = docElement.dataset["title" + dataSuffix];
 
       if (
         !this._shouldExposeContentTitle ||
@@ -1179,16 +1169,10 @@
         // meaning to `replace`.
         // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#specifying_a_string_as_a_parameter
         // and the documentation for functions for more info about this.
-        return docElement.dataset["contentTitle" + dataSuffix]
-          .replace("CONTENTTITLE", () => title)
-          .replace(
-            "PROFILENAME",
-            () =>
-              SelectableProfileService?.currentProfile?.name.replace(
-                /\0/g,
-                ""
-              ) ?? ""
-          );
+        return docElement.dataset["contentTitle" + dataSuffix].replace(
+          "CONTENTTITLE",
+          () => title
+        );
       }
 
       return defaultTitle;
