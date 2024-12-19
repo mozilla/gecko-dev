@@ -74,6 +74,16 @@ add_task(async function test_searchTermFromResult() {
   });
   let engineWinCharset = Services.search.getEngineByName("bacon_addParam");
 
+  // For providers with non-encoded characters in their path.
+  await SearchTestUtils.installSearchExtension({
+    name: "characters_with_accents_in_path",
+    keyword: "characters_with_accents_in_path",
+    search_url: "https://fr.example.org/âêîôû:ÂÊÎÔÛ",
+  });
+  let engineWithAccentsInPath = Services.search.getEngineByName(
+    "characters_with_accents_in_path"
+  );
+
   // Verify getValidEngineUrl returns a URL that can return a search term.
   let testUrl = getValidEngineUrl();
   Assert.equal(
@@ -86,8 +96,8 @@ add_task(async function test_searchTermFromResult() {
   testUrl.pathname = "/SEARCH";
   Assert.equal(
     getTerm(testUrl),
-    TERM,
-    "Should get term even if path is not the same case as the engine."
+    "",
+    "Should not get term if the path is not the same case as the engine."
   );
 
   let url = `https://www.xn--bcher-kva.ch/search?q=${TERM_ENCODED}`;
@@ -123,6 +133,13 @@ add_task(async function test_searchTermFromResult() {
     getTerm(url, engineWinCharset),
     "",
     "Should get a blank string from Windows-1252 encoded url missing a search term."
+  );
+
+  url = "https://fr.example.org/âêîôû:ÂÊÎÔÛ?q=aàâäéèêëïôöùûüÿçæ";
+  Assert.equal(
+    getTerm(url, engineWithAccentsInPath),
+    "aàâäéèêëïôöùûüÿçæ",
+    "Should get term from path containing accent marks."
   );
 
   url = "about:blank";
@@ -283,58 +300,8 @@ add_task(async function test_searchTermFromResult_paramsInSearchUrl() {
   );
 });
 
-add_task(async function test_searchTermFrom_skipParamMatching() {
-  info(
-    "Reuse engine that has a partner code and parameter corresponding to a search."
-  );
-  let testEngine = Services.search.getEngineByName(
-    "engine_params_in_search_url"
-  );
-
-  info("Enable skip param matching.");
-  const SKIP_PARAM_MATCHING = true;
-
-  let url = `https://example.com/?q=${TERM_ENCODED}&pc=firefox`;
-  Assert.equal(
-    getTerm(url, testEngine, SKIP_PARAM_MATCHING),
-    TERM,
-    "Should get term when all known params are present."
-  );
-
-  url = `https://example.com/?q=${TERM_ENCODED}`;
-  Assert.equal(
-    getTerm(url, testEngine, SKIP_PARAM_MATCHING),
-    TERM,
-    "Should get term even when missing a known non-search query param."
-  );
-
-  url = `https://example.com/?q=${TERM_ENCODED}&pc=firefox&foo=bar`;
-  Assert.equal(
-    getTerm(url, testEngine, SKIP_PARAM_MATCHING),
-    TERM,
-    "Should get term when an unknown param is added."
-  );
-
-  url = `https://example.com/?pc=firefox&foo=bar`;
-  Assert.equal(
-    getTerm(url, testEngine, SKIP_PARAM_MATCHING),
-    "",
-    "Should not get term when the search query is missing."
-  );
-
-  url = `https://example.net/?q=${TERM_ENCODED}&pc=firefox`;
-  Assert.equal(
-    getTerm(url, testEngine, SKIP_PARAM_MATCHING),
-    "",
-    "Should not get term when the input origin differs."
-  );
-});
-
-function getTerm(url, searchEngine = defaultEngine, skipParamMatching) {
-  return searchEngine.searchTermFromResult(
-    Services.io.newURI(url.toString()),
-    skipParamMatching
-  );
+function getTerm(url, searchEngine = defaultEngine) {
+  return searchEngine.searchTermFromResult(Services.io.newURI(url.toString()));
 }
 
 // Return a new instance of a submission URL so that it can modified
