@@ -279,6 +279,9 @@ bool AppendFlagsInfo(nsCString& str, uint64_t flags,
   return !firstAppend;
 }
 
+std::unordered_map<uint64_t, const char*> const& HitTestResults();
+nsAutoString GetNameFromAtom(LPCWSTR atomOrName);
+
 // if mResult is not set, this is used to log the parameters passed in the
 // message, otherwise we are logging the parameters after we have handled the
 // message. This is useful for events where we might change the parameters while
@@ -328,9 +331,19 @@ bool NativeEventLogger::NativeEventLoggerInternal() {
     gLastEventMsg = mMsg;
     if (writeToWindowsLog) {
       const auto& eventMsgInfo = gAllEvents.find(mMsg);
-      const char* msgText = eventMsgInfo != gAllEvents.end()
-                                ? eventMsgInfo->second.mStr
-                                : nullptr;
+
+      nsAutoCString msgText = [&]() -> nsAutoCString {
+        // (dynamically-registered string messages)
+        if (mMsg >= 0xC000 && mMsg <= 0xFFFF) {
+          return NS_ConvertUTF16toUTF8(
+              GetNameFromAtom((LPCWSTR)(uintptr_t)mMsg));
+        }
+        if (eventMsgInfo != gAllEvents.end()) {
+          return nsAutoCString(eventMsgInfo->second.mStr);
+        }
+        return nsAutoCString{};
+      }();
+
       nsAutoCString paramInfo;
       if (eventMsgInfo != gAllEvents.end()) {
         eventMsgInfo->second.LogParameters(paramInfo, mWParam, mLParam,
@@ -338,16 +351,25 @@ bool NativeEventLogger::NativeEventLoggerInternal() {
       } else {
         paramInfo = DefaultParamInfo(mWParam, mLParam, isPreCall);
       }
-      const char* resultMsg = mResult.isSome()
-                                  ? (mResult.value() ? "true" : "false")
-                                  : "initial call";
+      const char* resultMsg = [&]() {
+        if (!mResult.isSome()) return "initial call";
+        if (mMsg == WM_NCHITTEST) {
+          auto const& htr = HitTestResults();
+          if (auto const it = htr.find(mRetValue); it != htr.end()) {
+            return it->second;
+          }
+          return "undocumented value?";
+        }
+        return mResult.value() ? "true" : "false";
+      }();
+
       nsAutoCString logMessage;
       logMessage.AppendPrintf(
           "%s | %6ld %08" PRIX64 " - 0x%04X %s%s%s: 0x%08" PRIX64 " (%s)\n",
           mMsgLoopName, mEventCounter.valueOr(gEventCounter),
           reinterpret_cast<uint64_t>(mHwnd), mMsg,
-          msgText ? msgText : "Unknown", paramInfo.IsEmpty() ? "" : " ",
-          paramInfo.get(),
+          !msgText.IsEmpty() ? msgText.Data() : "Unknown",
+          paramInfo.IsEmpty() ? "" : " ", paramInfo.get(),
           mResult.isSome() ? static_cast<uint64_t>(mRetValue) : 0, resultMsg);
       const char* logMessageData = logMessage.Data();
       MOZ_LOG(gWindowsEventLog, targetLogLevel, ("%s", logMessageData));
@@ -1009,6 +1031,25 @@ MOZ_RUNINIT const nsTArray<EnumValueAndName> windowPositionFlags = {
     VALANDNAME_ENTRY(SWP_SHOWWINDOW),
 };
 
+static std::unordered_map<uint64_t, const char*> const& HitTestResults() {
+  static const std::unordered_map<uint64_t, const char*> data{
+      VALANDNAME_ENTRY(HTBORDER),     VALANDNAME_ENTRY(HTBOTTOM),
+      VALANDNAME_ENTRY(HTBOTTOMLEFT), VALANDNAME_ENTRY(HTBOTTOMRIGHT),
+      VALANDNAME_ENTRY(HTCAPTION),    VALANDNAME_ENTRY(HTCLIENT),
+      VALANDNAME_ENTRY(HTCLOSE),      VALANDNAME_ENTRY(HTERROR),
+      VALANDNAME_ENTRY(HTGROWBOX),    VALANDNAME_ENTRY(HTHELP),
+      VALANDNAME_ENTRY(HTHSCROLL),    VALANDNAME_ENTRY(HTLEFT),
+      VALANDNAME_ENTRY(HTMENU),       VALANDNAME_ENTRY(HTMAXBUTTON),
+      VALANDNAME_ENTRY(HTMINBUTTON),  VALANDNAME_ENTRY(HTNOWHERE),
+      VALANDNAME_ENTRY(HTREDUCE),     VALANDNAME_ENTRY(HTRIGHT),
+      VALANDNAME_ENTRY(HTSIZE),       VALANDNAME_ENTRY(HTSYSMENU),
+      VALANDNAME_ENTRY(HTTOP),        VALANDNAME_ENTRY(HTTOPLEFT),
+      VALANDNAME_ENTRY(HTTOPRIGHT),   VALANDNAME_ENTRY(HTTRANSPARENT),
+      VALANDNAME_ENTRY(HTVSCROLL),    VALANDNAME_ENTRY(HTZOOM),
+  };
+  return data;
+}
+
 void WindowPosParamInfo(nsCString& str, uint64_t value, const char* name,
                         bool /* isPreCall */) {
   LPWINDOWPOS windowPos = reinterpret_cast<LPWINDOWPOS>(value);
@@ -1095,22 +1136,7 @@ void ActivateWParamInfo(nsCString& result, uint64_t wParam, const char* name,
 
 void HitTestParamInfo(nsCString& result, uint64_t param, const char* name,
                       bool /* isPreCall */) {
-  const static std::unordered_map<uint64_t, const char*> hitTestResults{
-      VALANDNAME_ENTRY(HTBORDER),     VALANDNAME_ENTRY(HTBOTTOM),
-      VALANDNAME_ENTRY(HTBOTTOMLEFT), VALANDNAME_ENTRY(HTBOTTOMRIGHT),
-      VALANDNAME_ENTRY(HTCAPTION),    VALANDNAME_ENTRY(HTCLIENT),
-      VALANDNAME_ENTRY(HTCLOSE),      VALANDNAME_ENTRY(HTERROR),
-      VALANDNAME_ENTRY(HTGROWBOX),    VALANDNAME_ENTRY(HTHELP),
-      VALANDNAME_ENTRY(HTHSCROLL),    VALANDNAME_ENTRY(HTLEFT),
-      VALANDNAME_ENTRY(HTMENU),       VALANDNAME_ENTRY(HTMAXBUTTON),
-      VALANDNAME_ENTRY(HTMINBUTTON),  VALANDNAME_ENTRY(HTNOWHERE),
-      VALANDNAME_ENTRY(HTREDUCE),     VALANDNAME_ENTRY(HTRIGHT),
-      VALANDNAME_ENTRY(HTSIZE),       VALANDNAME_ENTRY(HTSYSMENU),
-      VALANDNAME_ENTRY(HTTOP),        VALANDNAME_ENTRY(HTTOPLEFT),
-      VALANDNAME_ENTRY(HTTOPRIGHT),   VALANDNAME_ENTRY(HTTRANSPARENT),
-      VALANDNAME_ENTRY(HTVSCROLL),    VALANDNAME_ENTRY(HTZOOM),
-  };
-  AppendEnumValueInfo(result, param, hitTestResults, name);
+  AppendEnumValueInfo(result, param, HitTestResults(), name);
 }
 
 void SetCursorLParamInfo(nsCString& result, uint64_t lParam,
