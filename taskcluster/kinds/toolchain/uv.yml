@@ -1,0 +1,74 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+task-defaults:
+    description: "uv toolchain build"
+    attributes:
+        local-toolchain: true
+    worker-type: b-linux-gcp
+    worker:
+        max-run-time: 1800
+        env:
+            FETCH: uv/crates/uv
+    run:
+        script: build-rust-based-toolchain.sh
+        toolchain-artifact: public/build/uv.tar.zst
+    fetches:
+        fetch:
+            - uv
+
+linux64-uv:
+    treeherder:
+        symbol: TL(uv)
+    run:
+        arguments: ['x86_64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-1.83
+            - sysroot-x86_64-linux-gnu
+
+macosx64-uv:
+    treeherder:
+        symbol: TM(uv)
+    run:
+        arguments: ['x86_64-apple-darwin']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-macos-1.83
+            - macosx64-sdk-toolchain
+
+macosx64-aarch64-uv:
+    treeherder:
+        symbol: TMA64(uv)
+    run:
+        arguments: ['aarch64-apple-darwin']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-macos-1.83
+            - macosx64-sdk-toolchain
+
+win64-uv:
+    treeherder:
+        symbol: TW64(uv)
+    run:
+        arguments: ['x86_64-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-windows-1.83
+            - vs-toolchain
+
+win64-aarch64-uv:
+    treeherder:
+        symbol: TWA64(uv)
+    run:
+        arguments: ['aarch64-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-windows-1.83
+            - vs-toolchain

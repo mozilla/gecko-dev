@@ -726,3 +726,10 @@ chromium-depot-tools:
         revision: 5304f2bbb31bad413e029a660097d1da1552e6f4
         artifact-name: chromium-depot-tools.tar.zst
         include-dot-git: true
+
+uv:
+    description: uv 0.5.9 source code
+    fetch:
+        type: git
+        repo: https://github.com/astral-sh/uv
+        revision: 0652800cb018eb086fbbf220a1f73af7e320be54
