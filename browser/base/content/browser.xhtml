@@ -11,12 +11,12 @@
         xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns="http://www.w3.org/1999/xhtml"
 #ifdef XP_MACOSX
-        data-l10n-id="browser-main-window-mac-window-titles"
+        data-l10n-id="browser-main-window-titles-mac"
 #else
-        data-l10n-id="browser-main-window-window-titles"
+        data-l10n-id="browser-main-window-titles"
 #endif
-        data-l10n-args="{&quot;content-title&quot;:&quot;CONTENTTITLE&quot;}"
-        data-l10n-attrs="data-content-title-default, data-content-title-private, data-title-default, data-title-private"
+        data-l10n-args="{&quot;content-title&quot;:&quot;CONTENTTITLE&quot;,&quot;profile-name&quot;:&quot;PROFILENAME&quot;}"
+        data-l10n-attrs="data-content-title-default, data-content-title-private, data-title-default, data-title-private, data-content-title-default-with-profile, data-content-title-private-with-profile, data-title-default-with-profile, data-title-private-with-profile"
         customtitlebar="true"
         windowtype="navigator:browser"
         macanimationtype="document"
@@ -93,7 +93,7 @@
   <link rel="localization" href="preview/onboarding.ftl"/>
   <link rel="localization" href="preview/tabUnload.ftl"/>
 
-  <title data-l10n-id="browser-main-window-title"></title>
+  <title data-l10n-id="browser-main-window-default-title"></title>
 
 # All JS files which are needed by browser.xhtml and other top level windows to
 # support MacOS specific features *must* go into the global-scripts.inc file so
