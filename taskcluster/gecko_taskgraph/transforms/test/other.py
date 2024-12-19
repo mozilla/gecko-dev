@@ -366,6 +366,11 @@ def setup_browsertime(config, tasks):
                     "macosx64-geckodriver",
                     "macosx64-node",
                 ],
+                "macosx1470.*": [
+                    "browsertime",
+                    "macosx64-geckodriver",
+                    "macosx64-node",
+                ],
                 "macosx1400.*": [
                     "browsertime",
                     "macosx64-aarch64-geckodriver",
@@ -390,6 +395,7 @@ def setup_browsertime(config, tasks):
                 "android.*": ["linux64-ffmpeg-4.4.1"],
                 "linux.*": ["linux64-ffmpeg-4.4.1"],
                 "macosx1015.*": ["mac64-ffmpeg-4.4.1"],
+                "macosx1470.*": ["mac64-ffmpeg-4.4.1"],
                 "macosx1400.*": ["mac64-ffmpeg-4.4.1"],
                 "windows.*aarch64.*": ["win64-ffmpeg-4.4.1"],
                 "windows.*-32.*": ["win64-ffmpeg-4.4.1"],
@@ -407,6 +413,10 @@ def setup_browsertime(config, tasks):
                 "linux64-chromedriver-131",
             ],
             "macosx1015.*": [
+                "mac64-chromedriver-130",
+                "mac64-chromedriver-131",
+            ],
+            "macosx1470.*": [
                 "mac64-chromedriver-130",
                 "mac64-chromedriver-131",
             ],
@@ -719,6 +729,10 @@ def handle_tier(config, tasks):
                 "macosx1015-64-qr/opt",
                 "macosx1015-64-shippable-qr/opt",
                 "macosx1015-64-qr/debug",
+                "macosx1470-64/opt",
+                "macosx1470-64/debug",
+                "macosx1470-64-shippable/opt",
+                "macosx1470-64-devedition/opt",
                 "macosx1100-64-shippable-qr/opt",
                 "macosx1100-64-qr/debug",
                 "macosx1400-64-shippable-qr/opt",
