@@ -64,6 +64,7 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
 
   private static final boolean DEBUG = false;
   private static final String LOGTAG = "GeckoEditable";
+  private static final long DISMISS_VKB_DELAY_MS = 100;
 
   // Filters to implement Editable's filtering functionality
   private InputFilter[] mFilters;
@@ -116,6 +117,33 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
   private int mLastTextChangeOldEnd = -1; // Used by Gecko thread
   private int mLastTextChangeNewEnd = -1; // Used by Gecko thread
   private boolean mLastTextChangeReplacedSelection; // Used by Gecko thread
+
+  private static class HideSoftInputTask implements Runnable {
+    private GeckoSession mSession;
+    private boolean mCancelled;
+
+    public HideSoftInputTask(final GeckoSession session) {
+      mSession = session;
+      mCancelled = false;
+    }
+
+    @Override
+    public void run() {
+      if (DEBUG) {
+        ThreadUtils.assertOnUiThread();
+      }
+      if (mCancelled) {
+        return;
+      }
+      mSession.getTextInput().getDelegate().hideSoftInput(mSession);
+    }
+
+    public void cancel() {
+      mCancelled = true;
+    }
+  }
+
+  private HideSoftInputTask mHideSoftInputTask;
 
   // Prevent showSoftInput and hideSoftInput from being called multiple times in a row,
   // including reentrant calls on some devices. Used by UI/IC thread.
@@ -1574,6 +1602,10 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
 
     switch (type) {
       case SessionTextInput.EditableListener.NOTIFY_IME_OF_FOCUS:
+        if (mHideSoftInputTask != null) {
+          mHideSoftInputTask.cancel();
+          mHideSoftInputTask = null;
+        }
         if (mFocusedChild != null) {
           // Already focused, so blur first.
           icRestartInput(
@@ -1949,10 +1981,16 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
     toggleSoftInput(/* force */ false, state);
   }
 
-  /* package */ void toggleSoftInput(final boolean force, final int state) {
+  /* package */ void toggleSoftInput(final boolean force, @IMEState final int state) {
     if (DEBUG) {
-      Log.d(LOGTAG, "toggleSoftInput");
+      final StringBuilder sb = new StringBuilder("toggleSoftInput(force=");
+      sb.append(force)
+          .append(", state=")
+          .append(getConstantName(SessionTextInput.EditableListener.class, "IME_STATE_", state))
+          .append(")");
+      Log.d(LOGTAG, sb.toString());
     }
+
     // Can be called from UI or IC thread.
     final int flags = mIMEFlags;
 
@@ -2003,8 +2041,15 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
                 }
                 return;
               }
+
+              if (mHideSoftInputTask != null) {
+                mHideSoftInputTask.cancel();
+                mHideSoftInputTask = null;
+              }
+
               if (state == SessionTextInput.EditableListener.IME_STATE_DISABLED) {
-                session.getTextInput().getDelegate().hideSoftInput(session);
+                mHideSoftInputTask = new HideSoftInputTask(session);
+                ThreadUtils.postToUiThreadDelayed(mHideSoftInputTask, DISMISS_VKB_DELAY_MS);
                 return;
               }
               {

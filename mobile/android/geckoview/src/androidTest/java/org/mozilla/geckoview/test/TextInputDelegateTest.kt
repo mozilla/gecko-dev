@@ -227,6 +227,13 @@ class TextInputDelegateTest : BaseSessionTest() {
         promise.value
     }
 
+    private fun pressKeyNoWait(ic: InputConnection, keyCode: Int) {
+        val time = SystemClock.uptimeMillis()
+        val keyEvent = KeyEvent(time, time, KeyEvent.ACTION_DOWN, keyCode, 0)
+        ic.sendKeyEvent(keyEvent)
+        ic.sendKeyEvent(KeyEvent.changeAction(keyEvent, KeyEvent.ACTION_UP))
+    }
+
     private fun pressKey(ic: InputConnection, keyCode: Int) {
         val promise = mainSession.evaluatePromiseJS(
             when (id) {
@@ -234,10 +241,7 @@ class TextInputDelegateTest : BaseSessionTest() {
                 else -> "new Promise(r => document.querySelector('$id').addEventListener('keyup', r, { once: true }))"
             },
         )
-        val time = SystemClock.uptimeMillis()
-        val keyEvent = KeyEvent(time, time, KeyEvent.ACTION_DOWN, keyCode, 0)
-        ic.sendKeyEvent(keyEvent)
-        ic.sendKeyEvent(KeyEvent.changeAction(keyEvent, KeyEvent.ACTION_UP))
+        pressKeyNoWait(ic, keyCode)
         promise.value
     }
 
@@ -407,6 +411,49 @@ class TextInputDelegateTest : BaseSessionTest() {
             override fun hideSoftInput(session: GeckoSession) {
             }
         })
+    }
+
+    @Test fun restartInput_disableEnable() {
+        assumeThat("input only", id, equalTo("#input"))
+
+        mainSession.textInput.view = View(InstrumentationRegistry.getInstrumentation().targetContext)
+        mainSession.loadTestPath(FORMS_HTML_PATH)
+        mainSession.waitForPageStop()
+
+        mainSession.evaluateJS(
+            """
+            document.querySelector('#tel1').value = "123-45"
+            document.querySelector('#tel1').focus()
+            """.trimIndent(),
+        )
+        mainSession.waitUntilCalled(GeckoSession.TextInputDelegate::class, "restartInput")
+
+        val ic = mainSession.textInput.onCreateInputConnection(EditorInfo())!!
+
+        mainSession.delegateDuringNextWait(object : TextInputDelegate {
+            @AssertCalled(count = 0)
+            override fun hideSoftInput(session: GeckoSession) {
+            }
+        })
+
+        var promise = mainSession.evaluatePromiseJS(
+            """
+            new Promise(r =>
+                document.querySelector('#tel1').addEventListener('input', e => {
+                    const element = document.querySelector('#tel1');
+                    element.setAttribute('disabled', 'disabled');
+                    element.value = "123-456";
+                    element.removeAttribute('disabled');
+                    element.focus();
+                    window.setTimeout(r, 100);
+                }, { once: true }));
+            """.trimIndent(),
+        )
+
+        pressKeyNoWait(ic, KeyEvent.KEYCODE_0)
+        promise.value
+
+        assertThat("hideSoftInput isn't called", true, equalTo(true))
     }
 
     private fun getText(ic: InputConnection) =
