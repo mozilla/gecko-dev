@@ -7,13 +7,7 @@ import { SafeAnchor } from "../SafeAnchor/SafeAnchor";
 import { ImpressionStats } from "../../DiscoveryStreamImpressionStats/ImpressionStats";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 
-export const AdBanner = ({
-  spoc,
-  dispatch,
-  firstVisibleTimestamp,
-  row,
-  type,
-}) => {
+export const AdBanner = ({ spoc, dispatch, firstVisibleTimestamp, row }) => {
   const getDimensions = format => {
     switch (format) {
       case "leaderboard":
@@ -47,9 +41,8 @@ export const AdBanner = ({
             flight_id: spoc.flight_id,
             format: spoc.format,
             id: spoc.id,
-            card_type: "spoc",
-            is_pocket_card: true,
-            position: row,
+            is_pocket_card: spoc.is_pocket_card,
+            position: spoc.pos,
             sponsor: spoc.sponsor,
             title: spoc.title,
             url: spoc.url || spoc.shim.url,
@@ -59,25 +52,6 @@ export const AdBanner = ({
             alt_text: spoc.alt_text,
           },
         ],
-      })
-    );
-  };
-
-  const onLinkCLick = () => {
-    dispatch(
-      ac.DiscoveryStreamUserEvent({
-        event: "CLICK",
-        source: type.toUpperCase(),
-        // Banner ads dont have a position, but a row number
-        action_position: row,
-        value: {
-          card_type: "spoc",
-          tile_id: spoc.id,
-          ...(spoc.shim?.click ? { shim: spoc.shim.click } : {}),
-          fetchTimestamp: spoc.fetchTimestamp,
-          firstVisibleTimestamp,
-          format: spoc.format,
-        },
       })
     );
   };
@@ -100,19 +74,17 @@ export const AdBanner = ({
           className="ad-banner-link"
           url={spoc.url}
           title={spoc.title}
-          onLinkClick={onLinkCLick}
-          dispatch={dispatch}
         >
           <ImpressionStats
             flightId={spoc.flight_id}
             rows={[
               {
                 id: spoc.id,
-                card_type: "spoc",
-                pos: row,
+                pos: spoc.pos,
+                corpus_item_id: spoc.corpus_item_id,
+                scheduled_corpus_item_id: spoc.scheduled_corpus_item_id,
                 recommended_at: spoc.recommended_at,
                 received_rank: spoc.received_rank,
-                format: spoc.format,
               },
             ]}
             dispatch={dispatch}

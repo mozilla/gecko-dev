@@ -29,7 +29,7 @@ const PREF_FAKESPOT_ENABLED =
   "discoverystream.contextualContent.fakespot.enabled";
 const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
-const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
+const PREF_LEADERBOARD_POSITION = "newtabAdSize.billboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 const INTERSECTION_RATIO = 0.5;
 const VISIBLE = "visible";
