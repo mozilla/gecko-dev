@@ -5697,6 +5697,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
       gc::AllocKind allocKind, gc::Heap initialHeap, Label* fail,
       const AllocSiteInput& allocSite = AllocSiteInput());
 
+  void createFunctionClone(Register result, Register canonical,
+                           Register envChain, Register temp,
+                           gc::AllocKind allocKind, Label* fail);
+
   void initGCThing(Register obj, Register temp,
                    const TemplateObject& templateObj, bool initContents = true);
 

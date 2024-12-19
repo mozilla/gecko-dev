@@ -4079,6 +4079,51 @@ bool BaselineCacheIRCompiler::emitNewPlainObjectResult(uint32_t numFixedSlots,
   return true;
 }
 
+bool BaselineCacheIRCompiler::emitNewFunctionCloneResult(
+    uint32_t canonicalOffset, gc::AllocKind allocKind) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoOutputRegister output(*this);
+  AutoScratchRegisterMaybeOutput result(allocator, masm, output);
+  AutoScratchRegister canonical(allocator, masm);
+  AutoScratchRegister envChain(allocator, masm);
+  AutoScratchRegister scratch(allocator, masm);
+
+  // Load the canonical function and the frame's environment chain.
+  masm.loadPtr(stubAddress(canonicalOffset), canonical);
+  Address envAddr(baselineFrameReg_,
+                  BaselineFrame::reverseOffsetOfEnvironmentChain());
+  masm.loadPtr(envAddr, envChain);
+
+  allocator.discardStack(masm);
+
+  // Try to allocate a new function object in JIT code.
+  Label done, fail;
+  masm.createFunctionClone(result, canonical, envChain, scratch, allocKind,
+                           &fail);
+  masm.jump(&done);
+
+  {
+    masm.bind(&fail);
+
+    AutoStubFrame stubFrame(*this);
+    stubFrame.enter(masm, scratch);
+
+    masm.Push(envChain);
+    masm.Push(canonical);
+
+    using Fn = JSObject* (*)(JSContext*, HandleFunction, HandleObject);
+    callVM<Fn, js::Lambda>(masm);
+
+    stubFrame.leave(masm);
+    masm.storeCallPointerResult(result);
+  }
+
+  masm.bind(&done);
+  masm.tagValue(JSVAL_TYPE_OBJECT, result, output.valueReg());
+  return true;
+}
+
 bool BaselineCacheIRCompiler::emitBindFunctionResult(
     ObjOperandId targetId, uint32_t argc, uint32_t templateObjectOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

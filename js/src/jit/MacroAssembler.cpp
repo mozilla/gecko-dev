@@ -581,6 +581,64 @@ void MacroAssembler::createArrayWithFixedElements(
   }
 }
 
+void MacroAssembler::createFunctionClone(Register result, Register canonical,
+                                         Register envChain, Register temp,
+                                         gc::AllocKind allocKind, Label* fail) {
+  MOZ_ASSERT(allocKind == gc::AllocKind::FUNCTION ||
+             allocKind == gc::AllocKind::FUNCTION_EXTENDED);
+  MOZ_ASSERT(result != temp);
+
+  // Allocate object.
+  size_t numDynamicSlots = 0;
+  gc::Heap initialHeap = gc::Heap::Default;
+  allocateObject(result, temp, allocKind, numDynamicSlots, initialHeap, fail);
+
+  // Initialize shape field.
+  loadPtr(Address(canonical, JSObject::offsetOfShape()), temp);
+  storePtr(temp, Address(result, JSObject::offsetOfShape()));
+
+  // Initialize dynamic slots and elements pointers.
+  storePtr(ImmPtr(emptyObjectSlots),
+           Address(result, NativeObject::offsetOfSlots()));
+  storePtr(ImmPtr(emptyObjectElements),
+           Address(result, NativeObject::offsetOfElements()));
+
+  // Initialize FlagsAndArgCountSlot.
+  storeValue(Address(canonical, JSFunction::offsetOfFlagsAndArgCount()),
+             Address(result, JSFunction::offsetOfFlagsAndArgCount()), temp);
+
+  // Initialize NativeFuncOrInterpretedEnvSlot.
+  storeValue(JSVAL_TYPE_OBJECT, envChain,
+             Address(result, JSFunction::offsetOfEnvironment()));
+#ifdef DEBUG
+  // The new function must be allocated in the nursery if the nursery is
+  // enabled. Assert no post-barrier is needed.
+  Label ok;
+  branchPtrInNurseryChunk(Assembler::Equal, result, temp, &ok);
+  branchPtrInNurseryChunk(Assembler::NotEqual, envChain, temp, &ok);
+  assumeUnreachable("Missing post write barrier in createFunctionClone");
+  bind(&ok);
+#endif
+
+  // Initialize NativeJitInfoOrInterpretedScriptSlot. This is a BaseScript*
+  // pointer stored as PrivateValue.
+  loadPrivate(Address(canonical, JSFunction::offsetOfJitInfoOrScript()), temp);
+  storePrivateValue(temp,
+                    Address(result, JSFunction::offsetOfJitInfoOrScript()));
+
+  // Initialize AtomSlot.
+  storeValue(Address(canonical, JSFunction::offsetOfAtom()),
+             Address(result, JSFunction::offsetOfAtom()), temp);
+
+  // Initialize extended slots.
+  if (allocKind == gc::AllocKind::FUNCTION_EXTENDED) {
+    for (size_t i = 0; i < FunctionExtended::NUM_EXTENDED_SLOTS; i++) {
+      Address addr(result, FunctionExtended::offsetOfExtendedSlot(i));
+      storeValue(UndefinedValue(), addr);
+    }
+  }
+}
+
 // Inline version of Nursery::allocateString.
 void MacroAssembler::nurseryAllocateString(Register result, Register temp,
                                            gc::AllocKind allocKind,

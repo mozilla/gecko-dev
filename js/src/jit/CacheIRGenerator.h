@@ -971,6 +971,24 @@ class MOZ_RAII NewObjectIRGenerator : public IRGenerator {
   AttachDecision tryAttachPlainObject();
 };
 
+class MOZ_RAII LambdaIRGenerator : public IRGenerator {
+#ifdef JS_CACHEIR_SPEW
+  JSOp op_;
+#endif
+  Handle<JSFunction*> canonicalFunction_;
+
+  void trackAttached(const char* name /* must be a C string literal */);
+
+ public:
+  LambdaIRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc,
+                    ICState state, JSOp op,
+                    Handle<JSFunction*> canonicalFunction,
+                    BaselineFrame* frame);
+
+  AttachDecision tryAttachStub();
+  AttachDecision tryAttachFunctionClone();
+};
+
 // Returns true for bytecode ops that can use InlinableNativeIRGenerator.
 inline bool BytecodeCallOpCanHaveInlinableNative(JSOp op) {
   return op == JSOp::Call || op == JSOp::CallContent || op == JSOp::New ||

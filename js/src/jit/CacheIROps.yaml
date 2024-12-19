@@ -3236,6 +3236,14 @@
     shape: ShapeField
     site: AllocSiteField
 
+- name: NewFunctionCloneResult
+  shared: false
+  transpile: false
+  cost_estimate: 4
+  args:
+    canonical: ObjectField
+    allocKind: AllocKindImm
+
 - name: ConcatStringsResult
   shared: true
   transpile: true

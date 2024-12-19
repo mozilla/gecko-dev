@@ -2301,6 +2301,11 @@ bool IonCacheIRCompiler::emitNewPlainObjectResult(uint32_t numFixedSlots,
   MOZ_CRASH("NewObject ICs not used in ion");
 }
 
+bool IonCacheIRCompiler::emitNewFunctionCloneResult(uint32_t canonicalOffset,
+                                                    gc::AllocKind allocKind) {
+  MOZ_CRASH("Lambda ICs not used in ion");
+}
+
 bool IonCacheIRCompiler::emitCallRegExpMatcherResult(ObjOperandId regexpId,
                                                      StringOperandId inputId,
                                                      Int32OperandId lastIndexId,

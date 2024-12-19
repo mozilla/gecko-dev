@@ -2588,6 +2588,9 @@ bool DoLambdaFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
   Rooted<JSFunction*> fun(cx, frame->script()->getFunction(pc));
   Rooted<JSObject*> env(cx, frame->environmentChain());
 
+  TryAttachStub<LambdaIRGenerator>("Lambda", cx, frame, stub, JSOp(*pc), fun,
+                                   frame);
+
   JSObject* clone = Lambda(cx, fun, env);
   if (!clone) {
     return false;
