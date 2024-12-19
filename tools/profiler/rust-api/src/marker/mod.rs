@@ -337,6 +337,60 @@ pub fn add_marker<T>(
     }
 }
 
+/// Record a marker using the Rust `add_marker` API, but delay evaluation of
+/// arguments until we're sure that the profiler can accept markers.
+///
+/// This macro is equivalent to testing `gecko_profiler::can_accept_markers`
+/// before calling `gecko_profiler::add_marker`. Note that
+/// `gecko_profiler::add_marker` already performs this check, but after
+/// arguments to the function have already been evaluated, which is too late
+/// if constructing the payload is expensive.
+///
+/// This macro is equivalent in interface to `add_marker`, but with two
+/// additional overloads which allow for the `options` and `category`
+/// arguments to be optional:
+///
+/// lazy_add_marker!(name, category, options, payload)
+///
+/// lazy_add_marker!(name, category, payload)
+///
+/// lazy_add_marker!(name, payload)
+///
+/// In the latter two overloads, the `options` are set to Default::default,
+/// and in the last the category is set to `Other`. Note that eliding the
+/// category but *not* the options is not possible, due to how we're able to
+/// define macros in Rust.
+///
+#[cfg(feature = "enabled")]
+#[macro_export]
+macro_rules! lazy_add_marker {
+    ($name:expr, $category:expr, $options:expr, $payload:expr) => {
+        if gecko_profiler::can_accept_markers() {
+            gecko_profiler::add_marker($name, $category, $options, $payload);
+        }
+    };
+    // Macros are one of the few places that let us do "overloading" in rust,
+    // so take advantage of that to provide a version that drops the
+    // `options` argument, and gives a default value instead.
+    ($name: expr, $category:expr, $payload:expr) => {
+        if gecko_profiler::can_accept_markers() {
+            gecko_profiler::add_marker($name, $category, Default::default(), $payload);
+        }
+    };
+    // Take advantage of overloading to provide a version that drops the
+    // category as well.
+    ($name: expr, $payload:expr) => {
+        if gecko_profiler::can_accept_markers() {
+            gecko_profiler::add_marker(
+                $name,
+                gecko_profiler::ProfilingCategoryPair::Other(None),
+                Default::default(),
+                $payload,
+            );
+        }
+    };
+}
+
 /// Tracing marker type for Rust code.
 /// This must be kept in sync with the `mozilla::baseprofiler::markers::Tracing`
 /// C++ counterpart.
