@@ -455,8 +455,6 @@ tags = "persisted-search"
 ["browser_searchModeSwitcher_dynamicUSB.js"]
 support-files = ["has-a-link.html"]
 
-["browser_searchModeSwitcher_emptyInput.js"]
-
 ["browser_searchModeSwitcher_keyNavigation.js"]
 
 ["browser_searchModeSwitcher_opensearchInstall.js"]
