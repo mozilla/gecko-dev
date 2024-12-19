@@ -662,33 +662,44 @@ addon-permissions-list > .addon-detail-row {
 .addon-permissions-list {
   list-style-type: none;
   margin: 0;
-  padding-inline-start: 8px;
+  padding-inline-start: var(--space-small);
 }
 
 .addon-permissions-list > li {
   border: none;
-  padding-block: 4px;
-  padding-inline-start: 2rem;
+  padding-block: var(--space-xsmall);
   background-image: none;
-  background-position: 0 center;
-  background-size: 1.6rem 1.6rem;
   background-repeat: no-repeat;
   word-break: break-all;
-}
 
-.addon-permissions-list > li:dir(rtl) {
-  background-position-x: right 0;
-}
+  .addon-permissions-required & {
+    --checkmark-width: var(--size-item-small);
+    --checkmark-height: var(--size-item-small);
+    padding-inline-start: calc(var(--checkmark-width) + var(--space-small));
+    background-position: 0 center;
+    background-size: var(--checkmark-width) var(--checkmark-height);
+    /* using a list-style-image prevents aligning the image */
+    background-image: url("chrome://global/skin/icons/check.svg");
+    -moz-context-properties: fill;
+    fill: var(--green-60);
 
-/* using a list-style-image prevents aligning the image */
-.addon-permissions-list > li.permission-checked {
-  background-image: url("chrome://global/skin/icons/check.svg");
-  -moz-context-properties: fill;
-  fill: var(--green-60);
+    &:dir(rtl) {
+      background-position-x: right 0;
+    }
+  }
+
+  .addon-permissions-optional & {
+    padding-inline-start: 0;
+  }
 }
 
 .permission-header {
   font-size: 1em;
+
+  /* Increase margin between the required and optional permissions lists. */
+  .addon-permissions-optional > & {
+    margin-top: var(--space-xlarge);
+  }
 }
 
 .tab-group {
