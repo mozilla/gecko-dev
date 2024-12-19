@@ -312,7 +312,6 @@ class Skipfails(object):
         )
         for manifest in failures:
             kind = failures[manifest][KIND]
-            path_to_task = {}
             for label in failures[manifest][LL]:
                 for path in failures[manifest][LL][label][PP]:
                     classification = failures[manifest][LL][label][PP][path][CC]
@@ -324,79 +323,61 @@ class Skipfails(object):
                         pixels = []
                         status = FAIL
                         lineno = failures[manifest][LL][label][PP][path].get(LINENO, 0)
-                        for task_id in failures[manifest][LL][label][PP][path][RUNS]:
+                        runs: Dict[str, Dict[str, Any]] = failures[manifest][LL][label][
+                            PP
+                        ][path][RUNS]
+                        # skip_failure only needs to run against one task for each path
+                        first_task_id = next(iter(runs))
+                        for task_id in runs:
                             if kind == Kind.TOML:
-                                break  # just use the first task_id
+                                break
                             elif kind == Kind.LIST:
-                                difference = failures[manifest][LL][label][PP][path][
-                                    RUNS
-                                ][task_id].get(DIFFERENCE, 0)
+                                difference = runs[task_id].get(DIFFERENCE, 0)
                                 if difference > 0:
                                     differences.append(difference)
-                                pixel = failures[manifest][LL][label][PP][path][RUNS][
-                                    task_id
-                                ].get(PIXELS, 0)
+                                pixel = runs[task_id].get(PIXELS, 0)
                                 if pixel > 0:
                                     pixels.append(pixel)
-                                status = failures[manifest][LL][label][PP][path][RUNS][
-                                    task_id
-                                ].get(STATUS, FAIL)
+                                status = runs[task_id].get(STATUS, FAIL)
                             elif kind == Kind.WPT:
                                 filename = os.path.basename(path)
                                 anyjs[filename] = False
-                                if (
-                                    QUERY
-                                    in failures[manifest][LL][label][PP][path][RUNS][
-                                        task_id
-                                    ]
-                                ):
-                                    query = failures[manifest][LL][label][PP][path][
-                                        RUNS
-                                    ][task_id][QUERY]
+                                if QUERY in runs[task_id]:
+                                    query = runs[task_id][QUERY]
                                     anyjs[filename + query] = False
                                 else:
                                     query = None
-                                if (
-                                    ANYJS
-                                    in failures[manifest][LL][label][PP][path][RUNS][
-                                        task_id
-                                    ]
-                                ):
+                                if ANYJS in runs[task_id]:
                                     any_filename = os.path.basename(
-                                        failures[manifest][LL][label][PP][path][RUNS][
-                                            task_id
-                                        ][ANYJS]
+                                        runs[task_id][ANYJS]
                                     )
                                     anyjs[any_filename] = False
                                     if query is not None:
                                         anyjs[any_filename + query] = False
-                        path_to_task[path] = task_id
+
+                        self.skip_failure(
+                            manifest,
+                            kind,
+                            path,
+                            anyjs,
+                            differences,
+                            pixels,
+                            lineno,
+                            status,
+                            label,
+                            classification,
+                            first_task_id,
+                            try_url,
+                            revision,
+                            repo,
+                            meta_bug_id,
+                        )
                         num_failures += 1
                         if max_failures >= 0 and num_failures >= max_failures:
                             self.warning(
                                 f"max_failures={max_failures} threshold reached: stopping."
                             )
                             return True
-
-                if path_to_task == {}:
-                    continue
-                self.skip_failure(
-                    manifest,
-                    kind,
-                    path_to_task,
-                    anyjs,
-                    differences,
-                    pixels,
-                    lineno,
-                    status,
-                    label,
-                    classification,
-                    task_id,
-                    try_url,
-                    revision,
-                    repo,
-                    meta_bug_id,
-                )
         return True
 
     def get_revision(self, url):
@@ -857,21 +838,21 @@ class Skipfails(object):
 
     def skip_failure(
         self,
-        manifest,
-        kind,
-        path,
-        anyjs,
-        differences,
-        pixels,
-        lineno,
-        status,
-        label,
-        classification,
-        task_id,
-        try_url,
-        revision,
-        repo,
-        meta_bug_id=None,
+        manifest: str,
+        kind: str,
+        path: str,
+        anyjs: Optional[Dict[str, bool]],
+        differences: list[int],
+        pixels: list[int],
+        lineno: int,
+        status: str,
+        label: str,
+        classification: str,
+        task_id: Optional[str],
+        try_url: str,
+        revision: str,
+        repo: str,
+        meta_bug_id: Optional[str] = None,
     ):
         """
         Skip a failure (for TOML, WPT and REFTEST manifests)
@@ -881,52 +862,45 @@ class Skipfails(object):
 
         self.vinfo(f"\n\n===== Skip failure in manifest: {manifest} =====")
         self.vinfo(f"    path: {path}")
-        path_to_skip = {}
-        path_to_filename = {}
-        for p in path:
-            task_id = path[p]
-            if task_id is None:
-                skip_if = "true"
-            else:
-                skip_if = self.task_to_skip_if(manifest, task_id, kind, p)
-            if skip_if is None:
-                self.warning(
-                    f"Unable to calculate skip-if condition from manifest={manifest} from failure label={label}"
-                )
-                return
-            path_to_skip[p] = skip_if
+        if task_id is None:
+            skip_if = "true"
+        else:
+            skip_if = self.task_to_skip_if(manifest, task_id, kind, path)
+        if skip_if is None:
+            self.warning(
+                f"Unable to calculate skip-if condition from manifest={manifest} from failure label={label}"
+            )
+            return
+        filename = DEF
+        zero = False
         if kind == Kind.TOML:
-            filename = DEF
+            filename = self.get_filename_in_manifest(manifest.split(":")[-1], path)
         elif kind == Kind.WPT:
-            _path, manifest, _query, _anyjs = self.wpt_paths(path)
+            _path, resolved_manifest, _query, _anyjs = self.wpt_paths(path)
+            if resolved_manifest:
+                manifest = resolved_manifest
             filename = os.path.basename(path)
         elif kind == Kind.LIST:
-            filename = p
+            filename = path
             if status == PASS:
                 self.info(f"Unexpected status: {status}")
             if status == PASS or classification == Classification.DISABLE_INTERMITTENT:
                 zero = True  # refest lower ranges should include zero
-            else:
-                zero = False
+
         bug_reference = ""
         if classification == Classification.DISABLE_MANIFEST:
             comment = "Disabled entire manifest due to crash result"
         elif classification == Classification.DISABLE_TOO_LONG:
             comment = "Disabled entire manifest due to excessive run time"
         else:
-            if kind == Kind.TOML:
-                for x in path:
-                    path_to_filename[x] = self.get_filename_in_manifest(
-                        manifest.split(":")[-1], x
-                    )
             comment = f'Disabled test due to failures in test file: "{filename}"'
             if classification == Classification.SECONDARY:
                 comment += " (secondary)"
                 if kind != Kind.WPT:
                     bug_reference = " (secondary)"
         if kind != Kind.LIST:
-            self.vinfo(f"filename: {path_to_filename}")
-        if kind == Kind.WPT and len(anyjs) > 1:
+            self.vinfo(f"filename: {filename}")
+        if kind == Kind.WPT and anyjs is not None and len(anyjs) > 1:
             comment += "\nAdditional WPT wildcard paths:"
             for p in sorted(anyjs.keys()):
                 if p != filename:
@@ -939,31 +913,25 @@ class Skipfails(object):
         comment += f"\nrevision = {revision}"
         comment += f"\nrepo = {repo}"
         comment += f"\nlabel = {label}"
-        path_to_comment = {}
-        basecomment = comment
-        for p in path:
-            comment = basecomment
-            task_id = path[p]
-            if task_id is not None:
-                comment += f"\ntask_id = {task_id}"
-                if kind != Kind.LIST:
-                    push_id = self.get_push_id(revision, repo)
-                    if push_id is not None:
-                        comment += f"\npush_id = {push_id}"
-                        job_id = self.get_job_id(push_id, task_id)
-                        if job_id is not None:
-                            comment += f"\njob_id = {job_id}"
-                            (
-                                suggestions_url,
-                                line_number,
-                                line,
-                                log_url,
-                            ) = self.get_bug_suggestions(repo, job_id, p, anyjs)
-                            if log_url is not None:
-                                comment += f"\nBug suggestions: {suggestions_url}"
-                                comment += f"\nSpecifically see at line {line_number} in the attached log: {log_url}"
-                                comment += f'\n\n  "{line}"\n'
-            path_to_comment[p] = comment
+        if task_id is not None:
+            comment += f"\ntask_id = {task_id}"
+            if kind != Kind.LIST:
+                push_id = self.get_push_id(revision, repo)
+                if push_id is not None:
+                    comment += f"\npush_id = {push_id}"
+                    job_id = self.get_job_id(push_id, task_id)
+                    if job_id is not None:
+                        comment += f"\njob_id = {job_id}"
+                        (
+                            suggestions_url,
+                            line_number,
+                            line,
+                            log_url,
+                        ) = self.get_bug_suggestions(repo, job_id, path, anyjs)
+                        if log_url is not None:
+                            comment += f"\nBug suggestions: {suggestions_url}"
+                            comment += f"\nSpecifically see at line {line_number} in the attached log: {log_url}"
+                            comment += f'\n\n  "{line}"\n'
         bug_summary = f"MANIFEST {manifest}"
         attachments = {}
         bugid = "TBD"
@@ -976,18 +944,18 @@ class Skipfails(object):
                     f"This bug covers excluded failing tests in the MANIFEST {manifest}"
                 )
                 description += "\n(generated by `mach manifest skip-fails`)"
-                # assume all paths in the same manifest use the same bugzilla product::component
-                product, component = self.get_file_info([p for p in path][0])
+                product, component = self.get_file_info(path)
                 if self.dry_run:
                     self.warning(
                         f'Dry-run NOT creating bug: {product}::{component} "{bug_summary}"'
                     )
                 else:
                     bug = self.create_bug(bug_summary, description, product, component)
-                    bugid = bug.id
-                    self.vinfo(
-                        f'Created Bug {bugid} {product}::{component} : "{bug_summary}"'
-                    )
+                    if bug is not None:
+                        bugid = bug.id
+                        self.vinfo(
+                            f'Created Bug {bugid} {product}::{component} : "{bug_summary}"'
+                        )
             elif len(bugs) == 1:
                 bugid = bugs[0].id
                 product = bugs[0].product
@@ -1002,14 +970,16 @@ class Skipfails(object):
                 comments = bugs[0].getcomments()
                 for i in range(len(comments)):
                     text = comments[i]["text"]
-                    m = self._attach_rx.findall(text)
-                    if len(m) == 1:
-                        a_task_id = m[0][1]
-                        attachments[a_task_id] = m[0][0]
-                        if a_task_id == task_id:
-                            self.vinfo(
-                                f"  Bug {bugid} already has the compressed log attached for this task"
-                            )
+                    attach_rx = self._attach_rx
+                    if attach_rx is not None:
+                        m = attach_rx.findall(text)
+                        if len(m) == 1:
+                            a_task_id = m[0][1]
+                            attachments[a_task_id] = m[0][0]
+                            if a_task_id == task_id:
+                                self.vinfo(
+                                    f"  Bug {bugid} already has the compressed log attached for this task"
+                                )
             else:
                 self.error(f'More than one bug found for summary: "{bug_summary}"')
                 return
@@ -1043,18 +1013,17 @@ class Skipfails(object):
                 return
 
             document = mp.source_documents[manifest_path]
-            for path in path_to_filename:
-                try:
-                    additional_comment = add_skip_if(
-                        document,
-                        path_to_filename[path],
-                        path_to_skip[path],
-                        bug_reference,
-                    )
-                except Exception:
-                    # Note: this fails to find a comment at the desired index
-                    # Note: manifestparser len(skip_if) yields: TypeError: object of type 'bool' has no len()
-                    additional_comment = ""
+            try:
+                additional_comment = add_skip_if(
+                    document,
+                    filename,
+                    skip_if,
+                    bug_reference,
+                )
+            except Exception:
+                # Note: this fails to find a comment at the desired index
+                # Note: manifestparser len(skip_if) yields: TypeError: object of type 'bool' has no len()
+                additional_comment = ""
 
             manifest_str = alphabetize_toml_str(document)
         elif kind == Kind.LIST:
@@ -1653,7 +1622,7 @@ class Skipfails(object):
             except Fault:
                 pass  # Fault expected: Failed to fetch key 9372091 from network storage: The specified key does not exist.
 
-    def get_wpt_path_meta(self, shortpath):
+    def get_wpt_path_meta(self, shortpath: str):
         if shortpath.startswith(WPT0):
             path = shortpath
             meta = shortpath.replace(WPT0, WPT_META0, 1)
@@ -1672,7 +1641,9 @@ class Skipfails(object):
             meta = WPT_META1 + shortpath
         return (path, meta)
 
-    def wpt_paths(self, shortpath):
+    def wpt_paths(
+        self, shortpath: str
+    ) -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
         """
         Analyzes the WPT short path for a test and returns
         (path, manifest, query, anyjs) where
@@ -1681,8 +1652,8 @@ class Skipfails(object):
         query is the test file query paramters (or None)
         anyjs is the html test file as reported by mozci (or None)
         """
-        query = None
-        anyjs = None
+        query: Optional[str] = None
+        anyjs: Optional[str] = None
         i = shortpath.find("?")
         if i > 0:
             query = shortpath[i:]

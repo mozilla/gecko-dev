@@ -1281,12 +1281,10 @@ def test_reftest_skip_failure_win_32(capsys):
     }
     sf.tasks[task_id] = task_details
 
-    path_to_task = {}
-    path_to_task[path] = task_id
     sf.skip_failure(
         manifest,
         kind,
-        path_to_task,
+        path,
         anyjs,
         differences,
         pixels,
@@ -1352,12 +1350,10 @@ def test_reftest_skip_failure_reorder(capsys):
     }
     sf.tasks[task_id] = task_details
 
-    path_to_task = {}
-    path_to_task[path] = task_id
     sf.skip_failure(
         manifest,
         kind,
-        path_to_task,
+        path,
         anyjs,
         differences,
         pixels,
