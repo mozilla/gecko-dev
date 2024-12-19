@@ -2,6 +2,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
     <!-- Content description (not visible, for screen readers etc.): Description for the overflow menu button in the browser toolbar. -->
     <string name="mozac_browser_menu_button">Minù</string>
+    <!-- Content description (not visible, for screen readers etc.): Indicates the overflow menu has a highlight -->
+    <string name="mozac_browser_menu_highlighted">Cchiù mpurtanti</string>
     <!-- Label for extensions submenu section -->
     <string name="mozac_browser_menu_extensions">Stinneri</string>
     <!-- Label for extensions sub menu item for extensions manager -->

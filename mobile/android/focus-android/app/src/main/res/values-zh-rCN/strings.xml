@@ -84,7 +84,6 @@
     <string name="share_dialog_title">分享方式</string>
 
     <string name="notification_erase_title_android_14">需要清除浏览历史吗？</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">点按或清除此通知，即可安全清除浏览历史。</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -350,7 +349,7 @@
     <string name="preference_mozilla_telemetry_summary">详细了解</string>
 
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-    <string name="preference_mozilla_telemetry_summary2">Mozilla 坚持仅收集为大众提供和改进 %1$s 所必需的数据。</string>
+    <string name="preference_mozilla_telemetry_summary2">Mozilla 力图仅收集为大众提供和改进 %1$s 所必需的数据。</string>
 
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">隐私声明</string>
@@ -517,7 +516,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">关闭</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">关闭</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -840,7 +839,7 @@
     <string name="studies_learn_more">详细了解</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">应用程序将退出以应用更改</string>
+    <string name="studies_restart_app" moz:removedIn="135">应用程序将退出以应用更改</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">移除</string>
@@ -934,9 +933,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">切换</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">进入全屏模式</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">立即显示新建打开的链接</string>
@@ -1129,11 +1125,6 @@
     <string name="promote_search_widget_snackbar_message">小组件已添加至主屏幕</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">从屏幕顶部下拉并使用返回手势，以退出全屏</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">从屏幕顶部下拉并按下返回按钮，以退出全屏</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">从屏幕顶部下拉，并使用返回手势退出</string>

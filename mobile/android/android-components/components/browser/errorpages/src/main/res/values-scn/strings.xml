@@ -199,6 +199,17 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_host_title">Nun fu truvatu u nnirizzu</string>
 
+    <!-- In the example, the two URLs in markup do not need to be translated. -->
+    <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[
+      <p>U navigaturi nun pottu attruvari u sirburi pû nnirizzu chi mittisti.</p>
+      <ul>
+        <li>Cuntrolla u nnirizzu pi sbagghi di scrittura a tipu
+          <strong>ww</strong>.example.com mmeci di
+          <strong>www</strong>.example.com.</li>
+        <li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissiuni dati o Wi-Fi dû to dispusitivu.</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Nuḍḍa cunnissiuni â riti</string>
     <!-- The document title and heading of an error page. -->
@@ -215,29 +226,97 @@
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">Nnirizzu nun vàlitu</string>
+    <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
+      <p>U nnirizzu chi mittisti nun è nnôn furmatu ricanusciutu. Pi favuri cuntrolla si cci sunnu sbagghi e torna a prova.</p>
+    ]]></string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title_alternative">U nnirizzu nun è vàlitu</string>
+
+    <!-- This string contains markup. The URL should not be localized. -->
+    <string name="mozac_browser_errorpages_malformed_uri_message_alternative"><![CDATA[
+      <ul>
+        <li>I nnirizzi Internet di sòlitu sunnu scritti a tipu <strong>http://www.example.com/</strong></li>
+        <li>Assicùrati chi stai usannu i sbarri \'n avanti (i.e. <strong>/</strong>).</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_protocol_title">Prutucollu scanusciutu</string>
 
+    <string name="mozac_browser_errorpages_unknown_protocol_message"><![CDATA[
+      <p>U nnirizzu spicìfica un prutucollu (p.s., <q>wxyz://</q>) chi nun è ricanusciutu dû navigaturi, e pi sta scaciuni u navigaturi nun si po cullijari ô situ.</p>
+      <ul>
+        <li>Stai pruvannu a vìdiri sirbizzi murtimidiali o chi nun sunnu di testu? Cuntrolla si u situ àvi bisognu di autri riquisiti.</li>
+        <li>Certi prutucolli ponnu aviri bisognu di autri prugrammi o juncitini prima chi u navigaturi i po ricanùsciri.</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_file_not_found_title">Nun s\'attruvau u pricu</string>
+
+    <string name="mozac_browser_errorpages_file_not_found_message"><![CDATA[
+      <ul>
+        <li>Po èssiri chi l\'elimentu fu canciatu di nomu, livaru o canciatu di locu?</li>
+        <li>Cc\'è nu sbagghiu di majùsculu/minùsculu o ortugràficu nnô nnirizzu?</li>
+        <li>Ài i pirmisi nicissari pi vìdiri l\'elimentu dumannatu?</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_file_access_denied_title">Fu nigatu l\'accessu ô pricu</string>
 
+    <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[
+      <ul>
+        <li>Po èssiri chi fu livatu, muvutu o i pirmisi dî prichi fèrmanu l\'accessu.</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_proxy_connection_refused_title">Fu rifiutata a cunnissiuni dû sirburi proxy</string>
+
+    <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[
+      <p>Cunfijurasti u navigaturi p\'usari un sirburi proxy, chi pirò rifiutau a cunnissiuni.</p>
+      <ul>
+        <li>A cunfijurazzioni è bona? Cuntrolla i mpustazzioni e torna a prova.</li>
+        <li>U sirburi proxy pirmetti cunnissiuni di sta riti?</li>
+        <li>Ài ancora prubblemi? Cuntatta l\'amministraturi dâ to riti o u furnituri dû sirbizzu Internet pi ricìviri assistenza.</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_proxy_host_title">Nun potti truvari u sirburi proxy</string>
 
+    <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[
+      <p>Cunfijurasti u navigaturi p\'usari un sirburi proxy, chi pirò non si potti attruvari.</p>
+      <ul>
+        <li>A cunfijurazzioni è bona? Cuntrolla i mpustazzioni e torna a prova.</li>
+        <li>U dispusitivu è cullijatu a na riti attiva?</li>
+        <li>Ài ancora prubblemi? Cuntatta l\'amministraturi dâ to riti o u furnituri dû sirbizzu Internet pi ricìviri assistenza.</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_browsing_malware_uri_title">Prubblema c\'un situ malèvulu</string>
 
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_browsing_malware_uri_message"><![CDATA[
+      <p>U situ %1$s fu signalijatu comu na funti d\'attacchi e fu bluccatu sicutannu i to prifirenzi di sicurizza.</p>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">Prubblema c\'un situ nun vulutu</string>
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[
+      <p>U situ %1$s fu signalijatu chi cunteni prugrammi piriculusi e fu bluccatu sicutannu i to prifirenzi di sicurizza.</p>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_harmful_uri_title">Prubblema c\'un situ piriculusu</string>
+
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_harmful_uri_message"><![CDATA[
+      <p>U situ %1$s fu signalijatu comu piriculusu e fu bluccatu sicutannu i to prifirenzi di sicurizza.</p>
+    ]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_phishing_uri_title">Prubblemui c\'un situ falloppiu</string>
@@ -248,6 +327,8 @@
 
     <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
     <string name="mozac_browser_errorpages_httpsonly_title">Nun è dispunìbbili na virsiuni sicura dû situ</string>
+    <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will be replaced with the URL of the website. -->
+    <string name="mozac_browser_errorpages_httpsonly_message"><![CDATA[Abbilitasti a mudalità sulu HTTPS p\'aviri cchiù sicurizza, ma nun cc\'è na virsiuni dispunìbbili \'n mudalità HTTPS pi <em>%1$s</em>.]]></string>
     <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
     <string name="mozac_browser_errorpages_httpsonly_button">Cuntinua ô situ HTTP</string>
 </resources>

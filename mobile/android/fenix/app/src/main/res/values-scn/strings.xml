@@ -109,6 +109,9 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Tocca e teni ammaccati i filecci pi sautari ntra i pàggini nnâ crunuluggìa di sta scheda.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Tira la barra dî stigghi pi canciari schedi</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Tira a dritta o a manca pi canciari. Tira a manu manca nnâ to ùrtima scheda pi gràpirinni una nova.</string>
 
@@ -350,7 +353,9 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">Attiva a mudalità di littura</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">Sdisattiva a mudalità di littura</string>
+    <string name="browser_menu_turn_off_reader_view">Sdisattiva a mudalità di littura</string>dsa
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Movi a na scheda nun privata</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traduci a pàggina…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -514,6 +519,8 @@
     <string name="onboarding_add_on_start_browsing_button_2">Accumincia a navigari</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Ferma i pubblicità di manera efficaci.</string>
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
 
@@ -535,12 +542,16 @@
     <string name="onboarding_installed_add_on_icon_content_description">Icona dâ juncitina nzitata</string>
     <!-- Content description for the an installing add-on icon. -->
     <string name="onboarding_installing_add_on_icon_content_description">Icona dâ juncitina \'n cursu di nzitamentu</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">Buttuni Junci juncitina</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Vutatu cu %1$s di 5 stiḍḍi</string>
     <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a \'mmigghiurari a Firefox</string>
     <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Manna \'n autumàticu i signalijazzioni di scasciu</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">I papelli dî scasci ni cunzèntinu di diagnusticari e abbirsari i prubblemi dû navigaturi. I papelli ponnu cuntèniri dati pirsunali o sinzìbbili.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Cchiù nfurmazzioni supra ê signalijazzioni di scasciu</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
@@ -574,14 +585,38 @@
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Scarta a pusizzioni dâ barra dî stigghi</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Teni i risciduti a purtata di manu.</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">Sarba e cuntinua</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">Sarba e cuntinua</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Sauta</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Susu</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Jusu</string>
+
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">Mmàggini dâ tistata usata nnâ schirmata di scartata dî barri chi mustra na mmàggini di na barra.</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description">Mmàggini dâ barra dî stigghi %1$s</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Scarta un tema</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Vidi a riti sutta a megghiu luci.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Sarba e accumincia a navigari</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">Sauta</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Scuru</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Chiaru</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Autumàticu (di sistema)</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Mmàggini dâ tistata usata nnâ schirmata di scartata dî temi chi mustra na mmàggini dî stigghi di l\'artisti.</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Mmàggini dû tema %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -885,6 +920,10 @@
     <!-- Extension process crash dialog to user -->
     <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
     <string name="extension_process_crash_dialog_title">I stinneri sunnu sdisabbilitati di manera timpurania</string>
+    <!-- This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
+    The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
+    The first parameter is the application name. -->
+    <string name="extension_process_crash_dialog_message">Unu o cchiù assai stinneri accabbaru di funziunari, facennu u to sistema cchiù picca stàbbili. %1$s pruvau a riabbialli senza succcessu.\n\nI stinneri nun vennu cchiù riabbiati nna sta sissiuni.\n\nLivari o sdisabbilitari i stinneri putissi abbirsari stu prubblema.</string>
     <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
     <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Prova a \'bbiari arrè i stinneri</string>
     <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1057,6 +1096,9 @@
     %d is a placeholder for the number of tabs that will be opened -->
     <string name="open_all_warning_title">Gràpiri %d schedi?</string>
 
+    <!-- Message to warn users that a large number of tabs will be opened
+    %s will be replaced by app name. -->
+    <string name="open_all_warning_message">Gràpiri tutti sti schedi po fari %s cchiù lentu mentri chi i pàggini càrricanu. Vo\' cuntinuari?</string>
     <!-- Dialog button text for confirming open all tabs -->
     <string name="open_all_warning_confirm">Schedi graputi</string>
     <!-- Dialog button text for canceling open all tabs -->
@@ -1144,13 +1186,13 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Cchiù nfurmazzioni</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">L\'applicazzioni s\'hâ chiùjiri pi riggistrari i canci</string>
+    <string name="studies_restart_app" moz:removedIn="135">L\'applicazzioni s\'hâ chiùjiri pi riggistrari i canci</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">OK</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">OK</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Sfai</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Sfai</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Staju chiujennu l\'applicazzioni pi riggistrari i canci…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Staju chiujennu l\'applicazzioni pi riggistrari i canci…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -1915,8 +1957,15 @@
     <string name="etp_suspected_fingerprinters_description">Attiva a prutizzioni contra â ginirazzioni di griffi nfurmàtichi pi chiḍḍi chi sunnu suspetti.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">Giniratura di griffi nfurmàtichi canusciuti</string>
+    <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
+         as we use it on the UI to indicate which trackers have been partially unblocked.  -->
+    <string name="preference_etp_smartblock_description">Certi trazzatura marcati appressu foru sbluccati di manera parziali nna sta pàggina picchì ntiraggisti cu iḍḍi *.</string>
     <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
     <string name="preference_etp_smartblock_learn_more">Cchiù nfurmazzioni</string>
+
+    <!-- Content description (not visible, for screen readers etc.):
+    Enhanced tracking protection exception preference icon for ETP settings. -->
+    <string name="preference_etp_exceptions_icon_description">Cona dâ prifirenza pi l\'eccizzioni dâ prutizzioni avanzata dî trazzamenti</string>
 
     <!-- About page link text to open support link -->
     <string name="about_support">Supportu</string>
@@ -1930,6 +1979,11 @@
     <string name="about_licensing_information">Nfurmazzioni ncapu â licenza</string>
     <!-- About page link text to open a screen with libraries that are used -->
     <string name="about_other_open_source_libraries">Libbrarìi chi usamu</string>
+
+    <!-- Toast shown to the user when they are activating the secret dev menu
+        The first parameter is number of long clicks left to enable the menu -->
+    <string name="about_debug_menu_toast_progress">Minù di debug: ammacca ancora autri %1$d voti p\'abbilitallu</string>
+    <string name="about_debug_menu_toast_done">Minù di debug abbilitatu</string>
 
     <!-- Browser long press popup menu -->
     <!-- Copy the current url -->
@@ -2035,6 +2089,8 @@
     <string name="logins_biometric_prompt_message_pin">Sblocca u to dispusitivu</string>
     <!-- Title for Accessibility Force Enable Zoom Preference -->
     <string name="preference_accessibility_force_enable_zoom">Zoom \'n tutti i siti</string>
+    <!-- Summary for Accessibility Force Enable Zoom Preference -->
+    <string name="preference_accessibility_force_enable_zoom_summary">Abbìlita pi pirmèttiri u zoom cû pizzicuni, macari pî siti chi nun u pirmèttinu.</string>
     <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
     <string name="saved_logins_sort_strategy_alphabetically">Nomu (A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
@@ -2256,6 +2312,12 @@
     <string name="dialog_delete_negative">Sfai</string>
     <!--  The saved password options menu description. -->
     <string name="login_options_menu_2">Prifirenzi dâ chiavi</string>
+    <!--  The editable text field for a website address. -->
+    <string name="saved_login_hostname_description_3">U campu di testu canciàbbili pû nnirizzu dû situ.</string>
+    <!--  The editable text field for a username. -->
+    <string name="saved_login_username_description_3">U campu di testu canciàbbili pû nomu utenti.</string>
+    <!--  The editable text field for a login's password. -->
+    <string name="saved_login_password_description_2">U campu di testu canciàbbili pâ chiavi.</string>
     <!--  The button description to save changes to an edited password. -->
     <string name="save_changes_to_login_2">Sarba i canci.</string>
     <!--  The page title for editing a saved password. -->
@@ -2511,6 +2573,12 @@
     <string name="review_quality_check_no_analysis_link">Cuntrolla a qualità dî ricinzioni</string>
     <!-- Headline for review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_title">Prova a nostra guida ê ricinzioni dî prudutti</string>
+    <!-- Description for review quality check contextual onboarding card. The first and last two parameters are for retailer names (e.g. Amazon, Walmart). The second parameter is for the name of the application (e.g. Firefox). -->
+    <string name="review_quality_check_contextual_onboarding_description">Virìfica quantu sunnu affidàbbili i ricinzioni ncapu a %1$s prima d\'accattari. U Virificaturi dî ricinzioni, na funzioni spirimintali di %2$s, è ntigratu nnô navigaturi. Funziona macari nne %3$s e %4$s.</string>
+    <!-- Description for review quality check contextual onboarding card. The first parameters is for retailer name (e.g. Amazon). The second parameter is for the name of the application (e.g. Firefox). -->
+    <string name="review_quality_check_contextual_onboarding_description_one_vendor">Virìfica quantu sunnu affidàbbili i ricinzioni ncapu a %1$s prima d\'accattari. U Virificaturi dî ricinzioni, na funzioni spirimintali di %2$s, è ntigratu nnô navigaturi.</string>
+    <!-- Paragraph presenting review quality check feature. First parameter is the Fakespot product name. Second parameter is for clickable text defined in review_quality_check_contextual_onboarding_learn_more_link. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_contextual_onboarding_learn_more">Grazzi a %1$s di Mozilla, t\'ajùtamu a scanzàriti dî ricinzioni fausi. U nostru mudeḍḍu di NA s\'ammigghiura sempri pi prutiggìriti mentri chi accatti \'n riti. %2$s</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Cchiù nfurmazzioni</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
@@ -2540,6 +2608,8 @@
     <string name="review_quality_check_highlights_type_price">Prezzu</string>
     <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
     <string name="review_quality_check_highlights_type_shipping">Spidizzioni</string>
+    <!-- Text for highlights card packaging and appearance category header. Reviews shown under this header should refer the product's packaging and appearance. -->
+    <string name="review_quality_check_highlights_type_packaging_appearance">Ncartamentu e aspettu</string>
     <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
     <string name="review_quality_check_highlights_type_competitiveness">Cumpititività</string>
     <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting"   -->
@@ -2637,6 +2707,10 @@
     <string name="translation_option_bottom_sheet_never_translate_in_language">Nun tradùciri mai sta lingua: %1$s</string>
     <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
     <string name="translation_option_bottom_sheet_never_translate_site">Nun tradùciri mai stu situ</string>
+    <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
+    <string name="translation_option_bottom_sheet_switch_never_translate_site_description">Supranija tutti l\'autri mpustazzioni</string>
+    <!-- Toggle switch description that will appear under the "Never translate" and "Always translate" toggle switch settings to provide more information on how these  settings interacts with other settings. -->
+    <string name="translation_option_bottom_sheet_switch_description">Supranija uffruti di traduzzioni</string>
     <!-- Button text for the button that will take the user to the translation settings dialog. -->
     <string name="translation_option_bottom_sheet_translation_settings">Mpustazzioni di traduzzioni</string>
     <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
@@ -2800,8 +2874,14 @@
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">I prutizzioni sunnu sdisabbilitati. Ti suggiremu d\'abbilitalli arrè.</string>
 
+    <!-- Debug drawer -->
+    <!-- The user-facing title of the Debug Drawer feature. -->
+    <string name="debug_drawer_title">Stigghi di Debug</string>
     <!-- Content description (not visible, for screen readers etc.): Navigate back within the debug drawer. -->
     <string name="debug_drawer_back_button_content_description">Torna nn\'arrè</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Open debug drawer. -->
+    <string name="debug_drawer_fab_content_description">Grapi casciuni di debug</string>
 
     <!-- Debug drawer tabs tools -->
     <!-- The title of the Tab Tools feature in the Debug Drawer. -->
@@ -2889,6 +2969,8 @@
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Mercu di Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Cona funzioni ntirbista</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Chiuji ntirbista</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
@@ -2908,11 +2990,18 @@
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">Nnirizzi</string>
 
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Lingui d\'abbilitari nnô debug</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Stigghi CFR</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Riprìstina CFR</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Stigghi di debug di Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->

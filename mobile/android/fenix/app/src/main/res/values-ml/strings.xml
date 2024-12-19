@@ -656,10 +656,6 @@
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">%1$s-നു് കുക്കീസു് പൊന്തുവരൽ തടയൽയന്ത്രം അണക്കണോ?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
     <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s-ൾക്കു് കുക്കീ അഭ്യാർത്ഥങ്ങളെ തന്നെതാനെ നിരസിക്കാൻ ഒക്കത്തില്ല. ഭാവിയിൽ ഈ സൈറ്റിനെ പിന്തുണയ്ക്കാൻ താങ്ങൾക്കൊരു അഭ്യാർത്ഥനം അയയ്ക്കാം.</string>
-    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
-    <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">%1$s-നു് അണച്ചാൽ %1$s കുക്കീകളും മായച്ചിട്ടു് വെബ്സ്ഥാനം വീണ്ടും ലഭ്യമാക്കും. ഇതിന്റെ കാരണം താങ്ങളെ ചിലപ്പോൾ സൈറ്റുകൾ നിന്നു് പുറത്തു് കടപ്പിക്കും അല്ലെങ്കിൽ  ഷോപ്പിംഗു് കാർട്ടുകൾ ഒഴിക്കപ്പെടാം.</string>
-    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
-    <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">താങ്ങൾ %1$s-നെ തുടങ്ങിയാൽ ഈ സൈറ്റിലെ എല്ലാ കുക്കി പൊന്തുവരലുകൾ തന്നെതാനെ നിരസിക്കാൻ %1$s ശ്രമിക്കും.</string>
     <!--Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name -->
     <string name="cookie_banner_cfr_title">%1$s താങ്ങൾക്കായി കുക്കികൾ നിരസിച്ചു</string>
 
