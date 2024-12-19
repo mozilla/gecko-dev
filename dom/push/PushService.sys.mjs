@@ -20,10 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
-  let { ConsoleAPI } = ChromeUtils.importESModule(
-    "resource://gre/modules/Console.sys.mjs"
-  );
-  return new ConsoleAPI({
+  return console.createInstance({
     maxLogLevelPref: "dom.push.loglevel",
     prefix: "PushService",
   });
@@ -426,7 +423,7 @@ export var PushService = {
           )
         );
       }
-      case CHANGING_SERVICE_EVENT:
+      case CHANGING_SERVICE_EVENT: {
         let [service, uri] = this._findService(serverURI);
         if (service) {
           if (this._state == PUSH_SERVICE_INIT) {
@@ -456,7 +453,7 @@ export var PushService = {
         // The new serverUri is empty or misconfigured - stop service.
         this._setState(PUSH_SERVICE_INIT);
         return this._stopService(STOPPING_SERVICE_EVENT);
-
+      }
       default:
         lazy.console.error("Unexpected event in _changeServerURL", event);
         return Promise.reject(new Error(`Unexpected event ${event}`));
@@ -712,16 +709,19 @@ export var PushService = {
     // is only going to happen on db upgrade from version 4 to higher.
     return keygen.then(
       ([pubKey, privKey]) => {
-        return this.updateRecordAndNotifyApp(record.keyID, record => {
-          if (!record.p256dhPublicKey || !record.p256dhPrivateKey) {
-            record.p256dhPublicKey = pubKey;
-            record.p256dhPrivateKey = privKey;
+        return this.updateRecordAndNotifyApp(record.keyID, recordToUpdate => {
+          if (
+            !recordToUpdate.p256dhPublicKey ||
+            !recordToUpdate.p256dhPrivateKey
+          ) {
+            recordToUpdate.p256dhPublicKey = pubKey;
+            recordToUpdate.p256dhPrivateKey = privKey;
           }
-          if (!record.hasAuthenticationSecret()) {
-            record.authenticationSecret =
+          if (!recordToUpdate.hasAuthenticationSecret()) {
+            recordToUpdate.authenticationSecret =
               lazy.PushCrypto.generateAuthenticationSecret();
           }
-          return record;
+          return recordToUpdate;
         });
       },
       error => {
@@ -820,8 +820,8 @@ export var PushService = {
           .then(lastVisit => {
             // Update the record, resetting the quota if the user has visited the
             // site since the last push.
-            return this._db.update(keyID, record => {
-              let newRecord = updateFunc(record);
+            return this._db.update(keyID, recordToUpdate => {
+              let newRecord = updateFunc(recordToUpdate);
               if (!newRecord) {
                 return null;
               }

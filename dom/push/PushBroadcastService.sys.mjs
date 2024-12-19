@@ -13,10 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const DUMMY_VERSION_STRING = "____NOP____";
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
-  let { ConsoleAPI } = ChromeUtils.importESModule(
-    "resource://gre/modules/Console.sys.mjs"
-  );
-  return new ConsoleAPI({
+  return console.createInstance({
     maxLogLevelPref: "dom.push.loglevel",
     prefix: "BroadcastService",
   });
