@@ -12,8 +12,11 @@ use qlog::events::{
     EventData, RawInfo,
 };
 
+/// Uses [`NeqoQlog::add_event_data_now`] instead of
+/// [`NeqoQlog::add_event_data_with_instant`], given that `now` is not available
+/// on call-site. See docs on [`NeqoQlog::add_event_data_now`] for details.
 pub fn qpack_read_insert_count_increment_instruction(qlog: &NeqoQlog, increment: u64, data: &[u8]) {
-    qlog.add_event_data(|| {
+    qlog.add_event_data_now(|| {
         let raw = RawInfo {
             length: Some(8),
             payload_length: None,

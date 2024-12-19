@@ -519,7 +519,7 @@ impl TransportParameters {
             let ok = self
                 .params
                 .get(k)
-                .map_or(false, |v_self| match (v_self, v_rem) {
+                .is_some_and(|v_self| match (v_self, v_rem) {
                     (TransportParameter::Integer(i_self), TransportParameter::Integer(i_rem)) => {
                         if *k == MIN_ACK_DELAY {
                             // MIN_ACK_DELAY is backwards:

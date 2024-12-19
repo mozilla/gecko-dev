@@ -15,13 +15,13 @@ use neqo_transport::{
 };
 use regex::Regex;
 
-use super::{qns_read_response, Args, ResponseData};
-use crate::STREAM_IO_BUFFER_SIZE;
+use super::{qns_read_response, Args};
+use crate::{send_data::SendData, STREAM_IO_BUFFER_SIZE};
 
 #[derive(Default)]
 struct HttpStreamState {
     writable: bool,
-    data_to_send: Option<ResponseData>,
+    data_to_send: Option<SendData>,
 }
 
 pub struct HttpServer {
@@ -127,7 +127,7 @@ impl HttpServer {
             return;
         };
 
-        let resp: ResponseData = {
+        let resp: SendData = {
             let path = path.as_str();
             qdebug!("Path = '{path}'");
             if self.is_qns_test {
@@ -140,7 +140,7 @@ impl HttpServer {
                 }
             } else {
                 let count = path.parse().unwrap();
-                ResponseData::zeroes(count)
+                SendData::zeroes(count)
             }
         };
 
@@ -173,8 +173,8 @@ impl HttpServer {
 
         stream_state.writable = true;
         if let Some(resp) = &mut stream_state.data_to_send {
-            resp.send_h09(stream_id, conn);
-            if resp.done() {
+            let done = resp.send(|chunk| conn.borrow_mut().stream_send(stream_id, chunk).unwrap());
+            if done {
                 conn.borrow_mut().stream_close_send(stream_id).unwrap();
                 self.write_state.remove(&stream_id);
             } else {
@@ -185,7 +185,7 @@ impl HttpServer {
 }
 
 impl super::HttpServer for HttpServer {
-    fn process(&mut self, dgram: Option<Datagram>, now: Instant) -> Output {
+    fn process(&mut self, dgram: Option<Datagram<&[u8]>>, now: Instant) -> Output {
         self.server.process(dgram, now)
     }
 

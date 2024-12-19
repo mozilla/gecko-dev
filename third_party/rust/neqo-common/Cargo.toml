@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-common"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = "build.rs"
 autolib = false
@@ -68,6 +68,11 @@ default-features = false
 
 [dependencies.qlog]
 version = "0.13"
+default-features = false
+
+[dev-dependencies.regex]
+version = "1.9"
+features = ["unicode-perl"]
 default-features = false
 
 [dev-dependencies.test-fixture]

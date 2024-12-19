@@ -5,14 +5,14 @@ use clap_verbosity_flag::Verbosity;
 #[derive(Debug, Parser)]
 struct Cli {
     #[command(flatten)]
-    verbose: Verbosity,
+    verbosity: Verbosity,
 }
 
 fn main() {
     let cli = Cli::parse();
 
     env_logger::Builder::new()
-        .filter_level(cli.verbose.log_level_filter())
+        .filter_level(cli.verbosity.into())
         .init();
 
     log::error!("Engines exploded");

@@ -8,6 +8,7 @@ use std::{
     cell::RefCell,
     cmp::min,
     mem,
+    net::SocketAddr,
     rc::Rc,
     time::{Duration, Instant},
 };
@@ -29,8 +30,8 @@ use crate::{
     recovery::ACK_ONLY_SIZE_LIMIT,
     stats::{FrameStats, Stats, MAX_PTO_COUNTS},
     tparams::{DISABLE_MIGRATION, GREASE_QUIC_BIT},
-    ConnectionIdDecoder, ConnectionIdGenerator, ConnectionParameters, Error, StreamId, StreamType,
-    Version, MIN_INITIAL_PACKET_SIZE,
+    ConnectionIdDecoder, ConnectionIdGenerator, ConnectionParameters, EmptyConnectionIdGenerator,
+    Error, StreamId, StreamType, Version, MIN_INITIAL_PACKET_SIZE,
 };
 
 // All the tests.
@@ -118,6 +119,19 @@ pub fn new_client(params: ConnectionParameters) -> Connection {
 
 pub fn default_client() -> Connection {
     new_client(ConnectionParameters::default())
+}
+
+fn zero_len_cid_client(local_addr: SocketAddr, remote_addr: SocketAddr) -> Connection {
+    Connection::new_client(
+        test_fixture::DEFAULT_SERVER_NAME,
+        test_fixture::DEFAULT_ALPN,
+        Rc::new(RefCell::new(EmptyConnectionIdGenerator::default())),
+        local_addr,
+        remote_addr,
+        ConnectionParameters::default(),
+        now(),
+    )
+    .unwrap()
 }
 
 pub fn new_server(params: ConnectionParameters) -> Connection {

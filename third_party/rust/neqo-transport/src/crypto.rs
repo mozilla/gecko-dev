@@ -1411,7 +1411,7 @@ impl CryptoStreams {
     }
 
     pub fn data_ready(&self, space: PacketNumberSpace) -> bool {
-        self.get(space).map_or(false, |cs| cs.rx.data_ready())
+        self.get(space).is_some_and(|cs| cs.rx.data_ready())
     }
 
     pub fn read_to_end(&mut self, space: PacketNumberSpace, buf: &mut Vec<u8>) -> Res<usize> {

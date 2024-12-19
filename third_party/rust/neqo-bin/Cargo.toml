@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-bin"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = false
 autolib = false
@@ -73,7 +73,8 @@ features = [
 default-features = false
 
 [dependencies.clap-verbosity-flag]
-version = "2.2"
+version = "3.0"
+features = ["log"]
 default-features = false
 
 [dependencies.futures]
@@ -110,7 +111,7 @@ version = "0.13"
 default-features = false
 
 [dependencies.quinn-udp]
-version = "0.5.4"
+version = "0.5.6"
 features = ["direct-log"]
 default-features = false
 
@@ -131,7 +132,8 @@ features = [
 default-features = false
 
 [dependencies.url]
-version = "2.5"
+version = "2.5.3"
+features = ["std"]
 default-features = false
 
 [dev-dependencies.criterion]
@@ -145,7 +147,7 @@ features = ["sync"]
 default-features = false
 
 [features]
-bench = []
+bench = ["neqo-transport/bench"]
 
 [lints.clippy]
 multiple_crate_versions = "allow"

@@ -88,7 +88,7 @@ impl Pmtud {
 
     /// Checks whether the PMTUD raise timer should be fired, and does so if needed.
     pub fn maybe_fire_raise_timer(&mut self, now: Instant) {
-        if self.probe_state == Probe::NotNeeded && self.raise_timer.map_or(false, |t| now >= t) {
+        if self.probe_state == Probe::NotNeeded && self.raise_timer.is_some_and(|t| now >= t) {
             qdebug!("PMTUD raise timer fired");
             self.raise_timer = None;
             self.start();

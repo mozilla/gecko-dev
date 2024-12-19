@@ -764,6 +764,7 @@ impl<'a> PublicPacket<'a> {
         self.version.unwrap_or(0)
     }
 
+    #[allow(clippy::len_without_is_empty)]
     #[must_use]
     pub const fn len(&self) -> usize {
         self.data.len()

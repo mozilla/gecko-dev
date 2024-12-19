@@ -20,13 +20,13 @@ use std::{
 use neqo_common::{event::Provider, qdebug, qinfo, qwarn, Datagram};
 use neqo_crypto::{AuthenticationStatus, ResumptionToken};
 use neqo_transport::{
-    CloseReason, Connection, ConnectionEvent, EmptyConnectionIdGenerator, Error, Output, State,
-    StreamId, StreamType,
+    CloseReason, Connection, ConnectionEvent, ConnectionIdGenerator, EmptyConnectionIdGenerator,
+    Error, Output, RandomConnectionIdGenerator, State, StreamId, StreamType,
 };
 use url::Url;
 
 use super::{get_output_file, qlog_new, Args, CloseState, Res};
-use crate::{client::local_addr_for, STREAM_IO_BUFFER_SIZE};
+use crate::STREAM_IO_BUFFER_SIZE;
 
 pub struct Handler<'a> {
     streams: HashMap<StreamId, Option<BufWriter<File>>>,
@@ -37,7 +37,6 @@ pub struct Handler<'a> {
     token: Option<ResumptionToken>,
     needs_key_update: bool,
     read_buffer: Vec<u8>,
-    migration: Option<&'a (u16, SocketAddr)>,
 }
 
 impl Handler<'_> {
@@ -84,26 +83,6 @@ impl super::Handler for Handler<'_> {
                     qdebug!("stream {stream_type:?} creatable");
                     if stream_type == StreamType::BiDi {
                         self.download_urls(client);
-                    }
-                }
-                ConnectionEvent::StateChange(State::Confirmed) => {
-                    if let Some((local_port, migration_addr)) = self.migration.take() {
-                        let local_addr = local_addr_for(migration_addr, *local_port);
-                        qdebug!("Migrating path to {:?} -> {:?}", local_addr, migration_addr);
-                        client
-                            .migrate(
-                                Some(local_addr),
-                                Some(*migration_addr),
-                                false,
-                                Instant::now(),
-                            )
-                            .map(|()| {
-                                qinfo!(
-                                    "Connection migrated to {:?} -> {:?}",
-                                    local_addr,
-                                    migration_addr
-                                );
-                            })?;
                     }
                 }
                 ConnectionEvent::StateChange(
@@ -154,11 +133,17 @@ pub fn create_client(
         "hq-29" | "hq-30" | "hq-31" | "hq-32" => args.shared.alpn.as_str(),
         _ => "hq-interop",
     };
-
+    let cid_generator: Rc<RefCell<dyn ConnectionIdGenerator>> = if args.cid_len == 0 {
+        Rc::new(RefCell::new(EmptyConnectionIdGenerator::default()))
+    } else {
+        Rc::new(RefCell::new(RandomConnectionIdGenerator::new(
+            args.cid_len.into(),
+        )))
+    };
     let mut client = Connection::new_client(
         hostname,
         &[alpn],
-        Rc::new(RefCell::new(EmptyConnectionIdGenerator::default())),
+        cid_generator,
         local_addr,
         remote_addr,
         args.shared.quic_parameters.get(alpn),
@@ -233,11 +218,7 @@ impl super::Client for Connection {
 }
 
 impl<'b> Handler<'b> {
-    pub fn new(
-        url_queue: VecDeque<Url>,
-        args: &'b Args,
-        migration: Option<&'b (u16, SocketAddr)>,
-    ) -> Self {
+    pub fn new(url_queue: VecDeque<Url>, args: &'b Args) -> Self {
         Self {
             streams: HashMap::new(),
             url_queue,
@@ -247,7 +228,6 @@ impl<'b> Handler<'b> {
             token: None,
             needs_key_update: args.key_update,
             read_buffer: vec![0; STREAM_IO_BUFFER_SIZE],
-            migration,
         }
     }
 

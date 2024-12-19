@@ -732,9 +732,7 @@ impl Http3Connection {
                 let session_exists = self
                     .send_streams
                     .get(&StreamId::from(session_id))
-                    .map_or(false, |s| {
-                        s.stream_type() == Http3StreamType::ExtendedConnect
-                    });
+                    .is_some_and(|s| s.stream_type() == Http3StreamType::ExtendedConnect);
                 if !session_exists {
                     conn.stream_stop_sending(stream_id, Error::HttpStreamCreation.code())?;
                     return Ok(ReceiveOutput::NoOutput);
@@ -1535,7 +1533,7 @@ impl Http3Connection {
     }
 
     fn recv_stream_is_critical(&self, stream_id: StreamId) -> bool {
-        self.recv_streams.get(&stream_id).map_or(false, |r| {
+        self.recv_streams.get(&stream_id).is_some_and(|r| {
             matches!(
                 r.stream_type(),
                 Http3StreamType::Control | Http3StreamType::Encoder | Http3StreamType::Decoder

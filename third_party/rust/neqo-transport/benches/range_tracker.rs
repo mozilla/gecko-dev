@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use criterion::{criterion_group, criterion_main, Criterion}; // black_box
+use criterion::{criterion_group, criterion_main, Criterion};
 use neqo_transport::send_stream::RangeTracker;
 
 const CHUNK: u64 = 1000;

@@ -976,7 +976,7 @@ impl SendStream {
             }
 
             let (length, fill) = Self::length_and_fill(data.len(), builder.remaining() - overhead);
-            let fin = final_size.map_or(false, |fs| fs == offset + u64::try_from(length).unwrap());
+            let fin = final_size.is_some_and(|fs| fs == offset + u64::try_from(length).unwrap());
             if length == 0 && !fin {
                 qtrace!([self], "write_frame no data, no fin");
                 return;

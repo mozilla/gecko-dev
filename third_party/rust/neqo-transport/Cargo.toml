@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-transport"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = "build.rs"
 autolib = false
@@ -77,6 +77,12 @@ harness = false
 required-features = ["bench"]
 
 [[bench]]
+name = "sent_packets"
+path = "benches/sent_packets.rs"
+harness = false
+required-features = ["bench"]
+
+[[bench]]
 name = "transfer"
 path = "benches/transfer.rs"
 harness = false
@@ -105,7 +111,7 @@ version = "0.13"
 default-features = false
 
 [dependencies.smallvec]
-version = "1.11"
+version = "1.13"
 default-features = false
 
 [dependencies.static_assertions]
@@ -120,7 +126,7 @@ default-features = false
 path = "../test-fixture"
 
 [features]
-bench = []
+bench = ["test-fixture/bench"]
 build-fuzzing-corpus = [
     "neqo-common/build-fuzzing-corpus",
     "neqo-crypto/disable-encryption",

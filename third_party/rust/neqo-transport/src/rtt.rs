@@ -154,6 +154,7 @@ impl RttEstimate {
                 QlogMetric::SmoothedRtt(self.smoothed_rtt),
                 QlogMetric::RttVariance(self.rttvar),
             ],
+            now,
         );
     }
 

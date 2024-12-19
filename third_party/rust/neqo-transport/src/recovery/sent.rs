@@ -37,6 +37,7 @@ pub struct SentPacket {
 }
 
 impl SentPacket {
+    #[must_use]
     pub const fn new(
         pt: PacketType,
         pn: PacketNumber,
@@ -61,41 +62,50 @@ impl SentPacket {
     }
 
     /// The type of this packet.
+    #[must_use]
     pub const fn packet_type(&self) -> PacketType {
         self.pt
     }
 
     /// The number of the packet.
+    #[must_use]
     pub const fn pn(&self) -> PacketNumber {
         self.pn
     }
 
     /// The ECN mark of the packet.
+    #[must_use]
     pub const fn ecn_mark(&self) -> IpTosEcn {
         self.ecn_mark
     }
 
     /// The time that this packet was sent.
+    #[must_use]
     pub const fn time_sent(&self) -> Instant {
         self.time_sent
     }
 
     /// Returns `true` if the packet will elicit an ACK.
+    #[must_use]
     pub const fn ack_eliciting(&self) -> bool {
         self.ack_eliciting
     }
 
     /// Returns `true` if the packet was sent on the primary path.
+    #[must_use]
     pub const fn on_primary_path(&self) -> bool {
         self.primary_path
     }
 
     /// The length of the packet that was sent.
+    #[allow(clippy::len_without_is_empty)]
+    #[must_use]
     pub const fn len(&self) -> usize {
         self.len
     }
 
     /// Access the recovery tokens that this holds.
+    #[must_use]
     pub fn tokens(&self) -> &[RecoveryToken] {
         &self.tokens
     }
@@ -113,6 +123,7 @@ impl SentPacket {
     }
 
     /// Whether the packet has been declared lost.
+    #[must_use]
     pub const fn lost(&self) -> bool {
         self.time_declared_lost.is_some()
     }
@@ -123,11 +134,13 @@ impl SentPacket {
     /// and has not previously been declared lost.
     /// Note that this should count packets that contain only ACK and PADDING,
     /// but we don't send PADDING, so we don't track that.
+    #[must_use]
     pub const fn cc_outstanding(&self) -> bool {
         self.ack_eliciting() && self.on_primary_path() && !self.lost()
     }
 
     /// Whether the packet should be tracked as in-flight.
+    #[must_use]
     pub const fn cc_in_flight(&self) -> bool {
         self.ack_eliciting() && self.on_primary_path()
     }
@@ -144,18 +157,21 @@ impl SentPacket {
 
     /// Ask whether this tracked packet has been declared lost for long enough
     /// that it can be expired and no longer tracked.
+    #[must_use]
     pub fn expired(&self, now: Instant, expiration_period: Duration) -> bool {
         self.time_declared_lost
-            .map_or(false, |loss_time| (loss_time + expiration_period) <= now)
+            .is_some_and(|loss_time| (loss_time + expiration_period) <= now)
     }
 
     /// Whether the packet contents were cleared out after a PTO.
+    #[must_use]
     pub const fn pto_fired(&self) -> bool {
         self.pto
     }
 
     /// On PTO, we need to get the recovery tokens so that we can ensure that
     /// the frames we sent can be sent again in the PTO packet(s).  Do that just once.
+    #[must_use]
     pub fn pto(&mut self) -> bool {
         if self.pto || self.lost() {
             false
@@ -174,6 +190,8 @@ pub struct SentPackets {
 }
 
 impl SentPackets {
+    #[allow(clippy::len_without_is_empty)]
+    #[must_use]
     pub fn len(&self) -> usize {
         self.packets.len()
     }
@@ -186,7 +204,7 @@ impl SentPackets {
         self.packets.values_mut()
     }
 
-    /// Take values from a specified ranges of packet numbers.
+    /// Take values from specified ranges of packet numbers.
     /// The values returned will be reversed, so that the most recent packet appears first.
     /// This is because ACK frames arrive with ranges starting from the largest acknowledged
     /// and we want to match that.
@@ -196,19 +214,58 @@ impl SentPackets {
         R::IntoIter: ExactSizeIterator,
     {
         let mut result = Vec::new();
-        // Remove all packets. We will add them back as we don't need them.
+
+        // Start with all packets. We will add unacknowledged packets back.
+        //  [---------------------------packets----------------------------]
         let mut packets = std::mem::take(&mut self.packets);
+
+        let mut previous_range_start: Option<PacketNumber> = None;
+
         for range in acked_ranges {
-            // For each acked range, split off the acknowledged part,
-            // then split off the part that hasn't been acknowledged.
-            // This order works better when processing ranges that
-            // have already been processed, which is common.
-            let mut acked = packets.split_off(range.start());
-            let keep = acked.split_off(&(*range.end() + 1));
-            self.packets.extend(keep);
-            result.extend(acked.into_values().rev());
+            // Split off at the end of the acked range.
+            //
+            //  [---------packets--------][----------after_acked_range---------]
+            let after_acked_range = packets.split_off(&(*range.end() + 1));
+
+            // Split off at the start of the acked range.
+            //
+            //  [-packets-][-acked_range-][----------after_acked_range---------]
+            let acked_range = packets.split_off(range.start());
+
+            // According to RFC 9000 19.3.1 ACK ranges are in descending order:
+            //
+            // > Each ACK Range consists of alternating Gap and ACK Range Length
+            // > values in **descending packet number order**.
+            //
+            // <https://www.rfc-editor.org/rfc/rfc9000.html#section-19.3.1>
+            debug_assert!(previous_range_start.map_or(true, |s| s > *range.end()));
+            previous_range_start = Some(*range.start());
+
+            // Thus none of the following ACK ranges will acknowledge packets in
+            // `after_acked_range`. Let's put those back early.
+            //
+            //  [-packets-][-acked_range-][------------self.packets------------]
+            if self.packets.is_empty() {
+                // Don't re-insert un-acked packets into empty collection, but
+                // instead replace the empty one entirely.
+                self.packets = after_acked_range;
+            } else {
+                // Need to extend existing one. Not the first iteration, thus
+                // `after_acked_range` should be small.
+                self.packets.extend(after_acked_range);
+            }
+
+            // Take the acked packets.
+            result.extend(acked_range.into_values().rev());
         }
+
+        // Put remaining non-acked packets back.
+        //
+        // This is inefficient if the acknowledged packets include the last sent
+        // packet AND there is a large unacknowledged span of packets. That's
+        // rare enough that we won't do anything special for that case.
         self.packets.extend(packets);
+
         result
     }
 
@@ -222,7 +279,7 @@ impl SentPackets {
     pub fn remove_expired(&mut self, now: Instant, cd: Duration) -> usize {
         let mut it = self.packets.iter();
         // If the first item is not expired, do nothing (the most common case).
-        if it.next().map_or(false, |(_, p)| p.expired(now, cd)) {
+        if it.next().is_some_and(|(_, p)| p.expired(now, cd)) {
             // Find the index of the first unexpired packet.
             let to_remove = if let Some(first_keep) =
                 it.find_map(|(i, p)| if p.expired(now, cd) { None } else { Some(*i) })

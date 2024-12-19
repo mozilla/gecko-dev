@@ -7,12 +7,12 @@
 use std::{
     cell::RefCell,
     mem,
-    net::{IpAddr, Ipv6Addr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     rc::Rc,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
-use neqo_common::{Datagram, Decoder};
+use neqo_common::{qdebug, Datagram, Decoder};
 use test_fixture::{
     assertions::{assert_v4_path, assert_v6_path},
     fixture_init, new_neqo_qlog, now, DEFAULT_ADDR, DEFAULT_ADDR_V4,
@@ -21,18 +21,22 @@ use test_fixture::{
 use super::{
     super::{Connection, Output, State, StreamType},
     connect_fail, connect_force_idle, connect_rtt_idle, default_client, default_server,
-    maybe_authenticate, new_client, new_server, send_something, CountingConnectionIdGenerator,
+    maybe_authenticate, new_client, new_server, send_something, zero_len_cid_client,
+    CountingConnectionIdGenerator,
 };
 use crate::{
     cid::LOCAL_ACTIVE_CID_LIMIT,
-    connection::tests::{assert_path_challenge_min_len, send_something_paced, send_with_extra},
+    connection::tests::{
+        assert_path_challenge_min_len, connect, send_something_paced, send_with_extra,
+    },
     frame::FRAME_TYPE_NEW_CONNECTION_ID,
     packet::PacketBuilder,
     path::MAX_PATH_PROBES,
     pmtud::Pmtud,
+    stats::FrameStats,
     tparams::{self, PreferredAddress, TransportParameter},
     CloseReason, ConnectionId, ConnectionIdDecoder, ConnectionIdGenerator, ConnectionIdRef,
-    ConnectionParameters, EmptyConnectionIdGenerator, Error,
+    ConnectionParameters, EmptyConnectionIdGenerator, Error, MIN_INITIAL_PACKET_SIZE,
 };
 
 /// This should be a valid-seeming transport parameter.
@@ -49,8 +53,8 @@ const SAMPLE_PREFERRED_ADDRESS: &[u8] = &[
 // This simplifies validation as the same assertions can be used for client and server.
 // The risk is that there is a place where source/destination local/remote is inverted.
 
-fn loopback() -> SocketAddr {
-    SocketAddr::new(IpAddr::V6(Ipv6Addr::from(1)), 443)
+const fn loopback() -> SocketAddr {
+    SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 443)
 }
 
 fn change_path(d: &Datagram, a: SocketAddr) -> Datagram {
@@ -62,27 +66,273 @@ const fn new_port(a: SocketAddr) -> SocketAddr {
     SocketAddr::new(a.ip(), port)
 }
 
-fn change_source_port(d: &Datagram) -> Datagram {
-    Datagram::new(new_port(d.source()), d.destination(), d.tos(), &d[..])
+fn assert_path_challenge(
+    c: &Connection,
+    d: &Datagram,
+    before: &FrameStats,
+    dst: SocketAddr,
+    padded: bool,
+) {
+    let after = c.stats().frame_tx;
+    assert_eq!(after.path_challenge, before.path_challenge + 1);
+    assert_eq!(d.source(), DEFAULT_ADDR);
+    assert_eq!(d.destination(), dst);
+    if padded {
+        assert!(d.len() >= MIN_INITIAL_PACKET_SIZE);
+    } else {
+        assert!(d.len() < MIN_INITIAL_PACKET_SIZE);
+    }
+}
+
+fn assert_path_response(c: &Connection, d: &Datagram, before: &FrameStats) {
+    let after = c.stats().frame_tx;
+    assert_eq!(after.path_response, before.path_response + 1);
+    assert_eq!(d.source(), DEFAULT_ADDR);
+    assert_eq!(d.destination(), DEFAULT_ADDR);
+}
+
+fn local_address(c: &Connection) -> SocketAddr {
+    c.paths.primary().unwrap().borrow().local_address()
+}
+
+fn rebind(
+    client: &mut Connection,
+    server: &mut Connection,
+    cur_path: fn(&Datagram) -> Datagram,
+    new_path: fn(&Datagram) -> Datagram,
+    mut now: Instant,
+) -> Instant {
+    qdebug!("Rebinding");
+    let c1 = send_something(client, now);
+    let c1_new = new_path(&c1);
+    qdebug!("Rebinding to {}", c1_new.source());
+
+    // Server will reply to modified datagram with a PATH_CHALLENGE.
+    // Due to the amplification limit, this will not be padded to MIN_INITIAL_PACKET_SIZE.
+    let before = server.stats().frame_tx;
+    let s1 = server.process(Some(c1_new.clone()), now).dgram().unwrap();
+    assert_path_challenge(server, &s1, &before, c1_new.source(), false);
+
+    // Restore the original source address, so to the client it looks like the path has not changed.
+    let s1_reb = Datagram::new(s1.source(), local_address(client), s1.tos(), &s1[..]);
+
+    // The client should respond to the PATH_CHALLENGE, without changing paths.
+    let before = client.stats().frame_tx;
+    let c2 = client.process(Some(s1_reb), now).dgram().unwrap();
+    assert_path_response(client, &c2, &before);
+
+    // The server should now see the response on the new path.
+    // It will send another PATH_CHALLENGE padded to MIN_INITIAL_PACKET_SIZE.
+    let c2_new = new_path(&c2);
+    let before = server.stats().frame_tx;
+    let s2 = server.process(Some(c2_new.clone()), now).dgram().unwrap();
+    assert_path_challenge(server, &s2, &before, c2_new.source(), true);
+
+    // Restore the original source address, so to the client it looks like the path has not changed.
+    let s2_reb = Datagram::new(s2.source(), local_address(client), s2.tos(), &s2[..]);
+
+    // The client should respond to the PATH_CHALLENGE, without changing paths.
+    let before = client.stats().frame_tx;
+    let c3 = client.process(Some(s2_reb.clone()), now).dgram().unwrap();
+    assert_path_response(client, &s2_reb, &before);
+
+    // The server should now see the second response on the new path.
+    // It will then try to probe the old path.
+    let c3_new = new_path(&c3);
+    let c3_cur = cur_path(&c3);
+    let before = server.stats().frame_tx;
+    let s3 = server.process(Some(c3_new.clone()), now).dgram().unwrap();
+    assert_path_challenge(server, &s3, &before, c3_cur.source(), true);
+
+    // Do not deliver this probe to the client.
+
+    // Server will now ACK on the new path.
+    let before = server.stats().frame_tx;
+    let s4 = server.process_output(now).dgram().unwrap();
+    let after = server.stats().frame_tx;
+    assert_eq!(after.ack, before.ack + 1);
+    assert_eq!(s4.source(), c3_new.destination());
+    assert_eq!(s4.destination(), c3_new.source());
+
+    // Restore the original source address, so to the client it looks like the path has not changed.
+    let s4_reb = Datagram::new(s4.source(), local_address(client), s4.tos(), &s4[..]);
+
+    // The client should process the ACK and go idle.
+    let delay = client.process(Some(s4_reb), now).callback();
+    assert_eq!(delay, ConnectionParameters::default().get_idle_timeout());
+
+    let client_uses_zero_len_cid = client
+        .paths
+        .primary()
+        .unwrap()
+        .borrow()
+        .local_cid()
+        .unwrap()
+        .len()
+        == 0;
+    let mut total_delay = Duration::new(0, 0);
+    loop {
+        let before = server.stats().frame_tx;
+        match server.process_output(now) {
+            Output::Callback(t) => {
+                total_delay += t;
+                if total_delay == ConnectionParameters::default().get_idle_timeout() {
+                    // Server should only hit the idle timeout here when the client uses a zero-len
+                    // CID.
+                    assert!(client_uses_zero_len_cid);
+                    break;
+                }
+                now += t;
+            }
+            Output::Datagram(sx) => {
+                total_delay = Duration::new(0, 0);
+                if sx.destination() == c3_cur.source() {
+                    // Old path gets path challenges.
+                    assert_path_challenge(server, &sx, &before, c3_cur.source(), true);
+                    // Don't deliver them.
+                } else {
+                    let after = server.stats().frame_tx;
+                    // If the client uses a zero-len CID, the server will only PING.
+                    // Otherwise, it will PING or send a RETIRE_CONNECTION_ID.
+                    if client_uses_zero_len_cid {
+                        assert_eq!(after.ping, before.ping + 1);
+                    } else {
+                        assert!(
+                            after.retire_connection_id == before.retire_connection_id + 1
+                                || after.ping == before.ping + 1
+                        );
+                    }
+                    // Restore the original source address, so to the client it looks like
+                    // the path has not changed.
+                    let sx_r = Datagram::new(sx.source(), local_address(client), sx.tos(), &sx[..]);
+                    let before = client.stats().frame_tx;
+                    let cx = client.process(Some(sx_r), now).dgram().unwrap();
+                    let after = client.stats().frame_tx;
+                    assert_eq!(after.ack, before.ack + 1);
+                    // Also deliver the ACK.
+                    let cx_n = new_path(&cx);
+                    server.process_input(cx_n, now);
+                    if !client_uses_zero_len_cid
+                        && after.new_connection_id == before.new_connection_id + 1
+                    {
+                        // Declare victory once the client has sent a new connection ID.
+                        break;
+                    }
+                }
+            }
+            Output::None => panic!(),
+        }
+    }
+
+    if !client_uses_zero_len_cid {
+        // Eat up any delays before returning.
+        now += client.process_output(now).callback();
+        now += server.process_output(now).callback();
+    }
+
+    qdebug!("Rebinding done");
+    now
+}
+
+fn inc_port(port: u16, i: usize) -> u16 {
+    port.overflowing_add(i.overflowing_mul(11).0.try_into().unwrap())
+        .0
+}
+
+fn inc_addr(ip: IpAddr, i: usize) -> IpAddr {
+    let inc: u8 = i.overflowing_mul(11).0.try_into().unwrap();
+    match ip {
+        IpAddr::V4(ip) => IpAddr::V4(Ipv4Addr::from(
+            ip.octets().map(|b| b.overflowing_add(inc).0),
+        )),
+        IpAddr::V6(ip) => IpAddr::V6(Ipv6Addr::from(
+            ip.octets().map(|b| b.overflowing_add(inc).0),
+        )),
+    }
+}
+
+fn change_source_port(d: &Datagram, i: usize) -> Datagram {
+    Datagram::new(
+        SocketAddr::new(d.source().ip(), inc_port(d.source().port(), i)),
+        d.destination(),
+        d.tos(),
+        &d[..],
+    )
+}
+
+fn change_source_address_and_port(d: &Datagram, i: usize) -> Datagram {
+    Datagram::new(
+        SocketAddr::new(inc_addr(d.source().ip(), i), inc_port(d.source().port(), i)),
+        d.destination(),
+        d.tos(),
+        &d[..],
+    )
+}
+
+fn rebind_port_with_client(client: &mut Connection) {
+    let mut server = default_server();
+    connect_force_idle(client, &mut server);
+    let mut now = now();
+
+    now = rebind(
+        client,
+        &mut server,
+        |d| change_source_port(d, 0),
+        |d| change_source_port(d, 1),
+        now,
+    );
+    _ = rebind(
+        client,
+        &mut server,
+        |d| change_source_port(d, 1),
+        |d| change_source_port(d, 2),
+        now,
+    );
+}
+
+fn rebind_address_and_port_with_client(client: &mut Connection) {
+    let mut server = default_server();
+    connect_force_idle(client, &mut server);
+    let mut now = now();
+
+    now = rebind(
+        client,
+        &mut server,
+        |d| change_source_address_and_port(d, 0),
+        |d| change_source_address_and_port(d, 1),
+        now,
+    );
+    _ = rebind(
+        client,
+        &mut server,
+        |d| change_source_address_and_port(d, 1),
+        |d| change_source_address_and_port(d, 2),
+        now,
+    );
 }
 
 #[test]
-fn rebinding_port() {
+fn rebind_port() {
     let mut client = default_client();
-    let mut server = default_server();
-    connect_force_idle(&mut client, &mut server);
+    rebind_port_with_client(&mut client);
+}
 
-    let dgram = send_something(&mut client, now());
-    let dgram = change_source_port(&dgram);
+#[test]
+fn rebind_port_zero_len_cid() {
+    let mut client = zero_len_cid_client(DEFAULT_ADDR, DEFAULT_ADDR);
+    rebind_port_with_client(&mut client);
+}
 
-    server.process_input(dgram, now());
-    // Have the server send something so that it generates a packet.
-    let stream_id = server.stream_create(StreamType::UniDi).unwrap();
-    server.stream_close_send(stream_id).unwrap();
-    let dgram = server.process_output(now()).dgram();
-    let dgram = dgram.unwrap();
-    assert_eq!(dgram.source(), DEFAULT_ADDR);
-    assert_eq!(dgram.destination(), new_port(DEFAULT_ADDR));
+#[test]
+fn rebind_address_and_port() {
+    let mut client = default_client();
+    rebind_address_and_port_with_client(&mut client);
+}
+
+#[test]
+fn rebind_address_and_port_zero_len_cid() {
+    let mut client = zero_len_cid_client(DEFAULT_ADDR, DEFAULT_ADDR);
+    rebind_address_and_port_with_client(&mut client);
 }
 
 /// This simulates an attack where a valid packet is forwarded on
@@ -448,16 +698,7 @@ fn migration_graceful() {
 #[test]
 fn migration_client_empty_cid() {
     fixture_init();
-    let client = Connection::new_client(
-        test_fixture::DEFAULT_SERVER_NAME,
-        test_fixture::DEFAULT_ALPN,
-        Rc::new(RefCell::new(EmptyConnectionIdGenerator::default())),
-        DEFAULT_ADDR,
-        DEFAULT_ADDR,
-        ConnectionParameters::default(),
-        now(),
-    )
-    .unwrap();
+    let client = zero_len_cid_client(DEFAULT_ADDR, DEFAULT_ADDR);
     migration(client);
 }
 
@@ -506,16 +747,7 @@ fn preferred_address(hs_client: SocketAddr, hs_server: SocketAddr, preferred: So
 
     fixture_init();
     let (log, _contents) = new_neqo_qlog();
-    let mut client = Connection::new_client(
-        test_fixture::DEFAULT_SERVER_NAME,
-        test_fixture::DEFAULT_ALPN,
-        Rc::new(RefCell::new(EmptyConnectionIdGenerator::default())),
-        hs_client,
-        hs_server,
-        ConnectionParameters::default(),
-        now(),
-    )
-    .unwrap();
+    let mut client = zero_len_cid_client(hs_client, hs_server);
     client.set_qlog(log);
     let spa = match preferred {
         SocketAddr::V6(v6) => PreferredAddress::new(None, Some(v6)),
@@ -737,6 +969,19 @@ fn migration_invalid_state() {
     assert!(client
         .migrate(Some(DEFAULT_ADDR), Some(DEFAULT_ADDR), false, now())
         .is_err());
+}
+
+#[test]
+fn migration_disabled() {
+    let mut client = default_client();
+    let mut server = new_server(ConnectionParameters::default().disable_migration(true));
+    connect(&mut client, &mut server);
+    assert_eq!(
+        client
+            .migrate(Some(DEFAULT_ADDR), Some(DEFAULT_ADDR), true, now())
+            .unwrap_err(),
+        Error::InvalidMigration
+    );
 }
 
 #[test]

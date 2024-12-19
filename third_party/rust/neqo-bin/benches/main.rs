@@ -12,7 +12,8 @@ use tokio::runtime::Runtime;
 
 struct Benchmark {
     name: String,
-    requests: Vec<u64>,
+    requests: Vec<usize>,
+    upload: bool,
 }
 
 fn transfer(c: &mut Criterion) {
@@ -21,30 +22,42 @@ fn transfer(c: &mut Criterion) {
 
     let done_sender = spawn_server();
     let mtu = env::var("MTU").map_or_else(|_| String::new(), |mtu| format!("/mtu-{mtu}"));
-    for Benchmark { name, requests } in [
+    for Benchmark {
+        name,
+        requests,
+        upload,
+    } in [
         Benchmark {
             name: format!("1-conn/1-100mb-resp{mtu} (aka. Download)"),
             requests: vec![100 * 1024 * 1024],
+            upload: false,
         },
         Benchmark {
             name: format!("1-conn/10_000-parallel-1b-resp{mtu} (aka. RPS)"),
             requests: vec![1; 10_000],
+            upload: false,
         },
         Benchmark {
             name: format!("1-conn/1-1b-resp{mtu} (aka. HPS)"),
             requests: vec![1; 1],
+            upload: false,
+        },
+        Benchmark {
+            name: format!("1-conn/1-100mb-resp{mtu} (aka. Upload)"),
+            requests: vec![100 * 1024 * 1024],
+            upload: true,
         },
     ] {
         let mut group = c.benchmark_group(name);
         group.throughput(if requests[0] > 1 {
             assert_eq!(requests.len(), 1);
-            Throughput::Bytes(requests[0])
+            Throughput::Bytes(requests[0] as u64)
         } else {
             Throughput::Elements(requests.len() as u64)
         });
         group.bench_function("client", |b| {
             b.to_async(Runtime::new().unwrap()).iter_batched(
-                || client::client(client::Args::new(&requests)),
+                || client::client(client::Args::new(&requests, upload)),
                 |client| async move {
                     client.await.unwrap();
                 },

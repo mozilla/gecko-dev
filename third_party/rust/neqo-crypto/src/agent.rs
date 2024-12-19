@@ -408,6 +408,7 @@ impl SecretAgent {
         self.set_option(ssl::Opt::Tickets, false)?;
         self.set_option(ssl::Opt::OcspStapling, true)?;
         self.set_option(ssl::Opt::Grease, grease)?;
+        self.set_option(ssl::Opt::EnableChExtensionPermutation, true)?;
         Ok(())
     }
 

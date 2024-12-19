@@ -8,7 +8,7 @@
 
 use std::{
     ops::{Deref, RangeInclusive},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use neqo_common::{hex, qinfo, qlog::NeqoQlog, Decoder, IpTosEcn};
@@ -33,8 +33,8 @@ use crate::{
     version::{Version, VersionConfig, WireVersion},
 };
 
-pub fn connection_tparams_set(qlog: &NeqoQlog, tph: &TransportParametersHandler) {
-    qlog.add_event_data(|| {
+pub fn connection_tparams_set(qlog: &NeqoQlog, tph: &TransportParametersHandler, now: Instant) {
+    qlog.add_event_data_with_instant(|| {
         let remote = tph.remote();
         #[allow(clippy::cast_possible_truncation)] // Nope.
         let ev_data = EventData::TransportParametersSet(
@@ -79,72 +79,86 @@ pub fn connection_tparams_set(qlog: &NeqoQlog, tph: &TransportParametersHandler)
             });
 
         Some(ev_data)
-    });
+    }, now);
 }
 
-pub fn server_connection_started(qlog: &NeqoQlog, path: &PathRef) {
-    connection_started(qlog, path);
+pub fn server_connection_started(qlog: &NeqoQlog, path: &PathRef, now: Instant) {
+    connection_started(qlog, path, now);
 }
 
-pub fn client_connection_started(qlog: &NeqoQlog, path: &PathRef) {
-    connection_started(qlog, path);
+pub fn client_connection_started(qlog: &NeqoQlog, path: &PathRef, now: Instant) {
+    connection_started(qlog, path, now);
 }
 
-fn connection_started(qlog: &NeqoQlog, path: &PathRef) {
-    qlog.add_event_data(|| {
-        let p = path.deref().borrow();
-        let ev_data = EventData::ConnectionStarted(ConnectionStarted {
-            ip_version: if p.local_address().ip().is_ipv4() {
-                Some("ipv4".into())
-            } else {
-                Some("ipv6".into())
-            },
-            src_ip: format!("{}", p.local_address().ip()),
-            dst_ip: format!("{}", p.remote_address().ip()),
-            protocol: Some("QUIC".into()),
-            src_port: p.local_address().port().into(),
-            dst_port: p.remote_address().port().into(),
-            src_cid: p.local_cid().map(ToString::to_string),
-            dst_cid: p.remote_cid().map(ToString::to_string),
-        });
+fn connection_started(qlog: &NeqoQlog, path: &PathRef, now: Instant) {
+    qlog.add_event_data_with_instant(
+        || {
+            let p = path.deref().borrow();
+            let ev_data = EventData::ConnectionStarted(ConnectionStarted {
+                ip_version: if p.local_address().ip().is_ipv4() {
+                    Some("ipv4".into())
+                } else {
+                    Some("ipv6".into())
+                },
+                src_ip: format!("{}", p.local_address().ip()),
+                dst_ip: format!("{}", p.remote_address().ip()),
+                protocol: Some("QUIC".into()),
+                src_port: p.local_address().port().into(),
+                dst_port: p.remote_address().port().into(),
+                src_cid: p.local_cid().map(ToString::to_string),
+                dst_cid: p.remote_cid().map(ToString::to_string),
+            });
 
-        Some(ev_data)
-    });
+            Some(ev_data)
+        },
+        now,
+    );
 }
 
-pub fn connection_state_updated(qlog: &NeqoQlog, new: &State) {
-    qlog.add_event_data(|| {
-        let ev_data = EventData::ConnectionStateUpdated(ConnectionStateUpdated {
-            old: None,
-            new: match new {
-                State::Init | State::WaitInitial => ConnectionState::Attempted,
-                State::WaitVersion | State::Handshaking => ConnectionState::HandshakeStarted,
-                State::Connected => ConnectionState::HandshakeCompleted,
-                State::Confirmed => ConnectionState::HandshakeConfirmed,
-                State::Closing { .. } => ConnectionState::Closing,
-                State::Draining { .. } => ConnectionState::Draining,
-                State::Closed { .. } => ConnectionState::Closed,
-            },
-        });
+#[allow(clippy::similar_names)]
+pub fn connection_state_updated(qlog: &NeqoQlog, new: &State, now: Instant) {
+    qlog.add_event_data_with_instant(
+        || {
+            let ev_data = EventData::ConnectionStateUpdated(ConnectionStateUpdated {
+                old: None,
+                new: match new {
+                    State::Init | State::WaitInitial => ConnectionState::Attempted,
+                    State::WaitVersion | State::Handshaking => ConnectionState::HandshakeStarted,
+                    State::Connected => ConnectionState::HandshakeCompleted,
+                    State::Confirmed => ConnectionState::HandshakeConfirmed,
+                    State::Closing { .. } => ConnectionState::Closing,
+                    State::Draining { .. } => ConnectionState::Draining,
+                    State::Closed { .. } => ConnectionState::Closed,
+                },
+            });
 
-        Some(ev_data)
-    });
+            Some(ev_data)
+        },
+        now,
+    );
 }
 
-pub fn client_version_information_initiated(qlog: &NeqoQlog, version_config: &VersionConfig) {
-    qlog.add_event_data(|| {
-        Some(EventData::VersionInformation(VersionInformation {
-            client_versions: Some(
-                version_config
-                    .all()
-                    .iter()
-                    .map(|v| format!("{:02x}", v.wire_version()))
-                    .collect(),
-            ),
-            server_versions: None,
-            chosen_version: Some(format!("{:02x}", version_config.initial().wire_version())),
-        }))
-    });
+pub fn client_version_information_initiated(
+    qlog: &NeqoQlog,
+    version_config: &VersionConfig,
+    now: Instant,
+) {
+    qlog.add_event_data_with_instant(
+        || {
+            Some(EventData::VersionInformation(VersionInformation {
+                client_versions: Some(
+                    version_config
+                        .all()
+                        .iter()
+                        .map(|v| format!("{:02x}", v.wire_version()))
+                        .collect(),
+                ),
+                server_versions: None,
+                chosen_version: Some(format!("{:02x}", version_config.initial().wire_version())),
+            }))
+        },
+        now,
+    );
 }
 
 pub fn client_version_information_negotiated(
@@ -152,96 +166,119 @@ pub fn client_version_information_negotiated(
     client: &[Version],
     server: &[WireVersion],
     chosen: Version,
+    now: Instant,
 ) {
-    qlog.add_event_data(|| {
-        Some(EventData::VersionInformation(VersionInformation {
-            client_versions: Some(
-                client
-                    .iter()
-                    .map(|v| format!("{:02x}", v.wire_version()))
-                    .collect(),
-            ),
-            server_versions: Some(server.iter().map(|v| format!("{v:02x}")).collect()),
-            chosen_version: Some(format!("{:02x}", chosen.wire_version())),
-        }))
-    });
+    qlog.add_event_data_with_instant(
+        || {
+            Some(EventData::VersionInformation(VersionInformation {
+                client_versions: Some(
+                    client
+                        .iter()
+                        .map(|v| format!("{:02x}", v.wire_version()))
+                        .collect(),
+                ),
+                server_versions: Some(server.iter().map(|v| format!("{v:02x}")).collect()),
+                chosen_version: Some(format!("{:02x}", chosen.wire_version())),
+            }))
+        },
+        now,
+    );
 }
 
-pub fn server_version_information_failed(qlog: &NeqoQlog, server: &[Version], client: WireVersion) {
-    qlog.add_event_data(|| {
-        Some(EventData::VersionInformation(VersionInformation {
-            client_versions: Some(vec![format!("{client:02x}")]),
-            server_versions: Some(
-                server
-                    .iter()
-                    .map(|v| format!("{:02x}", v.wire_version()))
-                    .collect(),
-            ),
-            chosen_version: None,
-        }))
-    });
+pub fn server_version_information_failed(
+    qlog: &NeqoQlog,
+    server: &[Version],
+    client: WireVersion,
+    now: Instant,
+) {
+    qlog.add_event_data_with_instant(
+        || {
+            Some(EventData::VersionInformation(VersionInformation {
+                client_versions: Some(vec![format!("{client:02x}")]),
+                server_versions: Some(
+                    server
+                        .iter()
+                        .map(|v| format!("{:02x}", v.wire_version()))
+                        .collect(),
+                ),
+                chosen_version: None,
+            }))
+        },
+        now,
+    );
 }
 
-pub fn packet_sent(qlog: &NeqoQlog, pt: PacketType, pn: PacketNumber, plen: usize, body: &[u8]) {
-    qlog.add_event_with_stream(|stream| {
-        let mut d = Decoder::from(body);
-        let header = PacketHeader::with_type(pt.into(), Some(pn), None, None, None);
-        let raw = RawInfo {
-            length: Some(plen as u64),
-            payload_length: None,
-            data: None,
-        };
+pub fn packet_sent(
+    qlog: &NeqoQlog,
+    pt: PacketType,
+    pn: PacketNumber,
+    plen: usize,
+    body: &[u8],
+    now: Instant,
+) {
+    qlog.add_event_data_with_instant(
+        || {
+            let mut d = Decoder::from(body);
+            let header = PacketHeader::with_type(pt.into(), Some(pn), None, None, None);
+            let raw = RawInfo {
+                length: Some(plen as u64),
+                payload_length: None,
+                data: None,
+            };
 
-        let mut frames = SmallVec::new();
-        while d.remaining() > 0 {
-            if let Ok(f) = Frame::decode(&mut d) {
-                frames.push(QuicFrame::from(f));
-            } else {
-                qinfo!("qlog: invalid frame");
-                break;
+            let mut frames = SmallVec::new();
+            while d.remaining() > 0 {
+                if let Ok(f) = Frame::decode(&mut d) {
+                    frames.push(QuicFrame::from(f));
+                } else {
+                    qinfo!("qlog: invalid frame");
+                    break;
+                }
             }
-        }
 
-        let ev_data = EventData::PacketSent(PacketSent {
-            header,
-            frames: Some(frames),
-            is_coalesced: None,
-            retry_token: None,
-            stateless_reset_token: None,
-            supported_versions: None,
-            raw: Some(raw),
-            datagram_id: None,
-            send_at_time: None,
-            trigger: None,
-        });
-
-        stream.add_event_data_now(ev_data)
-    });
+            Some(EventData::PacketSent(PacketSent {
+                header,
+                frames: Some(frames),
+                is_coalesced: None,
+                retry_token: None,
+                stateless_reset_token: None,
+                supported_versions: None,
+                raw: Some(raw),
+                datagram_id: None,
+                send_at_time: None,
+                trigger: None,
+            }))
+        },
+        now,
+    );
 }
 
-pub fn packet_dropped(qlog: &NeqoQlog, public_packet: &PublicPacket) {
-    qlog.add_event_data(|| {
-        let header =
-            PacketHeader::with_type(public_packet.packet_type().into(), None, None, None, None);
-        let raw = RawInfo {
-            length: Some(public_packet.len() as u64),
-            payload_length: None,
-            data: None,
-        };
+pub fn packet_dropped(qlog: &NeqoQlog, public_packet: &PublicPacket, now: Instant) {
+    qlog.add_event_data_with_instant(
+        || {
+            let header =
+                PacketHeader::with_type(public_packet.packet_type().into(), None, None, None, None);
+            let raw = RawInfo {
+                length: Some(public_packet.len() as u64),
+                payload_length: None,
+                data: None,
+            };
 
-        let ev_data = EventData::PacketDropped(PacketDropped {
-            header: Some(header),
-            raw: Some(raw),
-            datagram_id: None,
-            details: None,
-            trigger: None,
-        });
+            let ev_data = EventData::PacketDropped(PacketDropped {
+                header: Some(header),
+                raw: Some(raw),
+                datagram_id: None,
+                details: None,
+                trigger: None,
+            });
 
-        Some(ev_data)
-    });
+            Some(ev_data)
+        },
+        now,
+    );
 }
 
-pub fn packets_lost(qlog: &NeqoQlog, pkts: &[SentPacket]) {
+pub fn packets_lost(qlog: &NeqoQlog, pkts: &[SentPacket], now: Instant) {
     qlog.add_event_with_stream(|stream| {
         for pkt in pkts {
             let header =
@@ -253,54 +290,60 @@ pub fn packets_lost(qlog: &NeqoQlog, pkts: &[SentPacket]) {
                 frames: None,
             });
 
-            stream.add_event_data_now(ev_data)?;
+            stream.add_event_data_with_instant(ev_data, now)?;
         }
         Ok(())
     });
 }
 
-pub fn packet_received(qlog: &NeqoQlog, public_packet: &PublicPacket, payload: &DecryptedPacket) {
-    qlog.add_event_with_stream(|stream| {
-        let mut d = Decoder::from(&payload[..]);
+pub fn packet_received(
+    qlog: &NeqoQlog,
+    public_packet: &PublicPacket,
+    payload: &DecryptedPacket,
+    now: Instant,
+) {
+    qlog.add_event_data_with_instant(
+        || {
+            let mut d = Decoder::from(&payload[..]);
 
-        let header = PacketHeader::with_type(
-            public_packet.packet_type().into(),
-            Some(payload.pn()),
-            None,
-            None,
-            None,
-        );
-        let raw = RawInfo {
-            length: Some(public_packet.len() as u64),
-            payload_length: None,
-            data: None,
-        };
+            let header = PacketHeader::with_type(
+                public_packet.packet_type().into(),
+                Some(payload.pn()),
+                None,
+                None,
+                None,
+            );
+            let raw = RawInfo {
+                length: Some(public_packet.len() as u64),
+                payload_length: None,
+                data: None,
+            };
 
-        let mut frames = Vec::new();
+            let mut frames = Vec::new();
 
-        while d.remaining() > 0 {
-            if let Ok(f) = Frame::decode(&mut d) {
-                frames.push(QuicFrame::from(f));
-            } else {
-                qinfo!("qlog: invalid frame");
-                break;
+            while d.remaining() > 0 {
+                if let Ok(f) = Frame::decode(&mut d) {
+                    frames.push(QuicFrame::from(f));
+                } else {
+                    qinfo!("qlog: invalid frame");
+                    break;
+                }
             }
-        }
 
-        let ev_data = EventData::PacketReceived(PacketReceived {
-            header,
-            frames: Some(frames),
-            is_coalesced: None,
-            retry_token: None,
-            stateless_reset_token: None,
-            supported_versions: None,
-            raw: Some(raw),
-            datagram_id: None,
-            trigger: None,
-        });
-
-        stream.add_event_data_now(ev_data)
-    });
+            Some(EventData::PacketReceived(PacketReceived {
+                header,
+                frames: Some(frames),
+                is_coalesced: None,
+                retry_token: None,
+                stateless_reset_token: None,
+                supported_versions: None,
+                raw: Some(raw),
+                datagram_id: None,
+                trigger: None,
+            }))
+        },
+        now,
+    );
 }
 
 #[allow(dead_code)]
@@ -319,55 +362,60 @@ pub enum QlogMetric {
     PacingRate(u64),
 }
 
-pub fn metrics_updated(qlog: &NeqoQlog, updated_metrics: &[QlogMetric]) {
+pub fn metrics_updated(qlog: &NeqoQlog, updated_metrics: &[QlogMetric], now: Instant) {
     debug_assert!(!updated_metrics.is_empty());
 
-    qlog.add_event_data(|| {
-        let mut min_rtt: Option<f32> = None;
-        let mut smoothed_rtt: Option<f32> = None;
-        let mut latest_rtt: Option<f32> = None;
-        let mut rtt_variance: Option<f32> = None;
-        let mut pto_count: Option<u16> = None;
-        let mut congestion_window: Option<u64> = None;
-        let mut bytes_in_flight: Option<u64> = None;
-        let mut ssthresh: Option<u64> = None;
-        let mut packets_in_flight: Option<u64> = None;
-        let mut pacing_rate: Option<u64> = None;
+    qlog.add_event_data_with_instant(
+        || {
+            let mut min_rtt: Option<f32> = None;
+            let mut smoothed_rtt: Option<f32> = None;
+            let mut latest_rtt: Option<f32> = None;
+            let mut rtt_variance: Option<f32> = None;
+            let mut pto_count: Option<u16> = None;
+            let mut congestion_window: Option<u64> = None;
+            let mut bytes_in_flight: Option<u64> = None;
+            let mut ssthresh: Option<u64> = None;
+            let mut packets_in_flight: Option<u64> = None;
+            let mut pacing_rate: Option<u64> = None;
 
-        for metric in updated_metrics {
-            #[allow(clippy::cast_precision_loss)] // Nought to do here.
-            match metric {
-                QlogMetric::MinRtt(v) => min_rtt = Some(v.as_secs_f32() * 1000.0),
-                QlogMetric::SmoothedRtt(v) => smoothed_rtt = Some(v.as_secs_f32() * 1000.0),
-                QlogMetric::LatestRtt(v) => latest_rtt = Some(v.as_secs_f32() * 1000.0),
-                QlogMetric::RttVariance(v) => rtt_variance = Some(v.as_secs_f32() * 1000.0),
-                QlogMetric::PtoCount(v) => pto_count = Some(u16::try_from(*v).unwrap()),
-                QlogMetric::CongestionWindow(v) => {
-                    congestion_window = Some(u64::try_from(*v).unwrap());
+            for metric in updated_metrics {
+                #[allow(clippy::cast_precision_loss)] // Nought to do here.
+                match metric {
+                    QlogMetric::MinRtt(v) => min_rtt = Some(v.as_secs_f32() * 1000.0),
+                    QlogMetric::SmoothedRtt(v) => smoothed_rtt = Some(v.as_secs_f32() * 1000.0),
+                    QlogMetric::LatestRtt(v) => latest_rtt = Some(v.as_secs_f32() * 1000.0),
+                    QlogMetric::RttVariance(v) => rtt_variance = Some(v.as_secs_f32() * 1000.0),
+                    QlogMetric::PtoCount(v) => pto_count = Some(u16::try_from(*v).unwrap()),
+                    QlogMetric::CongestionWindow(v) => {
+                        congestion_window = Some(u64::try_from(*v).unwrap());
+                    }
+                    QlogMetric::BytesInFlight(v) => {
+                        bytes_in_flight = Some(u64::try_from(*v).unwrap());
+                    }
+                    QlogMetric::SsThresh(v) => ssthresh = Some(u64::try_from(*v).unwrap()),
+                    QlogMetric::PacketsInFlight(v) => packets_in_flight = Some(*v),
+                    QlogMetric::PacingRate(v) => pacing_rate = Some(*v),
+                    _ => (),
                 }
-                QlogMetric::BytesInFlight(v) => bytes_in_flight = Some(u64::try_from(*v).unwrap()),
-                QlogMetric::SsThresh(v) => ssthresh = Some(u64::try_from(*v).unwrap()),
-                QlogMetric::PacketsInFlight(v) => packets_in_flight = Some(*v),
-                QlogMetric::PacingRate(v) => pacing_rate = Some(*v),
-                _ => (),
             }
-        }
 
-        let ev_data = EventData::MetricsUpdated(MetricsUpdated {
-            min_rtt,
-            smoothed_rtt,
-            latest_rtt,
-            rtt_variance,
-            pto_count,
-            congestion_window,
-            bytes_in_flight,
-            ssthresh,
-            packets_in_flight,
-            pacing_rate,
-        });
+            let ev_data = EventData::MetricsUpdated(MetricsUpdated {
+                min_rtt,
+                smoothed_rtt,
+                latest_rtt,
+                rtt_variance,
+                pto_count,
+                congestion_window,
+                bytes_in_flight,
+                ssthresh,
+                packets_in_flight,
+                pacing_rate,
+            });
 
-        Some(ev_data)
-    });
+            Some(ev_data)
+        },
+        now,
+    );
 }
 
 // Helper functions

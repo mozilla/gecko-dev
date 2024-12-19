@@ -332,8 +332,8 @@ impl RecvdPackets {
         // If ack_time is Some, then we have something to acknowledge.
         // In that case, either ack because `now >= ack_time`, or
         // because it is more than an RTT since the last time we sent an ack.
-        self.ack_time.map_or(false, |next| {
-            next <= now || self.last_ack_time.map_or(false, |last| last + rtt <= now)
+        self.ack_time.is_some_and(|next| {
+            next <= now || self.last_ack_time.is_some_and(|last| last + rtt <= now)
         })
     }
 

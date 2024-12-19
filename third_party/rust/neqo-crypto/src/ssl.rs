@@ -46,6 +46,7 @@ pub enum Opt {
     HelloDowngradeCheck,
     SuppressEndOfEarlyData,
     Grease,
+    EnableChExtensionPermutation,
 }
 
 impl Opt {
@@ -66,6 +67,7 @@ impl Opt {
             Self::HelloDowngradeCheck => SSLOption::SSL_ENABLE_HELLO_DOWNGRADE_CHECK,
             Self::SuppressEndOfEarlyData => SSLOption::SSL_SUPPRESS_END_OF_EARLY_DATA,
             Self::Grease => SSLOption::SSL_ENABLE_GREASE,
+            Self::EnableChExtensionPermutation => SSLOption::SSL_ENABLE_CH_EXTENSION_PERMUTATION,
         };
         i as PRInt32
     }

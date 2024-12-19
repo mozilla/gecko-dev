@@ -342,11 +342,13 @@ impl QPackEncoder {
     fn is_stream_blocker(&self, stream_id: StreamId) -> bool {
         self.unacked_header_blocks
             .get(&stream_id)
-            .map_or(false, |hb_list| {
+            .is_some_and(|hb_list| {
                 debug_assert!(!hb_list.is_empty());
-                hb_list.iter().flatten().max().map_or(false, |max_ref| {
-                    *max_ref >= self.table.get_acked_inserts_cnt()
-                })
+                hb_list
+                    .iter()
+                    .flatten()
+                    .max()
+                    .is_some_and(|max_ref| *max_ref >= self.table.get_acked_inserts_cnt())
             })
     }
 

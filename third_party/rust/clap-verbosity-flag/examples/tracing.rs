@@ -1,19 +1,18 @@
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
-use tracing_log::AsTrace;
 
 /// Foo
 #[derive(Debug, Parser)]
 struct Cli {
     #[command(flatten)]
-    verbose: Verbosity,
+    verbosity: Verbosity,
 }
 
 fn main() {
     let cli = Cli::parse();
 
     tracing_subscriber::fmt()
-        .with_max_level(cli.verbose.log_level_filter().as_trace())
+        .with_max_level(cli.verbosity)
         .init();
 
     tracing::error!("Engines exploded");

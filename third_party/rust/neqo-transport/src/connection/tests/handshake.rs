@@ -25,7 +25,7 @@ use test_fixture::{
 use super::{
     super::{Connection, Output, State},
     assert_error, connect, connect_force_idle, connect_with_rtt, default_client, default_server,
-    get_tokens, handshake, maybe_authenticate, resumed_server, send_something,
+    get_tokens, handshake, maybe_authenticate, resumed_server, send_something, zero_len_cid_client,
     CountingConnectionIdGenerator, AT_LEAST_PTO, DEFAULT_RTT, DEFAULT_STREAM_DATA,
 };
 use crate::{
@@ -38,8 +38,7 @@ use crate::{
     stats::FrameStats,
     tparams::{self, TransportParameter, MIN_ACK_DELAY},
     tracking::DEFAULT_ACK_DELAY,
-    CloseReason, ConnectionParameters, EmptyConnectionIdGenerator, Error, Pmtud, StreamType,
-    Version,
+    CloseReason, ConnectionParameters, Error, Pmtud, StreamType, Version,
 };
 
 const ECH_CONFIG_ID: u8 = 7;
@@ -263,16 +262,7 @@ fn crypto_frame_split() {
 #[test]
 fn chacha20poly1305() {
     let mut server = default_server();
-    let mut client = Connection::new_client(
-        test_fixture::DEFAULT_SERVER_NAME,
-        test_fixture::DEFAULT_ALPN,
-        Rc::new(RefCell::new(EmptyConnectionIdGenerator::default())),
-        DEFAULT_ADDR,
-        DEFAULT_ADDR,
-        ConnectionParameters::default(),
-        now(),
-    )
-    .expect("create a default client");
+    let mut client = zero_len_cid_client(DEFAULT_ADDR, DEFAULT_ADDR);
     client.set_ciphers(&[TLS_CHACHA20_POLY1305_SHA256]).unwrap();
     connect_force_idle(&mut client, &mut server);
 }

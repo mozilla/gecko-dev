@@ -332,6 +332,7 @@ impl Server {
                         &self.create_qlog_trace(orig_dcid.unwrap_or(initial.dst_cid).as_cid_ref()),
                         self.conn_params.get_versions().all(),
                         initial.version.wire_version(),
+                        now,
                     );
                 }
                 Output::None
@@ -390,6 +391,7 @@ impl Server {
                 &self.create_qlog_trace(packet.dcid()),
                 self.conn_params.get_versions().all(),
                 packet.wire_version(),
+                now,
             );
 
             return Output::Datagram(Datagram::new(

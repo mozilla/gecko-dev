@@ -19,12 +19,13 @@ use neqo_http3::{
 };
 use neqo_transport::{server::ValidateAddress, ConnectionIdGenerator};
 
-use super::{qns_read_response, Args, ResponseData};
+use super::{qns_read_response, Args};
+use crate::send_data::SendData;
 
 pub struct HttpServer {
     server: Http3Server,
     /// Progress writing to each stream.
-    remaining_data: HashMap<StreamId, ResponseData>,
+    remaining_data: HashMap<StreamId, SendData>,
     posts: HashMap<Http3OrWebTransportStream, usize>,
     is_qns_test: bool,
 }
@@ -79,7 +80,7 @@ impl Display for HttpServer {
 }
 
 impl super::HttpServer for HttpServer {
-    fn process(&mut self, dgram: Option<Datagram>, now: Instant) -> neqo_http3::Output {
+    fn process(&mut self, dgram: Option<Datagram<&[u8]>>, now: Instant) -> neqo_http3::Output {
         self.server.process(dgram, now)
     }
 
@@ -110,7 +111,7 @@ impl super::HttpServer for HttpServer {
 
                     let mut response = if self.is_qns_test {
                         match qns_read_response(path.value()) {
-                            Ok(data) => ResponseData::from(data),
+                            Ok(data) => SendData::from(data),
                             Err(e) => {
                                 qerror!("Failed to read {}: {e}", path.value());
                                 stream
@@ -123,19 +124,19 @@ impl super::HttpServer for HttpServer {
                     } else if let Ok(count) =
                         path.value().trim_matches(|p| p == '/').parse::<usize>()
                     {
-                        ResponseData::zeroes(count)
+                        SendData::zeroes(count)
                     } else {
-                        ResponseData::from(path.value())
+                        SendData::from(path.value())
                     };
 
                     stream
                         .send_headers(&[
                             Header::new(":status", "200"),
-                            Header::new("content-length", response.remaining.to_string()),
+                            Header::new("content-length", response.len().to_string()),
                         ])
                         .unwrap();
-                    response.send_h3(&stream);
-                    if response.done() {
+                    let done = response.send(|chunk| stream.send_data(chunk).unwrap());
+                    if done {
                         stream.stream_close_send().unwrap();
                     } else {
                         self.remaining_data.insert(stream.stream_id(), response);
@@ -144,8 +145,8 @@ impl super::HttpServer for HttpServer {
                 Http3ServerEvent::DataWritable { stream } => {
                     if self.posts.get_mut(&stream).is_none() {
                         if let Some(remaining) = self.remaining_data.get_mut(&stream.stream_id()) {
-                            remaining.send_h3(&stream);
-                            if remaining.done() {
+                            let done = remaining.send(|chunk| stream.send_data(chunk).unwrap());
+                            if done {
                                 self.remaining_data.remove(&stream.stream_id());
                                 stream.stream_close_send().unwrap();
                             }

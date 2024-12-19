@@ -35,7 +35,7 @@ pub fn send_inner(
         src_ip: None,
     };
 
-    state.send(socket, &transmit)?;
+    state.try_send(socket, &transmit)?;
 
     qtrace!(
         "sent {} bytes from {} to {}",
@@ -256,7 +256,7 @@ mod tests {
             segment_size: Some(SEGMENT_SIZE),
             src_ip: None,
         };
-        sender.state.send((&sender.inner).into(), &transmit)?;
+        sender.state.try_send((&sender.inner).into(), &transmit)?;
 
         // Allow for one GSO sendmmsg to result in multiple GRO recvmmsg.
         let mut num_received = 0;

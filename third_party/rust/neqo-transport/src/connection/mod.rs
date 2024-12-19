@@ -921,7 +921,7 @@ impl Connection {
                 State::Init => {
                     // We have not even sent anything just close the connection without sending any
                     // error. This may happen when client_start fails.
-                    self.set_state(State::Closed(error));
+                    self.set_state(State::Closed(error), now);
                 }
                 State::WaitInitial => {
                     // We don't have any state yet, so don't bother with
@@ -930,22 +930,25 @@ impl Connection {
                         self.state_signaling
                             .close(path, error.clone(), frame_type, msg);
                     }
-                    self.set_state(State::Closed(error));
+                    self.set_state(State::Closed(error), now);
                 }
                 _ => {
                     if let Some(path) = path.or_else(|| self.paths.primary()) {
                         self.state_signaling
                             .close(path, error.clone(), frame_type, msg);
                         if matches!(v, Error::KeysExhausted) {
-                            self.set_state(State::Closed(error));
+                            self.set_state(State::Closed(error), now);
                         } else {
-                            self.set_state(State::Closing {
-                                error,
-                                timeout: self.get_closing_period_time(now),
-                            });
+                            self.set_state(
+                                State::Closing {
+                                    error,
+                                    timeout: self.get_closing_period_time(now),
+                                },
+                                now,
+                            );
                         }
                     } else {
-                        self.set_state(State::Closed(error));
+                        self.set_state(State::Closed(error), now);
                     }
                 }
             }
@@ -967,7 +970,7 @@ impl Connection {
             State::Closing { error, timeout } | State::Draining { error, timeout } => {
                 if *timeout <= now {
                     let st = State::Closed(error.clone());
-                    self.set_state(st);
+                    self.set_state(st, now);
                     qinfo!("Closing timer expired");
                     return;
                 }
@@ -982,7 +985,10 @@ impl Connection {
         let pto = self.pto();
         if self.idle_timeout.expired(now, pto) {
             qinfo!([self], "idle timeout expired");
-            self.set_state(State::Closed(CloseReason::Transport(Error::IdleTimeout)));
+            self.set_state(
+                State::Closed(CloseReason::Transport(Error::IdleTimeout)),
+                now,
+            );
             return;
         }
 
@@ -999,7 +1005,7 @@ impl Connection {
         if let Some(path) = self.paths.primary() {
             let lost = self.loss_recovery.timeout(&path, now);
             self.handle_lost_packets(&lost);
-            qlog::packets_lost(&self.qlog, &lost);
+            qlog::packets_lost(&self.qlog, &lost, now);
         }
 
         if self.release_resumption_token_timer.is_some() {
@@ -1249,7 +1255,7 @@ impl Connection {
             return false;
         }
         <&[u8; 16]>::try_from(&d.as_ref()[d.len() - 16..])
-            .map_or(false, |token| path.borrow().is_stateless_reset(token))
+            .is_ok_and(|token| path.borrow().is_stateless_reset(token))
     }
 
     fn check_stateless_reset(
@@ -1264,10 +1270,13 @@ impl Connection {
             // indicate that there is a stateless reset present.
             qdebug!([self], "Stateless reset: {}", hex(&d[d.len() - 16..]));
             self.state_signaling.reset();
-            self.set_state(State::Draining {
-                error: CloseReason::Transport(Error::StatelessReset),
-                timeout: self.get_closing_period_time(now),
-            });
+            self.set_state(
+                State::Draining {
+                    error: CloseReason::Transport(Error::StatelessReset),
+                    timeout: self.get_closing_period_time(now),
+                },
+                now,
+            );
             Err(Error::StatelessReset)
         } else {
             Ok(())
@@ -1339,14 +1348,16 @@ impl Connection {
                 self.conn_params.get_versions().all(),
                 supported,
                 version,
+                now,
             );
             Ok(())
         } else {
             qinfo!([self], "Version negotiation: failed with {:?}", supported);
             // This error goes straight to closed.
-            self.set_state(State::Closed(CloseReason::Transport(
-                Error::VersionNegotiation,
-            )));
+            self.set_state(
+                State::Closed(CloseReason::Transport(Error::VersionNegotiation)),
+                now,
+            );
             Err(Error::VersionNegotiation)
         }
     }
@@ -1361,7 +1372,7 @@ impl Connection {
         dcid: Option<&ConnectionId>,
         now: Instant,
     ) -> Res<PreprocessResult> {
-        if dcid.map_or(false, |d| d != &packet.dcid()) {
+        if dcid.is_some_and(|d| d != &packet.dcid()) {
             self.stats
                 .borrow_mut()
                 .pkt_dropped("Coalesced packet has different DCID");
@@ -1399,7 +1410,7 @@ impl Connection {
                 let dcid = ConnectionId::from(packet.dcid());
                 self.crypto.states.init_server(version, &dcid)?;
                 self.original_destination_cid = Some(dcid);
-                self.set_state(State::WaitInitial);
+                self.set_state(State::WaitInitial, now);
 
                 // We need to make sure that we set this transport parameter.
                 // This has to happen prior to processing the packet so that
@@ -1536,7 +1547,7 @@ impl Connection {
     /// This takes two times: when the datagram was received, and the current time.
     fn input(&mut self, d: Datagram<impl AsRef<[u8]>>, received: Instant, now: Instant) {
         // First determine the path.
-        let path = self.paths.find_path_with_rebinding(
+        let path = self.paths.find_path(
             d.destination(),
             d.source(),
             self.conn_params.get_cc_algorithm(),
@@ -1606,7 +1617,7 @@ impl Connection {
                         neqo_common::write_item_to_fuzzing_corpus(target, &payload[..]);
                     }
 
-                    qlog::packet_received(&self.qlog, &packet, &payload);
+                    qlog::packet_received(&self.qlog, &packet, &payload, now);
                     let space = PacketNumberSpace::from(payload.packet_type());
                     if let Some(space) = self.acks.get_mut(space) {
                         if space.is_duplicate(payload.pn()) {
@@ -1659,7 +1670,7 @@ impl Connection {
                     // the rest of the datagram on the floor, but don't generate an error.
                     self.check_stateless_reset(path, &d, dcid.is_none(), now)?;
                     self.stats.borrow_mut().pkt_dropped("Decryption failure");
-                    qlog::packet_dropped(&self.qlog, &packet);
+                    qlog::packet_dropped(&self.qlog, &packet, now);
                 }
             }
             slc = remainder;
@@ -1759,6 +1770,7 @@ impl Connection {
                     .unwrap()
                     .clone(),
             ),
+            now,
         );
         if self.role == Role::Client {
             path.borrow_mut().set_valid(now);
@@ -1766,13 +1778,13 @@ impl Connection {
     }
 
     /// If the path isn't permanent, assign it a connection ID to make it so.
-    fn ensure_permanent(&mut self, path: &PathRef) -> Res<()> {
+    fn ensure_permanent(&mut self, path: &PathRef, now: Instant) -> Res<()> {
         if self.paths.is_temporary(path) {
             // If there isn't a connection ID to use for this path, the packet
             // will be processed, but it won't be attributed to a path.  That means
             // no path probes or PATH_RESPONSE.  But it's not fatal.
             if let Some(cid) = self.connection_ids.next() {
-                self.paths.make_permanent(path, None, cid);
+                self.paths.make_permanent(path, None, cid, now);
                 Ok(())
             } else if let Some(primary) = self.paths.primary() {
                 if primary
@@ -1781,7 +1793,7 @@ impl Connection {
                     .map_or(true, |id| id.is_empty())
                 {
                     self.paths
-                        .make_permanent(path, None, ConnectionIdEntry::empty_remote());
+                        .make_permanent(path, None, ConnectionIdEntry::empty_remote(), now);
                     Ok(())
                 } else {
                     qtrace!([self], "Unable to make path permanent: {}", path.borrow());
@@ -1808,7 +1820,7 @@ impl Connection {
                 self.setup_handshake_path(path, now);
             } else {
                 // Otherwise try to get a usable connection ID.
-                mem::drop(self.ensure_permanent(path));
+                mem::drop(self.ensure_permanent(path, now));
             }
         }
     }
@@ -1843,9 +1855,9 @@ impl Connection {
             self.stats.borrow().frame_rx.crypto > 0
         };
         if got_version {
-            self.set_state(State::Handshaking);
+            self.set_state(State::Handshaking, now);
         } else {
-            self.set_state(State::WaitVersion);
+            self.set_state(State::WaitVersion, now);
         }
     }
 
@@ -1858,8 +1870,8 @@ impl Connection {
     ///
     /// # Errors
     ///
-    /// Fails if this is not a client, not confirmed, or there are not enough connection
-    /// IDs available to use.
+    /// Fails if this is not a client, not confirmed, the peer disabled connection migration, or
+    /// there are not enough connection IDs available to use.
     pub fn migrate(
         &mut self,
         local: Option<SocketAddr>,
@@ -1871,6 +1883,14 @@ impl Connection {
             return Err(Error::InvalidMigration);
         }
         if !matches!(self.state(), State::Confirmed) {
+            return Err(Error::InvalidMigration);
+        }
+        if self
+            .tps
+            .borrow()
+            .remote()
+            .get_empty(tparams::DISABLE_MIGRATION)
+        {
             return Err(Error::InvalidMigration);
         }
 
@@ -1905,7 +1925,7 @@ impl Connection {
             self.conn_params.pacing_enabled(),
             now,
         );
-        self.ensure_permanent(&path)?;
+        self.ensure_permanent(&path, now)?;
         qinfo!(
             [self],
             "Migrate to {} probe {}",
@@ -1922,10 +1942,11 @@ impl Connection {
     }
 
     fn migrate_to_preferred_address(&mut self, now: Instant) -> Res<()> {
-        let spa = if matches!(
+        let spa: Option<(tparams::PreferredAddress, ConnectionIdEntry<[u8; 16]>)> = if matches!(
             self.conn_params.get_preferred_address(),
             PreferredAddressConfig::Disabled
         ) {
+            qdebug!([self], "Preferred address is disabled");
             None
         } else {
             self.tps.borrow_mut().remote().get_preferred_address()
@@ -1963,6 +1984,8 @@ impl Connection {
             } else {
                 qwarn!([self], "Unable to migrate to a different address family");
             }
+        } else {
+            qdebug!([self], "No preferred address to migrate to");
         }
         Ok(())
     }
@@ -1981,7 +2004,7 @@ impl Connection {
             return;
         }
 
-        if self.ensure_permanent(path).is_ok() {
+        if self.ensure_permanent(path, now).is_ok() {
             self.paths
                 .handle_migration(path, d.source(), now, &mut self.stats.borrow_mut());
         } else {
@@ -2441,6 +2464,7 @@ impl Connection {
                 pn,
                 builder.len() - header_start + aead_expansion,
                 &builder.as_ref()[payload_start..],
+                now,
             );
 
             self.stats.borrow_mut().packets_tx += 1;
@@ -2466,7 +2490,7 @@ impl Connection {
             );
             if padded {
                 needs_padding = false;
-                self.loss_recovery.on_packet_sent(path, sent);
+                self.loss_recovery.on_packet_sent(path, sent, now);
             } else if pt == PacketType::Initial && (self.role == Role::Client || ack_eliciting) {
                 // Packets containing Initial packets might need padding, and we want to
                 // track that padding along with the Initial packet.  So defer tracking.
@@ -2476,7 +2500,7 @@ impl Connection {
                 if pt == PacketType::Handshake && self.role == Role::Client {
                     needs_padding = false;
                 }
-                self.loss_recovery.on_packet_sent(path, sent);
+                self.loss_recovery.on_packet_sent(path, sent, now);
             }
 
             if *space == PacketNumberSpace::Handshake
@@ -2508,7 +2532,7 @@ impl Connection {
                     // packet, which is why we don't increase `frame_tx.padding` count here.
                     packets.resize(profile.limit(), 0);
                 }
-                self.loss_recovery.on_packet_sent(path, initial);
+                self.loss_recovery.on_packet_sent(path, initial, now);
             }
             path.borrow_mut().add_sent(packets.len());
             Ok(SendOption::Yes(
@@ -2542,12 +2566,16 @@ impl Connection {
         qdebug!([self], "client_start");
         debug_assert_eq!(self.role, Role::Client);
         if let Some(path) = self.paths.primary() {
-            qlog::client_connection_started(&self.qlog, &path);
+            qlog::client_connection_started(&self.qlog, &path, now);
         }
-        qlog::client_version_information_initiated(&self.qlog, self.conn_params.get_versions());
+        qlog::client_version_information_initiated(
+            &self.qlog,
+            self.conn_params.get_versions(),
+            now,
+        );
 
         self.handshake(now, self.version, PacketNumberSpace::Initial, None)?;
-        self.set_state(State::WaitInitial);
+        self.set_state(State::WaitInitial, now);
         self.zero_rtt_state = if self.crypto.enable_0rtt(self.version, self.role)? {
             qdebug!([self], "Enabled 0-RTT");
             ZeroRttState::Sending
@@ -2568,9 +2596,9 @@ impl Connection {
         let timeout = self.get_closing_period_time(now);
         if let Some(path) = self.paths.primary() {
             self.state_signaling.close(path, error.clone(), 0, msg);
-            self.set_state(State::Closing { error, timeout });
+            self.set_state(State::Closing { error, timeout }, now);
         } else {
-            self.set_state(State::Closed(error));
+            self.set_state(State::Closed(error), now);
         }
     }
 
@@ -2600,7 +2628,7 @@ impl Connection {
     }
 
     /// Process the final set of transport parameters.
-    fn process_tps(&mut self) -> Res<()> {
+    fn process_tps(&mut self, now: Instant) -> Res<()> {
         self.validate_cids()?;
         self.validate_versions()?;
         {
@@ -2645,7 +2673,7 @@ impl Connection {
             self.cid_manager.set_limit(max_active_cids);
         }
         self.set_initial_limits();
-        qlog::connection_tparams_set(&self.qlog, &self.tps.borrow());
+        qlog::connection_tparams_set(&self.qlog, &self.tps.borrow(), now);
         Ok(())
     }
 
@@ -2848,8 +2876,8 @@ impl Connection {
         Ok(())
     }
 
-    fn set_confirmed(&mut self) -> Res<()> {
-        self.set_state(State::Confirmed);
+    fn set_confirmed(&mut self, now: Instant) -> Res<()> {
+        self.set_state(State::Confirmed, now);
         if self.conn_params.pmtud_enabled() {
             self.paths
                 .primary()
@@ -2970,7 +2998,7 @@ impl Connection {
                 self.stats.borrow_mut().frame_rx.path_challenge += 1;
                 // If we were challenged, try to make the path permanent.
                 // Report an error if we don't have enough connection IDs.
-                self.ensure_permanent(path)?;
+                self.ensure_permanent(path, now)?;
                 path.borrow_mut().challenged(data);
             }
             Frame::PathResponse { data } => {
@@ -3012,17 +3040,20 @@ impl Connection {
                 let error = CloseReason::Transport(detail);
                 self.state_signaling
                     .drain(Rc::clone(path), error.clone(), frame_type, "");
-                self.set_state(State::Draining {
-                    error,
-                    timeout: self.get_closing_period_time(now),
-                });
+                self.set_state(
+                    State::Draining {
+                        error,
+                        timeout: self.get_closing_period_time(now),
+                    },
+                    now,
+                );
             }
             Frame::HandshakeDone => {
                 self.stats.borrow_mut().frame_rx.handshake_done += 1;
                 if self.role == Role::Server || !self.state.connected() {
                     return Err(Error::ProtocolViolation);
                 }
-                self.set_confirmed()?;
+                self.set_confirmed(now)?;
                 self.discard_keys(PacketNumberSpace::Handshake, now);
                 self.migrate_to_preferred_address(now)?;
             }
@@ -3140,7 +3171,7 @@ impl Connection {
             }
         }
         self.handle_lost_packets(&lost_packets);
-        qlog::packets_lost(&self.qlog, &lost_packets);
+        qlog::packets_lost(&self.qlog, &lost_packets, now);
         let stats = &mut self.stats.borrow_mut().frame_rx;
         stats.ack += 1;
         if let Some(largest_acknowledged) = largest_acknowledged {
@@ -3182,7 +3213,7 @@ impl Connection {
             let path = self.paths.primary().ok_or(Error::NoAvailablePath)?;
             path.borrow_mut().set_valid(now);
             // Generate a qlog event that the server connection started.
-            qlog::server_connection_started(&self.qlog, &path);
+            qlog::server_connection_started(&self.qlog, &path, now);
         } else {
             self.zero_rtt_state = if self
                 .crypto
@@ -3202,8 +3233,8 @@ impl Connection {
         let pto = self.pto();
         self.crypto
             .install_application_keys(self.version, now + pto)?;
-        self.process_tps()?;
-        self.set_state(State::Connected);
+        self.process_tps(now)?;
+        self.set_state(State::Connected, now);
         self.create_resumption_token(now);
         self.saved_datagrams
             .make_available(CryptoSpace::ApplicationData);
@@ -3215,13 +3246,13 @@ impl Connection {
             .resumed();
         if self.role == Role::Server {
             self.state_signaling.handshake_done();
-            self.set_confirmed()?;
+            self.set_confirmed(now)?;
         }
         qinfo!([self], "Connection established");
         Ok(())
     }
 
-    fn set_state(&mut self, state: State) {
+    fn set_state(&mut self, state: State, now: Instant) {
         if state > self.state {
             qdebug!([self], "State change from {:?} -> {:?}", self.state, state);
             self.state = state.clone();
@@ -3229,7 +3260,7 @@ impl Connection {
                 self.streams.clear_streams();
             }
             self.events.connection_state_change(state);
-            qlog::connection_state_updated(&self.qlog, &self.state);
+            qlog::connection_state_updated(&self.qlog, &self.state, now);
         } else if mem::discriminant(&state) != mem::discriminant(&self.state) {
             // Only tolerate a regression in state if the new state is closing
             // and the connection is already closed.

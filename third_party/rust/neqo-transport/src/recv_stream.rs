@@ -198,7 +198,7 @@ impl RxStreamOrderer {
         if self
             .data_ranges
             .last_entry()
-            .map_or(false, |e| *e.key() >= new_start)
+            .is_some_and(|e| *e.key() >= new_start)
         {
             // Is this at the end (common case)?  If so, nothing to do in this block
             // Common case:
@@ -274,7 +274,7 @@ impl RxStreamOrderer {
         self.data_ranges
             .keys()
             .next()
-            .map_or(false, |&start| start <= self.retired)
+            .is_some_and(|&start| start <= self.retired)
     }
 
     /// How many bytes are readable?
@@ -795,7 +795,7 @@ impl RecvStream {
     fn data_ready(&self) -> bool {
         self.state
             .recv_buf()
-            .map_or(false, RxStreamOrderer::data_ready)
+            .is_some_and(RxStreamOrderer::data_ready)
     }
 
     /// # Errors

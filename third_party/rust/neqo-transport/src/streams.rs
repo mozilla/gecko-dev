@@ -334,8 +334,7 @@ impl Streams {
         // filter the list, removing closed streams
         self.send.remove_terminal();
 
-        let send = &self.send;
-        let (removed_bidi, removed_uni) = self.recv.clear_terminal(send, self.role);
+        let (removed_bidi, removed_uni) = self.recv.clear_terminal(&self.send, self.role);
 
         // Send max_streams updates if we removed remote-initiated recv streams.
         // The updates will be send if any steams has been removed.
