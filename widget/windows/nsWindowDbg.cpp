@@ -294,6 +294,12 @@ bool NativeEventLogger::NativeEventLoggerInternal() {
     if (mMsg == WM_SETCURSOR || mMsg == WM_MOUSEMOVE || mMsg == WM_NCHITTEST) {
       return LogLevel::Verbose;
     }
+    // This "raw" message is usually immediately followed by a processed
+    // interpretation such as WM_POINTERUPDATE, with which it's mostly
+    // redundant.
+    if (mMsg == WM_TOUCH) {
+      return LogLevel::Debug;
+    }
     if (gLastEventMsg == mMsg) {
       return LogLevel::Debug;
     }
@@ -1191,6 +1197,48 @@ void ResolutionParamInfo(nsCString& result, uint64_t value, const char* name,
                       HIWORD(value));
 }
 
+void PointerIdWParamInfo(nsCString& result, uint64_t value,
+                         const char* /* name */, bool /* isPreCall */) {
+  result.AppendPrintf("id=0x%02x ", GET_POINTERID_WPARAM(value));
+}
+
+void PointerButtonsWParamInfo(nsCString& result, uint64_t value,
+                              const char* /* name */, bool /* isPreCall */) {
+  constexpr auto bit = [](bool b) -> char { return b ? '1' : '0'; };
+  constexpr auto x = [](bool b) -> char { return b ? 'X' : '.'; };
+
+  PointerIdWParamInfo(result, value, "", false);
+  result.AppendPrintf(
+      " [new=%c primary=%c live=%c contact=%c] buttons=%c%c%c%c%c",
+      // clang-format off
+      bit(IS_POINTER_NEW_WPARAM(value)),
+      bit(IS_POINTER_PRIMARY_WPARAM(value)),
+      bit(IS_POINTER_INRANGE_WPARAM(value)),
+      bit(IS_POINTER_INCONTACT_WPARAM(value)),
+
+      x(IS_POINTER_FIRSTBUTTON_WPARAM(value)),
+      x(IS_POINTER_SECONDBUTTON_WPARAM(value)),
+      x(IS_POINTER_THIRDBUTTON_WPARAM(value)),
+      x(IS_POINTER_FOURTHBUTTON_WPARAM(value)),
+      x(IS_POINTER_FIFTHBUTTON_WPARAM(value))
+      // clang-format on
+  );
+}
+
+void PointerHittestWParamInfo(nsCString& result, uint64_t value,
+                              const char* /* name */, bool /* isPreCall */) {
+  PointerIdWParamInfo(result, value, "", false);
+  HitTestParamInfo(result, HIWORD(value), "hittest", false);
+}
+
+void PointerWheelWParamInfo(nsCString& result, uint64_t value,
+                            const char* /* name */, bool /* isPreCall */) {
+  PointerIdWParamInfo(result, value, "", false);
+
+  signed short const delta = GET_WHEEL_DELTA_WPARAM(value);
+  result.AppendPrintf(" delta=%d", delta);
+}
+
 // Window message with default wParam/lParam logging
 #define ENTRY(_msg)                         \
   {                                         \
@@ -1576,6 +1624,31 @@ MOZ_RUNINIT std::unordered_map<UINT, EventMsgInfo> gAllEvents = {
     ENTRY(WM_EXITSIZEMOVE),
     ENTRY(WM_DROPFILES),
     ENTRY(WM_MDIREFRESHMENU),
+    ENTRY(WM_TOUCH),
+
+    // clang-format off
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_NCPOINTERUPDATE, PointerHittestWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_NCPOINTERDOWN, PointerHittestWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_NCPOINTERUP, PointerHittestWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERUPDATE, PointerButtonsWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERDOWN, PointerButtonsWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERUP, PointerButtonsWParamInfo, "", PointParamInfo, "pos"),
+    // ENTER/LEAVE don't actually use all the flags, but it's probably not worth
+    // customizing the function for them
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERENTER, PointerButtonsWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERLEAVE, PointerButtonsWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERACTIVATE, PointerHittestWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERCAPTURECHANGED, PointerIdWParamInfo, "", HexParamInfo, "captorHwnd"),
+    ENTRY(WM_TOUCHHITTESTING), /* relevant LParamInfoFn not currently implemented */
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERWHEEL, PointerWheelWParamInfo, "", PointParamInfo, "pos"),
+    ENTRY_WITH_SPLIT_PARAM_INFOS(WM_POINTERHWHEEL, PointerWheelWParamInfo, "", PointParamInfo, "pos"),
+    // clang-format on
+
+    ENTRY_WITH_NO_PARAM_INFO(DM_POINTERHITTEST),
+    ENTRY_WITH_NO_PARAM_INFO(WM_POINTERROUTEDTO),
+    ENTRY_WITH_NO_PARAM_INFO(WM_POINTERROUTEDAWAY),
+    ENTRY_WITH_NO_PARAM_INFO(WM_POINTERROUTEDRELEASED),
+
     ENTRY(WM_IME_SETCONTEXT),
     ENTRY(WM_IME_NOTIFY),
     ENTRY(WM_IME_CONTROL),
