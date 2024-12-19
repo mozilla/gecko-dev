@@ -2969,7 +2969,6 @@
      * Removes the tab group. This has the effect of closing all the tabs
      * in the group.
      *
-     *
      * @param {MozTabbrowserTabGroup} [group]
      *   The tab group to remove.
      * @param {object} [options]
@@ -4009,18 +4008,20 @@
     }
 
     /**
-     * Remove all tabs but aTab. By default, in a multi-select context, all
+     * Remove all tabs but `aTab`. By default, in a multi-select context, all
      * unpinned and unselected tabs are removed. Otherwise all unpinned tabs
      * except aTab are removed. This behavior can be changed using the the bool
      * flags below.
      *
-     * @param   aTab The tab we will skip removing
-     * @param   aParams An optional set of parameters that will be passed to the
-     *          removeTabs function.
-     * @param   {boolean} [aParams.skipWarnAboutClosingTabs=false] Skip showing
-     *          the tab close warning prompt.
-     * @param   {boolean} [aParams.skipPinnedOrSelectedTabs=true] Skip closing
-     *          tabs that are selected or pinned.
+     * @param {MozTabbrowserTab} aTab
+     *   The tab we will skip removing
+     * @param {object} [aParams]
+     *   An optional set of parameters that will be passed to the
+     *   `removeTabs` function.
+     * @param {boolean} [aParams.skipWarnAboutClosingTabs=false]
+     *   Skip showing the tab close warning prompt.
+     * @param {boolean} [aParams.skipPinnedOrSelectedTabs=true]
+     *   Skip closing tabs that are selected or pinned.
      */
     removeAllTabsBut(aTab, aParams = {}) {
       let {
@@ -4028,21 +4029,22 @@
         skipPinnedOrSelectedTabs = true,
       } = aParams;
 
+      /** @type {function(MozTabbrowserTab):boolean} */
       let filterFn;
 
       // If enabled also filter by selected or pinned state.
       if (skipPinnedOrSelectedTabs) {
         if (aTab?.multiselected) {
-          filterFn = tab => !tab.multiselected && !tab.pinned;
+          filterFn = tab => !tab.multiselected && !tab.pinned && !tab.hidden;
         } else {
-          filterFn = tab => tab != aTab && !tab.pinned;
+          filterFn = tab => tab != aTab && !tab.pinned && !tab.hidden;
         }
       } else {
         // Exclude just aTab from being removed.
         filterFn = tab => tab != aTab;
       }
 
-      let tabsToRemove = this.visibleTabs.filter(filterFn);
+      let tabsToRemove = this.openTabs.filter(filterFn);
 
       // If enabled show the tab close warning.
       if (
@@ -4074,7 +4076,7 @@
 
     /**
      * @typedef {object} _startRemoveTabsReturnValue
-     * @property {Promise} beforeUnloadComplete
+     * @property {Promise<void>} beforeUnloadComplete
      *   A promise that is resolved once all the beforeunload handlers have been
      *   called.
      * @property {object[]} tabsWithBeforeUnloadPrompt
@@ -4117,14 +4119,35 @@
     ) {
       // Note: if you change any of the unload algorithm, consider also
       // changing `runBeforeUnloadForTabs` above.
+      /** @type {MozTabbrowserTab[]} */
       let tabsWithBeforeUnloadPrompt = [];
+      /** @type {MozTabbrowserTab[]} */
       let tabsWithoutBeforeUnload = [];
+      /** @type {Promise<void>[]} */
       let beforeUnloadPromises = [];
+      /** @type {MozTabbrowserTab|undefined} */
       let lastToClose;
+      /**
+       * Map of tab group to surviving tabs in the group.
+       * If any of the `tabs` to be removed belong to a tab group, keep track
+       * of how many tabs in the tab group will be left after removing `tabs`.
+       * For any tab group with 0 surviving tabs, we can know that that tab
+       * group will be removed as a consequence of removing these `tabs`.
+       * @type {Map<MozTabbrowserTabGroup, Set<MozTabbrowserTab>>}
+       */
+      let tabGroupsSurvivingTabs = new Map();
 
       for (let tab of tabs) {
         if (!skipRemoves) {
           tab._closedInGroup = true;
+        }
+        if (!skipRemoves && !skipSessionStore) {
+          if (tab.group) {
+            if (!tabGroupsSurvivingTabs.has(tab.group)) {
+              tabGroupsSurvivingTabs.set(tab.group, new Set(tab.group.tabs));
+            }
+            tabGroupsSurvivingTabs.get(tab.group).delete(tab);
+          }
         }
         if (!skipRemoves && tab.selected) {
           lastToClose = tab;
@@ -4179,6 +4202,22 @@
           );
         } else {
           tabsWithoutBeforeUnload.push(tab);
+        }
+      }
+
+      if (!skipRemoves && !skipSessionStore) {
+        for (let [
+          tabGroup,
+          survivingTabs,
+        ] of tabGroupsSurvivingTabs.entries()) {
+          // Before removing any tabs, save tab groups that won't survive
+          // because all of their tabs are about to be removed. Then remove
+          // the tab group directly to prevent the closing tabs from being
+          // recorded by the session as individually closed tabs.
+          if (!survivingTabs.size) {
+            tabGroup.save();
+            this.removeTabGroup(tabGroup);
+          }
         }
       }
 
@@ -4252,7 +4291,7 @@
     /**
      * Removes multiple tabs from the tab browser.
      *
-     * @param {object[]} tabs
+     * @param {MozTabbrowserTab[]} tabs
      *   The set of tabs to remove.
      * @param {object} [options]
      * @param {boolean} [options.animate]
@@ -8427,9 +8466,12 @@ var TabContextMenu = {
 
     // Disable "Close other Tabs" if there are no unpinned tabs.
     let unpinnedTabsToClose = multiselectionContext
-      ? gBrowser.visibleTabs.filter(t => !t.multiselected && !t.pinned).length
-      : gBrowser.visibleTabs.filter(t => t != this.contextTab && !t.pinned)
-          .length;
+      ? gBrowser.openTabs.filter(
+          t => !t.multiselected && !t.pinned && !t.hidden
+        ).length
+      : gBrowser.openTabs.filter(
+          t => t != this.contextTab && !t.pinned && !t.hidden
+        ).length;
     let closeOtherTabsItem = document.getElementById("context_closeOtherTabs");
     closeOtherTabsItem.disabled = unpinnedTabsToClose < 1;
 

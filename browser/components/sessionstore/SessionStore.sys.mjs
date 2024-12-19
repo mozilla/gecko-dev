@@ -4359,7 +4359,7 @@ var SessionStoreInternal = {
     );
     if (savedGroupIndex < 0) {
       throw Components.Exception(
-        "Closed tab group not found",
+        "Saved tab group not found",
         Cr.NS_ERROR_INVALID_ARG
       );
     }

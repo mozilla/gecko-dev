@@ -384,6 +384,9 @@ tags = "vertical-tabs"
 tags = "vertical-tabs"
 skip-if = ["os == 'mac' && vertical_tab"] # Bug 1936168
 
+["browser_removeAllTabsBut.js"]
+tags = "vertical-tabs"
+
 ["browser_removeTabsToTheEnd.js"]
 tags = "vertical-tabs"
 
