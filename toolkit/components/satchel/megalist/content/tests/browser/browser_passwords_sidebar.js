@@ -117,19 +117,15 @@ add_task(async function test_login_line_commands() {
     ) {
       const loginLine = card[selector].loginLine;
       loginLineInput = loginLine.shadowRoot.querySelector("input");
-      let reauthObserved = Promise.resolve();
-      if (OSKeyStore.canReauth()) {
-        reauthObserved = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
-      }
-
-      await SimpleTest.promiseClipboardChange(
-        expectedPasswordCard[selector].value,
-        () => {
-          info(`click on ${selector}`);
-          loginLineInput.click();
-        }
-      );
-      await reauthObserved;
+      await waitForReauth(() => {
+        return SimpleTest.promiseClipboardChange(
+          expectedPasswordCard[selector].value,
+          () => {
+            info(`click on ${selector}`);
+            loginLineInput.click();
+          }
+        );
+      });
 
       const revealBtn = card[selector].revealBtn;
       const revealBtnPromise = BrowserTestUtils.waitForMutationCondition(

@@ -15,6 +15,8 @@ support-files = [
 
 ["browser_passwords_filter.js"]
 
+["browser_passwords_list_alerts.js"]
+
 ["browser_passwords_remove_all_notification.js"]
 
 ["browser_passwords_sidebar.js"]
