@@ -181,10 +181,9 @@ bool CrashProcessIfHanging(pid_t aPid) {
   // this is always called on the I/O thread.)
   static int sWaitMs = kShutdownWaitMs;
   if (sWaitMs > 0) {
-    CHROMIUM_LOG(WARNING)
-        << "Process " << aPid
-        << " may be hanging at shutdown; will wait for up to " << sWaitMs
-        << "ms";
+    CHROMIUM_LOG(WARNING) << "Process " << aPid
+                          << " may be hanging at shutdown; will wait for up to "
+                          << sWaitMs << "ms";
   }
   // There isn't a way to do a time-limited wait that's both
   // portable and doesn't require messing with signals.  Instead, we
