@@ -116,6 +116,14 @@ class Options:
                 "BinarySetup layer for getting the binary path, and version."
             ),
         },
+        "--gecko-profile": {
+            "action": "store_true",
+            "default": False,
+            "help": (
+                "Run tests with gecko profiling enabled (assumes test layer "
+                "has implemented it)."
+            ),
+        },
     }
 
     args = copy.deepcopy(general_args)

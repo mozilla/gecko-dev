@@ -113,12 +113,53 @@ class Mochitest(Layer):
                 ),
             )
 
-    def _parse_extra_args(self, extra_args):
-        """Sets up the extra-args for passing to mochitest."""
+    def _enable_gecko_profiling(self):
+        """Setup gecko profiling if requested."""
+        gecko_profile_args = []
+
+        gecko_profile_features = os.getenv(
+            "MOZ_PROFILER_STARTUP_FEATURES", "js,stackwalk,cpu,screenshots,memory"
+        )
+        gecko_profile_threads = os.getenv(
+            "MOZ_PROFILER_STARTUP_FILTERS", "GeckoMain,Compositor,Renderer"
+        )
+        gecko_profile_entries = os.getenv("MOZ_PROFILER_STARTUP_ENTRIES", "65536000")
+        gecko_profile_interval = os.getenv("MOZ_PROFILER_STARTUP_INTERVAL", None)
+
+        if self.get_arg("gecko-profile") or os.getenv("MOZ_PROFILER_STARTUP") == "1":
+            gecko_profile_args.append("--profiler")
+            gecko_profile_args.extend(
+                [
+                    f"--setenv=MOZ_PROFILER_STARTUP_FEATURES={gecko_profile_features}",
+                    f"--setenv=MOZ_PROFILER_STARTUP_FILTERS={gecko_profile_threads}",
+                    f"--setenv=MOZ_PROFILER_STARTUP_ENTRIES={gecko_profile_entries}",
+                ]
+            )
+            if gecko_profile_interval:
+                gecko_profile_args.append(
+                    f"--setenv=MOZ_PROFILER_STARTUP_INTERVAL={gecko_profile_interval}"
+                )
+            if ON_TRY:
+                gecko_profile_args.append("--profiler-save-only")
+
+                output_dir_path = str(Path(self.get_arg("output")).resolve())
+                gecko_profile_args.append(f"--setenv=MOZ_UPLOAD_DIR={output_dir_path}")
+
+        return gecko_profile_args
+
+    def _parse_extra_args(self):
+        """Sets up the extra-args from the user for passing to mochitest."""
         parsed_extra_args = []
-        for arg in extra_args:
+        for arg in self.get_arg("extra-args"):
             parsed_extra_args.append(f"--{arg}")
         return parsed_extra_args
+
+    def _get_mochitest_args(self):
+        """Handles setup for all mochitest-specific arguments."""
+        mochitest_args = []
+        mochitest_args.extend(self._enable_gecko_profiling())
+        mochitest_args.extend(self._parse_extra_args())
+        return mochitest_args
 
     def remote_run(self, test, metadata):
         """Run tests in CI."""
@@ -146,7 +187,7 @@ class Mochitest(Layer):
         # Use the mochitest argument parser to parse the extra argument
         # options, and produce an `args` object that has all the defaults
         parser = MochitestArgumentParser()
-        args = parser.parse_args(self._parse_extra_args(self.get_arg("extra-args")))
+        args = parser.parse_args(self._get_mochitest_args())
 
         # Bug 1858155 - Attempting to only use one test_path triggers a failure
         # during test execution
@@ -184,8 +225,7 @@ class Mochitest(Layer):
                 status, log_processor = FunctionalTestRunner.test(
                     self.mach_cmd,
                     [str(test)],
-                    self._parse_extra_args(self.get_arg("extra-args"))
-                    + ["--keep-open=False"],
+                    self._get_mochitest_args() + ["--keep-open=False"],
                 )
 
             if status is not None and status != 0:

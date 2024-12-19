@@ -49,3 +49,5 @@ task-defaults:
         run-as-root: true
         using: run-task
         checkout: false
+    tags:
+        test-type: mozperftest

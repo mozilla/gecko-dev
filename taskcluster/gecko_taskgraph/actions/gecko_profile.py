@@ -32,7 +32,11 @@ logger = logging.getLogger(__name__)
         "while adding the --gecko-profile cmd arg."
     ),
     order=200,
-    context=[{"test-type": "talos"}, {"test-type": "raptor"}],
+    context=[
+        {"test-type": "talos"},
+        {"test-type": "raptor"},
+        {"test-type": "mozperftest"},
+    ],
     schema={},
     available=lambda parameters: True,
 )
@@ -87,10 +91,20 @@ def geckoprofile_action(parameters, graph_config, input, task_group_id, task_id)
                 if task.label != label:
                     return task
 
-                cmd = task.task["payload"]["command"]
-                task.task["payload"]["command"] = add_args_to_perf_command(
-                    cmd, ["--gecko-profile"]
-                )
+                if task.kind == "perftest":
+                    perf_flags = task.task["payload"]["env"].get("PERF_FLAGS")
+                    if perf_flags:
+                        task.task["payload"]["env"][
+                            "PERF_FLAGS"
+                        ] = f"{perf_flags} gecko-profile"
+                    else:
+                        task.task["payload"]["env"]["PERF_FLAGS"] = "gecko-profile"
+                else:
+                    cmd = task.task["payload"]["command"]
+                    task.task["payload"]["command"] = add_args_to_perf_command(
+                        cmd, ["--gecko-profile"]
+                    )
+
                 task.task["extra"]["treeherder"]["symbol"] += "-p"
                 task.task["extra"]["treeherder"]["groupName"] += " (profiling)"
                 return task
@@ -111,7 +125,7 @@ def geckoprofile_action(parameters, graph_config, input, task_group_id, task_id)
     combine_task_graph_files(backfill_pushes)
 
 
-def add_args_to_perf_command(payload_commands, extra_args=[]):
+def add_args_to_perf_command(payload_commands, extra_args=()):
     """
     Add custom command line args to a given command.
     args:
@@ -135,4 +149,5 @@ def add_args_to_perf_command(payload_commands, extra_args=[]):
         perf_command = " ".join(perf_command)
 
     payload_commands[perf_command_idx] = perf_command
+
     return payload_commands
