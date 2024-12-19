@@ -216,20 +216,30 @@ EnvironmentArray BuildEnvironmentArray(const environment_map& env_vars_to_set);
 bool KillProcess(ProcessHandle process, int exit_code);
 
 #ifdef XP_UNIX
-// Returns whether the given process has exited.  If it returns true,
-// the process status has been consumed and `IsProcessDead` should not
-// be called again on the same process (like `waitpid`).
+enum class BlockingWait { No, Yes };
+enum class ProcessStatus { Running, Exited, Killed, Error };
+
+// Checks whether the given process has exited; returns a
+// `ProcessStatus` indicating whether the process is still running,
+// exited normally, was killed by a signal, or whether an error was
+// encountered (e.g., if the given process isn't a direct child of
+// this process).  In the `Exited` and `Killed` cases, the dead
+// process is collected (like `waitpid`) and the pid is freed for
+// potential reuse by another process.
 //
-// In various error cases (e.g., the process doesn't exist or isn't a
-// child of this process) it will also return true to indicate that
-// the caller should give up and not try again.
+// The value returned in `*info_out` depends on the process status:
+// * for `Running`, it's always set to 0
+// * for `Exited`, the value passed to `exit()`
+// * for `Killed`, the signal number
+// * for `Error`, the error code (like `errno`)
 //
-// If the `blocking` parameter is set to true, this function will try
+// If the `blocking` parameter is set to `Yes`, this function will try
 // to block the calling thread indefinitely until the process exits.
 // This may not be possible (if the child is also being debugged by
 // the parent process, e.g. due to the crash reporter), in which case
-// it will return false and the caller will need to wait and retry.
-bool IsProcessDead(ProcessHandle handle, bool blocking = false);
+// it will return `Running` and the caller will need to wait and retry.
+ProcessStatus WaitForProcess(ProcessHandle handle, BlockingWait blocking,
+                             int* info_out);
 #endif
 
 }  // namespace base
