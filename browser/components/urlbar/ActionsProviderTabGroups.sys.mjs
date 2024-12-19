@@ -36,12 +36,19 @@ class ProviderTabGroups extends ActionsProvider {
   }
 
   async queryActions(queryContext) {
-    let gBrowser = lazy.BrowserWindowTracker.getTopWindow().gBrowser;
+    let window = lazy.BrowserWindowTracker.getTopWindow();
+    if (!window) {
+      // We're likely running xpcshell tests if this happens in automation.
+      if (!Cu.isInAutomation) {
+        console.error("Couldn't find a browser window.");
+      }
+      return null;
+    }
     let input = queryContext.trimmedLowerCaseSearchString;
     let results = [];
     let i = 0;
 
-    for (let group of gBrowser.getAllTabGroups()) {
+    for (let group of window.gBrowser.getAllTabGroups()) {
       if (group.label.toLowerCase().startsWith(input)) {
         results.push(
           this.#makeResult({

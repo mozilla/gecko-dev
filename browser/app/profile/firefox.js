@@ -1045,7 +1045,11 @@ pref("browser.tabs.tooltipsShowPidAndActiveness", false);
 pref("browser.tabs.hoverPreview.enabled", true);
 pref("browser.tabs.hoverPreview.showThumbnails", true);
 
+#ifdef NIGHTLY_BUILD
+pref("browser.tabs.groups.enabled", true);
+#else
 pref("browser.tabs.groups.enabled", false);
+#endif
 pref("browser.tabs.groups.dragOverThresholdPercent", 20);
 pref("browser.tabs.groups.dragOverDelayMS", 30);
 pref("browser.tabs.dragdrop.moveOverThresholdPercent", 70);
