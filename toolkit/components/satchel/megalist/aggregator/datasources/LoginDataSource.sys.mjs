@@ -51,12 +51,6 @@ export const SUPPORT_URL =
 
 export const PREFERENCES_URL = "about:preferences#privacy-logins";
 
-const ORIGIN_BREACHED_URL =
-  "https://support.mozilla.org/en-US/kb/firefox-password-manager-alerts-breached-websites";
-
-const VULNERABLE_PASSWORD_URL =
-  "https://support.mozilla.org/en-US/kb/create-secure-passwords-keep-your-identity-safe";
-
 const IMPORT_FILE_SUPPORT_URL =
   "https://support.mozilla.org/kb/import-login-data-file";
 
@@ -163,18 +157,13 @@ export class LoginDataSource extends DataSourceBase {
         { id: "Import", label: "passwords-command-import" },
         { id: "Export", label: "passwords-command-export" },
         { id: "RemoveAll", label: "passwords-command-remove-all" },
-        {
-          id: "Settings",
-          label: "passwords-command-settings",
-          url: PREFERENCES_URL,
-        },
-        { id: "Help", label: "passwords-command-help", url: SUPPORT_URL },
+        { id: "Settings", label: "passwords-command-settings" },
+        { id: "Help", label: "passwords-command-help" },
         { id: "SortByName", label: "passwords-command-sort-name" },
         {
           id: "SortByAlerts",
           label: "passwords-command-sort-alerts",
-        },
-        { id: "OpenLink" }
+        }
       );
       this.#header.executeImport = async () =>
         this.#importFromFile(
@@ -184,13 +173,17 @@ export class LoginDataSource extends DataSourceBase {
           strings.passwordsImportFilePickerTsvFilterTitle
         );
 
-      this.#header.executeOpenLink = url => this.#openLink(url);
+      this.#header.executeImportHelp = () =>
+        this.#openLink(IMPORT_FILE_SUPPORT_URL);
+      this.#header.executeImportReport = () =>
+        this.#openLink(IMPORT_FILE_REPORT_URL);
       this.#header.executeImportFromBrowser = () => this.#importFromBrowser();
       this.#header.executeRemoveAll = () => this.#removeAllPasswords();
       this.#header.executeExport = async () => this.#exportLogins();
+      this.#header.executeSettings = () => this.#openLink(PREFERENCES_URL);
+      this.#header.executeHelp = () => this.#openLink(SUPPORT_URL);
       this.#header.executeAddLogin = newLogin => this.#addLogin(newLogin);
-      this.#header.executeUpdateLogin = ({ login, passwordIndex }) =>
-        this.#updateLogin(login, passwordIndex);
+      this.#header.executeUpdateLogin = login => this.#updateLogin(login);
       this.#header.executeDeleteLogin = login => this.#deleteLogin(login);
       this.#header.executeDiscardChanges = options => this.#cancelEdit(options);
       this.#header.executeConfirmDiscardChanges = options =>
@@ -242,12 +235,6 @@ export class LoginDataSource extends DataSourceBase {
             return this.record.origin;
           },
         },
-        breachedNotification: {
-          value: {
-            id: "breached-origin-warning",
-            url: ORIGIN_BREACHED_URL,
-          },
-        },
         commands: {
           value: [
             { id: "Open", label: "command-open" },
@@ -288,11 +275,6 @@ export class LoginDataSource extends DataSourceBase {
             return this.editingValue ?? this.record.username;
           },
         },
-        noUsernameNotification: {
-          value: {
-            id: "no-username-warning",
-          },
-        },
         commands: { value: [copyCommand, editCommand, "-", deleteCommand] },
         executeEdit: {
           value() {
@@ -312,12 +294,6 @@ export class LoginDataSource extends DataSourceBase {
               this.editingValue ??
               (this.concealed ? "••••••••" : this.record.password)
             );
-          },
-        },
-        vulnerableNotification: {
-          value: {
-            id: "vulnerable-password-warning",
-            url: VULNERABLE_PASSWORD_URL,
           },
         },
         commands: {
@@ -426,13 +402,15 @@ export class LoginDataSource extends DataSourceBase {
         this.setNotification({
           id: "import-success",
           l10nArgs: counts,
-          url: IMPORT_FILE_REPORT_URL,
+          commands: {
+            onLinkClick: "ImportReport",
+          },
         });
       } catch (e) {
         this.setNotification({
           id: "import-error",
-          url: IMPORT_FILE_SUPPORT_URL,
           commands: {
+            onLinkClick: "ImportHelp",
             onRetry: "Import",
           },
         });
@@ -641,7 +619,7 @@ export class LoginDataSource extends DataSourceBase {
     }
   }
 
-  async #updateLogin(login, passwordIndex) {
+  async #updateLogin(login) {
     const logins = await Services.logins.searchLoginsAsync({
       origin: login.origin,
       guid: login.guid,
@@ -658,7 +636,6 @@ export class LoginDataSource extends DataSourceBase {
     }
     try {
       Services.logins.modifyLogin(logins[0], modifiedLogin);
-      this.lines[passwordIndex].executeCancel();
       this.setNotification({
         id: "update-login-success",
         viewMode: VIEW_MODES.LIST,
@@ -672,7 +649,6 @@ export class LoginDataSource extends DataSourceBase {
     this.setNotification({
       id: "discard-changes",
       fromSidebar: options.fromSidebar,
-      passwordIndex: options.passwordIndex,
     });
   }
 
@@ -684,7 +660,6 @@ export class LoginDataSource extends DataSourceBase {
       const window = BrowserWindowTracker.getTopWindow();
       window.SidebarController.hide();
     } else {
-      this.lines[options.passwordIndex].executeCancel();
       this.discardChangesConfirmed();
     }
   }

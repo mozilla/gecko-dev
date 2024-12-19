@@ -353,19 +353,3 @@ login-form {
     width: 100%
   }
 }
-
-.alert-card {
-  display: flex;
-  flex-direction: column;
-  margin-block: var(--space-medium);
-
-  > ul {
-    list-style-type: none;
-    padding-inline: var(--space-small);
-    margin-block: var(--space-small);
-
-    > li:not(:last-child) {
-      margin-block-end: var(--space-medium);
-    }
-  }
-}

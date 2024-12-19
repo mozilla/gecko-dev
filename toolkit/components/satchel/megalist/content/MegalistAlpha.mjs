@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
+import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 const lazy = {};
@@ -30,7 +30,6 @@ const VIEW_MODES = {
   LIST: "List",
   ADD: "Add",
   EDIT: "Edit",
-  ALERTS: "Alerts",
 };
 
 const INPUT_CHANGE_DELAY = 300;
@@ -38,6 +37,7 @@ const INPUT_CHANGE_DELAY = 300;
 export class MegalistAlpha extends MozLitElement {
   constructor() {
     super();
+    this.selectedIndex = 0;
     this.searchText = "";
     this.records = [];
     this.header = null;
@@ -46,7 +46,7 @@ export class MegalistAlpha extends MozLitElement {
     this.displayMode = DISPLAY_MODES.ALL;
     this.inputChangeTimeout = null;
     this.viewMode = VIEW_MODES.LIST;
-    this.selectedRecord = null;
+    this.editingRecord = null;
 
     window.addEventListener("MessageFromViewModel", ev =>
       this.#onMessageFromViewModel(ev)
@@ -58,7 +58,7 @@ export class MegalistAlpha extends MozLitElement {
 
   static get properties() {
     return {
-      selectedRecord: { type: Object },
+      selectedIndex: { type: Number },
       searchText: { type: String },
       records: { type: Array },
       header: { type: Object },
@@ -126,9 +126,7 @@ export class MegalistAlpha extends MozLitElement {
   #onCancelLoginForm() {
     switch (this.viewMode) {
       case VIEW_MODES.EDIT:
-        this.#sendCommand("DiscardChanges", {
-          value: { passwordIndex: this.selectedRecord.password.lineIndex - 1 },
-        });
+        this.#sendCommand("DiscardChanges");
         return;
       default:
         this.viewMode = VIEW_MODES.LIST;
@@ -180,7 +178,7 @@ export class MegalistAlpha extends MozLitElement {
 
   receiveDiscardChangesConfirmed() {
     this.viewMode = VIEW_MODES.LIST;
-    this.selectedRecord = null;
+    this.editingRecord = null;
     this.notification = null;
   }
 
@@ -255,11 +253,7 @@ export class MegalistAlpha extends MozLitElement {
         this.#onPasswordRevealClick(concealed, lineIndex)}
       .handleEditButtonClick=${() => {
         this.viewMode = VIEW_MODES.EDIT;
-        this.selectedRecord = this.records[index];
-      }}
-      .handleViewAlertClick=${() => {
-        this.viewMode = VIEW_MODES.ALERTS;
-        this.selectedRecord = this.records[index];
+        this.editingRecord = this.records[index];
       }}
     >
     </password-card>`;
@@ -289,73 +283,6 @@ export class MegalistAlpha extends MozLitElement {
           </div>
         `
       : this.renderEmptyState();
-  }
-
-  renderAlertsList() {
-    const { origin, username, password } = this.selectedRecord;
-    const alerts = [
-      {
-        displayAlert: origin.breached,
-        notification: origin.breachedNotification,
-      },
-      {
-        displayAlert: !username.value.length,
-        notification: username.noUsernameNotification,
-      },
-      {
-        displayAlert: password.vulnerable,
-        notification: password.vulnerableNotification,
-      },
-    ];
-
-    const handleButtonClick = async () => {
-      const isAuthenticated = await this.reauthCommandHandler(() =>
-        this.#messageToViewModel("Command", {
-          commandId: "Edit",
-          snapshotId: this.selectedRecord.password.lineIndex,
-        })
-      );
-
-      if (!isAuthenticated) {
-        return;
-      }
-
-      this.viewMode = VIEW_MODES.EDIT;
-    };
-
-    return html`
-      <moz-card class="alert-card" data-l10n-id="passwords-alert-card">
-        <moz-button
-          type="icon ghost"
-          iconSrc="chrome://browser/skin/back.svg"
-          data-l10n-id="passwords-alert-back-button"
-          @click=${() => (this.viewMode = VIEW_MODES.LIST)}
-        >
-        </moz-button>
-        <ul data-l10n-id="passwords-alert-list">
-          ${alerts.map(({ displayAlert, notification }) =>
-            when(
-              displayAlert,
-              () => html`
-                <li>
-                  <notification-message-bar
-                    .notification=${{
-                      ...notification,
-                      onButtonClick: handleButtonClick,
-                    }}
-                    .onDismiss=${() => (this.viewMode = VIEW_MODES.LIST)}
-                    .messageHandler=${(commandId, options) =>
-                      this.#sendCommand(commandId, options)}
-                  >
-                  </notification-message-bar>
-                </li>
-              `,
-              () => ""
-            )
-          )}
-        </ul>
-      </moz-card>
-    `;
   }
 
   renderEmptyState() {
@@ -428,34 +355,29 @@ export class MegalistAlpha extends MozLitElement {
       case VIEW_MODES.EDIT:
         return html` <login-form
           type="edit"
-          originValue=${this.selectedRecord.origin.href}
-          usernameValue=${this.selectedRecord.username.value}
-          ?passwordVisible=${!this.selectedRecord.password.concealed}
-          .passwordValue=${this.selectedRecord.password.value}
+          originValue=${this.editingRecord.origin.href}
+          usernameValue=${this.editingRecord.username.value}
+          ?passwordVisible=${!this.editingRecord.password.concealed}
+          .passwordValue=${this.editingRecord.password.value}
           .onPasswordRevealClick=${() =>
             this.#onPasswordRevealClick(
-              this.selectedRecord.password.concealed,
-              this.selectedRecord.password.lineIndex
+              this.editingRecord.password.concealed,
+              this.editingRecord.password.lineIndex
             )}
           .onClose=${() => this.#onCancelLoginForm()}
           .onSaveClick=${loginForm => {
-            loginForm.guid = this.selectedRecord.origin.guid;
-            const passwordIndex = this.selectedRecord.password.lineIndex - 1;
-            this.#sendCommand("UpdateLogin", {
-              value: { login: loginForm, passwordIndex },
-            });
+            loginForm.guid = this.editingRecord.origin.guid;
+            this.#sendCommand("UpdateLogin", { value: loginForm });
           }}
           .onDeleteClick=${() => {
             const login = {
-              origin: this.selectedRecord.origin,
-              guid: this.selectedRecord.origin.guid,
+              origin: this.editingRecord.origin,
+              guid: this.editingRecord.origin.guid,
             };
             this.#sendCommand("DeleteLogin", { value: login });
           }}
         >
         </login-form>`;
-      case VIEW_MODES.ALERTS:
-        return this.renderAlertsList();
       default:
         return "";
     }
@@ -567,22 +489,12 @@ export class MegalistAlpha extends MozLitElement {
         <panel-item
           action="open-preferences"
           data-l10n-id="menu-menuitem-preferences"
-          @click=${() => {
-            const command = this.header.commands.find(
-              command => command.id === "Settings"
-            );
-            this.#sendCommand("OpenLink", { value: command.url });
-          }}
+          @click=${() => this.#sendCommand("Settings")}
         ></panel-item>
         <panel-item
           action="open-help"
           data-l10n-id="about-logins-menu-menuitem-help"
-          @click=${() => {
-            const command = this.header.commands.find(
-              command => command.id === "Help"
-            );
-            this.#sendCommand("OpenLink", { value: command.url });
-          }}
+          @click=${() => this.#sendCommand("Help")}
         ></panel-item>
       </panel-list>
     `;

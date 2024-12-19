@@ -38,13 +38,7 @@ add_task(async function test_update_login_success() {
   const megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
 
-  const passwordCard = megalist.querySelector("password-card");
-  await waitForReauth(() => passwordCard.editBtn.click());
-  await BrowserTestUtils.waitForCondition(
-    () => megalist.querySelector("login-form"),
-    "Login form failed to render"
-  );
-
+  await openEditLoginForm(megalist, getMegalistParent(), 0);
   const newUsername = "new_username";
   const newPassword = "new_password";
   const loginForm = megalist.querySelector("login-form");
@@ -60,15 +54,15 @@ add_task(async function test_update_login_success() {
 
   await waitForNotification(megalist, "update-login-success");
   await checkAllLoginsRendered(megalist);
-  const updatedPasswordCard = megalist.querySelector("password-card");
+  const passwordCard = megalist.querySelector("password-card");
 
   await BrowserTestUtils.waitForCondition(
-    () => updatedPasswordCard.usernameLine.value === newUsername,
+    () => passwordCard.usernameLine.value === newUsername,
     "Username not updated."
   );
-  await waitForPasswordReveal(updatedPasswordCard.passwordLine);
+  await waitForPasswordReveal(passwordCard.passwordLine);
   await BrowserTestUtils.waitForCondition(
-    () => updatedPasswordCard.passwordLine.value === newPassword,
+    () => passwordCard.passwordLine.value === newPassword,
     "Password not updated."
   );
   LoginTestUtils.clearData();
@@ -93,13 +87,7 @@ add_task(async function test_update_login_duplicate() {
   const megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
 
-  const passwordCard = megalist.querySelector("password-card");
-  await waitForReauth(() => passwordCard.editBtn.click());
-  await BrowserTestUtils.waitForCondition(
-    () => megalist.querySelector("login-form"),
-    "Login form failed to render"
-  );
-
+  await openEditLoginForm(megalist, getMegalistParent(), 0);
   const loginForm = megalist.querySelector("login-form");
   info(`updating login 1's username to login 2's username`);
   setInputValue(loginForm, "login-username-field", TEST_LOGIN_2.username);
@@ -126,13 +114,7 @@ add_task(async function test_update_login_discard_changes() {
 
   const megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
-
-  const passwordCard = megalist.querySelector("password-card");
-  await waitForReauth(() => passwordCard.editBtn.click());
-  await BrowserTestUtils.waitForCondition(
-    () => megalist.querySelector("login-form"),
-    "Login form failed to render"
-  );
+  await openEditLoginForm(megalist, getMegalistParent(), 0);
 
   info("Cancelling form.");
   const loginForm = megalist.querySelector("login-form");
@@ -172,11 +154,7 @@ add_task(async function test_update_login_discard_changes() {
   ok(true, "List view of logins is shown again");
 
   info("Try closing sidebar while editing a login");
-  await waitForReauth(() => passwordCard.editBtn.click());
-  await BrowserTestUtils.waitForCondition(
-    () => megalist.querySelector("login-form"),
-    "Login form failed to render"
-  );
+  await openEditLoginForm(megalist, getMegalistParent(), 0);
   SidebarController.hide();
   await waitForNotification(megalist, "discard-changes");
   ok(true, "Got discard changes notification when closing sidebar");

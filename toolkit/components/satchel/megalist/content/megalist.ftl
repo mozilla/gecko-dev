@@ -245,29 +245,6 @@ passwords-remove-login-card-remove-button = Remove
 # This message gives the user the option to cancel their attempt to remove a login.
 passwords-remove-login-card-cancel-button = Cancel
 
-passwords-alert-card =
-  .aria-label = Password alerts
-passwords-alert-back-button =
-  .label = Back
-passwords-alert-list =
-  .aria-label = Alert list
-
-passwords-breached-origin-heading-and-message =
-  .heading = Password change recommended
-  .message = Passwords from this website were reported stolen or leaked. Change your password to protect your account.
-passwords-breached-origin-link-message = How does { -brand-product-name } know about breaches?
-passwords-change-password-button = Change password
-
-passwords-vulnerable-password-heading-and-message =
-  .heading = Password change recommended
-  .message = This password is easily guessable. Change your password to protect your account.
-passwords-vulnerabe-password-link-message = How does { -brand-product-name } know about weak passwords?
-
-passwords-no-username-heading-and-message =
-  .heading = Add a username
-  .message = Add one to sign in faster.
-passwords-add-username-button = Add username
-
 ## Login Form
 
 passwords-create-label =
