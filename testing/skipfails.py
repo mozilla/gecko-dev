@@ -836,57 +836,23 @@ class Skipfails(object):
             )
             self._bzapi.update_bugs([id], updateinfo)
 
-    def skip_failure(
+    def generate_bugzilla_comment(
         self,
         manifest: str,
         kind: str,
         path: str,
         anyjs: Optional[Dict[str, bool]],
-        differences: list[int],
-        pixels: list[int],
         lineno: int,
-        status: str,
         label: str,
         classification: str,
         task_id: Optional[str],
         try_url: str,
         revision: str,
         repo: str,
+        skip_if: str,
+        filename: str,
         meta_bug_id: Optional[str] = None,
     ):
-        """
-        Skip a failure (for TOML, WPT and REFTEST manifests)
-        For wpt anyjs is a dictionary mapping from alternate basename to
-        a boolean (indicating if the basename has been handled in the manifest)
-        """
-
-        self.vinfo(f"\n\n===== Skip failure in manifest: {manifest} =====")
-        self.vinfo(f"    path: {path}")
-        if task_id is None:
-            skip_if = "true"
-        else:
-            skip_if = self.task_to_skip_if(manifest, task_id, kind, path)
-        if skip_if is None:
-            self.warning(
-                f"Unable to calculate skip-if condition from manifest={manifest} from failure label={label}"
-            )
-            return
-        filename = DEF
-        zero = False
-        if kind == Kind.TOML:
-            filename = self.get_filename_in_manifest(manifest.split(":")[-1], path)
-        elif kind == Kind.WPT:
-            _path, resolved_manifest, _query, _anyjs = self.wpt_paths(path)
-            if resolved_manifest:
-                manifest = resolved_manifest
-            filename = os.path.basename(path)
-        elif kind == Kind.LIST:
-            filename = path
-            if status == PASS:
-                self.info(f"Unexpected status: {status}")
-            if status == PASS or classification == Classification.DISABLE_INTERMITTENT:
-                zero = True  # refest lower ranges should include zero
-
         bug_reference = ""
         if classification == Classification.DISABLE_MANIFEST:
             comment = "Disabled entire manifest due to crash result"
@@ -981,8 +947,9 @@ class Skipfails(object):
                                     f"  Bug {bugid} already has the compressed log attached for this task"
                                 )
             else:
-                self.error(f'More than one bug found for summary: "{bug_summary}"')
-                return
+                raise ValueError(
+                    f'More than one bug found for summary: "{bug_summary}"'
+                )
         bug_reference = f"Bug {bugid}" + bug_reference
         extra = self.get_extra(task_id)
         json.dumps(extra)
@@ -992,9 +959,79 @@ class Skipfails(object):
             )
         else:
             comment += f"\nskip-if condition: {skip_if} # {bug_reference}"
+        return (comment, bug_reference, bugid, attachments)
+
+    def skip_failure(
+        self,
+        manifest: str,
+        kind: str,
+        path: str,
+        anyjs: Optional[Dict[str, bool]],
+        differences: list[int],
+        pixels: list[int],
+        lineno: int,
+        status: str,
+        label: str,
+        classification: str,
+        task_id: Optional[str],
+        try_url: str,
+        revision: str,
+        repo: str,
+        meta_bug_id: Optional[str] = None,
+    ):
+        """
+        Skip a failure (for TOML, WPT and REFTEST manifests)
+        For wpt anyjs is a dictionary mapping from alternate basename to
+        a boolean (indicating if the basename has been handled in the manifest)
+        """
+
+        self.vinfo(f"\n\n===== Skip failure in manifest: {manifest} =====")
+        self.vinfo(f"    path: {path}")
+        skip_if: Optional[str]
+        if task_id is None:
+            skip_if = "true"
+        else:
+            skip_if = self.task_to_skip_if(manifest, task_id, kind, path)
+        if skip_if is None:
+            self.warning(
+                f"Unable to calculate skip-if condition from manifest={manifest} from failure label={label}"
+            )
+            return
+        filename = DEF
+        zero = False
+        if kind == Kind.TOML:
+            filename = self.get_filename_in_manifest(manifest.split(":")[-1], path)
+        elif kind == Kind.WPT:
+            _path, resolved_manifest, _query, _anyjs = self.wpt_paths(path)
+            if resolved_manifest:
+                manifest = resolved_manifest
+            filename = os.path.basename(path)
+        elif kind == Kind.LIST:
+            filename = path
+            if status == PASS:
+                self.info(f"Unexpected status: {status}")
+            if status == PASS or classification == Classification.DISABLE_INTERMITTENT:
+                zero = True  # refest lower ranges should include zero
+
         manifest_path = self.full_path(manifest)
         manifest_str = ""
         additional_comment = ""
+        comment, bug_reference, bugid, attachments = self.generate_bugzilla_comment(
+            manifest,
+            kind,
+            path,
+            anyjs,
+            lineno,
+            label,
+            classification,
+            task_id,
+            try_url,
+            revision,
+            repo,
+            skip_if,
+            filename,
+            meta_bug_id,
+        )
         if kind == Kind.WPT:
             if os.path.exists(manifest_path):
                 manifest_str = io.open(manifest_path, "r", encoding="utf-8").read()
@@ -1307,7 +1344,9 @@ class Skipfails(object):
                     skip_if += aa + "useDrawSnapshot"
         return skip_if
 
-    def task_to_skip_if(self, manifest: str, task_id: str, kind: str, file_path: str):
+    def task_to_skip_if(
+        self, manifest: str, task_id: str, kind: str, file_path: str
+    ) -> str:
         """Calculate the skip-if condition for failing task task_id"""
 
         if kind == Kind.WPT:
