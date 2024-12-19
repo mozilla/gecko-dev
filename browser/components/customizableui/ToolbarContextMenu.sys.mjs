@@ -250,13 +250,8 @@ export var ToolbarContextMenu = {
       return;
     }
 
-    // fxms-bmb-button is a Firefox Messaging System Bookmarks bar button.
-    let removable = !toolbarItem?.classList?.contains("fxms-bmb-button");
     let movable =
-      toolbarItem?.id &&
-      removable &&
-      !toolbarItem?.classList?.contains("fxms-bmb-button") &&
-      lazy.CustomizableUI.isWidgetRemovable(toolbarItem);
+      toolbarItem?.id && lazy.CustomizableUI.isWidgetRemovable(toolbarItem);
     if (movable) {
       if (lazy.CustomizableUI.isSpecialWidget(toolbarItem.id)) {
         moveToPanel.setAttribute("disabled", true);
@@ -265,9 +260,7 @@ export var ToolbarContextMenu = {
       }
       removeFromToolbar.removeAttribute("disabled");
     } else {
-      if (removable) {
-        removeFromToolbar.setAttribute("disabled", true);
-      }
+      removeFromToolbar.setAttribute("disabled", true);
       moveToPanel.setAttribute("disabled", true);
     }
   },
