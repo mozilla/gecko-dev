@@ -481,8 +481,8 @@ body {
   -moz-window-dragging: inherit;
 }
 
+#fxms-bmb-button-wrapper,
 toolbarpaletteitem > #personal-bookmarks > #PlacesToolbar,
-toolbarpaletteitem:has(> toolbarbutton.fxms-bmb-button),
 #personal-bookmarks:is([overflowedItem=true], [cui-areatype="panel"]) > #PlacesToolbar {
   display: none;
 }

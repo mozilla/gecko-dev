@@ -17,9 +17,8 @@ export const BookmarksBarButton = {
   async showBookmarksBarButton(browser, message) {
     const { label, action, logo } = message.content;
     let { gBrowser } = browser.ownerGlobal;
-    const surfaceName = "fxms-bmb-button";
     const featureId = "fxms_bmb_button";
-    const widgetId = message.id;
+    const widgetId = "fxms-bmb-button";
     const supportedActions = ["OPEN_URL", "SET_PREF", "MULTI_ACTION"];
 
     const fxmsBookmarksBarBtn = {
@@ -42,8 +41,7 @@ export const BookmarksBarButton = {
         // This surface is for first-run experiments only
         // Once the button is removed by the user or experiment unenrollment, it cannot be added again
         lazy.NimbusFeatures[featureId].onUpdate(this.handleExperimentUpdate);
-
-        aNode.className = `bookmark-item chromeclass-toolbar-additional ${surfaceName}`;
+        aNode.className = `bookmark-item chromeclass-toolbar-additional`;
         if (logo?.imageURL) {
           aNode.style.listStyleImage = `url(${logo.imageURL})`;
         }

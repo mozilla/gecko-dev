@@ -14,7 +14,7 @@ const { ExperimentFakes } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
-const surfaceName = "fxms-bmb-button";
+const WIDGET_ID = "fxms-bmb-button";
 
 function getTestMessage() {
   return {
@@ -65,7 +65,6 @@ async function assertTelemetryScalars(expectedScalars) {
 
 add_task(async function showButton() {
   const message = getTestMessage();
-  const ID = message.id;
   const sandbox = sinon.createSandbox();
   const browser = gBrowser.selectedBrowser;
   const doc = document;
@@ -74,17 +73,17 @@ add_task(async function showButton() {
 
   info("WAITING TO SHOW BOOKMARKS BAR BUTTON");
 
-  ok(doc.querySelector(".fxms-bmb-button"), "Bookmarks Bar Button exists");
+  ok(doc.querySelector("#fxms-bmb-button"), "Bookmarks Bar Button exists");
 
   // Check Keyed Scalars for Telemetry
   const expectedScalars = {
-    "TEST-BMB-BAR-BUTTON_add_na_bookmarks-bar_create": 1,
-    "TEST-BMB-BAR-BUTTON_remove_bookmarks-bar_na_destroy": 1,
+    [`${WIDGET_ID}_add_na_bookmarks-bar_create`]: 1,
+    [`${WIDGET_ID}_remove_bookmarks-bar_na_destroy`]: 1,
   };
 
   assertTelemetryScalars(expectedScalars);
 
-  CustomizableUI.destroyWidget(ID);
+  CustomizableUI.destroyWidget(WIDGET_ID);
   await CustomizableUI.reset();
 
   sandbox.restore();
@@ -92,8 +91,7 @@ add_task(async function showButton() {
 
 add_task(async function clickButton() {
   const message = getTestMessage();
-  const Id2 = "TEST_BMB_BAR_BUTTON_2";
-  message.id = Id2;
+  message.id = "TEST_BMB_BAR_BUTTON_2";
   const sandbox = sinon.createSandbox();
   const browser = gBrowser.selectedBrowser;
   const doc = document;
@@ -103,38 +101,37 @@ add_task(async function clickButton() {
 
   info("WAITING TO SHOW BOOKMARKS BAR BUTTON");
 
-  ok(doc.querySelector(".fxms-bmb-button"), "Bookmarks Bar Button exists");
+  ok(doc.querySelector("#fxms-bmb-button"), "Bookmarks Bar Button exists");
 
-  doc.querySelector(".fxms-bmb-button").click();
+  doc.querySelector("#fxms-bmb-button").click();
 
   ok(
     handleActionStub.calledWith(message.content.action),
     "handleAction should be called with correct Args"
   );
-  ok(!doc.querySelector(".fxms-bmb-button"), "button should be removed");
+  ok(!doc.querySelector("#fxms-bmb-button"), "button should be removed");
 
   // Check Keyed Scalars for Telemetry
   const expectedClickScalars = {
     "browser.ui.customized_widgets": {
-      "TEST-BMB-BAR-BUTTON-2_remove_bookmarks-bar_na_destroy": 1,
-      "TEST-BMB-BAR-BUTTON-2_add_na_bookmarks-bar_create": 1,
+      [`${WIDGET_ID}_add_na_bookmarks-bar_create`]: 1,
+      [`${WIDGET_ID}_remove_bookmarks-bar_na_destroy`]: 2,
     },
     "browser.ui.interaction.bookmarks_bar": {
-      "TEST-BMB-BAR-BUTTON-2": 1,
+      [WIDGET_ID]: 1,
     },
   };
 
   assertTelemetryScalars(expectedClickScalars);
 
-  CustomizableUI.destroyWidget(Id2);
+  CustomizableUI.destroyWidget(WIDGET_ID);
   await CustomizableUI.reset();
   sandbox.restore();
 });
 
 add_task(async function supportedActionsOnly() {
   const message = getTestMessage();
-  const Id3 = "TEST_BMB_BAR_BUTTON_3";
-  message.id = Id3;
+  message.id = "TEST_BMB_BAR_BUTTON_3";
   message.content.action = {
     type: "MULTI_ACTION",
     navigate: true,
@@ -169,24 +166,23 @@ add_task(async function supportedActionsOnly() {
 
   info("WAITING TO SHOW BOOKMARKS BAR BUTTON");
 
-  ok(doc.querySelector(".fxms-bmb-button"), "Bookmarks Bar Button exists");
+  ok(doc.querySelector("#fxms-bmb-button"), "Bookmarks Bar Button exists");
 
-  doc.querySelector(".fxms-bmb-button").click();
+  doc.querySelector("#fxms-bmb-button").click();
 
   ok(
     handleActionStub.notCalled,
     "handleAction should not be called if invalid action type was provided"
   );
 
-  CustomizableUI.destroyWidget(Id3);
+  CustomizableUI.destroyWidget(WIDGET_ID);
   await CustomizableUI.reset();
   sandbox.restore();
 });
 
 add_task(async function customizableIconLogo() {
   const message = getTestMessage();
-  const Id4 = "TEST_BMB_BAR_BUTTON_4";
-  message.id = Id4;
+  message.id = "TEST_BMB_BAR_BUTTON_4";
   let iconUrl = "chrome://browser/content/callout-tab-pickup.svg";
   message.content.logo = {
     imageURL: iconUrl,
@@ -200,14 +196,14 @@ add_task(async function customizableIconLogo() {
 
   info("WAITING TO SHOW BOOKMARKS BAR BUTTON");
 
-  ok(doc.querySelector(".fxms-bmb-button"), "Bookmarks Bar Button exists");
+  ok(doc.querySelector("#fxms-bmb-button"), "Bookmarks Bar Button exists");
   Assert.strictEqual(
-    doc.querySelector(".fxms-bmb-button").style.listStyleImage,
+    doc.querySelector("#fxms-bmb-button").style.listStyleImage,
     'url("chrome://browser/content/callout-tab-pickup.svg")',
     `Should use customizable logo URL`
   );
 
-  CustomizableUI.destroyWidget(Id4);
+  CustomizableUI.destroyWidget(WIDGET_ID);
   await CustomizableUI.reset();
   sandbox.restore();
 });
@@ -217,7 +213,7 @@ add_task(async function test_bookmarks_bar_button_experiment_update() {
   const sandbox = sinon.createSandbox();
   const browser = gBrowser.selectedBrowser;
   const doc = document;
-  const buttonClass = ".fxms-bmb-button";
+  const buttonSelector = "#fxms-bmb-button";
 
   const message = getTestMessage();
 
@@ -229,14 +225,14 @@ add_task(async function test_bookmarks_bar_button_experiment_update() {
 
   // display the bookmarks bar button, and verify its presence
   await BookmarksBarButton.showBookmarksBarButton(browser, message);
-  ok(doc.querySelector(buttonClass), "Bookmarks Bar Button exists");
+  ok(doc.querySelector(buttonSelector), "Bookmarks Bar Button exists");
 
   // unenroll from the experiment
   cleanup();
 
   // wait for the button to be removed, and verify that it's gone
   await TestUtils.waitForCondition(
-    () => !doc.querySelector(buttonClass),
+    () => !doc.querySelector(buttonSelector),
     "Bookmarks Bar Button is removed after experiment is unenrolled"
   );
 
