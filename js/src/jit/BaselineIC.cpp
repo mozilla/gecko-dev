@@ -292,6 +292,8 @@ class MOZ_STATIC_CLASS OpToFallbackKindTable {
     setKind(JSOp::NewObject, BaselineICFallbackKind::NewObject);
     setKind(JSOp::NewInit, BaselineICFallbackKind::NewObject);
 
+    setKind(JSOp::Lambda, BaselineICFallbackKind::Lambda);
+
     setKind(JSOp::InitElem, BaselineICFallbackKind::SetElem);
     setKind(JSOp::InitHiddenElem, BaselineICFallbackKind::SetElem);
     setKind(JSOp::InitLockedElem, BaselineICFallbackKind::SetElem);
@@ -2569,6 +2571,41 @@ bool FallbackICCodeCompiler::emit_NewObject() {
   using Fn =
       bool (*)(JSContext*, BaselineFrame*, ICFallbackStub*, MutableHandleValue);
   return tailCallVM<Fn, DoNewObjectFallback>(masm);
+}
+
+//
+// Lambda_Fallback
+//
+
+bool DoLambdaFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
+                      MutableHandleValue res) {
+  stub->incrementEnteredCount();
+  MaybeNotifyWarp(frame->outerScript(), stub);
+  FallbackICSpew(cx, stub, "Lambda");
+
+  jsbytecode* pc = StubOffsetToPc(stub, frame->script());
+
+  Rooted<JSFunction*> fun(cx, frame->script()->getFunction(pc));
+  Rooted<JSObject*> env(cx, frame->environmentChain());
+
+  JSObject* clone = Lambda(cx, fun, env);
+  if (!clone) {
+    return false;
+  }
+
+  res.setObject(*clone);
+  return true;
+}
+
+bool FallbackICCodeCompiler::emit_Lambda() {
+  EmitRestoreTailCallReg(masm);
+
+  masm.push(ICStubReg);
+  masm.pushBaselineFramePtr(FramePointer, R0.scratchReg());
+
+  using Fn =
+      bool (*)(JSContext*, BaselineFrame*, ICFallbackStub*, MutableHandleValue);
+  return tailCallVM<Fn, DoLambdaFallback>(masm);
 }
 
 //

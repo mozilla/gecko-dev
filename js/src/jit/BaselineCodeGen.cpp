@@ -2622,20 +2622,12 @@ UNSUPPORTED_OPCODE(FinishTuple)
 
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_Lambda() {
-  prepareVMCall();
-  masm.loadPtr(frame.addressOfEnvironmentChain(), R0.scratchReg());
+  frame.syncStack(0);
 
-  pushArg(R0.scratchReg());
-  pushScriptGCThingArg(ScriptGCThingType::Function, R0.scratchReg(),
-                       R1.scratchReg());
-
-  using Fn = JSObject* (*)(JSContext*, HandleFunction, HandleObject);
-  if (!callVM<Fn, js::Lambda>()) {
+  if (!emitNextIC()) {
     return false;
   }
 
-  // Box and push return value.
-  masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
   frame.push(R0);
   return true;
 }

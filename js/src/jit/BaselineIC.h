@@ -445,6 +445,9 @@ extern bool DoNewArrayFallback(JSContext* cx, BaselineFrame* frame,
 extern bool DoNewObjectFallback(JSContext* cx, BaselineFrame* frame,
                                 ICFallbackStub* stub, MutableHandleValue res);
 
+extern bool DoLambdaFallback(JSContext* cx, BaselineFrame* frame,
+                             ICFallbackStub* stub, MutableHandleValue res);
+
 extern bool DoCompareFallback(JSContext* cx, BaselineFrame* frame,
                               ICFallbackStub* stub, HandleValue lhs,
                               HandleValue rhs, MutableHandleValue ret);

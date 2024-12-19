@@ -109,6 +109,7 @@ size_t js::jit::NumInputsForCacheKind(CacheKind kind) {
   switch (kind) {
     case CacheKind::NewArray:
     case CacheKind::NewObject:
+    case CacheKind::Lambda:
     case CacheKind::LazyConstant:
       return 0;
     case CacheKind::GetProp:

@@ -5727,6 +5727,13 @@ DEFINE_IC(NewArray, 0, {
   }
 });
 
+DEFINE_IC(Lambda, 0, {
+  PUSH_FALLBACK_IC_FRAME();
+  if (!DoLambdaFallback(cx, ctx.frame, fallback, &ctx.state.res)) {
+    goto error;
+  }
+});
+
 DEFINE_IC(LazyConstant, 0, {
   PUSH_FALLBACK_IC_FRAME();
   if (!DoLazyConstantFallback(cx, ctx.frame, fallback, &ctx.state.res)) {
@@ -7667,22 +7674,29 @@ PBIResult PortableBaselineInterpret(
       }
 
       CASE(Lambda) {
-        {
-          ReservedRooted<JSFunction*> fun0(&state.fun0,
-                                           frame->script()->getFunction(pc));
-          ReservedRooted<JSObject*> obj0(&state.obj0,
-                                         frame->environmentChain());
-          JSObject* res;
+        if (HybridICs) {
+          JSObject* clone;
           {
             PUSH_EXIT_FRAME();
-            res = js::Lambda(cx, fun0, obj0);
-            if (!res) {
+            ReservedRooted<JSFunction*> fun0(&state.fun0,
+                                             frame->script()->getFunction(pc));
+            ReservedRooted<JSObject*> obj0(&state.obj0,
+                                           frame->environmentChain());
+            clone = Lambda(cx, fun0, obj0);
+            if (!clone) {
               GOTO_ERROR();
             }
           }
-          VIRTPUSH(StackVal(ObjectValue(*res)));
+          VIRTPUSH(StackVal(ObjectValue(*clone)));
+          NEXT_IC();
+          END_OP(Lambda);
+        } else {
+          IC_ZERO_ARG(0);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC_AND_PUSH(Lambda, false);
+          END_OP(Lambda);
         }
-        END_OP(Lambda);
       }
 
       CASE(SetFunName) {

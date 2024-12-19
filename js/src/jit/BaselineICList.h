@@ -15,6 +15,7 @@ namespace jit {
 #define IC_BASELINE_FALLBACK_CODE_KIND_LIST(_) \
   _(NewArray)                                  \
   _(NewObject)                                 \
+  _(Lambda)                                    \
   _(ToBool)                                    \
   _(UnaryArith)                                \
   _(Call)                                      \
