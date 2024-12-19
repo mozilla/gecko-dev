@@ -14413,6 +14413,13 @@
   value: ""
   mirror: never
 
+# This is only used for testing. When true, nsHttpChannel::mPeerAddr will be
+# overridden with the address provided by DNS prefetch.
+- name: network.dns.use_override_as_peer_address
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Whether to add additional record IPs to the cache
 - name: network.trr.add_additional_records
   type: RelaxedAtomicBool
@@ -14626,13 +14633,6 @@
 
 # Cached state of parental controls (enabled/disabled)
 - name: network.parental_controls_cached_state
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
-# Used for testing purposes only. When true, it attaches an extra networking
-# layer to simulate different network scenarios.
-- name: network.socket.attach_mock_network_layer
   type: RelaxedAtomicBool
   value: false
   mirror: always

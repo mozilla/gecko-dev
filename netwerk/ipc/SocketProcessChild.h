@@ -156,10 +156,6 @@ class SocketProcessChild final : public PSocketProcessChild {
   already_AddRefed<psm::IPCClientCertsChild> GetIPCClientCertsActor();
   void CloseIPCClientCertsActor();
 
-  mozilla::ipc::IPCResult RecvAddNetAddrOverride(const NetAddr& aFrom,
-                                                 const NetAddr& aTo);
-  mozilla::ipc::IPCResult RecvClearNetAddrOverrides();
-
  protected:
   friend class SocketProcessImpl;
   ~SocketProcessChild();

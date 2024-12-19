@@ -44,7 +44,6 @@ using struct nsID from "nsID.h";
 using mozilla::net::SocketInfo from "mozilla/net/DashboardTypes.h";
 using mozilla::net::DNSCacheEntries from "mozilla/net/DashboardTypes.h";
 using mozilla::net::HttpRetParams from "mozilla/net/DashboardTypes.h";
-using mozilla::net::NetAddr from "mozilla/net/DNS.h";
 using nsIDNSService::DNSFlags from "nsIDNSService.h";
 
 #if defined(XP_WIN)
@@ -212,9 +211,6 @@ child:
   */
   async UnblockUntrustedModulesThread();
 #endif  // defined(XP_WIN)
-
-  async AddNetAddrOverride(NetAddr aFrom, NetAddr aTo);
-  async ClearNetAddrOverrides();
 
 both:
   async PDNSRequest(nsCString hostName, nsCString trrServer, int32_t port,

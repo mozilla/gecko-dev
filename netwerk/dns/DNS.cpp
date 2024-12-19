@@ -148,12 +148,6 @@ nsCString NetAddr::ToString() const {
   return ""_ns;
 }
 
-void NetAddr::ToAddrPortString(nsACString& aOutput) const {
-  uint16_t port = 0;
-  GetPort(&port);
-  aOutput.Assign(nsPrintfCString("%s:%d", ToString().get(), port));
-}
-
 bool NetAddr::IsLoopbackAddr() const {
   if (IsLoopBackAddressWithoutIPv6Mapping()) {
     return true;
