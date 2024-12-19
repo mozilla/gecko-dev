@@ -17,6 +17,20 @@ def test_main():
         main(["--help"])
 
 
+@mock.patch("mozperftest.PerftestArgumentParser.parse_args")
+def test_main_perf_flags(mocked_argparser, set_perf_flags):
+    mocked_parse_args = mock.MagicMock()
+    mocked_argparser.return_value = mocked_parse_args
+    with mock.patch(
+        "mozperftest.runner._activate_virtualenvs", return_value="fake_path"
+    ) as _, mock.patch(
+        "mozperftest.runner.run_tests", return_value="fake_path"
+    ) as _, silence():
+        main([""])
+
+    assert "--gecko-profile" in mocked_argparser.call_args[1]["args"]
+
+
 def test_tools():
     with mock.patch(
         "mozperftest.runner._activate_virtualenvs", return_value="fake_path"

@@ -150,3 +150,8 @@ def perftestetl_plugin():
     yield ret
 
     del os.environ["PERFTESTETL_PLUGIN"]
+
+
+@pytest.fixture
+def set_perf_flags(monkeypatch):
+    monkeypatch.setenv("PERF_FLAGS", "gecko-profile")
