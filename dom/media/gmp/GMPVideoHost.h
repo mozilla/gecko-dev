@@ -31,6 +31,10 @@ class GMPVideoHostImpl : public GMPVideoHost {
   void DecodedFrameCreated(GMPVideoi420FrameImpl* aDecodedFrame);
   void DecodedFrameDestroyed(GMPVideoi420FrameImpl* aFrame);
 
+  bool IsEncodedFramesEmpty() const { return mEncodedFrames.IsEmpty(); }
+
+  bool IsDecodedFramesEmpty() const { return mDecodedFrames.IsEmpty(); }
+
   // GMPVideoHost
   GMPErr CreateFrame(GMPVideoFrameFormat aFormat,
                      GMPVideoFrame** aFrame) override;

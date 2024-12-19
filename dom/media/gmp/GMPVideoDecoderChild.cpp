@@ -8,6 +8,8 @@
 #include "GMPContentChild.h"
 #include <stdio.h>
 #include "mozilla/Unused.h"
+#include "mozilla/StaticPrefs_media.h"
+#include "GMPPlatform.h"
 #include "GMPVideoEncodedFrameImpl.h"
 #include "runnable_utils.h"
 
@@ -100,6 +102,9 @@ void GMPVideoDecoderChild::InputDataExhausted() {
 }
 
 void GMPVideoDecoderChild::DrainComplete() {
+  MOZ_ASSERT(mOutstandingDrain, "DrainComplete without Drain!");
+  mOutstandingDrain = false;
+
   if (NS_WARN_IF(!mPlugin)) {
     return;
   }
@@ -110,6 +115,9 @@ void GMPVideoDecoderChild::DrainComplete() {
 }
 
 void GMPVideoDecoderChild::ResetComplete() {
+  MOZ_ASSERT(mOutstandingReset, "ResetComplete without Reset!");
+  mOutstandingReset = false;
+
   if (NS_WARN_IF(!mPlugin)) {
     return;
   }
@@ -179,8 +187,14 @@ mozilla::ipc::IPCResult GMPVideoDecoderChild::RecvReset() {
     return IPC_FAIL(this, "!mVideoDecoder");
   }
 
+  if (mOutstandingReset) {
+    MOZ_ASSERT_UNREACHABLE("Already has outstanding reset!");
+    return IPC_OK();
+  }
+
   // Ignore any return code. It is OK for this to fail without killing the
   // process.
+  mOutstandingReset = true;
   mVideoDecoder->Reset();
 
   return IPC_OK();
@@ -191,14 +205,33 @@ mozilla::ipc::IPCResult GMPVideoDecoderChild::RecvDrain() {
     return IPC_FAIL(this, "!mVideoDecoder");
   }
 
+  if (mOutstandingDrain) {
+    MOZ_ASSERT_UNREACHABLE("Already has outstanding drain!");
+    return IPC_OK();
+  }
+
   // Ignore any return code. It is OK for this to fail without killing the
   // process.
+  mOutstandingDrain = true;
   mVideoDecoder->Drain();
 
   return IPC_OK();
 }
 
 void GMPVideoDecoderChild::ActorDestroy(ActorDestroyReason why) {
+  // If there are no encoded frames, then we know that OpenH264 has destroyed
+  // any outstanding references to its pending decode frames. This means it
+  // should be safe to destroy the decoder since there should not be any pending
+  // sync callbacks.
+  if (!SpinPendingGmpEventsUntil(
+          [&]() -> bool {
+            return mOutstandingDrain || mOutstandingReset ||
+                   mVideoHost.IsEncodedFramesEmpty();
+          },
+          StaticPrefs::media_gmp_coder_shutdown_timeout_ms())) {
+    NS_WARNING("Timed out waiting for synchronous events!");
+  }
+
   if (mVideoDecoder) {
     // Ignore any return code. It is OK for this to fail without killing the
     // process.
