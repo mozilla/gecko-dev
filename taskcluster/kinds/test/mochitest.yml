@@ -233,6 +233,7 @@ mochitest-browser-chrome:
         - socketprocess_networking
         - msix
         - os-integration
+        - vertical-tabs
     run-on-projects:
         by-variant:
             os-integration: []  # this variant only runs as a cron task
@@ -260,6 +261,12 @@ mochitest-browser-chrome:
                     windows11-64-2009-qr/debug: built-projects
                     windows11-64-2009(-shippable)?-qr/opt: built-projects
                     default: []
+            vertical-tabs:
+                by-test-platform:
+                    .*asan.*: []
+                    .*ccov.*: []
+                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    default: []
             default:
                 by-test-platform:
                     android.*: []
@@ -279,6 +286,7 @@ mochitest-browser-chrome:
                 by-test-platform:
                     .*/debug: 16
                     default: 7
+            vertical-tabs: dynamic
             default:
                 by-test-platform:
                     linux.*-qr/debug: 16
