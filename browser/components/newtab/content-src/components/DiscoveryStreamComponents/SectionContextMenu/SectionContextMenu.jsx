@@ -20,6 +20,7 @@ export function SectionContextMenu({
   sectionKey,
   following,
   followedSections,
+  blockedSections,
   section,
   sectionPosition,
 }) {
@@ -59,6 +60,7 @@ export function SectionContextMenu({
           shouldSendImpressionStats={true}
           site={{
             followedSections,
+            blockedSections,
             section,
             sectionKey,
             sectionPosition,

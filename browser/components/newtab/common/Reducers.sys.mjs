@@ -342,6 +342,9 @@ function Dialog(prevState = INITIAL_STATE.Dialog, action) {
       return Object.assign({}, prevState, { visible: false });
     case at.DELETE_HISTORY_URL:
       return Object.assign({}, INITIAL_STATE.Dialog);
+    case at.BLOCK_SECTION:
+      // Reset and hide the confirmation dialog once the action is complete.
+      return Object.assign({}, INITIAL_STATE.Dialog);
     default:
       return prevState;
   }
@@ -885,6 +888,12 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
       return {
         ...prevState,
         showTopicSelection: false,
+      };
+    case at.SECTION_BLOCKED:
+      return {
+        ...prevState,
+        showBlockSectionConfirmation: true,
+        sectionData: action.data,
       };
     default:
       return prevState;

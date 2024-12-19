@@ -19,6 +19,7 @@ const PREF_SECTIONS_PERSONALIZATION_ENABLED =
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
 const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
+const PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocked";
 const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 
@@ -56,6 +57,20 @@ function getMaxTiles(responsiveLayouts) {
     }, {});
 }
 
+/**
+ * Transforms a comma-separated string of topics in user preferences
+ * into a cleaned-up array.
+ *
+ * @param pref
+ * @returns string[]
+ */
+const getTopics = pref => {
+  return pref
+    .split(",")
+    .map(item => item.trim())
+    .filter(item => item);
+};
+
 function CardSection({
   sectionPosition,
   section,
@@ -76,6 +91,7 @@ function CardSection({
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
   const followedSectionsPref = prefs[PREF_FOLLOWED_SECTIONS] || "";
+  const blockedSectionsPref = prefs[PREF_BLOCKED_SECTIONS] || "";
 
   const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
   const mayHaveSectionsPersonalization =
@@ -84,11 +100,9 @@ function CardSection({
   const { sectionKey, title, subtitle } = section;
   const { responsiveLayouts } = section.layout;
 
-  const followedSections = followedSectionsPref
-    .split(",")
-    .map(s => s.trim())
-    .filter(item => item);
+  const followedSections = getTopics(followedSectionsPref);
   const following = followedSections.includes(sectionKey);
+  const blockedSections = getTopics(blockedSectionsPref);
 
   const handleIntersection = useCallback(() => {
     dispatch(
@@ -189,6 +203,7 @@ function CardSection({
         index={sectionPosition}
         following={following}
         followedSections={followedSections}
+        blockedSections={blockedSections}
         sectionKey={sectionKey}
         title={title}
         type={type}
@@ -287,11 +302,21 @@ function CardSections({
   ctaButtonVariant,
   ctaButtonSponsors,
 }) {
+  const prefs = useSelector(state => state.Prefs.values);
+
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
     return null;
   }
-  const { sections } = data;
+
+  // Retrieve blocked sections
+  const blockedSections = getTopics(prefs[PREF_BLOCKED_SECTIONS] || "");
+
+  // Only show sections that haven't been blocked by the user
+  const sections = data.sections.filter(
+    section => !blockedSections.includes(section.sectionKey)
+  );
+
   const isEmpty = sections.length === 0;
 
   return isEmpty ? (

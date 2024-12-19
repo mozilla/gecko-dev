@@ -421,11 +421,48 @@ export const LinkMenuOptions = {
       type: at.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: ({ section, sectionPosition }) => ({
+  SectionBlock: ({
+    blockedSections,
+    sectionKey,
+    section,
+    sectionPosition,
+  }) => ({
     id: "newtab-menu-section-block",
-    // Note: Action TBA. It will send a list of blocked sections back to the API.
-    // TODO: Move current action (at.BLOCK_SECTION) to impression event when action is no longer TBA
-    action: ac.OnlyToMain({
+    icon: "delete",
+    action: {
+      // Open the confirmation dialog to block a section.
+      type: at.DIALOG_OPEN,
+      data: {
+        onConfirm: [
+          // Once the user confirmed their intention to block this section,
+          // update their preferences.
+          ac.AlsoToMain({
+            type: at.SET_PREF,
+            data: {
+              name: "discoverystream.sections.blocked",
+              value: [...blockedSections, sectionKey].join(", "),
+            },
+          }),
+          // Also broadcast that this section has been blocked so that
+          // the confirmation dialog knows it needs to disappear now.
+          ac.AlsoToMain({
+            type: at.BLOCK_SECTION,
+            data: null,
+          }),
+        ],
+        // Pass Fluent strings to ConfirmDialog component for the copy
+        // of the prompt to block sections.
+        body_string_id: [
+          "newtab-section-confirm-block-section-p1",
+          "newtab-section-confirm-block-section-p2",
+        ],
+        confirm_button_string_id: "newtab-section-block-section-button",
+        cancel_button_string_id: "newtab-section-cancel-button",
+      },
+    },
+    userEvent: "DIALOG_OPEN",
+    // Telemetry
+    impression: ac.OnlyToMain({
       type: at.BLOCK_SECTION,
       data: {
         section,
