@@ -153,7 +153,7 @@
 
       .line2-label {
         padding-top: 2px !important;
-        opacity: .6;
+        color: var(--text-color-deemphasized);
       }
     }
   }
@@ -162,7 +162,7 @@
   &[originaltype="importableLearnMore"] > .ac-title,
   > .two-line-wrapper > .labels-wrapper > .line2-label {
     padding-top: 2px !important;
-    opacity: .6;
+    color: var(--text-color-deemphasized);
   }
 
   /* Login form autocompletion (with and without origin showing) and generated passwords */
