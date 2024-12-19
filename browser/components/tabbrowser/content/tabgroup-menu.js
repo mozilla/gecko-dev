@@ -97,7 +97,7 @@
       });
 
       this.#createButton.addEventListener("click", () => {
-        this.#panel.hidePopup();
+        this.close();
       });
 
       this.#nameField.addEventListener("input", () => {
@@ -172,10 +172,6 @@
       this.#swatches = [];
     }
 
-    get activeGroup() {
-      return this.#activeGroup;
-    }
-
     get createMode() {
       return this.#createMode;
     }
@@ -183,6 +179,10 @@
     set createMode(mode) {
       this.#panel.classList.toggle("tab-group-editor-mode-create", mode);
       this.#createMode = mode;
+    }
+
+    get activeGroup() {
+      return this.#activeGroup;
     }
 
     set activeGroup(group = null) {
@@ -246,6 +246,10 @@
         gBrowser.openTabs.length == this.activeGroup?.tabs.length;
     }
 
+    close() {
+      this.#panel.hidePopup();
+    }
+
     on_popupshown() {
       this.#nameField.focus();
     }
@@ -256,7 +260,7 @@
 
     on_keypress(event) {
       if (event.keyCode == KeyEvent.DOM_VK_RETURN) {
-        this.#panel.hidePopup();
+        this.close();
       }
     }
 
@@ -274,14 +278,14 @@
 
     #handleCancel() {
       this.activeGroup.ungroupTabs();
-      this.#panel.hidePopup();
+      this.close();
     }
 
     async #handleNewTabInGroup() {
       let lastTab = this.activeGroup?.tabs.at(-1);
       let onTabOpened = async aEvent => {
         this.activeGroup?.addTabs([aEvent.target]);
-        this.#panel.hidePopup();
+        this.close();
         window.removeEventListener("TabOpen", onTabOpened);
       };
       window.addEventListener("TabOpen", onTabOpened);

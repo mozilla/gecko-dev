@@ -227,6 +227,7 @@
       if (event.target === this.#labelElement && event.button === 0) {
         event.preventDefault();
         this.collapsed = !this.collapsed;
+        gBrowser.tabGroupMenu.close();
       }
     }
 
