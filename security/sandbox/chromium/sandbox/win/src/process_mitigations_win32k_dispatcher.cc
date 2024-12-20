@@ -158,6 +158,14 @@ bool ProcessMitigationsWin32KDispatcher::SetupService(
       return true;
     }
 
+    case IpcTag::USER_GETFOREGROUNDWINDOW: {
+      if (!INTERCEPT_EAT(manager, L"user32.dll", GetForegroundWindow,
+                         GETFOREGROUNDWINDOW_ID, 4)) {
+        return false;
+      }
+      return true;
+    }
+
     case IpcTag::USER_REGISTERCLASSW: {
       if (!INTERCEPT_EAT(manager, L"user32.dll", RegisterClassW,
                          REGISTERCLASSW_ID, 8)) {

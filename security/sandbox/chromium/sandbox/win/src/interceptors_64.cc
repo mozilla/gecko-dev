@@ -354,6 +354,13 @@ SANDBOX_INTERCEPT HGDIOBJ WINAPI TargetGetStockObject64(int object) {
   return TargetGetStockObject(orig_fn, object);
 }
 
+SANDBOX_INTERCEPT HWND WINAPI TargetGetForegroundWindow64() {
+  GetForegroundWindowFunction orig_fn =
+      reinterpret_cast<GetForegroundWindowFunction>(
+          g_originals[GETFOREGROUNDWINDOW_ID]);
+  return TargetGetForegroundWindow(orig_fn);
+}
+
 SANDBOX_INTERCEPT ATOM WINAPI
 TargetRegisterClassW64(const WNDCLASS* wnd_class) {
   RegisterClassWFunction orig_fn =

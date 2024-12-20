@@ -94,6 +94,10 @@ TargetGetStockObject(GetStockObjectFunction orig_get_stock_object, int object) {
   return nullptr;
 }
 
+HWND WINAPI TargetGetForegroundWindow(GetForegroundWindowFunction) {
+  return nullptr;
+}
+
 ATOM WINAPI
 TargetRegisterClassW(RegisterClassWFunction orig_register_class_function,
                      const WNDCLASS* wnd_class) {

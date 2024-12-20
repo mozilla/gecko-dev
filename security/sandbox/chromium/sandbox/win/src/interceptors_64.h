@@ -237,6 +237,9 @@ SANDBOX_INTERCEPT BOOL WINAPI TargetGdiDllInitialize64(HANDLE dll,
 // Interceptor for the GetStockObject function.
 SANDBOX_INTERCEPT HGDIOBJ WINAPI TargetGetStockObject64(int object);
 
+// Interceptor for the GetForegroundWindow function.
+SANDBOX_INTERCEPT HWND WINAPI TargetGetForegroundWindow64();
+
 // Interceptor for the RegisterClassW function.
 SANDBOX_INTERCEPT ATOM WINAPI TargetRegisterClassW64(const WNDCLASS* wnd_class);
 

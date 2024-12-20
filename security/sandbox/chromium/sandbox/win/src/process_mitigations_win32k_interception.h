@@ -26,6 +26,8 @@ typedef BOOL(WINAPI* GdiDllInitializeFunction)(HANDLE dll,
 
 using GetStockObjectFunction = decltype(&::GetStockObject);
 
+using GetForegroundWindowFunction = decltype(&::GetForegroundWindow);
+
 using RegisterClassWFunction = decltype(&::RegisterClassW);
 
 using EnumDisplayMonitorsFunction = decltype(&::EnumDisplayMonitors);
@@ -46,6 +48,10 @@ TargetGdiDllInitialize(GdiDllInitializeFunction orig_gdi_dll_initialize,
 // Interceptor for the GetStockObject function.
 SANDBOX_INTERCEPT HGDIOBJ WINAPI
 TargetGetStockObject(GetStockObjectFunction orig_get_stock_object, int object);
+
+// Interceptor for the GetForegroundWindow function.
+SANDBOX_INTERCEPT HWND WINAPI TargetGetForegroundWindow(
+    GetForegroundWindowFunction orig_get_foreground_window_function);
 
 // Interceptor for the RegisterClassW function.
 SANDBOX_INTERCEPT ATOM WINAPI

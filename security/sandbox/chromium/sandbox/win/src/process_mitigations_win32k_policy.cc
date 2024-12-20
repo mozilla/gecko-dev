@@ -147,6 +147,8 @@ bool ProcessMitigationsWin32KLockdownPolicy::GenerateRules(
     return false;
   if (!policy->AddRule(IpcTag::GDI_GETSTOCKOBJECT, &rule))
     return false;
+  if (!policy->AddRule(IpcTag::USER_GETFOREGROUNDWINDOW, &rule))
+    return false;
   if (!policy->AddRule(IpcTag::USER_REGISTERCLASSW, &rule))
     return false;
   if (semantics != TargetPolicy::IMPLEMENT_OPM_APIS)

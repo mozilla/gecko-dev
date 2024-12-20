@@ -1,0 +1,148 @@
+# HG changeset patch
+# User Yannis Juglaret <yjuglaret@mozilla.com>
+# Date 1734638407 -3600
+#      Thu Dec 19 21:00:07 2024 +0100
+# Node ID 901556f3fb389b6c9efc4c52fc96c5261baa0925
+# Parent  2274b27452bb4f5ae65f6c7fd346adbc5efca700
+Bug 1937798 - Nullify GetForegroundWindow in win32k locked-down processes. r=bobowen
+
+Starting with Windows 11 24H2, calling GetForegroundWindow from
+user32.dll in a win32k locked-down Firefox process causes crashes. We
+have observed this as third-party injected DLLs call this function. We
+can leverage the sandbox interceptors to nullify GetForegroundWindow
+just in win32k locked-down processes, where user32.dll functionality is
+obviously very limited anyway.
+
+Differential Revision: https://phabricator.services.mozilla.com/D232669
+
+diff --git a/security/sandbox/chromium/sandbox/win/src/interceptors.h b/security/sandbox/chromium/sandbox/win/src/interceptors.h
+--- a/security/sandbox/chromium/sandbox/win/src/interceptors.h
++++ b/security/sandbox/chromium/sandbox/win/src/interceptors.h
+@@ -46,6 +46,7 @@ enum InterceptorId {
+   // Process mitigations Win32k dispatcher:
+   GDIINITIALIZE_ID,
+   GETSTOCKOBJECT_ID,
++  GETFOREGROUNDWINDOW_ID,
+   REGISTERCLASSW_ID,
+   ENUMDISPLAYMONITORS_ID,
+   ENUMDISPLAYDEVICESA_ID,
+diff --git a/security/sandbox/chromium/sandbox/win/src/interceptors_64.cc b/security/sandbox/chromium/sandbox/win/src/interceptors_64.cc
+--- a/security/sandbox/chromium/sandbox/win/src/interceptors_64.cc
++++ b/security/sandbox/chromium/sandbox/win/src/interceptors_64.cc
+@@ -354,6 +354,13 @@ SANDBOX_INTERCEPT HGDIOBJ WINAPI TargetG
+   return TargetGetStockObject(orig_fn, object);
+ }
+ 
++SANDBOX_INTERCEPT HWND WINAPI TargetGetForegroundWindow64() {
++  GetForegroundWindowFunction orig_fn =
++      reinterpret_cast<GetForegroundWindowFunction>(
++          g_originals[GETFOREGROUNDWINDOW_ID]);
++  return TargetGetForegroundWindow(orig_fn);
++}
++
+ SANDBOX_INTERCEPT ATOM WINAPI
+ TargetRegisterClassW64(const WNDCLASS* wnd_class) {
+   RegisterClassWFunction orig_fn =
+diff --git a/security/sandbox/chromium/sandbox/win/src/interceptors_64.h b/security/sandbox/chromium/sandbox/win/src/interceptors_64.h
+--- a/security/sandbox/chromium/sandbox/win/src/interceptors_64.h
++++ b/security/sandbox/chromium/sandbox/win/src/interceptors_64.h
+@@ -237,6 +237,9 @@ SANDBOX_INTERCEPT BOOL WINAPI TargetGdiD
+ // Interceptor for the GetStockObject function.
+ SANDBOX_INTERCEPT HGDIOBJ WINAPI TargetGetStockObject64(int object);
+ 
++// Interceptor for the GetForegroundWindow function.
++SANDBOX_INTERCEPT HWND WINAPI TargetGetForegroundWindow64();
++
+ // Interceptor for the RegisterClassW function.
+ SANDBOX_INTERCEPT ATOM WINAPI TargetRegisterClassW64(const WNDCLASS* wnd_class);
+ 
+diff --git a/security/sandbox/chromium/sandbox/win/src/ipc_tags.h b/security/sandbox/chromium/sandbox/win/src/ipc_tags.h
+--- a/security/sandbox/chromium/sandbox/win/src/ipc_tags.h
++++ b/security/sandbox/chromium/sandbox/win/src/ipc_tags.h
+@@ -30,6 +30,7 @@ enum class IpcTag {
+   NTOPENKEY,
+   GDI_GDIDLLINITIALIZE,
+   GDI_GETSTOCKOBJECT,
++  USER_GETFOREGROUNDWINDOW,
+   USER_REGISTERCLASSW,
+   CREATETHREAD,
+   USER_ENUMDISPLAYMONITORS,
+diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_dispatcher.cc b/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_dispatcher.cc
+--- a/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_dispatcher.cc
++++ b/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_dispatcher.cc
+@@ -158,6 +158,14 @@ bool ProcessMitigationsWin32KDispatcher:
+       return true;
+     }
+ 
++    case IpcTag::USER_GETFOREGROUNDWINDOW: {
++      if (!INTERCEPT_EAT(manager, L"user32.dll", GetForegroundWindow,
++                         GETFOREGROUNDWINDOW_ID, 4)) {
++        return false;
++      }
++      return true;
++    }
++
+     case IpcTag::USER_REGISTERCLASSW: {
+       if (!INTERCEPT_EAT(manager, L"user32.dll", RegisterClassW,
+                          REGISTERCLASSW_ID, 8)) {
+diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_interception.cc b/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_interception.cc
+--- a/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_interception.cc
++++ b/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_interception.cc
+@@ -94,6 +94,10 @@ TargetGetStockObject(GetStockObjectFunct
+   return nullptr;
+ }
+ 
++HWND WINAPI TargetGetForegroundWindow(GetForegroundWindowFunction) {
++  return nullptr;
++}
++
+ ATOM WINAPI
+ TargetRegisterClassW(RegisterClassWFunction orig_register_class_function,
+                      const WNDCLASS* wnd_class) {
+diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_interception.h b/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_interception.h
+--- a/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_interception.h
++++ b/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_interception.h
+@@ -26,6 +26,8 @@ typedef BOOL(WINAPI* GdiDllInitializeFun
+ 
+ using GetStockObjectFunction = decltype(&::GetStockObject);
+ 
++using GetForegroundWindowFunction = decltype(&::GetForegroundWindow);
++
+ using RegisterClassWFunction = decltype(&::RegisterClassW);
+ 
+ using EnumDisplayMonitorsFunction = decltype(&::EnumDisplayMonitors);
+@@ -47,6 +49,10 @@ TargetGdiDllInitialize(GdiDllInitializeF
+ SANDBOX_INTERCEPT HGDIOBJ WINAPI
+ TargetGetStockObject(GetStockObjectFunction orig_get_stock_object, int object);
+ 
++// Interceptor for the GetForegroundWindow function.
++SANDBOX_INTERCEPT HWND WINAPI TargetGetForegroundWindow(
++    GetForegroundWindowFunction orig_get_foreground_window_function);
++
+ // Interceptor for the RegisterClassW function.
+ SANDBOX_INTERCEPT ATOM WINAPI
+ TargetRegisterClassW(RegisterClassWFunction orig_register_class_function,
+diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_policy.cc b/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_policy.cc
+--- a/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_policy.cc
++++ b/security/sandbox/chromium/sandbox/win/src/process_mitigations_win32k_policy.cc
+@@ -147,6 +147,8 @@ bool ProcessMitigationsWin32KLockdownPol
+     return false;
+   if (!policy->AddRule(IpcTag::GDI_GETSTOCKOBJECT, &rule))
+     return false;
++  if (!policy->AddRule(IpcTag::USER_GETFOREGROUNDWINDOW, &rule))
++    return false;
+   if (!policy->AddRule(IpcTag::USER_REGISTERCLASSW, &rule))
+     return false;
+   if (semantics != TargetPolicy::IMPLEMENT_OPM_APIS)
+diff --git a/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc b/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc
+--- a/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc
++++ b/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc
+@@ -64,6 +64,8 @@ TopLevelDispatcher::TopLevelDispatcher(P
+   dispatcher = new ProcessMitigationsWin32KDispatcher(policy_);
+   ipc_targets_[static_cast<size_t>(IpcTag::GDI_GDIDLLINITIALIZE)] = dispatcher;
+   ipc_targets_[static_cast<size_t>(IpcTag::GDI_GETSTOCKOBJECT)] = dispatcher;
++  ipc_targets_[static_cast<size_t>(IpcTag::USER_GETFOREGROUNDWINDOW)] =
++      dispatcher;
+   ipc_targets_[static_cast<size_t>(IpcTag::USER_REGISTERCLASSW)] = dispatcher;
+   ipc_targets_[static_cast<size_t>(IpcTag::USER_ENUMDISPLAYMONITORS)] =
+       dispatcher;

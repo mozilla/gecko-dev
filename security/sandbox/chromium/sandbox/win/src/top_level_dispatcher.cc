@@ -64,6 +64,8 @@ TopLevelDispatcher::TopLevelDispatcher(PolicyBase* policy) : policy_(policy) {
   dispatcher = new ProcessMitigationsWin32KDispatcher(policy_);
   ipc_targets_[static_cast<size_t>(IpcTag::GDI_GDIDLLINITIALIZE)] = dispatcher;
   ipc_targets_[static_cast<size_t>(IpcTag::GDI_GETSTOCKOBJECT)] = dispatcher;
+  ipc_targets_[static_cast<size_t>(IpcTag::USER_GETFOREGROUNDWINDOW)] =
+      dispatcher;
   ipc_targets_[static_cast<size_t>(IpcTag::USER_REGISTERCLASSW)] = dispatcher;
   ipc_targets_[static_cast<size_t>(IpcTag::USER_ENUMDISPLAYMONITORS)] =
       dispatcher;
