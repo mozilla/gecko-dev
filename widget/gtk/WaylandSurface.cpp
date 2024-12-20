@@ -55,8 +55,6 @@ using namespace mozilla::widget;
 
 namespace mozilla::widget {
 
-bool WaylandSurface::sForceEmulateFrameCallback = false;
-
 #ifdef MOZ_LOGGING
 nsAutoCString WaylandSurface::GetDebugTag() const {
   nsAutoCString tag;
@@ -90,11 +88,6 @@ bool WaylandSurface::IsOpaqueRegionEnabled() {
 WaylandSurface::WaylandSurface(RefPtr<WaylandSurface> aParent,
                                gfx::IntSize aSize)
     : mSizeScaled(aSize), mParent(aParent) {
-  static std::once_flag onceFlag;
-  std::call_once(onceFlag, [&] {
-    sForceEmulateFrameCallback =
-        StaticPrefs::widget_wayland_emulate_frame_callback_AtStartup();
-  });
   LOGWAYLAND("WaylandSurface::WaylandSurface(), parent [%p] size [%d x %d]",
              mParent ? mParent->GetLoggingWidget() : nullptr, mSizeScaled.width,
              mSizeScaled.height);
@@ -330,7 +323,7 @@ void WaylandSurface::RequestFrameCallbackLocked(
   }
   MOZ_DIAGNOSTIC_ASSERT(mSurface, "Missing mapped surface!");
 
-  if (!mFrameCallback && !sForceEmulateFrameCallback) {
+  if (!mFrameCallback) {
     mFrameCallback = wl_surface_frame(mSurface);
     wl_callback_add_listener(mFrameCallback, &sWaylandSurfaceFrameListener,
                              this);

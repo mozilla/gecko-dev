@@ -265,9 +265,6 @@ class WaylandSurface final {
   wl_subsurface* mSubsurface = nullptr;
   gfx::IntPoint mSubsurfacePosition{-1, -1};
 
-  // Use emulated callbacks only. For testing purposes.
-  static bool sForceEmulateFrameCallback;
-
   // Wayland buffers attached to this surface AND held by Wayland compositor.
   // There may be more than one buffer attached, for instance if
   // previous buffer is hold by compositor. We need to keep
