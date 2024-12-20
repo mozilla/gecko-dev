@@ -174,7 +174,7 @@ static bool DateTimeFormat(JSContext* cx, const CallArgs& args, bool construct,
   // Step 3.
   return intl::InitializeDateTimeFormatObject(
       cx, dateTimeFormat, thisValue, locales, options, required, defaults,
-      dtfOptions, args.rval());
+      UndefinedHandleValue, dtfOptions, args.rval());
 }
 
 static bool DateTimeFormat(JSContext* cx, unsigned argc, Value* vp) {
@@ -2792,11 +2792,16 @@ bool js::intl_FormatDateTimeRange(JSContext* cx, unsigned argc, Value* vp) {
 
 bool js::TemporalObjectToLocaleString(JSContext* cx, const CallArgs& args,
                                       Handle<JSString*> required,
-                                      Handle<JSString*> defaults) {
+                                      Handle<JSString*> defaults,
+                                      Handle<Value> toLocaleStringTimeZone) {
   MOZ_ASSERT(args.thisv().isObject());
 
   auto kind = ToDateTimeFormattable(args.thisv());
   MOZ_ASSERT(kind != DateTimeValueKind::Number);
+  MOZ_ASSERT_IF(kind != DateTimeValueKind::TemporalZonedDateTime,
+                toLocaleStringTimeZone.isUndefined());
+  MOZ_ASSERT_IF(kind == DateTimeValueKind::TemporalZonedDateTime,
+                toLocaleStringTimeZone.isString());
 
   Rooted<DateTimeFormatObject*> dateTimeFormat(
       cx, NewBuiltinClassInstance<DateTimeFormatObject>(cx));
@@ -2808,15 +2813,25 @@ bool js::TemporalObjectToLocaleString(JSContext* cx, const CallArgs& args,
   Rooted<Value> ignored(cx);
   if (!intl::InitializeDateTimeFormatObject(
           cx, dateTimeFormat, thisValue, args.get(0), args.get(1), required,
-          defaults, DateTimeFormatOptions::Standard, &ignored)) {
+          defaults, toLocaleStringTimeZone, DateTimeFormatOptions::Standard,
+          &ignored)) {
     return false;
   }
   MOZ_ASSERT(&ignored.toObject() == dateTimeFormat);
 
   JS::ClippedTime x;
-  if (!HandleDateTimeValue(cx, "toLocaleString", dateTimeFormat, args.thisv(),
-                           &x)) {
-    return false;
+  if (kind == DateTimeValueKind::TemporalZonedDateTime) {
+    Rooted<ZonedDateTimeObject*> zonedDateTime(
+        cx, &args.thisv().toObject().as<ZonedDateTimeObject>());
+    if (!HandleDateTimeTemporalZonedDateTime(cx, dateTimeFormat, zonedDateTime,
+                                             &x)) {
+      return false;
+    }
+  } else {
+    if (!HandleDateTimeValue(cx, "toLocaleString", dateTimeFormat, args.thisv(),
+                             &x)) {
+      return false;
+    }
   }
   MOZ_ASSERT(x.isValid());
 

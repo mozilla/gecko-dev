@@ -5,7 +5,7 @@
 /* Portions Copyright Norbert Lindenberg 2011-2012. */
 
 /**
- * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults )
+ * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults [ , toLocaleStringTimeZone ] )
  *
  * Compute an internal properties object from |lazyDateTimeFormatData|.
  */
@@ -370,7 +370,7 @@ function TimeZoneOffsetString(offsetString) {
 
 /* eslint-disable complexity */
 /**
- * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults )
+ * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults [ , toLocaleStringTimeZone ] )
  *
  * Initializes an object as a DateTimeFormat.
  *
@@ -387,6 +387,7 @@ function InitializeDateTimeFormat(
   options,
   required,
   defaults,
+  toLocaleStringTimeZone,
   mozExtensions
 ) {
   assert(
@@ -404,6 +405,10 @@ function InitializeDateTimeFormat(
   assert(
     defaults === "date" || defaults === "time" || defaults === "all",
     `InitializeDateTimeFormat called with invalid defaults value: ${defaults}`
+  );
+  assert(
+    toLocaleStringTimeZone === undefined || typeof toLocaleStringTimeZone === "string",
+    `InitializeDateTimeFormat called with invalid toLocaleStringTimeZone value: ${toLocaleStringTimeZone}`
   );
 
   // Lazy DateTimeFormat data has the following structure:
@@ -537,11 +542,22 @@ function InitializeDateTimeFormat(
   // Steps 30-34.
   if (timeZone === undefined) {
     // Step 30.a.
-    timeZone = DefaultTimeZone();
+    if (toLocaleStringTimeZone !== undefined) {
+      timeZone = toLocaleStringTimeZone;
+    } else {
+      timeZone = DefaultTimeZone();
+    }
 
     // Steps 32-34. (Not applicable in our implementation.)
   } else {
     // Step 31.a.
+    if (toLocaleStringTimeZone !== undefined) {
+      ThrowTypeError(
+        JSMSG_INVALID_DATETIME_OPTION,
+        "timeZone",
+        "Temporal.ZonedDateTime.toLocaleString"
+      );
+    }
     timeZone = ToString(timeZone);
 
     // Steps 32-34.
