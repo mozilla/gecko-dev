@@ -25,8 +25,14 @@ pub enum TabsApiError {
 // Error we use internally
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    // For historical reasons we have a mis-matched name between the error
-    // and what the error actually represents.
+    #[cfg(feature = "full-sync")]
+    #[error("Error synchronizing: {0}")]
+    SyncAdapterError(#[from] sync15::Error),
+
+    // Note we are abusing this as a kind of "mis-matched feature" error.
+    // This works because when `full-sync` isn't enabled we don't actually
+    // handle any sync15 errors as the bridged-engine never returns them.
+    #[cfg(not(feature = "full-sync"))]
     #[error("Sync feature is disabled: {0}")]
     SyncAdapterError(String),
 

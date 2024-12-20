@@ -113,7 +113,7 @@ libz-rs-sys = { git = "https://github.com/memorysafety/zlib-rs", rev = "4aa430cc
 gkrust-uniffi-components = { path = "../../../components/uniffi-bindgen-gecko-js/components/", features = ["xpcom"] }
 gkrust-uniffi-fixtures = { path = "../../../components/uniffi-bindgen-gecko-js/fixtures/", features = ["xpcom"], optional = true }
 viaduct = "0.1"
-webext-storage = "0.1"
+webext_storage_bridge = { path = "../../../components/extensions/storage/webext_storage_bridge" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 detect_win32k_conflicts = { path = "../../../xre/detect_win32k_conflicts" }

@@ -344,7 +344,7 @@ mod test {
         }]))?
         .with_data(
             "data-1.json",
-            json!([
+            json!([ 
             {"domain": "J2jtyjQtYQ/+/p//xhz43Q=="},
             {"domain": "Zd4awCwGZLkat59nIWje3g=="}]),
         )?;
@@ -383,7 +383,7 @@ mod test {
         }]))?
         .with_data(
             "data-1.json",
-            json!([
+            json!([ 
                 {"domain": "badString"},
                 {"domain": "notBase64"}]),
         )?;

@@ -426,7 +426,7 @@ pub struct PostWrapper<'a> {
     coll: &'a CollectionName,
 }
 
-impl BatchPoster for PostWrapper<'_> {
+impl<'a> BatchPoster for PostWrapper<'a> {
     fn post<T, O>(
         &self,
         bytes: Vec<u8>,

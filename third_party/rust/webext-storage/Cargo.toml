@@ -95,6 +95,3 @@ features = ["build"]
 
 [features]
 default = []
-
-[lints.clippy]
-empty-line-after-doc-comments = "allow"

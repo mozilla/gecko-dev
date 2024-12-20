@@ -1,12 +1,23 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { BridgedEngine } = ChromeUtils.importESModule(
+const { BridgedEngine, BridgeWrapperXPCOM } = ChromeUtils.importESModule(
   "resource://services-sync/bridged_engine.sys.mjs"
 );
 const { Service } = ChromeUtils.importESModule(
   "resource://services-sync/service.sys.mjs"
 );
+
+// Wraps an `object` in a proxy so that its methods are bound to it. This
+// simulates how XPCOM class instances have all their methods bound.
+function withBoundMethods(object) {
+  return new Proxy(object, {
+    get(target, key) {
+      let value = target[key];
+      return typeof value == "function" ? value.bind(target) : value;
+    },
+  });
+}
 
 add_task(async function test_interface() {
   class TestBridge {
@@ -28,32 +39,35 @@ add_task(async function test_interface() {
 
     // `mozIBridgedSyncEngine` methods.
 
-    lastSync() {
-      return this.lastSyncMillis;
+    getLastSync(callback) {
+      CommonUtils.nextTick(() => callback.handleSuccess(this.lastSyncMillis));
     }
 
-    setLastSync(millis) {
+    setLastSync(millis, callback) {
       this.lastSyncMillis = millis;
+      CommonUtils.nextTick(() => callback.handleSuccess());
     }
 
-    resetSyncId() {
-      return this.syncID;
+    resetSyncId(callback) {
+      CommonUtils.nextTick(() => callback.handleSuccess(this.syncID));
     }
 
-    ensureCurrentSyncId(newSyncId) {
+    ensureCurrentSyncId(newSyncId, callback) {
       equal(newSyncId, this.syncID, "Local and new sync IDs should match");
-      return this.syncID;
+      CommonUtils.nextTick(() => callback.handleSuccess(this.syncID));
     }
 
-    syncStarted() {
+    syncStarted(callback) {
       this.wasSyncStarted = true;
+      CommonUtils.nextTick(() => callback.handleSuccess());
     }
 
-    storeIncoming(envelopes) {
+    storeIncoming(envelopes, callback) {
       this.incomingEnvelopes.push(...envelopes.map(r => JSON.parse(r)));
+      CommonUtils.nextTick(() => callback.handleSuccess());
     }
 
-    apply() {
+    apply(callback) {
       let outgoingEnvelopes = [
         {
           id: "hanson",
@@ -75,31 +89,35 @@ add_task(async function test_interface() {
           payload: JSON.stringify(cleartext),
         })
       );
-      return outgoingEnvelopes;
+      CommonUtils.nextTick(() => callback.handleSuccess(outgoingEnvelopes));
     }
 
-    setUploaded(millis, ids) {
+    setUploaded(millis, ids, callback) {
       this.uploadedIDs.push(...ids);
+      CommonUtils.nextTick(() => callback.handleSuccess());
     }
 
-    syncFinished() {
+    syncFinished(callback) {
       this.wasSyncFinished = true;
+      CommonUtils.nextTick(() => callback.handleSuccess());
     }
 
-    reset() {
+    reset(callback) {
       this.clear();
       this.wasReset = true;
+      CommonUtils.nextTick(() => callback.handleSuccess());
     }
 
-    wipe() {
+    wipe(callback) {
       this.clear();
       this.wasWiped = true;
+      CommonUtils.nextTick(() => callback.handleSuccess());
     }
   }
 
   let bridge = new TestBridge();
   let engine = new BridgedEngine("Nineties", Service);
-  engine._bridge = bridge;
+  engine._bridge = new BridgeWrapperXPCOM(withBoundMethods(bridge));
   engine.enabled = true;
 
   let server = await serverForFoo(engine);

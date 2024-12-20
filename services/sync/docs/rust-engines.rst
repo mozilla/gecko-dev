@@ -17,10 +17,21 @@ The bridge
 ==========
 
 `"Golden Gate" <https://searchfox.org/mozilla-central/source/services/sync/golden_gate>`_
-was previously used to help bridge any Rust implemented Sync engines with desktop,
-but most of that logic has been removed. The integration of `UniFFI <https://github.com/mozilla/uniffi-rs>`_-ed components
-made the Golden Gate bridge code obsolete. Currently Golden Gate contains the
-logging logic for the components and the bridged engines exist in application
-services within the respective sync components. For instance, these are bridged
-engines for `tabs <https://github.com/mozilla/application-services/blob/main/components/tabs/src/sync/bridge.rs>`_ and
-`webext-storage <https://github.com/mozilla/application-services/blob/main/components/webext-storage/src/sync/bridge.rs>`_.
+is a utility to help bridge any Rust implemented Sync engines with desktop. In
+other words, it's a "rusty bridge" - get it? Get it? Yet another of Lina's puns
+that live on!
+
+One of the key challenges with integrating a Rust Sync component with desktop
+is the different threading models. The Rust code tends to be synchronous -
+most functions block the calling thread to do the disk or network IO necessary
+to work - it assumes that the consumer will delegate this to some other thread.
+
+So golden_gate is this background thread delegation for a Rust Sync engine -
+gecko calls golden-gate on the main thread, it marshalls the call to a worker
+thread, and the result is marshalled back to the main thread.
+
+It's worth noting that golden_gate is just for the Sync engine part - other
+parts of the component (ie, the part that provides the functionality that's not
+sync related) will have its own mechanism for this. For example, the
+`webext-storage bridge <https://searchfox.org/mozilla-central/source/toolkit/components/extensions/storage/webext_storage_bridge/src>`_
+uses a similar technique `which has some in-depth documentation <../../toolkit/components/extensions/webextensions/webext-storage.html>`_.

@@ -56,7 +56,7 @@ extern crate xpcom;
 extern crate audio_thread_priority;
 
 #[cfg(not(target_os = "android"))]
-extern crate webext_storage;
+extern crate webext_storage_bridge;
 
 #[cfg(feature = "webrtc")]
 extern crate mdns_service;

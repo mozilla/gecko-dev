@@ -21,16 +21,6 @@ pub struct RelevancyDb {
     writer: LazyDb<RelevancyConnectionInitializer>,
 }
 
-#[derive(Debug, PartialEq, uniffi::Record)]
-pub struct BanditData {
-    pub bandit: String,
-    pub arm: String,
-    pub impressions: u64,
-    pub clicks: u64,
-    pub alpha: u64,
-    pub beta: u64,
-}
-
 impl RelevancyDb {
     pub fn new(path: impl AsRef<Path>) -> Self {
         // Note: use `SQLITE_OPEN_READ_WRITE` for both read and write connections.
@@ -207,7 +197,7 @@ impl<'a> RelevancyDao<'a> {
         &self,
         bandit: &str,
         arm: &str,
-    ) -> Result<(u64, u64)> {
+    ) -> Result<(usize, usize)> {
         let mut stmt = self
             .conn
             .prepare("SELECT alpha, beta FROM multi_armed_bandit WHERE bandit=? AND arm=?")?;
@@ -216,45 +206,6 @@ impl<'a> RelevancyDao<'a> {
 
         match result.next()? {
             Some(row) => Ok((row.get(0)?, row.get(1)?)),
-            None => Err(BanditNotFound {
-                bandit: bandit.to_string(),
-                arm: arm.to_string(),
-            }),
-        }
-    }
-
-    /// Retrieves the data for a specific bandit and arm combination from the database.
-    ///
-    /// This method queries the `multi_armed_bandit` table to find a row matching the given
-    /// `bandit` and `arm` values. If a matching row is found, it extracts the corresponding
-    /// fields (`bandit`, `arm`, `impressions`, `clicks`, `alpha`, `beta`) and returns them
-    /// as a `BanditData` struct. If no matching row is found, it returns a `BanditNotFound`
-    /// error.
-    pub fn retrieve_bandit_data(&self, bandit: &str, arm: &str) -> Result<BanditData> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT bandit, arm, impressions, clicks, alpha, beta FROM multi_armed_bandit WHERE bandit=? AND arm=?")?;
-
-        let mut result = stmt.query((&bandit, &arm))?;
-
-        match result.next()? {
-            Some(row) => {
-                let bandit = row.get::<_, String>(0)?;
-                let arm = row.get::<_, String>(1)?;
-                let impressions = row.get::<_, u64>(2)?;
-                let clicks = row.get::<_, u64>(3)?;
-                let alpha = row.get::<_, u64>(4)?;
-                let beta = row.get::<_, u64>(5)?;
-
-                Ok(BanditData {
-                    bandit,
-                    arm,
-                    impressions,
-                    clicks,
-                    alpha,
-                    beta,
-                })
-            }
             None => Err(BanditNotFound {
                 bandit: bandit.to_string(),
                 arm: arm.to_string(),
@@ -558,58 +509,6 @@ mod test {
 
         match result {
             Ok(()) => panic!("Expected BanditNotFound error, but got Ok result"),
-            Err(BanditNotFound { bandit: b, arm: a }) => {
-                assert_eq!(b, bandit);
-                assert_eq!(a, arm);
-            }
-            _ => {}
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_retrieve_bandit_data() -> Result<()> {
-        let db = RelevancyDb::new_for_test();
-        let bandit = "provider".to_string();
-        let arm = "weather".to_string();
-
-        db.read_write(|dao| dao.initialize_multi_armed_bandit(&bandit, &arm))?;
-
-        // Update the bandit arm data (simulate interactions)
-        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, true))?;
-        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, false))?;
-        db.read_write(|dao| dao.update_bandit_arm_data(&bandit, &arm, false))?;
-
-        let bandit_data = db.read(|dao| dao.retrieve_bandit_data(&bandit, &arm))?;
-
-        let expected_bandit_data = BanditData {
-            bandit: bandit.clone(),
-            arm: arm.clone(),
-            impressions: 3, // 3 updates (true + false + false)
-            clicks: 1,      // 1 `true` interaction
-            alpha: 2,
-            beta: 3,
-        };
-
-        assert_eq!(bandit_data, expected_bandit_data);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_retrieve_bandit_data_not_found() -> Result<()> {
-        let db = RelevancyDb::new_for_test();
-        let bandit = "provider".to_string();
-        let arm = "weather".to_string();
-
-        let result = db.read(|dao| dao.retrieve_bandit_data(&bandit, &arm));
-
-        match result {
-            Ok(bandit_data) => panic!(
-                "Expected BanditNotFound error, but got Ok result with alpha: {}, beta: {}, impressions: {}, clicks: {}, bandit: {}, arm: {}",
-                bandit_data.alpha, bandit_data.beta, bandit_data.impressions, bandit_data.clicks, bandit_data.arm, bandit_data.arm
-            ),
             Err(BanditNotFound { bandit: b, arm: a }) => {
                 assert_eq!(b, bandit);
                 assert_eq!(a, arm);

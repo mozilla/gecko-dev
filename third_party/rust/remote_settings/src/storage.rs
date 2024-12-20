@@ -4,9 +4,8 @@
 
 use crate::{Attachment, RemoteSettingsRecord, Result};
 use camino::Utf8PathBuf;
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde_json;
-use sha2::{Digest, Sha256};
 
 /// Internal storage type
 ///
@@ -43,7 +42,7 @@ impl Storage {
             collection_url TEXT NOT NULL,
             data BLOB NOT NULL
         );
-       CREATE TABLE IF NOT EXISTS attachments (
+        CREATE TABLE IF NOT EXISTS attachments (
             id TEXT PRIMARY KEY,
             collection_url TEXT NOT NULL,
             data BLOB NOT NULL
@@ -61,7 +60,7 @@ impl Storage {
     /// Get the last modified timestamp for the stored records
     ///
     /// Returns None if no records are stored or if `collection_url` does not match the
-    /// last `collection_url` passed to `set_records` / `merge_records`
+    /// `collection_url` passed to `set_records`.
     pub fn get_last_modified_timestamp(&self, collection_url: &str) -> Result<Option<u64>> {
         let mut stmt = self
             .conn
@@ -114,27 +113,17 @@ impl Storage {
     pub fn get_attachment(
         &self,
         collection_url: &str,
-        metadata: Attachment,
-    ) -> Result<Option<Vec<u8>>> {
+        attachment_id: &str,
+    ) -> Result<Option<Attachment>> {
         let mut stmt = self
             .conn
             .prepare("SELECT data FROM attachments WHERE id = ? AND collection_url = ?")?;
-
-        if let Some(data) = stmt
-            .query_row((metadata.location, collection_url), |row| {
-                row.get::<_, Vec<u8>>(0)
-            })
-            .optional()?
-        {
-            // Return None if data doesn't match expected metadata
-            if data.len() as u64 != metadata.size {
-                return Ok(None);
-            }
-            let hash = format!("{:x}", Sha256::digest(&data));
-            if hash != metadata.hash {
-                return Ok(None);
-            }
-            Ok(Some(data))
+        let result: Option<Vec<u8>> = stmt
+            .query_row((attachment_id, collection_url), |row| row.get(0))
+            .optional()?;
+        if let Some(data) = result {
+            let attachment: Attachment = serde_json::from_slice(&data)?;
+            Ok(Some(attachment))
         } else {
             Ok(None)
         }
@@ -144,87 +133,36 @@ impl Storage {
     pub fn set_records(
         &mut self,
         collection_url: &str,
-        records: &[RemoteSettingsRecord],
+        records: &Vec<RemoteSettingsRecord>,
     ) -> Result<()> {
         let tx = self.conn.transaction()?;
 
+        // Delete ALL existing records and metadata for every collection_url
         tx.execute("DELETE FROM records", [])?;
         tx.execute("DELETE FROM collection_metadata", [])?;
-        let max_last_modified = Self::update_record_rows(&tx, collection_url, records)?;
-        Self::update_collection_metadata(&tx, collection_url, max_last_modified)?;
-        tx.commit()?;
-        Ok(())
-    }
 
-    /// Merge new records with records stored in the database
-    ///
-    /// Records with `deleted=false` will be inserted into the DB, replacing any previously stored
-    /// records with the same ID. Records with `deleted=true` will be removed.
-    pub fn merge_records(
-        &mut self,
-        collection_url: &str,
-        records: &[RemoteSettingsRecord],
-    ) -> Result<()> {
-        let tx = self.conn.transaction()?;
-
-        // Delete ALL existing records and metadata for with different collection_urls.
-        //
-        // This way, if a user (probably QA) switches the remote settings server in the middle of a
-        // browser sessions, we'll delete the stale data from the previous server.
-        tx.execute(
-            "DELETE FROM records where collection_url <> ?",
-            [collection_url],
-        )?;
-        tx.execute(
-            "DELETE FROM collection_metadata where collection_url <> ?",
-            [collection_url],
-        )?;
-        let max_last_modified = Self::update_record_rows(&tx, collection_url, records)?;
-        Self::update_collection_metadata(&tx, collection_url, max_last_modified)?;
-        tx.commit()?;
-        Ok(())
-    }
-
-    /// Insert/remove/update rows in the records table based on a records list
-    ///
-    /// Returns the max last modified record from the list
-    fn update_record_rows(
-        tx: &Transaction<'_>,
-        collection_url: &str,
-        records: &[RemoteSettingsRecord],
-    ) -> Result<u64> {
         // Find the max last_modified time while inserting records
         let mut max_last_modified = 0;
         {
-            let mut insert_stmt = tx.prepare(
-                "INSERT OR REPLACE INTO records (id, collection_url, data) VALUES (?, ?, ?)",
-            )?;
-            let mut delete_stmt = tx.prepare("DELETE FROM records WHERE id=?")?;
+            let mut stmt =
+                tx.prepare("INSERT INTO records (id, collection_url, data) VALUES (?, ?, ?)")?;
             for record in records {
-                if record.deleted {
-                    delete_stmt.execute(params![&record.id])?;
-                } else {
-                    max_last_modified = max_last_modified.max(record.last_modified);
-                    let data = serde_json::to_vec(&record)?;
-                    insert_stmt.execute(params![record.id, collection_url, data])?;
-                }
+                max_last_modified = max_last_modified.max(record.last_modified);
+                let data = serde_json::to_vec(record)?;
+
+                stmt.execute(params![record.id, collection_url, data])?;
             }
         }
-        Ok(max_last_modified)
-    }
 
-    /// Update the collection metadata after setting/merging records
-    fn update_collection_metadata(
-        tx: &Transaction<'_>,
-        collection_url: &str,
-        last_modified: u64,
-    ) -> Result<()> {
         // Update the metadata
         let fetched = true;
         tx.execute(
             "INSERT OR REPLACE INTO collection_metadata (collection_url, last_modified, fetched) VALUES (?, ?, ?)",
-            (collection_url, last_modified, fetched),
+            (collection_url, max_last_modified, fetched),
         )?;
+
+        tx.commit()?;
+
         Ok(())
     }
 
@@ -232,8 +170,8 @@ impl Storage {
     pub fn set_attachment(
         &mut self,
         collection_url: &str,
-        location: &str,
-        attachment: &[u8],
+        attachment_id: &str,
+        attachment: Attachment,
     ) -> Result<()> {
         let tx = self.conn.transaction()?;
 
@@ -243,11 +181,11 @@ impl Storage {
             params![collection_url],
         )?;
 
+        let data = serde_json::to_vec(&attachment)?;
+
         tx.execute(
-            "INSERT OR REPLACE INTO ATTACHMENTS \
-            (id, collection_url, data) \
-            VALUES (?, ?, ?)",
-            params![location, collection_url, attachment,],
+            "INSERT OR REPLACE INTO attachments (id, collection_url, data) VALUES (?, ?, ?)",
+            params![attachment_id, collection_url, data],
         )?;
 
         tx.commit()?;
@@ -271,8 +209,7 @@ impl Storage {
 #[cfg(test)]
 mod tests {
     use super::Storage;
-    use crate::{Attachment, RemoteSettingsRecord, Result, RsJsonObject};
-    use sha2::{Digest, Sha256};
+    use crate::{Attachment, RemoteSettingsRecord, Result};
 
     #[test]
     fn test_storage_set_and_get_records() -> Result<()> {
@@ -362,21 +299,21 @@ mod tests {
     fn test_storage_set_and_get_attachment() -> Result<()> {
         let mut storage = Storage::new(":memory:".into())?;
 
-        let attachment = &[0x18, 0x64];
         let collection_url = "https://example.com/api";
-        let attachment_metadata = Attachment {
+        let attachment_id = "attachment1";
+        let attachment = Attachment {
             filename: "abc".to_string(),
             mimetype: "application/json".to_string(),
             location: "tmp".to_string(),
-            hash: format!("{:x}", Sha256::digest(attachment)),
-            size: attachment.len() as u64,
+            hash: "abc123".to_string(),
+            size: 1024,
         };
 
         // Store attachment
-        storage.set_attachment(collection_url, &attachment_metadata.location, attachment)?;
+        storage.set_attachment(collection_url, attachment_id, attachment.clone())?;
 
         // Get attachment
-        let fetched_attachment = storage.get_attachment(collection_url, attachment_metadata)?;
+        let fetched_attachment = storage.get_attachment(collection_url, attachment_id)?;
         assert!(fetched_attachment.is_some());
         let fetched_attachment = fetched_attachment.unwrap();
         assert_eq!(fetched_attachment, attachment);
@@ -389,42 +326,30 @@ mod tests {
         let mut storage = Storage::new(":memory:".into())?;
 
         let collection_url = "https://example.com/api";
-
-        let attachment_1 = &[0x18, 0x64];
-        let attachment_2 = &[0x12, 0x48];
-
-        let attachment_metadata_1 = Attachment {
+        let attachment_id = "attachment1";
+        let attachment_1 = Attachment {
             filename: "abc".to_string(),
             mimetype: "application/json".to_string(),
             location: "tmp".to_string(),
-            hash: format!("{:x}", Sha256::digest(attachment_1)),
-            size: attachment_1.len() as u64,
+            hash: "abc123".to_string(),
+            size: 1024,
         };
-
-        let attachment_metadata_2 = Attachment {
+        let attachment_2 = Attachment {
             filename: "def".to_string(),
             mimetype: "application/json".to_string(),
             location: "tmp".to_string(),
-            hash: format!("{:x}", Sha256::digest(attachment_2)),
-            size: attachment_2.len() as u64,
+            hash: "def456".to_string(),
+            size: 2048,
         };
 
         // Store first attachment
-        storage.set_attachment(
-            collection_url,
-            &attachment_metadata_1.location,
-            attachment_1,
-        )?;
+        storage.set_attachment(collection_url, attachment_id, attachment_1.clone())?;
 
         // Replace attachment with new data
-        storage.set_attachment(
-            collection_url,
-            &attachment_metadata_2.location,
-            attachment_2,
-        )?;
+        storage.set_attachment(collection_url, attachment_id, attachment_2.clone())?;
 
         // Get attachment
-        let fetched_attachment = storage.get_attachment(collection_url, attachment_metadata_2)?;
+        let fetched_attachment = storage.get_attachment(collection_url, attachment_id)?;
         assert!(fetched_attachment.is_some());
         let fetched_attachment = fetched_attachment.unwrap();
         assert_eq!(fetched_attachment, attachment_2);
@@ -438,45 +363,32 @@ mod tests {
 
         let collection_url_1 = "https://example.com/api1";
         let collection_url_2 = "https://example.com/api2";
-
-        let attachment_1 = &[0x18, 0x64];
-        let attachment_2 = &[0x12, 0x48];
-
-        let attachment_metadata_1 = Attachment {
+        let attachment_id_1 = "attachment1";
+        let attachment_id_2 = "attachment2";
+        let attachment_1 = Attachment {
             filename: "abc".to_string(),
             mimetype: "application/json".to_string(),
-            location: "first_tmp".to_string(),
-            hash: format!("{:x}", Sha256::digest(attachment_1)),
-            size: attachment_1.len() as u64,
+            location: "tmp".to_string(),
+            hash: "abc123".to_string(),
+            size: 1024,
         };
-
-        let attachment_metadata_2 = Attachment {
+        let attachment_2 = Attachment {
             filename: "def".to_string(),
             mimetype: "application/json".to_string(),
-            location: "second_tmp".to_string(),
-            hash: format!("{:x}", Sha256::digest(attachment_2)),
-            size: attachment_2.len() as u64,
+            location: "tmp".to_string(),
+            hash: "def456".to_string(),
+            size: 2048,
         };
 
         // Set attachments for two different collections
-        storage.set_attachment(
-            collection_url_1,
-            &attachment_metadata_1.location,
-            attachment_1,
-        )?;
-        storage.set_attachment(
-            collection_url_2,
-            &attachment_metadata_2.location,
-            attachment_2,
-        )?;
+        storage.set_attachment(collection_url_1, attachment_id_1, attachment_1.clone())?;
+        storage.set_attachment(collection_url_2, attachment_id_2, attachment_2.clone())?;
 
         // Verify that only the attachment for the second collection remains
-        let fetched_attachment_1 =
-            storage.get_attachment(collection_url_1, attachment_metadata_1)?;
+        let fetched_attachment_1 = storage.get_attachment(collection_url_1, attachment_id_1)?;
         assert!(fetched_attachment_1.is_none());
 
-        let fetched_attachment_2 =
-            storage.get_attachment(collection_url_2, attachment_metadata_2)?;
+        let fetched_attachment_2 = storage.get_attachment(collection_url_2, attachment_id_2)?;
         assert!(fetched_attachment_2.is_some());
         let fetched_attachment_2 = fetched_attachment_2.unwrap();
         assert_eq!(fetched_attachment_2, attachment_2);
@@ -489,10 +401,10 @@ mod tests {
         let storage = Storage::new(":memory:".into())?;
 
         let collection_url = "https://example.com/api";
-        let metadata = Attachment::default();
+        let attachment_id = "nonexistent";
 
         // Get attachment that doesn't exist
-        let fetched_attachment = storage.get_attachment(collection_url, metadata)?;
+        let fetched_attachment = storage.get_attachment(collection_url, attachment_id)?;
         assert!(fetched_attachment.is_none());
 
         Ok(())
@@ -503,8 +415,6 @@ mod tests {
         let mut storage = Storage::new(":memory:".into())?;
 
         let collection_url = "https://example.com/api";
-        let attachment = &[0x18, 0x64];
-
         let records = vec![
             RemoteSettingsRecord {
                 id: "1".to_string(),
@@ -520,33 +430,30 @@ mod tests {
                 id: "2".to_string(),
                 last_modified: 200,
                 deleted: false,
-                attachment: Some(Attachment {
-                    filename: "abc".to_string(),
-                    mimetype: "application/json".to_string(),
-                    location: "tmp".to_string(),
-                    hash: format!("{:x}", Sha256::digest(attachment)),
-                    size: attachment.len() as u64,
-                }),
+                attachment: None,
                 fields: serde_json::json!({"key": "value2"})
                     .as_object()
                     .unwrap()
                     .clone(),
             },
         ];
-
-        let metadata = records[1]
-            .clone()
-            .attachment
-            .expect("No attachment metadata for record");
+        let attachment_id = "attachment1";
+        let attachment = Attachment {
+            filename: "abc".to_string(),
+            mimetype: "application/json".to_string(),
+            location: "tmp".to_string(),
+            hash: "abc123".to_string(),
+            size: 1024,
+        };
 
         // Set records and attachment
         storage.set_records(collection_url, &records)?;
-        storage.set_attachment(collection_url, &metadata.location, attachment)?;
+        storage.set_attachment(collection_url, attachment_id, attachment.clone())?;
 
         // Verify they are stored
         let fetched_records = storage.get_records(collection_url)?;
         assert!(fetched_records.is_some());
-        let fetched_attachment = storage.get_attachment(collection_url, metadata.clone())?;
+        let fetched_attachment = storage.get_attachment(collection_url, attachment_id)?;
         assert!(fetched_attachment.is_some());
 
         // Empty the storage
@@ -555,7 +462,7 @@ mod tests {
         // Verify they are deleted
         let fetched_records = storage.get_records(collection_url)?;
         assert!(fetched_records.is_none());
-        let fetched_attachment = storage.get_attachment(collection_url, metadata)?;
+        let fetched_attachment = storage.get_attachment(collection_url, attachment_id)?;
         assert!(fetched_attachment.is_none());
 
         Ok(())
@@ -622,7 +529,7 @@ mod tests {
     }
 
     #[test]
-    fn test_storage_set_records() -> Result<()> {
+    fn test_storage_update_records() -> Result<()> {
         let mut storage = Storage::new(":memory:".into())?;
 
         let collection_url = "https://example.com/api";
@@ -666,116 +573,6 @@ mod tests {
         // Verify last modified timestamp
         let last_modified = storage.get_last_modified_timestamp(collection_url)?;
         assert_eq!(last_modified, Some(200));
-
-        Ok(())
-    }
-
-    // Quick way to generate the fields data for our mock records
-    fn test_fields(data: &str) -> RsJsonObject {
-        let mut map = serde_json::Map::new();
-        map.insert("data".into(), data.into());
-        map
-    }
-
-    #[test]
-    fn test_storage_merge_records() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
-
-        let collection_url = "https://example.com/api";
-
-        let initial_records = vec![
-            RemoteSettingsRecord {
-                id: "a".into(),
-                last_modified: 100,
-                deleted: false,
-                attachment: None,
-                fields: test_fields("a"),
-            },
-            RemoteSettingsRecord {
-                id: "b".into(),
-                last_modified: 200,
-                deleted: false,
-                attachment: None,
-                fields: test_fields("b"),
-            },
-            RemoteSettingsRecord {
-                id: "c".into(),
-                last_modified: 300,
-                deleted: false,
-                attachment: None,
-                fields: test_fields("c"),
-            },
-        ];
-        let updated_records = vec![
-            // d is new
-            RemoteSettingsRecord {
-                id: "d".into(),
-                last_modified: 1300,
-                deleted: false,
-                attachment: None,
-                fields: test_fields("d"),
-            },
-            // b was deleted
-            RemoteSettingsRecord {
-                id: "b".into(),
-                last_modified: 1200,
-                deleted: true,
-                attachment: None,
-                fields: RsJsonObject::new(),
-            },
-            // a was updated
-            RemoteSettingsRecord {
-                id: "a".into(),
-                last_modified: 1100,
-                deleted: false,
-                attachment: None,
-                fields: test_fields("a-with-new-data"),
-            },
-            // c was not modified, so it's not present in the new response
-        ];
-        let expected_records = vec![
-            // a was updated
-            RemoteSettingsRecord {
-                id: "a".into(),
-                last_modified: 1100,
-                deleted: false,
-                attachment: None,
-                fields: test_fields("a-with-new-data"),
-            },
-            RemoteSettingsRecord {
-                id: "c".into(),
-                last_modified: 300,
-                deleted: false,
-                attachment: None,
-                fields: test_fields("c"),
-            },
-            RemoteSettingsRecord {
-                id: "d".into(),
-                last_modified: 1300,
-                deleted: false,
-                attachment: None,
-                fields: test_fields("d"),
-            },
-        ];
-
-        // Set initial records
-        storage.set_records(collection_url, &initial_records)?;
-
-        // Verify initial records
-        let fetched_records = storage.get_records(collection_url)?.unwrap();
-        assert_eq!(fetched_records, initial_records);
-
-        // Update records
-        storage.merge_records(collection_url, &updated_records)?;
-
-        // Verify updated records
-        let mut fetched_records = storage.get_records(collection_url)?.unwrap();
-        fetched_records.sort_by_cached_key(|r| r.id.clone());
-        assert_eq!(fetched_records, expected_records);
-
-        // Verify last modified timestamp
-        let last_modified = storage.get_last_modified_timestamp(collection_url)?;
-        assert_eq!(last_modified, Some(1300));
 
         Ok(())
     }

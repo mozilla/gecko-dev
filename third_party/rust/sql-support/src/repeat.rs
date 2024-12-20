@@ -14,7 +14,7 @@ pub struct RepeatDisplay<'a, F> {
     fmt_one: F,
 }
 
-impl<F> fmt::Display for RepeatDisplay<'_, F>
+impl<'a, F> fmt::Display for RepeatDisplay<'a, F>
 where
     F: Fn(usize, &mut fmt::Formatter<'_>) -> fmt::Result,
 {

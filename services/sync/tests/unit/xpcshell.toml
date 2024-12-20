@@ -121,6 +121,10 @@ run-sequentially = "extension-storage migration happens only once, and must be t
 skip-if = ["appname == 'thunderbird'"]
 run-sequentially = "extension-storage migration happens only once, and must be tested first."
 
+["test_extension_storage_migration_telem.js"]
+skip-if = ["appname == 'thunderbird'"]
+run-sequentially = "extension-storage migration happens only once, and must be tested first."
+
 ["test_extension_storage_tracker_kinto.js"]
 skip-if = ["appname == 'thunderbird'"]
 

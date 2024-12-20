@@ -117,9 +117,12 @@ impl ThreadSafeStorageDb {
         Arc::clone(&self.interrupt_handle)
     }
 
-    #[allow(dead_code)]
     pub fn begin_interrupt_scope(&self) -> Result<SqlInterruptScope> {
         Ok(self.interrupt_handle.begin_interrupt_scope()?)
+    }
+
+    pub fn into_inner(self) -> StorageDb {
+        self.db.into_inner()
     }
 }
 

@@ -13,7 +13,7 @@ const ERR_MSG: &str = "Expected #[handle_error(path::to::Error)]";
 ///
 /// Additionally, this procedural macro has side effects, including:
 /// * It would log the error based on a pre-defined log level. The log level is defined
-///   in the [`error_support::ErrorHandling`] implementation.
+///  in the [`error_support::ErrorHandling`] implementation.
 /// * It would report some errors using an external error reporter, in practice, this
 ///   is implemented using Sentry in the app.
 ///
@@ -24,7 +24,7 @@ const ERR_MSG: &str = "Expected #[handle_error(path::to::Error)]";
 ///#[derive(Debug, thiserror::Error)]
 /// struct Error {}
 /// type Result<T, E = Error> = std::result::Result<T, E>;
-///
+
 /// impl Display for Error {
 ///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 ///         write!(f, "Internal Error!")

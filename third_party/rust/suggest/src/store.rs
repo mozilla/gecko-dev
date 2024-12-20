@@ -278,11 +278,9 @@ impl SuggestStore {
     /// since city and region names are not unique. `filter` is disjunctive: If
     /// any item in `filter` matches a geoname, the geoname will be filtered in.
     ///
-    /// The query can match a single geoname in more than one way. For example,
-    /// it can match both a full name and an abbreviation. The returned vec of
-    /// [`GeonameMatch`] values will include all matches for a geoname, one
-    /// match per `match_type` per geoname. In other words, a matched geoname
-    /// can map to more than one `GeonameMatch`.
+    /// The query can match a geoname in more than one way, for example both a
+    /// full name and an abbreviation. The returned vec of [`GeonameMatch`]
+    /// values will include all matches for a geoname, one match per geoname.
     #[handle_error(Error)]
     pub fn fetch_geonames(
         &self,

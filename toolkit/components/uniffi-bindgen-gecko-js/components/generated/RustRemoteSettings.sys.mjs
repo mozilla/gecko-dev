@@ -458,7 +458,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                16, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
+                15, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
                 FfiConverterTypeRemoteSettingsConfig.lower(remoteSettingsConfig),
             )
         }
@@ -488,7 +488,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                13, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
+                12, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
                 FfiConverterTypeRemoteSettings.lower(this),
                 FfiConverterString.lower(attachmentId),
                 FfiConverterString.lower(path),
@@ -510,7 +510,7 @@ export class RemoteSettings {
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                14, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
+                13, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
                 FfiConverterTypeRemoteSettings.lower(this),
             )
         }
@@ -539,7 +539,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                15, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
+                14, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
                 FfiConverterTypeRemoteSettings.lower(this),
                 FfiConverterU64.lower(timestamp),
             )
@@ -610,7 +610,7 @@ export class RemoteSettingsClient {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                17, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
+                16, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
                 FfiConverterTypeRemoteSettingsClient.lower(this),
             )
         }
@@ -633,22 +633,22 @@ export class RemoteSettingsClient {
      * attachment data.
      * @returns {string}
      */
-    getAttachment(record) {
+    getAttachment(attachmentId) {
         const liftResult = (result) => FfiConverterBytes.lift(result);
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             try {
-                FfiConverterTypeRemoteSettingsRecord.checkType(record)
+                FfiConverterString.checkType(attachmentId)
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("record");
+                    e.addItemDescriptionPart("attachmentId");
                 }
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                18, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
+                17, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
                 FfiConverterTypeRemoteSettingsClient.lower(this),
-                FfiConverterTypeRemoteSettingsRecord.lower(record),
+                FfiConverterString.lower(attachmentId),
             )
         }
         try {
@@ -672,6 +672,8 @@ export class RemoteSettingsClient {
      * this is that there is not much an application can do in this situation other than fall back
      * to the same default handling as if records have not been synced.
      *
+     * TODO(Bug 1919141):
+     *
      * Application-services schedules regular dumps of the server data for specific collections.
      * For these collections, `get_records` will never return None.  If you would like to add your
      * collection to this list, please reach out to the DISCO team.
@@ -690,7 +692,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                19, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records
+                18, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterBool.lower(syncIfEmpty),
             )
@@ -722,7 +724,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                20, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
+                19, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterBool.lower(syncIfEmpty),
             )
@@ -811,7 +813,7 @@ export class RemoteSettingsService {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                24, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettingsservice_new
+                23, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettingsservice_new
                 FfiConverterString.lower(storageDir),
                 FfiConverterTypeRemoteSettingsConfig2.lower(config),
             )
@@ -847,7 +849,7 @@ export class RemoteSettingsService {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                21, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_make_client
+                20, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_make_client
                 FfiConverterTypeRemoteSettingsService.lower(this),
                 FfiConverterString.lower(collectionName),
                 FfiConverterOptionalTypeRemoteSettingsContext.lower(appContext),
@@ -869,7 +871,7 @@ export class RemoteSettingsService {
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                22, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_sync
+                21, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_sync
                 FfiConverterTypeRemoteSettingsService.lower(this),
             )
         }
@@ -902,7 +904,7 @@ export class RemoteSettingsService {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                23, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_update_config
+                22, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsservice_update_config
                 FfiConverterTypeRemoteSettingsService.lower(this),
                 FfiConverterTypeRemoteSettingsConfig2.lower(config),
             )

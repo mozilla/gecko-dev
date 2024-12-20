@@ -172,7 +172,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerFutureTester() {
-        const pointerId = 11; // futures:FutureTester
+        const pointerId = 9; // futures:FutureTester
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -182,7 +182,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerFutureTester(value) {
-        const pointerId = 11; // futures:FutureTester
+        const pointerId = 9; // futures:FutureTester
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -192,7 +192,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerRustTask() {
-        const pointerId = 12; // futures:RustTask
+        const pointerId = 10; // futures:RustTask
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -202,7 +202,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerRustTask(value) {
-        const pointerId = 12; // futures:RustTask
+        const pointerId = 10; // futures:RustTask
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -212,7 +212,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerTraveller() {
-        const pointerId = 13; // futures:Traveller
+        const pointerId = 11; // futures:Traveller
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -222,7 +222,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerTraveller(value) {
-        const pointerId = 13; // futures:Traveller
+        const pointerId = 11; // futures:Traveller
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -232,7 +232,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerWorkerQueue() {
-        const pointerId = 14; // futures:WorkerQueue
+        const pointerId = 12; // futures:WorkerQueue
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -242,7 +242,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerWorkerQueue(value) {
-        const pointerId = 14; // futures:WorkerQueue
+        const pointerId = 12; // futures:WorkerQueue
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -631,7 +631,7 @@ export class FutureTester {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                121, // futures:uniffi_uniffi_fixture_futures_fn_constructor_futuretester_init
+                98, // futures:uniffi_uniffi_fixture_futures_fn_constructor_futuretester_init
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -656,7 +656,7 @@ export class FutureTester {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                118, // futures:uniffi_uniffi_fixture_futures_fn_method_futuretester_complete_futures
+                95, // futures:uniffi_uniffi_fixture_futures_fn_method_futuretester_complete_futures
                 FfiConverterTypeFutureTester.lower(this),
                 FfiConverterU8.lower(value),
             )
@@ -673,7 +673,7 @@ export class FutureTester {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsync(
-                119, // futures:uniffi_uniffi_fixture_futures_fn_method_futuretester_make_future
+                96, // futures:uniffi_uniffi_fixture_futures_fn_method_futuretester_make_future
                 FfiConverterTypeFutureTester.lower(this),
             )
         }
@@ -693,7 +693,7 @@ export class FutureTester {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                120, // futures:uniffi_uniffi_fixture_futures_fn_method_futuretester_wake_futures
+                97, // futures:uniffi_uniffi_fixture_futures_fn_method_futuretester_wake_futures
                 FfiConverterTypeFutureTester.lower(this),
             )
         }
@@ -756,7 +756,7 @@ export class RustTask {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                122, // futures:uniffi_uniffi_fixture_futures_fn_method_rusttask_run
+                99, // futures:uniffi_uniffi_fixture_futures_fn_method_rusttask_run
                 FfiConverterTypeRustTask.lower(this),
             )
         }
@@ -827,7 +827,7 @@ export class Traveller {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                124, // futures:uniffi_uniffi_fixture_futures_fn_constructor_traveller_new
+                101, // futures:uniffi_uniffi_fixture_futures_fn_constructor_traveller_new
                 FfiConverterString.lower(name),
             )
         }
@@ -842,7 +842,7 @@ export class Traveller {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                123, // futures:uniffi_uniffi_fixture_futures_fn_method_traveller_name
+                100, // futures:uniffi_uniffi_fixture_futures_fn_method_traveller_name
                 FfiConverterTypeTraveller.lower(this),
             )
         }
@@ -919,7 +919,7 @@ export class WorkerQueue {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                125, // futures:uniffi_uniffi_fixture_futures_fn_method_workerqueue_add_task
+                102, // futures:uniffi_uniffi_fixture_futures_fn_method_workerqueue_add_task
                 FfiConverterTypeWorkerQueue.lower(this),
                 FfiConverterTypeRustTask.lower(task),
             )
@@ -1073,7 +1073,7 @@ export function expensiveComputation() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsync(
-                101, // futures:uniffi_uniffi_fixture_futures_fn_func_expensive_computation
+                78, // futures:uniffi_uniffi_fixture_futures_fn_func_expensive_computation
             )
         }
         try {
@@ -1096,7 +1096,7 @@ export function initializeGeckoGlobalWorkerQueue() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                102, // futures:uniffi_uniffi_fixture_futures_fn_func_initialize_gecko_global_worker_queue
+                79, // futures:uniffi_uniffi_fixture_futures_fn_func_initialize_gecko_global_worker_queue
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
@@ -1120,7 +1120,7 @@ export function initializeGlobalWorkerQueue(workerQueue) {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                103, // futures:uniffi_uniffi_fixture_futures_fn_func_initialize_global_worker_queue
+                80, // futures:uniffi_uniffi_fixture_futures_fn_func_initialize_global_worker_queue
                 FfiConverterTypeWorkerQueue.lower(workerQueue),
             )
         }
@@ -1145,7 +1145,7 @@ export function roundtripF32(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                104, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_f32
+                81, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_f32
                 FfiConverterF32.lower(v),
             )
         }
@@ -1174,7 +1174,7 @@ export function roundtripF64(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                105, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_f64
+                82, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_f64
                 FfiConverterF64.lower(v),
             )
         }
@@ -1203,7 +1203,7 @@ export function roundtripI16(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                106, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_i16
+                83, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_i16
                 FfiConverterI16.lower(v),
             )
         }
@@ -1232,7 +1232,7 @@ export function roundtripI32(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                107, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_i32
+                84, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_i32
                 FfiConverterI32.lower(v),
             )
         }
@@ -1261,7 +1261,7 @@ export function roundtripI64(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                108, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_i64
+                85, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_i64
                 FfiConverterI64.lower(v),
             )
         }
@@ -1290,7 +1290,7 @@ export function roundtripI8(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                109, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_i8
+                86, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_i8
                 FfiConverterI8.lower(v),
             )
         }
@@ -1319,7 +1319,7 @@ export function roundtripMap(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                110, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_map
+                87, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_map
                 FfiConverterMapStringString.lower(v),
             )
         }
@@ -1348,7 +1348,7 @@ export function roundtripObj(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                111, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_obj
+                88, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_obj
                 FfiConverterTypeTraveller.lower(v),
             )
         }
@@ -1377,7 +1377,7 @@ export function roundtripString(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                112, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_string
+                89, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_string
                 FfiConverterString.lower(v),
             )
         }
@@ -1406,7 +1406,7 @@ export function roundtripU16(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                113, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_u16
+                90, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_u16
                 FfiConverterU16.lower(v),
             )
         }
@@ -1435,7 +1435,7 @@ export function roundtripU32(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                114, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_u32
+                91, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_u32
                 FfiConverterU32.lower(v),
             )
         }
@@ -1464,7 +1464,7 @@ export function roundtripU64(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                115, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_u64
+                92, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_u64
                 FfiConverterU64.lower(v),
             )
         }
@@ -1493,7 +1493,7 @@ export function roundtripU8(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                116, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_u8
+                93, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_u8
                 FfiConverterU8.lower(v),
             )
         }
@@ -1522,7 +1522,7 @@ export function roundtripVec(v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                117, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_vec
+                94, // futures:uniffi_uniffi_fixture_futures_fn_func_roundtrip_vec
                 FfiConverterSequenceu32.lower(v),
             )
         }

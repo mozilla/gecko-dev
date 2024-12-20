@@ -233,7 +233,7 @@ impl TryFrom<&'_ str> for VersionPart {
     type Error = VersionParsingError;
 
     fn try_from(value: &'_ str) -> Result<Self, Self::Error> {
-        if !value.is_ascii() {
+        if value.chars().any(|c| !c.is_ascii()) {
             return Err(VersionParsingError::ParseError(format!(
                 "version string {} contains non-ascii characters",
                 value

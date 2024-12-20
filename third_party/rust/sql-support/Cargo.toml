@@ -37,6 +37,10 @@ thiserror = "1.0"
 [dependencies.interrupt-support]
 path = "../interrupt"
 
+[dependencies.prettytable-rs]
+version = "0.10"
+optional = true
+
 [dependencies.rusqlite]
 version = "0.31.0"
 features = [
@@ -54,5 +58,8 @@ default-features = false
 path = "../rc_crypto/nss/nss_build_common"
 
 [features]
-debug-tools = ["rusqlite/column_decltype"]
+debug-tools = [
+    "dep:prettytable-rs",
+    "rusqlite/column_decltype",
+]
 default = []
