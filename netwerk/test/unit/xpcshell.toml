@@ -812,6 +812,7 @@ skip-if = ["os == 'win' && socketprocess_networking"]
 ["test_httpcancel.js"]
 
 ["test_bug1830022.js"]
+prefs = ["network.http.idempotencyKey.enabled=true"]
 
 ["test_https_rr_ech_prefs.js"]
 skip-if = ["os == 'android'"]
