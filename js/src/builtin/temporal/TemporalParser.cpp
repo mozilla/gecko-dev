@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <initializer_list>
-#include <iterator>
 #include <limits>
 #include <stdint.h>
 #include <string_view>
@@ -28,6 +27,7 @@
 #include "jsnum.h"
 #include "NamespaceImports.h"
 
+#include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/Duration.h"
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainTime.h"

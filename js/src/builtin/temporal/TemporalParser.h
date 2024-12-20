@@ -23,11 +23,6 @@ class JS_PUBLIC_API JSTracer;
 
 namespace js::temporal {
 
-struct Duration;
-struct ISODate;
-struct ISODateTime;
-struct Time;
-
 struct MOZ_STACK_CLASS ParsedTimeZone final {
   JSLinearString* name = nullptr;
   int32_t offset = INT32_MIN;

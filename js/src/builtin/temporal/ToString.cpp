@@ -11,22 +11,20 @@
 #include <cstdlib>
 #include <stddef.h>
 #include <stdint.h>
-#include <type_traits>
-#include <utility>
+#include <string_view>
 
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/Crash.h"
 #include "builtin/temporal/Instant.h"
 #include "builtin/temporal/PlainDate.h"
+#include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/PlainMonthDay.h"
 #include "builtin/temporal/PlainYearMonth.h"
 #include "builtin/temporal/Temporal.h"
-#include "builtin/temporal/TemporalRoundingMode.h"
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "builtin/temporal/TimeZone.h"
 #include "builtin/temporal/ZonedDateTime.h"
-#include "gc/Policy.h"
 #include "js/RootingAPI.h"
 #include "util/StringBuilder.h"
 #include "vm/StringType.h"

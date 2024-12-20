@@ -7,6 +7,8 @@
 #ifndef builtin_temporal_PlainTime_h
 #define builtin_temporal_PlainTime_h
 
+#include "mozilla/Casting.h"
+
 #include <stdint.h>
 
 #include "builtin/temporal/TemporalTypes.h"

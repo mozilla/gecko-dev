@@ -14,16 +14,15 @@
 #include "mozilla/FloatingPoint.h"
 
 #include <cmath>
+#include <stdint.h>
 
 #include "jstypes.h"
 
-#include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/MonthCode.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "builtin/temporal/TimeZone.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
 
 class JS_PUBLIC_API JSTracer;
 
@@ -307,6 +306,7 @@ class MutableWrappedPtrOperations<temporal::CalendarFields, Wrapper>
 
 namespace js::temporal {
 
+class CalendarValue;
 class PlainDate;
 class PlainDateTime;
 class PlainMonthDay;

@@ -7,14 +7,10 @@
 #include "builtin/temporal/PlainTime.h"
 
 #include "mozilla/Assertions.h"
-#include "mozilla/FloatingPoint.h"
-#include "mozilla/Maybe.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
-#include <type_traits>
-#include <utility>
 
 #include "jsnum.h"
 #include "jspubtd.h"
@@ -22,8 +18,6 @@
 
 #include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Duration.h"
-#include "builtin/temporal/Instant.h"
-#include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/Temporal.h"
 #include "builtin/temporal/TemporalParser.h"
@@ -33,10 +27,8 @@
 #include "builtin/temporal/TimeZone.h"
 #include "builtin/temporal/ToString.h"
 #include "builtin/temporal/ZonedDateTime.h"
-#include "ds/IdValuePair.h"
 #include "gc/AllocKind.h"
 #include "gc/Barrier.h"
-#include "js/AllocPolicy.h"
 #include "js/CallArgs.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Class.h"
@@ -52,7 +44,6 @@
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
 #include "vm/PlainObject.h"
-#include "vm/StringType.h"
 
 #include "vm/JSObject-inl.h"
 #include "vm/NativeObject-inl.h"
