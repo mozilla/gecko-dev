@@ -36,19 +36,18 @@
         <hbox anonid="findbar-textbox-wrapper" align="stretch">
           <html:input anonid="findbar-textbox" class="findbar-textbox" />
           <toolbarbutton anonid="find-previous" class="findbar-find-previous tabbable"
-            data-l10n-attrs="tooltiptext" data-l10n-id="findbar-previous"
-            oncommand="onFindAgainCommand(true);" disabled="true" />
+            data-l10n-attrs="tooltiptext" data-l10n-id="findbar-previous" disabled="true" />
           <toolbarbutton anonid="find-next" class="findbar-find-next tabbable"
-            data-l10n-id="findbar-next" oncommand="onFindAgainCommand(false);" disabled="true" />
+            data-l10n-id="findbar-next" disabled="true" />
         </hbox>
         <checkbox anonid="highlight" class="findbar-highlight tabbable"
-          data-l10n-id="findbar-highlight-all2" oncommand="toggleHighlight(this.checked);"/>
+          data-l10n-id="findbar-highlight-all2"/>
         <checkbox anonid="find-case-sensitive" class="findbar-case-sensitive tabbable"
-          data-l10n-id="findbar-case-sensitive" oncommand="_setCaseSensitivity(this.checked ? 1 : 0);"/>
+          data-l10n-id="findbar-case-sensitive"/>
         <checkbox anonid="find-match-diacritics" class="findbar-match-diacritics tabbable"
-          data-l10n-id="findbar-match-diacritics" oncommand="_setDiacriticMatching(this.checked ? 1 : 0);"/>
+          data-l10n-id="findbar-match-diacritics"/>
         <checkbox anonid="find-entire-word" class="findbar-entire-word tabbable"
-          data-l10n-id="findbar-entire-word" oncommand="toggleEntireWord(this.checked);"/>
+          data-l10n-id="findbar-entire-word"/>
         <label anonid="match-case-status" class="findbar-label"
           data-l10n-id="findbar-case-sensitive-status" hidden="true" />
         <label anonid="match-diacritics-status" class="findbar-label"
@@ -60,7 +59,7 @@
         <description anonid="find-status" control="findbar-textbox" class="findbar-label findbar-find-status" />
       </hbox>
       <toolbarbutton anonid="find-closebutton" class="findbar-closebutton tabbable close-icon"
-        data-l10n-id="findbar-find-button-close" oncommand="close();"/>
+        data-l10n-id="findbar-find-button-close"/>
       `;
     }
 
@@ -271,6 +270,30 @@
         event.stopPropagation();
         event.preventDefault();
       });
+
+      this.getElement("find-previous").addEventListener("command", () =>
+        this.onFindAgainCommand(true)
+      );
+      this.getElement("find-next").addEventListener("command", () =>
+        this.onFindAgainCommand(false)
+      );
+      this.getElement("highlight").addEventListener("command", event =>
+        this.toggleHighlight(event.target.checked)
+      );
+      this.getElement("find-case-sensitive").addEventListener(
+        "command",
+        event => this._setCaseSensitivity(event.target.checked ? 1 : 0)
+      );
+      this.getElement("find-match-diacritics").addEventListener(
+        "command",
+        event => this._setDiacriticMatching(event.target.checked ? 1 : 0)
+      );
+      this.getElement("find-entire-word").addEventListener("command", event =>
+        this.toggleEntireWord(event.target.checked)
+      );
+      this.getElement("find-closebutton").addEventListener("command", () =>
+        this.close()
+      );
     }
 
     set findMode(val) {
