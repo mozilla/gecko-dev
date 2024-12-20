@@ -210,6 +210,19 @@ shopping-survey-terms-link = Terms of use
 shopping-survey-thanks =
   .heading = Thanks for your feedback!
 
+## Shopping opted-out survey strings
+## Opt-out survey options are displayed as checkboxes and the user can select one or many.
+
+shopping-survey-opted-out-multiselect-label = Please let us know why you turned off Review Checker. Select multiple if needed.
+shopping-survey-thanks-title = Thanks for your feedback!
+
+shopping-survey-opted-out-hard-to-understand = It’s hard to understand
+shopping-survey-opted-out-too-slow = It’s too slow
+shopping-survey-opted-out-not-accurate = It’s not accurate
+shopping-survey-opted-out-not-helpful = It’s not helpful to me
+shopping-survey-opted-out-check-myself = I’d rather check reviews myself
+shopping-survey-opted-out-other = Other
+
 ## Shopping Feature Callout strings.
 ## "price tag" refers to the price tag icon displayed in the address bar to
 ## access the feature.
