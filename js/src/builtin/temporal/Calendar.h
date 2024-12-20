@@ -196,7 +196,14 @@ int64_t MakeDate(const ISODateTime& dateTime);
 /**
  * Return the BCP 47 identifier of the calendar.
  */
-std::string_view CalendarIdentifier(const CalendarValue& calendar);
+std::string_view CalendarIdentifier(CalendarId calendarId);
+
+/**
+ * Return the BCP 47 identifier of the calendar.
+ */
+inline std::string_view CalendarIdentifier(const CalendarValue& calendar) {
+  return CalendarIdentifier(calendar.identifier());
+}
 
 /**
  * CanonicalizeCalendar ( id )
