@@ -1074,10 +1074,11 @@ impl<Impl: SelectorImpl> Selector<Impl> {
 
     pub fn replace_parent_selector(&self, parent: &SelectorList<Impl>) -> Self {
         let parent_specificity_and_flags =
-            selector_list_specificity_and_flags(parent.slice().iter());
+            selector_list_specificity_and_flags(parent.slice().iter(), /* for_nesting_parent = */ true);
 
         let mut specificity = Specificity::from(self.specificity());
         let mut flags = self.flags() - SelectorFlags::HAS_PARENT;
+        let forbidden_flags = SelectorFlags::forbidden_for_nesting();
 
         fn replace_parent_on_selector_list<Impl: SelectorImpl>(
             orig: &[Selector<Impl>],
@@ -1085,7 +1086,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
             specificity: &mut Specificity,
             flags: &mut SelectorFlags,
             propagate_specificity: bool,
-            flags_to_propagate: SelectorFlags,
+            forbidden_flags: SelectorFlags,
         ) -> Option<SelectorList<Impl>> {
             if !orig.iter().any(|s| s.has_parent_selector()) {
                 return None;
@@ -1096,18 +1097,14 @@ impl<Impl: SelectorImpl> Selector<Impl> {
             }));
 
             let result_specificity_and_flags =
-                selector_list_specificity_and_flags(result.slice().iter());
+                selector_list_specificity_and_flags(result.slice().iter(), /* for_nesting_parent = */ false);
             if propagate_specificity {
                 *specificity += Specificity::from(
                     result_specificity_and_flags.specificity -
-                        selector_list_specificity_and_flags(orig.iter()).specificity,
+                        selector_list_specificity_and_flags(orig.iter(), /* for_nesting_parent = */ false).specificity,
                 );
             }
-            flags.insert(
-                result_specificity_and_flags
-                    .flags
-                    .intersection(flags_to_propagate),
-            );
+            flags.insert(result_specificity_and_flags.flags - forbidden_flags);
             Some(result)
         }
 
@@ -1116,7 +1113,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
             parent: &SelectorList<Impl>,
             specificity: &mut Specificity,
             flags: &mut SelectorFlags,
-            flags_to_propagate: SelectorFlags,
+            forbidden_flags: SelectorFlags,
         ) -> Vec<RelativeSelector<Impl>> {
             let mut any = false;
 
@@ -1139,15 +1136,11 @@ impl<Impl: SelectorImpl> Selector<Impl> {
             }
 
             let result_specificity_and_flags =
-                relative_selector_list_specificity_and_flags(&result);
-            flags.insert(
-                result_specificity_and_flags
-                    .flags
-                    .intersection(flags_to_propagate),
-            );
+                relative_selector_list_specificity_and_flags(&result, /* for_nesting_parent = */ false);
+            flags.insert(result_specificity_and_flags .flags - forbidden_flags);
             *specificity += Specificity::from(
                 result_specificity_and_flags.specificity -
-                    relative_selector_list_specificity_and_flags(orig).specificity,
+                    relative_selector_list_specificity_and_flags(orig, /* for_nesting_parent = */ false).specificity,
             );
             result
         }
@@ -1157,11 +1150,11 @@ impl<Impl: SelectorImpl> Selector<Impl> {
             parent: &SelectorList<Impl>,
             specificity: &mut Specificity,
             flags: &mut SelectorFlags,
-            flags_to_propagate: SelectorFlags,
+            forbidden_flags: SelectorFlags,
         ) -> Selector<Impl> {
             let new_selector = orig.replace_parent_selector(parent);
             *specificity += Specificity::from(new_selector.specificity() - orig.specificity());
-            flags.insert(new_selector.flags().intersection(flags_to_propagate));
+            flags.insert(new_selector.flags() - forbidden_flags);
             new_selector
         }
 
@@ -1197,11 +1190,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                 RelativeSelectorAnchor => component.clone(),
                 ParentSelector => {
                     specificity += Specificity::from(parent_specificity_and_flags.specificity);
-                    flags.insert(
-                        parent_specificity_and_flags
-                            .flags
-                            .intersection(SelectorFlags::for_nesting()),
-                    );
+                    flags.insert(parent_specificity_and_flags.flags - forbidden_flags);
                     Is(parent.clone())
                 },
                 Negation(ref selectors) => {
@@ -1212,7 +1201,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                             &mut specificity,
                             &mut flags,
                             /* propagate_specificity = */ true,
-                            SelectorFlags::for_nesting(),
+                            forbidden_flags,
                         )
                         .unwrap_or_else(|| selectors.clone()),
                     )
@@ -1224,7 +1213,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                         &mut specificity,
                         &mut flags,
                         /* propagate_specificity = */ true,
-                        SelectorFlags::for_nesting(),
+                        forbidden_flags,
                     )
                     .unwrap_or_else(|| selectors.clone()))
                 },
@@ -1236,7 +1225,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                             &mut specificity,
                             &mut flags,
                             /* propagate_specificity = */ false,
-                            SelectorFlags::for_nesting(),
+                            forbidden_flags,
                         )
                         .unwrap_or_else(|| selectors.clone()),
                     )
@@ -1246,7 +1235,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                     parent,
                     &mut specificity,
                     &mut flags,
-                    SelectorFlags::for_nesting(),
+                    forbidden_flags,
                 )
                 .into_boxed_slice()),
 
@@ -1255,7 +1244,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                     parent,
                     &mut specificity,
                     &mut flags,
-                    SelectorFlags::for_nesting() - SelectorFlags::HAS_NON_FEATURELESS_COMPONENT,
+                    forbidden_flags | SelectorFlags::HAS_NON_FEATURELESS_COMPONENT,
                 ))),
                 NthOf(ref data) => {
                     let selectors = replace_parent_on_selector_list(
@@ -1264,7 +1253,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                         &mut specificity,
                         &mut flags,
                         /* propagate_specificity = */ true,
-                        SelectorFlags::for_nesting(),
+                        forbidden_flags,
                     );
                     NthOf(match selectors {
                         Some(s) => {
@@ -1278,7 +1267,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                     parent,
                     &mut specificity,
                     &mut flags,
-                    SelectorFlags::for_nesting(),
+                    forbidden_flags,
                 )),
             }
         });
