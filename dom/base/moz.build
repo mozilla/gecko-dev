@@ -304,6 +304,15 @@ if CONFIG["FUZZING"]:
         "FuzzingFunctions.h",
     ]
 
+if CONFIG["FUZZING_SNAPSHOT"]:
+    EXPORTS.mozilla.dom += [
+        "Nyx.h",
+    ]
+
+    UNIFIED_SOURCES += [
+        "Nyx.cpp",
+    ]
+
 if CONFIG["COMPILE_ENVIRONMENT"]:
     EXPORTS.mozilla.dom += [
         "!fragmentdirectives_ffi_generated.h",

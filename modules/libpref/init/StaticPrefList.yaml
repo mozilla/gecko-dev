@@ -5739,6 +5739,13 @@
     mirror: always
     rust: true
 
+#ifdef FUZZING_SNAPSHOT
+-   name: fuzzing.snapshot.enabled
+    type: RelaxedAtomicBool
+    value: true
+    mirror: always
+#endif
+
 # This configures a virtual authenticator for WebAuthn. The value encodes the
 # arguments to the WebDriver "Add Virtual Authenticator" extension command.
 # Bits 0, 1, 2, and 3 encode "is_user_verified", "is_user_consenting",

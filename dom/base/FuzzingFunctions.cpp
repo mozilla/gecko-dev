@@ -10,6 +10,7 @@
 #include "js/GCAPI.h"
 #include "mozilla/dom/KeyboardEvent.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/Fuzzing.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TextInputProcessor.h"

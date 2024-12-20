@@ -1165,6 +1165,11 @@ if CONFIG["FUZZING"]:
         "FuzzingFunctions.webidl",
     ]
 
+if CONFIG["FUZZING_SNAPSHOT"]:
+    WEBIDL_FILES += [
+        "Nyx.webidl",
+    ]
+
 GENERATED_EVENTS_WEBIDL_FILES = [
     "AddonEvent.webidl",
     "AnimationPlaybackEvent.webidl",

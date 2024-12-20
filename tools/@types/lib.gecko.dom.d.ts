@@ -24081,6 +24081,15 @@ declare namespace FuzzingFunctions {
     function synthesizeKeyboardEvents(aKeyValue: string, aDictionary?: KeyboardEventInit): void;
 }
 
+declare namespace Nyx {
+    function isEnabled(aFuzzerName: string): boolean;
+    function isReplay(): boolean;
+    function isStarted(): boolean;
+    function start(): void;
+    function release(): void;
+    function getRawData(aDst: Uint8Array): void;
+}
+
 declare namespace TestUtils {
     function gc(): Promise<void>;
 }
