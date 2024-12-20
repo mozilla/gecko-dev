@@ -102,6 +102,9 @@ skip-if(!xulRuntime.shell) script test262/built-ins/Array/prototype/methods-call
 skip-if(!xulRuntime.shell) script test262/language/global-code/script-decl-func-err-non-extensible.js
 skip-if(!xulRuntime.shell) script test262/language/global-code/script-decl-lex.js
 skip-if(!xulRuntime.shell) script test262/language/global-code/script-decl-var-err.js
+skip-if(!xulRuntime.shell) script test262/staging/sm/extensions/set-property-non-extensible.js
+skip-if(!xulRuntime.shell) script test262/staging/sm/global/adding-global-var-nonextensible-error.js
+skip-if(!xulRuntime.shell) script test262/staging/sm/regress/regress-633741.js
 
 # Global var-bindings are configurable in a browser environment.
 skip-if(!xulRuntime.shell) script test262/annexB/language/global-code/block-decl-global-existing-global-init.js
@@ -387,6 +390,7 @@ fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/inte
 fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/internals/Delete/indexed-value-sab-strict-strict.js
 fails-if(!xulRuntime.shell) script test262/language/expressions/class/subclass-builtins/subclass-SharedArrayBuffer.js
 fails-if(!xulRuntime.shell) script test262/language/statements/class/subclass-builtins/subclass-SharedArrayBuffer.js
+fails-if(!xulRuntime.shell) script test262/staging/sm/Atomics/cross-compartment.js
 
 # https://github.com/tc39/test262/pull/3955
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1892186
@@ -624,6 +628,10 @@ skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/for-await-next
 skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/iterator-result-poisoned-wrapper.js
 skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/yield-next-rejected-promise-close.js
 
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1934808
+skip script test262/built-ins/Iterator/concat/fresh-iterator-result.js
+skip script test262/built-ins/Iterator/concat/next-method-returns-throwing-value.js
+
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #
@@ -658,45 +666,41 @@ skip script non262/Tuple/prototype/concat/concat-with-array.js
 skip script test262/language/statements/class/decorator/syntax/class-valid/decorator-member-expr-private-identifier.js
 skip script test262/language/expressions/class/decorator/syntax/class-valid/decorator-member-expr-private-identifier.js
 
-# https://github.com/tc39/test262/pull/4181
-skip script test262/built-ins/TypedArray/prototype/reduce/resizable-buffer-shrink-mid-iteration.js
-skip script test262/built-ins/TypedArray/prototype/reduce/resizable-buffer-grow-mid-iteration.js
-
-# https://github.com/tc39/test262/pull/4246
-skip script test262/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-timezone.js
-
-# https://github.com/tc39/test262/pull/4283
-skip script test262/staging/Intl402/Temporal/old/non-iso-calendars.js
-
-# https://github.com/tc39/test262/pull/4318
-skip script test262/intl402/DurationFormat/prototype/format/precision-exact-mathematical-values.js
-
-# https://github.com/tc39/test262/pull/4324
-skip script test262/built-ins/Object/freeze/typedarray-backed-by-resizable-buffer.js
-
-# https://github.com/tc39/test262/pull/4309
-skip script test262/intl402/Temporal/PlainDate/prototype/until/until-across-lunisolar-leap-months.js
-
 # https://github.com/tc39/test262/pull/4343
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/offset-time-zone-not-supported.js
 
 # https://github.com/tc39/test262/pull/4342
 skip script test262/staging/Intl402/Temporal/old/date-time-format.js
 
-# https://github.com/tc39/test262/pull/4248
-skip script test262/staging/Intl402/Temporal/old/date-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/time-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/yearmonth-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/datetime-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/monthday-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/instant-toLocaleString.js
-
 # https://github.com/tc39/test262/pull/4101
 skip script test262/staging/Intl402/Temporal/old/islamic-calendars.js
 
-# https://github.com/tc39/test262/pull/4351
-skip script test262/intl402/Temporal/ZonedDateTime/from/timezone-case-insensitive.js
-skip script test262/intl402/Temporal/ZonedDateTime/timezone-case-insensitive.js
+# https://github.com/tc39/test262/issues/4349
+skip script test262/intl402/NumberFormat/currency-digits-nonstandard-notation.js
+
+# https://github.com/tc39/test262/pull/4352
+skip script test262/staging/built-ins/Object/seal/seal-variable-length-typed-arrays.js
+
+# Incorrect feature tag.
+# https://github.com/tc39/test262/pull/4356
+skip include test262/staging/sm/AsyncIterator/jstests.list
+
+# https://github.com/tc39/test262/pull/4354
+skip script test262/staging/sm/lexical-environment/block-scoped-functions-hoisted-tdz.js
+skip script test262/staging/sm/lexical-environment/block-scoped-functions-deprecated-redecl.js
+skip script test262/staging/sm/lexical-environment/var-in-catch-body-annex-b-eval.js
+skip script test262/staging/sm/String/string-upper-lower-mapping.js
+skip script test262/staging/sm/Temporal/PlainMonthDay/from-gregory.js
+skip script test262/staging/sm/Temporal/PlainMonthDay/from-chinese-leap-month-uncommon.js
+skip script test262/staging/sm/Temporal/PlainDate/from-constrain-japanese.js
+
+# https://github.com/tc39/test262/issues/4359
+skip script test262/staging/sm/WeakMap/symbols.js
+
+# https://github.com/tc39/test262/pull/4358
+slow script test262/staging/sm/TypedArray/forEach.js
+slow script test262/staging/sm/TypedArray/every-and-some.js
+slow script test262/staging/sm/TypedArray/map-and-filter.js
 
 
 ##############################################
