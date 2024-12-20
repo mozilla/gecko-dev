@@ -2322,6 +2322,12 @@ networking:
       setPref:
         branch: default
         pref: "network.dnsCacheExpirationGracePeriod"
+    maxDnsCacheEntries:
+      description: This is the number of dns cache entries allowed
+      type: int
+      setPref:
+        branch: default
+        pref: "network.dnsCacheEntries"
 
 disableHttp3:
   description: "Whether HTTP/3 is disabled"
