@@ -1487,7 +1487,13 @@ export class _ASRouter {
     return { message };
   }
 
-  addScreenImpression(screen) {
+  async addScreenImpression(screen) {
+    // wait to ensure storage has been intialized before setting
+    // screenImpression
+    if (!this.initialized) {
+      await this.waitForInitialized;
+    }
+
     lazy.ASRouterPreferences.console.debug(
       `entering addScreenImpression for ${screen.id}`
     );
