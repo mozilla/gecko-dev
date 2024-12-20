@@ -102,6 +102,8 @@ function resolveDateTimeFormatInternals(lazyDateTimeFormatData) {
     internalProps.dateStyle = lazyDateTimeFormatData.dateStyle;
     internalProps.timeStyle = lazyDateTimeFormatData.timeStyle;
   } else {
+    internalProps.required = lazyDateTimeFormatData.required;
+    internalProps.defaults = lazyDateTimeFormatData.defaults;
     internalProps.hourCycle = formatOptions.hourCycle;
     internalProps.hour12 = formatOptions.hour12;
     internalProps.weekday = formatOptions.weekday;
@@ -431,6 +433,10 @@ function InitializeDateTimeFormat(
   //       }
   //
   //     formatMatcher: "basic" / "best fit",
+  //
+  //     required: "date" / "time" / "any", // optional
+  //
+  //     defaults: "date" / "time" / "all", // optional
   //   }
   //
   // Note that lazy data is only installed as a final step of initialization,
@@ -755,42 +761,8 @@ function InitializeDateTimeFormat(
       );
     }
   } else {
-    // Step 44.a.
-    var needDefaults = true;
-
-    // Step 44.b.
-    if (required === "date" || required === "any") {
-      needDefaults =
-        formatOptions.weekday === undefined &&
-        formatOptions.year === undefined &&
-        formatOptions.month === undefined &&
-        formatOptions.day === undefined;
-    }
-
-    // Step 44.c.
-    if (required === "time" || required === "any") {
-      needDefaults =
-        needDefaults &&
-        formatOptions.dayPeriod === undefined &&
-        formatOptions.hour === undefined &&
-        formatOptions.minute === undefined &&
-        formatOptions.second === undefined &&
-        formatOptions.fractionalSecondDigits === undefined;
-    }
-
-    // Step 44.d.
-    if (needDefaults && (defaults === "date" || defaults === "all")) {
-      formatOptions.year = "numeric";
-      formatOptions.month = "numeric";
-      formatOptions.day = "numeric";
-    }
-
-    // Step 44.e.
-    if (needDefaults && (defaults === "time" || defaults === "all")) {
-      formatOptions.hour = "numeric";
-      formatOptions.minute = "numeric";
-      formatOptions.second = "numeric";
-    }
+    lazyDateTimeFormatData.required = required;
+    lazyDateTimeFormatData.defaults = defaults;
 
     // Steps 44.f-h provided by ICU, more or less.
   }
@@ -894,11 +866,8 @@ function createDateTimeFormatFormat(dtf) {
       "dateTimeFormatFormatToBind called with non-DateTimeFormat"
     );
 
-    // Steps 3-4.
-    var x = date === undefined ? std_Date_now() : ToNumber(date);
-
-    // Step 5.
-    return intl_FormatDateTime(dtf, x, /* formatToParts = */ false);
+    // Steps 3-5.
+    return intl_FormatDateTime(dtf, date, /* formatToParts = */ false);
   };
 }
 
@@ -955,14 +924,11 @@ function Intl_DateTimeFormat_formatToParts(date) {
     );
   }
 
-  // Steps 4-5.
-  var x = date === undefined ? std_Date_now() : ToNumber(date);
-
   // Ensure the DateTimeFormat internals are resolved.
   getDateTimeFormatInternals(dtf);
 
-  // Step 6.
-  return intl_FormatDateTime(dtf, x, /* formatToParts = */ true);
+  // Steps 4-6.
+  return intl_FormatDateTime(dtf, date, /* formatToParts = */ true);
 }
 
 /**
@@ -994,17 +960,11 @@ function Intl_DateTimeFormat_formatRange(startDate, endDate) {
     );
   }
 
-  // Step 4.
-  var x = ToNumber(startDate);
-
-  // Step 5.
-  var y = ToNumber(endDate);
-
   // Ensure the DateTimeFormat internals are resolved.
   getDateTimeFormatInternals(dtf);
 
-  // Step 6.
-  return intl_FormatDateTimeRange(dtf, x, y, /* formatToParts = */ false);
+  // Steps 4-6.
+  return intl_FormatDateTimeRange(dtf, startDate, endDate, /* formatToParts = */ false);
 }
 
 /**
@@ -1036,17 +996,11 @@ function Intl_DateTimeFormat_formatRangeToParts(startDate, endDate) {
     );
   }
 
-  // Step 4.
-  var x = ToNumber(startDate);
-
-  // Step 5.
-  var y = ToNumber(endDate);
-
   // Ensure the DateTimeFormat internals are resolved.
   getDateTimeFormatInternals(dtf);
 
-  // Step 6.
-  return intl_FormatDateTimeRange(dtf, x, y, /* formatToParts = */ true);
+  // Steps 4-6.
+  return intl_FormatDateTimeRange(dtf, startDate, endDate, /* formatToParts = */ true);
 }
 
 /**

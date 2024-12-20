@@ -18,6 +18,17 @@ class DateIntervalFormat;
 
 namespace js {
 
+enum class DateTimeValueKind {
+  Number,
+  TemporalDate,
+  TemporalTime,
+  TemporalDateTime,
+  TemporalYearMonth,
+  TemporalMonthDay,
+  TemporalZonedDateTime,
+  TemporalInstant,
+};
+
 class DateTimeFormatObject : public NativeObject {
  public:
   static const JSClass class_;

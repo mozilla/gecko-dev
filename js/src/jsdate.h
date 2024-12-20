@@ -46,9 +46,6 @@ extern JS_PUBLIC_API JSObject* NewDateObject(JSContext* cx, int year, int mon,
  */
 JS::ClippedTime DateNow(JSContext* cx);
 
-/* Date methods exposed so they can be installed in the self-hosting global. */
-bool date_now(JSContext* cx, unsigned argc, JS::Value* vp);
-
 bool date_valueOf(JSContext* cx, unsigned argc, JS::Value* vp);
 
 bool date_toPrimitive(JSContext* cx, unsigned argc, JS::Value* vp);
