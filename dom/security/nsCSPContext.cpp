@@ -1343,6 +1343,7 @@ nsresult nsCSPContext::SendReportsToURIs(
     rv = reportChannel->GetLoadFlags(&flags);
     NS_ENSURE_SUCCESS(rv, rv);
     flags |= nsIRequest::LOAD_ANONYMOUS;
+    flags |= nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
     rv = reportChannel->SetLoadFlags(flags);
     NS_ENSURE_SUCCESS(rv, rv);
 
