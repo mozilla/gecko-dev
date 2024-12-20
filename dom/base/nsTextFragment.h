@@ -286,6 +286,55 @@ class nsTextFragment final {
    */
   [[nodiscard]] bool TextEquals(const nsTextFragment& aOther) const;
 
+  constexpr static uint32_t kNotFound = UINT32_MAX;
+
+  [[nodiscard]] uint32_t FindChar(char aChar, uint32_t aOffset = 0) const {
+    if (aOffset >= GetLength()) {
+      return kNotFound;
+    }
+    if (Is2b()) {
+      const char16_t* end = Get2b() + GetLength();
+      for (const char16_t* ch = Get2b() + aOffset; ch != end; ch++) {
+        if (*ch == aChar) {
+          return ch - Get2b();
+        }
+      }
+      return kNotFound;
+    }
+    const char* end = Get1b() + GetLength();
+    for (const char* ch = Get1b() + aOffset; ch != end; ch++) {
+      if (*ch == aChar) {
+        return ch - Get1b();
+      }
+    }
+    return kNotFound;
+  }
+
+  [[nodiscard]] uint32_t FindChar(char16_t aChar, uint32_t aOffset = 0) const {
+    if (aOffset >= GetLength()) {
+      return kNotFound;
+    }
+    if (Is2b()) {
+      const char16_t* end = Get2b() + GetLength();
+      for (const char16_t* ch = Get2b() + aOffset; ch != end; ch++) {
+        if (*ch == aChar) {
+          return ch - Get2b();
+        }
+      }
+      return kNotFound;
+    }
+    if (aChar > 0xFF) {
+      return kNotFound;
+    }
+    const char* end = Get1b() + GetLength();
+    for (const char* ch = Get1b() + aOffset; ch != end; ch++) {
+      if (*ch == aChar) {
+        return ch - Get1b();
+      }
+    }
+    return kNotFound;
+  }
+
  private:
   void ReleaseText();
 

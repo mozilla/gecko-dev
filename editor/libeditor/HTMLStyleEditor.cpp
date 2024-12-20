@@ -2316,7 +2316,7 @@ HTMLEditor::SplitAncestorStyledInlineElementsAt(
 
 Result<EditorDOMPoint, nsresult> HTMLEditor::ClearStyleAt(
     const EditorDOMPoint& aPoint, const EditorInlineStyle& aStyleToRemove,
-    SpecifiedStyle aSpecifiedStyle) {
+    SpecifiedStyle aSpecifiedStyle, const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   if (NS_WARN_IF(!aPoint.IsSet())) {
@@ -2454,23 +2454,6 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::ClearStyleAt(
             {EmptyCheckOption::TreatListItemAsVisible,
              EmptyCheckOption::TreatTableCellAsVisible},
             &seenBR)) {
-      if (seenBR && lineBreak.isNothing()) {
-        lineBreak = HTMLEditUtils::GetFirstLineBreak<EditorLineBreak>(
-            *unwrappedSplitResultAtStartOfNextNode.GetNextContentAs<Element>());
-      }
-      // Once we remove <br> element's parent, we lose the rights to remove it
-      // from the parent because the parent becomes not editable.  Therefore, we
-      // need to delete the <br> element before removing its parents for reusing
-      // it later.
-      if (lineBreak.isSome() && lineBreak->IsHTMLBRElement()) {
-        nsresult rv =
-            DeleteNodeWithTransaction(MOZ_KnownLive(lineBreak->BRElementRef()));
-        if (NS_FAILED(rv)) {
-          NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
-          return Err(rv);
-        }
-      }
-      // Delete next node if it's empty.
       // MOZ_KnownLive because of grabbed by
       // unwrappedSplitResultAtStartOfNextNode.
       nsresult rv = DeleteNodeWithTransaction(MOZ_KnownLive(
@@ -2479,6 +2462,9 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::ClearStyleAt(
         NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
         return Err(rv);
       }
+      // Forget the line break which was in the next content because it's now
+      // removed from the tree but web apps may keep referring it.
+      lineBreak.reset();
     }
   }
 
@@ -2510,35 +2496,29 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::ClearStyleAt(
           : unwrappedSplitResultAtStartOfNextNode.GetPreviousContent(),
       0);
 
-  // If the right node starts with a `<br>`, suck it out of right node and into
-  // the left node left node.  This is so we you don't revert back to the
+  // If the right node starts with a line break, suck it out of right node and
+  // into the left node left node.  This is so we you don't revert back to the
   // previous style if you happen to click at the end of a line.
-  if (lineBreak.isSome() && lineBreak->IsHTMLBRElement()) {
-    if (lineBreak->BRElementRef().GetParentNode()) {
-      Result<MoveNodeResult, nsresult> moveBRElementResult =
-          MoveNodeWithTransaction(MOZ_KnownLive(lineBreak->BRElementRef()),
-                                  pointToPutCaret);
-      if (MOZ_UNLIKELY(moveBRElementResult.isErr())) {
-        NS_WARNING("HTMLEditor::MoveNodeWithTransaction() failed");
-        return moveBRElementResult.propagateErr();
+  if (lineBreak.isSome()) {
+    if (lineBreak->IsInComposedDoc()) {
+      Result<EditorDOMPoint, nsresult> lineBreakPointOrError =
+          DeleteLineBreakWithTransaction(lineBreak.ref(), nsIEditor::eStrip,
+                                         aEditingHost);
+      if (MOZ_UNLIKELY(lineBreakPointOrError.isErr())) {
+        NS_WARNING("HTMLEditor::DeleteLineBreakWithTransaction() failed");
+        return lineBreakPointOrError.propagateErr();
       }
-      moveBRElementResult.unwrap().MoveCaretPointTo(
-          pointToPutCaret, *this,
-          {SuggestCaret::OnlyIfHasSuggestion,
-           SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
-    } else {
-      Result<CreateElementResult, nsresult> insertBRElementResult =
-          InsertNodeWithTransaction<Element>(
-              MOZ_KnownLive(lineBreak->BRElementRef()), pointToPutCaret);
-      if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
-        NS_WARNING("EditorBase::InsertNodeWithTransaction() failed");
-        return insertBRElementResult.propagateErr();
-      }
-      insertBRElementResult.unwrap().MoveCaretPointTo(
-          pointToPutCaret, *this,
-          {SuggestCaret::OnlyIfHasSuggestion,
-           SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
     }
+    Result<CreateElementResult, nsresult> insertBRElementResult =
+        InsertBRElement(WithTransaction::Yes, pointToPutCaret);
+    if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
+      NS_WARNING("EditorBase::InsertNodeWithTransaction() failed");
+      return insertBRElementResult.propagateErr();
+    }
+    insertBRElementResult.unwrap().MoveCaretPointTo(
+        pointToPutCaret, *this,
+        {SuggestCaret::OnlyIfHasSuggestion,
+         SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
 
     if (unwrappedSplitResultAtStartOfNextNode.GetNextContent() &&
         unwrappedSplitResultAtStartOfNextNode.GetNextContent()

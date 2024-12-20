@@ -6854,7 +6854,7 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::CreateStyleForInsertText(
       // of its members.
       Result<EditorDOMPoint, nsresult> pointToPutCaretOrError =
           ClearStyleAt(pointToPutCaret, pendingStyle->ToInlineStyle(),
-                       pendingStyle->GetSpecifiedStyle());
+                       pendingStyle->GetSpecifiedStyle(), aEditingHost);
       if (MOZ_UNLIKELY(pointToPutCaretOrError.isErr())) {
         NS_WARNING("HTMLEditor::ClearStyleAt() failed");
         return pointToPutCaretOrError;
@@ -8597,7 +8597,8 @@ Result<SplitNodeResult, nsresult> HTMLEditor::HandleInsertParagraphInParagraph(
   }
 
   Result<SplitNodeResult, nsresult> splitParagraphResult =
-      SplitParagraphWithTransaction(aParentDivOrP, pointToSplit, brElement);
+      SplitParagraphWithTransaction(aParentDivOrP, pointToSplit, brElement,
+                                    aEditingHost);
   if (MOZ_UNLIKELY(splitParagraphResult.isErr())) {
     NS_WARNING("HTMLEditor::SplitParagraphWithTransaction() failed");
     return splitParagraphResult;
@@ -8615,7 +8616,7 @@ Result<SplitNodeResult, nsresult> HTMLEditor::HandleInsertParagraphInParagraph(
 
 Result<SplitNodeResult, nsresult> HTMLEditor::SplitParagraphWithTransaction(
     Element& aParentDivOrP, const EditorDOMPoint& aStartOfRightNode,
-    HTMLBRElement* aMayBecomeVisibleBRElement) {
+    HTMLBRElement* aMayBecomeVisibleBRElement, const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   Result<EditorDOMPoint, nsresult> preparationResult =
@@ -8747,53 +8748,55 @@ Result<SplitNodeResult, nsresult> HTMLEditor::SplitParagraphWithTransaction(
           return result;
         }(*rightDivOrParagraphElement);
     if (deepestInlineContainerElement) {
-      Maybe<EditorLineBreak> lineBreak =
+      const Maybe<EditorLineBreak> lineBreak =
           HTMLEditUtils::GetFirstLineBreak<EditorLineBreak>(
               *rightDivOrParagraphElement);
-      // If there is a <br> element and it is in the deepest inline container,
-      // we need to do nothing anymore. Let's suggest caret position as at the
-      // <br>.
-      if (lineBreak.isSome() && lineBreak->IsHTMLBRElement() &&
-          lineBreak->BRElementRef().GetParentNode() ==
-              deepestInlineContainerElement) {
-        auto pointAtBRElement = lineBreak->To<EditorDOMPoint>();
-        {
-          AutoEditorDOMPointChildInvalidator lockOffset(pointAtBRElement);
-          nsresult rv =
-              UpdateBRElementType(MOZ_KnownLive(lineBreak->BRElementRef()),
-                                  BRElementType::PaddingForEmptyLastLine);
-          if (NS_FAILED(rv)) {
-            NS_WARNING("EditorBase::UpdateBRElementType() failed");
-            return Err(rv);
+      if (lineBreak.isSome()) {
+        // If there is a <br> element and it is in the deepest inline container,
+        // we need to do nothing anymore. Let's suggest caret position as at the
+        // <br>.
+        if (lineBreak->IsHTMLBRElement() &&
+            lineBreak->BRElementRef().GetParentNode() ==
+                deepestInlineContainerElement) {
+          auto pointAtBRElement = lineBreak->To<EditorDOMPoint>();
+          {
+            AutoEditorDOMPointChildInvalidator lockOffset(pointAtBRElement);
+            nsresult rv =
+                UpdateBRElementType(MOZ_KnownLive(lineBreak->BRElementRef()),
+                                    BRElementType::PaddingForEmptyLastLine);
+            if (NS_FAILED(rv)) {
+              NS_WARNING("EditorBase::UpdateBRElementType() failed");
+              return Err(rv);
+            }
           }
+          return SplitNodeResult(std::move(unwrappedSplitDivOrPResult),
+                                 pointAtBRElement);
         }
-        return SplitNodeResult(std::move(unwrappedSplitDivOrPResult),
-                               pointAtBRElement);
-      }
-      // Otherwise, we should put a padding <br> element into the deepest inline
-      // container and then, existing <br> element (if there is) becomes
-      // unnecessary.
-      if (lineBreak.isSome() && lineBreak->IsHTMLBRElement()) {
-        nsresult rv =
-            DeleteNodeWithTransaction(MOZ_KnownLive(lineBreak->BRElementRef()));
-        if (NS_FAILED(rv)) {
-          NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
-          return Err(rv);
+        // Otherwise, we should put a padding line break into the deepest
+        // inline container and then, existing line break (if there is)
+        // becomes unnecessary.
+        Result<EditorDOMPoint, nsresult> lineBreakPointOrError =
+            DeleteLineBreakWithTransaction(lineBreak.ref(), nsIEditor::eStrip,
+                                           aEditingHost);
+        if (MOZ_UNLIKELY(lineBreakPointOrError.isErr())) {
+          NS_WARNING("HTMLEditor::DeleteLineBreakWithTransaction() failed");
+          return lineBreakPointOrError.propagateErr();
         }
+        Result<CreateElementResult, nsresult> insertPaddingBRElementResult =
+            InsertPaddingBRElementForEmptyLastLineWithTransaction(
+                EditorDOMPoint::AtEndOf(deepestInlineContainerElement));
+        if (MOZ_UNLIKELY(insertPaddingBRElementResult.isErr())) {
+          NS_WARNING(
+              "HTMLEditor::"
+              "InsertPaddingBRElementForEmptyLastLineWithTransaction() failed");
+          return insertPaddingBRElementResult.propagateErr();
+        }
+        insertPaddingBRElementResult.inspect().IgnoreCaretPointSuggestion();
+        return SplitNodeResult(
+            std::move(unwrappedSplitDivOrPResult),
+            EditorDOMPoint(
+                insertPaddingBRElementResult.inspect().GetNewNode()));
       }
-      Result<CreateElementResult, nsresult> insertPaddingBRElementResult =
-          InsertPaddingBRElementForEmptyLastLineWithTransaction(
-              EditorDOMPoint::AtEndOf(deepestInlineContainerElement));
-      if (MOZ_UNLIKELY(insertPaddingBRElementResult.isErr())) {
-        NS_WARNING(
-            "HTMLEditor::"
-            "InsertPaddingBRElementForEmptyLastLineWithTransaction() failed");
-        return insertPaddingBRElementResult.propagateErr();
-      }
-      insertPaddingBRElementResult.inspect().IgnoreCaretPointSuggestion();
-      return SplitNodeResult(
-          std::move(unwrappedSplitDivOrPResult),
-          EditorDOMPoint(insertPaddingBRElementResult.inspect().GetNewNode()));
     }
 
     // If there is no inline container elements, we just need to make the

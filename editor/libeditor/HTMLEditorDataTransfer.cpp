@@ -750,7 +750,8 @@ Result<EditActionResult, nsresult> HTMLEditor::HTMLWithContextInserter::Run(
       Result<EditorDOMPoint, nsresult> pointToPutCaretOrError =
           mHTMLEditor.ClearStyleAt(
               EditorDOMPoint(mHTMLEditor.SelectionRef().AnchorRef()),
-              EditorInlineStyle::RemoveAllStyles(), SpecifiedStyle::Preserve);
+              EditorInlineStyle::RemoveAllStyles(), SpecifiedStyle::Preserve,
+              mEditingHost);
       if (MOZ_UNLIKELY(pointToPutCaretOrError.isErr())) {
         NS_WARNING("HTMLEditor::ClearStyleAt() failed");
         return pointToPutCaretOrError.propagateErr();
