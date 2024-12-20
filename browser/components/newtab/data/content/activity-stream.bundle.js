@@ -12538,6 +12538,11 @@ class BaseContent extends (external_React_default()).PureComponent {
     }
   }
   onWindowScroll() {
+    if (window.innerHeight <= 700) {
+      // Bug 1937296: Only apply fixed-search logic
+      // if the page is tall enough to support it.
+      return;
+    }
     const prefs = this.props.Prefs.values;
     const logoAlwaysVisible = prefs["logowordmark.alwaysVisible"];
     const layoutsVariantAEnabled = prefs["newtabLayouts.variant-a"];
