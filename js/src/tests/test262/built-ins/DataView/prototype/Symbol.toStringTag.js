@@ -20,10 +20,8 @@ assert.sameValue(
   'The value of DataView.prototype[Symbol.toStringTag] is expected to be "DataView"'
 );
 
-verifyProperty(DataView.prototype, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(DataView.prototype, Symbol.toStringTag);
+verifyNotWritable(DataView.prototype, Symbol.toStringTag);
+verifyConfigurable(DataView.prototype, Symbol.toStringTag);
 
 reportCompare(0, 0);

@@ -16,10 +16,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(typeof Array.prototype.toLocaleString, 'function', 'typeof');
 
-verifyProperty(Array.prototype, "toLocaleString", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Array.prototype, "toLocaleString");
+verifyWritable(Array.prototype, "toLocaleString");
+verifyConfigurable(Array.prototype, "toLocaleString");
 
 reportCompare(0, 0);

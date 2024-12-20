@@ -7,9 +7,6 @@
 #ifndef builtin_temporal_PlainYearMonth_h
 #define builtin_temporal_PlainYearMonth_h
 
-#include "mozilla/Assertions.h"
-#include "mozilla/Attributes.h"
-
 #include <stdint.h>
 
 #include "builtin/temporal/Calendar.h"

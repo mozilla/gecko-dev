@@ -21,18 +21,13 @@ var unscopables = Array.prototype[Symbol.unscopables];
 assert.sameValue(Object.getPrototypeOf(unscopables), null);
 
 assert.sameValue(unscopables.findLast, true, '`findLast` property value');
-verifyProperty(unscopables, "findLast", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
-
+verifyEnumerable(unscopables, 'findLast');
+verifyWritable(unscopables, 'findLast');
+verifyConfigurable(unscopables, 'findLast');
 
 assert.sameValue(unscopables.findLastIndex, true, '`findLastIndex` property value');
-verifyProperty(unscopables, "findLastIndex", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'findLastIndex');
+verifyWritable(unscopables, 'findLastIndex');
+verifyConfigurable(unscopables, 'findLastIndex');
 
 reportCompare(0, 0);

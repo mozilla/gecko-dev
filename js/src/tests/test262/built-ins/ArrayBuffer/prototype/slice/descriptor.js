@@ -15,10 +15,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(ArrayBuffer.prototype, "slice", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(ArrayBuffer.prototype, "slice");
+verifyWritable(ArrayBuffer.prototype, "slice");
+verifyConfigurable(ArrayBuffer.prototype, "slice");
 
 reportCompare(0, 0);

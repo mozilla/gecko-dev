@@ -6,6 +6,7 @@
 
 #include "builtin/temporal/TimeZone.h"
 
+#include "mozilla/Array.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/intl/TimeZone.h"
 #include "mozilla/Likely.h"
@@ -17,14 +18,17 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <initializer_list>
 #include <iterator>
-#include <string_view>
 #include <utility>
 
 #include "jsdate.h"
+#include "jsnum.h"
+#include "jspubtd.h"
 #include "jstypes.h"
 #include "NamespaceImports.h"
 
+#include "builtin/Array.h"
 #include "builtin/intl/CommonFunctions.h"
 #include "builtin/intl/FormatBuffer.h"
 #include "builtin/intl/SharedIntlData.h"
@@ -38,20 +42,32 @@
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "builtin/temporal/ZonedDateTime.h"
+#include "gc/AllocKind.h"
 #include "gc/Barrier.h"
 #include "gc/GCContext.h"
 #include "gc/GCEnum.h"
 #include "gc/Tracer.h"
 #include "js/AllocPolicy.h"
+#include "js/CallArgs.h"
+#include "js/CallNonGenericMethod.h"
 #include "js/Class.h"
+#include "js/ComparisonOperators.h"
+#include "js/Date.h"
 #include "js/ErrorReport.h"
+#include "js/ForOfIterator.h"
 #include "js/friend/ErrorMessages.h"
 #include "js/Printer.h"
+#include "js/PropertyDescriptor.h"
+#include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
 #include "js/StableStringChars.h"
+#include "threading/ProtectedData.h"
+#include "vm/ArrayObject.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/Compartment.h"
 #include "vm/DateTime.h"
+#include "vm/GlobalObject.h"
+#include "vm/Interpreter.h"
 #include "vm/JSAtomState.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
@@ -59,6 +75,8 @@
 #include "vm/StringType.h"
 
 #include "vm/JSObject-inl.h"
+#include "vm/NativeObject-inl.h"
+#include "vm/ObjectOperations-inl.h"
 
 using namespace js;
 using namespace js::temporal;
@@ -99,8 +117,7 @@ static JSLinearString* FormatOffsetTimeZoneIdentifier(JSContext* cx,
 }
 
 static TimeZoneObject* CreateTimeZoneObject(
-    JSContext* cx, Handle<JSLinearString*> identifier,
-    Handle<JSLinearString*> primaryIdentifier) {
+    JSContext* cx, Handle<JSLinearString*> identifier) {
   // TODO: Implement a built-in time zone object cache.
 
   auto* object = NewObjectWithGivenProto<TimeZoneObject>(cx, nullptr);
@@ -110,9 +127,6 @@ static TimeZoneObject* CreateTimeZoneObject(
 
   object->setFixedSlot(TimeZoneObject::IDENTIFIER_SLOT,
                        StringValue(identifier));
-
-  object->setFixedSlot(TimeZoneObject::PRIMARY_IDENTIFIER_SLOT,
-                       StringValue(primaryIdentifier));
 
   object->setFixedSlot(TimeZoneObject::OFFSET_MINUTES_SLOT, UndefinedValue());
 
@@ -139,9 +153,6 @@ static TimeZoneObject* CreateTimeZoneObject(JSContext* cx,
 
   object->setFixedSlot(TimeZoneObject::IDENTIFIER_SLOT,
                        StringValue(identifier));
-
-  object->setFixedSlot(TimeZoneObject::PRIMARY_IDENTIFIER_SLOT,
-                       UndefinedValue());
 
   object->setFixedSlot(TimeZoneObject::OFFSET_MINUTES_SLOT,
                        Int32Value(offsetMinutes));
@@ -174,7 +185,7 @@ static mozilla::intl::TimeZone* GetOrCreateIntlTimeZone(
     return tz;
   }
 
-  auto* tz = CreateIntlTimeZone(cx, timeZone.primaryIdentifier()).release();
+  auto* tz = CreateIntlTimeZone(cx, timeZone.identifier()).release();
   if (!tz) {
     return nullptr;
   }
@@ -292,13 +303,11 @@ static JSLinearString* CanonicalizeTimeZoneName(
  * IsAvailableTimeZoneName ( timeZone )
  * CanonicalizeTimeZoneName ( timeZone )
  */
-static bool ValidateAndCanonicalizeTimeZoneName(
-    JSContext* cx, Handle<JSLinearString*> timeZone,
-    MutableHandle<JSLinearString*> identifier,
-    MutableHandle<JSLinearString*> primaryIdentifier) {
+static JSLinearString* ValidateAndCanonicalizeTimeZoneName(
+    JSContext* cx, Handle<JSLinearString*> timeZone) {
   Rooted<JSAtom*> validatedTimeZone(cx);
   if (!IsValidTimeZoneName(cx, timeZone, &validatedTimeZone)) {
-    return false;
+    return nullptr;
   }
 
   if (!validatedTimeZone) {
@@ -307,17 +316,10 @@ static bool ValidateAndCanonicalizeTimeZoneName(
                                JSMSG_TEMPORAL_TIMEZONE_INVALID_IDENTIFIER,
                                chars.get());
     }
-    return false;
+    return nullptr;
   }
 
-  auto* canonical = CanonicalizeTimeZoneName(cx, validatedTimeZone);
-  if (!canonical) {
-    return false;
-  }
-
-  identifier.set(validatedTimeZone);
-  primaryIdentifier.set(canonical);
-  return true;
+  return CanonicalizeTimeZoneName(cx, validatedTimeZone);
 }
 
 static bool SystemTimeZoneOffset(JSContext* cx, int32_t* offset) {
@@ -416,7 +418,7 @@ bool js::temporal::SystemTimeZone(JSContext* cx,
     return false;
   }
 
-  auto* timeZone = CreateTimeZoneObject(cx, identifier, identifier);
+  auto* timeZone = CreateTimeZoneObject(cx, identifier);
   if (!timeZone) {
     return false;
   }
@@ -691,15 +693,14 @@ bool js::temporal::ToTemporalTimeZone(JSContext* cx,
   }
 
   // Steps 6-8.
-  Rooted<JSLinearString*> identifier(cx);
-  Rooted<JSLinearString*> primaryIdentifier(cx);
-  if (!ValidateAndCanonicalizeTimeZoneName(cx, string.name(), &identifier,
-                                           &primaryIdentifier)) {
+  Rooted<JSLinearString*> timeZoneName(
+      cx, ValidateAndCanonicalizeTimeZoneName(cx, string.name()));
+  if (!timeZoneName) {
     return false;
   }
 
   // Step 9.
-  auto* obj = CreateTimeZoneObject(cx, identifier, primaryIdentifier);
+  auto* obj = CreateTimeZoneObject(cx, timeZoneName);
   if (!obj) {
     return false;
   }
@@ -781,7 +782,9 @@ bool js::temporal::TimeZoneEquals(const TimeZoneValue& one,
 
   // Step 4.
   if (!one.isOffset() && !two.isOffset()) {
-    return EqualStrings(one.primaryIdentifier(), two.primaryIdentifier());
+    // NOTE: The identifiers are already canonicalized in our implementation, so
+    // we only need to compare both strings for equality.
+    return EqualStrings(one.identifier(), two.identifier());
   }
 
   // Step 5.
@@ -1136,8 +1139,9 @@ bool js::temporal::WrapTimeZoneValueObject(
     return true;
   }
 
-  if (timeZone->isOffset()) {
-    auto* obj = CreateTimeZoneObject(cx, timeZone->offsetMinutes());
+  const auto& offsetMinutes = timeZone->offsetMinutes();
+  if (offsetMinutes.isInt32()) {
+    auto* obj = CreateTimeZoneObject(cx, offsetMinutes.toInt32());
     if (!obj) {
       return false;
     }
@@ -1145,30 +1149,19 @@ bool js::temporal::WrapTimeZoneValueObject(
     timeZone.set(obj);
     return true;
   }
+  MOZ_ASSERT(offsetMinutes.isUndefined());
 
   Rooted<JSString*> identifier(cx, timeZone->identifier());
   if (!cx->compartment()->wrap(cx, &identifier)) {
     return false;
   }
 
-  Rooted<JSString*> primaryIdentifier(cx, timeZone->primaryIdentifier());
-  if (!cx->compartment()->wrap(cx, &primaryIdentifier)) {
+  Rooted<JSLinearString*> linear(cx, identifier->ensureLinear(cx));
+  if (!linear) {
     return false;
   }
 
-  Rooted<JSLinearString*> identifierLinear(cx, identifier->ensureLinear(cx));
-  if (!identifierLinear) {
-    return false;
-  }
-
-  Rooted<JSLinearString*> primaryIdentifierLinear(
-      cx, primaryIdentifier->ensureLinear(cx));
-  if (!primaryIdentifierLinear) {
-    return false;
-  }
-
-  auto* obj =
-      CreateTimeZoneObject(cx, identifierLinear, primaryIdentifierLinear);
+  auto* obj = CreateTimeZoneObject(cx, linear);
   if (!obj) {
     return false;
   }

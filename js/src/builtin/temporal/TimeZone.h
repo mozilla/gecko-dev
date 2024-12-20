@@ -9,13 +9,14 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/Maybe.h"
+#include "mozilla/EnumSet.h"
 
 #include <array>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "builtin/temporal/TemporalTypes.h"
+#include "js/GCVector.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
@@ -23,8 +24,13 @@
 #include "vm/NativeObject.h"
 #include "vm/StringType.h"
 
+class JSLinearString;
 class JS_PUBLIC_API JSTracer;
 struct JSClassOps;
+
+namespace js {
+struct ClassSpec;
+}
 
 namespace mozilla::intl {
 class TimeZone;
@@ -37,28 +43,19 @@ class TimeZoneObject : public NativeObject {
   static const JSClass class_;
 
   static constexpr uint32_t IDENTIFIER_SLOT = 0;
-  static constexpr uint32_t PRIMARY_IDENTIFIER_SLOT = 1;
-  static constexpr uint32_t OFFSET_MINUTES_SLOT = 2;
-  static constexpr uint32_t INTL_TIMEZONE_SLOT = 3;
-  static constexpr uint32_t SLOT_COUNT = 4;
+  static constexpr uint32_t OFFSET_MINUTES_SLOT = 1;
+  static constexpr uint32_t INTL_TIMEZONE_SLOT = 2;
+  static constexpr uint32_t SLOT_COUNT = 3;
 
   // Estimated memory use for intl::TimeZone (see IcuMemoryUsage).
   static constexpr size_t EstimatedMemoryUse = 6840;
-
-  bool isOffset() const { return getFixedSlot(OFFSET_MINUTES_SLOT).isInt32(); }
 
   JSLinearString* identifier() const {
     return &getFixedSlot(IDENTIFIER_SLOT).toString()->asLinear();
   }
 
-  JSLinearString* primaryIdentifier() const {
-    MOZ_ASSERT(!isOffset());
-    return &getFixedSlot(PRIMARY_IDENTIFIER_SLOT).toString()->asLinear();
-  }
-
-  int32_t offsetMinutes() const {
-    MOZ_ASSERT(isOffset());
-    return getFixedSlot(OFFSET_MINUTES_SLOT).toInt32();
+  const auto& offsetMinutes() const {
+    return getFixedSlot(OFFSET_MINUTES_SLOT);
   }
 
   mozilla::intl::TimeZone* getTimeZone() const {
@@ -84,33 +81,21 @@ class TimeZoneObject : public NativeObject {
 namespace js::temporal {
 
 /**
- * Temporal time zones are either available named time zones or offset time
- * zones.
+ * Temporal time zones can be either canonical time zone identifiers or time
+ * zone offset strings.
  *
- * The identifier of an available named time zones is an available named
- * time zone identifier, which is either a primary time zone identifier or a
- * non-primary time zone identifier.
- *
- * The identifier of an offset time zone is an offset time zone identifier.
- *
- * Temporal methods always return the normalized format of a time zone
- * identifier. Available named time zone identifier are always in normalized
- * format.
- *
- * Examples of valid available time zone identifiers in normalized format:
- * - "UTC" (primary identifier)
- * - "Etc/UTC" (non-primary identifier)
- * - "America/New_York" (primary identifier)
+ * Examples of valid Temporal time zones:
+ * - "UTC"
+ * - "America/New_York"
  * - "+00:00"
  *
- * Examples of valid available time zone identifiers in non-normalized format:
- * - "+00"
- * - "-00:00"
- *
- * Examples of invalid available time zone identifiers:
+ * Examples of invalid Temporal time zones:
  * - "utc" (wrong case)
+ * - "Etc/UTC" (canonical name is "UTC")
+ * - "+00" (missing minutes part)
  * - "+00:00:00" (sub-minute precision)
  * - "+00:00:01" (sub-minute precision)
+ * - "-00:00" (wrong sign for zero offset)
  *
  * The following two implementation approaches are possible:
  *
@@ -158,15 +143,15 @@ class MOZ_STACK_CLASS TimeZoneValue final {
    */
   bool isOffset() const {
     MOZ_ASSERT(object_);
-    return object_->isOffset();
+    return object_->offsetMinutes().isInt32();
   }
 
   /**
    * Return the offset of an offset time zone.
    */
   auto offsetMinutes() const {
-    MOZ_ASSERT(object_);
-    return object_->offsetMinutes();
+    MOZ_ASSERT(isOffset());
+    return object_->offsetMinutes().toInt32();
   }
 
   /**
@@ -175,14 +160,6 @@ class MOZ_STACK_CLASS TimeZoneValue final {
   auto* identifier() const {
     MOZ_ASSERT(object_);
     return object_->identifier();
-  }
-
-  /**
-   * Return the primary time zone identifier of a named time zone.
-   */
-  auto* primaryIdentifier() const {
-    MOZ_ASSERT(object_);
-    return object_->primaryIdentifier();
   }
 
   /**
@@ -259,6 +236,7 @@ class PossibleEpochNanoseconds final {
 };
 
 struct ParsedTimeZone;
+struct ISODateTime;
 enum class TemporalDisambiguation;
 
 /**
@@ -377,8 +355,6 @@ class WrappedPtrOperations<temporal::TimeZoneValue, Wrapper> {
   auto offsetMinutes() const { return container().offsetMinutes(); }
 
   auto* identifier() const { return container().identifier(); }
-
-  auto* primaryIdentifier() const { return container().primaryIdentifier(); }
 
   auto* getTimeZone() const { return container().getTimeZone(); }
 

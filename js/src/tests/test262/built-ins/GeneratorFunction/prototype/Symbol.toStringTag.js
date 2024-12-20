@@ -21,10 +21,8 @@ assert.sameValue(
   GeneratorFunctionPrototype[Symbol.toStringTag], 'GeneratorFunction'
 );
 
-verifyProperty(GeneratorFunctionPrototype, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(GeneratorFunctionPrototype, Symbol.toStringTag);
+verifyNotWritable(GeneratorFunctionPrototype, Symbol.toStringTag);
+verifyConfigurable(GeneratorFunctionPrototype, Symbol.toStringTag);
 
 reportCompare(0, 0);

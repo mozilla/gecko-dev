@@ -7,15 +7,11 @@
 #ifndef builtin_temporal_PlainMonthDay_h
 #define builtin_temporal_PlainMonthDay_h
 
-#include "mozilla/Assertions.h"
-#include "mozilla/Attributes.h"
-
 #include <stdint.h>
-
-#include "jstypes.h"
 
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/PlainDate.h"
+#include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/TemporalTypes.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"

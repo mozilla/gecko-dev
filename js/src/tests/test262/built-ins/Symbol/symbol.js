@@ -11,10 +11,8 @@ includes: [propertyHelper.js]
 features: [Symbol]
 ---*/
 
-verifyProperty(this, "Symbol", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(this, "Symbol");
+verifyWritable(this, "Symbol");
+verifyConfigurable(this, "Symbol");
 
 reportCompare(0, 0);

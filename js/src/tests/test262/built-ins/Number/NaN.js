@@ -17,10 +17,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(Number.NaN, NaN);
 
-verifyProperty(Number, "NaN", {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Number, "NaN");
+verifyNotWritable(Number, "NaN");
+verifyNotConfigurable(Number, "NaN");
 
 reportCompare(0, 0);

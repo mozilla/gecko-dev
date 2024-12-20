@@ -8,19 +8,18 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
-#include "mozilla/EnumSet.h"
 
 #include <algorithm>
+#include <type_traits>
 #include <utility>
 
+#include "jsnum.h"
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
-#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Duration.h"
-#include "builtin/temporal/Instant.h"
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainMonthDay.h"
 #include "builtin/temporal/PlainTime.h"
@@ -33,14 +32,17 @@
 #include "builtin/temporal/TimeZone.h"
 #include "builtin/temporal/ToString.h"
 #include "builtin/temporal/ZonedDateTime.h"
+#include "ds/IdValuePair.h"
 #include "gc/AllocKind.h"
 #include "gc/Barrier.h"
-#include "gc/GCEnum.h"
+#include "js/AllocPolicy.h"
 #include "js/CallArgs.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Class.h"
 #include "js/ErrorReport.h"
 #include "js/friend/ErrorMessages.h"
+#include "js/GCVector.h"
+#include "js/Id.h"
 #include "js/PropertyDescriptor.h"
 #include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
@@ -51,6 +53,7 @@
 #include "vm/JSAtomState.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
+#include "vm/ObjectOperations.h"
 #include "vm/PlainObject.h"
 #include "vm/StringType.h"
 
@@ -586,26 +589,24 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
     return true;
   }
 
-  // Step 2. (Not applicable in our implementation.)
-
-  // Step 3.
+  // Step 2.
   InternalDuration diff;
   if (!DifferenceISODateTime(cx, isoDateTime1, isoDateTime2, calendar,
                              settings.largestUnit, &diff)) {
     return false;
   }
 
-  // Step 4.
+  // Step 3.
   if (settings.smallestUnit == TemporalUnit::Nanosecond &&
       settings.roundingIncrement == Increment{1}) {
     *result = diff;
     return true;
   }
 
-  // Step 5.
+  // Step 4.
   auto destEpochNs = GetUTCEpochNanoseconds(isoDateTime2);
 
-  // Step 6.
+  // Step 5.
   Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
   return RoundRelativeDuration(
       cx, diff, destEpochNs, isoDateTime1, timeZone, calendar,
@@ -631,16 +632,14 @@ bool js::temporal::DifferencePlainDateTimeWithTotal(
     return true;
   }
 
-  // Step 2. (Not applicable in our implementation.)
-
-  // Step 3.
+  // Step 2.
   InternalDuration diff;
   if (!DifferenceISODateTime(cx, isoDateTime1, isoDateTime2, calendar, unit,
                              &diff)) {
     return false;
   }
 
-  // Step 4. (Optimized to avoid GetUTCEpochNanoseconds for non-calendar units.)
+  // Step 3. (Optimized to avoid GetUTCEpochNanoseconds for non-calendar units.)
   if (unit > TemporalUnit::Day) {
     MOZ_ASSERT(diff.date == DateDuration{});
 
@@ -661,10 +660,10 @@ bool js::temporal::DifferencePlainDateTimeWithTotal(
     return true;
   }
 
-  // Step 5.
+  // Step 4.
   auto destEpochNs = GetUTCEpochNanoseconds(isoDateTime2);
 
-  // Step 6.
+  // Step 5.
   Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
   return TotalRelativeDuration(cx, diff, destEpochNs, isoDateTime1, timeZone,
                                calendar, unit, result);
@@ -1946,10 +1945,19 @@ static bool PlainDateTime_toString(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainDateTime.prototype.toLocaleString ( [ locales [ , options ] ] )
  */
 static bool PlainDateTime_toLocaleString(JSContext* cx, const CallArgs& args) {
-  // Steps 3-4.
-  Handle<PropertyName*> required = cx->names().any;
-  Handle<PropertyName*> defaults = cx->names().all;
-  return TemporalObjectToLocaleString(cx, args, required, defaults);
+  auto* dateTime = &args.thisv().toObject().as<PlainDateTimeObject>();
+  auto dt = dateTime->dateTime();
+  Rooted<CalendarValue> calendar(cx, dateTime->calendar());
+
+  // Step 3.
+  JSString* str = ISODateTimeToString(cx, dt, calendar, Precision::Auto(),
+                                      ShowCalendar::Auto);
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
 }
 
 /**

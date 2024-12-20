@@ -16,10 +16,8 @@ features: [Symbol.toStringTag]
 
 assert.sameValue(JSON[Symbol.toStringTag], 'JSON');
 
-verifyProperty(JSON, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(JSON, Symbol.toStringTag);
+verifyNotWritable(JSON, Symbol.toStringTag);
+verifyConfigurable(JSON, Symbol.toStringTag);
 
 reportCompare(0, 0);

@@ -15,10 +15,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(Number.prototype.constructor, Number);
 
-verifyProperty(Number.prototype, "constructor", {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(Number.prototype, "constructor");
+verifyWritable(Number.prototype, "constructor");
+verifyConfigurable(Number.prototype, "constructor");
 
 reportCompare(0, 0);

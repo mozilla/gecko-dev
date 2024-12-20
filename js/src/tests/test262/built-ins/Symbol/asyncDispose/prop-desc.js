@@ -13,10 +13,8 @@ features: [explicit-resource-management]
 ---*/
 
 assert.sameValue(typeof Symbol.asyncDispose, 'symbol');
-verifyProperty(Symbol, 'asyncDispose', {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Symbol, 'asyncDispose');
+verifyNotWritable(Symbol, 'asyncDispose');
+verifyNotConfigurable(Symbol, 'asyncDispose');
 
 reportCompare(0, 0);

@@ -13,10 +13,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Number, "prototype", {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Number, "prototype");
+verifyNotWritable(Number, "prototype");
+verifyNotConfigurable(Number, "prototype");
 
 reportCompare(0, 0);

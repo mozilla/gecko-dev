@@ -7,8 +7,12 @@
 #include "builtin/temporal/TemporalNow.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Result.h"
 
+#include <cstdlib>
 #include <stdint.h>
+#include <string_view>
+#include <utility>
 
 #include "jsdate.h"
 #include "jspubtd.h"
@@ -24,6 +28,9 @@
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TimeZone.h"
 #include "builtin/temporal/ZonedDateTime.h"
+#include "gc/Barrier.h"
+#include "gc/GCEnum.h"
+#include "js/AllocPolicy.h"
 #include "js/CallArgs.h"
 #include "js/Class.h"
 #include "js/Date.h"
@@ -33,6 +40,7 @@
 #include "js/TypeDecls.h"
 #include "vm/DateTime.h"
 #include "vm/GlobalObject.h"
+#include "vm/JSAtomState.h"
 #include "vm/JSContext.h"
 #include "vm/Realm.h"
 #include "vm/StringType.h"

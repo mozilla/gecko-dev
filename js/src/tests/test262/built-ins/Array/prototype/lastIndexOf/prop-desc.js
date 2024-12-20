@@ -16,10 +16,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(typeof Array.prototype.lastIndexOf, 'function', 'typeof');
 
-verifyProperty(Array.prototype, "lastIndexOf", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Array.prototype, "lastIndexOf");
+verifyWritable(Array.prototype, "lastIndexOf");
+verifyConfigurable(Array.prototype, "lastIndexOf");
 
 reportCompare(0, 0);

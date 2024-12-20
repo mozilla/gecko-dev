@@ -12,10 +12,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Math, "sin", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Math, "sin");
+verifyWritable(Math, "sin");
+verifyConfigurable(Math, "sin");
 
 reportCompare(0, 0);

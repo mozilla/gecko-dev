@@ -8,14 +8,13 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/Casting.h"
-#include "mozilla/CheckedInt.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/intl/ICU4XGeckoDataProvider.h"
 #include "mozilla/intl/Locale.h"
-#include "mozilla/MathAlgorithms.h"
+#include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/Range.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/Span.h"
@@ -25,7 +24,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <initializer_list>
+#include <cstring>
 #include <iterator>
 #include <stddef.h>
 #include <stdint.h>
@@ -35,16 +34,19 @@
 #include "ICU4XAnyCalendarKind.h"
 #include "ICU4XCalendar.h"
 #include "ICU4XDate.h"
-#include "ICU4XError.h"
 #include "ICU4XIsoDate.h"
 #include "ICU4XIsoWeekday.h"
 #include "ICU4XWeekCalculator.h"
+#include "ICU4XWeekOf.h"
 #include "ICU4XWeekRelativeUnit.h"
 
+#include "jsfriendapi.h"
 #include "jsnum.h"
+#include "jspubtd.h"
 #include "jstypes.h"
 #include "NamespaceImports.h"
 
+#include "builtin/Array.h"
 #include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Crash.h"
 #include "builtin/temporal/Duration.h"
@@ -57,30 +59,51 @@
 #include "builtin/temporal/PlainYearMonth.h"
 #include "builtin/temporal/Temporal.h"
 #include "builtin/temporal/TemporalParser.h"
-#include "builtin/temporal/TemporalRoundingMode.h"
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "builtin/temporal/ZonedDateTime.h"
+#include "gc/AllocKind.h"
 #include "gc/Barrier.h"
 #include "gc/GCEnum.h"
+#include "gc/Tracer.h"
 #include "js/AllocPolicy.h"
+#include "js/CallArgs.h"
+#include "js/CallNonGenericMethod.h"
+#include "js/Class.h"
+#include "js/Conversions.h"
 #include "js/ErrorReport.h"
+#include "js/ForOfIterator.h"
 #include "js/friend/ErrorMessages.h"
+#include "js/GCAPI.h"
+#include "js/GCHashTable.h"
+#include "js/GCVector.h"
+#include "js/Id.h"
 #include "js/Printer.h"
+#include "js/PropertyDescriptor.h"
+#include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
 #include "js/TracingAPI.h"
 #include "js/Value.h"
-#include "js/Vector.h"
 #include "util/Text.h"
+#include "vm/ArrayObject.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/Compartment.h"
+#include "vm/GlobalObject.h"
+#include "vm/Interpreter.h"
 #include "vm/JSAtomState.h"
 #include "vm/JSContext.h"
+#include "vm/JSObject.h"
+#include "vm/PropertyInfo.h"
+#include "vm/PropertyKey.h"
+#include "vm/Realm.h"
+#include "vm/Shape.h"
+#include "vm/Stack.h"
 #include "vm/StringType.h"
 
 #include "vm/Compartment-inl.h"
-#include "vm/JSContext-inl.h"
+#include "vm/JSAtomUtils-inl.h"
 #include "vm/JSObject-inl.h"
+#include "vm/NativeObject-inl.h"
 #include "vm/ObjectOperations-inl.h"
 
 using namespace js;
@@ -321,10 +344,10 @@ static YearWeek ISOWeekOfYear(const ISODate& isoDate) {
 }
 
 /**
- * ToTemporalCalendarIdentifier ( calendarSlotValue )
+ * Return the BCP-47 string for the given calendar id.
  */
-std::string_view js::temporal::CalendarIdentifier(CalendarId calendarId) {
-  switch (calendarId) {
+static std::string_view CalendarIdToBcp47(CalendarId id) {
+  switch (id) {
     case CalendarId::ISO8601:
       return "iso8601";
     case CalendarId::Buddhist:
@@ -432,7 +455,7 @@ bool js::temporal::CanonicalizeCalendar(JSContext* cx, Handle<JSString*> id,
 
     // Steps 2-3.
     for (auto identifier : calendars) {
-      if (id == mozilla::Span{CalendarIdentifier(identifier)}) {
+      if (id == mozilla::Span{CalendarIdToBcp47(identifier)}) {
         result.set(CalendarValue(identifier));
         return true;
       }
@@ -535,6 +558,14 @@ bool js::temporal::GetTemporalCalendarWithISODefault(
 
   // Step 4.
   return ToTemporalCalendar(cx, calendarValue, result);
+}
+
+/**
+ * ToTemporalCalendarIdentifier ( calendarSlotValue )
+ */
+std::string_view js::temporal::CalendarIdentifier(
+    const CalendarValue& calendar) {
+  return CalendarIdToBcp47(calendar.identifier());
 }
 
 static auto ToAnyCalendarKind(CalendarId id) {

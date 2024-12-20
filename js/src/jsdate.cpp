@@ -2134,7 +2134,7 @@ static ClippedTime NowAsMillis(JSContext* cx) {
 
 JS::ClippedTime js::DateNow(JSContext* cx) { return NowAsMillis(cx); }
 
-static bool date_now(JSContext* cx, unsigned argc, Value* vp) {
+bool js::date_now(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date", "now");
   CallArgs args = CallArgsFromVp(argc, vp);
   args.rval().set(TimeValue(NowAsMillis(cx)));

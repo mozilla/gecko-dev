@@ -14,10 +14,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Number.prototype, "toLocaleString", {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(Number.prototype, "toLocaleString");
+verifyWritable(Number.prototype, "toLocaleString");
+verifyConfigurable(Number.prototype, "toLocaleString");
 
 reportCompare(0, 0);

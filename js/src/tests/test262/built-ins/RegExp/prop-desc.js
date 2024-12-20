@@ -11,10 +11,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(this, "RegExp", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(this, "RegExp");
+verifyWritable(this, "RegExp");
+verifyConfigurable(this, "RegExp");
 
 reportCompare(0, 0);

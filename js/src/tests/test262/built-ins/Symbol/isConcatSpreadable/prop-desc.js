@@ -11,10 +11,8 @@ features: [Symbol.isConcatSpreadable]
 ---*/
 
 assert.sameValue(typeof Symbol.isConcatSpreadable, 'symbol');
-verifyProperty(Symbol, 'isConcatSpreadable', {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Symbol, 'isConcatSpreadable');
+verifyNotWritable(Symbol, 'isConcatSpreadable');
+verifyNotConfigurable(Symbol, 'isConcatSpreadable');
 
 reportCompare(0, 0);

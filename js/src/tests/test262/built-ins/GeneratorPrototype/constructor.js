@@ -16,10 +16,8 @@ var GeneratorPrototype = Generator.prototype;
 
 assert.sameValue(GeneratorPrototype.constructor, Generator);
 
-verifyProperty(GeneratorPrototype, 'constructor', {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(GeneratorPrototype, 'constructor');
+verifyNotWritable(GeneratorPrototype, 'constructor');
+verifyConfigurable(GeneratorPrototype, 'constructor');
 
 reportCompare(0, 0);

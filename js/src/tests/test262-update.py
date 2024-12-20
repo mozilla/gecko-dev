@@ -22,10 +22,10 @@ UNSUPPORTED_FEATURES = set(
         "Intl.Locale-info",  # Bug 1693576
         "Atomics.waitAsync",  # Bug 1467846
         "legacy-regexp",  # Bug 1306461
+        "set-methods",  # Bug 1805038
         "source-phase-imports",
         "source-phase-imports-module-source",
         "Math.sumPrecise",
-        "import-defer",
     ]
 )
 FEATURE_CHECK_NEEDED = {
@@ -46,8 +46,6 @@ FEATURE_CHECK_NEEDED = {
     "promise-try": "!Promise.try",
     "explicit-resource-management": "!(this.hasOwnProperty('getBuildConfiguration')&&getBuildConfiguration('explicit-resource-management'))",  # Bug 1569081
     "Atomics.pause": "!this.hasOwnProperty('Atomics')||!Atomics.pause",
-    "Error.isError": "!Error.isError",
-    "iterator-sequencing": "!Iterator.concat",
 }
 RELEASE_OR_BETA = set(
     [
@@ -71,8 +69,6 @@ SHELL_OPTIONS = {
     "explicit-resource-management": "--enable-explicit-resource-management",
     "Atomics.pause": "--enable-atomics-pause",
     "Temporal": "--enable-temporal",
-    "Error.isError": "--enable-error-iserror",
-    "iterator-sequencing": "--enable-iterator-sequencing",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {
@@ -545,10 +541,7 @@ def process_test262(test262Dir, test262OutDir, strictTests, externManifests):
     explicitIncludes[os.path.join("built-ins", "TypedArrays")] = [
         "detachArrayBuffer.js"
     ]
-
-    # We can't include "sm/non262.js", because it conflicts with our test harness,
-    # but some definitions from "sm/non262.js" are still needed.
-    localIncludesMap[os.path.join("staging", "sm")] = ["test262-non262.js"]
+    explicitIncludes[os.path.join("built-ins", "Temporal")] = ["temporalHelpers.js"]
 
     # Process all test directories recursively.
     for dirPath, dirNames, fileNames in os.walk(testDir):
@@ -608,10 +601,6 @@ def process_test262(test262Dir, test262OutDir, strictTests, externManifests):
                             "reftest": externRefTest,
                         }
                     )
-
-        # Remove "sm/non262.js" because it overwrites our test harness with stub
-        # functions.
-        includeSet.discard("sm/non262.js")
 
         # Add shell.js and browers.js files for the current directory.
         writeShellAndBrowserFiles(

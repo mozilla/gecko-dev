@@ -15,10 +15,8 @@ features: [TypedArray]
 
 var TypedArrayPrototype = TypedArray.prototype;
 
-verifyProperty(TypedArrayPrototype, 'reduceRight', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(TypedArrayPrototype, 'reduceRight');
+verifyWritable(TypedArrayPrototype, 'reduceRight');
+verifyConfigurable(TypedArrayPrototype, 'reduceRight');
 
 reportCompare(0, 0);

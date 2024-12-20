@@ -15,10 +15,8 @@ features: [TypedArray]
 
 assert.sameValue(Float32Array.prototype, Object.getPrototypeOf(new Float32Array(0)));
 
-verifyProperty(Float32Array, "prototype", {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Float32Array, "prototype");
+verifyNotWritable(Float32Array, "prototype");
+verifyNotConfigurable(Float32Array, "prototype");
 
 reportCompare(0, 0);

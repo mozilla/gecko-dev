@@ -635,7 +635,7 @@ MSG_DEF(JSMSG_INVALID_LOCALE_MATCHER,  1, JSEXN_RANGEERR, "invalid locale matche
 MSG_DEF(JSMSG_INVALID_OPTION_VALUE,    2, JSEXN_RANGEERR, "invalid value {1} for option {0}")
 MSG_DEF(JSMSG_INVALID_TIME_ZONE,       1, JSEXN_RANGEERR, "invalid time zone in DateTimeFormat(): {0}")
 MSG_DEF(JSMSG_INVALID_DATETIME_OPTION, 2, JSEXN_TYPEERR, "can't set option {0} when {1} is used")
-MSG_DEF(JSMSG_INVALID_DATETIME_STYLE,  2, JSEXN_TYPEERR, "can't set option {0} for {1} formats")
+MSG_DEF(JSMSG_INVALID_DATETIME_STYLE,  2, JSEXN_TYPEERR, "can't set option {0} in Date.{1}()")
 MSG_DEF(JSMSG_UNDEFINED_CURRENCY,      0, JSEXN_TYPEERR, "undefined currency in NumberFormat() with currency style")
 MSG_DEF(JSMSG_UNDEFINED_UNIT,          0, JSEXN_TYPEERR, "undefined unit in NumberFormat() with unit style")
 MSG_DEF(JSMSG_UNDEFINED_DATE,          2, JSEXN_TYPEERR, "undefined {0}-date in DateTimeFormat.{1}()")
@@ -653,7 +653,6 @@ MSG_DEF(JSMSG_INTL_DURATION_INVALID_SIGN, 0, JSEXN_RANGEERR, "duration elements 
 MSG_DEF(JSMSG_INTL_DURATION_INVALID_LIMIT, 0, JSEXN_RANGEERR, "duration elements must be below valid limits")
 MSG_DEF(JSMSG_INTL_DURATION_MISSING_UNIT, 0, JSEXN_TYPEERR, "Duration-like objects must have at least one duration unit")
 MSG_DEF(JSMSG_INTL_DURATION_UNEXPECTED_STRING, 0, JSEXN_RANGEERR, "duration can't be a string")
-MSG_DEF(JSMSG_INVALID_FORMAT_OPTIONS,  1, JSEXN_TYPEERR, "can't format {0} using the requested options")
 
 // RegExp
 MSG_DEF(JSMSG_BAD_CLASS_RANGE,         0, JSEXN_SYNTAXERR, "invalid range in character class")

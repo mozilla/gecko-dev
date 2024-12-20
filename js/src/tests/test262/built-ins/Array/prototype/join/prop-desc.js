@@ -16,10 +16,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(typeof Array.prototype.join, 'function', 'typeof');
 
-verifyProperty(Array.prototype, "join", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Array.prototype, "join");
+verifyWritable(Array.prototype, "join");
+verifyConfigurable(Array.prototype, "join");
 
 reportCompare(0, 0);

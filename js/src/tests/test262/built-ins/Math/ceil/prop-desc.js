@@ -12,10 +12,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Math, "ceil", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Math, "ceil");
+verifyWritable(Math, "ceil");
+verifyConfigurable(Math, "ceil");
 
 reportCompare(0, 0);

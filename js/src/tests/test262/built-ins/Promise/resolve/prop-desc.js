@@ -14,10 +14,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Promise, 'resolve', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Promise, 'resolve');
+verifyWritable(Promise, 'resolve');
+verifyConfigurable(Promise, 'resolve');
 
 reportCompare(0, 0);

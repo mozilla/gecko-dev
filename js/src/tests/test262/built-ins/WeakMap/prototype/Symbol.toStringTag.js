@@ -16,10 +16,8 @@ features: [Symbol.toStringTag]
 
 assert.sameValue(WeakMap.prototype[Symbol.toStringTag], 'WeakMap');
 
-verifyProperty(WeakMap.prototype, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(WeakMap.prototype, Symbol.toStringTag);
+verifyNotWritable(WeakMap.prototype, Symbol.toStringTag);
+verifyConfigurable(WeakMap.prototype, Symbol.toStringTag);
 
 reportCompare(0, 0);

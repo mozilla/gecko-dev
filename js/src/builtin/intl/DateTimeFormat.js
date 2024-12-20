@@ -5,7 +5,7 @@
 /* Portions Copyright Norbert Lindenberg 2011-2012. */
 
 /**
- * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults [ , toLocaleStringTimeZone ] )
+ * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults )
  *
  * Compute an internal properties object from |lazyDateTimeFormatData|.
  */
@@ -102,8 +102,6 @@ function resolveDateTimeFormatInternals(lazyDateTimeFormatData) {
     internalProps.dateStyle = lazyDateTimeFormatData.dateStyle;
     internalProps.timeStyle = lazyDateTimeFormatData.timeStyle;
   } else {
-    internalProps.required = lazyDateTimeFormatData.required;
-    internalProps.defaults = lazyDateTimeFormatData.defaults;
     internalProps.hourCycle = formatOptions.hourCycle;
     internalProps.hour12 = formatOptions.hour12;
     internalProps.weekday = formatOptions.weekday;
@@ -370,7 +368,7 @@ function TimeZoneOffsetString(offsetString) {
 
 /* eslint-disable complexity */
 /**
- * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults [ , toLocaleStringTimeZone ] )
+ * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults )
  *
  * Initializes an object as a DateTimeFormat.
  *
@@ -387,7 +385,6 @@ function InitializeDateTimeFormat(
   options,
   required,
   defaults,
-  toLocaleStringTimeZone,
   mozExtensions
 ) {
   assert(
@@ -405,10 +402,6 @@ function InitializeDateTimeFormat(
   assert(
     defaults === "date" || defaults === "time" || defaults === "all",
     `InitializeDateTimeFormat called with invalid defaults value: ${defaults}`
-  );
-  assert(
-    toLocaleStringTimeZone === undefined || typeof toLocaleStringTimeZone === "string",
-    `InitializeDateTimeFormat called with invalid toLocaleStringTimeZone value: ${toLocaleStringTimeZone}`
   );
 
   // Lazy DateTimeFormat data has the following structure:
@@ -438,10 +431,6 @@ function InitializeDateTimeFormat(
   //       }
   //
   //     formatMatcher: "basic" / "best fit",
-  //
-  //     required: "date" / "time" / "any", // optional
-  //
-  //     defaults: "date" / "time" / "all", // optional
   //   }
   //
   // Note that lazy data is only installed as a final step of initialization,
@@ -542,22 +531,11 @@ function InitializeDateTimeFormat(
   // Steps 30-34.
   if (timeZone === undefined) {
     // Step 30.a.
-    if (toLocaleStringTimeZone !== undefined) {
-      timeZone = toLocaleStringTimeZone;
-    } else {
-      timeZone = DefaultTimeZone();
-    }
+    timeZone = DefaultTimeZone();
 
     // Steps 32-34. (Not applicable in our implementation.)
   } else {
     // Step 31.a.
-    if (toLocaleStringTimeZone !== undefined) {
-      ThrowTypeError(
-        JSMSG_INVALID_DATETIME_OPTION,
-        "timeZone",
-        "Temporal.ZonedDateTime.toLocaleString"
-      );
-    }
     timeZone = ToString(timeZone);
 
     // Steps 32-34.
@@ -761,16 +739,58 @@ function InitializeDateTimeFormat(
 
     // Step 43.b.
     if (required === "date" && timeStyle !== undefined) {
-      ThrowTypeError(JSMSG_INVALID_DATETIME_STYLE, "timeStyle", "date");
+      ThrowTypeError(
+        JSMSG_INVALID_DATETIME_STYLE,
+        "timeStyle",
+        "toLocaleDateString"
+      );
     }
 
     // Step 43.c.
     if (required === "time" && dateStyle !== undefined) {
-      ThrowTypeError(JSMSG_INVALID_DATETIME_STYLE, "dateStyle", "time");
+      ThrowTypeError(
+        JSMSG_INVALID_DATETIME_STYLE,
+        "dateStyle",
+        "toLocaleTimeString"
+      );
     }
   } else {
-    lazyDateTimeFormatData.required = required;
-    lazyDateTimeFormatData.defaults = defaults;
+    // Step 44.a.
+    var needDefaults = true;
+
+    // Step 44.b.
+    if (required === "date" || required === "any") {
+      needDefaults =
+        formatOptions.weekday === undefined &&
+        formatOptions.year === undefined &&
+        formatOptions.month === undefined &&
+        formatOptions.day === undefined;
+    }
+
+    // Step 44.c.
+    if (required === "time" || required === "any") {
+      needDefaults =
+        needDefaults &&
+        formatOptions.dayPeriod === undefined &&
+        formatOptions.hour === undefined &&
+        formatOptions.minute === undefined &&
+        formatOptions.second === undefined &&
+        formatOptions.fractionalSecondDigits === undefined;
+    }
+
+    // Step 44.d.
+    if (needDefaults && (defaults === "date" || defaults === "all")) {
+      formatOptions.year = "numeric";
+      formatOptions.month = "numeric";
+      formatOptions.day = "numeric";
+    }
+
+    // Step 44.e.
+    if (needDefaults && (defaults === "time" || defaults === "all")) {
+      formatOptions.hour = "numeric";
+      formatOptions.minute = "numeric";
+      formatOptions.second = "numeric";
+    }
 
     // Steps 44.f-h provided by ICU, more or less.
   }
@@ -874,8 +894,11 @@ function createDateTimeFormatFormat(dtf) {
       "dateTimeFormatFormatToBind called with non-DateTimeFormat"
     );
 
-    // Steps 3-5.
-    return intl_FormatDateTime(dtf, date, /* formatToParts = */ false);
+    // Steps 3-4.
+    var x = date === undefined ? std_Date_now() : ToNumber(date);
+
+    // Step 5.
+    return intl_FormatDateTime(dtf, x, /* formatToParts = */ false);
   };
 }
 
@@ -932,11 +955,14 @@ function Intl_DateTimeFormat_formatToParts(date) {
     );
   }
 
+  // Steps 4-5.
+  var x = date === undefined ? std_Date_now() : ToNumber(date);
+
   // Ensure the DateTimeFormat internals are resolved.
   getDateTimeFormatInternals(dtf);
 
-  // Steps 4-6.
-  return intl_FormatDateTime(dtf, date, /* formatToParts = */ true);
+  // Step 6.
+  return intl_FormatDateTime(dtf, x, /* formatToParts = */ true);
 }
 
 /**
@@ -968,11 +994,17 @@ function Intl_DateTimeFormat_formatRange(startDate, endDate) {
     );
   }
 
+  // Step 4.
+  var x = ToNumber(startDate);
+
+  // Step 5.
+  var y = ToNumber(endDate);
+
   // Ensure the DateTimeFormat internals are resolved.
   getDateTimeFormatInternals(dtf);
 
-  // Steps 4-6.
-  return intl_FormatDateTimeRange(dtf, startDate, endDate, /* formatToParts = */ false);
+  // Step 6.
+  return intl_FormatDateTimeRange(dtf, x, y, /* formatToParts = */ false);
 }
 
 /**
@@ -1004,11 +1036,17 @@ function Intl_DateTimeFormat_formatRangeToParts(startDate, endDate) {
     );
   }
 
+  // Step 4.
+  var x = ToNumber(startDate);
+
+  // Step 5.
+  var y = ToNumber(endDate);
+
   // Ensure the DateTimeFormat internals are resolved.
   getDateTimeFormatInternals(dtf);
 
-  // Steps 4-6.
-  return intl_FormatDateTimeRange(dtf, startDate, endDate, /* formatToParts = */ true);
+  // Step 6.
+  return intl_FormatDateTimeRange(dtf, x, y, /* formatToParts = */ true);
 }
 
 /**

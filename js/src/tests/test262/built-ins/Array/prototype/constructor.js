@@ -20,10 +20,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(Array.prototype.constructor, Array);
 
-verifyProperty(Array.prototype, "constructor", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Array.prototype, 'constructor');
+verifyWritable(Array.prototype, 'constructor');
+verifyConfigurable(Array.prototype, 'constructor');
 
 reportCompare(0, 0);

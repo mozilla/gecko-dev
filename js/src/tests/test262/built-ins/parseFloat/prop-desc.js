@@ -12,10 +12,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(this, "parseFloat", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(this, "parseFloat");
+verifyWritable(this, "parseFloat");
+verifyConfigurable(this, "parseFloat");
 
 reportCompare(0, 0);

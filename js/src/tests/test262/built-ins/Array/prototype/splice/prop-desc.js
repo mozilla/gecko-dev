@@ -16,10 +16,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(typeof Array.prototype.splice, 'function', 'typeof');
 
-verifyProperty(Array.prototype, "splice", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Array.prototype, "splice");
+verifyWritable(Array.prototype, "splice");
+verifyConfigurable(Array.prototype, "splice");
 
 reportCompare(0, 0);

@@ -8,9 +8,9 @@
 
 #include "mozilla/Casting.h"
 #include "mozilla/CheckedInt.h"
-#include "mozilla/FloatingPoint.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MathAlgorithms.h"
+#include "mozilla/Maybe.h"
 
 #include <algorithm>
 #include <cmath>
@@ -20,12 +20,15 @@
 #include <limits>
 #include <stdint.h>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
+#include "jsfriendapi.h"
 #include "jsnum.h"
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
+#include "builtin/temporal/Instant.h"
 #include "builtin/temporal/Int128.h"
 #include "builtin/temporal/PlainDate.h"
 #include "builtin/temporal/PlainDateTime.h"
@@ -33,6 +36,7 @@
 #include "builtin/temporal/PlainTime.h"
 #include "builtin/temporal/PlainYearMonth.h"
 #include "builtin/temporal/TemporalRoundingMode.h"
+#include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "builtin/temporal/ZonedDateTime.h"
 #include "gc/Barrier.h"
@@ -40,6 +44,7 @@
 #include "js/Conversions.h"
 #include "js/ErrorReport.h"
 #include "js/friend/ErrorMessages.h"
+#include "js/GCVector.h"
 #include "js/Id.h"
 #include "js/Printer.h"
 #include "js/PropertyDescriptor.h"

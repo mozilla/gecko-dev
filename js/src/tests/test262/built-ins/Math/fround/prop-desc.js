@@ -12,10 +12,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Math, "fround", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Math, "fround");
+verifyWritable(Math, "fround");
+verifyConfigurable(Math, "fround");
 
 reportCompare(0, 0);

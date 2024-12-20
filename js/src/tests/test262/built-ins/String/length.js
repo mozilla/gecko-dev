@@ -12,11 +12,9 @@ includes: [propertyHelper.js]
 
 var str = new String('');
 
-verifyProperty(str, 'length', {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(str, 'length');
+verifyNotWritable(str, 'length');
+verifyNotConfigurable(str, 'length');
 
 assert.sameValue(str.length, 0, 'empty string');
 

@@ -26,11 +26,9 @@ Object.defineProperty(p, "attr", {
 });
 
 verifyEqualTo(target, "attr", 1);
-verifyProperty(target, "attr", {
-  writable: true,
-  enumerable: true,
-  configurable: true,
-});
+verifyWritable(target, "attr");
+verifyEnumerable(target, "attr");
+verifyConfigurable(target, "attr");
 
 Object.defineProperty(p, "attr", {
   configurable: false,
@@ -40,10 +38,8 @@ Object.defineProperty(p, "attr", {
 });
 
 verifyEqualTo(target, "attr", 2);
-verifyProperty(target, "attr", {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotWritable(target, "attr");
+verifyNotEnumerable(target, "attr");
+verifyNotConfigurable(target, "attr");
 
 reportCompare(0, 0);

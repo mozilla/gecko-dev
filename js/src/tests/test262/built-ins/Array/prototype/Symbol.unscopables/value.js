@@ -30,73 +30,53 @@ var unscopables = Array.prototype[Symbol.unscopables];
 assert.sameValue(Object.getPrototypeOf(unscopables), null);
 
 assert.sameValue(unscopables.copyWithin, true, '`copyWithin` property value');
-verifyProperty(unscopables, "copyWithin", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'copyWithin');
+verifyWritable(unscopables, 'copyWithin');
+verifyConfigurable(unscopables, 'copyWithin');
 
 assert.sameValue(unscopables.entries, true, '`entries` property value');
-verifyProperty(unscopables, "entries", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'entries');
+verifyWritable(unscopables, 'entries');
+verifyConfigurable(unscopables, 'entries');
 
 assert.sameValue(unscopables.fill, true, '`fill` property value');
-verifyProperty(unscopables, "fill", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'fill');
+verifyWritable(unscopables, 'fill');
+verifyConfigurable(unscopables, 'fill');
 
 assert.sameValue(unscopables.find, true, '`find` property value');
-verifyProperty(unscopables, "find", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'find');
+verifyWritable(unscopables, 'find');
+verifyConfigurable(unscopables, 'find');
 
 assert.sameValue(unscopables.findIndex, true, '`findIndex` property value');
-verifyProperty(unscopables, "findIndex", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'findIndex');
+verifyWritable(unscopables, 'findIndex');
+verifyConfigurable(unscopables, 'findIndex');
 
 assert.sameValue(unscopables.flat, true, '`flat` property value');
-verifyProperty(unscopables, "flat", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'flat');
+verifyWritable(unscopables, 'flat');
+verifyConfigurable(unscopables, 'flat');
 
 assert.sameValue(unscopables.flatMap, true, '`flatMap` property value');
-verifyProperty(unscopables, "flatMap", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'flatMap');
+verifyWritable(unscopables, 'flatMap');
+verifyConfigurable(unscopables, 'flatMap');
 
 assert.sameValue(unscopables.includes, true, '`includes` property value');
-verifyProperty(unscopables, "includes", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'includes');
+verifyWritable(unscopables, 'includes');
+verifyConfigurable(unscopables, 'includes');
 
 assert.sameValue(unscopables.keys, true, '`keys` property value');
-verifyProperty(unscopables, "keys", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'keys');
+verifyWritable(unscopables, 'keys');
+verifyConfigurable(unscopables, 'keys');
 
 assert.sameValue(unscopables.values, true, '`values` property value');
-verifyProperty(unscopables, "values", {
-  writable: true,
-  enumerable: true,
-  configurable: true
-});
+verifyEnumerable(unscopables, 'values');
+verifyWritable(unscopables, 'values');
+verifyConfigurable(unscopables, 'values');
 
 reportCompare(0, 0);

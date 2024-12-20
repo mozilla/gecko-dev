@@ -14,10 +14,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(RangeError.prototype, Object.getPrototypeOf(new RangeError));
 
-verifyProperty(RangeError, "prototype", {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(RangeError, "prototype");
+verifyNotWritable(RangeError, "prototype");
+verifyNotConfigurable(RangeError, "prototype");
 
 reportCompare(0, 0);

@@ -8,6 +8,9 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
+#include "mozilla/CheckedInt.h"
+#include "mozilla/FloatingPoint.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Span.h"
 
 #include <algorithm>
@@ -22,10 +25,8 @@
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
-#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/Duration.h"
-#include "builtin/temporal/Int128.h"
 #include "builtin/temporal/Int96.h"
 #include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/Temporal.h"
@@ -56,6 +57,7 @@
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
 #include "vm/PlainObject.h"
+#include "vm/StringType.h"
 
 #include "vm/JSObject-inl.h"
 #include "vm/NativeObject-inl.h"
@@ -1146,10 +1148,18 @@ static bool Instant_toString(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.Instant.prototype.toLocaleString ( [ locales [ , options ] ] )
  */
 static bool Instant_toLocaleString(JSContext* cx, const CallArgs& args) {
-  // Steps 3-4.
-  Handle<PropertyName*> required = cx->names().any;
-  Handle<PropertyName*> defaults = cx->names().all;
-  return TemporalObjectToLocaleString(cx, args, required, defaults);
+  auto epochNs = args.thisv().toObject().as<InstantObject>().epochNanoseconds();
+
+  // Step 3.
+  Rooted<TimeZoneValue> timeZone(cx);
+  JSString* str =
+      TemporalInstantToString(cx, epochNs, timeZone, Precision::Auto());
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
 }
 
 /**

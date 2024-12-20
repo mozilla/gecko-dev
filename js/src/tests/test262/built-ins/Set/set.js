@@ -10,10 +10,8 @@ description: >
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(this, "Set", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(this, "Set");
+verifyWritable(this, "Set");
+verifyConfigurable(this, "Set");
 
 reportCompare(0, 0);

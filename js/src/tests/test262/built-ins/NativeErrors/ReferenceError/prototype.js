@@ -14,10 +14,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(ReferenceError.prototype, Object.getPrototypeOf(new ReferenceError));
 
-verifyProperty(ReferenceError, "prototype", {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(ReferenceError, "prototype");
+verifyNotWritable(ReferenceError, "prototype");
+verifyNotConfigurable(ReferenceError, "prototype");
 
 reportCompare(0, 0);

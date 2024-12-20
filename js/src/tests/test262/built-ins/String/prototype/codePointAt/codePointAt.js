@@ -17,10 +17,8 @@ assert.sameValue(
   '`typeof String.prototype.codePointAt` is `function`'
 );
 
-verifyProperty(String.prototype, 'codePointAt', {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(String.prototype, 'codePointAt');
+verifyWritable(String.prototype, 'codePointAt');
+verifyConfigurable(String.prototype, 'codePointAt');
 
 reportCompare(0, 0);

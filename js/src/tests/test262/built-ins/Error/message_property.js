@@ -19,10 +19,8 @@ var message = "my-message";
 var error = new Error(message);
 
 verifyEqualTo(error, "message", message);
-verifyProperty(error, "message", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(error, "message");
+verifyWritable(error, "message");
+verifyConfigurable(error, "message");
 
 reportCompare(0, 0);

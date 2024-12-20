@@ -7,36 +7,37 @@
 #include "builtin/temporal/PlainYearMonth.h"
 
 #include "mozilla/Assertions.h"
-#include "mozilla/EnumSet.h"
 
+#include <type_traits>
 #include <utility>
 
+#include "jsnum.h"
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
-#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Duration.h"
 #include "builtin/temporal/Instant.h"
 #include "builtin/temporal/PlainDate.h"
-#include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/PlainMonthDay.h"
 #include "builtin/temporal/Temporal.h"
 #include "builtin/temporal/TemporalParser.h"
 #include "builtin/temporal/TemporalRoundingMode.h"
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
-#include "builtin/temporal/TimeZone.h"
 #include "builtin/temporal/ToString.h"
+#include "ds/IdValuePair.h"
 #include "gc/AllocKind.h"
 #include "gc/Barrier.h"
-#include "gc/GCEnum.h"
+#include "js/AllocPolicy.h"
 #include "js/CallArgs.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Class.h"
 #include "js/ErrorReport.h"
 #include "js/friend/ErrorMessages.h"
+#include "js/GCVector.h"
+#include "js/Id.h"
 #include "js/PropertyDescriptor.h"
 #include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
@@ -47,6 +48,7 @@
 #include "vm/JSAtomState.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
+#include "vm/ObjectOperations.h"
 #include "vm/PlainObject.h"
 #include "vm/StringType.h"
 
@@ -465,6 +467,9 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   MOZ_ASSERT(duration.date.weeks == 0);
   MOZ_ASSERT(duration.date.days == 0);
   MOZ_ASSERT(duration.time == TimeDuration{});
+
+  // FIXME: spec issue - TemporalDurationFromInternal is infallible
+  // https://github.com/tc39/proposal-temporal/issues/3051
 
   // Step 17. (Inlined TemporalDurationFromInternal)
   auto result = duration.date.toDuration();
@@ -1178,10 +1183,17 @@ static bool PlainYearMonth_toString(JSContext* cx, unsigned argc, Value* vp) {
  * )
  */
 static bool PlainYearMonth_toLocaleString(JSContext* cx, const CallArgs& args) {
-  // Steps 3-4.
-  Handle<PropertyName*> required = cx->names().date;
-  Handle<PropertyName*> defaults = cx->names().date;
-  return TemporalObjectToLocaleString(cx, args, required, defaults);
+  Rooted<PlainYearMonthObject*> yearMonth(
+      cx, &args.thisv().toObject().as<PlainYearMonthObject>());
+
+  // Step 3.
+  JSString* str = TemporalYearMonthToString(cx, yearMonth, ShowCalendar::Auto);
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
 }
 
 /**

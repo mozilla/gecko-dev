@@ -7,10 +7,8 @@ includes: [propertyHelper.js]
 es6id: 20.2.2.9
 ---*/
 
-verifyProperty(Math, "cbrt", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Math, "cbrt");
+verifyWritable(Math, "cbrt");
+verifyConfigurable(Math, "cbrt");
 
 reportCompare(0, 0);

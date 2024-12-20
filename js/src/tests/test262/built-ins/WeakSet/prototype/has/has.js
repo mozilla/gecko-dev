@@ -18,10 +18,8 @@ assert.sameValue(
   'typeof WeakSet.prototype.has is "function"'
 );
 
-verifyProperty(WeakSet.prototype, 'has', {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(WeakSet.prototype, 'has');
+verifyWritable(WeakSet.prototype, 'has');
+verifyConfigurable(WeakSet.prototype, 'has');
 
 reportCompare(0, 0);

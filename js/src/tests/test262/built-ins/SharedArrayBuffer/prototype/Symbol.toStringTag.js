@@ -17,10 +17,8 @@ features: [SharedArrayBuffer, Symbol.toStringTag]
 
 assert.sameValue(SharedArrayBuffer.prototype[Symbol.toStringTag], 'SharedArrayBuffer');
 
-verifyProperty(SharedArrayBuffer.prototype, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(SharedArrayBuffer.prototype, Symbol.toStringTag);
+verifyNotWritable(SharedArrayBuffer.prototype, Symbol.toStringTag);
+verifyConfigurable(SharedArrayBuffer.prototype, Symbol.toStringTag);
 
 reportCompare(0, 0);

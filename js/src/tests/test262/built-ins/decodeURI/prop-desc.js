@@ -12,10 +12,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(this, "decodeURI", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(this, "decodeURI");
+verifyWritable(this, "decodeURI");
+verifyConfigurable(this, "decodeURI");
 
 reportCompare(0, 0);

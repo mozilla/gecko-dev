@@ -80,7 +80,6 @@ included_inclnames_to_ignore = set(
         "ICU4XAnyCalendarKind.h",  # ICU4X
         "ICU4XCalendar.h",  # ICU4X
         "ICU4XDate.h",  # ICU4X
-        "ICU4XError.h",  # ICU4X
         "ICU4XGraphemeClusterSegmenter.h",  # ICU4X
         "ICU4XIsoDate.h",  # ICU4X
         "ICU4XIsoWeekday.h",  # ICU4X

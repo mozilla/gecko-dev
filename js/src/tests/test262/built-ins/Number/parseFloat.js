@@ -22,10 +22,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(Number.parseFloat, parseFloat);
 
-verifyProperty(Number, "parseFloat", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Number, "parseFloat");
+verifyWritable(Number, "parseFloat");
+verifyConfigurable(Number, "parseFloat");
 
 reportCompare(0, 0);

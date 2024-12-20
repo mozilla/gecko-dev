@@ -9,14 +9,16 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/EnumSet.h"
 
+#include <initializer_list>
 #include <stdint.h>
-#include <string_view>
 
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
 #include "vm/NativeObject.h"
+#include "vm/StringType.h"
 
 class JS_PUBLIC_API JSTracer;
 
@@ -194,14 +196,7 @@ int64_t MakeDate(const ISODateTime& dateTime);
 /**
  * Return the BCP 47 identifier of the calendar.
  */
-std::string_view CalendarIdentifier(CalendarId calendarId);
-
-/**
- * Return the BCP 47 identifier of the calendar.
- */
-inline std::string_view CalendarIdentifier(const CalendarValue& calendar) {
-  return CalendarIdentifier(calendar.identifier());
-}
+std::string_view CalendarIdentifier(const CalendarValue& calendar);
 
 /**
  * CanonicalizeCalendar ( id )

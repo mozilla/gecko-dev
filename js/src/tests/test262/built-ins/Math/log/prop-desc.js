@@ -12,10 +12,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Math, "log", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Math, "log");
+verifyWritable(Math, "log");
+verifyConfigurable(Math, "log");
 
 reportCompare(0, 0);

@@ -15,10 +15,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Array, 'prototype', {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Array, 'prototype');
+verifyNotWritable(Array, 'prototype');
+verifyNotConfigurable(Array, 'prototype');
 
 reportCompare(0, 0);

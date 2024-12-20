@@ -55,8 +55,8 @@ function compareFormatToPartsSnapshot(isoString, expected) {
 compareFormatToPartsSnapshot("2000-01-01T00:00Z", {
   iso8601: {
     year: 2000,
-    month: "01",
-    day: "01",
+    month: 1,
+    day: 1,
   },
   buddhist: {
     year: 2543,
@@ -179,8 +179,8 @@ const yearOneDay = new Map(
 compareFormatToPartsSnapshot("0001-01-01T00:00Z", {
   iso8601: {
     year: 1,
-    month: "01",
-    day: "0" + yearOneDay.get("iso8601"),
+    month: 1,
+    day: yearOneDay.get("iso8601"),
   },
   buddhist: {
     year: 544,

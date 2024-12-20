@@ -10,9 +10,11 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 
+#include <initializer_list>
 #include <stdint.h>
 
 #include "builtin/temporal/Calendar.h"
+#include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/TemporalTypes.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
@@ -51,6 +53,9 @@ class PlainDateObject : public NativeObject {
  private:
   static const ClassSpec classSpec_;
 };
+
+enum class TemporalOverflow;
+enum class TemporalUnit;
 
 #ifdef DEBUG
 /**

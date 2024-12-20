@@ -12,10 +12,8 @@ features: [Symbol.replace]
 ---*/
 
 assert.sameValue(typeof Symbol.replace, 'symbol');
-verifyProperty(Symbol, 'replace', {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Symbol, 'replace');
+verifyNotWritable(Symbol, 'replace');
+verifyNotConfigurable(Symbol, 'replace');
 
 reportCompare(0, 0);

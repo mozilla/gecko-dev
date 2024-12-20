@@ -12,10 +12,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Number.prototype, "toPrecision", {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(Number.prototype, "toPrecision");
+verifyWritable(Number.prototype, "toPrecision");
+verifyConfigurable(Number.prototype, "toPrecision");
 
 reportCompare(0, 0);

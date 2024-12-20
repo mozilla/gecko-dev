@@ -15,7 +15,7 @@ info: |
 flags: [module]
 features: [import-attributes, json-modules]
 negative:
-  phase: resolution
+  phase: parse
   type: SyntaxError
 ---*/
 

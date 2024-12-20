@@ -12,10 +12,8 @@ includes: [propertyHelper.js]
 features: [Array.prototype.includes]
 ---*/
 
-verifyProperty(Array.prototype, "includes", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Array.prototype, "includes");
+verifyWritable(Array.prototype, "includes");
+verifyConfigurable(Array.prototype, "includes");
 
 reportCompare(0, 0);

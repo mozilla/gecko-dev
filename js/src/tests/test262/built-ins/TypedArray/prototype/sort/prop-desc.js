@@ -15,10 +15,8 @@ features: [TypedArray]
 
 var TypedArrayPrototype = TypedArray.prototype;
 
-verifyProperty(TypedArrayPrototype, 'sort', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(TypedArrayPrototype, 'sort');
+verifyWritable(TypedArrayPrototype, 'sort');
+verifyConfigurable(TypedArrayPrototype, 'sort');
 
 reportCompare(0, 0);

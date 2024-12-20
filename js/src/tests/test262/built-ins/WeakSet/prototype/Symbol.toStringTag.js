@@ -16,10 +16,8 @@ features: [Symbol.toStringTag]
 
 assert.sameValue(WeakSet.prototype[Symbol.toStringTag], 'WeakSet');
 
-verifyProperty(WeakSet.prototype, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(WeakSet.prototype, Symbol.toStringTag);
+verifyNotWritable(WeakSet.prototype, Symbol.toStringTag);
+verifyConfigurable(WeakSet.prototype, Symbol.toStringTag);
 
 reportCompare(0, 0);

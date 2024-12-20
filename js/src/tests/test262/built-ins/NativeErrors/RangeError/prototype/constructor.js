@@ -18,10 +18,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(RangeError.prototype.constructor, RangeError);
 
-verifyProperty(RangeError.prototype, "constructor", {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(RangeError.prototype, "constructor");
+verifyWritable(RangeError.prototype, "constructor");
+verifyConfigurable(RangeError.prototype, "constructor");
 
 reportCompare(0, 0);

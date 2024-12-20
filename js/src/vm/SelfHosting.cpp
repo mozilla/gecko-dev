@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <iterator>
 
+#include "jsdate.h"
 #include "jsfriendapi.h"
 #include "jsmath.h"
 #include "jsnum.h"
@@ -2378,6 +2379,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("std_Array_pop", array_pop, 0, 0, ArrayPop),
     JS_TRAMPOLINE_FN("std_Array_sort", array_sort, 1, 0, ArraySort),
     JS_FN("std_BigInt_valueOf", BigIntObject::valueOf, 0, 0),
+    JS_FN("std_Date_now", date_now, 0, 0),
     JS_FN("std_Function_apply", fun_apply, 2, 0),
     JS_FN("std_Map_entries", MapObject::entries, 0, 0),
     JS_FN("std_Map_get", MapObject::get, 1, 0),

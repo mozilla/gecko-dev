@@ -27,4 +27,10 @@ assert.sameValue(`${ date.toLocaleString("de-AT", { timeZone: "Europe/Vienna" })
 var fmt = maybeGetWeekdayOnlyFormat();
 if (fmt) assert.sameValue(fmt.format(date), "Thursday");
 
+// should ignore units not in the data type
+assert.sameValue(date.toLocaleString("en-US", { timeZoneName: "long" }), "11/18/1976");
+assert.sameValue(date.toLocaleString("en-US", { hour: "numeric" }), "11/18/1976");
+assert.sameValue(date.toLocaleString("en-US", { minute: "numeric" }), "11/18/1976");
+assert.sameValue(date.toLocaleString("en-US", { second: "numeric" }), "11/18/1976");
+
 reportCompare(0, 0);

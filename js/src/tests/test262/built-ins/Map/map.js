@@ -12,10 +12,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(this, 'Map', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(this, 'Map');
+verifyWritable(this, 'Map');
+verifyConfigurable(this, 'Map');
 
 reportCompare(0, 0);

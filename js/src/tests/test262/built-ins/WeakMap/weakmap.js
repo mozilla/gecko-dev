@@ -9,10 +9,8 @@ description: >
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(this, 'WeakMap', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(this, 'WeakMap');
+verifyWritable(this, 'WeakMap');
+verifyConfigurable(this, 'WeakMap');
 
 reportCompare(0, 0);

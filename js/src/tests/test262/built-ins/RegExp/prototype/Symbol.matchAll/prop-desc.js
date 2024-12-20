@@ -17,10 +17,8 @@ features: [Symbol.matchAll]
 
 assert.sameValue(typeof RegExp.prototype[Symbol.matchAll], 'function');
 
-verifyProperty(RegExp.prototype, Symbol.matchAll, {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(RegExp.prototype, Symbol.matchAll);
+verifyWritable(RegExp.prototype, Symbol.matchAll);
+verifyConfigurable(RegExp.prototype, Symbol.matchAll);
 
 reportCompare(0, 0);

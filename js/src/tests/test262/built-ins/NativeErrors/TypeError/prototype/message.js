@@ -18,10 +18,8 @@ includes: [propertyHelper.js]
 
 assert.sameValue(TypeError.prototype.message, "");
 
-verifyProperty(TypeError.prototype, "message", {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(TypeError.prototype, "message");
+verifyWritable(TypeError.prototype, "message");
+verifyConfigurable(TypeError.prototype, "message");
 
 reportCompare(0, 0);

@@ -26,10 +26,8 @@ assert(
   "value is smaller than 0.000001"
 );
 
-verifyProperty(Number, "EPSILON", {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Number, "EPSILON");
+verifyNotWritable(Number, "EPSILON");
+verifyNotConfigurable(Number, "EPSILON");
 
 reportCompare(0, 0);

@@ -13,10 +13,8 @@ includes: [propertyHelper.js, testTypedArray.js]
 features: [TypedArray]
 ---*/
 
-verifyProperty(TypedArray, 'from', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(TypedArray, 'from');
+verifyWritable(TypedArray, 'from');
+verifyConfigurable(TypedArray, 'from');
 
 reportCompare(0, 0);

@@ -17,10 +17,8 @@ assert.sameValue(l0.length, 0);
 assert.sameValue(l1.length, 1);
 assert.sameValue(l2.length, 2)
 
-verifyProperty(l0, 'length', {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotWritable(l0, 'length');
+verifyNotEnumerable(l0, 'length');
+verifyConfigurable(l0, 'length');
 
 reportCompare(0, 0);

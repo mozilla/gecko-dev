@@ -14,10 +14,8 @@ assert.sameValue(
   '`typeof Array.prototype.find` is `function`'
 );
 
-verifyProperty(Array.prototype, "find", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Array.prototype, 'find');
+verifyWritable(Array.prototype, 'find');
+verifyConfigurable(Array.prototype, 'find');
 
 reportCompare(0, 0);

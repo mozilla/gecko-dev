@@ -11,10 +11,8 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(Math, 'LN2', {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Math, 'LN2');
+verifyNotWritable(Math, 'LN2');
+verifyNotConfigurable(Math, 'LN2');
 
 reportCompare(0, 0);

@@ -18,10 +18,8 @@ assert.sameValue(
   'typeof WeakMap.prototype.delete is "function"'
 );
 
-verifyProperty(WeakMap.prototype, 'delete', {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(WeakMap.prototype, 'delete');
+verifyWritable(WeakMap.prototype, 'delete');
+verifyConfigurable(WeakMap.prototype, 'delete');
 
 reportCompare(0, 0);

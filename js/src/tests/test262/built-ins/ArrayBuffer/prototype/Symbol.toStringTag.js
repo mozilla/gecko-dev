@@ -16,10 +16,8 @@ features: [Symbol.toStringTag]
 
 assert.sameValue(ArrayBuffer.prototype[Symbol.toStringTag], 'ArrayBuffer');
 
-verifyProperty(ArrayBuffer.prototype, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(ArrayBuffer.prototype, Symbol.toStringTag);
+verifyNotWritable(ArrayBuffer.prototype, Symbol.toStringTag);
+verifyConfigurable(ArrayBuffer.prototype, Symbol.toStringTag);
 
 reportCompare(0, 0);

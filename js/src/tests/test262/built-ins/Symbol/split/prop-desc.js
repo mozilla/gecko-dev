@@ -12,10 +12,8 @@ features: [Symbol.split]
 ---*/
 
 assert.sameValue(typeof Symbol.split, 'symbol');
-verifyProperty(Symbol, 'split', {
-  writable: false,
-  enumerable: false,
-  configurable: false,
-});
+verifyNotEnumerable(Symbol, 'split');
+verifyNotWritable(Symbol, 'split');
+verifyNotConfigurable(Symbol, 'split');
 
 reportCompare(0, 0);

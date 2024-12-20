@@ -16,10 +16,8 @@ assert.sameValue(
   '`typeof Array.prototype.copyWithin` is `function`'
 );
 
-verifyProperty(Array.prototype, "copyWithin", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Array.prototype, 'copyWithin');
+verifyWritable(Array.prototype, 'copyWithin');
+verifyConfigurable(Array.prototype, 'copyWithin');
 
 reportCompare(0, 0);

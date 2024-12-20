@@ -7,10 +7,8 @@ includes: [propertyHelper.js]
 es6id: 20.2.2.34
 ---*/
 
-verifyProperty(Math, "tanh", {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Math, "tanh");
+verifyWritable(Math, "tanh");
+verifyConfigurable(Math, "tanh");
 
 reportCompare(0, 0);

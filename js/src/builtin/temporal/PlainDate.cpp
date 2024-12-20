@@ -7,12 +7,17 @@
 #include "builtin/temporal/PlainDate.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Casting.h"
 #include "mozilla/CheckedInt.h"
-#include "mozilla/EnumSet.h"
+#include "mozilla/FloatingPoint.h"
+#include "mozilla/Maybe.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <initializer_list>
 #include <stdint.h>
+#include <type_traits>
 #include <utility>
 
 #include "jsdate.h"
@@ -21,11 +26,9 @@
 #include "jstypes.h"
 #include "NamespaceImports.h"
 
-#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Duration.h"
-#include "builtin/temporal/Instant.h"
 #include "builtin/temporal/PlainDateTime.h"
 #include "builtin/temporal/PlainMonthDay.h"
 #include "builtin/temporal/PlainTime.h"
@@ -38,14 +41,18 @@
 #include "builtin/temporal/TimeZone.h"
 #include "builtin/temporal/ToString.h"
 #include "builtin/temporal/ZonedDateTime.h"
+#include "ds/IdValuePair.h"
 #include "gc/AllocKind.h"
 #include "gc/Barrier.h"
-#include "gc/GCEnum.h"
+#include "js/AllocPolicy.h"
 #include "js/CallArgs.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Class.h"
+#include "js/Date.h"
 #include "js/ErrorReport.h"
 #include "js/friend/ErrorMessages.h"
+#include "js/GCVector.h"
+#include "js/Id.h"
 #include "js/PropertyDescriptor.h"
 #include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
@@ -57,6 +64,9 @@
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
 #include "vm/PlainObject.h"
+#include "vm/PropertyInfo.h"
+#include "vm/Realm.h"
+#include "vm/Shape.h"
 #include "vm/StringType.h"
 
 #include "vm/JSObject-inl.h"
@@ -1665,10 +1675,17 @@ static bool PlainDate_toString(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainDate.prototype.toLocaleString ( [ locales [ , options ] ] )
  */
 static bool PlainDate_toLocaleString(JSContext* cx, const CallArgs& args) {
-  // Steps 3-4.
-  Handle<PropertyName*> required = cx->names().date;
-  Handle<PropertyName*> defaults = cx->names().date;
-  return TemporalObjectToLocaleString(cx, args, required, defaults);
+  Rooted<PlainDateObject*> temporalDate(
+      cx, &args.thisv().toObject().as<PlainDateObject>());
+
+  // Step 3.
+  JSString* str = TemporalDateToString(cx, temporalDate, ShowCalendar::Auto);
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
 }
 
 /**

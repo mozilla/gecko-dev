@@ -15,10 +15,8 @@ features: [TypedArray]
 
 var TypedArrayPrototype = TypedArray.prototype;
 
-verifyProperty(TypedArrayPrototype, 'findIndex', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(TypedArrayPrototype, 'findIndex');
+verifyWritable(TypedArrayPrototype, 'findIndex');
+verifyConfigurable(TypedArrayPrototype, 'findIndex');
 
 reportCompare(0, 0);

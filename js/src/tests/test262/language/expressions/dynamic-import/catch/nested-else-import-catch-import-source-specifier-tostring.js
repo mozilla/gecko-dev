@@ -43,7 +43,7 @@ info: |
 
     16.2.1.7.2 GetModuleSource ( )
     Source Text Module Record provides a GetModuleSource implementation that always returns an abrupt completion indicating that a source phase import is not available.
-    1. Throw a SyntaxError exception.
+    1. Throw a ReferenceError exception.
 
 ---*/
 // The following case is equivalent of the call of:
@@ -61,7 +61,7 @@ if (false) {
 } else {
   import.source(obj).catch(error => {
 
-    assert.sameValue(error.name, 'SyntaxError');
+    assert.sameValue(error.name, 'ReferenceError');
 
   }).then($DONE, $DONE);
 }

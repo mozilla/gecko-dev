@@ -16,10 +16,8 @@ features: [Symbol.toStringTag]
 
 assert.sameValue(Set.prototype[Symbol.toStringTag], 'Set');
 
-verifyProperty(Set.prototype, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(Set.prototype, Symbol.toStringTag);
+verifyNotWritable(Set.prototype, Symbol.toStringTag);
+verifyConfigurable(Set.prototype, Symbol.toStringTag);
 
 reportCompare(0, 0);

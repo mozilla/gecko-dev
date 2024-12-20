@@ -7,10 +7,8 @@ includes: [propertyHelper.js]
 es6id: 20.2.2.21
 ---*/
 
-verifyProperty(Math, "log1p", {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(Math, "log1p");
+verifyWritable(Math, "log1p");
+verifyConfigurable(Math, "log1p");
 
 reportCompare(0, 0);

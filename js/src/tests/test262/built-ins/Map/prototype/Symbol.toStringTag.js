@@ -16,10 +16,8 @@ features: [Symbol.toStringTag]
 
 assert.sameValue(Map.prototype[Symbol.toStringTag], 'Map');
 
-verifyProperty(Map.prototype, Symbol.toStringTag, {
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(Map.prototype, Symbol.toStringTag);
+verifyNotWritable(Map.prototype, Symbol.toStringTag);
+verifyConfigurable(Map.prototype, Symbol.toStringTag);
 
 reportCompare(0, 0);

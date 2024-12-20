@@ -13,10 +13,8 @@ includes: [propertyHelper.js]
 features: [Reflect]
 ---*/
 
-verifyProperty(Reflect, 'has', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(Reflect, 'has');
+verifyWritable(Reflect, 'has');
+verifyConfigurable(Reflect, 'has');
 
 reportCompare(0, 0);

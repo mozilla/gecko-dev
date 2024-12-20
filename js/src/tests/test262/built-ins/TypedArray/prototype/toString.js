@@ -23,10 +23,8 @@ var TypedArrayPrototype = TypedArray.prototype;
 
 assert.sameValue(TypedArrayPrototype.toString, Array.prototype.toString);
 
-verifyProperty(TypedArrayPrototype, 'toString', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(TypedArrayPrototype, 'toString');
+verifyWritable(TypedArrayPrototype, 'toString');
+verifyConfigurable(TypedArrayPrototype, 'toString');
 
 reportCompare(0, 0);

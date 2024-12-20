@@ -12,10 +12,8 @@ features: [SharedArrayBuffer]
 
 assert.sameValue(SharedArrayBuffer.prototype.constructor, SharedArrayBuffer);
 
-verifyProperty(SharedArrayBuffer.prototype, "constructor", {
-  writable: true,
-  enumerable: false,
-  configurable: true,
-});
+verifyNotEnumerable(SharedArrayBuffer.prototype, "constructor");
+verifyWritable(SharedArrayBuffer.prototype, "constructor");
+verifyConfigurable(SharedArrayBuffer.prototype, "constructor");
 
 reportCompare(0, 0);

@@ -9,10 +9,8 @@ description: >
 includes: [propertyHelper.js]
 ---*/
 
-verifyProperty(this, 'WeakSet', {
-  writable: true,
-  enumerable: false,
-  configurable: true
-});
+verifyNotEnumerable(this, 'WeakSet');
+verifyWritable(this, 'WeakSet');
+verifyConfigurable(this, 'WeakSet');
 
 reportCompare(0, 0);
