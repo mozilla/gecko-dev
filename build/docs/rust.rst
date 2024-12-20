@@ -126,7 +126,7 @@ building Firefox does not involve downloading any third-party crates.
 
 If you add a dependency on a new crate you must run ``mach vendor rust`` to
 vendor the dependencies into that directory. (Note that ``mach vendor rust``
-`may not work as well on Windows <https://bugzilla.mozilla.org/show_bug.cgi?id=1647582>`_
+`may not work as well on Windows <https://bugzilla.mozilla.org/show_bug.cgi?id=1938341>`_
 as on other platforms.)
 
 When it comes to checking the suitability of third-party code for inclusion
