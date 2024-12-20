@@ -387,7 +387,7 @@ nsresult GetAddrInfo(const nsACString& aHost, uint16_t aAddressFamily,
     host = aHost;
   }
 
-  if (gNativeIsLocalhost) {
+  if (StaticPrefs::network_dns_native_is_localhost()) {
     // pretend we use the given host but use IPv4 localhost instead!
     host = "localhost"_ns;
     aAddressFamily = PR_AF_INET;

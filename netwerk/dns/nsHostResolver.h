@@ -53,8 +53,6 @@ static inline uint32_t MaxResolverThreads() {
   (((x) == nsIDNSService::MODE_NATIVEONLY) || \
    ((x) == nsIDNSService::MODE_TRROFF))
 
-extern mozilla::Atomic<bool, mozilla::Relaxed> gNativeIsLocalhost;
-
 #define MAX_NON_PRIORITY_REQUESTS 150
 
 class AHostResolver {

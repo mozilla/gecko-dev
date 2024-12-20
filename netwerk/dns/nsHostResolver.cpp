@@ -166,28 +166,7 @@ NS_IMPL_ISUPPORTS(DnsThreadListener, nsIThreadPoolListener)
 
 //----------------------------------------------------------------------------
 
-static const char kPrefGetTtl[] = "network.dns.get-ttl";
-static const char kPrefNativeIsLocalhost[] = "network.dns.native-is-localhost";
-static const char kPrefThreadIdleTime[] =
-    "network.dns.resolver-thread-extra-idle-time-seconds";
-static bool sGetTtlEnabled = false;
-mozilla::Atomic<bool, mozilla::Relaxed> gNativeIsLocalhost;
 mozilla::Atomic<bool, mozilla::Relaxed> sNativeHTTPSSupported{false};
-
-static void DnsPrefChanged(const char* aPref, void* aSelf) {
-  MOZ_ASSERT(NS_IsMainThread(),
-             "Should be getting pref changed notification on main thread!");
-
-  MOZ_ASSERT(aSelf);
-
-  if (!strcmp(aPref, kPrefGetTtl)) {
-#ifdef DNSQUERY_AVAILABLE
-    sGetTtlEnabled = Preferences::GetBool(kPrefGetTtl);
-#endif
-  } else if (!strcmp(aPref, kPrefNativeIsLocalhost)) {
-    gNativeIsLocalhost = Preferences::GetBool(kPrefNativeIsLocalhost);
-  }
-}
 
 NS_IMPL_ISUPPORTS0(nsHostResolver)
 
@@ -212,21 +191,6 @@ nsresult nsHostResolver::Init() MOZ_NO_THREAD_SAFETY_ANALYSIS {
   mShutdown = false;
   mNCS = NetworkConnectivityService::GetSingleton();
 
-  // The preferences probably haven't been loaded from the disk yet, so we
-  // need to register a callback that will set up the experiment once they
-  // are. We also need to explicitly set a value for the props otherwise the
-  // callback won't be called.
-  {
-    DebugOnly<nsresult> rv = Preferences::RegisterCallbackAndCall(
-        &DnsPrefChanged, kPrefGetTtl, this);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                         "Could not register DNS TTL pref callback.");
-    rv = Preferences::RegisterCallbackAndCall(&DnsPrefChanged,
-                                              kPrefNativeIsLocalhost, this);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                         "Could not register DNS pref callback.");
-  }
-
 #if defined(HAVE_RES_NINIT)
   // We want to make sure the system is using the correct resolver settings,
   // so we force it to reload those settings whenever we startup a subsequent
@@ -242,7 +206,8 @@ nsresult nsHostResolver::Init() MOZ_NO_THREAD_SAFETY_ANALYSIS {
 
   // We can configure the threadpool to keep threads alive for a while after
   // the last ThreadFunc task has been executed.
-  int32_t poolTimeoutSecs = Preferences::GetInt(kPrefThreadIdleTime, 60);
+  int32_t poolTimeoutSecs =
+      StaticPrefs::network_dns_resolver_thread_extra_idle_time_seconds();
   uint32_t poolTimeoutMs;
   if (poolTimeoutSecs < 0) {
     // This means never shut down the idle threads
@@ -347,13 +312,6 @@ void nsHostResolver::FlushCache(bool aTrrToo) {
 
 void nsHostResolver::Shutdown() {
   LOG(("Shutting down host resolver.\n"));
-
-  {
-    DebugOnly<nsresult> rv =
-        Preferences::UnregisterCallback(&DnsPrefChanged, kPrefGetTtl, this);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                         "Could not unregister DNS TTL pref callback.");
-  }
 
   LinkedList<RefPtr<nsHostRecord>> pendingQHigh, pendingQMed, pendingQLow,
       evictionQ;
@@ -1330,7 +1288,8 @@ bool nsHostResolver::GetHostToLookup(nsHostRecord** result) {
     // remove next record from Q; hand over owning reference. Check high, then
     // med, then low
 
-#define SET_GET_TTL(var, val) (var)->StoreGetTtl(sGetTtlEnabled && (val))
+#define SET_GET_TTL(var, val) \
+  (var)->StoreGetTtl(StaticPrefs::network_dns_get_ttl() && (val))
 
     RefPtr<nsHostRecord> rec = mQueue.Dequeue(true, lock);
     if (rec) {
@@ -1400,7 +1359,7 @@ void nsHostResolver::PrepareRecordExpirationAddrRecord(
   unsigned int grace = StaticPrefs::network_dnsCacheExpirationGracePeriod();
 
   unsigned int ttl = StaticPrefs::network_dnsCacheExpiration();
-  if (sGetTtlEnabled || rec->addr_info->IsTRR()) {
+  if (StaticPrefs::network_dns_get_ttl() || rec->addr_info->IsTRR()) {
     if (rec->addr_info && rec->addr_info->TTL() != AddrInfo::NO_TTL_DATA) {
       ttl = rec->addr_info->TTL();
     }
@@ -1733,7 +1692,7 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupLocked(
     }
   }
   if (hasNativeResult && !mShutdown && !addrRec->LoadGetTtl() &&
-      !rec->mResolving && sGetTtlEnabled) {
+      !rec->mResolving && StaticPrefs::network_dns_get_ttl()) {
     LOG(("Issuing second async lookup for TTL for host [%s].",
          addrRec->host.get()));
     addrRec->flags =
