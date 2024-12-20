@@ -44,6 +44,8 @@ neterror-load-error-firewall = If your computer or network is protected by a fir
 # This warning is only shown on macOS Sequoia and later (see bug 1929377)
 neterror-load-osx-permission = If you are trying to load a local network page, please check that { -brand-short-name } has been granted Local Network permissions in the macOS Privacy & Security settings.
 
+neterror-http-error-page = Check to make sure you’ve typed the website address correctly.
+
 neterror-captive-portal = You must log in to this network before you can access the internet.
 
 # Variables:
