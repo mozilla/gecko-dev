@@ -113,9 +113,7 @@ WaylandVsyncSource::WaylandVsyncSource(nsWindow* aWindow)
       mHiddenWindowTimeout(1000 / StaticPrefs::layout_throttled_frame_rate()) {
   MOZ_ASSERT(NS_IsMainThread());
   gWaylandVsyncSources.AppendElement(this);
-
   LOG("WaylandVsyncSource::WaylandVsyncSource()");
-  Init();
 }
 
 WaylandVsyncSource::~WaylandVsyncSource() {

@@ -69,6 +69,10 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
   bool IsVsyncEnabled() override;
   void Shutdown() override;
 
+  // We addref/unref this during init so we should not
+  // call it from constructor.
+  void Init();
+
  private:
   Maybe<TimeDuration> GetVsyncRateIfEnabled();
 
@@ -77,8 +81,6 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
   void* GetWindowForLogging() { return mWindow; };
 
   void SetHiddenWindowVSync();
-
-  void Init();
 
   Mutex mMutex;
 
