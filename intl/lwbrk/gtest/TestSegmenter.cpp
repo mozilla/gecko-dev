@@ -98,6 +98,60 @@ TEST(IntlSegmenter, TestWordBreakIteratorUtf16Seek)
   ASSERT_EQ(segIter->Seek(0u), Nothing());
 }
 
+TEST(IntlSegmenter, TestWordBreakIteratorUtf16ResetAndSeekOld)
+{
+  nsresult rv = Preferences::SetBool("intl.icu4x.segmenter.enabled", false);
+  EXPECT_TRUE(rv == NS_OK);
+
+  const SegmenterOptions options{SegmenterGranularity::Word};
+  auto result = Segmenter::TryCreate("en", options);
+  ASSERT_TRUE(result.isOk());
+  auto wordSegmenter = result.unwrap();
+
+  const char16_t text[] = u"hello world";
+  UniquePtr<SegmentIteratorUtf16> segIter =
+      wordSegmenter->Segment(MakeStringSpan(text));
+
+  ASSERT_EQ(segIter->Next(), Some(5u));
+  static_cast<WordBreakIteratorUtf16*>(segIter.get())
+      ->Reset(MakeStringSpan(text));
+  ASSERT_EQ(segIter->Next(), Some(5u));
+  ASSERT_EQ(segIter->Next(), Some(6u));
+  ASSERT_EQ(segIter->Next(), Some(11u));
+
+  static_cast<WordBreakIteratorUtf16*>(segIter.get())
+      ->Reset(MakeStringSpan(text));
+  // Seek to space between "hello" and "world".
+  ASSERT_EQ(segIter->Seek(5u), Some(6u));
+}
+
+TEST(IntlSegmenter, TestWordBreakIteratorUtf16ResetAndSeek)
+{
+  nsresult rv = Preferences::SetBool("intl.icu4x.segmenter.enabled", true);
+  EXPECT_TRUE(rv == NS_OK);
+
+  const SegmenterOptions options{SegmenterGranularity::Word};
+  auto result = Segmenter::TryCreate("en", options);
+  ASSERT_TRUE(result.isOk());
+  auto wordSegmenter = result.unwrap();
+
+  const char16_t text[] = u"hello world";
+  UniquePtr<SegmentIteratorUtf16> segIter =
+      wordSegmenter->Segment(MakeStringSpan(text));
+
+  ASSERT_EQ(segIter->Next(), Some(5u));
+  static_cast<WordBreakIteratorUtf16*>(segIter.get())
+      ->Reset(MakeStringSpan(text));
+  ASSERT_EQ(segIter->Next(), Some(5u));
+  ASSERT_EQ(segIter->Next(), Some(6u));
+  ASSERT_EQ(segIter->Next(), Some(11u));
+
+  static_cast<WordBreakIteratorUtf16*>(segIter.get())
+      ->Reset(MakeStringSpan(text));
+  // Seek to space between "hello" and "world".
+  ASSERT_EQ(segIter->Seek(5u), Some(6u));
+}
+
 TEST(IntlSegmenter, TestGraphemeClusterBreakIteratorUtf16Simple)
 {
   SegmenterOptions options{SegmenterGranularity::Grapheme};
