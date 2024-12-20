@@ -468,9 +468,6 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   MOZ_ASSERT(duration.date.days == 0);
   MOZ_ASSERT(duration.time == TimeDuration{});
 
-  // FIXME: spec issue - TemporalDurationFromInternal is infallible
-  // https://github.com/tc39/proposal-temporal/issues/3051
-
   // Step 17. (Inlined TemporalDurationFromInternal)
   auto result = duration.date.toDuration();
 
