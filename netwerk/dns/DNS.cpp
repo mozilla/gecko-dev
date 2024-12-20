@@ -11,6 +11,7 @@
 #include "mozilla/mozalloc.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "nsContentUtils.h"
+#include "nsPrintfCString.h"
 #include "nsString.h"
 #include <string.h>
 
@@ -146,6 +147,12 @@ nsCString NetAddr::ToString() const {
     return out;
   }
   return ""_ns;
+}
+
+void NetAddr::ToAddrPortString(nsACString& aOutput) const {
+  uint16_t port = 0;
+  GetPort(&port);
+  aOutput.Assign(nsPrintfCString("%s:%d", ToString().get(), port));
 }
 
 bool NetAddr::IsLoopbackAddr() const {

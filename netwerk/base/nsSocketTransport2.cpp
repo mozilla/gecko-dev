@@ -8,6 +8,8 @@
 
 #include "nsSocketTransport2.h"
 
+#include "MockNetworkLayer.h"
+#include "MockNetworkLayerController.h"
 #include "NSSErrorsService.h"
 #include "NetworkDataCountLayer.h"
 #include "QuicSocketControl.h"
@@ -1231,6 +1233,19 @@ nsresult nsSocketTransport::BuildSocket(PRFileDesc*& fd, bool& proxyTransparent,
   return rv;
 }
 
+static bool ShouldBlockAddress(const NetAddr& aAddr) {
+  if (!xpc::AreNonLocalConnectionsDisabled()) {
+    return false;
+  }
+
+  NetAddr overrideAddr;
+  bool hasOverride = FindNetAddrOverride(aAddr, overrideAddr);
+  const NetAddr& addrToCheck = hasOverride ? overrideAddr : aAddr;
+
+  return !(addrToCheck.IsIPAddrAny() || addrToCheck.IsIPAddrLocal() ||
+           addrToCheck.IsIPAddrShared() || addrToCheck.IsLoopbackAddr());
+}
+
 nsresult nsSocketTransport::InitiateSocket() {
   SOCKET_LOG(("nsSocketTransport::InitiateSocket [this=%p]\n", this));
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
@@ -1272,9 +1287,7 @@ nsresult nsSocketTransport::InitiateSocket() {
     }
 #endif
 
-    if (NS_SUCCEEDED(mCondition) && xpc::AreNonLocalConnectionsDisabled() &&
-        !(mNetAddr.IsIPAddrAny() || mNetAddr.IsIPAddrLocal() ||
-          mNetAddr.IsIPAddrShared())) {
+    if (NS_SUCCEEDED(mCondition) && ShouldBlockAddress(mNetAddr)) {
       nsAutoCString ipaddr;
       RefPtr<nsNetAddr> netaddr = new nsNetAddr(&mNetAddr);
       netaddr->GetAddress(ipaddr);
@@ -1538,6 +1551,15 @@ nsresult nsSocketTransport::InitiateSocket() {
       SOCKET_LOG(
           ("nsSocketTransport::InitiateSocket "
            "AttachNetworkDataCountLayer failed [this=%p]\n",
+           this));
+    }
+  }
+  if (StaticPrefs::network_socket_attach_mock_network_layer() &&
+      xpc::AreNonLocalConnectionsDisabled()) {
+    if (NS_FAILED(AttachMockNetworkLayer(fd))) {
+      SOCKET_LOG(
+          ("nsSocketTransport::InitiateSocket "
+           "AttachMockNetworkLayer failed [this=%p]\n",
            this));
     }
   }

@@ -33,6 +33,7 @@
 #include "mozilla/StaticPrefs_javascript.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
+#include "MockNetworkLayerController.h"
 #include "NetworkConnectivityService.h"
 #include "nsDebugImpl.h"
 #include "nsHttpConnectionInfo.h"
@@ -40,6 +41,7 @@
 #include "nsIDNSService.h"
 #include "nsIHttpActivityObserver.h"
 #include "nsIXULRuntime.h"
+#include "nsNetAddr.h"
 #include "nsNetUtil.h"
 #include "nsNSSComponent.h"
 #include "nsSocketTransportService2.h"
@@ -837,6 +839,22 @@ SocketProcessChild::GetIPCClientCertsActor() {
 
   mIPCClientCertsChild = actor;
   return actor.forget();
+}
+
+mozilla::ipc::IPCResult SocketProcessChild::RecvAddNetAddrOverride(
+    const NetAddr& aFrom, const NetAddr& aTo) {
+  nsCOMPtr<nsIMockNetworkLayerController> controller =
+      MockNetworkLayerController::GetSingleton();
+  RefPtr<nsNetAddr> from = new nsNetAddr(&aFrom);
+  RefPtr<nsNetAddr> to = new nsNetAddr(&aTo);
+  Unused << controller->AddNetAddrOverride(from, to);
+  return IPC_OK();
+}
+mozilla::ipc::IPCResult SocketProcessChild::RecvClearNetAddrOverrides() {
+  nsCOMPtr<nsIMockNetworkLayerController> controller =
+      MockNetworkLayerController::GetSingleton();
+  Unused << controller->ClearNetAddrOverrides();
+  return IPC_OK();
 }
 
 }  // namespace net

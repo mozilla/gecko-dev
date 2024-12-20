@@ -14728,6 +14728,13 @@
   value: false
   mirror: always
 
+# Used for testing purposes only. When true, it attaches an extra networking
+# layer to simulate different network scenarios.
+- name: network.socket.attach_mock_network_layer
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "nglayout."
 #---------------------------------------------------------------------------

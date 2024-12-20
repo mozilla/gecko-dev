@@ -1,0 +1,135 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "MockNetworkLayer.h"
+#include "MockNetworkLayerController.h"
+#include "nsSocketTransportService2.h"
+#include "prmem.h"
+#include "prio.h"
+
+namespace mozilla::net {
+
+static PRDescIdentity sMockNetworkLayerIdentity;
+static PRIOMethods sMockNetworkLayeyMethods;
+static PRIOMethods* sMockNetworkLayeyMethodsPtr = nullptr;
+
+// Not used for now.
+class MockNetworkSecret {
+ public:
+  MockNetworkSecret() = default;
+};
+
+static PRStatus MockNetworkConnect(PRFileDesc* fd, const PRNetAddr* addr,
+                                   PRIntervalTime to) {
+  PRStatus status;
+  mozilla::net::NetAddr netAddr(addr);
+  MockNetworkSecret* secret = reinterpret_cast<MockNetworkSecret*>(fd->secret);
+  nsAutoCString addrPort;
+  netAddr.ToAddrPortString(addrPort);
+  SOCKET_LOG(
+      ("MockNetworkConnect %p connect to [%s]\n", secret, addrPort.get()));
+  mozilla::net::NetAddr redirected;
+  if (FindNetAddrOverride(netAddr, redirected)) {
+    redirected.ToAddrPortString(addrPort);
+    SOCKET_LOG(
+        ("MockNetworkConnect %p redirect to [%s]\n", secret, addrPort.get()));
+    PRNetAddr prAddr;
+    NetAddrToPRNetAddr(&redirected, &prAddr);
+    status = fd->lower->methods->connect(fd->lower, &prAddr, to);
+  } else {
+    status = fd->lower->methods->connect(fd->lower, addr, to);
+  }
+
+  return status;
+}
+
+static PRInt32 MockNetworkSend(PRFileDesc* fd, const void* buf, PRInt32 amount,
+                               PRIntn flags, PRIntervalTime timeout) {
+  MOZ_RELEASE_ASSERT(fd->identity == sMockNetworkLayerIdentity);
+
+  MockNetworkSecret* secret = reinterpret_cast<MockNetworkSecret*>(fd->secret);
+  SOCKET_LOG(("MockNetworkSend %p\n", secret));
+
+  PRInt32 rv =
+      (fd->lower->methods->send)(fd->lower, buf, amount, flags, timeout);
+  return rv;
+}
+
+static PRInt32 MockNetworkWrite(PRFileDesc* fd, const void* buf,
+                                PRInt32 amount) {
+  return MockNetworkSend(fd, buf, amount, 0, PR_INTERVAL_NO_WAIT);
+}
+
+static PRInt32 MockNetworkRecv(PRFileDesc* fd, void* buf, PRInt32 amount,
+                               PRIntn flags, PRIntervalTime timeout) {
+  MOZ_RELEASE_ASSERT(fd->identity == sMockNetworkLayerIdentity);
+
+  MockNetworkSecret* secret = reinterpret_cast<MockNetworkSecret*>(fd->secret);
+  SOCKET_LOG(("MockNetworkRecv %p\n", secret));
+
+  PRInt32 rv =
+      (fd->lower->methods->recv)(fd->lower, buf, amount, flags, timeout);
+  return rv;
+}
+
+static PRInt32 MockNetworkRead(PRFileDesc* fd, void* buf, PRInt32 amount) {
+  return MockNetworkRecv(fd, buf, amount, 0, PR_INTERVAL_NO_WAIT);
+}
+
+static PRStatus MockNetworkClose(PRFileDesc* fd) {
+  if (!fd) {
+    return PR_FAILURE;
+  }
+
+  PRFileDesc* layer = PR_PopIOLayer(fd, PR_TOP_IO_LAYER);
+
+  MOZ_RELEASE_ASSERT(layer && layer->identity == sMockNetworkLayerIdentity,
+                     "MockNetwork Layer not on top of stack");
+
+  MockNetworkSecret* secret =
+      reinterpret_cast<MockNetworkSecret*>(layer->secret);
+  SOCKET_LOG(("MockNetworkClose %p\n", secret));
+  layer->secret = nullptr;
+  layer->dtor(layer);
+  delete secret;
+  return fd->methods->close(fd);
+}
+
+nsresult AttachMockNetworkLayer(PRFileDesc* fd) {
+  if (!sMockNetworkLayeyMethodsPtr) {
+    sMockNetworkLayerIdentity = PR_GetUniqueIdentity("MockNetwork Layer");
+    sMockNetworkLayeyMethods = *PR_GetDefaultIOMethods();
+    sMockNetworkLayeyMethods.connect = MockNetworkConnect;
+    sMockNetworkLayeyMethods.send = MockNetworkSend;
+    sMockNetworkLayeyMethods.write = MockNetworkWrite;
+    sMockNetworkLayeyMethods.recv = MockNetworkRecv;
+    sMockNetworkLayeyMethods.read = MockNetworkRead;
+    sMockNetworkLayeyMethods.close = MockNetworkClose;
+    sMockNetworkLayeyMethodsPtr = &sMockNetworkLayeyMethods;
+  }
+
+  PRFileDesc* layer = PR_CreateIOLayerStub(sMockNetworkLayerIdentity,
+                                           sMockNetworkLayeyMethodsPtr);
+
+  if (!layer) {
+    return NS_ERROR_FAILURE;
+  }
+
+  MockNetworkSecret* secret = new MockNetworkSecret();
+
+  layer->secret = reinterpret_cast<PRFilePrivate*>(secret);
+
+  PRStatus status = PR_PushIOLayer(fd, PR_NSPR_IO_LAYER, layer);
+
+  if (status == PR_FAILURE) {
+    delete secret;
+    PR_Free(layer);  // PR_CreateIOLayerStub() uses PR_Malloc().
+    return NS_ERROR_FAILURE;
+  }
+  return NS_OK;
+}
+
+}  // namespace mozilla::net

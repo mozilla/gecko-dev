@@ -3,6 +3,12 @@
 const override = Cc["@mozilla.org/network/native-dns-override;1"].getService(
   Ci.nsINativeDNSResolverOverride
 );
+const mockNetwork = Cc[
+  "@mozilla.org/network/mock-network-controller;1"
+].getService(Ci.nsIMockNetworkLayerController);
+const certOverrideService = Cc[
+  "@mozilla.org/security/certoverride;1"
+].getService(Ci.nsICertOverrideService);
 
 const DOMAIN = "example.org";
 
@@ -19,33 +25,36 @@ function channelOpenPromise(chan, flags) {
   return new Promise(resolve => {
     function finish(req, buffer) {
       resolve([req, buffer]);
+      certOverrideService.setDisableAllSecurityChecksAndLetAttackersInterceptMyData(
+        false
+      );
     }
+    certOverrideService.setDisableAllSecurityChecksAndLetAttackersInterceptMyData(
+      true
+    );
     chan.asyncOpen(new ChannelListener(finish, null, flags));
   });
 }
 
+let server;
+
 add_setup(async function setup() {
+  Services.prefs.setBoolPref("network.socket.attach_mock_network_layer", true);
+
   Services.fog.initializeFOG();
+
+  server = new NodeHTTPServer();
+  await server.start();
   registerCleanupFunction(async () => {
     Services.prefs.clearUserPref("network.disable-localhost-when-offline");
     Services.prefs.clearUserPref("network.dns.use_override_as_peer_address");
     Services.prefs.clearUserPref("dom.security.https_only_mode");
     Services.prefs.clearUserPref("dom.security.https_first");
     Services.prefs.clearUserPref("dom.security.https_first_schemeless");
+    Services.prefs.clearUserPref("network.socket.attach_mock_network_layer");
+    await server.stop();
   });
 });
-
-function onBeforeConnect(callback) {
-  Services.obs.addObserver(
-    {
-      observe(subject) {
-        Services.obs.removeObserver(this, "http-on-before-connect");
-        callback(subject.QueryInterface(Ci.nsIHttpChannel));
-      },
-    },
-    "http-on-before-connect"
-  );
-}
 
 function verifyGleanValues(aDescription, aExpected) {
   info(aDescription);
@@ -72,32 +81,30 @@ function verifyGleanValues(aDescription, aExpected) {
   );
 }
 
-async function do_test(ip, expected) {
-  // Need to set this pref, so SocketTransport will always return
-  // NS_ERROR_OFFLINE instead of trying to connect to a local address.
-  Services.prefs.setBoolPref("network.disable-localhost-when-offline", true);
-  // Set this pref so that nsHttpChannel::mPeerAddr will be assigned to the
-  // override address.
-  Services.prefs.setBoolPref("network.dns.use_override_as_peer_address", true);
-
+async function do_test(ip, expected, srcPort, dstPort) {
   Services.fog.testResetFOG();
 
   override.addIPOverride(DOMAIN, ip);
-  let chan = makeChan(`http://${DOMAIN}`);
-  onBeforeConnect(chan => {
-    chan.suspend();
-    Promise.resolve().then(() => {
-      Services.io.offline = true;
-      chan.resume();
-    });
-  });
+  let fromAddr = mockNetwork.createScriptableNetAddr(ip, srcPort ?? 80);
+  let toAddr = mockNetwork.createScriptableNetAddr(
+    fromAddr.family == Ci.nsINetAddr.FAMILY_INET ? "127.0.0.1" : "::1",
+    dstPort ?? server.port()
+  );
 
-  await channelOpenPromise(chan, CL_EXPECT_FAILURE);
+  mockNetwork.addNetAddrOverride(fromAddr, toAddr);
+
+  let chan = makeChan(`http://${DOMAIN}`);
+  let [req] = await channelOpenPromise(chan);
+  info(
+    "req.remoteAddress=" +
+      req.QueryInterface(Ci.nsIHttpChannelInternal).remoteAddress
+  );
   verifyGleanValues(`test ip=${ip}`, expected);
 
   Services.dns.clearCache(false);
   override.clearOverrides();
-  Services.io.offline = false;
+  mockNetwork.clearNetAddrOverrides();
+  Services.obs.notifyObservers(null, "net:prune-all-connections");
 }
 
 add_task(async function test_ipv4_local() {
@@ -124,5 +131,10 @@ add_task(async function test_http() {
 
 add_task(async function test_https() {
   Services.prefs.setBoolPref("dom.security.https_only_mode", true);
-  await do_test("1.1.1.1", { loadIsHttps: 1 });
+  let httpsServer = new NodeHTTPSServer();
+  await httpsServer.start();
+  registerCleanupFunction(async () => {
+    await httpsServer.stop();
+  });
+  await do_test("1.1.1.1", { loadIsHttps: 1 }, 443, httpsServer.port());
 });

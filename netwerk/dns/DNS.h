@@ -154,6 +154,7 @@ union NetAddr {
   nsresult GetPort(uint16_t* aResult) const;
   bool ToStringBuffer(char* buf, uint32_t bufSize) const;
   nsCString ToString() const;
+  void ToAddrPortString(nsACString& aOutput) const;
 };
 
 enum class DNSResolverType : uint32_t { Native = 0, TRR };

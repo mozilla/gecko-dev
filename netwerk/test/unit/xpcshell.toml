@@ -606,6 +606,7 @@ run-if = ["os == 'linux'"]
 ["test_gre_resources.js"]
 
 ["test_ip_space_glean.js"]
+skip-if = ["os == 'android'"]
 
 ["test_h2proxy_connection_limit.js"]
 run-sequentially = "node server exceptions dont replay well"
