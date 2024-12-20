@@ -11,8 +11,6 @@ support-files = [
 
 ["browser_passwords_empty.js"]
 
-["browser_passwords_export_success_notification.js"]
-
 ["browser_passwords_filter.js"]
 
 ["browser_passwords_list_alerts.js"]
