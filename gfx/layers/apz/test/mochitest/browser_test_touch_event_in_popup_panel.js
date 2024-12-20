@@ -29,7 +29,11 @@ add_task(() => {
 
 add_task(async () => {
   await SpecialPowers.pushPrefEnv({
-    set: [...getPrefs("TOUCH_EVENTS:PAN"), ["apz.popups.enabled", true]],
+    set: [
+      ...getPrefs("TOUCH_EVENTS:PAN"),
+      ["apz.popups.enabled", true],
+      ["apz.popups_without_remote.enabled", true],
+    ],
   });
 
   const navBar = document.getElementById("nav-bar");

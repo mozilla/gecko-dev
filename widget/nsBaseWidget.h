@@ -599,8 +599,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
   bool UseAPZ() const;
 
-  bool UseAPZForPopup() const;
-
   bool AllowWebRenderForThisWindow();
 
   /**
