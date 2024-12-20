@@ -3153,53 +3153,77 @@ nsresult HTMLEditor::FormatBlockContainerAsSubAction(
     selectionRanges.RestoreFromSavedRanges();
   }
 
-  rv = selectionRanges.ApplyTo(SelectionRef());
-  if (NS_WARN_IF(Destroyed())) {
-    return NS_ERROR_EDITOR_DESTROYED;
+  if (selectionRanges.IsCollapsed()) {
+    // FIXME: If we get rid of the legacy mutation events, we should be able to
+    // just insert a line break without empty check.
+    Result<CreateLineBreakResult, nsresult>
+        insertPaddingBRElementResultOrError =
+            InsertPaddingBRElementIfInEmptyBlock(
+                selectionRanges.GetFirstRangeStartPoint<EditorDOMPoint>(),
+                eNoStrip);
+    if (MOZ_UNLIKELY(insertPaddingBRElementResultOrError.isErr())) {
+      NS_WARNING(
+          "HTMLEditor::InsertPaddingBRElementIfInEmptyBlock(eNoStrip) failed");
+      return insertPaddingBRElementResultOrError.unwrapErr();
+    }
+    EditorDOMPoint pointToPutCaret;
+    insertPaddingBRElementResultOrError.unwrap().MoveCaretPointTo(
+        pointToPutCaret, *this,
+        {SuggestCaret::OnlyIfHasSuggestion,
+         SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
+    if (pointToPutCaret.IsSet()) {
+      nsresult rv = selectionRanges.Collapse(pointToPutCaret);
+      if (NS_FAILED(rv)) {
+        NS_WARNING("AutoRangeArray::Collapse() failed");
+        return rv;
+      }
+    }
   }
-  if (NS_FAILED(rv)) {
-    NS_WARNING("AutoRangeArray::ApplyTo(SelectionRef()) failed, but ignored");
-    return rv;
-  }
-
-  rv = MaybeInsertPaddingBRElementForEmptyLastLineAtSelection();
-  NS_WARNING_ASSERTION(
-      NS_SUCCEEDED(rv),
-      "HTMLEditor::MaybeInsertPaddingBRElementForEmptyLastLineAtSelection() "
-      "failed");
 
   if (!suggestBlockElementToPutCaretOrError.inspect() ||
-      !SelectionRef().IsCollapsed()) {
+      !selectionRanges.IsCollapsed()) {
+    nsresult rv = selectionRanges.ApplyTo(SelectionRef());
+    if (NS_WARN_IF(Destroyed())) {
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rv),
+        "AutoRangeArray::ApplyTo(SelectionRef()) failed, but ignored");
     return rv;
   }
+
   const auto firstSelectionStartPoint =
-      GetFirstSelectionStartPoint<EditorRawDOMPoint>();
-  if (MOZ_UNLIKELY(!firstSelectionStartPoint.IsSet())) {
-    return rv;
+      selectionRanges.GetFirstRangeStartPoint<EditorRawDOMPoint>();
+  if (NS_WARN_IF(!firstSelectionStartPoint.IsSetAndValidInComposedDoc())) {
+    return NS_ERROR_FAILURE;
   }
   Result<EditorRawDOMPoint, nsresult> pointInBlockElementOrError =
       HTMLEditUtils::ComputePointToPutCaretInElementIfOutside<
           EditorRawDOMPoint>(*suggestBlockElementToPutCaretOrError.inspect(),
                              firstSelectionStartPoint);
-  if (MOZ_UNLIKELY(pointInBlockElementOrError.isErr())) {
-    NS_WARNING(
-        "HTMLEditUtils::ComputePointToPutCaretInElementIfOutside() failed, but "
-        "ignored");
-    return rv;
-  }
+  NS_WARNING_ASSERTION(
+      pointInBlockElementOrError.isOk(),
+      "HTMLEditUtils::ComputePointToPutCaretInElementIfOutside() failed, but "
+      "ignored");
   // Note that if the point is unset, it means that firstSelectionStartPoint is
   // in the block element.
-  if (pointInBlockElementOrError.inspect().IsSet()) {
-    nsresult rvOfCollapseSelection =
-        CollapseSelectionTo(pointInBlockElementOrError.inspect());
-    if (MOZ_UNLIKELY(rvOfCollapseSelection == NS_ERROR_EDITOR_DESTROYED)) {
-      NS_WARNING("EditorBase::CollapseSelectionTo() failed");
-      return NS_ERROR_EDITOR_DESTROYED;
+  if (MOZ_LIKELY(pointInBlockElementOrError.isOk()) &&
+      pointInBlockElementOrError.inspect().IsSet()) {
+    nsresult rv =
+        selectionRanges.Collapse(pointInBlockElementOrError.inspect());
+    if (NS_FAILED(rv)) {
+      NS_WARNING("AutoRangeArray::Collapse() failed");
+      return rv;
     }
-    NS_WARNING_ASSERTION(
-        NS_SUCCEEDED(rvOfCollapseSelection),
-        "EditorBase::CollapseSelectionTo() failed, but ignored");
   }
+
+  rv = selectionRanges.ApplyTo(SelectionRef());
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "AutoRangeArray::ApplyTo(SelectionRef()) failed, but ignored");
   return rv;
 }
 
