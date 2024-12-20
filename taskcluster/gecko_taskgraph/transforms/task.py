@@ -2111,6 +2111,8 @@ def build_task(config, tasks):
                 "kind": config.kind,
                 "label": task["label"],
                 "retrigger": "true" if attributes.get("retrigger", False) else "false",
+                "project": config.params["project"],
+                "trust-domain": config.graph_config["trust-domain"],
             }
         )
 
