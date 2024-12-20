@@ -1558,12 +1558,14 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **gecko profile interval**: 1
    * **gecko profile threads**: GeckoMain,Compositor,Renderer,SwComposite,RenderBackend,SceneBuilder,WrWorker,CanvasWorkers,TextureUpdate
    * **host from parent**: false
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/motionmark-1-3-desktop.toml#12>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/motionmark-1-3-desktop.toml#13>`__
    * **lower is better**: false
    * **page cycles**: 1
    * **page timeout**: 600000
    * **repository**: https://github.com/webkit/motionmark
    * **repository revision**: be2a5fea89b6ef411b053ebeb95a6302b3dc0ecb
+   * **subtest lower is better**: false
+   * **subtest unit**: score
    * **suite name**: MotionMark
    * **support class**: motionmark-1-3.py
    * **test script**: motionmark-1-3.js
@@ -1935,12 +1937,14 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **gecko profile interval**: 1
    * **gecko profile threads**: GeckoMain,Compositor,Renderer,SwComposite,RenderBackend,SceneBuilder,WrWorker,CanvasWorkers,TextureUpdate
    * **host from parent**: false
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/motionmark-1-3-mobile.toml#11>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/motionmark-1-3-mobile.toml#12>`__
    * **lower is better**: false
    * **page cycles**: 1
    * **page timeout**: 600000
    * **repository**: https://github.com/webkit/motionmark
    * **repository revision**: be2a5fea89b6ef411b053ebeb95a6302b3dc0ecb
+   * **subtest lower is better**: false
+   * **subtest unit**: score
    * **suite name**: MotionMark
    * **support class**: motionmark-1-3.py
    * **test script**: motionmark-1-3.js
@@ -2323,12 +2327,14 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **gecko profile interval**: 1
    * **gecko profile threads**: GeckoMain,Compositor,Renderer,SwComposite,RenderBackend,SceneBuilder,WrWorker,CanvasWorkers,TextureUpdate
    * **host from parent**: false
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/motionmark-1-3-desktop.toml#27>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/motionmark-1-3-desktop.toml#29>`__
    * **lower is better**: false
    * **page cycles**: 1
    * **page timeout**: 600000
    * **repository**: https://github.com/webkit/motionmark
    * **repository revision**: be2a5fea89b6ef411b053ebeb95a6302b3dc0ecb
+   * **subtest lower is better**: false
+   * **subtest unit**: score
    * **suite name**: HTML suite
    * **support class**: motionmark-1-3.py
    * **test script**: motionmark-1-3.js
@@ -2700,12 +2706,14 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **gecko profile interval**: 1
    * **gecko profile threads**: GeckoMain,Compositor,Renderer,SwComposite,RenderBackend,SceneBuilder,WrWorker,CanvasWorkers,TextureUpdate
    * **host from parent**: false
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/motionmark-1-3-mobile.toml#26>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/motionmark-1-3-mobile.toml#28>`__
    * **lower is better**: false
    * **page cycles**: 1
    * **page timeout**: 600000
    * **repository**: https://github.com/webkit/motionmark
    * **repository revision**: be2a5fea89b6ef411b053ebeb95a6302b3dc0ecb
+   * **subtest lower is better**: false
+   * **subtest unit**: score
    * **suite name**: HTML suite
    * **support class**: motionmark-1-3.py
    * **test script**: motionmark-1-3.js
