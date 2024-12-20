@@ -143,16 +143,11 @@ this.formautofill = class extends ExtensionAPI {
         "Cannot find formautofill chrome.manifest for registring translated strings"
       );
     }
-    let addressAutofillAvailable = FormAutofill.isAutofillAddressesAvailable;
-    let creditCardAutofillAvailable =
-      FormAutofill.isAutofillCreditCardsAvailable;
     this.adjustAndCheckFormAutofillPrefs(
-      addressAutofillAvailable,
-      creditCardAutofillAvailable
+      FormAutofill.isAutofillAddressesAvailable,
+      FormAutofill.isAutofillCreditCardsAvailable
     );
-    if (!creditCardAutofillAvailable && !addressAutofillAvailable) {
-      return;
-    }
+
     // Listen for the autocomplete popup message
     // or the form submitted message (which may trigger a
     // doorhanger) to lazily append our stylesheets related

@@ -401,6 +401,32 @@ add_task(async function test_addressAutofillNotAvailableViaRegion() {
     }
   );
 
+  // Allow address autofill in the region and show the preference page again.
+  await SpecialPowers.pushPrefEnv({
+    set: [[ENABLED_AUTOFILL_ADDRESSES_SUPPORTED_COUNTRIES_PREF, "US,CA,FR"]],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: PAGE_PRIVACY },
+    async function (browser) {
+      await finalPrefPaneLoaded;
+      await SpecialPowers.spawn(browser, [SELECTORS], selectors => {
+        is(
+          content.document.querySelector(selectors.group).hidden,
+          false,
+          "Form Autofill group should be visible"
+        );
+        is(
+          content.document.querySelector(selectors.addressAutofillCheckbox)
+            .checked,
+          true,
+          "Autofill addresses checkbox should be present and checked"
+        );
+      });
+    }
+  );
+
+  await SpecialPowers.popPrefEnv();
   await SpecialPowers.popPrefEnv();
 });
 
