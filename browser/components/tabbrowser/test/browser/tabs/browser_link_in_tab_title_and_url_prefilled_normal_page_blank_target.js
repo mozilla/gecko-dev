@@ -15,6 +15,12 @@ Services.scriptloader.loadSubScript(
   this
 );
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.http.blank_page_with_error_response.enabled", true]],
+  });
+});
+
 add_task(async function normal_page__foreground__click() {
   await doTestInSameWindow({
     link: "wait-a-bit--blank-target",
