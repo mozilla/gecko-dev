@@ -78,6 +78,9 @@ import org.mozilla.fenix.compose.list.SelectableIconListItem
 import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
 import org.mozilla.fenix.compose.snackbar.SnackbarHost
 import org.mozilla.fenix.compose.snackbar.SnackbarState
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.addBookmarkFolderNameTextField
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemTileTextField
+import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemURLTextField
 import org.mozilla.fenix.theme.FirefoxTheme
 import mozilla.components.ui.icons.R as iconsR
 
@@ -978,7 +981,7 @@ private fun AddFolderScreen(
                     )
                     .semantics {
                         testTagsAsResourceId = true
-                        testTag = "bookmarks.add.folder.name.text.field"
+                        testTag = addBookmarkFolderNameTextField
                     },
                 label = stringResource(R.string.bookmark_name_label_normal_case),
             )
@@ -1087,7 +1090,7 @@ private fun BookmarkEditor(
                 modifier =
                 Modifier
                     .semantics {
-                        testTag = "edit.bookmark.item.title.text.field"
+                        testTag = editBookmarkedItemTileTextField
                     },
             )
 
@@ -1100,7 +1103,7 @@ private fun BookmarkEditor(
                 modifier =
                 Modifier
                     .semantics {
-                        testTag = "edit.bookmark.item.url.text.field"
+                        testTag = editBookmarkedItemURLTextField
                     },
             )
         }
