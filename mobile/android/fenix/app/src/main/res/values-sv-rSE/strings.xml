@@ -642,9 +642,9 @@
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_light_option">Ljust</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_system_option">System auto</string>
+    <string name="onboarding_customize_theme_system_option">Automatisk (system)</string>
     <!-- Onboarding theme selection card content description for the main image. -->
-    <string name="onboarding_customize_theme_main_image_content_description">Stor sidhuvud av vyn för val av tema som visar illustrerade konstnärer och byggarverktyg.</string>
+    <string name="onboarding_customize_theme_main_image_content_description">Stor huvudbild av vyn för val av tema som visar illustrerade konstnärs- och byggverktyg.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Bild på temat %1$s</string>
 

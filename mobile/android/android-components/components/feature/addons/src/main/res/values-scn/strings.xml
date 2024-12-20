@@ -170,6 +170,8 @@
     <string name="mozac_feature_addons_updater_notification_content_singular">Cc\'è bisognu d\'un pirmisu novu</string>
     <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
     <string name="mozac_feature_addons_updater_notification_channel_2">Attualizzi dî stinneri</string>
+    <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
+    <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">Virificaturi dî juncitini suppurtati</string>
     <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available.-->
     <string name="mozac_feature_addons_supported_checker_notification_title" tools:ignore="UnusedResources">Nova juncitina dispunìbbili</string>
     <!-- The tile of the notification, this will be shown to the user when more than one newly supported add-ons are available.-->
@@ -180,6 +182,8 @@
     <string name="mozac_feature_addons_supported_checker_notification_content_two">Junci %1$s e %2$s a %3$s</string>
     <!-- The content of the notification, this will be shown to the user when more than two newly supported add-ons are available. %1$s is the app name (in most cases Firefox). -->
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Jùncili a %1$s</string>
+    <!-- This is the caption for not yet supported screen caption -->
+    <string name="mozac_feature_addons_not_yet_supported_caption2">Stamu travagghiannu p\'uffrìriti n\'aḍḍijuta di stinneri cunzigghiati.</string>
     <!-- This is the caption for the extension installation progress overlay -->
     <string name="mozac_extension_install_progress_caption">Staju scarricannu e virificannu u stinneriu…</string>
     <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->

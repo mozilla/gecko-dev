@@ -582,6 +582,8 @@
     <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Ore pytyvõ Firefox porãverã</string>
     <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Emondo marandu jejavy rehegua</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">Marandu’i jejavygua rupi roikuaa ha romyatyrõ apañuái kundahára ndive. Umi marandu’ípe oĩkuaa mba’ekuaarã nemba’ete ha ñemiguáva.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Eikuaave marandu jejavy rehegua</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
@@ -601,8 +603,12 @@
     <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Eku’ejeývo, emoneĩmbáma umi %1$s Firefox.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Mba’epytyvõrã ñemboguata</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox omomba’e nde rekoñemi. Emoñe’ẽve ore %1$s rupive.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Marandu’i ñemiguáva</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">Oiko porãve hag̃ua pe kundahára, Firefox omondo techapy ha ñomongetakue Mozilla-pe. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Ñangareko</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -636,6 +642,9 @@
     <string name="onboarding_customize_theme_light_option">Tesakã</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_system_option">Ijeheguíva apopyvusu rehegua</string>
+
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Téma ra’ãnga %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1049,8 +1058,12 @@
     <string name="preferences_marketing_data">Mba’ekuaarã jehepyme’ẽrã</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Emoherakuã mba’ekuaarã ojeporúva Adjust ndive, ore marketing me’ẽhára</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">Eikuaave marketing mba’ekuaarã</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Emondo marandu jejavy rehegua</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Emoherakuã, ijehegui oñepyrũvo, mba’ekuaarã jejavy rehegua Mozilla ndive oiko rire jejavy</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Ñembokatupyry</string>
     <!-- Summary for studies preferences -->
@@ -2950,6 +2963,16 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">Heja</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">Eñatendéke ko tendápe</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">Nde jeike nahekorosãi.</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">Emboguéma umi ñemo’ãha</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s ndoikoihína ko’ag̃aite. Emyandy jey opaite ñemo’ãha.</string>
     <!-- Title text for the protection panel banner when tracking protection is enabled.
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="protection_panel_banner_protected_title">%s oĩ ñema’ẽme</string>
@@ -3072,6 +3095,9 @@
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">Kundaharape</string>
 
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Ñe’ẽnguéra rysýi emyandy hag̃ua</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Tembiporu CFR</string>
@@ -3100,4 +3126,12 @@
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Embohekopyahu ko’ág̃a</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Embohekopyahu nde Firefox kundaha</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Ipahaitéma eiporu hag̃ua Firefox</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Oikotevẽ ñembohekopyahu</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Moĩmbaha ha heta tembiapoite ndoikovéitama 14 jasyapy guive.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Eiporuhína Firefox japopyre itujámava</string>
     </resources>

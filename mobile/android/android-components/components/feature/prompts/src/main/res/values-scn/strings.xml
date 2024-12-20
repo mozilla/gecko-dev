@@ -38,6 +38,9 @@
     <string name="mozac_feature_prompt_login_update_headline_2">Attualizzari a chiavi?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_add_username_headline_2">Attualizzari u nomu utenti?</string>
+    <!-- Text for a label for the field when prompt requesting a text is shown. -->
+    <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
+    <string name="mozac_feature_prompts_content_description_input_label">Etichetta pi mèttiri un campu di testu</string>
     <!-- Title of a color picker dialog, this text is shown above a color picker. -->
     <string name="mozac_feature_prompts_choose_a_color">Scarta un culuri</string>
     <!-- Text of a confirm button in dialog requesting to open a new window. -->
@@ -101,6 +104,9 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Pruteggi i to cunti usannu na chiavi forti, ginirata a muzzu. Veni sarbata nnô to cuntu p\'usalla \'n futuru.</string>
 
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Pruteggi u to cuntu usannu na chiavi forti, ginirata a muzzu. Veni sarbata nnô to cuntu p\'usalla \'n futuru.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usa a chiavi</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -114,6 +120,7 @@
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Vo\' mannari arrè i dati a stu situ?</string>
+    <string name="mozac_feature_prompt_repost_message">Attualizzari sta pàggina putissi rifari azzioni ricenti, comu mannari un pagamentu o pubblicari du\' voti un cummentu.</string>
     <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
     <string name="mozac_feature_prompt_repost_positive_button_text">Manna arrè i dati</string>
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->

@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Veşartin û nîşandana hilpekînên gerokê</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Xwegihandina raboriya gerînê</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Modelên AI`ê bar bike ser cîhaza xwe  û bixebitîne</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Destûrê bide skrîptên partiya sêyemîn ên nepesendkirî ku xwe bigihînin daneyên te</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Firehkirina amûrên pêşvebirinê ji bo xwegihandina daneyên di hilpekînên vekirî de</string>
     <!-- The version on of add-on. -->
@@ -230,6 +234,8 @@
     <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">%1$s nehate rakirin</string>
     <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
     <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">Ev pêvek ji guhertoyeke kevn a %1$s’ê hatiye anîn</string>
+    <!-- Text shown in not yet supported add-ons section. -->
+    <string name="mozac_feature_addons_unsupported_caption_2">Pêvekek</string>
     <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
     <string name="mozac_feature_addons_unsupported_caption_plural_2">%1$s pêvek</string>
     <!-- Text link to a sumo page for learning more about unsupported add-ons. -->

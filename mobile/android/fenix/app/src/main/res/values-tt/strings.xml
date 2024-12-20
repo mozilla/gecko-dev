@@ -733,6 +733,9 @@
     <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">Башка фон рәсемнәрен карау</string>
 
+    <!-- Add-ons general availability nimbus message-->
+    <!-- Title of the Nimbus message for extension general availability-->
+    <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Хәзер яңа киңәйтүләр бар</string>
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Киңәйтүләрне карау</string>
 
@@ -798,6 +801,11 @@
     <!-- %s is the device name -->
     <string name="fxa_tab_received_from_notification_name">%s җиһазыннан таб</string>
 
+    <!-- Close Synced Tabs -->
+    <!-- The title for a notification shown when the user closes tabs that are currently
+    open on this device from another device that's signed in to the same Mozilla account.
+    %1$s is a placeholder for the app name; %2$d is the number of tabs closed.  -->
+    <string name="fxa_tabs_closed_notification_title">%2$d %1$s табы ябылды</string>
     <!-- The body for a "closed synced tabs" notification. -->
     <string name="fxa_tabs_closed_text">Күптән түгел ябылган табларны карау</string>
 
@@ -881,6 +889,9 @@
     <!-- Content description (not visible, for screen readers etc.): "Close button for library settings" -->
     <string name="content_description_close_button">Ябу</string>
 
+    <!-- Title to show in alert when a lot of tabs are to be opened
+    %d is a placeholder for the number of tabs that will be opened -->
+    <string name="open_all_warning_title">%d таб ачылсынмы?</string>
     <!-- Dialog button text for confirming open all tabs -->
     <string name="open_all_warning_confirm">Табларны ачу</string>
     <!-- Dialog button text for canceling open all tabs -->
@@ -1200,6 +1211,16 @@
     <string name="bookmark_navigate_back_button_content_description">Кире кайту</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Яңа папка өстәү</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">Кыстыргычны бетерү</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">Папканы бетерү</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Кыстыргычлардан эзләү</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">%s өчен элемент менюсы</string>
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Әле кыстыргычлар юк</string>
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">Синхронлауга керү</string>
     <!-- Description for the add new folder button when selecting a folder. -->
@@ -1363,9 +1384,15 @@
     <string name="share_link_all_apps_subheader">Барлык гамәлләр</string>
     <!-- Sub-header in the dialog to share a link to an app from the most-recent sorted list -->
     <string name="share_link_recent_apps_subheader">Соңгы кулланылган</string>
+    <!-- Text for the copy link action in the share screen. -->
+    <string name="share_copy_link_to_clipboard">Алмашу буферына күчереп алу</string>
+    <!-- Toast shown after copying link to clipboard -->
+    <string name="toast_copy_link_to_clipboard">Алмашу буферына күчереп алынды</string>
     <!-- An option from the share dialog to sign into sync -->
     <string name="sync_sign_in">Синхронлауга керү</string>
-     <!-- An option from the share dialog to send link to all other sync devices -->
+     <!-- An option from the three dot menu to sync and save data -->
+    <string name="sync_menu_sync_and_save_data">Синхронлау һәм мәгълүматны саклау</string>
+    <!-- An option from the share dialog to send link to all other sync devices -->
     <string name="sync_send_to_all">Барлык җиһазларга җибәрү</string>
     <!-- An option from the share dialog to reconnect to sync -->
     <string name="sync_reconnect">Синхронлауга яңадан тоташу</string>
@@ -1393,8 +1420,24 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Хосусый табларны ябу</string>
 
+    <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
+    <string name="notification_erase_title_android_14">Хосусый таблар ябылсынмы?</string>
+
     <!-- Name of the marketing notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="notification_marketing_channel_name">Маркетинг</string>
+
+    <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
+    The app name is in the text, due to limitations with localizing Nimbus experiments -->
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox — тиз һәм хосусый</string>
+    <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
+    The app name is in the text, due to limitations with localizing Nimbus experiments -->
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Firefox-ны төп браузерыгыз итү</string>
+    <!-- Title shown in the notification that pops up to re-engage the user -->
+    <string name="notification_re_engagement_title">Хосусый гизүне сынап карагыз</string>
+    <!-- Title A shown in the notification that pops up to re-engage the user -->
+    <string name="notification_re_engagement_A_title">Эзләр калдырмыйча гизегез</string>
+    <!-- Title B shown in the notification that pops up to re-engage the user -->
+    <string name="notification_re_engagement_B_title">Беренче эзләвегезне башлагыз</string>
 
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Анкетада катнашу</string>
@@ -1489,6 +1532,12 @@
     <!-- Action item in menu for the Delete browsing data on quit feature -->
     <string name="delete_browsing_data_on_quit_action">Чыгу</string>
 
+    <!-- Title text of a delete browsing data dialog. -->
+    <string name="delete_history_prompt_title">Бетерү өчен вакыт диапазоны</string>
+    <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
+    <string name="delete_history_prompt_button_last_hour">Соңгы сәгать</string>
+    <!-- Radio button in the delete browsing data dialog to delete history items for today and yesterday. -->
+    <string name="delete_history_prompt_button_today_and_yesterday">Бүген һәм кичә</string>
     <!-- Radio button in the delete browsing data dialog to delete all history. -->
     <string name="delete_history_prompt_button_everything">Барысын да</string>
 
@@ -1731,6 +1780,10 @@
     <string name="saved_login_reveal_password">Серсүзне күрсәтү</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Серсүзне яшерү</string>
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
+    <string name="logins_biometric_prompt_message_2">Сакланган cерсүзләрне карау өчен йозакны ачыгыз</string>
+    <!-- Title of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_title_2">Сакланган серсүзләрегезне башкалардан саклагыз</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Cоңрак</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1805,6 +1858,8 @@
     <!-- Title of the "Saved cards" screen -->
     <string name="credit_cards_saved_cards">Сакланган карталар</string>
 
+    <!-- Error message for card number validation -->
+    <string name="credit_cards_number_validation_error_message_2">Дөрес бер карта номерын кертегез</string>
     <!-- Error message for card name on card validation -->
     <string name="credit_cards_name_on_card_validation_error_message_2">Исем өстәгез</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
@@ -2089,6 +2144,26 @@
     <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
     <string name="pocket_stories_sponsor_indication">Спонсорланган</string>
 
+    <!-- Snackbar button text to navigate to telemetry settings.-->
+    <string name="experiments_snackbar_button">Көйләүләргә күчү</string>
+
+    <!-- Review quality check feature-->
+    <!-- Name for the review quality check feature used as title for the panel. -->
+    <string name="review_quality_check_feature_name_2">Бәяләмәлерне тикшерүче</string>
+    <!-- Summary for grades A and B for review quality check adjusted grading. -->
+    <string name="review_quality_check_grade_a_b_description">Ышанычлы бәяләмәләр</string>
+    <!-- Summary for grades D and F for review quality check adjusted grading. -->
+    <string name="review_quality_check_grade_d_f_description">Ышанычсыз бәяләмәлер</string>
+    <!-- Text for title presenting the reliability of a product's reviews. -->
+    <string name="review_quality_check_grade_title">Бу бәяләмәлер ни дәрәҗәдә ышанычлы?</string>
+    <!-- Title for when the rating has been updated by the review checker -->
+    <string name="review_quality_check_adjusted_rating_title">Төзәтелгән рейтинг</string>
+    <!-- Description for a product's adjusted star rating. The text presents that the product's reviews which were evaluated as unreliable were removed from the adjusted rating. -->
+    <string name="review_quality_check_adjusted_rating_description_2">Ышанычлы бәяләмәләргә нигезләнгән</string>
+    <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
+    <string name="review_quality_check_highlights_title">Соңгы бәяләмәлердән төп фикерләр</string>
+    <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
+    <string name="review_quality_check_explanation_title">Бәяләмәләр сыйфатын ничек билгелибез</string>
     <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
     <string name="review_quality_check_info_learn_more">%s турында күбрәк белегез.</string>
     <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
@@ -2099,12 +2174,28 @@
     <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">Күбрәк белү</string>
     <!-- Text for turning sidebar off button from review quality check settings section. -->
     <string name="review_quality_check_settings_turn_off">Бәяләмәлерне тикшерүчене сүндерү</string>
+    <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
+    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">Тагын нәрсәгә игътибар итмәле</string>
     <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
     <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">%s рекламасы</string>
     <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
     <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">Mozilla тәкъдим иткән %s</string>
+    <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
+    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">Тикшерү өчен яңа мәгълүмат</string>
+    <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
+    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">Хәзер тикшерү</string>
+    <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_title">Әле җитәрлек бәяләмә юк</string>
+    <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
+    <string name="review_quality_check_analysis_in_progress_warning_title_2">Бәяләмә сыйфаты тикшерелә (%s)</string>
+    <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
+    <string name="review_quality_check_analysis_in_progress_warning_body">Бу якынча 60 секунд алырга мөмкин.</string>
     <!-- Title for info card displayed after the user reports a product is back in stock. -->
     <string name="review_quality_check_analysis_requested_info_title">Белдерүегез өчен рәхмәт!</string>
+    <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_title" tools:ignore="UnusedResources">Мәгълүмат тиздән барлыкка киләчәк</string>
+    <!-- Title for info card displayed to the user when analysis finished updating. -->
+    <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">Көнүзәк анализ</string>
     <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
     <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">Аңладым</string>
     <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
@@ -2179,12 +2270,20 @@
     <string name="translations_bottom_sheet_title">Бу бит тәрҗемә ителсенме?</string>
     <!-- Text that links to additional information about the Firefox translations feature. -->
     <string name="translations_bottom_sheet_info_message_learn_more">Күбрәк белү</string>
+    <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
+    <string name="translations_bottom_sheet_translate_from">Бу телдән</string>
+    <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
+    <string name="translations_bottom_sheet_translate_to">Бу телгә</string>
+    <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
+    <string name="translations_bottom_sheet_translate_from_unsupported_language">Башка бер чыганак телен кулланып карау</string>
     <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
     <string name="translations_bottom_sheet_negative_button">Хәзер түгел</string>
     <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
     <string name="translations_bottom_sheet_negative_button_restore">Оригиналны күрсәтү</string>
 
 
+    <!-- Accessibility announcement (not visible, for screen readers etc.) for the translations dialog after restore button was pressed that indicates the original untranslated page was loaded. -->
+    <string name="translations_bottom_sheet_restore_accessibility_announcement">Тәрҗемә ителмәгән оригинал бит йөкләнде</string>
     <!-- Button text on the translations dialog when a translation error appears, used to dismiss the dialog and return to the browser. -->
     <string name="translations_bottom_sheet_negative_button_error">Әзер</string>
     <!-- Button text on the translations dialog to begin a translation of the website. -->
@@ -2232,6 +2331,8 @@
     <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
     <string name="translation_settings_automatic_translation">Автоматик тәрҗемә итү</string>
 
+    <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
+    <string name="translation_settings_automatic_never_translate_sites">Бу сайтларны беркайчан да тәрҗемә итмәү</string>
     <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
     <string name="translation_settings_download_language">Телләр иңдерү</string>
 
@@ -2239,6 +2340,9 @@
     <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
     <string name="automatic_translation_toolbar_title_preference">Автоматик тәрҗемә</string>
 
+    <!-- Automatic translation options preference screen -->
+    <!-- Preference option for offering to translate. Radio button title text.-->
+    <string name="automatic_translation_option_offer_to_translate_title_preference">Тәрҗемә итәргә тәкъдим итү (килешенгәнчә)</string>
     <!-- Preference option for always translate. Radio button title text. -->
     <string name="automatic_translation_option_always_translate_title_preference">Һәрвакыт тәрҗемә итү</string>
     <!-- Preference option for never translate. Radio button title text.-->
@@ -2282,6 +2386,10 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Иңдерү</string>
 
+    <!-- Title for the dialog used by the translations feature to confirm deleting a language.
+    The dialog will be presented when the user requests deletion of a language.
+    The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="delete_language_file_dialog_title">%1$s (%2$s) бетерелсенме?</string>
     <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
     <string name="delete_language_file_dialog_positive_button_text">Бетерү</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->

@@ -598,7 +598,7 @@
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">הצהרת הפרטיות</string>
     <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
-    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">כדי לעזור לשפר את הדפדפן, Firefox שולח נתוני אבחון ואינטראקציה ל־Mozilla. %1$s</string>
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">כדי לסייע בשיפור הדפדפן, Firefox שולח נתוני אבחון ואינטראקציה ל־Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">ניהול</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
