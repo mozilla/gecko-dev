@@ -893,10 +893,10 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
 }
 
 // static
-Result<CreateElementResult, nsresult>
-WhiteSpaceVisibilityKeeper::InsertBRElement(
-    HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToInsert,
-    const Element& aEditingHost) {
+Result<CreateLineBreakResult, nsresult>
+WhiteSpaceVisibilityKeeper::InsertLineBreak(
+    LineBreakType aLineBreakType, HTMLEditor& aHTMLEditor,
+    const EditorDOMPoint& aPointToInsert, const Element& aEditingHost) {
   if (MOZ_UNLIKELY(NS_WARN_IF(!aPointToInsert.IsSet()))) {
     return Err(NS_ERROR_INVALID_ARG);
   }
@@ -1096,20 +1096,12 @@ WhiteSpaceVisibilityKeeper::InsertBRElement(
   }
 
   Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-      aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
-                                  HTMLEditor::LineBreakType::BRElement,
+      aHTMLEditor.InsertLineBreak(WithTransaction::Yes, aLineBreakType,
                                   pointToInsert);
-  if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
-    NS_WARNING(
-        "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
-        "LineBreakType::BRElement, eNone) failed");
-    return insertBRElementResultOrError.propagateErr();
-  }
-  CreateLineBreakResult insertBRElementResult =
-      insertBRElementResultOrError.unwrap();
-  EditorDOMPoint pointToPutCaret = insertBRElementResult.UnwrapCaretPoint();
-  return CreateElementResult(insertBRElementResult->BRElementRef(),
-                             std::move(pointToPutCaret));
+  NS_WARNING_ASSERTION(insertBRElementResultOrError.isOk(),
+                       "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
+                       "aLineBreakType, eNone) failed");
+  return insertBRElementResultOrError;
 }
 
 // static
