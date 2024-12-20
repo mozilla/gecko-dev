@@ -14504,13 +14504,6 @@
   value: ""
   mirror: never
 
-# This is only used for testing. When true, nsHttpChannel::mPeerAddr will be
-# overridden with the address provided by DNS prefetch.
-- name: network.dns.use_override_as_peer_address
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Whether to add additional record IPs to the cache
 - name: network.trr.add_additional_records
   type: RelaxedAtomicBool
