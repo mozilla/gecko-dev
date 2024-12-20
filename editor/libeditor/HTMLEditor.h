@@ -1657,7 +1657,7 @@ class HTMLEditor final : public EditorBase,
    *                            before inserting <br> from the inserting point.
    * @param aEditingHost        The editing host.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CreateElementResult, nsresult>
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CreateLineBreakResult, nsresult>
   InsertPaddingBRElementIfNeeded(const EditorDOMPoint& aPoint,
                                  nsIEditor::EStripWrappers aDeleteEmptyInlines,
                                  const Element& aEditingHost);
