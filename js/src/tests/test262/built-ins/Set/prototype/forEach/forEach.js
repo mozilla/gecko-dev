@@ -16,8 +16,10 @@ assert.sameValue(
   "`typeof Set.prototype.forEach` is `'function'`"
 );
 
-verifyNotEnumerable(Set.prototype, "forEach");
-verifyWritable(Set.prototype, "forEach");
-verifyConfigurable(Set.prototype, "forEach");
+verifyProperty(Set.prototype, "forEach", {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

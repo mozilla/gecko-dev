@@ -18,8 +18,10 @@ assert.sameValue(
   "The value of `SetProto[Symbol.toStringTag]` is `'Set'`"
 );
 
-verifyNotEnumerable(SetProto, Symbol.toStringTag);
-verifyNotWritable(SetProto, Symbol.toStringTag);
-verifyConfigurable(SetProto, Symbol.toStringTag);
+verifyProperty(SetProto, Symbol.toStringTag, {
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

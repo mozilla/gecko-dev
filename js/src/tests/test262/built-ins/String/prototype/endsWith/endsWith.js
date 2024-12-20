@@ -18,8 +18,10 @@ assert.sameValue(
   '`typeof String.prototype.endsWith` is `function`'
 );
 
-verifyNotEnumerable(String.prototype, 'endsWith');
-verifyWritable(String.prototype, 'endsWith');
-verifyConfigurable(String.prototype, 'endsWith');
+verifyProperty(String.prototype, 'endsWith', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

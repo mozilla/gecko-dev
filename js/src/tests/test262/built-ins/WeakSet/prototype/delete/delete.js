@@ -18,8 +18,10 @@ assert.sameValue(
   'typeof WeakSet.prototype.delete is "function"'
 );
 
-verifyNotEnumerable(WeakSet.prototype, 'delete');
-verifyWritable(WeakSet.prototype, 'delete');
-verifyConfigurable(WeakSet.prototype, 'delete');
+verifyProperty(WeakSet.prototype, 'delete', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

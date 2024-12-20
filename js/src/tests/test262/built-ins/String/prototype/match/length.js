@@ -38,8 +38,10 @@ if (String.prototype.match.length !== 1) {
 //
 //////////////////////////////////////////////////////////////////////////////
 
-verifyNotEnumerable(String.prototype.match, 'length');
-verifyNotWritable(String.prototype.match, 'length');
-verifyConfigurable(String.prototype.match, 'length');
+verifyProperty(String.prototype.match, 'length', {
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

@@ -14,8 +14,10 @@ includes: [propertyHelper.js]
 features: [Symbol.search]
 ---*/
 
-verifyNotEnumerable(RegExp.prototype, Symbol.search);
-verifyWritable(RegExp.prototype, Symbol.search);
-verifyConfigurable(RegExp.prototype, Symbol.search);
+verifyProperty(RegExp.prototype, Symbol.search, {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

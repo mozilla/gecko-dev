@@ -11,8 +11,10 @@ includes: [propertyHelper.js]
 features: [Symbol.toPrimitive]
 ---*/
 
-verifyNotEnumerable(Date.prototype, Symbol.toPrimitive);
-verifyNotWritable(Date.prototype, Symbol.toPrimitive);
-verifyConfigurable(Date.prototype, Symbol.toPrimitive);
+verifyProperty(Date.prototype, Symbol.toPrimitive, {
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

@@ -12,8 +12,10 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(Math, "exp");
-verifyWritable(Math, "exp");
-verifyConfigurable(Math, "exp");
+verifyProperty(Math, "exp", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

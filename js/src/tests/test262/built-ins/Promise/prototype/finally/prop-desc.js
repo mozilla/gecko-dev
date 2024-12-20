@@ -14,8 +14,10 @@ features: [Promise.prototype.finally]
 
 assert.sameValue(typeof Promise.prototype.finally, 'function');
 
-verifyNotEnumerable(Promise.prototype, 'finally');
-verifyWritable(Promise.prototype, 'finally');
-verifyConfigurable(Promise.prototype, 'finally');
+verifyProperty(Promise.prototype, 'finally', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

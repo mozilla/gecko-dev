@@ -14,8 +14,10 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(Number, "isFinite");
-verifyWritable(Number, "isFinite");
-verifyConfigurable(Number, "isFinite");
+verifyProperty(Number, "isFinite", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

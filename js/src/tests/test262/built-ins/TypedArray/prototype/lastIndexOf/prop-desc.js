@@ -15,8 +15,10 @@ features: [TypedArray]
 
 var TypedArrayPrototype = TypedArray.prototype;
 
-verifyNotEnumerable(TypedArrayPrototype, 'lastIndexOf');
-verifyWritable(TypedArrayPrototype, 'lastIndexOf');
-verifyConfigurable(TypedArrayPrototype, 'lastIndexOf');
+verifyProperty(TypedArrayPrototype, 'lastIndexOf', {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

@@ -17,8 +17,10 @@ assert.sameValue(
   '`typeof Map.prototype.keys` is `function`'
 );
 
-verifyNotEnumerable(Map.prototype, 'keys');
-verifyWritable(Map.prototype, 'keys');
-verifyConfigurable(Map.prototype, 'keys');
+verifyProperty(Map.prototype, 'keys', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

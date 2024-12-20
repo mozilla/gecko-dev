@@ -12,8 +12,10 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(Array, 'of');
-verifyWritable(Array, 'of');
-verifyConfigurable(Array, 'of');
+verifyProperty(Array, "of", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

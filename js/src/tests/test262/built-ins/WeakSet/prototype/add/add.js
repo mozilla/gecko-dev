@@ -17,8 +17,10 @@ assert.sameValue(
   'typeof WeakSet.prototype.add is "function"'
 );
 
-verifyNotEnumerable(WeakSet.prototype, 'add');
-verifyWritable(WeakSet.prototype, 'add');
-verifyConfigurable(WeakSet.prototype, 'add');
+verifyProperty(WeakSet.prototype, 'add', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

@@ -7,8 +7,10 @@ includes: [propertyHelper.js]
 es6id: 20.2.2.19
 ---*/
 
-verifyNotEnumerable(Math, "imul");
-verifyWritable(Math, "imul");
-verifyConfigurable(Math, "imul");
+verifyProperty(Math, "imul", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

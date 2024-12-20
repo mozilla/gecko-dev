@@ -14,8 +14,10 @@ assert.sameValue(
   '`typeof Array.prototype.fill` is `function`'
 );
 
-verifyNotEnumerable(Array.prototype, 'fill');
-verifyWritable(Array.prototype, 'fill');
-verifyConfigurable(Array.prototype, 'fill');
+verifyProperty(Array.prototype, "fill", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

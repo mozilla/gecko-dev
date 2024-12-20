@@ -14,8 +14,10 @@ assert.sameValue(
   '`typeof Array.prototype.findIndex` is `function`'
 );
 
-verifyNotEnumerable(Array.prototype, 'findIndex');
-verifyWritable(Array.prototype, 'findIndex');
-verifyConfigurable(Array.prototype, 'findIndex');
+verifyProperty(Array.prototype, "findIndex", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

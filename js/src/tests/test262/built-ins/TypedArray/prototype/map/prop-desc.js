@@ -15,8 +15,10 @@ features: [TypedArray]
 
 var TypedArrayPrototype = TypedArray.prototype;
 
-verifyNotEnumerable(TypedArrayPrototype, 'map');
-verifyWritable(TypedArrayPrototype, 'map');
-verifyConfigurable(TypedArrayPrototype, 'map');
+verifyProperty(TypedArrayPrototype, 'map', {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

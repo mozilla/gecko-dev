@@ -1,7 +1,5 @@
-commit f4a987fe3ce0c6d6c36e325fc455aedb6d1724d5
-Author: Philip Chimento <pchimento@igalia.com>
-Date:   Wed Oct 2 14:59:37 2024 -0700
+commit ada06362dc400f272f1726988738cab2b6593baf
+Author: André Bargull <andre.bargull@gmail.com>
+Date:   Tue Dec 17 17:09:14 2024 +0100
 
-    Temporal: Additional tests for cases where date addition goes out of range
-    
-    See tc39/proposal-temporal#2985
+    Add linter for parseTestRecord

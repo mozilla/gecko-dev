@@ -14,8 +14,10 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(DataView, "prototype");
-verifyNotWritable(DataView, "prototype");
-verifyNotConfigurable(DataView, "prototype");
+verifyProperty(DataView, "prototype", {
+  writable: false,
+  enumerable: false,
+  configurable: false,
+});
 
 reportCompare(0, 0);

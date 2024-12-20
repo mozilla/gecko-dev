@@ -16,8 +16,10 @@ includes: [propertyHelper.js]
 
 assert.sameValue(typeof Array.prototype.push, 'function', 'typeof');
 
-verifyNotEnumerable(Array.prototype, "push");
-verifyWritable(Array.prototype, "push");
-verifyConfigurable(Array.prototype, "push");
+verifyProperty(Array.prototype, "push", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

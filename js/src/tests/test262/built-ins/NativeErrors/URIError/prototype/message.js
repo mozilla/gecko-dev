@@ -18,8 +18,10 @@ includes: [propertyHelper.js]
 
 assert.sameValue(URIError.prototype.message, "");
 
-verifyNotEnumerable(URIError.prototype, "message");
-verifyWritable(URIError.prototype, "message");
-verifyConfigurable(URIError.prototype, "message");
+verifyProperty(URIError.prototype, "message", {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

@@ -16,8 +16,10 @@ assert.sameValue(
   "`typeof Set.prototype.add` is `'function'`"
 );
 
-verifyNotEnumerable(Set.prototype, "add");
-verifyWritable(Set.prototype, "add");
-verifyConfigurable(Set.prototype, "add");
+verifyProperty(Set.prototype, "add", {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

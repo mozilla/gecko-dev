@@ -11,8 +11,10 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(this, "Function");
-verifyWritable(this, "Function");
-verifyConfigurable(this, "Function");
+verifyProperty(this, "Function", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

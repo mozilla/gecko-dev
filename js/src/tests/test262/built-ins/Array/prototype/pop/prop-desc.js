@@ -16,8 +16,10 @@ includes: [propertyHelper.js]
 
 assert.sameValue(typeof Array.prototype.pop, 'function', 'typeof');
 
-verifyNotEnumerable(Array.prototype, "pop");
-verifyWritable(Array.prototype, "pop");
-verifyConfigurable(Array.prototype, "pop");
+verifyProperty(Array.prototype, "pop", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

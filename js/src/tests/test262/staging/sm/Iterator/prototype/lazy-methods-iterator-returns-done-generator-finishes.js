@@ -1,0 +1,38 @@
+// |reftest| shell-option(--enable-iterator-helpers) skip-if(!this.hasOwnProperty('Iterator')||!xulRuntime.shell) -- iterator-helpers is not enabled unconditionally, requires shell-options
+// Copyright (C) 2024 Mozilla Corporation. All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+/*---
+includes: [sm/non262-shell.js, sm/non262.js]
+flags:
+- noStrict
+features:
+- iterator-helpers
+description: |
+  pending
+esid: pending
+---*/
+
+class TestIterator extends Iterator {
+  next() {
+    return {done: true, value: 'value'};
+  }
+}
+
+const methods = [
+  iter => iter.map(x => x),
+  iter => iter.filter(x => true),
+  iter => iter.take(1),
+  iter => iter.drop(0),
+  iter => iter.flatMap(x => [x]),
+];
+
+for (const method of methods) {
+  const iterator = method(new TestIterator());
+  const result = iterator.next();
+  assert.sameValue(result.done, true);
+  assert.sameValue(result.value, undefined);
+}
+
+
+reportCompare(0, 0);

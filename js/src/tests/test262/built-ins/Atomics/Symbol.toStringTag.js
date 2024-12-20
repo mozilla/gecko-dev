@@ -21,8 +21,10 @@ assert.sameValue(
   'The value of Atomics[Symbol.toStringTag] is "Atomics"'
 );
 
-verifyNotEnumerable(Atomics, Symbol.toStringTag);
-verifyNotWritable(Atomics, Symbol.toStringTag);
-verifyConfigurable(Atomics, Symbol.toStringTag);
+verifyProperty(Atomics, Symbol.toStringTag, {
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);
