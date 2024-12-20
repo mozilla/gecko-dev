@@ -14,10 +14,12 @@ import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndDescription
 import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.waitForAppWindowToBeUpdated
 
 class SystemSettingsRobot {
 
     fun verifyNotifications() {
+        waitForAppWindowToBeUpdated()
         Log.i(TAG, "verifyNotifications: Trying to verify the intent to the notifications settings")
         Intents.intended(hasAction("android.settings.APP_NOTIFICATION_SETTINGS"))
         Log.i(TAG, "verifyNotifications: Verified the intent to the notifications settings")
