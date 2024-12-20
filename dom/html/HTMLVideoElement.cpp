@@ -744,7 +744,7 @@ void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
   // If all of the available images are for future compositions, we must have
   // fired too early. Wait for the next invalidation.
   if (!selected || selected->mFrameID == layers::kContainerFrameID_Invalid ||
-      selected->mFrameID == mLastPresentedFrameID) {
+      selected->mFrameID <= mLastPresentedFrameID) {
     return;
   }
 
