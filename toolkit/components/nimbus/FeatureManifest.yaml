@@ -2316,6 +2316,12 @@ networking:
       setPref:
         branch: default
         pref: "network.cookie.chips.partitionLimitByteCapacity"
+    dnsGracePeriod:
+      description: The grace period allows the DNS cache to use expired entries, while kicking off a revalidation in the background.
+      type: int
+      setPref:
+        branch: default
+        pref: "network.dnsCacheExpirationGracePeriod"
 
 disableHttp3:
   description: "Whether HTTP/3 is disabled"
