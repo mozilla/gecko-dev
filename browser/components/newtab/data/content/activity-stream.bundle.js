@@ -113,6 +113,7 @@ for (const type of [
   "DELETE_FROM_POCKET",
   "DELETE_HISTORY_URL",
   "DIALOG_CANCEL",
+  "DIALOG_CLOSE",
   "DIALOG_OPEN",
   "DISABLE_SEARCH",
   "DISCOVERY_STREAM_COLLECTION_DISMISSIBLE_TOGGLE",
@@ -1798,6 +1799,11 @@ const LinkMenuOptions = {
               siteInfo
             )
           ),
+          // Also broadcast that this url has been deleted so that
+          // the confirmation dialog knows it needs to disappear now.
+          actionCreators.AlsoToMain({
+            type: actionTypes.DIALOG_CLOSE,
+          }),
         ],
         eventSource,
         body_string_id: [
@@ -2035,12 +2041,7 @@ const LinkMenuOptions = {
       type: actionTypes.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: ({
-    blockedSections,
-    sectionKey,
-    section,
-    sectionPosition,
-  }) => ({
+  SectionBlock: ({ blockedSections, sectionKey, sectionPosition }) => ({
     id: "newtab-menu-section-block",
     icon: "delete",
     action: {
@@ -2057,11 +2058,19 @@ const LinkMenuOptions = {
               value: [...blockedSections, sectionKey].join(", "),
             },
           }),
+          // Telemetry
+          actionCreators.OnlyToMain({
+            type: actionTypes.BLOCK_SECTION,
+            data: {
+              section: sectionKey,
+              section_position: sectionPosition,
+              event_source: "CONTEXT_MENU",
+            },
+          }),
           // Also broadcast that this section has been blocked so that
           // the confirmation dialog knows it needs to disappear now.
           actionCreators.AlsoToMain({
-            type: actionTypes.BLOCK_SECTION,
-            data: null,
+            type: actionTypes.DIALOG_CLOSE,
           }),
         ],
         // Pass Fluent strings to ConfirmDialog component for the copy
@@ -2075,24 +2084,10 @@ const LinkMenuOptions = {
       },
     },
     userEvent: "DIALOG_OPEN",
-    // Telemetry
-    impression: actionCreators.OnlyToMain({
-      type: actionTypes.BLOCK_SECTION,
-      data: {
-        section,
-        section_position: sectionPosition,
-        event_source: "CONTEXT_MENU",
-      },
-    }),
   }),
-  SectionUnfollow: ({
-    followedSections,
-    section,
-    sectionKey,
-    sectionPosition,
-  }) => ({
+  SectionUnfollow: ({ followedSections, sectionKey, sectionPosition }) => ({
     id: "newtab-menu-section-unfollow",
-    action: actionCreators.OnlyToMain({
+    action: actionCreators.AlsoToMain({
       type: actionTypes.SET_PREF,
       data: {
         name: "discoverystream.sections.following",
@@ -2104,7 +2099,7 @@ const LinkMenuOptions = {
     impression: actionCreators.OnlyToMain({
       type: actionTypes.UNFOLLOW_SECTION,
       data: {
-        section,
+        section: sectionKey,
         section_position: sectionPosition,
         event_source: "CONTEXT_MENU",
       },
@@ -6975,9 +6970,7 @@ function Dialog(prevState = INITIAL_STATE.Dialog, action) {
       return Object.assign({}, prevState, { visible: true, data: action.data });
     case actionTypes.DIALOG_CANCEL:
       return Object.assign({}, prevState, { visible: false });
-    case actionTypes.DELETE_HISTORY_URL:
-      return Object.assign({}, INITIAL_STATE.Dialog);
-    case actionTypes.BLOCK_SECTION:
+    case actionTypes.DIALOG_CLOSE:
       // Reset and hide the confirmation dialog once the action is complete.
       return Object.assign({}, INITIAL_STATE.Dialog);
     default:
@@ -9980,7 +9973,6 @@ function SectionContextMenu({
   following,
   followedSections,
   blockedSections,
-  section,
   sectionPosition
 }) {
   // Initial context menu options: block this section only.
@@ -10014,7 +10006,6 @@ function SectionContextMenu({
     site: {
       followedSections,
       blockedSections,
-      section,
       sectionKey,
       sectionPosition
     }
@@ -10192,7 +10183,6 @@ function CardSection({
     sectionKey: sectionKey,
     title: title,
     type: type,
-    section: sectionKey,
     sectionPosition: sectionPosition
   }));
   return /*#__PURE__*/external_React_default().createElement("section", {

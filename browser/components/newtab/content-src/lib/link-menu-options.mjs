@@ -184,6 +184,11 @@ export const LinkMenuOptions = {
               siteInfo
             )
           ),
+          // Also broadcast that this url has been deleted so that
+          // the confirmation dialog knows it needs to disappear now.
+          ac.AlsoToMain({
+            type: at.DIALOG_CLOSE,
+          }),
         ],
         eventSource,
         body_string_id: [
@@ -421,12 +426,7 @@ export const LinkMenuOptions = {
       type: at.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: ({
-    blockedSections,
-    sectionKey,
-    section,
-    sectionPosition,
-  }) => ({
+  SectionBlock: ({ blockedSections, sectionKey, sectionPosition }) => ({
     id: "newtab-menu-section-block",
     icon: "delete",
     action: {
@@ -443,11 +443,19 @@ export const LinkMenuOptions = {
               value: [...blockedSections, sectionKey].join(", "),
             },
           }),
+          // Telemetry
+          ac.OnlyToMain({
+            type: at.BLOCK_SECTION,
+            data: {
+              section: sectionKey,
+              section_position: sectionPosition,
+              event_source: "CONTEXT_MENU",
+            },
+          }),
           // Also broadcast that this section has been blocked so that
           // the confirmation dialog knows it needs to disappear now.
           ac.AlsoToMain({
-            type: at.BLOCK_SECTION,
-            data: null,
+            type: at.DIALOG_CLOSE,
           }),
         ],
         // Pass Fluent strings to ConfirmDialog component for the copy
@@ -461,24 +469,10 @@ export const LinkMenuOptions = {
       },
     },
     userEvent: "DIALOG_OPEN",
-    // Telemetry
-    impression: ac.OnlyToMain({
-      type: at.BLOCK_SECTION,
-      data: {
-        section,
-        section_position: sectionPosition,
-        event_source: "CONTEXT_MENU",
-      },
-    }),
   }),
-  SectionUnfollow: ({
-    followedSections,
-    section,
-    sectionKey,
-    sectionPosition,
-  }) => ({
+  SectionUnfollow: ({ followedSections, sectionKey, sectionPosition }) => ({
     id: "newtab-menu-section-unfollow",
-    action: ac.OnlyToMain({
+    action: ac.AlsoToMain({
       type: at.SET_PREF,
       data: {
         name: "discoverystream.sections.following",
@@ -490,7 +484,7 @@ export const LinkMenuOptions = {
     impression: ac.OnlyToMain({
       type: at.UNFOLLOW_SECTION,
       data: {
-        section,
+        section: sectionKey,
         section_position: sectionPosition,
         event_source: "CONTEXT_MENU",
       },

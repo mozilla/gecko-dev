@@ -207,7 +207,6 @@ function CardSection({
         sectionKey={sectionKey}
         title={title}
         type={type}
-        section={sectionKey}
         sectionPosition={sectionPosition}
       />
     </div>

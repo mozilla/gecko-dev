@@ -21,7 +21,6 @@ export function SectionContextMenu({
   following,
   followedSections,
   blockedSections,
-  section,
   sectionPosition,
 }) {
   // Initial context menu options: block this section only.
@@ -61,7 +60,6 @@ export function SectionContextMenu({
           site={{
             followedSections,
             blockedSections,
-            section,
             sectionKey,
             sectionPosition,
           }}
