@@ -41,7 +41,6 @@
 .actions-list {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: start;
   max-width: 100%;
   overflow-x: hidden;
@@ -53,10 +52,6 @@
   > moz-button:not(.tools-overflow) {
     --button-outer-padding-inline: var(--space-medium);
     --button-outer-padding-block: var(--space-xxsmall);
-
-    &::part(button) {
-      height: var(--tab-min-height);
-    }
 
     &:first-of-type {
       --button-outer-padding-block-start: var(--space-small);

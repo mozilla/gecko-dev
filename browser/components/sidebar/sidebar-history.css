@@ -5,6 +5,7 @@
 .options-container {
   display: flex;
   width: 100%;
+  align-items: center;
 }
 
 fxview-search-textbox {
@@ -12,5 +13,5 @@ fxview-search-textbox {
 }
 
 .menu-button::part(button) {
-  background-image: url("chrome://global/skin/icons/more.svg");
+  margin-inline-start: var(--space-small);
 }

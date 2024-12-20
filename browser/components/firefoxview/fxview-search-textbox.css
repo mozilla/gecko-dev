@@ -27,6 +27,7 @@
   bottom: 0;
   margin: auto 0;
   padding: 2px;
+  pointer-events: none;
 }
 
 .search-icon:dir(ltr) {
