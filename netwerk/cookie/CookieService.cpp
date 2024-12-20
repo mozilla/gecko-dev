@@ -1769,6 +1769,12 @@ void CookieService::Update3PCBExceptionInfo(nsIChannel* aChannel) {
       GetMainThreadSerialEventTarget(), __func__,
       [channel = nsCOMPtr{aChannel}, csSingleton, loadInfo](
           const GenericNonExclusivePromise::ResolveOrRejectValue& aValue) {
+        // We don't check the 3PCB exception list if the app is shutting down.
+        if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+          channel->Resume();
+          return NS_OK;
+        }
+
         // We check the 3PCB exception list here. We will check both the
         // wildcard exception and the specific exception. If any of them is in
         // the exception list, we will set the channel's isOn3PCBExceptionList
