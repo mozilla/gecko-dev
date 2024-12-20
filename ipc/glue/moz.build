@@ -57,8 +57,6 @@ EXPORTS.mozilla.ipc += [
     "ScopedPort.h",
     "SerializedStructuredCloneBuffer.h",
     "SharedMemory.h",
-    "SharedMemoryHandle.h",
-    "SharedMemoryMapping.h",
     "Shmem.h",
     "ShmemMessageUtils.h",
     "SideVariant.h",
@@ -108,19 +106,14 @@ else:
         "CrossProcessSemaphore_posix.cpp",
     ]
 
-# TODO change to UNIFIED_SOURCES when old shared memory impl removed
 if CONFIG["OS_ARCH"] == "Darwin":
     SOURCES += ["SharedMemory_mach.cpp"]
-    SOURCES += ["SharedMemoryPlatform_mach.cpp"]
 elif CONFIG["OS_ARCH"] == "WINNT":
     SOURCES += ["SharedMemory_windows.cpp"]
-    SOURCES += ["SharedMemoryPlatform_windows.cpp"]
 elif CONFIG["OS_TARGET"] == "Android":
     SOURCES += ["SharedMemory_android.cpp"]
-    SOURCES += ["SharedMemoryPlatform_android.cpp"]
 else:
     SOURCES += ["SharedMemory_posix.cpp"]
-    SOURCES += ["SharedMemoryPlatform_posix.cpp"]
 
 
 if CONFIG["OS_ARCH"] == "Linux":
@@ -215,9 +208,6 @@ UNIFIED_SOURCES += [
 SOURCES += [
     "BackgroundChildImpl.cpp",
     "BackgroundParentImpl.cpp",
-    # TODO move to UNIFIED_SOURCES when old shared memory impl is removed
-    "SharedMemoryHandle.cpp",
-    "SharedMemoryMapping.cpp",
 ]
 
 if CONFIG["OS_ARCH"] == "Darwin":
