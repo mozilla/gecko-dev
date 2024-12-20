@@ -25,12 +25,16 @@ Metrics and pings are defined in their definitions files
 (`metrics.yaml` or `pings.yaml`, respectively).
 But where can you find `metrics.yaml` or `pings.yaml`?
 
+### Existing metrics.yaml or pings.yaml
+
 If you're not the first person in your component to ask that question,
 the answer is likely "in the root of your component".
 Look for the definitions files near to where you are instrumenting your code.
 Or you can look in
 `toolkit/components/glean/metrics_index.py`
 to see the list of all currently-known definitions files.
+
+### New metrics.yaml or pings.yaml
 
 If you _are_ the first person in your component to ask that question,
 you get to choose where to start them!
@@ -56,20 +60,29 @@ $tags:
 
 ```
 
-If you add a new definitions file, be sure to edit
+If you add a new definitions file, you must edit
 `toolkit/components/glean/metrics_index.py`,
 adding your definitions files to the Python lists therein.
 If you don't, no API will be generated for your metrics and your build will fail.
 You will have to decide which products your metrics will be used in.
-For code that's also used in other Gecko-based products (Firefox Desktop, Firefox for Android, Focus for Android), use `gecko_metrics`.
-For Desktop-only instrumentation use `firefox_desktop_metrics`.
+For code that's also used in other Gecko-based products
+(Firefox Desktop, Firefox for Android, Focus for Android, Thunderbird Desktop), use `gecko_metrics`.
+For Firefox-Desktop-only instrumentation use `firefox_desktop_metrics`.
 For other products use their respective lists.
 
 Changes to `metrics_index.py` are automatically reflected in the data pipeline once a day
 using the [fog-updater automation in probe-scraper](https://github.com/mozilla/probe-scraper/tree/main/fog-updater).
 Data will not show up in datasets and tools until this happens.
-If something is unclear or data is not showing up in time you will need to file a bug in
-`Data Platform and Tools :: General`.
+
+To see if your new change to `metrics_index.py` has been recognized,
+look at [probe-scraper's repositories.yaml](https://github.com/mozilla/probe-scraper/blob/main/repositories.yaml).
+Pending changes that haven't yet been approved will be in
+[PRs on that repo](https://github.com/mozilla/probe-scraper/pulls)
+titled "Update to latest metrics_index list on main".
+
+If something is unclear or data is not showing up within
+[about two business days](https://blog.mozilla.org/data/2021/12/14/this-week-in-glean-how-long-must-i-wait-before-i-can-see-my-data/),
+please file a bug in `Data Platform and Tools :: General`.
 
 If you have any questions, be sure to ask on
 [the #glean channel](https://chat.mozilla.org/#/room/#glean:mozilla.org).
