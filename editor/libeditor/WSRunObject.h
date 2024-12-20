@@ -394,6 +394,18 @@ class MOZ_STACK_CLASS WSScanResult final {
     return !InVisibleOrCollapsibleCharacters();
   }
 
+  [[nodiscard]] bool ReachedLineBoundary() const {
+    switch (mReason) {
+      case WSType::CurrentBlockBoundary:
+      case WSType::OtherBlockBoundary:
+      case WSType::BRElement:
+      case WSType::PreformattedLineBreak:
+        return true;
+      default:
+        return ReachedHRElement();
+    }
+  }
+
  private:
   nsCOMPtr<nsIContent> mContent;
   Maybe<uint32_t> mOffset;
