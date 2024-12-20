@@ -101,7 +101,7 @@ void WaylandVsyncSource::Init() {
         // So always set up hidden window callback to catch it up.
         SetHiddenWindowVSync();
       },
-      /* aEmulateFrameCallback */ false);
+      /* aEmulateFrameCallback */ true);
 }
 
 WaylandVsyncSource::WaylandVsyncSource(nsWindow* aWindow)

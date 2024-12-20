@@ -49,18 +49,16 @@ class WaylandSurface final {
 
   void FrameCallbackHandler(struct wl_callback* aCallback, uint32_t aTime,
                             bool aRoutedFromChildSurface);
-
-  // Run only once at most. If aEmulateFrameCallback is set to true and
-  // WaylandSurface is mapped, fire aFrameCallbackHandler even without
-  // frame callback from compositor in sFrameCheckTimeoutMs.
+  // Run only once at most.
   void AddOneTimeFrameCallbackLocked(
       const WaylandSurfaceLock& aProofOfLock,
-      const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler,
-      bool aEmulateFrameCallback = false);
+      const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler);
 
-  // Run frame callback repeatedly. If aEmulateFrameCallback is set to true and
-  // WaylandSurface is mapped, fire aFrameCallbackHandler even without
-  // frame callback from compositor in sFrameCheckTimeoutMs.
+  // Run frame callback repeatedly. Callback is removed on Unmap.
+  // If aEmulateFrameCallback is set to true and WaylandSurface is mapped and
+  // ready to draw and we don't have buffer attached yet,
+  // fire aFrameCallbackHandler without frame callback from
+  // compositor in sFrameCheckTimeoutMs.
   void AddPersistentFrameCallbackLocked(
       const WaylandSurfaceLock& aProofOfLock,
       const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler,
@@ -224,8 +222,10 @@ class WaylandSurface final {
 
   bool CheckAndRemoveWaylandBuffer(WaylandBuffer* aWaylandBuffer, bool aRemove);
 
-  void RequestFrameCallbackLocked(const WaylandSurfaceLock& aProofOfLock);
+  void RequestFrameCallbackLocked(const WaylandSurfaceLock& aProofOfLock,
+                                  bool aRequestEmulated);
   void ClearFrameCallbackLocked(const WaylandSurfaceLock& aProofOfLock);
+  bool IsEmulatedFrameCallbackPending() const;
 
   void ClearInitialDrawCallbacksLocked(const WaylandSurfaceLock& aProofOfLock);
 
@@ -265,11 +265,6 @@ class WaylandSurface final {
   wl_subsurface* mSubsurface = nullptr;
   gfx::IntPoint mSubsurfacePosition{-1, -1};
 
-  // Emulate frame callbacks until buffer is attached
-  // and we can get callbacks from compositor.
-  // That's important for VSync for instance to begin rendering
-  // to empty window.
-  bool mEmulateFrameCallback = true;
   // Use emulated callbacks only. For testing purposes.
   static bool sForceEmulateFrameCallback;
 
@@ -279,6 +274,12 @@ class WaylandSurface final {
   // there buffers live until compositor notify us that we
   // can release them.
   AutoTArray<RefPtr<WaylandBuffer>, 3> mAttachedBuffers;
+
+  // Indicates mSurface has buffer attached so we can attach subsurface
+  // to it and expect to get frame callbacks from Wayland compositor.
+  // We set it at AttachLocked() or when we get first frame callback
+  // (when EGL is used).
+  bool mBufferAttached = false;
 
   // It's kind of special case here where mSurface equal to mParentSurface
   // so we directly paint to parent surface without subsurface.
