@@ -766,6 +766,25 @@ class HTMLEditor final : public EditorBase,
    * to make sure that AutoEditActionDataSetter is created.
    ****************************************************************************/
 
+  enum class LineBreakType : bool {
+    BRElement,  // <br>
+    Linefeed,   // Preformatted linefeed
+  };
+
+  /**
+   * Return preferred line break when you insert a line break in aNode (if
+   * aNode is a Text node, this assumes that line break will be inserted to
+   * its parent element).
+   *
+   * @param aNode           The node where you want to insert a line break.
+   *                        This should be a inclusive descendant of
+   *                        aEditingHost because if it's not connected, we can
+   *                        not refer the proper style information.
+   * @param aEditingHost    The editing host.
+   */
+  Maybe<LineBreakType> GetPreferredLineBreakType(
+      const nsINode& aNode, const Element& aEditingHost) const;
+
   /**
    * InsertBRElement() creates a <br> element and inserts it before
    * aPointToInsert.

@@ -4337,6 +4337,34 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertBRElement(
   return atNextContent;
 }
 
+Maybe<HTMLEditor::LineBreakType> HTMLEditor::GetPreferredLineBreakType(
+    const nsINode& aNode, const Element& aEditingHost) const {
+  const Element* const container = aNode.GetAsElementOrParentElement();
+  if (MOZ_UNLIKELY(!container)) {
+    return Nothing();
+  }
+  // For backward compatibility, we should not insert a linefeed if
+  // paragraph separator is set to "br" which is Gecko-specific mode.
+  if (GetDefaultParagraphSeparator() == ParagraphSeparator::br) {
+    return Some(LineBreakType::BRElement);
+  }
+  // And also if we're the mail composer, the content needs to be serialized.
+  // Therefore, we should always use <br> for the serializer.
+  if (IsMailEditor()) {
+    return Some(LineBreakType::BRElement);
+  }
+  if (HTMLEditUtils::ShouldInsertLinefeedCharacter(EditorDOMPoint(container, 0),
+                                                   aEditingHost) &&
+      HTMLEditUtils::CanNodeContain(*container, *nsGkAtoms::textTagName)) {
+    return Some(LineBreakType::Linefeed);
+  }
+  if (MOZ_UNLIKELY(
+          !HTMLEditUtils::CanNodeContain(*container, *nsGkAtoms::br))) {
+    return Nothing();
+  }
+  return Some(LineBreakType::BRElement);
+}
+
 Result<CreateElementResult, nsresult> HTMLEditor::InsertBRElement(
     WithTransaction aWithTransaction, const EditorDOMPoint& aPointToInsert,
     EDirection aSelect /* = eNone */) {
