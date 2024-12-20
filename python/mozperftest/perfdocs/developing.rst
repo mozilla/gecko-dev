@@ -16,7 +16,7 @@ whole test and used to share data across all parts.
 The runner then calls `MachEnvironment.run`,  which is in charge of running the test.
 The `MachEnvironment` instance runs a sequence of **layers**.
 
-Layers are classes responsible of one single aspect of a performance test. They
+Layers are classes responsible for one single aspect of a performance test. They
 are organized in three categories:
 
 - **system**: anything that sets up and tears down some resources or services
@@ -32,7 +32,7 @@ runs them sequentially.
 The goal of this organization is to allow adding new performance tests runners
 that will be based on a specific combination of layers. To avoid messy code,
 we need to make sure that each layer represents a single aspect of the process
-and that is completely independent from other layers (besides sharing the data
+and that is completely independent of other layers (besides sharing the data
 through the common environment.)
 
 For instance, we could use `perftest` to run a C++ benchmark by implementing a
@@ -52,14 +52,14 @@ List of methods and variables:
 - `user_exception`: will trigger the `on_exception` hook when an exception occurs
 - `arguments`: dict containing arguments. Each argument is following
   the `argparser` standard
-- `run(self, medatata)`: called to execute the layer
+- `run(self, metadata)`: called to execute the layer
 - `setup(self)`: called when the layer is about to be executed
 - `teardown(self)`: called when the layer is exiting
 
 Example::
 
     class EmailSender(Layer):
-        """Sends an email with the results
+        """Sends an email with the results.
         """
         name = "email"
         activated = False
@@ -89,7 +89,7 @@ of layers for each category:
 - **mozperftest.system.pick_system** for the system category
 - **mozperftest.test.pick_browser** for the test category
 
-And also added in each `get_layers` function in each of those category.
+And also added in each `get_layers` function in each of those categories.
 The `get_layers` functions are invoked when building the argument parser.
 
 In our example, adding the `EmailSender` layer will add two new options:
@@ -106,7 +106,7 @@ Important layers
 <https://www.sitespeed.io/documentation/browsertime/>`_ framework and provides
 a full integration into Mozilla's build and CI systems.
 
-Browsertime uses the selenium webdriver client to drive the browser, and
+Browsertime uses the Selenium Webdriver client to drive the browser, and
 provides some metrics to measure performance during a user journey.
 
 

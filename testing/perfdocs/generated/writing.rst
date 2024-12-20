@@ -14,7 +14,7 @@ new ones):
 
 In order to qualify as performance tests, both flavors require metadata.
 
-For our supported flavors that are both Javascript modules, those are
+For our supported flavors that are both JavaScript modules, those are
 provided in a `perfMetadata` mapping variable in the module, or in
 the `module.exports` variable when using Node.
 
@@ -28,7 +28,7 @@ This is the list of fields:
 - **options**: options used to run the test
 - **supportedBrowsers**: list of supported browsers (or "Any")
 - **supportedPlatforms**: list of supported platforms (or "Any")
-- **tags** a list of tags that describe the test
+- **tags**: a list of tags that describe the test
 
 Tests are registered using tests manifests and the **PERFTESTS_MANIFESTS**
 variable in `moz.build` files - it's good practice to name this file
@@ -106,7 +106,7 @@ If everything is setup correctly, running a performance test locally will be as 
 Custom Script
 -------------
 
-Custom Script tests use a custom/adhoc script to execute a test. Currently, only shell scripts are supported through the ScriptShellRunner. In the future, other types of scripts may be supported through the addition of new test layers. These types of scripts support both Mobile, and Desktop testing within the ``custom-script`` flavor.
+Custom Script tests use a custom/adhoc script to execute a test. Currently, only shell scripts are supported through the ScriptShellRunner. In the future, other types of scripts may be supported through the addition of new test layers. These types of scripts support both mobile and desktop testing within the ``custom-script`` flavor.
 
 Custom Shell Scripts
 ^^^^^^^^^^^^^^^^^^^^
@@ -169,7 +169,7 @@ A performance test implements at least one async function published in node's
   - **selenium.driver** - The instantiated version of the WebDriver driving the current version of the browser
 
 - **command** provides API to interact with the browser. It's a wrapper
-  around the selenium client `Full documentation here <https://www.sitespeed.io/documentation/sitespeed.io/scripting/#commands>`_
+  around the selenium client `Full documentation is available here <https://www.sitespeed.io/documentation/sitespeed.io/scripting/#commands>`_
 
 
 Below is an example of a test that visits the BBC homepage and clicks on a link.
@@ -210,7 +210,7 @@ Below is an example of a test that visits the BBC homepage and clicks on a link.
         test_name: "BBC",
         description: "Measures pageload performance when clicking on a link from the bbc.com",
         supportedBrowsers: "Any",
-        supportePlatforms: "Any",
+        supportedPlatforms: "Any",
     };
 
 

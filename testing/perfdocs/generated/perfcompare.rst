@@ -11,7 +11,7 @@ PerfCompare is an improved performance comparison tool that will soon replace Pe
 Where can I find PerfCompare?
 ==============================
 
-Aside from `the website perf.compare <https://perf.compare/>`_, it will be accessible on Perfherder’s Compare View search and results pages.
+Aside from `the perf.compare website <https://perf.compare/>`_, it will be accessible on Perfherder’s Compare View search and results pages.
 
 The source code can be viewed in GitHub's `repository <https://github.com/mozilla/perfcompare>`_.
 
@@ -62,7 +62,7 @@ In the edit view, it’s possible to search for revisions or delete selected rev
    :scale: 50%
    :align: center
 
-Like Compare with a base, clicking **Edit Entry** will open the edit view to change selections for the base repository, time range or delete or search for new selected revisions.
+Like Compare with a base, clicking **Edit Entry** will open the edit view to change selections for the base repository, time range or to delete or search for new selected revisions.
 
 .. image:: ./resultseditentryviewtime.png
    :alt: PerfCompare Results Page Compare over Time Edit Entry View
@@ -81,9 +81,9 @@ It’s possible to search the results table by platform, title, or revisions. Ot
    :scale: 50%
    :align: center
 
-The **Download JSON** button generates a json output of the results data.
+The **Download JSON** button generates a JSON output of the results data.
 
-The results table can be filtered according to Platforms, Status (No Changes, Improvement, or Regression), or Confidence (Low, Medium, High)
+The results table can be filtered according to Platforms, Status (No Changes, Improvement, or Regression), or Confidence (Low, Medium, High).
 
 .. image:: ./resultstablefilters.png
    :alt: PerfCompare Results Table with Filters
@@ -93,7 +93,7 @@ The results table can be filtered according to Platforms, Status (No Changes, Im
 Expanded Rows
 --------------
 
-Clicking on the **the carrot down** button expands the row
+Clicking on the **the caret-down** button expands the row
 
 .. image:: ./resultstableexpanded.png
    :alt: PerfCompare Results Table with Expanded Row
@@ -110,7 +110,7 @@ In the expanded view, hovering over the points or curve on the graphs shows more
 Subtests
 ---------
 
-When such data is available, clicking on the **subtest icon** opens a new page containing the subtests information for the selected result
+When such data is available, clicking on the **subtest icon** opens a new page containing the information about the subtests for the selected result
 
 .. image:: ./resultstablesubtests.png
    :alt: PerfCompare Results Table with Subtests View
@@ -129,14 +129,14 @@ Clicking on the **graph icon** opens the graph of the historical data or graph v
 
 Here is an example of the graph view after clicking this icon:
 
-.. image:: ./resultstablegraphveiwperfherder.png
+.. image:: ./resultstablegraphviewperfherder.png
    :alt: Historical Graph Data on Perfherder
    :scale: 50%
    :align: center
 
 Retrigger test jobs
 ===================
-It’s possible to retrigger jobs within Taskcluster. Clicking on the **retrigger icon** will show a dialog to choose how many new runs should be started. Note that signing in with valid taskcluster
+It’s possible to retrigger jobs within Taskcluster. Clicking on the **retrigger icon** will show a dialog to choose how many new runs should be started. Note that signing in with valid taskcluster credentials is required.
 
 .. image:: ./resultstableretrigger.png
    :alt: PerfCompare Results Table with Taskcluster Login

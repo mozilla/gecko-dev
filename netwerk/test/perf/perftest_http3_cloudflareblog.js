@@ -52,5 +52,5 @@ module.exports = {
   owner: "Network Team",
   name: "cloudflare",
   component: "netwerk",
-  description: "User-journey live site test for cloudflare blog.",
+  description: "User-journey live site test for Cloudflare blog.",
 };

@@ -47,8 +47,8 @@ How to add more tests?
 
 * Add ``[test_name]`` section to file ``testing/raptor/raptor/tests/custom/browsertime-indexeddb.ini`` where ``test_name`` **must be 10 characters or less** in order to be a valid ``Treeherder`` test name
 
-  * Under the ``[test_name]`` section, specify the test script name as a value of ``test_script =``
-  * Under the ``[test_name]`` section, specity the test parameters as a sequence of ``--browsertime.key=value`` arguments as a value of ``browsertime_args =``
+  * Under the ``[test_name]`` section, specify the test script name as a value of ``test_script=``
+  * Under the ``[test_name]`` section, specify the test parameters as a sequence of ``--browsertime.key=value`` arguments as a value of ``browsertime_args =``
   * Under the ``[test_name]`` section, override any other values as needed
 
 * Add test as a subtest to run for Desktop ``taskcluster/kinds/test/browsertime-desktop.yml`` (maybe also for mobile)

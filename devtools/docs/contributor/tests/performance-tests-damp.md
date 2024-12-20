@@ -12,9 +12,9 @@ This will run all DAMP tests, you can filter by test name with:
 ```bash
 ./mach talos-test --suite damp --subtests console
 ```
-This command will run all tests which contains "console" in their name.
+This command will run all tests which contain "console" in their name.
 
-Note that in continuous integration, DAMP tests are split in smaller tests suites: `damp-inspector`, `damp-other` and `damp-webconsole`. Actually `--suite damp` is only used locally because it contains all possible tests and makes it easier to use. But if needed you can substitute `damp` with any of the other test suites if you want to only run tests associated to a given test suite. You can find the mapping between tests and test suites in [damp-tests.js](https://searchfox.org/mozilla-central/source/testing/talos/talos/tests/devtools/addon/content/damp-tests.js).
+Note that in continuous integration, DAMP tests are split into smaller tests suites: `damp-inspector`, `damp-other` and `damp-webconsole`. Actually `--suite damp` is only used locally because it contains all possible tests and makes it easier to use. But if needed you can substitute `damp` with any of the other test suites if you want to only run tests associated with a given test suite. You can find the mapping between tests and test suites in [damp-tests.js](https://searchfox.org/mozilla-central/source/testing/talos/talos/tests/devtools/addon/content/damp-tests.js).
 ### Command line options
 
 #### Running tests only once
@@ -22,8 +22,8 @@ Note that in continuous integration, DAMP tests are split in smaller tests suite
 ```bash
 ./mach talos-test --suite damp --cycles 1 --tppagecycles 1
 ```
-`--cycles` will limit the number of Firefox restart to only one, while
-`--tppagecycles` will limit the number of test re-run in each firefox start to one.
+`--cycles` will limit the number of Firefox restarts to only one, while
+`--tppagecycles` will limit the number of tests re-run in each Firefox start to one.
 This is often helpful when debugging one particular subtest.
 
 #### Taking screenshots
@@ -32,7 +32,7 @@ This is often helpful when debugging one particular subtest.
 DEBUG_DEVTOOLS_SCREENSHOTS=1 ./mach talos-test --suite damp
 ```
 When passing `DEBUG_DEVTOOLS_SCREENSHOTS` env variable, screenshots will be taken after each subtest
-was run. The screenshot will be opened in new tabs and their title
+was run. The screenshot will be opened in new tabs and their titles
 includes the subtest label. Firefox won't automatically close so that you can view the screenshots.
 
 #### Recording a profile
@@ -89,7 +89,7 @@ Then, there are a couple of extra tests:
 This is run first after Firefox's startup, before any other test.
 This test allows to measure a "cold startup". When a user first interacts with DevTools, many resources are loaded and cached,
 so that all next interactions will be significantly faster.
-* and many other smaller tests, focused on one particular feature or possible slowness for each panel.
+* and many other smaller tests focused on specific features or potential slowness for each panel.
 
 ## How to see the results from try?
 
@@ -129,7 +129,7 @@ This table has the following columns:
    * No colored background means "nothing to conclude"
   The difference between certainly and possibly is explained by the next column.
 * Confidence:
-  If there is a significant difference between the two runs, tells if the results is trustworthy.
+  If there is a significant difference between the two runs, it tells if the result is trustworthy.
    * "low" either means there isn't a significant difference between the two runs, or the difference is smaller than the typical variance of the given test.
    If the test is known to have an execution time varying by 2% between two runs of the same build, and you get a 1% difference between your base and new builds,
    the confidence will be low. You really can't make any conclusion.
@@ -175,7 +175,7 @@ There is a PerfHerder link on each chart that will take you to the PerfHerder pa
 ## How to use PerfHerder charts
 
 On PerfHerder charts, each circle is a push on mozilla-central.
-When you see a spike or a drop, you can try to identify the patch that relates to it by clicking the circles.
+When you see a spike or a drop, you can try to identify the patch that caused it by clicking the circles.
 It will show a black popup. Then click on the changeset hash like "cb717386aec8" and you will get a mercurial changelog.
 Then it is up to you to read the changelog and see which changeset may have hit the performance.
 
@@ -183,7 +183,7 @@ For example, open [this page](https://treeherder.mozilla.org/perf.html#/graphs?t
 This is tracking inspector opening performance against the "Simple" page.
 ![Perfherder graphs](regression-graph.png)
 
-See the regression on Dec 31th?
+See the regression on Dec 31st?
 Now, click on the first yellow circle of this spike.
 You will get a black popup like this one:
 ![Perfherder changeset popup](regression-popup.png)

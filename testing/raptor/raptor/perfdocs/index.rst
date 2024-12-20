@@ -8,7 +8,7 @@ Raptor is a performance-testing framework for running browser pageload and brows
 - Source code: https://searchfox.org/mozilla-central/source/testing/raptor
 - Good first bugs: https://codetribute.mozilla.org/projects/automation?project%3DRaptor
 
-Raptor currently supports three test types: 1) page-load performance tests, 2) standard benchmark-performance tests, and 3) "scenario"-based tests, such as power, CPU, and memory-usage measurements on Android (and desktop?).
+Raptor currently supports three test types: 1) page-load performance tests, 2) standard benchmark-performance tests, and 3) "scenario"-based tests, such as power, CPU, and memory-usage measurements on Android and Desktop.
 
 Locally, Raptor can be invoked with the following command:
 

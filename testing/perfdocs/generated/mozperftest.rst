@@ -48,7 +48,7 @@ test_encode_from_canvas.html
  --manifest perftest.toml
  --manifest-flavor plain
 
-**Test webcodecs video encoding performance**
+**Test WebCodecs video encoding performance**
 
 
 dom/serviceworkers/test/performance
@@ -203,7 +203,7 @@ perftest_http3_cloudflareblog.js
 :owner: Network Team
 :name: cloudflare
 
-**User-journey live site test for cloudflare blog.**
+**User-journey live site test for Cloudflare blog.**
 
 perftest_http3_controlled.js
 ============================
@@ -497,7 +497,7 @@ browser_ml_engine_multi_perf.js
  --manifest-flavor browser-chrome
  --try-platform linux, mac, win
 
-**Testing model execution concurrenty**
+**Testing model execution concurrently**
 
 
 If you have any questions, please see this `wiki page <https://wiki.mozilla.org/TestEngineering/Performance#Where_to_find_us>`_.

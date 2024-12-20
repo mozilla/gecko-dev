@@ -168,10 +168,10 @@ There are two different species of Talos tests:
 In addition we have some variations on existing tests:
 
 -  Heavy_: Run tests with the heavy user profile instead of a blank one
--  WebExtension_: Run tests with a WebExtension to see the perf impact extension have
+-  WebExtension_: Run tests with a WebExtension to see the perf impacts extension have
 -  `Real-world WebExtensions`_: Run tests with a set of 5 popular real-world WebExtensions installed and enabled.
 
-Some tests measure different things:
+Different tests measure different things:
 
 -  Paint_: These measure events from the browser like moz_after_paint, etc.
 -  ASAP_: These tests go really fast and typically measure how many frames we can render in a time window
@@ -183,7 +183,7 @@ Startup
 `Startup
 tests <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/startup_test>`__
 launch Firefox and measure the time to the onload or paint events. We
-run this in a series of cycles (default to 20) to generate a full set of
+run this in a series of cycles (default is 20) to generate a full set of
 data. Tests that currently are startup tests are:
 
 -  `ts_paint <#ts_paint>`_

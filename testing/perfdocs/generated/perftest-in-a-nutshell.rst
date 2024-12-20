@@ -8,7 +8,7 @@ Performance Testing in a Nutshell
 .. note::
   This page is still under construction, and is missing the videos.
 
-In this document, you'll find all the information needed regarding the basics of performance testing our products. A set of videos, and instructions can be found to guide you across the various subjects related to performance testing. If you're new to performance testing, starting from the first section would be the most helpful for you.
+This document provides all the information needed regarding the basics of performance testing our products. A set of videos, and instructions can be found to guide you across the various subjects related to performance testing. If you're new to performance testing, starting from the first section would be the most helpful for you.
 
 Help! I have a regression. What do I do?
 ----------------------------------------
@@ -35,7 +35,7 @@ An alert summary table will always be found in the first comment (comment 0) of 
 
  * In the first sentence of the alert, a link to the actual push/commit that caused it is provided.
  * Below that, a table that summarizes the regressions, and improvements is shown.
- * Each row of the table provides a single regression/improvement that was detected.
+ * Each row in the table represents a detected regression or improvement.
 
     * ``Ratio``: Provides the size of the change, and links to a graph for the metric.
     * ``Test``: The name of the test, and metric that changed. It links to the documentation for the test.
@@ -44,7 +44,7 @@ An alert summary table will always be found in the first comment (comment 0) of 
     * ``Absolute Values``: The absolute values of the change.
     * ``Performance Profiles``: Before, and after Gecko profiles of the test (this is not available for all test frameworks yet).
 
- * Below the table, an ``alert summary`` link can be found which provides a different view of this table, a full in-depth explanation of the alert summary link can be found here `Perfherder Alerts View`_. Some additional debugging information such as ``side-by-side`` videos can be found here. It will also include any additional tests that alerted after this bug was filed.
+ * Below the table, an ``alert summary`` link can be found which provides a different view of this table, a full in-depth explanation of the alert summary link can be found here `Perfherder Alerts View`_. Some additional debugging information such as ``side-by-side`` videos can be found here. It will also include any additional tests that triggered alerts after this bug was filed.
  * Then some information on what we expect from the patch author is provided regarding how long they have to respond to the alert before it gets backed out along with links to the guidelines for handling regressions.
  * Finally, a helpful command to run these tests on try is provided using ``./mach try perf --alert <ALERT-NUM>``. :ref:`See here for more information about mach try perf <Mach Try Perf>`.
 
@@ -60,10 +60,10 @@ The second is requesting a confirmation from the performance sheriff that the pa
 
 **There are 3 main resolutions for these alert bugs which depend on what you find in your investigations:**
  #. A ``WONTFIX`` resolution which implies that a change was detected, but it won't be fixed. It's possible to have this resolution on a bug which produces regressions, but the improvements outweigh those regressions. Harness-related changes are often resolved this way as well since we consider them baseline changes.
- #. An ``INVALID`` resolution which implies that the detection was invalid, and there wasn't a change to performance metrics. These are generally rare as performance sheriffs tend to invalidate the alerts before a bug is produced, and tend to be related to infrastructure changes or very noisy tests where a culprit can't be determined accurately.
+ #. An ``INVALID`` resolution which implies that the detection was invalid, and there wasn't a change to performance metrics. These are generally rare, as performance sheriffs tend to invalidate the alerts before a bug is produced, and tend to be related to infrastructure changes or very noisy tests where a culprit can't be determined accurately.
  #. A ``FIXED`` resolution which implies that a change was detected, and a fix was made to resolve it.
 
-If there are any questions about the alert, or additional help is needed with debugging the alert feel free to needinfo the performance sheriff that reported the bug. The performance sheriff most suitable for adding a needinfo to can be identified on the regression bug via the user who added a ``status-firefox [X]: --- → affected`` comment. In the future, this person `will be identified in comment zero <ttps://bugzilla.mozilla.org/show_bug.cgi?id=1914174>`_.
+If there are any questions about the alert, or additional help is needed with debugging the alert feel free to needinfo the performance sheriff that reported the bug. The performance sheriff most suitable for adding a needinfo to can be identified on the regression bug via the user who added a ``status-firefox [X]: --- → affected`` comment. In the future, this person `will be identified in comment zero <https://bugzilla.mozilla.org/show_bug.cgi?id=1914174>`_.
 
 Perfherder Alerts View
 ----------------------
@@ -81,7 +81,7 @@ When you click on the "Alerts Summary" hyperlink it will take you to an alert su
     * ``Test``: A hyperlink to all the test settings, test owner, and their contact information. As well as the name of the subtest (in our case SpeedIndex, and loadtime).
     * ``Platform``: Platform of metric which regressed.
     * ``Debug Tools``: Tools available to help visualize and debug regressions.
-    * ``Information``: Historical data distribution (modal, ok, or n/a if not enough information is  available).
+    * ``Information``: Historical data distribution (multimodal data, ok, or n/a if not enough information is  available).
     * ``Tags & Options``: Specify the conditions in which the test was run (e.g. cold, warm, bytecode-cached).
     * ``Magnitude of Change``: How much the metric improved or regressed (green colour indicates an improvement and red indicates a regression).
     * ``Confidence``: Confidence value of metric (number is not out of 100) higher number means higher confidence.
@@ -91,7 +91,7 @@ Running Performance Tests
 
 Performance tests can either be run locally, or in CI using try runs. In general, it's recommended to use try runs to verify the performance changes your patch produces (if any). This is because the hardware that we run tests on may not have the same characteristics as local machines so local testing may not always produce the same performance differences. Using try runs also allows you to use our performance comparison tooling such as `Compare View <https://treeherder.mozilla.org/perfherder/comparechooser>`_ and `PerfCompare <https://perf.compare/>`_. See the `Performance Comparisons`_ section for more information on that.
 
-It's still possible that a local test can reproduce a change found in CI though, but it's not guaranteed. To run a test locally, you can look at the tests listed in either of the harness documentation test lists such as this one for `Raptor tests <raptor.html#raptor-tests>`_. There are four main ways that you'll find to run these tests:
+It's still possible that a local test can reproduce a change found in CI though, but it's not guaranteed. To run a test locally, refer to the harness documentation test lists, such as this one for `Raptor tests <raptor.html#raptor-tests>`_. There are four main ways that you'll find to run these tests:
 
  * ``./mach raptor`` for :ref:`Raptor`
  * ``./mach talos-test`` for :ref:`Talos`
@@ -116,7 +116,7 @@ We currently use PerfCompare for comparing performance numbers. Landing on PerfC
    :scale: 50%
    :align: center
 
-Our old tool for comparing perfomance numbers, `Compare View <https://treeherder.mozilla.org/perfherder/comparechooser>`_, will be replaced by PerfCompare early next year. The first interface that's seen in that process is the following which is used to select two pushes (based on the revisions) to compare.
+Our old tool for comparing performance numbers, `Compare View <https://treeherder.mozilla.org/perfherder/comparechooser>`_, will be replaced by PerfCompare early next year. The first interface that's seen in that process is the following which is used to select two pushes (based on the revisions) to compare.
 
  .. image:: ./compare_view_selection.png
    :alt: Selection Interface for Revisions/Pushes to Compare
@@ -140,7 +140,7 @@ If those are not provided in the alert summary, they can always be generated for
    :scale: 75%
    :align: center
 
-Additionally you can also use the overflow menu and generate a profile:
+Additionally, you can also use the overflow menu and generate a profile:
 
  .. image:: ./create_profile_triple_dot.png
    :alt: Creating a profile through the overflow menu

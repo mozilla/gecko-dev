@@ -6,16 +6,16 @@ Performance Infrastructure
     :depth: 3
 
 
-Performance tests all run on bare matel, or real hardware devices instead of virtual machines. This gives us more realistic performance metrics, and helps with decreasing the variability of our data. See below for information on what hardware is used for each of the platforms we test on, try run wait times, as well as guidelines for requesting new devices.
+Performance tests all run on bare metal, or real hardware devices instead of virtual machines. This gives us more realistic performance metrics, and helps with decreasing the variability of our data. See below for information on what hardware is used for each of the platforms we test on, try run wait times as well as guidelines for requesting new devices.
 
 
-Platforms, and Hardware Used
+Platforms and Hardware Used
 ----------------------------
 
 At the moment, these are listed in the Mozilla Wiki which is `found here <https://wiki.mozilla.org/Performance/Platforms>`_ (see `bug 1883400 <https://bugzilla.mozilla.org/show_bug.cgi?id=1883400>`__ for progress on this).
 
 
-Try Runs, and Wait Times
+Try Runs and Wait Times
 ------------------------
 
 Given that our tests run on hardware, there's a limited amount of devices that can be used to run them. This means that it's very likely that a try run (e.g. tests scheduled by :ref:`Mach Try Perf`) will be delayed waiting for capacity to free up. This limited capacity is also why there is a limit of 600 tasks that can be scheduled with ``mach try perf``.
@@ -34,10 +34,10 @@ In some cases, the tasks may hit a "task timeout" where they expire before they 
 Requesting New Devices for Testing
 ----------------------------------
 
-At times, it can be useful to test changes on a different device to due a lack of configuration coverage with our existing set of devices. It's simple to request/expense a device for local testing if you need one. However, for testing in continuous integration (CI) and/or in try runs, it can be quite expensive, and time-consuming to get a device ready for it. In general it takes a **few months** to get the device(s) running, and given contractual limitations, it may also reduce the availability of other devices. The work spans multiple teams as well so the time it takes depends on the current/future tasks that those teams have at the moment.
+At times, it can be useful to test changes on a different device due to a lack of configuration coverage with our existing set of devices. It's simple to request/expense a device for local testing if you need one. However, for testing in continuous integration (CI) and/or in try runs, it can be quite expensive, and time-consuming to get a device ready for it. In general it takes a **few months** to get the device(s) running, and given contractual limitations, it may also reduce the availability of other devices. The work spans multiple teams as well so the time it takes depends on the current/future tasks that those teams have at the moment.
 
-If a device is only required for a single issue, then it's recommended to order the device for local testing. If it's a long term project with multiple developers/teams that needs continuous monitoring, then it could be useful to have the devices in CI so they can be run on mozilla-central/autoland. This can also help ensure that your changes don't regress over time. Note that this should be planned ahead of time so that there's time to setup the devices before work on the project starts.
+If a device is only required for a single issue, then it's recommended to order the device for local testing. If it's a long term project with multiple developers/teams that needs continuous monitoring, then it could be useful to have the devices in CI so they can be run on mozilla-central/autoland. This can also help ensure that your changes don't regress over time. Note that this should be planned ahead of time so that there's time to set up the devices before work on the project starts.
 
-For long term projects, it's also good to determine how long these devices would be needed for, and if the device setup in CI needs to be adjusted to encompass these additional configurations. If the devices are no longer needed after the long term project completes, it might not be useful to have these devices running in CI, and using local devices would be quicker, and cheaper to get.
+For long term projects, it's also good to determine how long these devices will be needed for, and if the device setup in CI needs to be adjusted to encompass these additional configurations. If the devices are no longer needed after the long term project completes, it might not be useful to have these devices running in CI, and using local devices would be quicker and cheaper to get.
 
 If you need to get a device for local testing, reach out to your manager to ask about expensing it. If you believe that you need to start testing on a new device in CI, please reach out to us in `#perftest on Matrix <https://matrix.to/#/#perftest:mozilla.org>`__. Alternatively, you can `file a bug here <https://bugzilla.mozilla.org/enter_bug.cgi?product=Testing&component=Performance&status_whiteboard=[fxp]>`_ for support on this.

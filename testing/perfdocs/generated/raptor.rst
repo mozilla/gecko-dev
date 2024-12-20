@@ -8,7 +8,7 @@ Raptor is a performance-testing framework for running browser pageload and brows
 - Source code: https://searchfox.org/mozilla-central/source/testing/raptor
 - Good first bugs: https://codetribute.mozilla.org/projects/automation?project%3DRaptor
 
-Raptor currently supports three test types: 1) page-load performance tests, 2) standard benchmark-performance tests, and 3) "scenario"-based tests, such as power, CPU, and memory-usage measurements on Android (and desktop?).
+Raptor currently supports three test types: 1) page-load performance tests, 2) standard benchmark-performance tests, and 3) "scenario"-based tests, such as power, CPU, and memory-usage measurements on Android and Desktop.
 
 Locally, Raptor can be invoked with the following command:
 
@@ -34564,7 +34564,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 
 Interactive
 -----------
-Browsertime tests that interact with the webpage. Includes responsiveness tests as they make use of this support for navigation. These form of tests allow the specification of browsertime commands through the test manifest.
+Browsertime tests that interact with the webpage. Includes responsiveness tests as they make use of this support for navigation. This type of test allows the specification of browsertime commands through the test manifest.
 
 .. dropdown:: cnn-nav
    :class-container: anchor-id-cnn-nav-i
@@ -44744,7 +44744,7 @@ Tests that perform a specific action (a scenario), i.e. idle application, idle a
 
 Unittests
 ---------
-These tests aren't used in standard testing, they are only used in the Raptor unit tests (they are similar to raptor-tp6 tests though).
+These tests aren't used in standard testing, they are only used in the Raptor unit tests (they are similar to raptor-tp6 tests).
 
 .. dropdown:: test-page-1
    :class-container: anchor-id-test-page-1-u

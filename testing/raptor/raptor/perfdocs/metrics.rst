@@ -8,12 +8,12 @@ Metrics Gathered
 
 **WARNING: This page is still being actively developed.**
 
-This document contains information about the metrics gathered in Browsertime tests, as well as detailed information of how they are gathered.
+This document contains information about the metrics gathered in Browsertime tests, as well as detailed information about how they are gathered.
 
 Pageload Tests
 --------------
 
-For browsertime pageload tests, there is a limited set of metrics that we collect (which can easily be expanded). Currently we divide these into two sets of metrics: (i) visual metrics, and (ii) technical metrics. These are gathered through two types of tests called warm and cold pageload tests. We have combined these two into a single "chimera" mode which you'll find in the Treeherder tasks.
+For browsertime pageload tests, there is a limited set of metrics that we collect (which can easily be expanded). Currently we divide these into two sets of metrics: (i) visual metrics, and (ii) technical metrics. These are gathered through two types of tests called warm and cold pageload tests. We have combined these two into a single "Chimera" mode which you'll find in the Treeherder tasks.
 
 Below, you can find the process of how we run Warm, Cold, and Chimera pageload tests.
 
@@ -30,7 +30,7 @@ In this pageload test type, we open the browser, then repeatedly navigate to the
 * The tab is reloaded ``X`` more times (for ``X`` replicates); measurements taken each time
 
 NOTES:
-- The measurements from the first page-load are not included in overall results metrics b/c of first load noise; however they are listed in the JSON artifacts
+- The measurements from the first page-load are not included in overall results metrics because of first load noise; however they are listed in the JSON artifacts
 - The bytecode cache gets populated on the first test cycle, and subsequent iterations will already have the cache built to reduce noise.
 
 Cold Pageload
@@ -46,12 +46,12 @@ In this pageload test type, we open the browser, navigate to the page, then rest
 * The browser is shut down
 * Entire process is repeated for the remaining browser cycles
 
-NOTE: The measurements from all browser cycles are used to calculate overall results
+NOTE: The measurements from all browser cycles are used to calculate overall results.
 
 Chimera Pageload
 ================
 
-A new mode for pageload testing is called chimera mode. It combines the warm and cold variants into a single test. This test mode is used in our Taskcluster tasks.
+A new mode for pageload testing is called Chimera mode. It combines the warm and cold variants into a single test. This test mode is used in our Taskcluster tasks.
 
 * A new, or conditioned, browser profile is created
 * The browser is started up
@@ -68,18 +68,18 @@ NOTE: The bytecode cache mentioned in Warm pageloads still applies here.
 Technical Metrics
 =================
 
-These are metrics that are obtained from the browser. This includes metrics like First Paint, DOM Content Flushed, etc..
+Technical metrics are values obtained directly from the browser. This includes metrics like First Paint, DOM Content Flushed, etc..
 
 Visual Metrics
 ==============
 
-When you run Raptor Browsertime with ``--browsertime-visualmetrics``, it will record a video of the page being loaded and then process this video to build the metrics. The video is either produced using FFMPEG (with ``--browsertime-no-ffwindowrecorder``) or the Firefox Window Recorder (default).
+Visual metrics can be obtained by running Raptor Browsertime with ``--browsertime-visualmetrics``, it will record a video of the page being loaded and then process this video to build the metrics. The video is either produced using FFMPEG (with ``--browsertime-no-ffwindowrecorder``) or the Firefox Window Recorder (default).
 
 
 Benchmarks
 ----------
 
-Benchmarks gather their own custom metrics unlike the pageload tests above. Please ping the owners of those benchmarks to determine what they mean and how they are produced, or reach out to the Performance Test and Tooling team in #perftest on Element.
+Benchmarks gather their own custom metrics, unlike the pageload tests above. Please ping the owners of those benchmarks to determine what they mean and how they are produced, or reach out to the Performance Test and Tooling team in #perftest on Element.
 
 Metric Definitions
 ------------------

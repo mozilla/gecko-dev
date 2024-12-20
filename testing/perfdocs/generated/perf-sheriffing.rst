@@ -8,9 +8,9 @@ Performance Sheriffing
 1 Overview
 ----------
 
-Performance sheriffs are responsible to make sure that performance changes in Firefox are detected
+Performance sheriffs are responsible for making sure that performance changes in Firefox are detected
 and dealt with. They look at data and performance metrics produced by the performance testing frameworks
-and find regression, determine the root cause and get bugs on file to track all issues. The workflow we
+and find regressions, determine the root cause, and file bugs to track all issues. The workflow we
 follow is shown below in our flowchart.
 
 1.1 Flowchart
@@ -27,11 +27,11 @@ bugs/linking improvements based on the data, and following up with developers if
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 In the event that you have an urgent issue and need help what can you do?
 
-If you have a question about a bug that was filed and assigned to you reach out to the sheriff who
-filed the bug on matrix. If a performance sheriff is not responsive or you have a question about a bug
-send a message to the `performance sheriffs matrix channel <https://chat.mozilla.org/#/room/#perfsheriffs:mozilla.org>`_
+If you have a question about a bug that was filed and assigned to you reach out to the sheriff who filed the bug on
+Matrix. If a performance sheriff is not responsive or you have a question about a bug
+send a message to the `Performance Sheriffs Matrix channel <https://chat.mozilla.org/#/room/#perfsheriffs:mozilla.org>`_
 and tag the sheriff. If you still have no-one responding you can message any of the following people directly
-on slack or matrix:
+on Slack or Matrix:
 
 - `@afinder <https://people.mozilla.org/p/afinder>`_
 - `@alexandrui <https://people.mozilla.org/p/alexandrui>`_
@@ -42,7 +42,7 @@ on slack or matrix:
 
 All of the team is in EET (Eastern European Time) except for @andrej and @sparky who are in EST (Eastern Standard Time).
 
-1.3 Regression and improvement Definition
+1.3 Regression and Improvement Definition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Whenever we get a performance change we classify it as one of two things, either a regression (worse performance) or
 an improvement (better performance).
@@ -59,7 +59,7 @@ On the `Perfherder <https://treeherder.mozilla.org/perfherder/alerts>`_ page you
   :alt: Alerts View Toolbar
   :align: center
 
-After accessing the Perfherder alerts page make sure the filter (located in the top middle of the screenshot below)
+After accessing the Perfherder alerts page make sure the filter (located in the top middle of the screenshot)
 is set to show the correct alerts for sheriffing. The new alerts can be found when
 the **untriaged** option from the left-most dropdown is selected. As shown in the screenshot below:
 
@@ -91,14 +91,14 @@ summaries of tests, and those tests:
 Going from left to right of the columns inside the alerts starting with test, we have:
 
 - A blue hyperlink that links to the test documentation (if available)
-- The **platform** operating system
+- The **platform's** operating system
 - **Information** about the historical data distribution of that
 - Tags and options related to the test
 
 2.2 Regressions vs Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 First thing to note about how we investigate alerts is that **we prioritize handling regressions**! Unlike the
-**improvements** regressions ship bugs to users that if not addressed make our products worse and drive users away.
+**improvements,** regressions ship bugs to users, which, if not addressed, make our products worse and drive users away.
 After acknowledging an alert:
 
 - Regressions go through multiple status changes (TODO: link to sections with multiple status changes) until they are finally resolved
@@ -106,8 +106,8 @@ After acknowledging an alert:
 
 2.3 Framework Thresholds
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Different frameworks test different things and the threshold for which the alerts are triggered and considered
-performance changes is different based on the harness:
+Different frameworks test different things, and the thresholds for triggering alerts and considering
+performance changes differ based on the harness:
 
 - AWSY >= 0.25%
 - Build metrics installer size >= 100kb
