@@ -269,6 +269,9 @@ class SMRegExpMacroAssembler final : public NativeRegExpMacroAssembler {
   //
   // 3. While linking the code, we walk the list of label patches
   //    and patch the code accordingly.
+  //
+  // 4. Finally, we patch in the code base address that is added to the
+  //    label offset to calculate the actual address to jump to.
   class LabelPatch {
    public:
     LabelPatch(js::jit::CodeOffset patchOffset, size_t labelOffset)
@@ -283,6 +286,15 @@ class SMRegExpMacroAssembler final : public NativeRegExpMacroAssembler {
     js::AutoEnterOOMUnsafeRegion oomUnsafe;
     if (!labelPatches_.emplaceBack(patchOffset, labelOffset)) {
       oomUnsafe.crash("Irregexp label patch");
+    }
+  }
+
+  js::Vector<js::jit::CodeOffset, 4, js::SystemAllocPolicy>
+      backtrackCodeOffsetPatches_;
+  void PushBacktrackCodeOffsetPatch(js::jit::CodeOffset offset) {
+    js::AutoEnterOOMUnsafeRegion oomUnsafe;
+    if (!backtrackCodeOffsetPatches_.append(offset)) {
+      oomUnsafe.crash("Irregexp backtrack code offset patch");
     }
   }
 
