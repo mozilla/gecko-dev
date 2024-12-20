@@ -148,6 +148,29 @@ assert.open = function (browsingContext, msg = "") {
 };
 
 /**
+ * Asserts that the browsing context is top-level.
+ *
+ * @param {BrowsingContext} browsingContext
+ *     Browsing context to check.
+ * @param {string=} msg
+ *     Custom error message.
+ *
+ * @returns {BrowsingContext}
+ *     <var>browsingContext</var> is returned unaltered.
+ *
+ * @throws {InvalidArgumentError}
+ *     If <var>browsingContext</var> is not top-level.
+ */
+assert.topLevel = function (browsingContext, msg = "") {
+  msg = msg || `Browsing context is not top-level`;
+  return assert.that(
+    () => !browsingContext.parent,
+    msg,
+    lazy.error.InvalidArgumentError
+  )(browsingContext);
+};
+
+/**
  * Asserts that there is no current user prompt.
  *
  * @param {modal.Dialog} dialog

@@ -246,11 +246,10 @@ class BrowsingContextModule extends RootBiDiModule {
     );
     const context = this.#getBrowsingContext(contextId);
 
-    if (context.parent) {
-      throw new lazy.error.InvalidArgumentError(
-        `Browsing Context with id ${contextId} is not top-level`
-      );
-    }
+    lazy.assert.topLevel(
+      context,
+      lazy.pprint`Browsing context with id ${contextId} is not top-level`
+    );
 
     const targetTab = lazy.TabManager.getTabForBrowsingContext(context);
     const targetWindow = lazy.TabManager.getWindowForTab(targetTab);
@@ -498,11 +497,10 @@ class BrowsingContextModule extends RootBiDiModule {
       );
     }
 
-    if (context.parent) {
-      throw new lazy.error.InvalidArgumentError(
-        `Browsing Context with id ${contextId} is not top-level`
-      );
-    }
+    lazy.assert.topLevel(
+      context,
+      lazy.pprint`Browsing context with id ${contextId} is not top-level`
+    );
 
     if (lazy.TabManager.getTabCount() === 1) {
       // The behavior when closing the very last tab is currently unspecified.
@@ -1422,11 +1420,10 @@ class BrowsingContextModule extends RootBiDiModule {
     );
 
     const context = this.#getBrowsingContext(contextId);
-    if (context.parent) {
-      throw new lazy.error.InvalidArgumentError(
-        `Browsing Context with id ${contextId} is not top-level`
-      );
-    }
+    lazy.assert.topLevel(
+      context,
+      lazy.pprint`Browsing context with id ${contextId} is not top-level`
+    );
 
     const browser = context.embedderElement;
     const currentHeight = browser.clientHeight;
@@ -1535,11 +1532,10 @@ class BrowsingContextModule extends RootBiDiModule {
 
     const context = this.#getBrowsingContext(contextId);
 
-    if (context.parent) {
-      throw new lazy.error.InvalidArgumentError(
-        `Browsing Context with id ${contextId} is not top-level`
-      );
-    }
+    lazy.assert.topLevel(
+      context,
+      lazy.pprint`Browsing context with id ${contextId} is not top-level`
+    );
 
     lazy.assert.integer(
       delta,

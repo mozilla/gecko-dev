@@ -141,11 +141,10 @@ class ScriptModule extends RootBiDiModule {
         );
         const context = this.#getBrowsingContext(contextId);
 
-        if (context.parent) {
-          throw new lazy.error.InvalidArgumentError(
-            `Context with id ${contextId} is not a top-level browsing context`
-          );
-        }
+        lazy.assert.topLevel(
+          context,
+          lazy.pprint`Browsing context with id ${contextId} is not top-level`
+        );
 
         contexts.add(context.browserId);
       }
