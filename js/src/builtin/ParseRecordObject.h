@@ -51,7 +51,7 @@ class ParseRecordObject : public NativeObject {
 
   // For objects and arrays, the records for the members and elements
   // (respectively). If there are none, or for JSON primitives, return null.
-  EntryMap* getEntries(JSContext* cx);
+  bool getEntries(JSContext* cx, MutableHandle<EntryMap*> entries);
 
   bool setEntries(JSContext* cx, Handle<EntryMap*> entries);
 };

@@ -62,7 +62,7 @@ bool ParseRecordObject::setKey(JSContext* cx, const JS::PropertyKey& key) {
 
 bool ParseRecordObject::setEntries(JSContext* cx, Handle<EntryMap*> entries) {
   Rooted<JS::IdVector> props(cx, IdVector(cx));
-  Rooted<JSObject*> obj(cx, this);
+  Rooted<ParseRecordObject*> thisObj(cx, this);
   if (!JS_Enumerate(cx, entries, &props)) {
     return false;
   }
@@ -71,18 +71,23 @@ bool ParseRecordObject::setEntries(JSContext* cx, Handle<EntryMap*> entries) {
     if (!JS_GetPropertyById(cx, entries, props[i], &prop)) {
       return false;
     }
-    if (!JS_SetPropertyById(cx, obj, props[i], prop)) {
+    if (!JS_SetPropertyById(cx, thisObj, props[i], prop)) {
       return false;
     }
   }
   return true;
 }
 
-ParseRecordObject::EntryMap* ParseRecordObject::getEntries(JSContext* cx) {
-  Rooted<JSObject*> obj(cx, this);
+bool ParseRecordObject::getEntries(JSContext* cx,
+                                   MutableHandle<EntryMap*> entries) {
+  Rooted<JSObject*> thisObj(cx, this);
   int32_t length = 0;
-  if (!obj_keys_length(cx, obj, length)) {
-    return nullptr;
+  if (!obj_keys_length(cx, thisObj, length)) {
+    return false;
   }
-  return length ? obj.get() : nullptr;
+  MOZ_ASSERT(!entries.get());
+  if (length) {
+    entries.set(thisObj.get());
+  }
+  return true;
 }
