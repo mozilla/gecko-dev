@@ -102,7 +102,7 @@ class ProviderTabGroups extends ActionsProvider {
   }
 
   #switchToGroup(group) {
-    group.ownerGlobal.gBrowser.selectedTab = group.tabs[0];
+    group.select();
     group.ownerGlobal.focus();
   }
 }
