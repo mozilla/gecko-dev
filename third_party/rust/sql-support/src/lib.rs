@@ -8,7 +8,16 @@
 //! A crate with various sql/sqlcipher helpers.
 
 mod conn_ext;
-pub mod debug_tools;
+
+// XXX - temporarily disable our debug_tools, to avoid pulling in:
+// prettytable-rs = { version = "0.10", optional = true }
+// while vendoring into m-c :(
+pub mod debug_tools {
+    pub fn define_debug_functions(_c: &rusqlite::Connection) -> rusqlite::Result<()> {
+        Ok(())
+    }
+}
+
 mod each_chunk;
 mod lazy;
 mod maybe_cached;

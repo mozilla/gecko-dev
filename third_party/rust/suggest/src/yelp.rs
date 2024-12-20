@@ -50,7 +50,7 @@ const MAX_MODIFIER_WORDS_NUMBER: usize = 2;
 /// At least this many characters must be typed for a subject to be matched.
 const SUBJECT_PREFIX_MATCH_THRESHOLD: usize = 2;
 
-impl<'a> SuggestDao<'a> {
+impl SuggestDao<'_> {
     /// Inserts the suggestions for Yelp attachment into the database.
     pub(crate) fn insert_yelp_suggestions(
         &mut self,

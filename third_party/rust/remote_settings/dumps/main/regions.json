@@ -1,0 +1,29 @@
+{
+  "data": [
+    {
+      "attachment": {
+        "filename": "world.geojson",
+        "hash": "00b308033d44f61612b962f572765d14a3999586d92fc8b9fff2217a1ae070e8",
+        "location": "main-workspace/regions/ea0d6337-97e5-43e9-b708-90ec5bf96c15.geojson",
+        "mimetype": "application/octet-stream",
+        "size": 1093343
+      },
+      "id": "world",
+      "last_modified": 1600363002708,
+      "schema": 1591565378397
+    },
+    {
+      "attachment": {
+        "filename": "world-buffered.geojson",
+        "hash": "1d3ed6954fac2a5b31302f5d3e8186c5fa08a20239afc0643ca5dfbb4d8a86fc",
+        "location": "main-workspace/regions/60d3f85e-beb1-4147-9b99-cfb7cb079a53.geojson",
+        "mimetype": "application/octet-stream",
+        "size": 1108807
+      },
+      "id": "world-buffered",
+      "last_modified": 1600363002702,
+      "schema": 1591565382168
+    }
+  ],
+  "timestamp": 1600363002708
+}

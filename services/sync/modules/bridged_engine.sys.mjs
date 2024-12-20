@@ -124,25 +124,6 @@ class BridgedRecord extends RawCryptoWrapper {
   }
 }
 
-class BridgeError extends Error {
-  constructor(code, message) {
-    super(message);
-    this.name = "BridgeError";
-    // TODO: We may want to use a different name for this, since errors with
-    // a `result` property are treated specially by telemetry, discarding the
-    // message...but, unlike other `nserror`s, the message is actually useful,
-    // and we still want to capture it.
-    this.result = code;
-  }
-}
-
-class InterruptedError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "InterruptedError";
-  }
-}
-
 /**
  * Adapts a `Log.sys.mjs` logger to a `mozIServicesLogSink`. This class is copied
  * from `SyncedBookmarksMirror.sys.mjs`.
@@ -186,114 +167,11 @@ export class LogAdapter {
   }
 }
 
-// This converts the XPCOM-defined, callback-based mozIBridgedSyncEngine to
-// a promise-based implementation.
-export class BridgeWrapperXPCOM {
-  constructor(component) {
-    this.comp = component;
-  }
-
-  // A few sync, non-callback based attributes.
-  get storageVersion() {
-    return this.comp.storageVersion;
-  }
-
-  get allowSkippedRecord() {
-    return this.comp.allowSkippedRecord;
-  }
-
-  get logger() {
-    return this.comp.logger;
-  }
-
-  // And the async functions we promisify.
-  // Note this is `lastSync` via uniffi but `getLastSync` via xpcom
-  lastSync() {
-    return BridgeWrapperXPCOM.#promisify(this.comp.getLastSync);
-  }
-
-  setLastSync(lastSyncMillis) {
-    return BridgeWrapperXPCOM.#promisify(this.comp.setLastSync, lastSyncMillis);
-  }
-
-  getSyncId() {
-    return BridgeWrapperXPCOM.#promisify(this.comp.getSyncId);
-  }
-
-  resetSyncId() {
-    return BridgeWrapperXPCOM.#promisify(this.comp.resetSyncId);
-  }
-
-  ensureCurrentSyncId(newSyncId) {
-    return BridgeWrapperXPCOM.#promisify(
-      this.comp.ensureCurrentSyncId,
-      newSyncId
-    );
-  }
-
-  syncStarted() {
-    return BridgeWrapperXPCOM.#promisify(this.comp.syncStarted);
-  }
-
-  storeIncoming(incomingEnvelopesAsJSON) {
-    return BridgeWrapperXPCOM.#promisify(
-      this.comp.storeIncoming,
-      incomingEnvelopesAsJSON
-    );
-  }
-
-  apply() {
-    return BridgeWrapperXPCOM.#promisify(this.comp.apply);
-  }
-
-  setUploaded(newTimestampMillis, uploadedIds) {
-    return BridgeWrapperXPCOM.#promisify(
-      this.comp.setUploaded,
-      newTimestampMillis,
-      uploadedIds
-    );
-  }
-
-  syncFinished() {
-    return BridgeWrapperXPCOM.#promisify(this.comp.syncFinished);
-  }
-
-  reset() {
-    return BridgeWrapperXPCOM.#promisify(this.comp.reset);
-  }
-
-  wipe() {
-    return BridgeWrapperXPCOM.#promisify(this.comp.wipe);
-  }
-
-  // Converts a XPCOM bridged function that takes a callback into one that returns a
-  // promise.
-  static #promisify(func, ...params) {
-    return new Promise((resolve, reject) => {
-      func(...params, {
-        // This object implicitly implements all three callback interfaces
-        // (`mozIBridgedSyncEngine{Apply, Result}Callback`), because they have
-        // the same methods. The only difference is the type of the argument
-        // passed to `handleSuccess`, which doesn't matter in JS.
-        handleSuccess: resolve,
-        handleError(code, message) {
-          reject(transformError(code, message));
-        },
-      });
-    });
-  }
-}
-
 /**
  * A base class used to plug a Rust engine into Sync, and have it work like any
  * other engine. The constructor takes a bridge as its first argument, which is
  * a "bridged sync engine", as defined by UniFFI in the application-services
  * crate.
- * For backwards compatibility, this can also be an instance of an XPCOM
- * component class that implements `mozIBridgedSyncEngine`, wrapped in
- * a `BridgeWrapperXPCOM` wrapper.
- * (Note that at time of writing, the above is slightly aspirational; the
- * actual definition of the UniFFI shared bridged engine is still in flux.)
  *
  * This class inherits from `SyncEngine`, which has a lot of machinery that we
  * don't need, but that's fairly easy to override. It would be harder to
@@ -487,13 +365,3 @@ BridgedEngine.prototype = {
   },
 };
 Object.setPrototypeOf(BridgedEngine.prototype, SyncEngine.prototype);
-
-function transformError(code, message) {
-  switch (code) {
-    case Cr.NS_ERROR_ABORT:
-      return new InterruptedError(message);
-
-    default:
-      return new BridgeError(code, message);
-  }
-}

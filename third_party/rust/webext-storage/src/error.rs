@@ -143,3 +143,11 @@ impl From<serde_json::Error> for WebExtStorageApiError {
         }
     }
 }
+
+impl From<anyhow::Error> for WebExtStorageApiError {
+    fn from(value: anyhow::Error) -> Self {
+        WebExtStorageApiError::UnexpectedError {
+            reason: value.to_string(),
+        }
+    }
+}

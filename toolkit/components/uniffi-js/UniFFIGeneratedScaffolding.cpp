@@ -184,6 +184,7 @@ extern "C" {
   void uniffi_relevancy_fn_method_relevancystore_bandit_update(void*, RustBuffer, RustBuffer, int8_t, RustCallStatus*);
   RustBuffer uniffi_relevancy_fn_method_relevancystore_calculate_metrics(void*, RustCallStatus*);
   void uniffi_relevancy_fn_method_relevancystore_close(void*, RustCallStatus*);
+  RustBuffer uniffi_relevancy_fn_method_relevancystore_get_bandit_data(void*, RustBuffer, RustBuffer, RustCallStatus*);
   RustBuffer uniffi_relevancy_fn_method_relevancystore_ingest(void*, RustBuffer, RustCallStatus*);
   void uniffi_relevancy_fn_method_relevancystore_interrupt(void*, RustCallStatus*);
   RustBuffer uniffi_relevancy_fn_method_relevancystore_user_interest_vector(void*, RustCallStatus*);
@@ -250,6 +251,7 @@ extern "C" {
   uint16_t uniffi_relevancy_checksum_method_relevancystore_bandit_update();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_calculate_metrics();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_close();
+  uint16_t uniffi_relevancy_checksum_method_relevancystore_get_bandit_data();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_ingest();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_interrupt();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_user_interest_vector();
@@ -611,6 +613,111 @@ extern "C" {
   uint16_t uniffi_tabs_checksum_method_tabsstore_set_local_tabs();
   uint16_t uniffi_tabs_checksum_constructor_tabsstore_new();
   uint32_t ffi_tabs_uniffi_contract_version();
+  void* uniffi_webext_storage_fn_clone_webextstoragebridgedengine(void*, RustCallStatus*);
+  void uniffi_webext_storage_fn_free_webextstoragebridgedengine(void*, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragebridgedengine_apply(void*, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragebridgedengine_ensure_current_sync_id(void*, RustBuffer, RustCallStatus*);
+  int64_t uniffi_webext_storage_fn_method_webextstoragebridgedengine_last_sync(void*, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragebridgedengine_prepare_for_sync(void*, RustBuffer, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset(void*, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset_sync_id(void*, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_last_sync(void*, int64_t, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_uploaded(void*, int64_t, RustBuffer, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragebridgedengine_store_incoming(void*, RustBuffer, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_finished(void*, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_id(void*, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_started(void*, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragebridgedengine_wipe(void*, RustCallStatus*);
+  void* uniffi_webext_storage_fn_clone_webextstoragestore(void*, RustCallStatus*);
+  void uniffi_webext_storage_fn_free_webextstoragestore(void*, RustCallStatus*);
+  void* uniffi_webext_storage_fn_constructor_webextstoragestore_new(RustBuffer, RustCallStatus*);
+  void* uniffi_webext_storage_fn_method_webextstoragestore_bridged_engine(void*, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragestore_clear(void*, RustBuffer, RustCallStatus*);
+  void uniffi_webext_storage_fn_method_webextstoragestore_close(void*, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragestore_get(void*, RustBuffer, RustBuffer, RustCallStatus*);
+  uint64_t uniffi_webext_storage_fn_method_webextstoragestore_get_bytes_in_use(void*, RustBuffer, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragestore_get_synced_changes(void*, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragestore_remove(void*, RustBuffer, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_webext_storage_fn_method_webextstoragestore_set(void*, RustBuffer, RustBuffer, RustCallStatus*);
+  RustBuffer ffi_webext_storage_rustbuffer_alloc(uint64_t, RustCallStatus*);
+  RustBuffer ffi_webext_storage_rustbuffer_from_bytes(ForeignBytes, RustCallStatus*);
+  void ffi_webext_storage_rustbuffer_free(RustBuffer, RustCallStatus*);
+  RustBuffer ffi_webext_storage_rustbuffer_reserve(RustBuffer, uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_u8(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_u8(uint64_t);
+  void ffi_webext_storage_rust_future_free_u8(uint64_t);
+  uint8_t ffi_webext_storage_rust_future_complete_u8(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_i8(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_i8(uint64_t);
+  void ffi_webext_storage_rust_future_free_i8(uint64_t);
+  int8_t ffi_webext_storage_rust_future_complete_i8(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_u16(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_u16(uint64_t);
+  void ffi_webext_storage_rust_future_free_u16(uint64_t);
+  uint16_t ffi_webext_storage_rust_future_complete_u16(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_i16(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_i16(uint64_t);
+  void ffi_webext_storage_rust_future_free_i16(uint64_t);
+  int16_t ffi_webext_storage_rust_future_complete_i16(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_u32(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_u32(uint64_t);
+  void ffi_webext_storage_rust_future_free_u32(uint64_t);
+  uint32_t ffi_webext_storage_rust_future_complete_u32(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_i32(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_i32(uint64_t);
+  void ffi_webext_storage_rust_future_free_i32(uint64_t);
+  int32_t ffi_webext_storage_rust_future_complete_i32(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_u64(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_u64(uint64_t);
+  void ffi_webext_storage_rust_future_free_u64(uint64_t);
+  uint64_t ffi_webext_storage_rust_future_complete_u64(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_i64(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_i64(uint64_t);
+  void ffi_webext_storage_rust_future_free_i64(uint64_t);
+  int64_t ffi_webext_storage_rust_future_complete_i64(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_f32(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_f32(uint64_t);
+  void ffi_webext_storage_rust_future_free_f32(uint64_t);
+  float ffi_webext_storage_rust_future_complete_f32(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_f64(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_f64(uint64_t);
+  void ffi_webext_storage_rust_future_free_f64(uint64_t);
+  double ffi_webext_storage_rust_future_complete_f64(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_pointer(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_pointer(uint64_t);
+  void ffi_webext_storage_rust_future_free_pointer(uint64_t);
+  void* ffi_webext_storage_rust_future_complete_pointer(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_rust_buffer(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_rust_buffer(uint64_t);
+  void ffi_webext_storage_rust_future_free_rust_buffer(uint64_t);
+  RustBuffer ffi_webext_storage_rust_future_complete_rust_buffer(uint64_t, RustCallStatus*);
+  void ffi_webext_storage_rust_future_poll_void(uint64_t, RustFutureContinuationCallback, uint64_t);
+  void ffi_webext_storage_rust_future_cancel_void(uint64_t);
+  void ffi_webext_storage_rust_future_free_void(uint64_t);
+  void ffi_webext_storage_rust_future_complete_void(uint64_t, RustCallStatus*);
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_apply();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_ensure_current_sync_id();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_last_sync();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_prepare_for_sync();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_reset();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_reset_sync_id();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_set_last_sync();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_set_uploaded();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_store_incoming();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_sync_finished();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_sync_id();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_sync_started();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragebridgedengine_wipe();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragestore_bridged_engine();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragestore_clear();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragestore_close();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragestore_get();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragestore_get_bytes_in_use();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragestore_get_synced_changes();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragestore_remove();
+  uint16_t uniffi_webext_storage_checksum_method_webextstoragestore_set();
+  uint16_t uniffi_webext_storage_checksum_constructor_webextstoragestore_new();
+  uint32_t ffi_webext_storage_uniffi_contract_version();
 
 #ifdef MOZ_UNIFFI_FIXTURES
   uint64_t uniffi_arithmetical_fn_func_add(uint64_t, uint64_t, RustCallStatus*);
@@ -1588,6 +1695,16 @@ const static mozilla::uniffi::UniFFIPointerType kTabsTabsStorePointerType {
   uniffi_tabs_fn_clone_tabsstore,
   uniffi_tabs_fn_free_tabsstore,
 };
+const static mozilla::uniffi::UniFFIPointerType kWebextstorageWebExtStorageBridgedEnginePointerType {
+  "webextstorage::WebExtStorageBridgedEngine"_ns,
+  uniffi_webext_storage_fn_clone_webextstoragebridgedengine,
+  uniffi_webext_storage_fn_free_webextstoragebridgedengine,
+};
+const static mozilla::uniffi::UniFFIPointerType kWebextstorageWebExtStorageStorePointerType {
+  "webextstorage::WebExtStorageStore"_ns,
+  uniffi_webext_storage_fn_clone_webextstoragestore,
+  uniffi_webext_storage_fn_free_webextstoragestore,
+};
 
 #ifdef MOZ_UNIFFI_FIXTURES
 const static mozilla::uniffi::UniFFIPointerType kFuturesFutureTesterPointerType {
@@ -2318,6 +2435,52 @@ public:
   virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
+class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreGetBanditData : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mBandit;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mArm;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mBandit, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mArm, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_relevancy_fn_method_relevancystore_get_bandit_data(
+        ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mBandit)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mArm)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreIngest : public UniffiSyncCallHandler {
 private:
   // PrepareRustArgs stores the resulting arguments in these fields
@@ -2634,7 +2797,7 @@ class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetA
 private:
   // PrepareRustArgs stores the resulting arguments in these fields
   typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::IntermediateType mPtr;
-  typename ScaffoldingConverter<RustBuffer>::IntermediateType mAttachmentId;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mRecord;
 
   // MakeRustCall stores the result of the call in these fields
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
@@ -2645,7 +2808,7 @@ public:
     if (aError.Failed()) {
       return;
     }
-    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mAttachmentId, aError);
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mRecord, aError);
     if (aError.Failed()) {
       return;
     }
@@ -2655,7 +2818,7 @@ public:
     mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
       uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment(
         ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::IntoRust(std::move(mPtr)),
-        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mAttachmentId)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mRecord)),
         aOutStatus
       )
     );
@@ -4447,6 +4610,763 @@ public:
 
   virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineApply : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragebridgedengine_apply(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineEnsureCurrentSyncId : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mNewSyncId;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mNewSyncId, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragebridgedengine_ensure_current_sync_id(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mNewSyncId)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineLastSync : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<int64_t>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragebridgedengine_last_sync(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<int64_t>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedenginePrepareForSync : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mClientData;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mClientData, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragebridgedengine_prepare_for_sync(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+      ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mClientData)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineReset : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineResetSyncId : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset_sync_id(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSetLastSync : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<int64_t>::IntermediateType mLastSync;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<int64_t>::FromJs(aArgs[1], &mLastSync, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_last_sync(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+      ScaffoldingConverter<int64_t>::IntoRust(std::move(mLastSync)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSetUploaded : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<int64_t>::IntermediateType mServerModifiedMillis;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mGuids;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<int64_t>::FromJs(aArgs[1], &mServerModifiedMillis, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mGuids, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_uploaded(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+      ScaffoldingConverter<int64_t>::IntoRust(std::move(mServerModifiedMillis)),
+      ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mGuids)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineStoreIncoming : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mIncoming;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mIncoming, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragebridgedengine_store_incoming(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+      ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mIncoming)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncFinished : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_finished(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncId : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_id(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncStarted : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_started(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineWipe : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragebridgedengine_wipe(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreBridgedEngine : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragestore_bridged_engine(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoRust(std::move(mPtr)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreClear : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mExtId;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mExtId, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragestore_clear(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoRust(std::move(mPtr)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mExtId)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreClose : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_webext_storage_fn_method_webextstoragestore_close(
+      ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoRust(std::move(mPtr)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGet : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mExtId;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mKeys;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mExtId, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mKeys, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragestore_get(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoRust(std::move(mPtr)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mExtId)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mKeys)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGetBytesInUse : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mExtId;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mKeys;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mExtId, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mKeys, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<uint64_t>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragestore_get_bytes_in_use(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoRust(std::move(mPtr)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mExtId)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mKeys)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<uint64_t>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGetSyncedChanges : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragestore_get_synced_changes(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoRust(std::move(mPtr)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreRemove : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mExtId;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mKeys;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mExtId, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mKeys, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragestore_remove(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoRust(std::move(mPtr)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mExtId)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mKeys)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreSet : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mPtr;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mExtId;
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mVal;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mExtId, aError);
+    if (aError.Failed()) {
+      return;
+    }
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mVal, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+      uniffi_webext_storage_fn_method_webextstoragestore_set(
+        ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoRust(std::move(mPtr)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mExtId)),
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mVal)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::IntoJs(
+      aCx,
+      std::move(mUniffiReturnValue),
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiWebextStorageFnConstructorWebextstoragestoreNew : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingConverter<RustBuffer>::IntermediateType mPath;
+
+  // MakeRustCall stores the result of the call in these fields
+  typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mPath, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromRust(
+      uniffi_webext_storage_fn_constructor_webextstoragestore_new(
+        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mPath)),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
       &aDest.Construct(),
@@ -9004,509 +9924,578 @@ UniquePtr<UniffiSyncCallHandler> GetSyncCallHandler(uint64_t aId) {
       return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreClose>();
     }
     case 8: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreIngest>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreGetBanditData>();
     }
     case 9: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreInterrupt>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreIngest>();
     }
     case 10: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreUserInterestVector>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreInterrupt>();
     }
     case 11: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnConstructorRelevancystoreNew>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreUserInterestVector>();
     }
     case 12: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnConstructorRelevancystoreNew>();
     }
     case 13: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecords>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath>();
     }
     case 14: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecords>();
     }
     case 15: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsNew>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince>();
     }
     case 16: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientCollectionName>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsNew>();
     }
     case 17: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetAttachment>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientCollectionName>();
     }
     case 18: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetRecords>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetAttachment>();
     }
     case 19: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetRecordsMap>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetRecords>();
     }
     case 20: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceMakeClient>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetRecordsMap>();
     }
     case 21: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceSync>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceMakeClient>();
     }
     case 22: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceUpdateConfig>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceSync>();
     }
     case 23: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsserviceNew>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceUpdateConfig>();
     }
     case 24: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnFuncRawSuggestionUrlMatches>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsserviceNew>();
     }
     case 25: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClear>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnFuncRawSuggestionUrlMatches>();
     }
     case 26: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClear>();
     }
     case 27: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreDismissSuggestion>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions>();
     }
     case 28: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGeonames>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreDismissSuggestion>();
     }
     case 29: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGeonames>();
     }
     case 30: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchProviderConfig>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig>();
     }
     case 31: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreIngest>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchProviderConfig>();
     }
     case 32: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreInterrupt>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreIngest>();
     }
     case 33: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQuery>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreInterrupt>();
     }
     case 34: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQueryWithMetrics>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQuery>();
     }
     case 35: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststoreNew>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQueryWithMetrics>();
     }
     case 36: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderBuild>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststoreNew>();
     }
     case 37: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderCachePath>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderBuild>();
     }
     case 38: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderDataPath>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderCachePath>();
     }
     case 39: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderLoadExtension>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderDataPath>();
     }
     case 40: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderLoadExtension>();
     }
     case 41: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName>();
     }
     case 42: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststorebuilderNew>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer>();
     }
     case 43: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststorebuilderNew>();
     }
     case 44: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand>();
     }
     case 45: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt>();
     }
     case 46: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands>();
     }
     case 47: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand>();
     }
     case 48: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineApply>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent>();
     }
     case 49: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineApply>();
     }
     case 50: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineLastSync>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId>();
     }
     case 51: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedenginePrepareForSync>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineLastSync>();
     }
     case 52: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineReset>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedenginePrepareForSync>();
     }
     case 53: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineResetSyncId>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineReset>();
     }
     case 54: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetLastSync>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineResetSyncId>();
     }
     case 55: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetUploaded>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetLastSync>();
     }
     case 56: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineStoreIncoming>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetUploaded>();
     }
     case 57: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncFinished>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineStoreIncoming>();
     }
     case 58: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncId>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncFinished>();
     }
     case 59: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncStarted>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncId>();
     }
     case 60: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineWipe>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncStarted>();
     }
     case 61: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreBridgedEngine>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineWipe>();
     }
     case 62: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreCloseConnection>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreBridgedEngine>();
     }
     case 63: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreGetAll>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreCloseConnection>();
     }
     case 64: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreNewRemoteCommandStore>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreGetAll>();
     }
     case 65: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreRegisterWithSyncManager>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreNewRemoteCommandStore>();
     }
     case 66: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreSetLocalTabs>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreRegisterWithSyncManager>();
     }
     case 67: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreSetLocalTabs>();
+    }
+    case 68: {
       return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnConstructorTabsstoreNew>();
+    }
+    case 69: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineApply>();
+    }
+    case 70: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineEnsureCurrentSyncId>();
+    }
+    case 71: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineLastSync>();
+    }
+    case 72: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedenginePrepareForSync>();
+    }
+    case 73: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineReset>();
+    }
+    case 74: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineResetSyncId>();
+    }
+    case 75: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSetLastSync>();
+    }
+    case 76: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSetUploaded>();
+    }
+    case 77: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineStoreIncoming>();
+    }
+    case 78: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncFinished>();
+    }
+    case 79: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncId>();
+    }
+    case 80: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncStarted>();
+    }
+    case 81: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineWipe>();
+    }
+    case 82: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreBridgedEngine>();
+    }
+    case 83: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreClear>();
+    }
+    case 84: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreClose>();
+    }
+    case 85: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGet>();
+    }
+    case 86: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGetBytesInUse>();
+    }
+    case 87: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGetSyncedChanges>();
+    }
+    case 88: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreRemove>();
+    }
+    case 89: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreSet>();
+    }
+    case 90: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiWebextStorageFnConstructorWebextstoragestoreNew>();
     }
 
 #ifdef MOZ_UNIFFI_FIXTURES
-    case 68: {
+    case 91: {
       return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncAdd>();
     }
-    case 69: {
+    case 92: {
       return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncDiv>();
     }
-    case 70: {
+    case 93: {
       return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncEqual>();
     }
-    case 71: {
+    case 94: {
       return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncSub>();
     }
-    case 72: {
+    case 95: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetCustomTypesDemo>();
     }
-    case 73: {
+    case 96: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncGradient>();
     }
-    case 74: {
+    case 97: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncIntersection>();
     }
-    case 75: {
+    case 98: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncCallLogRepeat>();
     }
-    case 76: {
+    case 99: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbers>();
     }
-    case 77: {
+    case 100: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbersMainThread>();
     }
-    case 79: {
+    case 102: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncInitializeGeckoGlobalWorkerQueue>();
     }
-    case 80: {
+    case 103: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncInitializeGlobalWorkerQueue>();
     }
-    case 95: {
+    case 118: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodFuturetesterCompleteFutures>();
     }
-    case 97: {
+    case 120: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodFuturetesterWakeFutures>();
     }
-    case 98: {
+    case 121: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnConstructorFuturetesterInit>();
     }
-    case 99: {
+    case 122: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodRusttaskRun>();
     }
-    case 100: {
+    case 123: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodTravellerName>();
     }
-    case 101: {
+    case 124: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnConstructorTravellerNew>();
     }
-    case 102: {
+    case 125: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodWorkerqueueAddTask>();
     }
-    case 103: {
+    case 126: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient>();
     }
-    case 104: {
+    case 127: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncIntersection>();
     }
-    case 105: {
+    case 128: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetJsRefcount>();
     }
-    case 106: {
+    case 129: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetSingleton>();
     }
-    case 107: {
+    case 130: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnMethodSingletonobjectMethod>();
     }
-    case 108: {
+    case 131: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieCarte>();
     }
-    case 109: {
+    case 132: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieDictionnaire>();
     }
-    case 110: {
+    case 133: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumeration>();
     }
-    case 111: {
+    case 134: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumerations>();
     }
-    case 112: {
+    case 135: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncSwitcheroo>();
     }
-    case 113: {
+    case 136: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonBoolean>();
     }
-    case 114: {
+    case 137: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonEnum>();
     }
-    case 115: {
+    case 138: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF32>();
     }
-    case 116: {
+    case 139: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF64>();
     }
-    case 117: {
+    case 140: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Dec>();
     }
-    case 118: {
+    case 141: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Hex>();
     }
-    case 119: {
+    case 142: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Dec>();
     }
-    case 120: {
+    case 143: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Hex>();
     }
-    case 121: {
+    case 144: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Dec>();
     }
-    case 122: {
+    case 145: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Hex>();
     }
-    case 123: {
+    case 146: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Dec>();
     }
-    case 124: {
+    case 147: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Hex>();
     }
-    case 125: {
+    case 148: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonNull>();
     }
-    case 126: {
+    case 149: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonSequence>();
     }
-    case 127: {
+    case 150: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonString>();
     }
-    case 128: {
+    case 151: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Dec>();
     }
-    case 129: {
+    case 152: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Hex>();
     }
-    case 130: {
+    case 153: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Dec>();
     }
-    case 131: {
+    case 154: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Hex>();
     }
-    case 132: {
+    case 155: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Oct>();
     }
-    case 133: {
+    case 156: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Dec>();
     }
-    case 134: {
+    case 157: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Hex>();
     }
-    case 135: {
+    case 158: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Dec>();
     }
-    case 136: {
+    case 159: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Hex>();
     }
-    case 137: {
+    case 160: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonZero>();
     }
-    case 138: {
+    case 161: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorOptionneurNew>();
     }
-    case 139: {
+    case 162: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueBoolean>();
     }
-    case 140: {
+    case 163: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueDouble>();
     }
-    case 141: {
+    case 164: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueFloat>();
     }
-    case 142: {
+    case 165: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI16>();
     }
-    case 143: {
+    case 166: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI32>();
     }
-    case 144: {
+    case 167: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI64>();
     }
-    case 145: {
+    case 168: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI8>();
     }
-    case 146: {
+    case 169: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombres>();
     }
-    case 147: {
+    case 170: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombresSignes>();
     }
-    case 148: {
+    case 171: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueOptionneurDictionnaire>();
     }
-    case 149: {
+    case 172: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueString>();
     }
-    case 150: {
+    case 173: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU16>();
     }
-    case 151: {
+    case 174: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU32>();
     }
-    case 152: {
+    case 175: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU64>();
     }
-    case 153: {
+    case 176: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU8>();
     }
-    case 154: {
+    case 177: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorRetourneurNew>();
     }
-    case 155: {
+    case 178: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringBoolean>();
     }
-    case 156: {
+    case 179: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringDouble>();
     }
-    case 157: {
+    case 180: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringFloat>();
     }
-    case 158: {
+    case 181: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI16>();
     }
-    case 159: {
+    case 182: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI32>();
     }
-    case 160: {
+    case 183: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI64>();
     }
-    case 161: {
+    case 184: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI8>();
     }
-    case 162: {
+    case 185: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU16>();
     }
-    case 163: {
+    case 186: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU32>();
     }
-    case 164: {
+    case 187: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU64>();
     }
-    case 165: {
+    case 188: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU8>();
     }
-    case 166: {
+    case 189: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierWellKnownString>();
     }
-    case 167: {
+    case 190: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorStringifierNew>();
     }
-    case 168: {
+    case 191: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnFuncTranslate>();
     }
-    case 169: {
+    case 192: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteGetPosition>();
     }
-    case 170: {
+    case 193: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveBy>();
     }
-    case 171: {
+    case 194: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveTo>();
     }
-    case 172: {
+    case 195: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNew>();
     }
-    case 173: {
+    case 196: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNewRelativeTo>();
     }
-    case 174: {
+    case 197: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncCreateEntryWith>();
     }
-    case 175: {
+    case 198: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncGetDefaultList>();
     }
-    case 176: {
+    case 199: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncSetDefaultList>();
     }
-    case 177: {
+    case 200: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntries>();
     }
-    case 178: {
+    case 201: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntry>();
     }
-    case 179: {
+    case 202: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItem>();
     }
-    case 180: {
+    case 203: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItems>();
     }
-    case 181: {
+    case 204: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistClearItem>();
     }
-    case 182: {
+    case 205: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetEntries>();
     }
-    case 183: {
+    case 206: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetFirst>();
     }
-    case 184: {
+    case 207: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetItems>();
     }
-    case 185: {
+    case 208: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLast>();
     }
-    case 186: {
+    case 209: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLastEntry>();
     }
-    case 187: {
+    case 210: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistMakeDefault>();
     }
-    case 188: {
+    case 211: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnConstructorTodolistNew>();
     }
-    case 189: {
+    case 212: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeBuggyCalculator>();
     }
-    case 190: {
+    case 213: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeCalculator>();
     }
-    case 191: {
+    case 214: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnMethodCalcAdd>();
     }
 #endif /* MOZ_UNIFFI_FIXTURES */
@@ -9521,52 +10510,52 @@ UniquePtr<UniffiAsyncCallHandler> GetAsyncCallHandler(uint64_t aId) {
 
 
 #ifdef MOZ_UNIFFI_FIXTURES
-    case 78: {
+    case 101: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncExpensiveComputation>();
     }
-    case 81: {
+    case 104: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripF32>();
     }
-    case 82: {
+    case 105: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripF64>();
     }
-    case 83: {
+    case 106: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripI16>();
     }
-    case 84: {
+    case 107: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripI32>();
     }
-    case 85: {
+    case 108: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripI64>();
     }
-    case 86: {
+    case 109: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripI8>();
     }
-    case 87: {
+    case 110: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripMap>();
     }
-    case 88: {
+    case 111: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripObj>();
     }
-    case 89: {
+    case 112: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripString>();
     }
-    case 90: {
+    case 113: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripU16>();
     }
-    case 91: {
+    case 114: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripU32>();
     }
-    case 92: {
+    case 115: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripU64>();
     }
-    case 93: {
+    case 116: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripU8>();
     }
-    case 94: {
+    case 117: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripVec>();
     }
-    case 96: {
+    case 119: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodFuturetesterMakeFuture>();
     }
 #endif /* MOZ_UNIFFI_FIXTURES */
@@ -9617,49 +10606,57 @@ Maybe<already_AddRefed<UniFFIPointer>> ReadPointer(const GlobalObject& aGlobal, 
       type = &kTabsTabsStorePointerType;
       break;
     }
-
-#ifdef MOZ_UNIFFI_FIXTURES
     case 9: {
-      type = &kFuturesFutureTesterPointerType;
+      type = &kWebextstorageWebExtStorageBridgedEnginePointerType;
       break;
     }
     case 10: {
-      type = &kFuturesRustTaskPointerType;
+      type = &kWebextstorageWebExtStorageStorePointerType;
       break;
     }
+
+#ifdef MOZ_UNIFFI_FIXTURES
     case 11: {
-      type = &kFuturesTravellerPointerType;
+      type = &kFuturesFutureTesterPointerType;
       break;
     }
     case 12: {
-      type = &kFuturesWorkerQueuePointerType;
+      type = &kFuturesRustTaskPointerType;
       break;
     }
     case 13: {
-      type = &kRefcountsSingletonObjectPointerType;
+      type = &kFuturesTravellerPointerType;
       break;
     }
     case 14: {
-      type = &kRondpointOptionneurPointerType;
+      type = &kFuturesWorkerQueuePointerType;
       break;
     }
     case 15: {
-      type = &kRondpointRetourneurPointerType;
+      type = &kRefcountsSingletonObjectPointerType;
       break;
     }
     case 16: {
-      type = &kRondpointStringifierPointerType;
+      type = &kRondpointOptionneurPointerType;
       break;
     }
     case 17: {
-      type = &kSpritesSpritePointerType;
+      type = &kRondpointRetourneurPointerType;
       break;
     }
     case 18: {
-      type = &kTodolistTodoListPointerType;
+      type = &kRondpointStringifierPointerType;
       break;
     }
     case 19: {
+      type = &kSpritesSpritePointerType;
+      break;
+    }
+    case 20: {
+      type = &kTodolistTodoListPointerType;
+      break;
+    }
+    case 21: {
       type = &kUniffiTraitInterfacesCalcPointerType;
       break;
     }
@@ -9710,49 +10707,57 @@ bool WritePointer(const GlobalObject& aGlobal, uint64_t aId, const UniFFIPointer
       type = &kTabsTabsStorePointerType;
       break;
     }
-
-#ifdef MOZ_UNIFFI_FIXTURES
     case 9: {
-      type = &kFuturesFutureTesterPointerType;
+      type = &kWebextstorageWebExtStorageBridgedEnginePointerType;
       break;
     }
     case 10: {
-      type = &kFuturesRustTaskPointerType;
+      type = &kWebextstorageWebExtStorageStorePointerType;
       break;
     }
+
+#ifdef MOZ_UNIFFI_FIXTURES
     case 11: {
-      type = &kFuturesTravellerPointerType;
+      type = &kFuturesFutureTesterPointerType;
       break;
     }
     case 12: {
-      type = &kFuturesWorkerQueuePointerType;
+      type = &kFuturesRustTaskPointerType;
       break;
     }
     case 13: {
-      type = &kRefcountsSingletonObjectPointerType;
+      type = &kFuturesTravellerPointerType;
       break;
     }
     case 14: {
-      type = &kRondpointOptionneurPointerType;
+      type = &kFuturesWorkerQueuePointerType;
       break;
     }
     case 15: {
-      type = &kRondpointRetourneurPointerType;
+      type = &kRefcountsSingletonObjectPointerType;
       break;
     }
     case 16: {
-      type = &kRondpointStringifierPointerType;
+      type = &kRondpointOptionneurPointerType;
       break;
     }
     case 17: {
-      type = &kSpritesSpritePointerType;
+      type = &kRondpointRetourneurPointerType;
       break;
     }
     case 18: {
-      type = &kTodolistTodoListPointerType;
+      type = &kRondpointStringifierPointerType;
       break;
     }
     case 19: {
+      type = &kSpritesSpritePointerType;
+      break;
+    }
+    case 20: {
+      type = &kTodolistTodoListPointerType;
+      break;
+    }
+    case 21: {
       type = &kUniffiTraitInterfacesCalcPointerType;
       break;
     }

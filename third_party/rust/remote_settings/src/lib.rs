@@ -18,6 +18,7 @@ pub mod storage;
 
 #[cfg(feature = "jexl")]
 pub(crate) mod jexl_filter;
+mod macros;
 
 pub use client::{Attachment, RemoteSettingsRecord, RemoteSettingsResponse, RsJsonObject};
 pub use config::{RemoteSettingsConfig, RemoteSettingsConfig2, RemoteSettingsServer};
@@ -155,8 +156,6 @@ impl RemoteSettingsClient {
     /// this is that there is not much an application can do in this situation other than fall back
     /// to the same default handling as if records have not been synced.
     ///
-    /// TODO(Bug 1919141):
-    ///
     /// Application-services schedules regular dumps of the server data for specific collections.
     /// For these collections, `get_records` will never return None.  If you would like to add your
     /// collection to this list, please reach out to the DISCO team.
@@ -198,8 +197,8 @@ impl RemoteSettingsClient {
     ///   - This method will throw if there is a network or other error when fetching the
     ///     attachment data.
     #[handle_error(Error)]
-    pub fn get_attachment(&self, attachment_id: String) -> ApiResult<Vec<u8>> {
-        self.internal.get_attachment(&attachment_id)
+    pub fn get_attachment(&self, record: RemoteSettingsRecord) -> ApiResult<Vec<u8>> {
+        self.internal.get_attachment(record)
     }
 }
 

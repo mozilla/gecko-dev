@@ -13,4 +13,3 @@ from_custom = "{}.toString()"
 [bindings.swift]
 ffi_module_name = "MozillaRustComponents"
 ffi_module_filename = "remote_settingsFFI"
-

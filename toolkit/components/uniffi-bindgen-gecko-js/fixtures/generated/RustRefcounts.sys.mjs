@@ -172,7 +172,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerSingletonObject() {
-        const pointerId = 13; // refcounts:SingletonObject
+        const pointerId = 15; // refcounts:SingletonObject
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -182,7 +182,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerSingletonObject(value) {
-        const pointerId = 13; // refcounts:SingletonObject
+        const pointerId = 15; // refcounts:SingletonObject
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -340,7 +340,7 @@ export class SingletonObject {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                107, // refcounts:uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method
+                130, // refcounts:uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method
                 FfiConverterTypeSingletonObject.lower(this),
             )
         }
@@ -392,7 +392,7 @@ export function getJsRefcount() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                105, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount
+                128, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
@@ -408,7 +408,7 @@ export function getSingleton() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                106, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_singleton
+                129, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_singleton
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);

@@ -29,7 +29,7 @@ use serde_json::Value as JsonValue;
 /// connection with our sync engines - ie, these engines also hold an Arc<>
 /// around the same object.
 pub struct WebExtStorageStore {
-    db: Arc<ThreadSafeStorageDb>,
+    pub(crate) db: Arc<ThreadSafeStorageDb>,
 }
 
 impl WebExtStorageStore {
@@ -124,46 +124,16 @@ impl WebExtStorageStore {
 
     /// Returns the bytes in use for the specified items (which can be null,
     /// a string, or an array)
-    pub fn get_bytes_in_use(&self, ext_id: &str, keys: JsonValue) -> Result<usize> {
+    pub fn get_bytes_in_use(&self, ext_id: &str, keys: JsonValue) -> Result<u64> {
         let db = &self.db.lock();
         let conn = db.get_connection()?;
-        api::get_bytes_in_use(conn, ext_id, keys)
-    }
-
-    /// Returns a bridged sync engine for Desktop for this store.
-    pub fn bridged_engine(&self) -> sync::BridgedEngine {
-        sync::BridgedEngine::new(&self.db)
+        Ok(api::get_bytes_in_use(conn, ext_id, keys)? as u64)
     }
 
     /// Closes the store and its database connection. See the docs for
     /// `StorageDb::close` for more details on when this can fail.
-    pub fn close(self) -> Result<()> {
-        // Even though this consumes `self`, the fact we use an Arc<> means
-        // we can't guarantee we can actually consume the inner DB - so do
-        // the best we can.
-        let shared: ThreadSafeStorageDb = match Arc::into_inner(self.db) {
-            Some(shared) => shared,
-            _ => {
-                // The only way this is possible is if the sync engine has an operation
-                // running - but that shouldn't be possible in practice because desktop
-                // uses a single "task queue" such that the close operation can't possibly
-                // be running concurrently with any sync or storage tasks.
-
-                // If this *could* get hit, rusqlite will attempt to close the DB connection
-                // as it is dropped, and if that close fails, then rusqlite 0.28.0 and earlier
-                // would panic - but even that only happens if prepared statements are
-                // not finalized, which ruqlite also does.
-
-                // tl;dr - this should be impossible. If it was possible, rusqlite might panic,
-                // but we've never seen it panic in practice other places we don't close
-                // connections, and the next rusqlite version will not panic anyway.
-                // So this-is-fine.jpg
-                log::warn!("Attempting to close a store while other DB references exist.");
-                return Err(Error::OtherConnectionReferencesExist);
-            }
-        };
-        // consume the mutex and get back the inner.
-        let mut db = shared.into_inner();
+    pub fn close(&self) -> Result<()> {
+        let mut db = self.db.lock();
         db.close()
     }
 

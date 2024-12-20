@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::cmp::max;
 
 use crate::interest::{Interest, InterestVector};
@@ -8,11 +12,11 @@ use crate::interest::{Interest, InterestVector};
 ///   - The score ranges from 0.0 to 1.0
 ///   - The score is monotonically increasing for the accumulated interest count
 ///
-/// Params:
+/// # Params:
 ///   - `interest_vector`: a user interest vector that can be fetched via
 ///     `RelevancyStore::user_interest_vector()`.
 ///   - `content_categories`: a list of categories (interests) of the give content.
-/// Return:
+/// # Return:
 ///   - A score ranges in [0, 1].
 #[uniffi::export]
 pub fn score(interest_vector: InterestVector, content_categories: Vec<Interest>) -> f64 {

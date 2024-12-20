@@ -1,6 +1,6 @@
 [bindings.kotlin]
 package_name = "mozilla.appservices.suggest"
- 
+
 [bindings.swift]
 ffi_module_name = "MozillaRustComponents"
 ffi_module_filename = "suggestFFI"

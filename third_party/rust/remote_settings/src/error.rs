@@ -47,6 +47,8 @@ pub enum Error {
     ConfigError(String),
     #[error("Database error: {0}")]
     DatabaseError(#[from] rusqlite::Error),
+    #[error("No attachment in given record: {0}")]
+    RecordAttachmentMismatchError(String),
 }
 
 // Define how our internal errors are handled and converted to external errors

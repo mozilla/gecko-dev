@@ -199,7 +199,7 @@ struct SyncMultipleDriver<'info, 'res, 'pgs, 'mcs> {
     saw_auth_error: bool,
 }
 
-impl<'info, 'res, 'pgs, 'mcs> SyncMultipleDriver<'info, 'res, 'pgs, 'mcs> {
+impl SyncMultipleDriver<'_, '_, '_, '_> {
     /// The actual worker for sync_multiple.
     fn sync(mut self) -> result::Result<(), Error> {
         log::info!("Loading/initializing persisted state");

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /// Fakespot-specific logic
-
+///
 /// Score used to order Fakespot suggestions
 ///
 /// FakespotScore contains several components, each in the range of [0, 1]

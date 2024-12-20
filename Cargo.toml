@@ -218,13 +218,13 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "85156e360a37d8517
 malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "3303de12a04710164f7c80fb5e466fbf2560a20f" }
-relevancy = { git = "https://github.com/mozilla/application-services", rev = "3303de12a04710164f7c80fb5e466fbf2560a20f" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "3303de12a04710164f7c80fb5e466fbf2560a20f" }
-suggest = { git = "https://github.com/mozilla/application-services", rev = "3303de12a04710164f7c80fb5e466fbf2560a20f" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "3303de12a04710164f7c80fb5e466fbf2560a20f" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "3303de12a04710164f7c80fb5e466fbf2560a20f" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "3303de12a04710164f7c80fb5e466fbf2560a20f" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "3303de12a04710164f7c80fb5e466fbf2560a20f" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
+relevancy = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
+sql-support = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
+suggest = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
+sync15 = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
+tabs = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
+viaduct = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
+webext-storage = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
 
 allocator-api2 = { path = "third_party/rust/allocator-api2" }
