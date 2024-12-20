@@ -57,7 +57,7 @@ dependencies {
     testImplementation ComponentsDependencies.testing_robolectric
     testImplementation ComponentsDependencies.testing_coroutines
 
-    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_forUnitTests
+    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
     testImplementation ComponentsDependencies.kotlin_reflect
 }
 

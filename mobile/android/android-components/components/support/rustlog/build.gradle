@@ -38,7 +38,7 @@ dependencies {
     testImplementation ComponentsDependencies.mozilla_appservices_rust_log_forwarder
     testImplementation project(':support-test')
 
-    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_forUnitTests
+    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
 
     testImplementation ComponentsDependencies.junit_vintage
     testImplementation ComponentsDependencies.androidx_test_junit

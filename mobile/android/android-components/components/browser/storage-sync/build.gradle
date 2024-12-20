@@ -55,7 +55,7 @@ dependencies {
     testImplementation ComponentsDependencies.mozilla_appservices_tabs
     testImplementation ComponentsDependencies.testing_mockwebserver
 
-    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_forUnitTests
+    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
     testImplementation ComponentsDependencies.mozilla_glean_forUnitTests
 }
 

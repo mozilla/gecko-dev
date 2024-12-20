@@ -62,7 +62,7 @@ dependencies {
     testImplementation ComponentsDependencies.androidx_test_core
     testImplementation ComponentsDependencies.androidx_test_junit
     testImplementation ComponentsDependencies.androidx_work_testing
-    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_forUnitTests
+    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
     testImplementation ComponentsDependencies.testing_coroutines
     testImplementation ComponentsDependencies.testing_robolectric
 }

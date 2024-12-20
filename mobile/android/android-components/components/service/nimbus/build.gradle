@@ -81,7 +81,7 @@ dependencies {
     // send crash reports to Socorro (GV).
     compileOnly ComponentsDependencies.mozilla_glean
 
-    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_forUnitTests
+    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
     testImplementation ComponentsDependencies.androidx_test_core
     testImplementation ComponentsDependencies.androidx_test_junit
     testImplementation ComponentsDependencies.testing_mockwebserver
