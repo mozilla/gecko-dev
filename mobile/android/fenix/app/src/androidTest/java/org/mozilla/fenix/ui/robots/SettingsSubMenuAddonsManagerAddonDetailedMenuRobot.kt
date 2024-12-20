@@ -19,6 +19,8 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingResources
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
+import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.ViewVisibilityIdlingResource
 import org.mozilla.fenix.helpers.click
 
@@ -27,6 +29,12 @@ import org.mozilla.fenix.helpers.click
  */
 
 class SettingsSubMenuAddonsManagerAddonDetailedMenuRobot {
+
+    fun disableExtension() {
+        Log.i(TAG, "disableExtension: Trying to click the enable/disable extension toggle")
+        enableOrDisableExtensionToggle().click()
+        Log.i(TAG, "disableExtension: Clicked the enable/disable extension toggle")
+    }
 
     class Transition {
         fun goBack(interact: SettingsSubMenuAddonsManagerRobot.() -> Unit): SettingsSubMenuAddonsManagerRobot.Transition {
@@ -61,3 +69,5 @@ class SettingsSubMenuAddonsManagerAddonDetailedMenuRobot {
 
 private fun removeAddonButton() =
     onView(withId(R.id.remove_add_on))
+
+private fun enableOrDisableExtensionToggle() = itemWithResId("$packageName:id/enable_switch")

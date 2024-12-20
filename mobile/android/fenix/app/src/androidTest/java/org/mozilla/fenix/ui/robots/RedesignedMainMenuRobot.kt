@@ -138,6 +138,12 @@ class RedesignedMainMenuRobot {
         Log.i(TAG, "verifyTheDefaultToolsMenuItems: Verified the Open in App button is displayed.")
     }
 
+    fun clickPrintContentButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickPrintContentButton: Trying to click the \"Print…\" button.")
+        composeTestRule.printContentButton().performClick()
+        Log.i(TAG, "clickPrintContentButton: Clicked the \"Print…\" button.")
+    }
+
     fun verifySettingsButton(composeTestRule: ComposeTestRule) {
         Log.i(
             TAG,
@@ -171,6 +177,30 @@ class RedesignedMainMenuRobot {
                 "verifySwitchToDesktopSiteButtonIsEnabled: Verified the Switch to Desktop Site button from the new main menu design is disabled.",
             )
         }
+    }
+
+    fun verifySwitchToDesktopSiteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifySwitchToDesktopSiteButton: Trying to verify that the \"Switch to desktop site\" button is displayed.")
+        composeTestRule.desktopSiteButton().assertIsDisplayed()
+        Log.i(TAG, "verifySwitchToDesktopSiteButton: Verified that the \"Switch to desktop site\" button is displayed.")
+    }
+
+    fun verifySwitchToMobileSiteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifySwitchToMobileSiteButton: Trying to verify that the \"Switch to mobile site\" button is displayed.")
+        composeTestRule.mobileSiteButton().assertIsDisplayed()
+        Log.i(TAG, "verifySwitchToMobileSiteButton: Verified that the \"Switch to mobile site\" button is displayed.")
+    }
+
+    fun clickSwitchToDesktopSiteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickSwitchToDesktopSiteButton: Trying to click the \"Switch to desktop site\" button.")
+        composeTestRule.desktopSiteButton().performClick()
+        Log.i(TAG, "clickSwitchToDesktopSiteButton: Clicked the \"Switch to desktop site\" button.")
+    }
+
+    fun clickSwitchToMobileSiteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickSwitchToMobileSiteButton: Trying to click the \"Switch to mobile site\" button.")
+        composeTestRule.mobileSiteButton().performClick()
+        Log.i(TAG, "clickSwitchToMobileSiteButton: Clicked the \"Switch to mobile site\" button.")
     }
 
     fun verifyReaderViewButtonIsEnabled(composeTestRule: ComposeTestRule, isEnabled: Boolean) {
@@ -601,6 +631,8 @@ private fun ComposeTestRule.toolsMenuButton() = onNodeWithTag("mainMenu.tools")
 private fun ComposeTestRule.saveMenuButton() = onNodeWithTag("mainMenu.save")
 
 private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site))
+
+private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_mobile_site))
 
 // Save sub menu items
 
