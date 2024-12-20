@@ -250,7 +250,12 @@ class MOZ_RAII AutoProfilerStats {
                                                                              \
     MACRO(26, "sandbox", Sandbox,                                            \
           "Report sandbox syscalls and logs in the "                         \
-          "profiler.")
+          "profiler.")                                                       \
+                                                                             \
+    MACRO(27, "flows", Flows,                                                \
+          "Include all flow-related markers. These markers show the program" \
+          "better but can cause more overhead in some places than normal.")
+
 // *** Synchronize with lists in ProfilerState.h and geckoProfiler.json ***
 
 struct ProfilerFeature {
