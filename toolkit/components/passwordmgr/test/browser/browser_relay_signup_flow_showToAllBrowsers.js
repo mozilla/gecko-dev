@@ -135,14 +135,14 @@ add_task(
           ".firefox-fxa-and-relay-offer-tos-url"
         );
         Assert.ok(
-          relayTermsLink,
+          relayTermsLink.href,
           "Relay opt-in prompt includes link to terms of service."
         );
         const relayPrivacyLink = fxaRelayOptInPrompt.querySelector(
           ".firefox-fxa-and-relay-offer-privacy-url"
         );
         Assert.ok(
-          relayPrivacyLink,
+          relayPrivacyLink.href,
           "Relay opt-in prompt includes link to privacy notice."
         );
         const relayLearnMoreLink = fxaRelayOptInPrompt.querySelector(

@@ -748,12 +748,18 @@ class RelayOffered {
               document.querySelector(
                 '[data-l10n-name="firefox-fxa-and-relay-offer-domain"]'
               ).textContent = baseDomain;
-              document.getElementById(
-                "firefox-fxa-and-relay-offer-tos-url"
-              ).href = gConfig.termsOfServiceUrl;
-              document.getElementById(
-                "firefox-fxa-and-relay-offer-privacy-url"
-              ).href = gConfig.privacyPolicyUrl;
+              const tosLink = document.querySelector(
+                ".firefox-fxa-and-relay-offer-tos-url"
+              );
+              if (tosLink) {
+                tosLink.href = gConfig.termsOfServiceUrl;
+              }
+              const privacyPolicyLink = document.querySelector(
+                ".firefox-fxa-and-relay-offer-privacy-url"
+              );
+              if (privacyPolicyLink) {
+                privacyPolicyLink.href = gConfig.privacyPolicyUrl;
+              }
               Glean.relayIntegration.shownOptInPanel.record({ value: gFlowId });
               break;
             }
