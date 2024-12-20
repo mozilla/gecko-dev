@@ -599,6 +599,23 @@ skip script test262/built-ins/AsyncGeneratorPrototype/return/return-suspendedYie
 # Time zone canonicalization proposal.
 skip script test262/intl402/DateTimeFormat/timezone-not-canonicalized.js
 skip script test262/intl402/DateTimeFormat/timezone-case-insensitive.js
+skip script test262/intl402/Temporal/ZonedDateTime/from/do-not-canonicalize-iana-identifiers.js
+skip script test262/intl402/Temporal/ZonedDateTime/from/timezone-case-insensitive.js
+skip script test262/intl402/Temporal/ZonedDateTime/from/argument-valid.js
+skip script test262/intl402/Temporal/ZonedDateTime/from/etc-timezone.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-europe.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-etcetera.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-backzone.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-northamerica.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-backward.js
+skip script test262/intl402/Temporal/ZonedDateTime/etc-timezone.js
+skip script test262/intl402/Temporal/ZonedDateTime/iana-legacy-names.js
+skip script test262/intl402/Temporal/ZonedDateTime/timezone-ids-basic.js
+skip script test262/intl402/Temporal/ZonedDateTime/links-asia.js
+skip script test262/intl402/Temporal/ZonedDateTime/non-canonical-utc.js
+skip script test262/intl402/Temporal/ZonedDateTime/iana-legacy-names.js
+skip script test262/intl402/Temporal/ZonedDateTime/timezone-case-insensitive.js
+skip script test262/intl402/Temporal/ZonedDateTime/timezone-ids-basic.js
 
 # https://github.com/tc39/test262/pull/4209
 skip script test262/language/statements/with/set-mutable-binding-binding-deleted-in-get-unscopables-strict-mode.js
@@ -676,6 +693,23 @@ skip script test262/built-ins/Object/freeze/typedarray-backed-by-resizable-buffe
 
 # https://github.com/tc39/test262/pull/4309
 skip script test262/intl402/Temporal/PlainDate/prototype/until/until-across-lunisolar-leap-months.js
+
+# https://github.com/tc39/test262/pull/4343
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/offset-time-zone-not-supported.js
+
+# https://github.com/tc39/test262/pull/4342
+skip script test262/staging/Intl402/Temporal/old/date-time-format.js
+
+# https://github.com/tc39/test262/pull/4248
+skip script test262/staging/Intl402/Temporal/old/date-toLocaleString.js
+skip script test262/staging/Intl402/Temporal/old/time-toLocaleString.js
+skip script test262/staging/Intl402/Temporal/old/yearmonth-toLocaleString.js
+skip script test262/staging/Intl402/Temporal/old/datetime-toLocaleString.js
+skip script test262/staging/Intl402/Temporal/old/monthday-toLocaleString.js
+skip script test262/staging/Intl402/Temporal/old/instant-toLocaleString.js
+
+# https://github.com/tc39/test262/pull/4101
+skip script test262/staging/Intl402/Temporal/old/islamic-calendars.js
 
 
 ##############################################
@@ -1053,118 +1087,3 @@ skip script test262/built-ins/Temporal/ZonedDateTime/from/argument-string-limits
 skip script test262/built-ins/Temporal/ZonedDateTime/prototype/equals/argument-string-limits.js
 skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/argument-string-limits.js
 skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/argument-string-limits.js
-
-
-##############################################
-# Temporal Intl tests                        #
-##############################################
-
-# Skip tests which require Intl.DateTimeFormat supporting Temporal objects.
-
-skip script test262/intl402/DateTimeFormat/prototype/format/temporal-objects-resolved-time-zone.js
-skip script test262/intl402/DateTimeFormat/prototype/formatRange/temporal-objects-resolved-time-zone.js
-skip script test262/intl402/DateTimeFormat/prototype/formatRangeToParts/temporal-objects-resolved-time-zone.js
-skip script test262/intl402/DateTimeFormat/prototype/formatToParts/temporal-objects-resolved-time-zone.js
-skip script test262/intl402/DateTimeFormat/prototype/format/temporal-objects-not-overlapping-options.js
-skip script test262/intl402/DateTimeFormat/prototype/formatRange/temporal-objects-not-overlapping-options.js
-skip script test262/intl402/DateTimeFormat/prototype/formatRangeToParts/temporal-objects-not-overlapping-options.js
-skip script test262/intl402/DateTimeFormat/prototype/formatToParts/temporal-objects-not-overlapping-options.js
-
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/default-includes-time-not-time-zone-name.js
-skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/lone-options-accepted.js
-
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/resolved-time-zone.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/calendar-mismatch.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/lone-options-accepted.js
-
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/resolved-time-zone.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/calendar-mismatch.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/default-includes-time-not-time-zone-name.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/lone-options-accepted.js
-
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/resolved-time-zone.js
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/calendar-mismatch.js
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/lone-options-accepted.js
-
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/resolved-time-zone.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/default-does-not-include-date-and-time-zone-name.js
-skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/lone-options-accepted.js
-
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/resolved-time-zone.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/calendar-mismatch.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/lone-options-accepted.js
-
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/locales-undefined.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/options-conflict.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/options-undefined.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/time-zone-canonicalized.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/options-timeZoneName-affects-instance-time-zone.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/offset-time-zone-not-supported.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/calendar-mismatch.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/options-timeZone.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/dateStyle.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/default-includes-time-and-time-zone-name.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/lone-options-accepted.js
-
-skip script test262/intl402/Temporal/PlainDateTime/prototype/with/non-iso-calendar-fields.js
-skip script test262/intl402/Temporal/PlainYearMonth/prototype/with/non-iso-calendar-fields.js
-skip script test262/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/startOfDay/dst-skipped-cross-midnight.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/hoursInDay/dst-skipped-cross-midnight.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/withPlainTime/dst-skipped-cross-midnight.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/round/dst-skipped-cross-midnight.js
-skip script test262/intl402/Temporal/PlainDate/prototype/toZonedDateTime/dst-skipped-cross-midnight.js
-skip script test262/intl402/Temporal/PlainDate/prototype/with/non-iso-calendar-fields.js
-
-skip script test262/staging/Intl402/Temporal/old/date-time-format.js
-skip script test262/staging/Intl402/Temporal/old/date-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/time-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/yearmonth-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/datetime-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/monthday-toLocaleString.js
-skip script test262/staging/Intl402/Temporal/old/instant-toLocaleString.js
-
-# Tailored to the Temporal polyfill. Not necessarily applicable for other implementations.
-skip script test262/staging/Intl402/Temporal/old/addition-across-lunisolar-leap-months.js
-skip script test262/staging/Intl402/Temporal/old/japanese-before-era.js
-skip script test262/staging/Intl402/Temporal/old/islamic-calendars.js
-
-# Time zone identifier canonicalization.
-skip script test262/intl402/Temporal/ZonedDateTime/from/do-not-canonicalize-iana-identifiers.js
-skip script test262/intl402/Temporal/ZonedDateTime/from/timezone-case-insensitive.js
-skip script test262/intl402/Temporal/ZonedDateTime/from/argument-valid.js
-skip script test262/intl402/Temporal/ZonedDateTime/from/etc-timezone.js
-skip script test262/intl402/Temporal/ZonedDateTime/links-europe.js
-skip script test262/intl402/Temporal/ZonedDateTime/links-etcetera.js
-skip script test262/intl402/Temporal/ZonedDateTime/links-backzone.js
-skip script test262/intl402/Temporal/ZonedDateTime/links-northamerica.js
-skip script test262/intl402/Temporal/ZonedDateTime/links-backward.js
-skip script test262/intl402/Temporal/ZonedDateTime/etc-timezone.js
-skip script test262/intl402/Temporal/ZonedDateTime/iana-legacy-names.js
-skip script test262/intl402/Temporal/ZonedDateTime/timezone-ids-basic.js
-skip script test262/intl402/Temporal/ZonedDateTime/links-asia.js
-skip script test262/intl402/Temporal/ZonedDateTime/non-canonical-utc.js
-skip script test262/intl402/Temporal/ZonedDateTime/iana-legacy-names.js
-skip script test262/intl402/Temporal/ZonedDateTime/timezone-case-insensitive.js
-skip script test262/intl402/Temporal/ZonedDateTime/timezone-ids-basic.js
