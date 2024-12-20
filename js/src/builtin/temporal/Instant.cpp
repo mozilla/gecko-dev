@@ -25,6 +25,7 @@
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
+#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/Duration.h"
 #include "builtin/temporal/Int96.h"
@@ -1148,18 +1149,10 @@ static bool Instant_toString(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.Instant.prototype.toLocaleString ( [ locales [ , options ] ] )
  */
 static bool Instant_toLocaleString(JSContext* cx, const CallArgs& args) {
-  auto epochNs = args.thisv().toObject().as<InstantObject>().epochNanoseconds();
-
-  // Step 3.
-  Rooted<TimeZoneValue> timeZone(cx);
-  JSString* str =
-      TemporalInstantToString(cx, epochNs, timeZone, Precision::Auto());
-  if (!str) {
-    return false;
-  }
-
-  args.rval().setString(str);
-  return true;
+  // Steps 3-4.
+  Handle<PropertyName*> required = cx->names().any;
+  Handle<PropertyName*> defaults = cx->names().all;
+  return TemporalObjectToLocaleString(cx, args, required, defaults);
 }
 
 /**

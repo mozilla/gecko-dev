@@ -26,6 +26,7 @@
 #include "jstypes.h"
 #include "NamespaceImports.h"
 
+#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Duration.h"
@@ -1675,17 +1676,10 @@ static bool PlainDate_toString(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainDate.prototype.toLocaleString ( [ locales [ , options ] ] )
  */
 static bool PlainDate_toLocaleString(JSContext* cx, const CallArgs& args) {
-  Rooted<PlainDateObject*> temporalDate(
-      cx, &args.thisv().toObject().as<PlainDateObject>());
-
-  // Step 3.
-  JSString* str = TemporalDateToString(cx, temporalDate, ShowCalendar::Auto);
-  if (!str) {
-    return false;
-  }
-
-  args.rval().setString(str);
-  return true;
+  // Steps 3-4.
+  Handle<PropertyName*> required = cx->names().date;
+  Handle<PropertyName*> defaults = cx->names().date;
+  return TemporalObjectToLocaleString(cx, args, required, defaults);
 }
 
 /**

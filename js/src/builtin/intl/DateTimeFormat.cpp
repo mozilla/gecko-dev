@@ -2789,3 +2789,41 @@ bool js::intl_FormatDateTimeRange(JSContext* cx, unsigned argc, Value* vp) {
              ? FormatDateTimeRangeToParts(cx, df, dif, x, y, args.rval())
              : FormatDateTimeRange(cx, df, dif, x, y, args.rval());
 }
+
+bool js::TemporalObjectToLocaleString(JSContext* cx, const CallArgs& args,
+                                      Handle<JSString*> required,
+                                      Handle<JSString*> defaults) {
+  MOZ_ASSERT(args.thisv().isObject());
+
+  auto kind = ToDateTimeFormattable(args.thisv());
+  MOZ_ASSERT(kind != DateTimeValueKind::Number);
+
+  Rooted<DateTimeFormatObject*> dateTimeFormat(
+      cx, NewBuiltinClassInstance<DateTimeFormatObject>(cx));
+  if (!dateTimeFormat) {
+    return false;
+  }
+
+  Rooted<Value> thisValue(cx, ObjectValue(*dateTimeFormat));
+  Rooted<Value> ignored(cx);
+  if (!intl::InitializeDateTimeFormatObject(
+          cx, dateTimeFormat, thisValue, args.get(0), args.get(1), required,
+          defaults, DateTimeFormatOptions::Standard, &ignored)) {
+    return false;
+  }
+  MOZ_ASSERT(&ignored.toObject() == dateTimeFormat);
+
+  JS::ClippedTime x;
+  if (!HandleDateTimeValue(cx, "toLocaleString", dateTimeFormat, args.thisv(),
+                           &x)) {
+    return false;
+  }
+  MOZ_ASSERT(x.isValid());
+
+  auto* df = GetOrCreateDateTimeFormat(cx, dateTimeFormat, kind);
+  if (!df) {
+    return false;
+  }
+
+  return intl_FormatDateTime(cx, df, x, args.rval());
+}

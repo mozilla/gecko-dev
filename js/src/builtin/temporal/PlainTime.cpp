@@ -20,6 +20,7 @@
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
+#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Duration.h"
 #include "builtin/temporal/Instant.h"
 #include "builtin/temporal/PlainDate.h"
@@ -1533,17 +1534,10 @@ static bool PlainTime_toString(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainTime.prototype.toLocaleString ( [ locales [ , options ] ] )
  */
 static bool PlainTime_toLocaleString(JSContext* cx, const CallArgs& args) {
-  auto* temporalTime = &args.thisv().toObject().as<PlainTimeObject>();
-  auto time = temporalTime->time();
-
-  // Step 3.
-  JSString* str = TimeRecordToString(cx, time, Precision::Auto());
-  if (!str) {
-    return false;
-  }
-
-  args.rval().setString(str);
-  return true;
+  // Steps 3-4.
+  Handle<PropertyName*> required = cx->names().time;
+  Handle<PropertyName*> defaults = cx->names().time;
+  return TemporalObjectToLocaleString(cx, args, required, defaults);
 }
 
 /**
