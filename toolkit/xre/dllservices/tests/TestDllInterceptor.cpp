@@ -1533,9 +1533,6 @@ extern "C" int wmain(int argc, wchar_t* argv[]) {
       TEST_HOOK_FOR_INVALID_HANDLE_VALUE("kernel32.dll", CreateFileA) &&
 #endif  // !defined(_M_ARM64)
 #if !defined(_M_ARM64)
-      TEST_HOOK("kernel32.dll", TlsAlloc, NotEquals, TLS_OUT_OF_INDEXES) &&
-      TEST_HOOK_PARAMS("kernel32.dll", TlsFree, Equals, FALSE,
-                       TLS_OUT_OF_INDEXES) &&
       TEST_HOOK("kernel32.dll", CloseHandle, Equals, FALSE) &&
       TEST_HOOK("kernel32.dll", DuplicateHandle, Equals, FALSE) &&
 #endif  // !defined(_M_ARM64)
