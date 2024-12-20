@@ -46,9 +46,6 @@ run-if = [ # FIXME: enable on more desktop platforms (see bug 1608506 comment 4)
   "os == 'android'",
   "os == 'mac'",
 ]
-skip-if = [
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1776967
-]
 
 ["test_group_double_tap_zoom.html"]
 run-if = [ # FIXME: enable on more desktop platforms (see bug 1608506 comment 4)
