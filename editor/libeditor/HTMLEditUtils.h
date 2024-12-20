@@ -15,6 +15,7 @@
 #include "EditorBase.h"
 #include "EditorDOMPoint.h"
 #include "EditorForwards.h"
+#include "EditorLineBreak.h"
 #include "EditorUtils.h"
 #include "HTMLEditHelpers.h"
 
@@ -2006,13 +2007,15 @@ class HTMLEditUtils final {
   }
 
   /**
-   * Get the first <br> element in aElement.  This scans only leaf nodes so
+   * Get the first line break in aElement.  This scans only leaf nodes so
    * if a <br> element has children illegally, it'll be ignored.
    *
-   * @param aElement    The element which may have a <br> element.
-   * @return            First <br> element node in aElement if there is.
+   * @param aElement    The element which may have a <br> element or a
+   *                    preformatted linefeed.
    */
-  static dom::HTMLBRElement* GetFirstBRElement(const dom::Element& aElement) {
+  template <typename EditorLineBreakType>
+  static Maybe<EditorLineBreakType> GetFirstLineBreak(
+      const dom::Element& aElement) {
     for (nsIContent* content = HTMLEditUtils::GetFirstLeafContent(
              aElement, {LeafNodeType::OnlyLeafNode});
          content; content = HTMLEditUtils::GetNextContent(
@@ -2021,10 +2024,11 @@ class HTMLEditUtils final {
                        WalkTreeOption::IgnoreWhiteSpaceOnlyText},
                       BlockInlineCheck::Unused, &aElement)) {
       if (auto* brElement = dom::HTMLBRElement::FromNode(*content)) {
-        return brElement;
+        return Some(EditorLineBreakType(*brElement));
       }
+      // TODO: Return a preformatted line break position.
     }
-    return nullptr;
+    return Nothing();
   }
 
   enum class ScanLineBreak {
@@ -2035,7 +2039,8 @@ class HTMLEditUtils final {
    * Return last <br> element or last text node ending with a preserved line
    * break of/before aBlockElement.
    */
-  static nsIContent* GetUnnecessaryLineBreakContent(
+  template <typename EditorLineBreakType>
+  static Maybe<EditorLineBreakType> GetUnnecessaryLineBreak(
       const Element& aBlockElement, ScanLineBreak aScanLineBreak);
 
   /**
@@ -2043,9 +2048,10 @@ class HTMLEditUtils final {
    * before a block boundary but it's not necessary to make the preceding
    * empty line of the block boundary visible anymore.
    */
-  template <typename EditorDOMPointType>
-  [[nodiscard]] static nsIContent* GetFollowingUnnecessaryLineBreakContent(
-      const EditorDOMPointType& aPoint, const Element& aEditingHost);
+  template <typename EditorLineBreakType, typename EditorDOMPointType>
+  [[nodiscard]] static Maybe<EditorLineBreakType>
+  GetFollowingUnnecessaryLineBreak(const EditorDOMPointType& aPoint,
+                                   const Element& aEditingHost);
 
   /**
    * IsInTableCellSelectionMode() returns true when Gecko's editor thinks that

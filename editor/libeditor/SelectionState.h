@@ -505,6 +505,7 @@ class MOZ_STACK_CLASS AutoTrackDOMRange final {
 
 class MOZ_STACK_CLASS AutoTrackDOMMoveNodeResult final {
  public:
+  AutoTrackDOMMoveNodeResult() = delete;
   AutoTrackDOMMoveNodeResult(RangeUpdater& aRangeUpdater,
                              MoveNodeResult* aMoveNodeResult);
 
@@ -527,6 +528,7 @@ class MOZ_STACK_CLASS AutoTrackDOMMoveNodeResult final {
 
 class MOZ_STACK_CLASS AutoTrackDOMDeleteRangeResult final {
  public:
+  AutoTrackDOMDeleteRangeResult() = delete;
   AutoTrackDOMDeleteRangeResult(RangeUpdater& aRangeUpdater,
                                 DeleteRangeResult* aDeleteRangeResult);
 
@@ -542,6 +544,20 @@ class MOZ_STACK_CLASS AutoTrackDOMDeleteRangeResult final {
  private:
   AutoTrackDOMPoint mTrackCaretPoint;
   AutoTrackDOMRange mTrackDeleteRange;
+};
+
+class MOZ_STACK_CLASS AutoTrackLineBreak final {
+ public:
+  AutoTrackLineBreak() = delete;
+  AutoTrackLineBreak(RangeUpdater& aRangeUpdater, EditorLineBreak* aLineBreak);
+
+  void FlushAndStopTracking();
+  void StopTracking() { mTracker.StopTracking(); }
+
+ private:
+  EditorLineBreak* mLineBreak;
+  EditorDOMPoint mPoint;
+  AutoTrackDOMPoint mTracker;
 };
 
 /**

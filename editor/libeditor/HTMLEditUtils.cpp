@@ -153,13 +153,25 @@ template bool HTMLEditUtils::IsSameCSSColorValue(const nsAString& aColorA,
 template bool HTMLEditUtils::IsSameCSSColorValue(const nsACString& aColorA,
                                                  const nsACString& aColorB);
 
-template nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+template Maybe<EditorLineBreak> HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
     const EditorDOMPoint& aPoint, const Element& aEditingHost);
-template nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+template Maybe<EditorLineBreak> HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
     const EditorRawDOMPoint& aPoint, const Element& aEditingHost);
-template nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+template Maybe<EditorLineBreak> HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
     const EditorDOMPointInText& aPoint, const Element& aEditingHost);
-template nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+template Maybe<EditorLineBreak> HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
+    const EditorRawDOMPointInText& aPoint, const Element& aEditingHost);
+template Maybe<EditorRawLineBreak>
+HTMLEditUtils::GetFollowingUnnecessaryLineBreak(const EditorDOMPoint& aPoint,
+                                                const Element& aEditingHost);
+template Maybe<EditorRawLineBreak>
+HTMLEditUtils::GetFollowingUnnecessaryLineBreak(const EditorRawDOMPoint& aPoint,
+                                                const Element& aEditingHost);
+template Maybe<EditorRawLineBreak>
+HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
+    const EditorDOMPointInText& aPoint, const Element& aEditingHost);
+template Maybe<EditorRawLineBreak>
+HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
     const EditorRawDOMPointInText& aPoint, const Element& aEditingHost);
 
 template bool HTMLEditUtils::PointIsImmediatelyBeforeCurrentBlockBoundary(
@@ -178,6 +190,11 @@ template bool HTMLEditUtils::PointIsImmediatelyBeforeCurrentBlockBoundary(
     const EditorRawDOMPointInText& aPoint,
     IgnoreInvisibleLineBreak aIgnoreInvisibleLineBreak,
     const Element& aEditingHost);
+
+template Maybe<EditorLineBreak> HTMLEditUtils::GetUnnecessaryLineBreak(
+    const Element& aBlockElement, ScanLineBreak aScanLineBreak);
+template Maybe<EditorRawLineBreak> HTMLEditUtils::GetUnnecessaryLineBreak(
+    const Element& aBlockElement, ScanLineBreak aScanLineBreak);
 
 bool HTMLEditUtils::CanContentsBeJoined(const nsIContent& aLeftContent,
                                         const nsIContent& aRightContent) {
@@ -1006,7 +1023,8 @@ bool HTMLEditUtils::PointIsImmediatelyBeforeCurrentBlockBoundary(
   return false;
 }
 
-nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
+template <typename EditorLineBreakType>
+Maybe<EditorLineBreakType> HTMLEditUtils::GetUnnecessaryLineBreak(
     const Element& aBlockElement, ScanLineBreak aScanLineBreak) {
   auto* lastLineBreakContent = [&]() -> nsIContent* {
     const LeafNodeTypes leafNodeOrNonEditableNode{
@@ -1076,16 +1094,20 @@ nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
     return nullptr;
   }();
   if (!lastLineBreakContent) {
-    return nullptr;
+    return Nothing();
   }
 
   // If the found node is a text node and contains only one preformatted new
   // line break, we need to keep scanning previous one, but if it has 2 or more
   // characters, we know it has redundant line break.
-  Text* lastLineBreakText = Text::FromNode(lastLineBreakContent);
+  Text* const lastLineBreakText = Text::FromNode(lastLineBreakContent);
   if (lastLineBreakText && lastLineBreakText->TextDataLength() != 1u) {
-    return lastLineBreakText;
+    return Some(EditorLineBreakType::AtLastChar(*lastLineBreakText));
   }
+  HTMLBRElement* const lastBRElement =
+      lastLineBreakText ? nullptr
+                        : HTMLBRElement::FromNode(lastLineBreakContent);
+  MOZ_ASSERT_IF(!lastLineBreakText, lastBRElement);
 
   // Scan previous leaf content, but now, we can stop at child block boundary.
   const LeafNodeTypes leafNodeOrNonEditableNodeOrChildBlock{
@@ -1110,10 +1132,10 @@ nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
       //                                       ^^^^
       // In this case, the <br> element is necessary to make a following empty
       // line of the inner <div> visible.
-      return nullptr;
+      return Nothing();
     }
     if (Text* textNode = Text::FromNode(content)) {
-      if (!textNode->TextLength()) {
+      if (!textNode->TextDataLength()) {
         continue;  // ignore empty text node
       }
       const nsTextFragment& textFragment = textNode->TextFragment();
@@ -1124,7 +1146,7 @@ nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
         // lastLineBreakContent which is <br> or a text node containing only
         // one.  In this case, even if their parents are different,
         // lastLineBreakContent is necessary to make the last line visible.
-        return nullptr;
+        return Nothing();
       }
       if (!HTMLEditUtils::IsVisibleTextNode(*textNode)) {
         continue;
@@ -1132,7 +1154,9 @@ nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
       if (EditorUtils::IsWhiteSpacePreformatted(*textNode)) {
         // If the white-space is preserved, neither following <br> nor a
         // preformatted line break is not necessary.
-        return lastLineBreakContent;
+        return Some(lastLineBreakText
+                        ? EditorLineBreakType::AtLastChar(*lastLineBreakText)
+                        : EditorLineBreakType(*lastBRElement));
       }
       // Otherwise, only if the last character is a collapsible white-space,
       // we need lastLineBreakContent to make the trailing white-space visible.
@@ -1141,9 +1165,11 @@ nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
         case HTMLEditUtils::kNewLine:
         case HTMLEditUtils::kCarriageReturn:
         case HTMLEditUtils::kTab:
-          return nullptr;
+          return Nothing();
         default:
-          return lastLineBreakContent;
+          return Some(lastLineBreakText
+                          ? EditorLineBreakType::AtLastChar(*lastLineBreakText)
+                          : EditorLineBreakType(*lastBRElement));
       }
     }
     if (content->IsCharacterData()) {
@@ -1152,20 +1178,22 @@ nsIContent* HTMLEditUtils::GetUnnecessaryLineBreakContent(
     // If lastLineBreakContent follows a <br> element in same block, it's
     // necessary to make the empty last line visible.
     if (content->IsHTMLElement(nsGkAtoms::br)) {
-      return nullptr;
+      return Nothing();
     }
     if (HTMLEditUtils::IsVisibleElementEvenIfLeafNode(*content)) {
-      return lastLineBreakContent;
+      return Some(lastLineBreakText
+                      ? EditorLineBreakType::AtLastChar(*lastLineBreakText)
+                      : EditorLineBreakType(*lastBRElement));
     }
     // Otherwise, ignore empty inline elements such as <b>.
   }
   // If the block is empty except invisible data nodes and lastLineBreakContent,
   // lastLineBreakContent is necessary to make the block visible.
-  return nullptr;
+  return Nothing();
 }
 
-template <typename EditorDOMPointType>
-nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+template <typename EditorLineBreakType, typename EditorDOMPointType>
+Maybe<EditorLineBreakType> HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
     const EditorDOMPointType& aPoint, const Element& aEditingHost) {
   MOZ_ASSERT(aPoint.IsSetAndValid());
   MOZ_ASSERT(aPoint.IsInContentNode());
@@ -1177,7 +1205,7 @@ nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
       !(nextThing.ReachedPreformattedLineBreak() &&
         nextThing.PointAtReachedContent<EditorRawDOMPoint>()
             .IsAtLastContent())) {
-    return nullptr;  // no line break next to aPoint
+    return Nothing();  // no line break next to aPoint
   }
   WSScanResult nextThingOfLineBreak =
       WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
@@ -1191,16 +1219,18 @@ nsIContent* HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
                 *nextThing.GetContent(), {AncestorType::ClosestBlockElement},
                 BlockInlineCheck::UseComputedDisplayStyle);
   if (MOZ_UNLIKELY(!blockElement)) {
-    return nullptr;
+    return Nothing();
   }
-  nsIContent* const unnecessaryLineBreak = GetUnnecessaryLineBreakContent(
-      *blockElement, nextThingOfLineBreak.ReachedOtherBlockElement()
-                         ? ScanLineBreak::BeforeBlock
-                         : ScanLineBreak::AtEndOfBlock);
+  Maybe<EditorLineBreakType> unnecessaryLineBreak =
+      GetUnnecessaryLineBreak<EditorLineBreakType>(
+          *blockElement, nextThingOfLineBreak.ReachedOtherBlockElement()
+                             ? ScanLineBreak::BeforeBlock
+                             : ScanLineBreak::AtEndOfBlock);
   // If the line break content is different from the found line break
   // immediately after aPoint, it's too far. So, the caller should not touch it.
-  if (unnecessaryLineBreak != nextThing.GetContent()) {
-    return nullptr;
+  if (unnecessaryLineBreak.isSome() &&
+      &unnecessaryLineBreak->ContentRef() != nextThing.GetContent()) {
+    unnecessaryLineBreak.reset();
   }
   return unnecessaryLineBreak;
 }

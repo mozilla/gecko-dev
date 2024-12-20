@@ -12,6 +12,7 @@
 #include "EditAction.h"
 #include "EditorBase.h"
 #include "EditorDOMPoint.h"
+#include "EditorLineBreak.h"
 #include "EditorUtils.h"
 #include "ErrorList.h"
 #include "HTMLEditorEventListener.h"
@@ -4352,7 +4353,7 @@ Maybe<HTMLEditor::LineBreakType> HTMLEditor::GetPreferredLineBreakType(
   }
   // And also if we're the mail composer, the content needs to be serialized.
   // Therefore, we should always use <br> for the serializer.
-  if (IsMailEditor()) {
+  if (IsMailEditor() || IsPlaintextMailComposer()) {
     return Some(LineBreakType::BRElement);
   }
   if (HTMLEditUtils::ShouldInsertLinefeedCharacter(EditorDOMPoint(container, 0),
@@ -4433,32 +4434,28 @@ nsresult HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak(
       EditorUtils::IsNewLinePreformatted(
           *aNextOrAfterModifiedPoint.ContainerAs<nsIContent>());
 
-  const nsCOMPtr<nsIContent> unnecessaryLineBreakContent =
-      HTMLEditUtils::GetFollowingUnnecessaryLineBreakContent(
+  const Maybe<EditorLineBreak> unnecessaryLineBreak =
+      HTMLEditUtils::GetFollowingUnnecessaryLineBreak<EditorLineBreak>(
           aNextOrAfterModifiedPoint, aEditingHost);
-  if (MOZ_LIKELY(!unnecessaryLineBreakContent)) {
+  if (MOZ_LIKELY(unnecessaryLineBreak.isNothing())) {
     return NS_OK;
   }
-  if (unnecessaryLineBreakContent->IsHTMLElement(nsGkAtoms::br)) {
+  if (unnecessaryLineBreak->IsHTMLBRElement()) {
     // If the invisible break is a placeholder of ancestor inline elements, we
     // should not delete it to allow users to insert text with the format
     // specified by them.
     if (HTMLEditUtils::GetMostDistantAncestorEditableEmptyInlineElement(
-            *unnecessaryLineBreakContent,
+            unnecessaryLineBreak->BRElementRef(),
             BlockInlineCheck::UseComputedDisplayStyle)) {
       return NS_OK;
     }
-    nsresult rv = DeleteNodeWithTransaction(*unnecessaryLineBreakContent);
+    nsresult rv = DeleteNodeWithTransaction(
+        MOZ_KnownLive(unnecessaryLineBreak->BRElementRef()));
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "EditorBase::DeleteNodeWithTransaction() failed "
                          "to delete unnecessary <br>");
     return rv;
   }
-  Text* const textNode = Text::FromNode(unnecessaryLineBreakContent);
-  MOZ_ASSERT(textNode);
-  MOZ_ASSERT(textNode->TextDataLength() > 0);
-  MOZ_ASSERT(EditorRawDOMPoint(textNode, textNode->TextDataLength() - 1)
-                 .IsCharPreformattedNewLine());
   MOZ_ASSERT(isNewLinePreformatted);
   const auto IsVisibleChar = [&](char16_t aChar) {
     switch (aChar) {
@@ -4472,7 +4469,8 @@ nsresult HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak(
         return true;
     }
   };
-  const nsTextFragment& textFragment = textNode->TextFragment();
+  const nsTextFragment& textFragment =
+      unnecessaryLineBreak->TextRef().TextFragment();
   const uint32_t length = textFragment.GetLength();
   const DebugOnly<const char16_t> lastChar = textFragment.CharAt(length - 1);
   MOZ_ASSERT(lastChar == HTMLEditUtils::kNewLine);
@@ -4492,18 +4490,20 @@ nsresult HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak(
     // should not delete it to allow users to insert text with the format
     // specified by them.
     if (HTMLEditUtils::GetMostDistantAncestorEditableEmptyInlineElement(
-            *unnecessaryLineBreakContent,
+            unnecessaryLineBreak->TextRef(),
             BlockInlineCheck::UseComputedDisplayStyle)) {
       return NS_OK;
     }
-    nsresult rv = DeleteNodeWithTransaction(*unnecessaryLineBreakContent);
+    nsresult rv = DeleteNodeWithTransaction(
+        MOZ_KnownLive(unnecessaryLineBreak->TextRef()));
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "EditorBase::DeleteNodeWithTransaction() failed "
                          "to delete unnecessary Text node");
     return rv;
   }
   Result<CaretPoint, nsresult> result =
-      DeleteTextWithTransaction(MOZ_KnownLive(*textNode), length - 1, 1);
+      DeleteTextWithTransaction(MOZ_KnownLive(unnecessaryLineBreak->TextRef()),
+                                unnecessaryLineBreak->Offset(), 1);
   if (MOZ_UNLIKELY(result.isErr())) {
     NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
     return result.unwrapErr();

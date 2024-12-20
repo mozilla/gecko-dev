@@ -14,6 +14,7 @@
 #include "CSSEditUtils.h"
 #include "EditAction.h"
 #include "EditorDOMPoint.h"
+#include "EditorLineBreak.h"
 #include "EditorUtils.h"
 #include "HTMLEditHelpers.h"
 #include "HTMLEditorInlines.h"
@@ -7230,17 +7231,17 @@ nsresult HTMLEditor::AutoMoveOneLineHandler::
     }
   }
 
-  nsCOMPtr<nsIContent> lastLineBreakContent =
+  const Maybe<EditorLineBreak> lastLineBreak =
       mMovingToParentBlock
-          ? HTMLEditUtils::GetUnnecessaryLineBreakContent(
+          ? HTMLEditUtils::GetUnnecessaryLineBreak<EditorLineBreak>(
                 *mTopmostSrcAncestorBlockInDestBlock,
                 ScanLineBreak::BeforeBlock)
-          : HTMLEditUtils::GetUnnecessaryLineBreakContent(
+          : HTMLEditUtils::GetUnnecessaryLineBreak<EditorLineBreak>(
                 *mDestInclusiveAncestorBlock, ScanLineBreak::AtEndOfBlock);
-  if (!lastLineBreakContent) {
+  if (lastLineBreak.isNothing()) {
     return NS_OK;
   }
-  EditorRawDOMPoint atUnnecessaryLineBreak(lastLineBreakContent);
+  const auto atUnnecessaryLineBreak = lastLineBreak->To<EditorRawDOMPoint>();
   if (NS_WARN_IF(!atUnnecessaryLineBreak.IsSet())) {
     return NS_ERROR_FAILURE;
   }
@@ -7255,28 +7256,24 @@ nsresult HTMLEditor::AutoMoveOneLineHandler::
   AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
   // If it's a text node and ending with a preformatted line break, we should
   // delete it.
-  if (Text* textNode = Text::FromNode(lastLineBreakContent)) {
-    MOZ_ASSERT(EditorUtils::IsNewLinePreformatted(*textNode));
-    if (textNode->TextDataLength() > 1) {
-      Result<CaretPoint, nsresult> caretPointOrError =
-          aHTMLEditor.DeleteTextWithTransaction(
-              MOZ_KnownLive(*textNode), textNode->TextDataLength() - 1u, 1u);
-      if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
-        NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
-        return caretPointOrError.unwrapErr();
-      }
-      // IgnoreCaretPointSuggestion() because of dontChangeMySelection above.
-      caretPointOrError.unwrap().IgnoreCaretPointSuggestion();
-      return NS_OK;
+  if (lastLineBreak->IsPreformattedLineBreak() && lastLineBreak->Offset()) {
+    Result<CaretPoint, nsresult> caretPointOrError =
+        aHTMLEditor.DeleteTextWithTransaction(
+            MOZ_KnownLive(lastLineBreak->TextRef()), lastLineBreak->Offset(),
+            1u);
+    if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
+      NS_WARNING("HTMLEditor::DeleteTextWithTransaction() failed");
+      return caretPointOrError.unwrapErr();
     }
-  } else {
-    MOZ_ASSERT(lastLineBreakContent->IsHTMLElement(nsGkAtoms::br));
+    // IgnoreCaretPointSuggestion() because of dontChangeMySelection above.
+    caretPointOrError.unwrap().IgnoreCaretPointSuggestion();
+    return NS_OK;
   }
   // If last line break content is the only content of its inline parent, we
   // should remove the parent too.
   if (const RefPtr<Element> inlineElement =
           HTMLEditUtils::GetMostDistantAncestorEditableEmptyInlineElement(
-              *lastLineBreakContent,
+              lastLineBreak->ContentRef(),
               BlockInlineCheck::UseComputedDisplayOutsideStyle,
               &aEditingHost)) {
     nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(*inlineElement);
@@ -7286,7 +7283,8 @@ nsresult HTMLEditor::AutoMoveOneLineHandler::
   }
   // Or if the text node has only the preformatted line break or <br> element,
   // we should remove it.
-  nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(*lastLineBreakContent);
+  nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
+      MOZ_KnownLive(lastLineBreak->ContentRef()));
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::DeleteNodeWithTransaction() failed");
   return rv;

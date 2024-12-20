@@ -7,6 +7,7 @@
 
 #include "AutoRangeArray.h"   // for AutoRangeArray
 #include "EditorUtils.h"      // for EditorUtils, AutoRangeArray
+#include "EditorLineBreak.h"  // for EditorLineBreak
 #include "HTMLEditHelpers.h"  // for DeleteRangeResult
 
 #include "ErrorList.h"
@@ -619,5 +620,28 @@ AutoTrackDOMDeleteRangeResult::AutoTrackDOMDeleteRangeResult(
     : mTrackCaretPoint(aRangeUpdater,
                        static_cast<CaretPoint*>(aDeleteRangeResult)),
       mTrackDeleteRange(aRangeUpdater, &aDeleteRangeResult->mDeleteRange) {}
+
+/******************************************************************************
+ * mozilla::AutoTrackLineBreak
+ ******************************************************************************/
+
+AutoTrackLineBreak::AutoTrackLineBreak(RangeUpdater& aRangeUpdater,
+                                       EditorLineBreak* aLineBreak)
+    : mLineBreak(aLineBreak->IsPreformattedLineBreak() ? aLineBreak : nullptr),
+      mPoint(mLineBreak ? mLineBreak->To<EditorDOMPoint>() : EditorDOMPoint()),
+      mTracker(aRangeUpdater, &mPoint) {
+  MOZ_ASSERT(aLineBreak->IsPreformattedLineBreak());
+}
+
+void AutoTrackLineBreak::FlushAndStopTracking() {
+  if (!mLineBreak) {
+    return;
+  }
+  mTracker.FlushAndStopTracking();
+  if (mPoint.GetContainer() == mLineBreak->mContent) {
+    mLineBreak->mOffsetInText = Some(mPoint.Offset());
+  }
+  mLineBreak = nullptr;
+}
 
 }  // namespace mozilla

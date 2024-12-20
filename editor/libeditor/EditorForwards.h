@@ -69,6 +69,12 @@ using EditorRawDOMPoint = EditorDOMPointBase<nsINode*, nsIContent*>;
 using EditorDOMPointInText = EditorDOMPointBase<RefPtr<dom::Text>, nsIContent*>;
 using EditorRawDOMPointInText = EditorDOMPointBase<dom::Text*, nsIContent*>;
 
+template <typename CT>
+class EditorLineBreakBase;  // EditorLineBreak.h
+
+using EditorLineBreak = EditorLineBreakBase<nsCOMPtr<nsIContent>>;
+using EditorRawLineBreak = EditorLineBreakBase<nsIContent*>;
+
 /******************************************************************************
  * classes
  ******************************************************************************/
