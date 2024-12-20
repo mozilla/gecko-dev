@@ -32,9 +32,9 @@ body {
     --caret-padding: var(--space-xsmall);
     --end-padding: 0px;
     --start-padding: calc(var(--caret-padding) + var(--background-image-width) + var(--space-xsmall));
-    background-color: var(--sidebar-background-color);
+    background-color: var(--button-background-color-ghost);
     background-position-x: var(--caret-anchor) var(--caret-padding);
-    color: var(--sidebar-text-color);
+    color: var(--button-text-color-ghost);
     flex: 1;
     height: var(--button-size-icon);
     margin-block: var(--space-xsmall);
