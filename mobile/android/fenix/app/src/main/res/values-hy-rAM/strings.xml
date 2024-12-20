@@ -367,6 +367,8 @@
     <string name="browser_menu_turn_on_reader_view">Միացնել Ընթերցելու տեսքը</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Անջատել Ընթերցելու տեսքը</string>
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Տեղափոխել ոչ մասնավոր ներդիր</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Թարգմանել էջը…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -605,14 +607,38 @@
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Ընտրեք գործիքագոտու տեղը</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Պահպանեք որոնումները հասանելիության սահմաններում:</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">Պահել և շարունակել</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">Պահել և շարունակել</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Բաց թողնել</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Վերևում</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Ներքևում</string>
+
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">Գործիքադարակի ընտրության դիտման մեծ վերնագրի պատկերը, որը ցույց է տալիս նկարազարդ գործիքագոտին:</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description">%1$s գործիքագոտու պատկեր</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Ընտրեք ժամանակը</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Տես համացանցը լավագույն լույսի ներքո:</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Պահել և սկսել դիտարկումը</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">Բաց թողնել</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Մուգ</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Լուսավոր</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Համակարգի տեղեկություն</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Թեմայի ընտրության դիտման մեծ վերնագրի պատկերը, որը ցույց է տալիս նկարազարդ նկարիչների և շինարարական գործիքները:</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">%1$s ձևավորման պատկեր</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1192,13 +1218,13 @@
     <string name="studies_learn_more">Իմանալ ավելին</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Փոփոխությունները գործադրելու համար հավելվածը կվերամեկնարկի</string>
+    <string name="studies_restart_app" moz:removedIn="135">Փոփոխությունները գործադրելու համար հավելվածը կվերամեկնարկի</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">Լավ</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">Լավ</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Չեղարկել</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Չեղարկել</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Փոփոխությունները կիրառելու համար լքում է հավելվածը…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Փոփոխությունները կիրառելու համար լքում է հավելվածը…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
