@@ -4471,6 +4471,9 @@ class HTMLEditor final : public EditorBase,
   // at proper position when editor is empty.
   RefPtr<dom::HTMLBRElement> mPaddingBRElementForEmptyEditor;
 
+  // This is set only when HandleInsertText appended a collapsible white-space.
+  RefPtr<dom::Text> mLastCollapsibleWhiteSpaceAppendedTextNode;
+
   bool mCRInParagraphCreatesParagraph;
 
   // resizing

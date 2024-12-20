@@ -1501,6 +1501,18 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
   }
 
   if (currentPoint.IsSet()) {
+    // If we appended a collapsible white-space to the end of the text node,
+    // its following content may be removed by the web app.  Then, we need to
+    // keep it visible even if it becomes immediately before a block boundary.
+    // For referring the node from our mutation observer, we need to store the
+    // text node temporarily.
+    if (currentPoint.IsInTextNode() &&
+        MOZ_LIKELY(!currentPoint.IsStartOfContainer()) &&
+        currentPoint.IsEndOfContainer() &&
+        currentPoint.IsPreviousCharCollapsibleASCIISpace()) {
+      mLastCollapsibleWhiteSpaceAppendedTextNode =
+          currentPoint.ContainerAs<Text>();
+    }
     nsresult rv =
         EnsureNoFollowingUnnecessaryLineBreak(currentPoint, *editingHost);
     if (NS_FAILED(rv)) {

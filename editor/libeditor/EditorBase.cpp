@@ -6729,6 +6729,11 @@ nsresult EditorBase::AutoEditActionDataSetter::MaybeDispatchBeforeInputEvent(
     return NS_OK;
   }
 
+  if (mEditorBase.IsHTMLEditor()) {
+    mEditorBase.AsHTMLEditor()->mLastCollapsibleWhiteSpaceAppendedTextNode =
+        nullptr;
+  }
+
   // If we're called from OnCompositionEnd(), we shouldn't dispatch
   // "beforeinput" event since the preceding OnCompositionChange() call has
   // already dispatched "beforeinput" event for this.
