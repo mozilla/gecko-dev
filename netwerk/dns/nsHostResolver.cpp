@@ -191,13 +191,8 @@ static void DnsPrefChanged(const char* aPref, void* aSelf) {
 
 NS_IMPL_ISUPPORTS0(nsHostResolver)
 
-nsHostResolver::nsHostResolver(uint32_t maxCacheEntries,
-                               uint32_t defaultCacheEntryLifetime,
-                               uint32_t defaultGracePeriod)
-    : mMaxCacheEntries(maxCacheEntries),
-      mDefaultCacheLifetime(defaultCacheEntryLifetime),
-      mDefaultGracePeriod(defaultGracePeriod),
-      mIdleTaskCV(mLock, "nsHostResolver.mIdleTaskCV") {
+nsHostResolver::nsHostResolver()
+    : mIdleTaskCV(mLock, "nsHostResolver.mIdleTaskCV") {
   mCreationTime = PR_Now();
 
   mLongIdleTimeout = TimeDuration::FromSeconds(LongIdleTimeoutSeconds);
@@ -464,8 +459,9 @@ already_AddRefed<nsHostRecord> nsHostResolver::InitLoopbackRecord(
   RefPtr<AddrHostRecord> addrRec = do_QueryObject(rec);
   MutexAutoLock lock(addrRec->addr_info_lock);
   addrRec->addr_info = ai;
-  addrRec->SetExpiration(TimeStamp::NowLoRes(), mDefaultCacheLifetime,
-                         mDefaultGracePeriod);
+  addrRec->SetExpiration(TimeStamp::NowLoRes(),
+                         StaticPrefs::network_dnsCacheExpiration(),
+                         StaticPrefs::network_dnsCacheExpirationGracePeriod());
   addrRec->negative = false;
 
   *aRv = NS_OK;
@@ -1400,10 +1396,10 @@ void nsHostResolver::PrepareRecordExpirationAddrRecord(
     return;
   }
 
-  unsigned int lifetime = mDefaultCacheLifetime;
-  unsigned int grace = mDefaultGracePeriod;
+  unsigned int lifetime = StaticPrefs::network_dnsCacheExpiration();
+  unsigned int grace = StaticPrefs::network_dnsCacheExpirationGracePeriod();
 
-  unsigned int ttl = mDefaultCacheLifetime;
+  unsigned int ttl = StaticPrefs::network_dnsCacheExpiration();
   if (sGetTtlEnabled || rec->addr_info->IsTRR()) {
     if (rec->addr_info && rec->addr_info->TTL() != AddrInfo::NO_TTL_DATA) {
       ttl = rec->addr_info->TTL();
@@ -1453,7 +1449,8 @@ static bool different_rrset(AddrInfo* rrset1, AddrInfo* rrset2) {
 
 void nsHostResolver::AddToEvictionQ(nsHostRecord* rec,
                                     const MutexAutoLock& aLock) {
-  mQueue.AddToEvictionQ(rec, mMaxCacheEntries, mRecordDB, aLock);
+  mQueue.AddToEvictionQ(rec, StaticPrefs::network_dnsCacheEntries(), mRecordDB,
+                        aLock);
 }
 
 // After a first lookup attempt with TRR in mode 2, we may:
@@ -1816,7 +1813,9 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupByTypeLocked(
          typeRec.get(), typeRec->host.get(), recordCount));
     MutexAutoLock typeLock(typeRec->mResultsLock);
     typeRec->mResults = aResult;
-    typeRec->SetExpiration(TimeStamp::NowLoRes(), aTtl, mDefaultGracePeriod);
+    typeRec->SetExpiration(
+        TimeStamp::NowLoRes(), aTtl,
+        StaticPrefs::network_dnsCacheExpirationGracePeriod());
     typeRec->negative = false;
     typeRec->mTRRSuccess = !rec->LoadNative();
     typeRec->mNativeSuccess = rec->LoadNative();
@@ -2009,21 +2008,8 @@ void nsHostResolver::ThreadFunc() {
   LOG(("DNS lookup thread - queue empty, task finished.\n"));
 }
 
-void nsHostResolver::SetCacheLimits(uint32_t aMaxCacheEntries,
-                                    uint32_t aDefaultCacheEntryLifetime,
-                                    uint32_t aDefaultGracePeriod) {
-  MutexAutoLock lock(mLock);
-  mMaxCacheEntries = aMaxCacheEntries;
-  mDefaultCacheLifetime = aDefaultCacheEntryLifetime;
-  mDefaultGracePeriod = aDefaultGracePeriod;
-}
-
-nsresult nsHostResolver::Create(uint32_t maxCacheEntries,
-                                uint32_t defaultCacheEntryLifetime,
-                                uint32_t defaultGracePeriod,
-                                nsHostResolver** result) {
-  RefPtr<nsHostResolver> res = new nsHostResolver(
-      maxCacheEntries, defaultCacheEntryLifetime, defaultGracePeriod);
+nsresult nsHostResolver::Create(nsHostResolver** result) {
+  RefPtr<nsHostResolver> res = new nsHostResolver();
 
   nsresult rv = res->Init();
   if (NS_FAILED(rv)) {

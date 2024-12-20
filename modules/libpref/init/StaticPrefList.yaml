@@ -13497,6 +13497,86 @@
   value: false
   mirror: always
 
+# This preference specifies a list of domains for which DNS lookups will be
+# IPv4 only. Works around broken DNS servers which can't handle IPv6 lookups
+# and/or allows the user to disable IPv6 on a per-domain basis. See bug 68796.
+- name: network.dns.ipv4OnlyDomains
+  type: String
+  value: ""
+  mirror: never
+
+# This is the number of dns cache entries allowed
+- name: network.dnsCacheEntries
+  type: RelaxedAtomicUint32
+  value: 400
+  mirror: always
+
+# In the absence of OS TTLs, the DNS cache TTL value
+- name: network.dnsCacheExpiration
+  type: RelaxedAtomicUint32
+  value: 60
+  mirror: always
+
+# Get TTL; not supported on all platforms; nop on the unsupported ones.
+- name: network.dns.get-ttl
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# For testing purposes! Makes the native resolver resolve IPv4 "localhost"
+# instead of the actual given name.
+- name: network.dns.native-is-localhost
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# The grace period allows the DNS cache to use expired entries, while kicking off
+# a revalidation in the background.
+- name: network.dnsCacheExpirationGracePeriod
+  type: RelaxedAtomicUint32
+  value: 60
+  mirror: always
+
+# This preference can be used to turn off DNS prefetch.
+- name: network.dns.disablePrefetch
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# This preference controls whether .onion hostnames are
+# rejected before being given to DNS. RFC 7686
+- name: network.dns.blockDotOnion
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# These domains are treated as localhost equivalent
+- name: network.dns.localDomains
+  type: String
+  value: ""
+  mirror: never
+
+# When non empty all non-localhost DNS queries (including IP addresses)
+# resolve to this value. The value can be a name or an IP address.
+# domains mapped to localhost with localDomains stay localhost.
+- name: network.dns.forceResolve
+  type: String
+  value: ""
+  mirror: never
+
+# Contols whether or not "localhost" should resolve when offline
+- name: network.dns.offline-localhost
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# Defines how much longer resolver threads should stay idle before are shut down.
+# A negative value will keep the thread alive forever.
+- name: network.dns.resolver-thread-extra-idle-time-seconds
+  type: RelaxedAtomicInt32
+  value: 60
+  mirror: always
+
 # The proxy type. See nsIProtocolProxyService.idl
 #     PROXYCONFIG_DIRECT   = 0
 #     PROXYCONFIG_MANUAL   = 1

@@ -777,34 +777,6 @@ void nsDNSService::ReadPrefs(const char* name) {
   DNSServiceBase::ReadPrefs(name);
 
   bool tmpbool;
-  uint32_t tmpint;
-  mResolverPrefsUpdated = false;
-
-  // resolver-specific prefs first
-  if (!name || !strcmp(name, kPrefDnsCacheEntries)) {
-    if (NS_SUCCEEDED(Preferences::GetUint(kPrefDnsCacheEntries, &tmpint))) {
-      if (!name || (tmpint != mResCacheEntries)) {
-        mResCacheEntries = tmpint;
-        mResolverPrefsUpdated = true;
-      }
-    }
-  }
-  if (!name || !strcmp(name, kPrefDnsCacheExpiration)) {
-    if (NS_SUCCEEDED(Preferences::GetUint(kPrefDnsCacheExpiration, &tmpint))) {
-      if (!name || (tmpint != mResCacheExpiration)) {
-        mResCacheExpiration = tmpint;
-        mResolverPrefsUpdated = true;
-      }
-    }
-  }
-  if (!name || !strcmp(name, kPrefDnsCacheGrace)) {
-    if (NS_SUCCEEDED(Preferences::GetUint(kPrefDnsCacheGrace, &tmpint))) {
-      if (!name || (tmpint != mResCacheGrace)) {
-        mResCacheGrace = tmpint;
-        mResolverPrefsUpdated = true;
-      }
-    }
-  }
 
   // DNSservice prefs
   if (!name || !strcmp(name, kPrefDnsOfflineLocalhost)) {
@@ -873,8 +845,7 @@ nsDNSService::Init() {
   }
 
   RefPtr<nsHostResolver> res;
-  nsresult rv = nsHostResolver::Create(mResCacheEntries, mResCacheExpiration,
-                                       mResCacheGrace, getter_AddRefs(res));
+  nsresult rv = nsHostResolver::Create(getter_AddRefs(res));
   if (NS_SUCCEEDED(rv)) {
     // now, set all of our member variables while holding the lock
     MutexAutoLock lock(mLock);
@@ -1343,10 +1314,6 @@ nsDNSService::Observe(nsISupports* subject, const char* topic,
   } else if (!strcmp(topic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     ReadPrefs(NS_ConvertUTF16toUTF8(data).get());
     NS_ENSURE_TRUE(resolver, NS_ERROR_NOT_INITIALIZED);
-    if (mResolverPrefsUpdated && resolver) {
-      resolver->SetCacheLimits(mResCacheEntries, mResCacheExpiration,
-                               mResCacheGrace);
-    }
   } else if (!strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
     Shutdown();
   }

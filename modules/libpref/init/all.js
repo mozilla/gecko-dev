@@ -1345,50 +1345,6 @@ pref("network.websocket.delay-failed-reconnects", true);
 
 // </ws>
 
-// This preference specifies a list of domains for which DNS lookups will be
-// IPv4 only. Works around broken DNS servers which can't handle IPv6 lookups
-// and/or allows the user to disable IPv6 on a per-domain basis. See bug 68796.
-pref("network.dns.ipv4OnlyDomains", "");
-
-// This is the number of dns cache entries allowed
-pref("network.dnsCacheEntries", 400);
-
-// In the absence of OS TTLs, the DNS cache TTL value
-pref("network.dnsCacheExpiration", 60);
-
-// Get TTL; not supported on all platforms; nop on the unsupported ones.
-pref("network.dns.get-ttl", true);
-
-// For testing purposes! Makes the native resolver resolve IPv4 "localhost"
-// instead of the actual given name.
-pref("network.dns.native-is-localhost", false);
-
-// The grace period allows the DNS cache to use expired entries, while kicking off
-// a revalidation in the background.
-pref("network.dnsCacheExpirationGracePeriod", 60);
-
-// This preference can be used to turn off DNS prefetch.
-pref("network.dns.disablePrefetch", false);
-
-// This preference controls whether .onion hostnames are
-// rejected before being given to DNS. RFC 7686
-pref("network.dns.blockDotOnion", true);
-
-// These domains are treated as localhost equivalent
-pref("network.dns.localDomains", "");
-
-// When non empty all non-localhost DNS queries (including IP addresses)
-// resolve to this value. The value can be a name or an IP address.
-// domains mapped to localhost with localDomains stay localhost.
-pref("network.dns.forceResolve", "");
-
-// Contols whether or not "localhost" should resolve when offline
-pref("network.dns.offline-localhost", true);
-
-// Defines how much longer resolver threads should stay idle before are shut down.
-// A negative value will keep the thread alive forever.
-pref("network.dns.resolver-thread-extra-idle-time-seconds", 60);
-
 // enables the prefetch service (i.e., prefetching of <link rel="next"> and
 // <link rel="prefetch"> URLs).
 pref("network.prefetch-next", true);
