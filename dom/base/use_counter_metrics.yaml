@@ -108,7 +108,7 @@ use.counter:
       - use-counters
 
 # Total of 2409 use counter metrics (excludes denominators).
-# Total of 372 'page' use counters.
+# Total of 373 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
     type: counter
@@ -6434,7 +6434,24 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-# Total of 372 'document' use counters.
+  components_shim_resolved:
+    type: counter
+    description: >
+      Whether a page resolves the components shim..
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+# Total of 373 'document' use counters.
 use.counter.doc:
   svgsvgelement_getelementbyid:
     type: counter
@@ -12760,6 +12777,23 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
+  components_shim_resolved:
+    type: counter
+    description: >
+      Whether a document resolves the components shim..
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
 # Total of 49 'dedicated worker' use counters.
 use.counter.worker.dedicated:
   pushmanager_subscribe:
@@ -17139,7 +17173,7 @@ use.counter.deprecated_ops.doc:
     send_in_pings:
       - use-counters
 
-# Total of 704 'CSS (page)' use counters.
+# Total of 703 'CSS (page)' use counters.
 use.counter.css.page:
   css_align_content:
     type: counter
@@ -18437,23 +18471,6 @@ use.counter.css.page:
     type: counter
     description: >
       Whether a page used the CSS property -moz-user-input.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_moz_user_modify:
-    type: counter
-    description: >
-      Whether a page used the CSS property -moz-user-modify.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -21731,6 +21748,23 @@ use.counter.css.page:
     send_in_pings:
       - use-counters
 
+  css_transform_origin:
+    type: counter
+    description: >
+      Whether a page used the CSS property transform-origin.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   css_transition_behavior:
     type: counter
     description: >
@@ -22041,40 +22075,6 @@ use.counter.css.page:
     type: counter
     description: >
       Whether a page used the CSS property stroke.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_moz_window_transform_origin:
-    type: counter
-    description: >
-      Whether a page used the CSS property -moz-window-transform-origin.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_transform_origin:
-    type: counter
-    description: >
-      Whether a page used the CSS property transform-origin.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -29126,7 +29126,7 @@ use.counter.css.page:
     send_in_pings:
       - use-counters
 
-# Total of 704 'CSS (document)' use counters.
+# Total of 703 'CSS (document)' use counters.
 use.counter.css.doc:
   css_align_content:
     type: counter
@@ -30424,23 +30424,6 @@ use.counter.css.doc:
     type: counter
     description: >
       Whether a document used the CSS property -moz-user-input.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_moz_user_modify:
-    type: counter
-    description: >
-      Whether a document used the CSS property -moz-user-modify.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -33718,6 +33701,23 @@ use.counter.css.doc:
     send_in_pings:
       - use-counters
 
+  css_transform_origin:
+    type: counter
+    description: >
+      Whether a document used the CSS property transform-origin.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   css_transition_behavior:
     type: counter
     description: >
@@ -34028,40 +34028,6 @@ use.counter.css.doc:
     type: counter
     description: >
       Whether a document used the CSS property stroke.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_moz_window_transform_origin:
-    type: counter
-    description: >
-      Whether a document used the CSS property -moz-window-transform-origin.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_transform_origin:
-    type: counter
-    description: >
-      Whether a document used the CSS property transform-origin.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:

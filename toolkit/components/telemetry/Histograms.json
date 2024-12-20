@@ -8941,13 +8941,6 @@
     "alert_emails": ["jimm@mozilla.com"],
     "description": "Boolean indicating if a touch input device is detected."
   },
-  "COMPONENTS_SHIM_ACCESSED_BY_CONTENT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Whether content ever accesed the Components shim in this session"
-  },
   "CRASH_STORE_COMPRESSED_BYTES": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
