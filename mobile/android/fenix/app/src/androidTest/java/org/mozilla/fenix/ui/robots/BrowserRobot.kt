@@ -394,7 +394,7 @@ class BrowserRobot {
         }
     }
 
-    fun createBookmarkFromRedesignedBookmarksMenu(composeTestRule: ComposeTestRule, url: Uri, folder: String? = null) {
+    fun createBookmark(composeTestRule: ComposeTestRule, url: Uri, folder: String? = null) {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(url) {
             // needs to wait for the right url to load before saving a bookmark
@@ -403,9 +403,9 @@ class BrowserRobot {
         }.bookmarkPage {
         }.takeIf { !folder.isNullOrBlank() }?.let {
             it.openThreeDotMenu {
-            }.editBookmarkPage {
-                setParentFolderFromRedesignedBookmarksMenu(composeTestRule, folder!!)
-                navigateUpFromRedesignedBookmarksMenu(composeTestRule)
+            }.editBookmarkPage(composeTestRule) {
+                setParentFolder(folder!!)
+                navigateUp()
             }
         }
     }

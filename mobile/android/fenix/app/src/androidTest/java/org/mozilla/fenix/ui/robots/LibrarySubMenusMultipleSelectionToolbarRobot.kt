@@ -150,16 +150,16 @@ class LibrarySubMenusMultipleSelectionToolbarRobot {
         Log.i(TAG, "clickMultiSelectionDelete: Clicked the multi-selection delete button")
     }
 
-    fun clickRedesignedBookmarksMenuMultiSelectDeleteButton(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "clickRedesignedBookmarksMenuMultiSelectDeleteButton: Trying to click the multi-selection delete button")
+    fun clickMultiSelectDeleteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickMultiSelectDeleteButton: Trying to click the multi-selection delete button")
         redesignedBookmarksDeleteButton(composeTestRule).performClick()
-        Log.i(TAG, "clickRedesignedBookmarksMenuMultiSelectDeleteButton: Clicked the multi-selection delete button")
+        Log.i(TAG, "clickMultiSelectDeleteButton: Clicked the multi-selection delete button")
     }
 
-    fun clickRedesignedBookmarksMenuMultiSelectThreeDotButton(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "clickRedesignedBookmarksMenuMultiSelectThreeDotButton: Trying to click the multi-selection three dot button")
+    fun clickMultiSelectThreeDotButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickMultiSelectThreeDotButton: Trying to click the multi-selection three dot button")
         composeTestRule.onNodeWithContentDescription(getStringResource(R.string.content_description_menu)).performClick()
-        Log.i(TAG, "clickRedesignedBookmarksMenuMultiSelectThreeDotButton: Clicked the multi-selection three dot button")
+        Log.i(TAG, "clickMultiSelectThreeDotButton: Clicked the multi-selection three dot button")
     }
 
     class Transition {
@@ -193,13 +193,13 @@ class LibrarySubMenusMultipleSelectionToolbarRobot {
             return TabDrawerRobot.Transition(composeTestRule)
         }
 
-        fun clickOpenInNewTabButtonFromRedesignedBookmarksMenu(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
-            Log.i(TAG, "clickOpenInNewTabButtonFromRedesignedBookmarksMenu: Trying to click the multi-select \"Open in a new tab\" context menu button")
+        fun clickOpenInNewTabButton(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
+            Log.i(TAG, "clickOpenInNewTabButton: Trying to click the multi-select \"Open in a new tab\" context menu button")
             redesignedBookmarksOpenInNewTabButton(composeTestRule).performClick()
-            Log.i(TAG, "clickOpenInNewTabButtonFromRedesignedBookmarksMenu: Clicked the multi-select \"Open in a new tab\" context menu button")
-            Log.i(TAG, "clickOpenInNewTabButtonFromRedesignedBookmarksMenu: Trying to verify that the tabs tray exists")
+            Log.i(TAG, "clickOpenInNewTabButton: Clicked the multi-select \"Open in a new tab\" context menu button")
+            Log.i(TAG, "clickOpenInNewTabButton: Trying to verify that the tabs tray exists")
             composeTestRule.onNodeWithTag(TabsTrayTestTag.tabsTray).assertExists()
-            Log.i(TAG, "clickOpenInNewTabButtonFromRedesignedBookmarksMenu: Verified that the tabs tray exists")
+            Log.i(TAG, "clickOpenInNewTabButton: Verified that the tabs tray exists")
 
             TabDrawerRobot(composeTestRule).interact()
             return TabDrawerRobot.Transition(composeTestRule)

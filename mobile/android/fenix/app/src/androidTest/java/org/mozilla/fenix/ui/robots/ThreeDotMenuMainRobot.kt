@@ -7,6 +7,7 @@
 package org.mozilla.fenix.ui.robots
 
 import android.util.Log
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.swipeDown
@@ -342,17 +343,17 @@ class ThreeDotMenuMainRobot {
             return BookmarksRobot.Transition()
         }
 
-        fun openRedesignedBookmarksMenu(interact: BookmarksRobot.() -> Unit): BookmarksRobot.Transition {
-            Log.i(TAG, "openRedesignedBookmarks: Trying to perform swipe down action on the three dot menu")
+        fun openBookmarksMenu(composeTestRule: ComposeTestRule, interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
+            Log.i(TAG, "openBookmarksMenu: Trying to perform swipe down action on the three dot menu")
             threeDotMenuRecyclerView().perform(swipeDown())
-            Log.i(TAG, "openRedesignedBookmarks: Performed swipe down action on the three dot menu")
+            Log.i(TAG, "openBookmarksMenu: Performed swipe down action on the three dot menu")
             mDevice.waitNotNull(Until.findObject(By.text("Bookmarks")), waitingTime)
-            Log.i(TAG, "openRedesignedBookmarks: Trying to click the \"Bookmarks\" button")
+            Log.i(TAG, "openBookmarksMenu: Trying to click the \"Bookmarks\" button")
             bookmarksButton().click()
-            Log.i(TAG, "openRedesignedBookmarks: Clicked the \"Bookmarks\" button")
+            Log.i(TAG, "openBookmarksMenu: Clicked the \"Bookmarks\" button")
 
-            BookmarksRobot().interact()
-            return BookmarksRobot.Transition()
+            BookmarksRobotCompose(composeTestRule).interact()
+            return BookmarksRobotCompose.Transition(composeTestRule)
         }
 
         fun clickNewTabButton(interact: SearchRobot.() -> Unit): SearchRobot.Transition {
@@ -395,6 +396,16 @@ class ThreeDotMenuMainRobot {
 
             BookmarksRobot().interact()
             return BookmarksRobot.Transition()
+        }
+
+        fun editBookmarkPage(composeTestRule: ComposeTestRule, interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
+            mDevice.waitNotNull(Until.findObject(By.text("Bookmarks")), waitingTime)
+            Log.i(TAG, "editBookmarkPage: Trying to click the \"Edit\" button")
+            editBookmarkButton().click()
+            Log.i(TAG, "editBookmarkPage: Clicked the \"Edit\" button")
+
+            BookmarksRobotCompose(composeTestRule).interact()
+            return BookmarksRobotCompose.Transition(composeTestRule)
         }
 
         fun openHelp(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
