@@ -1,6 +1,7 @@
 #!/bin/bash
 set -x -e -v
 
+TARGET=$1
 . $GECKO_PATH/taskcluster/scripts/misc/vs-setup.sh
 
 cd $MOZ_FETCHES_DIR/make
@@ -12,7 +13,7 @@ make -f Basic.mk \
   MKDIR.cmd='mkdir -p $1' \
   RM.cmd='rm -f $1' \
   CP.cmd='cp $1 $2' \
-  msvc_CC="$MOZ_FETCHES_DIR/clang/bin/clang-cl -Xclang -ivfsoverlay -Xclang $MOZ_FETCHES_DIR/vs/overlay.yaml" \
+  msvc_CC="$MOZ_FETCHES_DIR/clang/bin/clang-cl --target=$TARGET -Xclang -ivfsoverlay -Xclang $MOZ_FETCHES_DIR/vs/overlay.yaml" \
   msvc_LD=$MOZ_FETCHES_DIR/clang/bin/lld-link
 
 mkdir mozmake

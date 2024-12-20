@@ -500,6 +500,24 @@ win64-mozmake:
         symbol: TW64(mozmake)
     run:
         script: build-mozmake.sh
+        arguments: ['x86_64-pc-windows-msvc']
+        toolchain-artifact: public/build/mozmake.tar.zst
+    fetches:
+        fetch:
+            - gnumake
+        toolchain:
+            - linux64-clang-toolchain
+            - vs-toolchain
+
+win64-aarch64-mozmake:
+    description: "mozmake for Windows"
+    attributes:
+        local-toolchain: true
+    treeherder:
+        symbol: TWA64(mozmake)
+    run:
+        script: build-mozmake.sh
+        arguments: ['aarch64-pc-windows-msvc']
         toolchain-artifact: public/build/mozmake.tar.zst
     fetches:
         fetch:
