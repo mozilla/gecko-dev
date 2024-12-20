@@ -8,6 +8,7 @@
 
 #include "CSSEditUtils.h"
 #include "EditAction.h"
+#include "EditorLineBreak.h"
 #include "HTMLEditHelpers.h"
 #include "HTMLEditorEventListener.h"
 #include "HTMLEditUtils.h"
@@ -703,19 +704,24 @@ nsresult HTMLEditor::SetPositionToAbsolute(Element& aElement) {
   if (parentNode->GetChildCount() != 1) {
     return NS_OK;
   }
-  Result<CreateElementResult, nsresult> insertBRElementResult =
-      InsertBRElement(WithTransaction::Yes, EditorDOMPoint(parentNode, 0u));
-  if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
-    NS_WARNING("HTMLEditor::InsertBRElement(WithTransaction::Yes) failed");
-    return insertBRElementResult.unwrapErr();
+  Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
+      InsertLineBreak(WithTransaction::Yes, LineBreakType::BRElement,
+                      EditorDOMPoint(parentNode, 0u));
+  if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
+    NS_WARNING(
+        "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
+        "LineBreakType::BRElement) failed");
+    return insertBRElementResultOrError.unwrapErr();
   }
+  CreateLineBreakResult insertBRElementResult =
+      insertBRElementResultOrError.unwrap();
+  MOZ_ASSERT(insertBRElementResult.Handled());
   // XXX Is this intentional selection change?
-  nsresult rv = insertBRElementResult.inspect().SuggestCaretPointTo(
+  nsresult rv = insertBRElementResult.SuggestCaretPointTo(
       *this, {SuggestCaret::OnlyIfHasSuggestion,
               SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "CreateElementResult::SuggestCaretPointTo() failed");
-  MOZ_ASSERT(insertBRElementResult.inspect().GetNewNode());
   return rv;
 }
 

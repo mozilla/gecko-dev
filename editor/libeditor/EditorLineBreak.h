@@ -80,6 +80,31 @@ class EditorLineBreakBase {
                ? EditorDOMPointType(mContent, mOffsetInText.value())
                : EditorDOMPointType(mContent);
   }
+  template <typename EditorDOMPointType>
+  [[nodiscard]] EditorDOMPointType After() const {
+    if (IsHTMLBRElement()) {
+      return EditorDOMPointType::After(BRElementRef());
+    }
+    if (mOffsetInText.value() + 1 < TextRef().TextDataLength()) {
+      return EditorDOMPointType(&TextRef(), mOffsetInText.value() + 1);
+    }
+    // If the line break is end of a Text node and it's followed by another
+    // Text, we should return start of the following Text.
+    if (Text* const followingText =
+            Text::FromNodeOrNull(TextRef().GetNextSibling())) {
+      return EditorDOMPointType(followingText, 0);
+    }
+    return EditorDOMPointType::After(TextRef());
+  }
+
+  template <typename EditorDOMPointType>
+  [[nodiscard]] EditorDOMPointType Before() const {
+    if (IsHTMLBRElement()) {
+      return EditorDOMPointType(&BRElementRef(),
+                                dom::Selection::InterlinePosition::EndOfLine);
+    }
+    return To<EditorDOMPointType>();
+  }
 
   [[nodiscard]] bool IsHTMLBRElement() const {
     MOZ_ASSERT_IF(!mOffsetInText, mContent->IsHTMLElement(nsGkAtoms::br));
@@ -227,6 +252,62 @@ inline EditorLineBreakBase<nsIContent*>::EditorLineBreakBase(
   MOZ_ASSERT(CharAtOffsetIsLineBreak());
   aText = nullptr;
 }
+
+class CreateLineBreakResult final : public CaretPoint {
+ public:
+  CreateLineBreakResult(const EditorLineBreak& aLineBreak,
+                        const EditorDOMPoint& aCaretPoint)
+      : CaretPoint(aCaretPoint), mLineBreak(Some(aLineBreak)) {}
+  CreateLineBreakResult(EditorLineBreak&& aLineBreak,
+                        const EditorDOMPoint& aCaretPoint)
+      : CaretPoint(aCaretPoint), mLineBreak(Some(std::move(aLineBreak))) {}
+  CreateLineBreakResult(const EditorLineBreak& aLineBreak,
+                        EditorDOMPoint&& aCaretPoint)
+      : CaretPoint(aCaretPoint), mLineBreak(Some(aLineBreak)) {}
+  CreateLineBreakResult(EditorLineBreak&& aLineBreak,
+                        EditorDOMPoint&& aCaretPoint)
+      : CaretPoint(std::move(aCaretPoint)),
+        mLineBreak(Some(std::move(aLineBreak))) {}
+
+  [[nodiscard]] static CreateLineBreakResult NotHandled() {
+    return CreateLineBreakResult();
+  }
+
+  [[nodiscard]] constexpr bool Handled() const { return mLineBreak.isSome(); }
+  [[nodiscard]] constexpr const EditorLineBreak& LineBreakRef() const {
+    MOZ_ASSERT(Handled());
+    return mLineBreak.ref();
+  }
+  [[nodiscard]] constexpr const EditorLineBreak* operator->() const {
+    return &LineBreakRef();
+  }
+
+  // Shortcut for unclear methods of EditorLineBreak if `->` operator is used.
+
+  template <typename EditorDOMPointType>
+  [[nodiscard]] constexpr EditorDOMPointType AtLineBreak() const {
+    return LineBreakRef().To<EditorDOMPointType>();
+  }
+  template <typename EditorDOMPointType>
+  [[nodiscard]] constexpr EditorDOMPointType BeforeLineBreak() const {
+    return LineBreakRef().Before<EditorDOMPointType>();
+  }
+  template <typename EditorDOMPointType>
+  [[nodiscard]] constexpr EditorDOMPointType AfterLineBreak() const {
+    return LineBreakRef().After<EditorDOMPointType>();
+  }
+  [[nodiscard]] constexpr nsIContent& LineBreakContentRef() const {
+    return LineBreakRef().ContentRef();
+  }
+  [[nodiscard]] constexpr bool LineBreakIsInComposedDoc() const {
+    return LineBreakRef().IsInComposedDoc();
+  }
+
+ private:
+  CreateLineBreakResult() : CaretPoint(EditorDOMPoint()) {}
+
+  Maybe<EditorLineBreak> mLineBreak;
+};
 
 }  // namespace mozilla
 
