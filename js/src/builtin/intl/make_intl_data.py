@@ -2982,14 +2982,112 @@ if (typeof reportCompare === "function")
         )
 
 
+def generateTzDataTestZones(tzdataDir, version, ignoreFactory, testDir):
+    fileName = "zones-and-links.js"
+
+    # Read zone and link infos.
+    (zones, links) = availableNamedTimeZoneIdentifiers(tzdataDir, ignoreFactory)
+
+    with io.open(
+        os.path.join(testDir, fileName), mode="w", encoding="utf-8", newline=""
+    ) as f:
+        println = partial(print, file=f)
+
+        println(
+            '// |reftest| shell-option(--enable-temporal) skip-if(!this.hasOwnProperty("Temporal"))'
+        )
+        println("")
+        println(generatedFileWarning)
+        println(tzdataVersionComment.format(version))
+
+        println("const zones = [")
+        for zone in sorted(zones):
+            println(f'  "{zone}",')
+        println("];")
+
+        println("const links = {")
+        for link, target in sorted(links.items(), key=itemgetter(0)):
+            println(f'  "{link}": "{target}",')
+        println("};")
+
+        println(
+            """
+let epochNanoseconds = [
+  new Temporal.PlainDate(1900, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(1950, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(1960, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(1970, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(1980, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(1990, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(2000, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(2010, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(2020, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+  new Temporal.PlainDate(2030, 1, 1).toZonedDateTime("UTC").epochNanoseconds,
+];
+
+function timeZoneId(zdt) {
+  let str = zdt.toString();
+  let m = str.match(/(?<=\\[)[\\w\\/_+-]+(?=\\])/);
+  assertEq(m !== null, true, str);
+  return m[0];
+}
+
+for (let zone of zones) {
+  let zdt = new Temporal.ZonedDateTime(0n, zone);
+
+  assertEq(zdt.timeZoneId, zone);
+  assertEq(timeZoneId(zdt), zone);
+}
+
+for (let [link, zone] of Object.entries(links)) {
+  assertEq(link === zone, false, `link=${link}, zone=${zone}`);
+  assertEq(zones.includes(zone), true, `zone=${zone}`);
+
+  let zdtLink = new Temporal.ZonedDateTime(0n, link);
+  let zdtZone = new Temporal.ZonedDateTime(0n, zone);
+
+  assertEq(zdtLink.timeZoneId, link);
+  assertEq(timeZoneId(zdtLink), link);
+
+  assertEq(zdtZone.timeZoneId, zone);
+  assertEq(timeZoneId(zdtZone), zone);
+
+  assertEq(zdtLink.equals(zdtZone), true, `link=${link}, zone=${zone}`);
+
+  assertEq(
+    zdtLink.offsetNanoseconds,
+    zdtZone.offsetNanoseconds,
+    `link=${link}, zone=${zone}`
+  );
+
+  for (let epochNs of epochNanoseconds) {
+    assertEq(
+      new Temporal.ZonedDateTime(epochNs, link).offsetNanoseconds,
+      new Temporal.ZonedDateTime(epochNs, zone).offsetNanoseconds,
+      `link=${link}, zone=${zone}, epochNs=${epochNs}`
+    );
+  }
+}
+
+if (typeof reportCompare === "function")
+  reportCompare(0, 0, "ok");
+"""
+        )
+
+
 def generateTzDataTests(tzdataDir, version, ignoreFactory, testDir):
     dtfTestDir = os.path.join(testDir, "DateTimeFormat")
     if not os.path.isdir(dtfTestDir):
         raise RuntimeError("not a directory: %s" % dtfTestDir)
 
+    zdtTestDir = os.path.join(testDir, "../Temporal/ZonedDateTime")
+    if not os.path.isdir(zdtTestDir):
+        raise RuntimeError("not a directory: %s" % zdtTestDir)
+
     generateTzDataTestLinks(tzdataDir, version, ignoreFactory, dtfTestDir)
     generateTzDataTestVersion(tzdataDir, version, dtfTestDir)
     generateTzDataTestCanonicalZones(tzdataDir, version, ignoreFactory, testDir)
+    generateTzDataTestZones(tzdataDir, version, ignoreFactory, zdtTestDir)
 
 
 def updateTzdata(topsrcdir, args):
