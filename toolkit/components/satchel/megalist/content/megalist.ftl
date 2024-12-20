@@ -112,6 +112,10 @@ passwords-import-error-button-try-again = Try Again
 passwords-import-error-button-cancel = Cancel
 passwords-import-learn-more = Learn about importing passwords
 
+passwords-export-success-heading =
+  .heading = Passwords exported
+passwords-export-success-button = Done
+
 # Export passwords to file dialog
 export-passwords-dialog-title = Export passwords to file?
 # This string recommends to the user that they delete the exported password file that is saved on their local machine.

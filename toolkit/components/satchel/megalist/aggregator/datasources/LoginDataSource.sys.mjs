@@ -551,12 +551,15 @@ export class LoginDataSource extends DataSourceBase {
 
   exportFilePickerDialog(browsingContext) {
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-    function fpCallback(aResult) {
+    const fpCallback = aResult => {
       if (aResult != Ci.nsIFilePicker.returnCancel) {
         LoginExport.exportAsCSV(fp.file.path);
         Glean.pwmgr.mgmtMenuItemUsedExportComplete.record();
+        this.setNotification({
+          id: "export-passwords-success",
+        });
       }
-    }
+    };
     fp.init(
       browsingContext,
       this.#exportPasswordsStrings.ExportFilePickerTitle,
