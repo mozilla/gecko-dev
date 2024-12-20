@@ -16,6 +16,8 @@
 #include "mozilla/WidgetUtilsGtk.h"
 #include "mozilla/dom/Promise.h"
 
+#include "prlink.h"
+
 #include <string.h>
 
 static mozilla::LazyLogModule gNativeMessagingPortalLog(
@@ -27,6 +29,32 @@ static mozilla::LazyLogModule gNativeMessagingPortalLog(
 #else
 #  define LOG_NMP(args)
 #endif
+
+#define GET_FUNC(func, lib) \
+  func##_fn = (decltype(func##_fn))PR_FindFunctionSymbol(lib, #func)
+
+static gint _g_unix_fd_list_get(GUnixFDList* list, gint index_,
+                                GError** error) {
+  static PRLibrary* gioLib = nullptr;
+  static bool gioInitialized = false;
+  static gint (*g_unix_fd_list_get_fn)(GUnixFDList* list, gint index_,
+                                       GError** error) = nullptr;
+
+  if (!gioInitialized) {
+    gioInitialized = true;
+    gioLib = PR_LoadLibrary("libgio-2.0.so.0");
+    if (!gioLib) {
+      return -1;
+    }
+    GET_FUNC(g_unix_fd_list_get, gioLib);
+  }
+
+  if (!g_unix_fd_list_get_fn) {
+    return -1;
+  }
+
+  return g_unix_fd_list_get_fn(list, index_, error);
+}
 
 namespace mozilla::extensions {
 
@@ -616,8 +644,8 @@ static gint GetFD(const RefPtr<GVariant>& result, GUnixFDList* fds,
   RefPtr<GVariant> value =
       dont_AddRef(g_variant_get_child_value(result, index));
   GUniquePtr<GError> error;
-  gint fd = g_unix_fd_list_get(fds, g_variant_get_handle(value),
-                               getter_Transfers(error));
+  gint fd = _g_unix_fd_list_get(fds, g_variant_get_handle(value),
+                                getter_Transfers(error));
   if (fd == -1) {
     LOG_NMP("failed to get file descriptor at index %d: %s", index,
             error->message);
