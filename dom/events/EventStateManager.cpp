@@ -1923,7 +1923,20 @@ static void DispatchCrossProcessMouseExitEvents(WidgetMouseEvent* aMouseEvent,
     mouseExitEvent->mExitFrom =
         Some(aIsReallyExit ? WidgetMouseEvent::ePuppet
                            : WidgetMouseEvent::ePuppetParentToPuppetChild);
-    aRemoteTarget->SendRealMouseEvent(*mouseExitEvent);
+
+    auto ContentReactsToPointerEvents = [](BrowserParent* aRemoteTarget) {
+      if (Element* owner = aRemoteTarget->GetOwnerElement()) {
+        if (nsSubDocumentFrame* subDocFrame =
+                do_QueryFrame(owner->GetPrimaryFrame())) {
+          return subDocFrame->ContentReactsToPointerEvents();
+        }
+      }
+      return true;
+    };
+
+    if (ContentReactsToPointerEvents(aRemoteTarget)) {
+      aRemoteTarget->SendRealMouseEvent(*mouseExitEvent);
+    }
 
     aRemoteTarget = GetBrowserParentAncestor(aRemoteTarget);
   }
