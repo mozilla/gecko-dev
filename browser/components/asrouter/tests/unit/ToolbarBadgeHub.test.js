@@ -226,8 +226,13 @@ describe("ToolbarBadgeHub", () => {
     it("should show a notification", () => {
       instance.addToolbarNotification(target, fxaMessage);
 
-      assert.calledOnce(fakeElement.setAttribute);
+      assert.calledTwice(fakeElement.setAttribute);
       assert.calledWithExactly(fakeElement.setAttribute, "badged", true);
+      assert.calledWithExactly(
+        fakeElement.setAttribute,
+        "showing-callout",
+        true
+      );
       assert.calledWithExactly(fakeElement.classList.add, "feature-callout");
     });
     it("should attach a cb on the notification", () => {
@@ -307,10 +312,11 @@ describe("ToolbarBadgeHub", () => {
     it("should remove the notification", () => {
       instance.removeToolbarNotification(fakeElement);
 
-      assert.calledThrice(fakeElement.removeAttribute);
+      assert.callCount(fakeElement.removeAttribute, 4);
       assert.calledWithExactly(fakeElement.removeAttribute, "badged");
       assert.calledWithExactly(fakeElement.removeAttribute, "aria-labelledby");
       assert.calledWithExactly(fakeElement.removeAttribute, "aria-describedby");
+      assert.calledWithExactly(fakeElement.removeAttribute, "showing-callout");
       assert.calledOnce(fakeElement.classList.remove);
       assert.calledWithExactly(fakeElement.classList.remove, "feature-callout");
       assert.calledOnce(fakeElement.remove);
