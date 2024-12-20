@@ -319,7 +319,6 @@ export class ShoppingSidebarChild extends RemotePageChild {
         focusCloseButton,
         isProductPage,
         isSupportedSite,
-        supportedDomains: ShoppingProduct.getSupportedDomains(),
       });
     }
 
@@ -350,7 +349,6 @@ export class ShoppingSidebarChild extends RemotePageChild {
           this.sendToContent("Update", {
             isProductPage: false,
             isSupportedSite: isSupportedSiteURL(uri),
-            supportedDomains: ShoppingProduct.getSupportedDomains(),
           });
           return;
         }
@@ -479,7 +477,6 @@ export class ShoppingSidebarChild extends RemotePageChild {
         productUrl: this.#productURI?.spec,
         isProductPage: isProduct,
         isSupportedSite: !isProduct && isSupportedSiteURL(uri),
-        supportedDomains: ShoppingProduct.getSupportedDomains(),
       });
     }
   }

@@ -79,57 +79,10 @@
   align-items: stretch;
   gap: 16px;
   padding: 0 16px 16px;
-
-  &.is-empty-state {
-    /* We don't want to scale margins as sidebar width expands.
-     * Use another unit to ensure we can approximately center content and ensure it
-     * stays in place regardless of sidebar width. */
-    margin-block-start: 9rem;
-
-    .first-footer-card {
-      margin-block-start: 9ch;
-    }
-  }
-
-  &:focus-visible {
-    outline-offset: -2px;
-  }
 }
 
-#shopping-empty-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-#shopping-empty-state-header {
-  margin-block-end: 0;
-}
-
-#shopping-empty-state-header,
-#shopping-empty-state-text {
-  text-align: center;
-}
-
-#shopping-empty-state-img {
-  max-width: 19em;
-}
-
-#shopping-empty-state-text {
-  color: var(--text-color-deemphasized);
-  max-width: 23em;
-}
-
-#shopping-empty-list-of-supported-domains {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 0;
-  padding-inline-start: 1rem;
-}
-
-.shopping-supported-domain-link {
-  text-decoration: none;
+#content:focus-visible {
+  outline-offset: -2px;
 }
 
 .loading-box {

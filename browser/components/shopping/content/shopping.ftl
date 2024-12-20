@@ -20,14 +20,3 @@ shopping-opt-in-integrated-subtitle-all-sites = Try Review Checker from { -brand
 
 shopping-opt-in-integrated-privacy-policy-and-terms-of-use = Review Checker is powered by { -fakespot-brand-full-name }. By selecting “{ shopping-opt-in-integrated-button }“ you agree to { -brand-product-name }’s <a data-l10n-name="privacy_policy">privacy notice</a> and { -fakespot-brand-name }’s <a data-l10n-name="terms_of_use">terms of use.</a>
 shopping-opt-in-integrated-button = Try Review Checker
-
-## Message strings for Review Checker's empty states.
-
-shopping-empty-state-header = Ready to check reviews
-shopping-empty-state-supported-site = View a product and { -brand-product-name } will check if the reviews are reliable.
-
-# We show a list of sites supported by Review Checker whenever a user opens the feature in an unsupported site.
-# This string will be displayed above the list of sites. The list will be hardcoded and does not require localization.
-shopping-empty-state-non-supported-site = Review Checker works when you shop on:
-
-##

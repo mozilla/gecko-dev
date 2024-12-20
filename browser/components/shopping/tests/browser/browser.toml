@@ -29,8 +29,6 @@ prefs = [
 
 ["browser_auto_open.js"]
 
-["browser_empty_states.js"]
-
 ["browser_exposure_telemetry.js"]
 
 ["browser_inprogress_analysis.js"]
