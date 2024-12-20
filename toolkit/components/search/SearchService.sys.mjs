@@ -531,6 +531,10 @@ export class SearchService {
     let appDefaultEngine = this.appDefaultEngine;
     appDefaultEngine.hidden = false;
     this.defaultEngine = appDefaultEngine;
+
+    let appPrivateDefaultEngine = this.appPrivateDefaultEngine;
+    appPrivateDefaultEngine.hidden = false;
+    this.defaultPrivateEngine = appPrivateDefaultEngine;
   }
 
   async maybeSetAndOverrideDefault(extension) {
@@ -1601,10 +1605,14 @@ export class SearchService {
     if (Services.policies?.status == Ci.nsIEnterprisePolicies.ACTIVE) {
       let activePolicies = Services.policies.getActivePolicies();
       if (activePolicies.SearchEngines) {
-        if (activePolicies.SearchEngines.Default) {
-          let policyEngine = this.#getEngineByName(
-            activePolicies.SearchEngines.Default
-          );
+        let policyDefault =
+          privateMode &&
+          this.#separatePrivateDefault &&
+          activePolicies.SearchEngines.DefaultPrivate
+            ? activePolicies.SearchEngines.DefaultPrivate
+            : activePolicies.SearchEngines.Default;
+        if (policyDefault) {
+          let policyEngine = this.#getEngineByName(policyDefault);
           if (policyEngine) {
             return policyEngine;
           }

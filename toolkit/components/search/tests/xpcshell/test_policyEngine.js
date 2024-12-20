@@ -186,3 +186,24 @@ add_task(async function test_enterprise_policy_invalid_default() {
 
   Assert.equal(Services.search.defaultEngine.identifier, "zAppDefaultEngine");
 });
+
+add_task(async function test_enterprise_policy_private_default() {
+  Services.prefs.setBoolPref(
+    SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault.ui.enabled",
+    true
+  );
+
+  await setupPolicyEngineWithJson({
+    policies: {
+      SearchEngines: {
+        DefaultPrivate: "otherEngineToMakeDefault",
+      },
+    },
+  });
+
+  Services.search.resetToAppDefaultEngine();
+  Assert.equal(
+    Services.search.defaultPrivateEngine.identifier,
+    "otherEngineToMakeDefault"
+  );
+});
