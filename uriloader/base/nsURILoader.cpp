@@ -131,23 +131,6 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest* request) {
     if (204 == responseCode || 205 == responseCode) {
       return NS_BINDING_ABORTED;
     }
-
-    if (!mozilla::StaticPrefs::
-            browser_http_blank_page_with_error_response_enabled()) {
-      // Bug 1325876: Show internal error page for HTTP responses with error
-      // codes (4xx, 5xx) and "Content-Length": 0 instead of blank page
-      int64_t contentLength = 0;
-      rv = httpChannel->GetContentLength(&contentLength);
-
-      if (NS_FAILED(rv) || contentLength <= 0) {
-        if (responseCode >= 500) {
-          return NS_ERROR_NET_ERROR_RESPONSE;
-        }
-        if (responseCode >= 400) {
-          return NS_ERROR_NET_EMPTY_RESPONSE;
-        }
-      }
-    }
   }
 
   //
