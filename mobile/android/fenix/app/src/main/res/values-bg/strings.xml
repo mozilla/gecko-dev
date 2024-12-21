@@ -114,7 +114,7 @@
 
     <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-    <string name="address_bar_swipe_cfr_title">Плъзнете лентата с инструменти, за да превключите разделите</string>
+    <string name="address_bar_swipe_cfr_title">Плъзнете адресната лента, за да смените разделите</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Плъзнете наляво или надясно, за да превключите. Плъзнете наляво в последния раздел, за да отворите нов.</string>
 
@@ -224,7 +224,7 @@
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Временно забранено</string>
     <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
-    <string name="browser_menu_no_extensions_installed_description">Няма активирани разширения</string>
+    <string name="browser_menu_no_extensions_installed_description">Няма включени разширения</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Информация за профила</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -298,7 +298,7 @@
     <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
     <string name="browser_menu_sign_in">Вход</string>
     <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-    <string name="browser_menu_sign_in_caption">Синхронизирайте пароли, раздели и др</string>
+    <string name="browser_menu_sign_in_caption">Синхронизиране на пароли, раздели и други</string>
 
     <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
     <string name="browser_menu_sign_back_in_to_sync">Влезте отново за синхронизиране</string>
@@ -322,7 +322,7 @@
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Обратно към главното меню</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-    <string name="browser_main_menu_handlebar_content_description">Затваряне на листа на главното меню</string>
+    <string name="browser_main_menu_handlebar_content_description">Затваряне на главното меню</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
     <string name="browser_main_menu_content_description_help_button">Помощ</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -334,7 +334,7 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
     <string name="browser_tools_menu_handlebar_content_description">Затваряне на менюто с инструменти</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
-    <string name="browser_custom_tab_menu_handlebar_content_description">Затваряне на менюто с персонализиран раздел</string>
+    <string name="browser_custom_tab_menu_handlebar_content_description">Затваряне на менюто с раздел по избор</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Изглед за четене, превод, отпечатване, споделяне, отваряне на приложение</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -343,14 +343,14 @@
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Изглед за четене, Превод, %s, Отпечатване, Споделяне, Отваряне на приложение</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
-    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Изглед за четене, Превод, Докладване на повреден сайт, Отпечатване, Споделяне, Отваряне на приложение</string>
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Изглед за четене, превод, доклад за повредена страница, отпечатване, споделяне, отваряне на приложение</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">Изглед за четене, превод, отпечатване, споделяне, отваряне на приложение</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Изглед за четене, %s, Отпечатване, Споделяне, Отваряне на приложение</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
-    <string name="browser_menu_tools_description_with_report_site_2">Изглед за четене, Докладване на повреден сайт, Печат, Споделяне, Отваряне на приложение</string>
+    <string name="browser_menu_tools_description_with_report_site_2">Изглед за четене, доклад за повредена страница, отпечатване, споделяне, отваряне на приложение</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_without_report_site">Изглед за четене, отпечатване, споделяне, отваряне на приложение</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -374,7 +374,7 @@
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Превеждане на страницата…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
-    <string name="browser_menu_webcompat_reporter">Докладване на неработещ сайт…</string>
+    <string name="browser_menu_webcompat_reporter">Доклад за повредена страница…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Преведено на %1$s</string>
@@ -590,9 +590,9 @@
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Отказ</string>
 
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Добре дошли във Firefox</string>
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Добре дошли при Firefox</string>
     <!-- Terms of service onboarding page continue button label. -->
-    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Съгласете се и продължете</string>
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Приемане и продължаване</string>
     <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
     <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Продължавайки, вие се съгласявате с Firefox %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
@@ -606,7 +606,7 @@
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Управление</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Изберете разположение на лентата с инструменти</string>
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Изберете място на лентата с инструменти</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Дръжте търсенията под ръка.</string>
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
@@ -628,7 +628,7 @@
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Вижте Мрежата в най-добра светлина.</string>
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
-    <string name="onboarding_save_and_start_button">Запазете и започнете да сърфирате</string>
+    <string name="onboarding_save_and_start_button">Запазване и начало на разглеждане</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_skip_button">Пропускане</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
@@ -767,7 +767,7 @@
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
     <string name="errorpage_httpsonly_message_title">Най-вероятно страницата не се поддържа под HTTPS.</string>
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
-    <string name="errorpage_httpsonly_message_summary">Въпреки това е възможно също да е замесен нападател. Ако продължите към уебсайта, не трябва да въвеждате чувствителна информация. Ако продължите, режимът само HTTPS ще бъде изключен временно за сайта.</string>
+    <string name="errorpage_httpsonly_message_summary">Въпреки това е възможно също да е замесен нападател. Ако продължите към страницата, не трябва да въвеждате чувствителна информация. Ако продължите, режимът само HTTPS ще бъде изключен временно.</string>
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">Достъпност</string>
     <!-- Preference to override the Mozilla account server -->
@@ -960,7 +960,7 @@
     <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Опитайте да рестартирате разширенията</string>
 
     <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
-    <string name="extension_process_crash_dialog_disable_extensions_button_text">Продължете с изключени разширения</string>
+    <string name="extension_process_crash_dialog_disable_extensions_button_text">Продължаване с изключени добавки</string>
 
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
@@ -1341,7 +1341,7 @@
 
     <!-- WebCompat Reporter -->
     <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
-    <string name="webcompat_reporter_screen_title">Съобщаване за неработеща страница</string>
+    <string name="webcompat_reporter_screen_title">Доклад за повредена страница</string>
     <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
     <string name="webcompat_reporter_description">Помогнете да направим %1$s по-добър за всички. Служителите на Mozilla използват информацията, която изпращате, за да решават проблеми в уебсайта.</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
@@ -1499,7 +1499,7 @@
     <!-- Description for the bookmark list empty state when you're signed into sync. -->
     <string name="bookmark_empty_list_authenticated_description">Запазване на сайтове, докато разглеждате. Също така ще вземем отметки от други синхронизирани устройства.</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
-    <string name="bookmark_empty_list_folder_description">Добавете отметки, докато сърфирате, за да можете по-късно да намирате любимите си сайтове.</string>
+    <string name="bookmark_empty_list_folder_description">Добавете отметки, докато разглеждате, за да можете по-късно да намирате любимите си страници.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
     <string name="bookmark_select_folder_new_folder_button_title">Нова папка</string>
@@ -2834,13 +2834,13 @@
     <!-- Preference option for never translate. Radio button title text.-->
     <string name="automatic_translation_option_never_translate_title_preference">Никога да не се превежда</string>
     <!-- Preference option for never translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
-    <string name="automatic_translation_option_never_translate_summary_preference">%1$s никога няма да предложи превод на сайтове на този език.</string>
+    <string name="automatic_translation_option_never_translate_summary_preference">%1$s никога няма да предложи превод на страниците на този език.</string>
 
     <!-- Never translate site preference screen -->
     <!-- Title of the never translate site preference screen that will appear on the toolbar.-->
     <string name="never_translate_site_toolbar_title_preference">Тези сайтове никога да не бъдат превеждани</string>
     <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-    <string name="never_translate_site_header_preference">За да добавите нов сайт: Посетете го и изберете „Never translate this site“ от менюто за превод.</string>
+    <string name="never_translate_site_header_preference">За да добавите страница: я посетете и изберете „Без превод на този сайт“ от менюто за превод.</string>
     <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_item_list_content_description_preference">Премахване на %1$s</string>
@@ -3112,13 +3112,13 @@
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Версията ви на Firefox ще спре да работи правилно на 14 март, защото кореновия сертификат изтича.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
-    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Препоръчва се актуализация</string>
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Препоръчва се обновяване</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Добавките и някои функции ще спрат да работят на 14 март.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Използвате по-стара версия на Firefox</string>
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Използвате по-ранно издание на Firefox</string>
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
-    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Актуализирайте преди 14 март, за да продължите да използвате добавки и други функции.</string>
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Обновете преди 14 март, за да продължите да използвате добавки и други възможности.</string>
     <!-- Push notification message about old Firefox version -->
-    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Някои функции ще спрат да работят утре.</string>
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Някои възможности ще спрат да работят утре.</string>
 </resources>

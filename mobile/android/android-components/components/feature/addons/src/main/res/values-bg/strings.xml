@@ -213,9 +213,9 @@
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">Разширението %1$s не може да бъде инсталирано. Може да бъде инсталирано само от организация, използваща корпоративни правила, които не се поддържат от тази платформа.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s нарушава правилата на Mozilla и не може да бъде инсталиран.</string>
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">Разширението %1$s нарушава правилата на Mozilla и не може да бъде инсталирано.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
-    <string name="mozac_feature_addons_soft_blocked_1">%1$s нарушава правилата на Mozilla и не може да бъде инсталиран на %2$s.</string>
+    <string name="mozac_feature_addons_soft_blocked_1">Разширението %1$s нарушава правилата на Mozilla и не може да бъде инсталирано на %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">Добавката „%1$s“ е включена</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -265,13 +265,13 @@
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">Добавката %1$s е изключена поради съображения за сигурност или стабилност.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted_1">Разширението е блокирано поради нарушение на политиките на Mozilla и е изключено.</string>
+    <string name="mozac_feature_addons_status_blocklisted_1">Разширението е забранено поради нарушение на политиките на Mozilla и е изключено.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Това разширение нарушава правилата на Mozilla и е изключено. Можете да го активирате, но това може да е рисковано.</string>
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Разширението нарушава правилата на Mozilla и е изключено. Можете да го включите, но това може да носи риск.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked_1">Разширението е ограничено поради нарушение на политиките на Mozilla и е изключено. Можете да го активирате, но това може да е рисковано.</string>
+    <string name="mozac_feature_addons_status_softblocked_1">Разширението е ограничено поради нарушение на политиките на Mozilla и е изключено. Можете да го включите, но това може да носи риск.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
-    <string name="mozac_feature_addons_status_softblocked_re_enabled">Това разширение нарушава политиките на Mozilla. Използването му може да е рисковано.</string>
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Разширението нарушава политиките на Mozilla. Използването му може да носи риск.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">Добавката %1$s не може да бъде проверена и е изключена.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
