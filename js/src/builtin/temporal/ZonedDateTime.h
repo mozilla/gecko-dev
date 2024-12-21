@@ -107,7 +107,6 @@ class MOZ_STACK_CLASS ZonedDateTime final {
 struct DifferenceSettings;
 enum class TemporalDisambiguation;
 enum class TemporalOffset;
-enum class TemporalOverflow;
 enum class TemporalUnit;
 
 /**

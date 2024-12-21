@@ -9,14 +9,13 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/EnumSet.h"
+#include "mozilla/Maybe.h"
 
 #include <array>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "builtin/temporal/TemporalTypes.h"
-#include "js/GCVector.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
@@ -24,13 +23,8 @@
 #include "vm/NativeObject.h"
 #include "vm/StringType.h"
 
-class JSLinearString;
 class JS_PUBLIC_API JSTracer;
 struct JSClassOps;
-
-namespace js {
-struct ClassSpec;
-}
 
 namespace mozilla::intl {
 class TimeZone;
@@ -265,7 +259,6 @@ class PossibleEpochNanoseconds final {
 };
 
 struct ParsedTimeZone;
-struct ISODateTime;
 enum class TemporalDisambiguation;
 
 /**

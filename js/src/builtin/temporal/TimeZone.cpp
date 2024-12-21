@@ -6,7 +6,6 @@
 
 #include "builtin/temporal/TimeZone.h"
 
-#include "mozilla/Array.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/intl/TimeZone.h"
 #include "mozilla/Likely.h"
@@ -18,17 +17,14 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <initializer_list>
 #include <iterator>
+#include <string_view>
 #include <utility>
 
 #include "jsdate.h"
-#include "jsnum.h"
-#include "jspubtd.h"
 #include "jstypes.h"
 #include "NamespaceImports.h"
 
-#include "builtin/Array.h"
 #include "builtin/intl/CommonFunctions.h"
 #include "builtin/intl/FormatBuffer.h"
 #include "builtin/intl/SharedIntlData.h"
@@ -42,32 +38,20 @@
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "builtin/temporal/ZonedDateTime.h"
-#include "gc/AllocKind.h"
 #include "gc/Barrier.h"
 #include "gc/GCContext.h"
 #include "gc/GCEnum.h"
 #include "gc/Tracer.h"
 #include "js/AllocPolicy.h"
-#include "js/CallArgs.h"
-#include "js/CallNonGenericMethod.h"
 #include "js/Class.h"
-#include "js/ComparisonOperators.h"
-#include "js/Date.h"
 #include "js/ErrorReport.h"
-#include "js/ForOfIterator.h"
 #include "js/friend/ErrorMessages.h"
 #include "js/Printer.h"
-#include "js/PropertyDescriptor.h"
-#include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
 #include "js/StableStringChars.h"
-#include "threading/ProtectedData.h"
-#include "vm/ArrayObject.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/Compartment.h"
 #include "vm/DateTime.h"
-#include "vm/GlobalObject.h"
-#include "vm/Interpreter.h"
 #include "vm/JSAtomState.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
@@ -75,8 +59,6 @@
 #include "vm/StringType.h"
 
 #include "vm/JSObject-inl.h"
-#include "vm/NativeObject-inl.h"
-#include "vm/ObjectOperations-inl.h"
 
 using namespace js;
 using namespace js::temporal;

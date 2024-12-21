@@ -9,16 +9,14 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/EnumSet.h"
 
-#include <initializer_list>
 #include <stdint.h>
+#include <string_view>
 
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
 #include "vm/NativeObject.h"
-#include "vm/StringType.h"
 
 class JS_PUBLIC_API JSTracer;
 
