@@ -1893,20 +1893,24 @@ impl Global {
                     return;
                 }
 
-                let mut use_external_texture = if let Some(id) = swap_chain_id {
+                let use_external_texture = if let Some(id) = swap_chain_id {
                     unsafe { wgpu_server_use_external_texture_for_swap_chain(self.owner, id) }
                 } else {
                     false
                 };
 
-                let limits = self.device_limits(self_id);
-                if desc.size.width > limits.max_texture_dimension_2d
-                    || desc.size.height > limits.max_texture_dimension_2d
-                {
-                    use_external_texture = false;
-                }
-
                 if use_external_texture {
+                    let limits = self.device_limits(self_id);
+                    if desc.size.width > limits.max_texture_dimension_2d
+                        || desc.size.height > limits.max_texture_dimension_2d
+                    {
+                        error_buf.init(ErrMsg {
+                            message: "size exceeds limits.max_texture_dimension_2d",
+                            r#type: ErrorBufferType::Validation,
+                        });
+                        return;
+                    }
+
                     #[cfg(target_os = "windows")]
                     {
                         let is_created = self.create_texture_with_external_texture_d3d11(
