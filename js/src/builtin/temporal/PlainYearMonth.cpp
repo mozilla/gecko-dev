@@ -15,6 +15,7 @@
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
+#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Duration.h"
@@ -1180,17 +1181,10 @@ static bool PlainYearMonth_toString(JSContext* cx, unsigned argc, Value* vp) {
  * )
  */
 static bool PlainYearMonth_toLocaleString(JSContext* cx, const CallArgs& args) {
-  Rooted<PlainYearMonthObject*> yearMonth(
-      cx, &args.thisv().toObject().as<PlainYearMonthObject>());
-
-  // Step 3.
-  JSString* str = TemporalYearMonthToString(cx, yearMonth, ShowCalendar::Auto);
-  if (!str) {
-    return false;
-  }
-
-  args.rval().setString(str);
-  return true;
+  // Steps 3-4.
+  Handle<PropertyName*> required = cx->names().date;
+  Handle<PropertyName*> defaults = cx->names().date;
+  return TemporalObjectToLocaleString(cx, args, required, defaults);
 }
 
 /**

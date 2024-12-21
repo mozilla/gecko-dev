@@ -745,20 +745,12 @@ function InitializeDateTimeFormat(
 
     // Step 43.b.
     if (required === "date" && timeStyle !== undefined) {
-      ThrowTypeError(
-        JSMSG_INVALID_DATETIME_STYLE,
-        "timeStyle",
-        "toLocaleDateString"
-      );
+      ThrowTypeError(JSMSG_INVALID_DATETIME_STYLE, "timeStyle", "date");
     }
 
     // Step 43.c.
     if (required === "time" && dateStyle !== undefined) {
-      ThrowTypeError(
-        JSMSG_INVALID_DATETIME_STYLE,
-        "dateStyle",
-        "toLocaleTimeString"
-      );
+      ThrowTypeError(JSMSG_INVALID_DATETIME_STYLE, "dateStyle", "time");
     }
   } else {
     lazyDateTimeFormatData.required = required;

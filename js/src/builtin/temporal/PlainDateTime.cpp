@@ -17,6 +17,7 @@
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
+#include "builtin/intl/DateTimeFormat.h"
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/CalendarFields.h"
 #include "builtin/temporal/Duration.h"
@@ -1949,19 +1950,10 @@ static bool PlainDateTime_toString(JSContext* cx, unsigned argc, Value* vp) {
  * Temporal.PlainDateTime.prototype.toLocaleString ( [ locales [ , options ] ] )
  */
 static bool PlainDateTime_toLocaleString(JSContext* cx, const CallArgs& args) {
-  auto* dateTime = &args.thisv().toObject().as<PlainDateTimeObject>();
-  auto dt = dateTime->dateTime();
-  Rooted<CalendarValue> calendar(cx, dateTime->calendar());
-
-  // Step 3.
-  JSString* str = ISODateTimeToString(cx, dt, calendar, Precision::Auto(),
-                                      ShowCalendar::Auto);
-  if (!str) {
-    return false;
-  }
-
-  args.rval().setString(str);
-  return true;
+  // Steps 3-4.
+  Handle<PropertyName*> required = cx->names().any;
+  Handle<PropertyName*> defaults = cx->names().all;
+  return TemporalObjectToLocaleString(cx, args, required, defaults);
 }
 
 /**
