@@ -27,6 +27,7 @@
   MACRO_(add, "add")                                                           \
   IF_DECORATORS(MACRO_(addInitializer, "addInitializer"))                      \
   MACRO_(address, "address")                                                   \
+  MACRO_(all, "all")                                                           \
   MACRO_(allowContentIter, "allowContentIter")                                 \
   MACRO_(allowContentIterWith, "allowContentIterWith")                         \
   MACRO_(allowContentIterWithNext, "allowContentIterWithNext")                 \
@@ -132,6 +133,7 @@
   MACRO_(decodeURI, "decodeURI")                                               \
   MACRO_(decodeURIComponent, "decodeURIComponent")                             \
   MACRO_(default_, "default")                                                  \
+  MACRO_(defaults, "defaults")                                                 \
   MACRO_(DefineDataProperty, "DefineDataProperty")                             \
   MACRO_(defineGetter_, "__defineGetter__")                                    \
   MACRO_(defineProperty, "defineProperty")                                     \
@@ -505,6 +507,7 @@
   MACRO_(rejected, "rejected")                                                 \
   MACRO_(relatedYear, "relatedYear")                                           \
   MACRO_(relativeTo, "relativeTo")                                             \
+  MACRO_(required, "required")                                                 \
   MACRO_(RequireObjectCoercible, "RequireObjectCoercible")                     \
   MACRO_(resize, "resize")                                                     \
   MACRO_(resizable, "resizable")                                               \
@@ -568,6 +571,7 @@
   MACRO_(then, "then")                                                         \
   MACRO_(this_, "this")                                                        \
   MACRO_(throw_, "throw")                                                      \
+  MACRO_(time, "time")                                                         \
   MACRO_(timed_out_, "timed-out")                                              \
   MACRO_(timestamp, "timestamp")                                               \
   MACRO_(timeStyle, "timeStyle")                                               \
