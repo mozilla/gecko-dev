@@ -589,24 +589,26 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
     return true;
   }
 
-  // Step 2.
+  // Step 2. (Not applicable in our implementation.)
+
+  // Step 3.
   InternalDuration diff;
   if (!DifferenceISODateTime(cx, isoDateTime1, isoDateTime2, calendar,
                              settings.largestUnit, &diff)) {
     return false;
   }
 
-  // Step 3.
+  // Step 4.
   if (settings.smallestUnit == TemporalUnit::Nanosecond &&
       settings.roundingIncrement == Increment{1}) {
     *result = diff;
     return true;
   }
 
-  // Step 4.
+  // Step 5.
   auto destEpochNs = GetUTCEpochNanoseconds(isoDateTime2);
 
-  // Step 5.
+  // Step 6.
   Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
   return RoundRelativeDuration(
       cx, diff, destEpochNs, isoDateTime1, timeZone, calendar,
@@ -632,14 +634,16 @@ bool js::temporal::DifferencePlainDateTimeWithTotal(
     return true;
   }
 
-  // Step 2.
+  // Step 2. (Not applicable in our implementation.)
+
+  // Step 3.
   InternalDuration diff;
   if (!DifferenceISODateTime(cx, isoDateTime1, isoDateTime2, calendar, unit,
                              &diff)) {
     return false;
   }
 
-  // Step 3. (Optimized to avoid GetUTCEpochNanoseconds for non-calendar units.)
+  // Step 4. (Optimized to avoid GetUTCEpochNanoseconds for non-calendar units.)
   if (unit > TemporalUnit::Day) {
     MOZ_ASSERT(diff.date == DateDuration{});
 
@@ -660,10 +664,10 @@ bool js::temporal::DifferencePlainDateTimeWithTotal(
     return true;
   }
 
-  // Step 4.
+  // Step 5.
   auto destEpochNs = GetUTCEpochNanoseconds(isoDateTime2);
 
-  // Step 5.
+  // Step 6.
   Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
   return TotalRelativeDuration(cx, diff, destEpochNs, isoDateTime1, timeZone,
                                calendar, unit, result);
