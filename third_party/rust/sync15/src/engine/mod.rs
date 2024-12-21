@@ -19,9 +19,11 @@
 //! * Code which implements the [crate::engine::bridged_engine::BridgedEngine]
 //!   trait. These engines are a "bridge" between the Desktop JS Sync world and
 //!   this rust code.
+//!
 //! While these engines end up doing the same thing, the difference is due to
 //! implementation differences between the Desktop Sync client and the Rust
 //! client.
+//!
 //! We intend merging these engines - the first step will be to merge the
 //! types and payload management used by these traits, then to combine the
 //! requirements into a single trait that captures both use-cases.

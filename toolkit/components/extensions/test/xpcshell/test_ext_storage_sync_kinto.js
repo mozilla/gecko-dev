@@ -483,7 +483,7 @@ async function withServer(f) {
 // KintoServer. This is meant as a workaround for eslint's refusal to
 // let me have 5 nested callbacks.
 async function withContextAndServer(f) {
-  await withSyncContext(async function (context) {
+  await withContext(async function (context) {
     await withServer(async function (server) {
       await f(context, server);
     });
@@ -1376,7 +1376,7 @@ add_task(async function checkSyncKeyRing_overwrites_on_conflict() {
   // overwrite it with our keys.
   const extensionId = uuid();
   let extensionKey;
-  await withSyncContext(async function () {
+  await withContext(async function () {
     await withServer(async function (server) {
       // The old device has this kbHash, which is very similar to the
       // current kbHash but with the last character changed.
@@ -1480,7 +1480,7 @@ add_task(async function checkSyncKeyRing_flushes_on_uuid_change() {
   // keyring, so reset sync state and reupload everything.
   const extensionId = uuid();
   const extension = { id: extensionId };
-  await withSyncContext(async function (context) {
+  await withContext(async function (context) {
     await withServer(async function (server) {
       server.installCollection("storage-sync-crypto");
       server.installDeleteBucket();
@@ -2256,32 +2256,23 @@ add_task(async function test_storage_sync_pushes_deletes() {
 });
 
 // Some sync tests shared between implementations.
-add_task(test_config_flag_needed);
 
 add_task(test_sync_reloading_extensions_works);
 
-add_task(function test_storage_sync() {
-  return runWithPrefs([[STORAGE_SYNC_PREF, true]], () =>
-    test_background_page_storage("sync")
-  );
+add_task(async function test_storage_sync() {
+  await test_background_page_storage("sync");
 });
 
 add_task(test_storage_sync_requires_real_id);
 
-add_task(function test_storage_sync_with_bytes_in_use() {
-  return runWithPrefs([[STORAGE_SYNC_PREF, true]], () =>
-    test_background_storage_area_with_bytes_in_use("sync", false)
-  );
+add_task(async function test_storage_sync_with_bytes_in_use() {
+  await test_background_storage_area_with_bytes_in_use("sync", false);
 });
 
-add_task(function test_storage_onChanged_event_page() {
-  return runWithPrefs([[STORAGE_SYNC_PREF, true]], () =>
-    test_storage_change_event_page("sync")
-  );
+add_task(async function test_storage_onChanged_event_page() {
+  await test_storage_change_event_page("sync");
 });
 
 add_task(async function test_storage_sync_telemetry() {
-  return runWithPrefs([[STORAGE_SYNC_PREF, true]], () =>
-    test_storage_sync_telemetry_quota("kinto", false)
-  );
+  await test_storage_sync_telemetry_quota("kinto", false);
 });

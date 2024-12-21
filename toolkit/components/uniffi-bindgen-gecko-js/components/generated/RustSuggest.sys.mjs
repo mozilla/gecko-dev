@@ -520,7 +520,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                35, // suggest:uniffi_suggest_fn_constructor_suggeststore_new
+                36, // suggest:uniffi_suggest_fn_constructor_suggeststore_new
                 FfiConverterString.lower(path),
                 FfiConverterOptionalTypeRemoteSettingsConfig.lower(settingsConfig),
             )
@@ -535,7 +535,7 @@ export class SuggestStore {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                25, // suggest:uniffi_suggest_fn_method_suggeststore_clear
+                26, // suggest:uniffi_suggest_fn_method_suggeststore_clear
                 FfiConverterTypeSuggestStore.lower(this),
             )
         }
@@ -554,7 +554,7 @@ export class SuggestStore {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                26, // suggest:uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions
+                27, // suggest:uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions
                 FfiConverterTypeSuggestStore.lower(this),
             )
         }
@@ -585,7 +585,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                27, // suggest:uniffi_suggest_fn_method_suggeststore_dismiss_suggestion
+                28, // suggest:uniffi_suggest_fn_method_suggeststore_dismiss_suggestion
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterString.lower(suggestionUrl),
             )
@@ -616,9 +616,11 @@ export class SuggestStore {
      * since city and region names are not unique. `filter` is disjunctive: If
      * any item in `filter` matches a geoname, the geoname will be filtered in.
      *
-     * The query can match a geoname in more than one way, for example both a
-     * full name and an abbreviation. The returned vec of [`GeonameMatch`]
-     * values will include all matches for a geoname, one match per geoname.
+     * The query can match a single geoname in more than one way. For example,
+     * it can match both a full name and an abbreviation. The returned vec of
+     * [`GeonameMatch`] values will include all matches for a geoname, one
+     * match per `match_type` per geoname. In other words, a matched geoname
+     * can map to more than one `GeonameMatch`.
      * @returns {Array.<GeonameMatch>}
      */
     fetchGeonames(query,matchNamePrefix,geonameType,filter) {
@@ -658,7 +660,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                28, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_geonames
+                29, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_geonames
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterString.lower(query),
                 FfiConverterBool.lower(matchNamePrefix),
@@ -682,7 +684,7 @@ export class SuggestStore {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                29, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_global_config
+                30, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_global_config
                 FfiConverterTypeSuggestStore.lower(this),
             )
         }
@@ -710,7 +712,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                30, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_provider_config
+                31, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_provider_config
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionProvider.lower(provider),
             )
@@ -739,7 +741,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                31, // suggest:uniffi_suggest_fn_method_suggeststore_ingest
+                32, // suggest:uniffi_suggest_fn_method_suggeststore_ingest
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestIngestionConstraints.lower(constraints),
             )
@@ -771,7 +773,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                32, // suggest:uniffi_suggest_fn_method_suggeststore_interrupt
+                33, // suggest:uniffi_suggest_fn_method_suggeststore_interrupt
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterOptionalTypeInterruptKind.lower(kind),
             )
@@ -796,7 +798,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                33, // suggest:uniffi_suggest_fn_method_suggeststore_query
+                34, // suggest:uniffi_suggest_fn_method_suggeststore_query
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionQuery.lower(query),
             )
@@ -825,7 +827,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                34, // suggest:uniffi_suggest_fn_method_suggeststore_query_with_metrics
+                35, // suggest:uniffi_suggest_fn_method_suggeststore_query_with_metrics
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionQuery.lower(query),
             )
@@ -896,7 +898,7 @@ export class SuggestStoreBuilder {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                42, // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
+                43, // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -910,7 +912,7 @@ export class SuggestStoreBuilder {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                36, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
+                37, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
             )
         }
@@ -934,7 +936,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                37, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_cache_path
+                38, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_cache_path
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(path),
             )
@@ -963,7 +965,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                38, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
+                39, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(path),
             )
@@ -1000,7 +1002,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                39, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
+                40, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(library),
                 FfiConverterOptionalstring.lower(entryPoint),
@@ -1026,7 +1028,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                40, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
+                41, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(bucketName),
             )
@@ -1051,7 +1053,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                41, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
+                42, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterTypeRemoteSettingsServer.lower(server),
             )
@@ -3816,7 +3818,7 @@ export function rawSuggestionUrlMatches(rawUrl,cookedUrl) {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                24, // suggest:uniffi_suggest_fn_func_raw_suggestion_url_matches
+                25, // suggest:uniffi_suggest_fn_func_raw_suggestion_url_matches
                 FfiConverterString.lower(rawUrl),
                 FfiConverterString.lower(cookedUrl),
             )

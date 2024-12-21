@@ -12,7 +12,7 @@ use serde::{
 use crate::Guid;
 
 struct GuidVisitor;
-impl<'de> Visitor<'de> for GuidVisitor {
+impl Visitor<'_> for GuidVisitor {
     type Value = Guid;
     #[inline]
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

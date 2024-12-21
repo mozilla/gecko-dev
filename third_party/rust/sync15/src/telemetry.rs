@@ -814,7 +814,7 @@ mod ping_tests {
     }
 }
 
-impl<'a> From<&'a Error> for SyncFailure {
+impl From<&Error> for SyncFailure {
     fn from(e: &Error) -> SyncFailure {
         match e {
             #[cfg(feature = "sync-client")]

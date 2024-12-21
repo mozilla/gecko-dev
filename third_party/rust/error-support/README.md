@@ -86,4 +86,3 @@ a user's database in their errors, which would then appear in our error
 variants. However, we've never seen that in practice so we are comfortable
 including the `rusqlite` error message in our error reports, without attempting
 to sanitize them.
-

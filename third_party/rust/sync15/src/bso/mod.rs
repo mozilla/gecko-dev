@@ -9,15 +9,15 @@
 ///    the server timestamp of the resource,  etc) and a field called `payload`.
 ///    A bso is serialized to and from JSON.
 /// * There's a "cleartext" bso:
-/// ** The payload is a String, which itself is JSON encoded (ie, this string `payload` is
-///    always double JSON encoded in a server record)
-/// ** This supplies helper methods for working with the "content" (some arbitrary <T>) in the
-///    payload.
+///   * The payload is a String, which itself is JSON encoded (ie, this string `payload` is
+///      always double JSON encoded in a server record)
+///   * This supplies helper methods for working with the "content" (some arbitrary <T>) in the
+///      payload.
 /// * There's an "encrypted" bso
-/// ** The payload is an [crate::enc_payload::EncryptedPayload]
-/// ** Only clients use this; as soon as practical we decrypt and as late as practical we encrypt
-///    to and from encrypted bsos.
-/// ** The encrypted bsos etc are all in the [crypto] module and require the `crypto` feature.
+///   * The payload is an [crate::enc_payload::EncryptedPayload]
+///   * Only clients use this; as soon as practical we decrypt and as late as practical we encrypt
+///     to and from encrypted bsos.
+///    * The encrypted bsos etc are all in the [crypto] module and require the `crypto` feature.
 ///
 /// Let's look at some real-world examples:
 /// # meta/global

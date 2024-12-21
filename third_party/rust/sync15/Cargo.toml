@@ -74,7 +74,7 @@ features = ["random"]
 version = "0.28.2"
 
 [dependencies.url]
-version = "2.1"
+version = "2"
 optional = true
 
 [dependencies.viaduct]
@@ -105,3 +105,6 @@ sync-client = [
     "url",
 ]
 sync-engine = ["random-guid"]
+
+[lints.clippy]
+empty-line-after-doc-comments = "allow"

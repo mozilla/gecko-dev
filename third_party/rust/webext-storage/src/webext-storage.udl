@@ -5,6 +5,9 @@
 [Custom]
 typedef string JsonValue;
 
+[Custom]
+typedef string Guid;
+
 namespace webextstorage {
 
 };
@@ -20,6 +23,11 @@ interface WebExtStorageApiError {
     UnexpectedError(string reason);
     JsonError(string reason);
     QuotaError(QuotaReason reason);
+};
+
+dictionary SyncedExtensionChange {
+    string ext_id;
+    string changes;
 };
 
 dictionary StorageValueChange {
@@ -43,8 +51,63 @@ interface WebExtStorageStore {
     JsonValue get([ByRef] string ext_id, JsonValue keys);
 
     [Throws=WebExtStorageApiError]
+    u64 get_bytes_in_use([ByRef] string ext_id, JsonValue keys);
+
+    [Throws=WebExtStorageApiError]
+    void close();
+
+    [Throws=WebExtStorageApiError]
     StorageChanges remove([ByRef] string ext_id, JsonValue keys);
 
     [Throws=WebExtStorageApiError]
     StorageChanges clear([ByRef] string ext_id);
+
+    [Self=ByArc]
+    WebExtStorageBridgedEngine bridged_engine();
+
+    [Throws=WebExtStorageApiError]
+    sequence<SyncedExtensionChange> get_synced_changes();
+};
+
+// Note the canonical docs for this are in https://github.com/mozilla/application-services/blob/main/components/sync15/src/engine/bridged_engine.rs
+// NOTE: all timestamps here are milliseconds.
+interface WebExtStorageBridgedEngine {
+    [Throws=WebExtStorageApiError]
+    i64 last_sync();
+
+    [Throws=WebExtStorageApiError]
+    void set_last_sync(i64 last_sync);
+
+    [Throws=WebExtStorageApiError]
+    string? sync_id();
+
+    [Throws=WebExtStorageApiError]
+    string reset_sync_id();
+
+    [Throws=WebExtStorageApiError]
+    string ensure_current_sync_id([ByRef]string new_sync_id);
+
+    [Throws=WebExtStorageApiError]
+    void prepare_for_sync([ByRef]string client_data);
+
+    [Throws=WebExtStorageApiError]
+    void sync_started();
+
+    [Throws=WebExtStorageApiError]
+    void store_incoming(sequence<string> incoming);
+
+    [Throws=WebExtStorageApiError]
+    sequence<string> apply();
+
+    [Throws=WebExtStorageApiError]
+    void set_uploaded(i64 server_modified_millis, sequence<Guid> guids);
+
+    [Throws=WebExtStorageApiError]
+    void sync_finished();
+
+    [Throws=WebExtStorageApiError]
+    void reset();
+
+    [Throws=WebExtStorageApiError]
+    void wipe();
 };

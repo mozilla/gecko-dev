@@ -43,12 +43,6 @@ run-if = ["os == 'android'"] # Android has no remote extensions, Bug 1535365
 
 ["test_ExtensionShortcutKeyMap.js"]
 
-["test_ExtensionStorageSync_migration_kinto.js"]
-skip-if = [
-  "os == 'android'", # Not shipped on Android
-  "condprof", # Bug 1769184 - by design for now
-]
-
 ["test_MatchPattern.js"]
 
 ["test_OriginControls.js"]

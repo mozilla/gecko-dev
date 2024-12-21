@@ -50,3 +50,6 @@ version = "0.28.2"
 [build-dependencies.uniffi]
 version = "0.28.2"
 features = ["build"]
+
+[lints.clippy]
+empty-line-after-doc-comments = "allow"

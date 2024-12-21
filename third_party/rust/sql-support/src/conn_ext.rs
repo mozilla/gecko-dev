@@ -252,14 +252,14 @@ impl ConnExt for Connection {
     }
 }
 
-impl<'conn> ConnExt for Transaction<'conn> {
+impl ConnExt for Transaction<'_> {
     #[inline]
     fn conn(&self) -> &Connection {
         self
     }
 }
 
-impl<'conn> ConnExt for Savepoint<'conn> {
+impl ConnExt for Savepoint<'_> {
     #[inline]
     fn conn(&self) -> &Connection {
         self
@@ -365,7 +365,7 @@ impl<'conn> UncheckedTransaction<'conn> {
     }
 }
 
-impl<'conn> Deref for UncheckedTransaction<'conn> {
+impl Deref for UncheckedTransaction<'_> {
     type Target = Connection;
 
     #[inline]
@@ -374,7 +374,7 @@ impl<'conn> Deref for UncheckedTransaction<'conn> {
     }
 }
 
-impl<'conn> Drop for UncheckedTransaction<'conn> {
+impl Drop for UncheckedTransaction<'_> {
     fn drop(&mut self) {
         if let Err(e) = self.finish_() {
             log::warn!("Error dropping an unchecked transaction: {}", e);
@@ -382,7 +382,7 @@ impl<'conn> Drop for UncheckedTransaction<'conn> {
     }
 }
 
-impl<'conn> ConnExt for UncheckedTransaction<'conn> {
+impl ConnExt for UncheckedTransaction<'_> {
     #[inline]
     fn conn(&self) -> &Connection {
         self
