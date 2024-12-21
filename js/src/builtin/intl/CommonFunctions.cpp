@@ -167,6 +167,10 @@ void js::intl::AddICUCellMemory(JSObject* obj, size_t nbytes) {
   AddCellMemory(obj, nbytes, MemoryUse::ICUObject);
 }
 
+void js::intl::RemoveICUCellMemory(JSObject* obj, size_t nbytes) {
+  RemoveCellMemory(obj, nbytes, MemoryUse::ICUObject);
+}
+
 void js::intl::RemoveICUCellMemory(JS::GCContext* gcx, JSObject* obj,
                                    size_t nbytes) {
   gcx->removeCellMemory(obj, nbytes, MemoryUse::ICUObject);

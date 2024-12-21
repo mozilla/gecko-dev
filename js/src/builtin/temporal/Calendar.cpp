@@ -344,10 +344,10 @@ static YearWeek ISOWeekOfYear(const ISODate& isoDate) {
 }
 
 /**
- * Return the BCP-47 string for the given calendar id.
+ * ToTemporalCalendarIdentifier ( calendarSlotValue )
  */
-static std::string_view CalendarIdToBcp47(CalendarId id) {
-  switch (id) {
+std::string_view js::temporal::CalendarIdentifier(CalendarId calendarId) {
+  switch (calendarId) {
     case CalendarId::ISO8601:
       return "iso8601";
     case CalendarId::Buddhist:
@@ -455,7 +455,7 @@ bool js::temporal::CanonicalizeCalendar(JSContext* cx, Handle<JSString*> id,
 
     // Steps 2-3.
     for (auto identifier : calendars) {
-      if (id == mozilla::Span{CalendarIdToBcp47(identifier)}) {
+      if (id == mozilla::Span{CalendarIdentifier(identifier)}) {
         result.set(CalendarValue(identifier));
         return true;
       }
@@ -558,14 +558,6 @@ bool js::temporal::GetTemporalCalendarWithISODefault(
 
   // Step 4.
   return ToTemporalCalendar(cx, calendarValue, result);
-}
-
-/**
- * ToTemporalCalendarIdentifier ( calendarSlotValue )
- */
-std::string_view js::temporal::CalendarIdentifier(
-    const CalendarValue& calendar) {
-  return CalendarIdToBcp47(calendar.identifier());
 }
 
 static auto ToAnyCalendarKind(CalendarId id) {
