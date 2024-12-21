@@ -248,7 +248,8 @@ class DateTimeFormatObject : public NativeObject {
  */
 [[nodiscard]] extern bool TemporalObjectToLocaleString(
     JSContext* cx, const JS::CallArgs& args, JS::Handle<JSString*> required,
-    JS::Handle<JSString*> defaults);
+    JS::Handle<JSString*> defaults,
+    JS::Handle<JS::Value> toLocaleStringTimeZone = JS::UndefinedHandleValue);
 
 }  // namespace js
 
