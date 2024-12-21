@@ -14,8 +14,10 @@ features: [Symbol.iterator]
 ---*/
 
 assert.sameValue(Map.prototype[Symbol.iterator], Map.prototype.entries);
-verifyNotEnumerable(Map.prototype, Symbol.iterator);
-verifyWritable(Map.prototype, Symbol.iterator);
-verifyConfigurable(Map.prototype, Symbol.iterator);
+verifyProperty(Map.prototype, Symbol.iterator, {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

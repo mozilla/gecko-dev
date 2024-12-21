@@ -13,8 +13,10 @@ features: [Symbol]
 
 assert.sameValue(typeof Symbol.prototype.toString, 'function');
 
-verifyNotEnumerable(Symbol.prototype, 'toString');
-verifyWritable(Symbol.prototype, 'toString');
-verifyConfigurable(Symbol.prototype, 'toString');
+verifyProperty(Symbol.prototype, 'toString', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

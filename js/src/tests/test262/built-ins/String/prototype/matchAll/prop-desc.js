@@ -17,8 +17,10 @@ features: [String.prototype.matchAll]
 
 assert.sameValue(typeof String.prototype.matchAll, 'function');
 
-verifyNotEnumerable(String.prototype, 'matchAll');
-verifyWritable(String.prototype, 'matchAll');
-verifyConfigurable(String.prototype, 'matchAll');
+verifyProperty(String.prototype, 'matchAll', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

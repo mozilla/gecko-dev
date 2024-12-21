@@ -11,8 +11,10 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(this, "TypeError");
-verifyWritable(this, "TypeError");
-verifyConfigurable(this, "TypeError");
+verifyProperty(this, "TypeError", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

@@ -16,8 +16,10 @@ includes: [propertyHelper.js]
 
 assert.sameValue(typeof Array.prototype.reverse, 'function', 'typeof');
 
-verifyNotEnumerable(Array.prototype, "reverse");
-verifyWritable(Array.prototype, "reverse");
-verifyConfigurable(Array.prototype, "reverse");
+verifyProperty(Array.prototype, "reverse", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

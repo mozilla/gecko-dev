@@ -10,8 +10,10 @@ description: >
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(Set.prototype, "constructor");
-verifyWritable(Set.prototype, "constructor");
-verifyConfigurable(Set.prototype, "constructor");
+verifyProperty(Set.prototype, "constructor", {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

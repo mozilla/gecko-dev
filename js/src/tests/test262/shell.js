@@ -103,18 +103,31 @@ assert.throws = function (expectedErrorConstructor, func, message) {
   throw new Test262Error(message);
 };
 
-assert._toString = function (value) {
-  try {
-    if (value === 0 && 1 / value === -Infinity) {
-      return '-0';
-    }
+assert._formatIdentityFreeValue = function formatIdentityFreeValue(value) {
+  switch (value === null ? 'null' : typeof value) {
+    case 'string':
+      return typeof JSON !== "undefined" ? JSON.stringify(value) : `"${value}"`;
+    case 'bigint':
+      return `${value}n`;
+    case 'number':
+      if (value === 0 && 1 / value === -Infinity) return '-0';
+      // falls through
+    case 'boolean':
+    case 'undefined':
+    case 'null':
+      return String(value);
+  }
+};
 
+assert._toString = function (value) {
+  var basic = assert._formatIdentityFreeValue(value);
+  if (basic) return basic;
+  try {
     return String(value);
   } catch (err) {
     if (err.name === 'TypeError') {
       return Object.prototype.toString.call(value);
     }
-
     throw err;
   }
 };
@@ -187,6 +200,7 @@ defines:
   - verifyNotEnumerable # deprecated
   - verifyConfigurable # deprecated
   - verifyNotConfigurable # deprecated
+  - verifyPrimordialProperty
 ---*/
 
 // @ts-check
@@ -454,6 +468,13 @@ function verifyNotConfigurable(obj, name) {
     throw new Test262Error("Expected obj[" + String(name) + "] NOT to be configurable, but was.");
   }
 }
+
+/**
+ * Use this function to verify the properties of a primordial object.
+ * For non-primordial objects, use verifyProperty.
+ * See: https://github.com/tc39/how-we-work/blob/main/terminology.md#primordial
+ */
+var verifyPrimordialProperty = verifyProperty;
 
 // file: sta.js
 // Copyright (c) 2012 Ecma International.  All rights reserved.

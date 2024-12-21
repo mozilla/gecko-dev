@@ -16,8 +16,10 @@ includes: [propertyHelper.js]
 
 assert.sameValue(typeof Array.prototype.sort, 'function', 'typeof');
 
-verifyNotEnumerable(Array.prototype, "sort");
-verifyWritable(Array.prototype, "sort");
-verifyConfigurable(Array.prototype, "sort");
+verifyProperty(Array.prototype, "sort", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

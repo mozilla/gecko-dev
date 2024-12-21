@@ -601,7 +601,6 @@ const timeZoneIdentifiers = [
   "US/Michigan",
   "US/Mountain",
   "US/Pacific",
-  "US/Pacific-New",
   "US/Samoa",
   "UTC",
   "Universal",

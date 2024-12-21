@@ -17,8 +17,10 @@ assert.sameValue(
   '`typeof String.prototype.startsWith` is `function`'
 );
 
-verifyNotEnumerable(String.prototype, 'startsWith');
-verifyWritable(String.prototype, 'startsWith');
-verifyConfigurable(String.prototype, 'startsWith');
+verifyProperty(String.prototype, 'startsWith', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

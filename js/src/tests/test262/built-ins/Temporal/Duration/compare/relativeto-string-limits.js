@@ -8,7 +8,8 @@ description: ISO strings at the edges of the representable range
 features: [Temporal]
 ---*/
 
-const instance = new Temporal.Duration();
+const instance = new Temporal.Duration(0, 0, 0, 0, 0, /* minutes = */ 5);
+const blankInstance = new Temporal.Duration();
 
 const validStrings = [
   "-271821-04-20T00:00Z[UTC]",
@@ -22,7 +23,7 @@ const validStrings = [
 ];
 
 for (const relativeTo of validStrings) {
-  Temporal.Duration.compare(instance, instance, { relativeTo });
+  Temporal.Duration.compare(instance, blankInstance, { relativeTo });
 }
 
 const invalidStrings = [
@@ -43,7 +44,7 @@ const invalidStrings = [
 for (const relativeTo of invalidStrings) {
   assert.throws(
     RangeError,
-    () => Temporal.Duration.compare(instance, instance, { relativeTo }),
+    () => Temporal.Duration.compare(instance, blankInstance, { relativeTo }),
     `"${relativeTo}" is outside the representable range for a relativeTo parameter`
   );
 }

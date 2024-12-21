@@ -30,8 +30,10 @@ assert.sameValue(
   Object.getPrototypeOf(instance).prototype
 );
 
-verifyNotEnumerable(instance, 'prototype');
-verifyWritable(instance, 'prototype');
-verifyNotConfigurable(instance, 'prototype');
+verifyProperty(instance, 'prototype', {
+  writable: true,
+  enumerable: false,
+  configurable: false,
+});
 
 reportCompare(0, 0);

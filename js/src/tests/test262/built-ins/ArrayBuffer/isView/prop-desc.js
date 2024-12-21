@@ -12,8 +12,10 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(ArrayBuffer, "isView");
-verifyWritable(ArrayBuffer, "isView");
-verifyConfigurable(ArrayBuffer, "isView");
+verifyProperty(ArrayBuffer, "isView", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);

@@ -17,8 +17,10 @@ assert.sameValue(
   '`typeof String.prototype.repeat` is `function`'
 );
 
-verifyNotEnumerable(String.prototype, 'repeat');
-verifyWritable(String.prototype, 'repeat');
-verifyConfigurable(String.prototype, 'repeat');
+verifyProperty(String.prototype, 'repeat', {
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 reportCompare(0, 0);

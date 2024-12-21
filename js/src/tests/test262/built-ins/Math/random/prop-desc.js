@@ -12,8 +12,10 @@ info: |
 includes: [propertyHelper.js]
 ---*/
 
-verifyNotEnumerable(Math, "random");
-verifyWritable(Math, "random");
-verifyConfigurable(Math, "random");
+verifyProperty(Math, "random", {
+  writable: true,
+  enumerable: false,
+  configurable: true
+});
 
 reportCompare(0, 0);
