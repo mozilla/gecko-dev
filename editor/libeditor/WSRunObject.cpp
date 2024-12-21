@@ -893,10 +893,10 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
 }
 
 // static
-Result<CreateLineBreakResult, nsresult>
-WhiteSpaceVisibilityKeeper::InsertLineBreak(
-    LineBreakType aLineBreakType, HTMLEditor& aHTMLEditor,
-    const EditorDOMPoint& aPointToInsert, const Element& aEditingHost) {
+Result<CreateElementResult, nsresult>
+WhiteSpaceVisibilityKeeper::InsertBRElement(
+    HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToInsert,
+    const Element& aEditingHost) {
   if (MOZ_UNLIKELY(NS_WARN_IF(!aPointToInsert.IsSet()))) {
     return Err(NS_ERROR_INVALID_ARG);
   }
@@ -1095,13 +1095,12 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
     }
   }
 
-  Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-      aHTMLEditor.InsertLineBreak(WithTransaction::Yes, aLineBreakType,
-                                  pointToInsert);
-  NS_WARNING_ASSERTION(insertBRElementResultOrError.isOk(),
-                       "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
-                       "aLineBreakType, eNone) failed");
-  return insertBRElementResultOrError;
+  Result<CreateElementResult, nsresult> insertBRElementResult =
+      aHTMLEditor.InsertBRElement(WithTransaction::Yes, pointToInsert);
+  NS_WARNING_ASSERTION(
+      insertBRElementResult.isOk(),
+      "HTMLEditor::InsertBRElement(WithTransaction::Yes, eNone) failed");
+  return insertBRElementResult;
 }
 
 // static
@@ -3639,22 +3638,18 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
           // the beginning of soft wrapped lines, and lets the user see 2 spaces
           // when they type 2 spaces.
 
-          Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-              aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
-                                          HTMLEditor::LineBreakType::BRElement,
+          Result<CreateElementResult, nsresult> insertBRElementResult =
+              aHTMLEditor.InsertBRElement(WithTransaction::Yes,
                                           atEndOfVisibleWhiteSpaces);
-          if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
+          if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
             NS_WARNING(
-                "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
-                "LineBreakType::BRElement) failed");
-            return insertBRElementResultOrError.propagateErr();
+                "HTMLEditor::InsertBRElement(WithTransaction::Yes) failed");
+            return insertBRElementResult.propagateErr();
           }
-          CreateLineBreakResult insertBRElementResult =
-              insertBRElementResultOrError.unwrap();
-          MOZ_ASSERT(insertBRElementResult.Handled());
+          MOZ_ASSERT(insertBRElementResult.inspect().GetNewNode());
           // Ignore caret suggestion because the caller must want to restore
           // `Selection` due to the purpose of this method.
-          insertBRElementResult.IgnoreCaretPointSuggestion();
+          insertBRElementResult.unwrap().IgnoreCaretPointSuggestion();
 
           atPreviousCharOfEndOfVisibleWhiteSpaces =
               textFragmentData.GetPreviousEditableCharPoint(

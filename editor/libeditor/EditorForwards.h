@@ -98,7 +98,6 @@ class CaretPoint;                       // EditorUtils.h
 class ChangeAttributeTransaction;       // ChangeAttributeTransaction.h
 class ChangeStyleTransaction;           // ChangeStyleTransaction.h
 class CompositionTransaction;           // CompositionTransaction.h
-class CreateLineBreakResult;            // EditorLineBreak.h
 class CSSEditUtils;                     // CSSEditUtils.h
 class DeleteContentTransactionBase;     // DeleteContentTransactionBase.h
 class DeleteMultipleRangesTransaction;  // DeleteMultipleRangesTransaction.h
