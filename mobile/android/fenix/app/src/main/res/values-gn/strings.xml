@@ -2979,6 +2979,15 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="protection_panel_banner_protected_title">%s oĩ ñema’ẽme</string>
 
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">Tapykueho mo’ãha iporãvéva</string>
+
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">Oĩramo ndoikoporãmbáiva ko tendápe, eñeha’ã eipe’a umi ñemo’ãha.</string>
+
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Umi ñemo’ãha oñembotypáma. Roipota embojurujajey.</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">Temiporu mopotĩha</string>
@@ -3128,6 +3137,10 @@
     <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Embohekopyahu ko’ág̃a</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Embohekopyahu nde Firefox kundaha</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Embohekopyahu 14 jasyapy mboyve</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Opyta 7 ára embohekopyahu hag̃ua</string>
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Ipahaitéma eiporu hag̃ua Firefox</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
@@ -3136,4 +3149,8 @@
     <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Moĩmbaha ha heta tembiapoite ndoikovéitama 14 jasyapy guive.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Eiporuhína Firefox japopyre itujámava</string>
-    </resources>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Embohekopyahu 14 jasyapy mboyve eiporu hag̃ua moĩmbaha ha ambue tembiapoite.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Oĩ tembiapoite ndoikomo’ãvéimava ko’ẽrõ.</string>
+</resources>

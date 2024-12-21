@@ -361,7 +361,7 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">Aktivizo Pamjen Lexues</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">Çaktivizo Pamjen Lexues</string>
+    <string name="browser_menu_turn_off_reader_view">Çaktivizo Pamjen Lexues</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Përktheni faqen…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -478,7 +478,7 @@
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_3">Shfletuesi ynë, me entin jofitimprurës nga pas, ndihmon të ndalen shoqëri t’ju ndjekin fshehtazi nëpër internet.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Më tepër se 100 milionë vetëm e mbrojnë privatësinë e tyre duke zgjedhur një shfletues që ka nga pas një ent jofitimprurës.</string>
+    <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Më tepër se 100 milionë vetëm e mbrojnë privatësinë e tyre duke zgjedhur një shfletues që ka pas një ent jofitimprurës.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Gjurmues të ditur? Të bllokuar automatikisht. Zgjerime? Provojini krejt të 700-ët. PDF? Lexuesi ynë i brendshëm i bën të administrohen me lehtësi.</string>
     <!-- Text for the button to set firefox as default browser on the device -->
@@ -599,8 +599,6 @@
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Zgjidhni një vendosje të panelit</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Mbajini kërkimet një hap larg.</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">Ruaje dhe vazhdo</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Anashkaloje</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
@@ -1189,13 +1187,13 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Mësoni më tepër</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Aplikacioni do të mbyllet, që të hyjnë në fuqi ndryshimet</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikacioni do të mbyllet, që të hyjnë në fuqi ndryshimet</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">OK</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">OK</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Anuloje</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Anuloje</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Po mbyllet aplikacioni, që të aplikohen ndryshimet…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Po mbyllet aplikacioni, që të aplikohen ndryshimet…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -2303,7 +2301,7 @@
     <!-- Label that indicates a site is using a secure connection -->
     <string name="quick_settings_sheet_secure_connection_2">Lidhja është e siguruar</string>
     <!-- Label that indicates a site is using a insecure connection -->
-    <string name="quick_settings_sheet_insecure_connection_2">Lidhja s’është e sigurt</string>
+    <string name="quick_settings_sheet_insecure_connection_2">Lidhja s’është e siguruar</string>
     <!-- Label to clear site data -->
     <string name="clear_site_data">Spastro cookie-t dhe të dhëna sajti</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
