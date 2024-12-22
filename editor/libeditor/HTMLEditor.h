@@ -1634,11 +1634,18 @@ class HTMLEditor final : public EditorBase,
       const EditorDOMPoint& aPointToInsert, const Element& aEditingHost);
 
   /**
-   * Insert padding `<br>` element for empty last line into aElement if
-   * aElement is a block element and empty.
+   * Insert a padding <br> if aPoint is in an empty block.
+   *
+   * @param aPoint              The place where you want to put a padding line
+   *                            break.
+   * @param aDeleteEmptyInlines If nsIEditor::eStrip, this deletes empty inlines
+   *                            before inserting a line break from the inserting
+   *                            point.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  InsertPaddingBRElementForEmptyLastLineIfNeeded(Element& aElement);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CreateLineBreakResult, nsresult>
+  InsertPaddingBRElementIfInEmptyBlock(
+      const EditorDOMPoint& aPoint,
+      nsIEditor::EStripWrappers aDeleteEmptyInlines);
 
   /**
    * Insert a padding <br> element for making preceding collapsible white-spaces
@@ -1659,13 +1666,6 @@ class HTMLEditor final : public EditorBase,
   DeleteRangesWithTransaction(nsIEditor::EDirection aDirectionAndAmount,
                               nsIEditor::EStripWrappers aStripWrappers,
                               const AutoRangeArray& aRangesToDelete) override;
-
-  /**
-   * This method inserts a padding `<br>` element for empty last line if
-   * selection is collapsed and container of the range needs it.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  MaybeInsertPaddingBRElementForEmptyLastLineAtSelection();
 
   /**
    * SplitParagraphWithTransaction() splits the parent block, aParentDivOrP, at
