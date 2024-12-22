@@ -1999,6 +1999,14 @@ class AddonPermissionsList extends HTMLElement {
 
         toggle.setAttribute("permission-key", perm);
         toggle.setAttribute("action", "toggle-permission");
+
+        if (perm === "userScripts") {
+          let mb = document.createElement("moz-message-bar");
+          mb.setAttribute("type", "warning");
+          mb.messageL10nId = "webext-perms-extra-warning-userScripts-long";
+          mb.slot = "nested";
+          toggle.append(mb);
+        }
         item.appendChild(toggle);
         list.appendChild(item);
       }

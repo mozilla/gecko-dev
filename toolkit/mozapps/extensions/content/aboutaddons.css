@@ -690,6 +690,13 @@ addon-permissions-list > .addon-detail-row {
 
   .addon-permissions-optional & {
     padding-inline-start: 0;
+
+    moz-toggle > moz-message-bar {
+      /* decrease from default --space-large to appear closer to the permission
+       * message. Otherwise it is closer to the next permission than the
+       * permission associated with the toggle. */
+      margin-block-start: var(--space-small);
+    }
   }
 }
 
