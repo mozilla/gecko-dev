@@ -2509,13 +2509,18 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::ClearStyleAt(
         return lineBreakPointOrError.propagateErr();
       }
     }
-    Result<CreateElementResult, nsresult> insertBRElementResult =
-        InsertBRElement(WithTransaction::Yes, pointToPutCaret);
-    if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
-      NS_WARNING("EditorBase::InsertNodeWithTransaction() failed");
-      return insertBRElementResult.propagateErr();
+    Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
+        InsertLineBreak(WithTransaction::Yes, LineBreakType::BRElement,
+                        pointToPutCaret);
+    if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
+      NS_WARNING(
+          "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
+          "LineBreakType::BRElement) failed");
+      return insertBRElementResultOrError.propagateErr();
     }
-    insertBRElementResult.unwrap().MoveCaretPointTo(
+    CreateLineBreakResult insertBRElementResult =
+        insertBRElementResultOrError.unwrap();
+    insertBRElementResult.MoveCaretPointTo(
         pointToPutCaret, *this,
         {SuggestCaret::OnlyIfHasSuggestion,
          SuggestCaret::OnlyIfTransactionsAllowedToDoIt});

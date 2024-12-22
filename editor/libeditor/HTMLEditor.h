@@ -786,27 +786,29 @@ class HTMLEditor final : public EditorBase,
       const nsINode& aNode, const Element& aEditingHost) const;
 
   /**
-   * InsertBRElement() creates a <br> element and inserts it before
-   * aPointToInsert.
+   * InsertLineBreak() creates a <br> element or a Text node which has only
+   * preformatted linefeed and inserts it at aPointToInsert.
    *
    * @param aWithTransaction    Whether the inserting is new element is undoable
    *                            or not.  WithTransaction::No is useful only when
    *                            the new element is inserted into a new element
    *                            which has not been connected yet.
-   * @param aPointToInsert      The DOM point where should be <br> node inserted
-   *                            before.
+   * @param aLineBreakType      Whether a <br> element or a linefeed should be
+   *                            used.
+   * @param aPointToInsert      The DOM point where a <br> element or a Text
+   *                            node should be inserted.
    * @param aSelect             If eNone, returns a point to put caret which is
    *                            suggested by InsertNodeTransaction.
    *                            If eNext, returns a point after the new <br>
    *                            element.
    *                            If ePrevious, returns a point at the new <br>
    *                            element.
-   * @return                    The new <br> node and suggesting point to put
-   *                            caret which respects aSelect.
+   * @return                    The new <br> or Text node and suggesting point
+   *                            to put caret with respecting aSelect.
    */
-  MOZ_CAN_RUN_SCRIPT Result<CreateElementResult, nsresult> InsertBRElement(
-      WithTransaction aWithTransaction, const EditorDOMPoint& aPointToInsert,
-      EDirection aSelect = eNone);
+  MOZ_CAN_RUN_SCRIPT Result<CreateLineBreakResult, nsresult> InsertLineBreak(
+      WithTransaction aWithTransaction, LineBreakType aLineBreakType,
+      const EditorDOMPoint& aPointToInsert, EDirection aSelect = eNone);
 
   /**
    * Delete text in the range in aTextNode.  If aTextNode is not editable, this
@@ -1178,7 +1180,7 @@ class HTMLEditor final : public EditorBase,
    * @return                    Candidate caret position where is at inserted
    *                            <br> element into the split point.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<EditorDOMPoint, nsresult>
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
   HandleInsertParagraphInMailCiteElement(Element& aMailCiteElement,
                                          const EditorDOMPoint& aPointToSplit,
                                          const Element& aEditingHost);
@@ -3325,16 +3327,18 @@ class HTMLEditor final : public EditorBase,
   MOZ_CAN_RUN_SCRIPT nsresult DeleteSelectionAndPrepareToCreateNode();
 
   /**
-   * PrepareToInsertBRElement() returns a point where new <br> element should
-   * be inserted.  If aPointToInsert points middle of a text node, this method
-   * splits the text node and returns the point before right node.
+   * PrepareToInsertLineBreak() returns a point where a new line break node
+   * should be inserted.  If aPointToInsert points middle of a text node, this
+   * method splits the text node and returns the point before right node.
    *
-   * @param aPointToInsert      Candidate point to insert new <br> element.
-   * @return                    Computed point to insert new <br> element.
+   * @param aLineBreakType      Whether you will insert <br> or a preformatted
+   *                            linefeed.
+   * @param aPointToInsert      Candidate point to insert new line break node.
+   * @return                    Computed point to insert new line break node.
    *                            If something failed, this return error.
    */
-  MOZ_CAN_RUN_SCRIPT Result<EditorDOMPoint, nsresult> PrepareToInsertBRElement(
-      const EditorDOMPoint& aPointToInsert);
+  MOZ_CAN_RUN_SCRIPT Result<EditorDOMPoint, nsresult> PrepareToInsertLineBreak(
+      LineBreakType aLineBreakType, const EditorDOMPoint& aPointToInsert);
 
   /**
    * If unnecessary line break is there immediately after aPoint, this deletes

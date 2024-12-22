@@ -2497,7 +2497,9 @@ EditorBase::InsertPaddingBRElementForEmptyLastLineWithTransaction(
     pointToInsert = aPointToInsert;
   } else {
     Result<EditorDOMPoint, nsresult> maybePointToInsert =
-        MOZ_KnownLive(AsHTMLEditor())->PrepareToInsertBRElement(aPointToInsert);
+        MOZ_KnownLive(AsHTMLEditor())
+            ->PrepareToInsertLineBreak(HTMLEditor::LineBreakType::BRElement,
+                                       aPointToInsert);
     if (maybePointToInsert.isErr()) {
       return maybePointToInsert.propagateErr();
     }
