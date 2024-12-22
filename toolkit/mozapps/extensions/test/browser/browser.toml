@@ -136,6 +136,8 @@ https_first_disabled = true
 
 ["browser_permission_prompt.js"]
 
+["browser_permission_prompt_userScripts.js"]
+
 ["browser_reinstall.js"]
 
 ["browser_shortcuts_duplicate_check.js"]

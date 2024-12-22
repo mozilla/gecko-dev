@@ -18,6 +18,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionParent: "resource://gre/modules/ExtensionParent.sys.mjs",
   ExtensionPermissions: "resource://gre/modules/ExtensionPermissions.sys.mjs",
   OriginControls: "resource://gre/modules/ExtensionPermissions.sys.mjs",
+  PERMISSION_L10N: "resource://gre/modules/ExtensionPermissionMessages.sys.mjs",
   SITEPERMS_ADDON_TYPE:
     "resource://gre/modules/addons/siteperms-addon-utils.sys.mjs",
 });
@@ -183,7 +184,7 @@ customElements.define(
     }
 
     render() {
-      const { strings, showIncognitoCheckbox } =
+      const { strings, showIncognitoCheckbox, isUserScriptsRequest } =
         this.notification.options.customElementOptions;
 
       const { textEl, introEl, permsSingleEl, permsListEl } = this;
@@ -192,6 +193,9 @@ customElements.define(
       const doc = this.ownerDocument;
 
       this.#clearChildElements();
+      // Re-enable "Allow" button if it was disabled by a previous request with
+      // isUserScriptsRequest=true.
+      this.#setAllowButtonEnabled(true);
 
       if (strings.text) {
         textEl.textContent = strings.text;
@@ -242,6 +246,25 @@ customElements.define(
           permsListEl.appendChild(item);
         }
         permsListEl.hidden = false;
+        return;
+      }
+
+      if (isUserScriptsRequest) {
+        // The "userScripts" permission cannot be granted until the user has
+        // confirmed again in the notification's content, as described at
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1917000#c1
+
+        let { checkboxEl, warningEl } = this.#createUserScriptsPermissionItems(
+          // "userScripts" can only be requested with "permissions.request()",
+          // which enforces that it is the only permission in the request.
+          strings.msgs[0]
+        );
+
+        this.#setAllowButtonEnabled(false);
+
+        permsSingleEl.append(checkboxEl, warningEl);
+        permsSingleEl.classList.add("webext-perm-optional");
+        permsSingleEl.hidden = false;
         return;
       }
 
@@ -314,6 +337,54 @@ customElements.define(
 
       permsListEl.textContent = "";
       permsListEl.hidden = true;
+    }
+
+    #createUserScriptsPermissionItems(userScriptsPermissionMessage) {
+      const doc = this.ownerDocument;
+
+      let checkboxEl = doc.createXULElement("checkbox");
+      checkboxEl.label = userScriptsPermissionMessage;
+      checkboxEl.checked = false;
+      checkboxEl.addEventListener("CheckboxStateChange", () => {
+        // The main "Allow" button is disabled until the checkbox is checked.
+        this.#setAllowButtonEnabled(checkboxEl.checked);
+      });
+
+      let warningEl = document.createElement("moz-message-bar");
+      warningEl.setAttribute("type", "warning");
+      warningEl.setAttribute(
+        "message",
+        lazy.PERMISSION_L10N.formatValueSync(
+          "webext-perms-extra-warning-userScripts-short"
+        )
+      );
+
+      return { checkboxEl, warningEl };
+    }
+
+    #setAllowButtonEnabled(allowed) {
+      let disabled = !allowed;
+      // "mainactiondisabled" mirrors the "disabled" boolean attribute of the
+      // "Allow" button. toggleAttribute("mainactiondisabled", disabled) cannot
+      // be used due to bug 1938481.
+      if (disabled) {
+        this.setAttribute("mainactiondisabled", "true");
+      } else {
+        this.removeAttribute("mainactiondisabled");
+      }
+
+      // The "mainactiondisabled" attribute may also be toggled by the
+      // PopupNotifications._setNotificationUIState() method, which can be
+      // called as a side effect of toggling a checkbox within the notification
+      // (via PopupNotifications._onCommand).
+      //
+      // To prevent PopupNotifications._setNotificationUIState() from setting
+      // the "mainactiondisabled" attribute to a different state, also set the
+      // "invalidselection" attribute, since _setNotificationUIState() mirrors
+      // its value to "mainactiondisabled".
+      //
+      // TODO bug 1938623: Remove this when a better alternative exists.
+      this.toggleAttribute("invalidselection", disabled);
     }
 
     #createPrivateBrowsingCheckbox() {

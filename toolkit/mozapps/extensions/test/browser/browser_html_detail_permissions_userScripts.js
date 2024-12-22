@@ -12,7 +12,9 @@ const { PERMISSION_L10N } = ChromeUtils.importESModule(
 AddonTestUtils.initMochitest(this);
 
 add_setup(async () => {
-  Services.prefs.setBoolPref("extensions.userScripts.mv3.enabled", true);
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.userScripts.mv3.enabled", true]],
+  });
 });
 
 function loadUserScriptsExtension(addonId) {
