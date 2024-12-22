@@ -1476,6 +1476,7 @@ class WhiteSpaceVisibilityKeeper final {
 
  public:
   using InsertTextTo = EditorBase::InsertTextTo;
+  using LineBreakType = HTMLEditor::LineBreakType;
 
   WhiteSpaceVisibilityKeeper() = delete;
   explicit WhiteSpaceVisibilityKeeper(
@@ -1635,20 +1636,22 @@ class WhiteSpaceVisibilityKeeper final {
       const Element& aEditingHost);
 
   /**
-   * InsertBRElement() inserts a <br> node at (before) aPointToInsert and delete
-   * unnecessary white-spaces around there and/or replaces white-spaces with
-   * non-breaking spaces.  Note that if the point is in a text node, the
+   * InsertLineBreak() inserts a line break at (before) aPointToInsert and
+   * delete unnecessary white-spaces around there and/or replaces white-spaces
+   * with non-breaking spaces.  Note that if the point is in a text node, the
    * text node will be split and insert new <br> node between the left node
    * and the right node.
    *
-   * @param aPointToInsert  The point to insert new <br> element.  Note that
+   * @param aPointToInsert  The point to insert new line break.  Note that
    *                        it'll be inserted before this point.  I.e., the
-   *                        point will be the point of new <br>.
-   * @return                If succeeded, returns the new <br> element and
+   *                        point will be the point of new line break.
+   * @return                If succeeded, returns the new line break and
    *                        point to put caret.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CreateElementResult, nsresult>
-  InsertBRElement(HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToInsert,
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CreateLineBreakResult,
+                                                 nsresult>
+  InsertLineBreak(LineBreakType aLineBreakType, HTMLEditor& aHTMLEditor,
+                  const EditorDOMPoint& aPointToInsert,
                   const Element& aEditingHost);
 
   /**
