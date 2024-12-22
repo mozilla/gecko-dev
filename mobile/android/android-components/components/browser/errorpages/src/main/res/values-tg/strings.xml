@@ -141,7 +141,7 @@
 
     <!-- The error message shown when the browser prevents loading a website on a restricted port. -->
     <string name="mozac_browser_errorpages_port_blocked_message"><![CDATA[
-      <p>Нишонии дархостшуда портеро муайян кард (масалан, <q>mozilla.org:80</q> барои порти 80 дар mozilla.org), ки одатан барои мақсадҳои <em>ба ғайр аз</em> тамошокунии сомонаҳо истифода мешавад. Браузер барои муҳофизат ва амнияти шумо дархостро бекор кард.</p>
+      <p>Нишонии дархостшуда портеро муайян кард (масалан, <q>mozilla.org:80</q> барои порти 80 дар mozilla.org), ки одатан барои мақсадҳои <em>ба ғайр аз</em> тамошобинии сомонаҳо истифода мешавад. Браузер барои муҳофизат ва амнияти шумо дархостро бекор кард.</p>
     ]]></string>
 
     <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->

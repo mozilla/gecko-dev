@@ -110,13 +110,13 @@
     <string name="navbar_cfr_message_2">В сайт лента се прибира, при плъзване надолу за повече място.</string>
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-    <string name="navbar_navigation_buttons_cfr_message">Докоснете и задръжте стрелките, за да прескачате между страниците от историята на този раздел.</string>
+    <string name="navbar_navigation_buttons_cfr_message">Задръжте върху стрелките, за да прескачате между страниците от историята на раздела.</string>
 
     <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_title">Плъзнете адресната лента, за да смените разделите</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-    <string name="address_bar_swipe_cfr_message">Плъзнете наляво или надясно, за да превключите. Плъзнете наляво в последния раздел, за да отворите нов.</string>
+    <string name="address_bar_swipe_cfr_message">Плъзнете наляво или надясно, за да сменяте. Плъзнете наляво в последния раздел, за да отворите нов.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Необходим е достъп до камерата. Отворете настройките на Android, докоснете разрешения и изберете разрешаване.</string>
@@ -206,7 +206,7 @@
     <string name="browser_menu_disabled_extensions_banner_onboarding_header">Има инсталирани разширения, които не са включени</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
-    <string name="browser_menu_extensions_banner_onboarding_body">Разширенията повишават нивото на вашето сърфиране, от променящи външния вид и производителността на %s до повишаване на поверителността и безопасността.</string>
+    <string name="browser_menu_extensions_banner_onboarding_body">Разширенията подобряват разглеждането в интернет, от променящи външния вид и производителността на %s до подобряване на поверителността и безопасността.</string>
     <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
      The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
     <string name="browser_menu_disabled_extensions_banner_onboarding_body">За да използвате разширения, ги включите в настройките или като изберете „%s“ по-долу.</string>
@@ -222,7 +222,7 @@
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Открийте още разширения</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
-    <string name="browser_menu_extensions_disabled_description">Временно забранено</string>
+    <string name="browser_menu_extensions_disabled_description">Временно забранени</string>
     <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
     <string name="browser_menu_no_extensions_installed_description">Няма включени разширения</string>
     <!-- Browser menu button that opens account settings -->
@@ -387,9 +387,9 @@
 
     <!-- Menu "contextual feature recommendation" (CFR) -->
     <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
-    <string name="menu_cfr_title">Ново: опростено меню</string>
+    <string name="menu_cfr_title">Ново: обновено меню</string>
     <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
-    <string name="menu_cfr_body">Намирайте по-бързо необходимото – от поверително сърфиране до действия за запазване.</string>
+    <string name="menu_cfr_body">Стигайте по-бързо необходимото – от поверително разглеждане до действия по запазване.</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -594,7 +594,7 @@
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Приемане и продължаване</string>
     <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
-    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Продължавайки, вие се съгласявате с Firefox %1$s.</string>
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">Продължавайки, вие се съгласявате с %1$s на Firefox.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">Условия на услугата</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
@@ -602,7 +602,7 @@
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">Политика на поверителност</string>
     <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
-    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">За да помогне за подобряването на браузъра, Firefox изпраща данни за диагностика и взаимодействие към Mozilla. %1$s</string>
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">С цел подобряване на четеца, Firefox изпраща диагностични данни и данни за взаимодействието с потребителя към Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">Управление</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -636,7 +636,7 @@
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_light_option">Светла</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_system_option">Автоматична система</string>
+    <string name="onboarding_customize_theme_system_option">Според системата</string>
     <!-- Onboarding theme selection card content description for the main image. -->
     <string name="onboarding_customize_theme_main_image_content_description">Голямо заглавно изображение на изгледа за избор на теми, показващо илюстрирани инструменти за художник и разработчик.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
@@ -1471,7 +1471,7 @@
     <string name="bookmark_undo_deletion">ОТМЕНЯНЕ</string>
 
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
-    <string name="bookmark_delete_single_item">%s е изтрита</string>
+    <string name="bookmark_delete_single_item">Отметката %s е премахната</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
     <string name="bookmark_delete_multiple_items">Изтрити елементи: %s</string>
     <!-- Text for the button to search all bookmarks -->
@@ -2471,7 +2471,7 @@
     <!-- Button caption to confirm the edit of the top site. -->
     <string name="top_sites_edit_dialog_save">Запазване</string>
     <!-- Error message when the user entered an invalid URL -->
-    <string name="top_sites_edit_dialog_url_error">Въведете валиден URL</string>
+    <string name="top_sites_edit_dialog_url_error">Въведете валиден адрес</string>
     <!-- Label for the URL edit field in the edit top site dialog. -->
     <string name="top_sites_edit_dialog_url_title">URL</string>
 
@@ -2546,7 +2546,7 @@
 
     <!-- Review quality check feature-->
     <!-- Name for the review quality check feature used as title for the panel. -->
-    <string name="review_quality_check_feature_name_2">Проверка за преглед</string>
+    <string name="review_quality_check_feature_name_2">Проверка на отзиви</string>
     <!-- Summary for grades A and B for review quality check adjusted grading. -->
     <string name="review_quality_check_grade_a_b_description">Надеждни отзиви</string>
     <!-- Summary for grade C for review quality check adjusted grading. -->
@@ -2584,19 +2584,19 @@
     <!-- Text for title of settings section. -->
     <string name="review_quality_check_settings_title">Настройки</string>
     <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
-    <string name="review_quality_check_settings_recommended_products">Показване на рекламите в програмата за прегледи</string>
+    <string name="review_quality_check_settings_recommended_products">Показване на реклами при проверка на отзиви</string>
     <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
     <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">От време на време ще виждате реклами на подходящи продукти. Ние рекламираме само продукти с надеждни отзиви. %s</string>
     <!-- Clickable text that links to review quality check recommended products support article. -->
     <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">Научете повече</string>
     <!-- Text for turning sidebar off button from review quality check settings section. -->
-    <string name="review_quality_check_settings_turn_off">Изключване на проверката за рецензии</string>
+    <string name="review_quality_check_settings_turn_off">Изключване на Проверка на отзиви</string>
     <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
     <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">Повече за разглеждане</string>
     <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
     <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">Реклама от %s</string>
     <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
-    <string name="review_quality_check_powered_by_2">Проверката на отзиви се поддържа от %s</string>
+    <string name="review_quality_check_powered_by_2">Проверка на отзиви се осигурява от %s</string>
     <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
     <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">%s от Mozilla</string>
     <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
@@ -2651,9 +2651,9 @@
     <!-- Headline for review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_title">Опитайте нашето надеждно ръководство за отзиви за продукти</string>
     <!-- Description for review quality check contextual onboarding card. The first and last two parameters are for retailer names (e.g. Amazon, Walmart). The second parameter is for the name of the application (e.g. Firefox). -->
-    <string name="review_quality_check_contextual_onboarding_description">Вижте колко надеждни са отзивите за продукта в %1$s, преди да купите. Проверка на рецензиите, експериментална функция от %2$s, е вградена директно в браузъра. Работи и на %3$s и %4$s.</string>
+    <string name="review_quality_check_contextual_onboarding_description">Вижте колко надеждни са отзивите за продукта в %1$s, преди да купите. Проверка на отзиви, експериментално от %2$s, е възможност вградена директно в четеца. Освен това работи на %3$s, а също и на %4$s.</string>
     <!-- Description for review quality check contextual onboarding card. The first parameters is for retailer name (e.g. Amazon). The second parameter is for the name of the application (e.g. Firefox). -->
-    <string name="review_quality_check_contextual_onboarding_description_one_vendor">Вижте колко надеждни са отзивите за продукта в %1$s, преди да купите. Проверка за преглед, експериментална функция от %2$s, е вградена директно в браузъра.</string>
+    <string name="review_quality_check_contextual_onboarding_description_one_vendor">Вижте колко надеждни са отзивите за продукта в %1$s, преди да купите. Проверка на отзиви, експериментално от %2$s, е възможност вградена директно в четеца.</string>
     <!-- Paragraph presenting review quality check feature. First parameter is the Fakespot product name. Second parameter is for clickable text defined in review_quality_check_contextual_onboarding_learn_more_link. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
     <string name="review_quality_check_contextual_onboarding_learn_more">Използвайки мощта на %1$s от Mozilla, ние ви помагаме да избегнете необективни и недостоверни рецензии. Нашият AI модел винаги се подобрява, за да ви защитава, докато пазарувате. %2$s</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
@@ -2669,9 +2669,7 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Не сега</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
-    <string name="review_quality_check_open_handle_content_description">Отваряне на проверка за отзиви</string>
-    <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
-    <string name="review_quality_check_close_handle_content_description">Затваряне на програмата за преглед</string>
+    <string name="review_quality_check_open_handle_content_description">Отваряне на Проверка на отзиви</string>
     <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
     <string name="review_quality_check_star_rating_content_description">%1$s от 5 звезди</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->

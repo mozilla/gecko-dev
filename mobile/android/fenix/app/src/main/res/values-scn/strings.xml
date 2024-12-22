@@ -434,7 +434,7 @@
 
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
-    <string name="onboarding_home_welcome_title_2">Ti damu u bimminutu nta n\'internet cchiù pirsunali</string>
+    <string name="onboarding_home_welcome_title_2">Bummegna nta n\'internet cchiù pirsunali</string>
     <!-- Home onboarding dialog welcome screen description text. -->
     <string name="onboarding_home_welcome_description">Cchiù culura. Megghiu privatizza. A stissa didizzioni ê genti cchiù assai chi ê prufitti.</string>
     <!-- Home onboarding dialog sign into sync screen title text. -->
@@ -565,7 +565,7 @@
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Sfai</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
-    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Ti damu u bimminutu nne Firefox</string>
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Bummegna nne Firefox</string>
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Accetta e cuntinua</string>
     <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->

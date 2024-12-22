@@ -370,6 +370,8 @@
     <string name="browser_menu_turn_on_reader_view">Ativar modo de leitura</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Desativar modo de leitura</string>dsa
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Mover para aba não privativa</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traduzir página…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -585,7 +587,7 @@
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Enviar dados técnicos e de interação para a Mozilla</string>
     <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
-    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Os dados sobre seu dispositivo, configurações de hardware e como você usa o Firefox ajudam a melhorar funcionalidades, desempenho e estabilidade para usuários do mundo todo.</string>
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">Dados sobre seu dispositivo, configurações de hardware e como você usa o Firefox ajudam a melhorar funcionalidades, desempenho e estabilidade para usuários do mundo todo.</string>
     <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Saiba mais sobre dados de uso</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
@@ -613,6 +615,8 @@
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Escolha a posição da barra de ferramentas</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Mantenha as pesquisas ao seu alcance.</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">Salvar e continuar</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Pular</string>
 
@@ -620,6 +624,26 @@
     <string name="onboarding_customize_toolbar_top_option">No alto</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Embaixo</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description">Imagem da barra de ferramentas posicionada %1$s</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Escolha um tema</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Veja a web da melhor maneira possível.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Salvar e iniciar navegação</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">Pular</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Escuro</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Claro</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Automático (tema do sistema)</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Imagem do tema %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

@@ -35,7 +35,7 @@
     <!-- Description for browser_setting permission. -->
     <string name="mozac_feature_addons_permissions_browser_setting_description">Хондан ва тағйир додани танзимоти браузер</string>
     <!-- Description for browser_data permission. -->
-    <string name="mozac_feature_addons_permissions_browser_data_description">Пок кардани таърихи тамошокунии охирин, кукиҳо ва маълумоти марбут</string>
+    <string name="mozac_feature_addons_permissions_browser_data_description">Пок кардани таърихи тамошобинии охирин, кукиҳо ва маълумоти марбут</string>
     <!-- Description for clipboard_read permission. -->
     <string name="mozac_feature_addons_permissions_clipboard_read_description">Гирифтани маълумот аз ҳофизаи муваққатӣ</string>
     <!-- Description for clipboard_write permission. -->
@@ -43,7 +43,7 @@
     <!-- Description for declarativeNetRequest permission. -->
     <string name="mozac_feature_addons_permissions_declarative_net_request_description">Муҳтаво дар ҳамаи саҳифаҳо манъ карда мешавад</string>
     <!-- Description for declarativeNetRequestFeedback permission. -->
-    <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">Таърихи тамошокунии худро аз назар гузаронед</string>
+    <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">Таърихи тамошобинии худро аз назар гузаронед</string>
     <!-- Description for downloads permission. -->
     <string name="mozac_feature_addons_permissions_downloads_description">Боргирӣ кардани файлҳо, хондан ва тағйир додани таърихи боргириҳои браузер</string>
     <!-- Description for downloads_open permission. -->
@@ -95,9 +95,9 @@
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_settings_on">Фаъол</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
-    <string name="mozac_feature_addons_settings_allow_in_private_browsing">Иҷозат додан дар тамошокунии хусусӣ</string>
+    <string name="mozac_feature_addons_settings_allow_in_private_browsing">Иҷозат додан дар тамошобинии хусусӣ</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
-    <string name="mozac_feature_addons_settings_run_in_private_browsing">Иҷро кардан дар тамошокунии хусусӣ</string>
+    <string name="mozac_feature_addons_settings_run_in_private_browsing">Иҷро кардан дар тамошобинии хусусӣ</string>
     <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
     <string name="mozac_feature_addons_not_allowed_in_private_browsing">Дар равзанаҳои хусусӣ иҷозат дода намешавад</string>
     <!-- Indicates the add-on is enabled. -->

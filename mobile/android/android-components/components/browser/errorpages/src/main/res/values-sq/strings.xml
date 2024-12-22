@@ -12,7 +12,7 @@
     ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_ssl_title">Dështoi Lidhja e Sigurt</string>
+    <string name="mozac_browser_errorpages_security_ssl_title">Dështoi Lidhja e Siguruar</string>
 
     <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
     <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[      <ul>
@@ -21,7 +21,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_title">Dështoi Lidhja e Sigurt</string>
+    <string name="mozac_browser_errorpages_security_bad_cert_title">Dështoi Lidhja e Siguruar</string>
     <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[      <ul>
         <li>Mund të jetë problem i formësimit të shërbyesit, ose mundet që dikush të jetë duke imituar shërbyesin.</li>
@@ -57,7 +57,7 @@
 
     <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2"><![CDATA[
-        <label><b>%1$s</b> përmban një rregull sigurie të quajtur HTTP Strict Transport Security (HSTS), që do të thotë se <b>%2$s</b>-i mund të lidhet me të vetëm nën mënyrë të sigurt. S’shtoni dot një përjashtim që të vizitoni këtë sajt. </label>
+        <label><b>%1$s</b> përmban një rregull sigurie të quajtur HTTP Strict Transport Security (HSTS), që do të thotë se <b>%2$s</b>-i mund të lidhet me të vetëm nën mënyrë të siguruar. S’shtoni dot një përjashtim që të vizitoni këtë sajt. </label>
     ]]></string>
     <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Kthehu Mbrapsht</string>
@@ -288,7 +288,7 @@
     ]]></string>
 
     <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
-    <string name="mozac_browser_errorpages_httpsonly_title">S’ka Sajt të Sigurt</string>
+    <string name="mozac_browser_errorpages_httpsonly_title">S’ka Sajt të Siguruar</string>
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will be replaced with the URL of the website. -->
     <string name="mozac_browser_errorpages_httpsonly_message"><![CDATA[Keni aktivizuar Mënyrën Vetëm-HTTPS, për siguri të thelluar dhe s’ka version HTTPS për <em>%1$s</em>.]]></string>
     <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->

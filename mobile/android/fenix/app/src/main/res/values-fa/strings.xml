@@ -358,17 +358,46 @@
     <string name="browser_menu_turn_on_reader_view">فعال کردن نمای مطالعه</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">غیرفعال کردن نمای مطالعه</string>dsa
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">تغییر به زبانه غیر خصوصی</string>dsa
+    <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+    <string name="browser_menu_translate_page">ترجمه صفحه…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
     <string name="browser_menu_webcompat_reporter">گزارش خرابی وبگاه…</string>
+    <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
+         The first parameter is the name of the language that page was translated to (e.g. English). -->
+    <string name="browser_menu_translated_to">ترجمه شده به %1$s</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">چاپ…</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">خروج از %1$s</string>
+
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">جدید: منوی ساده‌ شده</string>
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">موارد مورد نیاز خود را سریع‌تر پیدا کنید، از مرور خصوصی گرفته تا اقدامات ذخیره‌سازی.</string>
+
+    <!-- Extensions management fragment -->
+    <!-- Text displayed when there are no extensions to be shown -->
+    <string name="extensions_management_no_extensions">هیچ افزونه‌ای اینجا نیست</string>
 
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->
     <string name="browser_toolbar_home">صفحهٔ خانگی</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
+         history and go back to the home screen. -->
+    <string name="browser_toolbar_erase">پاک کردن تاریخچه مرور</string>
     <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
     <string name="browser_toolbar_translate">ترجمه صفحه</string>
+
+    <!-- Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
+         The first parameter is the name of the language that is displayed in the original page. (For example: English)
+         The second parameter is the name of the language which the page was translated to. (For example: French) -->
+    <string name="browser_toolbar_translated_successfully">صفحه ترجمه شده از %1$s به %2$s.</string>
 
     <!-- Locale Settings Fragment -->
     <!-- Content description for tick mark on selected language -->
@@ -381,6 +410,8 @@
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">بررسی</string>
+    <!-- Button in the search view that lets a user search by scanning a QR code -->
+    <string name="search_scan_button_2">اسکن کد QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">تنظیمات موتور جست‌وجو</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -408,6 +439,10 @@
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">موتور جست‌وجوی %s</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">موتور جستجو: %s</string>
+
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">به اینترنتی شخصی‌تر خوش‌آمدید</string>
@@ -428,14 +463,31 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">بستن</string>
 
+    <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
+    <!-- Description for learning more about our privacy notice. -->
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">نکات حفظ محرمانگی Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">ما عاشق حفظ امنیت شما هستیم</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">متوجه شوید چرا میلیون‌ها نفر Firefox را دوست دارند</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">مرور امن با انتخاب‌های بیشتر</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_3">مرورگر ناسودبر ما به شما کمک می‌کند که شرکت‌ها نتوانند به طور مخفیانه شما را در وب دنبال کنند.</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">بیش از ۱۰۰ میلیون نفر حریم خصوصی خود را با انتخاب مرورگری که ناسودبر است، محافظت می‌کنند.</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">ردیاب‌های شناخته‌ شده‌؟ به‌طور خودکار مسدود شده‌اند. افزونه‌ها؟ همه ۷۰۰ تای آن‌ها را امتحان کنید. PDF‌ها؟ خواننده داخلی ما مدیریت آن‌ها را آسان کرده است.</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">تنظیم به عنوان مرورگر پیش‌فرض</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">اکنون نه</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">وقتی از دستگاه های مختلف استفاده می‌کنید رمزگذاری بمانید. </string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox گذرواژه‌ها، نشانک‌ها و بیشتر را وقتی که همگام‌سازی شده‌اید رمزنگاری می‌کند.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">ورود</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -455,6 +507,132 @@
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">ویجت جستجوی Firefox را امتحان کنید</string>
+
+    <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">با Firefox در صفحه اصلی خود، به راحتی به مرورگر اول حریم خصوصی دسترسی خواهید داشت که ردیاب‌های بین وبگاه‌ی را مسدود می‌کند.</string>
+    <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">افزودن ویجت Firefox</string>
+    <!-- Text for the button to dismiss the screen and move on with the flow -->
+    <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">اکنون نه</string>
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">شخصی‌سازی Firefox با افزونه‌ها</string>
+    <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">افزودن افزونه‌های شخص ثالث برای ارتقای امنیت، بهره‌وری و بیشتر.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">بیشتر درباره افزونه‌ها کاوش کنید.</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">آغاز مرور.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2">کشف افزونه‌های بیشتر</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2">آغاز مرور</string>
+
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">تبلیغات را به طور موثر و کارآمد مسدود کنید.</string>
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">جواهر ضد ردیابی. ردیاب‌های نامرئی و تبلیغات جاسوسی را متوقف کنید.</string>
+    <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">جستجوی بر اساس تصویر</string>
+    <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">تصویر جالبی ببینید و بیشتر درباره آن یاد بگیرید.</string>
+    <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">حالت تاریک سفارشی برای وب موبایل.</string>
+    <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+    <string name="onboarding_add_on_reviews_label">بررسی‌های: %1$s</string>
+
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">نماد برافزا</string>
+    <!-- Content description for the an installed add-on icon. -->
+    <string name="onboarding_installed_add_on_icon_content_description">نماد برافزا نصب‌شده</string>
+    <!-- Content description for the an installing add-on icon. -->
+    <string name="onboarding_installing_add_on_icon_content_description">نماد در حال نصب برافزا</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">دکمه افزودن برافزا</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">امتیاز داده‌شده: %1$s از ۵</string>
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">به ما کمک کنید Firefox را بهتر کنیم</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">به‌صورت خودکار گزارشات خرابی ارسال کنید</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">گزارشات خرابی به ما کمک می‌کنند مشکلات مرورگر را تشخیص دهیم و حل کنیم. گزارشات ممکن است شامل داده‌های شخصی یا حساس باشند.</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">بیشتر درباره گزارشات خرابی بدانید</string>
+    <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">ارسال داده‌های فنی و تعاملات به Mozilla</string>
+    <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">داده‌هایی درباره دستگاه شما، پیکربندی سخت‌افزاری، و نحوه استفاده از Firefox کمک می‌کند تا ویژگی‌ها، عملکرد و پایداری را برای کاربران در سراسر جهان بهبود بخشیم.</string>
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">بیشتر درباره داده‌های استفاده بدانید</string>
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">انجام شد</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">انصراف</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">به Firefox خوش‌آمدید</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">موافقت و ادامه</string>
+    <!-- Line one of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text as text (“Terms of Service”). -->
+    <string name="onboarding_term_of_service_line_one" tools:ignore="UnusedResources,BrandUsage">با ادامه دادن، شما با %1$s Firefox موافقت می‌کنید.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" tools:ignore="UnusedResources,BrandUsage">شرایط ارائهٔ خدمات</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" tools:ignore="UnusedResources,BrandUsage">Firefox به حریم خصوصی شما اهمیت می‌دهد. بیشتر در %1$s ما بخوانید.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">نکات حفظ محرمانگی</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="UnusedResources,BrandUsage">برای کمک به بهبود مرورگر، Firefox داده‌های تشخیصی و تعاملات را به Mozilla ارسال می‌کند. %1$s</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">مدیریت</string>
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">انتخاب محل قرارگیری نوار ابزار</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">جستجوها را در دسترس نگه دارید.</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">ذخیره و ادامه</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">رد کردن</string>
+
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">بالا</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">پایین</string>
+
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">تصویر بزرگ سربرگ نمای انتخاب نوار ابزار که یک نوار ابزار تصویری را نشان می‌دهد.</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description">تصویر نوار ابزار %1$s</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">انتخاب یک زمینه</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">وب را در بهترین حالت ببینید.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">ذخیره و آغاز به مرور</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">رد کردن</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">تیره</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">روشن</string>
+
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">سیستم خودکار</string>
+
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">تصویر بزرگ سربرگ نمای انتخاب زمینه که ابزارهای هنرمند و سازنده را نشان می‌دهد.</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">تصویر زمینه %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -476,6 +654,8 @@
     <string name="preferences_category_about">درباره</string>
     <!-- Preference category for settings related to changing the default search engine -->
     <string name="preferences_category_select_default_search_engine">یکی را برگزینید</string>
+    <!-- Preference for settings related to managing search shortcuts for the quick search menu -->
+    <string name="preferences_manage_search_shortcuts_2">مدیریت موتورهای جستجوی جایگزین</string>
     <!-- Summary for preference for settings related to managing search shortcuts for the quick search menu -->
     <string name="preferences_manage_search_shortcuts_summary">ویرایش موتورهای پدیدار در فهرست جست‌وجو</string>
     <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
@@ -484,6 +664,16 @@
     <string name="preferences_default_search_engine">موتور جست‌وجو پیش‌فرض</string>
     <!-- Preference for settings related to Search -->
     <string name="preferences_search">جست‌وجو</string>
+    <!-- Preference for settings related to Search engines -->
+    <string name="preferences_search_engines">موتورهای جستجو</string>
+    <!-- Preference for settings related to Search engines suggestions-->
+    <string name="preferences_search_engines_suggestions">پیشنهادات از موتورهای جستجو</string>
+    <!-- Preference Category for settings related to Search address bar -->
+    <string name="preferences_settings_address_bar">ترجیحات نوار نشانی</string>
+    <!-- Preference Category for settings to Firefox Suggest -->
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">نوار نشانی - پیشنهادات Firefox</string>
+    <!-- Preference link to Learn more about Firefox Suggest -->
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">بیشتر درباره پیشنهادات Firefox بدانید</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">امتیاز دادن در Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -497,6 +687,8 @@
     <string name="preferences_category_privacy_security">حریم خصوصی و امنیت</string>
     <!-- Preference for advanced site permissions -->
     <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">اجازه‌های پایگاه</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">تنظیمات وبگاه</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">مرور خصوصی</string>
     <!-- Preference for opening links in a private tab-->
@@ -511,6 +703,10 @@
     <!-- Preference for enabling "HTTPS-Only" mode -->
     <string name="preferences_https_only_title">حالت فقط-Https</string>
 
+    <!-- Label for cookie banner section in quick settings panel. -->
+    <string name="cookie_banner_blocker">مسدودکننده برنمای کلوچک</string>
+    <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
+    <string name="preferences_cookie_banner_reduction_private_mode">مسدودکننده برنمای کلوچک در مرور خصوصی</string>
     <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_off_for_site">خاموش برای این پایگاه</string>
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
@@ -527,8 +723,21 @@
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">درخواست پشتیبانی ارسال شد</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site">پایگاه هم‌اکنون پشتیبانی نمی‌شود</string>
+    <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
+    <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">آیا مسدودکننده برنمای کلوچک برای %1$s فعال شود؟</string>
+    <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
+    <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">آیا مسدودکننده برنمای کلوچک برای %1$s غیرفعال شود؟</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
     <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">‏%1$s نمی‌تواند درخواست‌های کلوچک این پایگاه را خودکار رد کند. می‌توانید درخواستی برای پشتیانی از این پایگاه در آینده ارسال کنید.</string>
+
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+    <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">غیرفعال کردن و %1$s کوکی‌ها را پاک کرده و این وبگاه را دوباره بارگذاری می‌کند. این ممکن است شما را از سیستم خارج کند یا سبدهای خرید را خالی کند.</string>
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
+    <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">فعال کردن و %1$s سعی می‌کند همه برنمای کلوچک را در این وبگاه به طور خودکار رد کند.</string>
+    <!--Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name -->
+    <string name="cookie_banner_cfr_title">%1$s کوکی‌ها را برای شما رد کرد</string>
+    <!--Message for the cookie banner re-engagement CFR -->
+    <string name="cookie_banner_cfr_message">حواس‌پرتی کمتر، ردیابی کوکی‌های کمتری در این وبگاه.</string>
 
     <!-- Description of the preference to enable "HTTPS-Only" mode. -->
     <string name="preferences_https_only_summary">به طور خودکار برای افزایش امنیت تلاش می‌کند با استفاده از شیوه‌نامهٔ رمزگذاری HTTPS به پایگاه‌ها متصل شود.</string>
@@ -552,10 +761,16 @@
     <string name="errorpage_httpsonly_message_summary">با این حال، همچنین ممکن است که یک ردیاب، درگیر باشد. اگر به وبگاه ادامه می‌دهید، نباید هیچ اطلاعات حساسی را وارد کنید. اگر ادامه دهید، حالت فقط-HTTPS به طور موقت برای پایگاه خاموش می‌شود.</string>
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">دسترسی‌پذیری</string>
+    <!-- Preference to override the Mozilla account server -->
+    <string name="preferences_override_account_server">کارساز حساب کاربری سفارشی Mozilla</string>
     <!-- Preference to override the Sync token server -->
     <string name="preferences_override_sync_tokenserver">کارساز همگام‌سازی سفارشی</string>
+    <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
+    <string name="toast_override_account_sync_server_done">کارساز حساب/همگام‌سازی Mozilla تغییر کرد. برای اعمال تغییرات برنامه را ببندید…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">حساب کاربری</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">مکان نوار نشانی</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">زمینه</string>
     <!-- Preference for customizing the home screen -->
@@ -566,10 +781,14 @@
     <string name="preferences_customize">سفارشی‌سازی</string>
     <!-- Preference description for banner about signing in -->
     <string name="preferences_sign_in_description_2">برای همگام‌سازی زبانه‌ها، نشانک‌ها، گذرواژه‌ها و… وارد شوید.</string>
+    <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
+    <string name="preferences_account_default_name_2">حساب کاربری Mozilla</string>
     <!-- Preference text for account title when there was an error syncing FxA -->
     <string name="preferences_account_sync_error">برای از سرگیری همگام سازی دوباره وصل شوید</string>
     <!-- Preference for language -->
     <string name="preferences_language">زبان</string>
+    <!-- Preference for translations -->
+    <string name="preferences_translations">ترجمه‌ها</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">انتخاب داده‌ها</string>
     <!-- Preference for data collection -->
@@ -595,6 +814,16 @@
     <string name="preferences_account_settings">تنظیمات حساب</string>
     <!-- Preference for enabling url autocomplete-->
     <string name="preferences_enable_autocomplete_urls">تکمیل خودکار نشانی اینترنتی</string>
+    <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
+    <string name="preferences_show_sponsored_suggestions">پیشنهادات از حامیان</string>
+    <!-- Summary for preference to show sponsored Firefox Suggest search suggestions.
+         The first parameter is the name of the application. -->
+    <string name="preferences_show_sponsored_suggestions_summary">حمایت از %1$s با پیشنهادات حامیانه گاه‌به‌گاه</string>
+    <!-- Preference title for switch preference to show Firefox Suggest search suggestions for web content.
+         The first parameter is the name of the application. -->
+    <string name="preferences_show_nonsponsored_suggestions">پیشنهادات از %1$s</string>
+    <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
+    <string name="preferences_show_nonsponsored_suggestions_summary">دریافت پیشنهادات از وب مرتبط با جستجوی شما</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">پیوندها را در برنامه ها باز کنید</string>
     <!-- Preference for open links in third party apps always open in apps option -->
@@ -610,6 +839,10 @@
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
     <string name="quit_application">خروج از برنامه برای اعمال تغییرات…</string>
 
+    <!-- Preference for extensions -->
+    <string name="preferences_extensions">افزونه‌ها</string>
+    <!-- Preference for installing a local extension -->
+    <string name="preferences_install_local_extension">نصب افزونه از پرونده</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">اعلان‌ها</string>
 
@@ -618,6 +851,22 @@
     <!-- Summary for notification preference indicating notifications are not allowed -->
     <string name="notifications_not_allowed_summary">غیرمجاز</string>
 
+    <!-- Add-on Permissions -->
+    <!-- The title of the required permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">ضروری</string>
+
+    <!-- The title of the optional permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">اختیاری</string>
+    <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
+    <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">اجازه برای همه وبگاه‌ها</string>
+    <!-- The subtitle for the allow for all sites preference toggle -->
+    <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">اگر به این افزونه اعتماد دارید، می‌توانید به آن در هر وبگاه‌ی اجازه دسترسی بدهید.</string>
+    <!-- The text shown when an extension does not require permissions -->
+    <string name="addons_does_not_require_permissions">این افزونه نیازی به مجوز ندارد.</string>
+
+    <!-- Add-on Preferences -->
+    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
+    <string name="preferences_customize_extension_collection">مجموعه افزونه سفارشی</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">تأیید</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -626,6 +875,9 @@
     <string name="customize_addon_collection_hint">نام مجموعه</string>
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">مالک مجموعه (شناسه کاربری)</string>
+
+    <!-- Toast shown after confirming the custom extension collection configuration -->
+    <string name="toast_customize_extension_collection_done">مجموعه افزونه‌ها تغییر کرده است. برای اعمال تغییرات برنامه را ببندید…</string>
 
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
@@ -679,12 +931,33 @@
     <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">کاوش کاغذدیواری‌های بیش‌تر</string>
 
+    <!-- Add-ons general availability nimbus message-->
+    <!-- Title of the Nimbus message for extension general availability-->
+    <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">افزونه‌های جدید اکنون در دسترس هستند</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
     <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">بیش از 100 افزونه جدید را بررسی کنید که به شما امکان می دهد Firefox را متعلق به خود کنید.</string>
+
+    <!-- Button text of the Nimbus message for extensions general availability. -->
+    <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">کاوش افزونه‌ها</string>
+
+    <!-- Extension process crash dialog to user -->
+    <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
+    <string name="extension_process_crash_dialog_title">افزونه‌ها به طور موقت غیرفعال شده‌اند</string>
+
+    <!-- This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
+    The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
+    The first parameter is the application name. -->
+    <string name="extension_process_crash_dialog_message">یک یا چند افزونه متوقف شده‌اند و سیستم شما ناپایدار شده است. %1$s تلاش ناموفقی برای راه‌اندازی مجدد افزونه(ها) داشت.\n\nافزونه‌ها در نشست فعلی شما مجدداً راه‌اندازی نخواهند شد.\n\nحذف یا غیرفعال کردن افزونه‌ها ممکن است این مشکل را حل کند.</string>
+    <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
+    <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">تلاش برای راه‌اندازی مجدد افزونه‌ها</string>
+    <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
+    <string name="extension_process_crash_dialog_disable_extensions_button_text">ادامه با افزونه‌های غیرفعال</string>
 
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
     <string name="preferences_manage_account">مدیریت حساب</string>
+    <!-- Summary of the preference for managing your account via accounts.firefox.com. -->
+    <string name="preferences_manage_account_summary">گذرواژه خود را تغییر دهید، جمع‌آوری داده‌ها را مدیریت کنید یا حساب خود را حذف کنید</string>
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">هم اکنون همگام سازی کن</string>
     <!-- Preference category for sync -->
@@ -693,6 +966,8 @@
     <string name="preferences_sync_history">تاریخچه</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">نشانک‌ها</string>
+    <!-- Preference for syncing passwords -->
+    <string name="preferences_sync_logins_2">گذرواژه‌ها</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">زبانه‌های باز</string>
     <!-- Preference for signing out -->
@@ -717,6 +992,8 @@
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s روی %2$s %3$s</string>
 
+    <!-- Preference for syncing payment methods -->
+    <string name="preferences_sync_credit_cards_2">روش‌های پرداخت</string>
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">نشانی‌ها</string>
 
@@ -730,6 +1007,14 @@
     <!-- %s is the device name -->
     <string name="fxa_tab_received_from_notification_name">زبانه از %s</string>
 
+    <!-- Close Synced Tabs -->
+    <!-- The title for a notification shown when the user closes tabs that are currently
+    open on this device from another device that's signed in to the same Mozilla account.
+    %1$s is a placeholder for the app name; %2$d is the number of tabs closed.  -->
+    <string name="fxa_tabs_closed_notification_title">%1$s زبانه بسته شدند: %2$d</string>
+    <!-- The body for a "closed synced tabs" notification. -->
+    <string name="fxa_tabs_closed_text">نمایش زبانه‌های تازه بسته شده</string>
+
     <!-- Advanced Preferences -->
     <!-- Preference for tracking protection exceptions -->
     <string name="preferences_tracking_protection_exceptions">استثناها</string>
@@ -742,12 +1027,24 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">میزان استفاده و داده فنی</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">داده‌های فنی و تعاملی</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">بیشتر بدانید</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">به اشتراک‌گذاری کارایی، کاربرد، سخت‌افزار و اطلاعات سفارشی‌سازی در مورد مرورگر شما با موزیلا به ما کمک می کند تا %1$s بهتری داشته باشیم</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">ارزیابی داده</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">داده‌های کاربردی اولیه را با Adjust، فراهم‌کنندهٔ بازریابی سیستم موبایل ما، اشتراک بگذارید</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">اطلاعاتی را درباره نحوه آشنایی شما با Firefox با همکاران بازاریابی Mozilla به هم‌رسانی بگذارید. این به ما کمک می‌کند تا Firefox را رشد دهیم و یک اینترنت بهتر بسازیم</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">بیشتر درباره داده‌های بازاریابی بدانید</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">به‌طور خودکار گزارشات خرابی را ارسال کنید</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">به‌طور خودکار داده‌های خرابی را در زمان راه‌اندازی پس از وقوع خرابی‌ها با Mozilla به هم‌رسانی می‌گذارد</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">مطالعات</string>
     <!-- Summary for studies preferences -->
@@ -788,6 +1085,11 @@
     <string name="preference_gestures_dynamic_toolbar">برای پنهان‌ کردن نوار ابزار پیمایش کنید</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">برای باز کردن زبانه‌ها، نوار ابزار را به سمت بالا بکشید</string>
+
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">برای پنهان کردن نوار نشانی و نوار ابزار، اسکرول کنید</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">نوار نشانی را به طرفین بکشید تا زبانه‌ها را عوض کنید</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1029,6 +1331,40 @@
     <string name="webcompat_reporter_screen_title">گزارش خرابی وبگاه</string>
 
 
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">به بهتر شدن %1$s برای همه کمک کنید. کارکنان Mozilla از اطلاعاتی که ارسال می‌کنید برای رفع مشکلات وبگاه استفاده می‌کنند.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">نشانی اینترنتی</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">لطفا یک نشانی اینترنتی معتبر وارد کنید</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">چه چیزی خراب است؟ (اختیاری)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">انتخاب دلیل</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">مشکل را شرح دهید (اختیاری)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">ارسال اطلاعات بیشتر</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">انصراف</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">ارسال</string>
+
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">وبگاه کند است یا کار نمی‌کند</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">تصاویر یا ویدیوها</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">دکمه‌ها، پیوندها و محتوای دیگر</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">ورود یا خارج شدن</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">مسدودکننده تبلیغات</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">موارد دیگر</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">متاسفیم. %1$s نمی‌تواند این صفحه را بار کند.</string>
@@ -1040,12 +1376,21 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">بازآوری زبانه‌</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s نیاز به راه‌اندازی مجدد داشت</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">به‌صورت خودکار گزارشات خرابی ارسال کنید</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">بستن</string>
+
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">ارسال گزارش خرابی</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">آيا از حذف اين پوشه مطمئن هستيد؟</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">آیا مطمئن هستید که می‌خواهید موارد انتخاب شده را حذف کنید؟</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s موارد انتخاب شده را حذف می کند.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1205,6 +1550,9 @@
     <string name="studies_on">روشن</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">خاموش</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">محتوا</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1413,6 +1761,8 @@
     <!-- Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
         number of history items the user has -->
     <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d نشانی‌ها</string>
+    <!-- Title for the cookies and site data items in Delete browsing data -->
+    <string name="preferences_delete_browsing_data_cookies_and_site_data">کوکی‌ها و داده‌های وبگاه</string>
     <!-- Subtitle for the cookies item in Delete browsing data -->
     <string name="preferences_delete_browsing_data_cookies_subtitle">از بیشتر پایگاه‌ها خارج خواهید شد</string>
     <!-- Title for the cached images and files item in Delete browsing data -->
@@ -1541,6 +1891,8 @@
     <string name="preference_enhanced_tracking_protection_custom_cookies_4">تمام کلوچک‌ها (باعث خرابی وبگاه‌ها خواهد شد)</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
     <string name="preference_enhanced_tracking_protection_custom_cookies_5">منزوی کردن کلوچک‌های میان‌پایگاهی</string>
+    <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: &-->
+    <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">به وبگاه‌ها بگویید که داده‌ها را به هم‌رسانی نگذارند و نفروشند</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
     <string name="preference_enhanced_tracking_protection_custom_tracking_content">محتوای ردیابی</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
@@ -2084,6 +2436,10 @@
     <string name="translations_bottom_sheet_positive_button">ترجمه</string>
 
 
+    <!-- Translation settings dialog -->
+    <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
+    <string name="translation_settings_toolbar_title">ترجمه‌ها</string>
+
     <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
     <string name="never_translate_site_dialog_confirm_delete_preference">حذف</string>
     <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
@@ -2101,6 +2457,26 @@
     <string name="download_language_all_languages_item_preference">همه‌ی زبان‌ها</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">حذف</string>
+
+    <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
+    <string name="download_languages_item_content_description_not_downloaded_state">بارگیری</string>
+
+    <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
+    <string name="delete_language_file_dialog_positive_button_text">حذف</string>
+    <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
+    <string name="delete_language_file_dialog_negative_button_text">انصراف</string>
+
+    <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
+    <string name="download_language_file_dialog_positive_button_text">بارگیری</string>
+    <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
+    <string name="download_language_file_dialog_negative_button_text">انصراف</string>
+
+    <!-- The active tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_active">فعال</string>
+    <!-- The private tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_private">خصوصی</string>
+    <!-- The total tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_total">مجموع</string>
 
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">ادامه</string>
