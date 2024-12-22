@@ -7764,7 +7764,7 @@ nsresult HTMLEditor::OnModifyDocumentInternal() {
       if (const RefPtr<Element> editingHost = ComputeEditingHostInternal(
               mLastCollapsibleWhiteSpaceAppendedTextNode,
               LimitInBodyElement::No)) {
-        Result<CreateElementResult, nsresult> insertPaddingBRResultOrError =
+        Result<CreateLineBreakResult, nsresult> insertPaddingBRResultOrError =
             InsertPaddingBRElementIfNeeded(atLastChar.To<EditorDOMPoint>(),
                                            eNoStrip, *editingHost);
         if (MOZ_UNLIKELY(insertPaddingBRResultOrError.isErr())) {

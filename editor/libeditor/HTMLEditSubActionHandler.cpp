@@ -3393,22 +3393,22 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
   if (GetTopLevelEditSubAction() == EditSubAction::eDeleteSelectedContent) {
     AutoTrackDOMPoint trackingNewCaretPosition(RangeUpdaterRef(),
                                                &newCaretPosition);
-    Result<CreateElementResult, nsresult> insertPaddingBRResult =
+    Result<CreateLineBreakResult, nsresult> insertPaddingBRElementOrError =
         InsertPaddingBRElementIfNeeded(
             newCaretPosition,
             aEditingHost.IsContentEditablePlainTextOnly() ? nsIEditor::eNoStrip
                                                           : nsIEditor::eStrip,
             aEditingHost);
-    if (MOZ_UNLIKELY(insertPaddingBRResult.isErr())) {
+    if (MOZ_UNLIKELY(insertPaddingBRElementOrError.isErr())) {
       NS_WARNING("HTMLEditor::InsertPaddingBRElementIfNeeded() failed");
-      return insertPaddingBRResult.propagateErr();
+      return insertPaddingBRElementOrError.propagateErr();
     }
     trackingNewCaretPosition.FlushAndStopTracking();
     if (!newCaretPosition.IsInTextNode()) {
-      insertPaddingBRResult.unwrap().MoveCaretPointTo(
+      insertPaddingBRElementOrError.unwrap().MoveCaretPointTo(
           newCaretPosition, {SuggestCaret::OnlyIfHasSuggestion});
     } else {
-      insertPaddingBRResult.unwrap().IgnoreCaretPointSuggestion();
+      insertPaddingBRElementOrError.unwrap().IgnoreCaretPointSuggestion();
     }
   }
   if (!newCaretPosition.IsSetAndValid()) {
@@ -11161,7 +11161,7 @@ HTMLEditor::InsertPaddingBRElementIfInEmptyBlock(
                                EditorDOMPoint(paddingBRElement));
 }
 
-Result<CreateElementResult, nsresult>
+Result<CreateLineBreakResult, nsresult>
 HTMLEditor::InsertPaddingBRElementIfNeeded(
     const EditorDOMPoint& aPoint, nsIEditor::EStripWrappers aDeleteEmptyInlines,
     const Element& aEditingHost) {
@@ -11171,7 +11171,7 @@ HTMLEditor::InsertPaddingBRElementIfNeeded(
       HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(aPoint,
                                                              aEditingHost);
   if (!pointToInsertPaddingBR.IsSet()) {
-    return CreateElementResult::NotHandled();
+    return CreateLineBreakResult::NotHandled();
   }
   if (aDeleteEmptyInlines == nsIEditor::eStrip &&
       pointToInsertPaddingBR.IsContainerElement() &&
@@ -11203,16 +11203,10 @@ HTMLEditor::InsertPaddingBRElementIfNeeded(
   Result<CreateLineBreakResult, nsresult> insertPaddingBRResultOrError =
       InsertLineBreak(WithTransaction::Yes, LineBreakType::BRElement,
                       pointToInsertPaddingBR);
-  if (MOZ_UNLIKELY(insertPaddingBRResultOrError.isErr())) {
-    NS_WARNING(
-        "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
-        "LineBreakType::BRElement) failed");
-    return insertPaddingBRResultOrError.propagateErr();
-  }
-  CreateLineBreakResult insertPaddingBRResult =
-      insertPaddingBRResultOrError.unwrap();
-  return CreateElementResult(insertPaddingBRResult->BRElementRef(),
-                             insertPaddingBRResult.UnwrapCaretPoint());
+  NS_WARNING_ASSERTION(insertPaddingBRResultOrError.isOk(),
+                       "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
+                       "LineBreakType::BRElement) failed");
+  return insertPaddingBRResultOrError;
 }
 
 Result<EditorDOMPoint, nsresult> HTMLEditor::RemoveAlignFromDescendants(
