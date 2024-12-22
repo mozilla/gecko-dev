@@ -41,13 +41,13 @@ addEventListener("load", () => {
     {
       initialInnerHTML: "<p>a []b<br></p>",
       expected: collapseWhiteSpaces
-        ? (useBR ? ["<p>a <br></p>", "<p>a&nbsp;</p>"] : ["<p>a <br></p>", "<p>a \n</p>", "<p>a&nbsp;</p>"])
+        ? ["<p>a <br></p>", "<p>a&nbsp;</p>"]
         : "<p>a </p>",
     },
     {
       initialInnerHTML: "<p>a [b]<br></p>",
       expected: collapseWhiteSpaces
-        ? (useBR ? ["<p>a <br></p>", "<p>a&nbsp;</p>"] : ["<p>a <br></p>", "<p>a \n</p>", "<p>a&nbsp;</p>"])
+        ? ["<p>a <br></p>", "<p>a&nbsp;</p>"]
         : "<p>a </p>",
     },
     {
@@ -85,17 +85,13 @@ addEventListener("load", () => {
     {
       initialInnerHTML: "<div>a []b<br><div>b</div></div>",
       expected: collapseWhiteSpaces
-        ? (useBR
-          ? ["<div>a <br><div>b</div></div>", "<div>a&nbsp;<div>b</div></div>"]
-          : ["<div>a <br><div>b</div></div>", "<div>a \n<div>b</div></div>", "<div>a&nbsp;<div>b</div></div>"])
+        ? ["<div>a <br><div>b</div></div>", "<div>a&nbsp;<div>b</div></div>"]
         : "<div>a <div>b</div></div>",
     },
     {
       initialInnerHTML: "<div>a [b]<br><div>b</div></div>",
       expected: collapseWhiteSpaces
-        ? (useBR
-          ? ["<div>a <br><div>b</div></div>", "<div>a&nbsp;<div>b</div></div>"]
-          : ["<div>a <br><div>b</div></div>", "<div>a \n<div>b</div></div>", "<div>a&nbsp;<div>b</div></div>"])
+        ? ["<div>a <br><div>b</div></div>", "<div>a&nbsp;<div>b</div></div>"]
         : "<div>a <div>b</div></div>",
     },
     {

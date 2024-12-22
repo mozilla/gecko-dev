@@ -112,10 +112,10 @@ addEventListener("load", () => {
         } else {
           assert_in_array(
             editingHost.innerHTML,
-            [
-              "&gt; abc<br><br><br>",
-              "&gt; abc\n\n\n",
-            ],
+            // The last break is a padding line break to make the last empty line visible.
+            // Therefore, it should not appear in `.textContent`.  So, only the last line
+            // break should be <br>.
+            "&gt; abc\n\n<br>",
             "<b> should not be pasted"
           );
         }
