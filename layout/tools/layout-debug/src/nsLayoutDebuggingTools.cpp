@@ -91,15 +91,15 @@ nsLayoutDebuggingTools::Init(mozIDOMWindow* aWin) {
 NS_IMETHODIMP
 nsLayoutDebuggingTools::SetReflowCounts(bool aShow) {
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
-  if (PresShell* presShell = GetPresShell(mDocShell)) {
 #ifdef MOZ_REFLOW_PERF
+  if (PresShell* presShell = GetPresShell(mDocShell)) {
     presShell->SetPaintFrameCount(aShow);
-#else
-    printf("************************************************\n");
-    printf("Sorry, you have not built with MOZ_REFLOW_PERF=1\n");
-    printf("************************************************\n");
-#endif
   }
+#else
+  printf("************************************************\n");
+  printf("Sorry, you have not built with MOZ_REFLOW_PERF=1\n");
+  printf("************************************************\n");
+#endif
   return NS_OK;
 }
 
