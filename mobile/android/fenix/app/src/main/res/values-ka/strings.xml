@@ -2628,7 +2628,7 @@
     <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
     <string name="review_quality_check_no_analysis_title">ამ მიმოხილვების შესახებ მონაცემები ჯერ არაა</string>
     <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
-    <string name="review_quality_check_no_analysis_body">იმის გასაგებად, სანდოა თუ არა ამ ნაწარმის მიმოხილვები, გადაამოწმეთ მიმოხილვის ხარისხი. მიახლოებით 60 წამს გასტანს მხოლოდ.</string>
+    <string name="review_quality_check_no_analysis_body">იმის გასაგებად, სანდოა თუ არა ამ ნაწარმის მიმოხილვები, გაუშვით ხარისხის შემოწმება. მიახლოებით 60 წამს შეიძლება გასტანოს მხოლოდ.</string>
     <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
     <string name="review_quality_check_no_analysis_link">მიმოხილვის ხარისხის შემოწმება</string>
     <!-- Headline for review quality check contextual onboarding card. -->
@@ -2979,7 +2979,7 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">დაგვეხმარეთ, რომ გავაუმჯობესოთ Firefox. მხოლოდ ერთ წუთს გასტანს.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">დაგვეხმარეთ, რომ გავაუმჯობესოთ Firefox. მხოლოდ ერთ წუთს წაგართმევთ.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">განაგრძეთ</string>
     <!-- Survey view -->
@@ -3010,10 +3010,10 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">სინქრონიზაციას არ ვიყენებ</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">დაგვეხმარეთ, რომ ამობეჭდვით გავაუმჯობესოთ Firefox. მხოლოდ ერთ წუთს გასტანს</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">დაგვეხმარეთ, რომ ამობეჭდვის შესაძლებლობით გავაუმჯობესოთ Firefox. მხოლოდ რამდენიმე წამს წაგართმევთ</string>
 
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">დაგვეხმარეთ, რომ გავაუმჯობესოთ Firefox. მხოლოდ ერთ წუთს გასტანს</string>
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">დაგვეხმარეთ, რომ გავაუმჯობესოთ Firefox. მხოლოდ ერთ წუთს წაგართმევთ</string>
     <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">დაგვეხმარეთ, რომ სინქრონიზაციის კუთხით გავაუმჯობესოთ Firefox. მხოლოდ ერთ წუთს გასტანს</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->

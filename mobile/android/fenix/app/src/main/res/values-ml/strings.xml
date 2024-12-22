@@ -10,9 +10,9 @@
     <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
     <string name="content_description_menu">കൂടുതൽ ഐച്ഛികങ്ങൾ</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-    <string name="content_description_private_browsing_button">സ്വകാര്യ ബ്രൗസിംഗ് സജ്ജമാക്കുക</string>
+    <string name="content_description_private_browsing_button">സ്വകാര്യ തിരയൽ സജ്ജമാക്കുക</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-    <string name="content_description_disable_private_browsing_button">സ്വകാര്യ ബ്രൗസിംഗ് നിർജ്ജീവമാക്കുക</string>
+    <string name="content_description_disable_private_browsing_button">സ്വകാര്യ തിരയൽ നിർജ്ജീവമാക്കുക</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_private_browsing">സ്വകാര്യ തിരയൽ</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
@@ -52,7 +52,7 @@
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">അടയാളക്കുറിപ്പുകള്‍</string>
     <!-- Content description for the button which navigates the user to show all of their bookmarks. -->
-    <string name="home_bookmarks_show_all_content_description">എല്ല അടയാളകുറിപ്പുകൾ കാണിക്കുക</string>
+    <string name="home_bookmarks_show_all_content_description">എല്ലാ അടയാളകുറിപ്പുകൾ കാണിക്കുക</string>
     <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
     <string name="home_bookmarks_menu_item_remove">മാറ്റുക</string>
 
@@ -63,7 +63,7 @@
     <!-- Explanation for private browsing displayed to users on home view when they first enable private mode
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="private_browsing_placeholder_description_2">%1$s നിങ്ങളുടെ തിരയലും ബ്രൗസിംഗ് ചരിത്രവും സ്വകാര്യ ടാബുകൾ അടയ്ക്കുമ്പോൾ അല്ലെങ്കിൽ അപ്ലിക്കേഷനിൽ നിന്ന് പുറത്തുകടക്കുമ്പോൾ അവ മായ്‌ക്കുന്നു. ഇത് നിങ്ങളെ വെബ്‌സൈറ്റുകളിലേക്കോ ഇൻറർനെറ്റ് സേവന ദാതാവിലേക്കോ അജ്ഞാതനാക്കില്ലെങ്കിലും, ഈ ഉപകരണം ഉപയോഗിക്കുന്ന മറ്റെതൊരാളിൽ നിന്നും നിങ്ങൾ ഓൺലൈനിൽ ചെയ്യുന്നത് സ്വകാര്യമായി സൂക്ഷിക്കുന്നത് എളുപ്പമാക്കുന്നു.</string>
-    <string name="private_browsing_common_myths">സ്വകാര്യ ബ്രൗസിങ്ങിനെക്കുറിച്ചുള്ള പൊതുവായ മിഥ്യാധാരണകൾ</string>
+    <string name="private_browsing_common_myths">സ്വകാര്യ തിരച്ചിലിനെക്കുറിച്ചുള്ള പൊതുവായ തെറ്റിദ്ധാരണങ്ങൾ</string>
 
     <!-- True Private Browsing Mode -->
     <!-- Title for info card on private homescreen in True Private Browsing Mode. -->
@@ -993,7 +993,7 @@
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
-    <string name="library_downloads">ഡൗണ്‍ലോഡുകള്‍</string>
+    <string name="library_downloads">ഇറക്കിവയ്ക്കലുകൾ</string>
     <!-- Option in library to open Bookmarks page -->
     <string name="library_bookmarks">അടയാളക്കുറിപ്പുകള്‍</string>
     <!-- Option in library to open Desktop Bookmarks root page -->

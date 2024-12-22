@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Content description (not visible, for screen readers etc.): Description for the overflow menu button in the browser toolbar. -->
-    <string name="mozac_browser_toolbar_menu_button">മെനു</string>
+    <string name="mozac_browser_toolbar_menu_button">കുറിപ്പടികട്ട</string>
     <!-- Content description: For the clear URL text button. -->
     <string name="mozac_clear_button_description">മായ്ക്കുക</string>
     <!-- Content description: For the tracking protection toolbar icon, it is set when the site has tracking protection enabled, but none trackers have been blocked or detected. -->

@@ -51,7 +51,7 @@
     <!-- Description for find permission. -->
     <string name="mozac_feature_addons_permissions_find_description">Lèggiri u testu di tutti i schedi graputi</string>
     <!-- Description for geolocation permission. -->
-    <string name="mozac_feature_addons_permissions_geolocation_description">Accèdiri â to pusizziuni</string>
+    <string name="mozac_feature_addons_permissions_geolocation_description">Accèdiri â to pusizzioni</string>
     <!-- Description for history permission. -->
     <string name="mozac_feature_addons_permissions_history_description">Accèdiri â crunuluggìa di navigazzioni</string>
     <!-- Description for management permission. -->
@@ -77,7 +77,7 @@
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Pirmèttiri ê stigghi di sbiluppu l\'accessu ê dati dî schedi</string>
     <!-- The version on of add-on. -->
-    <string name="mozac_feature_addons_version">Virsiuni</string>
+    <string name="mozac_feature_addons_version">Virsioni</string>
     <!-- The author of an add-on. -->
     <string name="mozac_feature_addons_author">Auturi</string>
     <!-- The last date that the add-on was updated. -->
@@ -199,7 +199,7 @@
     <!-- Text shown when installing an add-on has failed. -->
     <string name="mozac_feature_addons_cant_install_extension">Mpussìbbili nzitari u stinneriu</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
-    <string name="mozac_feature_addons_extension_failed_to_install_network_error">Stu stinneriu nun potti èssiri scarricatu picchì a cunnissiuni sfallìu.</string>
+    <string name="mozac_feature_addons_extension_failed_to_install_network_error">Stu stinneriu nun potti èssiri scarricatu picchì a cunnissioni sfallìu.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
     <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">Stu stinneriu nun potti èssiri nzitatu picchì parissi stravijatu.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
@@ -233,7 +233,7 @@
     <!-- Text shown after failed to remove an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">Mpussìbbili livari a %1$s</string>
     <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
-    <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">Sta juncitina fu migrata di na virsiuni pricidenti di %1$s</string>
+    <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">Sta juncitina fu migrata di na virsioni pricidenti di %1$s</string>
     <!-- Text shown in not yet supported add-ons section. -->
     <string name="mozac_feature_addons_unsupported_caption_2">1 stinneriu</string>
     <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
@@ -275,5 +275,5 @@
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s nun potti èssiri virificatu comu sicuru e fu sdisabbilitatu.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
-    <string name="mozac_feature_addons_status_incompatible">%1$s nun è cumpatìbili câ to virsiuni di %2$s (virsiuni %3$s).</string>
+    <string name="mozac_feature_addons_status_incompatible">%1$s nun è cumpatìbili câ to virsioni di %2$s (virsioni %3$s).</string>
 </resources>

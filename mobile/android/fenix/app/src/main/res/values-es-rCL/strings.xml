@@ -1398,7 +1398,7 @@
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">¿De verdad quieres borrar esta carpeta?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
-    <string name="bookmark_delete_folders_confirmation_dialog">¿Está seguro de que deseas eliminar los elementos seleccionados?</string>
+    <string name="bookmark_delete_folders_confirmation_dialog">¿Estás seguro de que deseas eliminar los elementos seleccionados?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s eliminará los elementos seleccionados.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
