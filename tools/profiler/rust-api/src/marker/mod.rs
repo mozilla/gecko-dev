@@ -391,6 +391,20 @@ macro_rules! lazy_add_marker {
     };
 }
 
+#[cfg(not(feature = "enabled"))]
+#[macro_export]
+macro_rules! lazy_add_marker {
+    ($name:expr, $category:expr, $options:expr, $text:expr) => {
+        // Do nothing if the profiler is not enabled
+    };
+    ($name: expr, $category:expr, $payload:expr) => {
+        // Do nothing if the profiler is not enabled
+    };
+    ($name: expr, $payload:expr) => {
+        // Do nothing if the profiler is not enabled
+    };
+}
+
 /// Tracing marker type for Rust code.
 /// This must be kept in sync with the `mozilla::baseprofiler::markers::Tracing`
 /// C++ counterpart.
