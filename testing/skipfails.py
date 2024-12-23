@@ -403,7 +403,7 @@ class Skipfails(object):
         push = mozci.push.Push(revision, repo)
         return push.tasks
 
-    def get_failures(self, tasks: list[TestTask]):
+    def get_failures(self, tasks):
         """
         find failures and create structure comprised of runs by path:
            result:
@@ -443,10 +443,6 @@ class Skipfails(object):
         }
 
         for task in tasks:  # add explicit failures
-            # Task failed but it was not unexpected, skip this
-            if task.result == "passed":
-                continue
-
             # strip chunk number - this finds failures across different chunks
             try:
                 parts = task.label.split("-")
@@ -579,9 +575,6 @@ class Skipfails(object):
                 pass  # self.warning(f"unknown attribute in task (#1): {ae}")
 
         for task in tasks:  # add results
-            # Task failed but it was not unexpected, skip this
-            if task.result == "passed":
-                continue
             try:
                 parts = task.label.split("-")
                 int(parts[-1])
