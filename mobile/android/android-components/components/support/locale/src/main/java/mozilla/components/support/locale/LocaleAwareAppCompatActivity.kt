@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatActivity
+import mozilla.components.support.base.log.logger.Logger
 
 /**
  * Base activity for apps that want to customized the system defined language by their own.
@@ -26,8 +27,15 @@ open class LocaleAwareAppCompatActivity : AppCompatActivity() {
 
         // Modify the configuration as needed
         overrideConfiguration.setLocale(locale)
+        overrideConfiguration.uiMode = base.applicationContext.resources.configuration.uiMode
+        try {
+            applyOverrideConfiguration(overrideConfiguration)
+        } catch (e: IllegalStateException) {
+            Logger("LocaleAwareAppCompatActivity")
+                .error("Error applying override configuration", e)
+        }
 
-        val newContext = base.applicationContext.createConfigurationContext(overrideConfiguration)
+        val newContext = base.createConfigurationContext(overrideConfiguration)
         val contextWrapper = ActivityContextWrapper(newContext, base)
         super.attachBaseContext(contextWrapper)
     }
