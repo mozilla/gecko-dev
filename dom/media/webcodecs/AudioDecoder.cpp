@@ -124,21 +124,12 @@ nsCString AudioDecoderConfigInternal::ToString() const {
  * The followings are helpers for AudioDecoder methods
  */
 
-struct AudioMIMECreateParam {
-  explicit AudioMIMECreateParam(const AudioDecoderConfigInternal& aConfig)
-      : mParsedCodec(ParseCodecString(aConfig.mCodec).valueOr(EmptyString())) {}
-  explicit AudioMIMECreateParam(const AudioDecoderConfig& aConfig)
-      : mParsedCodec(ParseCodecString(aConfig.mCodec).valueOr(EmptyString())) {}
-
-  const nsString mParsedCodec;
-};
-
 // Map between WebCodecs pcm types as strings and codec numbers
 // All other codecs
-static nsTArray<nsCString> GuessMIMETypes(const AudioMIMECreateParam& aParam) {
-  nsCString codec = NS_ConvertUTF16toUTF8(aParam.mParsedCodec);
+static nsTArray<nsCString> GuessMIMETypes(const nsAString& aCodec) {
+  nsCString codec = NS_ConvertUTF16toUTF8(aCodec);
   nsTArray<nsCString> types;
-  for (const nsCString& container : GuessContainers(aParam.mParsedCodec)) {
+  for (const nsCString& container : GuessContainers(aCodec)) {
     codec = ConvertCodecName(container, codec);
     nsPrintfCString mime("audio/%s; codecs=%s", container.get(), codec.get());
     types.AppendElement(mime);
@@ -149,18 +140,17 @@ static nsTArray<nsCString> GuessMIMETypes(const AudioMIMECreateParam& aParam) {
 // https://w3c.github.io/webcodecs/#check-configuration-support
 template <typename Config>
 static bool CanDecodeAudio(const Config& aConfig) {
-  auto param = AudioMIMECreateParam(aConfig);
-  if (!IsSupportedAudioCodec(param.mParsedCodec)) {
+  if (IsOnAndroid() && IsAACCodecString(aConfig.mCodec)) {
     return false;
   }
-  if (IsOnAndroid() && IsAACCodecString(param.mParsedCodec)) {
+  if (!IsSupportedAudioCodec(aConfig.mCodec)) {
     return false;
   }
   bool typeSupported = false;
   // TODO: Instead of calling CanHandleContainerType with the guessed the
   // containers, DecoderTraits should provide an API to tell if a codec is
   // decodable or not.
-  for (const nsCString& mime : GuessMIMETypes(param)) {
+  for (const nsCString& mime : GuessMIMETypes(aConfig.mCodec)) {
     if (Maybe<MediaContainerType> containerType =
             MakeMediaExtendedMIMEType(mime)) {
       if (DecoderTraits::CanHandleContainerType(
@@ -201,7 +191,7 @@ static nsTArray<UniquePtr<TrackInfo>> GetTracksInfo(
     const AudioDecoderConfigInternal& aConfig) {
   // TODO: Instead of calling GetTracksInfo with the guessed containers,
   // DecoderTraits should provide an API to create the TrackInfo directly.
-  for (const nsCString& mime : GuessMIMETypes(AudioMIMECreateParam(aConfig))) {
+  for (const nsCString& mime : GuessMIMETypes(aConfig.mCodec)) {
     if (Maybe<MediaContainerType> containerType =
             MakeMediaExtendedMIMEType(mime)) {
       if (nsTArray<UniquePtr<TrackInfo>> tracks =
