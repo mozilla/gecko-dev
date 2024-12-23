@@ -148,6 +148,9 @@ CSSSize FrameMetrics::CalculateCompositedSizeInCssPixels(
 }
 
 bool FrameMetrics::ApplyScrollUpdateFrom(const ScrollPositionUpdate& aUpdate) {
+  MOZ_ASSERT(aUpdate.GetType() == ScrollUpdateType::Absolute);
+  MOZ_ASSERT(aUpdate.GetMode() != ScrollMode::Smooth &&
+             aUpdate.GetMode() != ScrollMode::SmoothMsd);
   // In applying a main-thread scroll update, try to preserve the relative
   // offset between the visual and layout viewports.
   CSSPoint relativeOffset = GetVisualScrollOffset() - GetLayoutScrollOffset();
@@ -164,6 +167,8 @@ bool FrameMetrics::ApplyScrollUpdateFrom(const ScrollPositionUpdate& aUpdate) {
 CSSPoint FrameMetrics::ApplyRelativeScrollUpdateFrom(
     const ScrollPositionUpdate& aUpdate) {
   MOZ_ASSERT(aUpdate.GetType() == ScrollUpdateType::Relative);
+  MOZ_ASSERT(aUpdate.GetMode() != ScrollMode::Smooth &&
+             aUpdate.GetMode() != ScrollMode::SmoothMsd);
   CSSPoint origin = GetVisualScrollOffset();
   CSSPoint delta = (aUpdate.GetDestination() - aUpdate.GetSource());
   SetVisualScrollOffset(origin + delta);
@@ -173,6 +178,8 @@ CSSPoint FrameMetrics::ApplyRelativeScrollUpdateFrom(
 CSSPoint FrameMetrics::ApplyPureRelativeScrollUpdateFrom(
     const ScrollPositionUpdate& aUpdate) {
   MOZ_ASSERT(aUpdate.GetType() == ScrollUpdateType::PureRelative);
+  MOZ_ASSERT(aUpdate.GetMode() != ScrollMode::Smooth &&
+             aUpdate.GetMode() != ScrollMode::SmoothMsd);
   CSSPoint origin = GetVisualScrollOffset();
   ClampAndSetVisualScrollOffset(origin + aUpdate.GetDelta());
   return GetVisualScrollOffset() - origin;
