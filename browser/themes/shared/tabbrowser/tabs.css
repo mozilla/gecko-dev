@@ -913,11 +913,11 @@
   }
 
   #tabbrowser-tabs[orient="vertical"][expanded] & {
-    max-width: none;
+    align-self: start;
+    max-width: -moz-available;
     margin-block: var(--space-small);
     margin-inline-end: var(--space-medium);
     padding-block: var(--tab-group-label-padding);
-    text-align: start;
   }
 
   #tabbrowser-tabs[tablist-has-focus] &.tablist-keyboard-focus {
