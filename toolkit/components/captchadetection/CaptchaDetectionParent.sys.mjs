@@ -121,7 +121,6 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       (result === "Succeeded" ? "Cc" : "Cf") +
       (isPBM ? "Pbm" : "");
     Glean.captchaDetection[resultMetric].add(1);
-    lazy.CaptchaDetectionPingUtils.maybeSubmitPing();
     this.#onMetricSet();
   }
 
