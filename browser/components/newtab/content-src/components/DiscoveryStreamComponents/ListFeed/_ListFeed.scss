@@ -290,8 +290,6 @@
   flex-direction: row-reverse;
   min-height: 135px;
   gap: var(--space-large);
-  padding-inline: var(--space-large);
-  padding-block: var(--space-large) var(--space-small);
   position: relative;
 
   &.fakespot {
@@ -303,6 +301,9 @@
     inset-block-start: 0;
     inset-inline-start: 0;
     border-radius: 0;
+    flex-direction: row;
+    padding-inline: var(--space-large);
+    padding-block: var(--space-large) var(--space-small);
   }
 
   .meta {
