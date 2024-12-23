@@ -1,0 +1,34 @@
+<!DOCTYPE>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tests for paint skip</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="application/javascript" src="apz_test_utils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <script type="application/javascript">
+
+let prefs = [
+  ["apz.paint_skipping.enabled", true],
+  ["apz.test.logging_enabled", true],
+];
+
+var subtests = [
+  {"file": "helper_paint_skip_instant_absolute_scroll_position_update.html", prefs},
+  {"file": "helper_paint_skip_instant_relative_scroll_position_update.html", prefs},
+  {"file": "helper_first_paint_instant_relative_scroll_position_update.html", prefs},
+];
+
+if (isApzEnabled()) {
+  SimpleTest.waitForExplicitFinish();
+  window.onload = function() {
+    runSubtestsSeriallyInFreshWindows(subtests)
+    .then(SimpleTest.finish, SimpleTest.finishWithFailure);
+  };
+}
+
+  </script>
+</head>
+<body>
+</body>
+</html>

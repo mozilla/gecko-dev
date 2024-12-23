@@ -5544,14 +5544,19 @@ void AsyncPanZoomController::NotifyLayersUpdated(
     // that was just painted is something we knew nothing about previously
     CancelAnimation();
 
-    // Keep our existing scroll generation, if there are scroll updates. In this
-    // case we'll update our scroll generation when processing the scroll update
-    // array below. If there are no scroll updates, take the generation from the
-    // incoming metrics. Bug 1662019 will simplify this later.
+    // Keep our existing scroll generation and existing scroll offsets, if there
+    // are scroll updates. In this case we'll update our scroll generation and
+    // offsets when processing the scroll update array below. If there are no
+    // scroll updates, take the generation from the incoming metrics. Bug
+    // 1662019 will simplify this later.
     ScrollGeneration oldScrollGeneration = Metrics().GetScrollGeneration();
+    CSSPoint oldLayoutScrollOffset = Metrics().GetLayoutScrollOffset();
+    CSSPoint oldVisualScrollOffset = Metrics().GetVisualScrollOffset();
     mScrollMetadata = aScrollMetadata;
     if (!aScrollMetadata.GetScrollUpdates().IsEmpty()) {
       Metrics().SetScrollGeneration(oldScrollGeneration);
+      Metrics().SetLayoutScrollOffset(oldLayoutScrollOffset);
+      Metrics().SetVisualScrollOffset(oldVisualScrollOffset);
     }
 
     mExpectedGeckoMetrics.UpdateFrom(aLayerMetrics);

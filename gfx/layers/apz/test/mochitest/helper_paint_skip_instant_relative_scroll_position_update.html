@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="apz_test_utils.js"></script>
+<script src="apz_test_native_event_utils.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<style>
+#scroller {
+  height: 50vh;
+  overflow: scroll;
+}
+</style>
+<div id="scroller">
+  <div style="height: 200vh"></div>
+</div>
+
+<script>
+async function test() {
+  const scrollendPromise = promiseScrollend(scroller);
+  scroller.scrollBy(0, 10);
+
+  await scrollendPromise;
+  await promiseApzFlushedRepaints();
+
+  const sampledData = collectSampledScrollOffsets(scroller);
+  ok(sampledData.length, "There should be at least one collected offsets");
+  sampledData.forEach(data => {
+    const scrollOffsetY = SpecialPowers.wrap(data).scrollOffsetY;
+    ok(scrollOffsetY == 10 || scrollOffsetY == 0,
+      `${scrollOffsetY} should be either 0 or 10`);
+  });
+}
+waitUntilApzStable()
+.then(test)
+.then(subtestDone, subtestFailed);
+</script>
+</html>

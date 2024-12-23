@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="apz_test_utils.js"></script>
+<script src="apz_test_native_event_utils.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<style>
+#scroller {
+  height: 50vh;
+  overflow: scroll;
+}
+</style>
+<div id="scroller">
+  <div style="height: 1000vh"></div>
+</div>
+
+<script>
+async function test() {
+  const scrollendPromise = promiseScrollend(scroller);
+  // Do a scroll operation which will not run through the paint-skiping code path.
+  scroller.scrollBy(0, 1000);
+
+  await scrollendPromise;
+  await waitUntilApzStable();
+
+  const sampledData = collectSampledScrollOffsets(scroller);
+  ok(sampledData.length, "There should be at least one collected offsets");
+  sampledData.forEach(data => {
+    const scrollOffsetY = SpecialPowers.wrap(data).scrollOffsetY;
+    ok(scrollOffsetY == 1000 || scrollOffsetY == 0,
+      `${scrollOffsetY} should be either 0 or 1000`);
+  });
+}
+
+// We do intentionally not use waitUntilApzStable() since in this specific
+// test we want to test a case where the is-first-paint metrics are initially NOT
+// processed because the corresponding APZC hasn't been ready at that moment.
+test().then(subtestDone, subtestFailed);
+</script>
+</html>
