@@ -231,16 +231,23 @@ void APZUpdater::UpdateScrollDataAndTreeState(
               self->mScrollData[id].SetWasUpdateSkipped(false);
             }
 
-            if (isFirstPaint && originatingLayersIdWasSkipped) {
-              // If the given |aOriginatingLayersId| data wasn't used for
-              // updating, it's likly that the parent process hasn't yet
-              // received the LayersId as "ReferentId", thus we need to process
-              // it in a subsequent update where we got the "ReferentId".
-              //
-              // NOTE: We restrict the above previous scroll data prepending to
-              // the first paint case, otherwise the cumulative scroll data may
-              // be exploded if we have never received the "ReferenceId".
-              self->mScrollData[aOriginatingLayersId].SetWasUpdateSkipped(true);
+            if (isFirstPaint) {
+              if (originatingLayersIdWasSkipped) {
+                // If the given |aOriginatingLayersId| data wasn't used for
+                // updating, it's likely that the parent process hasn't yet
+                // received the LayersId as "ReferentId", thus we need to process
+                // it in a subsequent update where we got the "ReferentId".
+                //
+                // NOTE: We restrict the above previous scroll data prepending to
+                // the first paint case, otherwise the cumulative scroll data may
+                // be exploded if we have never received the "ReferenceId".
+                self->mScrollData[aOriginatingLayersId].SetWasUpdateSkipped(true);
+              } else {
+                // Clobber the first-paint flag so that we will never run into the
+                // first-paint branch in AsyncPanZoomController::NotifyLayersUpdated
+                // even if the next transaction is a paint-skip transaction.
+                self->mScrollData[aOriginatingLayersId].SetIsFirstPaint(false);
+              }
             }
           }));
 }

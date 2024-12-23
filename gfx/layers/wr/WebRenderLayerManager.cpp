@@ -383,7 +383,7 @@ void WebRenderLayerManager::EndTransactionWithoutLayer(
 
   if (AsyncPanZoomEnabled()) {
     if (mIsFirstPaint) {
-      mScrollData.SetIsFirstPaint();
+      mScrollData.SetIsFirstPaint(true);
       mIsFirstPaint = false;
     }
     mScrollData.SetPaintSequenceNumber(mPaintSequenceNumber);

@@ -268,7 +268,7 @@ class WebRenderScrollData {
   Maybe<size_t> HasMetadataFor(
       const ScrollableLayerGuid::ViewID& aScrollId) const;
 
-  void SetIsFirstPaint();
+  void SetIsFirstPaint(bool aValue);
   bool IsFirstPaint() const;
   void SetPaintSequenceNumber(uint32_t aPaintSequenceNumber);
   uint32_t GetPaintSequenceNumber() const;
