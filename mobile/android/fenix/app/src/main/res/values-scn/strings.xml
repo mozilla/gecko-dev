@@ -98,7 +98,7 @@
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
-    <string name="erase_action_cfr_message">Tocca cca p\'abbiari na nova sissiuni privata. Cancella a crunuluggìa, i viscotta — tutti cosi.</string>
+    <string name="erase_action_cfr_message">Tocca cca p\'abbiari na nova sissioni privata. Cancella a crunuluggìa, i viscotta — tutti cosi.</string>
 
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
@@ -414,7 +414,7 @@
     <!-- Button in the search suggestions onboarding that does not allow search suggestions in private sessions -->
     <string name="search_suggestions_onboarding_do_not_allow_button">Nun u pirmèttiri</string>
     <!-- Search suggestion onboarding hint title text -->
-    <string name="search_suggestions_onboarding_title">Vo\' pirmèttiri i suggirimenti di risciduta nnê sissiuni privati?</string>
+    <string name="search_suggestions_onboarding_title">Vo\' pirmèttiri i suggirimenti di risciduta nnê sissioni privati?</string>
     <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix)-->
     <string name="search_suggestions_onboarding_text">%s sparti tuttu chiḍḍu chi scrivi nnâ barra dû nnirizzu cû to muturi di risciduta pridifinutu.</string>
     <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
@@ -736,7 +736,7 @@
     <!-- Option for the https only setting -->
     <string name="preferences_https_only_in_private_tabs">Abbìlita sulu pî schedi privati</string>
     <!-- Title shown in the error page for when trying to access a http website while https only mode is enabled. -->
-    <string name="errorpage_httpsonly_title">Nun è dispunìbbili na virsiuni sicura dû situ</string>
+    <string name="errorpage_httpsonly_title">Nun è dispunìbbili na virsioni sicura dû situ</string>
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
     <string name="errorpage_httpsonly_message_title">È cchiù prubàbbili chi u situ nun funziona cu HTTPS.</string>
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
@@ -783,7 +783,7 @@
     <!-- Preference title for switch preference to show voice search button -->
     <string name="preferences_show_voice_search">Mustra risciduta vucali</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
-    <string name="preferences_show_search_suggestions_in_private">Mustra nnî sissiuni privati</string>
+    <string name="preferences_show_search_suggestions_in_private">Mustra nnî sissioni privati</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Mustra suggirimenti dû pitazzu</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -923,7 +923,7 @@
     <!-- This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     The first parameter is the application name. -->
-    <string name="extension_process_crash_dialog_message">Unu o cchiù assai stinneri accabbaru di funziunari, facennu u to sistema cchiù picca stàbbili. %1$s pruvau a riabbialli senza succcessu.\n\nI stinneri nun vennu cchiù riabbiati nna sta sissiuni.\n\nLivari o sdisabbilitari i stinneri putissi abbirsari stu prubblema.</string>
+    <string name="extension_process_crash_dialog_message">Unu o cchiù assai stinneri accabbaru di funziunari, facennu u to sistema cchiù picca stàbbili. %1$s pruvau a riabbialli senza succcessu.\n\nI stinneri nun vennu cchiù riabbiati nna sta sissioni.\n\nLivari o sdisabbilitari i stinneri putissi abbirsari stu prubblema.</string>
     <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
     <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Prova a \'bbiari arrè i stinneri</string>
     <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -2258,7 +2258,7 @@
     <!-- Text shown when a user leaves out the required template string -->
     <string name="search_add_custom_engine_error_missing_template">Cuntrolla chi a stringa di risciduta appatta cû furmatu di scempru</string>
     <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
-    <string name="search_add_custom_engine_error_cannot_reach">Erruri di cunnissiuni a “%s”</string>
+    <string name="search_add_custom_engine_error_cannot_reach">Erruri di cunnissioni a “%s”</string>
     <!-- Text shown when a user creates a new search engine -->
     <string name="search_add_custom_engine_success_message">Criasti %s</string>
     <!-- Text shown when a user successfully edits a custom search engine -->
@@ -2276,9 +2276,9 @@
     <string name="phone_feature_blocked_step_feature"><![CDATA[3. Abbìlita <b>%1$s</b>]]></string>
 
     <!-- Label that indicates a site is using a secure connection -->
-    <string name="quick_settings_sheet_secure_connection_2">A cunnissiuni è sicura</string>
+    <string name="quick_settings_sheet_secure_connection_2">A cunnissioni è sicura</string>
     <!-- Label that indicates a site is using a insecure connection -->
-    <string name="quick_settings_sheet_insecure_connection_2">A cunnissiuni nun è sicura</string>
+    <string name="quick_settings_sheet_insecure_connection_2">A cunnissioni nun è sicura</string>
     <!-- Label to clear site data -->
     <string name="clear_site_data">Cancella i viscotta e i dati dî siti</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
@@ -2562,9 +2562,9 @@
     <!-- Text for body of error card displayed to the user when an error occurred. -->
     <string name="review_quality_check_generic_error_body">Stamu travagghiannu p\'arrisòrbiri stu prubblema. Pi favuri cuntrolla cchiù tardu.</string>
     <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_title">Nuḍḍa cunnissiuni di riti</string>
+    <string name="review_quality_check_no_connection_title">Nuḍḍa cunnissioni di riti</string>
     <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
-    <string name="review_quality_check_no_connection_body">Cuntrolla a to cunnissiuni di riti e càrrica arrè a pàggina.</string>
+    <string name="review_quality_check_no_connection_body">Cuntrolla a to cunnissioni di riti e càrrica arrè a pàggina.</string>
     <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
     <string name="review_quality_check_no_analysis_title">Nun cc\'è ancora nuḍḍa nfurmazzioni ncapu a sti ricinzioni</string>
     <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
@@ -2684,7 +2684,7 @@
 
 
     <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
-    <string name="translation_error_could_not_load_languages_warning_text">Nun potti carricari i lingui. Cuntrolla a to cunnissiuni â riti e torna a prova.</string>
+    <string name="translation_error_could_not_load_languages_warning_text">Nun potti carricari i lingui. Cuntrolla a to cunnissioni â riti e torna a prova.</string>
     <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
     <string name="translation_error_language_not_supported_warning_text">Ni dispiaci, ancora nun suppurtamu sta lingua: %1$s.</string>
     <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
@@ -2855,7 +2855,7 @@
     <!-- Title text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_title">Stai accura nna stu situ</string>
     <!-- Description text for the protection panel banner when the site is not secure. -->
-    <string name="protection_panel_banner_not_secure_description">A to cunnissiuni nun è sicura.</string>
+    <string name="protection_panel_banner_not_secure_description">A to cunnissioni nun è sicura.</string>
     <!-- Title text for the protection panel banner when tracking protection is disabled. -->
     <string name="protection_panel_banner_not_protected_title">Astutasti i prutizzioni</string>
 
@@ -3026,7 +3026,7 @@
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Attualizza prima dû 14 di marzu</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Un cirtificatu principali sta scadennu, causannu u bloccu dâ to virsiuni di Firefox.</string>
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Un cirtificatu principali sta scadennu, causannu u bloccu dâ to virsioni di Firefox.</string>
     <!-- Homepage card title about old Firefox version -->
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Arristaru cchiù picca di 7 jorna p\'attualizzari</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
@@ -3034,13 +3034,13 @@
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Ùrtima pussibbilità pi cuntinuari a usari Firefox</string>
     <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">A to virsiuni di Firefox nun funziona cchiù dû 14 di marzu, picchì scadi un cirtificatu principali.</string>
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">A to virsioni di Firefox nun funziona cchiù dû 14 di marzu, picchì scadi un cirtificatu principali.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Attualizzu cunzigghiatu</string>
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">I juncitini e certi carattarìstichi nun funziònanu cchiù dû 14 di marzu.</string>
     <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Stai usannu na virsiuni vecchia di Firefox</string>
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Stai usannu na virsioni vecchia di Firefox</string>
     <!-- Push notification message about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Attualizza prima dû 14 di marzu pi cuntinuari a usari i juncitini e autri carattarìstichi.</string>
     <!-- Push notification message about old Firefox version -->

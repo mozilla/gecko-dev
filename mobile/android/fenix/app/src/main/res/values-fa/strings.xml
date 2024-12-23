@@ -231,7 +231,7 @@
     <!-- Browser menu button that opens a user's library -->
     <string name="browser_menu_library">کتابخانه</string>
     <!-- Browser menu toggle that requests a desktop site -->
-    <string name="browser_menu_desktop_site">پایگاه رومیزی</string>
+    <string name="browser_menu_desktop_site">وبگاه رومیزی</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
     <string name="browser_menu_open_in_regular_tab">باز کردن در زبانه معمولی</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
@@ -844,7 +844,7 @@
     <!-- Preference for installing a local extension -->
     <string name="preferences_install_local_extension">نصب افزونه از پرونده</string>
     <!-- Preference for notifications -->
-    <string name="preferences_notifications">اعلان‌ها</string>
+    <string name="preferences_notifications">آگاه‌سازی‌ها</string>
 
     <!-- Summary for notification preference indicating notifications are allowed -->
     <string name="notifications_allowed_summary">مجاز</string>
@@ -1001,7 +1001,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">زبانه‌های دریافت شده</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">اعلانها برای زبانه دریافت شده از سایر دستگاه های Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">آگاه‌سازی‌ها برای زبانه‌هایی که از دستگاه‌های دیگر Firefox دریافت شده‌اند.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">زبانه دریافت شد</string>
     <!-- %s is the device name -->
@@ -1021,7 +1021,7 @@
     <!-- Button in Exceptions Preference to turn on tracking protection for all sites (remove all exceptions) -->
     <string name="preferences_tracking_protection_exceptions_turn_on_for_all">روشن کردن برای تمام پایگاه‌ها</string>
     <!-- Text displayed when there are no exceptions -->
-    <string name="exceptions_empty_message_description">استثنائات به شما این امکان  را می‌دهد،‌محافظت از ردیابی سایت‌های منتخب را غیرفعال کنید.</string>
+    <string name="exceptions_empty_message_description">استثنائات به شما این امکان  را می‌دهد،‌محافظت از ردیابی وبگاه‌های منتخب را غیرفعال کنید.</string>
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">بیشتر بدانید</string>
 
@@ -1397,8 +1397,12 @@
     <string name="bookmark_delete_negative">لغو</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">افزودن پوشه</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">ذخیره شده در «%s»</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ویرایش</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">انتقال</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">ویرایش</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1430,6 +1434,8 @@
     <string name="bookmark_url_label">نشانی اینترنتی</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">پوشه</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">ذخیره در</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">نام</string>
     <!-- Label for a text input field for a bookmark or folder name -->
@@ -1454,6 +1460,10 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">برگردان</string>
 
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">%s حذف شد</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items">موارد حذف شده: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">عبارات جست‌وجو را وارد کنید</string>
 
@@ -1461,12 +1471,27 @@
     <string name="bookmark_navigate_back_button_content_description">بازگشت به عقب</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">افزودن پوشه جدید</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">حذف نشانک</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">حذف پوشه</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">جست‌وجوی نشانک‌ها</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">منوی مورد برای %s</string>
     <!-- Title for the bookmark list empty state-->
     <string name="bookmark_empty_list_title">هنوز هیچ نشانکی وجود ندارد</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">وبگاه‌ها را هنگام مرور ذخیره کنید. برای دسترسی به نشانک‌ها از دستگاه‌های همگام‌سازی شده دیگر، وارد شوید.</string>
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">برای همگام‌سازی وارد شوید</string>
+
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">وبگاه‌ها را هنگام مرور ذخیره کنید. همچنین نشانک‌ها را از دستگاه‌های همگام‌سازی شده دیگر می‌گیریم.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">نشانک‌ها را هنگام مرور اضافه کنید تا بتوانید بعدا وبگاه‌های مورد علاقه خود را پیدا کنید.</string>
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title">پوشه جدید</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1500,7 +1525,7 @@
     <!-- Preference for altering the location access for all websites -->
     <string name="preference_phone_feature_location">مکان</string>
     <!-- Preference for altering the notification access for all websites -->
-    <string name="preference_phone_feature_notification">اعلان‌</string>
+    <string name="preference_phone_feature_notification">آگاه‌سازی</string>
     <!-- Preference for altering the persistent storage access for all websites -->
     <string name="preference_phone_feature_persistent_storage">حافظهٔ دائمی</string>
     <!-- Preference for altering the storage access setting for all websites -->
@@ -1551,8 +1576,13 @@
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">خاموش</string>
 
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">مجوزها</string>
     <!-- Category header of a preference that allows a user to alter settings related to web content. -->
     <string name="preferences_category_content">محتوا</string>
+
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">همیشه وبگاه به حالت رومیزی درخواست شود</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1664,6 +1694,8 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">زبانه‌های خصوصی بسته شود؟</string>
 
+    <string name="notification_erase_text_android_14">برای بستن زبانه‌های خصوصی، این آگاه‌سازی را لمس کنید یا انگشت خود را بکشید.</string>
+
     <!-- Name of the marketing notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="notification_marketing_channel_name">بازاریابی</string>
 
@@ -1708,12 +1740,16 @@
     <string name="snackbar_tabs_closed">زبانه‌های بسته شده</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">زبانه‌های بسته شده: %1$s</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in">نشانک‌ها در «%s» ذخیره شدند!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">به میان‌برها اضافه شد!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
     <string name="snackbar_private_tab_closed">زبانه خصوصی بسته شد</string>
     <!-- Text shown in snackbar when user closes all private tabs -->
     <string name="snackbar_private_tabs_closed">زبانه‌های خصوصی بسته شدند</string>
+    <!-- Text shown in snackbar when user erases their private browsing data -->
+    <string name="snackbar_private_data_deleted">داده‌های مرور خصوصی حذف شدند</string>
     <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
     <string name="snackbar_deleted_undo">برگردان</string>
     <!-- Text shown in snackbar when user removes a top site -->
@@ -1740,7 +1776,7 @@
     <!-- Sample text for accessibility font size -->
     <string name="accessibility_text_size_sample_text_1">این نمونه متن است. در اینجا آمده است تا نشان دهیم که با بزرگنمایی یا کاهش اندازه با این تنظیم ، متن چگونه ظاهر می شود.</string>
     <!-- Summary for Accessibility Text Size Scaling Preference -->
-    <string name="preference_accessibility_text_size_summary">متن را در وب سایت ها بزرگتر یا کوچکتر کنید</string>
+    <string name="preference_accessibility_text_size_summary">متن را در وبگاه‌ها بزرگتر یا کوچکتر کنید</string>
     <!-- Title for Accessibility Text Size Scaling Preference -->
     <string name="preference_accessibility_font_size_title">اندازه قلم</string>
 
@@ -1901,6 +1937,8 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">تنها در پنجره‌های ناشناس باز کن</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">استخراج کننده‌های رمزارزها</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">اثرانگشت‌های شناخته شده</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">جزئیات</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1923,14 +1961,16 @@
     <string name="etp_cryptominers_title">استخراج کننده‌های رمزارزها</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">از دسترسی اسکریپت های مخرب برای دسترسی به دستگاه شما به ارز دیجیتال جلوگیری می کند.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">جمع‌آوری داده‌های قابل شناسایی منحصر به فرد درباره دستگاه شما که می‌تواند برای ردیابی استفاده شود، متوقف می‌شود.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">محتوای ردیابی</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_tracking_content_description">از بارگیری که حاوی کد رهگیری است ، خارج از تبلیغات ، فیلم ها و سایر مطالب متوقف می شود. ممکن است بر عملکرد وب سایت تأثیر بگذارد.</string>
+    <string name="etp_tracking_content_description">از بارگیری که حاوی کد رهگیری است، خارج از تبلیغات، ویدیوها و سایر مطالب متوقف می‌شود. ممکن است بر عملکرد وبگاه تأثیر بگذارد.</string>
     <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
-    <string name="etp_panel_on">محافظت برای این سایت فعال است</string>
+    <string name="etp_panel_on">محافظت برای این وبگاه فعال است</string>
     <!-- Enhanced Tracking Protection message that protection is currently off for this site -->
-    <string name="etp_panel_off">محافظت برای این سایت فعال نیست</string>
+    <string name="etp_panel_off">محافظت برای این وبگاه فعال نیست</string>
     <!-- Header for exceptions list for which sites enhanced tracking protection is always off -->
     <string name="enhanced_tracking_protection_exceptions">محاظفت در برابر دنبال شدن برای این پایگاه اینترنتی خاموش شده است</string>
     <!-- Content description (not visible, for screen readers etc.): Navigate
@@ -1947,6 +1987,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">کلوچک‌های تنظیم شده توسطِ تغییر مسیر به وبگاه‌های ردیابیِ شناخته شده را پاک می‌کند.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">اثرانگشت‌های مشکوک</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">فعال کردن حفاظت از اثرانگشت برای متوقف کردن اثرانگشت‌های مشکوک.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">اثرانگشت‌های شناخته شده</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">برخی از ردیاب‌هایی که در زیر علامت‌گذاری شده‌اند تا حدی در این صفحه رفع انسداد شده‌اند زیرا شما با آن‌ها تعامل داشتید *.</string>
@@ -2001,6 +2047,8 @@
 
     <!-- Preference for managing the settings for logins and passwords in Fenix -->
     <string name="preferences_passwords_logins_and_passwords_2">گذرواژه‌ها</string>
+    <!-- Preference for managing the saving of logins and passwords in Fenix -->
+    <string name="preferences_passwords_save_logins_2">ذخیره گذرواژه‌ها</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">درخواست برای ذخیره‌ سازی</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -2009,29 +2057,48 @@
     <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
     <string name="preferences_passwords_autofill2">پرکننده خودکار در %1$s</string>
     <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
-    <string name="preferences_passwords_autofill_description">هنگام استفاده از %1$s ، نام کاربری و گذرواژه ها را در وب سایت ها پر و ذخیره کنید.</string>
+    <string name="preferences_passwords_autofill_description">هنگام استفاده از %1$s، نام‌کاربری و گذرواژه‌ها را در وبگاه‌ها پر و ذخیره کنید.</string>
     <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill">تکمیل خودکار در برنامه های دیگر</string>
 
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">نام‌های کاربری و گذرواژه‌ها را در تمام کاره‌های دیگر روی افزاره‌تان پر می‌کند.</string>
 
+    <!-- Preference option for adding a password -->
+    <string name="preferences_logins_add_login_2">افزودن گذرواژه</string>
+
+    <!-- Preference for syncing saved passwords in Fenix -->
+    <string name="preferences_passwords_sync_logins_2">همگام‌سازی گذرواژه‌ها</string>
+    <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
+    <string name="preferences_passwords_sync_logins_across_devices_2">همگام‌سازی گذرواژه‌ها بین دستگاه‌ها</string>
+    <!-- Preference to access list of saved passwords -->
+    <string name="preferences_passwords_saved_logins_2">گذرواژه‌های ذخیره شده</string>
+    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
+    <string name="preferences_passwords_saved_logins_description_empty_text_2">گذرواژه‌ها که در %s ذخیره یا همگام‌سازی می‌کنید، در اینجا فهرست می‌شوند. همه گذرواژه‌ها که ذخیره می‌کنید، رمزنگاری می‌شوند.</string>
+    <!-- Clickable text for opening an external link for more information about Sync. -->
+    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">بیشتر درباره همگام‌سازی بدانید</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">استثناها</string>
 
+    <!-- Empty description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+    <string name="preferences_passwords_exceptions_description_empty_2">%s گذرواژه‌ها را برای وبگاه‌های فهرست شده در اینجا ذخیره نمی‌کند.</string>
+    <!-- Description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+    <string name="preferences_passwords_exceptions_description_2">%s گذرواژه‌ها را برای این وبگاه‌ها ذخیره نمی‌کند.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">حذف تمام استثاناها</string>
+    <!-- Hint for search box in passwords list -->
+    <string name="preferences_passwords_saved_logins_search_2">جستجوی گذرواژه‌ها</string>
     <!-- The header for the site that a login is for -->
-    <string name="preferences_passwords_saved_logins_site">پایگاه</string>
+    <string name="preferences_passwords_saved_logins_site">وبگاه</string>
     <!-- The header for the username for a login -->
-    <string name="preferences_passwords_saved_logins_username">نام کاربری</string>
+    <string name="preferences_passwords_saved_logins_username">نام‌کاربری</string>
     <!-- The header for the password for a login -->
     <string name="preferences_passwords_saved_logins_password">گذرواژه</string>
     <!-- Shown in snackbar to tell user that the password has been copied -->
     <string name="logins_password_copied">گذرواژه به تخته‌گیره رونوشت شد</string>
 
     <!-- Shown in snackbar to tell user that the username has been copied -->
-    <string name="logins_username_copied">نام کاربری به تخته‌گیره رونوشت شد</string>
+    <string name="logins_username_copied">نام‌کاربری به تخته‌گیره رونوشت شد</string>
     <!-- Content Description (for screenreaders etc) read for the button to copy a password in logins-->
     <string name="saved_logins_copy_password">رونوشت از گذرواژه</string>
     <!-- Content Description (for screenreaders etc) read for the button to clear a password while editing a login-->
@@ -2048,6 +2115,12 @@
     <string name="saved_login_reveal_password">نمایش گذرواژه</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">پنهان کردن گذرواژه</string>
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
+    <string name="logins_biometric_prompt_message_2">باز کردن قفل برای مشاهده گذرواژه‌های ذخیره شده</string>
+    <!-- Title of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_title_2">ایمن کردن گذرواژه‌های ذخیره شده</string>
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_message_2">یک الگوی قفل دستگاه، پین یا گذرواژه برای محافظت از گذرواژه‌های ذخیره شده خود تنظیم کنید تا از دسترسی دیگران جلوگیری کنید.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">بعدا</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -2057,27 +2130,45 @@
     <!-- Title for Accessibility Force Enable Zoom Preference -->
     <string name="preference_accessibility_force_enable_zoom">بزرگ‌نمایی در تمام وبگاه‌ها</string>
     <!-- Summary for Accessibility Force Enable Zoom Preference -->
-    <string name="preference_accessibility_force_enable_zoom_summary">حتی در وب سایت هایی که از این حرکت جلوگیری می کنند ، می توانید خرج کردن و بزرگنمایی را فعال کنید.</string>
+    <string name="preference_accessibility_force_enable_zoom_summary">حتی در وبگاه‌هایی که از این حرکت جلوگیری می کنند، می‌توانید خرج کردن و بزرگنمایی را فعال کنید.</string>
 
     <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
     <string name="saved_logins_sort_strategy_alphabetically">نام (A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">آخرین بار استفاده</string>
 
+    <!-- Content description (not visible, for screen readers etc.) -->
+    <string name="saved_logins_menu_dropdown_chevron_icon_content_description_2">منوی مرتب‌سازی گذرواژه‌های</string>
+
     <!-- Autofill -->
     <!-- Preference and title for managing the autofill settings -->
     <string name="preferences_autofill">تکمیل خودکار</string>
     <!-- Preference and title for managing the settings for addresses -->
     <string name="preferences_addresses">نشانی‌ها</string>
+    <!-- Preference and title for managing the settings for payment methods -->
+    <string name="preferences_credit_cards_2">روش‌های پرداخت</string>
+    <!-- Preference for saving and autofilling credit cards -->
+    <string name="preferences_credit_cards_save_and_autofill_cards_2">ذخیره و پر کردن روش‌های پرداخت</string>
+    <!-- Preference summary for saving and autofilling payment method data. Parameter will be replaced by app name. -->
+    <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s همه روش‌های پرداختی که ذخیره می‌کنید را رمزگذاری می‌کند</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">همگام‌سازی کارت‌ها بین افزاره‌ها</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
     <string name="preferences_credit_cards_sync_cards">همگام‌سازی کارت‌ها</string>
 
+    <!-- Preference option for adding a card -->
+    <string name="preferences_credit_cards_add_credit_card_2">افزودن کارت</string>
+    <!-- Preference option for managing saved cards -->
+    <string name="preferences_credit_cards_manage_saved_cards_2">مدیریت کارت‌ها</string>
     <!-- Preference option for adding an address -->
     <string name="preferences_addresses_add_address">افزودن نشانی</string>
     <!-- Preference option for managing saved addresses -->
     <string name="preferences_addresses_manage_addresses">مدیریت نشانی‌ها</string>
+
+    <!-- Preference for saving and filling addresses -->
+    <string name="preferences_addresses_save_and_autofill_addresses_2">ذخیره و پر کردن نشانی‌ها</string>
+    <!-- Preference summary for saving and filling address data -->
+    <string name="preferences_addresses_save_and_autofill_addresses_summary_2">شامل شماره تلفن‌ها و نشانی‌های رایانامه</string>
 
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">اضافه کردن کارت</string>
@@ -2097,6 +2188,8 @@
     <string name="credit_cards_menu_delete_card">حذف کارت</string>
     <!-- The text for the "Delete card" button for deleting a credit card -->
     <string name="credit_cards_delete_card_button">حذف کارت</string>
+    <!-- The text for the confirmation message of "Delete card" dialog -->
+    <string name="credit_cards_delete_dialog_confirmation_2">حذف کارت؟</string>
     <!-- The text for the positive button on "Delete card" dialog -->
     <string name="credit_cards_delete_dialog_button">حذف</string>
     <!-- The title for the "Save" menu item for saving a credit card -->
@@ -2109,8 +2202,16 @@
     <!-- Title of the "Saved cards" screen -->
     <string name="credit_cards_saved_cards">کارت‌های ذخیره شده</string>
 
+    <!-- Error message for card number validation -->
+    <string name="credit_cards_number_validation_error_message_2">شماره کارت معتبر وارد کنید</string>
+    <!-- Error message for card name on card validation -->
+    <string name="credit_cards_name_on_card_validation_error_message_2">یک نام اضافه کنید</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">برای مشاهدهٔ کارت‌های اعتباری، قفل را باز کنید</string>
+    <!-- Title of warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_title_2">ایمن کردن روش‌های پرداخت ذخیره شده شما</string>
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_message_3">یک الگوی قفل دستگاه، پین یا گذرواژه برای محافظت از روش‌های پرداخت ذخیره شده خود تنظیم کنید تا از دسترسی دیگران جلوگیری کنید.</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">راه‌اندازی</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -2118,6 +2219,8 @@
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">قفل گشایی افزاره</string>
 
+    <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
+    <string name="credit_cards_biometric_prompt_unlock_message_2">باز کردن قفل برای استفاده از روش‌های پرداخت ذخیره شده</string>
     <!-- Title of the "Add address" screen -->
     <string name="addresses_add_address">افزودن نشانی</string>
     <!-- Title of the "Edit address" screen -->
@@ -2149,6 +2252,8 @@
     <string name="addresses_cancel_button">لغو</string>
     <!-- The text for the "Delete address" button for deleting an address -->
     <string name="addressess_delete_address_button">حذف نشانی</string>
+    <!-- The title for the "Delete address" confirmation dialog -->
+    <string name="addressess_confirm_dialog_message_2">این نشانی حذف شود؟</string>
     <!-- The text for the positive button on "Delete address" dialog -->
     <string name="addressess_confirm_dialog_ok_button">حذف</string>
     <!-- The text for the negative button on "Delete address" dialog -->
@@ -2186,6 +2291,8 @@
     <string name="search_add_custom_engine_suggest_url_label">API پیشنهاد جستجوی (اختیاری)</string>
     <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
     <string name="search_add_custom_engine_suggest_string_hint">نشانی اینترنتی API پیشنهادی جستجو</string>
+    <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
+    <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">جایگزینی پرس‌وجو با «%s». مثال:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
     <!-- The text for the "Save" button for saving a custom search engine -->
     <string name="search_custom_engine_save_button">ذخیره</string>
 
@@ -2243,12 +2350,34 @@
     <string name="login_menu_delete_button">حذف</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">ویرایش</string>
+    <!-- Message in delete confirmation dialog for password -->
+    <string name="login_deletion_confirmation_2">آیا مطمئن هستید که می‌خواهید این گذرواژه را حذف کنید؟</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">حذف</string>
     <!-- Negative action of a dialog asking to delete login -->
     <string name="dialog_delete_negative">لغو</string>
+    <!--  The saved password options menu description. -->
+    <string name="login_options_menu_2">گزینه‌های گذرواژه</string>
+    <!--  The editable text field for a website address. -->
+    <string name="saved_login_hostname_description_3">زمینه متنی قابل ویرایش برای نشانی وبگاه.</string>
+    <!--  The editable text field for a username. -->
+    <string name="saved_login_username_description_3">زمینه متنی قابل ویرایش برای نام‌کاربری.</string>
+    <!--  The editable text field for a login's password. -->
+    <string name="saved_login_password_description_2">زمینه متنی قابل ویرایش برای گذرواژه.</string>
+    <!--  The button description to save changes to an edited password. -->
+    <string name="save_changes_to_login_2">ذخیره تغییرات.</string>
+    <!--  The page title for editing a saved password. -->
+    <string name="edit_2">ویرایش گذرواژه</string>
+    <!--  The page title for adding new password. -->
+    <string name="add_login_2">افزودن گذرواژه</string>
+    <!--  Error text displayed underneath the password field when it is in an error case. -->
+    <string name="saved_login_password_required_2">یک گذرواژه وارد کنید</string>
+    <!--  The error message in add login view when username field is blank. -->
+    <string name="saved_login_username_required_2">یک نام‌کاربری وارد کنید</string>
     <!--  The error message in add login view when hostname field is blank. -->
     <string name="saved_login_hostname_required" tools:ignore="UnusedResources">نام میزبان مورد نیاز است</string>
+    <!--  The error message in add login view when hostname field is blank. -->
+    <string name="saved_login_hostname_required_2" tools:ignore="UnusedResources">یک نشانی وب وارد کنید</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">جست‌وجوی صوتی</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -2319,6 +2448,8 @@
     <string name="top_sites_edit_dialog_title">ویرایش میانبر</string>
     <!-- Button caption to confirm the edit of the top site. -->
     <string name="top_sites_edit_dialog_save">ذخیره</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">یک نشانی اینترنتی معتبر وارد کنید</string>
     <!-- Label for the URL edit field in the edit top site dialog. -->
     <string name="top_sites_edit_dialog_url_title">نشانی اینترنتی</string>
 
@@ -2352,6 +2483,9 @@
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
     <string name="other_default_search_engine_suggestion_header">جست‌وجوی %s</string>
 
+    <!-- Default browser experiment -->
+    <!-- Default browser card title -->
+    <string name="default_browser_experiment_card_title">تغییر مرورگر پیش‌فرض شما</string>
     <!-- Default browser card text -->
     <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">پیوندهای وبگاه‌ها، رایانامه‌ها و پیام‌ها را تنظیم کنید تا به طور خودکار در Firefox باز شوند.</string>
 
@@ -2389,34 +2523,163 @@
     <!-- Snackbar button text to navigate to telemetry settings.-->
     <string name="experiments_snackbar_button">رفتن به تنظیمات</string>
 
+    <!-- Review quality check feature-->
+    <!-- Name for the review quality check feature used as title for the panel. -->
+    <string name="review_quality_check_feature_name_2">بررسی‌کننده بازبینی</string>
+    <!-- Summary for grades A and B for review quality check adjusted grading. -->
+    <string name="review_quality_check_grade_a_b_description">بازبینی‌های قابل‌اعتماد</string>
+    <!-- Summary for grade C for review quality check adjusted grading. -->
+    <string name="review_quality_check_grade_c_description">ترکیبی از بازبینی‌های قابل‌اعتماد و غیرقابل‌اعتماد</string>
+    <!-- Summary for grades D and F for review quality check adjusted grading. -->
+    <string name="review_quality_check_grade_d_f_description">بازبینی‌های غیرقابل‌اعتماد</string>
+    <!-- Text for title presenting the reliability of a product's reviews. -->
+    <string name="review_quality_check_grade_title">این بازبینی‌ها چقدر قابل اطمینان هستند؟</string>
+    <!-- Title for when the rating has been updated by the review checker -->
+    <string name="review_quality_check_adjusted_rating_title">رتبه‌بندی تعدیل‌شده</string>
+    <!-- Description for a product's adjusted star rating. The text presents that the product's reviews which were evaluated as unreliable were removed from the adjusted rating. -->
+    <string name="review_quality_check_adjusted_rating_description_2">بر اساس بازبینی‌های قابل‌اعتماد</string>
+    <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
+    <string name="review_quality_check_highlights_title">نکات برجسته از بازبینی‌های اخیر</string>
+    <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
+    <string name="review_quality_check_explanation_title">چگونه کیفیت بازبینی را تعیین می‌کنیم</string>
+    <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_explanation_body_reliability">ما از فناوری AI از %s توسط Mozilla برای بررسی قابلیت اطمینان بازبینی محصولات استفاده می‌کنیم. این فقط به شما کمک می‌کند که کیفیت بازبینی را ارزیابی کنید، نه کیفیت محصولات.</string>
+    <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
+    <string name="review_quality_check_info_review_grade_header"><![CDATA[ما به هر محصول یک <b>نمره حروفی</b> از A تا F اختصاص می‌دهیم.]]></string>
+    <!-- Description explaining grades A and B for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_AB">بازبینی‌های قابل اطمینان. ما معتقدیم که بازبینی‌ها احتمالاً از مشتریان واقعی هستند که بازبینی‌های صادقانه و بی‌طرفانه‌ای داده‌اند.</string>
+    <!-- Description explaining grade C for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_C">ما معتقدیم که یک ترکیب از بازبینی‌ها قابل اطمینان و غیرقابل اطمینان وجود دارد.</string>
+    <!-- Description explaining grades D and F for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_DF">بازبینی‌های غیرقابل اطمینان. ما معتقدیم که ‌بازبینی‌ها احتمالاً جعلی یا از بازبینان بی‌طرفانه هستند.</string>
+    <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
+    <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[<b>رتبه‌بندی تعدیل‌شده</b> بر اساس بازبینی‌های است که ما معتقدیم قابل اطمینان هستند.]]></string>
+    <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
+    <string name="review_quality_check_explanation_body_highlights"><![CDATA[<b>نکات برجسته</b> از %s بازبینی‌ها در ۸۰ روز گذشته که ما معتقدیم قابل اطمینان هستند.]]></string>
+    <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+    <string name="review_quality_check_info_learn_more">بیشتر درباره %s بدانید.</string>
+    <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_info_learn_more_link_2">چگونه %s کیفیت بازبینی را تعیین می‌کند</string>
     <!-- Text for title of settings section. -->
     <string name="review_quality_check_settings_title">تنظیمات</string>
 
+    <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
+    <string name="review_quality_check_settings_recommended_products">نمایش تبلیغات در بررسی‌کننده بازبینی</string>
+    <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
+    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">گاهی اوقات تبلیغاتی برای محصولات مرتبط مشاهده خواهید کرد. ما فقط محصولات با بازبینی‌های قابل اعتماد را تبلیغ می‌کنیم. %s</string>
     <!-- Clickable text that links to review quality check recommended products support article. -->
     <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">بیشتر بدانید</string>
 
+    <!-- Text for turning sidebar off button from review quality check settings section. -->
+    <string name="review_quality_check_settings_turn_off">خاموش کردن بررسی‌کننده بازبینی</string>
+    <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
+    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">موارد بیشتری برای در نظر گرفتن</string>
+    <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">تبلیغ توسط %s</string>
+    <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
+    <string name="review_quality_check_powered_by_2">بررسی‌کننده بازبینی توسط %s انجام می‌شود</string>
+    <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">%s توسط Mozilla</string>
+    <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
+    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">اطلاعات جدید برای بررسی</string>
+    <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
+    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">هم‌اکنون بررسی شود</string>
+    <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_title">هنوز بازبینی‌های کافی وجود ندارد</string>
+    <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_body">هنگامی که این محصول بازبینی بیشتری داشته باشد، ما قادر به بررسی کیفیت آنها خواهیم بود.</string>
+    <!-- Title for warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_title">محصول موجود نیست</string>
+    <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_body">اگر می‌بینید این محصول دوباره در دسترس است، گزارش دهید و ما روی بررسی بازبینی آن کار خواهیم کرد.</string>
+    <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
+    <string name="review_quality_check_product_availability_warning_action_2">گزارش محصول موجود است</string>
+    <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
+    <string name="review_quality_check_analysis_in_progress_warning_title_2">بررسی کیفیت بازبینی (%s)</string>
+    <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
+    <string name="review_quality_check_analysis_in_progress_warning_body">این ممکن است حدود ۶۰ ثانیه طول بکشد.</string>
+    <!-- Title for info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_title">تشکر از گزارش شما!</string>
+    <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_body">ما باید اطلاعات مربوط به بازبینی‌های این محصول را در عرض ۲۴ ساعت داشته باشیم. لطفا بعداً دوباره بررسی کنید.</string>
+    <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
+    <string name="review_quality_check_not_analyzable_info_title">ما نمی‌توانیم این بازبینی‌ها را بررسی کنیم</string>
+    <!-- Text for body of info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
+    <string name="review_quality_check_not_analyzable_info_body">متاسفانه، ما نمی‌توانیم کیفیت بازبینی برخی از انواع محصولات را بررسی کنیم. به عنوان مثال: کارت‌های هدیه و ویدیوها، موسیقی و بازی‌ها.</string>
+    <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_title" tools:ignore="UnusedResources">اطلاعات به زودی در دسترس خواهد بود</string>
+    <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_body" tools:ignore="UnusedResources">ما باید اطلاعات مربوط به بازبینی‌های این محصول را در عرض ۲۴ ساعت داشته باشیم. لطفا بعداً دوباره بررسی کنید.</string>
+    <!-- Title for info card displayed to the user when analysis finished updating. -->
+    <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">تحلیل به‌روز است</string>
+    <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
+    <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">گرفتم</string>
+    <!-- Title for error card displayed to the user when an error occurred. -->
+    <string name="review_quality_check_generic_error_title">در حال حاضر هیچ اطلاعاتی در دسترس نیست</string>
+    <!-- Text for body of error card displayed to the user when an error occurred. -->
+    <string name="review_quality_check_generic_error_body">ما در تلاش برای حل مسئله هستیم. لطفا به زودی دوباره بررسی کنید.</string>
+    <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
+    <string name="review_quality_check_no_connection_title">بدون اتصال به شبکه</string>
+    <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
+    <string name="review_quality_check_no_connection_body">اتصال شبکه خود را بررسی کرده و سپس صفحه را دوباره بارگذاری کنید.</string>
+    <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
+    <string name="review_quality_check_no_analysis_title">هنوز هیچ اطلاعاتی درباره این بازبینی‌ها وجود ندارد</string>
+    <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
+    <string name="review_quality_check_no_analysis_body">برای دانستن اینکه بازبینی‌ها این محصول قابل اعتماد هستند یا نه، کیفیت بازبینی‌ها را بررسی کنید. فقط حدود ۶۰ ثانیه طول می‌کشد.</string>
+    <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
+    <string name="review_quality_check_no_analysis_link">بررسی کیفیت بازبینی</string>
+    <!-- Headline for review quality check contextual onboarding card. -->
+    <string name="review_quality_check_contextual_onboarding_title">راهنمای معتبر ما به بازبینی‌های محصول را امتحان کنید</string>
+    <!-- Description for review quality check contextual onboarding card. The first and last two parameters are for retailer names (e.g. Amazon, Walmart). The second parameter is for the name of the application (e.g. Firefox). -->
+    <string name="review_quality_check_contextual_onboarding_description">ببینید بازبینی‌های محصول در %1$s قبل از خرید چقدر قابل اعتماد هستند. بررسی‌کننده بازبینی، یک ویژگی آزمایشی از %2$s، به طور مستقیم در مرورگر ساخته شده است. همچنین روی %3$s و %4$s کار می‌کند.</string>
+    <!-- Description for review quality check contextual onboarding card. The first parameters is for retailer name (e.g. Amazon). The second parameter is for the name of the application (e.g. Firefox). -->
+    <string name="review_quality_check_contextual_onboarding_description_one_vendor">ببینید بازبینی‌های محصول در %1$s قبل از خرید چقدر قابل اعتماد هستند. بررسی‌کننده بازبینی، یک ویژگی آزمایشی از %2$s، به طور مستقیم در مرورگر ساخته شده است.</string>
+    <!-- Paragraph presenting review quality check feature. First parameter is the Fakespot product name. Second parameter is for clickable text defined in review_quality_check_contextual_onboarding_learn_more_link. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_contextual_onboarding_learn_more">با استفاده از قدرت %1$s توسط Mozilla، ما به شما کمک می‌کنیم تا از بازبینی‌های بی‌طرفانه و جعلی دوری کنید. مدل هوش مصنوعی ما همیشه در حال بهبود است تا شما را در هنگام خرید محافظت کند. %2$s</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">بیشتر بدانید</string>
+    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
+    <string name="review_quality_check_contextual_onboarding_caption_4">با انتخاب «بله، امتحان کنید» شما با %1$s’s %2$s و %3$s’s %4$s موافقت می‌کنید.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">نکات حفظ محرمانگی</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
     <string name="review_quality_check_contextual_onboarding_terms_use">شرایط استفاده</string>
+    <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
+    <string name="review_quality_check_contextual_onboarding_primary_button_text">بله، امتحان کنید</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">اکنون نه</string>
+    <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
+    <string name="review_quality_check_open_handle_content_description">باز کردن بررسی‌کننده بازبینی</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
+    <string name="review_quality_check_close_handle_content_description">بستن بررسی‌کننده بازبینی</string>
+    <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
+    <string name="review_quality_check_star_rating_content_description">%1$s از ۵ ستاره</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
     <string name="review_quality_check_highlights_show_less">نمایش کمتر</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
     <string name="review_quality_check_highlights_show_more">نمایش بیشتر</string>
+    <!-- Text for highlights card quality category header. Reviews shown under this header should refer the product's quality. -->
+    <string name="review_quality_check_highlights_type_quality">کیفیت</string>
     <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
     <string name="review_quality_check_highlights_type_price">قیمت</string>
+    <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
+    <string name="review_quality_check_highlights_type_shipping">حمل و نقل</string>
+    <!-- Text for highlights card packaging and appearance category header. Reviews shown under this header should refer the product's packaging and appearance. -->
+    <string name="review_quality_check_highlights_type_packaging_appearance">بسته‌بندی و ظاهر</string>
+    <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
+    <string name="review_quality_check_highlights_type_competitiveness">رقابت‌پذیری</string>
     <!-- Text that is surrounded by quotes. The parameter is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting"   -->
     <string name="surrounded_with_quotes">«%s»</string>
 
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
     <string name="a11y_action_label_collapse">جمع کردن</string>
+    <!-- Current state for elements that can be collapsed if interacting with them. Talkback will dictate this after a state change. -->
+    <string name="a11y_state_label_collapsed">جمع‌شده</string>
     <!-- Action label for elements that can be expanded if interacting with them. Talkback will append this to say "Double tap to expand". -->
     <string name="a11y_action_label_expand">گستردن</string>
+    <!-- Current state for elements that can be expanded if interacting with them. Talkback will dictate this after a state change. -->
+    <string name="a11y_state_label_expanded">باز شدن</string>
     <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
     <string name="a11y_action_label_wallpaper_collection_learn_more">برای آموختن بیش‌تر دربارهٔ این مجموعه، پیوند را باز کنید</string>
     <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
@@ -2424,66 +2687,314 @@
     <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="a11y_action_label_pocket_learn_more">برای آموختن بیش‌تر، پیوند را باز کنید</string>
 
+    <!-- Content description for headings announced by accessibility service. The first parameter is the text of the heading. Talkback will announce the first parameter and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
+    <string name="a11y_heading">%s، عنوان</string>
     <!-- Title for dialog displayed when trying to access links present in a text. -->
     <string name="a11y_links_title">پیوندها</string>
+
+    <!-- Additional content description for text bodies that contain urls. -->
+    <string name="a11y_links_available">پیوندها در دسترس هستند</string>
 
     <!-- Translations feature-->
 
 
+    <!-- Translation request dialog -->
+    <!-- Title for the translation dialog that allows a user to translate the webpage. -->
+    <string name="translations_bottom_sheet_title">ترجمه این صفحه؟</string>
+    <!-- Title for the translation dialog after a translation was completed successfully.
+    The first parameter is the name of the language that the page was translated from, for example, "French".
+    The second parameter is the name of the language that the page was translated to, for example, "English". -->
+    <string name="translations_bottom_sheet_title_translation_completed">صفحه از %1$s به %2$s ترجمه شده است</string>
+    <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="translations_bottom_sheet_title_first_time">ترجمه‌های خصوصی را در %1$s امتحان کنید</string>
+    <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. The first parameter is clickable text with a link, for example, "Learn more". -->
+    <string name="translations_bottom_sheet_info_message">برای حریم خصوصی شما، ترجمه‌ها هرگز دستگاه شما را ترک نمی‌کنند. زبان‌ها و بهبودهای جدید به زودی در دسترس خواهند بود! %1$s</string>
     <!-- Text that links to additional information about the Firefox translations feature. -->
     <string name="translations_bottom_sheet_info_message_learn_more">بیشتر بدانید</string>
+    <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
+    <string name="translations_bottom_sheet_translate_from">ترجمه از</string>
+    <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
+    <string name="translations_bottom_sheet_translate_to">ترجمه به</string>
+    <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
+    <string name="translations_bottom_sheet_translate_from_unsupported_language">یک زبان مبدا دیگر را امتحان کنید</string>
+    <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
+    <string name="translations_bottom_sheet_negative_button">الان نه</string>
+    <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
+    <string name="translations_bottom_sheet_negative_button_restore">نمایش اصلی</string>
+    <!-- Accessibility announcement (not visible, for screen readers etc.) for the translations dialog after restore button was pressed that indicates the original untranslated page was loaded. -->
+    <string name="translations_bottom_sheet_restore_accessibility_announcement">صفحه اصلی بدون ترجمه بارگذاری شد</string>
+    <!-- Button text on the translations dialog when a translation error appears, used to dismiss the dialog and return to the browser. -->
+    <string name="translations_bottom_sheet_negative_button_error">انجام شد</string>
     <!-- Button text on the translations dialog to begin a translation of the website. -->
     <string name="translations_bottom_sheet_positive_button">ترجمه</string>
 
+
+    <!-- Button text on the translations dialog when a translation error appears. -->
+    <string name="translations_bottom_sheet_positive_button_error">دوباره امتحان کنید</string>
+    <!-- Inactive button text on the translations dialog that indicates a translation is currently in progress. This button will be accompanied by a loading icon. -->
+    <string name="translations_bottom_sheet_translating_in_progress">در حال ترجمه</string>
+    <!-- Button content description (not visible, for screen readers etc.) for the translations dialog translate button that indicates a translation is currently in progress. -->
+    <string name="translations_bottom_sheet_translating_in_progress_content_description">ترجمه در حال انجام است</string>
+    <!-- Default dropdown option when initially selecting a language from the translations dialog language selection dropdown. -->
+    <string name="translations_bottom_sheet_default_dropdown_selection">انتخاب زبان</string>
+    <!-- The title of the warning card informs the user that a translation could not be completed. -->
+    <string name="translation_error_could_not_translate_warning_text">مشکلی در ترجمه پیش آمد. لطفا دوباره تلاش کنید.</string>
+    <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
+    <string name="translation_error_could_not_load_languages_warning_text">نتوانستیم زبان‌ها را بارگیری کنیم. اتصال اینترنت خود را بررسی کرده و دوباره تلاش کنید.</string>
+    <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
+    <string name="translation_error_language_not_supported_warning_text">متاسفیم، ما هنوز از %1$s پشتیبانی نمی‌کنیم.</string>
+    <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
+    <string name="translation_in_progress_snackbar">ترجمه در حال انجام…</string>
+    <!-- Title for the data saving mode warning dialog used in the translation request dialog.
+    This dialog will be presented when the user attempts to perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="translations_download_language_file_dialog_title">بارگیری زبان در حالت صرفه‌جویی در داده (%1$s)؟</string>
+
+
+    <!-- Translations options dialog -->
+    <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
+    <string name="translation_option_bottom_sheet_title_heading">گزینه‌های ترجمه</string>
+
+    <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
+    <string name="translation_option_bottom_sheet_always_translate">همیشه پیشنهاد ترجمه را بدهید</string>
+    <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. The first parameter is the language name, for example, "Spanish". -->
+    <string name="translation_option_bottom_sheet_always_translate_in_language">همیشه %1$s را ترجمه کنید</string>
+    <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. The first parameter is the language name, for example, "Spanish". -->
+    <string name="translation_option_bottom_sheet_never_translate_in_language">هرگز %1$s را ترجمه نکنید</string>
+    <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
+    <string name="translation_option_bottom_sheet_never_translate_site">هرگز این وبگاه را ترجمه نکنید</string>
+    <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
+    <string name="translation_option_bottom_sheet_switch_never_translate_site_description">همه تنظیمات دیگر را لغو می‌کند</string>
+    <!-- Toggle switch description that will appear under the "Never translate" and "Always translate" toggle switch settings to provide more information on how these  settings interacts with other settings. -->
+    <string name="translation_option_bottom_sheet_switch_description">پیشنهادهای ترجمه را لغو می‌کند</string>
+    <!-- Button text for the button that will take the user to the translation settings dialog. -->
+    <string name="translation_option_bottom_sheet_translation_settings">تنظیمات ترجمه</string>
+
+    <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="translation_option_bottom_sheet_about_translations">درباره ترجمه‌ها در %1$s</string>
+
+    <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
+    <string name="translation_option_bottom_sheet_close_content_description">بستن برگه ترجمه‌ها</string>
+    <!-- The title of the warning card informs the user that an error has occurred at page settings. -->
+    <string name="translation_option_bottom_sheet_error_warning_text">برخی تنظیمات به طور موقت در دسترس نیستند.</string>
 
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">ترجمه‌ها</string>
 
+    <!-- Toggle switch label that indicates that the browser should signal or indicate when a translation is possible for any page. -->
+    <string name="translation_settings_offer_to_translate">پیشنهاد ترجمه در صورت امکان</string>
+    <!-- Toggle switch label that indicates that downloading files required for translating is permitted when using data saver mode in Android. -->
+    <string name="translation_settings_always_download">همیشه زبان‌ها را در حالت صرفه‌جویی در داده بارگیری کنید</string>
+    <!-- Section header text that begins the section of a list of different options the user may select to adjust their translation preferences. -->
+    <string name="translation_settings_translation_preference">ترجیحات ترجمه</string>
+
+    <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
+    <string name="translation_settings_automatic_translation">ترجمه خودکار</string>
+    <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
+    <string name="translation_settings_automatic_never_translate_sites">هرگز این وبگاه‌ها را ترجمه نکنید</string>
+    <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
+    <string name="translation_settings_download_language">بارگیری زبان‌ها</string>
+
+    <!-- Automatic translation preference screen -->
+    <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
+    <string name="automatic_translation_toolbar_title_preference">ترجمه خودکار</string>
+    <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
+    <string name="automatic_translation_header_preference">یک زبان را برای مدیریت تنظیمات «همیشه ترجمه» و «هرگز ترجمه نکن» انتخاب کنید.</string>
+    <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
+    <string name="automatic_translation_error_warning_text">نتوانستیم زبان‌ها را بارگیری کنیم. لطفا بعداً دوباره بررسی کنید.</string>
+
+    <!-- Automatic translation options preference screen -->
+    <!-- Preference option for offering to translate. Radio button title text.-->
+    <string name="automatic_translation_option_offer_to_translate_title_preference">پیشنهاد ترجمه (پیش‌فرض)</string>
+    <!-- Preference option for offering to translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_offer_to_translate_summary_preference">%1$s پیشنهاد خواهد داد تا وبگاه‌ها در این زبان ترجمه شوند.</string>
+    <!-- Preference option for always translate. Radio button title text. -->
+    <string name="automatic_translation_option_always_translate_title_preference">همیشه ترجمه کن</string>
+    <!-- Preference option for always translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_always_translate_summary_preference">%1$s این زبان را به‌طور خودکار هنگام بارگیری صفحه ترجمه می‌کند.</string>
+    <!-- Preference option for never translate. Radio button title text.-->
+    <string name="automatic_translation_option_never_translate_title_preference">هرگز ترجمه نکن</string>
+    <!-- Preference option for never translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_never_translate_summary_preference">%1$s هرگز پیشنهاد ترجمه وبگاه‌هایی در این زبان را نخواهد داد.</string>
+
+    <!-- Never translate site preference screen -->
+    <!-- Title of the never translate site preference screen that will appear on the toolbar.-->
+    <string name="never_translate_site_toolbar_title_preference">هرگز این وبگاه‌ها را ترجمه نکنید</string>
+    <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
+    <string name="never_translate_site_header_preference">برای اضافه کردن یک وبگاه جدید: از آن بازدید کنید و گزینه «هرگز این وبگاه را ترجمه نکنید» را از منوی ترجمه انتخاب کنید.</string>
+    <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
+             The first parameter is web site url (for example:"wikipedia.com") -->
+    <string name="never_translate_site_item_list_content_description_preference">حذف %1$s</string>
+    <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
+    <string name="never_translate_site_error_warning_text">نتوانستیم وبگاه‌ها را بارگیری کنیم. لطفا بعداً دوباره بررسی کنید.</string>
+    <!-- The Delete site dialogue title will appear when the user clicks on a list item.
+             The first parameter is web site url (for example:"wikipedia.com") -->
+    <string name="never_translate_site_dialog_title_preference">%1$s حذف شود؟</string>
     <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
     <string name="never_translate_site_dialog_confirm_delete_preference">حذف</string>
     <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
     <string name="never_translate_site_dialog_cancel_preference">انصراف</string>
 
+    <!-- Download languages preference screen -->
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">بارگیری زبان‌ها</string>
+    <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
+    <string name="download_languages_header_preference">بارگیری کامل زبان‌ها برای ترجمه‌های سریع‌تر و ترجمه به صورت آفلاین. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
     <string name="download_languages_header_learn_more_preference">بیشتر بدانید</string>
     <!-- The subhead of the download language preference screen will appear above the pivot language. -->
     <string name="download_languages_available_languages_preference">زبان‌های موجود</string>
+    <!-- Text that will appear beside a core or pivot language package name to show that the language is necessary for the translation feature to function. -->
+    <string name="download_languages_default_system_language_require_preference">مورد نیاز</string>
     <!-- A text for download language preference item.
     The first parameter is the language name, for example, "Spanish".
     The second parameter is the language file size, for example, "(3.91 KB)" or, if the language package name is a pivot language, "(required)". -->
     <string name="download_languages_language_item_preference">%1$s (%2$s)</string>
+    <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
+    <string name="download_language_header_preference">بارگیری زبان‌ها</string>
     <!-- All languages list item. When the user presses this item, they can download all languages. -->
     <string name="download_language_all_languages_item_preference">همه‌ی زبان‌ها</string>
+    <!-- All languages list item. When the user presses this item, they can delete all languages that were downloaded. -->
+    <string name="download_language_all_languages_item_preference_to_delete">حذف همه زبان‌ها</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">حذف</string>
 
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">در حال پیشرفت</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">توقف بارگیری %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">بارگیری</string>
 
+    <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
+    <string name="download_languages_fetch_error_warning_text">نتوانستیم زبان‌ها را بارگیری کنیم. لطفا بعداً دوباره بررسی کنید.</string>
+
+    <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
+      The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_error_warning_text"><![CDATA[نتوانستیم <b>%1$s</b> را بارگیری کنیم. لطفا دوباره تلاش کنید.]]></string>
+    <!-- The title of the warning card informs the user that an error has occurred at deleting a language.
+          The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_delete_error_warning_text"><![CDATA[نتوانستیم <b>%1$s</b> را حذف کنیم. لطفا دوباره تلاش کنید.]]></string>
+
+    <!-- Title for the dialog used by the translations feature to confirm deleting a language.
+    The dialog will be presented when the user requests deletion of a language.
+    The first parameter is the name of the language, for example, "Spanish" and the second parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="delete_language_file_dialog_title">%1$s (%2$s) حذف شود؟</string>
+    <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="delete_language_file_dialog_message">اگر این زبان را حذف کنید، %1$s زبان‌های جزئی را به حافظه پنهان شما بارگیری می‌کند تا زمانی که ترجمه می‌کنید.</string>
+    <!-- Title for the dialog used by the translations feature to confirm deleting all languages file.
+    The dialog will be presented when the user requests deletion of all languages file.
+    The first parameter is the size in kilobytes or megabytes of the language file. -->
+    <string name="delete_language_all_languages_file_dialog_title">حذف همه زبان‌ها (%1$s)؟</string>
+    <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. The first parameter is the name of the application, for example, "Fenix". -->
+    <string name="delete_language_all_languages_file_dialog_message">اگر همه زبان‌ها را حذف کنید، %1$s زبان‌های جزئی را به حافظه پنهان شما بارگیری می‌کند تا زمانی که ترجمه می‌کنید.</string>
     <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
     <string name="delete_language_file_dialog_positive_button_text">حذف</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">انصراف</string>
 
+    <!-- Title for the data saving mode warning dialog used by the translations feature.
+    This dialog will be presented when the user attempts to download a language or perform
+    a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
+    The first parameter is the size in kilobytes or megabytes of the language file.-->
+    <string name="download_language_file_dialog_title">بارگیری در حالت صرفه‌جویی در داده (%1$s)؟</string>
+    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
+    <string name="download_language_file_dialog_message_all_languages">ما زبان‌های جزئی را به حافظه پنهان شما بارگیری می‌کنیم تا ترجمه‌ها خصوصی بمانند.</string>
+    <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
+    <string name="download_language_file_dialog_checkbox_text">همیشه در حالت صرفه‌جویی در داده بارگیری کنید</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
     <string name="download_language_file_dialog_positive_button_text">بارگیری</string>
+    <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
+    <string name="download_language_file_dialog_positive_button_text_all_languages">بارگیری و ترجمه</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">انصراف</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">مواظب این وبگاه باشید</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">اتصال شما ایمن نیست.</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">شما محافظ‌ها را خاموش کرده‌اید</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s در حال استراحت است. پیشنهاد می‌کنیم محافظ‌ها را دوباره فعال کنید.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s در حال محافظت است</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">شما محافظت شده‌اید. اگر چیزی را ببینیم، به شما اطلاع خواهیم داد.</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">محافظت پیشرفته در برابر ردیابی</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">اگر چیزی در این وبگاه خراب به نظر می‌رسد، سعی کنید محافظت‌ها را خاموش کنید.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">محافظ‌ها خاموش هستند. پیشنهاد می‌کنیم آن‌ها را دوباره فعال کنید.</string>
+
+    <!-- Debug drawer -->
+    <!-- The user-facing title of the Debug Drawer feature. -->
+    <string name="debug_drawer_title">ابزارهای اشکال‌زدایی</string>
+    <!-- Content description (not visible, for screen readers etc.): Navigate back within the debug drawer. -->
+    <string name="debug_drawer_back_button_content_description">بازگشت به عقب</string>
+    <!-- Content description (not visible, for screen readers etc.): Open debug drawer. -->
+    <string name="debug_drawer_fab_content_description">باز کردن کشوی اشکال‌زدایی</string>
+
+    <!-- Debug drawer tabs tools -->
+    <!-- The title of the Tab Tools feature in the Debug Drawer. -->
+    <string name="debug_drawer_tab_tools_title">ابزارهای زبانه</string>
+    <!-- The title of the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_title">تعداد زبانه‌ها</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">فعال</string>
+    <!-- The inactive tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_inactive">غیرفعال</string>
     <!-- The private tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_private">خصوصی</string>
     <!-- The total tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_total">مجموع</string>
 
+    <!-- The title of the tab creation tool section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_title">ابزار ایجاد زبانه</string>
+    <!-- The label of the text field in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_text_field_label">تعداد زبانه‌هایی که باید ایجاد شود</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is empty -->
+    <string name="debug_drawer_tab_tools_tab_quantity_empty_error">زمینه متنی خالی است</string>
+    <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">لطفا فقط اعداد صحیح مثبت وارد کنید</string>
+
+    <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">لطفا عددی بزرگتر از صفر وارد کنید</string>
+
+    <!-- The error message of the text field in the tab creation tool when the text field is a
+        quantity greater than the max tabs. The first parameter is the maximum number of tabs
+        that can be generated in one operation.-->
+    <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">تعداد زبانه‌های بیش از حد مجاز (%1$s) که می‌تواند در یک عملیات ایجاد شود</string>
+    <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">افزودن به زبانه‌های فعال</string>
+    <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_inactive">افزودن به زبانه‌های غیرفعال</string>
+    <!-- The button text to add tabs to the private tab group in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">افزودن به زبانه‌های خصوصی</string>
+
+    <!-- Microsurvey -->
+    <!-- Prompt view -->
+    <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">به ما کمک کنید Firefox را بهتر کنیم. فقط یک دقیقه طول می‌کشد.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">ادامه</string>
+    <!-- Survey view -->
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">لطفا نظرسنجی را تکمیل کنید</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">نکات حفظ محرمانگی</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">ارسال</string>
+    <!-- The survey completion header -->
+    <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">نظرسنجی کامل شد</string>
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">با تشکر از بازخورد شما!</string>
     <!-- Option for likert scale -->
@@ -2498,9 +3009,31 @@
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">بسیار ناراضی</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">از آن استفاده نمی‌کنم</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">من در Firefox از جستجو استفاده نمی‌کنم</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">من از همگام‌سازی استفاده نمی‌کنم</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">به بهبود چاپ در Firefox کمک کنید. فقط چند ثانیه طول می‌کشد</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">به بهبود جستجو در Firefox کمک کنید. فقط یک دقیقه طول می‌کشد</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">به بهبود همگام‌سازی در Firefox کمک کنید. فقط یک دقیقه طول می‌کشد</string>
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">چقدر از چاپ در Firefox راضی هستید؟</string>
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">چقدر از صفحه اصلی Firefox راضی هستید؟</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">چقدر از تجربه جستجو در Firefox راضی هستید؟</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">چقدر از تجربه همگام‌سازی در Firefox راضی هستید؟</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">آرم Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">نماد ویژگی نظرسنجی</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
+    <string name="microsurvey_close_handle_content_description">بستن نظرسنجی</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
     <string name="microsurvey_close_button_content_description">بستن</string>
 
@@ -2508,8 +3041,70 @@
     <!-- The title of the Logins feature in the Debug Drawer. -->
     <string name="debug_drawer_logins_title">ورودها</string>
 
+    <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain  -->
+    <string name="debug_drawer_logins_current_domain_label">دامنه فعلی: %s</string>
+    <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
+    <string name="debug_drawer_logins_add_login_button">افزودن ورود ساختگی برای این دامنه</string>
+    <!-- Content description for delete button where parameter will be the username of the login -->
+    <string name="debug_drawer_logins_delete_login_button_content_description">حذف ورود با نام‌کاربری %s</string>
+
     <!-- Debug drawer addresses -->
     <!-- The title of the Addresses feature in the Debug Drawer. -->
     <string name="debug_drawer_addresses_title">نشانی‌ها</string>
 
-    </resources>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">اشکال‌زدایی زبان‌ها برای فعال کنید</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">ابزارهای CFR</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">بازنشانی CFRها</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">ابزارهای اشکال‌زدایی Glean</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">برای خروج، از بالا بکشید و از حرکت بازگشت استفاده کنید</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">برای خروج، از بالا بکشید و دکمه بازگشت را فشار دهید</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">هم‌اکنون به‌روزرسانی کنید</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">مرورگر Firefox خود را به‌روز کنید</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">یک گواهی ریشه منقضی خواهد شد، باعث می‌شود برخی ویژگی‌ها در ۱۴ مارس متوقف شوند.</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">قبل از ۱۴ مارس به‌روزرسانی کنید</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">یک گواهی ریشه منقضی خواهد شد، باعث می‌شود نگارش شما از Firefox به درستی کار نکند.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">کمتر از ۷ روز تا به‌روزرسانی باقی‌مانده است</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">در ۱۴ مارس، برافزاها و سایر ویژگی‌های Firefox متوقف خواهند شد زیرا یک گواهی ریشه منقضی می‌شود.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">آخرین فرصت برای حفظ Firefox شما</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">نگارش شما از Firefox به دلیل منقضی شدن یک گواهی ریشه به درستی کار نخواهد کرد.</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">به‌روزرسانی توصیه می‌شود</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">برافزاها و برخی ویژگی‌ها در ۱۴ مارس متوقف خواهند شد.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">شما از یک نگارش قدیمی Firefox استفاده می‌کنید</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">قبل از ۱۴ مارس به‌روزرسانی کنید تا به استفاده از برافزاها و سایر ویژگی‌ها ادامه دهید.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">برخی ویژگی‌ها فردا متوقف خواهند شد.</string>
+</resources>

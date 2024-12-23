@@ -71,10 +71,10 @@
     <string name="mozac_browser_errorpages_net_interrupt_title">اتّصال قطع شد</string>
     <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[
-      <p>مرورگر با موفقیت متّصل شد، اما هنگام انتقال اطلاعات، اتّصال قطع شد. لطفاً دوباره تلاش کنید.</p>
+      <p>مرورگر با موفقیت متصل شد، اما هنگام انتقال اطلاعات، اتصال قطع شد. لطفا دوباره تلاش کنید.</p>
       <ul>
-        <li>سایت ممکن است موقتاً در دسترس نباشد یا خیلی شلوغ باشد. چند لحظه بعد دوباره تلاش کنید.</li>
-        <li>اگر قادر به بارگزاری هیچ صفحه‌ای نیستید، اتّصال دادهٔ دستگاه یا وای‌فای خود را بررسی کنید.</li>
+        <li>وبگاه ممکن است موقتاً در دسترس نباشد یا خیلی شلوغ باشد. چند لحظه بعد دوباره تلاش کنید.</li>
+        <li>اگر قادر به بارگزاری هیچ صفحه‌ای نیستید، اتصال داده دستگاه یا وای‌فای خود را بررسی کنید.</li>
       </ul>
     ]]></string>
 
@@ -105,7 +105,7 @@
     <string name="mozac_browser_errorpages_unknown_socket_type_title">جواب غیرمنتظره از کارساز</string>
     <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
     <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[
-      <p>این سایت به شیوهٔ غیر منتظره‌ای به درخواست شبکه پاسخ داد و مرورگر قادر به ادامه نیست.</p>
+      <p>این وبگاه به شیوهٔ غیر منتظره‌ای به درخواست شبکه پاسخ داد و مرورگر قادر به ادامه نیست.</p>
     ]]></string>
 
     <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
@@ -139,7 +139,7 @@
     <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
     <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[<p> مرورگر با موفقیت متصل شد ، اما هنگام انتقال اطلاعات ، اتصال قطع شد. لطفا دوباره امتحان کنید. </p>
       <ul>
-        <li> سایت ممکن است موقتاً در دسترس نباشد یا خیلی شلوغ باشد. در چند لحظه دوباره امتحان کنید. </li>
+        <li> وبگاه ممکن است موقتاً در دسترس نباشد یا خیلی شلوغ باشد. در چند لحظه دوباره امتحان کنید. </li>
         <li> اگر قادر به بارگیری هیچ صفحه ای نیستید ، اطلاعات دستگاه یا اتصال Wi-Fi خود را بررسی کنید. </li>
       </ul>]]></string>
 
@@ -246,7 +246,7 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">مشکل پایگاه ناخواسته</string>
     <!-- The %1$s will be replaced by the malicious website URL-->
-    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[<p>پایگاه %1$s به عنوان سایتی که اقدام به ارائه نرم‌افزارهای ناخواسته می‌کند گزارش شده و بر اساس ترجیحات امنیتی شما مسدود شده است.</p>]]></string>
+    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[<p>وبگاه %1$s به عنوان وبگاه‌ی که اقدام به ارائه نرم‌افزارهای ناخواسته می‌کند گزارش شده و بر اساس ترجیحات امنیتی شما مسدود شده است.</p>]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_harmful_uri_title">مشکل پایگاه زیان‌آور</string>

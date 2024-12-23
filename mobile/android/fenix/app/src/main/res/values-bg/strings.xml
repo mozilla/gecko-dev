@@ -242,11 +242,11 @@
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Добавяне към екрана</string>
     <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-    <string name="browser_menu_add_app_to_homescreen">Добавяне на приложение към началния екран</string>
+    <string name="browser_menu_add_app_to_homescreen">Добавяне към началния екран</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Добавяне към началния екран…</string>
     <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-    <string name="browser_menu_add_app_to_homescreen_2">Добавяне на приложение към началния екран…</string>
+    <string name="browser_menu_add_app_to_homescreen_2">Добавяне към началния екран…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Устройствата на Xiaomi може да се нуждаят от допълнителни права, за да добавят преки пътища към началния екран. Моля, проверете настройките си.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -439,7 +439,7 @@
     <string name="search_suggestions_onboarding_text">%s ще споделя със стандартната търсачката, въвежданото в адресната лента.</string>
 
     <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
-    <string name="search_engine_suggestions_title">Търсене с %s</string>
+    <string name="search_engine_suggestions_title">Търсене чрез %s</string>
     <!-- Search engine suggestion description text -->
     <string name="search_engine_suggestions_description">Търсете директно от адресната лента</string>
 
@@ -2314,7 +2314,7 @@
     <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
     <string name="search_add_custom_engine_suggest_string_hint">Адрес на ППИ за предложения при търсене</string>
     <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-    <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Заменете заявката за търсене с „%s“. Пример:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+    <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Заменете заявката за търсене чрез „%s“. Пример:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
     <!-- The text for the "Save" button for saving a custom search engine -->
     <string name="search_custom_engine_save_button">Запазване</string>
 
@@ -2502,7 +2502,7 @@
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Търсене в Гугъл</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
-    <string name="other_default_search_engine_suggestion_header">Търсене с %s</string>
+    <string name="other_default_search_engine_suggestion_header">Търсене чрез %s</string>
 
     <!-- Default browser experiment -->
     <!-- Default browser card title -->
@@ -2670,6 +2670,8 @@
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Не сега</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Отваряне на Проверка на отзиви</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
+    <string name="review_quality_check_close_handle_content_description">Затваряне на Проверка на отзиви</string>
     <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. First parameter is the number of stars (1-5) representing the rating. -->
     <string name="review_quality_check_star_rating_content_description">%1$s от 5 звезди</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->

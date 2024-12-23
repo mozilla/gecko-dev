@@ -171,9 +171,16 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Няма інтэрнэт-злучэння</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Няма інтэрнэт-злучэння</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">Здаецца, ёсць праблема з інтэрнэт-злучэннем</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Праверце падлучэнне да сеткі або паспрабуйце перазагрузіць старонку праз некаторы час.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Праверце падлучэнне да сеткі або паспрабуйце перазагрузіць старонку праз некаторы час.</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">Паспрабуйце падлучыцца на іншай прыладзе. Праверце мадэм або маршрутызатар. Адключыцеся і паўторна падключыцеся да Wi-Fi.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Код памылкі: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Перачытаць</string>
 

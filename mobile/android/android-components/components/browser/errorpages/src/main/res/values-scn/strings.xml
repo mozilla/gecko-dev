@@ -11,7 +11,7 @@
     ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_ssl_title">Sfallìu a cunnissiuni sicura</string>
+    <string name="mozac_browser_errorpages_security_ssl_title">Sfallìu a cunnissioni sicura</string>
 
     <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
     <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[
@@ -23,7 +23,7 @@
       ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_title">Sfallìu a cunnissiuni sicura</string>
+    <string name="mozac_browser_errorpages_security_bad_cert_title">Sfallìu a cunnissioni sicura</string>
     <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[
       <ul>
@@ -46,11 +46,11 @@
     <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Accetta u rìsicu e cuntinua</string>
 
     <!-- The document title and heading of the error page shown when a website uses HSTS. -->
-    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Stu situ abbisogna di na cunnissiuni sicura.</string>
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Stu situ abbisogna di na cunnissioni sicura.</string>
 
     <!-- The error message shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[<ul>
-    <li>A pàggina chi stai pruvannu a vìdiri nun po èssiri mustrata picchì stu situ addumanna na cunnissiuni sicura.</li>
+    <li>A pàggina chi stai pruvannu a vìdiri nun po èssiri mustrata picchì stu situ addumanna na cunnissioni sicura.</li>
     <li>È pussìbbili chi l\'erruri venu dû situ, e nun po\' fari nenti p\'arrisurbìrilu.</li>
     <li>Po\' signalijari u prubblema ô prupitariu dû situ.</li>
 </ul>
@@ -65,28 +65,28 @@
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Torna nn\'arrè</string>
 
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
-    <string name="mozac_browser_errorpages_net_interrupt_title">A cunnissiuni fu bluccata</string>
+    <string name="mozac_browser_errorpages_net_interrupt_title">A cunnissioni fu bluccata</string>
 
     <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[
-	<p>U navigaturi si cullijau giustu, ma a cunnissiuni fu bluccata mentri chi vinìanu trasfiruti i dati. Pi favuri torna a prova.</p>
+	<p>U navigaturi si cullijau giustu, ma a cunnissioni fu bluccata mentri chi vinìanu trasfiruti i dati. Pi favuri torna a prova.</p>
 	<ul>
 		<li>U situ accamora putissi èssiri nun dispunìbbili o troppu chinu. Torna a prova nta n\'anticchia. </li>
-		<li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissiuni dati o Wi-Fi dû dispusitivu.</li>
+		<li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissioni dati o Wi-Fi dû dispusitivu.</li>
 	</ul>
 	]]></string>
 
     <!-- The document title and heading of the error page shown when a website takes too long to load. -->
-    <string name="mozac_browser_errorpages_net_timeout_title">A cunnissiuni scadìu</string>
+    <string name="mozac_browser_errorpages_net_timeout_title">A cunnissioni scadìu</string>
 
     <!-- The error message shown when a website took long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
-      <p>U situ chi addumannasti nun arrispunnìu â dumanna di cunnissiuni, e u navigaturi accabbau d\'aspittari na risposta.</p>
+      <p>U situ chi addumannasti nun arrispunnìu â dumanna di cunnissioni, e u navigaturi accabbau d\'aspittari na risposta.</p>
       <ul>
         <li>Putissi èssiri chi u sirburi àvi assai dumanni o àvi un prubblema timpuraniu? Torna a prova cchiù tardu.</li>
-        <li>Nun arrinesci a visitari autri siti? Cuntrolla a cunnissiuni dû to dispusitivu â riti.</li>
+        <li>Nun arrinesci a visitari autri siti? Cuntrolla a cunnissioni dû to dispusitivu â riti.</li>
         <li>U dispusitivu è prutettu d\'un tagghiafocu o un proxy? Cuntrolla si cci sunnu paràmitri sbagghiati chi ponnu fari a navigazzioni trùbbula.</li>
-        <li>Ài ancora prubblemi? Parra cû to amministraturi di riti o u furnituri dâ to cunnissiuni â riti p\'aviri assistenza.</li>
+        <li>Ài ancora prubblemi? Parra cû to amministraturi di riti o u furnituri dâ to cunnissioni â riti p\'aviri assistenza.</li>
       </ul>
     ]]></string>
 
@@ -97,7 +97,7 @@
     <string name="mozac_browser_errorpages_connection_failure_message"><![CDATA[
       <ul>
         <li>U situ putissi accamora nun è dispunìbbili o è troppu assai chinu. Prova arrè ntra n\'anticchieḍḍa.</li>
-        <li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissiuni dati o Wi-Fi dû to dispusitivu.</li>
+        <li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissioni dati o Wi-Fi dû to dispusitivu.</li>
       </ul>]]></string>
 
     <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
@@ -141,14 +141,14 @@
     ]]></string>
 
     <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
-    <string name="mozac_browser_errorpages_net_reset_title">A cunnissiuni fu riabbiata</string>
+    <string name="mozac_browser_errorpages_net_reset_title">A cunnissioni fu riabbiata</string>
 
     <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
     <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[
-	<p>U cullijamentu â riti sfallìu mentri chi stava stabbilennu na cunnissiuni. Pi favuri torna a prova.</p>
+	<p>U cullijamentu â riti sfallìu mentri chi stava stabbilennu na cunnissioni. Pi favuri torna a prova.</p>
 	<ul>
 		<li>U situ accamora putissi èssiri nun dispunìbbili o troppu chinu. Torna a prova nta n\'anticchia. </li>
-		<li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissiuni dati o Wi-Fi dû dispusitivu.</li>
+		<li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissioni dati o Wi-Fi dû dispusitivu.</li>
 	</ul>
 	]]></string>
 
@@ -167,7 +167,7 @@
 
     <!-- The error message shown when shown when a file cannot be loaded because of a detected data corruption. -->
     <string name="mozac_browser_errorpages_corrupted_content_message"><![CDATA[
-      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì cci fu nu sbagghiu nnâ trasmissiuni dî dati.</p>
+      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì cci fu nu sbagghiu nnâ trasmissioni dî dati.</p>
       <ul>
         <li>Pi favuri cuntatta i prupitari dû situ pi nfurmalli di stu prubblema.</li>
       </ul>
@@ -178,7 +178,7 @@
     <string name="mozac_browser_errorpages_content_crashed_title">U cuntinutu si bluccau</string>
 
     <string name="mozac_browser_errorpages_content_crashed_message"><![CDATA[
-      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì cci fu nu sbagghiu nnâ trasmissiuni dî dati.</p>
+      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì cci fu nu sbagghiu nnâ trasmissioni dî dati.</p>
       <ul>
         <li>Pi favuri cuntatta i prupitari dû situ pi nfurmalli di stu prubblema.</li>
       </ul>
@@ -189,7 +189,7 @@
     <string name="mozac_browser_errorpages_invalid_content_encoding_title">Erruri di cudìfica dû cuntinutu</string>
 
     <string name="mozac_browser_errorpages_invalid_content_encoding_message"><![CDATA[
-      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì usa na mudalità di cumprissiuni nun vàlita o nun suppurtata.</p>
+      <p>A pàggina chi vo\' vìdiri nun po èssiri mustrata picchì usa na mudalità di cumprissioni nun vàlita o nun suppurtata.</p>
       <ul>
         <li>Pi favuri cuntatta i prupitari dû situ pi nfurmalli di stu prubblema.</li>
       </ul>
@@ -206,16 +206,16 @@
         <li>Cuntrolla u nnirizzu pi sbagghi di scrittura a tipu
           <strong>ww</strong>.example.com mmeci di
           <strong>www</strong>.example.com.</li>
-        <li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissiuni dati o Wi-Fi dû to dispusitivu.</li>
+        <li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissioni dati o Wi-Fi dû to dispusitivu.</li>
       </ul>
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Nuḍḍa cunnissiuni â riti</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Nuḍḍa cunnissioni â riti</string>
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title_2">Parissi ca cc\'è un prubblema câ to cunnissiuni â riti</string>
+    <string name="mozac_browser_errorpages_no_internet_title_2">Parissi ca cc\'è un prubblema câ to cunnissioni â riti</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Cuntrolla a to cunnissiuni o prova a carricari arrè a pàggina ntra n\'anticchieḍḍa.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Cuntrolla a to cunnissioni o prova a carricari arrè a pàggina ntra n\'anticchieḍḍa.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Prova a cullijàriti di n\'autru dispusitivu. Cuntrolla u modem o u router. Scullèjati e cullèjati arrè ô Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->
@@ -272,13 +272,13 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_proxy_connection_refused_title">Fu rifiutata a cunnissiuni dû sirburi proxy</string>
+    <string name="mozac_browser_errorpages_proxy_connection_refused_title">Fu rifiutata a cunnissioni dû sirburi proxy</string>
 
     <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[
-      <p>Cunfijurasti u navigaturi p\'usari un sirburi proxy, chi pirò rifiutau a cunnissiuni.</p>
+      <p>Cunfijurasti u navigaturi p\'usari un sirburi proxy, chi pirò rifiutau a cunnissioni.</p>
       <ul>
         <li>A cunfijurazzioni è bona? Cuntrolla i mpustazzioni e torna a prova.</li>
-        <li>U sirburi proxy pirmetti cunnissiuni di sta riti?</li>
+        <li>U sirburi proxy pirmetti cunnissioni di sta riti?</li>
         <li>Ài ancora prubblemi? Cuntatta l\'amministraturi dâ to riti o u furnituri dû sirbizzu Internet pi ricìviri assistenza.</li>
       </ul>
     ]]></string>
@@ -326,9 +326,9 @@
     ]]></string>
 
     <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
-    <string name="mozac_browser_errorpages_httpsonly_title">Nun è dispunìbbili na virsiuni sicura dû situ</string>
+    <string name="mozac_browser_errorpages_httpsonly_title">Nun è dispunìbbili na virsioni sicura dû situ</string>
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will be replaced with the URL of the website. -->
-    <string name="mozac_browser_errorpages_httpsonly_message"><![CDATA[Abbilitasti a mudalità sulu HTTPS p\'aviri cchiù sicurizza, ma nun cc\'è na virsiuni dispunìbbili \'n mudalità HTTPS pi <em>%1$s</em>.]]></string>
+    <string name="mozac_browser_errorpages_httpsonly_message"><![CDATA[Abbilitasti a mudalità sulu HTTPS p\'aviri cchiù sicurizza, ma nun cc\'è na virsioni dispunìbbili \'n mudalità HTTPS pi <em>%1$s</em>.]]></string>
     <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
     <string name="mozac_browser_errorpages_httpsonly_button">Cuntinua ô situ HTTP</string>
 </resources>

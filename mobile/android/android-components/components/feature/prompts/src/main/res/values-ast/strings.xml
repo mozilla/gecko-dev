@@ -5,7 +5,7 @@
     <!-- Text for confirmation for a negative action in dialog.  -->
     <string name="mozac_feature_prompts_cancel">Encaboxar</string>
     <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
-    <string name="mozac_feature_prompts_no_more_dialogs">Evitar qu\'esta páxina cree diálogos adicionales</string>
+    <string name="mozac_feature_prompts_no_more_dialogs">Impidir qu\'esta páxina cree diálogos adicionales</string>
     <!-- Text for a positive button, when an user selects a date in date/time picker. -->
     <string name="mozac_feature_prompts_set_date">Afitar</string>
     <!-- Text for a button that clears the selected input in the date/time picker. -->
@@ -28,6 +28,8 @@
     <string name="mozac_feature_prompt_dont_update_2">Agora non</string>
     <!-- Positive confirmation that we should save the updated login -->
     <string name="mozac_feature_prompt_update_confirmation">Anovar</string>
+    <!-- Error text displayed underneath the password field when it is in an error case -->
+    <string name="mozac_feature_prompt_error_empty_password_2">Introduz una contraseña</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_unknown_cause_2">Nun se pue guardar la contraseña</string>
     <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
@@ -80,6 +82,8 @@
     <!-- December month of the year (short description), used on the month chooser dialog. -->
     <string name="mozac_feature_prompts_dec">Avi</string>
 
+    <!-- Title of the time picker dialog. -->
+    <string name="mozac_feature_prompts_set_time">Seleición de la hora</string>
     <!-- Option in expanded select password prompt that links to password settings -->
     <string name="mozac_feature_prompts_manage_logins_2">Xestionar les contraseñes</string>
     <!-- Content description for expanding the saved passwords options in the select password prompt -->
@@ -95,8 +99,11 @@
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Usar una contraseña segura</string>
 
+    <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_message">Usar una contraseña segura: %1$s</string>
+
     <!-- Title for using the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_title">¿Quies usar la contraseña segura?</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_title">¿Quies usar una contraseña segura?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protexi les tos cuentes usando una contraseña segura xenerada aleatoriamente. Va guardase na to cuenta pa usala nel futuru.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
@@ -107,6 +114,13 @@
     <!-- Pressing this will dismiss the suggested strong password dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_dismiss">Agora non</string>
 
+    <!-- Title for showing the suggest strong password saved confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">Guardóse la contraseña</string>
+    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Anovóse la contraseña</string>
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Anovóse\'l nome d\'usuariu</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">¿Quies volver unviar los datos a esti sitiu?</string>
     <string name="mozac_feature_prompt_repost_message">Anovar esta páxina podría duplicar les aiciones de recién, como l\'unviu d\'un pagu o la publicación repitida d\'un artículu.</string>
@@ -115,12 +129,17 @@
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
     <string name="mozac_feature_prompt_repost_negative_button_text">Encaboxar</string>
 
+    <!-- Credit Card Autofill -->
+    <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
+    <string name="mozac_feature_prompts_select_credit_card_2">Usar la tarxeta guardada</string>
     <!-- Content description for expanding the saved card options in the select card prompt. -->
     <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Espander les tarxetes guardaes</string>
     <!-- Content description for collapsing the saved card options in the select prompt. -->
     <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Contrayer les tarxetes guardaes</string>
+    <!-- Option in the expanded select card prompt that links to cards settings. -->
+    <string name="mozac_feature_prompts_manage_credit_cards_2">Xestionar les tarxetes</string>
     <!-- Text for the title of a save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_title">¿Quies guardar esta tarxeta?</string>
+    <string name="mozac_feature_prompts_save_credit_card_prompt_title">¿Quies guardar esta tarxeta de mou seguru?</string>
     <!-- Text for the title of an update credit card dialog. -->
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">¿Quies anovar la data de caducidá de la tarxeta?</string>
 
@@ -137,6 +156,17 @@
     <!-- Text for the manage addresses button. -->
     <string name="mozac_feature_prompts_manage_address">Xestionar les señes</string>
 
+    <!-- Federated Credential Management prompts -->
+    <!--Content description for the Account picture in the Select Account FedCM prompt -->
+    <string name="mozac_feature_prompts_account_picture">Semeya de la cuenta</string>
+    <!-- Title of the Identity Credential provider dialog chooser. -->
+    <string name="mozac_feature_prompts_identity_credentials_choose_provider">Escueyi un fornidor de cuentes</string>
+    <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
+    <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">Anicia la sesión con una cuenta %1$s</string>
+    <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Usu del serviciu «%1$s» como fornidor de cuentes</string>
+    <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[L\'aniciu de sesión nel serviciu «%1$s» con una cuenta %2$s ta suxetu a la <a href="%3$s">política de privacidá</a> y los <a href="%4$s">términos del serviciu</a> de so]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Siguir</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->
