@@ -56,6 +56,7 @@ tags = "openwindow"
 
 ["test_notification_serviceworker_openWindow.html"]
 skip-if = [
+  "os == 'android'",  # Bug 1620052
   "xorigin",  # JavaScript error: http://mochi.xorigin-test:8888/tests/SimpleTest/TestRunner.js, line 157: SecurityError: Permission denied to access property "wrappedJSObject" on cross-origin object
   "http3",
   "http2",
