@@ -94,6 +94,10 @@ class WebRenderLayerManager final : public WindowRenderer {
 
   bool NeedsWidgetInvalidation() override { return false; }
 
+  bool AddPendingScrollUpdateForNextTransaction(
+      ScrollableLayerGuid::ViewID aScrollId,
+      const ScrollPositionUpdate& aUpdateInfo) override;
+
   void DidComposite(TransactionId aTransactionId,
                     const mozilla::TimeStamp& aCompositeStart,
                     const mozilla::TimeStamp& aCompositeEnd);

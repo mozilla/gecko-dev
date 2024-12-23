@@ -806,5 +806,12 @@ WebRenderLayerManager::ClearPendingScrollInfoUpdate() {
   return scrollIds;
 }
 
+bool WebRenderLayerManager::AddPendingScrollUpdateForNextTransaction(
+    ScrollableLayerGuid::ViewID aScrollId,
+    const ScrollPositionUpdate& aUpdateInfo) {
+  mPendingScrollUpdates.LookupOrInsert(aScrollId).AppendElement(aUpdateInfo);
+  return true;
+}
+
 }  // namespace layers
 }  // namespace mozilla
