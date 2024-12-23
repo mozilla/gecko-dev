@@ -1262,16 +1262,22 @@ void TestMatchBaseDomain_NoMatch() {
 }
 
 TEST(GeckoMediaPlugins, MatchBaseDomain_MatchOrigin)
-{ TestMatchBaseDomain_MatchOrigin(); }
+{
+  TestMatchBaseDomain_MatchOrigin();
+}
 
 TEST(GeckoMediaPlugins, MatchBaseDomain_MatchTLD)
-{ TestMatchBaseDomain_MatchTLD(); }
+{
+  TestMatchBaseDomain_MatchTLD();
+}
 
 TEST(GeckoMediaPlugins, MatchBaseDomain_NoMatch)
-{ TestMatchBaseDomain_NoMatch(); }
+{
+  TestMatchBaseDomain_NoMatch();
+}
 
-// Bug 1776767 - Skip all GMP tests on Windows ASAN
-#if !(defined(XP_WIN) && defined(MOZ_ASAN))
+// Bug 1776767 - Skip all GMP tests on Windows ASAN / CCOV
+#if !(defined(XP_WIN) && (defined(MOZ_ASAN) || defined(MOZ_CODE_COVERAGE)))
 TEST(GeckoMediaPlugins, CDMStorageGetNodeId)
 {
   RefPtr<CDMStorageTest> runner = new CDMStorageTest();
@@ -1339,4 +1345,5 @@ TEST(GeckoMediaPlugins, GMPOutputProtection)
   runner->DoTest(&CDMStorageTest::TestOutputProtection);
 }
 #  endif  // defined(XP_WIN)
-#endif    // !(defined(XP_WIN) && defined(MOZ_ASAN))
+#endif    // !(defined(XP_WIN) && (defined(MOZ_ASAN) ||
+          // defined(MOZ_CODE_COVERAGE)))
