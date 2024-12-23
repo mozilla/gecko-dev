@@ -483,6 +483,10 @@ nsWindowWatcher::OpenWindowWithRemoteTab(
     const UserActivation::Modifiers& aModifiers, bool aCalledFromJS,
     float aOpenerFullZoom, nsIOpenWindowInfo* aOpenWindowInfo,
     nsIRemoteTab** aResult) {
+#ifdef MOZ_GECKOVIEW
+  MOZ_RELEASE_ASSERT(false, "GeckoView should use nsIBrowserDOMWindow instead");
+  return NS_ERROR_NOT_IMPLEMENTED;
+#else
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(mWindowCreator);
 
@@ -609,6 +613,7 @@ nsWindowWatcher::OpenWindowWithRemoteTab(
 
   newBrowserParent.forget(aResult);
   return NS_OK;
+#endif
 }
 
 nsresult nsWindowWatcher::OpenWindowInternal(
@@ -2501,7 +2506,6 @@ bool nsWindowWatcher::IsWindowOpenLocationModified(
 
   bool middleMouse = aModifiers.IsMiddleMouse();
   bool middleUsesTabs = StaticPrefs::browser_tabs_opentabfor_middleclick();
-  bool middleUsesNewWindow = StaticPrefs::middlemouse_openNewWindow();
 
   if (metaKey || (middleMouse && middleUsesTabs)) {
     bool loadInBackground = StaticPrefs::browser_tabs_loadInBackground();
@@ -2516,10 +2520,14 @@ bool nsWindowWatcher::IsWindowOpenLocationModified(
     return true;
   }
 
+#ifndef MOZ_GECKOVIEW
+  // GeckoView doesn't support new window.
+  bool middleUsesNewWindow = StaticPrefs::middlemouse_openNewWindow();
   if (shiftKey || (middleMouse && !middleUsesTabs && middleUsesNewWindow)) {
     *aLocation = nsIBrowserDOMWindow::OPEN_NEWWINDOW;
     return true;
   }
+#endif
 
   // If both middleUsesTabs and middleUsesNewWindow are false, it means the
   // middle-click is used for different purpose, such as paste or scroll.
@@ -2566,10 +2574,18 @@ int32_t nsWindowWatcher::GetWindowOpenLocation(
 
   if (containerPref != nsIBrowserDOMWindow::OPEN_NEWTAB &&
       containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW) {
+#ifdef MOZ_GECKOVIEW
+    // GeckoView doesn't support new window. Just open a new tab.
+    return nsIBrowserDOMWindow::OPEN_NEWTAB;
+#else
     // Just open a window normally
     return nsIBrowserDOMWindow::OPEN_NEWWINDOW;
+#endif
   }
 
+#ifndef MOZ_GECKOVIEW
+  // GeckoView doesn't support new window, so don't check the preference for
+  // restriction.
   if (aCalledFromJS) {
     /* Now check our restriction pref.  The restriction pref is a power-user's
        fine-tuning pref. values:
@@ -2608,6 +2624,7 @@ int32_t nsWindowWatcher::GetWindowOpenLocation(
       }
     }
   }
+#endif
 
   return containerPref;
 }
