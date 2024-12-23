@@ -337,13 +337,11 @@ VideoEncoderConfigInternal::Diff(
 
 // https://w3c.github.io/webcodecs/#check-configuration-support
 static bool CanEncode(const RefPtr<VideoEncoderConfigInternal>& aConfig) {
-  auto parsedCodecString =
-      ParseCodecString(aConfig->mCodec).valueOr(EmptyString());
   // TODO: Enable WebCodecs on Android (Bug 1840508)
   if (IsOnAndroid()) {
     return false;
   }
-  if (!IsSupportedVideoCodec(parsedCodecString)) {
+  if (!IsSupportedVideoCodec(aConfig->mCodec)) {
     return false;
   }
   if (aConfig->mScalabilityMode.isSome()) {
@@ -352,7 +350,7 @@ static bool CanEncode(const RefPtr<VideoEncoderConfigInternal>& aConfig) {
         !aConfig->mScalabilityMode->EqualsLiteral("L1T3")) {
       LOGE("Scalability mode %s not supported for codec: %s",
            NS_ConvertUTF16toUTF8(aConfig->mScalabilityMode.value()).get(),
-           NS_ConvertUTF16toUTF8(parsedCodecString).get());
+           NS_ConvertUTF16toUTF8(aConfig->mCodec).get());
       return false;
     }
   }
