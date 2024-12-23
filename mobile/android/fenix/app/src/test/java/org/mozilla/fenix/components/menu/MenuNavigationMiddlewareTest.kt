@@ -46,6 +46,7 @@ import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
 import org.mozilla.fenix.settings.SupportUtils.SumoTopic
 import org.mozilla.fenix.utils.Settings
+import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
 
 class MenuNavigationMiddlewareTest {
 
@@ -591,6 +592,7 @@ class MenuNavigationMiddlewareTest {
 
     @Test
     fun `GIVEN the user is on a tab WHEN the user clicks on the web compat button THEN navigate to the web compat reporter feature`() = runTest {
+        every { settings.isTelemetryEnabled } returns true
         val expectedTabUrl = "www.mozilla.org"
         createStore(
             menuState = MenuState(
@@ -611,7 +613,27 @@ class MenuNavigationMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN the user is on a tab WHEN the user clicks on the web compat button and telemetry is disabled THEN open browser`() = runTest {
+        every { settings.isTelemetryEnabled } returns false
+        var params: BrowserNavigationParams? = null
+        val expectedTabUrl = "www.mozilla.org"
+        val store = createStore(
+            customTab = createCustomTab(
+                url = expectedTabUrl,
+            ),
+            openToBrowser = {
+                params = it
+            },
+        )
+
+        store.dispatch(MenuAction.Navigate.WebCompatReporter).join()
+
+        assertEquals("$WEB_COMPAT_REPORTER_URL$expectedTabUrl", params?.url)
+    }
+
+    @Test
     fun `GIVEN the user is on a custom tab WHEN the user clicks on the web compat button THEN navigate to the web compat reporter feature`() = runTest {
+        every { settings.isTelemetryEnabled } returns true
         val expectedTabUrl = "www.mozilla.org"
         createStore(
             customTab = createCustomTab(
