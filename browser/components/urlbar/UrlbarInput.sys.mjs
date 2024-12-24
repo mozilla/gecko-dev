@@ -2192,6 +2192,7 @@ export class UrlbarInput {
     this.setAttribute("pageproxystate", state);
     this._inputContainer.setAttribute("pageproxystate", state);
     this._identityBox?.setAttribute("pageproxystate", state);
+    this.toggleAttribute("unifiedsearchbutton-available", state == "invalid");
 
     if (state == "valid") {
       this._lastValidURLStr = this.value;

@@ -370,17 +370,14 @@ export class UrlbarController {
             // Button. Then make urlbar results selectable by tab + shift.
             event.preventDefault();
             this.view.selectedRowIndex = -1;
-            this.#focusOnDedicatedSearchButton();
+            this.#focusOnUnifiedSearchButton();
             break;
           } else if (
             !this.view.selectedElement &&
             this.input.focusedViaMousedown
           ) {
-            // If user clicks urlbar and not select any element yet, tab key
-            // selects urlbar results and Unified Search Button in order.
             if (event.shiftKey) {
-              this.view.selectedRowIndex = -1;
-              this.#focusOnDedicatedSearchButton();
+              this.#focusOnUnifiedSearchButton();
             } else {
               this.view.selectBy(1, {
                 userPressedTab: true,
@@ -752,7 +749,9 @@ export class UrlbarController {
     }
   }
 
-  #focusOnDedicatedSearchButton() {
+  #focusOnUnifiedSearchButton() {
+    this.input.toggleAttribute("unifiedsearchbutton-available", true);
+
     const switcher = this.input.document.getElementById(
       "urlbar-searchmode-switcher"
     );

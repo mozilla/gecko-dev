@@ -44,10 +44,12 @@ add_task(async function test_usb_visibility_by_pageproxystate() {
 
 async function assertUSBVisibility(expected) {
   let switcher = document.getElementById("urlbar-searchmode-switcher");
-  await BrowserTestUtils.waitForCondition(
-    () => BrowserTestUtils.isVisible(switcher) == expected,
-    `Wait until USB visibility will be changed to ${expected}`
-  );
+  await BrowserTestUtils.waitForCondition(() => {
+    // If Unified Search Button is displayed as off-screen, the position should
+    // be 'fixed'.
+    let isVisible = window.getComputedStyle(switcher).position != "fixed";
+    return isVisible == expected;
+  }, `Wait until USB visibility will be changed to ${expected}`);
   Assert.ok(true, "USB visibility is correct");
   Assert.equal(
     gURLBar.getAttribute("pageproxystate"),

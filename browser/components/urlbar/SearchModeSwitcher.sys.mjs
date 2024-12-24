@@ -169,6 +169,11 @@ export class SearchModeSwitcher {
   }
 
   handleEvent(event) {
+    if (event.type == "focus") {
+      this.#input.toggleAttribute("unifiedsearchbutton-available", true);
+      return;
+    }
+
     if (this.#input.view.isOpen) {
       // The urlbar view is opening, which means the unified search button got
       // focus by tab key from urlbar.
@@ -463,6 +468,7 @@ export class SearchModeSwitcher {
   #enableObservers() {
     Services.obs.addObserver(this, "browser-search-engine-modified", true);
 
+    this.#toolbarbutton.addEventListener("focus", this);
     this.#toolbarbutton.addEventListener("command", this);
     this.#toolbarbutton.addEventListener("keypress", this);
 
@@ -488,6 +494,7 @@ export class SearchModeSwitcher {
   #disableObservers() {
     Services.obs.removeObserver(this, "browser-search-engine-modified");
 
+    this.#toolbarbutton.removeEventListener("focus", this);
     this.#toolbarbutton.removeEventListener("command", this);
     this.#toolbarbutton.removeEventListener("keypress", this);
 

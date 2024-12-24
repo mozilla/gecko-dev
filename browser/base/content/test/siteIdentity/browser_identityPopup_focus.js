@@ -10,6 +10,8 @@ async function focusIdentityBox() {
     "focus"
   );
   EventUtils.synthesizeKey("VK_TAB", { shiftKey: true });
+  is(document.activeElement.id, "urlbar-searchmode-switcher");
+  EventUtils.synthesizeKey("ArrowRight");
   is(document.activeElement.id, "tracking-protection-icon-container");
   EventUtils.synthesizeKey("ArrowRight");
   await focused;
