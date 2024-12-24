@@ -177,6 +177,11 @@ private fun SelectableImageItem(
 ) {
     val isSelectedOption = toolbarOption.toolbarType == selectedOption
 
+    val toolbarImageContentDescriptionResId = when (toolbarOption.toolbarType) {
+        ToolbarOptionType.TOOLBAR_BOTTOM -> R.string.onboarding_customize_toolbar_placement_bottom_content_description
+        ToolbarOptionType.TOOLBAR_TOP -> R.string.onboarding_customize_toolbar_placement_top_content_description
+    }
+
     Column(
         modifier = Modifier.clickable(
             onClick = {
@@ -190,10 +195,7 @@ private fun SelectableImageItem(
     ) {
         Image(
             painter = painterResource(id = toolbarOption.imageRes),
-            contentDescription = stringResource(
-                R.string.onboarding_customize_toolbar_placement_content_description,
-                toolbarOption.label,
-            ),
+            contentDescription = stringResource(toolbarImageContentDescriptionResId),
             modifier = if (isSelectedOption) {
                 Modifier.border(2.dp, FirefoxTheme.colors.actionPrimary, RoundedCornerShape(10.dp))
             } else {
