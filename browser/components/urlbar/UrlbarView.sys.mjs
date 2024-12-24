@@ -2744,12 +2744,17 @@ export class UrlbarView {
 
     if (result.payload.providesSearchMode) {
       if (result.type == lazy.UrlbarUtils.RESULT_TYPE.RESTRICT) {
-        let keywords = result.payload.l10nRestrictKeyword;
+        let localSearchMode =
+          result.payload.l10nRestrictKeywords[0].toLowerCase();
+        let keywords = result.payload.l10nRestrictKeywords
+          .map(keyword => `@${keyword.toLowerCase()}`)
+          .join(", ");
+
         this.#setElementL10n(titleNode, {
           id: "urlbar-result-search-with-local-search-mode",
           args: {
-            keywords: `@${keywords.toLowerCase()}`,
-            localSearchMode: keywords,
+            keywords,
+            localSearchMode,
           },
         });
       } else if (

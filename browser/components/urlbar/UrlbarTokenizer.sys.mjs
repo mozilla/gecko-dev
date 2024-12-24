@@ -25,10 +25,14 @@ ChromeUtils.defineLazyGetter(lazy, "gFluentStrings", function () {
 
 /*
  * This Map stores key-value pairs where each key is a restrict token
- * and each value is a corresponding localized restrict keyword.
- * E.g. "*" maps to "Bookmarks"
+ * and each value is an array containing the localized keyword and the
+ * english keyword.
+ *
+ * For example,
+ * "*" maps to "Bookmarks" for english locales
+ * "*" maps to "Marcadores, Bookmarks" for es-ES
  */
-let tokenToKeyword = new Map();
+let tokenToKeywords = new Map();
 
 export var UrlbarTokenizer = {
   // Regex matching on whitespaces.
@@ -110,8 +114,23 @@ export var UrlbarTokenizer = {
       })
     );
 
+    let englishSearchStrings = new Localization([
+      "preview/enUS-searchFeatures.ftl",
+    ]);
+
+    let englishKeywords = await englishSearchStrings.formatValues(
+      lazy.UrlbarUtils.LOCAL_SEARCH_MODES.map(mode => {
+        let name = lazy.UrlbarUtils.getResultSourceName(mode.source);
+        return { id: `urlbar-search-mode-${name}-en` };
+      })
+    );
+
     for (let { restrict } of lazy.UrlbarUtils.LOCAL_SEARCH_MODES) {
-      tokenToKeyword.set(restrict, l10nKeywords.shift());
+      let uniqueKeywords = [
+        ...new Set([l10nKeywords.shift(), englishKeywords.shift()]),
+      ];
+
+      tokenToKeywords.set(restrict, uniqueKeywords);
     }
   },
 
@@ -119,14 +138,14 @@ export var UrlbarTokenizer = {
    * Gets the cached localized restrict keywords. If keywords are not cached
    * fetch the localized keywords first and then return the keywords.
    *
-   * @returns {Map} The tokenToKeyword Map.
+   * @returns {Map} The tokenToKeywords Map.
    */
   async getL10nRestrictKeywords() {
-    if (tokenToKeyword.size === 0) {
+    if (tokenToKeywords.size === 0) {
       await this.loadL10nRestrictKeywords();
     }
 
-    return tokenToKeyword;
+    return tokenToKeywords;
   },
 
   /**

@@ -400,3 +400,10 @@ urlbar-firefox-suggest-contextual-opt-in-description-2 =
   <a data-l10n-name="learn-more-link">Learn more</a>
 urlbar-firefox-suggest-contextual-opt-in-allow = Allow suggestions
 urlbar-firefox-suggest-contextual-opt-in-dismiss = Not now
+
+## Local search mode indicator labels in the urlbar
+
+urlbar-search-mode-bookmarks-en = Bookmarks
+urlbar-search-mode-tabs-en = Tabs
+urlbar-search-mode-history-en = History
+urlbar-search-mode-actions-en = Actions

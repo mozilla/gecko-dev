@@ -57,7 +57,7 @@ class ProviderRestrictKeywords extends UrlbarProvider {
       return;
     }
 
-    for (const [token, l10nRestrictKeyword] of tokenToKeyword.entries()) {
+    for (const [token, l10nRestrictKeywords] of tokenToKeyword.entries()) {
       let icon = UrlbarUtils.LOCAL_SEARCH_MODES.find(
         mode => mode.restrict == token
       )?.icon;
@@ -68,7 +68,10 @@ class ProviderRestrictKeywords extends UrlbarProvider {
         ...lazy.UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
           icon,
           keyword: token,
-          l10nRestrictKeyword,
+          l10nRestrictKeywords: [
+            l10nRestrictKeywords,
+            UrlbarUtils.HIGHLIGHT.TYPED,
+          ],
           providesSearchMode: true,
         })
       );

@@ -2231,8 +2231,11 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       keyword: {
         type: "string",
       },
-      l10nRestrictKeyword: {
-        type: "string",
+      l10nRestrictKeywords: {
+        type: "array",
+        items: {
+          type: "string",
+        },
       },
       autofillKeyword: {
         type: "string",

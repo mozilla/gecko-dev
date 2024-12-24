@@ -27,7 +27,7 @@ const RESTRICT_KEYWORDS_FEATURE_GATE = "searchRestrictKeywords.featureGate";
  */
 class ProviderRestrictKeywordsAutofill extends UrlbarProvider {
   #autofillData;
-  #lowerCaseTokenToKeyword;
+  #lowerCaseTokenToKeywords;
 
   constructor() {
     super();
@@ -45,24 +45,23 @@ class ProviderRestrictKeywordsAutofill extends UrlbarProvider {
     return 1;
   }
 
-  async #getLowerCaseTokenToKeyword() {
-    if (!this.#lowerCaseTokenToKeyword) {
-      let tokenToKeyword = await lazy.UrlbarTokenizer.getL10nRestrictKeywords();
-      this.#lowerCaseTokenToKeyword = new Map(
-        [...tokenToKeyword].map(([token, keyword]) => [
-          token,
-          keyword.toLowerCase(),
-        ])
-      );
-    }
+  async #getLowerCaseTokenToKeywords() {
+    let tokenToKeywords = await lazy.UrlbarTokenizer.getL10nRestrictKeywords();
 
-    return this.#lowerCaseTokenToKeyword;
+    this.#lowerCaseTokenToKeywords = new Map(
+      [...tokenToKeywords].map(([token, keywords]) => [
+        token,
+        keywords.map(keyword => keyword.toLowerCase()),
+      ])
+    );
+
+    return this.#lowerCaseTokenToKeywords;
   }
 
   async #getKeywordAliases() {
-    return Array.from(await this.#lowerCaseTokenToKeyword.values()).map(
-      keyword => "@" + keyword
-    );
+    return Array.from(await this.#lowerCaseTokenToKeywords.values())
+      .flat()
+      .map(keyword => "@" + keyword);
   }
 
   async isActive(queryContext) {
@@ -120,28 +119,24 @@ class ProviderRestrictKeywordsAutofill extends UrlbarProvider {
     let typedKeyword = queryContext.lowerCaseSearchString;
     let typedKeywordTrimmed =
       queryContext.trimmedLowerCaseSearchString.substring(1);
-    let tokenToKeyword = await this.#getLowerCaseTokenToKeyword();
+    let tokenToKeywords = await this.#getLowerCaseTokenToKeywords();
 
     if (instance != this.queryInstance) {
       return;
     }
 
-    let keywords = Array.from(tokenToKeyword.values());
-    let doesKeywordExists = keywords
-      .map(keyword => keyword)
-      .includes(typedKeywordTrimmed);
-
     let restrictSymbol;
     let aliasKeyword;
-    for (let [token, keyword] of tokenToKeyword) {
-      if (keyword == typedKeywordTrimmed) {
+
+    for (let [token, keywords] of tokenToKeywords) {
+      if (keywords.includes(typedKeywordTrimmed)) {
         restrictSymbol = token;
-        aliasKeyword = "@" + keyword + " ";
+        aliasKeyword = "@" + typedKeywordTrimmed + " ";
         break;
       }
     }
 
-    if (doesKeywordExists && typedKeyword == aliasKeyword) {
+    if (restrictSymbol && typedKeyword == aliasKeyword) {
       let result = new lazy.UrlbarResult(
         UrlbarUtils.RESULT_TYPE.RESTRICT,
         UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
@@ -164,14 +159,17 @@ class ProviderRestrictKeywordsAutofill extends UrlbarProvider {
   }
 
   async #getAutofillResult(queryContext) {
-    let tokenToKeyword = await this.#getLowerCaseTokenToKeyword();
+    let tokenToKeywords = await this.#getLowerCaseTokenToKeywords();
     let { lowerCaseSearchString } = queryContext;
 
-    for (let [token, l10nRestrictKeyword] of tokenToKeyword.entries()) {
-      let autofillKeyword = `@${l10nRestrictKeyword}`;
+    for (let [token, l10nRestrictKeywords] of tokenToKeywords.entries()) {
+      let keywords = [...l10nRestrictKeywords].map(keyword => `@${keyword}`);
+      let autofillKeyword = keywords.find(keyword =>
+        keyword.startsWith(lowerCaseSearchString)
+      );
 
       // found the keyword
-      if (autofillKeyword.startsWith(lowerCaseSearchString)) {
+      if (autofillKeyword) {
         // Add an autofill result. Append a space so the user can hit enter
         // or the right arrow key and immediately start typing their query.
         let keywordPreservingUserCase =
@@ -188,7 +186,10 @@ class ProviderRestrictKeywordsAutofill extends UrlbarProvider {
           ...lazy.UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
             icon,
             keyword: token,
-            l10nRestrictKeyword,
+            l10nRestrictKeywords: [
+              l10nRestrictKeywords,
+              UrlbarUtils.HIGHLIGHT.TYPED,
+            ],
             autofillKeyword: [
               keywordPreservingUserCase,
               UrlbarUtils.HIGHLIGHT.TYPED,

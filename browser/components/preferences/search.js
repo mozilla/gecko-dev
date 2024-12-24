@@ -865,26 +865,47 @@ class EngineView {
     this.#showAddEngineButton();
   }
 
-  loadL10nNames() {
+  async loadL10nNames() {
     // This maps local shortcut sources to their l10n names.  The names are needed
     // by getCellText.  Getting the names is async but getCellText is not, so we
     // cache them here to retrieve them syncronously in getCellText.
     this._localShortcutL10nNames = new Map();
-    return document.l10n
-      .formatValues(
-        UrlbarUtils.LOCAL_SEARCH_MODES.map(mode => {
-          let name = UrlbarUtils.getResultSourceName(mode.source);
-          return { id: `urlbar-search-mode-${name}` };
-        })
-      )
-      .then(names => {
-        for (let { source } of UrlbarUtils.LOCAL_SEARCH_MODES) {
-          this._localShortcutL10nNames.set(source, names.shift());
-        }
+
+    let getIDs = (suffix = "") =>
+      UrlbarUtils.LOCAL_SEARCH_MODES.map(mode => {
+        let name = UrlbarUtils.getResultSourceName(mode.source);
+        return { id: `urlbar-search-mode-${name}${suffix}` };
+      });
+
+    try {
+      let localizedIDs = getIDs();
+      let englishIDs = getIDs("-en");
+
+      let englishSearchStrings = new Localization([
+        "preview/enUS-searchFeatures.ftl",
+      ]);
+      let localizedNames = await document.l10n.formatValues(localizedIDs);
+      let englishNames = await englishSearchStrings.formatValues(englishIDs);
+
+      UrlbarUtils.LOCAL_SEARCH_MODES.forEach(({ source }, index) => {
+        let localizedName = localizedNames[index];
+        let englishName = englishNames[index];
+
+        // Add only the English name if localized and English are the same
+        let names =
+          localizedName === englishName
+            ? [englishName]
+            : [localizedName, englishName];
+
+        this._localShortcutL10nNames.set(source, names);
+
         // Invalidate the tree now that we have the names in case getCellText was
         // called before name retrieval finished.
         this.invalidate();
       });
+    } catch (ex) {
+      console.error("Error loading l10n names", ex);
+    }
   }
 
   #addListeners() {
@@ -1199,7 +1220,7 @@ class EngineView {
     if (column.id == "engineName") {
       let shortcut = this._getLocalShortcut(index);
       if (shortcut) {
-        return this._localShortcutL10nNames.get(shortcut.source) || "";
+        return this._localShortcutL10nNames.get(shortcut.source)[0] || "";
       }
       return this._engineStore.engines[index].name;
     } else if (column.id == "engineKeyword") {
@@ -1210,10 +1231,12 @@ class EngineView {
             "searchRestrictKeywords.featureGate"
           )
         ) {
-          const keyword =
-            "@" +
-            this._localShortcutL10nNames.get(shortcut.source).toLowerCase();
-          return `${keyword}, ${shortcut.restrict}`;
+          let keywords = this._localShortcutL10nNames
+            .get(shortcut.source)
+            .map(keyword => `@${keyword.toLowerCase()}`)
+            .join(", ");
+
+          return `${keywords}, ${shortcut.restrict}`;
         }
 
         return shortcut.restrict;

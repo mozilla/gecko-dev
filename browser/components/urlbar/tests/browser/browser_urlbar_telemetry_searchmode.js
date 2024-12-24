@@ -415,7 +415,7 @@ add_task(async function test_keywordoffer_restrict_keyword() {
   let restrictResult = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
 
   Assert.equal(
-    restrictResult.result.payload.l10nRestrictKeyword,
+    restrictResult.result.payload.l10nRestrictKeywords[0],
     "bookmarks",
     "The first result should be restrict bookmarks result with the correct keyword."
   );

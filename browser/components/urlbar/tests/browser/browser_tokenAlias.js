@@ -424,7 +424,7 @@ add_task(async function clickAndFillAlias() {
     let details = await UrlbarTestUtils.getDetailsOfResultAt(window, i);
 
     if (details.result.type == UrlbarUtils.RESULT_TYPE.RESTRICT) {
-      let category = details.result.payload.l10nRestrictKeyword;
+      let category = details.result.payload.l10nRestrictKeywords[0];
       let keyword = `@${category.toLowerCase()}`;
 
       Assert.equal(
