@@ -205,3 +205,41 @@ add_task(async function enter_action_search_mode() {
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
+
+add_task(async function test_opensearch() {
+  const TEST_DATA = [
+    {
+      query: "word",
+      expectedUrl: "http://mochi.test:8888/?terms=word",
+    },
+    {
+      query: "word1 word2",
+      expectedUrl: "http://mochi.test:8888/?terms=word1+word2",
+    },
+    {
+      query: "https://example.com/",
+      expectedUrl: "http://mochi.test:8888/?terms=https%3A%2F%2Fexample.com%2F",
+    },
+  ];
+  for (let { query, expectedUrl } of TEST_DATA) {
+    let url = getRootDirectory(gTestPath) + "add_search_engine_one.html";
+    await BrowserTestUtils.withNewTab(url, async () => {
+      await UrlbarTestUtils.promiseAutocompleteResultPopup({
+        window,
+        value: query,
+      });
+      let { result } = await UrlbarTestUtils.getRowAt(window, 1);
+      Assert.equal(result.providerName, "UrlbarProviderGlobalActions");
+
+      let onLoad = BrowserTestUtils.browserLoaded(
+        gBrowser.selectedBrowser,
+        false,
+        expectedUrl
+      );
+      EventUtils.synthesizeKey("KEY_Tab");
+      EventUtils.synthesizeKey("KEY_Enter");
+      await onLoad;
+      Assert.ok(true, "Action for open search works expectedly");
+    });
+  }
+});
