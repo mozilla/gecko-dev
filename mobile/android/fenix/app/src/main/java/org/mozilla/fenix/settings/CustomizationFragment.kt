@@ -13,7 +13,6 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
-import mozilla.components.support.ktx.android.content.setApplicationNightMode
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.AppTheme
 import org.mozilla.fenix.GleanMetrics.CustomizationSettings
@@ -130,7 +129,7 @@ class CustomizationFragment : PreferenceFragmentCompat() {
 
     private fun setNewTheme(mode: Int) {
         if (AppCompatDelegate.getDefaultNightMode() == mode) return
-        requireContext().setApplicationNightMode(mode)
+        AppCompatDelegate.setDefaultNightMode(mode)
         activity?.recreate()
         with(requireComponents.core) {
             engine.settings.preferredColorScheme = getPreferredColorScheme()

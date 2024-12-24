@@ -27,7 +27,7 @@ open class LocaleAwareAppCompatActivity : AppCompatActivity() {
         // Modify the configuration as needed
         overrideConfiguration.setLocale(locale)
 
-        val newContext = base.applicationContext.createConfigurationContext(overrideConfiguration)
+        val newContext = base.createConfigurationContext(overrideConfiguration)
         val contextWrapper = ActivityContextWrapper(newContext, base)
         super.attachBaseContext(contextWrapper)
     }
