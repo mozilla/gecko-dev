@@ -49,6 +49,12 @@ skip-if = [
 ["browser_test_mousemove_optimization.js"]
 skip-if = ["display == 'wayland' && os_version == '22.04'"]  # Bug 1857059
 
+["browser_test_popup_menu_in_parent_process.js"]
+support-files = [
+  "helper_popup_menu_in_parent_process-1.html",
+  "helper_popup_menu_in_parent_process-2.html"
+]
+
 ["browser_test_position_sticky.js"]
 support-files = ["helper_position_sticky_flicker.html"]
 
