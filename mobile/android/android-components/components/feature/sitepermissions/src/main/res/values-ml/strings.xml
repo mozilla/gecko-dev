@@ -33,6 +33,14 @@
     <string name="mozac_feature_sitepermissions_never_allow">ഒരിക്കലും അരുത്</string>
     <!-- Title of a dialog to require to save data in persistent storage. %1$s will be replaced with the URL of the current page -->
     <string name="mozac_feature_sitepermissions_persistent_storage_title">സ്ഥിരമായ സംഭരണത്തിൽ ദത്ത സംഭരിക്കാൻ %1$s അനുവദിക്കണോ?</string>
+    <!-- Title of a dialog to use EME. %1$s will be replaced with the URL of the current page -->
+    <string name="mozac_feature_sitepermissions_media_key_system_access_title">DRM- നിയന്ത്രിത ഉള്ളടക്കം പ്ലേ ചെയ്യാൻ %1$s നെ അനുവദിക്കണോ?</string>
+    <!-- Title of a dialog to use cross origin storage permission. %1$s is the name of the site URL (www.site1.example) trying to track the user's activity.
+     %2$s is the name of the site URL (www.site2.example) that the user is visiting.  This is the same domain name displayed in the address bar -->
+    <string name="mozac_feature_sitepermissions_storage_access_title">%2$s-ൽ %1$s-ന്റെ കുക്കികൾ ഉപയോഗിക്കാൻ അനുവദിക്കട്ടെ?</string>
+    <!-- Message of a dialog offering more context about the cross origin storage permission.
+    %s is the name of the site URL (www.site1.example) trying to track the user's activity. -->
+    <string name="mozac_feature_sitepermissions_storage_access_message">%s-നു് ഈ ദത്തയിനു് എന്തു് ആവശ്യമുണ്ടു് എന്നു് അറിഞ്ഞൂടെങ്കിൽ അതിന്റെ പ്രവേശണം തടയഞ്ഞാൽ നന്നായിരുന്നു. </string>
     <!-- Text for a negative button in the storage access permission request dialog. This button will not give access to this permission. -->
     <string name="mozac_feature_sitepermissions_storage_access_not_allow">അനുമതി നല്കരുതു്</string>
     <!-- Clickable text that will open a new tab navigating the user to online documentation about specific features. -->

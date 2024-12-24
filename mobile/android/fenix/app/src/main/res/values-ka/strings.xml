@@ -62,7 +62,9 @@
     <!-- Explanation for private browsing displayed to users on home view when they first enable private mode
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="private_browsing_placeholder_description_2">%1$s გაასუფთავებს თქვენი ძიებისა და ნახვების ისტორიას ყველა პირადი ჩანართის დახურვისას ან პროგრამიდან გამოსვლისას. მართალია, ეს არ დაფარავს თქვენს ვინაობას საიტებისა და ინტერნეტის მომწოდებლისგან, მაგრამ დაგეხმარებათ დაიცვათ პირადი მონაცემები ამ მოწყობილობის სხვა მომხმარებლებისგან.</string>
-    <string name="private_browsing_common_myths">არასწორი წარმოდგენები პირადი თვალიერების რეჟიმზე</string>
+    <string name="private_browsing_common_myths">
+       ცრუ წარმოდგენები პირადი თვალიერების შესახებ
+    </string>
 
     <!-- True Private Browsing Mode -->
     <!-- Title for info card on private homescreen in True Private Browsing Mode. -->
