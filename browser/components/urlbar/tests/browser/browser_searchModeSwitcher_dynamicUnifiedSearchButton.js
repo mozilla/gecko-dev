@@ -15,42 +15,42 @@ add_setup(async function setup() {
   });
 });
 
-add_task(async function test_usb_visibility_by_pageproxystate() {
+add_task(async function test_button_visibility_by_pageproxystate() {
   info("Open pageproxystate valid page");
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     "https://example.com/"
   );
-  await assertUSBVisibility(false);
+  await assertButtonVisibility(false);
 
   info("Click on browser element");
   await clickOnBrowserElement();
-  await assertUSBVisibility(false);
+  await assertButtonVisibility(false);
 
   info("Click on urlbar");
   EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
-  await assertUSBVisibility(false);
+  await assertButtonVisibility(false);
 
   info("Start to edit");
   EventUtils.synthesizeKey("a");
-  await assertUSBVisibility(true);
+  await assertButtonVisibility(true);
 
   info("Click on browser element");
   await clickOnBrowserElement();
-  await assertUSBVisibility(true);
+  await assertButtonVisibility(true);
 
   BrowserTestUtils.removeTab(tab);
 });
 
-async function assertUSBVisibility(expected) {
+async function assertButtonVisibility(expected) {
   let switcher = document.getElementById("urlbar-searchmode-switcher");
   await BrowserTestUtils.waitForCondition(() => {
     // If Unified Search Button is displayed as off-screen, the position should
     // be 'fixed'.
     let isVisible = window.getComputedStyle(switcher).position != "fixed";
     return isVisible == expected;
-  }, `Wait until USB visibility will be changed to ${expected}`);
-  Assert.ok(true, "USB visibility is correct");
+  }, `Wait until Unified Search Button visibility will be changed to ${expected}`);
+  Assert.ok(true, "Unified Search Button visibility is correct");
   Assert.equal(
     gURLBar.getAttribute("pageproxystate"),
     expected ? "invalid" : "valid"

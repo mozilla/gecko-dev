@@ -472,7 +472,7 @@ add_task(async function test_urlbar_focus_after_switcher_lost() {
   gURLBar.handleRevert();
 });
 
-add_task(async function test_esc_on_usb() {
+add_task(async function test_esc_on_UnifiedSearchButton() {
   info("Open urlbar results");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,

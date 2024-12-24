@@ -452,7 +452,7 @@ tags = "persisted-search"
 
 ["browser_searchModeSwitcher_basic.js"]
 
-["browser_searchModeSwitcher_dynamicUSB.js"]
+["browser_searchModeSwitcher_dynamicUnifiedSearchButton.js"]
 support-files = ["has-a-link.html"]
 
 ["browser_searchModeSwitcher_keyNavigation.js"]
