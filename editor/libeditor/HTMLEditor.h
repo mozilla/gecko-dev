@@ -935,9 +935,11 @@ class HTMLEditor final : public EditorBase,
   AddZIndexWithTransaction(nsStyledElement& aStyledElement, int32_t aChange);
 
   /**
-   * Join together any adjacent editable text nodes in the range.
+   * Join together adjacent editable text nodes in the range except preformatted
+   * linefeed only nodes.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult CollapseAdjacentTextNodes(nsRange& aRange);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  CollapseAdjacentTextNodes(nsRange& aRange);
 
   static dom::Element* GetLinkElement(nsINode* aNode);
 

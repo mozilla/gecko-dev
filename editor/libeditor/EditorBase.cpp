@@ -3203,9 +3203,32 @@ Result<InsertTextResult, nsresult> EditorBase::InsertTextWithTransaction(
     if (IsTextEditor()) {
       return AsTextEditor()->FindBetterInsertionPoint(aPointToInsert);
     }
-    const EditorDOMPoint pointToInsert =
+    auto pointToInsert =
         aPointToInsert
             .GetPointInTextNodeIfPointingAroundTextNode<EditorDOMPoint>();
+    // If the candidate point is in a Text node which has only a preformatted
+    // linefeed, we should not insert text into the node because it may have
+    // been inserted by us and that's compatible behavior with Chrome.
+    if (pointToInsert.IsInTextNode() &&
+        HTMLEditUtils::TextHasOnlyOnePreformattedLinefeed(
+            *pointToInsert.ContainerAs<Text>())) {
+      if (pointToInsert.IsStartOfContainer()) {
+        if (Text* const previousText = Text::FromNodeOrNull(
+                pointToInsert.ContainerAs<Text>()->GetPreviousSibling())) {
+          pointToInsert = EditorDOMPoint::AtEndOf(*previousText);
+        } else {
+          pointToInsert = pointToInsert.ParentPoint();
+        }
+      } else {
+        MOZ_ASSERT(pointToInsert.IsEndOfContainer());
+        if (Text* const nextText = Text::FromNodeOrNull(
+                pointToInsert.ContainerAs<Text>()->GetNextSibling())) {
+          pointToInsert = EditorDOMPoint(nextText, 0u);
+        } else {
+          pointToInsert = pointToInsert.AfterContainer();
+        }
+      }
+    }
     if (aInsertTextTo == InsertTextTo::AlwaysCreateNewTextNode) {
       NS_WARNING_ASSERTION(!pointToInsert.IsInTextNode() ||
                                pointToInsert.IsStartOfContainer() ||

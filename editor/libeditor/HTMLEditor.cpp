@@ -5234,13 +5234,13 @@ bool HTMLEditor::SetCaretInTableCell(Element* aElement) {
  * Uses HTMLEditor::JoinNodesWithTransaction() so action is undoable.
  * Should be called within the context of a batch transaction.
  */
-nsresult HTMLEditor::CollapseAdjacentTextNodes(nsRange& aInRange) {
+nsresult HTMLEditor::CollapseAdjacentTextNodes(nsRange& aRange) {
   AutoTransactionsConserveSelection dontChangeMySelection(*this);
 
   // we can't actually do anything during iteration, so store the text nodes in
   // an array first.
   DOMSubtreeIterator subtreeIter;
-  if (NS_FAILED(subtreeIter.Init(aInRange))) {
+  if (NS_FAILED(subtreeIter.Init(aRange))) {
     NS_WARNING("DOMSubtreeIterator::Init() failed");
     return NS_ERROR_FAILURE;
   }
@@ -5252,35 +5252,40 @@ nsresult HTMLEditor::CollapseAdjacentTextNodes(nsRange& aInRange) {
       },
       textNodes);
 
-  // now that I have a list of text nodes, collapse adjacent text nodes
-  while (textNodes.Length() > 1u) {
-    OwningNonNull<Text>& leftTextNode = textNodes[0u];
-    OwningNonNull<Text>& rightTextNode = textNodes[1u];
+  if (textNodes.Length() < 2) {
+    return NS_OK;
+  }
 
-    // If the text nodes are not direct siblings, we shouldn't join them, and
-    // we don't need to handle the left one anymore.
-    if (rightTextNode->GetPreviousSibling() != leftTextNode) {
-      textNodes.RemoveElementAt(0u);
+  OwningNonNull<Text> leftTextNode = textNodes[0];
+  for (size_t rightTextNodeIndex = 1; rightTextNodeIndex < textNodes.Length();
+       rightTextNodeIndex++) {
+    OwningNonNull<Text>& rightTextNode = textNodes[rightTextNodeIndex];
+    // If the leftTextNode has only preformatted line break, keep it as-is.
+    if (HTMLEditUtils::TextHasOnlyOnePreformattedLinefeed(leftTextNode)) {
+      leftTextNode = rightTextNode;
       continue;
     }
-
-    Result<JoinNodesResult, nsresult> joinNodesResult =
-        JoinNodesWithTransaction(MOZ_KnownLive(*leftTextNode),
-                                 MOZ_KnownLive(*rightTextNode));
-    if (MOZ_UNLIKELY(joinNodesResult.isErr())) {
-      NS_WARNING("HTMLEditor::JoinNodesWithTransaction() failed");
-      return joinNodesResult.unwrapErr();
+    // If the rightTextNode has only preformatted line break, keep it as-is, and
+    // advance the loop next to the rightTextNode.
+    if (HTMLEditUtils::TextHasOnlyOnePreformattedLinefeed(rightTextNode)) {
+      if (++rightTextNodeIndex == textNodes.Length()) {
+        break;
+      }
+      leftTextNode = textNodes[rightTextNodeIndex];
+      continue;
     }
-    if (MOZ_LIKELY(joinNodesResult.inspect().RemovedContent() ==
-                   leftTextNode)) {
-      textNodes.RemoveElementAt(0u);
-    } else if (MOZ_LIKELY(joinNodesResult.inspect().RemovedContent() ==
-                          rightTextNode)) {
-      textNodes.RemoveElementAt(1u);
-    } else {
-      MOZ_ASSERT_UNREACHABLE(
-          "HTMLEditor::JoinNodesWithTransaction() removed unexpected node");
-      return NS_ERROR_UNEXPECTED;
+    // If the text nodes are not direct siblings, we shouldn't join them, and
+    // we don't need to handle the left one anymore.
+    if (leftTextNode->GetNextSibling() != rightTextNode) {
+      leftTextNode = rightTextNode;
+      continue;
+    }
+    Result<JoinNodesResult, nsresult> joinNodesResultOrError =
+        JoinNodesWithTransaction(MOZ_KnownLive(leftTextNode),
+                                 MOZ_KnownLive(rightTextNode));
+    if (MOZ_UNLIKELY(joinNodesResultOrError.isErr())) {
+      NS_WARNING("HTMLEditor::JoinNodesWithTransaction() failed");
+      return joinNodesResultOrError.unwrapErr();
     }
   }
 

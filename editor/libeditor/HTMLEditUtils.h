@@ -479,6 +479,16 @@ class HTMLEditUtils final {
   static bool IsSingleLineContainer(const nsINode& aNode);
 
   /**
+   * Return true if aText has only a linefeed and it's preformatted.
+   */
+  [[nodiscard]] static bool TextHasOnlyOnePreformattedLinefeed(
+      const Text& aText) {
+    return aText.TextDataLength() == 1u &&
+           aText.TextFragment().CharAt(0u) == kNewLine &&
+           EditorUtils::IsNewLinePreformatted(aText);
+  }
+
+  /**
    * IsVisibleTextNode() returns true if aText has visible text.  If it has
    * only white-spaces and they are collapsed, returns false.
    */
