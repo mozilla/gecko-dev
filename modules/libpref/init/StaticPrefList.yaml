@@ -2691,7 +2691,7 @@
 # target is removed from the DOM tree.
 - name: dom.events.mouse-pointer-boundary.keep-enter-targets-after-over-target-removed
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # Whether .offset{X,Y} for events targeted at SVG nodes returns bounds relative
