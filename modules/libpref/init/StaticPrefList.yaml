@@ -2642,7 +2642,7 @@
 # and `contextmenu`)
 - name: dom.event.pointer.fractional_coordinates.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Whether wheel event target's should be grouped. When enabled, all wheel
