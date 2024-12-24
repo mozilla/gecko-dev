@@ -2568,18 +2568,16 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::HandleInsertLinefeed(
   {
     AutoTrackDOMPoint trackingInsertingPosition(RangeUpdaterRef(),
                                                 &pointToInsert);
-    Result<InsertTextResult, nsresult> insertTextResult =
-        InsertTextWithTransaction(*document, u"\n"_ns, pointToInsert,
-                                  InsertTextTo::ExistingTextNodeIfAvailable);
-    if (MOZ_UNLIKELY(insertTextResult.isErr())) {
-      NS_WARNING("HTMLEditor::InsertTextWithTransaction() failed");
-      return insertTextResult.propagateErr();
+    Result<CreateLineBreakResult, nsresult> insertLinefeedResultOrError =
+        InsertLineBreak(WithTransaction::Yes, LineBreakType::Linefeed,
+                        pointToInsert, eNext);
+    if (MOZ_UNLIKELY(insertLinefeedResultOrError.isErr())) {
+      NS_WARNING(
+          "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
+          "LineBreakType::Linefeed, eNext) failed");
+      return insertLinefeedResultOrError.propagateErr();
     }
-    // Ignore the caret suggestion because of `dontChangeMySelection` above.
-    insertTextResult.inspect().IgnoreCaretPointSuggestion();
-    pointToPutCaret = insertTextResult.inspect().Handled()
-                          ? insertTextResult.unwrap().EndOfInsertedTextRef()
-                          : pointToInsert;
+    pointToPutCaret = insertLinefeedResultOrError.unwrap().UnwrapCaretPoint();
   }
 
   // Insert a padding <br> element at the end of the block element if there is
