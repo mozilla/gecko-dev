@@ -3639,14 +3639,24 @@ nsresult WhiteSpaceVisibilityKeeper::NormalizeVisibleWhiteSpacesAt(
           // the beginning of soft wrapped lines, and lets the user see 2 spaces
           // when they type 2 spaces.
 
+          if (NS_WARN_IF(!atEndOfVisibleWhiteSpaces.IsInContentNode())) {
+            return Err(NS_ERROR_FAILURE);
+          }
+          const Maybe<LineBreakType> lineBreakType =
+              aHTMLEditor.GetPreferredLineBreakType(
+                  *atEndOfVisibleWhiteSpaces.ContainerAs<nsIContent>(),
+                  aEditingHost);
+          if (NS_WARN_IF(lineBreakType.isNothing())) {
+            return Err(NS_ERROR_FAILURE);
+          }
           Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-              aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
-                                          HTMLEditor::LineBreakType::BRElement,
+              aHTMLEditor.InsertLineBreak(WithTransaction::Yes, *lineBreakType,
                                           atEndOfVisibleWhiteSpaces);
           if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
-            NS_WARNING(
-                "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
-                "LineBreakType::BRElement) failed");
+            NS_WARNING(nsPrintfCString("HTMLEditor::InsertLineBreak("
+                                       "WithTransaction::Yes, %s) failed",
+                                       ToString(*lineBreakType).c_str())
+                           .get());
             return insertBRElementResultOrError.propagateErr();
           }
           CreateLineBreakResult insertBRElementResult =

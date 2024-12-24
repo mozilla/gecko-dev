@@ -1299,6 +1299,11 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
   // We remember this so that we know how to handle tabs.
   const bool isWhiteSpaceCollapsible = !EditorUtils::IsWhiteSpacePreformatted(
       *pointToInsert.ContainerAs<nsIContent>());
+  const Maybe<LineBreakType> lineBreakType = GetPreferredLineBreakType(
+      *pointToInsert.ContainerAs<nsIContent>(), *editingHost);
+  if (NS_WARN_IF(lineBreakType.isNothing())) {
+    return Err(NS_ERROR_FAILURE);
+  }
 
   // turn off the edit listener: we know how to
   // build the "doc changed range" ourselves, and it's
@@ -1376,12 +1381,12 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         }
         MOZ_ASSERT(inclusiveNextLinefeedOffset >= 0);
         Result<CreateLineBreakResult, nsresult> insertLineBreakResultOrError =
-            InsertLineBreak(WithTransaction::Yes, LineBreakType::BRElement,
-                            currentPoint);
+            InsertLineBreak(WithTransaction::Yes, *lineBreakType, currentPoint);
         if (MOZ_UNLIKELY(insertLineBreakResultOrError.isErr())) {
-          NS_WARNING(
-              "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
-              "LineBreakType::BRElement) failed");
+          NS_WARNING(nsPrintfCString("HTMLEditor::InsertLineBreak("
+                                     "WithTransaction::Yes, %s) failed",
+                                     ToString(*lineBreakType).c_str())
+                         .get());
           return insertLineBreakResultOrError.propagateErr();
         }
         CreateLineBreakResult insertLineBreakResult =
@@ -1451,11 +1456,13 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
 
         Result<CreateLineBreakResult, nsresult> insertLineBreakResultOrError =
             WhiteSpaceVisibilityKeeper::InsertLineBreak(
-                LineBreakType::BRElement, *this, currentPoint, *editingHost);
+                *lineBreakType, *this, currentPoint, *editingHost);
         if (MOZ_UNLIKELY(insertLineBreakResultOrError.isErr())) {
           NS_WARNING(
-              "WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::"
-              "BRElement) failed");
+              nsPrintfCString(
+                  "WhiteSpaceVisibilityKeeper::InsertLineBreak(%s) failed",
+                  ToString(*lineBreakType).c_str())
+                  .get());
           return insertLineBreakResultOrError.propagateErr();
         }
         CreateLineBreakResult insertLineBreakResult =
@@ -1477,6 +1484,10 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         nextOffset = inclusiveNextLinefeedOffset + 1;
         pointToInsert = insertLineBreakResult.AfterLineBreak<EditorDOMPoint>();
         currentPoint.SetAfter(&insertLineBreakResult.LineBreakContentRef());
+        if (NS_WARN_IF(!pointToInsert.IsSetAndValidInComposedDoc()) ||
+            NS_WARN_IF(!currentPoint.IsSetAndValidInComposedDoc())) {
+          return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+        }
       }
     }
 
@@ -2580,12 +2591,9 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::HandleInsertLinefeed(
     pointToPutCaret = insertLinefeedResultOrError.unwrap().UnwrapCaretPoint();
   }
 
-  // Insert a padding <br> element at the end of the block element if there is
-  // no content between the inserted linefeed and the following block boundary
-  // to make sure that the last line is visible.
-  // XXX Blink/WebKit inserts another linefeed character in this case.  However,
-  //     for doing it, we need more work, e.g., updating serializer, deleting
-  //     unnecessary padding <br> element at modifying the last line.
+  // Insert a padding <br> if the inserted linefeed is followed by a block
+  // boundary.  Note that it should always be <br> for avoiding padding line
+  // breaks appear in `.textContent` value.
   if (pointToPutCaret.IsInContentNode() && pointToPutCaret.IsEndOfContainer()) {
     WSRunScanner wsScannerAtCaret(&aEditingHost, pointToPutCaret,
                                   BlockInlineCheck::UseComputedDisplayStyle);
@@ -2610,8 +2618,6 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::HandleInsertLinefeed(
       CreateLineBreakResult insertBRElementResult =
           insertBRElementResultOrError.unwrap();
       MOZ_ASSERT(insertBRElementResult.Handled());
-      // We're tracking next caret position with newCaretPosition.  Therefore,
-      // we don't need to update selection here.
       insertBRElementResult.IgnoreCaretPointSuggestion();
     }
   }
