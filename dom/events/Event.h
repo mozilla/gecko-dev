@@ -16,6 +16,7 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/WeakPtr.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -408,7 +409,7 @@ class Event : public nsISupports, public nsWrapperCache {
   // Event::DuplicatePrivateData() to compute the offset point later.
   // Therefore, only `MouseEvent` and its subclasses may keep storing
   // mPresContext until destroyed.
-  RefPtr<nsPresContext> mPresContext;
+  WeakPtr<nsPresContext> mPresContext;
   nsCOMPtr<EventTarget> mExplicitOriginalTarget;
   nsCOMPtr<nsIGlobalObject> mOwner;
   bool mEventIsInternal;
