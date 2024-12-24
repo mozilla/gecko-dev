@@ -4,7 +4,7 @@
     <string name="mozac_lib_crash_dialog_title">ვწუხვართ. %1$s გაუმართაობის გამო გაითიშა.</string>
 
     <!-- Label of the checkbox for sending crash reports in the crash reporter dialog. %1$s will be replaced with the name of the organization (e.g. Mozilla). -->
-    <string name="mozac_lib_crash_dialog_checkbox">გათიშვის მოხსენების გადაგზავნა %1$s-სთვის</string>
+    <string name="mozac_lib_crash_dialog_checkbox">გათიშვის მოხსენება გაეგზავნოს %1$s-ს</string>
 
     <!-- Label of the button closing the crash reporter dialog. -->
     <string name="mozac_lib_crash_dialog_button_close">დახურვა</string>

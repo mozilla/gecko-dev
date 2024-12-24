@@ -370,7 +370,9 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">リーダービューで開く</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">リーダービューを閉じる</string>
+    <string name="browser_menu_turn_off_reader_view">リーダービューを閉じる</string>dsa
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">非プライベートタブに移動</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">ページを翻訳...</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -613,14 +615,38 @@
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">ツールバーの配置を選択</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">手元で検索。</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">保存して続ける</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">保存して続ける</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">スキップ</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">画面上部</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">画面下部</string>
+
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">ツールバーが描かれたツールバー選択ビューの大きなヘッダー画像。</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description">%1$s ツールバーの画像</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">テーマの選択</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">最適な明るさでウェブをご覧ください。</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">保存してブラウジングを開始</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">スキップ</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">ダーク</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">ライト</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">システムテーマ</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">アーティストとビルダーツールが描かれたテーマ選択ビューの大きなヘッダー画像。</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">%1$s テーマの画像</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1204,14 +1230,14 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">詳細情報</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">変更を適用するためアプリケーションを終了します</string>
+    <string name="studies_restart_app" moz:removedIn="135">変更を適用するためアプリケーションを終了します</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">OK</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">OK</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">キャンセル</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">キャンセル</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">変更を適用するためアプリケーションを終了します...</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">変更を適用するためアプリケーションを終了します...</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->

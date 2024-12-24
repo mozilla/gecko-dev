@@ -631,6 +631,8 @@
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">底部</string>
 
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">工具栏选择视图中的大尺寸头图，展示工具栏示意图。</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
     <string name="onboarding_customize_toolbar_placement_content_description">%1$s工具栏的图像</string>
 
@@ -648,6 +650,8 @@
     <string name="onboarding_customize_theme_light_option">明亮</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_system_option">系统自动调整</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">主题选择视图中的大尺寸头图，展示设计师与开发者工具示意图。</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">%1$s主题的图像</string>
 

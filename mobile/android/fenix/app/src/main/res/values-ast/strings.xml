@@ -66,6 +66,9 @@
        Mitos comunes tocante al restolar en privao
     </string>
 
+    <!-- True Private Browsing Mode -->
+    <!-- Title for info card on private homescreen in True Private Browsing Mode. -->
+    <string name="felt_privacy_desc_card_title">Nun dexa rastru nesti preséu</string>
     <!-- Explanation for private browsing displayed to users on home view when they first enable
         private mode in our new Total Private Browsing mode.
         The first parameter is the name of the app defined in app_name (for example: Firefox Nightly)
@@ -97,6 +100,9 @@
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Restola más rápido cola navegación nueva</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Nun sitiu web, esta barra escuéndese a midida que te desplaces p\'abaxo pa consiguir más espaciu.</string>
 
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
     <string name="camera_permissions_needed_positive_button_text">Dir a Configuración</string>
@@ -1447,7 +1453,7 @@
 
     <!-- The Delete site dialogue title will appear when the user clicks on a list item.
              The first parameter is web site url (for example:"wikipedia.com") -->
-    <string name="never_translate_site_dialog_title_preference">¿Quies desaniciar «1$s»?</string>
+    <string name="never_translate_site_dialog_title_preference">¿Quies desaniciar %1$s?</string>
     <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
     <string name="never_translate_site_dialog_confirm_delete_preference">Desaniciar</string>
 
@@ -1463,7 +1469,30 @@
     <!-- Description text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_description">La conexón nun ye segura.</string>
 
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice_2">Avisu de privacidá</string>
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">¡Gracies pola to opinión!</string>
 
-    </resources>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logotipu de Firefox</string>
+
+    <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain  -->
+    <string name="debug_drawer_logins_current_domain_label">Dominiu actual: %s</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
+
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Anueva enantes del 14 de marzu</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Los complementos y dalgunes funciones van dexar de funcionar el 14 de marzu.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Tas usando una versión antigua de Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Anueva enantes del 14 de marzu pa siguir usando los complementos y otres funciones.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Dalgunes funciones van dexar de funcionar mañana.</string>
+</resources>
