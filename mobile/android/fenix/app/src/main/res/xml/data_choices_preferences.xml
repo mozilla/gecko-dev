@@ -19,8 +19,8 @@
 
     <SwitchPreference
         android:key="@string/pref_key_crash_reporting_always_report"
-        android:summary="@string/preferences_automatically_submit_crashes_description"
-        android:title="@string/preferences_automatically_submit_crashes_title" />
+        android:summary="@string/preferences_automatically_send_crashes_description"
+        android:title="@string/preferences_automatically_send_crashes_title" />
 
     <androidx.preference.Preference
         android:key="@string/pref_key_studies_section"
