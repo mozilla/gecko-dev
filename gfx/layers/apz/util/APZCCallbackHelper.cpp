@@ -763,6 +763,22 @@ void DisplayportSetListener::OnPostRefresh() {
                                             std::move(mTargets));
 }
 
+nsIFrame* GetRootFrameForWidget(const nsIWidget* aWidget,
+                                const PresShell* aPresShell) {
+  if (aWidget->GetWindowType() == widget::WindowType::Popup) {
+    // In the case where the widget is popup window and uses APZ, the widget
+    // frame (i.e. menu popup frame) is the reference frame used for building
+    // the display list for hit-testing inside the popup.
+    MOZ_ASSERT(aWidget->AsyncPanZoomEnabled());
+    if (nsView* view = nsView::GetViewFor(aWidget)) {
+      MOZ_ASSERT(view->GetFrame() && view->GetFrame()->IsMenuPopupFrame());
+      return view->GetFrame();
+    }
+  }
+
+  return aPresShell->GetRootFrame();
+}
+
 already_AddRefed<DisplayportSetListener>
 APZCCallbackHelper::SendSetTargetAPZCNotification(nsIWidget* aWidget,
                                                   dom::Document* aDocument,
@@ -784,41 +800,48 @@ APZCCallbackHelper::SendSetTargetAPZCNotification(nsIWidget* aWidget,
     return nullptr;
   }
   sLastTargetAPZCNotificationInputBlock = aInputBlockId;
-  if (PresShell* presShell = aDocument->GetPresShell()) {
-    if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
-      bool waitForRefresh = false;
-      nsTArray<ScrollableLayerGuid> targets;
-
-      if (const WidgetTouchEvent* touchEvent = aEvent.AsTouchEvent()) {
-        for (size_t i = 0; i < touchEvent->mTouches.Length(); i++) {
-          waitForRefresh |= PrepareForSetTargetAPZCNotification(
-              aWidget, aLayersId, rootFrame, touchEvent->mTouches[i]->mRefPoint,
-              &targets);
-        }
-      } else if (const WidgetWheelEvent* wheelEvent = aEvent.AsWheelEvent()) {
-        waitForRefresh = PrepareForSetTargetAPZCNotification(
-            aWidget, aLayersId, rootFrame, wheelEvent->mRefPoint, &targets);
-      } else if (const WidgetMouseEvent* mouseEvent = aEvent.AsMouseEvent()) {
-        waitForRefresh = PrepareForSetTargetAPZCNotification(
-            aWidget, aLayersId, rootFrame, mouseEvent->mRefPoint, &targets);
-      }
-      // TODO: Do other types of events need to be handled?
-
-      if (!targets.IsEmpty()) {
-        if (waitForRefresh) {
-          APZCCH_LOG(
-              "At least one target got a new displayport, need to wait for "
-              "refresh\n");
-          return MakeAndAddRef<DisplayportSetListener>(
-              aWidget, presShell->GetPresContext(), aInputBlockId,
-              std::move(targets));
-        }
-        APZCCH_LOG("Sending target APZCs for input block %" PRIu64 "\n",
-                   aInputBlockId);
-        aWidget->SetConfirmedTargetAPZC(aInputBlockId, targets);
-      }
-    }
+  PresShell* presShell = aDocument->GetPresShell();
+  if (!presShell) {
+    return nullptr;
   }
+
+  nsIFrame* rootFrame = GetRootFrameForWidget(aWidget, presShell);
+  if (!rootFrame) {
+    return nullptr;
+  }
+
+  bool waitForRefresh = false;
+  nsTArray<ScrollableLayerGuid> targets;
+
+  if (const WidgetTouchEvent* touchEvent = aEvent.AsTouchEvent()) {
+    for (size_t i = 0; i < touchEvent->mTouches.Length(); i++) {
+      waitForRefresh |= PrepareForSetTargetAPZCNotification(
+          aWidget, aLayersId, rootFrame, touchEvent->mTouches[i]->mRefPoint,
+          &targets);
+    }
+  } else if (const WidgetWheelEvent* wheelEvent = aEvent.AsWheelEvent()) {
+    waitForRefresh = PrepareForSetTargetAPZCNotification(
+        aWidget, aLayersId, rootFrame, wheelEvent->mRefPoint, &targets);
+  } else if (const WidgetMouseEvent* mouseEvent = aEvent.AsMouseEvent()) {
+    waitForRefresh = PrepareForSetTargetAPZCNotification(
+        aWidget, aLayersId, rootFrame, mouseEvent->mRefPoint, &targets);
+  }
+  // TODO: Do other types of events need to be handled?
+
+  if (!targets.IsEmpty()) {
+    if (waitForRefresh) {
+      APZCCH_LOG(
+          "At least one target got a new displayport, need to wait for "
+          "refresh\n");
+      return MakeAndAddRef<DisplayportSetListener>(
+          aWidget, presShell->GetPresContext(), aInputBlockId,
+          std::move(targets));
+    }
+    APZCCH_LOG("Sending target APZCs for input block %" PRIu64 "\n",
+               aInputBlockId);
+    aWidget->SetConfirmedTargetAPZC(aInputBlockId, targets);
+  }
+
   return nullptr;
 }
 
