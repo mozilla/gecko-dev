@@ -3,6 +3,20 @@
     {
       "stash": {
         "blocked": [
+          "{7b0c4908-3c9b-4b5b-bb5f-e59f79d58b6e}:0.0.2"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1734686350220,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1734698104421,
+      "id": "8d721ff6-479a-486e-bc6f-464497bb655b",
+      "last_modified": 1734698171807
+    },
+    {
+      "stash": {
+        "blocked": [
           "sciaddon@scigreat.com:2.9.3",
           "sciaddon@scigreat.com:2.9.4",
           "sciaddon@scigreat.com:2.9.5",
@@ -66,5 +80,5 @@
       "last_modified": 1734363061859
     }
   ],
-  "timestamp": 1734546992038
+  "timestamp": 1734698171807
 }
