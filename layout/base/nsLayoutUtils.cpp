@@ -8796,7 +8796,11 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
   Document* document = presShell->GetDocument();
 
   if (scrollId != ScrollableLayerGuid::NULL_SCROLL_ID) {
-    if (!presContext->GetParentPresContext()) {
+    if (aForFrame->IsMenuPopupFrame()) {
+      // In the case of popup windows, the menu popup frame becomes the root.
+      MOZ_ASSERT(XRE_IsParentProcess());
+      metadata.SetIsLayersIdRoot(true);
+    } else if (!presContext->GetParentPresContext()) {
       if ((aScrollFrame && isRootScrollContainerFrame)) {
         metadata.SetIsLayersIdRoot(true);
       } else {
@@ -8805,10 +8809,6 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
           metadata.SetIsLayersIdRoot(true);
         }
       }
-    } else if (aForFrame->IsMenuPopupFrame()) {
-      // In the case of popup windows, the menu popup frame becomes the root.
-      MOZ_ASSERT(XRE_IsParentProcess());
-      metadata.SetIsLayersIdRoot(true);
     }
   }
 
