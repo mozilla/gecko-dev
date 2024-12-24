@@ -61,7 +61,6 @@ import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import mozilla.components.support.ktx.android.content.isMainProcess
 import mozilla.components.support.ktx.android.content.runOnlyInMainProcess
-import mozilla.components.support.ktx.android.content.setApplicationNightMode
 import mozilla.components.support.locale.LocaleAwareApplication
 import mozilla.components.support.rusterrors.initializeRustErrors
 import mozilla.components.support.rusthttp.RustHttpConfig
@@ -578,34 +577,34 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         val settings = this.settings()
         when {
             settings.shouldUseLightTheme -> {
-                setApplicationNightMode(
+                AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_NO,
                 )
             }
             settings.shouldUseDarkTheme -> {
-                setApplicationNightMode(
+                AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_YES,
                 )
             }
             SDK_INT < Build.VERSION_CODES.P && settings.shouldUseAutoBatteryTheme -> {
-                setApplicationNightMode(
+                AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY,
                 )
             }
             SDK_INT >= Build.VERSION_CODES.P && settings.shouldFollowDeviceTheme -> {
-                setApplicationNightMode(
+                AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
                 )
             }
             // First run of app no default set, set the default to Follow System for 28+ and Normal Mode otherwise
             else -> {
                 if (SDK_INT >= Build.VERSION_CODES.P) {
-                    setApplicationNightMode(
+                    AppCompatDelegate.setDefaultNightMode(
                         AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
                     )
                     settings.shouldFollowDeviceTheme = true
                 } else {
-                    setApplicationNightMode(
+                    AppCompatDelegate.setDefaultNightMode(
                         AppCompatDelegate.MODE_NIGHT_NO,
                     )
                     settings.shouldUseLightTheme = true
