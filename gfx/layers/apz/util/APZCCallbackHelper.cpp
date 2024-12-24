@@ -626,10 +626,17 @@ static dom::Element* GetDisplayportElementFor(
   return content->AsElement();
 }
 
-static dom::Element* GetRootDocumentElementFor(nsIWidget* aWidget) {
+static dom::Element* GetRootElementFor(nsIWidget* aWidget) {
   // This returns the root element that ChromeProcessController sets the
   // displayport on during initialization.
   if (nsView* view = nsView::GetViewFor(aWidget)) {
+    if (aWidget->GetWindowType() == widget::WindowType::Popup) {
+      MOZ_ASSERT(view->GetFrame() && view->GetFrame()->IsMenuPopupFrame() &&
+                 view->GetFrame()->GetContent() &&
+                 view->GetFrame()->GetContent()->IsElement());
+      return view->GetFrame()->GetContent()->AsElement();
+    }
+
     if (PresShell* presShell = view->GetPresShell()) {
       MOZ_ASSERT(presShell->GetDocument());
       return presShell->GetDocument()->GetDocumentElement();
@@ -641,6 +648,17 @@ static dom::Element* GetRootDocumentElementFor(nsIWidget* aWidget) {
 namespace {
 
 using FrameForPointOption = nsLayoutUtils::FrameForPointOption;
+
+ScrollContainerFrame* GetScrollContainerFor(nsIFrame* aTarget,
+                                            const nsIFrame* aRootFrame) {
+  if (!aTarget) {
+    return !aRootFrame->IsMenuPopupFrame()
+               ? aRootFrame->PresShell()->GetRootScrollContainerFrame()
+               : nullptr;
+  }
+
+  return nsLayoutUtils::GetAsyncScrollableAncestorFrame(aTarget);
+}
 
 // Determine the scrollable target frame for the given point and add it to
 // the target list. If the frame doesn't have a displayport, set one.
@@ -658,13 +676,12 @@ static bool PrepareForSetTargetAPZCNotification(
       aWidget, aRefPoint, relativeTo);
   nsIFrame* target = nsLayoutUtils::GetFrameForPoint(relativeTo, point);
   ScrollContainerFrame* scrollAncestor =
-      target ? nsLayoutUtils::GetAsyncScrollableAncestorFrame(target)
-             : aRootFrame->PresShell()->GetRootScrollContainerFrame();
+      GetScrollContainerFor(target, aRootFrame);
 
   // Assuming that if there's no scrollAncestor, there's already a displayPort.
   nsCOMPtr<dom::Element> dpElement =
       scrollAncestor ? GetDisplayportElementFor(scrollAncestor)
-                     : GetRootDocumentElementFor(aWidget);
+                     : GetRootElementFor(aWidget);
 
   if (MOZ_LOG_TEST(sApzHlpLog, LogLevel::Debug)) {
     nsAutoString dpElementDesc;
@@ -696,7 +713,13 @@ static bool PrepareForSetTargetAPZCNotification(
     // let's try to set a displayport again and bail out on this operation.
     APZCCH_LOG("Widget %p's document element %p didn't have a displayport\n",
                aWidget, dpElement.get());
-    APZCCallbackHelper::InitializeRootDisplayport(aRootFrame->PresShell());
+    if (aRootFrame->IsMenuPopupFrame()) {
+      // XXX It's unclear whether this swapped root element case can happen
+      // in popup window.
+      APZCCallbackHelper::InitializeRootDisplayport(aRootFrame);
+    } else {
+      APZCCallbackHelper::InitializeRootDisplayport(aRootFrame->PresShell());
+    }
     return false;
   }
 
