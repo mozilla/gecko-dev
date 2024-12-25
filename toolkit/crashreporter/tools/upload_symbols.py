@@ -184,6 +184,11 @@ def convert_zst_archive(zst_archive, tmpdir):
             reader = open(archive, "rb")
 
         def handle_file(data):
+            """
+            For a given pair of (file_name, bytes_data), return a pair
+            of (compressed_file_name, mozpack.files.File-like) or
+            (file_name, None) when the file can't be compressed.
+            """
             name, data = data
             log.info("Compressing %s", name)
             path = os.path.join(tmpdir, name.lstrip("/"))
@@ -202,6 +207,12 @@ def convert_zst_archive(zst_archive, tmpdir):
                 return (name + ".bz2", File(path))
             elif name.endswith((".pdb", ".exe", ".dll")):
                 import subprocess
+
+                # The CAB format doesn't support files larger than 2GB.
+                # Skipping the file is still better than failing the entire
+                # upload.
+                if len(data) >= 0x7FFF8000:
+                    return (name, None)
 
                 makecab = os.environ.get("MAKECAB", "makecab")
                 os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -238,6 +249,9 @@ def convert_zst_archive(zst_archive, tmpdir):
         jar = None
         try:
             for name, data in prepare_from(zst_archive, tmpdir.name):
+                if data is None:
+                    log.info("Skipping %s", name)
+                    continue
                 if not jar:
                     jar = JarWriter(zip_path)
                     zip_paths.append(zip_path)
