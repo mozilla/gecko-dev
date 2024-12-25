@@ -324,3 +324,28 @@ add_task(async function always_empty_if_paste_go() {
     assertEngagementTelemetry(expected);
   });
 });
+
+add_task(async function actions_search_mode() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+  });
+
+  const expected = [
+    {
+      engagement_type: "enter",
+      groups: "general",
+      results: "action",
+      n_results: 1,
+    },
+  ];
+
+  await doTest(async () => {
+    await openPopup("> view add");
+    await UrlbarTestUtils.promisePopupClose(window, () => {
+      EventUtils.synthesizeKey("KEY_Tab");
+      EventUtils.synthesizeKey("KEY_Enter");
+    });
+
+    assertEngagementTelemetry(expected);
+  });
+});

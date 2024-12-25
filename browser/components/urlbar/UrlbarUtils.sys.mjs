@@ -1519,6 +1519,7 @@ export var UrlbarUtils = {
           case "UrlbarProviderQuickSuggestContextualOptIn":
             return "fxsuggest_data_sharing_opt_in";
           case "UrlbarProviderGlobalActions":
+          case "UrlbarProviderActionsSearchMode":
             return "action";
         }
         break;
