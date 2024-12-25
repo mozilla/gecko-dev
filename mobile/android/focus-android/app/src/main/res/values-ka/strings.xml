@@ -969,7 +969,7 @@
 
 
   <!-- Label for the checkbox to send the tab crash report to Mozilla -->
-    <string name="crash_report_send_crash_label">გათიშვის მოხსენების გადაგზავნა Mozilla-სთვის</string>
+    <string name="crash_report_send_crash_label">გათიშვის მოხსენება გაეგზავნოს Mozilla-ს</string>
 
     <!-- Tracking protection bottom sheet -->
 

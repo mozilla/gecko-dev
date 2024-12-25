@@ -718,7 +718,7 @@
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">მოთხოვნის გაგზავნა</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">გსურთ, ამ საიტის მხარდაჭერილებში დამატება?</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">გსურთ ამ საიტის მხარდაჭერილებში დამატება?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">მოთხოვნა გაგზავნილია</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -1375,7 +1375,7 @@
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">ვწუხვართ. %1$s ვერ ტვირთავს ამ გვერდს.</string>
     <!-- Send crash report checkbox text on the tab crash page -->
-    <string name="tab_crash_send_report">გათიშვის მოხსენების გადაგზავნა Mozilla-სთვის</string>
+    <string name="tab_crash_send_report">გათიშვის მოხსენება გაეგზავნოს Mozilla-ს</string>
     <!-- Close tab button text on the tab crash page -->
     <string name="tab_crash_close">ჩანართის დახურვა</string>
     <!-- Restore tab button text on the tab crash page -->
@@ -1402,7 +1402,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">საქაღალდის დამატება</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
-    <string name="bookmark_saved_in_folder_snackbar">ინახავს „%s“</string>
+    <string name="bookmark_saved_in_folder_snackbar">შეინახავს „%s“</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ჩასწორება</string>
     <!-- Bookmark menu move button -->
@@ -2342,7 +2342,7 @@
     <!-- label shown when there are not site exceptions to show in the site exception settings -->
     <string name="no_site_exceptions">გამონაკლისები არ არის</string>
     <!-- Bookmark deletion confirmation -->
-    <string name="bookmark_deletion_confirmation">ნამდვილად გსურთ, ამ სანიშნის წაშლა?</string>
+    <string name="bookmark_deletion_confirmation">ნამდვილად გსურთ ამ სანიშნის წაშლა?</string>
     <!-- Browser menu button that adds a shortcut to the home fragment -->
     <string name="browser_menu_add_to_shortcuts">მალსახმობებში დამატება</string>
     <!-- Browser menu button that removes a shortcut from the home fragment -->
