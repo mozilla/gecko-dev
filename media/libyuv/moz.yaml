@@ -56,3 +56,4 @@ vendoring:
     - 02_update_gyp.patch
     - 03_add_neon64_and_sve_gyp_targets.patch
     - 04_add_missing_volatile.patch
+    - 05_fix_loongarch64_link_failed.patch

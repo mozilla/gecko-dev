@@ -29,6 +29,7 @@
     'mips_msa%': 0,  # Default to msa off.
     'build_neon': 0,
     'build_msa': 0,
+    'build_lsx': 0,
     'conditions': [
        ['(target_arch == "armv7" or target_arch == "armv7s" or \
        (target_arch == "arm" and arm_version >= 7) or target_arch == "arm64")\
@@ -96,6 +97,15 @@
         ['build_msa != 0', {
           'defines': [
             'LIBYUV_MSA',
+          ],
+        }],
+        ['build_lsx == 0', {
+          'conditions': [
+            ['target_arch == "loongarch64"', {
+              'cflags_mozilla': [
+                '-mno-lsx',
+              ],
+            }],
           ],
         }],
         ['build_with_mozilla == 1', {
