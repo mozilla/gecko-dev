@@ -54,12 +54,9 @@ info = {
 # get os information and related data
 if system in ["Microsoft", "Windows"]:
     info["os"] = "win"
-    # There is a Python bug on Windows to determine platform values
-    # http://bugs.python.org/issue7860
-    if "PROCESSOR_ARCHITEW6432" in os.environ:
-        processor = os.environ.get("PROCESSOR_ARCHITEW6432", processor)
-    else:
-        processor = os.environ.get("PROCESSOR_ARCHITECTURE", processor)
+    # uname().processor on Windows gives the full CPU name but
+    # mozinfo.processor is only about CPU architecture
+    processor = machine
     system = os.environ.get("OS", system).replace("_", " ")
     (major, minor, build_number, _, _) = os.sys.getwindowsversion()
     version = "%d.%d.%d" % (major, minor, build_number)
