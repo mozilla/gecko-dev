@@ -848,6 +848,9 @@
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ കാണുക</string>
 
+    <!-- Extension process crash dialog to user -->
+    <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
+    <string name="extension_process_crash_dialog_title">വിപുലീകരണങ്ങൾ താല്ക്കാലികമായി പ്രവർത്തനരഹിതമാക്കി</string>
     <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
     <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ വീണ്ടും തുടങ്ങി ശ്രമിക്കുക</string>
 
@@ -1470,6 +1473,9 @@
     <!-- Category header of a preference that allows a user to alter settings related to web content. -->
     <string name="preferences_category_content">ഉള്ളടക്കം</string>
 
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">എപ്പോഴും ഉപരിഫലക സൈറ്റ് ആവശ്യപ്പെടൂ</string>
+
     <!-- Collections -->
     <!-- Collections header on home fragment -->
     <string name="collections_header">ശേഖരങ്ങൾ</string>
@@ -1585,9 +1591,15 @@
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
     <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സ് അതിവേഗവും സ്വകാര്യവുമാണു്</string>
+    <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
+    The app name is in the text, due to limitations with localizing Nimbus experiments -->
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">ഫയർഫോക്സിനെ താങ്ങളുടെ സ്ഥിര അന്വേഷിയന്ത്രം ആക്കുക</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">സ്വകാര്യ തിരയൽ ഉപയോഗിച്ചു് നോക്കു</string>
 
+    <!-- Text shown in the notification that pops up to re-engage the user.
+    %1$s is a placeholder that will be replaced by the app name. -->
+    <string name="notification_re_engagement_text">%1$s-ൽ കരുതിവച്ച കുക്കികളോ നാൾവഴിയോ ഇല്ലാതെ തിരയുക.</string>
     <!-- Title A shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_A_title">യാതൊന്നും അവശേഷിപ്പിക്കാതെ തിരയുക</string>
     <!-- Text A shown in the notification that pops up to re-engage the user.
@@ -1692,6 +1704,8 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">മായ്ക്കാനുള്ള സമയപരിധി</string>
+    <!-- Body text of a delete browsing data dialog. -->
+    <string name="delete_history_prompt_body_2">നാൾവഴി മായ്ക്കുന്നു (മറ്റ് ഉപകരണങ്ങളിൽ നിന്ന് സമന്വയിപ്പിച്ച നാൾവഴി ഉൾപ്പെടെ)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
     <string name="delete_history_prompt_button_last_hour">കഴിഞ്ഞ മണിക്കൂരിൽ</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for today and yesterday. -->
@@ -1791,6 +1805,8 @@
     <string name="preference_enhanced_tracking_protection_custom_cookies_3">എല്ലാ മൂന്നാം കക്ഷി കുക്കികളും (വെബ്‌സൈറ്റുകൾ തകരാൻ കാരണമായേക്കാം)</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
     <string name="preference_enhanced_tracking_protection_custom_cookies_4">എല്ലാ കുക്കികളും (വെബ്‌സൈറ്റുകൾ തകരാൻ ഇടയാക്കും)</string>
+    <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: &-->
+    <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">ദത്ത പങ്കിടുകയോ വിൽക്കുകയോ ചെയ്യരുതെന്ന് വെബ്‌സൈറ്റുകളോട് പറയുക</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
     <string name="preference_enhanced_tracking_protection_custom_tracking_content">ട്രാക്ക് ചെയ്യുന്ന ഉള്ളടക്കം</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
@@ -2066,6 +2082,8 @@
     <string name="addresses_state">സംസ്ഥാനം</string>
     <!-- The header for the subregion of an address when "province" should be used -->
     <string name="addresses_province">പ്രദേശം</string>
+    <!-- The header for the zip code of an address -->
+    <string name="addresses_zip">സിപ്പ്</string>
     <!-- The header for the country or region of an address -->
     <string name="addresses_country">രാജ്യം അല്ലെങ്കില്‍ പ്രദേശം</string>
     <!-- The header for the phone number of an address -->
@@ -2610,6 +2628,9 @@
     <string name="protection_panel_banner_not_secure_description">താങ്കളുടെ സമ്പർക്കം സുരക്ഷിതമല്ല.</string>
     <!-- Title text for the protection panel banner when tracking protection is disabled. -->
     <string name="protection_panel_banner_not_protected_title">താങ്ങൾ പരിരക്ഷകൾ അണച്ചു</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s കാവൽ നിൽക്കുന്നു</string>
     <!-- Description text for the protection panel banner when tracking protection is enabled. -->
     <string name="protection_panel_banner_protected_description">താങ്ങൾ സംരക്ഷിക്കപ്പെട്ടിരിക്കുന്നു. ഞങ്ങൾ എന്തെങ്കിലും കണ്ടെത്തിയാൽ താങ്ങളെ അറിയിക്കാം.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
@@ -2755,8 +2776,12 @@
     <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">മാർച്ച് 14-ന് മുമ്പ് പുതുക്കുക</string>
     <!-- Homepage card title about old Firefox version -->
     <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">പുതുക്കാൻ ഇനി 7 ദിവസങ്ങൾ പോലും ഇല്ല</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">വേർപ്രമാണപത്രം കാലഹരണപ്പെടുന്നതിനാൽ മാർച്ച് 14-ന്, ആഡ്-ഓണുകളും മറ്റ് സവിഷേതകളും ഫീച്ചറുകളും പ്രവർത്തിക്കുന്നത് നിർത്തും.</string>
     <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">താങ്ങളുടെ ഫയർഫോക്സു് നിലനിർത്താനുള്ള അവസാന അവസരം</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">വേർപ്രമാണപത്രം കാലഹരണപ്പെടുന്നതിനാൽ താങ്ങളുടെ ഫയർഫോക്സു് പതിപ്പ് മാർച്ച് 14-ന് ശരിയായി പ്രവർത്തിക്കുന്നത് നിർത്തും.</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">പുതുക്കൽ ചെയ്താൽ നല്ലതായിരുന്നു</string>
     <!-- Push notification message about old Firefox version -->

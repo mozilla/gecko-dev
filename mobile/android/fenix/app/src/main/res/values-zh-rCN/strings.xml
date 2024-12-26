@@ -2216,7 +2216,7 @@
     <string name="preferences_credit_cards_sync_cards">同步卡片信息</string>
 
     <!-- Preference option for adding a card -->
-    <string name="preferences_credit_cards_add_credit_card_2">添加信用卡</string>
+    <string name="preferences_credit_cards_add_credit_card_2">添加卡片</string>
     <!-- Preference option for managing saved cards -->
     <string name="preferences_credit_cards_manage_saved_cards_2">管理信用卡</string>
     <!-- Preference option for adding an address -->
@@ -2230,7 +2230,7 @@
     <string name="preferences_addresses_save_and_autofill_addresses_summary_2">包括电话号码和邮箱地址</string>
 
     <!-- Title of the "Add card" screen -->
-    <string name="credit_cards_add_card">添加信用卡</string>
+    <string name="credit_cards_add_card">添加卡片</string>
     <!-- Title of the "Edit card" screen -->
     <string name="credit_cards_edit_card">编辑卡片</string>
     <!-- The header for the card number of a credit card -->
@@ -2248,7 +2248,7 @@
     <!-- The text for the "Delete card" button for deleting a credit card -->
     <string name="credit_cards_delete_card_button">删除卡片</string>
     <!-- The text for the confirmation message of "Delete card" dialog -->
-    <string name="credit_cards_delete_dialog_confirmation_2">确定要删除信用卡吗？</string>
+    <string name="credit_cards_delete_dialog_confirmation_2">确定要删除卡片吗？</string>
     <!-- The text for the positive button on "Delete card" dialog -->
     <string name="credit_cards_delete_dialog_button">删除</string>
     <!-- The title for the "Save" menu item for saving a credit card -->

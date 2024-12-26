@@ -113,6 +113,8 @@
     <string name="browser_menu_stop">ఆపివేయి</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">పొడగింతలు</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">ఇంకా తెలుసుకోండి</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">ఖాతా సమాచారం</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -166,10 +168,13 @@
     <string name="browser_menu_switch_to_desktop_site">డెస్క్‌టాప్ సైటుకి మారండి</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">పనిముట్లు</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">సహాయం</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">అమరికలు</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
-    <string name="browser_menu_save">భద్రపరుచు</string>
-
+    <string name="browser_menu_save">భద్రపరుచు</string>dsa
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->
     <string name="browser_toolbar_home">ముంగిలి తెర</string>
@@ -185,7 +190,7 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">స్కాన్ చేయి</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">స్కాన్ చేయి</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">శోధన యంత్ర అమరికలు</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -213,11 +218,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">మూసివేయి</string>
 
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">కొనసాగించు</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">ఇప్పుడు కాదు</string>
-
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">ఇప్పుడు కాదు</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -227,6 +227,23 @@
 
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ఇప్పుడు కాదు</string>
+
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">పూర్తయింది</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">రద్దుచేయి</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Firefoxకి స్వాగతం</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">అంగీకరించి కొనసాగించండి</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">భద్రపరచి కొనసాగించు</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button">దాటవేయి</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">పైన</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">అడుగున</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -246,6 +263,8 @@
     <string name="preferences_category_general">సాధారణం</string>
     <!-- Preference category for all links about Fenix -->
     <string name="preferences_category_about">గురించి</string>
+    <!-- Preference category for settings related to changing the default search engine -->
+    <string name="preferences_category_select_default_search_engine">ఒకటి ఎంచుకోండి</string>
     <!-- Preference for settings related to changing the default search engine -->
     <string name="preferences_default_search_engine">అప్రమేయ శోధన యంత్రం</string>
     <!-- Preference for settings related to Search -->
@@ -262,7 +281,7 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">అంతరంగికత, భద్రత</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">సైటు అనుమతులు</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">సైటు అనుమతులు</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">అంతరంగిక విహారణ</string>
     <!-- Preference for opening links in a private tab-->
@@ -279,6 +298,8 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">రద్దుచేయి</string>
 
+    <!-- Summary of https only preference if https only is set to on in all tabs -->
+    <string name="preferences_https_only_on_all">అన్ని ట్యాబులలోనూ</string>
     <!-- Text displayed that links to website containing documentation about "HTTPS-Only" mode -->
     <string name="preferences_http_only_learn_more">ఇంకా తెలుసుకోండి</string>
     <!-- Option for the https only setting -->
@@ -293,6 +314,8 @@
     <string name="preferences_override_sync_tokenserver">అభిమత సింక్ సర్వరు</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">ఖాతా</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">చిరునామా పట్టీ ఉండే చోటు</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">అలంకారం</string>
     <!-- Preference for customizing the home screen -->
@@ -313,6 +336,8 @@
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">డేటా ఎంపికలు</string>
 
+    <!-- Preference for data collection -->
+    <string name="preferences_data_collection">దత్త సేకరణ</string>
     <!-- Preference for developers -->
     <string name="preferences_remote_debugging">USB ద్వారా రిమోట్ డీబగ్గింగ్</string>
     <!-- Preference title for switch preference to show search suggestions -->
@@ -341,6 +366,9 @@
     <!-- Preference for notifications -->
     <string name="preferences_notifications">గమనింపులు</string>
 
+    <!-- Add-on Permissions -->
+    <!-- The title of the required permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">అవసరం</string>
     <!-- The title of the optional permissions section from addon's permissions screen -->
     <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">ఐచ్ఛికం</string>
 
@@ -428,7 +456,9 @@
     <string name="exceptions_empty_message_learn_more_link">ఇంకా తెలుసుకోండి</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">వాడుక, సాంకేతిక డేటా</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">వాడుక, సాంకేతిక డేటా</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ఇంకా తెలుసుకోండి</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s‌ను మెరుగుపరచడంలో తోడ్పడటానికి మీ విహారిణి గురించిన పనితనం, వాడుక, హార్డ్‌వేరు, అభిమతీకరణల డేటాను మొజిల్లాతో పంచుకుంటుంది</string>
     <!-- Preference switch for marketing data collection -->
@@ -494,6 +524,9 @@
     <!-- Content description (not visible, for screen readers etc.): "Close button for library settings" -->
     <string name="content_description_close_button">మూసివేయి</string>
 
+    <!-- Title to show in alert when a lot of tabs are to be opened
+    %d is a placeholder for the number of tabs that will be opened -->
+    <string name="open_all_warning_title">%d ట్యాబులు తెరవాలా?</string>
     <!-- Dialog button text for confirming open all tabs -->
     <string name="open_all_warning_confirm">తెరిచివున్న ట్యాబులు</string>
     <!-- Dialog button text for canceling open all tabs -->
@@ -559,9 +592,9 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">ఇంకా తెలుసుకోండి</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">సరే</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">సరే</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">రద్దుచేయి</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">రద్దుచేయి</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -618,8 +651,6 @@
     <string name="collection_open_tabs">ట్యాబులను తెరువు</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">సేకరణ పేరు</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">పేరుమార్చు</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">తీసివేయి</string>
 
@@ -670,6 +701,12 @@
     <string name="download_delete_item_1">తొలగించు</string>
 
 
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">రద్దుచేయి</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">పంపించు</string>
+
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">క్షమించండి. %1$s ఆ పేజీని లోడు చేయలేకుంది.</string>
@@ -693,8 +730,6 @@
     <string name="bookmark_delete_negative">రద్దుచేయి</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">సంచయం చేర్చు</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">ఇష్టాంశం భద్రమయింది!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">మార్చు</string>
     <!-- Bookmark overflow menu edit button -->
@@ -806,6 +841,10 @@
 
     <!-- Summary of tracking protection preference if tracking protection is set to off -->
     <string name="tracking_protection_off">అచేతనం</string>
+    <!-- Summary of tracking protection preference if tracking protection is set to strict -->
+    <string name="tracking_protection_strict">కఠినం</string>
+    <!-- Summary of tracking protection preference if tracking protection is set to custom -->
+    <string name="tracking_protection_custom">అభిమతం</string>
     <!-- Label for global setting that indicates that all video and audio autoplay is allowed -->
     <string name="preference_option_autoplay_allowed2">ఆడియో, వీడియోలను అనుమతించు</string>
     <!-- Label for site specific setting that indicates that all video and audio autoplay is allowed -->
@@ -832,6 +871,9 @@
     <string name="studies_on">చేతనం</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">అచేతనం</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">అనుమతులు</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -931,8 +973,6 @@
     <string name="snackbar_tab_closed">ట్యాబు మూసివేయబడింది</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">ట్యాబులు మూసివేయబడ్డాయి</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">ఇష్టాంశాలు భద్రమయ్యాయి!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
     <string name="snackbar_private_tab_closed">అంతరంగిక ట్యాబు మూసివేయబడింది</string>
     <!-- Text shown in snackbar when user closes all private tabs -->
@@ -957,8 +997,6 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">తొలగించు</string>
 
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">నిండు తెర రీతిలోకి వెళ్తున్నారు</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL కాపీ అయ్యింది</string>
     <!-- Sample text for accessibility font size -->
@@ -1108,8 +1146,6 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">అంతరంగిక ట్యాబులలో మాత్రమే</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">క్రిప్టోమైనర్లు</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">ఫింగర్‌ప్రింటర్లు</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">వివరాలు</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1128,11 +1164,7 @@
     <string name="etp_cryptominers_title">క్రిప్టోమైనర్లు</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">మీ పరికరం లోనికి దూరి డిజిటల్ కరెన్సీని తవ్వాలనుకునే హానికరమైన స్క్రిప్టులను నియంత్రిస్తుంది.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">ఫింగర్‌ప్రింటర్లు</string>
 
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">మీ పరికరం గురించి ప్రత్యేకంగా గుర్తించగలిగే డేటాను సేకరించకుండా అపుతుంది. ఈ డేటాను ట్రాకింగ్ ఉద్దేశాలకు వాడుకోగలరు.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ట్రాకింగ్ విషయం</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1284,6 +1316,8 @@
     <string name="credit_cards_menu_delete_card">కార్డును తొలగించు</string>
     <!-- The text for the "Delete card" button for deleting a credit card -->
     <string name="credit_cards_delete_card_button">కార్డును తొలగించు</string>
+    <!-- The text for the confirmation message of "Delete card" dialog -->
+    <string name="credit_cards_delete_dialog_confirmation_2">కార్డు తొలగించాలా?</string>
     <!-- The text for the positive button on "Delete card" dialog -->
     <string name="credit_cards_delete_dialog_button">తొలగించు</string>
     <!-- The title for the "Save" menu item for saving a credit card -->
@@ -1435,8 +1469,6 @@
 
     <!-- Title text displayed in the rename top site dialog. -->
     <string name="top_sites_rename_dialog_title">పేరు</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">సరే</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">రద్దుచేయి</string>
 
@@ -1483,8 +1515,6 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ఇప్పుడు కాదు</string>
 
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
     <string name="review_quality_check_highlights_show_less">కొన్నే చూపించు</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
@@ -1518,9 +1548,16 @@
     <string name="translations_bottom_sheet_default_dropdown_selection">ఒక భాషను ఎంచుకోండి</string>
 
 
+    <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
+    <string name="translation_in_progress_snackbar">అనువదిస్తోంది…</string>
+
+
     <!-- Translations options dialog -->
     <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
     <string name="translation_option_bottom_sheet_title_heading">అనువాద ఎంపికలు</string>
+
+    <!-- Button text for the button that will take the user to the translation settings dialog. -->
+    <string name="translation_option_bottom_sheet_translation_settings">అనువాద అమరికలు</string>
 
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
@@ -1551,17 +1588,27 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">రద్దుచేయి</string>
 
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">అవును</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">కాదు</string>
-
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">రద్దుచేయి</string>
 
+    <!-- The total tab count category in the tab count section in Tab Tools. -->
+    <string name="debug_drawer_tab_tools_tab_count_total">మొత్తం</string>
+
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">కొనసాగించు</string>
+    <!-- The submit button label text -->
+    <string name="micro_survey_submit_button_label">సమర్పించు</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
     <string name="microsurvey_close_button_content_description">మూసివేయి</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">చిరునామాలు</string>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">ఇప్పుడే తాజాకరించు</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">మీరు Firefox యొక్క పాత వెర్షన్ వాడుతున్నారు</string>
     </resources>

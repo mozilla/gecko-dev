@@ -3026,4 +3026,10 @@
     <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Oppdater før 14. mars</string>
     <!-- Push notification title about old Firefox version. "Update" is a noun. -->
     <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Oppdatering tilrådd</string>
-    </resources>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Du brukar ein eldre versjon av Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Oppdater før 14. mars for å fortsette å bruke tillegg og andre funksjonar.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Enkelte funksjonar vil slutte å fungere i morgon.</string>
+</resources>

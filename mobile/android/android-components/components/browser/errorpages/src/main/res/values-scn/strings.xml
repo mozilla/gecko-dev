@@ -7,7 +7,7 @@
     <string name="mozac_browser_errorpages_generic_title">Mpussìbbili cumplitari a dumanna</string>
     <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
     <string name="mozac_browser_errorpages_generic_message"><![CDATA[
-      <p>Nun sunnu dispunìbbili infurmazzioni superchiu ncapu a stu prubblema o erruri.</p>
+      <p>Nun sunnu dispunìbbili nfurmazzioni superchiu ncapu a stu prubblema o erruri.</p>
     ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
