@@ -1195,7 +1195,7 @@ class EngineView {
   // nsITreeView
   get rowCount() {
     let localModes = UrlbarUtils.LOCAL_SEARCH_MODES;
-    if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+    if (!lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
       localModes = localModes.filter(
         mode => mode.source != UrlbarUtils.RESULT_SOURCE.ACTIONS
       );

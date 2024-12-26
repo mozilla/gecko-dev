@@ -18,9 +18,6 @@ const isRestrictKeywordsFeatureOn = () =>
   UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate");
 
 add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
-  });
   let prefs = await openPreferencesViaOpenPreferencesAPI("search", {
     leaveOpen: true,
   });
@@ -321,12 +318,6 @@ async function forEachLocalShortcutRow(callback) {
   for (let i = 0; i < UrlbarUtils.LOCAL_SEARCH_MODES.length; i++) {
     let shortcut = UrlbarUtils.LOCAL_SEARCH_MODES[i];
     let row = engines.length + i;
-    // These tests assume LOCAL_SEARCH_MODES are enabled, this can be removed
-    // when we enable QuickActions. We cant just enable the pref in browser.ini
-    // as this test calls clearUserPref.
-    if (shortcut.pref == "shortcuts.actions") {
-      continue;
-    }
     await callback(row, shortcut);
   }
 }
