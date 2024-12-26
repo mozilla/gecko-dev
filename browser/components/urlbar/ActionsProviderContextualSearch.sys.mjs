@@ -19,6 +19,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProviderAutofill: "resource:///modules/UrlbarProviderAutofill.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
+  UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
 });
 
 const ENABLED_PREF = "contextualSearch.enabled";
@@ -54,6 +55,8 @@ class ProviderContextualSearch extends ActionsProvider {
       queryContext.trimmedSearchString &&
       lazy.UrlbarPrefs.getScotchBonnetPref(ENABLED_PREF) &&
       !queryContext.searchMode &&
+      queryContext.tokens.length == 1 &&
+      queryContext.tokens[0].type != lazy.UrlbarTokenizer.TYPE.URL &&
       lazy.UrlbarPrefs.get("suggest.engines")
     );
   }
@@ -117,11 +120,7 @@ class ProviderContextualSearch extends ActionsProvider {
     }
 
     let browser =
-      lazy.BrowserWindowTracker.getTopWindow()?.gBrowser.selectedBrowser;
-    if (!browser) {
-      return null;
-    }
-
+      lazy.BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser;
     let host;
     try {
       host = UrlbarUtils.stripPrefixAndTrim(browser.currentURI.host, {
