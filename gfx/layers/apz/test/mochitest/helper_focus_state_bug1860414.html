@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,width=device-width">
+  <script src="apz_test_utils.js"></script>
+  <script src="apz_test_native_event_utils.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script src="/tests/SimpleTest/NativeKeyCodes.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <style>
+body {
+  margin: 0;
+  padding: 0;
+}
+.spacer {
+  height: 5000px;
+}
+
+#target {
+  height:50px;
+  width: 50px;
+}
+
+#target:focus {
+  outline: none;
+}
+  </style>
+</head>
+<body>
+  <div class="spacer">
+  </div>
+  <div tabindex=1 id="target">
+  </div>
+</body>
+<script>
+
+function nativeHomeKey() {
+  switch (getPlatform()) {
+    case "windows":
+      return WIN_VK_HOME;
+    case "mac":
+      return MAC_VK_Home;
+  }
+  throw new Error(
+    "Native key events not supported on platform " + getPlatform()
+  );
+}
+
+function nativeEndKey() {
+  switch (getPlatform()) {
+    case "windows":
+      return WIN_VK_END;
+    case "mac":
+      return MAC_VK_End;
+  }
+  throw new Error(
+    "Native key events not supported on platform " + getPlatform()
+  );
+}
+
+function nativeTabKey() {
+  switch (getPlatform()) {
+    case "windows":
+      return WIN_VK_TAB;
+    case "mac":
+      return MAC_VK_Tab;
+  }
+  throw new Error(
+    "Native key events not supported on platform " + getPlatform()
+  );
+}
+
+async function test() {
+  let utils = SpecialPowers.DOMWindowUtils;
+
+  is(document.scrollingElement.scrollTop, 0, "No scroll should have occured yet");
+
+  utils.advanceTimeAndRefresh(50);
+  utils.restoreNormalRefresh();
+  await promiseApzFlushedRepaints();
+  await promiseFrame();
+
+  let transformEndPromise = promiseTransformEnd();
+
+  info("Synthesize a End key to trigger keyboard scroll to the bottom");
+  await new Promise(resolve => {
+    synthesizeNativeKey(KEYBOARD_LAYOUT_EN_US, nativeEndKey(), {},
+                        "", "", resolve);
+  });
+
+  await transformEndPromise;
+  await promiseApzFlushedRepaints();
+  await promiseFrame();
+
+  is(checkHasAsyncKeyScrolled(), false,
+     "We should have no async scrolls in the test setup");
+
+  info("Synthesize a TAB key to trigger a focus state change");
+  await new Promise(resolve => {
+    synthesizeNativeKey(KEYBOARD_LAYOUT_EN_US, nativeTabKey(), {},
+                        "", "", resolve);
+  });
+  // Remove focus from the target to ensure that we can async scroll.
+  target.blur();
+
+  utils.advanceTimeAndRefresh(50);
+  utils.restoreNormalRefresh();
+  await promiseApzFlushedRepaints();
+
+  info("Synthesize a Home key to trigger keyboard scroll to the top");
+  transformEndPromise = promiseTransformEnd();
+  await new Promise(resolve => {
+    synthesizeNativeKey(KEYBOARD_LAYOUT_EN_US, nativeHomeKey(), {},
+                        "", "", resolve);
+  });
+
+  await transformEndPromise;
+  await promiseApzFlushedRepaints();
+  await promiseFrame();
+
+  is(checkHasAsyncKeyScrolled(), true,
+     "The focus change should not have invalidated our focus state");
+}
+
+function checkHasAsyncKeyScrolled() {
+  // Reconstruct the APZC tree structure in the last paint.
+  var apzcTree = getLastApzcTree();
+  var rcd = findRcdNode(apzcTree);
+
+  if (rcd) {
+    return rcd.hasAsyncKeyScrolled === "1";
+  }
+
+  info("Last paint rcd is null");
+  return false;
+}
+
+function isOnChaosMode() {
+  return SpecialPowers.Services.env.get("MOZ_CHAOSMODE");
+}
+
+if ((getPlatform() == "mac" || getPlatform() == "windows") &&
+    !isOnChaosMode()) {
+  waitUntilApzStable()
+  .then(test)
+  .then(subtestDone, subtestFailed);
+} else {
+  ok(true, "Skipping test, native key events are not supported on " +
+     getPlatform());
+  subtestDone();
+}
+</script>
+</html>

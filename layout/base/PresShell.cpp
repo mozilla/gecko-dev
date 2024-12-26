@@ -7153,6 +7153,9 @@ nsresult PresShell::EventHandler::HandleEvent(nsIFrame* aFrameForPresShell,
   // the next transasction that gets sent to the compositor will carry this over
   if (mPresShell->mAPZFocusSequenceNumber < aGUIEvent->mFocusSequenceNumber) {
     mPresShell->mAPZFocusSequenceNumber = aGUIEvent->mFocusSequenceNumber;
+    if (aFrameForPresShell) {
+      aFrameForPresShell->SchedulePaint(nsIFrame::PAINT_COMPOSITE_ONLY);
+    }
   }
 
   if (mPresShell->IsDestroying() ||

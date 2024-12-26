@@ -28,6 +28,8 @@ var subtests = [
   {"file": "helper_bug1756529.html", prefs: [...bug1756529_prefs,
                                              ["test.events.async.enabled", true]]},
   {"file": "helper_tab_scroll_scrollIntoView.html"},
+  {"file": "helper_focus_state_bug1860414.html", prefs: [["apz.test.logging_enabled", true],
+                                                         ["test.events.async.enabled", true]]},
 ];
 
 if (isKeyApzEnabled()) {
