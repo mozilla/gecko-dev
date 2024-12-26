@@ -28,6 +28,24 @@ class SettingsCrashReportCacheTest {
     }
 
     @Test
+    fun `GIVEN cache has 0 stored for crashReportCutoffDate WHEN accessed THEN returns null`() = runTestOnMain {
+        `when`(settings.crashReportCutoffDate).thenReturn(0)
+
+        val cache = SettingsCrashReportCache(settings)
+        val result: TimeInMillis? = cache.getCutoffDate()
+
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `WHEN setting CutoffDate with null value THEN 0 is stored`() = runTestOnMain {
+        val cache = SettingsCrashReportCache(settings)
+        cache.setCutoffDate(null)
+
+        verify(settings).crashReportCutoffDate = 0
+    }
+
+    @Test
     fun `GIVEN cache has 0 stored for DeferredUntil WHEN accessed THEN returns null`() = runTestOnMain {
         `when`(settings.crashReportDeferredUntil).thenReturn(0)
 

@@ -14,6 +14,13 @@ import org.mozilla.fenix.utils.Settings
  * @param settings Convenience delegate for Shared Preferences.
  */
 class SettingsCrashReportCache(private val settings: Settings) : CrashReportCache {
+    override suspend fun getCutoffDate(): TimeInMillis? =
+        settings.crashReportCutoffDate.takeIf { it != 0L }
+
+    override suspend fun setCutoffDate(timeInMillis: TimeInMillis?) {
+        settings.crashReportCutoffDate = timeInMillis ?: 0
+    }
+
     override suspend fun getDeferredUntil(): TimeInMillis? =
         settings.crashReportDeferredUntil.takeIf { it != 0L }
 

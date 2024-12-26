@@ -13,6 +13,19 @@ import mozilla.components.lib.crash.CrashReporter
  * An interface to store and retrieve a timestamp to defer submitting unsent crashes until.
  */
 interface CrashReportCache {
+    /**
+     * Retrieves the previously stored cutoff date for crash reports.
+     *
+     * @return The cutoff date as a timestamp in milliseconds, or `null` if none has been set.
+     */
+    suspend fun getCutoffDate(): TimeInMillis?
+
+    /**
+     * Stores a cutoff date for crash reports.
+     *
+     * @param timeInMillis The cutoff date as a timestamp in milliseconds or `null`.
+     */
+    suspend fun setCutoffDate(timeInMillis: TimeInMillis?)
 
     /**
      * Gets the stored deferred timestamp.
@@ -93,7 +106,7 @@ class CrashMiddleware(
                 }
             }
             is CrashAction.CheckForCrashes -> scope.launch {
-                dispatch(CrashAction.FinishCheckingForCrashes(crashReporter.hasUnsentCrashReportsSince()))
+                dispatch(CrashAction.FinishCheckingForCrashes(crashReporter.hasUnsentCrashReportsSince(cutoffDate())))
             }
             is CrashAction.FinishCheckingForCrashes -> scope.launch {
                 if (!action.hasUnsentCrashes) { return@launch }
@@ -120,8 +133,14 @@ class CrashMiddleware(
         }
     }
 
+    private suspend fun cutoffDate(): TimeInMillis {
+        return cache.getCutoffDate() ?: currentTimeInMillis().also {
+            cache.setCutoffDate(it)
+        }
+    }
+
     private suspend fun sendUnsentCrashReports() {
-        crashReporter.unsentCrashReportsSince().forEach {
+        crashReporter.unsentCrashReportsSince(cutoffDate()).forEach {
             crashReporter.submitReport(it)
         }
     }

@@ -106,13 +106,44 @@ class CrashMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN a crash reporter that has unsent crashes WHEN handling the check for crashes THEN dispatch FinishCheckingForCrashes with hasUnsentCrashes = true`() = runTestOnMain {
+    fun `GIVEN a crash reporter that has unsent crashes and no cutoff date WHEN handling the check for crashes THEN set cutoff date and dispatch FinishCheckingForCrashes with hasUnsentCrashes = true`() = runTestOnMain {
         val crashReporter: CrashReporter = mock()
-        val middleware = CrashMiddleware(mock(), crashReporter, mock(), scope)
+        val cache: CrashReportCache = mock()
+        val middleware = CrashMiddleware(cache, crashReporter, { 777L }, scope)
         val middlewareContext: Pair<() -> CrashState, (CrashAction) -> Unit> = Pair(mock(), mock())
 
         val (_, dispatcher) = middlewareContext
-        `when`(crashReporter.hasUnsentCrashReportsSince()).thenReturn(true)
+        `when`(cache.getCutoffDate()).thenReturn(null)
+        `when`(crashReporter.hasUnsentCrashReportsSince(777L)).thenReturn(true)
+        middleware.invoke(middlewareContext, mock(), CrashAction.CheckForCrashes)
+
+        verify(cache).setCutoffDate(777L)
+        verify(dispatcher).invoke(CrashAction.FinishCheckingForCrashes(true))
+    }
+
+    @Test
+    fun `GIVEN a crash reporter that has unsent crashes and a cutoff date WHEN handling the check for crashes THEN dispatch FinishCheckingForCrashes with hasUnsentCrashes = true`() = runTestOnMain {
+        val crashReporter: CrashReporter = mock()
+        val cache: CrashReportCache = mock()
+        val middleware = CrashMiddleware(cache, crashReporter, { 777L }, scope)
+        val middlewareContext: Pair<() -> CrashState, (CrashAction) -> Unit> = Pair(mock(), mock())
+
+        val (_, dispatcher) = middlewareContext
+        `when`(cache.getCutoffDate()).thenReturn(123456L)
+        `when`(crashReporter.hasUnsentCrashReportsSince(123456L)).thenReturn(true)
+        middleware.invoke(middlewareContext, mock(), CrashAction.CheckForCrashes)
+
+        verify(dispatcher).invoke(CrashAction.FinishCheckingForCrashes(true))
+    }
+
+    @Test
+    fun `GIVEN a crash reporter that has unsent crashes WHEN handling the check for crashes THEN dispatch FinishCheckingForCrashes with hasUnsentCrashes = true`() = runTestOnMain {
+        val crashReporter: CrashReporter = mock()
+        val middleware = CrashMiddleware(mock(), crashReporter, { 777L }, scope)
+        val middlewareContext: Pair<() -> CrashState, (CrashAction) -> Unit> = Pair(mock(), mock())
+
+        val (_, dispatcher) = middlewareContext
+        `when`(crashReporter.hasUnsentCrashReportsSince(777L)).thenReturn(true)
         middleware.invoke(middlewareContext, mock(), CrashAction.CheckForCrashes)
 
         verify(dispatcher).invoke(CrashAction.FinishCheckingForCrashes(true))
@@ -121,11 +152,11 @@ class CrashMiddlewareTest {
     @Test
     fun `GIVEN a crash reporter that has no unsent crashes WHEN handling the check for crashes THEN dispatch FinishCheckingForCrashes with hasUnsentCrashes = false`() = runTestOnMain {
         val crashReporter: CrashReporter = mock()
-        val middleware = CrashMiddleware(mock(), crashReporter, mock(), scope)
+        val middleware = CrashMiddleware(mock(), crashReporter, { 777L }, scope)
         val middlewareContext: Pair<() -> CrashState, (CrashAction) -> Unit> = Pair(mock(), mock())
 
         val (_, dispatcher) = middlewareContext
-        `when`(crashReporter.hasUnsentCrashReportsSince()).thenReturn(false)
+        `when`(crashReporter.hasUnsentCrashReportsSince(777L)).thenReturn(false)
         middleware.invoke(middlewareContext, mock(), CrashAction.CheckForCrashes)
 
         verify(dispatcher).invoke(CrashAction.FinishCheckingForCrashes(false))
@@ -149,11 +180,11 @@ class CrashMiddlewareTest {
     fun `GIVEN FinishCheckingForCrashes action WHEN hasUnsentCrashes is true AND getAlwaysSend returns true THEN send unsent crash reports`() = runTestOnMain {
         val cache: CrashReportCache = mock()
         val crashReporter: CrashReporter = mock()
-        val middleware = CrashMiddleware(cache, crashReporter, mock(), scope)
+        val middleware = CrashMiddleware(cache, crashReporter, { 777L }, scope)
         val middlewareContext: Pair<() -> CrashState, (CrashAction) -> Unit> = Pair(mock(), mock())
 
         `when`(cache.getAlwaysSend()).thenReturn(true)
-        `when`(crashReporter.unsentCrashReportsSince()).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
+        `when`(crashReporter.unsentCrashReportsSince(777L)).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
         val (_, dispatcher) = middlewareContext
         middleware.invoke(middlewareContext, mock(), CrashAction.FinishCheckingForCrashes(hasUnsentCrashes = true))
 
@@ -206,9 +237,9 @@ class CrashMiddlewareTest {
     fun `GIVEN ReportTapped WHEN automaticallySendChecked is true THEN submit unsent crashes and cache value`() = runTestOnMain {
         val cache: CrashReportCache = mock()
         val crashReporter: CrashReporter = mock()
-        val middleware = CrashMiddleware(cache, crashReporter, mock(), scope)
+        val middleware = CrashMiddleware(cache, crashReporter, { 777L }, scope)
 
-        `when`(crashReporter.unsentCrashReportsSince()).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
+        `when`(crashReporter.unsentCrashReportsSince(777L)).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
         middleware.invoke(mock(), mock(), CrashAction.ReportTapped(automaticallySendChecked = true))
 
         verify(cache).setAlwaysSend(true)
@@ -219,9 +250,9 @@ class CrashMiddlewareTest {
     fun `GIVEN ReportTapped WHEN automaticallySendChecked is false THEN submit unsent crashes`() = runTestOnMain {
         val cache: CrashReportCache = mock()
         val crashReporter: CrashReporter = mock()
-        val middleware = CrashMiddleware(cache, crashReporter, mock(), scope)
+        val middleware = CrashMiddleware(cache, crashReporter, { 777L }, scope)
 
-        `when`(crashReporter.unsentCrashReportsSince()).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
+        `when`(crashReporter.unsentCrashReportsSince(777L)).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
         middleware.invoke(mock(), mock(), CrashAction.ReportTapped(automaticallySendChecked = false))
 
         verify(cache, never()).setAlwaysSend(true)

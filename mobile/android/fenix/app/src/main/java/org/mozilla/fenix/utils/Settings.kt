@@ -2215,6 +2215,16 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * A timestamp (in milliseconds) representing the earliest cutoff date for fetching crashes
+     * from the database. Crashes that occurred before this timestamp are ignored, ensuring the
+     * unsubmitted crash dialog is not displayed for older crashes.
+     */
+    var crashReportCutoffDate by longPreference(
+        appContext.getPreferenceKey(R.string.pref_key_crash_reporting_cutoff_date),
+        default = 0,
+    )
+
+    /**
      * A user preference indicating that crash reports should always be automatically sent. This can be updated
      * through the unsubmitted crash dialog or through data choice preferences.
      */
