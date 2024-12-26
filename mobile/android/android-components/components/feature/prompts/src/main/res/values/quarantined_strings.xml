@@ -4,6 +4,4 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- Strings in this file are not yet ready for localization. -->
 <resources>
-    <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
-    <string name="mozac_feature_prompts_popup_dialog_title">Allow this site to open?</string>
 </resources>
