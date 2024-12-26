@@ -950,7 +950,7 @@ void ExternalEngineStateMachine::OnRequestVideo() {
     return;
   }
 
-  if (IsRequestingVideoData() || mVideoWaitRequest.Exists() || IsSeeking()) {
+  if (IsTrackingVideoData() || IsSeeking()) {
     LOGV(
         "No need to request video, isRequesting=%d, waitingVideo=%d, "
         "isSeeking=%d",

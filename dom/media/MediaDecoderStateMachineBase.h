@@ -211,6 +211,12 @@ class MediaDecoderStateMachineBase {
   bool IsRequestingVideoData() const { return mVideoDataRequest.Exists(); }
   bool IsWaitingAudioData() const { return mAudioWaitRequest.Exists(); }
   bool IsWaitingVideoData() const { return mVideoWaitRequest.Exists(); }
+  bool IsTrackingAudioData() const {
+    return mAudioDataRequest.Exists() || mAudioWaitRequest.Exists();
+  }
+  bool IsTrackingVideoData() const {
+    return mVideoDataRequest.Exists() || mVideoWaitRequest.Exists();
+  }
 
   void* const mDecoderID;
   const RefPtr<AbstractThread> mAbstractMainThread;

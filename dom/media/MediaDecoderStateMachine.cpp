@@ -2356,8 +2356,7 @@ class MediaDecoderStateMachine::NextFrameSeekingState
 
     if (!NeedMoreVideo()) {
       FinishSeek();
-    } else if (!mMaster->IsRequestingVideoData() &&
-               !mMaster->IsWaitingVideoData()) {
+    } else if (!mMaster->IsTrackingVideoData()) {
       RequestVideoData();
     }
   }
@@ -2630,11 +2629,11 @@ class MediaDecoderStateMachine::BufferingState
     // PopFrontEvent()s, but frames may have been recently popped before the
     // transition from DECODING.
     if (mMaster->IsAudioDecoding() && !mMaster->HaveEnoughDecodedAudio() &&
-        !mMaster->IsRequestingAudioData() && !mMaster->IsWaitingAudioData()) {
+        !mMaster->IsTrackingAudioData()) {
       mMaster->RequestAudioData();
     }
     if (mMaster->IsVideoDecoding() && !mMaster->HaveEnoughDecodedVideo() &&
-        !mMaster->IsRequestingVideoData() && !mMaster->IsWaitingVideoData()) {
+        !mMaster->IsTrackingVideoData()) {
       mMaster->RequestVideoData(TimeUnit());
     }
 
@@ -3155,16 +3154,14 @@ void MediaDecoderStateMachine::DecodingState::DispatchDecodeTasksIfNeeded() {
 }
 
 void MediaDecoderStateMachine::DecodingState::EnsureAudioDecodeTaskQueued() {
-  if (!mMaster->IsAudioDecoding() || mMaster->IsRequestingAudioData() ||
-      mMaster->IsWaitingAudioData()) {
+  if (!mMaster->IsAudioDecoding() || mMaster->IsTrackingAudioData()) {
     return;
   }
   mMaster->RequestAudioData();
 }
 
 void MediaDecoderStateMachine::DecodingState::EnsureVideoDecodeTaskQueued() {
-  if (!mMaster->IsVideoDecoding() || mMaster->IsRequestingVideoData() ||
-      mMaster->IsWaitingVideoData()) {
+  if (!mMaster->IsVideoDecoding() || mMaster->IsTrackingVideoData()) {
     return;
   }
   mMaster->RequestVideoData(mMaster->GetMediaTime(),
@@ -3327,12 +3324,8 @@ void MediaDecoderStateMachine::BufferingState::Step() {
       return;
     }
   } else if (mMaster->OutOfDecodedAudio() || mMaster->OutOfDecodedVideo()) {
-    MOZ_ASSERT(!mMaster->OutOfDecodedAudio() ||
-               mMaster->IsRequestingAudioData() ||
-               mMaster->IsWaitingAudioData());
-    MOZ_ASSERT(!mMaster->OutOfDecodedVideo() ||
-               mMaster->IsRequestingVideoData() ||
-               mMaster->IsWaitingVideoData());
+    MOZ_ASSERT(!mMaster->OutOfDecodedAudio() || mMaster->IsTrackingAudioData());
+    MOZ_ASSERT(!mMaster->OutOfDecodedVideo() || mMaster->IsTrackingVideoData());
     SLOG(
         "In buffering mode, waiting to be notified: outOfAudio: %d, "
         "mAudioStatus: %s, outOfVideo: %d, mVideoStatus: %s",
