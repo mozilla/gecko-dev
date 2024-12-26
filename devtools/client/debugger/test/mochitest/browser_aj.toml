@@ -33,6 +33,7 @@ prefs = [
 skip-if = [
   "asan", # Bug 1591064
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1937229
+  "os == 'linux' && os_version == '18.04' && debug && processor == 'x86_64'", # Bug 1767707
 ]
 
 ["browser_dbg-bfcache.js"]
