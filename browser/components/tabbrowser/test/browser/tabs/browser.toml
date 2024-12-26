@@ -437,6 +437,9 @@ tags = "vertical-tabs"
 
 ["browser_tabReorder_overflow.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1938525
+]
 
 ["browser_tabReorder_vertical.js"]
 tags = "vertical-tabs"
