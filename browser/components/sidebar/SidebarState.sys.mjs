@@ -307,8 +307,14 @@ export class SidebarState {
 
   set launcherWidth(width) {
     this.#props.launcherWidth = width;
-    // Expand the launcher when it gets wide enough.
-    this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
+    if (
+      !this.#controllerGlobal.document.documentElement.hasAttribute(
+        "inDOMFullscreen"
+      )
+    ) {
+      // Expand the launcher when it gets wide enough.
+      this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
+    }
   }
 
   get expandedLauncherWidth() {
