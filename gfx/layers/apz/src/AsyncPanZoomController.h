@@ -1479,6 +1479,7 @@ class AsyncPanZoomController {
 
  private:
   friend class StateChangeNotificationBlocker;
+  friend class ThreadSafeStateChangeNotificationBlocker;
   /**
    * A counter of how many StateChangeNotificationBlockers are active.
    * A non-zero count will prevent state change notifications from

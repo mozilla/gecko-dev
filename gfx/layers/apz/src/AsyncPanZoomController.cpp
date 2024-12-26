@@ -620,6 +620,47 @@ class StateChangeNotificationBlocker final {
   AsyncPanZoomController::PanZoomState mInitialState;
 };
 
+class ThreadSafeStateChangeNotificationBlocker final {
+ public:
+  explicit ThreadSafeStateChangeNotificationBlocker(
+      AsyncPanZoomController* aApzc) {
+    RecursiveMutexAutoLock lock(aApzc->mRecursiveMutex);
+    mApzcPtr = RefPtr(aApzc);
+    mApzcPtr->mNotificationBlockers++;
+    mInitialState = mApzcPtr->mState;
+  }
+
+  ThreadSafeStateChangeNotificationBlocker(
+      const StateChangeNotificationBlocker&) = delete;
+  ThreadSafeStateChangeNotificationBlocker(
+      ThreadSafeStateChangeNotificationBlocker&& aOther)
+      : mApzcPtr(std::move(aOther.mApzcPtr)),
+        mInitialState(aOther.mInitialState) {
+    aOther.mApzcPtr = nullptr;
+  }
+
+  ~ThreadSafeStateChangeNotificationBlocker() {
+    // The point of the ThreadSafeStateChangeNotificationBlocker is to keep a
+    // live reference to an APZC. If this reference doesn't exist, then it must
+    // have been moved from, and the other state in the object isn't valid, so
+    // we early out
+    if (mApzcPtr == nullptr) {
+      return;
+    }
+    AsyncPanZoomController::PanZoomState newState;
+    {
+      RecursiveMutexAutoLock lock(mApzcPtr->mRecursiveMutex);
+      mApzcPtr->mNotificationBlockers--;
+      newState = mApzcPtr->mState;
+    }
+    mApzcPtr->DispatchStateChangeNotification(mInitialState, newState);
+  }
+
+ private:
+  RefPtr<AsyncPanZoomController> mApzcPtr;
+  AsyncPanZoomController::PanZoomState mInitialState;
+};
+
 /**
  * An RAII class to temporarily apply async test attributes to the provided
  * AsyncPanZoomController.
@@ -4929,7 +4970,7 @@ bool AsyncPanZoomController::AdvanceAnimations(const SampleTime& aSampleTime) {
   // Don't send any state-change notifications until the end of the function,
   // because we may go through some intermediate states while we finish
   // animations and start new ones.
-  StateChangeNotificationBlocker blocker(this);
+  ThreadSafeStateChangeNotificationBlocker blocker(this);
 
   // The eventual return value of this function. The compositor needs to know
   // whether or not to advance by a frame as soon as it can. For example, if a
@@ -4959,14 +5000,14 @@ bool AsyncPanZoomController::AdvanceAnimations(const SampleTime& aSampleTime) {
   // UpdateAnimation()). This needs to be done after the monitor is released
   // since the tasks are allowed to call APZCTreeManager methods which can grab
   // the tree lock.
-  // Move the StateChangeNotificationBlocker into the task so that notifications
-  // continue to be blocked until the deferred tasks have run.
-  // Additionally store a RefPtr(this) in the lambda since
-  // StateChangeNotificationBlocker keeps a raw pointer to the APZC.
+  // Move the ThreadSafeStateChangeNotificationBlocker into the task so that
+  // notifications continue to be blocked until the deferred tasks have run.
+  // Must be the ThreadSafe variant of StateChangeNotificationBlocker to
+  // guarantee that the APZ is alive until the deferred tasks are done
   if (!deferredTasks.IsEmpty()) {
     APZThreadUtils::RunOnControllerThread(NS_NewRunnableFunction(
         "AsyncPanZoomController::AdvanceAnimations deferred tasks",
-        [keepApzcAlive = RefPtr(this), blocker = std::move(blocker),
+        [blocker = std::move(blocker),
          deferredTasks = std::move(deferredTasks)]() {
           for (uint32_t i = 0; i < deferredTasks.Length(); ++i) {
             deferredTasks[i]->Run();
