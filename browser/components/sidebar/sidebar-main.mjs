@@ -383,14 +383,23 @@ export default class SidebarMain extends MozLitElement {
           class="tools-and-extensions actions-list"
           orientation=${this.isToolsOverflowing() ? "horizontal" : "vertical"}
         >
-          ${repeat(
-            this.getToolsAndExtensions().values(),
-            action => action.view,
-            action => this.entrypointTemplate(action)
+          ${when(!this.isToolsOverflowing(), () =>
+            repeat(
+              this.getToolsAndExtensions().values(),
+              action => action.view,
+              action => this.entrypointTemplate(action)
+            )
           )}
           ${when(window.SidebarController.sidebarVerticalTabsEnabled, () =>
             repeat(
               this.bottomActions,
+              action => action.view,
+              action => this.entrypointTemplate(action)
+            )
+          )}
+          ${when(this.isToolsOverflowing(), () =>
+            repeat(
+              this.getToolsAndExtensions().values(),
               action => action.view,
               action => this.entrypointTemplate(action)
             )
