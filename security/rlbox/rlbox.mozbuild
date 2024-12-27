@@ -6,7 +6,7 @@
 
 
 @template
-def RLBoxLibrary(name):
+def RLBoxLibrary(name, use_segue=True):
     WASM_SOURCES += [
         "/memory/mozalloc/mozalloc.cpp",
         "/third_party/rlbox_wasm2c_sandbox/c_src/wasm2c_sandbox_wrapper.c",
@@ -41,6 +41,32 @@ def RLBoxLibrary(name):
     SOURCES[f"!{name}.wasm.c"].flags += [
         "-Wno-unused",
     ]
+
+    # Use Segue optimization. Since this requires passing the "-mfsgsbase", we
+    # restrict this to compilers and architectures that support this flag.
+    # Manually exclude android for now due to bug in upstream wasm2c support
+    if (
+        use_segue
+        and CONFIG["CC_TYPE"] in ("clang", "gcc")
+        and CONFIG["TARGET_CPU"] == "x86_64"
+        and CONFIG["OS_TARGET"] != "Android"
+    ):
+        # Setting WASM_RT_ALLOW_SEGUE means Segue is used on supported
+        # OS/compiler/Arch combinations. For example, it is used for
+        # Linux/clang/x86_64 but not on Windows
+        DEFINES["WASM_RT_ALLOW_SEGUE"] = 1
+
+        # Segue can assume there is no other use of the segment register by the
+        # application. This is fine as the System V ABI for x86_64 systems does
+        # not use the gs register for any other purpose.
+        DEFINES["WASM_RT_SEGUE_FREE_SEGMENT"] = 1
+
+        # Add a compiler flag for the wasm2c produced file to enable use of
+        # wrgsbase64 instruction via intrinsics. While this instruction is
+        # available only on CPUs starting Ivybridge, the wasm2c runtime checks for
+        # support before using this instruction. Thus, enabling this flag does not
+        # introduce a dependency on newer CPUs to Firefox.
+        CFLAGS += ["-mfsgsbase"]
 
     WASM_DEFINES["MOZ_IN_WASM_SANDBOX"] = True
     if CONFIG["ENABLE_CLANG_PLUGIN"]:

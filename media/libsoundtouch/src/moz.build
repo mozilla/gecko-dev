@@ -34,7 +34,14 @@ SOURCES["RLBoxSoundTouch.cpp"].flags += ["-DMOZILLA_INTERNAL_API"]
 if CONFIG["MOZ_WASM_SANDBOXING_SOUNDTOUCH"]:
     include("/security/rlbox/rlbox.mozbuild")
 
-    RLBoxLibrary("rlboxsoundtouch")
+    # Disabling Segue as other rlboxed libraries (the non-GPL rlboxed libraries)
+    # use Segue under the assumption that they have exclusive use of the segment
+    # register. This assumption speeds up the rlboxed libraries significantly.
+    # However, it does mean that the below rlboxed library can either avoid
+    # Segue or use Segue with non-exclusive segment use. We opt for disabling
+    # Segue since Segue with non-exclusive segment use can introduce some extra
+    # costs when invoking functions in the library.
+    RLBoxLibrary("rlboxsoundtouch", use_segue=False)
 
     DEFINES["WASM_RT_GROW_FAILED_CRASH"] = True
 
