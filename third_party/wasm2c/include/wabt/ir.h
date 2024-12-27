@@ -25,6 +25,7 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
+#include <set>
 
 #include "wabt/binding-hash.h"
 #include "wabt/common.h"
@@ -310,6 +311,13 @@ class FuncType : public TypeEntry {
   Type GetResultType(Index index) const { return sig.GetResultType(index); }
 
   FuncSignature sig;
+
+  // The BinaryReaderIR tracks whether a FuncType is the target of a tailcall
+  // (via a return_call_indirect). wasm2c (CWriter) uses this information to
+  // limit its output in some cases.
+  struct {
+    bool tailcall = false;
+  } features_used;
 };
 
 struct Field {
@@ -493,15 +501,15 @@ class MemoryExpr : public ExprMixin<TypeEnum> {
 template <ExprType TypeEnum>
 class MemoryBinaryExpr : public ExprMixin<TypeEnum> {
  public:
-  MemoryBinaryExpr(Var srcmemidx,
-                   Var destmemidx,
+  MemoryBinaryExpr(Var destmemidx,
+                   Var srcmemidx,
                    const Location& loc = Location())
       : ExprMixin<TypeEnum>(loc),
-        srcmemidx(srcmemidx),
-        destmemidx(destmemidx) {}
+        destmemidx(destmemidx),
+        srcmemidx(srcmemidx) {}
 
-  Var srcmemidx;
   Var destmemidx;
+  Var srcmemidx;
 };
 
 using DropExpr = ExprMixin<ExprType::Drop>;
@@ -893,6 +901,13 @@ struct Func {
   BindingHash bindings;
   ExprList exprs;
   Location loc;
+
+  // For a subset of features, the BinaryReaderIR tracks whether they are
+  // actually used by the function. wasm2c (CWriter) uses this information to
+  // limit its output in some cases.
+  struct {
+    bool tailcall = false;
+  } features_used;
 };
 
 struct Global {
@@ -932,6 +947,7 @@ struct Memory {
 
   std::string name;
   Limits page_limits;
+  uint32_t page_size;
 };
 
 struct DataSegment {
@@ -1164,6 +1180,17 @@ class StartModuleField : public ModuleFieldMixin<ModuleFieldType::Start> {
   Var start;
 };
 
+struct Custom {
+  explicit Custom(const Location& loc = Location(),
+                  std::string_view name = std::string_view(),
+                  std::vector<uint8_t> data = std::vector<uint8_t>())
+      : name(name), data(data), loc(loc) {}
+
+  std::string name;
+  std::vector<uint8_t> data;
+  Location loc;
+};
+
 struct Module {
   Index GetFuncTypeIndex(const Var&) const;
   Index GetFuncTypeIndex(const FuncDeclaration&) const;
@@ -1235,6 +1262,7 @@ struct Module {
   std::vector<Memory*> memories;
   std::vector<DataSegment*> data_segments;
   std::vector<Var*> starts;
+  std::vector<Custom> customs;
 
   BindingHash tag_bindings;
   BindingHash func_bindings;
@@ -1252,7 +1280,14 @@ struct Module {
   struct {
     bool simd = false;
     bool exceptions = false;
+    bool threads = false;
   } features_used;
+
+  // The BinaryReaderIR tracks function references used by the module, whether
+  // in element segment initializers, global initializers, or functions. wasm2c
+  // needs to emit wrappers for any functions that might get used as function
+  // references, and uses this information to limit its output.
+  std::set<Index> used_func_refs;
 };
 
 enum class ScriptModuleType {

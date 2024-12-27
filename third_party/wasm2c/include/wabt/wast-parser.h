@@ -19,9 +19,9 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
-#include "wabt/circular-array.h"
 #include "wabt/error.h"
 #include "wabt/feature.h"
 #include "wabt/intrusive-list.h"
@@ -147,6 +147,7 @@ class WastParser {
   Result ParseMemidx(Location loc, Var* memidx);
   Result ParseLimitsIndex(Limits*);
   Result ParseLimits(Limits*);
+  Result ParsePageSize(uint32_t*);
   Result ParseNat(uint64_t*, bool is_64);
 
   Result ParseModuleFieldList(Module*);
@@ -162,6 +163,9 @@ class WastParser {
   Result ParseMemoryModuleField(Module*);
   Result ParseStartModuleField(Module*);
   Result ParseTableModuleField(Module*);
+
+  Result ParseCustomSectionAnnotation(Module*);
+  bool PeekIsCustom();
 
   Result ParseExportDesc(Export*);
   Result ParseInlineExports(ModuleFieldList*, ExternalKind);
@@ -252,13 +256,28 @@ class WastParser {
   Result ParseSimdV128Const(Const*, TokenType, ConstType);
 
   void CheckImportOrdering(Module*);
+  bool HasError() const;
 
   WastLexer* lexer_;
   Index last_module_index_ = kInvalidIndex;
   Errors* errors_;
   WastParseOptions* options_;
 
-  CircularArray<Token, 2> tokens_;
+  // two-element queue of upcoming tokens
+  class TokenQueue {
+    std::array<std::optional<Token>, 2> tokens{};
+    bool i{};
+
+   public:
+    void push_back(Token t);
+    void pop_front();
+    const Token& at(size_t n) const;
+    const Token& front() const;
+    bool empty() const;
+    size_t size() const;
+  };
+
+  TokenQueue tokens_{};
 };
 
 Result ParseWatModule(WastLexer* lexer,

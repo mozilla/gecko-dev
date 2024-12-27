@@ -11,6 +11,9 @@ $ wasm2c test.wasm -o test.c
 $ wasm2c test.wasm --no-debug-names -o test.c
 ```
 
+The C code produced targets the C99 standard. If, however, the Wasm module uses
+Wasm threads/atomics, the code produced targets the C11 standard.
+
 ## Tutorial: .wat -> .wasm -> .c
 
 Let's look at a simple example of a factorial function.
@@ -106,11 +109,11 @@ int main(int argc, char** argv) {
 ## Compiling the wasm2c output
 
 To compile the executable, we need to use `main.c` and the generated `fac.c`.
-We'll also include `wasm-rt-impl.c` which has implementations of the various
+We'll also include `wasm-rt-impl.c` and `wasm-rt-mem-impl.c`, which have implementations of the various
 `wasm_rt_*` functions used by `fac.c` and `fac.h`.
 
 ```sh
-$ cc -o fac main.c fac.c wasm-rt-impl.c
+$ cc -o fac main.c fac.c wasm2c/wasm-rt-impl.c wasm2c/wasm-rt-mem-impl.c -Iwasm2c -lm
 ```
 
 A note on compiling with optimization: wasm2c relies on certain
@@ -137,6 +140,52 @@ fac(10) -> 3628800
 
 You can take a look at the all of these files in
 [wasm2c/examples/fac](/wasm2c/examples/fac).
+
+### Enabling extra sanity checks
+
+Wasm2c provides a macro `WASM_RT_SANITY_CHECKS` that if defined enables
+additional sanity checks in the produced Wasm2c code. Note that this may have a
+high performance overhead, and is thus only recommended for debug builds.
+
+### Enabling Segue (a Linux x86_64 target specific optimization)
+
+Wasm2c can use the "Segue" optimization if allowed. The segue optimization uses
+an x86 segment register to store the location of Wasm's linear memory, when
+compiling a Wasm module with clang, running on x86_64 Linux, the macro
+`WASM_RT_ALLOW_SEGUE` is defined, and the flag `-mfsgsbase` is passed to clang.
+Segue is not used if
+
+1. The Wasm module uses a more than a single unshared imported or exported
+   memory
+2. The wasm2c code is compiled with GCC. Segue requires intrinsics for
+   (rd|wr)gsbase, "address namespaces" for accessing pointers, and support for
+   memcpy on pointers with custom "address namespaces". GCC does not support the
+   memcpy requirement.
+3. The code is compiled for Windows as Windows doesn't restore the segment
+   register on context switch.
+
+The wasm2c generated code automatically sets the unused segment register (the
+`%gs` register on x86_64 Linux) during the function calls into wasm2c generated
+module, restores it after calls to external modules etc. Any host function
+written in C would continue to work without changes as C code does not modify
+the unused segment register `%gs` (See
+[here](https://www.kernel.org/doc/html/next/x86/x86_64/fsgs.html) for details).
+However, any host functions written in assembly that clobber the free segment
+register must restore the value of this register prior to executing or returning
+control to wasm2c generated code.
+
+As an additional optimization, if the host program does not use the `%gs`
+segment register for any other purpose (which is typically the case in most
+programs), you can additionally allow wasm2c to unconditionally overwrite the
+value of the `%gs` register without restoring the old value. This can be done
+defining the macro `WASM_RT_SEGUE_FREE_SEGMENT`.
+
+You can test the performance of the Segue optimization by running Dhrystone with
+and without Segue:
+
+```bash
+cd wasm2c/benchmarks/segue && make
+```
 
 ## Looking at the generated header, `fac.h`
 
@@ -255,9 +304,26 @@ specified by the module, or `0xffffffff` if there is no limit.
 ```c
 typedef struct {
   uint8_t* data;
-  uint32_t pages, max_pages;
-  uint32_t size;
+  uint64_t pages, max_pages;
+  uint64_t size;
+  bool is64;
 } wasm_rt_memory_t;
+```
+
+This is followed by the definition of a shared memory instance. This is similar
+to a regular memory instance, but represents memory that can be used by multiple
+Wasm instances, and thus enforces a minimum amount of memory order on
+operations. The Shared memory definition has one additional member, `mem_lock`,
+which is a lock that is used during memory grow operations for thread safety.
+
+```c
+typedef struct {
+  _Atomic volatile uint8_t* data;
+  uint64_t pages, max_pages;
+  uint64_t size;
+  bool is64;
+  mtx_t mem_lock;
+} wasm_rt_shared_memory_t;
 ```
 
 Next is the definition of a table instance. The `data` field is a pointer to
@@ -290,11 +356,16 @@ const char* wasm_rt_strerror(wasm_rt_trap_t trap);
 void wasm_rt_allocate_memory(wasm_rt_memory_t*, uint32_t initial_pages, uint32_t max_pages, bool is64);
 uint32_t wasm_rt_grow_memory(wasm_rt_memory_t*, uint32_t pages);
 void wasm_rt_free_memory(wasm_rt_memory_t*);
+void wasm_rt_allocate_memory_shared(wasm_rt_shared_memory_t*, uint32_t initial_pages, uint32_t max_pages, bool is64);
+uint32_t wasm_rt_grow_memory_shared(wasm_rt_shared_memory_t*, uint32_t pages);
+void wasm_rt_free_memory_shared(wasm_rt_shared_memory_t*);
 void wasm_rt_allocate_funcref_table(wasm_rt_table_t*, uint32_t elements, uint32_t max_elements);
 void wasm_rt_allocate_externref_table(wasm_rt_externref_table_t*, uint32_t elements, uint32_t max_elements);
 void wasm_rt_free_funcref_table(wasm_rt_table_t*);
 void wasm_rt_free_externref_table(wasm_rt_table_t*);
 uint32_t wasm_rt_call_stack_depth; /* on platforms that don't use the signal handler to detect exhaustion */
+void wasm_rt_init_thread(void);
+void wasm_rt_free_thread(void);
 ```
 
 `wasm_rt_init` must be called by the embedder before anything else, to
@@ -327,6 +398,16 @@ arguments and returning `void` . e.g.
 
 `wasm_rt_free_memory` frees the memory instance.
 
+`wasm_rt_allocate_memory_shared` initializes a memory instance that can be
+shared by different Wasm threads. It's operation is otherwise similar to
+`wasm_rt_allocate_memory`.
+
+`wasm_rt_grow_memory_shared` must grow the given shared memory instance by the
+given number of pages. It's operation is otherwise similar to
+`wasm_rt_grow_memory`.
+
+`wasm_rt_free_memory_shared` frees the shared memory instance.
+
 `wasm_rt_allocate_funcref_table` and the similar `..._externref_table`
 initialize a table instance of the given type, and allocate at least
 enough space for the given number of initial elements. The elements
@@ -338,6 +419,11 @@ must be cleared to zero.
 shared between modules, it must be defined only once, by the embedder.
 It is only used on platforms that don't use the signal handler to detect
 exhaustion.
+
+`wasm_rt_init_thread` and `wasm_rt_free_thread` are used to initialize
+and free the runtime state for a given thread (other than the one that
+called `wasm_rt_init`). An example can be found in
+`wasm2c/examples/threads`.
 
 ### Runtime support for exception handling
 
