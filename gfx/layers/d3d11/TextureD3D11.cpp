@@ -430,8 +430,6 @@ void D3D11TextureData::SyncWithObject(RefPtr<SyncObjectClient> aSyncObject) {
 
 bool D3D11TextureData::SerializeSpecific(
     SurfaceDescriptorD3D10* const aOutDesc) {
-  if (mGpuProcessTextureId.isNothing()) {
-  }
   *aOutDesc = SurfaceDescriptorD3D10(
       mSharedHandle, mGpuProcessTextureId, mArrayIndex, mFormat, mSize,
       mColorSpace, mColorRange, /* hasKeyedMutex */ mHasKeyedMutex,
