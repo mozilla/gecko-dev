@@ -1161,6 +1161,10 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
     return IPC_OK();
   }
 
+  if (!data->mUseExternalTextureInSwapChain) {
+    ffi::wgpu_server_device_poll(mContext.get(), data->mDeviceId, true);
+  }
+
   mRemoteTextureOwner->GetLatestBufferSnapshot(aOwnerId, shmem, aSize);
   aShmem.emplace(std::move(shmem));
 

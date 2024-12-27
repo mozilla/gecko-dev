@@ -171,6 +171,20 @@ pub extern "C" fn wgpu_server_poll_all_devices(global: &Global, force_wait: bool
     global.poll_all_devices(force_wait).unwrap();
 }
 
+#[no_mangle]
+pub extern "C" fn wgpu_server_device_poll(
+    global: &Global,
+    device_id: id::DeviceId,
+    force_wait: bool,
+) {
+    let maintain = if force_wait {
+        wgt::Maintain::Wait
+    } else {
+        wgt::Maintain::Poll
+    };
+    global.device_poll(device_id, maintain).unwrap();
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct FfiLUID {
