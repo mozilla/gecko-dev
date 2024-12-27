@@ -84,6 +84,7 @@ body {
      the gap around them more uniform when they are close to the field edges */
   --urlbar-icon-border-radius: calc(var(--toolbarbutton-border-radius) - 1px);
   --urlbar-searchmodeswitcher-inline-padding: 6px;
+  --urlbar-searchmodeswitcher-margin-inline-end: .45em;
 
   --pocket-icon-fill: #ef4056;
 

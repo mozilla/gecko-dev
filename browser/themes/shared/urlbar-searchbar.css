@@ -1116,7 +1116,7 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   appearance: none;
   border-radius: var(--urlbar-icon-border-radius);
   margin: 0;
-  margin-inline-end: var(--urlbar-icon-padding);
+  margin-inline-end: var(--urlbar-searchmodeswitcher-margin-inline-end);
   padding-inline: var(--urlbar-searchmodeswitcher-inline-padding);
 
   &:focus-visible {
@@ -1168,7 +1168,7 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   border-end-end-radius: var(--urlbar-icon-border-radius);
   align-items: center;
   height: 100%;
-  margin-inline-end: var(--urlbar-icon-padding);
+  margin-inline-end: var(--urlbar-searchmodeswitcher-margin-inline-end);
   display: none;
 
   /* stylelint-disable-next-line media-query-no-invalid */
