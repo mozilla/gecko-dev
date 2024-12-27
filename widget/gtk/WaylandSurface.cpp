@@ -12,6 +12,7 @@
 #include "mozilla/StaticPrefs_widget.h"
 #include <dlfcn.h>
 #include <fcntl.h>
+#include "ScreenHelperGTK.h"
 
 /*
   TODO:
@@ -637,7 +638,7 @@ void WaylandSurface::SetOpaqueRegionLocked(
   }
   // Region should be in surface-logical coordinates, so we need to divide by
   // the buffer scale. We use round-in in order to be safe with subpixels.
-  UnknownScaleFactor scale(GetScale());
+  UnknownScaleFactor scale(GetScaleSafe());
   wl_region* region =
       wl_compositor_create_region(WaylandDisplayGet()->GetCompositor());
   for (auto iter = aRegion.RectIter(); !iter.Done(); iter.Next()) {
@@ -894,7 +895,7 @@ wl_egl_window* WaylandSurface::GetEGLWindow(nsIntSize aUnscaledSize) {
     return nullptr;
   }
 
-  auto scale = GetScale();
+  auto scale = GetScaleSafe();
   // TODO: Correct size rounding
   nsIntSize scaledSize((int)floor(aUnscaledSize.width * scale),
                        (int)floor(aUnscaledSize.height * scale));
@@ -930,7 +931,7 @@ bool WaylandSurface::SetEGLWindowSize(nsIntSize aScaledSize) {
     return true;
   }
 
-  auto scale = GetScale();
+  auto scale = GetScaleSafe();
   // TODO: Avoid precision lost here? Load coordinates from window?
   nsIntSize unscaledSize((int)round(aScaledSize.width / scale),
                          (int)round(aScaledSize.height / scale));
@@ -1000,9 +1001,7 @@ bool WaylandSurface::AttachLocked(const WaylandSurfaceLock& aProofOfLock,
     return false;
   }
 
-  auto scale = GetScale();
-  MOZ_DIAGNOSTIC_ASSERT(scale != sNoScale);
-
+  auto scale = GetScaleSafe();
   LayoutDeviceIntSize bufferSize = aWaylandBuffer->GetSize();
   // TODO: rounding?
   SetSizeLocked(aProofOfLock, gfx::IntSize(bufferSize.width, bufferSize.height),
@@ -1123,6 +1122,14 @@ double WaylandSurface::GetScale() {
 
   LOGVERBOSE("WaylandSurface::GetScale() no scale available");
   return sNoScale;
+}
+
+double WaylandSurface::GetScaleSafe() {
+  double scale = GetScale();
+  if (scale != sNoScale) {
+    return scale;
+  }
+  return ScreenHelperGTK::GetGTKMonitorScaleFactor();
 }
 
 void WaylandSurface::SetParentLocked(const WaylandSurfaceLock& aProofOfLock,

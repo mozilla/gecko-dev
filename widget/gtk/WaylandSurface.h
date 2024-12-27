@@ -175,6 +175,10 @@ class WaylandSurface final {
   static constexpr const double sNoScale = -1;
   double GetScale();
 
+  // The same as GetScale() but returns monitor scale if window scale is
+  // missing.
+  double GetScaleSafe();
+
   // Called when screen ceiled scale changed or set initial scale before we map
   // and paint the surface.
   void SetCeiledScaleLocked(const WaylandSurfaceLock& aProofOfLock,
