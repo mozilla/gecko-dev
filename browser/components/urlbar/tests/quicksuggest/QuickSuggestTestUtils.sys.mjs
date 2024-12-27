@@ -897,35 +897,37 @@ class _QuickSuggestTestUtils {
       temperatureUnit =
         Services.locale.regionalPrefsLocales[0] == "en-US" ? "f" : "c";
     }
-
     return {
-      type: lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC,
+      type: lazy.UrlbarUtils.RESULT_TYPE.URL,
       source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
       heuristic: false,
       suggestedIndex: 1,
+      isRichSuggestion: true,
+      richSuggestionIconVariation: "6",
       payload: {
-        temperatureUnit,
+        url: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
+        titleL10n: {
+          id: "firefox-suggest-weather-title-simplest",
+          args: {
+            temperature:
+              lazy.MerinoTestUtils.WEATHER_SUGGESTION.current_conditions
+                .temperature[temperatureUnit],
+            unit: temperatureUnit.toUpperCase(),
+            city: city || lazy.MerinoTestUtils.WEATHER_SUGGESTION.city_name,
+            region:
+              region || lazy.MerinoTestUtils.WEATHER_SUGGESTION.region_code,
+          },
+          parseMarkup: true,
+          cacheable: true,
+          excludeArgsFromCacheKey: true,
+        },
+        bottomTextL10n: {
+          id: "firefox-suggest-weather-sponsored",
+          args: { provider: "AccuWeather" },
+          cacheable: true,
+        },
         source,
         provider,
-        url: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
-        input: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
-        iconId: "6",
-        requestId: lazy.MerinoTestUtils.server.response.body.request_id,
-        dynamicType: "weather",
-        city: city || lazy.MerinoTestUtils.WEATHER_SUGGESTION.city_name,
-        region: region || lazy.MerinoTestUtils.WEATHER_SUGGESTION.region_code,
-        temperature:
-          lazy.MerinoTestUtils.WEATHER_SUGGESTION.current_conditions
-            .temperature[temperatureUnit],
-        currentConditions:
-          lazy.MerinoTestUtils.WEATHER_SUGGESTION.current_conditions.summary,
-        forecast: lazy.MerinoTestUtils.WEATHER_SUGGESTION.forecast.summary,
-        high: lazy.MerinoTestUtils.WEATHER_SUGGESTION.forecast.high[
-          temperatureUnit
-        ],
-        low: lazy.MerinoTestUtils.WEATHER_SUGGESTION.forecast.low[
-          temperatureUnit
-        ],
         telemetryType: "weather",
       },
     };

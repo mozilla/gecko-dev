@@ -946,6 +946,99 @@
   background-color: var(--urlbarView-result-button-selected-background-color);
 }
 
+.urlbarView-row[dynamicType=weather],
+.urlbarView-row[type=weather] {
+  /* Use the colors in the icon SVG files except in HCM and when the row is
+     selected. Note that the SVG uses light or dark colors as appropriate. */
+  &:not([selected]) > .urlbarView-row-inner > .urlbarView-favicon {
+    @media not (prefers-contrast) {
+      -moz-context-properties: unset;
+    }
+  }
+
+  /* Map AccuWeather icon IDs to our icons. These IDs come straight from the
+     AccuWeather API response via Merino. These rules apply to both the older
+     weather UI treatments ("simpler" and "full", which use a dynamic result)
+     and the new treatment ("simplest", which is a standard rich suggestion). */
+  > .urlbarView-row-inner > .urlbarView-dynamic-weather-currentConditions > .urlbarView-dynamic-weather-currentTemperature > .urlbarView-dynamic-weather-weatherIcon,
+  > .urlbarView-row-inner > .urlbarView-favicon {
+    /* icon-variation="1" is "Sunny", which we'll use as the default to ensure an
+       image is always visible. We don't expect AccuWeather to ever include an
+       invalid icon ID, but they may add new ones that aren't recognized by this
+       version of Firefox for example. */
+    content: url("chrome://browser/skin/weather/sunny.svg");
+    &[icon-variation="2"] {
+      content: url("chrome://browser/skin/weather/mostly-sunny.svg");
+    }
+    &:is([icon-variation="3"], [icon-variation="4"], [icon-variation="6"]) {
+      content: url("chrome://browser/skin/weather/partly-sunny.svg");
+    }
+    &[icon-variation="5"] {
+      content: url("chrome://browser/skin/weather/hazy-sunshine.svg");
+    }
+    &:is([icon-variation="7"], [icon-variation="8"]) {
+      content: url("chrome://browser/skin/weather/cloudy.svg");
+    }
+    &[icon-variation="11"] {
+      content: url("chrome://browser/skin/weather/fog.svg");
+    }
+    &[icon-variation="12"] {
+      content: url("chrome://browser/skin/weather/showers.svg");
+    }
+    &:is([icon-variation="13"], [icon-variation="14"]) {
+      content: url("chrome://browser/skin/weather/mostly-cloudy-with-showers.svg");
+    }
+    &[icon-variation="15"] {
+      content: url("chrome://browser/skin/weather/thunderstorms.svg");
+    }
+    &:is([icon-variation="16"], [icon-variation="17"]) {
+      content: url("chrome://browser/skin/weather/mostly-cloudy-with-thunderstorms.svg");
+    }
+    &[icon-variation="18"] {
+      content: url("chrome://browser/skin/weather/rain.svg");
+    }
+    &:is([icon-variation="19"], [icon-variation="20"], [icon-variation="25"]) {
+      content: url("chrome://browser/skin/weather/flurries.svg");
+    }
+    &[icon-variation="21"] {
+      content: url("chrome://browser/skin/weather/partly-sunny-with-flurries.svg");
+    }
+    &:is([icon-variation="22"], [icon-variation="23"]) {
+      content: url("chrome://browser/skin/weather/snow.svg");
+    }
+    &:is([icon-variation="24"], [icon-variation="31"]) {
+      content: url("chrome://browser/skin/weather/ice.svg");
+    }
+    &:is([icon-variation="26"], [icon-variation="29"]) {
+      content: url("chrome://browser/skin/weather/freezing-rain.svg");
+    }
+    &[icon-variation="30"] {
+      content: url("chrome://browser/skin/weather/hot.svg");
+    }
+    &[icon-variation="32"] {
+      content: url("chrome://browser/skin/weather/windy.svg");
+    }
+    &[icon-variation="33"] {
+      content: url("chrome://browser/skin/weather/night-clear.svg");
+    }
+    &:is([icon-variation="34"], [icon-variation="35"], [icon-variation="36"], [icon-variation="38"]) {
+      content: url("chrome://browser/skin/weather/night-mostly-clear.svg");
+    }
+    &[icon-variation="37"] {
+      content: url("chrome://browser/skin/weather/night-hazy-moonlight.svg");
+    }
+    &:is([icon-variation="39"], [icon-variation="40"]) {
+      content: url("chrome://browser/skin/weather/night-partly-cloudy-with-showers.svg");
+    }
+    &:is([icon-variation="41"], [icon-variation="42"]) {
+      content: url("chrome://browser/skin/weather/night-partly-cloudy-with-thunderstorms.svg");
+    }
+    &:is([icon-variation="43"], [icon-variation="44"]) {
+      content: url("chrome://browser/skin/weather/night-mostly-cloudy-with-flurries.svg");
+    }
+  }
+}
+
 /* Actions */
 .urlbarView-results[actionmode] {
   white-space: wrap;

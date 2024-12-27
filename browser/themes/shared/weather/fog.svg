@@ -15,7 +15,7 @@
       fill: context-fill #BFBFC9;
     }
     .fog {
-      fill: context-fill #80808F;
+      fill: context-fill #9393A8;
     }
   }
 </style>

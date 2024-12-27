@@ -244,6 +244,48 @@ export class WeatherSuggestions extends SuggestProvider {
     suggestion = suggestions[0];
 
     let unit = Services.locale.regionalPrefsLocales[0] == "en-US" ? "f" : "c";
+
+    let treatment = lazy.UrlbarPrefs.get("weatherUiTreatment");
+    if (treatment == 1 || treatment == 2) {
+      return this.#makeDynamicResult(suggestion, unit);
+    }
+
+    return Object.assign(
+      new lazy.UrlbarResult(
+        lazy.UrlbarUtils.RESULT_TYPE.URL,
+        lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
+        {
+          url: suggestion.url,
+          titleL10n: {
+            id: "firefox-suggest-weather-title-simplest",
+            args: {
+              temperature: suggestion.current_conditions.temperature[unit],
+              unit: unit.toUpperCase(),
+              city: suggestion.city_name,
+              region: suggestion.region_code,
+            },
+            parseMarkup: true,
+            cacheable: true,
+            excludeArgsFromCacheKey: true,
+          },
+          bottomTextL10n: {
+            id: "firefox-suggest-weather-sponsored",
+            args: { provider: WEATHER_PROVIDER_DISPLAY_NAME },
+            cacheable: true,
+          },
+        }
+      ),
+      {
+        suggestedIndex: 1,
+        isRichSuggestion: true,
+        richSuggestionIconVariation: String(
+          suggestion.current_conditions.icon_id
+        ),
+      }
+    );
+  }
+
+  #makeDynamicResult(suggestion, unit) {
     return Object.assign(
       new lazy.UrlbarResult(
         lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC,
@@ -252,7 +294,6 @@ export class WeatherSuggestions extends SuggestProvider {
           url: suggestion.url,
           input: suggestion.url,
           iconId: suggestion.current_conditions.icon_id,
-          requestId: suggestion.request_id,
           dynamicType: WEATHER_DYNAMIC_TYPE,
           city: suggestion.city_name,
           region: suggestion.region_code,
@@ -262,16 +303,18 @@ export class WeatherSuggestions extends SuggestProvider {
           forecast: suggestion.forecast.summary,
           high: suggestion.forecast.high[unit],
           low: suggestion.forecast.low[unit],
+          showRowLabel: true,
         }
       ),
       {
         showFeedbackMenu: true,
-        suggestedIndex: searchString ? 1 : 0,
+        suggestedIndex: 1,
       }
     );
   }
 
   getViewUpdate(result) {
+    let useSimplerUi = lazy.UrlbarPrefs.get("weatherUiTreatment") == 1;
     let uppercaseUnit = result.payload.temperatureUnit.toUpperCase();
     return {
       currently: {
@@ -292,7 +335,7 @@ export class WeatherSuggestions extends SuggestProvider {
         },
       },
       weatherIcon: {
-        attributes: { iconId: result.payload.iconId },
+        attributes: { "icon-variation": result.payload.iconId },
       },
       title: {
         l10n: {
@@ -305,7 +348,7 @@ export class WeatherSuggestions extends SuggestProvider {
       url: {
         textContent: result.payload.url,
       },
-      summaryText: lazy.UrlbarPrefs.get("weatherSimpleUI")
+      summaryText: useSimplerUi
         ? { textContent: result.payload.currentConditions }
         : {
             l10n: {

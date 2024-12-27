@@ -601,7 +601,6 @@ const NIMBUS_DEFAULTS = {
   quickSuggestScoreMap: null,
   weatherKeywordsMinimumLength: null,
   weatherShowLessFrequentlyCap: null,
-  weatherSimpleUI: true,
   yelpMinKeywordLength: null,
   yelpSuggestNonPriorityIndex: null,
 };

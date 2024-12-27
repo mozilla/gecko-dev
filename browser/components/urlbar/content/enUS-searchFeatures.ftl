@@ -111,7 +111,19 @@ firefox-suggest-weather-currently = Currently
 #   $unit (String) - The unit for the temperature
 firefox-suggest-weather-temperature = { $value }°{ $unit }
 
-# This string is the title of the weather summary
+# This string is the title of the weather summary used for the "simplest" UI
+# treatment. The temperature and unit substring should be in a <strong> tag. If
+# the temperature and unit are not adjacent in the string, then it's OK to
+# include only the temperature in the tag.
+# Variables:
+#   $temperature (number) - The temperature value
+#   $unit (String) - The unit for the temperature
+#   $city (String) - The name of the city the weather data is for
+#   $region (String) - The name of the region (e.g., U.S. state)
+firefox-suggest-weather-title-simplest = <strong>{ $temperature }°{ $unit }</strong> in { $city }, { $region }
+
+# This string is the title of the weather summary used for the "full" and
+# "simpler" UI treatments.
 # Variables:
 #   $city (String) - The name of the city the weather data is for
 #   $region (String) - The name of the region (e.g., U.S. state)

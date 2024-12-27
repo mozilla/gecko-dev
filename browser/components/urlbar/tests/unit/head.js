@@ -1006,6 +1006,8 @@ async function check_results({
     suggestedIndex: { optional: true },
     isSuggestedIndexRelativeToGroup: { optional: true, map: v => !!v },
     exposureTelemetry: { optional: true },
+    isRichSuggestion: { optional: true },
+    richSuggestionIconVariation: { optional: true },
   };
 
   let optionalPayloadProperties = new Set(["lastVisit"]);
