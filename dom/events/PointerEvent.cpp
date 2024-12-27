@@ -6,9 +6,8 @@
  *
  * Portions Copyright 2013 Microsoft Open Technologies, Inc. */
 
-#include "PointerEvent.h"
-
 #include "mozilla/dom/MouseEventBinding.h"
+#include "mozilla/dom/PointerEvent.h"
 #include "mozilla/dom/PointerEventBinding.h"
 #include "mozilla/dom/PointerEventHandler.h"
 #include "mozilla/MouseEvents.h"
@@ -369,6 +368,9 @@ void PointerEvent::GetCoalescedEvents(
       // duplicate its private data to avoid the widget event is destroyed.
       domEvent->DuplicatePrivateData();
 
+      // Setup mPresContext again after DuplicatePrivateData since it clears
+      // mPresContext.
+      domEvent->mPresContext = mPresContext;
       mCoalescedEvents.AppendElement(domEvent);
     }
   }
