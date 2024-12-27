@@ -387,33 +387,10 @@ class MOZ_STACK_CLASS HTMLEditor::AutoDeleteRangesHandler final {
 
   /**
    * DeleteUnnecessaryNodes() removes unnecessary nodes around aRange.
-   * Note that aRange is tracked with AutoTrackDOMRange.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  DeleteUnnecessaryNodes(HTMLEditor& aHTMLEditor, EditorDOMRange& aRange,
+  DeleteUnnecessaryNodes(HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange,
                          const Element& aEditingHost);
-
-  /**
-   * DeleteUnnecessaryNodesAndCollapseSelection() calls DeleteUnnecessaryNodes()
-   * and then, collapse selection at tracked aSelectionStartPoint or
-   * aSelectionEndPoint (depending on aDirectionAndAmount).
-   *
-   * @param aDirectionAndAmount         Direction of the deletion.
-   *                                    If nsIEditor::ePrevious, selection
-   *                                    will be collapsed to aSelectionEndPoint.
-   *                                    Otherwise, selection will be collapsed
-   *                                    to aSelectionStartPoint.
-   * @param aSelectionStartPoint        First selection range start after
-   *                                    computing the deleting range.
-   * @param aSelectionEndPoint          First selection range end after
-   *                                    computing the deleting range.
-   * @param aEditingHost                The editing host.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  DeleteUnnecessaryNodesAndCollapseSelection(
-      HTMLEditor& aHTMLEditor, nsIEditor::EDirection aDirectionAndAmount,
-      const EditorDOMPoint& aSelectionStartPoint,
-      const EditorDOMPoint& aSelectionEndPoint, const Element& aEditingHost);
 
   /**
    * If aContent is a text node that contains only collapsed white-space or
@@ -3980,9 +3957,9 @@ HTMLEditor::AutoDeleteRangesHandler::ComputeRangesToDeleteNonCollapsedRanges(
           ") failed");
       return rv;
     }
-    // `DeleteUnnecessaryNodesAndCollapseSelection()` may delete parent
-    // elements, but it does not affect computing target ranges.  Therefore,
-    // we don't need to touch aRangesToDelete in this case.
+    // `DeleteUnnecessaryNodes()` may delete parent elements, but it does not
+    // affect computing target ranges.  Therefore, we don't need to touch
+    // aRangesToDelete in this case.
     return NS_OK;
   }
 
@@ -4149,15 +4126,30 @@ HTMLEditor::AutoDeleteRangesHandler::HandleDeleteNonCollapsedRanges(
     }
     // However, even if the range is removed, we may need to clean up the
     // containers which become empty.
-    nsresult rv = DeleteUnnecessaryNodesAndCollapseSelection(
-        aHTMLEditor, aDirectionAndAmount,
-        EditorDOMPoint(aRangesToDelete.FirstRangeRef()->StartRef()),
-        EditorDOMPoint(aRangesToDelete.FirstRangeRef()->EndRef()),
-        aEditingHost);
+    EditorDOMRange rangeToCleanUp(aRangesToDelete.FirstRangeRef());
+    AutoTrackDOMRange trackRangeToCleanUp(aHTMLEditor.RangeUpdaterRef(),
+                                          &rangeToCleanUp);
+    nsresult rv =
+        DeleteUnnecessaryNodes(aHTMLEditor, rangeToCleanUp, aEditingHost);
     if (NS_FAILED(rv)) {
-      NS_WARNING(
-          "AutoDeleteRangesHandler::DeleteUnnecessaryNodesAndCollapseSelection("
-          ") failed");
+      NS_WARNING("AutoDeleteRangesHandler::DeleteUnnecessaryNodes() failed");
+      return Err(rv);
+    }
+    trackRangeToCleanUp.FlushAndStopTracking();
+    if (NS_WARN_IF(!rangeToCleanUp.IsPositionedAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+    const auto& pointToPutCaret =
+        !nsIEditor::DirectionIsBackspace(aDirectionAndAmount) ||
+                (aHTMLEditor.TopLevelEditSubActionDataRef()
+                     .mDidDeleteEmptyParentBlocks &&
+                 (aHTMLEditor.GetEditAction() == EditAction::eDrop ||
+                  aHTMLEditor.GetEditAction() == EditAction::eDeleteByDrag))
+            ? rangeToCleanUp.StartRef()
+            : rangeToCleanUp.EndRef();
+    rv = aHTMLEditor.CollapseSelectionTo(pointToPutCaret);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("EditorBase::CollapseSelectionTo() failed");
       return Err(rv);
     }
     return EditActionResult::HandledResult();
@@ -4470,15 +4462,26 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
 
-  nsresult rv =
-      mDeleteRangesHandler->DeleteUnnecessaryNodesAndCollapseSelection(
-          aHTMLEditor, aDirectionAndAmount,
-          EditorDOMPoint(aRangeToDelete.StartRef()),
-          EditorDOMPoint(aRangeToDelete.EndRef()), aEditingHost);
+  EditorDOMRange rangeToCleanUp(aRangeToDelete);
+  AutoTrackDOMRange trackRangeToCleanUp(aHTMLEditor.RangeUpdaterRef(),
+                                        &rangeToCleanUp);
+  nsresult rv = mDeleteRangesHandler->DeleteUnnecessaryNodes(
+      aHTMLEditor, rangeToCleanUp, aEditingHost);
   if (NS_FAILED(rv)) {
-    NS_WARNING(
-        "AutoDeleteRangesHandler::DeleteUnnecessaryNodesAndCollapseSelection() "
-        "failed");
+    NS_WARNING("AutoDeleteRangesHandler::DeleteUnnecessaryNodes() failed");
+    return Err(rv);
+  }
+  const auto& pointToPutCaret =
+      !nsIEditor::DirectionIsBackspace(aDirectionAndAmount) ||
+              (aHTMLEditor.TopLevelEditSubActionDataRef()
+                   .mDidDeleteEmptyParentBlocks &&
+               (aHTMLEditor.GetEditAction() == EditAction::eDrop ||
+                aHTMLEditor.GetEditAction() == EditAction::eDeleteByDrag))
+          ? rangeToCleanUp.StartRef()
+          : rangeToCleanUp.EndRef();
+  rv = aHTMLEditor.CollapseSelectionTo(pointToPutCaret);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("EditorBase::CollapseSelectionTo() failed");
     return Err(rv);
   }
   return EditActionResult::HandledResult();
@@ -5391,9 +5394,8 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
   {
     AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
                                            &pointToPutCaret);
-    EditorDOMRange range(aRangeToDelete);
     nsresult rv = mDeleteRangesHandler->DeleteUnnecessaryNodes(
-        aHTMLEditor, range, aEditingHost);
+        aHTMLEditor, EditorDOMRange(aRangeToDelete), aEditingHost);
     if (NS_FAILED(rv)) {
       NS_WARNING("AutoDeleteRangesHandler::DeleteUnnecessaryNodes() failed");
       return Err(rv);
@@ -5588,7 +5590,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
 }
 
 nsresult HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodes(
-    HTMLEditor& aHTMLEditor, EditorDOMRange& aRange,
+    HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange,
     const Element& aEditingHost) {
   MOZ_ASSERT(aHTMLEditor.IsTopLevelEditSubActionDataAvailable());
   MOZ_ASSERT(EditorUtils::IsEditableContent(
@@ -5596,19 +5598,21 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodes(
   MOZ_ASSERT(EditorUtils::IsEditableContent(
       *aRange.EndRef().ContainerAs<nsIContent>(), EditorType::HTML));
 
+  EditorDOMRange range(aRange);
+
   // If we're handling DnD, this is called to delete dragging item from the
   // tree.  In this case, we should remove parent blocks if it becomes empty.
   if (aHTMLEditor.GetEditAction() == EditAction::eDrop ||
       aHTMLEditor.GetEditAction() == EditAction::eDeleteByDrag) {
-    MOZ_ASSERT(aRange.Collapsed() ||
-               (aRange.StartRef().GetContainer()->GetNextSibling() ==
-                    aRange.EndRef().GetContainer() &&
-                aRange.StartRef().IsEndOfContainer() &&
-                aRange.EndRef().IsStartOfContainer()));
-    AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &aRange);
+    MOZ_ASSERT(range.Collapsed() ||
+               (range.StartRef().GetContainer()->GetNextSibling() ==
+                    range.EndRef().GetContainer() &&
+                range.StartRef().IsEndOfContainer() &&
+                range.EndRef().IsStartOfContainer()));
+    AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &range);
 
-    nsresult rv = DeleteParentBlocksWithTransactionIfEmpty(aHTMLEditor,
-                                                           aRange.StartRef());
+    nsresult rv =
+        DeleteParentBlocksWithTransactionIfEmpty(aHTMLEditor, range.StartRef());
     if (NS_FAILED(rv)) {
       NS_WARNING(
           "HTMLEditor::DeleteParentBlocksWithTransactionIfEmpty() failed");
@@ -5624,22 +5628,22 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodes(
     }
   }
 
-  if (NS_WARN_IF(!aRange.IsInContentNodes()) ||
+  if (NS_WARN_IF(!range.IsInContentNodes()) ||
       NS_WARN_IF(!EditorUtils::IsEditableContent(
-          *aRange.StartRef().ContainerAs<nsIContent>(), EditorType::HTML)) ||
+          *range.StartRef().ContainerAs<nsIContent>(), EditorType::HTML)) ||
       NS_WARN_IF(!EditorUtils::IsEditableContent(
-          *aRange.EndRef().ContainerAs<nsIContent>(), EditorType::HTML))) {
+          *range.EndRef().ContainerAs<nsIContent>(), EditorType::HTML))) {
     return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
   }
 
   // We might have left only collapsed white-space in the start/end nodes
   {
-    AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &aRange);
+    AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &range);
 
     OwningNonNull<nsIContent> startContainer =
-        *aRange.StartRef().ContainerAs<nsIContent>();
+        *range.StartRef().ContainerAs<nsIContent>();
     OwningNonNull<nsIContent> endContainer =
-        *aRange.EndRef().ContainerAs<nsIContent>();
+        *range.EndRef().ContainerAs<nsIContent>();
     nsresult rv =
         DeleteNodeIfInvisibleAndEditableTextNode(aHTMLEditor, startContainer);
     if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
@@ -5651,9 +5655,9 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodes(
         "failed to remove start node, but ignored");
     // If we've not handled the selection end container, and it's still
     // editable, let's handle it.
-    if (!aRange.InSameContainer() &&
+    if (!range.InSameContainer() &&
         EditorUtils::IsEditableContent(
-            *aRange.EndRef().ContainerAs<nsIContent>(), EditorType::HTML)) {
+            *range.EndRef().ContainerAs<nsIContent>(), EditorType::HTML)) {
       rv = DeleteNodeIfInvisibleAndEditableTextNode(aHTMLEditor, endContainer);
       if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
         return NS_ERROR_EDITOR_DESTROYED;
@@ -5665,59 +5669,24 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodes(
     }
   }
 
-  if (NS_WARN_IF(!aRange.IsPositioned())) {
+  if (NS_WARN_IF(!range.IsPositioned())) {
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
 
-  if (MOZ_LIKELY(aRange.EndRef().IsInContentNode())) {
-    AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &aRange);
+  if (MOZ_LIKELY(range.EndRef().IsInContentNode())) {
+    AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &range);
     nsresult rv = aHTMLEditor.EnsureNoFollowingUnnecessaryLineBreak(
-        aRange.EndRef(), aEditingHost);
+        range.EndRef(), aEditingHost);
     if (NS_FAILED(rv)) {
       NS_WARNING("HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak() failed");
       return Err(rv);
     }
   }
-  if (NS_WARN_IF(!aRange.IsPositioned())) {
+  if (NS_WARN_IF(!range.IsPositioned())) {
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
 
   return NS_OK;
-}
-
-nsresult
-HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodesAndCollapseSelection(
-    HTMLEditor& aHTMLEditor, nsIEditor::EDirection aDirectionAndAmount,
-    const EditorDOMPoint& aSelectionStartPoint,
-    const EditorDOMPoint& aSelectionEndPoint, const Element& aEditingHost) {
-  EditorDOMRange range(aSelectionStartPoint, aSelectionEndPoint);
-  nsresult rv = DeleteUnnecessaryNodes(aHTMLEditor, range, aEditingHost);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("AutoDeleteRangesHandler::DeleteUnnecessaryNodes() failed");
-    return rv;
-  }
-
-  if (aHTMLEditor.GetEditAction() == EditAction::eDrop ||
-      aHTMLEditor.GetEditAction() == EditAction::eDeleteByDrag) {
-    // If we removed parent blocks, Selection should be collapsed at where
-    // the most ancestor empty block has been.
-    // XXX I think that if the range is not in active editing host, we should
-    // not try to collapse selection here.
-    if (aHTMLEditor.TopLevelEditSubActionDataRef()
-            .mDidDeleteEmptyParentBlocks) {
-      nsresult rv = aHTMLEditor.CollapseSelectionTo(range.StartRef());
-      NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                           "EditorBase::CollapseSelectionTo() failed");
-      return rv;
-    }
-  }
-
-  rv = aHTMLEditor.CollapseSelectionTo(
-      aDirectionAndAmount == nsIEditor::ePrevious ? range.EndRef()
-                                                  : range.StartRef());
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "EditorBase::CollapseSelectionTo() failed");
-  return rv;
 }
 
 nsresult
