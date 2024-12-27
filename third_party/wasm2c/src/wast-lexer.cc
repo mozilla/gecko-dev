@@ -29,14 +29,7 @@ namespace wabt {
 
 namespace {
 
-#if __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
-#endif
 #include "prebuilt/lexer-keywords.cc"
-#if __clang__
-#pragma clang diagnostic pop
-#endif
 
 }  // namespace
 
@@ -187,7 +180,7 @@ Token WastLexer::GetToken() {
 }
 
 Location WastLexer::GetLocation() {
-  auto column = [this](const char* p) {
+  auto column = [=](const char* p) {
     return std::max(1, static_cast<int>(p - line_start_ + 1));
   };
   return Location(filename_, line_, column(token_start_), column(cursor_));
@@ -284,13 +277,6 @@ bool WastLexer::ReadLineComment() {
     switch (ReadChar()) {
       case kEof:
         return false;
-
-      case '\r':
-        if (PeekChar() == '\n') {
-          ReadChar();
-        }
-        Newline();
-        return true;
 
       case '\n':
         Newline();

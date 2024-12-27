@@ -14,7 +14,6 @@ def RLBoxLibrary(name, use_segue=True):
 
     SOURCES += [f"!{name}.wasm.c"]
     SOURCES += ["/third_party/wasm2c/wasm2c/wasm-rt-impl.c"]
-    SOURCES += ["/third_party/wasm2c/wasm2c/wasm-rt-mem-impl.c"]
 
     # Configuration for the wasm2c runtime used by RLBox
 
@@ -32,7 +31,7 @@ def RLBoxLibrary(name, use_segue=True):
     DEFINES["WASM_RT_TRAP_HANDLER"] = "moz_wasm2c_trap_handler"
 
     # Don't limit the nested call depth
-    DEFINES["WASM_RT_NONCONFORMING_UNCHECKED_STACK_EXHAUSTION"] = 1
+    DEFINES["WASM_RT_USE_STACK_DEPTH_COUNT"] = 0
 
     # Configure the wasm runtime to invoke a callback when a Wasm memory growth
     # fails inside the sandbox. This information is used to annotate crash reports.

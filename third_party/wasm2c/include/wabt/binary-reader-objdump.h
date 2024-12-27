@@ -86,7 +86,6 @@ struct ObjdumpState {
   ObjdumpLocalNames local_names;
   std::vector<ObjdumpSymbol> symtab;
   std::map<Index, Index> function_param_counts;
-  std::map<Index, Index> function_types;
 };
 
 Result ReadBinaryObjdump(const uint8_t* data,

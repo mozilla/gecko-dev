@@ -9,8 +9,8 @@ origin:
   description: wasm2c fork used for rlbox sandboxing
   url: https://github.com/WebAssembly/wabt
 
-  release: 94c25a93c5ee81939bd1acfee06808f6745883ce (2024-11-11T23:21:55Z).
-  revision: 94c25a93c5ee81939bd1acfee06808f6745883ce
+  release: 963f973469b45969ce198e0c86d3af316790a780 (2023-05-12T21:56:46Z).
+  revision: 963f973469b45969ce198e0c86d3af316790a780
 
   license: Apache-2.0
   license-file: LICENSE
@@ -31,7 +31,6 @@ vendoring:
     - src/template
     - test
     - third_party
-    - wasm2c/benchmarks
     - wasm2c/examples
     # files
     - .*
@@ -39,7 +38,6 @@ vendoring:
     - Contributing.md
     - Makefile
     - README.md
-    - SECURITY.md
     - ubsan.blacklist
     - src/tools/s*
     - src/tools/wasm-*

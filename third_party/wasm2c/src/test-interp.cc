@@ -491,8 +491,7 @@ TEST_F(InterpTest, Rot13) {
 
   std::string string_data = "Hello, WebAssembly!";
 
-  auto memory =
-      Memory::New(store_, MemoryType{Limits{1}, WABT_DEFAULT_PAGE_SIZE});
+  auto memory = Memory::New(store_, MemoryType{Limits{1}});
 
   auto fill_buf = [&](Thread& thread, const Values& params, Values& results,
                       Trap::Ptr* out_trap) -> Result {
@@ -506,13 +505,8 @@ TEST_F(InterpTest, Rot13) {
 
     EXPECT_LT(ptr + size, memory->ByteSize());
 
-#if WABT_BIG_ENDIAN
-    std::copy(string_data.rbegin(), string_data.rbegin() + size,
-              memory->UnsafeData() + memory->ByteSize() - ptr - size);
-#else
     std::copy(string_data.begin(), string_data.begin() + size,
               memory->UnsafeData() + ptr);
-#endif
 
     results[0].Set(size);
     return Result::Ok;
@@ -533,14 +527,8 @@ TEST_F(InterpTest, Rot13) {
     EXPECT_LT(ptr + size, memory->ByteSize());
 
     string_data.resize(size);
-#if WABT_BIG_ENDIAN
-    std::copy(memory->UnsafeData() + memory->ByteSize() - ptr - size,
-              memory->UnsafeData() + memory->ByteSize() - ptr,
-              string_data.rbegin());
-#else
     std::copy(memory->UnsafeData() + ptr, memory->UnsafeData() + ptr + size,
               string_data.begin());
-#endif
 
     return Result::Ok;
   };
@@ -660,7 +648,7 @@ TEST_F(InterpGCTest, Collect_InstanceImport) {
                          [](Thread& thread, const Values&, Values&,
                             Trap::Ptr*) -> Result { return Result::Ok; });
   auto t = Table::New(store_, TableType{ValueType::FuncRef, Limits{0}});
-  auto m = Memory::New(store_, MemoryType{Limits{0}, WABT_DEFAULT_PAGE_SIZE});
+  auto m = Memory::New(store_, MemoryType{Limits{0}});
   auto g = Global::New(store_, GlobalType{ValueType::I32, Mutability::Const},
                        Value::Make(5));
 
