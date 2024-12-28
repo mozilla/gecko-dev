@@ -439,6 +439,7 @@ tags = "vertical-tabs"
 tags = "vertical-tabs"
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1938525
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
 ]
 
 ["browser_tabReorder_vertical.js"]
@@ -477,6 +478,8 @@ support-files = ["file_new_tab_page.html"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1920294
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929417 (secondary)
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1928146
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
 ]
 tags = "vertical-tabs"
 
@@ -518,9 +521,17 @@ tags = "vertical-tabs"
 
 ["browser_tab_preview.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1928146
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
+]
 
 ["browser_tab_tooltips.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1928146
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
+]
 
 ["browser_tabfocus.js"]
 tags = "vertical-tabs"
