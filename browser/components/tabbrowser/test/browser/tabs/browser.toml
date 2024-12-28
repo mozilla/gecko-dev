@@ -588,3 +588,7 @@ skip-if = ["os == 'win' && !debug"]
 ["browser_window_open_modifiers.js"]
 support-files = ["file_window_open.html"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1928146
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
+]
