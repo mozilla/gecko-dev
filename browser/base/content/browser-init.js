@@ -609,21 +609,18 @@ var gBrowserInit = {
 
           let managedBookmarksPopup = document.createXULElement("menupopup");
           managedBookmarksPopup.setAttribute("id", "managed-bookmarks-popup");
-          managedBookmarksPopup.setAttribute(
-            "oncommand",
-            "PlacesToolbarHelper.openManagedBookmark(event);"
+          managedBookmarksPopup.addEventListener("command", event =>
+            PlacesToolbarHelper.openManagedBookmark(event)
           );
-          managedBookmarksPopup.setAttribute(
-            "ondragover",
-            "event.dataTransfer.effectAllowed='none';"
+          managedBookmarksPopup.addEventListener(
+            "dragover",
+            event => (event.dataTransfer.effectAllowed = "none")
           );
-          managedBookmarksPopup.setAttribute(
-            "ondragstart",
-            "PlacesToolbarHelper.onDragStartManaged(event);"
+          managedBookmarksPopup.addEventListener("dragstart", event =>
+            PlacesToolbarHelper.onDragStartManaged(event)
           );
-          managedBookmarksPopup.setAttribute(
-            "onpopupshowing",
-            "PlacesToolbarHelper.populateManagedBookmarks(this);"
+          managedBookmarksPopup.addEventListener("popupshowing", event =>
+            PlacesToolbarHelper.populateManagedBookmarks(event.currentTarget)
           );
           managedBookmarksPopup.setAttribute("placespopup", "true");
           managedBookmarksPopup.setAttribute("is", "places-popup");
