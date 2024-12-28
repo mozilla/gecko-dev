@@ -58,6 +58,21 @@ async function disabledFeature() {
   browser.test.sendMessage("inference_finished");
 }
 
+function createExtension(background) {
+  const id = Services.uuid.generateUUID().number;
+  ExtensionPermissions.add(id, { permissions: ["trialML"], origins: [] });
+
+  return ExtensionTestUtils.loadExtension({
+    isPrivileged: true,
+    manifest: {
+      optional_permissions: ["trialML"],
+      background: { scripts: ["background.js"] },
+      browser_specific_settings: { gecko: { id } },
+    },
+    background,
+  });
+}
+
 function createMlExtensionTest({
   testName,
   backgroundFunction = happyPath,
@@ -67,25 +82,8 @@ function createMlExtensionTest({
   ],
 }) {
   const func = async function () {
-    await SpecialPowers.pushPrefEnv({
-      set: prefs,
-    });
-
-    const { cleanup, remoteClients } = await setup();
-    const id = Services.uuid.generateUUID().number;
-    ExtensionPermissions.add(id, { permissions: ["trialML"], origins: [] });
-
-    let extension = ExtensionTestUtils.loadExtension({
-      isPrivileged: true,
-      manifest: {
-        optional_permissions: ["trialML"],
-        background: { scripts: ["background.js"] },
-        browser_specific_settings: { gecko: { id } },
-      },
-      files: {
-        "background.js": backgroundFunction,
-      },
-    });
+    const { cleanup, remoteClients } = await setup({ prefs });
+    let extension = createExtension(backgroundFunction);
 
     await extension.startup();
     try {
@@ -176,3 +174,60 @@ add_task(
     },
   })
 );
+
+/**
+ * Test re-creating the engine after the idle timeout drops it.
+ */
+add_task(async function test_idle_timeout() {
+  const { cleanup, remoteClients } = await setup({
+    prefs: [["extensions.experiments.enabled", true]],
+  });
+  let extension = createExtension(async function background() {
+    const options = {
+      taskName: "summarization",
+      modelId: "test-echo",
+      modelRevision: "main",
+    };
+
+    await browser.trial.ml.createEngine(options);
+    browser.test.sendMessage("model_created");
+
+    browser.test.onMessage.addListener(async (_msg, data) => {
+      const inferencePromise = browser.trial.ml.runEngine({ args: data });
+      browser.test.sendMessage("promise_created");
+
+      const res = (await inferencePromise).output;
+      browser.test.assertDeepEq(
+        res,
+        data,
+        "The text get echoed exercising the whole flow."
+      );
+      browser.test.sendMessage("inference_finished");
+    });
+  });
+
+  await extension.startup();
+  try {
+    await extension.awaitMessage("model_created");
+
+    // Run inference the first time.
+    extension.sendMessage("run", "Marco");
+    await extension.awaitMessage("promise_created");
+    await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+    await extension.awaitMessage("inference_finished");
+
+    // Simulate the engine getting destroyed after an idle timeout.
+    await EngineProcess.destroyMLEngine();
+    ok(EngineProcess.areAllEnginesTerminated(), "Nothing is running.");
+
+    // Run inference without calling createEngine again.
+    extension.sendMessage("run", "Polo");
+    await extension.awaitMessage("promise_created");
+    await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+    await extension.awaitMessage("inference_finished");
+  } finally {
+    await extension.unload();
+    await EngineProcess.destroyMLEngine();
+    await cleanup();
+  }
+});
