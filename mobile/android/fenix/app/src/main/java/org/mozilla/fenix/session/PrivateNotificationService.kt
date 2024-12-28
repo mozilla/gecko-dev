@@ -46,9 +46,9 @@ class PrivateNotificationService : AbstractPrivateNotificationService() {
         }
 
         val contentText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            getString(R.string.notification_erase_text_android_14)
+            applicationContext.getString(R.string.notification_erase_text_android_14)
         } else {
-            getString(R.string.notification_pbm_delete_text_2)
+            applicationContext.getString(R.string.notification_pbm_delete_text_2)
         }
 
         setContentTitle(contentTitle)
