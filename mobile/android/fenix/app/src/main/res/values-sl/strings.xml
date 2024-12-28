@@ -363,7 +363,7 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">Vklopi bralni pogled</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">Izklopi bralni pogled</string>
+    <string name="browser_menu_turn_off_reader_view">Izklopi bralni pogled</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Prevedi stran …</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -605,8 +605,8 @@
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Izberite postavitev orodne vrstice</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Ohranite si iskanja na dosegu roke.</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">Shrani in nadaljuj</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">Shrani in nadaljuj</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Preskoči</string>
 
@@ -614,6 +614,23 @@
     <string name="onboarding_customize_toolbar_top_option">Vrh</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Dno</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Izberite temo</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Naj se vam splet pokaže v najboljši luči.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Shrani in začni brskati</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">Preskoči</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Temna</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Svetla</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Sistemsko samodejno</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Slika teme %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1027,10 +1044,11 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Delite informacije o tem, kako ste odkrili Firefox, z Mozillinimi tržnimi partnerji. To nam pomaga pri razvoju Firefoxa in ustvarjanju boljšega interneta</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Več o podatkih za trženje</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Samodejno pošiljanje poročil o sesutjih</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Samodejno pošilja podatke o sesutju Mozilli ob zagonu, potem ko pride do sesutja</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Samodejno pošiljanje poročil o sesutjih</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Samodejno pošilja podatke o sesutju Mozilli ob zagonu, potem ko pride do sesutja</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Raziskave</string>
     <!-- Summary for studies preferences -->
@@ -1200,14 +1218,14 @@
     <string name="studies_learn_more">Več o tem</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Aplikacija se bo zaprla za uveljavitev sprememb</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikacija se bo zaprla za uveljavitev sprememb</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">V redu</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">V redu</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Prekliči</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Prekliči</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Zapiranje aplikacije za uveljavitev sprememb …</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Zapiranje aplikacije za uveljavitev sprememb …</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->

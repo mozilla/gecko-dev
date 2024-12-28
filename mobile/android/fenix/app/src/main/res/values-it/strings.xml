@@ -626,7 +626,11 @@
     <!-- Onboarding toolbar selection card content description for the main image. -->
     <string name="onboarding_customize_toolbar_main_image_content_description">Immagine di intestazione utilizzata nella schermata di selezione della barra degli strumenti che mostra l’illustrazione di una barra degli strumenti.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">Immagine della barra degli strumenti con posizione “%1$s”</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Immagine della barra degli strumenti con posizione “%1$s”</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Immagine della barra degli strumenti posizionata in basso</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Immagine della barra degli strumenti posizionata in alto</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Scegli un tema</string>
@@ -1063,10 +1067,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Condividi informazioni su come hai scoperto Firefox con i partner di marketing di Mozilla. Questo ci aiuta a far crescere Firefox e a costruire un Internet migliore</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Ulteriori informazioni sui dati di marketing</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Invia automaticamente segnalazioni di arresto anomalo</string>
+    <string name="preferences_automatically_send_crashes_title">Invia automaticamente segnalazioni di arresto anomalo</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Invia automaticamente segnalazioni di arresto anomalo</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Condivide automaticamente con Mozilla i dati sugli arresti anomali all’avvio successivo</string>
+    <string name="preferences_automatically_send_crashes_description">Questo ci aiuta a diagnosticare e risolvere problemi con il browser. Le segnalazioni possono includere dati personali o sensibili.</string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Condivide automaticamente con Mozilla i dati sugli arresti anomali all’avvio successivo</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studi</string>
     <!-- Summary for studies preferences -->

@@ -59,6 +59,8 @@
     <!-- Text of a negative button in dialog requesting to open a new window. -->
     <string name="mozac_feature_prompts_deny">拒絕</string>
 
+    <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+    <string name="mozac_feature_prompts_popup_dialog_title">要允許此網站開啟新視窗嗎？</string>
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">您確定嗎？</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
