@@ -22,7 +22,7 @@ AddonTestUtils.createAppInfo(
 
 let OptionalPermissions;
 
-add_setup(async () => {
+add_task(async function setup() {
   // FOG needs a profile and to be initialized.
   do_get_profile();
   Services.fog.initializeFOG();
@@ -64,14 +64,12 @@ add_setup(async () => {
     "tabHide",
     "tabs",
     "trialML",
+    "userScripts", // Covered by test_ext_userScripts_mv3_availability.js
     "webRequestAuthProvider",
     "webRequestBlocking",
     "webRequestFilterResponse",
     "webRequestFilterResponse.serviceWorkerScript",
   ];
-  // "OptionalOnlyPermission" is not included in the list below, because a test
-  // below tries to request all permissions at once. That is not supported when
-  // optional-only. See test_ext_permissions_optional_only.js instead.
   OptionalPermissions = Schemas.getPermissionNames([
     "OptionalPermission",
     "OptionalPermissionNoPrompt",

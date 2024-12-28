@@ -104,11 +104,6 @@ function assertIsUserScriptsPermissionPrompt(panel) {
   is(warningBar, checkbox.nextElementSibling, "Warning is below checkbox");
 }
 
-function assertIsNotUserScriptPermissionPrompt(panel) {
-  is(getUserScriptsCheckbox(panel), null, "Panel does not have a checkbox");
-  is(getUserScriptsWarningBar(panel), null, "Panel does not have a warning");
-}
-
 function toggleUserScriptCheckbox(panel, { checked, oldChecked = !checked }) {
   let checkbox = getUserScriptsCheckbox(panel);
   is(checkbox.checked, oldChecked, "Initial checkbox state");
@@ -181,7 +176,8 @@ add_task(async function test_userScripts_not_allowed_by_default() {
     );
     let resultPromise = triggerPermRequest(extension, "webNavigation");
     let panel = await panelPromise;
-    assertIsNotUserScriptPermissionPrompt(panel);
+    is(getUserScriptsCheckbox(panel), null, "Panel does not have a checkbox");
+    is(getUserScriptsWarningBar(panel), null, "Panel does not have a warning");
     is(
       panel.permsSingleEl.textContent,
       PERMISSION_L10N.formatValueSync("webext-perms-description-webNavigation"),
@@ -232,67 +228,4 @@ add_task(async function test_userScripts_allowed_with_double_confirmation() {
   is(await resultPromise, true, "userScripts allowed after double prompt");
 
   await extension.unload();
-});
-
-// The userScripts prompting UI is designed for use with optional permissions
-// only because "userScripts" can never appear in an install prompt, due to it
-// being an OptionalOnlyPermission. See test_ext_permissions_optional_only.js
-// for additional coverage on "userScripts" being an optional-only permission.
-add_task(async function test_userScripts_cannot_be_install_time_permission() {
-  const addonId = "test@test_userScripts_cannot_be_install_time_permission";
-
-  let xpi = AddonTestUtils.createTempWebExtensionFile({
-    manifest: {
-      manifest_version: 3,
-      // cookies has no permission message, webNavigation does.
-      permissions: ["cookies", "userScripts", "webNavigation"],
-      browser_specific_settings: { gecko: { id: addonId } },
-      // Suppress private browsing checkbox in install prompt.
-      incognito: "not_allowed",
-    },
-  });
-
-  // The unsupported "userScripts" in "permissions" will trigger a warning.
-  ExtensionTestUtils.failOnSchemaWarnings(false);
-
-  let startupPromise = AddonTestUtils.promiseWebExtensionStartup(addonId);
-
-  await BrowserTestUtils.withNewTab("about:blank", async () => {
-    const panelPromise = promisePopupNotificationShown(
-      "addon-webext-permissions"
-    );
-
-    gURLBar.value = xpi.path;
-    gURLBar.focus();
-    EventUtils.synthesizeKey("KEY_Enter");
-    let panel = await panelPromise;
-    assertIsNotUserScriptPermissionPrompt(panel);
-    is(
-      panel.permsSingleEl.textContent,
-      PERMISSION_L10N.formatValueSync("webext-perms-description-webNavigation"),
-      "Install prompt displays the (only) recognized required permission"
-    );
-    ok(BrowserTestUtils.isHidden(panel.permsListEl), "Perm list is hidden");
-
-    let { messages } = await AddonTestUtils.promiseConsoleOutput(async () => {
-      // Click button to "Add" extension.
-      panel.button.click();
-      let extension = await startupPromise;
-      ok(extension.hasPermission("webNavigation"), "Has approved permission");
-      ok(!extension.hasPermission("userScripts"), "No userScripts permission");
-    });
-    AddonTestUtils.checkMessages(messages, {
-      expected: [
-        {
-          message:
-            /Reading manifest: Warning processing permissions: Error processing permissions.1: Value "userScripts" must either:/,
-        },
-      ],
-    });
-  });
-
-  let addon = await AddonManager.getAddonByID(addonId);
-  await addon.uninstall();
-
-  ExtensionTestUtils.failOnSchemaWarnings(true);
 });

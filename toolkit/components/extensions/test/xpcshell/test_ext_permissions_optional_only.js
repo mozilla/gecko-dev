@@ -36,9 +36,6 @@ add_setup(async () => {
 
   await AddonTestUtils.promiseStartupManager();
   AddonTestUtils.usePrivilegedSignatures = false;
-
-  // "userScripts" can only be in optional_permissions when supported:
-  Services.prefs.setBoolPref("extensions.userScripts.mv3.enabled", true);
 });
 
 // Test that an optional-only permission in the "permissions" array is not
@@ -101,11 +98,6 @@ async function test_optional_only_permission_in_permissions(manifest_version) {
 
   await extension.unload();
 
-  // Note: the permission being rejected at parse time should be sufficient to
-  // prevent the permission from appearing in extension UI. For additional test
-  // coverage, the test_userScripts_cannot_be_install_time_permission test in
-  // browser_permission_prompt_userScripts.js confirms that the "userScripts"
-  // OptionalOnlyPermission is really hidden from install prompts.
   AddonTestUtils.checkMessages(messages, {
     expected: [
       {
@@ -202,19 +194,9 @@ add_task(
   async function at_most_one_optional_only_permission_in_request() {
     let extension = ExtensionTestUtils.loadExtension({
       manifest: {
-        manifest_version: 3,
         optional_permissions: [
-          // Note: cookies permission does not have a permission warning.
-          "cookies",
-          // Optional-only permission:
           "trialML",
-          // Optional-only permission:
-          "userScripts",
-          // Regular permission with warning:
           "webNavigation",
-        ],
-        host_permissions: [
-          // Host permission with warning:
           "https://example.com/*",
         ],
       },
@@ -237,34 +219,9 @@ add_task(
         );
 
         await browser.test.assertRejects(
-          testPermissionsRequest({ permissions: ["trialML", "cookies"] }),
-          ERROR_ONLY_ONE_PERM_ALLOWED,
-          "Should reject optional-only permission + permission without warning"
-        );
-
-        await browser.test.assertRejects(
           testPermissionsRequest({ permissions: ["trialML", "webNavigation"] }),
           ERROR_ONLY_ONE_PERM_ALLOWED,
           "Should reject optional-only permissions + regular permission"
-        );
-
-        await browser.test.assertRejects(
-          testPermissionsRequest({ permissions: ["trialML", "userScripts"] }),
-          ERROR_ONLY_ONE_PERM_ALLOWED,
-          "Should reject optional-only permissions (trialML, userScripts)"
-        );
-
-        // The UI logic (isUserScriptsRequest in ExtensionsUI.sys.mjs) assumes
-        // that "userScripts" is the only permission if present in a permission
-        // request. That is the case because "userScripts" is an
-        // OptionalOnlyPermission, which the following check confirms:
-        await browser.test.assertRejects(
-          testPermissionsRequest({ permissions: ["userScripts", "trialML"] }),
-          // Note: this is comparable to the ["trialML", "userScripts"] test
-          // above, but the error message differs because the message includes
-          // the first optional-only permission, "userScripts" in this case.
-          "Cannot request permission userScripts with another permission",
-          "Should reject optional-only permissions (userScripts, trialML)"
         );
 
         await browser.test.assertRejects(
