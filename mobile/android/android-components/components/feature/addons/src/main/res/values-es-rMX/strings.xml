@@ -70,6 +70,10 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Ocultar y mostrar pestañas del navegador</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Acceder al historial de navegación</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Descargar y ejecutar modelos de IA en tu dispositivo</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Permitir que scripts de terceros no verificados accedan a tus datos</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Ampliar las herramientas para desarrolladores para acceder a tus datos en las pestañas abiertas</string>
     <!-- The version on of add-on. -->
@@ -130,6 +134,8 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">Permitir</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">Denegar</string>
+    <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+    <string name="mozac_feature_addons_permissions_dialog_learn_more">Saber más</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Cancelar</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

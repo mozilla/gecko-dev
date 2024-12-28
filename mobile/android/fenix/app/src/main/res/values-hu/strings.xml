@@ -622,7 +622,11 @@
     <!-- Onboarding toolbar selection card content description for the main image. -->
     <string name="onboarding_customize_toolbar_main_image_content_description">Nagy fejléckép az eszköztár-kiválasztó nézetről, amely egy illusztrált eszköztárat mutat.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">A(z) %1$s eszköztár képe</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">A(z) %1$s eszköztár képe</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Az alsó eszköztár képe</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">A felső eszköztár képe</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Válasszon témát</string>
@@ -1054,10 +1058,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Osszon meg információkat a Mozilla marketinges partnereivel arról, hogyan fedezte fel a Firefoxot. Ez segít a Firefox fejlesztésében és egy jobb internet építésében</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Tudjon meg többet a marketingadatokról</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Összeomlás-jelentések automatikus elküldése</string>
+    <string name="preferences_automatically_send_crashes_title">Összeomlás-jelentések automatikus elküldése</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Összeomlás-jelentések automatikus elküldése</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Összeomlás után indításkor automatikusan megosztja az összeomlási adatokat a Mozillával</string>
+    <string name="preferences_automatically_send_crashes_description">Ez segít diagnosztizálni és megoldani a böngésző problémáit. A jelentések személyes vagy bizalmas adatokat tartalmazhatnak.</string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Összeomlás után indításkor automatikusan megosztja az összeomlási adatokat a Mozillával</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Tanulmányok</string>
     <!-- Summary for studies preferences -->

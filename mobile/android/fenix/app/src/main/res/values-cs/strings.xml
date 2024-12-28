@@ -373,6 +373,8 @@
     <string name="browser_menu_turn_on_reader_view">Zapnout zobrazení čtečky</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Vypnout zobrazení čtečky</string>dsa
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Přesunout na neanonymní panel</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Přeložit stránku…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -624,6 +626,33 @@
     <string name="onboarding_customize_toolbar_top_option">Nahoru</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Dolu</string>
+
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">Velký obrázek záhlaví zobrazení výběru panelu nástrojů zobrazující ilustrovaný panel nástrojů.</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Obrázek panelu s nástroji %1$s</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Obrázek spodního panelu nástrojů</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Obrázek horního panelu nástrojů</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Vyberte si motiv</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Podívejte se na web v tom nejlepším světle.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Uložit a začít prohlížet</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">Přeskočit</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Tmavá</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Světlá</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Dle systému</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Velký obrázek v záhlaví výběru motivu vzhledu zobrazující ilustrované nástroje pro umělce a tvůrce.</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Obrázek motivu vzhledu %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1034,10 +1063,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Sdílejte informace o tom, jak jste Firefox objevili, s marketingovými partnery společnosti Mozilla. Pomáhá nám to rozvíjet Firefox a vytvářet lepší internet</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Další informace o marketingových datech</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Automaticky odesílat hlášení o pádech</string>
+    <string name="preferences_automatically_send_crashes_title">Automaticky odesílat hlášení o pádech</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Automaticky odesílat hlášení o pádech</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Automaticky sdílí s Mozillou údaje o pádech aplikace při jejím dalším spuštění</string>
+    <string name="preferences_automatically_send_crashes_description">Pomáhá nám to diagnostikovat a opravovat problémy s prohlížečem. Hlášení mohou obsahovat osobní nebo citlivé údaje.</string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Automaticky sdílí s Mozillou údaje o pádech aplikace při jejím dalším spuštění</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studie</string>
     <!-- Summary for studies preferences -->

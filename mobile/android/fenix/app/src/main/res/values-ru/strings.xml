@@ -631,7 +631,11 @@
     <!-- Onboarding toolbar selection card content description for the main image. -->
     <string name="onboarding_customize_toolbar_main_image_content_description">Большое изображение в заголовке окна выбора панели инструментов, показывающее иллюстрированную панель инструментов.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">Изображение панели инструментов %1$s</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Изображение панели инструментов %1$s</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Изображение нижней панели инструментов</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Изображение верхней панели инструментов</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Выберите тему</string>
@@ -1064,10 +1068,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Поделитесь информацией о том, как вы открыли для себя Firefox, с маркетинговыми партнёрами Mozilla. Это помогает нам развивать Firefox и создавать лучший Интернет</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Узнайте больше о маркетинговых данных</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Автоматически отправлять сообщения о падениях</string>
+    <string name="preferences_automatically_send_crashes_title">Автоматически отправлять отчёты о падениях</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Автоматически отправлять сообщения о падениях</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Автоматически делиться данными о падении с Mozilla при запуске</string>
+    <string name="preferences_automatically_send_crashes_description">Это помогает нам диагностировать и устранять проблемы с браузером. Отчёты могут содержать личные или конфиденциальные данные.</string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Автоматически делиться данными о падении с Mozilla при запуске</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Исследования</string>
     <!-- Summary for studies preferences -->
