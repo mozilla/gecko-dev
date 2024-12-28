@@ -2064,7 +2064,8 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
       (AVD3D11VAFramesContext*)framesContext->hwctx;
   d3d11vaFramesContext->BindFlags |= D3D11_BIND_DECODER;
   if (CanUseZeroCopyVideoFrame()) {
-    d3d11vaFramesContext->BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+    d3d11vaFramesContext->BindFlags |=
+        D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
   }
 
   int err = mLib->av_hwframe_ctx_init(hwFrameContext);
