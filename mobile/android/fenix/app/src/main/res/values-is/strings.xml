@@ -621,7 +621,11 @@
     <!-- Onboarding toolbar selection card content description for the main image. -->
     <string name="onboarding_customize_toolbar_main_image_content_description">Stór fyrirsagnarmynd af valsýn verkfærastikunnar sem sýnir myndskreytingu með verkfærastiku.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">Mynd af %1$s verkfærastiku</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Mynd af %1$s verkfærastiku</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Mynd af neðri verkfærastiku</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Mynd af efri verkfærastiku</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Veldu þema</string>
@@ -1051,10 +1055,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Deildu upplýsingum um hvernig þú uppgötvaðir Firefox með markaðsaðilum Mozilla. Þetta hjálpar okkur að láta Firefox vaxa og að byggja upp betra internet</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Frekari upplýsingar um markaðsgögn</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Senda hrunskýrslur sjálfkrafa</string>
+    <string name="preferences_automatically_send_crashes_title">Senda hrunskýrslur inn sjálfkrafa</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Senda hrunskýrslur sjálfkrafa</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Deilir hrungögnum sjálfkrafa með Mozilla við ræsingu eftir hrun</string>
+    <string name="preferences_automatically_send_crashes_description">Þetta gerir okkur kleift að greina og laga vandamál með vafrann. Slíkar skýrslur geta innihaldið persónuleg eða viðkvæm gögn.</string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Deilir hrungögnum sjálfkrafa með Mozilla við ræsingu eftir hrun</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Kannanir</string>
     <!-- Summary for studies preferences -->

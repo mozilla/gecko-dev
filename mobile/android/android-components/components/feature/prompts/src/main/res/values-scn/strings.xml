@@ -47,6 +47,8 @@
     <string name="mozac_feature_prompts_allow">Pirmetti</string>
     <!-- Text of a negative button in dialog requesting to open a new window. -->
     <string name="mozac_feature_prompts_deny">Nun pirmèttiri</string>
+    <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+    <string name="mozac_feature_prompts_popup_dialog_title">Auturizzi a stu situ di grapìrisi?</string>
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">Sì sicuru?</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
