@@ -627,7 +627,11 @@
     <!-- Onboarding toolbar selection card content description for the main image. -->
     <string name="onboarding_customize_toolbar_main_image_content_description">於工具列選擇畫面中顯示工具列示意圖的大標圖片。</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">%1$s工具列的圖片</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">%1$s工具列的圖片</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">底部工具列的圖片</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">頂端工具列的圖片</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">挑選佈景主題</string>
@@ -1063,10 +1067,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">與 Mozilla 的行銷夥伴分享您如何發現 Firefox 的相關資訊。這能夠幫助我們拓展 Firefox 使用率，打造更好的網際網路環境。</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">了解行銷資料的更多資訊</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">自動送出錯誤報告</string>
+    <string name="preferences_automatically_send_crashes_title">自動傳送錯誤報告</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">自動送出錯誤報告</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">發生錯誤後，於下次啟動時自動將錯誤報告回報給 Mozilla</string>
+    <string name="preferences_automatically_send_crashes_description">此資料可幫助我們找出瀏覽器的問題並進行修正。報告內容可能會包含私人或敏感資料。</string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">發生錯誤後，於下次啟動時自動將錯誤報告回報給 Mozilla</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">使用者研究</string>
     <!-- Summary for studies preferences -->

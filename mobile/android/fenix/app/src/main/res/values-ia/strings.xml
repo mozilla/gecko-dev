@@ -628,7 +628,11 @@
     <string name="onboarding_customize_toolbar_main_image_content_description">Grande imagine de titulo del selection del barra del instrumentos monstrante un barra del instrumentos illustrate.</string>
 
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">Imagine del barra del instrumentos de %1$s</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Imagine del barra del instrumentos de %1$s</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Imagine del barra del instrumentos inferior</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Imagine del barra del instrumentos superior</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Selige un thema</string>
@@ -1071,10 +1075,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Comparti informationes re como tu discoperiva Firefox con le socios mercantes de Mozilla. Isto adjuta nos a facer crescer Firefox e construer un internet melior</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Saper plus re le marketing del datos</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Inviar automaticamente reportos de crash</string>
+    <string name="preferences_automatically_send_crashes_title">Automaticamente inviar reportos de crash</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Inviar automaticamente reportos de crash</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Comparti datos del crash automaticamente al ignition con Mozilla post que le crashes eveni</string>
+    <string name="preferences_automatically_send_crashes_description">Isto adjuta nos a diagnosticar e corriger problemas del navigator, ma pote includer datos personal o sensibile.</string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Comparti datos del crash automaticamente al ignition con Mozilla post que le crashes eveni</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studios</string>
     <!-- Summary for studies preferences -->

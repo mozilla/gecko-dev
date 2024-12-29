@@ -365,6 +365,8 @@
     <string name="browser_menu_turn_on_reader_view">Passar a la vista lectura</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Quitar lo mòde lectura</string>
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Desplaçar cap a un onglet non privat</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traduire la pagina…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -606,14 +608,38 @@
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Causissètz ont conhar la barra d’aisinas</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Gardatz las recèrcas a man.</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">Enregistrar e contunhar</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">Enregistrar e contunhar</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button">Passar</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Naut</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Bas</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Imatge de la barra d’aisinas %1$s</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Imatge de la barra d’aisina inferiora</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Imatge de la barra d’aisina superiora</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Causir un tèma</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Vejatz lo web amb lo melhor angle.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Enregistrar e començar de navegar</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button">Passar</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Escur</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Clar</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Sistèma auto</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Imatge del tèma %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1031,10 +1057,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Partetjar las informacions sus lo biais qu’avètz descobèrt Firefox amb los partenaris de marketing de Mozilla. Aquò nos ajuda a desvolopar Firefox e a crear un melhor Internet.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Ne saber mai tocant las donadas de marketing</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Enviar automaticament los rapòrts de plantatge</string>
+    <string name="preferences_automatically_send_crashes_title">Enviar automaticament los rapòrts de plantatge</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Enviar automaticament los rapòrts de plantatge</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Partejar automaticament al lançament las donadas de plantatge amb Mozilla se se produsisson de plantatges.</string>
+    <string name="preferences_automatically_send_crashes_description">Aquò nos permet de diagnosticar e de corregir de problèmas amb lo navegador. Los rapòrts pòdon conténer de donadas personalas o sensiblas. </string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Partejar automaticament al lançament las donadas de plantatge amb Mozilla se se produsisson de plantatges.</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Estudis</string>
     <!-- Summary for studies preferences -->
@@ -1204,14 +1235,14 @@
     <string name="studies_learn_more">Ne saber mai</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">L’aplicacion es a se tampar per aplicar las modificacions</string>
+    <string name="studies_restart_app" moz:removedIn="135">L’aplicacion es a se tampar per aplicar las modificacions</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">D’acòrdi</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">D’acòrdi</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Anullar</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Anullar</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Tampadura de l’aplicacion per aplicar las modificacions…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Tampadura de l’aplicacion per aplicar las modificacions…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
