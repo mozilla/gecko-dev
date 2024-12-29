@@ -69,9 +69,14 @@ add_task(async () => {
   // Make sure APZ is ready in the popup.
   await promiseApzFlushedRepaints(panel);
 
-  await synthesizeNativeTouchDrag(container, 50, 50, 0, -20);
-
+  await promiseNativeTouchDrag(container, 50, 50, 0, -20);
+  await SimpleTest.promiseWaitForCondition(() => {
+    return container.scrollTop > 0;
+  }, "Waiting for scroll position change");
   await scrollPromise;
 
-  ok(true, "Scrolling by touch events works in browser popup window");
+  ok(
+    container.scrollTop,
+    `Scrolling by touch events works in browser popup window: scrollTop: ${container.scrollTop}`
+  );
 });
