@@ -152,6 +152,12 @@ skip-if = ["verify"]
 
 ["browser_bug422543.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1933429
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1933429
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1933429
+  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1933429  
+]
 
 ["browser_bug441169.js"]
 
