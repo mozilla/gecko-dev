@@ -56,6 +56,10 @@ skip-if = [
 ["browser_address_heuristics_autofill_name.js"]
 
 ["browser_address_telemetry.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x84_64' && opt", # Bug 1809709
+  "win11_2009 && debug", # Bug 1809709
+]
 
 ["browser_autofill_whenhidden.js"]
 
