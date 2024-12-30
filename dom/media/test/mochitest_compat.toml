@@ -794,6 +794,9 @@ skip-if = [
 ["test_defaultMuted.html"]
 
 ["test_delay_load.html"]
+skip-if = [
+  "os == 'win' && os_version == '11.2009' && processor == 'x86_64'", # Bug 1889376
+]
 
 ["test_duration_after_error.html"]
 
