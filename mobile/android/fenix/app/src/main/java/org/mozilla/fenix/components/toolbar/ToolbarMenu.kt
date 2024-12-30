@@ -24,11 +24,24 @@ interface ToolbarMenu {
          */
         object Translate : Item()
         object Share : Item()
-        data class Back(val viewHistory: Boolean) : Item()
-        data class Forward(val viewHistory: Boolean) : Item()
+        data class Back(
+            val viewHistory: Boolean,
+            val isOnNavBar: Boolean = false,
+            val isOnToolbar: Boolean = false,
+            val isCustomTab: Boolean = false,
+        ) : Item()
+        data class Forward(
+            val viewHistory: Boolean,
+            val isOnNavBar: Boolean = false,
+            val isOnToolbar: Boolean = false,
+            val isCustomTab: Boolean = false,
+        ) : Item()
         data class Reload(val bypassCache: Boolean) : Item()
         object Stop : Item()
-        object OpenInFenix : Item()
+        data class OpenInFenix(
+            val isOnNavBar: Boolean = false,
+            val isOnToolbar: Boolean = false,
+        ) : Item()
         object SaveToCollection : Item()
 
         /**

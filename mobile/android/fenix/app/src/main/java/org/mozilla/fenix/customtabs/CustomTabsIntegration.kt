@@ -305,15 +305,13 @@ class CustomTabsIntegration(
                 },
                 disableInSecondaryState = true,
                 longClickListener = {
-                    NavigationBar.customForwardLongTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.Forward(viewHistory = true),
+                        ToolbarMenu.Item.Forward(viewHistory = true, isOnToolbar = true, isCustomTab = true),
                     )
                 },
                 listener = {
-                    NavigationBar.customForwardTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.Forward(viewHistory = false),
+                        ToolbarMenu.Item.Forward(viewHistory = false, isOnToolbar = true, isCustomTab = true),
                     )
                 },
             ).also {
@@ -354,15 +352,13 @@ class CustomTabsIntegration(
                 },
                 disableInSecondaryState = true,
                 longClickListener = {
-                    NavigationBar.customBackLongTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.Back(viewHistory = true),
+                        ToolbarMenu.Item.Back(viewHistory = true, isOnToolbar = true, isCustomTab = true),
                     )
                 },
                 listener = {
-                    NavigationBar.customBackTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.Back(viewHistory = false),
+                        ToolbarMenu.Item.Back(viewHistory = false, isOnToolbar = true, isCustomTab = true),
                     )
                 },
             ).also {
@@ -420,9 +416,8 @@ class CustomTabsIntegration(
                 disableInSecondaryState = true,
                 weight = { OPEN_IN_ACTION_WEIGHT },
                 listener = {
-                    NavigationBar.customOpenInFenixTapped.record(NoExtras())
                     interactor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.OpenInFenix,
+                        ToolbarMenu.Item.OpenInFenix(isOnToolbar = true),
                     )
                 },
             ).also {

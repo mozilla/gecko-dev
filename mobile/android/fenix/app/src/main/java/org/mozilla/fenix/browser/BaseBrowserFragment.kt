@@ -1665,15 +1665,13 @@ abstract class BaseBrowserFragment :
                         }
                         lastTimeNavigationButtonsClicked.longValue = currentTime
                     }
-                    NavigationBar.browserBackTapped.record(NoExtras())
                     browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.Back(viewHistory = false),
+                        ToolbarMenu.Item.Back(viewHistory = false, isOnNavBar = true),
                     )
                 },
                 onBackButtonLongPress = {
-                    NavigationBar.browserBackLongTapped.record(NoExtras())
                     browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.Back(viewHistory = true),
+                        ToolbarMenu.Item.Back(viewHistory = true, isOnNavBar = true),
                     )
                 },
                 onForwardButtonClick = {
@@ -1686,15 +1684,13 @@ abstract class BaseBrowserFragment :
                         }
                         lastTimeNavigationButtonsClicked.longValue = currentTime
                     }
-                    NavigationBar.browserForwardTapped.record(NoExtras())
                     browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.Forward(viewHistory = false),
+                        ToolbarMenu.Item.Forward(viewHistory = false, isOnNavBar = true),
                     )
                 },
                 onForwardButtonLongPress = {
-                    NavigationBar.browserForwardLongTapped.record(NoExtras())
                     browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                        ToolbarMenu.Item.Forward(viewHistory = true),
+                        ToolbarMenu.Item.Forward(viewHistory = true, isOnNavBar = true),
                     )
                 },
                 onNewTabButtonClick = {

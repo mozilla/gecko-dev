@@ -34,6 +34,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.AppMenu
 import org.mozilla.fenix.GleanMetrics.Collections
 import org.mozilla.fenix.GleanMetrics.Events
+import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.HomeActivity
@@ -408,7 +409,13 @@ class DefaultBrowserToolbarMenuController(
     private fun trackToolbarItemInteraction(item: ToolbarMenu.Item) {
         when (item) {
             is ToolbarMenu.Item.OpenInFenix ->
-                Events.browserMenuAction.record(Events.BrowserMenuActionExtra("open_in_fenix"))
+                if (item.isOnNavBar) {
+                    NavigationBar.customOpenInFenixTapped.record(NoExtras())
+                } else if (item.isOnToolbar) {
+                    Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("open_in_fenix"))
+                } else {
+                    Events.browserMenuAction.record(Events.BrowserMenuActionExtra("open_in_fenix"))
+                }
             is ToolbarMenu.Item.InstallPwaToHomeScreen ->
                 Events.browserMenuAction.record(Events.BrowserMenuActionExtra("add_to_homescreen"))
             is ToolbarMenu.Item.Quit ->
@@ -418,18 +425,53 @@ class DefaultBrowserToolbarMenuController(
             is ToolbarMenu.Item.CustomizeReaderView ->
                 Events.browserMenuAction.record(Events.BrowserMenuActionExtra("reader_mode_appearance"))
             is ToolbarMenu.Item.Back -> {
-                if (item.viewHistory) {
-                    Events.browserMenuAction.record(Events.BrowserMenuActionExtra("back_long_press"))
-                } else {
-                    Events.browserMenuAction.record(Events.BrowserMenuActionExtra("back"))
+                when {
+                    item.isOnNavBar && item.isCustomTab && item.viewHistory ->
+                        NavigationBar.customBackLongTapped.record(NoExtras())
+                    item.isOnNavBar && item.isCustomTab && !item.viewHistory ->
+                        NavigationBar.customBackTapped.record(NoExtras())
+                    item.isOnNavBar && !item.isCustomTab && item.viewHistory ->
+                        NavigationBar.browserBackLongTapped.record(NoExtras())
+                    item.isOnNavBar && !item.isCustomTab && !item.viewHistory ->
+                        NavigationBar.browserBackTapped.record(NoExtras())
+                    item.isOnToolbar && item.isCustomTab && item.viewHistory ->
+                        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("custom_back_long_press"))
+                    item.isOnToolbar && item.isCustomTab && !item.viewHistory ->
+                        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("custom_back"))
+                    item.isOnToolbar && !item.isCustomTab && item.viewHistory ->
+                        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("back_long_press"))
+                    item.isOnToolbar && !item.isCustomTab && !item.viewHistory ->
+                        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("back"))
+                    item.viewHistory ->
+                        Events.browserMenuAction.record(Events.BrowserMenuActionExtra("back_long_press"))
+                    else -> Events.browserMenuAction.record(Events.BrowserMenuActionExtra("back"))
                 }
             }
             is ToolbarMenu.Item.Forward ->
-                if (item.viewHistory) {
-                    Events.browserMenuAction.record(Events.BrowserMenuActionExtra("forward_long_press"))
-                } else {
-                    Events.browserMenuAction.record(Events.BrowserMenuActionExtra("forward"))
+                when {
+                    item.isOnNavBar && item.isCustomTab && item.viewHistory ->
+                        NavigationBar.customBackLongTapped.record(NoExtras())
+                    item.isOnNavBar && item.isCustomTab && !item.viewHistory ->
+                        NavigationBar.customBackTapped.record(NoExtras())
+                    item.isOnNavBar && !item.isCustomTab && item.viewHistory ->
+                        NavigationBar.browserBackLongTapped.record(NoExtras())
+                    item.isOnNavBar && !item.isCustomTab && !item.viewHistory ->
+                        NavigationBar.browserBackTapped.record(NoExtras())
+                    item.isOnToolbar && item.isCustomTab && item.viewHistory ->
+                        Events.browserToolbarAction.record(
+                            Events.BrowserToolbarActionExtra("custom_forward_long_press"),
+                        )
+                    item.isOnToolbar && item.isCustomTab && !item.viewHistory ->
+                        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("custom_forward"))
+                    item.isOnToolbar && !item.isCustomTab && item.viewHistory ->
+                        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("forward_long_press"))
+                    item.isOnToolbar && !item.isCustomTab && !item.viewHistory ->
+                        Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("forward"))
+                    item.viewHistory ->
+                        Events.browserMenuAction.record(Events.BrowserMenuActionExtra("forward_long_press"))
+                    else -> Events.browserMenuAction.record(Events.BrowserMenuActionExtra("forward"))
                 }
+
             is ToolbarMenu.Item.Reload ->
                 Events.browserMenuAction.record(Events.BrowserMenuActionExtra("reload"))
             is ToolbarMenu.Item.Stop ->

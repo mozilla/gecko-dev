@@ -409,7 +409,8 @@ class DefaultBrowserToolbarControllerTest {
     }
 
     @Test
-    fun `WHEN new tab button is clicked THEN navigate to homepage`() {
+    fun `WHEN new tab button is clicked and navigation bar is enabled THEN navigate to homepage`() {
+        every { activity.settings().navigationToolbarEnabled } returns true
         val controller = createController()
         controller.handleNewTabButtonClick()
 
@@ -445,7 +446,8 @@ class DefaultBrowserToolbarControllerTest {
     }
 
     @Test
-    fun `WHEN new tab button is long clicked THEN record the telemetry event`() {
+    fun `WHEN new tab button is long clicked and navigation toolbar enabled THEN record the navigation bar telemetry event`() {
+        every { activity.settings().navigationToolbarEnabled } returns true
         val controller = createController()
         controller.handleNewTabButtonLongClick()
 

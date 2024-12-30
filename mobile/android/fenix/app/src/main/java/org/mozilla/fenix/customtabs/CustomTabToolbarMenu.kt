@@ -181,7 +181,7 @@ class CustomTabToolbarMenu(
         label = context.getString(R.string.browser_menu_open_in_fenix, appName),
         textColorResource = primaryTextColor(),
     ) {
-        onItemTapped.invoke(ToolbarMenu.Item.OpenInFenix)
+        onItemTapped.invoke(ToolbarMenu.Item.OpenInFenix())
     }
 
     private val poweredBy = BrowserMenuCategory(

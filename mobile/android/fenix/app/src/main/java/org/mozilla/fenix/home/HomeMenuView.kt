@@ -88,6 +88,7 @@ class HomeMenuView(
                                 accesspoint = MenuAccessPoint.Home,
                             ),
                         )
+                        Events.toolbarMenuVisible.record(NoExtras())
                     } else {
                         // MenuButton used in [HomeMenuView] doesn't emit toolbar facts.
                         // A wrapper is responsible for that, but we are using the button

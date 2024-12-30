@@ -281,33 +281,28 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                         browserStore = requireComponents.core.store,
                         menuButton = navbarIntegration.navbarMenu,
                         onBackButtonClick = {
-                            NavigationBar.customBackTapped.record(NoExtras())
                             browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                                ToolbarMenu.Item.Back(viewHistory = false),
+                                ToolbarMenu.Item.Back(viewHistory = false, isOnNavBar = true, isCustomTab = true),
                             )
                         },
                         onBackButtonLongPress = {
-                            NavigationBar.customBackLongTapped.record(NoExtras())
                             browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                                ToolbarMenu.Item.Back(viewHistory = true),
+                                ToolbarMenu.Item.Back(viewHistory = true, isOnNavBar = true, isCustomTab = true),
                             )
                         },
                         onForwardButtonClick = {
-                            NavigationBar.customForwardTapped.record(NoExtras())
                             browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                                ToolbarMenu.Item.Forward(viewHistory = false),
+                                ToolbarMenu.Item.Forward(viewHistory = false, isOnNavBar = true, isCustomTab = true),
                             )
                         },
                         onForwardButtonLongPress = {
-                            NavigationBar.customForwardLongTapped.record(NoExtras())
                             browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                                ToolbarMenu.Item.Forward(viewHistory = true),
+                                ToolbarMenu.Item.Forward(viewHistory = true, isOnNavBar = true, isCustomTab = true),
                             )
                         },
                         onOpenInBrowserButtonClick = {
-                            NavigationBar.customOpenInFenixTapped.record(NoExtras())
                             browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
-                                ToolbarMenu.Item.OpenInFenix,
+                                ToolbarMenu.Item.OpenInFenix(isOnNavBar = true),
                             )
                         },
                         onMenuButtonClick = {

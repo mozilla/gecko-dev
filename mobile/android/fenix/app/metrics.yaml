@@ -126,6 +126,30 @@ events:
     metadata:
       tags:
         - Search
+  browser_toolbar_action:
+    type: event
+    description: |
+      A browser toolbar item was tapped.
+      The name of the item that the user tapped is stored in extras with the
+      key `item`.
+    extra_keys:
+      item:
+        description: |
+          A string containing the name of the item the user tapped. These items
+          include:
+          back, back_long_press, custom_back, custom_back_long_press, forward,
+          forward_long_press, custom_forward, custom_forward_long_press, new_tab,
+          new_tab_long_press, tabs_tray, tabs_tray_long_press, menu_press.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937593
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232243
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
   browser_menu_action:
     type: event
     description: |
@@ -10425,6 +10449,23 @@ start_on_home:
       - https://github.com/mozilla-mobile/fenix/pull/19885
       - https://github.com/mozilla-mobile/fenix/pull/24982
       - https://github.com/mozilla-mobile/firefox-android/pull/1101
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - HomeScreen
+        - Tabs
+  long_click_tabs_tray:
+    type: event
+    description: |
+      Know how often users long press on the tab tray.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937593
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232243
     data_sensitivity:
       - interaction
     notification_emails:

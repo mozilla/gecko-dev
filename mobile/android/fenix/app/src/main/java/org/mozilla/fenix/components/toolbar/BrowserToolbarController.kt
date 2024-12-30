@@ -35,6 +35,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
@@ -270,8 +271,11 @@ class DefaultBrowserToolbarController(
                 private = currentSession?.content?.private ?: false,
             )
         }
-
-        NavigationBar.browserNewTabTapped.record(NoExtras())
+        if (activity.shouldAddNavigationBar()) {
+            NavigationBar.browserNewTabTapped.record(NoExtras())
+        } else {
+            Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("new_tab"))
+        }
 
         browserAnimator.captureEngineViewAndDrawStatically {
             navController.navigate(
@@ -281,7 +285,11 @@ class DefaultBrowserToolbarController(
     }
 
     override fun handleNewTabButtonLongClick() {
-        NavigationBar.browserNewTabLongTapped.record(NoExtras())
+        if (activity.shouldAddNavigationBar()) {
+            NavigationBar.browserNewTabLongTapped.record(NoExtras())
+        } else {
+            Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("new_tab_long_press"))
+        }
     }
 
     override fun handleMenuButtonClicked(

@@ -255,7 +255,7 @@ class DefaultBrowserToolbarMenuControllerTest {
             customTabSessionId = customTab.id,
         )
 
-        val item = ToolbarMenu.Item.OpenInFenix
+        val item = ToolbarMenu.Item.OpenInFenix()
 
         every { activity.startActivity(any()) } just Runs
         controller.handleToolbarItemInteraction(item)
