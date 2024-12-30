@@ -17,8 +17,6 @@
     <!-- Text for password field in an authentication dialog. -->
     <string name="mozac_feature_prompt_password_hint">Ниҳонвожа</string>
     <!-- Negative confirmation that we should not save the new or updated login -->
-    <string name="mozac_feature_prompt_dont_save" moz:removedIn="125" tools:ignore="UnusedResources">Нигоҳ дошта нашавад</string>
-    <!-- Negative confirmation that we should not save the new or updated login -->
     <string name="mozac_feature_prompt_dont_save_2">Ҳоло не</string>
     <!-- Negative confirmation that we should never save a login for this site -->
     <string name="mozac_feature_prompt_never_save">Ҳеҷ гоҳ нигоҳ дошта нашавад</string>
@@ -27,29 +25,17 @@
     <!-- Positive confirmation that we should save the new or updated login -->
     <string name="mozac_feature_prompt_save_confirmation">Нигоҳ доштан</string>
     <!-- Negative confirmation that we should not save the updated login -->
-    <string name="mozac_feature_prompt_dont_update" moz:removedIn="125" tools:ignore="UnusedResources">Навсозӣ карда нашавад</string>
-    <!-- Negative confirmation that we should not save the updated login -->
     <string name="mozac_feature_prompt_dont_update_2">Ҳоло не</string>
     <!-- Positive confirmation that we should save the updated login -->
     <string name="mozac_feature_prompt_update_confirmation">Навсозӣ кардан</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_empty_password" moz:removedIn="125" tools:ignore="UnusedResources">Ҷойи ниҳонвожа бояд холӣ набошад</string>
-    <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_empty_password_2">Ниҳонвожаеро ворид намоед</string>
-    <!-- Error text displayed underneath the login field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_unknown_cause" moz:removedIn="125" tools:ignore="UnusedResources">Нигоҳ доштани маълумоти воридшавӣ ғайриимкон аст</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_unknown_cause_2">Ниҳонвожа нигоҳ дошта нашуд</string>
-    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new login. -->
-    <string name="mozac_feature_prompt_login_save_headline" moz:removedIn="125" tools:ignore="UnusedResources">Маълумоти воридшавии ҷориро нигоҳ медоред?</string>
     <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
     <string name="mozac_feature_prompt_login_save_headline_2">Ниҳонвожаро нигоҳ медоред?</string>
-    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_update_headline" moz:removedIn="125" tools:ignore="UnusedResources">Маълумоти воридшавии ҷориро аз нав нигоҳ медоред?</string>
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">Ниҳонвожаро аз нав нигоҳ медоред?</string>
-    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">Номи корбарро ба ниҳонвожаи нигоҳдошташуда илова мекунед?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_add_username_headline_2">Номи корбарро навсозӣ мекунед?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
@@ -61,6 +47,8 @@
     <string name="mozac_feature_prompts_allow">Иҷозат додан</string>
     <!-- Text of a negative button in dialog requesting to open a new window. -->
     <string name="mozac_feature_prompts_deny">Рад кардан</string>
+    <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+    <string name="mozac_feature_prompts_popup_dialog_title">Барои кушодани ин сомона иҷозат медиҳед?</string>
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">Шумо мутмаин ҳастед?</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
@@ -97,20 +85,12 @@
     <string name="mozac_feature_prompts_dec">Дек</string>
     <!-- Title of the time picker dialog. -->
     <string name="mozac_feature_prompts_set_time">Танзими вақт</string>
-    <!-- Option in expanded select login prompt that links to login settings -->
-    <string name="mozac_feature_prompts_manage_logins" moz:removedIn="125" tools:ignore="UnusedResources">Идоракунии воридшавӣ</string>
     <!-- Option in expanded select password prompt that links to password settings -->
     <string name="mozac_feature_prompts_manage_logins_2">Идоракунии ниҳонвожаҳо</string>
-    <!-- Content description for expanding the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_expand_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Намоиш додани воридшавиҳои пешниҳодшуда</string>
     <!-- Content description for expanding the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_expand_logins_content_description_2">Баркушодани ниҳонвожаҳои нигоҳдошташуда</string>
-    <!-- Content description for collapsing the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Пинҳон кардани воридшавиҳои пешниҳодшуда</string>
     <!-- Content description for collapsing the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_collapse_logins_content_description_2">Пинҳон кардани ниҳонвожаҳои нигоҳдошташуда</string>
-    <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
-    <string name="mozac_feature_prompts_saved_logins" moz:removedIn="125" tools:ignore="UnusedResources">Воридшавиҳои пешниҳодшуда</string>
 
     <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
     <string name="mozac_feature_prompts_saved_logins_2">Ниҳонвожаҳои нигоҳдошташуда</string>
@@ -125,8 +105,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Аз ниҳонвожаи қавӣ истифода мебаред?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Ҳисобҳои худро бо истифода аз ниҳонвожаҳои қавӣ ва ба таври тасодуфӣ эҷодшуда муҳофизат намоед. Бо нигоҳ доштани ниҳонвожаҳои худ дар ҳисоби шахсӣ ба онҳо зуд дастрасӣ пайдо намоед.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Ҳисобҳои худро бо истифода аз ниҳонвожаҳои қавӣ ва ба таври тасодуфӣ эҷодшуда муҳофизат намоед. Ниҳонвожаҳо барои истифодаи оянда дар ҳисоби шумо нигоҳ дошта мешаванд.</string>
 
@@ -155,28 +133,18 @@
     <string name="mozac_feature_prompt_repost_negative_button_text">Бекор кардан</string>
 
     <!-- Credit Card Autofill -->
-    <!-- Header for the select credit card prompt to allow users to fill a form with a saved credit card. -->
-    <string name="mozac_feature_prompts_select_credit_card" moz:removedIn="125" tools:ignore="UnusedResources">Корти кредитиро интихоб кунед</string>
     <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
     <string name="mozac_feature_prompts_select_credit_card_2">Истифодаи корти нигоҳдошташуда</string>
-    <!-- Content description for expanding the select credit card options in the select credit card prompt. -->
-    <string name="mozac_feature_prompts_expand_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Кортҳои кредитии пешниҳодшударо нишон диҳед</string>
     <!-- Content description for expanding the saved card options in the select card prompt. -->
     <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Баркушодани кортҳои нигоҳдошташуда</string>
-    <!-- Content description for collapsing the select credit card options in the select credit prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Кортҳои кредитии пешниҳодшударо пинҳон кунед</string>
     <!-- Content description for collapsing the saved card options in the select prompt. -->
     <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Пинҳон кардани кортҳои нигоҳдошташуда</string>
-    <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
-    <string name="mozac_feature_prompts_manage_credit_cards" moz:removedIn="125" tools:ignore="UnusedResources">Идоракунии кортҳои кредитӣ</string>
     <!-- Option in the expanded select card prompt that links to cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards_2">Идоракунии кортҳо</string>
     <!-- Text for the title of a save credit card dialog. -->
     <string name="mozac_feature_prompts_save_credit_card_prompt_title">Ин кортро ба таври бехатар нигоҳ медоред?</string>
     <!-- Text for the title of an update credit card dialog. -->
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">Санаи анҷоми муҳлати кори кортро нав мекунед?</string>
-    <!-- Subtitle text displayed under the title of the save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_body" moz:removedIn="125" tools:ignore="UnusedResources">Рақами корт рамзгузорӣ карда мешавад. Рамзи амниятӣ нигоҳ дошта намешавад.</string>
 
     <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
     <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">«%s» рақами корти шуморо рамзгузорӣ мекунад. Рамзи амниятии шумо нигоҳ дошта намешавад.</string>
@@ -184,12 +152,8 @@
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
     <string name="mozac_feature_prompts_select_address_2">Интихоб кардани нишонӣ</string>
-    <!-- Content description for expanding the select addresses options in the select address prompt. -->
-    <string name="mozac_feature_prompts_expand_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Намоиш додани нишониҳои пешниҳодшуда</string>
     <!-- Content description for expanding the saved addresses options in the select address prompt. -->
     <string name="mozac_feature_prompts_expand_address_content_description_2">Баркушодани нишониҳои нигоҳдошташуда</string>
-    <!-- Content description for collapsing the select address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Пинҳон кардани нишониҳои пешниҳодшуда</string>
     <!-- Content description for collapsing the saved address options in the select address prompt. -->
     <string name="mozac_feature_prompts_collapse_address_content_description_2">Пинҳон кардани нишониҳои нигоҳдошташуда</string>
     <!-- Text for the manage addresses button. -->

@@ -99,12 +99,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Ricusà</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">A nostra funzione di cunfidenzialità a più putente ora hè di scartà l’elementi intersiti di spiunagiu.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Sapene di più nant’à a prutezzione tutale contr’à i canistrelli</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -120,11 +114,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Picchichjà è mantene e fleccie per saltà trà e pagine in sta cronolugia d’unghjetta</string>
 
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Novu : freccie in avanti è in daretu cù una picchicciata unica</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Eccu una navigazione più presta è sempre à purtata di manu.</string>
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Fà sfilà a barra d’attrezzi per cambià d’unghjetta</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Spazzà à manca o à diritta per cambià d’unghjetta. Spazzà versu à manca nant’à a vostra ultima unghjetta per apre un’unghjetta nova.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Accessu richiestu à l’apparechju-fotò. Accidite à i parametri d’Android, picchichjate Permessi, è dopu Permette.</string>
@@ -250,8 +245,12 @@
     <string name="browser_menu_open_in_regular_tab">Apre in un’unghjetta nurmale</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Aghjunghje à u screnu d’accolta</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Aghjunghje l’appiecazione à u screnu d’accolta</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Aghjunghje à u screnu d’accolta…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Aghjunghje l’appiecazione à u screnu d’accolta…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">L’apparechji Xiaomi ponu dumandà permessi addiziunali per aghjunghje l’accurtatoghji nant’à u screnu d’accolta. Ci vole à verificà i vostri parametri.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -338,9 +337,23 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Chjode u pannellu di u listinu di l’unghjette persunalizate</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Modu di lettura, traduce, stampà, sparte, apre in un’appiecazione</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Modu di lettura, traduce, stampà, sparte, apre in un’appiecazione</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Modu di lettura, stampà, sparte, apre in un’appiecazione</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Modu di lettura, stampà, sparte, apre in un’appiecazione</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Modu di lettura, traduce, %s, stampà, sparte, apre in un’appiecazione</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Modu di lettura, traduce, signalà un prublema cù u situ, stampà, sparte, apre in un’appiecazione</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Modu di lettura, traduce, stampà, sparte, apre in un’appiecazione</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Modu di lettura, %s, stampà, sparte, apre in un’appiecazione</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Modu di lettura, signalà un prublema cù u situ, stampà, sparte, apre in un’appiecazione</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Modu di lettura, stampà, sparte, apre in un’appiecazione</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Arregistrà</string>
@@ -356,9 +369,13 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">Attivà u modu di lettura</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">Disattivà u modu di lettura</string>
+    <string name="browser_menu_turn_off_reader_view">Disattivà u modu di lettura</string>dsa
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Dispiazzà versu un’unghjetta non privata</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traduce a pagina…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">Signalà prublemi cù stu situ…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Tradutta in %1$s</string>
@@ -440,8 +457,6 @@
     <string name="search_engine_icon_content_description_1">Mutore di ricerca : %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Fate cunnuscenza cù a vostra pagina d’accolta. L’unghjette, l’indette è i risultati di riceca recente ci si trovanu.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Benvenuta in un Internet più persunale</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -560,6 +575,30 @@
     <string name="onboarding_add_on_add_button_content_description">Buttone d’aghjuntu di u modulu addiziunale</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Valutatu %1$s nant’à 5</string>
+
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage,UnusedResources">Aiutateci à amendà Firefox</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title" tools:ignore="UnusedResources">Mandà autumaticamente i raporti d’accidente</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description" tools:ignore="UnusedResources">I raporti d’accidente ci permettenu di diagnosticà è di currege i prublemi cù u navigatore. I raporti ponu cuntene dati persunali o sensibile.</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources">Sapene di più nant’à i raporti d’accidente</string>
+    <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_title" tools:ignore="UnusedResources">Mandà à Mozilla dati tecnichi è d’interazzione</string>
+    <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_description" tools:ignore="BrandUsage,UnusedResources">I dati apprupositu di u vostru apparechju, a cunfigurazione materiale è cumu vo impiegate Firefox aiutanu à amendà e funzioni, e perfurmenze è a stabilità per tutti l’utilizatori.</string>
+
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" tools:ignore="UnusedResources">Sapene di più nant’à i dati d’adopru</string>
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Compiu</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Abbandunà</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Benvenuta in Firefox</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Accettà è cuntinuà</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -961,17 +1000,18 @@
     <string name="exceptions_empty_message_learn_more_link">Sapene di più</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Statistiche d’impiegu è dati tecnichi</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Statistiche d’impiegu è dati tecnichi</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Sparte cù Mozilla i dati di perfurmenza, d’impiegu, di materiale è di persunalizazione di u vostru navigatore per aiutacci à amendà %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dati cummerciali</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Spartera di i dati d’adopru basichi cù Adjust, u nostru venditore di dati cummerciali d’apparechji mubili</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Mandà autumaticamente i raporti d’accidente</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Scumparte autumaticamente à l’avviu i dati cù Mozilla dopu un accidente</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Spartera di i dati d’adopru basichi cù Adjust, u nostru venditore di dati cummerciali d’apparechji mubili</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Mandà autumaticamente i raporti d’accidente</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Scumparte autumaticamente à l’avviu i dati cù Mozilla dopu un accidente</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studii</string>
     <!-- Summary for studies preferences -->
@@ -1141,15 +1181,15 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Sapene di più</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">L’appiecazione hà da piantà per appiecà i cambiamenti</string>
+    <string name="studies_restart_app" moz:removedIn="135">L’appiecazione hà da piantà per appiecà i cambiamenti</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">Vai</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">Vai</string>
 
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Abbandunà</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Abbandunà</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Chjusura di l’appiecazione per piglià i cambiamenti in contu…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Chjusura di l’appiecazione per piglià i cambiamenti in contu…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -1260,6 +1300,7 @@
 
     <!-- WebCompat Reporter -->
 
+
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
     <string name="webcompat_reporter_reason_slow">U situ và pianu o ùn funziuneghja micca</string>
@@ -1305,8 +1346,6 @@
     <string name="bookmark_delete_negative">Abbandunà</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Aghjunghje un cartulare</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Indetta arregistrata</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Arregistratu in « %s »</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1654,8 +1693,6 @@
     <string name="snackbar_tabs_closed">Unghjette chjose</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Unghjette chjose : %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Indette arregistrate !</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Indette arregistrate in « %s ».</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2571,14 +2608,6 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Micca subitu</string>
 
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Prima di cumprà, circate à sapè s’è vo pudete fà cunfidenza à l’avisi nant’à stu pruduttu.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Pruvà u verificadore d’avisu</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">St’avisi serianu degni di cunfidenza ? Cuntrollà subitu per fighjà una valutazione rettificata.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Apre u verificadore d’avisu</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Apre u verificadore d’avisu</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2972,11 +3001,6 @@
     <string name="glean_debug_tools_title">Attrezzi di spannatura Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Per esce di u screnu sanu, trascinà da l’altu è impiegà un gestu versu in daretu</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Per esce di u screnu sanu, trascinà da l’altu è appughjà nant’à « Precedente »</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Trascinà da l’altu è impiegà u gestu di ritornu per esce</string>
@@ -2987,4 +3011,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>
