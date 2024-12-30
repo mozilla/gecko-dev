@@ -61,7 +61,8 @@
     <!-- Private Browsing -->
     <!-- Explanation for private browsing displayed to users on home view when they first enable private mode
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="private_browsing_placeholder_description_2">%1$s გაასუფთავებს თქვენი ძიებისა და ნახვების ისტორიას ყველა პირადი ჩანართის დახურვისას ან პროგრამიდან გამოსვლისას. მართალია, ეს არ დაფარავს თქვენს ვინაობას საიტებისა და ინტერნეტის მომწოდებლისგან, მაგრამ დაგეხმარებათ დაიცვათ პირადი მონაცემები ამ მოწყობილობის სხვა მომხმარებლებისგან.</string>
+    <string name="private_browsing_placeholder_description_2">
+        %1$s გაასუფთავებს თქვენი ძიებისა და ნახვების ისტორიას ყველა პირადი ჩანართის დახურვისას ან გამოსვლისას. მართალია, ეს ვერ დაფარავს თქვენს ვინაობას საიტებისა და ინტერნეტის მომწოდებლისგან, მაგრამ გაგიადვილებთ, დაიცვათ პირადი მონაცემები, თუ ამ მოწყობილობის სხვაც გამოიყენებს.</string>
     <string name="private_browsing_common_myths">
        ცრუ წარმოდგენები პირადი თვალიერების შესახებ
     </string>
@@ -827,7 +828,7 @@
     <string name="preferences_show_sponsored_suggestions">შემოთავაზებები დამკვეთისგან</string>
     <!-- Summary for preference to show sponsored Firefox Suggest search suggestions.
          The first parameter is the name of the application. -->
-    <string name="preferences_show_sponsored_suggestions_summary">მხარდაჭერა დამკვეთის შეთავაზების ნახვით %1$s დროდადრო რომ გაჩვენებთ</string>
+    <string name="preferences_show_sponsored_suggestions_summary">თანადგომისთვის იხილეთ დამკვეთის შემოთავაზებები, %1$s დროდადრო რომ გაჩვენებთ</string>
     <!-- Preference title for switch preference to show Firefox Suggest search suggestions for web content.
          The first parameter is the name of the application. -->
     <string name="preferences_show_nonsponsored_suggestions">შემოგთავაზებთ %1$s</string>
@@ -842,7 +843,7 @@
     <!-- Preference for open links in third party apps never open in apps option -->
     <string name="preferences_open_links_in_apps_never">არასდროს</string>
     <!-- Preference for open download with an external download manager app -->
-    <string name="preferences_external_download_manager">გარეშე მმართველი ჩამოსატვირთად</string>
+    <string name="preferences_external_download_manager">ჩამოტვირთვის გარეშე მმართველი</string>
     <!-- Preference for enabling gecko engine logs -->
     <string name="preferences_enable_gecko_logs">Gecko-აღრიცხვების ჩართვა</string>
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1039,7 +1040,7 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ვრცლად</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">გაუზიარებს წარმადობის, გამოყენების, აპრატურისა და მორგების მონაცემებს Mozilla-ს, რომ %1$s გახდეს კიდევ უფრო უკეთესი</string>
+    <string name="preferences_usage_data_description">გაუზიარებს წარმადობის, გამოყენების, აპრატურისა და მორგების მონაცემებს Mozilla-ს, რომ მეტად გაუმჯობესდეს %1$s</string>
 
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">მარკეტინგული მონაცემები</string>
@@ -1185,13 +1186,13 @@
 
     <!-- Opening screen -->
     <!-- Title of a preference that allows a user to choose what screen to show after opening the app -->
-    <string name="preferences_opening_screen">საწყისი ეკრანი</string>
+    <string name="preferences_opening_screen">გახსნისას</string>
     <!-- Option for always opening the homepage when re-opening the app -->
     <string name="opening_screen_homepage">საწყისი გვერდი</string>
     <!-- Option for always opening the user's last-open tab when re-opening the app -->
     <string name="opening_screen_last_tab">ბოლო ჩანართი</string>
     <!-- Option for always opening the homepage when re-opening the app after four hours of inactivity -->
-    <string name="opening_screen_after_four_hours_of_inactivity">საწყისი გვერდი ოთხი საათის უქმობის შემდეგ</string>
+    <string name="opening_screen_after_four_hours_of_inactivity">საწყისი გვერდი ოთხი საათი უქმობისას</string>
     <!-- Summary for tabs preference when auto closing tabs setting is set to manual close-->
     <string name="close_tabs_manually_summary">ხელით დახურვა</string>
     <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day-->
@@ -1206,7 +1207,7 @@
     <!-- Summary for homepage preference indicating always opening the last-open tab when re-opening the app -->
     <string name="opening_screen_last_tab_summary">ბოლო ჩანართის გახსნა</string>
     <!-- Summary for homepage preference indicating opening the homepage when re-opening the app after four hours of inactivity -->
-    <string name="opening_screen_after_four_hours_of_inactivity_summary">საწყისი გვერდის გახსნა ოთხი საათის შემდგომ</string>
+    <string name="opening_screen_after_four_hours_of_inactivity_summary">საწყისი გვერდით გახსნა ოთხი საათის შემდგომ</string>
 
     <!-- Inactive tabs -->
     <!-- Category header of a preference that allows a user to enable or disable the inactive tabs feature -->
@@ -1654,7 +1655,7 @@
         "Share" button. Opens the share menu when pressed. -->
     <string name="share_button_content_description">გაზიარება</string>
     <!-- Text for the Save to PDF feature in the share menu -->
-    <string name="share_save_to_pdf">შენახვა PDF-სახით</string>
+    <string name="share_save_to_pdf">შეინახოს PDF</string>
     <!-- Text for error message when generating a PDF file Text. -->
     <string name="unable_to_save_to_pdf_error">ვერ ხერხდება PDF-ის შექმნა</string>
     <!-- Text for standard error snackbar dismiss button. -->
@@ -1676,7 +1677,7 @@
     <!-- An option from the share dialog to sign into sync -->
     <string name="sync_sign_in">დასინქ. შესვლა</string>
      <!-- An option from the three dot menu to sync and save data -->
-    <string name="sync_menu_sync_and_save_data">დასინქრონება და შენახვა</string>
+    <string name="sync_menu_sync_and_save_data">დასინქ. და შენახვა</string>
     <!-- An option from the share dialog to send link to all other sync devices -->
     <string name="sync_send_to_all">ყველა მოწყობილობაზე გაგზავნა</string>
     <!-- An option from the share dialog to reconnect to sync -->
@@ -2081,7 +2082,7 @@
     <!-- Preference for syncing saved passwords in Fenix -->
     <string name="preferences_passwords_sync_logins_2">პაროლების დასინქრონება</string>
     <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
-    <string name="preferences_passwords_sync_logins_across_devices_2">დაასინქრონეთ პაროლები სხვადასხვა მოწყობილობაზე</string>
+    <string name="preferences_passwords_sync_logins_across_devices_2">პაროლების დასინქ. მოწყობილობებზე</string>
     <!-- Preference to access list of saved passwords -->
     <string name="preferences_passwords_saved_logins_2">შენახული პაროლები</string>
     <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
@@ -2784,7 +2785,7 @@
     <!-- Button text for the button that will take the user to the translation settings dialog. -->
     <string name="translation_option_bottom_sheet_translation_settings">თარგმნის პარამეტრები</string>
     <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
-    <string name="translation_option_bottom_sheet_about_translations">თარგმანის შესახებ, რომელსაც გთავაზობთ %1$s</string>
+    <string name="translation_option_bottom_sheet_about_translations">ვრცლად, როგორ თარგმნის %1$s</string>
     <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
     <string name="translation_option_bottom_sheet_close_content_description">თარგმნის ფურცლის დახურვა</string>
     <!-- The title of the warning card informs the user that an error has occurred at page settings. -->
@@ -2810,7 +2811,7 @@
     <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
     <string name="automatic_translation_toolbar_title_preference">ავტომატური თარგმანი</string>
     <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-    <string name="automatic_translation_header_preference">აირჩიეთ ენა „ყოველთვის ითარგმნოსა“ და „არასდროს ითარგმნოს“ პარამეტრების მისათითებლად.</string>
+    <string name="automatic_translation_header_preference">აირჩიეთ ენა, რომ მიუთითოთ, „ყოველთვის ითარგმნოს“, თუ „არასდროს ითარგმნოს“.</string>
     <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
     <string name="automatic_translation_error_warning_text">ენები ვერ ჩაიტვირთა. გთხოვთ გადაამოწმოთ მოგვიანებით.</string>
 
@@ -2850,7 +2851,7 @@
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">ენების ჩამოტვირთვა</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
-    <string name="download_languages_header_preference">ჩამოტვირთეთ ენები სრულად უფრო სწრაფად და კავშირგარეშე თარგმნისთვის. %1$s</string>
+    <string name="download_languages_header_preference">ჩამოტვირთეთ ენები სრულად უფრო სწრაფი და კავშირგარეშე თარგმნისთვის. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
     <string name="download_languages_header_learn_more_preference">ვრცლად</string>
     <!-- The subhead of the download language preference screen will appear above the pivot language. -->

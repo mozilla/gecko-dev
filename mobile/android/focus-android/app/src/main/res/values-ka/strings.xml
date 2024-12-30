@@ -1087,7 +1087,7 @@
     picture of search widget from promote search widget dialog. --&gt;
     <!-- Content description (not visible, for screen readers etc.): This is the description for
     picture of search widget from promote search widget dialog. -->
-    <string name="promote_search_widget_dialog_picture_content_description">ვიჯეტის ძიება</string>
+    <string name="promote_search_widget_dialog_picture_content_description">საძიებო ჩანამატი</string>
 
     !-- This is the title of promote search widget dialog. --&gt;
     <!-- This is the title of promote search widget dialog. -->
@@ -1102,19 +1102,19 @@
     of the app (e.g. &quot;Focus&quot;) --&gt;
     <!-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. "Focus") -->
-    <string name="promote_search_widget_dialog_subtitle">ახლა გადადით პირად ფანჯარაზე, თუმცა შემდეგ ჯერზე სწრაფად გახსნისთვის გამოიყენეთ %1$s-ვიჯეტი მთავარი ეკრანიდან.</string>
+    <string name="promote_search_widget_dialog_subtitle">ახლა კი დარჩით თქვენს პირად ფანჯარაში, მაგრამ მომავალში სწრაფად რომ გაიხსნას %1$s, გამოიყენეთ ჩანამატი მთავარ ეკრანზე.</string>
 
     !-- This is te text from add search widget to home screen button .The button is located on
     promote search widget dialog. --&gt;
     <!-- This is te text from add search widget to home screen button .The button is located on
     promote search widget dialog. -->
-    <string name="promote_search_widget_button_text">ვიჯეტის დამატება მთავარ ეკრანზე</string>
+    <string name="promote_search_widget_button_text">ჩანამატი მთავარ ეკრანზე</string>
 
     !-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. --&gt;
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
-    <string name="promote_search_widget_snackbar_message">ვიჯეტი დამატებულია მთავარ ეკრანზე</string>
+    <string name="promote_search_widget_snackbar_message">ჩანამატი განთავსდა მთავარ ეკრანზე</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->

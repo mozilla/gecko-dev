@@ -255,7 +255,7 @@
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_title">%1$s დაემატა %2$s-ს</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
-    <string name="mozac_feature_addons_installed_dialog_description_2">%1$s ხელმისაწვდომია %2$s-მენიუდან.</string>
+    <string name="mozac_feature_addons_installed_dialog_description_2">%1$s იხილეთ მენიუდან %2$s.</string>
     <!-- Confirmation button text for the dialog when add-on installation is completed. -->
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">გასაგებია</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
