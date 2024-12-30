@@ -134,6 +134,8 @@ class MIRGenerator;
 class MIRGraph;
 class TempAllocator;
 
+const char* ValTypeToString(JSValueType type);
+
 // The JitSpewer is only available on debug builds.
 // None of the global functions have effect on non-debug builds.
 #ifdef JS_JITSPEW
@@ -219,8 +221,6 @@ void EnableChannel(JitSpewChannel channel);
 void DisableChannel(JitSpewChannel channel);
 void EnableIonDebugSyncLogging();
 void EnableIonDebugAsyncLogging();
-
-const char* ValTypeToString(JSValueType type);
 
 #  define JitSpewIfEnabled(channel, fmt, ...) \
     do {                                      \

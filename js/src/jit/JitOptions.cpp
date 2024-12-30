@@ -184,6 +184,20 @@ DefaultJitOptions::DefaultJitOptions() {
   // Whether to enable extra code to perform dynamic validations.
   SET_DEFAULT(runExtraChecks, false);
 
+#ifdef ENABLE_JS_AOT_ICS
+  SET_DEFAULT(enableAOTICs, false);
+  SET_DEFAULT(enableAOTICEnforce, false);
+#endif
+
+#ifdef ENABLE_JS_AOT_ICS_FORCE
+  SET_DEFAULT(enableAOTICs, true);
+#endif
+
+#ifdef ENABLE_JS_AOT_ICS_ENFORCE
+  SET_DEFAULT(enableAOTICs, true);
+  SET_DEFAULT(enableAOTICEnforce, true);
+#endif
+
   // How many invocations or loop iterations are needed before functions
   // enter the Baseline Interpreter.
   SET_DEFAULT(baselineInterpreterWarmUpThreshold, 10);
