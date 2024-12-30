@@ -655,6 +655,34 @@ static gfx::ColorRange GetColorRange(enum AVColorRange& aColorRange) {
                                          : gfx::ColorRange::LIMITED;
 }
 
+static gfx::ColorDepth GetColorDepth(const AVPixelFormat& aFormat) {
+  switch (aFormat) {
+    case AV_PIX_FMT_YUV420P:
+    case AV_PIX_FMT_YUVJ420P:
+    case AV_PIX_FMT_YUV422P:
+    case AV_PIX_FMT_YUV444P:
+    case AV_PIX_FMT_YUVJ444P:
+      return gfx::ColorDepth::COLOR_8;
+    case AV_PIX_FMT_YUV420P10LE:
+    case AV_PIX_FMT_YUV422P10LE:
+    case AV_PIX_FMT_YUV444P10LE:
+    case AV_PIX_FMT_GBRP10LE:
+      return gfx::ColorDepth::COLOR_10;
+#if LIBAVCODEC_VERSION_MAJOR >= 57
+    case AV_PIX_FMT_YUV420P12LE:
+    case AV_PIX_FMT_YUV422P12LE:
+    case AV_PIX_FMT_YUV444P12LE:
+      return gfx::ColorDepth::COLOR_12;
+#endif
+    case AV_PIX_FMT_VAAPI_VLD:
+      // Placeholder, it could be deeper colors
+      return gfx::ColorDepth::COLOR_8;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Not supported format?");
+      return gfx::ColorDepth::COLOR_8;
+  }
+}
+
 static bool IsYUVFormat(const AVPixelFormat& aFormat) {
   return aFormat != AV_PIX_FMT_GBRP && aFormat != AV_PIX_FMT_GBRP10LE;
 }
@@ -1386,35 +1414,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
   }
   return rv;
 #endif
-}
-
-gfx::ColorDepth FFmpegVideoDecoder<LIBAV_VER>::GetColorDepth(
-    const AVPixelFormat& aFormat) const {
-  switch (aFormat) {
-    case AV_PIX_FMT_YUV420P:
-    case AV_PIX_FMT_YUVJ420P:
-    case AV_PIX_FMT_YUV422P:
-    case AV_PIX_FMT_YUV444P:
-    case AV_PIX_FMT_YUVJ444P:
-      return gfx::ColorDepth::COLOR_8;
-    case AV_PIX_FMT_YUV420P10LE:
-    case AV_PIX_FMT_YUV422P10LE:
-    case AV_PIX_FMT_YUV444P10LE:
-    case AV_PIX_FMT_GBRP10LE:
-      return gfx::ColorDepth::COLOR_10;
-#if LIBAVCODEC_VERSION_MAJOR >= 57
-    case AV_PIX_FMT_YUV420P12LE:
-    case AV_PIX_FMT_YUV422P12LE:
-    case AV_PIX_FMT_YUV444P12LE:
-      return gfx::ColorDepth::COLOR_12;
-#endif
-    case AV_PIX_FMT_VAAPI_VLD:
-    case AV_PIX_FMT_D3D11:
-      return mInfo.mColorDepth;
-    default:
-      MOZ_ASSERT_UNREACHABLE("Not supported format?");
-      return gfx::ColorDepth::COLOR_8;
-  }
 }
 
 gfx::YUVColorSpace FFmpegVideoDecoder<LIBAV_VER>::GetFrameColorSpace() const {

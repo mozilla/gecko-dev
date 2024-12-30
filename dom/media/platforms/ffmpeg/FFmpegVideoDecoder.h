@@ -108,7 +108,6 @@ class FFmpegVideoDecoder<LIBAV_VER>
         mCodecID == AV_CODEC_ID_VP8;
 #endif
   }
-  gfx::ColorDepth GetColorDepth(const AVPixelFormat& aFormat) const;
   gfx::YUVColorSpace GetFrameColorSpace() const;
   gfx::ColorSpace2 GetFrameColorPrimaries() const;
   gfx::ColorRange GetFrameColorRange() const;
@@ -134,10 +133,10 @@ class FFmpegVideoDecoder<LIBAV_VER>
   // This will be called inside the ctor.
   void InitHWDecoderIfAllowed();
 
-  enum class ContextType {
-    D3D11VA,
-    VAAPI,
-    V4L2,
+  enum class ContextType{
+      D3D11VA,
+      VAAPI,
+      V4L2,
   };
   void InitHWCodecContext(ContextType aType);
 
