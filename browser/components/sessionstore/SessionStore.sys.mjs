@@ -5575,6 +5575,14 @@ var SessionStoreInternal = {
     this._windows[aWindow.__SSi]._lastClosedTabGroupCount =
       newLastClosedTabGroupCount;
 
+    // Copy over closed tab groups from the previous session,
+    // and reset closed tab ids for tabs within each group.
+    let newClosedTabGroupsData = winData.closedGroups || [];
+    newClosedTabGroupsData.forEach(group => {
+      this._resetClosedTabIds(group.tabs, aWindow.__SSi);
+    });
+    this._windows[aWindow.__SSi].closedGroups = newClosedTabGroupsData;
+
     if (!this._isWindowLoaded(aWindow)) {
       // from now on, the data will come from the actual window
       delete this._statesToRestore[WINDOW_RESTORE_IDS.get(aWindow)];
@@ -6889,6 +6897,15 @@ var SessionStoreInternal = {
       };
       if (PERSIST_SESSIONS) {
         newWindowState._closedTabs = Cu.cloneInto(window._closedTabs, {});
+        newWindowState.closedGroups = Cu.cloneInto(window.closedGroups, {});
+
+        // Open groups do not have a tabs list, but closed ones do — we need to
+        // add one here.
+        window.groups.forEach(group => {
+          group = Cu.cloneInto(group, {});
+          group.tabs = [];
+          newWindowState.closedGroups.push(group);
+        });
       }
 
       // We want to preserve the sidebar if previously open in the window
@@ -6941,12 +6958,15 @@ var SessionStoreInternal = {
             };
 
             if (this._shouldSaveTabState(tabState)) {
-              this.saveClosedTabData(
-                window,
-                newWindowState._closedTabs,
-                tabData,
-                false
-              );
+              let closedTabsList = newWindowState._closedTabs;
+              let groupId = tabData.state.groupId;
+              if (groupId) {
+                closedTabsList = newWindowState.closedGroups.find(
+                  g => g.id === groupId
+                ).tabs;
+              }
+
+              this.saveClosedTabData(window, closedTabsList, tabData, false);
             }
           }
         }
@@ -6980,7 +7000,9 @@ var SessionStoreInternal = {
       // closed tabs, add it to the defaultState so they're available immediately.
       if (
         newWindowState.tabs.length ||
-        (PERSIST_SESSIONS && newWindowState._closedTabs.length)
+        (PERSIST_SESSIONS &&
+          (newWindowState._closedTabs.length ||
+            newWindowState.closedGroups.length))
       ) {
         defaultState.windows.push(newWindowState);
         // Remove the window from the state if it doesn't have any tabs

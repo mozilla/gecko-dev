@@ -9,6 +9,8 @@ tags = "local"
 
 ["test_restore_manually_with_pinned_tabs.py"]
 
+["test_restore_manually_with_tab_groups.py"]
+
 ["test_restore_sidebar.py"]
 
 ["test_restore_sidebar_automatic.py"]
