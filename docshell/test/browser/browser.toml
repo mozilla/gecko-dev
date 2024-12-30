@@ -91,7 +91,10 @@ skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1607713
 ["browser_badCertDomainFixup.js"]
 
 ["browser_bfcache_copycommand.js"]
-skip-if = ["os == 'linux' && bits == 64"] # Bug 1730593
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1730593
+  "win11_2009", # Bug 1775931
+]
 
 ["browser_bfcache_after_auxiliary.js"]
 
