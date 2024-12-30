@@ -2145,7 +2145,7 @@
     property: ValId
     trap: ObjId
     nargsAndFlags: UInt32Imm
-#endif
+  #endif
 
 # Meta ops generate no code, but contain data for the Warp Transpiler.
 - name: MetaScriptedThisShape

@@ -69,6 +69,7 @@ class AllocSite;
 namespace jit {
 
 class ICScript;
+struct CacheIRAOTStub;
 
 // Class to record CacheIR + some additional metadata for code generation.
 class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
@@ -346,6 +347,10 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
         lastIndex_(0) {
   }
 
+#ifdef ENABLE_JS_AOT_ICS
+  CacheIRWriter(JSContext* cx, const CacheIRAOTStub& aot);
+#endif
+
   bool tooLarge() const { return tooLarge_; }
   bool oom() const { return buffer_.oom(); }
   bool failed() const { return tooLarge() || oom(); }
@@ -357,6 +362,7 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
   uint32_t numInstructions() const { return nextInstructionId_; }
 
   size_t numStubFields() const { return stubFields_.length(); }
+  const StubField& stubField(uint32_t i) const { return stubFields_[i]; }
   StubField::Type stubFieldType(uint32_t i) const {
     return stubFields_[i].type();
   }
@@ -387,6 +393,9 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
       return false;
     }
     return currentInstruction > operandLastUsed_[operandId];
+  }
+  uint32_t operandLastUsed(uint32_t operandId) const {
+    return operandLastUsed_[operandId];
   }
 
   const uint8_t* codeStart() const {
