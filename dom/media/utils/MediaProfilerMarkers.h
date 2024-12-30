@@ -179,7 +179,8 @@ struct LoadSourceMarker : public BaseMarkerType<LoadSourceMarker> {
   static constexpr MS::PayloadField PayloadFields[] = {
       {"src", MS::InputType::String, "Source URL", MS::Format::String},
       // Below attributes would only be set if the source if a source element
-      {"type", MS::InputType::String, "Type", MS::Format::String},
+      {"contentType", MS::InputType::String, "Content Type",
+       MS::Format::String},
       {"media", MS::InputType::String, "Media", MS::Format::String},
   };
 
