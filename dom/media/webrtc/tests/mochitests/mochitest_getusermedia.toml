@@ -136,7 +136,10 @@ skip-if = [
 ["test_getUserMedia_playVideoTwice.html"]
 
 ["test_getUserMedia_scarySources.html"]
-skip-if = ["os == 'android'"] # no screenshare or windowshare on android
+skip-if = [
+  "os == 'android'", # no screenshare or windowshare on android
+  "win11_2009 && debug", # Bug 1787039
+]
 
 ["test_getUserMedia_spinEventLoop.html"]
 
