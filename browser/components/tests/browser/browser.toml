@@ -48,3 +48,6 @@ run-if = ["os != 'mac'"] # On macOS we can't change browser.quitShortcut.disable
 
 ["browser_to_handle_telemetry.js"]
 run-if = ["os == 'win'"]
+
+["browser_csp_blocks_event_handlers.js"]
+run-if = ["debug"]
