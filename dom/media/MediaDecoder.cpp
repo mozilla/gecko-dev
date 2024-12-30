@@ -798,7 +798,7 @@ void MediaDecoder::SetStatusUpdateForNewlyCreatedStateMachineIfNeeded() {
   LOG("Set pending statuses if necessary (mLogicallySeeking=%d, "
       "mLogicalPosition=%f, mPlaybackRate=%f)",
       mLogicallySeeking.Ref(), mLogicalPosition, mPlaybackRate);
-  if (mLogicalPosition != 0) {
+  if (mLogicallySeeking) {
     Seek(mLogicalPosition, SeekTarget::Accurate);
   }
   if (mPlaybackRate != 0 && mPlaybackRate != 1.0) {
