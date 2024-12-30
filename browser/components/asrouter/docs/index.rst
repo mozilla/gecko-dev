@@ -115,6 +115,7 @@ Detailed Docs
 .. toctree::
   :maxdepth: 2
 
+  building-and-testing
   debugging-docs
   frequency-caps
   first-run
