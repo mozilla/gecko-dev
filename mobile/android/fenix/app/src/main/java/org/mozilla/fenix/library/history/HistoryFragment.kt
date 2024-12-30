@@ -27,6 +27,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.mapNotNull
@@ -35,6 +37,8 @@ import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.HistoryMetadataAction
 import mozilla.components.browser.state.action.RecentlyClosedAction
+import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.flowScoped
@@ -48,6 +52,7 @@ import org.mozilla.fenix.NavHostActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.addons.showSnackBar
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.history.DefaultPagedHistoryProvider
@@ -162,12 +167,22 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
     private fun showDeleteSnackbar(
         items: Set<History>,
     ) {
-        lifecycleScope.allowUndo(
+        val appStore = requireComponents.appStore
+        val browserStore = requireComponents.core.store
+        val historyStorage = requireComponents.core.historyStorage
+
+        CoroutineScope(Dispatchers.Main).allowUndo(
             view = requireActivity().getRootView()!!,
             message = getMultiSelectSnackBarMessage(items),
             undoActionTitle = getString(R.string.snackbar_deleted_undo),
-            onCancel = { undo(items) },
-            operation = { delete(items) },
+            onCancel = { undo(appStore = appStore, items = items) },
+            operation = {
+                delete(
+                    browserStore = browserStore,
+                    historyStorage = historyStorage,
+                    items = items,
+                )
+            },
         )
     }
 
@@ -427,16 +442,16 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
         )
     }
 
-    private suspend fun undo(items: Set<History>) = withContext(IO) {
-        val appStore = requireContext().components.appStore
+    private suspend fun undo(appStore: AppStore, items: Set<History>) = withContext(IO) {
         val pendingDeletionItems = items.map { it.toPendingDeletionHistory() }.toSet()
         appStore.dispatch(AppAction.UndoPendingDeletionSet(pendingDeletionItems))
     }
 
-    private suspend fun delete(items: Set<History>) = withContext(IO) {
-        val browserStore = requireContext().components.core.store
-        val historyStorage = requireContext().components.core.historyStorage
-
+    private suspend fun delete(
+        browserStore: BrowserStore,
+        historyStorage: PlacesHistoryStorage,
+        items: Set<History>,
+    ) = withContext(IO) {
         historyStore.dispatch(HistoryFragmentAction.EnterDeletionMode)
         for (item in items) {
             when (item) {
