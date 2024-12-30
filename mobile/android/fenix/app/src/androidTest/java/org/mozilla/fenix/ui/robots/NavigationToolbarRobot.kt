@@ -188,7 +188,7 @@ class NavigationToolbarRobot {
     // New unified search UI selector
     fun verifyDefaultSearchEngine(engineName: String) =
         assertUIObjectExists(
-            searchSelectorButton().getChild(UiSelector().description(engineName)),
+            searchSelectorButton().getChild(UiSelector().descriptionStartsWith(engineName)),
         )
 
     fun verifyTextSelectionOptions(vararg textSelectionOptions: String) {

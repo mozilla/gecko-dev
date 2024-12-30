@@ -75,8 +75,12 @@ class SearchSelectorBinding(
                         }
                     }
                 }
+                val contentDescription = context.getString(
+                    R.string.search_engine_selector_content_description,
+                    name ?: "",
+                )
 
-                binding.searchSelectorButton.setIcon(icon, name)
+                binding.searchSelectorButton.setIcon(icon, contentDescription)
             }
     }
 
