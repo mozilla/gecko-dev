@@ -118,12 +118,13 @@ class CookieCommons final {
   static bool ShouldIncludeCrossSiteCookie(Cookie* aCookie,
                                            bool aPartitionForeign,
                                            bool aInPrivateBrowsing,
-                                           bool aUsingStorageAccess,
-                                           bool aOn3pcbException);
+                                           bool aUsingStorageAccess);
 
-  static bool ShouldIncludeCrossSiteCookie(
-      int32_t aSameSiteAttr, bool aCookiePartitioned, bool aPartitionForeign,
-      bool aInPrivateBrowsing, bool aUsingStorageAccess, bool aOn3pcbException);
+  static bool ShouldIncludeCrossSiteCookie(int32_t aSameSiteAttr,
+                                           bool aCookiePartitioned,
+                                           bool aPartitionForeign,
+                                           bool aInPrivateBrowsing,
+                                           bool aUsingStorageAccess);
 
   static bool IsFirstPartyPartitionedCookieWithoutCHIPS(
       Cookie* aCookie, const nsACString& aBaseDomain,
