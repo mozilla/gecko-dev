@@ -125,7 +125,7 @@ class SearchSelectorToolbarActionTest {
                 view.setIcon(
                     icon = searchEngineIcon,
                     contentDescription = testContext.getString(
-                        R.string.search_engine_icon_content_description_1,
+                        R.string.search_engine_selector_content_description,
                         testSearchEngine.name,
                     ),
                 )
@@ -159,7 +159,7 @@ class SearchSelectorToolbarActionTest {
                 view.setIcon(
                     icon = searchEngineIcon,
                     contentDescription = testContext.getString(
-                        R.string.search_engine_icon_content_description_1,
+                        R.string.search_engine_selector_content_description,
                         testSearchEngine.name,
                     ),
                 )
@@ -190,7 +190,7 @@ class SearchSelectorToolbarActionTest {
                 view.setIcon(
                     icon = searchEngineIcon,
                     contentDescription = testContext.getString(
-                        R.string.search_engine_icon_content_description_1,
+                        R.string.search_engine_selector_content_description,
                         testSearchEngine.name,
                     ),
                 )
@@ -210,7 +210,7 @@ class SearchSelectorToolbarActionTest {
                 view.setIcon(
                     icon = searchEngineIcon,
                     contentDescription = testContext.getString(
-                        R.string.search_engine_icon_content_description_1,
+                        R.string.search_engine_selector_content_description,
                         testSearchEngine.name,
                     ),
                 )
@@ -232,7 +232,7 @@ class SearchSelectorToolbarActionTest {
                 view.setIcon(
                     icon = searchEngineIcon,
                     contentDescription = testContext.getString(
-                        R.string.search_engine_icon_content_description_1,
+                        R.string.search_engine_selector_content_description,
                         testSearchEngine.name,
                     ),
                 )
@@ -241,7 +241,7 @@ class SearchSelectorToolbarActionTest {
                 view.setIcon(
                     icon = searchEngineIcon,
                     contentDescription = testContext.getString(
-                        R.string.search_engine_icon_content_description_1,
+                        R.string.search_engine_selector_content_description,
                         newSearchEngine.name,
                     ),
                 )
