@@ -24,7 +24,6 @@
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
 #include "nsProxyRelease.h"
-#include "ThirdPartyUtil.h"
 
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -668,18 +667,7 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
       }
       principal = doc->NodePrincipal();
       cookieJarSettings = doc->CookieJarSettings();
-      // fetch the thirdparty context from the document
 
-      ThirdPartyUtil* thirdPartyUtil = ThirdPartyUtil::GetInstance();
-      if (!thirdPartyUtil) {
-        return nullptr;
-      }
-      if (thirdPartyUtil) {
-        bool thirdParty = false;
-        Unused << thirdPartyUtil->IsThirdPartyWindow(window->GetOuterWindow(),
-                                                     nullptr, &thirdParty);
-        ipcArgs.isThirdPartyContext() = thirdParty;
-      }
     } else {
       principal = aGlobal->PrincipalOrNull();
       if (NS_WARN_IF(!principal)) {

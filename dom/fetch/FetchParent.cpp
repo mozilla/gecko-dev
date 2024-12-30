@@ -186,17 +186,11 @@ IPCResult FetchParent::RecvFetchOp(FetchOpArgs&& aArgs) {
     } else {
       MOZ_ASSERT(self->mRequest->GetKeepalive());
       self->mResponsePromises =
-          fetchService->Fetch(AsVariant(FetchService::MainThreadFetchArgs({
-              self->mRequest.clonePtr(),
-              self->mPrincipalInfo,
-              self->mCookieJarSettings,
-              self->mNeedOnDataAvailable,
-              self->mCSPEventListener,
-              self->mAssociatedBrowsingContextID,
-              self->mBackgroundEventTarget,
-              self->mID,
-              self->mIsThirdPartyContext,
-          })));
+          fetchService->Fetch(AsVariant(FetchService::MainThreadFetchArgs(
+              {self->mRequest.clonePtr(), self->mPrincipalInfo,
+               self->mCookieJarSettings, self->mNeedOnDataAvailable,
+               self->mCSPEventListener, self->mAssociatedBrowsingContextID,
+               self->mBackgroundEventTarget, self->mID})));
     }
 
     bool isResolved =

@@ -678,9 +678,9 @@ nsresult FetchDriver::HttpFetch(
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  if (mIsThirdPartyContext.isSome()) {
+  if (mIsThirdPartyWorker.isSome()) {
     nsCOMPtr<nsILoadInfo> loadInfo = chan->LoadInfo();
-    rv = loadInfo->SetIsInThirdPartyContext(mIsThirdPartyContext.ref());
+    rv = loadInfo->SetIsInThirdPartyContext(mIsThirdPartyWorker.ref());
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
