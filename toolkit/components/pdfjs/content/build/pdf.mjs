@@ -71,6 +71,7 @@ __webpack_require__.d(__webpack_exports__, {
   PixelsPerInch: () => (/* reexport */ PixelsPerInch),
   RenderingCancelledException: () => (/* reexport */ RenderingCancelledException),
   TextLayer: () => (/* reexport */ TextLayer),
+  TouchManager: () => (/* reexport */ TouchManager),
   UnexpectedResponseException: () => (/* reexport */ UnexpectedResponseException),
   Util: () => (/* reexport */ Util),
   VerbosityLevel: () => (/* reexport */ VerbosityLevel),
@@ -802,17 +803,6 @@ function getUuid() {
   return crypto.randomUUID();
 }
 const AnnotationPrefix = "pdfjs_internal_id_";
-const FontRenderOps = {
-  BEZIER_CURVE_TO: 0,
-  MOVE_TO: 1,
-  LINE_TO: 2,
-  QUADRATIC_CURVE_TO: 3,
-  RESTORE: 4,
-  SAVE: 5,
-  SCALE: 6,
-  TRANSFORM: 7,
-  TRANSLATE: 8
-};
 function toHexUtil(arr) {
   if (Uint8Array.prototype.toHex) {
     return arr.toHex();
@@ -830,6 +820,13 @@ function fromBase64Util(str) {
     return Uint8Array.fromBase64(str);
   }
   return stringToBytes(atob(str));
+}
+if (typeof Promise.try !== "function") {
+  Promise.try = function (fn, ...args) {
+    return new Promise(resolve => {
+      resolve(fn(...args));
+    });
+  };
 }
 
 ;// ./src/display/display_utils.js
@@ -858,6 +855,7 @@ async function fetchData(url, type = "text") {
 class PageViewport {
   constructor({
     viewBox,
+    userUnit,
     scale,
     rotation,
     offsetX = 0,
@@ -865,10 +863,12 @@ class PageViewport {
     dontFlip = false
   }) {
     this.viewBox = viewBox;
+    this.userUnit = userUnit;
     this.scale = scale;
     this.rotation = rotation;
     this.offsetX = offsetX;
     this.offsetY = offsetY;
+    scale *= userUnit;
     const centerX = (viewBox[2] + viewBox[0]) / 2;
     const centerY = (viewBox[3] + viewBox[1]) / 2;
     let rotateA, rotateB, rotateC, rotateD;
@@ -927,13 +927,15 @@ class PageViewport {
   }
   get rawDims() {
     const {
+      userUnit,
       viewBox
     } = this;
+    const dims = viewBox.map(x => x * userUnit);
     return shadow(this, "rawDims", {
-      pageWidth: viewBox[2] - viewBox[0],
-      pageHeight: viewBox[3] - viewBox[1],
-      pageX: viewBox[0],
-      pageY: viewBox[1]
+      pageWidth: dims[2] - dims[0],
+      pageHeight: dims[3] - dims[1],
+      pageX: dims[0],
+      pageY: dims[1]
     });
   }
   clone({
@@ -945,6 +947,7 @@ class PageViewport {
   } = {}) {
     return new PageViewport({
       viewBox: this.viewBox.slice(),
+      userUnit: this.userUnit,
       scale,
       rotation,
       offsetX,
@@ -1106,6 +1109,7 @@ function getXfaPageViewport(xfaPage, {
   const viewBox = [0, 0, parseInt(width), parseInt(height)];
   return new PageViewport({
     viewBox,
+    userUnit: 1,
     scale,
     rotation
   });
@@ -1793,6 +1797,7 @@ class AnnotationEditorUIManager {
   #changedExistingAnnotations = null;
   #commandManager = new CommandManager();
   #copyPasteAC = null;
+  #currentDrawingSession = null;
   #currentPageIndex = 0;
   #deletedAnnotationsElementIds = new Set();
   #draggingEditors = null;
@@ -1893,7 +1898,7 @@ class AnnotationEditorUIManager {
       checker: arrowChecker
     }]]));
   }
-  constructor(container, viewer, altTextManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, enableNewAltTextWhenAddingImage, mlManager, editorUndoBar) {
+  constructor(container, viewer, altTextManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, enableNewAltTextWhenAddingImage, mlManager, editorUndoBar, supportsPinchToZoom) {
     const signal = this._signal = this.#abortController.signal;
     this.#container = container;
     this.#viewer = viewer;
@@ -1934,6 +1939,7 @@ class AnnotationEditorUIManager {
     };
     this.isShiftKeyDown = false;
     this._editorUndoBar = editorUndoBar || null;
+    this._supportsPinchToZoom = supportsPinchToZoom !== false;
   }
   destroy() {
     this.#updateModeCapability?.resolve();
@@ -1986,6 +1992,15 @@ class AnnotationEditorUIManager {
   }
   get highlightColorNames() {
     return shadow(this, "highlightColorNames", this.highlightColors ? new Map(Array.from(this.highlightColors, e => e.reverse())) : null);
+  }
+  setCurrentDrawingSession(layer) {
+    if (layer) {
+      this.unselectAll();
+      this.disableUserSelect(true);
+    } else {
+      this.disableUserSelect(false);
+    }
+    this.#currentDrawingSession = layer;
   }
   setMainHighlightColorPicker(colorPicker) {
     this.#mainHighlightColorPicker = colorPicker;
@@ -2059,7 +2074,7 @@ class AnnotationEditorUIManager {
     for (const editor of this.#editorsToRescale) {
       editor.onScaleChanging();
     }
-    this.currentLayer?.onScaleChanging();
+    this.#currentDrawingSession?.onScaleChanging();
   }
   onRotationChanging({
     pagesRotation
@@ -2767,7 +2782,7 @@ class AnnotationEditorUIManager {
     });
   }
   setSelected(editor) {
-    this.currentLayer?.commitOrRemove();
+    this.#currentDrawingSession?.commitOrRemove();
     for (const ed of this.#selectedEditors) {
       if (ed !== editor) {
         ed.unselect();
@@ -2898,7 +2913,7 @@ class AnnotationEditorUIManager {
         return;
       }
     }
-    if (this.currentLayer?.commitOrRemove()) {
+    if (this.#currentDrawingSession?.commitOrRemove()) {
       return;
     }
     if (!this.hasSelection) {
@@ -3426,7 +3441,142 @@ class AltText {
   }
 }
 
+;// ./src/display/touch_manager.js
+
+
+class TouchManager {
+  #container;
+  #isPinching = false;
+  #isPinchingStopped = null;
+  #isPinchingDisabled;
+  #onPinchStart;
+  #onPinching;
+  #onPinchEnd;
+  #signal;
+  #touchInfo = null;
+  #touchManagerAC;
+  #touchMoveAC = null;
+  constructor({
+    container,
+    isPinchingDisabled = null,
+    isPinchingStopped = null,
+    onPinchStart = null,
+    onPinching = null,
+    onPinchEnd = null,
+    signal
+  }) {
+    this.#container = container;
+    this.#isPinchingStopped = isPinchingStopped;
+    this.#isPinchingDisabled = isPinchingDisabled;
+    this.#onPinchStart = onPinchStart;
+    this.#onPinching = onPinching;
+    this.#onPinchEnd = onPinchEnd;
+    this.#touchManagerAC = new AbortController();
+    this.#signal = AbortSignal.any([signal, this.#touchManagerAC.signal]);
+    container.addEventListener("touchstart", this.#onTouchStart.bind(this), {
+      passive: false,
+      signal: this.#signal
+    });
+  }
+  get MIN_TOUCH_DISTANCE_TO_PINCH() {
+    return shadow(this, "MIN_TOUCH_DISTANCE_TO_PINCH", 35 / (window.devicePixelRatio || 1));
+  }
+  #onTouchStart(evt) {
+    if (this.#isPinchingDisabled?.() || evt.touches.length < 2) {
+      return;
+    }
+    if (!this.#touchMoveAC) {
+      this.#touchMoveAC = new AbortController();
+      const signal = AbortSignal.any([this.#signal, this.#touchMoveAC.signal]);
+      const container = this.#container;
+      const opt = {
+        signal,
+        passive: false
+      };
+      container.addEventListener("touchmove", this.#onTouchMove.bind(this), opt);
+      container.addEventListener("touchend", this.#onTouchEnd.bind(this), opt);
+      container.addEventListener("touchcancel", this.#onTouchEnd.bind(this), opt);
+      this.#onPinchStart?.();
+    }
+    stopEvent(evt);
+    if (evt.touches.length !== 2 || this.#isPinchingStopped?.()) {
+      this.#touchInfo = null;
+      return;
+    }
+    let [touch0, touch1] = evt.touches;
+    if (touch0.identifier > touch1.identifier) {
+      [touch0, touch1] = [touch1, touch0];
+    }
+    this.#touchInfo = {
+      touch0X: touch0.screenX,
+      touch0Y: touch0.screenY,
+      touch1X: touch1.screenX,
+      touch1Y: touch1.screenY
+    };
+  }
+  #onTouchMove(evt) {
+    if (!this.#touchInfo || evt.touches.length !== 2) {
+      return;
+    }
+    let [touch0, touch1] = evt.touches;
+    if (touch0.identifier > touch1.identifier) {
+      [touch0, touch1] = [touch1, touch0];
+    }
+    const {
+      screenX: screen0X,
+      screenY: screen0Y
+    } = touch0;
+    const {
+      screenX: screen1X,
+      screenY: screen1Y
+    } = touch1;
+    const touchInfo = this.#touchInfo;
+    const {
+      touch0X: pTouch0X,
+      touch0Y: pTouch0Y,
+      touch1X: pTouch1X,
+      touch1Y: pTouch1Y
+    } = touchInfo;
+    const prevGapX = pTouch1X - pTouch0X;
+    const prevGapY = pTouch1Y - pTouch0Y;
+    const currGapX = screen1X - screen0X;
+    const currGapY = screen1Y - screen0Y;
+    const distance = Math.hypot(currGapX, currGapY) || 1;
+    const pDistance = Math.hypot(prevGapX, prevGapY) || 1;
+    if (!this.#isPinching && Math.abs(pDistance - distance) <= TouchManager.MIN_TOUCH_DISTANCE_TO_PINCH) {
+      return;
+    }
+    touchInfo.touch0X = screen0X;
+    touchInfo.touch0Y = screen0Y;
+    touchInfo.touch1X = screen1X;
+    touchInfo.touch1Y = screen1Y;
+    evt.preventDefault();
+    if (!this.#isPinching) {
+      this.#isPinching = true;
+      return;
+    }
+    const origin = [(screen0X + screen1X) / 2, (screen0Y + screen1Y) / 2];
+    this.#onPinching?.(origin, pDistance, distance);
+  }
+  #onTouchEnd(evt) {
+    this.#touchMoveAC.abort();
+    this.#touchMoveAC = null;
+    this.#onPinchEnd?.();
+    if (!this.#touchInfo) {
+      return;
+    }
+    evt.preventDefault();
+    this.#touchInfo = null;
+    this.#isPinching = false;
+  }
+  destroy() {
+    this.#touchManagerAC?.abort();
+    this.#touchManagerAC = null;
+  }
+}
+
 ;// ./src/display/editor/editor.js
+
 
 
 
@@ -3454,6 +3604,7 @@ class AnnotationEditor {
   #prevDragX = 0;
   #prevDragY = 0;
   #telemetryTimeouts = null;
+  #touchManager = null;
   _editToolbar = null;
   _initialOptions = Object.create(null);
   _initialData = null;
@@ -3990,6 +4141,9 @@ class AnnotationEditor {
       mustExec: true
     });
   }
+  static _round(x) {
+    return Math.round(x * 10000) / 10000;
+  }
   #resizerPointermove(name, event) {
     const [parentWidth, parentHeight] = this.parentDimensions;
     const savedX = this.x;
@@ -3998,7 +4152,6 @@ class AnnotationEditor {
     const savedHeight = this.height;
     const minWidth = AnnotationEditor.MIN_SIZE / parentWidth;
     const minHeight = AnnotationEditor.MIN_SIZE / parentHeight;
-    const round = x => Math.round(x * 10000) / 10000;
     const rotationMatrix = this.#getRotationMatrix(this.rotation);
     const transf = (x, y) => [rotationMatrix[0] * x + rotationMatrix[2] * y, rotationMatrix[1] * x + rotationMatrix[3] * y];
     const invRotationMatrix = this.#getRotationMatrix(360 - this.rotation);
@@ -4050,8 +4203,8 @@ class AnnotationEditor {
     const point = getPoint(savedWidth, savedHeight);
     const oppositePoint = getOpposite(savedWidth, savedHeight);
     let transfOppositePoint = transf(...oppositePoint);
-    const oppositeX = round(savedX + transfOppositePoint[0]);
-    const oppositeY = round(savedY + transfOppositePoint[1]);
+    const oppositeX = AnnotationEditor._round(savedX + transfOppositePoint[0]);
+    const oppositeY = AnnotationEditor._round(savedY + transfOppositePoint[1]);
     let ratioX = 1;
     let ratioY = 1;
     let deltaX, deltaY;
@@ -4079,8 +4232,8 @@ class AnnotationEditor {
     } else {
       ratioY = Math.max(minHeight, Math.min(1, Math.abs(oppositePoint[1] - point[1] - deltaY))) / savedHeight;
     }
-    const newWidth = round(savedWidth * ratioX);
-    const newHeight = round(savedHeight * ratioY);
+    const newWidth = AnnotationEditor._round(savedWidth * ratioX);
+    const newHeight = AnnotationEditor._round(savedHeight * ratioY);
     transfOppositePoint = transf(...getOpposite(newWidth, newHeight));
     const newX = oppositeX - transfOppositePoint[0];
     const newY = oppositeY - transfOppositePoint[1];
@@ -4182,8 +4335,67 @@ class AnnotationEditor {
     const [tx, ty] = this.getInitialTranslation();
     this.translate(tx, ty);
     bindEvents(this, this.div, ["pointerdown"]);
+    if (this.isResizable && this._uiManager._supportsPinchToZoom) {
+      this.#touchManager ||= new TouchManager({
+        container: this.div,
+        isPinchingDisabled: () => !this.isSelected,
+        onPinchStart: this.#touchPinchStartCallback.bind(this),
+        onPinching: this.#touchPinchCallback.bind(this),
+        onPinchEnd: this.#touchPinchEndCallback.bind(this),
+        signal: this._uiManager._signal
+      });
+    }
     this._uiManager._editorUndoBar?.hide();
     return this.div;
+  }
+  #touchPinchStartCallback() {
+    this.#savedDimensions = {
+      savedX: this.x,
+      savedY: this.y,
+      savedWidth: this.width,
+      savedHeight: this.height
+    };
+    this.#altText?.toggle(false);
+    this.parent.togglePointerEvents(false);
+  }
+  #touchPinchCallback(_origin, prevDistance, distance) {
+    const slowDownFactor = 0.7;
+    let factor = slowDownFactor * (distance / prevDistance) + 1 - slowDownFactor;
+    if (factor === 1) {
+      return;
+    }
+    const rotationMatrix = this.#getRotationMatrix(this.rotation);
+    const transf = (x, y) => [rotationMatrix[0] * x + rotationMatrix[2] * y, rotationMatrix[1] * x + rotationMatrix[3] * y];
+    const [parentWidth, parentHeight] = this.parentDimensions;
+    const savedX = this.x;
+    const savedY = this.y;
+    const savedWidth = this.width;
+    const savedHeight = this.height;
+    const minWidth = AnnotationEditor.MIN_SIZE / parentWidth;
+    const minHeight = AnnotationEditor.MIN_SIZE / parentHeight;
+    factor = Math.max(Math.min(factor, 1 / savedWidth, 1 / savedHeight), minWidth / savedWidth, minHeight / savedHeight);
+    const newWidth = AnnotationEditor._round(savedWidth * factor);
+    const newHeight = AnnotationEditor._round(savedHeight * factor);
+    if (newWidth === savedWidth && newHeight === savedHeight) {
+      return;
+    }
+    this.#initialRect ||= [savedX, savedY, savedWidth, savedHeight];
+    const transfCenterPoint = transf(savedWidth / 2, savedHeight / 2);
+    const centerX = AnnotationEditor._round(savedX + transfCenterPoint[0]);
+    const centerY = AnnotationEditor._round(savedY + transfCenterPoint[1]);
+    const newTransfCenterPoint = transf(newWidth / 2, newHeight / 2);
+    this.x = centerX - newTransfCenterPoint[0];
+    this.y = centerY - newTransfCenterPoint[1];
+    this.width = newWidth;
+    this.height = newHeight;
+    this.setDims(parentWidth * newWidth, parentHeight * newHeight);
+    this.fixAndSetPosition();
+    this._onResizing();
+  }
+  #touchPinchEndCallback() {
+    this.#altText?.toggle(true);
+    this.parent.togglePointerEvents(true);
+    this.#addResizeToUndoStack();
   }
   pointerdown(event) {
     const {
@@ -4218,6 +4430,7 @@ class AnnotationEditor {
       isSelected
     } = this;
     this._uiManager.setUpDragSession();
+    let hasDraggingStarted = false;
     const ac = new AbortController();
     const signal = this._uiManager.combinedSignal(ac);
     const opts = {
@@ -4232,6 +4445,9 @@ class AnnotationEditor {
       if (!this._uiManager.endDragSession()) {
         this.#selectOnPointerEvent(e);
       }
+      if (hasDraggingStarted) {
+        this._onStopDragging();
+      }
     };
     if (isSelected) {
       this.#prevDragX = event.clientX;
@@ -4239,6 +4455,10 @@ class AnnotationEditor {
       this.#dragPointerId = event.pointerId;
       this.#dragPointerType = event.pointerType;
       window.addEventListener("pointermove", e => {
+        if (!hasDraggingStarted) {
+          hasDraggingStarted = true;
+          this._onStartDragging();
+        }
         const {
           clientX: x,
           clientY: y,
@@ -4255,17 +4475,17 @@ class AnnotationEditor {
       }, opts);
       window.addEventListener("touchmove", stopEvent, opts);
       window.addEventListener("pointerdown", e => {
-        if (e.isPrimary && e.pointerType === this.#dragPointerType) {
-          cancelDrag(e);
+        if (e.pointerType === this.#dragPointerType) {
+          if (this.#touchManager || e.isPrimary) {
+            cancelDrag(e);
+          }
         }
         stopEvent(e);
       }, opts);
     }
-    this._onStartDragging();
     const pointerUpCallback = e => {
       if (!this.#dragPointerId || this.#dragPointerId === e.pointerId) {
         cancelDrag(e);
-        this._onStopDragging();
         return;
       }
       stopEvent(e);
@@ -4335,7 +4555,7 @@ class AnnotationEditor {
         throw new Error("Invalid rotation");
     }
   }
-  onceAdded() {}
+  onceAdded(focus) {}
   isEmpty() {
     return false;
   }
@@ -4439,6 +4659,8 @@ class AnnotationEditor {
       this.#telemetryTimeouts = null;
     }
     this.parent = null;
+    this.#touchManager?.destroy();
+    this.#touchManager = null;
   }
   get isResizable() {
     return false;
@@ -5136,6 +5358,7 @@ class FontLoader {
 class FontFaceObject {
   constructor(translatedData, {
     disableFontFace = false,
+    fontExtraProperties = false,
     inspectFont = null
   }) {
     this.compiledGlyphs = Object.create(null);
@@ -5143,6 +5366,7 @@ class FontFaceObject {
       this[i] = translatedData[i];
     }
     this.disableFontFace = disableFontFace === true;
+    this.fontExtraProperties = fontExtraProperties === true;
     this._inspectFont = inspectFont;
   }
   createNativeFontFace() {
@@ -5186,80 +5410,18 @@ class FontFaceObject {
     if (this.compiledGlyphs[character] !== undefined) {
       return this.compiledGlyphs[character];
     }
+    const objId = this.loadedName + "_path_" + character;
     let cmds;
     try {
-      cmds = objs.get(this.loadedName + "_path_" + character);
+      cmds = objs.get(objId);
     } catch (ex) {
       warn(`getPathGenerator - ignoring character: "${ex}".`);
     }
-    if (!Array.isArray(cmds) || cmds.length === 0) {
-      return this.compiledGlyphs[character] = function (c, size) {};
+    const path = new Path2D(cmds || "");
+    if (!this.fontExtraProperties) {
+      objs.delete(objId);
     }
-    const commands = [];
-    for (let i = 0, ii = cmds.length; i < ii;) {
-      switch (cmds[i++]) {
-        case FontRenderOps.BEZIER_CURVE_TO:
-          {
-            const [a, b, c, d, e, f] = cmds.slice(i, i + 6);
-            commands.push(ctx => ctx.bezierCurveTo(a, b, c, d, e, f));
-            i += 6;
-          }
-          break;
-        case FontRenderOps.MOVE_TO:
-          {
-            const [a, b] = cmds.slice(i, i + 2);
-            commands.push(ctx => ctx.moveTo(a, b));
-            i += 2;
-          }
-          break;
-        case FontRenderOps.LINE_TO:
-          {
-            const [a, b] = cmds.slice(i, i + 2);
-            commands.push(ctx => ctx.lineTo(a, b));
-            i += 2;
-          }
-          break;
-        case FontRenderOps.QUADRATIC_CURVE_TO:
-          {
-            const [a, b, c, d] = cmds.slice(i, i + 4);
-            commands.push(ctx => ctx.quadraticCurveTo(a, b, c, d));
-            i += 4;
-          }
-          break;
-        case FontRenderOps.RESTORE:
-          commands.push(ctx => ctx.restore());
-          break;
-        case FontRenderOps.SAVE:
-          commands.push(ctx => ctx.save());
-          break;
-        case FontRenderOps.SCALE:
-          assert(commands.length === 2, "Scale command is only valid at the third position.");
-          break;
-        case FontRenderOps.TRANSFORM:
-          {
-            const [a, b, c, d, e, f] = cmds.slice(i, i + 6);
-            commands.push(ctx => ctx.transform(a, b, c, d, e, f));
-            i += 6;
-          }
-          break;
-        case FontRenderOps.TRANSLATE:
-          {
-            const [a, b] = cmds.slice(i, i + 2);
-            commands.push(ctx => ctx.translate(a, b));
-            i += 2;
-          }
-          break;
-      }
-    }
-    commands.push(ctx => ctx.closePath());
-    return this.compiledGlyphs[character] = function glyphDrawer(ctx, size) {
-      commands[0](ctx);
-      commands[1](ctx);
-      ctx.scale(size, -size);
-      for (let i = 2, ii = commands.length; i < ii; i++) {
-        commands[i](ctx);
-      }
-    };
+    return this.compiledGlyphs[character] = path;
   }
 }
 
@@ -7090,15 +7252,18 @@ class CanvasGraphics {
       ctx.beginPath();
       return;
     }
-    ctx.save();
-    ctx.beginPath();
-    for (const path of paths) {
-      ctx.setTransform(...path.transform);
-      ctx.translate(path.x, path.y);
-      path.addToPath(ctx, path.fontSize);
+    const newPath = new Path2D();
+    const invTransf = ctx.getTransform().invertSelf();
+    for (const {
+      transform,
+      x,
+      y,
+      fontSize,
+      path
+    } of paths) {
+      newPath.addPath(path, new DOMMatrix(transform).preMultiplySelf(invTransf).translate(x, y).scale(fontSize, -fontSize));
     }
-    ctx.restore();
-    ctx.clip();
+    ctx.clip(newPath);
     ctx.beginPath();
     delete this.pendingTextPaths;
   }
@@ -7176,6 +7341,11 @@ class CanvasGraphics {
   nextLine() {
     this.moveText(0, this.current.leading);
   }
+  #getScaledPath(path, currentTransform, transform) {
+    const newPath = new Path2D();
+    newPath.addPath(path, new DOMMatrix(transform).invertSelf().multiplySelf(currentTransform));
+    return newPath;
+  }
   paintChar(character, x, y, patternFillTransform, patternStrokeTransform) {
     const ctx = this.ctx;
     const current = this.current;
@@ -7186,26 +7356,32 @@ class CanvasGraphics {
     const isAddToPathSet = !!(textRenderingMode & TextRenderingMode.ADD_TO_PATH_FLAG);
     const patternFill = current.patternFill && !font.missingFile;
     const patternStroke = current.patternStroke && !font.missingFile;
-    let addToPath;
+    let path;
     if (font.disableFontFace || isAddToPathSet || patternFill || patternStroke) {
-      addToPath = font.getPathGenerator(this.commonObjs, character);
+      path = font.getPathGenerator(this.commonObjs, character);
     }
     if (font.disableFontFace || patternFill || patternStroke) {
       ctx.save();
       ctx.translate(x, y);
-      ctx.beginPath();
-      addToPath(ctx, fontSize);
+      ctx.scale(fontSize, -fontSize);
       if (fillStrokeMode === TextRenderingMode.FILL || fillStrokeMode === TextRenderingMode.FILL_STROKE) {
         if (patternFillTransform) {
+          const currentTransform = ctx.getTransform();
           ctx.setTransform(...patternFillTransform);
+          ctx.fill(this.#getScaledPath(path, currentTransform, patternFillTransform));
+        } else {
+          ctx.fill(path);
         }
-        ctx.fill();
       }
       if (fillStrokeMode === TextRenderingMode.STROKE || fillStrokeMode === TextRenderingMode.FILL_STROKE) {
         if (patternStrokeTransform) {
+          const currentTransform = ctx.getTransform();
           ctx.setTransform(...patternStrokeTransform);
+          ctx.stroke(this.#getScaledPath(path, currentTransform, patternStrokeTransform));
+        } else {
+          ctx.lineWidth /= fontSize;
+          ctx.stroke(path);
         }
-        ctx.stroke();
       }
       ctx.restore();
     } else {
@@ -7223,7 +7399,7 @@ class CanvasGraphics {
         x,
         y,
         fontSize,
-        addToPath
+        path
       });
     }
   }
@@ -8491,6 +8667,7 @@ const StreamKind = {
   PULL_COMPLETE: 7,
   START_COMPLETE: 8
 };
+function onFn() {}
 function wrapReason(reason) {
   if (!(reason instanceof Error || typeof reason === "object" && reason !== null)) {
     unreachable('wrapReason: Expected "reason" to be a (possibly cloned) Error.');
@@ -8560,9 +8737,7 @@ class MessageHandler {
       const sourceName = this.sourceName,
         targetName = data.sourceName,
         comObj = this.comObj;
-      new Promise(function (resolve) {
-        resolve(action(data.data));
-      }).then(function (result) {
+      Promise.try(action, data.data).then(function (result) {
         comObj.postMessage({
           sourceName,
           targetName,
@@ -8735,9 +8910,7 @@ class MessageHandler {
     streamSink.sinkCapability.resolve();
     streamSink.ready = streamSink.sinkCapability.promise;
     this.streamSinks[streamId] = streamSink;
-    new Promise(function (resolve) {
-      resolve(action(data.data, streamSink));
-    }).then(function () {
+    Promise.try(action, data.data, streamSink).then(function () {
       comObj.postMessage({
         sourceName,
         targetName,
@@ -8792,9 +8965,7 @@ class MessageHandler {
           streamSink.sinkCapability.resolve();
         }
         streamSink.desiredSize = data.desiredSize;
-        new Promise(function (resolve) {
-          resolve(streamSink.onPull?.());
-        }).then(function () {
+        Promise.try(streamSink.onPull || onFn).then(function () {
           comObj.postMessage({
             sourceName,
             targetName,
@@ -8845,9 +9016,8 @@ class MessageHandler {
         if (!streamSink) {
           break;
         }
-        new Promise(function (resolve) {
-          resolve(streamSink.onCancel?.(wrapReason(data.reason)));
-        }).then(function () {
+        const dataReason = wrapReason(data.reason);
+        Promise.try(streamSink.onCancel || onFn, dataReason).then(function () {
           comObj.postMessage({
             sourceName,
             targetName,
@@ -8864,7 +9034,7 @@ class MessageHandler {
             reason: wrapReason(reason)
           });
         });
-        streamSink.sinkCapability.reject(wrapReason(data.reason));
+        streamSink.sinkCapability.reject(dataReason);
         streamSink.isCancelled = true;
         delete this.streamSinks[streamId];
         break;
@@ -9948,7 +10118,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.9.143",
+    apiVersion: "4.10.22",
     data,
     password,
     disableAutoFetch,
@@ -10263,6 +10433,7 @@ class PDFPageProxy {
   } = {}) {
     return new PageViewport({
       viewBox: this.view,
+      userUnit: this.userUnit,
       scale,
       rotation,
       offsetX,
@@ -11148,6 +11319,7 @@ class WorkerTransport {
           const inspectFont = pdfBug && globalThis.FontInspector?.enabled ? (font, url) => globalThis.FontInspector.fontAdded(font, url) : null;
           const font = new FontFaceObject(exportedData, {
             disableFontFace,
+            fontExtraProperties,
             inspectFont
           });
           this.fontLoader.bind(font).catch(() => messageHandler.sendWithPromise("FontFallback", {
@@ -11419,6 +11591,14 @@ class PDFObjects {
     const obj = this.#objs[objId];
     return !!obj && obj.data !== INITIAL_DATA;
   }
+  delete(objId) {
+    const obj = this.#objs[objId];
+    if (!obj || obj.data === INITIAL_DATA) {
+      return false;
+    }
+    delete this.#objs[objId];
+    return true;
+  }
   resolve(objId, data = null) {
     const obj = this.#ensureObj(objId);
     obj.data = data;
@@ -11610,8 +11790,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.9.143";
-const build = "11ce57ac2";
+const version = "4.10.22";
+const build = "4547f230b";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -14738,12 +14918,14 @@ class FreeTextEditor extends AnnotationEditor {
       this.editorDiv.focus();
     }
   }
-  onceAdded() {
+  onceAdded(focus) {
     if (this.width) {
       return;
     }
     this.enableEditMode();
-    this.editorDiv.focus();
+    if (focus) {
+      this.editorDiv.focus();
+    }
     if (this._initialOptions?.isCentered) {
       this.center();
     }
@@ -16350,11 +16532,13 @@ class HighlightEditor extends AnnotationEditor {
   getRect(tx, ty) {
     return super.getRect(tx, ty, this.#getRotation());
   }
-  onceAdded() {
+  onceAdded(focus) {
     if (!this.annotationElementId) {
       this.parent.addUndoableEditor(this);
     }
-    this.div.focus();
+    if (focus) {
+      this.div.focus();
+    }
   }
   remove() {
     this.#cleanDrawLayer();
@@ -16930,9 +17114,14 @@ class DrawingEditor extends AnnotationEditor {
   #mustBeCommitted;
   _drawId = null;
   static _currentDrawId = -1;
-  static _currentDraw = null;
-  static _currentDrawingOptions = null;
   static _currentParent = null;
+  static #currentDraw = null;
+  static #currentDrawingAC = null;
+  static #currentDrawingOptions = null;
+  static #currentPointerId = NaN;
+  static #currentPointerType = null;
+  static #currentPointerIds = null;
+  static #currentMoveTimestamp = NaN;
   static _INNER_MARGIN = 3;
   constructor(params) {
     super(params);
@@ -16992,7 +17181,7 @@ class DrawingEditor extends AnnotationEditor {
       this._defaultDrawingOptions.updateProperty(propertyName, value);
     }
     if (this._currentParent) {
-      this._currentDraw.updateProperty(propertyName, value);
+      DrawingEditor.#currentDraw.updateProperty(propertyName, value);
       this._currentParent.drawLayer.updateProperties(this._currentDrawId, this._defaultDrawingOptions.toSVGProperties());
     }
   }
@@ -17094,7 +17283,7 @@ class DrawingEditor extends AnnotationEditor {
   get isResizable() {
     return true;
   }
-  onceAdded() {
+  onceAdded(focus) {
     if (!this.annotationElementId) {
       this.parent.addUndoableEditor(this);
     }
@@ -17103,7 +17292,7 @@ class DrawingEditor extends AnnotationEditor {
       this.#mustBeCommitted = false;
       this.commit();
       this.parent.setSelected(this);
-      if (this.isOnScreen) {
+      if (focus && this.isOnScreen) {
         this.div.focus();
       }
     }
@@ -17284,11 +17473,17 @@ class DrawingEditor extends AnnotationEditor {
   static createDrawerInstance(_x, _y, _parentWidth, _parentHeight, _rotation) {
     unreachable("Not implemented");
   }
-  static startDrawing(parent, uiManager, _isLTR, {
-    target,
-    offsetX: x,
-    offsetY: y
-  }) {
+  static startDrawing(parent, uiManager, _isLTR, event) {
+    const {
+      target,
+      offsetX: x,
+      offsetY: y,
+      pointerId,
+      pointerType
+    } = event;
+    if (DrawingEditor.#currentPointerType && DrawingEditor.#currentPointerType !== pointerType) {
+      return;
+    }
     const {
       viewport: {
         rotation
@@ -17298,16 +17493,42 @@ class DrawingEditor extends AnnotationEditor {
       width: parentWidth,
       height: parentHeight
     } = target.getBoundingClientRect();
-    const ac = new AbortController();
+    const ac = DrawingEditor.#currentDrawingAC = new AbortController();
     const signal = parent.combinedSignal(ac);
+    DrawingEditor.#currentPointerId ||= pointerId;
+    DrawingEditor.#currentPointerType ??= pointerType;
     window.addEventListener("pointerup", e => {
-      ac.abort();
-      parent.toggleDrawing(true);
-      this._endDraw(e);
+      if (DrawingEditor.#currentPointerId === e.pointerId) {
+        this._endDraw(e);
+      } else {
+        DrawingEditor.#currentPointerIds?.delete(e.pointerId);
+      }
     }, {
       signal
     });
-    window.addEventListener("pointerdown", stopEvent, {
+    window.addEventListener("pointercancel", e => {
+      if (DrawingEditor.#currentPointerId === e.pointerId) {
+        this._currentParent.endDrawingSession();
+      } else {
+        DrawingEditor.#currentPointerIds?.delete(e.pointerId);
+      }
+    }, {
+      signal
+    });
+    window.addEventListener("pointerdown", e => {
+      if (DrawingEditor.#currentPointerType !== e.pointerType) {
+        return;
+      }
+      (DrawingEditor.#currentPointerIds ||= new Set()).add(e.pointerId);
+      if (DrawingEditor.#currentDraw.isCancellable()) {
+        DrawingEditor.#currentDraw.removeLastElement();
+        if (DrawingEditor.#currentDraw.isEmpty()) {
+          this._currentParent.endDrawingSession(true);
+        } else {
+          this._endDraw(null);
+        }
+      }
+    }, {
       capture: true,
       passive: false,
       signal
@@ -17318,34 +17539,76 @@ class DrawingEditor extends AnnotationEditor {
     target.addEventListener("pointermove", this._drawMove.bind(this), {
       signal
     });
+    target.addEventListener("touchmove", e => {
+      if (e.timeStamp === DrawingEditor.#currentMoveTimestamp) {
+        stopEvent(e);
+      }
+    }, {
+      signal
+    });
     parent.toggleDrawing();
     uiManager._editorUndoBar?.hide();
-    if (this._currentDraw) {
-      parent.drawLayer.updateProperties(this._currentDrawId, this._currentDraw.startNew(x, y, parentWidth, parentHeight, rotation));
+    if (DrawingEditor.#currentDraw) {
+      parent.drawLayer.updateProperties(this._currentDrawId, DrawingEditor.#currentDraw.startNew(x, y, parentWidth, parentHeight, rotation));
       return;
     }
     uiManager.updateUIForDefaultProperties(this);
-    this._currentDraw = this.createDrawerInstance(x, y, parentWidth, parentHeight, rotation);
-    this._currentDrawingOptions = this.getDefaultDrawingOptions();
+    DrawingEditor.#currentDraw = this.createDrawerInstance(x, y, parentWidth, parentHeight, rotation);
+    DrawingEditor.#currentDrawingOptions = this.getDefaultDrawingOptions();
     this._currentParent = parent;
     ({
       id: this._currentDrawId
-    } = parent.drawLayer.draw(this._mergeSVGProperties(this._currentDrawingOptions.toSVGProperties(), this._currentDraw.defaultSVGProperties), true, false));
+    } = parent.drawLayer.draw(this._mergeSVGProperties(DrawingEditor.#currentDrawingOptions.toSVGProperties(), DrawingEditor.#currentDraw.defaultSVGProperties), true, false));
   }
-  static _drawMove({
-    offsetX,
-    offsetY
-  }) {
-    this._currentParent.drawLayer.updateProperties(this._currentDrawId, this._currentDraw.add(offsetX, offsetY));
+  static _drawMove(event) {
+    DrawingEditor.#currentMoveTimestamp = -1;
+    if (!DrawingEditor.#currentDraw) {
+      return;
+    }
+    const {
+      offsetX,
+      offsetY,
+      pointerId
+    } = event;
+    if (DrawingEditor.#currentPointerId !== pointerId) {
+      return;
+    }
+    if (DrawingEditor.#currentPointerIds?.size >= 1) {
+      this._endDraw(event);
+      return;
+    }
+    this._currentParent.drawLayer.updateProperties(this._currentDrawId, DrawingEditor.#currentDraw.add(offsetX, offsetY));
+    DrawingEditor.#currentMoveTimestamp = event.timeStamp;
+    stopEvent(event);
   }
-  static _endDraw({
-    offsetX,
-    offsetY
-  }) {
+  static _cleanup(all) {
+    if (all) {
+      this._currentDrawId = -1;
+      this._currentParent = null;
+      DrawingEditor.#currentDraw = null;
+      DrawingEditor.#currentDrawingOptions = null;
+      DrawingEditor.#currentPointerType = null;
+      DrawingEditor.#currentMoveTimestamp = NaN;
+    }
+    if (DrawingEditor.#currentDrawingAC) {
+      DrawingEditor.#currentDrawingAC.abort();
+      DrawingEditor.#currentDrawingAC = null;
+      DrawingEditor.#currentPointerId = NaN;
+      DrawingEditor.#currentPointerIds = null;
+    }
+  }
+  static _endDraw(event) {
     const parent = this._currentParent;
-    parent.drawLayer.updateProperties(this._currentDrawId, this._currentDraw.end(offsetX, offsetY));
+    if (!parent) {
+      return;
+    }
+    parent.toggleDrawing(true);
+    this._cleanup(false);
+    if (event) {
+      parent.drawLayer.updateProperties(this._currentDrawId, DrawingEditor.#currentDraw.end(event.offsetX, event.offsetY));
+    }
     if (this.supportMultipleDrawings) {
-      const draw = this._currentDraw;
+      const draw = DrawingEditor.#currentDraw;
       const drawId = this._currentDrawId;
       const lastElement = draw.getLastElement();
       parent.addCommands({
@@ -17369,7 +17632,7 @@ class DrawingEditor extends AnnotationEditor {
     }
     parent.toggleDrawing(true);
     parent.cleanUndoStack(AnnotationEditorParamsType.DRAW_STEP);
-    if (!this._currentDraw.isEmpty()) {
+    if (!DrawingEditor.#currentDraw.isEmpty()) {
       const {
         pageDimensions: [pageWidth, pageHeight],
         scale
@@ -17379,22 +17642,16 @@ class DrawingEditor extends AnnotationEditor {
         offsetY: 0
       }, false, {
         drawId: this._currentDrawId,
-        drawOutlines: this._currentDraw.getOutlines(pageWidth * scale, pageHeight * scale, scale, this._INNER_MARGIN),
-        drawingOptions: this._currentDrawingOptions,
+        drawOutlines: DrawingEditor.#currentDraw.getOutlines(pageWidth * scale, pageHeight * scale, scale, this._INNER_MARGIN),
+        drawingOptions: DrawingEditor.#currentDrawingOptions,
         mustBeCommitted: !isAborted
       });
-      this._cleanup();
+      this._cleanup(true);
       return editor;
     }
     parent.drawLayer.remove(this._currentDrawId);
-    this._cleanup();
+    this._cleanup(true);
     return null;
-  }
-  static _cleanup() {
-    this._currentDrawId = -1;
-    this._currentDraw = null;
-    this._currentDrawingOptions = null;
-    this._currentParent = null;
   }
   createDrawingOptions(_data) {}
   static deserializeDraw(_pageX, _pageY, _pageWidth, _pageHeight, _innerWidth, _data) {
@@ -17475,6 +17732,9 @@ class InkDrawOutliner {
   }
   isEmpty() {
     return !this.#lines || this.#lines.length === 0;
+  }
+  isCancellable() {
+    return this.#points.length <= 10;
   }
   add(x, y) {
     [x, y] = this.#normalizePoint(x, y);
@@ -18316,7 +18576,6 @@ class StampEditor extends AnnotationEditor {
   #bitmapFile = null;
   #bitmapFileName = "";
   #canvas = null;
-  #observer = null;
   #resizeTimeoutId = null;
   #isSvg = false;
   #hasBeenAddedInUndoStack = false;
@@ -18514,8 +18773,6 @@ class StampEditor extends AnnotationEditor {
       this._uiManager.imageManager.deleteId(this.#bitmapId);
       this.#canvas?.remove();
       this.#canvas = null;
-      this.#observer?.disconnect();
-      this.#observer = null;
       if (this.#resizeTimeoutId) {
         clearTimeout(this.#resizeTimeoutId);
         this.#resizeTimeoutId = null;
@@ -18541,9 +18798,11 @@ class StampEditor extends AnnotationEditor {
       this.parent.add(this);
     }
   }
-  onceAdded() {
+  onceAdded(focus) {
     this._isDraggable = true;
-    this.div.focus();
+    if (focus) {
+      this.div.focus();
+    }
   }
   isEmpty() {
     return !(this.#bitmapPromise || this.#bitmap || this.#bitmapUrl || this.#bitmapFile || this.#bitmapId);
@@ -18573,7 +18832,24 @@ class StampEditor extends AnnotationEditor {
       const [parentWidth, parentHeight] = this.parentDimensions;
       this.setAt(baseX * parentWidth, baseY * parentHeight, this.width * parentWidth, this.height * parentHeight);
     }
+    this._uiManager.addShouldRescale(this);
     return this.div;
+  }
+  _onResized() {
+    this.onScaleChanging();
+  }
+  onScaleChanging() {
+    if (!this.parent) {
+      return;
+    }
+    if (this.#resizeTimeoutId !== null) {
+      clearTimeout(this.#resizeTimeoutId);
+    }
+    const TIME_TO_WAIT = 200;
+    this.#resizeTimeoutId = setTimeout(() => {
+      this.#resizeTimeoutId = null;
+      this.#drawBitmap();
+    }, TIME_TO_WAIT);
   }
   #createCanvas() {
     const {
@@ -18599,11 +18875,18 @@ class StampEditor extends AnnotationEditor {
     const canvas = this.#canvas = document.createElement("canvas");
     canvas.setAttribute("role", "img");
     this.addContainer(canvas);
+    this.width = width / pageWidth;
+    this.height = height / pageHeight;
+    if (this._initialOptions?.isCentered) {
+      this.center();
+    } else {
+      this.fixAndSetPosition();
+    }
+    this._initialOptions = null;
     if (!this._uiManager.useNewAltTextWhenAddingImage || !this._uiManager.useNewAltTextFlow || this.annotationElementId) {
       div.hidden = false;
     }
-    this.#drawBitmap(width, height);
-    this.#createObserver();
+    this.#drawBitmap();
     if (!this.#hasBeenAddedInUndoStack) {
       this.parent.addUndoableEditor(this);
       this.#hasBeenAddedInUndoStack = true;
@@ -18699,25 +18982,6 @@ class StampEditor extends AnnotationEditor {
       imageData
     };
   }
-  #setDimensions(width, height) {
-    const [parentWidth, parentHeight] = this.parentDimensions;
-    this.width = width / parentWidth;
-    this.height = height / parentHeight;
-    if (this._initialOptions?.isCentered) {
-      this.center();
-    } else {
-      this.fixAndSetPosition();
-    }
-    this._initialOptions = null;
-    if (this.#resizeTimeoutId !== null) {
-      clearTimeout(this.#resizeTimeoutId);
-    }
-    const TIME_TO_WAIT = 200;
-    this.#resizeTimeoutId = setTimeout(() => {
-      this.#resizeTimeoutId = null;
-      this.#drawBitmap(width, height);
-    }, TIME_TO_WAIT);
-  }
   #scaleBitmap(width, height) {
     const {
       width: bitmapWidth,
@@ -18742,10 +19006,15 @@ class StampEditor extends AnnotationEditor {
     }
     return bitmap;
   }
-  #drawBitmap(width, height) {
+  #drawBitmap() {
+    const [parentWidth, parentHeight] = this.parentDimensions;
+    const {
+      width,
+      height
+    } = this;
     const outputScale = new OutputScale();
-    const scaledWidth = Math.ceil(width * outputScale.sx);
-    const scaledHeight = Math.ceil(height * outputScale.sy);
+    const scaledWidth = Math.ceil(width * parentWidth * outputScale.sx);
+    const scaledHeight = Math.ceil(height * parentHeight * outputScale.sy);
     const canvas = this.#canvas;
     if (!canvas || canvas.width === scaledWidth && canvas.height === scaledHeight) {
       return;
@@ -18787,24 +19056,6 @@ class StampEditor extends AnnotationEditor {
       return offscreen.transferToImageBitmap();
     }
     return structuredClone(this.#bitmap);
-  }
-  #createObserver() {
-    if (!this._uiManager._signal) {
-      return;
-    }
-    this.#observer = new ResizeObserver(entries => {
-      const rect = entries[0].contentRect;
-      if (rect.width && rect.height) {
-        this.#setDimensions(rect.width, rect.height);
-      }
-    });
-    this.#observer.observe(this.div);
-    this._uiManager._signal.addEventListener("abort", () => {
-      this.#observer?.disconnect();
-      this.#observer = null;
-    }, {
-      once: true
-    });
   }
   static async deserialize(data, parent, uiManager) {
     let initialData = null;
@@ -18978,7 +19229,9 @@ class AnnotationEditorLayer {
   #editors = new Map();
   #hadPointerDown = false;
   #isDisabling = false;
+  #isEnabling = false;
   #drawingAC = null;
+  #focusedElement = null;
   #textLayer = null;
   #textSelectionAC = null;
   #uiManager;
@@ -19079,6 +19332,7 @@ class AnnotationEditorLayer {
     this.#annotationLayer?.div.classList.toggle("disabled", !enabled);
   }
   async enable() {
+    this.#isEnabling = true;
     this.div.tabIndex = 0;
     this.togglePointerEvents(true);
     const annotationElementIds = new Set();
@@ -19091,6 +19345,7 @@ class AnnotationEditorLayer {
       }
     }
     if (!this.#annotationLayer) {
+      this.#isEnabling = false;
       return;
     }
     const editables = this.#annotationLayer.getEditableAnnotations();
@@ -19109,6 +19364,7 @@ class AnnotationEditorLayer {
       this.addOrRebuild(editor);
       editor.enableEditing();
     }
+    this.#isEnabling = false;
   }
   disable() {
     this.#isDisabling = true;
@@ -19238,7 +19494,11 @@ class AnnotationEditorLayer {
     this.div.addEventListener("pointerdown", this.pointerdown.bind(this), {
       signal
     });
-    this.div.addEventListener("pointerup", this.pointerup.bind(this), {
+    const pointerup = this.pointerup.bind(this);
+    this.div.addEventListener("pointerup", pointerup, {
+      signal
+    });
+    this.div.addEventListener("pointercancel", pointerup, {
       signal
     });
   }
@@ -19298,7 +19558,7 @@ class AnnotationEditorLayer {
       editor.isAttachedToDOM = true;
     }
     editor.fixAndSetPosition();
-    editor.onceAdded();
+    editor.onceAdded(!this.#isEnabling);
     this.#uiManager.addToAnnotationStorage(editor);
     editor._reportTelemetry(editor.telemetryInitialData);
   }
@@ -19493,28 +19753,46 @@ class AnnotationEditorLayer {
       this.#currentEditorType.startDrawing(this, this.#uiManager, false, event);
       return;
     }
-    this.#uiManager.unselectAll();
+    this.#uiManager.setCurrentDrawingSession(this);
     this.#drawingAC = new AbortController();
     const signal = this.#uiManager.combinedSignal(this.#drawingAC);
     this.div.addEventListener("blur", ({
       relatedTarget
     }) => {
       if (relatedTarget && !this.div.contains(relatedTarget)) {
+        this.#focusedElement = null;
         this.commitOrRemove();
       }
     }, {
       signal
     });
-    this.#uiManager.disableUserSelect(true);
     this.#currentEditorType.startDrawing(this, this.#uiManager, false, event);
+  }
+  pause(on) {
+    if (on) {
+      const {
+        activeElement
+      } = document;
+      if (this.div.contains(activeElement)) {
+        this.#focusedElement = activeElement;
+      }
+      return;
+    }
+    if (this.#focusedElement) {
+      setTimeout(() => {
+        this.#focusedElement?.focus();
+        this.#focusedElement = null;
+      }, 0);
+    }
   }
   endDrawingSession(isAborted = false) {
     if (!this.#drawingAC) {
       return null;
     }
+    this.#uiManager.setCurrentDrawingSession(null);
     this.#drawingAC.abort();
     this.#drawingAC = null;
-    this.#uiManager.disableUserSelect(false);
+    this.#focusedElement = null;
     return this.#currentEditorType.endDrawing(isAborted);
   }
   findNewParent(editor, x, y) {
@@ -19822,8 +20100,9 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.9.143";
-const pdfjsBuild = "11ce57ac2";
+
+const pdfjsVersion = "4.10.22";
+const pdfjsBuild = "4547f230b";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;
@@ -19850,6 +20129,7 @@ var __webpack_exports__PermissionFlag = __webpack_exports__.PermissionFlag;
 var __webpack_exports__PixelsPerInch = __webpack_exports__.PixelsPerInch;
 var __webpack_exports__RenderingCancelledException = __webpack_exports__.RenderingCancelledException;
 var __webpack_exports__TextLayer = __webpack_exports__.TextLayer;
+var __webpack_exports__TouchManager = __webpack_exports__.TouchManager;
 var __webpack_exports__UnexpectedResponseException = __webpack_exports__.UnexpectedResponseException;
 var __webpack_exports__Util = __webpack_exports__.Util;
 var __webpack_exports__VerbosityLevel = __webpack_exports__.VerbosityLevel;
@@ -19869,4 +20149,4 @@ var __webpack_exports__setLayerDimensions = __webpack_exports__.setLayerDimensio
 var __webpack_exports__shadow = __webpack_exports__.shadow;
 var __webpack_exports__stopEvent = __webpack_exports__.stopEvent;
 var __webpack_exports__version = __webpack_exports__.version;
-export { __webpack_exports__AbortException as AbortException, __webpack_exports__AnnotationEditorLayer as AnnotationEditorLayer, __webpack_exports__AnnotationEditorParamsType as AnnotationEditorParamsType, __webpack_exports__AnnotationEditorType as AnnotationEditorType, __webpack_exports__AnnotationEditorUIManager as AnnotationEditorUIManager, __webpack_exports__AnnotationLayer as AnnotationLayer, __webpack_exports__AnnotationMode as AnnotationMode, __webpack_exports__ColorPicker as ColorPicker, __webpack_exports__DOMSVGFactory as DOMSVGFactory, __webpack_exports__DrawLayer as DrawLayer, __webpack_exports__FeatureTest as FeatureTest, __webpack_exports__GlobalWorkerOptions as GlobalWorkerOptions, __webpack_exports__ImageKind as ImageKind, __webpack_exports__InvalidPDFException as InvalidPDFException, __webpack_exports__MissingPDFException as MissingPDFException, __webpack_exports__OPS as OPS, __webpack_exports__OutputScale as OutputScale, __webpack_exports__PDFDataRangeTransport as PDFDataRangeTransport, __webpack_exports__PDFDateString as PDFDateString, __webpack_exports__PDFWorker as PDFWorker, __webpack_exports__PasswordResponses as PasswordResponses, __webpack_exports__PermissionFlag as PermissionFlag, __webpack_exports__PixelsPerInch as PixelsPerInch, __webpack_exports__RenderingCancelledException as RenderingCancelledException, __webpack_exports__TextLayer as TextLayer, __webpack_exports__UnexpectedResponseException as UnexpectedResponseException, __webpack_exports__Util as Util, __webpack_exports__VerbosityLevel as VerbosityLevel, __webpack_exports__XfaLayer as XfaLayer, __webpack_exports__build as build, __webpack_exports__createValidAbsoluteUrl as createValidAbsoluteUrl, __webpack_exports__fetchData as fetchData, __webpack_exports__getDocument as getDocument, __webpack_exports__getFilenameFromUrl as getFilenameFromUrl, __webpack_exports__getPdfFilenameFromUrl as getPdfFilenameFromUrl, __webpack_exports__getXfaPageViewport as getXfaPageViewport, __webpack_exports__isDataScheme as isDataScheme, __webpack_exports__isPdfFile as isPdfFile, __webpack_exports__noContextMenu as noContextMenu, __webpack_exports__normalizeUnicode as normalizeUnicode, __webpack_exports__setLayerDimensions as setLayerDimensions, __webpack_exports__shadow as shadow, __webpack_exports__stopEvent as stopEvent, __webpack_exports__version as version };
+export { __webpack_exports__AbortException as AbortException, __webpack_exports__AnnotationEditorLayer as AnnotationEditorLayer, __webpack_exports__AnnotationEditorParamsType as AnnotationEditorParamsType, __webpack_exports__AnnotationEditorType as AnnotationEditorType, __webpack_exports__AnnotationEditorUIManager as AnnotationEditorUIManager, __webpack_exports__AnnotationLayer as AnnotationLayer, __webpack_exports__AnnotationMode as AnnotationMode, __webpack_exports__ColorPicker as ColorPicker, __webpack_exports__DOMSVGFactory as DOMSVGFactory, __webpack_exports__DrawLayer as DrawLayer, __webpack_exports__FeatureTest as FeatureTest, __webpack_exports__GlobalWorkerOptions as GlobalWorkerOptions, __webpack_exports__ImageKind as ImageKind, __webpack_exports__InvalidPDFException as InvalidPDFException, __webpack_exports__MissingPDFException as MissingPDFException, __webpack_exports__OPS as OPS, __webpack_exports__OutputScale as OutputScale, __webpack_exports__PDFDataRangeTransport as PDFDataRangeTransport, __webpack_exports__PDFDateString as PDFDateString, __webpack_exports__PDFWorker as PDFWorker, __webpack_exports__PasswordResponses as PasswordResponses, __webpack_exports__PermissionFlag as PermissionFlag, __webpack_exports__PixelsPerInch as PixelsPerInch, __webpack_exports__RenderingCancelledException as RenderingCancelledException, __webpack_exports__TextLayer as TextLayer, __webpack_exports__TouchManager as TouchManager, __webpack_exports__UnexpectedResponseException as UnexpectedResponseException, __webpack_exports__Util as Util, __webpack_exports__VerbosityLevel as VerbosityLevel, __webpack_exports__XfaLayer as XfaLayer, __webpack_exports__build as build, __webpack_exports__createValidAbsoluteUrl as createValidAbsoluteUrl, __webpack_exports__fetchData as fetchData, __webpack_exports__getDocument as getDocument, __webpack_exports__getFilenameFromUrl as getFilenameFromUrl, __webpack_exports__getPdfFilenameFromUrl as getPdfFilenameFromUrl, __webpack_exports__getXfaPageViewport as getXfaPageViewport, __webpack_exports__isDataScheme as isDataScheme, __webpack_exports__isPdfFile as isPdfFile, __webpack_exports__noContextMenu as noContextMenu, __webpack_exports__normalizeUnicode as normalizeUnicode, __webpack_exports__setLayerDimensions as setLayerDimensions, __webpack_exports__shadow as shadow, __webpack_exports__stopEvent as stopEvent, __webpack_exports__version as version };

@@ -2100,6 +2100,9 @@ class App extends PDFObject {
       cMsg = cMsg.cMsg;
     }
     cMsg = (cMsg || "").toString();
+    if (!cMsg) {
+      return 0;
+    }
     nType = typeof nType !== "number" || isNaN(nType) || nType < 0 || nType > 3 ? 0 : nType;
     if (nType >= 2) {
       return this._externalCall("confirm", [cMsg]) ? 4 : 3;
@@ -4026,8 +4029,8 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.9.143";
-const pdfjsBuild = "11ce57ac2";
+const pdfjsVersion = "4.10.22";
+const pdfjsBuild = "4547f230b";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };
