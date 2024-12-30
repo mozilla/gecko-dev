@@ -12,6 +12,13 @@
 // 5. We **should** upgrade this load, because we should clear our exemption on redirects
 
 add_task(async function test_redirect_exemption_clearing() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      // We want to test HTTPS-First
+      ["dom.security.https_first", true],
+    ],
+  });
+
   await BrowserTestUtils.withNewTab("about:blank", async function (browser) {
     BrowserTestUtils.startLoadingURIString(
       browser,
