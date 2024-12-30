@@ -125,10 +125,6 @@ struct DefaultJitOptions {
   uint32_t wasmBatchBaselineThreshold;
   uint32_t wasmBatchIonThreshold;
   mozilla::Maybe<IonRegisterAllocator> forcedRegisterAllocator;
-#ifdef ENABLE_JS_AOT_ICS
-  bool enableAOTICs;
-  bool enableAOTICEnforce;
-#endif
 
   // Spectre mitigation flags. Each mitigation has its own flag in order to
   // measure the effectiveness of each mitigation with various proof of

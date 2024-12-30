@@ -4,9 +4,6 @@
 
 # This script generates jit/CacheIROpsGenerated.h from CacheIROps.yaml
 
-import os
-import os.path
-
 import buildconfig
 import six
 import yaml
@@ -553,28 +550,3 @@ def generate_cacheirops_header(c_out, yaml_path):
     contents += "\n\n"
 
     generate_header(c_out, "jit_CacheIROpsGenerated_h", contents)
-
-
-def read_aot_ics(ic_path):
-    ics = ""
-    idx = 0
-    for entry in os.scandir(ic_path):
-        if entry.is_file() and os.path.basename(entry.path).startswith("IC-"):
-            with open(entry.path) as f:
-                content = f.read().strip()
-                ics += "  _(%d, %s) \\\n" % (idx, content)
-                idx += 1
-    return ics
-
-
-def generate_aot_ics_header(c_out, ic_path):
-    """Generate CacheIROpsGenerated.h from AOT IC corpus."""
-
-    # Read in all ICs from js/src/ics/IC-*.
-    ics = read_aot_ics(ic_path)
-
-    contents = "#define JS_AOT_IC_DATA(_) \\\n"
-    contents += ics
-    contents += "\n"
-
-    generate_header(c_out, "jit_CacheIRAOTGenerated_h", contents)

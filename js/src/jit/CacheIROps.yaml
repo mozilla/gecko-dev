@@ -2119,6 +2119,7 @@
     flags: CallFlagsImm
     argcFixed: UInt32Imm
 
+#ifdef JS_PUNBOX64
 - name: CallScriptedProxyGetResult
   shared: false
   transpile: true
@@ -2144,6 +2145,7 @@
     property: ValId
     trap: ObjId
     nargsAndFlags: UInt32Imm
+#endif
 
 # Meta ops generate no code, but contain data for the Warp Transpiler.
 - name: MetaScriptedThisShape

@@ -7,21 +7,21 @@
 #ifndef jit_CacheIRSpewer_h
 #define jit_CacheIRSpewer_h
 
-#include "mozilla/Maybe.h"
+#ifdef JS_CACHEIR_SPEW
 
-#include "jit/CacheIR.h"
-#include "jit/CacheIRGenerator.h"
-#include "jit/CacheIRReader.h"
-#include "jit/CacheIRWriter.h"
-#include "js/TypeDecls.h"
-#include "threading/LockGuard.h"
-#include "vm/JSONPrinter.h"
-#include "vm/MutexIDs.h"
+#  include "mozilla/Maybe.h"
+
+#  include "jit/CacheIR.h"
+#  include "jit/CacheIRGenerator.h"
+#  include "jit/CacheIRReader.h"
+#  include "jit/CacheIRWriter.h"
+#  include "js/TypeDecls.h"
+#  include "threading/LockGuard.h"
+#  include "vm/JSONPrinter.h"
+#  include "vm/MutexIDs.h"
 
 namespace js {
 namespace jit {
-
-#ifdef JS_CACHEIR_SPEW
 
 class CacheIRSpewer {
   Mutex outputLock_ MOZ_UNANNOTATED;
@@ -111,18 +111,11 @@ class CacheIRSpewer {
 };
 
 extern void SpewCacheIROps(GenericPrinter& out, const char* prefix,
-                           CacheIRReader& reader);
-extern void SpewCacheIROps(GenericPrinter& out, const char* prefix,
                            const CacheIRStubInfo* info);
-
-#endif /* JS_CACHEIR_SPEW */
-
-#ifdef ENABLE_JS_AOT_ICS
-extern void SpewCacheIROpsAsAOT(GenericPrinter& out, CacheKind kind,
-                                const CacheIRWriter& writer);
-#endif
 
 }  // namespace jit
 }  // namespace js
+
+#endif /* JS_CACHEIR_SPEW */
 
 #endif /* jit_CacheIRSpewer_h */

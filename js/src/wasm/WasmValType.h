@@ -545,24 +545,6 @@ class ValTypeTraits {
     Ref = uint8_t(AbstractReferenceTypeCode),
   };
 
-  static const char* KindEnumName(Kind kind) {
-    switch (kind) {
-      case Kind::I32:
-        return "I32";
-      case Kind::I64:
-        return "I64";
-      case Kind::F32:
-        return "F32";
-      case Kind::F64:
-        return "F64";
-      case Kind::V128:
-        return "V128";
-      case Kind::Ref:
-        return "Ref";
-    }
-    MOZ_CRASH("Unknown kind");
-  }
-
   static constexpr bool isValidTypeCode(TypeCode tc) {
     switch (tc) {
       case TypeCode::I32:

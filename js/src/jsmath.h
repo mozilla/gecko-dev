@@ -48,8 +48,7 @@ enum class UnaryMathFunction : uint8_t {
 };
 
 extern UnaryMathFunctionType GetUnaryMathFunctionPtr(UnaryMathFunction fun);
-extern const char* GetUnaryMathFunctionName(UnaryMathFunction fun,
-                                            bool enumName = false);
+extern const char* GetUnaryMathFunctionName(UnaryMathFunction fun);
 
 /*
  * JS math functions.
