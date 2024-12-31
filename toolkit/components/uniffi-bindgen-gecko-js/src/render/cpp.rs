@@ -22,6 +22,7 @@ use uniffi_bindgen::interface::{
     AsType, Callable, CallbackInterface, ComponentInterface, FfiDefinition, FfiFunction, FfiType,
 };
 
+use super::shared::*;
 use crate::{CallbackIds, Component, FunctionIds, ObjectIds};
 
 #[derive(Template)]
@@ -140,7 +141,7 @@ impl CPPScaffoldingTemplate {
                     .iter()
                     .map(move |obj| PointerType {
                         object_id: object_ids.get(&c.ci, obj),
-                        name: pointer_type(&c.ci, obj.name()),
+                        name: pointer_type(&c.ci.namespace(), obj.name()),
                         label: format!("{}::{}", c.ci.namespace(), obj.name()),
                         clone_fn: obj.ffi_object_clone().name().to_string(),
                         free_fn: obj.ffi_object_free().name().to_string(),
@@ -414,16 +415,28 @@ struct ScaffoldingCallAsyncInfo {
 fn scaffolding_converter(ci: &ComponentInterface, ffi_type: &FfiType) -> String {
     match ffi_type {
         FfiType::RustArcPtr(name) => {
-            format!("ScaffoldingObjectConverter<&{}>", pointer_type(ci, name),)
+            // Check if this is an external type
+            for (extern_name, crate_name, _, _) in ci.iter_external_types() {
+                if extern_name == name {
+                    return format!(
+                        "ScaffoldingObjectConverter<&{}>",
+                        pointer_type(crate_name_to_namespace(&crate_name), name),
+                    );
+                }
+            }
+            format!(
+                "ScaffoldingObjectConverter<&{}>",
+                pointer_type(ci.namespace(), name),
+            )
         }
         _ => format!("ScaffoldingConverter<{}>", cpp_type(ffi_type)),
     }
 }
 
-fn pointer_type(ci: &ComponentInterface, name: &str) -> String {
+fn pointer_type(namespace: &str, name: &str) -> String {
     format!(
         "k{}{}PointerType",
-        ci.namespace().to_upper_camel_case(),
+        namespace.to_upper_camel_case(),
         name.to_upper_camel_case()
     )
 }

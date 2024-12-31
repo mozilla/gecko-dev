@@ -706,7 +706,7 @@ export function callLogRepeat(logger,message,count,exclude) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                98, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_call_log_repeat
+                99, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_call_log_repeat
                 FfiConverterTypeLogger.lower(logger),
                 FfiConverterString.lower(message),
                 FfiConverterU32.lower(count),
@@ -745,7 +745,7 @@ export function logEvenNumbers(logger,items) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                99, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_log_even_numbers
+                100, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_log_even_numbers
                 FfiConverterTypeLogger.lower(logger),
                 FfiConverterSequencei32.lower(items),
             )
@@ -782,7 +782,7 @@ export function logEvenNumbersMainThread(logger,items) {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                100, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_log_even_numbers_main_thread
+                101, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_log_even_numbers_main_thread
                 FfiConverterTypeLogger.lower(logger),
                 FfiConverterSequencei32.lower(items),
             )

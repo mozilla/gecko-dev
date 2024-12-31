@@ -34,6 +34,16 @@ fn call_style(callable: impl Callable, config: &Config, spec: &str) -> CallStyle
     }
 }
 
+/// Map Rust crate names to UniFFI namespaces.
+pub fn crate_name_to_namespace(crate_name: &str) -> &str {
+    // TODO: remove this hack, we should be able to calculate this by walking the CI data.
+    match crate_name {
+        "uniffi_geometry" => "geometry",
+        "uniffi_sprites" => "sprites",
+        s => s,
+    }
+}
+
 #[ext]
 pub impl Function {
     fn call_style(&self, config: &Config) -> CallStyle {

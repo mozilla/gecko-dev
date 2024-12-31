@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 uniffi-example-geometry = { path = "../geometry/" }
+uniffi-example-sprites = { path = "../sprites/" }
 uniffi = { workspace = true }
 thiserror = "1.0"
 
