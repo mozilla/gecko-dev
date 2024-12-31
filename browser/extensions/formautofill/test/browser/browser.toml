@@ -86,6 +86,9 @@ skip-if = [
 ["browser_ml_model.js"]
 
 ["browser_page_navigation_in_subtree.js"]
+skip-if = [
+  "win11_2009", # Bug 1924248
+]
 
 ["browser_previewFormFields.js"]
 
