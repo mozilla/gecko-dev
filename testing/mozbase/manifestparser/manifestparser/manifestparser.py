@@ -247,6 +247,10 @@ class ManifestParser(object):
             #   is True.
             # - Any variables from the "[include:...]" section.
             # - The defaults of the included manifest.
+            #
+            # parentmanifest is whatever the value of ancestor_manifest will be,
+            # i.e. a relative path with platform-native separators.
+            # filename is an absolute path with platform-native separators.
             self.manifest_defaults[(parentmanifest, manifest_defaults_filename)] = (
                 defaults
             )

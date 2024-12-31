@@ -569,14 +569,26 @@ class BuildBackendLoader(TestLoader):
             for metadata in tests:
                 defaults_manifests = [metadata["manifest"]]
 
+                # For test coverage on the generation and the reading of
+                # manifest_defaults with ancestor_manifest, see
+                # to_ancestor_manifest_path in the following test files:
+                # testing/mozbase/moztest/tests/test_resolve.py
+                # python/mozbuild/mozbuild/test/backend/test_test_manifest.py
                 ancestor_manifest = metadata.get("ancestor_manifest")
                 if ancestor_manifest:
                     # The (ancestor manifest, included manifest) tuple
                     # contains the defaults of the included manifest, so
                     # use it instead of [metadata['manifest']].
-                    ancestor_manifest = os.path.join(topsrcdir, ancestor_manifest)
+
+                    # ancestor_manifest is a relative path with
+                    # platform-specific path separators.
                     defaults_manifests[0] = (ancestor_manifest, metadata["manifest"])
-                    defaults_manifests.append(ancestor_manifest)
+
+                    # defaults_manifests contains absolute paths with
+                    # platform-specific path separators.
+                    defaults_manifests.append(
+                        os.path.join(topsrcdir, ancestor_manifest)
+                    )
 
                 for manifest in defaults_manifests:
                     manifest_defaults = defaults.get(manifest)

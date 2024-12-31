@@ -1,3 +1,4 @@
 [DEFAULT]
+prefs = "pref.in.common=1"
 
 ["test_bar.js"]

@@ -1,4 +1,5 @@
 [DEFAULT]
+prefs = "pref.in.ancestor=1"
 
 ["include:mochitest-common.ini"]
 
