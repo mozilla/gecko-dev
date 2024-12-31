@@ -214,6 +214,10 @@ skip-if = [
 ["browser_touch_toggle_enablepip.js"]
 
 ["browser_urlbar_toggle.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x84_64'", # Bug 1833445
+  "win11_2009 && processor == 'x84_64'", # Bug 1833445
+]
 
 ["browser_videoEmptied.js"]
 
