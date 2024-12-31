@@ -255,10 +255,10 @@ export const GenAI = {
    */
   get canShowChatEntrypoint() {
     return (
-      (lazy.chatEnabled && lazy.chatProvider != "" && !lazy.chatShortcuts) ||
+      lazy.chatEnabled &&
+      lazy.chatProvider != "" &&
       // Chatbot needs to be a tool if new sidebar
-      !lazy.sidebarRevamp ||
-      lazy.sidebarTools.includes("aichat")
+      (!lazy.sidebarRevamp || lazy.sidebarTools.includes("aichat"))
     );
   },
 
@@ -372,7 +372,7 @@ export const GenAI = {
       ...extraContext,
       entry,
       provider: lazy.chatProvider,
-      tabTitle: (tab?._labelIsContentTitle && tab?.label) || "",
+      tabTitle: (tab._labelIsContentTitle && tab.label) || "",
       url: uri.asciiHost + uri.filePath,
       window,
     };
@@ -400,44 +400,23 @@ export const GenAI = {
    * @param {MozBrowser} browser that provided the message
    */
   handleShortcutsMessage(name, data, browser) {
-    const isInBrowserStack = browser?.closest(".browserStack");
-
-    if (
-      !isInBrowserStack ||
-      !browser ||
-      this.ignoredInputs.has(data.inputType) ||
-      !this.canShowChatEntrypoint
-    ) {
+    if (!lazy.chatEnabled || !lazy.chatShortcuts || lazy.chatProvider == "") {
+      return;
+    }
+    const stack = browser?.closest(".browserStack");
+    if (!stack) {
       return;
     }
 
+    let shortcuts = stack.querySelector(".content-shortcuts");
     const window = browser.ownerGlobal;
-    const { document, devicePixelRatio } = window;
-
-    // Get Panel elements
-    const chatShortcutsOptionsPanel = document.getElementById(
-      "chat-shortcuts-options-panel"
-    );
-    const selectionShortcutActionPanel = document.getElementById(
-      "selection-shortcut-action-panel"
-    );
-
-    if (!chatShortcutsOptionsPanel || !selectionShortcutActionPanel) {
-      return;
-    }
-
-    const aiActionButton =
-      selectionShortcutActionPanel.querySelector("#ai-action-button");
-    aiActionButton.iconSrc =
-      "chrome://mozapps/skin/extensions/category-discover.svg";
-    const buttonActiveState = "icon";
-    const buttonDefaultState = "icon ghost";
-
-    // Hide shortcuts and panel
+    const { document } = window;
+    const popup = document.getElementById("ask-chat-shortcuts");
     const hide = () => {
-      aiActionButton.setAttribute("type", buttonDefaultState);
-      chatShortcutsOptionsPanel.hidePopup();
-      selectionShortcutActionPanel.hidePopup();
+      if (shortcuts) {
+        shortcuts.removeAttribute("shown");
+      }
+      popup.hidePopup();
     };
 
     const roundDownToNearestHundred = number => {
@@ -472,7 +451,7 @@ export const GenAI = {
           this.estimateSelectionLimit(chatProvider?.maxLength)
         ),
         selectionLength: roundDownToNearestHundred(
-          aiActionButton.data.selection.length
+          shortcuts.data.selection.length
         ),
       });
 
@@ -484,120 +463,129 @@ export const GenAI = {
         hide();
         break;
       case "GenAI:ShowShortcuts": {
-        aiActionButton.setAttribute("type", buttonDefaultState);
+        // Ignore some input field selection to avoid showing shortcuts
+        if (
+          this.ignoredInputs.has(data.inputType) ||
+          !this.canShowChatEntrypoint
+        ) {
+          return;
+        }
 
-        // Detect hover to build and open the popup
-        aiActionButton.addEventListener("mouseover", async () => {
-          if (aiActionButton.hasAttribute("active")) {
-            return;
-          }
+        // Add shortcuts to the current tab's brower stack if it doesn't exist
+        if (!shortcuts) {
+          shortcuts = stack.appendChild(document.createElement("div"));
+          shortcuts.className = "content-shortcuts";
 
-          aiActionButton.toggleAttribute("active");
-          aiActionButton.setAttribute("type", buttonActiveState);
-          const vbox = chatShortcutsOptionsPanel.querySelector("vbox");
-          vbox.innerHTML = "";
+          // Detect hover to build and open the popup
+          shortcuts.addEventListener("mouseover", async () => {
+            if (shortcuts.hasAttribute("active")) {
+              return;
+            }
 
-          const chatProvider = this.chatProviders.get(lazy.chatProvider);
-          const selectionLength = aiActionButton.data.selection.length;
-          const showWarning =
-            this.estimateSelectionLimit(chatProvider?.maxLength) <
-            selectionLength;
+            shortcuts.toggleAttribute("active");
+            const vbox = popup.querySelector("vbox");
+            vbox.innerHTML = "";
 
-          // Show warning if selection is too long
-          if (showWarning) {
-            vbox.appendChild(createMessageBarWarning(chatProvider));
-          }
+            const chatProvider = this.chatProviders.get(lazy.chatProvider);
+            const selectionLength = shortcuts.data.selection.length;
+            const showWarning =
+              this.estimateSelectionLimit(chatProvider?.maxLength) <
+              selectionLength;
 
-          const addItem = () => {
-            const button = vbox.appendChild(
-              document.createXULElement("toolbarbutton")
-            );
-            button.className = "subviewbutton";
-            button.setAttribute("tabindex", "0");
-            return button;
-          };
+            // Show warning if selection is too long
+            if (showWarning) {
+              vbox.appendChild(createMessageBarWarning(chatProvider));
+            }
 
-          const context = await this.addAskChatItems(
-            browser,
-            aiActionButton.data,
-            promptObj => {
-              const button = addItem();
-              button.textContent = promptObj.label;
+            const addItem = () => {
+              const button = vbox.appendChild(
+                document.createXULElement("toolbarbutton")
+              );
+              button.className = "subviewbutton";
+              button.setAttribute("tabindex", "0");
               return button;
-            },
-            "shortcuts",
-            hide
-          );
-
-          // Add custom textarea box if configured
-          if (lazy.chatShortcutsCustom) {
-            const textAreaEl = vbox.appendChild(
-              document.createElement("textarea")
-            );
-            document.l10n.setAttributes(
-              textAreaEl,
-              chatProvider?.name
-                ? "genai-input-ask-provider"
-                : "genai-input-ask-generic",
-              { provider: chatProvider?.name }
-            );
-
-            textAreaEl.className = "ask-chat-shortcuts-custom-prompt";
-            textAreaEl.addEventListener("mouseover", () => textAreaEl.focus());
-            textAreaEl.addEventListener("keydown", event => {
-              if (event.key == "Enter" && !event.shiftKey) {
-                this.handleAskChat({ value: textAreaEl.value }, context);
-                hide();
-              }
-            });
-
-            const resetHeight = () => {
-              textAreaEl.style.height = "auto";
-              textAreaEl.style.height = textAreaEl.scrollHeight + "px";
             };
 
-            textAreaEl.addEventListener("input", resetHeight);
-            chatShortcutsOptionsPanel.addEventListener(
-              "popupshown",
-              resetHeight,
-              {
-                once: true,
-              }
+            const context = await this.addAskChatItems(
+              browser,
+              shortcuts.data,
+              promptObj => {
+                const button = addItem();
+                button.textContent = promptObj.label;
+                return button;
+              },
+              "shortcuts",
+              hide
             );
-          }
 
-          // Allow hiding these shortcuts
-          vbox.appendChild(document.createXULElement("toolbarseparator"));
-          const hider = addItem();
-          document.l10n.setAttributes(hider, "genai-shortcuts-hide");
-          hider.addEventListener("command", () => {
-            Services.prefs.setBoolPref("browser.ml.chat.shortcuts", false);
-            Glean.genaiChatbot.shortcutsHideClick.record({
-              selection: aiActionButton.data.selection.length,
+            // Add custom textarea box if configured
+            if (lazy.chatShortcutsCustom) {
+              const textAreaEl = vbox.appendChild(
+                document.createElement("textarea")
+              );
+              document.l10n.setAttributes(
+                textAreaEl,
+                chatProvider?.name
+                  ? "genai-input-ask-provider"
+                  : "genai-input-ask-generic",
+                { provider: chatProvider?.name }
+              );
+
+              textAreaEl.className = "ask-chat-shortcuts-custom-prompt";
+              textAreaEl.addEventListener("mouseover", () =>
+                textAreaEl.focus()
+              );
+              textAreaEl.addEventListener("keydown", event => {
+                if (event.key == "Enter" && !event.shiftKey) {
+                  this.handleAskChat({ value: textAreaEl.value }, context);
+                  hide();
+                }
+              });
+
+              const resetHeight = () => {
+                textAreaEl.style.height = "auto";
+                textAreaEl.style.height = textAreaEl.scrollHeight + "px";
+              };
+
+              textAreaEl.addEventListener("input", resetHeight);
+              popup.addEventListener("popupshown", resetHeight, {
+                once: true,
+              });
+            }
+
+            // Allow hiding these shortcuts
+            vbox.appendChild(document.createXULElement("toolbarseparator"));
+            const hider = addItem();
+            document.l10n.setAttributes(hider, "genai-shortcuts-hide");
+            hider.addEventListener("command", () => {
+              Services.prefs.setBoolPref("browser.ml.chat.shortcuts", false);
+              Glean.genaiChatbot.shortcutsHideClick.record({
+                selection: shortcuts.data.selection.length,
+              });
+            });
+
+            popup.openPopup(shortcuts);
+            popup.addEventListener(
+              "popuphidden",
+              () => shortcuts.removeAttribute("active"),
+              { once: true }
+            );
+
+            Glean.genaiChatbot.shortcutsExpanded.record({
+              selection: shortcuts.data.selection.length,
+              provider: this.getProviderId(),
+              warning: showWarning,
             });
           });
-
-          chatShortcutsOptionsPanel.openPopup(
-            selectionShortcutActionPanel,
-            "after_start",
-            0,
-            10
-          );
-          chatShortcutsOptionsPanel.addEventListener(
-            "popuphidden",
-            () => aiActionButton.removeAttribute("active"),
-            { once: true }
-          );
-          Glean.genaiChatbot.shortcutsExpanded.record({
-            selection: aiActionButton.data.selection.length,
-            provider: this.getProviderId(),
-            warning: showWarning,
-          });
-        });
+        }
 
         // Save the latest selection so it can be used by popup
-        aiActionButton.data = data;
+        shortcuts.data = data;
+        if (shortcuts.hasAttribute("shown")) {
+          return;
+        }
 
+        shortcuts.toggleAttribute("shown");
         Glean.genaiChatbot.shortcutsDisplayed.record({
           delay: data.delay,
           inputType: data.inputType,
@@ -605,18 +593,14 @@ export const GenAI = {
         });
 
         // Position the shortcuts relative to the browser's top-left corner
-        const screenYBase = data.screenYDevPx / devicePixelRatio;
-        const safeSpace = window.outerHeight - 40;
-        // Remove padding if the popup would be offscreen
-        const bottomPadding = screenYBase > safeSpace ? 0 : 40;
-        const screenX = data.screenXDevPx / devicePixelRatio;
-        const screenY = screenYBase + bottomPadding;
-
-        selectionShortcutActionPanel.openPopup(
-          browser,
-          "before_start",
-          screenX - browser.screenX,
-          screenY - browser.screenY
+        const rect = browser.getBoundingClientRect();
+        shortcuts.style.setProperty(
+          "--shortcuts-x",
+          data.x - window.screenX - rect.x + "px"
+        );
+        shortcuts.style.setProperty(
+          "--shortcuts-y",
+          data.y - window.screenY - rect.y + "px"
         );
         break;
       }
@@ -987,13 +971,11 @@ function onChatProviderChange(value) {
  */
 function onChatShortcutsChange(value) {
   if (!value) {
-    lazy.EveryWindow.readyWindows.forEach(window => {
-      const selectionShortcutActionPanel = window.document.getElementById(
-        "selection-shortcut-action-panel"
-      );
-
-      selectionShortcutActionPanel.hidePopup();
-    });
+    lazy.EveryWindow.readyWindows.forEach(window =>
+      window.document
+        .querySelectorAll(".content-shortcuts")
+        .forEach(shortcuts => shortcuts.removeAttribute("shown"))
+    );
   }
 }
 
