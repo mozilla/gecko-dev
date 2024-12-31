@@ -65,6 +65,10 @@ skip-if = [
 ["browser_hide_tooltip.js"]
 
 ["browser_isactiveintab.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1890386
+  "win11_2009 && opt", # Bug 1890386
+]
 
 ["browser_layers_unloaded_while_interruptingJS.js"]
 
