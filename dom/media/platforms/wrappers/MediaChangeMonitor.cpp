@@ -338,10 +338,15 @@ class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
   }
 
   bool CanBeInstantiated() const override {
+    if (mCodec == VPXDecoder::Codec::VP8 && mCurrentConfig.mImage.IsEmpty()) {
+      // libvpx VP8 decoder via FFmpeg requires the image size to be set when
+      // initializing.
+      return false;
+    }
+
     // We want to see at least one sample before we create a decoder so that we
     // can create the vpcC content on mCurrentConfig.mExtraData.
-    return mCodec == VPXDecoder::Codec::VP8 || mInfo ||
-           mCurrentConfig.mCrypto.IsEncrypted();
+    return mInfo || mCurrentConfig.mCrypto.IsEncrypted();
   }
 
   MediaResult CheckForChange(MediaRawData* aSample) override {
