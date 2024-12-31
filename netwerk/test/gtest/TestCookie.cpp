@@ -40,8 +40,7 @@ static const char kCookiesPermissions[] = "network.cookie.cookieBehavior";
 static const char kCookiesMaxPerHost[] = "network.cookie.maxPerHost";
 
 void SetACookieInternal(nsICookieService* aCookieService, const char* aSpec,
-                        const nsTArray<const char*>& aCookieStrings,
-                        bool aAllowed) {
+                        const char* aCookieString, bool aAllowed) {
   nsCOMPtr<nsIURI> uri;
   NS_NewURI(getter_AddRefs(uri), aSpec);
 
@@ -71,30 +70,19 @@ void SetACookieInternal(nsICookieService* aCookieService, const char* aSpec,
   nsCOMPtr<nsILoadInfo> loadInfo = dummyChannel->LoadInfo();
   loadInfo->SetCookieJarSettings(cookieJarSettings);
 
-  for (const char* cookieString : aCookieStrings) {
-    nsresult rv = aCookieService->SetCookieStringFromHttp(
-        uri, nsDependentCString(cookieString), dummyChannel);
-    EXPECT_NS_SUCCEEDED(rv);
-  }
+  nsresult rv = aCookieService->SetCookieStringFromHttp(
+      uri, nsDependentCString(aCookieString), dummyChannel);
+  EXPECT_NS_SUCCEEDED(rv);
 }
 
 void SetACookieJarBlocked(nsICookieService* aCookieService, const char* aSpec,
                           const char* aCookieString) {
-  nsTArray<const char*> cookieStrings;
-  cookieStrings.AppendElement(aCookieString);
-  SetACookieInternal(aCookieService, aSpec, cookieStrings, false);
+  SetACookieInternal(aCookieService, aSpec, aCookieString, false);
 }
 
 void SetACookie(nsICookieService* aCookieService, const char* aSpec,
                 const char* aCookieString) {
-  nsTArray<const char*> cookieStrings;
-  cookieStrings.AppendElement(aCookieString);
-  SetACookieInternal(aCookieService, aSpec, cookieStrings, true);
-}
-
-void SetACookie(nsICookieService* aCookieService, const char* aSpec,
-                const nsTArray<const char*>& aCookieStrings) {
-  SetACookieInternal(aCookieService, aSpec, aCookieStrings, true);
+  SetACookieInternal(aCookieService, aSpec, aCookieString, true);
 }
 
 // The cookie string is returned via aCookie.
@@ -545,10 +533,9 @@ TEST(TestCookie, TestCookieMain)
   // test the setting of multiple cookies, and test the order of precedence
   // (a later cookie overwriting an earlier one, in the same header string)
   SetACookie(cookieService, "http://multiple.cookies/",
-             nsTArray<const char*>{
-                 "test=multiple; domain=.multiple.cookies ", " test=different ",
-                 " test=same; domain=.multiple.cookies ", "newtest=ciao ",
-                 "newtest=foo; max-age=-6 ", " newtest=reincarnated"});
+             "test=multiple; domain=.multiple.cookies \n test=different \n "
+             "test=same; domain=.multiple.cookies \n newtest=ciao \n "
+             "newtest=foo; max-age=-6 \n newtest=reincarnated");
   GetACookie(cookieService, "http://multiple.cookies/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_NOT_CONTAIN, "test=multiple"));
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_CONTAIN, "test=different"));
@@ -561,7 +548,7 @@ TEST(TestCookie, TestCookieMain)
   GetACookie(cookieService, "http://multiple.cookies/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_NOT_CONTAIN, "test=same"));
   SetACookie(cookieService, "http://multiple.cookies/",
-             nsTArray<const char*>{"", " test=different; max-age=0 ", ""});
+             "\n test=different; max-age=0 \n");
   GetACookie(cookieService, "http://multiple.cookies/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_NOT_CONTAIN, "test=different"));
   SetACookie(cookieService, "http://multiple.cookies/",
@@ -582,16 +569,13 @@ TEST(TestCookie, TestCookieMain)
   GetACookie(cookieService, "http://parser.test/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
   SetACookie(cookieService, "http://parser.test/",
-             nsTArray<const char*>{
-                 "test=\"fubar! = foo;bar\\\";\" parser; domain=.parser.test; "
-                 "max-age=6",
-                 "five; max-age=2.63,"});
+             "test=\"fubar! = foo;bar\\\";\" parser; domain=.parser.test; "
+             "max-age=6\nfive; max-age=2.63,");
   GetACookie(cookieService, "http://parser.test/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_CONTAIN, R"(test="fubar! = foo)"));
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_CONTAIN, "five"));
   SetACookie(cookieService, "http://parser.test/",
-             nsTArray<const char*>{"test=kill; domain=.parser.test; max-age=0 ",
-                                   " five; max-age=0"});
+             "test=kill; domain=.parser.test; max-age=0 \n five; max-age=0");
   GetACookie(cookieService, "http://parser.test/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
 
@@ -618,10 +602,8 @@ TEST(TestCookie, TestCookieMain)
   SetACookie(cookieService, "http://multi.path.tests/",
              "test1=path; path=/one/two/three");
   SetACookie(cookieService, "http://multi.path.tests/",
-             nsTArray<const char*>{"test2=path; path=/one ",
-                                   " test3=path; path=/one/two/three/four ",
-                                   " test4=path; path=/one/two ",
-                                   " test5=path; path=/one/two/"});
+             "test2=path; path=/one \n test3=path; path=/one/two/three/four \n "
+             "test4=path; path=/one/two \n test5=path; path=/one/two/");
   SetACookie(cookieService, "http://multi.path.tests/one/two/three/four/five/",
              "test6=path");
   SetACookie(cookieService,

@@ -25,8 +25,12 @@
 
 class nsICacheEntry;
 
-#define HTTP_CHANNEL_PARENT_IID \
-  {0x982b2372, 0x7aa5, 0x4e8a, {0xbd, 0x9f, 0x89, 0x74, 0xd7, 0xf0, 0x58, 0xeb}}
+#define HTTP_CHANNEL_PARENT_IID                      \
+  {                                                  \
+    0x982b2372, 0x7aa5, 0x4e8a, {                    \
+      0xbd, 0x9f, 0x89, 0x74, 0xd7, 0xf0, 0x58, 0xeb \
+    }                                                \
+  }
 
 namespace mozilla {
 
@@ -107,14 +111,14 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
   // BeginConnect.
   void OverrideReferrerInfoDuringBeginConnect(nsIReferrerInfo* aReferrerInfo);
 
-  // Set the cookie strings, which will be informed to the child actor during
+  // Set the cookie string, which will be informed to the child actor during
   // PHttpBackgroundChannel::OnStartRequest. Note that CookieService also sends
   // the information to all actors via PContent, a main thread IPC, which could
   // be slower than background IPC PHttpBackgroundChannel::OnStartRequest.
   // Therefore, another cookie notification via PBackground is needed to
   // guarantee the listener in child has the necessary cookies before
   // OnStartRequest.
-  void SetCookieHeaders(const nsTArray<nsCString>& aCookieHeaders);
+  void SetCookie(nsCString&& aCookie);
 
   using ChildEndpointPromise =
       MozPromise<ipc::Endpoint<extensions::PStreamFilterChild>, bool, true>;
@@ -292,7 +296,7 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
 
   // The cookie string in Set-Cookie header. This info will be sent in
   // OnStartRequest.
-  nsTArray<nsCString> mCookieHeaders;
+  nsCString mCookie;
 
   // OnStatus is always called before OnProgress.
   // Set true in OnStatus if next OnProgress can be ignored

@@ -46,7 +46,7 @@ class CookieParser final {
 
   nsIURI* HostURI() const { return mHostURI; }
 
-  void Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
+  bool Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
              CookieStatus aStatus, nsCString& aCookieHeader,
              const nsACString& aDateHeader, bool aFromHttp,
              bool aIsForeignAndNotAddon, bool aPartitionedOnly,
@@ -70,13 +70,13 @@ class CookieParser final {
   bool ParseMaxAgeAttribute(const nsACString& aMaxage, int64_t* aValue);
 
  private:
-  static void GetTokenValue(nsACString::const_char_iterator& aIter,
+  static bool GetTokenValue(nsACString::const_char_iterator& aIter,
                             nsACString::const_char_iterator& aEndIter,
                             nsDependentCSubstring& aTokenString,
                             nsDependentCSubstring& aTokenValue,
                             bool& aEqualsFound);
 
-  void ParseAttributes(nsCString& aCookieHeader, nsACString& aExpires,
+  bool ParseAttributes(nsCString& aCookieHeader, nsACString& aExpires,
                        nsACString& aMaxage, bool& aAcceptedByParser);
 
   bool GetExpiry(CookieStruct& aCookieData, const nsACString& aExpires,
