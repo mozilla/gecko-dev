@@ -11,7 +11,7 @@ support-files = [
 ["browser_pocket_home_panel.js"]
 
 ["browser_pocket_panel.js"]
-skif-if = [
+skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1781272
 ]
 
