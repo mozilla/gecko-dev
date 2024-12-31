@@ -296,7 +296,10 @@ skip-if = [
 ["test_anonymousContent_append_after_reflow.html"]
 
 ["test_anonymousContent_canvas.html"]
-skip-if = ["headless"] # Bug 1405867
+skip-if = [
+  "headless", # Bug 1405867
+  "os == 'android' && processor == 'x86_64' && debug", # Bug 1908272
+]
 
 ["test_anonymousContent_insert.html"]
 
