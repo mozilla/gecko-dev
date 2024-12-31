@@ -222,7 +222,7 @@
     <!-- This string contains markup. The URL should not be localized. -->
     <string name="mozac_browser_errorpages_malformed_uri_message_alternative"><![CDATA[
       <ul>
-        <li>Зазвичай, веб-адреса має такий вигляд <strong>http://www.example.com/</strong></li>
+        <li>Зазвичай, вебадреса має такий вигляд <strong>http://www.example.com/</strong></li>
         <li>Переконайтеся, що ви використовуєте дробову риску (тобто <strong>/</strong>).</li>
       </ul>
     ]]></string>

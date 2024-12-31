@@ -619,7 +619,11 @@
     <!-- Onboarding toolbar selection card content description for the main image. -->
     <string name="onboarding_customize_toolbar_main_image_content_description">Tresna-barraren hautapenerako ikuspegiaren goiburuko irudi handia, tresna-barra ilustratua erakutsiz.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">%1$s tresna-barraren irudia</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">%1$s tresna-barraren irudia</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Azpiko tresna-barraren irudia</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Goiko tresna-barraren irudia</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Hautatu itxura</string>
@@ -1052,10 +1056,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Partekatu Firefox aurkitu zenuen moduari buruzko informazioa Mozillaren marketin-bazkideekin. Firefox hazi eta Internet hobea eraikitzen laguntzen digu honek</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Marketin-datuei buruzko argibide gehiago</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Bidali automatikoki hutsegite-txostenak</string>
+    <string name="preferences_automatically_send_crashes_title">Bidali automatikoki hutsegite-txostenak</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Bidali automatikoki hutsegite-txostenak</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Hutsegiteak gertatu ondorengoko abioan, hutsegite-datuak automatikoki partekatzen ditu Mozillarekin</string>
+    <string name="preferences_automatically_send_crashes_description">Hauek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digute. Txostenek datu pertsonal edo kontuzkoak izan litzakete. </string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Hutsegiteak gertatu ondorengoko abioan, hutsegite-datuak automatikoki partekatzen ditu Mozillarekin</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Esperimentuak</string>
     <!-- Summary for studies preferences -->

@@ -3,7 +3,7 @@
     <!-- The tile for the list of external apps to open the link in -->
     <string name="mozac_feature_applinks_open_in">Grapi nni…</string>
     <!-- The description to warn users that their private browsing session changes  -->
-    <string name="mozac_feature_applinks_confirm_dialog_title">Vo\' gràpiri nta l\'applicazzioni? A to attività putissi accabbari d\'èssiri privata.</string>
+    <string name="mozac_feature_applinks_confirm_dialog_title">Gràpiri nta l\'app? A to attività putissi accabbari d\'èssiri privata.</string>
     <!-- The title of the prompt that warns users their normal browsing session is trying to open another app  -->
     <string name="mozac_feature_applinks_normal_confirm_dialog_title">Grapi nta n\'autra applicazzioni</string>
     <!-- The message of the prompt to confirm with users that they want to open the link in another app
