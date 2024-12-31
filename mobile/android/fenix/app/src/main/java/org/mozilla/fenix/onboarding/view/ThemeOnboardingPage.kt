@@ -282,7 +282,7 @@ private fun OnboardingPagePreview() {
                 ),
                 secondaryButton = Action(
                     text = stringResource(
-                        id = R.string.onboarding_customize_theme_not_now_button,
+                        id = R.string.onboarding_customize_theme_skip_button,
                     ),
                     onClick = {},
                 ),
