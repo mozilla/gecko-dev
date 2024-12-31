@@ -18,6 +18,11 @@ const EVENTS = ["mousedown", "mouseup", "pagehide"];
  * JSWindowActor to detect content page events to send GenAI related data.
  */
 export class GenAIChild extends JSWindowActorChild {
+  mouseUpTimeout = null;
+  downTime = Date.now();
+  downSelection = null;
+  debounceDelay = 200;
+
   actorCreated() {
     this.document.addEventListener("selectionchange", this);
     // Use capture as some pages might stop the events
@@ -52,21 +57,33 @@ export class GenAIChild extends JSWindowActorChild {
           return;
         }
 
-        // Show immediately on selection or allow long press with no selection
-        const selectionInfo = this.getSelectionInfo();
-        const delay = Date.now() - (this.downTime ?? 0);
-        if (
-          (selectionInfo.selection &&
-            selectionInfo.selection != this.downSelection) ||
-          delay > lazy.shortcutsDelay
-        ) {
-          this.sendAsyncMessage("GenAI:ShowShortcuts", {
-            ...selectionInfo,
-            delay,
-            x: event.screenX,
-            y: event.screenY,
-          });
+        // Clear any previously scheduled mouseup actions
+        if (this.mouseUpTimeout) {
+          this.contentWindow.clearTimeout(this.mouseUpTimeout);
         }
+
+        this.mouseUpTimeout = this.contentWindow.setTimeout(() => {
+          const selectionInfo = this.getSelectionInfo();
+          const delay = Date.now() - this.downTime;
+
+          // Only send a message if there's a new selection or a long press
+          if (
+            (selectionInfo.selection &&
+              selectionInfo.selection !== this.downSelection) ||
+            delay > lazy.shortcutsDelay
+          ) {
+            this.sendAsyncMessage("GenAI:ShowShortcuts", {
+              ...selectionInfo,
+              delay,
+              screenXDevPx: event.screenX * this.contentWindow.devicePixelRatio,
+              screenYDevPx: event.screenY * this.contentWindow.devicePixelRatio,
+            });
+          }
+
+          // Clear the timeout reference after execution
+          this.mouseUpTimeout = null;
+        }, this.debounceDelay);
+
         break;
       }
       case "pagehide":

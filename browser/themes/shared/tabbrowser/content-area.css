@@ -232,29 +232,15 @@
 /**
  * Shortcuts
  */
-.content-shortcuts {
-  --shortcuts-left: calc(var(--shortcuts-x) + var(--shortcuts-offset));
-  --shortcuts-offset: 10px;
-  --shortcuts-top: calc(var(--shortcuts-y) + var(--shortcuts-offset));
-  background: var(--arrowpanel-background) url(chrome://mozapps/skin/extensions/category-discover.svg) center / 16px no-repeat;
-  border: 1px solid var(--arrowpanel-border-color);
-  border-radius: var(--arrowpanel-border-radius);
-  color: var(--arrowpanel-color);
-  -moz-context-properties: fill;
-  fill: currentColor;
-  height: 28px;
-  left: clamp(0px, var(--shortcuts-left), calc(100% - 28px));
-  position: absolute;
-  top: clamp(0px, var(--shortcuts-top), calc(100% - 28px));
-  width: 28px;
+#selection-shortcut-action-panel {
+  --panel-subview-body-padding: 0;
+ }
 
-  &:-moz-locale-dir(rtl) {
-    --shortcuts-left: calc(var(--shortcuts-x) - var(--shortcuts-offset) - 28px);
-  }
-
-  &:not([shown]) {
-    display: none;
-  }
+#ai-action-button {
+  --button-min-height: 34px;
+  --button-size-icon: 34px;
+  --button-border-radius: 7px;
+  margin: 1px;
 }
 
 

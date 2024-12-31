@@ -13,13 +13,18 @@ const { sinon } = ChromeUtils.importESModule(
  */
 add_task(async function test_no_shortcuts() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.ml.chat.provider", "http://localhost:8080"]],
+    set: [["browser.ml.chat.provider", ""]],
   });
   await BrowserTestUtils.withNewTab("data:text/plain,hi", async browser => {
     browser.focus();
     goDoCommand("cmd_selectAll");
+
+    const selectionShortcutActionPanel = document.getElementById(
+      "selection-shortcut-action-panel"
+    );
+
     Assert.ok(
-      !document.querySelector(".content-shortcuts"),
+      !selectionShortcutActionPanel.hasAttribute("panelopen"),
       "No shortcuts found"
     );
   });
@@ -31,8 +36,12 @@ add_task(async function test_no_shortcuts() {
 add_task(async function test_show_shortcuts() {
   Services.fog.testResetFOG();
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.ml.chat.shortcuts", true]],
+    set: [
+      ["browser.ml.chat.shortcuts", true],
+      ["browser.ml.chat.provider", "http://localhost:8080"],
+    ],
   });
+
   await BrowserTestUtils.withNewTab("data:text/plain,hi", async browser => {
     await SimpleTest.promiseFocus(browser);
     const selectPromise = SpecialPowers.spawn(browser, [], () => {
@@ -45,9 +54,15 @@ add_task(async function test_show_shortcuts() {
       { type: "mouseup" },
       browser
     );
-    const shortcuts = await TestUtils.waitForCondition(() =>
-      document.querySelector(".content-shortcuts[shown]")
-    );
+
+    await TestUtils.waitForCondition(() => {
+      const panelElement = document.getElementById(
+        "selection-shortcut-action-panel"
+      );
+      return panelElement.getAttribute("panelopen") === "true";
+    });
+
+    const shortcuts = document.querySelector("#ai-action-button");
     Assert.ok(shortcuts, "Shortcuts added on select");
     let events = Glean.genaiChatbot.shortcutsDisplayed.testGetValue();
     Assert.equal(events.length, 1, "Shortcuts shown once");
@@ -55,7 +70,7 @@ add_task(async function test_show_shortcuts() {
     Assert.equal(events[0].extra.inputType, "", "Not in input");
     Assert.equal(events[0].extra.selection, 2, "Selected hi");
 
-    const popup = document.getElementById("ask-chat-shortcuts");
+    const popup = document.getElementById("chat-shortcuts-options-panel");
     Assert.equal(popup.state, "closed", "Popup is closed");
 
     EventUtils.sendMouseEvent({ type: "mouseover" }, shortcuts);
@@ -114,23 +129,41 @@ add_task(async function test_show_warning_label() {
         { type: "mouseup" },
         browser
       );
-      const shortcuts = await TestUtils.waitForCondition(() =>
-        document.querySelector(".content-shortcuts[shown]")
+
+      const selectionShortcutActionPanel = document.getElementById(
+        "selection-shortcut-action-panel"
       );
-      Assert.ok(shortcuts, "Shortcuts added on select");
+
+      // Wait for shortcut actions panel to open
+      await BrowserTestUtils.waitForEvent(
+        selectionShortcutActionPanel,
+        "popupshown"
+      );
+
+      Assert.ok(selectionShortcutActionPanel, "Shortcuts panel shown");
+      const aiActionButton =
+        selectionShortcutActionPanel.querySelector("#ai-action-button");
 
       let events = Glean.genaiChatbot.shortcutsDisplayed.testGetValue();
       Assert.equal(events.length, 1, "Shortcuts shown once");
       Assert.ok(events[0].extra.delay, "Waited some time");
       Assert.equal(events[0].extra.inputType, "", "Not in input");
       Assert.ok(events[0].extra.selection > 8192, "Selected enough text");
+      // Hover button
+      EventUtils.sendMouseEvent({ type: "mouseover" }, aiActionButton);
 
-      const popup = document.getElementById("ask-chat-shortcuts");
-      EventUtils.sendMouseEvent({ type: "mouseover" }, shortcuts);
+      const chatShortcutsOptionsPanel = document.getElementById(
+        "chat-shortcuts-options-panel"
+      );
 
-      await BrowserTestUtils.waitForEvent(popup, "popupshown");
+      // Wait for wait for shortcut options panel to open
+      await BrowserTestUtils.waitForEvent(
+        chatShortcutsOptionsPanel,
+        "popupshown"
+      );
+
       Assert.ok(
-        popup.querySelector(".ask-chat-shortcut-warning"),
+        chatShortcutsOptionsPanel.querySelector(".ask-chat-shortcut-warning"),
         "Warning label shown"
       );
 
