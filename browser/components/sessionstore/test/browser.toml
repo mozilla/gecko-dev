@@ -60,6 +60,10 @@ support-files = ["file_async_flushes.html"]
 run-if = ["crashreporter"]
 
 ["browser_async_remove_tab.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x84_64' && opt", # Bug 1787024
+  "win11_2009", # Bug 1787024
+]
 
 ["browser_async_window_flushing.js"]
 https_first_disabled = true
