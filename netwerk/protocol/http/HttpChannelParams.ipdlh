@@ -32,7 +32,7 @@ struct HttpChannelOnStartRequestArgs
   uint64_t cacheEntryId;
   int64_t altDataLength;
   nsCString altDataType;
-  nsCString cookie;
+  nsCString[] cookieHeaders;
   NetAddr selfAddr;
   NetAddr peerAddr;
   ResourceTimingStructArgs timing;

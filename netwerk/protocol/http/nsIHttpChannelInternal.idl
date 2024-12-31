@@ -98,9 +98,9 @@ interface nsIHttpChannelInternal : nsISupports
      * (URI's, prompters, date headers etc).
      *
      * @param aCookieHeader
-     *        The cookie header to be parsed.
+     *        The cookie header values to be parsed.
      */
-    [must_use] void setCookie(in ACString aCookieHeader);
+    [must_use] void setCookieHeaders(in Array<ACString> aCookieHeaders);
 
     /**
      * Returns true in case this channel is used for auth;
