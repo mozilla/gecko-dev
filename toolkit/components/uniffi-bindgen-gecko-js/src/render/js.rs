@@ -61,7 +61,11 @@ impl<'a> JSBindingsTemplate<'a> {
     }
 
     fn js_module_name_for_crate_name(&self, crate_name: &str) -> String {
-        js_module_name(crate_name_to_namespace(crate_name))
+        let namespace = match crate_name {
+            "uniffi_geometry" => "geometry",
+            s => s,
+        };
+        js_module_name(namespace)
     }
 }
 

@@ -68,13 +68,13 @@ pub struct TodoList {
 }
 
 impl TodoList {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             items: RwLock::new(Vec::new()),
         }
     }
 
-    pub fn add_item<S: Into<String>>(&self, item: S) -> Result<()> {
+    fn add_item<S: Into<String>>(&self, item: S) -> Result<()> {
         let item = item.into();
         if item.is_empty() {
             return Err(TodoError::EmptyString(
@@ -89,36 +89,36 @@ impl TodoList {
         Ok(())
     }
 
-    pub fn get_last(&self) -> Result<String> {
+    fn get_last(&self) -> Result<String> {
         let items = self.items.read().unwrap();
         items.last().cloned().ok_or(TodoError::EmptyTodoList)
     }
 
-    pub fn get_first(&self) -> Result<String> {
+    fn get_first(&self) -> Result<String> {
         let items = self.items.read().unwrap();
         items.first().cloned().ok_or(TodoError::EmptyTodoList)
     }
 
-    pub fn add_entries(&self, entries: Vec<TodoEntry>) {
+    fn add_entries(&self, entries: Vec<TodoEntry>) {
         let mut items = self.items.write().unwrap();
         items.extend(entries.into_iter().map(|e| e.text))
     }
 
-    pub fn add_entry(&self, entry: TodoEntry) -> Result<()> {
+    fn add_entry(&self, entry: TodoEntry) -> Result<()> {
         self.add_item(entry.text)
     }
 
-    pub fn add_items<S: Into<String>>(&self, items: Vec<S>) {
+    fn add_items<S: Into<String>>(&self, items: Vec<S>) {
         let mut my_items = self.items.write().unwrap();
         my_items.extend(items.into_iter().map(Into::into))
     }
 
-    pub fn get_items(&self) -> Vec<String> {
+    fn get_items(&self) -> Vec<String> {
         let items = self.items.read().unwrap();
         items.clone()
     }
 
-    pub fn get_entries(&self) -> Vec<TodoEntry> {
+    fn get_entries(&self) -> Vec<TodoEntry> {
         let items = self.items.read().unwrap();
         items
             .iter()
@@ -126,12 +126,12 @@ impl TodoList {
             .collect()
     }
 
-    pub fn get_last_entry(&self) -> Result<TodoEntry> {
+    fn get_last_entry(&self) -> Result<TodoEntry> {
         let text = self.get_last()?;
         Ok(TodoEntry { text })
     }
 
-    pub fn clear_item<S: Into<String>>(&self, item: S) -> Result<()> {
+    fn clear_item<S: Into<String>>(&self, item: S) -> Result<()> {
         let item = item.into();
         let mut items = self.items.write().unwrap();
         let idx = items
@@ -142,7 +142,7 @@ impl TodoList {
         Ok(())
     }
 
-    pub fn make_default(self: Arc<Self>) {
+    fn make_default(self: Arc<Self>) {
         set_default_list(self);
     }
 }

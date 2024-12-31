@@ -6,26 +6,24 @@
 // Silence, clippy!
 const EPSILON: f64 = 0.0001f64;
 
-#[derive(Debug, Clone, uniffi::Record)]
+#[derive(Debug, Clone)]
 pub struct Point {
     coord_x: f64,
     coord_y: f64,
 }
 
-#[derive(Debug, Clone, uniffi::Record)]
+#[derive(Debug, Clone)]
 pub struct Line {
     start: Point,
     end: Point,
 }
 
-#[uniffi::export]
 pub fn gradient(ln: Line) -> f64 {
     let rise = ln.end.coord_y - ln.start.coord_y;
     let run = ln.end.coord_x - ln.start.coord_x;
     rise / run
 }
 
-#[uniffi::export]
 pub fn intersection(ln1: Line, ln2: Line) -> Option<Point> {
     // TODO: yuck, should be able to take &Line as argument here
     // and have rust figure it out with a bunch of annotations...
@@ -46,4 +44,4 @@ pub fn intersection(ln1: Line, ln2: Line) -> Option<Point> {
     })
 }
 
-uniffi::setup_scaffolding!("geometry");
+uniffi::include_scaffolding!("geometry");
