@@ -1934,7 +1934,10 @@
 
       if (this._hasTabTempMaxWidth) {
         this._hasTabTempMaxWidth = false;
-        let tabs = this.visibleTabs;
+        // Only visible tabs have their sizes locked, but those visible tabs
+        // could become invisible before being unlocked (e.g. by being inside
+        // of a collapsing tab group), so it's better to reset all tabs.
+        let tabs = this.allTabs;
         for (let i = 0; i < tabs.length; i++) {
           tabs[i].style.maxWidth = "";
         }
