@@ -2198,7 +2198,9 @@ var add_task = (function () {
               var name = task.name || "";
               if (
                 task.__skipMe ||
-                (run_only_this_task && task != run_only_this_task)
+                (run_only_this_task &&
+                  task != run_only_this_task &&
+                  !task.isSetup)
               ) {
                 skipTask(name);
                 continue;
