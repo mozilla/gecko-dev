@@ -85,6 +85,8 @@
     <string name="preferences_debug_settings_compose_bookmarks" translatable="false">Enable Compose Bookmarks</string>
     <!-- Label for enabling Homepage as a New Tab -->
     <string name="preferences_debug_settings_homepage_as_new_tab" translatable="false">Enable Homepage as a New Tab</string>
+    <!-- Label for enabling MARS API integration -->
+    <string name="preferences_debug_settings_mars_api" translatable="false">Enable MARS API integration</string>
     <!-- Label for enabling Merino content recommendations -->
     <string name="preferences_debug_settings_merino_content_recommendations" translatable="false">Enable Merino Content Recommendations</string>
     <!-- Label for enabling the menu redesign -->

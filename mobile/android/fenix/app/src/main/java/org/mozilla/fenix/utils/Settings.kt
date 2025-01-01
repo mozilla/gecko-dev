@@ -1698,6 +1698,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the MARS API integration is used for sponsored content.
+     */
+    var marsAPIEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_mars_api_enabled),
+        default = FeatureFlags.marsAPIEnabled,
+    )
+
+    /**
      * Indicates if the Contile functionality should be visible.
      */
     var showContileFeature by booleanPreference(
