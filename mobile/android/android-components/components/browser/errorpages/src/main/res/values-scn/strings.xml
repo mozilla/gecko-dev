@@ -69,7 +69,7 @@
 
     <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[
-	<p>U navigaturi si cullijau giustu, ma a cunnissioni fu bluccata mentri chi vinìanu trasfiruti i dati. Pi favuri torna a prova.</p>
+	<p>U navicaturi si cullijau giustu, ma a cunnissioni fu bluccata mentri chi vinìanu trasfiruti i dati. Pi favuri torna a prova.</p>
 	<ul>
 		<li>U situ accamora putissi èssiri nun dispunìbbili o troppu chinu. Torna a prova nta n\'anticchia. </li>
 		<li>Si nun arrinesci a carricari nuḍḍa pàggina, cuntrolla a cunnissioni dati o Wi-Fi dû dispusitivu.</li>
@@ -81,11 +81,11 @@
 
     <!-- The error message shown when a website took long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
-      <p>U situ chi addumannasti nun arrispunnìu â dumanna di cunnissioni, e u navigaturi accabbau d\'aspittari na risposta.</p>
+      <p>U situ chi addumannasti nun arrispunnìu â dumanna di cunnissioni, e u navicaturi accabbau d\'aspittari na risposta.</p>
       <ul>
         <li>Putissi èssiri chi u sirburi àvi assai dumanni o àvi un prubblema timpuraniu? Torna a prova cchiù tardu.</li>
         <li>Nun arrinesci a visitari autri siti? Cuntrolla a cunnissioni dû to dispusitivu â riti.</li>
-        <li>U dispusitivu è prutettu d\'un tagghiafocu o un proxy? Cuntrolla si cci sunnu paràmitri sbagghiati chi ponnu fari a navigazzioni trùbbula.</li>
+        <li>U dispusitivu è prutettu d\'un tagghiafocu o un proxy? Cuntrolla si cci sunnu paràmitri sbagghiati chi ponnu fari a navicazzioni trùbbula.</li>
         <li>Ài ancora prubblemi? Parra cû to amministraturi di riti o u furnituri dâ to cunnissioni â riti p\'aviri assistenza.</li>
       </ul>
     ]]></string>
@@ -105,7 +105,7 @@
 
     <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
     <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[
-      <p>U situ arrispunnìu â dumanna di riti nta na manera nun privista e u navigaturi nun po cuntinuari.</p>
+      <p>U situ arrispunnìu â dumanna di riti nta na manera nun privista e u navicaturi nun po cuntinuari.</p>
     ]]></string>
 
     <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
@@ -113,7 +113,7 @@
 
     <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
     <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[
-      <p>U navigaturi accabbau di ricìviri l\'elimentu addumannatu. U situ sta rinnirizzannu a dumanna nta na manera chi nun po cumplitari mai.</p>
+      <p>U navicaturi accabbau di ricìviri l\'elimentu addumannatu. U situ sta rinnirizzannu a dumanna nta na manera chi nun po cumplitari mai.</p>
       <ul>
         <li>Sdisabbilitasi o bluccasti i viscotta chi ci sèrbinu a stu situ?</li>
         <li>Si accittari i viscotta dû situ nun arrisorbi u prubblema, è pussìbbili chi è na cunfijurazzioni sbagghiata dû situ e no dû to dispusitivu.</li>
@@ -125,7 +125,7 @@
 
     <!-- The error message shown when a website cannot be loaded because the browser is in offline mode. -->
     <string name="mozac_browser_errorpages_offline_message"><![CDATA[
-      <p>U navigaturi stra travagghiannu scullijatu e nun si po cullijari a l\'elimentu addumannatu.</p>
+      <p>U navicaturi stra travagghiannu scullijatu e nun si po cullijari a l\'elimentu addumannatu.</p>
       <ul>
         <li>U dispusitivu è cullijatu a na riti attiva?</li>
         <li>Ammacca “Prova arrè” pi canciari â mudalità \'n linia e attualizzari a pàggina.</li>
@@ -137,7 +137,7 @@
 
     <!-- The error message shown when the browser prevents loading a website on a restricted port. -->
     <string name="mozac_browser_errorpages_port_blocked_message"><![CDATA[
-      <p>U nnirizzu addumannatu spicificava na porta (pi scempru <q>mozilla.org:80</q> pâ porta 80 di mozilla.org) usata nurmali pi <em>autri cosi</em> mmeci dâ navigazzioni. U navigaturi sfallìu a dumanna pâ to prutizzioni e sicurizza.</p>
+      <p>U nnirizzu addumannatu spicificava na porta (pi scempru <q>mozilla.org:80</q> pâ porta 80 di mozilla.org) usata nurmali pi <em>autri cosi</em> mmeci dâ navicazzioni. U navicaturi sfallìu a dumanna pâ to prutizzioni e sicurizza.</p>
     ]]></string>
 
     <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
@@ -201,7 +201,7 @@
 
     <!-- In the example, the two URLs in markup do not need to be translated. -->
     <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[
-      <p>U navigaturi nun pottu attruvari u sirburi pû nnirizzu chi mittisti.</p>
+      <p>U navicaturi nun pottu attruvari u sirburi pû nnirizzu chi mittisti.</p>
       <ul>
         <li>Cuntrolla u nnirizzu pi sbagghi di scrittura a tipu
           <strong>ww</strong>.example.com mmeci di
@@ -244,10 +244,10 @@
     <string name="mozac_browser_errorpages_unknown_protocol_title">Prutucollu scanusciutu</string>
 
     <string name="mozac_browser_errorpages_unknown_protocol_message"><![CDATA[
-      <p>U nnirizzu spicìfica un prutucollu (p.s., <q>wxyz://</q>) chi nun è ricanusciutu dû navigaturi, e pi sta scaciuni u navigaturi nun si po cullijari ô situ.</p>
+      <p>U nnirizzu spicìfica un prutucollu (p.s., <q>wxyz://</q>) chi nun è ricanusciutu dû navicaturi, e pi sta scaciuni u navicaturi nun si po cullijari ô situ.</p>
       <ul>
         <li>Stai pruvannu a vìdiri sirbizzi murtimidiali o chi nun sunnu di testu? Cuntrolla si u situ àvi bisognu di autri riquisiti.</li>
-        <li>Certi prutucolli ponnu aviri bisognu di autri prugrammi o juncitini prima chi u navigaturi i po ricanùsciri.</li>
+        <li>Certi prutucolli ponnu aviri bisognu di autri prugrammi o juncitini prima chi u navicaturi i po ricanùsciri.</li>
       </ul>
     ]]></string>
 
@@ -275,7 +275,7 @@
     <string name="mozac_browser_errorpages_proxy_connection_refused_title">Fu rifiutata a cunnissioni dû sirburi proxy</string>
 
     <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[
-      <p>Cunfijurasti u navigaturi p\'usari un sirburi proxy, chi pirò rifiutau a cunnissioni.</p>
+      <p>Cunfijurasti u navicaturi p\'usari un sirburi proxy, chi pirò rifiutau a cunnissioni.</p>
       <ul>
         <li>A cunfijurazzioni è bona? Cuntrolla i mpustazzioni e torna a prova.</li>
         <li>U sirburi proxy pirmetti cunnissioni di sta riti?</li>
@@ -287,7 +287,7 @@
     <string name="mozac_browser_errorpages_unknown_proxy_host_title">Nun potti truvari u sirburi proxy</string>
 
     <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[
-      <p>Cunfijurasti u navigaturi p\'usari un sirburi proxy, chi pirò non si potti attruvari.</p>
+      <p>Cunfijurasti u navicaturi p\'usari un sirburi proxy, chi pirò non si potti attruvari.</p>
       <ul>
         <li>A cunfijurazzioni è bona? Cuntrolla i mpustazzioni e torna a prova.</li>
         <li>U dispusitivu è cullijatu a na riti attiva?</li>

@@ -3,7 +3,7 @@
     <!-- Text for confirmation for a positive action in dialog  -->
     <string name="mozac_feature_prompts_ok">Iawn</string>
     <!-- Text for confirmation for a negative action in dialog.  -->
-    <string name="mozac_feature_prompts_cancel">Diddymu</string>
+    <string name="mozac_feature_prompts_cancel">Na</string>
     <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
     <string name="mozac_feature_prompts_no_more_dialogs">Atal y dudalen hon rhag creu deialogau ychwanegol</string>
     <!-- Text for a positive button, when an user selects a date in date/time picker. -->
@@ -130,7 +130,7 @@
     <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
     <string name="mozac_feature_prompt_repost_positive_button_text">Ail-anfon data</string>
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
-    <string name="mozac_feature_prompt_repost_negative_button_text">Diddymu</string>
+    <string name="mozac_feature_prompt_repost_negative_button_text">Na</string>
 
     <!-- Credit Card Autofill -->
     <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
@@ -173,5 +173,5 @@
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Parhau</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->
-    <string name="mozac_feature_prompts_identity_credentials_cancel">Diddymu</string>
+    <string name="mozac_feature_prompts_identity_credentials_cancel">Na</string>
 </resources>

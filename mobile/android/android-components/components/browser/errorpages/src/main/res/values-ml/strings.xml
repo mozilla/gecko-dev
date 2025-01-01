@@ -40,6 +40,14 @@
     <!-- The document title and heading of the error page shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">ഈ വെബ്സ്ഥാനത്തിനൊരു സുരക്ഷിതമായ സമ്പർക്കത്തിന്റെ ആവശ്യമുണ്ടു്.</string>
 
+    <!-- The error message shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[      <ul>
+         <li>താങ്ങൾ കാണാൻ ശ്രമിക്കുന്ന താൾ കാണിപ്പിക്കാൻ പറ്റത്തില്ല, കാരണം ഈ വെബ്സ്ഥാനത്തിനൊരു സുരക്ഷിതമായ സമ്പർക്കത്തിന്റെ ആവശ്യമുണ്ടു്.</li>
+         <li>കുഴപ്പം മിക്കവാറും വെബ്സ്ഥാനത്തിലായിരിക്കും അതു് പരിഹരിക്കാനും താങ്ങൾക്കു് ഒന്നും ചെയ്യാൻ പറ്റില്ല</li>
+         <li>താങ്ങൾക്കു് വേണമെങ്കിൽ ഈ വെബ്സ്ഥാനത്തിന്റെ അധികാരിയെ ഈ കുഴപ്പത്തെക്കുറിച്ചു് അറിയിക്കാം.</li>
+         </ul>
+]]></string>
+
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">കൂടുതൽ…</string>
 

@@ -451,6 +451,11 @@
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Peiriant chwilio: %s</string>
 
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: dewisydd peiriant chwilio</string>
+
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Croeso i rhyngrwyd mwy personol</string>
@@ -584,7 +589,7 @@
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Gorffen</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Diddymu</string>
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Na</string>
 
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
     <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Croeso i Firefox</string>
@@ -616,7 +621,7 @@
     <string name="onboarding_customize_toolbar_bottom_option">Gwaelod</string>
 
     <!-- Onboarding toolbar selection card content description for the main image. -->
-    <string name="onboarding_customize_toolbar_main_image_content_description">Delwedd pennawd mawr o\'r olygfa dewis bar offer yn dangos bar offer darluniadol.</string>
+    <string name="onboarding_customize_toolbar_main_image_content_description">Delwedd pennyn mawr o\'r olwg dewis bar offer yn dangos bar offer darluniadol.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
     <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Delwedd o\'r bar offer %1$s</string>
 
@@ -639,7 +644,7 @@
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_system_option">Auto system</string>
     <!-- Onboarding theme selection card content description for the main image. -->
-    <string name="onboarding_customize_theme_main_image_content_description">Delwedd pennawd mawr o\'r olygfa dewis thema yn dangos offer arlunydd ac adeiladwr darluniadol.</string>
+    <string name="onboarding_customize_theme_main_image_content_description">Delwedd pennyn mawr o\'r olwg dewis thema yn dangos offer arlunydd ac adeiladwr darluniadol.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Delwedd o\'r thema %1$s</string>
 
@@ -720,7 +725,7 @@
     <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_off_for_site">Diffodd ar gyfer y wefan hon</string>
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Diddymu</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Na</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Anfon cais</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
@@ -883,7 +888,7 @@
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">Iawn</string>
     <!-- Button caption to abort the add-on collection configuration -->
-    <string name="customize_addon_collection_cancel">Diddymu</string>
+    <string name="customize_addon_collection_cancel">Na</string>
     <!-- Hint displayed on input field for custom collection name -->
     <string name="customize_addon_collection_hint">Enw’r casgliad</string>
     <!-- Hint displayed on input field for custom collection user ID-->
@@ -1056,7 +1061,7 @@
     <string name="preferences_marketing_data_learn_more">Dysgwch fwy am ddata marchnata</string>
 
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_send_crashes_title">Anfonwch adroddiadau damwain yn awtomatig</string>
+    <string name="preferences_automatically_send_crashes_title">Yn anfon adroddiadau chwalu\'n awtomatig</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Cyflwynwch adroddiadau chwalu\'n awtomatig</string>
 
     <!-- Preference switch description for automatically submitting crash reports -->
@@ -1140,7 +1145,7 @@
     <!-- Dialog button text for confirming open all tabs -->
     <string name="open_all_warning_confirm">Agor tabiau</string>
     <!-- Dialog button text for canceling open all tabs -->
-    <string name="open_all_warning_cancel">Diddymu</string>
+    <string name="open_all_warning_cancel">Na</string>
 
     <!-- Text to show users they have one page in the history group section of the History fragment.
     %d is a placeholder for the number of pages in the group. -->
@@ -1233,7 +1238,7 @@
     <!-- Dialog button to confirm the removing a study. -->
     <string name="studies_restart_dialog_ok" moz:removedIn="135">Iawn</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Diddymu</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Na</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
     <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Yn gadael y rhaglen er mwyn gosod y newidiadau…</string>
@@ -1366,7 +1371,7 @@
     <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
     <string name="webcompat_reporter_send_more_info">Anfon rhagor o wybodaeth</string>
     <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
-    <string name="webcompat_reporter_cancel">Diddymu</string>
+    <string name="webcompat_reporter_cancel">Na</string>
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">Anfon</string>
 
@@ -1413,7 +1418,7 @@
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">Bydd %s yn dileu’r eitemau hyn.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
-    <string name="bookmark_delete_negative">Diddymu</string>
+    <string name="bookmark_delete_negative">Na</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Ychwanegu ffolder</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
@@ -1528,13 +1533,13 @@
     <!-- Text for the OK button on Clear permissions dialog -->
     <string name="clear_permissions_positive">Iawn</string>
     <!-- Text for the cancel button on Clear permissions dialog -->
-    <string name="clear_permissions_negative">Diddymu</string>
+    <string name="clear_permissions_negative">Na</string>
     <!-- Button label for clearing a site permission-->
     <string name="clear_permission">Clirio caniatâd</string>
     <!-- Text for the OK button on Clear permission dialog -->
     <string name="clear_permission_positive">Iawn</string>
     <!-- Text for the cancel button on Clear permission dialog -->
-    <string name="clear_permission_negative">Diddymu</string>
+    <string name="clear_permission_negative">Na</string>
     <!-- Button label for clearing all the information on all sites-->
     <string name="clear_permissions_on_all_sites">Clirio caniatâd ar bob gwefan</string>
     <!-- Preference for altering video and audio autoplay for all websites -->
@@ -1648,7 +1653,7 @@
     <!-- Text for the OK button from collection dialogs -->
     <string name="create_collection_positive">Iawn</string>
     <!-- Text for the cancel button from collection dialogs -->
-    <string name="create_collection_negative">Diddymu</string>
+    <string name="create_collection_negative">Na</string>
 
     <!-- Default name for a new collection in "name new collection" step of the collection creator. %d is a placeholder for the number of collections-->
     <string name="create_collection_default_name">Casgliad %d</string>
@@ -1851,7 +1856,7 @@
     <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
     <string name="delete_browsing_data_prompt_message_3">Bydd %s yn dileu’r data pori hyn.</string>
     <!-- Text for the cancel button for the data deletion dialog -->
-    <string name="delete_browsing_data_prompt_cancel">Diddymu</string>
+    <string name="delete_browsing_data_prompt_cancel">Na</string>
     <!-- Text for the allow button for the data deletion dialog -->
     <string name="delete_browsing_data_prompt_allow">Dileu</string>
     <!-- Text for the snackbar confirmation that the data was deleted -->
@@ -1862,7 +1867,7 @@
     <!-- Dialog message to the user asking to delete all history items inside the opened group. Parameter will be replaced by a history group name. -->
     <string name="delete_all_history_group_prompt_message">Dileu pob gwefan yn “%s”</string>
     <!-- Text for the cancel button for the history group deletion dialog -->
-    <string name="delete_history_group_prompt_cancel">Diddymu</string>
+    <string name="delete_history_group_prompt_cancel">Na</string>
     <!-- Text for the allow button for the history group dialog -->
     <string name="delete_history_group_prompt_allow">Dileu</string>
     <!-- Text for the snackbar confirmation that the history group was deleted -->
@@ -1898,7 +1903,7 @@
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
     <string name="sign_out_disconnect">Datgysylltu</string>
     <!-- Option to cancel signing out shown in confirmation dialog to sign out of account -->
-    <string name="sign_out_cancel">Diddymu</string>
+    <string name="sign_out_cancel">Na</string>
     <!-- Error message snackbar shown after the user tried to select a default folder which cannot be altered -->
     <string name="bookmark_cannot_edit_root">Methu golygu’r ffolderi rhagosodedig</string>
 
@@ -2052,7 +2057,7 @@
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Ychwanegu i’r sgrin Cartref</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->
-    <string name="add_to_homescreen_cancel">Diddymu</string>
+    <string name="add_to_homescreen_cancel">Na</string>
     <!-- Add button text for the Add to Homescreen dialog -->
     <string name="add_to_homescreen_add">Ychwanegu</string>
     <!-- Continue to website button text for the first-time Add to Homescreen dialog -->
@@ -2213,7 +2218,7 @@
     <!-- The text for the "Save" button for saving a credit card -->
     <string name="credit_cards_save_button">Cadw</string>
     <!-- The text for the "Cancel" button for cancelling adding, updating or deleting a credit card -->
-    <string name="credit_cards_cancel_button">Diddymu</string>
+    <string name="credit_cards_cancel_button">Na</string>
 
     <!-- Title of the "Saved cards" screen -->
     <string name="credit_cards_saved_cards">Cardiau wedi’u cadw</string>
@@ -2264,7 +2269,7 @@
     <!-- The text for the "Save" button for saving an address -->
     <string name="addresses_save_button">Cadw</string>
     <!-- The text for the "Cancel" button for cancelling adding, updating or deleting an address -->
-    <string name="addresses_cancel_button">Diddymu</string>
+    <string name="addresses_cancel_button">Na</string>
     <!-- The text for the "Delete address" button for deleting an address -->
     <string name="addressess_delete_address_button">Dileu cyfeiriad</string>
 
@@ -2273,7 +2278,7 @@
     <!-- The text for the positive button on "Delete address" dialog -->
     <string name="addressess_confirm_dialog_ok_button">Dileu</string>
     <!-- The text for the negative button on "Delete address" dialog -->
-    <string name="addressess_confirm_dialog_cancel_button">Diddymu</string>
+    <string name="addressess_confirm_dialog_cancel_button">Na</string>
     <!-- The text for the "Save address" menu item for saving an address -->
     <string name="address_menu_save_address">Cadw cyfeiriad</string>
     <!-- The text for the "Delete address" menu item for deleting an address -->
@@ -2371,7 +2376,7 @@
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Dileu</string>
     <!-- Negative action of a dialog asking to delete login -->
-    <string name="dialog_delete_negative">Diddymu</string>
+    <string name="dialog_delete_negative">Na</string>
     <!--  The saved password options menu description. -->
     <string name="login_options_menu_2">Dewisiadau cyfrineiriau</string>
     <!--  The editable text field for a website address. -->
@@ -2449,7 +2454,7 @@
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">URL llwybr byr</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
-    <string name="top_sites_rename_dialog_cancel">Diddymu</string>
+    <string name="top_sites_rename_dialog_cancel">Na</string>
 
     <!-- Text for the menu button to open the homepage settings. -->
     <string name="top_sites_menu_settings">Gosodiadau</string>
@@ -2848,7 +2853,7 @@
     <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
     <string name="never_translate_site_dialog_confirm_delete_preference">Dileu</string>
     <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
-    <string name="never_translate_site_dialog_cancel_preference">Diddymu</string>
+    <string name="never_translate_site_dialog_cancel_preference">Na</string>
 
     <!-- Download languages preference screen -->
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
@@ -2906,7 +2911,7 @@
     <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
     <string name="delete_language_file_dialog_positive_button_text">Dileu</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
-    <string name="delete_language_file_dialog_negative_button_text">Diddymu</string>
+    <string name="delete_language_file_dialog_negative_button_text">Na</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2922,7 +2927,7 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
     <string name="download_language_file_dialog_positive_button_text_all_languages">Llwytho i lawr a chyfieithu</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
-    <string name="download_language_file_dialog_negative_button_text">Diddymu</string>
+    <string name="download_language_file_dialog_negative_button_text">Na</string>
 
     <!-- Unified Trust Panel -->
     <!-- Title text for the protection panel banner when the site is not secure. -->

@@ -15,16 +15,16 @@
     <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">Riscedi o metti nu nnirizzu</string>
 
-    <string name="teaser">Navigazzioni privata \'n autumàticu.\nNàviga. Scancella. Ripeti.</string>
+    <string name="teaser">Navicazzioni privata \'n autumàticu.\nNàvica. Scancella. Fallu arrè.</string>
 
     <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
-    <string name="feedback_erase">A to crunuluggìa di navigazzioni fu scancillata.</string>
+    <string name="feedback_erase">A to crunuluggìa di navicazzioni fu scancillata.</string>
 
 
-    <string name="feedback_erase2">Crunuluggìa di navigazzioni scancillata</string>
+    <string name="feedback_erase2">Crunuluggìa di navicazzioni scancillata</string>
 
     <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
-    <string name="feedback_erase_custom_tab">A crunuluggìa di navigazzioni dî schedi fu scancillata.</string>
+    <string name="feedback_erase_custom_tab">A crunuluggìa di navicazzioni dî schedi fu scancillata.</string>
 
     <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">Riscedi %1$s</string>
@@ -85,13 +85,13 @@
          sharing an URL. -->
     <string name="share_dialog_title">Sparti cu</string>
 
-    <string name="notification_erase_title_android_14">Scancillari a crunuluggìa di navigazzioni?</string>
+    <string name="notification_erase_title_android_14">Scancillari a crunuluggìa di navicazzioni?</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
-    <string name="notification_erase_text_android_14_1">Ammacca o tira sta nutìfica pi scancillari di manera sicura a to crunuluggìa di navigazzioni.</string>
+    <string name="notification_erase_text_android_14_1">Ammacca o tira sta nutìfica pi scancillari di manera sicura a to crunuluggìa di navicazzioni.</string>
 
-    <string name="notification_erase_text">Scancella crunuluggìa di navigazzioni</string>
+    <string name="notification_erase_text">Scancella crunuluggìa di navicazzioni</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
     <string name="notification_action_open">Grapi</string>
@@ -107,7 +107,7 @@
     <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
          instead of the short title when it has enough space. Android recommends a maximum length
          of 25 characters. -->
-    <string name="shortcut_erase_long_label">Scancella crunuluggìa di navigazzioni</string>
+    <string name="shortcut_erase_long_label">Scancella crunuluggìa di navicazzioni</string>
 
 
     <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
@@ -140,11 +140,11 @@
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
     <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ti duna u cuntrollu.</p>
-<p>Ùsalu comu navigaturi privatu:
+<p>Ùsalu comu navicaturi privatu:
   <ul>
-    <li>Riscedi e nàviga direttu di l\'applicazzioni</li>
+    <li>Riscedi e nàvica direttu di l\'applicazzioni</li>
     <li>Ferma i trazzatura (o cancia i mpustazzioni pi pirmittìrili)</li>
-    <li>Scancella i viscotta e macari a crunuluggìa di risciduta e di navigazzioni</li>
+    <li>Scancella i viscotta e macari a crunuluggìa di risciduta e di navicazzioni</li>
   </ul>
 </p>
 <p>%1$s fu criatu di Mozilla. A nostra missioni è chiḍḍa d\'ammuttari pi na riti graputa e \'n saluti.<br/>
@@ -178,7 +178,7 @@
     <string name="preference_category_general">Ginirali</string>
 
     <!-- Preference summary for General Settings category; the two things users can find in this category -->
-    <string name="preference_general_summary2">Navigaturi pridifinutu, lingua</string>
+    <string name="preference_general_summary2">Navicaturi pridifinutu, lingua</string>
 
     <!-- Preference category for settings about sending usage data -->
     <string name="preference_category_data_collection_use">Ricugghiuta e usu dî dati</string>
@@ -340,7 +340,7 @@
      "default apps" settings screen or if not supported by this Android version to a SUMO page describing
      how to set Focus as a default browser.
       %1$s will be replaced by the app name (e.g. Firefox Focus) -->
-    <string name="preference_default_browser2">Mposta %1$s comu navigaturi pridifinutu</string>
+    <string name="preference_default_browser2">Mposta %1$s comu navicaturi pridifinutu</string>
 
     <string name="preference_category_mozilla">Mozilla</string>
     <string name="preference_mozilla_telemetry2">Manna i dati d\'usu</string>
@@ -414,7 +414,7 @@
 
     <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
      history and go back to the home screen. -->
-    <string name="content_description_erase">Scancella crunuluggìa di navigazzioni</string>
+    <string name="content_description_erase">Scancella crunuluggìa di navicazzioni</string>
 
     <!-- If the user has multiple tabs open we will show an addition "floating action button" showing how many tabs are open.
      This string is not displayed and read only by screenreaders. %1$s will be replaced with the number of open tabs. This
@@ -441,7 +441,7 @@
     <string name="indicator_content_description_menu">Buttuni autri aḍḍijuti</string>
 
     <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
-    <string name="content_description_forward">Nàviga \'n avanzi</string>
+    <string name="content_description_forward">Nàvica \'n avanzi</string>
 
     <!-- Content description (not visible, for screen readers etc.): Reload current website -->
     <string name="content_description_reload">Càrrica arrè u situ</string>
@@ -475,7 +475,7 @@
          the app store installed on the device (usually that's Google Play). -->
     <string name="external_app_prompt_no_app">Nuḍḍa di l\'applicazzioni dû to dispusitivu sâ fìdanu a gràpiri sta lijami. Po\' nèsciri di %1$s pi fari na risciduta nne %2$s pi n\'applicazzioni chi u po fari.</string>
     <!-- This label is shown above a list of apps that can be used to open a given link -->
-    <string name="external_multiple_apps_matched_exit">Nèsciri dâ navigazzioni privata?</string>
+    <string name="external_multiple_apps_matched_exit">Nèsciri dâ navicazzioni privata?</string>
 
     <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
     <string name="download_snackbar_finished">%1$s finìu</string>
@@ -503,17 +503,17 @@
 
     <!-- Onboarding second screen: Title -->
     <!-- %1$s will be replaced by the app short name(Focus) -->
-    <string name="onboarding_second_screen_title">%1$s nun è comu l\'autri navigatura</string>
+    <string name="onboarding_second_screen_title">%1$s nun è comu l\'autri navicatura</string>
 
     <!-- New Onboarding flow second screen subtitle the one that appears under title -->
     <string name="onboarding_second_screen_subtitle_one">Scancillamu a to crunuluggìa quannu chiuji l\'applicazzioni p\'aviri privatizza superchiu.</string>
 
     <!-- New Onboarding flow second screen subtitle two the one that appears under subtitle one -->
     <!-- %1$s will be replaced by the app short name(Focus) -->
-    <string name="onboarding_second_screen_subtitle_two">Cunfijura %1$s comu u to navigaturi pridifinutu pi prutèggiri i to dati ogni vota chi grapi na lijami.</string>
+    <string name="onboarding_second_screen_subtitle_two">Cunfijura %1$s comu u to navicaturi pridifinutu pi prutèggiri i to dati ogni vota chi grapi na lijami.</string>
 
     <!-- New Onboarding flow second screen make Focus default browser button label-->
-    <string name="onboarding_second_screen_default_browser_button_text">Cunfijura comu navigaturi pridifinutu</string>
+    <string name="onboarding_second_screen_default_browser_button_text">Cunfijura comu navicaturi pridifinutu</string>
 
     <!-- New Onboarding flow second screen skip onboarding button label-->
     <string name="onboarding_second_screen_skip_button_text">Sauta</string>
@@ -521,7 +521,7 @@
     <!-- First run tour (Default browser): Title -->
     <string name="firstrun_defaultbrowser_title">Ammutta a to privatizza</string>
     <!-- First run tour (Default browser): Text. -->
-    <string name="firstrun_defaultbrowser_text2">Porta a navigazzioni privata a n\'autru liveḍḍu. Ferma i pubblicità e autri cuntinuti chi ti ponnu trazzari ntra i siti e fari ammurrari u carricamentu dî pàggini.</string>
+    <string name="firstrun_defaultbrowser_text2">Porta a navicazzioni privata a n\'autru liveḍḍu. Ferma i pubblicità e autri cuntinuti chi ti ponnu trazzari ntra i siti e fari ammurrari u carricamentu dî pàggini.</string>
 
     <!-- First run tour (Search): Title -->
     <string name="firstrun_search_title">Riscedi â to manera</string>
@@ -538,7 +538,7 @@
     <string name="firstrun_privacy_title">Aḍḍìccati â privatizza</string>
 
     <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-    <string name="firstrun_privacy_text">Cunfijura %1$s comu navigaturi pridifinutu e pìgghiati tutti i binifici dâ navigazzioni privata quannu grapi i pàggini di l\'autri applicazzioni.</string>
+    <string name="firstrun_privacy_text">Cunfijura %1$s comu navicaturi pridifinutu e pìgghiati tutti i binifici dâ navicazzioni privata quannu grapi i pàggini di l\'autri applicazzioni.</string>
 
     <string name="firstrun_close_button">OK, bonu</string>
     <string name="firstrun_skip_button">Sauta</string>
@@ -568,7 +568,7 @@
     * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
     * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
     -->
-    <string name="notification_browsing_session_channel_name">Sissioni di navigazzioni privata</string>
+    <string name="notification_browsing_session_channel_name">Sissioni di navicazzioni privata</string>
 
     <!-- The user visible description of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
     The recommended maximum length is 300 characters; the value may be truncated if it is too long. %1$s will be replaced with the name of the app (e.g. Firefox Focus).
@@ -576,10 +576,10 @@
     * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
     * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
     -->
-    <string name="notification_browsing_session_channel_description">I nutìfichi ti pirmèttinu di scancillari a to sissioni di %1$s c\'un toccu. Nun ti serbi gràpiri l\'applicazzioni o vìdiri chiḍḍu chi cc\'è nnô navigaturi.</string>
+    <string name="notification_browsing_session_channel_description">I nutìfichi ti pirmèttinu di scancillari a to sissioni di %1$s c\'un toccu. Nun ti serbi gràpiri l\'applicazzioni o vìdiri chiḍḍu chi cc\'è nnô navicaturi.</string>
 
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
-    <string name="tabs_tray_action_erase">Scancella crunuluggìa di navigazzioni</string>
+    <string name="tabs_tray_action_erase">Scancella crunuluggìa di navicazzioni</string>
 
     <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
     <string name="tabs_tray_action_erase_other">Chiudi àutri schedi</string>
@@ -878,7 +878,7 @@
     Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
     The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_set_default_browser">Grapi tutti i lijami nne %1$s\n
-        Cunfijura %1$s comu navigaturi pridifinutu
+        Cunfijura %1$s comu navicaturi pridifinutu
     </string>
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
@@ -935,7 +935,7 @@
     <!-- Headline for the tab crash report screen -->
     <string name="tab_crash_report_headline">Mi dispiaci. Cci fu un prubblema cu sta scheda.</string>
     <!-- Subtitle for the tab crash report screen -->
-    <string name="tab_crash_report_description">Comu navigaturi privatu, nun sarbamu mai nenti e nun è pussìbbili ricupirari sta scheda.</string>
+    <string name="tab_crash_report_description">Comu navicaturi privatu, nun sarbamu mai nenti e nun è pussìbbili ricupirari sta scheda.</string>
     <!-- Label for button to close the tab-->
     <string name="tab_crash_report_close_tab_button_label">Chiuji scheda</string>
 
@@ -1054,14 +1054,14 @@
     <string name="promote_search_widget_dialog_picture_content_description">Stigghiu di risciduta</string>
 
     <!-- This is the title of promote search widget dialog. -->
-    <string name="promote_search_widget_dialog_title">Crunuluggìa di navigazzioni scancillata! 🎉</string>
+    <string name="promote_search_widget_dialog_title">Crunuluggìa di navicazzioni scancillata! 🎉</string>
 
     <!-- Banner Info Message than will appear when user first enters in the app. The location is at the toolbar. -->
-    <string name="cfr_for_start_browsing">Accumincia a to sissioni di navigazzioni privata, e firmamu i trazzatura e autri cosi tinti mentri chi nàvighi.</string>
+    <string name="cfr_for_start_browsing">Accumincia a to sissioni di navicazzioni privata, e firmamu i trazzatura e autri cosi tinti mentri chi nàvichi.</string>
 
     <!-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. "Focus") -->
-    <string name="promote_search_widget_dialog_subtitle">Ti lassamu â to navigazzioni privata, ma a pròssima vota pàrtiti cchiù lestu cû stigghiu di %1$s nnâ to schirmata mastra.</string>
+    <string name="promote_search_widget_dialog_subtitle">Ti lassamu â to navicazzioni privata, ma a pròssima vota pàrtiti cchiù lestu cû stigghiu di %1$s nnâ to schirmata mastra.</string>
 
     <!-- This is te text from add search widget to home screen button .The button is located on
     promote search widget dialog. -->
