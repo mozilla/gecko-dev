@@ -520,11 +520,6 @@ bool IsSegmentBreakSkipChar(uint32_t u) {
          intl::UnicodeProperties::GetScriptCode(u) != intl::Script::HANGUL;
 }
 
-bool IsEastAsianPunctuation(uint32_t u) {
-  return intl::UnicodeProperties::IsEastAsianWidthFHW(u) &&
-         intl::UnicodeProperties::IsPunctuation(u);
-}
-
 bool IsPunctuationForWordSelect(char16_t aCh) {
   const uint8_t cat = unicode::GetGeneralCategory(aCh);
   switch (cat) {

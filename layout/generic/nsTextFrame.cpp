@@ -1322,7 +1322,6 @@ BuildTextRunsScanner::FindBoundaryResult BuildTextRunsScanner::FindBoundaries(
     uint32_t start = textFrame->GetContentOffset();
     uint32_t length = textFrame->GetContentLength();
     const void* text;
-    const nsAtom* language = textFrame->StyleFont()->mLanguage;
     if (frag->Is2b()) {
       // It is possible that we may end up removing all whitespace in
       // a piece of text because of The White Space Processing Rules,
@@ -1337,7 +1336,7 @@ BuildTextRunsScanner::FindBoundaryResult BuildTextRunsScanner::FindBoundaries(
       char16_t* bufStart = aState->mBuffer.Elements();
       char16_t* bufEnd = nsTextFrameUtils::TransformText(
           frag->Get2b() + start, length, bufStart, compression, &incomingFlags,
-          &skipChars, &analysisFlags, language);
+          &skipChars, &analysisFlags);
       text = bufStart;
       length = bufEnd - bufStart;
     } else {
@@ -2319,7 +2318,6 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
     int32_t contentStart = mappedFlow->mStartFrame->GetContentOffset();
     int32_t contentEnd = mappedFlow->GetContentEnd();
     int32_t contentLength = contentEnd - contentStart;
-    const nsAtom* language = f->StyleFont()->mLanguage;
 
     TextRunMappedFlow* newFlow = &userMappedFlows[i];
     newFlow->mStartFrame = mappedFlow->mStartFrame;
@@ -2341,7 +2339,7 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
       char16_t* bufStart = static_cast<char16_t*>(aTextBuffer);
       char16_t* bufEnd = nsTextFrameUtils::TransformText(
           frag->Get2b() + contentStart, contentLength, bufStart, compression,
-          &mNextRunContextInfo, &skipChars, &analysisFlags, language);
+          &mNextRunContextInfo, &skipChars, &analysisFlags);
       aTextBuffer = bufEnd;
       currentTransformedTextOffset =
           bufEnd - static_cast<const char16_t*>(textPtr);
@@ -2358,7 +2356,7 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
         uint8_t* end = nsTextFrameUtils::TransformText(
             reinterpret_cast<const uint8_t*>(frag->Get1b()) + contentStart,
             contentLength, bufStart, compression, &mNextRunContextInfo,
-            &skipChars, &analysisFlags, language);
+            &skipChars, &analysisFlags);
         aTextBuffer =
             ExpandBuffer(static_cast<char16_t*>(aTextBuffer),
                          tempBuf.Elements(), end - tempBuf.Elements());
@@ -2369,7 +2367,7 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
         uint8_t* end = nsTextFrameUtils::TransformText(
             reinterpret_cast<const uint8_t*>(frag->Get1b()) + contentStart,
             contentLength, bufStart, compression, &mNextRunContextInfo,
-            &skipChars, &analysisFlags, language);
+            &skipChars, &analysisFlags);
         aTextBuffer = end;
         currentTransformedTextOffset =
             end - static_cast<const uint8_t*>(textPtr);
@@ -2620,7 +2618,6 @@ bool BuildTextRunsScanner::SetupLineBreakerContext(gfxTextRun* aTextRun) {
   }
 
   gfxSkipChars skipChars;
-  const nsAtom* language = mMappedFlows[0].mStartFrame->StyleFont()->mLanguage;
 
   for (uint32_t i = 0; i < mMappedFlows.Length(); ++i) {
     MappedFlow* mappedFlow = &mMappedFlows[i];
@@ -2642,7 +2639,7 @@ bool BuildTextRunsScanner::SetupLineBreakerContext(gfxTextRun* aTextRun) {
       char16_t* bufStart = static_cast<char16_t*>(textPtr);
       char16_t* bufEnd = nsTextFrameUtils::TransformText(
           frag->Get2b() + contentStart, contentLength, bufStart, compression,
-          &mNextRunContextInfo, &skipChars, &analysisFlags, language);
+          &mNextRunContextInfo, &skipChars, &analysisFlags);
       textPtr = bufEnd;
     } else {
       if (mDoubleByteText) {
@@ -2656,7 +2653,7 @@ bool BuildTextRunsScanner::SetupLineBreakerContext(gfxTextRun* aTextRun) {
         uint8_t* end = nsTextFrameUtils::TransformText(
             reinterpret_cast<const uint8_t*>(frag->Get1b()) + contentStart,
             contentLength, bufStart, compression, &mNextRunContextInfo,
-            &skipChars, &analysisFlags, language);
+            &skipChars, &analysisFlags);
         textPtr = ExpandBuffer(static_cast<char16_t*>(textPtr),
                                tempBuf.Elements(), end - tempBuf.Elements());
       } else {
@@ -2664,7 +2661,7 @@ bool BuildTextRunsScanner::SetupLineBreakerContext(gfxTextRun* aTextRun) {
         uint8_t* end = nsTextFrameUtils::TransformText(
             reinterpret_cast<const uint8_t*>(frag->Get1b()) + contentStart,
             contentLength, bufStart, compression, &mNextRunContextInfo,
-            &skipChars, &analysisFlags, language);
+            &skipChars, &analysisFlags);
         textPtr = end;
       }
     }
@@ -5374,7 +5371,7 @@ void nsTextFrame::UnionAdditionalOverflow(nsPresContext* aPresContext,
       nscoord topOrLeft(nscoord_MAX), bottomOrRight(nscoord_MIN);
       typedef gfxFont::Metrics Metrics;
       auto accumulateDecorationRect =
-          [&](const LineDecoration& dec, gfxFloat Metrics::* lineSize,
+          [&](const LineDecoration& dec, gfxFloat Metrics::*lineSize,
               mozilla::StyleTextDecorationLine lineType) {
             params.style = dec.mStyle;
             // If the style is solid, let's include decoration line rect of
@@ -7122,7 +7119,7 @@ void nsTextFrame::DrawTextRunAndDecorations(
 
   typedef gfxFont::Metrics Metrics;
   auto paintDecorationLine = [&](const LineDecoration& dec,
-                                 gfxFloat Metrics::* lineSize,
+                                 gfxFloat Metrics::*lineSize,
                                  StyleTextDecorationLine lineType) {
     if (dec.mStyle == StyleTextDecorationStyle::None) {
       return;

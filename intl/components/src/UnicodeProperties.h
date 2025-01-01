@@ -172,23 +172,6 @@ class UnicodeProperties final {
   }
 
   /**
-   * Check if the width of aCh is full width, half width or wide.
-   */
-  static inline bool IsEastAsianWidthFHW(uint32_t aCh) {
-    switch (GetIntPropertyValue(aCh, IntProperty::EastAsianWidth)) {
-      case U_EA_FULLWIDTH:
-      case U_EA_HALFWIDTH:
-      case U_EA_WIDE:
-        return true;
-      case U_EA_AMBIGUOUS:
-      case U_EA_NARROW:
-      case U_EA_NEUTRAL:
-        return false;
-    }
-    return false;
-  }
-
-  /**
    * Check if the width of aCh is full width, half width or wide
    * excluding emoji.
    */
@@ -239,24 +222,6 @@ class UnicodeProperties final {
         return false;
     }
     return false;
-  }
-
-  /**
-   * Check if the CharType of aCh is a punctuation type.
-   */
-  static inline bool IsPunctuation(uint32_t aCh) {
-    switch (CharType(aCh)) {
-      case GeneralCategory::Dash_Punctuation:
-      case GeneralCategory::Open_Punctuation:
-      case GeneralCategory::Close_Punctuation:
-      case GeneralCategory::Connector_Punctuation:
-      case GeneralCategory::Other_Punctuation:
-      case GeneralCategory::Initial_Punctuation:
-      case GeneralCategory::Final_Punctuation:
-        return true;
-      default:
-        return false;
-    }
   }
 
   /**
