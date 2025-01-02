@@ -12786,3 +12786,142 @@ usage:
     expires: never
     send_in_pings:
       - usage-reporting
+
+# This was taken from: https://searchfox.org/mozilla-central/rev/d8f4a94563b0a28c485f0dbfaf56b92434242d1e/toolkit/components/reportbrokensite/metrics.yaml#13-737,
+# without the irrelevant metrics for Fenix
+broken_site_report:
+  description:
+    type: text
+    expires: never
+    data_sensitivity:
+      - highly_sensitive
+    description: >
+      An optional description of the site issue the user is experiencing. May contain PII.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  url:
+    type: url
+    expires: never
+    data_sensitivity:
+      - highly_sensitive
+    description: >
+      The URL of the site being reported. May contain PII.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+broken_site_report.tab_info:
+  useragent_string:
+    type: text
+    expires: never
+    data_sensitivity:
+      - stored_content
+    description: >
+      The userAgent the site actually sees (may be overridden)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+broken_site_report.browser_info.app:
+  default_useragent_string:
+    type: text
+    expires: never
+    data_sensitivity:
+      - stored_content
+    description: >
+      The default user-agent string of the browser
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+broken_site_report.browser_info.graphics:
+  devices_json:
+    type: text
+    expires: never
+    data_sensitivity:
+      - stored_content
+    description: >
+      JSON array of objects with `vendorID` and `deviceID`.
+      For instance, `[{"vendorID":"0x000", "deviceID":"0x001"}]`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  drivers_json:
+    type: text
+    expires: never
+    data_sensitivity:
+      - stored_content
+    description: >
+      JSON array of objects with `renderer` and `version`.
+      For instance, `[{"renderer":"demo", "version":"0.2"}]`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  features_json:
+    type: text
+    expires: never
+    data_sensitivity:
+      - stored_content
+    description: >
+      JSON object.
+      For instance, `{"WEBRENDER":"available","WEBRENDER_PARTIAL":"disabled (User disabled via pref)"}`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  monitors_json:
+    type: text
+    expires: never
+    data_sensitivity:
+      - stored_content
+    description: >
+      JSON array of objects with `screenWidth`, 'screenHeight`, and `scale`.
+      For instance, `[{"screenWidth":3584,"screenHeight":2240,"scale":2}]`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
