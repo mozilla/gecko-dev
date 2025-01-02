@@ -1,0 +1,28 @@
+{
+  "newtab_mobile_tile_1": [
+    {
+      "format": "tile",
+      "url": "https://firefox.com",
+      "callbacks": {
+        "click": "https://firefox.com/click",
+        "impression": "https://firefox.com/impression"
+      },
+      "image_url": "https://test.com/image1.jpg",
+      "name": "Firefox",
+      "block_key": "1"
+    }
+  ],
+  "newtab_mobile_tile_2": [
+    {
+      "format": "tile",
+      "url": "https://mozilla.com",
+      "callbacks": {
+        "click": "https://mozilla.com/click",
+        "impression": "https://mozilla.com/impression"
+      },
+      "image_url": "https://test.com/image2.jpg",
+      "name": "Mozilla",
+      "block_key": "2"
+    }
+  ]
+}
