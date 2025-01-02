@@ -18,6 +18,9 @@ const isRestrictKeywordsFeatureOn = () =>
   UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate");
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+  });
   let prefs = await openPreferencesViaOpenPreferencesAPI("search", {
     leaveOpen: true,
   });
