@@ -334,7 +334,8 @@ class AnyRef {
     debugAssertCanonicalInt32(value_);
 #endif
     // On 64-bit targets, we only care about the low 4-bytes.
-    uint32_t truncatedValue = *reinterpret_cast<const uint32_t*>(&value_);
+    uint32_t truncatedValue;
+    memcpy(&truncatedValue, &value_, sizeof(uint32_t));
     // Perform a right arithmetic shift (see AnyRef::fromI31 for more details),
     // avoiding undefined behavior by using an unsigned type.
     uint32_t shiftedValue = value_ >> 1;
@@ -342,7 +343,7 @@ class AnyRef {
       shiftedValue |= (1 << 31);
     }
     // Perform a bitwise cast to see the result as a signed value.
-    return *reinterpret_cast<int32_t*>(&shiftedValue);
+    return mozilla::BitwiseCast<int32_t>(shiftedValue);
   }
 
   // Convert from AnyRef to a JS Value. This currently does not require any
