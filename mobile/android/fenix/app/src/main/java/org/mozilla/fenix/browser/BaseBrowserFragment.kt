@@ -2445,7 +2445,10 @@ abstract class BaseBrowserFragment :
         browserEngine.behavior = null
         browserEngine.bottomMargin = 0
         browserEngine.topMargin = 0
-        getSwipeRefreshLayout().translationY = 0f
+        getSwipeRefreshLayout().apply {
+            translationY = 0f
+            requestLayout()
+        }
 
         getEngineView().apply {
             setDynamicToolbarMaxHeight(0)
