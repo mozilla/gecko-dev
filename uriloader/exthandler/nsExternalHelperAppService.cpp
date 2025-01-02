@@ -455,9 +455,7 @@ struct nsDefaultMimeTypeEntry {
 static const nsDefaultMimeTypeEntry defaultMimeEntries[] = {
     // The following are those extensions that we're asked about during startup,
     // sorted by order used
-    {IMAGE_GIF, "gif"},
     {TEXT_XML, "xml"},
-    {APPLICATION_RDF, "rdf"},
     {IMAGE_PNG, "png"},
     // -- end extensions used during startup
     {TEXT_CSS, "css"},
@@ -466,11 +464,14 @@ static const nsDefaultMimeTypeEntry defaultMimeEntries[] = {
     {IMAGE_SVG_XML, "svg"},
     {TEXT_HTML, "html"},
     {TEXT_HTML, "htm"},
+    {IMAGE_GIF, "gif"},
+    {IMAGE_WEBP, "webp"},
     {APPLICATION_XPINSTALL, "xpi"},
-    {"application/xhtml+xml", "xhtml"},
-    {"application/xhtml+xml", "xht"},
+    {APPLICATION_XHTML_XML, "xhtml"},
+    {APPLICATION_XHTML_XML, "xht"},
     {TEXT_PLAIN, "txt"},
     {APPLICATION_JSON, "json"},
+    {APPLICATION_RDF, "rdf"},
     {APPLICATION_XJAVASCRIPT, "mjs"},
     {APPLICATION_XJAVASCRIPT, "js"},
     {APPLICATION_XJAVASCRIPT, "jsm"},
