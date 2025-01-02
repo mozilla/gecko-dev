@@ -93,13 +93,6 @@ object ApplicationExitInfoMetrics {
                         pss = historicalExit.pss.toValueInMB(),
                         rss = historicalExit.rss.toValueInMB(),
                         reason = historicalExit.reason.toProcessExitReason(),
-                        // we want to know the death description for application exits with REASON_OTHER
-                        deathDescription =
-                        if (historicalExit.reason == ApplicationExitInfo.REASON_OTHER) {
-                            historicalExit.description
-                        } else {
-                            null
-                        },
                     ),
                 )
             }

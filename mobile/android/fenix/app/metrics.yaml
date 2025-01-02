@@ -9791,10 +9791,6 @@ app_exit_info:
         description: |
           The reason why process has exited.
           See ApplicationExitInfo for the reason values.
-      death_description:
-        type: string
-        description: |
-          The human readable description of process' death.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1836795
     data_reviews:
