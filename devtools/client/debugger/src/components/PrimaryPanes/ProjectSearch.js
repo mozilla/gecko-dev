@@ -375,7 +375,7 @@ export class ProjectSearch extends Component {
         : L10N.getStr("projectTextSearch.noResults");
     return div(
       {
-        className: "no-result-msg absolute-center",
+        className: "no-result-msg",
       },
       msg
     );
