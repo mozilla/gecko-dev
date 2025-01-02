@@ -97,12 +97,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Tutup</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Fitur privasi kami yang paling kuat dan juga mengisolasi pelacak lintas situs.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Pelajari tentang Perlindungan Kuki Total</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -115,12 +109,6 @@
     <string name="navbar_cfr_message_2">Di situs web, bilah ini terselip saat Anda menggulir ke bawah untuk ruang penjelajahan tambahan.</string>
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Ketuk dan tahan panah untuk berpindah antar laman dalam riwayat tab ini.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Baru: panah maju dan kembali sekali-ketuk</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Nikmati navigasi lebih cepat yang selalu ada di ujung jari Anda.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Akses kamera diperlukan. Buka pengaturan Android, ketuk izin, dan ketuk izinkan.</string>
@@ -351,7 +339,7 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">Aktifkan Tampilan Pembaca</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">Matikan Tampilan Pembaca</string>
+    <string name="browser_menu_turn_off_reader_view">Matikan Tampilan Pembaca</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Terjemahkan laman…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
@@ -435,8 +423,6 @@
     <string name="search_engine_icon_content_description_1">Mesin pencari: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Temui beranda pribadi Anda. Tab, markah, dan hasil pencarian terkini akan muncul di sini.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Selamat datang di Internet yang lebih pribadi</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -545,6 +531,17 @@
     <string name="onboarding_add_on_add_button_content_description">Tambahkan tombol pengaya</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Nilai %1$s dari 5</string>
+
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Gelap</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Terang</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Sistem otomatis</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Gambar header besar dari tampilan pemilihan tema yang menunjukkan alat pembuat dan seniman bergambar.</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Gambar tema %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -940,16 +937,23 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Data penggunaan dan teknis</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Pelajari lebih lanjut</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Bagikan data kinerja, penggunaan, perangkat keras dan pengubahsuaian peramban Anda dengan Mozilla untuk membantu kami membuat %1$s semakin baik</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Data pemasaran</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Bagikan data penggunaan dasar dengan Adjust, vendor pemasaran seluler kami</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Kirim laporan kerusakan secara otomatis</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Bagikan data kerusakan secara otomatis saat memulai dengan Mozilla setelah terjadi kerusakan</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Bagikan data penggunaan dasar dengan Adjust, vendor pemasaran seluler kami</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Bagikan informasi tentang bagaimana Anda menemukan Firefox dengan mitra pemasaran Mozilla. Ini membantu kami menumbuhkan Firefox dan membangun internet yang lebih baik</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">Pelajari lebih lanjut tentang data pemasaran</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Kirim laporan kerusakan secara otomatis</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Bagikan data kerusakan secara otomatis saat memulai dengan Mozilla setelah terjadi kerusakan</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Kajian</string>
     <!-- Summary for studies preferences -->
@@ -1115,13 +1119,13 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Pelajari lebih lanjut</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Aplikasi akan berhenti untuk menerapkan perubahan</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikasi akan berhenti untuk menerapkan perubahan</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">OK</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">OK</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Batal</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Batal</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Keluar dari aplikasi untuk menerapkan perubahan…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Keluar dari aplikasi untuk menerapkan perubahan…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -1235,6 +1239,11 @@
     <!-- WebCompat Reporter -->
 
 
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Laporkan situs yang rusak</string>
+
+
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
     <string name="webcompat_reporter_reason_slow">Situs lambat atau tidak berfungsi</string>
@@ -1280,8 +1289,6 @@
     <string name="bookmark_delete_negative">Batal</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Tambah folder</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Markah berhasil disimpan!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Disimpan di “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1629,8 +1636,6 @@
     <string name="snackbar_tabs_closed">Tab ditutup</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Tab ditutup: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Markah tersimpan!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Markah disimpan di “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2425,6 +2430,9 @@
     <!-- Title for error card displayed to the user when an error occurred. -->
     <string name="review_quality_check_generic_error_title">Tidak ada info yang tersedia saat ini</string>
 
+    <!-- Text for body of error card displayed to the user when an error occurred. -->
+    <string name="review_quality_check_generic_error_body">Kami sedang bekerja untuk mengatasi masalah ini. Silakan periksa kembali nanti.</string>
+
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
     <string name="a11y_action_label_collapse">ciutkan</string>
@@ -2492,4 +2500,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>
