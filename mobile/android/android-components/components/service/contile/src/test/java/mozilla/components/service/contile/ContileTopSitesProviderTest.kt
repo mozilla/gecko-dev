@@ -84,7 +84,7 @@ class ContileTopSitesProviderTest {
             whenever(provider.isCacheExpired(false)).thenReturn(true)
             whenever(provider.isCacheExpired(true)).thenReturn(false)
             whenever(provider.readFromDiskCache()).thenReturn(
-                ContileTopSitesProvider.CachedData(
+                CachedData(
                     60L,
                     topSites,
                 ),
@@ -122,7 +122,7 @@ class ContileTopSitesProviderTest {
             }
 
             whenever(provider.readFromDiskCache()).thenReturn(
-                ContileTopSitesProvider.CachedData(
+                CachedData(
                     300000,
                     mock(),
                 ),
@@ -196,29 +196,28 @@ class ContileTopSitesProviderTest {
         val provider =
             spy(ContileTopSitesProvider(testContext, client = mock()))
 
-        provider.cacheState =
-            ContileTopSitesProvider.CacheState(isCacheValid = false)
+        provider.cacheState = CacheState(isCacheValid = false)
         assertTrue(provider.isCacheExpired(false))
 
-        provider.cacheState = ContileTopSitesProvider.CacheState(
+        provider.cacheState = CacheState(
             isCacheValid = true,
             localCacheMaxAge = Date().time - 60 * DateUtils.MINUTE_IN_MILLIS,
         )
         assertTrue(provider.isCacheExpired(false))
 
-        provider.cacheState = ContileTopSitesProvider.CacheState(
+        provider.cacheState = CacheState(
             isCacheValid = true,
             localCacheMaxAge = Date().time + 60 * DateUtils.MINUTE_IN_MILLIS,
         )
         assertFalse(provider.isCacheExpired(false))
 
-        provider.cacheState = ContileTopSitesProvider.CacheState(
+        provider.cacheState = CacheState(
             isCacheValid = true,
             serverCacheMaxAge = Date().time - 60 * DateUtils.MINUTE_IN_MILLIS,
         )
         assertTrue(provider.isCacheExpired(true))
 
-        provider.cacheState = ContileTopSitesProvider.CacheState(
+        provider.cacheState = CacheState(
             isCacheValid = true,
             serverCacheMaxAge = Date().time + 60 * DateUtils.MINUTE_IN_MILLIS,
         )
