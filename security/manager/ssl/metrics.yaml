@@ -89,11 +89,12 @@ tls:
       - technical
     bugs:
       - https://bugzilla.mozilla.org/1874963
+      - https://bugzilla.mozilla.org/1933879
     data_reviews:
       - https://bugzilla.mozilla.org/1874963
     notification_emails:
       - jschanck@mozilla.com
-    expires: 136
+    expires: 143
     labels:
       - PR_CONNECT_RESET_ERROR
       - PR_END_OF_FILE_ERROR
