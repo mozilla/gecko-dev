@@ -113,8 +113,8 @@ class ContileTopSitesProvider(
                 return try {
                     val jsonBody = JSONObject(responseBody)
                     writeToDiskCache(
-                        response.headers.computeValidFor() * DateUtils.SECOND_IN_MILLIS,
-                        jsonBody.getJSONArray(CACHE_TOP_SITES_KEY),
+                        validFor = response.headers.computeValidFor() * DateUtils.SECOND_IN_MILLIS,
+                        topSites = jsonBody.getJSONArray(CACHE_TOP_SITES_KEY),
                     )
 
                     jsonBody.getTopSites()
@@ -165,9 +165,9 @@ class ContileTopSitesProvider(
 
                 // Update the cache state to reflect the current status
                 cacheState = cacheState.computeMaxAges(
-                    System.currentTimeMillis(),
-                    maxCacheAgeInSeconds * DateUtils.SECOND_IN_MILLIS,
-                    validFor,
+                    lastModified = System.currentTimeMillis(),
+                    localMaxAge = maxCacheAgeInSeconds * DateUtils.SECOND_IN_MILLIS,
+                    serverMaxAge = validFor,
                 )
             }
         }
@@ -196,9 +196,9 @@ class ContileTopSitesProvider(
         cacheState =
             if (file.exists()) {
                 cacheState.computeMaxAges(
-                    file.lastModified(),
-                    maxCacheAgeInSeconds * DateUtils.SECOND_IN_MILLIS,
-                    (readFromDiskCache()?.validFor ?: 0L),
+                    lastModified = file.lastModified(),
+                    localMaxAge = maxCacheAgeInSeconds * DateUtils.SECOND_IN_MILLIS,
+                    serverMaxAge = (readFromDiskCache()?.validFor ?: 0L),
                 )
             } else {
                 cacheState.invalidate()
