@@ -2240,6 +2240,72 @@ loser:
     return module;
 }
 
+SECMODModule *
+SECMOD_LoadModuleWithFunction(const char *moduleName, CK_C_GetFunctionList fentry)
+{
+    SECMODModule *module = NULL;
+    SECMODModule *oldModule = NULL;
+    SECStatus rv;
+
+    /* initialize the underlying module structures */
+    SECMOD_Init();
+
+    module = secmod_NewModule();
+    if (module == NULL) {
+        goto loser;
+    }
+
+    module->commonName = PORT_ArenaStrdup(module->arena, moduleName ? moduleName : "");
+    module->internal = PR_FALSE;
+    module->isFIPS = PR_FALSE;
+    /* if the system FIPS mode is enabled, force FIPS to be on */
+    if (SECMOD_GetSystemFIPSEnabled()) {
+        module->isFIPS = PR_TRUE;
+    }
+
+    module->isCritical = PR_FALSE;
+    /* new field */
+    module->trustOrder = NSSUTIL_DEFAULT_TRUST_ORDER;
+    /* new field */
+    module->cipherOrder = NSSUTIL_DEFAULT_CIPHER_ORDER;
+    /* new field */
+    module->isModuleDB = PR_FALSE;
+    module->moduleDBOnly = PR_FALSE;
+
+    module->ssl[0] = 0;
+    module->ssl[1] = 0;
+
+    secmod_PrivateModuleCount++;
+
+    /* load it */
+    rv = secmod_LoadPKCS11ModuleFromFunction(module, &oldModule, fentry);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    /* if we just reload an old module, no need to add it to any lists.
+     * we simple release all our references */
+    if (oldModule) {
+        /* This module already exists, don't link it anywhere. This
+         * will probably destroy this module */
+        SECMOD_DestroyModule(module);
+        return oldModule;
+    }
+
+    SECMOD_AddModuleToList(module);
+    /* handle any additional work here */
+    return module;
+
+loser:
+    if (module) {
+        if (module->loaded) {
+            SECMOD_UnloadModule(module);
+        }
+        SECMOD_AddModuleToUnloadList(module);
+    }
+    return module;
+}
+
 /*
  * load a PKCS#11 module and add it to the default NSS trust domain
  */
@@ -2248,6 +2314,25 @@ SECMOD_LoadUserModule(char *modulespec, SECMODModule *parent, PRBool recurse)
 {
     SECStatus rv = SECSuccess;
     SECMODModule *newmod = SECMOD_LoadModule(modulespec, parent, recurse);
+    SECMODListLock *moduleLock = SECMOD_GetDefaultModuleListLock();
+
+    if (newmod) {
+        SECMOD_GetReadLock(moduleLock);
+        rv = STAN_AddModuleToDefaultTrustDomain(newmod);
+        SECMOD_ReleaseReadLock(moduleLock);
+        if (SECSuccess != rv) {
+            SECMOD_DestroyModule(newmod);
+            return NULL;
+        }
+    }
+    return newmod;
+}
+
+SECMODModule *
+SECMOD_LoadUserModuleWithFunction(const char *moduleName, CK_C_GetFunctionList fentry)
+{
+    SECStatus rv = SECSuccess;
+    SECMODModule *newmod = SECMOD_LoadModuleWithFunction(moduleName, fentry);
     SECMODListLock *moduleLock = SECMOD_GetDefaultModuleListLock();
 
     if (newmod) {

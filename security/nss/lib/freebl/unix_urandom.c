@@ -22,7 +22,7 @@ RNG_SystemInfoForRNG(void)
         return;
     }
     RNG_RandomUpdate(bytes, numBytes);
-    PORT_Memset(bytes, 0, sizeof bytes);
+    PORT_SafeZero(bytes, sizeof bytes);
 }
 
 size_t
@@ -41,6 +41,9 @@ RNG_SystemRNG(void *dest, size_t maxLen)
         if (getBytes > GETENTROPY_MAX_BYTES) {
             getBytes = GETENTROPY_MAX_BYTES;
         }
+
+        /* get entropy returns 0 on success and always return
+         * getBytes on success */
         result = getentropy(buffer, getBytes);
         if (result == 0) { /* success */
             fileBytes += getBytes;
@@ -61,7 +64,7 @@ RNG_SystemRNG(void *dest, size_t maxLen)
     /* ENOSYS means the kernel doesn't support getentropy()/getrandom().
      * Reset the number of bytes to get and fall back to /dev/urandom. */
     fileBytes = 0;
-#endif
+#endif /* platorm has getentropy */
     fd = open("/dev/urandom", O_RDONLY);
     if (fd < 0) {
         PORT_SetError(SEC_ERROR_NEED_RANDOM);

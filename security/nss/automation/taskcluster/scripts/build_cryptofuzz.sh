@@ -8,7 +8,7 @@ source $(dirname "$0")/tools.sh
 export CRYPTOFUZZ_VERSION="687d3064c5cef2b0fe1f30824065a2f2c9c0bbd8"
 export BOTAN_VERSION="3.6.1"
 
-git clone -q https://github.com/guidovranken/cryptofuzz.git
+git clone -q https://github.com/MozillaSecurity/cryptofuzz.git
 git -C cryptofuzz checkout "$CRYPTOFUZZ_VERSION"
 
 git clone -q https://github.com/randombit/botan.git

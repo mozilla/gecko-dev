@@ -144,6 +144,7 @@ STUB_DECLARE(void, PORT_Free_Util, (void *ptr));
 STUB_DECLARE(void, PORT_FreeArena_Util, (PLArenaPool * arena, PRBool zero));
 STUB_DECLARE(int, PORT_GetError_Util, (void));
 STUB_DECLARE(PLArenaPool *, PORT_NewArena_Util, (unsigned long chunksize));
+STUB_DECLARE(void, PORT_SafeZero, (void *p, size_t n));
 STUB_DECLARE(void, PORT_SetError_Util, (int value));
 STUB_DECLARE(void *, PORT_ZAlloc_Util, (size_t len));
 STUB_DECLARE(void *, PORT_ZAllocAligned_Util, (size_t bytes, size_t alignment, void **mem));
@@ -486,6 +487,20 @@ PORT_GetError_stub(void)
 {
     STUB_SAFE_CALL0(PORT_GetError_Util);
     return errno;
+}
+
+extern void
+PORT_SafeZero(void *p, size_t n)
+{
+    STUB_SAFE_CALL2(PORT_SafeZero, p, n);
+    /* just use a generic call in the case where we are running
+     * standalone freebl */
+    if (p != NULL) {
+        volatile unsigned char *__vl = (unsigned char *)p;
+        size_t __nl = n;
+        while (__nl--)
+            *__vl++ = 0;
+    }
 }
 
 extern void

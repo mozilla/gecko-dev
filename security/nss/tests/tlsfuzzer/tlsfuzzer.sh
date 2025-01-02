@@ -56,7 +56,7 @@ tlsfuzzer_init()
 
     # Install tlslite-ng dependencies
     ${QADIR}/../fuzz/config/git-copy.sh https://github.com/warner/python-ecdsa master python-ecdsa
-    ${QADIR}/../fuzz/config/git-copy.sh https://github.com/benjaminp/six master six
+    ${QADIR}/../fuzz/config/git-copy.sh https://github.com/benjaminp/six main six
 
     pushd "$TLSFUZZER"
     ln -s ../python-ecdsa/src/ecdsa ecdsa
