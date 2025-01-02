@@ -38,57 +38,21 @@ These are instructions for preparing a release branch for Firefox Android and st
 Now that we made the Beta cut, we can remove all the unused strings marked moz:removedIn <= `[release_version subtract 1]`. `[release_version]` should follow the Firefox Release version. See [Firefox Release Calendar](https://wiki.mozilla.org/Release_Management/Calendar) for the current Release version. We will also want to bump the Android Component's [changelog.md](https://hg.mozilla.org/mozilla-central/file/default/mobile/android/android-components/docs/changelog.md) with the new Nightly development section.
 
 0. Wait for greenlight coming from Release Engineering (see #3 above).
-1. File a Bugzilla issue named "Start the Nightly `[nightly_version]` development cycle".
-2. Search and remove all strings marked `moz:removedIn="[release_version subtract 1]"` across Fenix, Focus and Android Components. Please avoid removing strings in the localized `strings.xml` and limit changes only to `values/strings.xml`.
-3. Add the next Nightly in development section in the [changelog.md](https://hg.mozilla.org/mozilla-central/file/default/mobile/android/android-components/docs/changelog.md).:
-  - Add a new `[nightly_version].0 (In Development)` section for the next Nightly version with the next commit and milestone numbers.
-  - Update the `[beta_version].0` section, update the links to `release_v[beta_version]` and specifying the correct commit ranges. This should equate to changing `/blob/main/` to `/blob/releases_v[beta_version]/`.
+1. File a Bugzilla issue named "Start the Nightly `[nightly_version]` development cycle". ([Example here](https://bugzilla.mozilla.org/show_bug.cgi?id=1933192))
+2. Run `./mobile/android/beta-cut.sh BUG_ID`,  with `BUG_ID` being the id of the bug you created at step 1. This will:
+   - Update the [changelog.md](https://hg.mozilla.org/mozilla-central/file/default/mobile/android/android-components/docs/changelog.md)
+   - Search and remove all strings marked `moz:removedIn="[release_version subtract 1]"` across Fenix, Focus and Android Components, limit changes only to `values/strings.xml` (the localized `strings.xml` should not be changed).
+   - Create a commit using the BUG_ID you provided, and describing all the changes that were applied.
+   - Add SERP telemetry json to the [search-telemetry-v2.json](https://hg.mozilla.org/mozilla-central/file/default/mobile/android/android-components/components/feature/search/src/main/assets/search/search_telemetry_v2.json), copying the content from the desktop telemetry dump located at [desktop-search-telemetry-v2.json](https://searchfox.org/mozilla-central/source/services/settings/dumps/main/search-telemetry-v2.json)
 
-      ```diff
-      diff --git a/docs/changelog.md b/docs/changelog.md
-      index 9e95d0e2adc..d901ed38cdd 100644
-      --- a/docs/changelog.md
-      +++ b/docs/changelog.md
-      @@ -4,12 +4,18 @@ title: Changelog
-      permalink: /changelog/
-      ---
-
-      -# 114.0 (In Development)
-      -* [Commits](https://github.com/mozilla-mobile/firefox-android/compare/releases_v113..main)
-      +# 115.0 (In Development)
-      +* [Commits](https://github.com/mozilla-mobile/firefox-android/compare/releases_v114..main)
-      * [Dependencies](https://github.com/mozilla-mobile/firefox-android/blob/main/android-components/plugins/dependencies/src/main/java/DependenciesPlugin.kt)
-      * [Gecko](https://github.com/mozilla-mobile/firefox-android/blob/main/android-components/plugins/dependencies/src/main/java/Gecko.kt)
-      * [Configuration](https://github.com/mozilla-mobile/firefox-android/blob/main/android-components/.config.yml)
-
-      +# 114.0
-      +* [Commits](https://github.com/mozilla-mobile/firefox-android/compare/releases_v113..releases_v114)
-      +* [Dependencies](https://github.com/mozilla-mobile/firefox-android/blob/releases_v114/android-components/plugins/dependencies/src/main/java/DependenciesPlugin.kt)
-      +* [Gecko](https://github.com/mozilla-mobile/firefox-android/blob/releases_v114/android-components/plugins/dependencies/src/main/java/Gecko.kt)
-      +* [Configuration](https://github.com/mozilla-mobile/firefox-android/blob/releases_v114/android-components/.config.yml)
-      +
-      * * **browser-state**
-        * 🌟 Added `DownloadState`.`openInApp` to indicate whether or not the file associated with the download should be opened in a third party app after downloaded successfully, for more information see [bug 1829371](https://bugzilla.mozilla.org/show_bug.cgi?id=1829371) and [bug 1829372](https://bugzilla.mozilla.org/show_bug.cgi?id=1829372).
-      ```
-
-4. Submit a patch for review and land.
-
-### [Dev Team] Renew telemetry
-
-After the Beta cut, another task is to remove all soon to expire telemetry probes. What we're looking for is to create a list of telemetry that will expire in `[nightly_version add 1]`. See [Firefox Release Calendar](https://whattrainisitnow.com/calendar/) for the current Release version. There is a script that will help with finding these soon to expire telemetry.
-
-1. Use the helper in the mobile/android/fenix/tools folder `python3 data_renewal_generate.py [nightly_version add 1]` to detect and generate files that will help create the following files:
-    - `[nightly_version add 1]`_expiry_list.csv
-2. File an issue for removing expired telemetry to address the expired metrics. See [Bug 1881336](https://bugzilla.mozilla.org/show_bug.cgi?id=1881336) for an example.
-3. Remove the expired metrics.  See [example](https://github.com/mozilla-mobile/firefox-android/pull/5700).
-
-### [Dev Team] Add SERP Telemetry json dump
-
-After the beta cut, another task is to add SERP telemetry json to the [search-telemetry-v2.json](https://hg.mozilla.org/mozilla-central/file/default/mobile/android/android-components/components/feature/search/src/main/assets/search/search_telemetry_v2.json)
-The dump is to be fetched from the desktop telemetry dump located at [desktop-search-telemetry-v2.json](https://searchfox.org/mozilla-central/source/services/settings/dumps/main/search-telemetry-v2.json)
+Please read carefully the output of the script and follow the instructions it provides.
+More specifically, you will need to:
+   - Remove the remaining uses of the removed strings and amend the commit. (Only if the output shows remaining uses of removed strings)
+   - Review the changes and make sure they are correct (Some header comments might become useless after the strings removal)
+   - Submit the patch and push to `try`
 
 ### Ask for Help
 
 - Issues related to releases `#releaseduty` on Element
 - Topics about CI (and the way we use Taskcluster) `#Firefox CI` on Element
-- Breakage in PRs due to Gradle issues or GV upgrade problems `#mobile-android-team` on Slack
+- Breakage in PRs due to Gradle issues, usage of `beta-cut.py` or GV upgrade problems `#mobile-android-team` on Slack
