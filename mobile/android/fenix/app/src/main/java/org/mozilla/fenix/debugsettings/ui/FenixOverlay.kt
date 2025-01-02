@@ -22,6 +22,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.lib.state.ext.observeAsState
+import mozilla.telemetry.glean.Glean
 import org.mozilla.fenix.debugsettings.addresses.AddressesDebugLocalesRepository
 import org.mozilla.fenix.debugsettings.addresses.AddressesTools
 import org.mozilla.fenix.debugsettings.addresses.FakeAddressesDebugLocalesRepository
@@ -76,6 +77,10 @@ fun FenixOverlay(
             ),
         ),
         gleanDebugToolsStore = GleanDebugToolsStore(
+            initialState = GleanDebugToolsState(
+                logPingsToConsoleEnabled = Glean.getLogPings(),
+                debugViewTag = Glean.getDebugViewTag() ?: "",
+            ),
             middlewares = listOf(
                 GleanDebugToolsMiddleware(
                     gleanDebugToolsStorage = DefaultGleanDebugToolsStorage(),
@@ -181,7 +186,12 @@ private fun FenixOverlayPreview() {
             BrowserState(selectedTabId = selectedTab.id, tabs = listOf(selectedTab)),
         ),
         cfrToolsStore = CfrToolsStore(),
-        gleanDebugToolsStore = GleanDebugToolsStore(),
+        gleanDebugToolsStore = GleanDebugToolsStore(
+            initialState = GleanDebugToolsState(
+                logPingsToConsoleEnabled = false,
+                debugViewTag = "",
+            ),
+        ),
         inactiveTabsEnabled = true,
         loginsStorage = FakeLoginsStorage(),
         addressesDebugLocalesRepository = FakeAddressesDebugLocalesRepository(),

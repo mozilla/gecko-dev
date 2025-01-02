@@ -274,7 +274,14 @@ private fun GleanDebugToolsPreview() {
                 color = FirefoxTheme.colors.layer1,
             ),
         ) {
-            GleanDebugToolsScreen(gleanDebugToolsStore = GleanDebugToolsStore())
+            GleanDebugToolsScreen(
+                gleanDebugToolsStore = GleanDebugToolsStore(
+                    initialState = GleanDebugToolsState(
+                        logPingsToConsoleEnabled = false,
+                        debugViewTag = "",
+                    ),
+                ),
+            )
         }
     }
 }

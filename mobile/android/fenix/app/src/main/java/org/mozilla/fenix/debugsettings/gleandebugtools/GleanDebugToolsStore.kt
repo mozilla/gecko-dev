@@ -16,8 +16,8 @@ import mozilla.components.lib.state.UiStore
  * @property debugViewTag The debug view tag of the ping.
  */
 data class GleanDebugToolsState(
-    val logPingsToConsoleEnabled: Boolean = false,
-    val debugViewTag: String = "",
+    val logPingsToConsoleEnabled: Boolean,
+    val debugViewTag: String,
 ) : State {
 
     /**
@@ -31,8 +31,6 @@ data class GleanDebugToolsState(
         get() = debugViewTag.length > DEBUG_VIEW_TAG_MAX_LENGTH
 
     companion object {
-        val Initial = GleanDebugToolsState()
-
         internal const val DEBUG_VIEW_TAG_MAX_LENGTH = 20
     }
 }
@@ -109,7 +107,7 @@ internal object GleanDebugToolsReducer {
  * [GleanDebugToolsAction]s dispatched to the store.
  */
 class GleanDebugToolsStore(
-    initialState: GleanDebugToolsState = GleanDebugToolsState(),
+    initialState: GleanDebugToolsState,
     middlewares: List<Middleware<GleanDebugToolsState, GleanDebugToolsAction>> = emptyList(),
 ) : UiStore<GleanDebugToolsState, GleanDebugToolsAction>(
     initialState,
