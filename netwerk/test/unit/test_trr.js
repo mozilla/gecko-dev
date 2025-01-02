@@ -943,7 +943,6 @@ add_task(
     // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
     await new Promise(r => setTimeout(r, 3000));
 
-    Services.fog.initializeFOG();
     Services.fog.testResetFOG();
     // Disable IPv6, so we only send one TRR request.
     Services.prefs.setBoolPref("network.dns.disableIPv6", true);
