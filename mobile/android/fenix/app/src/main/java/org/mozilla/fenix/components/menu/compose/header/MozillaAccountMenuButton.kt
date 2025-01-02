@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,7 @@ private val BUTTON_SHAPE = RoundedCornerShape(size = 8.dp)
 private val ICON_SHAPE = RoundedCornerShape(size = 24.dp)
 private val AVATAR_SIZE = 24.dp
 
+@SuppressWarnings("LongMethod")
 @Composable
 internal fun MozillaAccountMenuButton(
     account: Account?,
@@ -77,14 +79,18 @@ internal fun MozillaAccountMenuButton(
                         text = stringResource(id = R.string.browser_menu_sign_in),
                         color = FirefoxTheme.colors.textSecondary,
                         maxLines = 1,
-                        style = FirefoxTheme.typography.headline7,
+                        style = FirefoxTheme.typography.headline7.merge(
+                            platformStyle = PlatformTextStyle(includeFontPadding = true),
+                        ),
                     )
 
                     Text(
                         text = stringResource(id = R.string.browser_menu_sign_in_caption),
                         color = FirefoxTheme.colors.textSecondary,
                         maxLines = 2,
-                        style = FirefoxTheme.typography.caption,
+                        style = FirefoxTheme.typography.caption.merge(
+                            platformStyle = PlatformTextStyle(includeFontPadding = true),
+                        ),
                     )
                 }
 
@@ -93,14 +99,18 @@ internal fun MozillaAccountMenuButton(
                         text = stringResource(id = R.string.browser_menu_sign_back_in_to_sync),
                         color = FirefoxTheme.colors.textSecondary,
                         maxLines = 1,
-                        style = FirefoxTheme.typography.headline7,
+                        style = FirefoxTheme.typography.headline7.merge(
+                            platformStyle = PlatformTextStyle(includeFontPadding = true),
+                        ),
                     )
 
                     Text(
                         text = stringResource(id = R.string.browser_menu_syncing_paused_caption),
                         color = FirefoxTheme.colors.textCritical,
                         maxLines = 2,
-                        style = FirefoxTheme.typography.caption,
+                        style = FirefoxTheme.typography.caption.merge(
+                            platformStyle = PlatformTextStyle(includeFontPadding = true),
+                        ),
                     )
                 }
 
@@ -110,7 +120,9 @@ internal fun MozillaAccountMenuButton(
                             ?: stringResource(id = R.string.browser_menu_account_settings),
                         color = FirefoxTheme.colors.textSecondary,
                         maxLines = 1,
-                        style = FirefoxTheme.typography.headline7,
+                        style = FirefoxTheme.typography.headline7.merge(
+                            platformStyle = PlatformTextStyle(includeFontPadding = true),
+                        ),
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
