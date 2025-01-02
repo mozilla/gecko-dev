@@ -213,7 +213,7 @@ class covAction(argparse.Action):
         # Don't exit immediately on error
         symbol_retcode = subprocess.call([
             "sancov",
-            "-ignorelist=" + os.path.join(cwd, ".sancov-blacklist"),
+            "-blacklist=" + os.path.join(cwd, ".sancov-blacklist"),
             "-symbolize", sancov_file,
             os.path.join(cwd, "../dist/Debug/bin/ssl_gtest")
         ], stdout=out)

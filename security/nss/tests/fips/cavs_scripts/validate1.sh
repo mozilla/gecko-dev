@@ -21,7 +21,7 @@ name=`basename $request .req`
 echo ">>>>>  $name"
 sed -e 's;;;g' -e 's;	; ;g' -e '/^#/d' $extraneous_response ${TESTDIR}/resp/${name}.rsp > /tmp/y1
 # if we didn't generate any output, flag that as an error
-size=`sum /tmp/y1 | awk '{ print $1 }'`
+size=`sum /tmp/y1 | awk '{ print $NF }'`
 if [ $size -eq 0 ]; then
    echo "${TESTDIR}/resp/${name}.rsp: empty"
    exit 1;

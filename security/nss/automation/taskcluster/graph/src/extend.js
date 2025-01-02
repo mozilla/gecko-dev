@@ -218,7 +218,6 @@ export default async function main() {
       NSS_DISABLE_UNLOAD: "1",
       CC: "clang",
       CCC: "clang++",
-      CFLAGS: "-O2",
     },
     platform: "linux64",
     collection: "asan",

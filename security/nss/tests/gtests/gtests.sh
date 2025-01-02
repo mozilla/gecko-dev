@@ -65,6 +65,11 @@ gtest_start()
     pushd "$DIR"
     GTESTREPORT="$DIR/report.xml"
     PARSED_REPORT="$DIR/report.parsed"
+    # The mozilla::pkix gtests cause an ODR violation that we ignore.
+    # See bug 1588567.
+    if [ "$i" = "mozpkix_gtest" ]; then
+      EXTRA_ASAN_OPTIONS="detect_odr_violation=0"
+    fi
     # NSS CI sets a lower max for PBE iterations, otherwise cert.sh
     # is very slow. Unset this maxiumum for softoken_gtest, as it
     # needs to check the default value.
@@ -73,9 +78,10 @@ gtest_start()
       unset NSS_MAX_MP_PBE_ITERATION_COUNT
     fi
     echo "executing $i"
-    "${BINDIR}/$i" -s "${SOURCE_DIR}/gtests/$i" -d "$DIR" -w \
-                   --gtest_output=xml:"${GTESTREPORT}" \
-                   --gtest_filter="${GTESTFILTER:-*}"
+    ASAN_OPTIONS="$ASAN_OPTIONS:$EXTRA_ASAN_OPTIONS" "${BINDIR}/$i" \
+                 -s "${SOURCE_DIR}/gtests/$i" \
+                 -d "$DIR" -w --gtest_output=xml:"${GTESTREPORT}" \
+                              --gtest_filter="${GTESTFILTER:-*}"
     html_msg $? 0 "$i run successfully"
     if [ "$i" = "softoken_gtest" ]; then
       export NSS_MAX_MP_PBE_ITERATION_COUNT=$OLD_MAX_PBE_ITERATIONS

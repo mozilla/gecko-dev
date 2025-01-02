@@ -27,9 +27,7 @@ popd
 ./cryptofuzz/generate_dict
 
 # Run Cryptofuzz.
-# Decrease the default ASAN quarantine size of 256 MB as we tend to run
-# out of memory on 32-bit.
-ASAN_OPTIONS="quarantine_size_mb=128" ./cryptofuzz/cryptofuzz -dict="cryptofuzz-dict.txt" --force-module=nss "nss/fuzz/corpus/cryptofuzz" "$@"
+./cryptofuzz/cryptofuzz -dict="cryptofuzz-dict.txt" "nss/fuzz/corpus/cryptofuzz" "$@"
 
 # Alert if version is older than half a year.
 cryptofuzz_timestamp=$(git -C cryptofuzz show -s --format=%ct $CRYPTOFUZZ_VERSION)

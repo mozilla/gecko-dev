@@ -1967,9 +1967,8 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
     }
     switch (b) {
       case '-':
-        // Only reference ID labels can start with a hyphen.
-        if (labelLength == 0 && idRole != IDRole::ReferenceID) {
-          return false;
+        if (labelLength == 0) {
+          return false; // Labels must not start with a hyphen.
         }
         labelIsAllNumeric = false;
         labelEndsWithHyphen = true;
@@ -2029,9 +2028,8 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
             (idRole != IDRole::NameConstraint || !isFirstByte)) {
           return false;
         }
-        // Only reference ID labels can end with a hyphen.
-        if (labelEndsWithHyphen && idRole != IDRole::ReferenceID) {
-          return false;
+        if (labelEndsWithHyphen) {
+          return false; // Labels must not end with a hyphen.
         }
         labelLength = 0;
         break;
@@ -2048,9 +2046,8 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
     return false;
   }
 
-  // Only reference ID labels can end with a hyphen.
-  if (labelEndsWithHyphen && idRole != IDRole::ReferenceID) {
-    return false;
+  if (labelEndsWithHyphen) {
+    return false; // Labels must not end with a hyphen.
   }
 
   if (labelIsAllNumeric) {

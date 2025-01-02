@@ -512,7 +512,7 @@ AESKeyWrap_EncryptKWP(AESKeyWrapContext *cx, unsigned char *output,
         PORT_Memcpy(iv + AES_KEY_WRAP_BLOCK_SIZE, input, inputLen);
         rv = AES_Encrypt(&cx->aescx, output, pOutputLen, maxOutputLen, iv,
                          outLen);
-        PORT_SafeZero(iv, sizeof(iv));
+        PORT_Memset(iv, 0, sizeof(iv));
         return rv;
     }
 
@@ -528,7 +528,7 @@ AESKeyWrap_EncryptKWP(AESKeyWrapContext *cx, unsigned char *output,
     PORT_ZFree(newBuf, paddedInputLen);
     /* a little overkill, we only need to clear out the length, but this
      * is easier to verify we got it all */
-    PORT_SafeZero(iv, sizeof(iv));
+    PORT_Memset(iv, 0, sizeof(iv));
     return rv;
 }
 
@@ -631,12 +631,12 @@ AESKeyWrap_DecryptKWP(AESKeyWrapContext *cx, unsigned char *output,
 loser:
     /* if we failed, make sure we don't return any data to the user */
     if ((rv != SECSuccess) && (output == newBuf)) {
-        PORT_SafeZero(newBuf, paddedLen);
+        PORT_Memset(newBuf, 0, paddedLen);
     }
     /* clear out CSP sensitive data from the heap and stack */
     if (allocBuf) {
         PORT_ZFree(allocBuf, paddedLen);
     }
-    PORT_SafeZero(iv, sizeof(iv));
+    PORT_Memset(iv, 0, sizeof(iv));
     return rv;
 }

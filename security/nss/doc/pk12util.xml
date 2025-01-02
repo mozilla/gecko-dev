@@ -38,7 +38,6 @@
       <arg>-P dbprefix</arg>
       <arg>-r</arg>
       <arg>-v</arg>
-      <arg>-I</arg>
       <arg>--cert-key-len  certKeyLength</arg>
       <arg>-k slotPasswordFile|-K slotPassword</arg>
       <arg>-w p12filePasswordFile|-W p12filePassword</arg>
@@ -145,11 +144,6 @@
       <varlistentry>
         <term>-v </term>
         <listitem><para>Enable debug logging when importing.</para></listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term>-I </term>
-        <listitem><para>Ignore integrity check results on importing and listing.</para></listitem>
       </varlistentry>
 
       <varlistentry>
@@ -323,7 +317,7 @@ Certificate    Friendly Name: Thawte Freemail Member's Thawte Consulting (Pty) L
 
   <refsection id="encryption">
     <title>Password Encryption</title>
-    <para>PKCS #12 provides for not only the protection of the private keys but also the certificate and meta-data associated with the keys. Password-based encryption is used to protect private keys on export to a PKCS #12 file and, optionally, the associated certificates. If no algorithm is specified, the tool defaults to using AES-256-CBC for private key encryption and AES-128-CBC for certificate encryption. If certificate encryption is not wanted, specify <userinput>"NONE"</userinput> as the argument of the <option>-C</option> option.</para>
+    <para>PKCS #12 provides for not only the protection of the private keys but also the certificate and meta-data associated with the keys. Password-based encryption is used to protect private keys on export to a PKCS #12 file and, optionally, the associated certificates. If no algorithm is specified, the tool defaults to using PKCS #12 SHA-1 and 3-key triple DES for private key encryption. When not in FIPS mode, PKCS #12 SHA-1 and 40-bit RC4 is used for certificate encryption. When in FIPS mode, there is no certificate encryption. If certificate encryption is not wanted, specify <userinput>"NONE"</userinput> as the argument of the <option>-C</option> option.</para>
     <para>The private key is always protected with strong encryption by default.</para>
     <para>Several types of ciphers are supported.</para>
     <variablelist>
@@ -333,7 +327,6 @@ Certificate    Friendly Name: Thawte Freemail Member's Thawte Consulting (Pty) L
         <listitem>
 	  <itemizedlist>
 	    <listitem><para>PBES2 with AES-CBC-Pad as underlying encryption scheme (<userinput>"AES-128-CBC"</userinput>, <userinput>"AES-192-CBC"</userinput>, and <userinput>"AES-256-CBC"</userinput>)</para></listitem>
-	    <listitem><para>PBES2 with CAMELLIA-CBC-Pad as underlying encryption scheme (<userinput>"CAMELLIA-128-CBC"</userinput>, <userinput>"CAMELLIA-192-CBC"</userinput>, and <userinput>"CAMELLIA-256-CBC"</userinput>)</para></listitem>
 	  </itemizedlist>
         </listitem>
       </varlistentry>

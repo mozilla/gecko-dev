@@ -4,18 +4,32 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 #include "cert.h"
+#include "seccomon.h"
 
-#include "asn1/mutators.h"
-#include "base/database.h"
-#include "base/mutate.h"
+#include "asn1_mutators.h"
+#include "shared.h"
+
+static SECStatus importFunc(void *arg, SECItem **certs, int numCerts) {
+  // This way we check that the callback gets called with the correct
+  // `numCerts`, as an invalid value potentially causes `certs` to go
+  // out-of-bounds. Testing `CERT_Hexify` is a nice bonus.
+  while (numCerts--) {
+    char *hex = CERT_Hexify(*certs, false);
+    free(hex);
+
+    certs++;
+  }
+
+  return SECSuccess;
+}
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-  static NSSDatabase db = NSSDatabase();
+  static std::unique_ptr<NSSDatabase> db(new NSSDatabase());
 
-  CERTCertificate *cert = CERT_DecodeCertFromPackage((char *)data, (int)size);
-  CERT_DestroyCertificate(cert);
+  CERT_DecodeCertPackage((char *)data, (int)size, importFunc, nullptr);
 
   return 0;
 }
