@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.service.pocket.ext
+package mozilla.components.support.base.ext
 
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.MutableHeaders
@@ -23,7 +23,7 @@ import java.io.IOException
 private const val EXPECTED_DEFAULT_RESPONSE_BODY = "default response body"
 private const val TEST_URL = "https://mozilla.org"
 
-class ConceptFetchKtTest {
+class ClientTest {
 
     private lateinit var client: Client
     private lateinit var defaultResponse: Response

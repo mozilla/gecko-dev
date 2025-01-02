@@ -16,10 +16,10 @@ import mozilla.components.concept.fetch.Response
 import mozilla.components.concept.fetch.isSuccess
 import mozilla.components.service.pocket.BuildConfig
 import mozilla.components.service.pocket.PocketStoriesRequestConfig
-import mozilla.components.service.pocket.ext.fetchBodyOrNull
 import mozilla.components.service.pocket.logger
 import mozilla.components.service.pocket.spocs.api.SpocsEndpointRaw.Companion.newInstance
 import mozilla.components.service.pocket.stories.api.PocketEndpointRaw.Companion.newInstance
+import mozilla.components.support.base.ext.fetchBodyOrNull
 import org.json.JSONObject
 import java.io.IOException
 import java.util.UUID

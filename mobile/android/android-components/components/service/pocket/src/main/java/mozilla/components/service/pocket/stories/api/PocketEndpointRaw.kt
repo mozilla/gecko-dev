@@ -8,8 +8,8 @@ import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
-import mozilla.components.service.pocket.ext.fetchBodyOrNull
 import mozilla.components.service.pocket.stories.api.PocketEndpointRaw.Companion.newInstance
+import mozilla.components.support.base.ext.fetchBodyOrNull
 
 /**
  * Makes requests to the Pocket endpoint and returns the raw JSON data.
