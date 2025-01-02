@@ -180,7 +180,10 @@ add_task(
  */
 add_task(async function test_idle_timeout() {
   const { cleanup, remoteClients } = await setup({
-    prefs: [["extensions.experiments.enabled", true]],
+    prefs: [
+      ["extensions.experiments.enabled", true],
+      ["extensions.ml.enabled", true],
+    ],
   });
   let extension = createExtension(async function background() {
     const options = {
