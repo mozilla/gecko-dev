@@ -102,32 +102,59 @@ impl ColorFunction<AbsoluteColor> {
 
         Ok(match self {
             ColorFunction::Rgb(origin_color, r, g, b, alpha) => {
-                #[inline]
-                fn resolve(
-                    component: &ColorComponent<NumberOrPercentageComponent>,
-                    origin_color: Option<&AbsoluteColor>,
-                ) -> Result<u8, ()> {
-                    Ok(clamp_floor_256_f32(
-                        component
-                            .resolve(origin_color)?
-                            .map(|value| value.to_number(u8::MAX as f32))
-                            .unwrap_or(0.0),
-                    ))
-                }
+                // Use `color(srgb ...)` to serialize `rgb(...)` if an origin color is available;
+                // this is the only reason for now.
+                let use_color_syntax = origin_color.is_some();
 
-                let origin_color = origin_color
-                    .as_ref()
-                    .map(|o| o.to_color_space(ColorSpace::Srgb).into_srgb_legacy());
+                if use_color_syntax {
+                    let origin_color = origin_color.as_ref().map(|origin| {
+                        let origin = origin.to_color_space(ColorSpace::Srgb);
+                        // Because rgb(..) syntax have components in range [0..255), we have to
+                        // map them.
+                        // NOTE: The IS_LEGACY_SRGB flag is not added back to the color, because
+                        //       we're going to return the modern color(srgb ..) syntax.
+                        AbsoluteColor::new(
+                            ColorSpace::Srgb,
+                            origin.c0().map(|v| v * 255.0),
+                            origin.c1().map(|v| v * 255.0),
+                            origin.c2().map(|v| v * 255.0),
+                            origin.alpha(),
+                        )
+                    });
 
-                let r = resolve(r, origin_color.as_ref())?;
-                let g = resolve(g, origin_color.as_ref())?;
-                let b = resolve(b, origin_color.as_ref())?;
-                let alpha = alpha!(alpha, origin_color.as_ref()).unwrap_or(0.0);
-
-                if origin_color.is_some() {
-                    AbsoluteColor::new(ColorSpace::Srgb, r, g, b, alpha)
+                    // We have to map all the components back to [0..1) range after all the
+                    // calculations.
+                    AbsoluteColor::new(
+                        ColorSpace::Srgb,
+                        r.resolve(origin_color.as_ref())?
+                            .map(|c| c.to_number(255.0) / 255.0),
+                        g.resolve(origin_color.as_ref())?
+                            .map(|c| c.to_number(255.0) / 255.0),
+                        b.resolve(origin_color.as_ref())?
+                            .map(|c| c.to_number(255.0) / 255.0),
+                        alpha!(alpha, origin_color.as_ref()),
+                    )
                 } else {
-                    AbsoluteColor::srgb_legacy(r, g, b, alpha)
+                    #[inline]
+                    fn resolve(
+                        component: &ColorComponent<NumberOrPercentageComponent>,
+                        origin_color: Option<&AbsoluteColor>,
+                    ) -> Result<u8, ()> {
+                        Ok(clamp_floor_256_f32(
+                            component
+                                .resolve(origin_color)?
+                                .map_or(0.0, |value| value.to_number(u8::MAX as f32)),
+                        ))
+                    }
+
+                    let origin_color = origin_color.as_ref().map(|o| o.into_srgb_legacy());
+
+                    AbsoluteColor::srgb_legacy(
+                        resolve(r, origin_color.as_ref())?,
+                        resolve(g, origin_color.as_ref())?,
+                        resolve(b, origin_color.as_ref())?,
+                        alpha!(alpha, origin_color.as_ref()).unwrap_or(0.0),
+                    )
                 }
             },
             ColorFunction::Hsl(origin_color, h, s, l, alpha) => {

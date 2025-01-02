@@ -112,24 +112,27 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
             ColorComponent::None => None,
             ColorComponent::Value(value) => Some(value.clone()),
             ColorComponent::Calc(node) => {
-                let Ok(resolved_leaf) = node.resolve_map(|leaf| {
-                    Ok(match leaf {
-                        Leaf::ColorComponent(channel_keyword) => {
-                            if let Some(origin_color) = origin_color {
-                                if let Ok(value) =
-                                    origin_color.get_component_by_channel_keyword(*channel_keyword)
-                                {
-                                    Leaf::Number(value.unwrap_or(0.0))
+                let Ok(resolved_leaf) = node.resolve_map(
+                    |leaf| {
+                        Ok(match leaf {
+                            Leaf::ColorComponent(channel_keyword) => {
+                                if let Some(origin_color) = origin_color {
+                                    if let Ok(value) = origin_color
+                                        .get_component_by_channel_keyword(*channel_keyword)
+                                    {
+                                        Leaf::Number(value.unwrap_or(0.0))
+                                    } else {
+                                        return Err(());
+                                    }
                                 } else {
                                     return Err(());
                                 }
-                            } else {
-                                return Err(());
-                            }
-                        },
-                        l => l.clone(),
-                    })
-                }, |_| Err(())) else {
+                            },
+                            l => l.clone(),
+                        })
+                    },
+                    |_| Err(()),
+                ) else {
                     return Err(());
                 };
 
