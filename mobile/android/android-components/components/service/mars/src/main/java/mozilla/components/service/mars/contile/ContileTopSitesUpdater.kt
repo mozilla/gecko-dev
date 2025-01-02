@@ -11,6 +11,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import mozilla.components.feature.top.sites.TopSitesProvider
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.worker.Frequency
 import java.util.concurrent.TimeUnit
@@ -19,14 +20,14 @@ import java.util.concurrent.TimeUnit
  * Provides functionality to schedule updates of Contile top sites.
  *
  * @property context A reference to the application context.
- * @property provider An instance of [ContileTopSitesProvider] which provides access to the Contile
- * services API for fetching top sites.
- * @property frequency Optional [Frequency] that specifies how often the Contile top site updates
- * should happen.
+ * @property provider An instance of [TopSitesProvider] which will fetch the top sites tile from
+ * the provider.
+ * @property frequency Optional [Frequency] that specifies how often the top site updates should
+ * happen.
  */
 class ContileTopSitesUpdater(
     private val context: Context,
-    private val provider: ContileTopSitesProvider,
+    private val provider: TopSitesProvider,
     private val frequency: Frequency = Frequency(1, TimeUnit.DAYS),
 ) {
 

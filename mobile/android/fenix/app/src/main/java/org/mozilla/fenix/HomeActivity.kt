@@ -570,7 +570,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         lifecycleScope.launch(IO) {
             try {
                 if (settings().showContileFeature) {
-                    components.core.contileTopSitesProvider.refreshTopSitesIfCacheExpired()
+                    if (settings().marsAPIEnabled) {
+                        components.core.marsTopSitesProvider.refreshTopSitesIfCacheExpired()
+                    } else {
+                        components.core.contileTopSitesProvider.refreshTopSitesIfCacheExpired()
+                    }
                 }
             } catch (e: Exception) {
                 Logger.error("Failed to refresh contile top sites", e)

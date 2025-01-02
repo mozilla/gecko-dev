@@ -5,6 +5,7 @@
 package mozilla.components.service.mars.contile
 
 import androidx.annotation.VisibleForTesting
+import mozilla.components.feature.top.sites.TopSitesProvider
 
 /**
  * Contains use cases related to the Contlie top sites feature.
@@ -24,30 +25,30 @@ internal class ContileTopSitesUseCases {
     }
 
     internal companion object {
-        @VisibleForTesting internal var provider: ContileTopSitesProvider? = null
+        @VisibleForTesting internal var provider: TopSitesProvider? = null
 
         /**
-         * Initializes the [ContileTopSitesProvider] which will providde access to the Contile
-         * services API.
+         * Initializes the [TopSitesProvider] which will fetch the top sites tile from the
+         * provider.
          */
-        internal fun initialize(provider: ContileTopSitesProvider) {
+        internal fun initialize(provider: TopSitesProvider) {
             this.provider = provider
         }
 
         /**
-         * Unbinds the [ContileTopSitesProvider].
+         * Unbinds the [TopSitesProvider].
          */
         internal fun destroy() {
             this.provider = null
         }
 
         /**
-         * Returns the [ContileTopSitesProvider], otherwise throw an exception if the [provider]
+         * Returns the [TopSitesProvider], otherwise throw an exception if the [provider]
          * has not been initialized.
          */
-        internal fun requireContileTopSitesProvider(): ContileTopSitesProvider {
+        internal fun requireContileTopSitesProvider(): TopSitesProvider {
             return requireNotNull(provider) {
-                "initialize must be called before trying to access the ContileTopSitesProvider"
+                "initialize must be called before trying to access the TopSitesProvider"
             }
         }
     }
