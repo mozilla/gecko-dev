@@ -1094,7 +1094,7 @@ var SidebarController = {
     } else {
       let sidebarToggleKey = document.getElementById("toggleSidebarKb");
       const shortcut = ShortcutUtils.prettifyShortcut(sidebarToggleKey);
-      this.toolbarButton.dataset.l10nArgs = JSON.stringify({ shortcut });
+      toolbarButton.dataset.l10nArgs = JSON.stringify({ shortcut });
       toolbarButton.toggleAttribute("expanded", this.sidebarMain.expanded);
       switch (this.sidebarRevampVisibility) {
         case "always-show":
