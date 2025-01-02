@@ -10,6 +10,7 @@
 #include "gfxSkipChars.h"
 #include "nsBidiUtils.h"
 
+class nsAtom;
 class nsIContent;
 struct nsStyleText;
 
@@ -121,12 +122,15 @@ class nsTextFrameUtils {
    * @param aIncomingFlags a flag indicating whether there was whitespace
    * or an Arabic character preceding this text. We set it to indicate if
    * there's an Arabic character or whitespace preceding the end of this text.
+   * @param aLanguage Content language (used to select Japanese/Chinese behavior
+   * at punctuation, see https://bugzilla.mozilla.org/show_bug.cgi?id=1935148).
    */
   template <class CharT>
   static CharT* TransformText(const CharT* aText, uint32_t aLength,
                               CharT* aOutput, CompressionMode aCompression,
                               uint8_t* aIncomingFlags, gfxSkipChars* aSkipChars,
-                              nsTextFrameUtils::Flags* aAnalysisFlags);
+                              nsTextFrameUtils::Flags* aAnalysisFlags,
+                              const nsAtom* aLanguage);
 
   /**
    * Returns whether aChar is a character that nsTextFrameUtils::TransformText
