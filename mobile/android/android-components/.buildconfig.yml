@@ -1889,9 +1889,9 @@ projects:
     - ui-icons
     - ui-tabcounter
     - ui-widgets
-  service-contile:
+  service-mars:
     description: A library to communicate with the Contile services API
-    path: components/service/contile
+    path: components/service/mars
     publish: true
     upstream_dependencies:
     - browser-storage-sync

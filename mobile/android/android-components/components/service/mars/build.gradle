@@ -19,7 +19,7 @@ android {
         }
     }
 
-    namespace 'mozilla.components.service.contile'
+    namespace 'mozilla.components.service.mars'
 }
 
 dependencies {

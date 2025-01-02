@@ -20,7 +20,7 @@ import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingMode
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.AutoplayAction
-import mozilla.components.service.contile.ContileTopSitesProvider
+import mozilla.components.service.mars.contile.ContileTopSitesProvider
 import mozilla.components.support.ktx.android.content.PreferencesHolder
 import mozilla.components.support.ktx.android.content.booleanPreference
 import mozilla.components.support.ktx.android.content.floatPreference

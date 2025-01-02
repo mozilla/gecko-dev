@@ -1,6 +1,6 @@
-# [Android Components](../../../README.md) > Service > Contile
+# [Android Components](../../../README.md) > Service > MARS
 
-A library for communicating with the Contile services API.
+A library for communicating with the MARS API.
 
 ## Usage
 
@@ -10,7 +10,7 @@ Use Gradle to download the library from [maven.mozilla.org](https://maven.mozill
 ([Setup repository](../../../README.md#maven-repository)):
 
 ```Groovy
-implementation "org.mozilla.components:service-contile:{latest-version}"
+implementation "org.mozilla.components:service-mars:{latest-version}"
 ```
 
 ## License

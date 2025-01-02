@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.service.contile
+package mozilla.components.service.mars
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import mozilla.components.service.mars.contile.ContileTopSitesProvider
+import mozilla.components.service.mars.contile.ContileTopSitesUseCases
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever

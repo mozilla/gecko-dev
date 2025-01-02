@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.service.contile
+package mozilla.components.service.mars
 
 import androidx.concurrent.futures.await
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -12,7 +12,9 @@ import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import mozilla.components.service.contile.ContileTopSitesUpdater.Companion.PERIODIC_WORK_TAG
+import mozilla.components.service.mars.contile.ContileTopSitesUpdater
+import mozilla.components.service.mars.contile.ContileTopSitesUpdater.Companion.PERIODIC_WORK_TAG
+import mozilla.components.service.mars.contile.ContileTopSitesUseCases
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After

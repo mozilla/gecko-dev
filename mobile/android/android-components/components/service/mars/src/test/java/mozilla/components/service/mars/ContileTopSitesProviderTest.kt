@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.service.contile
+package mozilla.components.service.mars
 
 import android.text.format.DateUtils
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -14,6 +14,10 @@ import mozilla.components.concept.fetch.Headers
 import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Response
 import mozilla.components.feature.top.sites.TopSite
+import mozilla.components.service.mars.contile.CACHE_FILE_NAME
+import mozilla.components.service.mars.contile.CACHE_TOP_SITES_KEY
+import mozilla.components.service.mars.contile.ContileTopSitesProvider
+import mozilla.components.service.mars.contile.getTopSites
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.file.loadResourceAsString

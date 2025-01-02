@@ -629,7 +629,7 @@ dependencies {
     implementation project(':feature-webcompat-reporter')
 
     implementation project(':service-pocket')
-    implementation project(':service-contile')
+    implementation project(':service-mars')
     implementation project(':service-digitalassetlinks')
     implementation project(':service-sync-autofill')
     implementation project(':service-sync-logins')

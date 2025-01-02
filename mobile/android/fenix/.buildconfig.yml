@@ -66,11 +66,11 @@ projects:
     - lib-publicsuffixlist
     - lib-push-firebase
     - lib-state
-    - service-contile
     - service-digitalassetlinks
     - service-firefox-accounts
     - service-glean
     - service-location
+    - service-mars
     - service-nimbus
     - service-pocket
     - service-sync-autofill
