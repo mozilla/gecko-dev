@@ -47,11 +47,16 @@ add_task(async function test_icons_properties() {
 
   let starComputedStyle = window.getComputedStyle(starButton);
   Assert.equal(
-    starComputedStyle.getPropertyValue(
-      "--lwt-toolbarbutton-icon-fill-attention"
-    ),
+    starComputedStyle.getPropertyValue("--toolbarbutton-icon-fill-attention"),
     `rgb(${hexToRGB(ICONS_ATTENTION_COLOR).join(", ")})`,
     "Variable is properly set"
+  );
+  Assert.equal(
+    document.documentElement.style.getPropertyValue(
+      "--toolbarbutton-icon-fill-attention"
+    ),
+    `rgb(${hexToRGB(ICONS_ATTENTION_COLOR).join(", ")})`,
+    "Variable is set on root"
   );
   Assert.equal(
     starComputedStyle.getPropertyValue("fill"),
@@ -92,18 +97,13 @@ add_task(async function test_no_icons_properties() {
     currentColor,
     "Button fill color should be currentColor when no icon color specified."
   );
-
-  let starButton = document.querySelector("#star-button");
-  starButton.setAttribute("starred", "true");
-  let starComputedStyle = window.getComputedStyle(starButton);
   Assert.equal(
-    starComputedStyle.getPropertyValue(
-      "--lwt-toolbarbutton-icon-fill-attention"
+    document.documentElement.style.getPropertyValue(
+      "--toolbarbutton-icon-fill-attention"
     ),
     "",
     "Icon attention fill should not be set when the value is not specified in the manifest."
   );
-  starButton.removeAttribute("starred");
 
   await extension.unload();
 });

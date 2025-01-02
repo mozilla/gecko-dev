@@ -161,6 +161,18 @@ const toolkitVariableMap = [
       lwtProperty: "toolbar_field_highlight_text",
     },
   ],
+  [
+    "--toolbarbutton-icon-fill",
+    {
+      lwtProperty: "icon_color",
+    },
+  ],
+  [
+    "--toolbarbutton-icon-fill-attention",
+    {
+      lwtProperty: "icon_attention_color",
+    },
+  ],
   // The following 3 are given to the new tab page by contentTheme.js. They are
   // also exposed here, in the browser chrome, so popups anchored on top of the
   // new tab page can use them to avoid clashing with the new tab page content.

@@ -24,6 +24,7 @@
 
   --short-notification-background: #0250BB;
   --short-notification-gradient: #9059FF;
+  --warning-icon-bgcolor: light-dark(#FFA436, #FFBD4F);
 
   --urlbar-box-bgcolor: var(--button-background-color-hover);
   --urlbar-box-focus-bgcolor: var(--button-background-color);

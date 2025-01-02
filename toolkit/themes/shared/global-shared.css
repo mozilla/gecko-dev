@@ -37,6 +37,8 @@
   --input-border-color: color-mix(in srgb, currentColor 46%, transparent);
 
   --toolbarbutton-icon-fill: currentColor;
+  --toolbarbutton-icon-fill-attention: AccentColor;
+  --toolbarbutton-icon-fill-attention-text: AccentColorText;
   --toolbarbutton-disabled-opacity: 0.4;
 
   --toolbar-field-background-color: Field;
@@ -70,6 +72,9 @@
   &[lwtheme] {
     --toolbar-bgcolor: rgba(255,255,255,.4);
     --toolbar-color: var(--lwt-text-color, inherit);
+
+    --toolbarbutton-icon-fill-attention: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
+    --toolbarbutton-icon-fill-attention-text: light-dark(rgb(240, 240, 244), rgb(28, 27, 34));
   }
 
   /* This color scheme should match --toolbar-color. However, note that

@@ -82,18 +82,6 @@ export const ThemeVariableMap = [
     },
   ],
   [
-    "--toolbarbutton-icon-fill",
-    {
-      lwtProperty: "icon_color",
-    },
-  ],
-  [
-    "--lwt-toolbarbutton-icon-fill-attention",
-    {
-      lwtProperty: "icon_attention_color",
-    },
-  ],
-  [
     "--toolbarbutton-hover-background",
     {
       lwtProperty: "button_background_hover",
