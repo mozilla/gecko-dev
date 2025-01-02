@@ -21,10 +21,9 @@ import org.mozilla.fenix.compose.ComposeFragment
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
+import org.mozilla.fenix.webcompat.di.WebCompatReporterMiddlewareProvider
 import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
-import org.mozilla.fenix.webcompat.store.WebCompatReporterNavigationMiddleware
 import org.mozilla.fenix.webcompat.store.WebCompatReporterState
-import org.mozilla.fenix.webcompat.store.WebCompatReporterStorageMiddleware
 import org.mozilla.fenix.webcompat.store.WebCompatReporterStore
 
 /**
@@ -34,17 +33,16 @@ class WebCompatReporterFragment : ComposeFragment() {
 
     private val args by navArgs<WebCompatReporterFragmentArgs>()
 
-    private val webCompatReporterStore by lazyStore {
+    private val webCompatReporterStore by lazyStore { viewModelScope ->
         WebCompatReporterStore(
             initialState = WebCompatReporterState(
                 tabUrl = args.tabUrl,
                 enteredUrl = args.tabUrl,
             ),
-            middleware = listOf(
-                WebCompatReporterStorageMiddleware(
-                    appStore = requireComponents.appStore,
-                ),
-                WebCompatReporterNavigationMiddleware(),
+            middleware = WebCompatReporterMiddlewareProvider.provideMiddleware(
+                browserStore = requireComponents.core.store,
+                appStore = requireComponents.appStore,
+                scope = viewModelScope,
             ),
         )
     }
@@ -75,7 +73,7 @@ class WebCompatReporterFragment : ComposeFragment() {
                                 from = BrowserDirection.FromWebCompatReporterFragment,
                             )
                         }
-                        is WebCompatReporterAction.SendReportClicked -> {
+                        is WebCompatReporterAction.ReportSubmitted -> {
                             val directions = WebCompatReporterFragmentDirections.actionGlobalBrowser()
                             findNavController().navigate(directions)
                         }

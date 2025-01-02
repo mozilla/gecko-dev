@@ -53,10 +53,18 @@ class WebCompatReporterStoreTest {
     }
 
     @Test
-    fun `WHEN the report is sent THEN the state remains the same`() {
+    fun `WHEN the send report button is pressed THEN the state remains the same`() {
         val expected = store.state
 
         store.dispatch(WebCompatReporterAction.SendReportClicked)
+        assertEquals(expected, store.state)
+    }
+
+    @Test
+    fun `WHEN the report is sent THEN the state remains the same`() {
+        val expected = store.state
+
+        store.dispatch(WebCompatReporterAction.ReportSubmitted)
         assertEquals(expected, store.state)
     }
 

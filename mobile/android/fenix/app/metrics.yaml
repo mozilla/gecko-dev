@@ -12790,6 +12790,22 @@ usage:
 # This was taken from: https://searchfox.org/mozilla-central/rev/d8f4a94563b0a28c485f0dbfaf56b92434242d1e/toolkit/components/reportbrokensite/metrics.yaml#13-737,
 # without the irrelevant metrics for Fenix
 broken_site_report:
+  breakage_category:
+    type: string
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      An optional select-box choice (options may eventually change)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
   description:
     type: text
     expires: never
@@ -12823,6 +12839,22 @@ broken_site_report:
     send_in_pings:
       - broken-site-report
 broken_site_report.tab_info:
+  languages:
+    type: string_list
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      The languages the site actually sees (may be overridden)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
   useragent_string:
     type: text
     expires: never
@@ -12839,7 +12871,170 @@ broken_site_report.tab_info:
       - webcompat-reporting-tool-telemetry@mozilla.com
     send_in_pings:
       - broken-site-report
+broken_site_report.tab_info.antitracking:
+  block_list:
+    type: string
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Currently either `basic` or `strict`, may change in the future.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  has_mixed_active_content_blocked:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the reported tab has any blocked mixed active content
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  has_mixed_display_content_blocked:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the reported tab has any blocked mixed display content
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  has_tracking_content_blocked:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the reported tab has any blocked tracking content
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  is_private_browsing:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the tab the user was on when reporting is in private browsing mode
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  btp_has_purged_site:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the site in the current tab has recently been purged by Bounce
+      Tracking Protection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+broken_site_report.tab_info.frameworks:
+  fastclick:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the FastClick web library was detected on the original tab.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  marfeel:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the Marfeel web framework was detected on the original tab.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  mobify:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Whether the Mobify web framework was detected on the original tab.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
 broken_site_report.browser_info.app:
+  default_locales:
+    type: string_list
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Locale strings, ie `["en-US", "en"]`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
   default_useragent_string:
     type: text
     expires: never
@@ -12856,7 +13051,55 @@ broken_site_report.browser_info.app:
       - webcompat-reporting-tool-telemetry@mozilla.com
     send_in_pings:
       - broken-site-report
+  fission_enabled:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      Whether Fission is enabled
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
 broken_site_report.browser_info.graphics:
+  device_pixel_ratio:
+    type: string
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      A decimal number
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  has_touch_screen:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      Whether a touch screen was detected
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
   devices_json:
     type: text
     expires: never
@@ -12920,6 +13163,122 @@ broken_site_report.browser_info.graphics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
     data_reviews:
       - https://phabricator.services.mozilla.com/D232122#8037249
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+broken_site_report.browser_info.system:
+  memory:
+    type: quantity
+    unit: mb
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      How many mb of RAM is reported for the system
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+broken_site_report.browser_info.prefs:
+  opaque_response_blocking:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `browser.opaqueResponseBlocking`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  installtrigger_enabled:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `extensions.InstallTrigger.enabled`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  software_webrender:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `gfx.webrender.software`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  cookie_behavior:
+    type: quantity
+    unit: integer
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `network.cookie.cookieBehavior`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  global_privacy_control_enabled:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `privacy.globalprivacycontrol.enabled`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  resist_fingerprinting_enabled:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `privacy.resistFingerprinting`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D230555
     notification_emails:
       - twisniewski@mozilla.com
       - webcompat-reporting-tool-telemetry@mozilla.com
