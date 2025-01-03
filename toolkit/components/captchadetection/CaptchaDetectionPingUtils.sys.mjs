@@ -71,7 +71,19 @@ export class CaptchaDetectionPingUtils {
     return Math.floor(Date.now() / 1000 / 1000);
   }
 
-  static flushPing() {
+  static flushPing(_subject, topic, prefName) {
+    if (
+      topic === "nsPref:changed" &&
+      !Object.values(CaptchaDetectionPingUtils.prefsOfInterest).some(
+        pref => pref.name === prefName
+      )
+    ) {
+      // Flush ping is called from the observer service, and we don't want to
+      // submit the ping if the pref that changed is not of interest.
+      lazy.console.debug("Pref that changed is not of interest for the ping.");
+      return;
+    }
+
     if (!lazy.hasUnsubmittedData) {
       lazy.console.debug("No unsubmitted data to submit.");
       return;
