@@ -345,6 +345,14 @@
   background-color: var(--console-warning-color);
 }
 
+:root[forced-colors-active] :is(
+  .message-repeats,
+  .warning-group-badge
+) {
+  color: Canvas;
+  background-color: CanvasText;
+}
+
 .message-location {
   max-width: 40%;
   flex-shrink: 0;
