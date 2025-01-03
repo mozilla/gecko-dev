@@ -1833,3 +1833,23 @@ add_task(async function test_pinningInteractionsWithTabGroups() {
 
   moreTabs.concat(tabs).forEach(tab => BrowserTestUtils.removeTab(tab));
 });
+
+add_task(async function test_bug1936015() {
+  // Checks that groups are properly deleted if the group was created before
+  // the user switches between vertical and horizontal tabs.
+  const tabs = createManyTabs(3);
+  let group = gBrowser.addTabGroup(tabs);
+
+  SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+    ],
+  });
+
+  await removeTabGroup(group);
+
+  Assert.ok(!group.parentNode, "Group has been fully removed from DOM");
+
+  await SpecialPowers.popPrefEnv();
+});

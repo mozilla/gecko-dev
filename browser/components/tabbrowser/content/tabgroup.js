@@ -24,6 +24,9 @@
     /** @type {string} */
     #colorCode;
 
+    /** @type {MutationObserver} */
+    #tabChangeObserver;
+
     constructor() {
       super();
     }
@@ -35,6 +38,13 @@
     }
 
     connectedCallback() {
+      // Always set the mutation observer to listen for tab change events, even
+      // if we are already initialized.
+      // This is needed to ensure events continue to fire even if the tab group is
+      // moved from the horizontal to vertical tab layout or vice-versa, which
+      // causes the component to be repositioned in the DOM.
+      this.#observeTabChanges();
+
       if (this._initialized) {
         return;
       }
@@ -55,36 +65,6 @@
 
       this.addEventListener("TabSelect", this);
 
-      this._tabsChangedObserver = new window.MutationObserver(mutationList => {
-        for (let mutation of mutationList) {
-          mutation.addedNodes.forEach(node => {
-            node.tagName === "tab" &&
-              node.dispatchEvent(
-                new CustomEvent("TabGrouped", {
-                  bubbles: true,
-                  detail: this,
-                })
-              );
-          });
-          mutation.removedNodes.forEach(node => {
-            node.tagName === "tab" &&
-              node.dispatchEvent(
-                new CustomEvent("TabUngrouped", {
-                  bubbles: true,
-                  detail: this,
-                })
-              );
-          });
-        }
-        if (!this.tabs.length) {
-          this.dispatchEvent(
-            new CustomEvent("TabGroupRemoved", { bubbles: true })
-          );
-          this.remove();
-        }
-      });
-      this._tabsChangedObserver.observe(this, { childList: true });
-
       this.#labelElement.addEventListener("contextmenu", e => {
         e.preventDefault();
         gBrowser.tabGroupMenu.openEditModal(this);
@@ -93,7 +73,41 @@
     }
 
     disconnectedCallback() {
-      this._tabsChangedObserver.disconnect();
+      this.#tabChangeObserver?.disconnect();
+    }
+
+    #observeTabChanges() {
+      if (!this.#tabChangeObserver) {
+        this.#tabChangeObserver = new window.MutationObserver(mutationList => {
+          for (let mutation of mutationList) {
+            mutation.addedNodes.forEach(node => {
+              node.tagName === "tab" &&
+                node.dispatchEvent(
+                  new CustomEvent("TabGrouped", {
+                    bubbles: true,
+                    detail: this,
+                  })
+                );
+            });
+            mutation.removedNodes.forEach(node => {
+              node.tagName === "tab" &&
+                node.dispatchEvent(
+                  new CustomEvent("TabUngrouped", {
+                    bubbles: true,
+                    detail: this,
+                  })
+                );
+            });
+          }
+          if (!this.tabs.length) {
+            this.dispatchEvent(
+              new CustomEvent("TabGroupRemoved", { bubbles: true })
+            );
+            this.remove();
+          }
+        });
+      }
+      this.#tabChangeObserver.observe(this, { childList: true });
     }
 
     get color() {
