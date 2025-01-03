@@ -11,22 +11,19 @@
 #include "ssl.h"
 #include "sslimpl.h"
 
-#include "shared.h"
-#include "tls_common.h"
-#include "tls_mutators.h"
-#include "tls_server_certs.h"
-#include "tls_server_config.h"
-#include "tls_socket.h"
+#include "base/database.h"
+#include "base/mutate.h"
+#include "tls/common.h"
+#include "tls/mutators.h"
+#include "tls/server_certs.h"
+#include "tls/server_config.h"
+#include "tls/socket.h"
 
 #ifdef IS_DTLS_FUZZ
-__attribute__((constructor)) static void set_is_dtls() {
-  TlsMutators::SetIsDTLS();
-}
-
 #define ImportFD DTLS_ImportFD
 #else
 #define ImportFD SSL_ImportFD
-#endif
+#endif  // IS_DTLS_FUZZ
 
 class SSLServerSessionCache {
  public:
@@ -42,13 +39,13 @@ class SSLServerSessionCache {
 static PRStatus InitModelSocket(void* arg) {
   PRFileDesc* fd = reinterpret_cast<PRFileDesc*>(arg);
 
-  EnableAllCipherSuites(fd);
-  InstallServerCertificates(fd);
+  TlsCommon::EnableAllCipherSuites(fd);
+  TlsServer::InstallServerCertificates(fd);
 
   return PR_SUCCESS;
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   static NSSDatabase db = NSSDatabase();
   static SSLServerSessionCache cache = SSLServerSessionCache();
   static PRDescIdentity id = PR_GetUniqueIdentity("fuzz-server");
@@ -61,16 +58,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   static PRCallOnceType initModelOnce;
   PR_CallOnceWithArg(&initModelOnce, InitModelSocket, model.get());
 
-  EnableAllProtocolVersions();
-
   // Create and import dummy socket.
-  DummyPrSocket socket = DummyPrSocket(data, len);
+  TlsSocket::DummyPrSocket socket = TlsSocket::DummyPrSocket(data, size);
   ScopedPRFileDesc prFd(DummyIOLayerMethods::CreateFD(id, &socket));
   PRFileDesc* sslFd = ImportFD(model.get(), prFd.get());
   assert(sslFd == prFd.get());
 
   // Derive server config from input data.
-  ServerConfig config = ServerConfig(data, len);
+  TlsServer::Config config = TlsServer::Config(data, size);
 
   if (ssl_trace >= 90) {
     std::cerr << config << "\n";
@@ -80,15 +75,16 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   assert(RNG_RandomUpdate(NULL, 0) == SECSuccess);
   assert(SSL_SetURL(sslFd, "fuzz.server") == SECSuccess);
 
-  FixTime(sslFd);
-  EnableAllCipherSuites(sslFd);
+  TlsCommon::EnableAllProtocolVersions();
+  TlsCommon::EnableAllCipherSuites(sslFd);
+  TlsCommon::FixTime(sslFd);
 
   // Set socket options from server config.
   config.SetCallbacks(sslFd);
   config.SetSocketOptions(sslFd);
 
   // Perform the acutal handshake.
-  DoHandshake(sslFd, true);
+  TlsCommon::DoHandshake(sslFd, true);
 
   // Clear the cache. We never want to resume as we couldn't reproduce that.
   SSL_ClearSessionCache();
@@ -97,18 +93,18 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
 }
 
 extern "C" size_t LLVMFuzzerCustomMutator(uint8_t* data, size_t size,
-                                          size_t max_size, unsigned int seed) {
+                                          size_t maxSize, unsigned int seed) {
   return CustomMutate(
       {TlsMutators::DropRecord, TlsMutators::ShuffleRecords,
        TlsMutators::DuplicateRecord, TlsMutators::TruncateRecord,
        TlsMutators::FragmentRecord},
-      data, size, max_size, seed);
+      data, size, maxSize, seed);
 }
 
 extern "C" size_t LLVMFuzzerCustomCrossOver(const uint8_t* data1, size_t size1,
                                             const uint8_t* data2, size_t size2,
-                                            uint8_t* out, size_t max_out_size,
+                                            uint8_t* out, size_t maxOutSize,
                                             unsigned int seed) {
-  return TlsMutators::CrossOver(data1, size1, data2, size2, out, max_out_size,
+  return TlsMutators::CrossOver(data1, size1, data2, size2, out, maxOutSize,
                                 seed);
 }

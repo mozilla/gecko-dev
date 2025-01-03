@@ -8,7 +8,9 @@
 
 #include "seccomon.h"
 
-#if defined(XP_UNIX) && defined(SEED_ONLY_DEV_URANDOM)
+#if defined(XP_UNIX) && defined(NSS_FIPS_140_3)
+#include "unix_fips140_3.c"
+#elif defined(XP_UNIX) && defined(SEED_ONLY_DEV_URANDOM)
 #include "unix_urandom.c"
 #elif defined(XP_UNIX)
 #include "unix_rand.c"

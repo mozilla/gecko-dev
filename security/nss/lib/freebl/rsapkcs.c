@@ -978,14 +978,14 @@ rsa_GetHMACContext(const SECHashObject *hash, RSAPrivateKey *key,
     /* now create the hmac key */
     hmac = HMAC_Create(hash, keyHash, keyLen, PR_TRUE);
     if (hmac == NULL) {
-        PORT_Memset(keyHash, 0, sizeof(keyHash));
+        PORT_SafeZero(keyHash, sizeof(keyHash));
         return NULL;
     }
     HMAC_Begin(hmac);
     HMAC_Update(hmac, input, inputLen);
     rv = HMAC_Finish(hmac, keyHash, &keyLen, sizeof(keyHash));
     if (rv != SECSuccess) {
-        PORT_Memset(keyHash, 0, sizeof(keyHash));
+        PORT_SafeZero(keyHash, sizeof(keyHash));
         HMAC_Destroy(hmac, PR_TRUE);
         return NULL;
     }
@@ -993,7 +993,7 @@ rsa_GetHMACContext(const SECHashObject *hash, RSAPrivateKey *key,
      * reuse the original context allocated above so we don't
      * need to allocate and free another one */
     rv = HMAC_ReInit(hmac, hash, keyHash, keyLen, PR_TRUE);
-    PORT_Memset(keyHash, 0, sizeof(keyHash));
+    PORT_SafeZero(keyHash, sizeof(keyHash));
     if (rv != SECSuccess) {
         HMAC_Destroy(hmac, PR_TRUE);
         return NULL;
@@ -1043,7 +1043,7 @@ rsa_HMACPrf(HMACContext *hmac, const char *label, int labelLen,
             return rv;
         }
         PORT_Memcpy(output, hmacLast, left);
-        PORT_Memset(hmacLast, 0, sizeof(hmacLast));
+        PORT_SafeZero(hmacLast, sizeof(hmacLast));
     }
     return rv;
 }
@@ -1088,7 +1088,7 @@ rsa_GetErrorLength(HMACContext *hmac, int hashLen, int maxLegalLen)
         outLength = PORT_CT_SEL(PORT_CT_LT(candidate, maxLegalLen),
                                 candidate, outLength);
     }
-    PORT_Memset(out, 0, sizeof(out));
+    PORT_SafeZero(out, sizeof(out));
     return outLength;
 }
 

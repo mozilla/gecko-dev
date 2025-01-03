@@ -2274,6 +2274,11 @@ SECOID_FindOID(const SECItem *oid)
         return NULL;
     }
 
+    if ((oid == NULL) || (oid->data == NULL)) {
+        PORT_SetError(SEC_ERROR_UNRECOGNIZED_OID);
+        return NULL;
+    }
+
     ret = PL_HashTableLookupConst(oidhash, oid);
     if (ret == NULL) {
         ret = secoid_FindDynamic(oid);

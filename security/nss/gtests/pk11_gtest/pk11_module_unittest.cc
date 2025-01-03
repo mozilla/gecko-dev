@@ -155,4 +155,84 @@ TEST_F(Pkcs11NonAsciiTest, LoadUnload) {
 }
 #endif  // defined(_WIN32)
 
+class Pkcs11ModuleLoadFunctionTest : public ::testing::Test {
+ public:
+  Pkcs11ModuleLoadFunctionTest() { library = NULL; };
+
+  void TearDown() override {
+    if (library != NULL) {
+      PR_UnloadLibrary(library);
+    }
+  }
+  PRLibrary *library;
+};
+
+CK_RV NotSuppoted_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList) {
+  return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV SupportedButNull(CK_FUNCTION_LIST_PTR_PTR ppFunctionList) {
+  ppFunctionList = NULL;
+  return CKR_OK;
+}
+
+TEST_F(Pkcs11ModuleLoadFunctionTest, LoadModuleWithNullFunc) {
+  ScopedSECMODModule userModule(
+      SECMOD_LoadUserModuleWithFunction("LoadFunctionModule", NULL));
+  EXPECT_NE(userModule, nullptr);
+  EXPECT_FALSE(userModule->loaded);
+}
+
+TEST_F(Pkcs11ModuleLoadFunctionTest, LoadModuleWithUnsupportedFunc) {
+  ScopedSECMODModule userModule(SECMOD_LoadUserModuleWithFunction(
+      "LoadFunctionModule", &NotSuppoted_GetFunctionList));
+  EXPECT_FALSE(userModule->loaded);
+}
+
+TEST_F(Pkcs11ModuleLoadFunctionTest, LoadModuleWithEmptyFunctionList) {
+  ScopedSECMODModule userModule(SECMOD_LoadUserModuleWithFunction(
+      "LoadFunctionModule", &SupportedButNull));
+  EXPECT_NE(userModule, nullptr);
+  EXPECT_FALSE(userModule->loaded);
+}
+
+TEST_F(Pkcs11ModuleLoadFunctionTest, SuccessLoadModuleWithFunction) {
+  library = PR_LoadLibrary(DLL_PREFIX "pkcs11testmodule." DLL_SUFFIX);
+  EXPECT_NE(nullptr, library);
+
+  CK_C_GetFunctionList fentry = NULL;
+  fentry = (CK_C_GetFunctionList)PR_FindSymbol(library, "C_GetFunctionList");
+  EXPECT_NE(nullptr, fentry);
+
+  ScopedSECMODModule userModule(
+      SECMOD_LoadUserModuleWithFunction("LoadFunctionModule", fentry));
+  EXPECT_NE(nullptr, userModule);
+  EXPECT_EQ(userModule->loaded, PR_TRUE);
+
+  /* We can find the module*/
+  ScopedSECMODModule module(SECMOD_FindModule("LoadFunctionModule"));
+  EXPECT_NE(nullptr, module);
+
+  CK_INFO info;
+  EXPECT_EQ(SECSuccess, PK11_GetModInfo(userModule.get(), &info));
+  /* See pkcs11testmodule.cpp */
+  CK_VERSION expectedCryptokiVersion = {2, 2};
+  CK_VERSION expectedLibraryVersion = {0, 0};
+  EXPECT_EQ(info.cryptokiVersion.minor, expectedCryptokiVersion.minor);
+  EXPECT_EQ(info.cryptokiVersion.major, expectedCryptokiVersion.major);
+
+  EXPECT_EQ(
+      0, PORT_Memcmp((char *)info.manufacturerID, "Test PKCS11 Manufacturer ID",
+                     sizeof("Test PKCS11 Manufacturer ID") - 1));
+  EXPECT_EQ(info.flags, 0UL);
+
+  EXPECT_EQ(0,
+            PORT_Memcmp((char *)info.libraryDescription, "Test PKCS11 Library",
+                        sizeof("Test PKCS11 Library") - 1));
+  EXPECT_EQ(info.libraryVersion.minor, expectedLibraryVersion.minor);
+  EXPECT_EQ(info.libraryVersion.major, expectedLibraryVersion.major);
+
+  EXPECT_EQ(SECSuccess, SECMOD_UnloadUserModule(userModule.get()));
+}
+
 }  // namespace nss_test

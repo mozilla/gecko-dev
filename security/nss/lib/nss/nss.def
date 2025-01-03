@@ -1270,3 +1270,9 @@ SECKEY_PrivateKeyStrengthInBits;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.107 { 	# NSS 3.107 release
+;+    global:
+SECMOD_LoadUserModuleWithFunction;
+;+    local:
+;+       *;
+;+};

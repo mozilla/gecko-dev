@@ -6,6 +6,7 @@
 #include "seccomon.h"
 #include "secmodt.h"
 #include "prinrval.h"
+#include "pkcs11.h"
 
 /* These mechanisms flags are visible to all other libraries. */
 /* They must be converted to internal SECMOD_*_FLAG */
@@ -59,6 +60,9 @@ extern SECMODModule *SECMOD_LoadModule(char *moduleSpec, SECMODModule *parent,
 
 extern SECMODModule *SECMOD_LoadUserModule(char *moduleSpec, SECMODModule *parent,
                                            PRBool recurse);
+
+extern SECMODModule *SECMOD_LoadUserModuleWithFunction(const char *moduleName,
+                                                       CK_C_GetFunctionList fentry);
 
 SECStatus SECMOD_UnloadUserModule(SECMODModule *mod);
 

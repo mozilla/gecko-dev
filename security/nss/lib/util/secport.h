@@ -36,6 +36,9 @@
 #include <sys/types.h>
 
 #include <ctype.h>
+/* ask for Annex K for memset_s. will set the appropriate #define
+ * if Annex K is supported */
+#define __STDC_WANT_LIB_EXT1__ 1
 #include <string.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -255,6 +258,7 @@ sec_port_iso88591_utf8_conversion_function(
 
 extern int NSS_PutEnv(const char *envVarName, const char *envValue);
 
+extern void PORT_SafeZero(void *p, size_t n);
 extern int NSS_SecureMemcmp(const void *a, const void *b, size_t n);
 extern unsigned int NSS_SecureMemcmpZero(const void *mem, size_t n);
 extern void NSS_SecureSelect(void *dest, const void *src0, const void *src1, size_t n, unsigned char b);

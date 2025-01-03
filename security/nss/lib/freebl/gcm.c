@@ -480,7 +480,7 @@ gcmHash_Final(gcmHashContext *ghash, unsigned char *outbuf,
     rv = SECSuccess;
 
 cleanup:
-    PORT_Memset(T, 0, sizeof(T));
+    PORT_SafeZero(T, sizeof(T));
     return rv;
 }
 
@@ -596,15 +596,15 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     if (rv != SECSuccess) {
         goto loser;
     }
-    PORT_Memset(H, 0, AES_BLOCK_SIZE);
+    PORT_SafeZero(H, AES_BLOCK_SIZE);
     gcm->ctr_context_init = PR_TRUE;
     return gcm;
 
 loser:
-    PORT_Memset(H, 0, AES_BLOCK_SIZE);
+    PORT_SafeZero(H, AES_BLOCK_SIZE);
     if (ghash && ghash->mem) {
         void *mem = ghash->mem;
-        PORT_Memset(ghash, 0, sizeof(gcmHashContext));
+        PORT_SafeZero(ghash, sizeof(gcmHashContext));
         PORT_Free(mem);
     }
     if (gcm) {
@@ -682,11 +682,11 @@ gcm_InitCounter(GCMContext *gcm, const unsigned char *iv, unsigned int ivLen,
         goto loser;
     }
 
-    PORT_Memset(&ctrParams, 0, sizeof ctrParams);
+    PORT_SafeZero(&ctrParams, sizeof ctrParams);
     return SECSuccess;
 
 loser:
-    PORT_Memset(&ctrParams, 0, sizeof ctrParams);
+    PORT_SafeZero(&ctrParams, sizeof ctrParams);
     if (freeCtr) {
         CTR_DestroyContext(&gcm->ctr_context, PR_FALSE);
     }
@@ -866,10 +866,10 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     if (NSS_SecureMemcmp(tag, intag, tagBytes) != 0) {
         /* force a CKR_ENCRYPTED_DATA_INVALID error at in softoken */
         PORT_SetError(SEC_ERROR_BAD_DATA);
-        PORT_Memset(tag, 0, sizeof(tag));
+        PORT_SafeZero(tag, sizeof(tag));
         return SECFailure;
     }
-    PORT_Memset(tag, 0, sizeof(tag));
+    PORT_SafeZero(tag, sizeof(tag));
     /* finish the decryption */
     return CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
                       inbuf, inlen, AES_BLOCK_SIZE);
@@ -1159,10 +1159,10 @@ GCM_DecryptAEAD(GCMContext *gcm, unsigned char *outbuf,
         /* force a CKR_ENCRYPTED_DATA_INVALID error at in softoken */
         CTR_DestroyContext(&gcm->ctr_context, PR_FALSE);
         PORT_SetError(SEC_ERROR_BAD_DATA);
-        PORT_Memset(tag, 0, sizeof(tag));
+        PORT_SafeZero(tag, sizeof(tag));
         return SECFailure;
     }
-    PORT_Memset(tag, 0, sizeof(tag));
+    PORT_SafeZero(tag, sizeof(tag));
     /* finish the decryption */
     rv = CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
                     inbuf, inlen, AES_BLOCK_SIZE);

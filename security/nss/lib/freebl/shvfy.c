@@ -365,7 +365,7 @@ blapi_SHVerifyDSACheck(PRFileDesc *shFD, const SECHashObject *hashObj,
 
     /* verify the hash against the check file */
     rv = DSA_VerifyDigest(key, signature, &hash);
-    PORT_Memset(hashBuf, 0, sizeof hashBuf);
+    PORT_SafeZero(hashBuf, sizeof hashBuf);
     return (rv == SECSuccess) ? PR_TRUE : PR_FALSE;
 }
 #endif
@@ -427,7 +427,7 @@ blapi_SHVerifyHMACCheck(PRFileDesc *shFD, const SECHashObject *hashObj,
     if (rv == SECSuccess) {
         result = SECITEM_ItemsAreEqual(signature, &hash);
     }
-    PORT_Memset(hashBuf, 0, sizeof hashBuf);
+    PORT_SafeZero(hashBuf, sizeof hashBuf);
     return result;
 }
 
@@ -451,7 +451,7 @@ blapi_SHVerifyFile(const char *shName, PRBool self, PRBool rerun)
 #ifndef NSS_STRICT_INTEGRITY
     DSAPublicKey key;
 
-    PORT_Memset(&key, 0, sizeof(key));
+    PORT_SafeZero(&key, sizeof(key));
 #endif
 
     /* If our integrity check was never ran or failed, fail any other
@@ -597,7 +597,7 @@ blapi_SHVerifyFile(const char *shName, PRBool self, PRBool rerun)
     shFD = NULL;
 
 loser:
-    PORT_Memset(&header, 0, sizeof header);
+    PORT_SafeZero(&header, sizeof header);
     if (checkName != NULL) {
         PORT_Free(checkName);
     }

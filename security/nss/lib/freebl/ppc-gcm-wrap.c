@@ -169,7 +169,7 @@ ppc_aes_gcmInitCounter(ppc_AES_GCMContext *gcm,
 void
 ppc_AES_GCM_DestroyContext(ppc_AES_GCMContext *gcm, PRBool freeit)
 {
-    PORT_Memset(gcm, 0, sizeof(ppc_AES_GCMContext));
+    PORT_SafeZero(gcm, sizeof(ppc_AES_GCMContext));
     if (freeit) {
         PORT_Free(gcm);
     }

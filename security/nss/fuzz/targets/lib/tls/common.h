@@ -10,6 +10,8 @@
 #include "prio.h"
 #include "seccomon.h"
 
+namespace TlsCommon {
+
 void FixTime(PRFileDesc* fd);
 void EnableAllProtocolVersions();
 void EnableAllCipherSuites(PRFileDesc* fd);
@@ -18,5 +20,7 @@ void DoHandshake(PRFileDesc* fd, bool isServer);
 SECStatus DummyCompressionEncode(const SECItem* input, SECItem* output);
 SECStatus DummyCompressionDecode(const SECItem* input, unsigned char* output,
                                  size_t outputLen, size_t* usedLen);
+
+}  // namespace TlsCommon
 
 #endif  // TLS_COMMON_H_

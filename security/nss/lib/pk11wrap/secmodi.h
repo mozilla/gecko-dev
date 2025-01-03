@@ -57,6 +57,8 @@ extern unsigned long SECMOD_InternaltoPubCipherFlags(unsigned long internalFlags
 
 /* Library functions */
 SECStatus secmod_LoadPKCS11Module(SECMODModule *, SECMODModule **oldModule);
+SECStatus secmod_LoadPKCS11ModuleFromFunction(SECMODModule *, SECMODModule **oldModule, CK_C_GetFunctionList f);
+
 SECStatus SECMOD_UnloadModule(SECMODModule *);
 void SECMOD_SetInternalModule(SECMODModule *);
 PRBool secmod_IsInternalKeySlot(SECMODModule *);

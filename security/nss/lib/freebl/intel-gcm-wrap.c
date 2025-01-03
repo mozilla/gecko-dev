@@ -195,7 +195,7 @@ intel_aes_gcmInitCounter(intel_AES_GCMContext *gcm,
 void
 intel_AES_GCM_DestroyContext(intel_AES_GCMContext *gcm, PRBool freeit)
 {
-    PORT_Memset(gcm, 0, sizeof(intel_AES_GCMContext));
+    PORT_SafeZero(gcm, sizeof(intel_AES_GCMContext));
     if (freeit) {
         PORT_Free(gcm);
     }

@@ -1251,7 +1251,7 @@ AES_DestroyContext(AESContext *cx, PRBool freeit)
         cx->worker_cx = NULL;
         cx->destroy = NULL;
     }
-    PORT_Memset(cx, 0, sizeof(AESContext));
+    PORT_SafeZero(cx, sizeof(AESContext));
     if (freeit) {
         PORT_Free(mem);
     } else {

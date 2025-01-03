@@ -5,15 +5,15 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 
 #include "nss_scoped_ptrs.h"
 #include "p12.h"
 #include "pk11pub.h"
 #include "seccomon.h"
 
-#include "asn1_mutators.h"
-#include "shared.h"
+#include "asn1/mutators.h"
+#include "base/database.h"
+#include "base/mutate.h"
 
 static SECItem* nicknameCollision(SECItem* oldNick, PRBool* cancel,
                                   void* wincx) {
@@ -22,7 +22,7 @@ static SECItem* nicknameCollision(SECItem* oldNick, PRBool* cancel,
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  static std::unique_ptr<NSSDatabase> db(new NSSDatabase());
+  static NSSDatabase db = NSSDatabase();
 
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
   assert(slot);

@@ -6,11 +6,13 @@
 #include <cstdint>
 #include <vector>
 
-#include "asn1_mutators.h"
 #include "certt.h"
 #include "keythi.h"
 #include "secdert.h"
-#include "shared.h"
+#include "secport.h"
+
+#include "asn1/mutators.h"
+#include "base/mutate.h"
 
 const std::vector<const SEC_ASN1Template *> templates = {
     CERT_AttributeTemplate,
@@ -68,18 +70,18 @@ const std::vector<const SEC_ASN1Template *> templates = {
     SECKEY_RSAPublicKeyTemplate,
     SECOID_AlgorithmIDTemplate};
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
-  char *dest[2048];
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+  static char *dest[2048];
+
+  PORTCheapArenaPool pool;
+  PORT_InitCheapArena(&pool, DER_DEFAULT_CHUNKSIZE);
 
   for (auto tpl : templates) {
-    PORTCheapArenaPool pool;
-    SECItem buf = {siBuffer, const_cast<unsigned char *>(Data),
-                   static_cast<unsigned int>(Size)};
-
-    PORT_InitCheapArena(&pool, DER_DEFAULT_CHUNKSIZE);
+    SECItem buf = {siBuffer, (unsigned char *)data, (unsigned int)size};
     (void)SEC_QuickDERDecodeItem(&pool.arena, dest, tpl, &buf);
-    PORT_DestroyCheapArena(&pool);
   }
+
+  PORT_DestroyCheapArena(&pool);
 
   return 0;
 }
