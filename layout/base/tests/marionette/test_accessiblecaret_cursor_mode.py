@@ -222,10 +222,10 @@ class AccessibleCaretCursorModeTestCase(MarionetteTestCase):
 
     def test_drag_caret_from_front_to_end_across_columns(self):
         self.open_test_html("layout/test_carets_columns.html")
-        el = self.marionette.find_element(By.ID, "columns-inner")
+        el = self.marionette.find_element(By.ID, "columns")
         sel = SelectionManager(el)
-        original_content = sel.content
         content_to_add = "!"
+        target_content = sel.content + content_to_add
 
         # Goal: the cursor position can be changed by dragging the caret from
         # the front to the end of the content.
@@ -244,16 +244,7 @@ class AccessibleCaretCursorModeTestCase(MarionetteTestCase):
         self.actions.flick(el, src_x, src_y, dest_x, dest_y).perform()
 
         self.actions.send_keys(content_to_add).perform()
-        # Depending on where the column break ends up we might see an empty
-        # block, which adds a newline to the selection serialization.
-        # That's not related to the point of the test-case.
-        self.assertIn(
-            sel.content,
-            [
-                original_content + content_to_add,
-                original_content + "\n" + content_to_add,
-            ],
-        )
+        self.assertEqual(target_content, sel.content)
 
     def test_move_cursor_to_front_by_dragging_caret_to_front_br_element(self):
         self.open_test_html(self._cursor_html)
