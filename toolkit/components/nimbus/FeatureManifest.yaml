@@ -3024,6 +3024,13 @@ fingerprintingProtection:
         pref: javascript.options.use_fdlibm_for_sin_cos_tan
       description: >-
         Uses a different math backend for Math.sin/cos/tan in JavaScript that exposes less entropy
+    canvas_random_use_siphash:
+      type: boolean
+      setPref:
+        branch: default
+        pref: privacy.resistFingerprinting.randomization.canvas.use_siphash
+      description: >-
+        Uses the SipHash function for canvas randomization.
 
 userCharacteristics:
   description: Control user characteristic data collection
