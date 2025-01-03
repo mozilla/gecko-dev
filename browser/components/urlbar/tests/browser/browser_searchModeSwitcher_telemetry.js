@@ -7,6 +7,13 @@ add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
   });
+  await TestUtils.waitForCondition(
+    () =>
+      BrowserTestUtils.isVisible(
+        document.getElementById("urlbar-searchmode-switcher")
+      ),
+    "search mode switcher button is visible"
+  );
 
   registerCleanupFunction(async () => {
     await cleanUp();
