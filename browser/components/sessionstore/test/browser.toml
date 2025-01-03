@@ -61,7 +61,7 @@ run-if = ["crashreporter"]
 
 ["browser_async_remove_tab.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x84_64' && opt", # Bug 1787024
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1787024
   "win11_2009", # Bug 1787024
 ]
 
