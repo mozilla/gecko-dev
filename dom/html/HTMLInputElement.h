@@ -206,6 +206,8 @@ class HTMLInputElement final : public TextControlElement,
   void FinishRangeThumbDrag(WidgetGUIEvent* aEvent = nullptr);
   MOZ_CAN_RUN_SCRIPT
   void CancelRangeThumbDrag(bool aIsForUserEvent = true);
+  MOZ_CAN_RUN_SCRIPT
+  void MaybeDispatchWillBlur(EventChainVisitor&);
 
   enum class SnapToTickMarks : bool { No, Yes };
   MOZ_CAN_RUN_SCRIPT

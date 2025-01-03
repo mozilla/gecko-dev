@@ -185,6 +185,12 @@ var testData = [
     initialVal: "",
     expectedVal: ""
   },
+  {
+    keys: ["160"],
+    initialVal: "",
+    expectedVal: "",
+    expectedValOnBlur: "16:00",
+  },
 ];
 
 function sendKeys(aKeys, aElem) {
@@ -204,14 +210,24 @@ function sendKeys(aKeys, aElem) {
 function test() {
   var elem = document.getElementById("input");
 
-  for (let { keys, initialVal, expectedVal } of testData) {
+  for (let { keys, initialVal, expectedVal, expectedValOnBlur } of testData) {
     elem.focus();
     elem.value = initialVal;
     sendKeys(keys, elem);
     is(elem.value, expectedVal,
-       "Test with " + keys + ", result should be " + expectedVal);
-    elem.value = "";
+       "Test with " + keys + ", result should be " + expectedVal + " before blur");
+    let sawBlur = [false, false];
+    for (let capture of [false, true]) {
+      elem.addEventListener("blur", function() {
+        sawBlur[capture ? 0 : 1] = true;
+        is(elem.value, expectedValOnBlur || expectedVal,
+           `Test with ${keys}, result should be correct on blur (capture=${capture})`);
+      }, { once: true, capture });
+    }
     elem.blur();
+    ok(sawBlur[0], "Should've seen the blur event (non-capture)");
+    ok(sawBlur[1], "Should've seen the blur event (capture)");
+    elem.value = "";
   }
 }
 

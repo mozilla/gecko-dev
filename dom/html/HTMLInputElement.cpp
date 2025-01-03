@@ -13,6 +13,7 @@
 #include "mozilla/Components.h"
 #include "mozilla/dom/AutocompleteInfoBinding.h"
 #include "mozilla/dom/BlobImpl.h"
+#include "mozilla/dom/CustomEvent.h"
 #include "mozilla/dom/Directory.h"
 #include "mozilla/dom/DocumentOrShadowRoot.h"
 #include "mozilla/dom/ElementBinding.h"
@@ -3265,28 +3266,6 @@ void HTMLInputElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   }
 
   nsGenericHTMLFormControlElementWithState::GetEventTargetParent(aVisitor);
-
-  // Stop the event if the related target's first non-native ancestor is the
-  // same as the original target's first non-native ancestor (we are moving
-  // inside of the same element).
-  //
-  // FIXME(emilio): Is this still needed now that we use Shadow DOM for this?
-  if (CreatesDateTimeWidget() && aVisitor.mEvent->IsTrusted() &&
-      (aVisitor.mEvent->mMessage == eFocus ||
-       aVisitor.mEvent->mMessage == eFocusIn ||
-       aVisitor.mEvent->mMessage == eFocusOut ||
-       aVisitor.mEvent->mMessage == eBlur)) {
-    nsIContent* originalTarget = nsIContent::FromEventTargetOrNull(
-        aVisitor.mEvent->AsFocusEvent()->mOriginalTarget);
-    nsIContent* relatedTarget = nsIContent::FromEventTargetOrNull(
-        aVisitor.mEvent->AsFocusEvent()->mRelatedTarget);
-
-    if (originalTarget && relatedTarget &&
-        originalTarget->FindFirstNonChromeOnlyAccessContent() ==
-            relatedTarget->FindFirstNonChromeOnlyAccessContent()) {
-      aVisitor.mCanHandle = false;
-    }
-  }
 }
 
 void HTMLInputElement::LegacyPreActivationBehavior(
@@ -3373,10 +3352,44 @@ void HTMLInputElement::LegacyPreActivationBehavior(
   }
 }
 
+void HTMLInputElement::MaybeDispatchWillBlur(EventChainVisitor& aVisitor) {
+  if (!CreatesDateTimeWidget() || !aVisitor.mEvent->IsTrusted()) {
+    return;
+  }
+  RefPtr<Element> dateTimeBoxElement = GetDateTimeBoxElement();
+  if (!dateTimeBoxElement) {
+    return;
+  }
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(GetOwnerGlobal()))) {
+    return;
+  }
+  if (!aVisitor.mDOMEvent) {
+    RefPtr<Event> event = EventDispatcher::CreateEvent(
+        aVisitor.mEvent->mOriginalTarget, aVisitor.mPresContext,
+        aVisitor.mEvent, u""_ns);
+    event.swap(aVisitor.mDOMEvent);
+  }
+  JS::Rooted<JS::Value> detail(jsapi.cx(), JS::NullHandleValue);
+  if (NS_WARN_IF(!ToJSValue(jsapi.cx(), aVisitor.mDOMEvent, &detail))) {
+    return;
+  }
+  // Event is dispatched to closed-shadow tree and doesn't bubble.
+  RefPtr<CustomEvent> event =
+      NS_NewDOMCustomEvent(OwnerDoc(), aVisitor.mPresContext, nullptr);
+  event->InitCustomEvent(jsapi.cx(), u"MozDateTimeWillBlur"_ns,
+                         /* CanBubble */ false,
+                         /* Cancelable */ false, detail);
+  event->SetTrusted(true);
+  dateTimeBoxElement->DispatchEvent(*event);
+}
+
 nsresult HTMLInputElement::PreHandleEvent(EventChainVisitor& aVisitor) {
   if (aVisitor.mItemFlags & NS_PRE_HANDLE_BLUR_EVENT) {
     MOZ_ASSERT(aVisitor.mEvent->mMessage == eBlur);
+    // TODO(emilio): This should probably happen only if the event is trusted?
     FireChangeEventIfNeeded();
+    MaybeDispatchWillBlur(aVisitor);
   }
   return nsGenericHTMLFormControlElementWithState::PreHandleEvent(aVisitor);
 }
@@ -5905,7 +5918,7 @@ void HTMLInputElement::ShowPicker(ErrorResult& aRv) {
     if (CreatesDateTimeWidget()) {
       if (RefPtr<Element> dateTimeBoxElement = GetDateTimeBoxElement()) {
         // Event is dispatched to closed-shadow tree and doesn't bubble.
-        RefPtr<Document> doc = dateTimeBoxElement->OwnerDoc();
+        RefPtr<Document> doc = OwnerDoc();
         nsContentUtils::DispatchTrustedEvent(doc, dateTimeBoxElement,
                                              u"MozDateTimeShowPickerForJS"_ns,
                                              CanBubble::eNo, Cancelable::eNo);

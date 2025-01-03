@@ -274,11 +274,12 @@ this.DateTimeBoxWidget = class {
   }
 
   get FIELD_EVENTS() {
-    return ["focus", "blur", "copy", "cut", "paste"];
+    return ["focus", "copy", "cut", "paste"];
   }
 
   get CONTROL_EVENTS() {
     return [
+      "MozDateTimeWillBlur",
       "MozDateTimeValueChanged",
       "MozNotifyMinMaxStepAttrChanged",
       "MozDateTimeAttributeChanged",
@@ -301,7 +302,7 @@ this.DateTimeBoxWidget = class {
         eventName,
         this,
         { mozSystemGroup: true },
-        false
+        /* wantsUntrusted = */ false
       );
     });
   }
@@ -556,8 +557,9 @@ this.DateTimeBoxWidget = class {
         this.onFocus(aEvent);
         break;
       }
-      case "blur": {
-        this.onBlur(aEvent);
+      case "MozDateTimeWillBlur": {
+        // The event detail is the blur event.
+        this.onWillBlur(aEvent.detail);
         break;
       }
       case "mousedown":
@@ -591,9 +593,9 @@ this.DateTimeBoxWidget = class {
     }
   }
 
-  onBlur(aEvent) {
+  onWillBlur(aEvent) {
     this.log(
-      "onBlur originalTarget: " +
+      "onWillBlur originalTarget: " +
         aEvent.originalTarget +
         " target: " +
         aEvent.target +
@@ -604,7 +606,16 @@ this.DateTimeBoxWidget = class {
     );
 
     let target = aEvent.originalTarget;
+    if (
+      target.getRootNode() !== this.shadowRoot ||
+      !target.matches(".datetime-edit-field")
+    ) {
+      // We only care about the blurring of our inner fields.
+      return;
+    }
+
     target.setAttribute("typeBuffer", "");
+
     this.setInputValueFromFields();
     // No need to set and unset the focus state (or closing the picker) if the
     // focus is staying within our input.
