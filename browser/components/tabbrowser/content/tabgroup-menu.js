@@ -56,9 +56,10 @@
        `;
 
     #activeGroup;
-    #createMode;
     #cancelButton;
     #createButton;
+    #createMode;
+    #keepNewlyCreatedGroup;
     #nameField;
     #panel;
     #swatches;
@@ -93,11 +94,11 @@
       this.#populateSwatches();
 
       this.#cancelButton.addEventListener("click", () => {
-        this.#handleCancel();
+        this.close();
       });
 
       this.#createButton.addEventListener("click", () => {
-        this.close();
+        this.close(true);
       });
 
       this.#nameField.addEventListener("input", () => {
@@ -246,21 +247,30 @@
         gBrowser.openTabs.length == this.activeGroup?.tabs.length;
     }
 
-    close() {
+    close(keepNewlyCreatedGroup = false) {
+      if (this.createMode) {
+        this.#keepNewlyCreatedGroup = keepNewlyCreatedGroup;
+      }
       this.#panel.hidePopup();
     }
 
     on_popupshown() {
+      if (this.createMode) {
+        this.#keepNewlyCreatedGroup = false;
+      }
       this.#nameField.focus();
     }
 
     on_popuphidden() {
+      if (this.createMode && !this.#keepNewlyCreatedGroup) {
+        this.activeGroup.ungroupTabs();
+      }
       this.activeGroup = null;
     }
 
     on_keypress(event) {
       if (event.keyCode == KeyEvent.DOM_VK_RETURN) {
-        this.close();
+        this.close(true);
       }
     }
 
@@ -274,11 +284,6 @@
       if (this.activeGroup) {
         this.activeGroup.color = aEvent.target.value;
       }
-    }
-
-    #handleCancel() {
-      this.activeGroup.ungroupTabs();
-      this.close();
     }
 
     async #handleNewTabInGroup() {
