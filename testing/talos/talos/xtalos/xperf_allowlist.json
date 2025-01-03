@@ -152,6 +152,12 @@
     "minbytes": 0,
     "maxbytes": 24576
   },
+  "c:\\windows\\system32\\windows.system.launcher.dll": {
+    "mincount": 0,
+    "maxcount": 2,
+    "minbytes": 0,
+    "maxbytes": 32768
+  },
   "c:\\windows\\system32\\ole32.dll": {
     "mincount": 4,
     "maxcount": 4,
