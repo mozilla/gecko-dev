@@ -348,7 +348,7 @@ class D3D11DXVA2Manager : public DXVA2Manager {
                                const gfx::IntRect& aRegion,
                                layers::Image** aOutImage) override;
 
-  HRESULT WrapTextureWithImage(ID3D11Texture2D* aTexture, UINT aSurfaceIndex,
+  HRESULT WrapTextureWithImage(D3D11TextureWrapper* aTextureWrapper,
                                const gfx::IntRect& aRegion,
                                layers::Image** aOutImage) override;
 
@@ -866,13 +866,12 @@ HRESULT D3D11DXVA2Manager::WrapTextureWithImage(IMFSample* aVideoSample,
   return S_OK;
 }
 
-HRESULT D3D11DXVA2Manager::WrapTextureWithImage(ID3D11Texture2D* aTexture,
-                                                UINT aSurfaceIndex,
-                                                const gfx::IntRect& aRegion,
-                                                layers::Image** aOutImage) {
+HRESULT D3D11DXVA2Manager::WrapTextureWithImage(
+    D3D11TextureWrapper* aTextureWrapper, const gfx::IntRect& aRegion,
+    layers::Image** aOutImage) {
   NS_ENSURE_TRUE(aOutImage, E_POINTER);
-  RefPtr<D3D11ZeroCopyTextureImage> image = new D3D11ZeroCopyTextureImage(
-      aTexture, aSurfaceIndex, gfx::IntSize(mWidth, mHeight), aRegion,
+  RefPtr<D3D11TextureAVFrameImage> image = new D3D11TextureAVFrameImage(
+      aTextureWrapper, gfx::IntSize(mWidth, mHeight), aRegion,
       ToColorSpace2(mYUVColorSpace), mColorRange, mColorDepth);
   image->AllocateTextureClient(mKnowsCompositor, mZeroCopyUsageInfo);
   image.forget(aOutImage);

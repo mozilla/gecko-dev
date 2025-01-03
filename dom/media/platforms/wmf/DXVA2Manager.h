@@ -11,6 +11,7 @@
 #  include "mozilla/Mutex.h"
 #  include "mozilla/gfx/Rect.h"
 #  include "d3d11.h"
+#  include "D3D11TextureWrapper.h"
 
 namespace mozilla {
 
@@ -48,8 +49,7 @@ class DXVA2Manager {
     return E_FAIL;
   }
 
-  virtual HRESULT WrapTextureWithImage(ID3D11Texture2D* aTexture,
-                                       UINT aSurfaceIndex,
+  virtual HRESULT WrapTextureWithImage(D3D11TextureWrapper* aTextureWrapper,
                                        const gfx::IntRect& aRegion,
                                        layers::Image** aOutImage) {
     // Not implemented!

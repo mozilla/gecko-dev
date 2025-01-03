@@ -52,6 +52,10 @@ if CONFIG["MOZ_ENABLE_VAAPI"] or CONFIG["MOZ_ENABLE_V4L2"]:
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     DEFINES["MOZ_ENABLE_D3D11VA"] = 1
     DEFINES["MOZ_USE_HWDECODE"] = 1
+    SOURCES += [
+        "D3D11TextureWrapper.cpp",
+    ]
+    EXPORTS += ["D3D11TextureWrapper.h"]
 
 include("/ipc/chromium/chromium-config.mozbuild")
 

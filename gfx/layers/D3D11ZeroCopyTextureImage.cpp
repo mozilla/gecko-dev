@@ -9,6 +9,7 @@
 #include <mfobjects.h>
 
 #include "D3D11ZeroCopyTextureImage.h"
+#include "D3D11TextureWrapper.h"
 #include "WMF.h"
 #include "mozilla/gfx/SourceSurfaceRawData.h"
 #include "mozilla/layers/KnowsCompositor.h"
@@ -127,6 +128,17 @@ D3D11TextureIMFSampleImage::D3D11TextureIMFSampleImage(
 
 RefPtr<IMFSampleWrapper> D3D11TextureIMFSampleImage::GetIMFSampleWrapper() {
   return mVideoSample;
+}
+
+D3D11TextureAVFrameImage::D3D11TextureAVFrameImage(
+    D3D11TextureWrapper* aWrapper, const gfx::IntSize& aSize,
+    const gfx::IntRect& aRect, gfx::ColorSpace2 aColorSpace,
+    gfx::ColorRange aColorRange, gfx::ColorDepth aColorDepth)
+    : D3D11ZeroCopyTextureImage(aWrapper->GetTexture(), aWrapper->GetArrayIdx(),
+                                aSize, aRect, aColorSpace, aColorRange,
+                                aColorDepth),
+      mWrapper(aWrapper) {
+  MOZ_ASSERT(XRE_IsGPUProcess());
 }
 
 }  // namespace layers

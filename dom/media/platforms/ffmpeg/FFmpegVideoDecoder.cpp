@@ -66,6 +66,7 @@
 #endif
 
 #ifdef MOZ_ENABLE_D3D11VA
+#  include "D3D11TextureWrapper.h"
 #  include "DXVA2Manager.h"
 #  include "ffvpx/hwcontext_d3d11va.h"
 #endif
@@ -2128,9 +2129,10 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
   UINT index = (uintptr_t)mFrame->data[1];
 
   if (CanUseZeroCopyVideoFrame()) {
-    FFMPEGV_LOG("CreateImageD3D11, zero copy");
-    hr = mDXVA2Manager->WrapTextureWithImage(texture, index, pictureRegion,
-                                             getter_AddRefs(image));
+    FFMPEGV_LOG("CreateImageD3D11, zero copy, index=%u", index);
+    hr = mDXVA2Manager->WrapTextureWithImage(
+        new D3D11TextureWrapper(mFrame, mLib, texture, index), pictureRegion,
+        getter_AddRefs(image));
   } else {
     FFMPEGV_LOG("CreateImageD3D11, copy output to a shared texture");
     hr = mDXVA2Manager->CopyToImage(texture, index, pictureRegion,

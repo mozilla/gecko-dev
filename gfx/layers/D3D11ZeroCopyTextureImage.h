@@ -18,6 +18,9 @@ struct ID3D11Texture2D;
 struct IMFSample;
 
 namespace mozilla {
+
+class D3D11TextureWrapper;
+
 namespace gl {
 class GLBlitHelper;
 }
@@ -118,6 +121,21 @@ class D3D11TextureIMFSampleImage final : public D3D11ZeroCopyTextureImage {
 
  private:
   RefPtr<IMFSampleWrapper> mVideoSample;
+};
+
+// Image class that wraps ID3D11Texture2D of AVFrame from ffvpx hw decoder
+// Expected to be used in GPU process.
+class D3D11TextureAVFrameImage final : public D3D11ZeroCopyTextureImage {
+ public:
+  D3D11TextureAVFrameImage(D3D11TextureWrapper* aWrapper,
+                           const gfx::IntSize& aSize, const gfx::IntRect& aRect,
+                           gfx::ColorSpace2 aColorSpace,
+                           gfx::ColorRange aColorRange,
+                           gfx::ColorDepth aColorDepth);
+  virtual ~D3D11TextureAVFrameImage() = default;
+
+ private:
+  UniquePtr<D3D11TextureWrapper> mWrapper;
 };
 
 }  // namespace layers
