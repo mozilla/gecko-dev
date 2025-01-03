@@ -1292,7 +1292,7 @@ var SessionStoreInternal = {
         state?.windows?.forEach(win => delete win._maybeDontRestoreTabs);
         state?._closedWindows?.forEach(win => delete win._maybeDontRestoreTabs);
 
-        this._savedGroups = state?.savedGroups;
+        this._savedGroups = state?.savedGroups ?? [];
       } catch (ex) {
         this._log.error("The session file is invalid: ", ex);
       }
