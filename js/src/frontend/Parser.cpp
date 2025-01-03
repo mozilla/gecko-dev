@@ -1042,7 +1042,7 @@ static MOZ_ALWAYS_INLINE ParserBindingName* InitializeIndexedBindings(
 template <class SlotInfo, typename UnsignedInteger, typename... Step>
 static MOZ_ALWAYS_INLINE ParserBindingName* InitializeIndexedBindings(
     SlotInfo& slotInfo, ParserBindingName* start, ParserBindingName* cursor,
-    UnsignedInteger SlotInfo::*field, const ParserBindingNameVector& bindings,
+    UnsignedInteger SlotInfo::* field, const ParserBindingNameVector& bindings,
     Step&&... step) {
   slotInfo.*field =
       AssertedCast<UnsignedInteger>(PointerRangeSize(start, cursor));
@@ -4330,7 +4330,7 @@ GeneralParser<ParseHandler, Unit>::bindingIdentifierOrPattern(
   }
 
   if (!TokenKindIsPossibleIdentifierName(tt)) {
-    error(JSMSG_NO_VARIABLE_NAME);
+    error(JSMSG_NO_VARIABLE_NAME, TokenKindToDesc(tt));
     return errorResult();
   }
 
@@ -4373,7 +4373,7 @@ GeneralParser<ParseHandler, Unit>::objectBindingPattern(
       }
 
       if (!TokenKindIsPossibleIdentifierName(tt)) {
-        error(JSMSG_NO_VARIABLE_NAME);
+        error(JSMSG_NO_VARIABLE_NAME, TokenKindToDesc(tt));
         return errorResult();
       }
 
@@ -4450,7 +4450,7 @@ GeneralParser<ParseHandler, Unit>::objectBindingPattern(
           return errorResult();
         }
       } else {
-        errorAt(namePos.begin, JSMSG_NO_VARIABLE_NAME);
+        errorAt(namePos.begin, JSMSG_NO_VARIABLE_NAME, TokenKindToDesc(tt));
         return errorResult();
       }
     }
@@ -4766,7 +4766,7 @@ GeneralParser<ParseHandler, Unit>::declarationName(DeclarationKind declKind,
                                                    Node* forInOrOfExpression) {
   // Anything other than possible identifier is an error.
   if (!TokenKindIsPossibleIdentifier(tt)) {
-    error(JSMSG_NO_VARIABLE_NAME);
+    error(JSMSG_NO_VARIABLE_NAME, TokenKindToDesc(tt));
     return errorResult();
   }
 

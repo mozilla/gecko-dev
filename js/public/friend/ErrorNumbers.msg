@@ -331,7 +331,7 @@ MSG_DEF(JSMSG_NAMED_IMPORTS_OR_NAMESPACE_IMPORT, 0, JSEXN_SYNTAXERR, "expected n
 MSG_DEF(JSMSG_NO_BINDING_NAME,        0, JSEXN_SYNTAXERR, "missing binding name")
 MSG_DEF(JSMSG_NO_EXPORT_NAME,          0, JSEXN_SYNTAXERR, "missing export name")
 MSG_DEF(JSMSG_NO_IMPORT_NAME,          0, JSEXN_SYNTAXERR, "missing import name")
-MSG_DEF(JSMSG_NO_VARIABLE_NAME,        0, JSEXN_SYNTAXERR, "missing variable name")
+MSG_DEF(JSMSG_NO_VARIABLE_NAME,        1, JSEXN_SYNTAXERR, "missing variable name, got {0}")
 MSG_DEF(JSMSG_PAREN_AFTER_ARGS,        0, JSEXN_SYNTAXERR, "missing ) after argument list")
 MSG_DEF(JSMSG_PAREN_AFTER_CATCH,       0, JSEXN_SYNTAXERR, "missing ) after catch")
 MSG_DEF(JSMSG_PAREN_AFTER_COND,        0, JSEXN_SYNTAXERR, "missing ) after condition")
