@@ -19481,24 +19481,6 @@
       "last_modified": 1666727866135
     },
     {
-      "schema": 1666727389863,
-      "derHash": "rshjiY8oTWzUxqP2w+ZSNICjWcM9r2b60zgYSbi7AYs=",
-      "subject": "CN=Cloudflare Inc RSA CA-2,O=Cloudflare\\, Inc.,C=US",
-      "subjectDN": "MEoxCzAJBgNVBAYTAlVTMRkwFwYDVQQKExBDbG91ZGZsYXJlLCBJbmMuMSAwHgYDVQQDExdDbG91ZGZsYXJlIEluYyBSU0EgQ0EtMg==",
-      "whitelist": false,
-      "attachment": {
-        "hash": "e6beb4b3ac790c49b23fd4e9e9e03e0d29f7200df762a6b737068f6a873e8f9a",
-        "size": 1654,
-        "filename": "hS5jJ4P-iQUErBkvoWBQOd1T7VOAYlOVegvv1iMzpxA=.pem",
-        "location": "security-state-staging/intermediates/e920545c-7b6c-4c76-9a6a-e2490d391424.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "hS5jJ4P+iQUErBkvoWBQOd1T7VOAYlOVegvv1iMzpxA=",
-      "crlite_enrolled": false,
-      "id": "239072e9-3a93-488b-90f7-98aa49c2584b",
-      "last_modified": 1666727866091
-    },
-    {
       "schema": 1666727406145,
       "derHash": "t1rumDb++8RG8oiilwuE/GCq+e+9LLn4L3WBeQ3kuNw=",
       "subject": "CN=DigiCert Secure Site Pro EV CN CA G3,O=DigiCert Inc,C=US",
@@ -19929,24 +19911,6 @@
       "crlite_enrolled": false,
       "id": "e01f49af-1b36-46a6-8852-c945934fa1f7",
       "last_modified": 1666727865679
-    },
-    {
-      "schema": 1666727396960,
-      "derHash": "OrvmPa91bFAWtrhfUgFf2Oisvid8UIexJ6YFY6hB7Yo=",
-      "subject": "CN=Cloudflare Inc ECC CA-3,O=Cloudflare\\, Inc.,C=US",
-      "subjectDN": "MEoxCzAJBgNVBAYTAlVTMRkwFwYDVQQKExBDbG91ZGZsYXJlLCBJbmMuMSAwHgYDVQQDExdDbG91ZGZsYXJlIEluYyBFQ0MgQ0EtMw==",
-      "whitelist": false,
-      "attachment": {
-        "hash": "f7e471ccaa5a049df60367b77d98d07cd5db968d7e9fbcc638ccf2b08d6572f7",
-        "size": 1378,
-        "filename": "FEzVOUp4dF3gI0ZVPRJhFbSJVXR-uQmMH65xhs1glH4=.pem",
-        "location": "security-state-staging/intermediates/94388457-922f-4508-8094-bb10ab4f11d7.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "FEzVOUp4dF3gI0ZVPRJhFbSJVXR+uQmMH65xhs1glH4=",
-      "crlite_enrolled": false,
-      "id": "ab828172-9f33-49df-8d8b-f17174f9e641",
-      "last_modified": 1666727865665
     },
     {
       "schema": 1666727336841,
@@ -30785,5 +30749,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1734706622693
+  "timestamp": 1735657022792
 }

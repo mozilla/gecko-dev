@@ -11,7 +11,7 @@
       "channel": "release",
       "userFacingName": "Android default toolbar placement - Treatment A Rollout",
       "userFacingDescription": "Testing default position of toolbar.",
-      "isEnrollmentPaused": false,
+      "isEnrollmentPaused": true,
       "isRollout": true,
       "bucketConfig": {
         "randomizationUnit": "nimbus_id",
