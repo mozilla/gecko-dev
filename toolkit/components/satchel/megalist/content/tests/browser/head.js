@@ -197,16 +197,3 @@ async function waitForReauth(callBackFn) {
   await callBackFn();
   return reauthObserved;
 }
-
-function waitForPasswordReveal(passwordLine) {
-  const revealBtnPromise = BrowserTestUtils.waitForMutationCondition(
-    passwordLine.loginLine,
-    {
-      attributeFilter: ["inputtype"],
-    },
-    () => passwordLine.loginLine.getAttribute("inputtype") === "text"
-  );
-  info("click on reveal button");
-  passwordLine.revealBtn.click();
-  return revealBtnPromise;
-}
