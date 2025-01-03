@@ -55,18 +55,13 @@ export class MegalistViewModel {
   }
 
   refreshSingleLineOnScreen(line) {
-    if (this.#searchText) {
-      // TODO: we should be throttling search input
-      this.#rebuildSnapshots();
-    } else {
-      const snapshotIndex = this.#snapshots.indexOf(line);
-      if (snapshotIndex >= 0) {
-        const snapshot = this.#processSnapshotView(line, snapshotIndex);
-        this.#messageToView("Snapshot", {
-          snapshotId: snapshotIndex,
-          snapshot,
-        });
-      }
+    const snapshotIndex = this.#snapshots.indexOf(line);
+    if (snapshotIndex >= 0) {
+      const snapshot = this.#processSnapshotView(line, snapshotIndex);
+      this.#messageToView("Snapshot", {
+        snapshotId: snapshotIndex,
+        snapshot,
+      });
     }
   }
 
@@ -163,7 +158,6 @@ export class MegalistViewModel {
   receiveUpdateFilter({ searchText } = { searchText: "" }) {
     if (this.#searchText != searchText) {
       this.#searchText = searchText;
-      this.#messageToView("MegalistUpdateFilter", { searchText });
       this.#rebuildSnapshots();
     }
   }
