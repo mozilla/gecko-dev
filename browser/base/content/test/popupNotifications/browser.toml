@@ -92,6 +92,12 @@ skip-if = [
 ]
 
 ["browser_popupNotification_swapBrowser.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1901009
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1901009
+  "win11_2009 && processor == 'x86_64' && asan", # Bug 1901009
+  "win11_2009 && debug", # Bug 1901009
+]
 
 ["browser_reshow_in_background.js"]
 skip-if = [
