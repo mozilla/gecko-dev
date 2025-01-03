@@ -703,7 +703,7 @@ cleanup:
     mp_clear(&a);
     mp_clear(&z);
     mp_clear(&two_length_minus_1);
-    PORT_SafeZero(x, sizeof(x));
+    PORT_Memset(x, 0, sizeof(x));
     if (err) {
         MP_TO_SEC_ERROR(err);
         rv = SECFailure;
@@ -859,7 +859,7 @@ cleanup:
     mp_clear(&c);
     mp_clear(&c0);
     mp_clear(&one);
-    PORT_SafeZero(x, sizeof(x));
+    PORT_Memset(x, 0, sizeof(x));
     if (err) {
         MP_TO_SEC_ERROR(err);
         rv = SECFailure;
@@ -1072,7 +1072,7 @@ makePfromQandSeed(
     CHECK_MPI_OK(mp_sub_d(&c, 1, &c)); /* c -= 1       */
     CHECK_MPI_OK(mp_sub(&X, &c, P));   /* P = X - c    */
 cleanup:
-    PORT_SafeZero(V_j, sizeof V_j);
+    PORT_Memset(V_j, 0, sizeof V_j);
     mp_clear(&W);
     mp_clear(&X);
     mp_clear(&c);
@@ -1221,7 +1221,7 @@ makeGfromIndex(HASH_HashType hashtype,
 /* step 11.
  * return valid G */
 cleanup:
-    PORT_SafeZero(data, sizeof(data));
+    PORT_Memset(data, 0, sizeof(data));
     if (hashcx) {
         hashobj->destroy(hashcx, PR_TRUE);
     }

@@ -25,46 +25,48 @@ namespace nss_test {
 static std::unordered_set<PRInt32> gFuzzedSslOptions = {
     SSL_SECURITY,             // irrelevant
     SSL_SOCKS,                // irrelevant
-    SSL_REQUEST_CERTIFICATE,  // tls_server
+    SSL_REQUEST_CERTIFICATE,  // tls_server_fuzz_target
     SSL_HANDSHAKE_AS_CLIENT,  // irrelevant
     SSL_HANDSHAKE_AS_SERVER,  // irrelevant
     SSL_ENABLE_SSL2,          // obsolete
     SSL_ENABLE_SSL3,          // obsolete
-    SSL_NO_CACHE,             // tls_client, tls_server
-    SSL_REQUIRE_CERTIFICATE,  // tls_server
+    SSL_NO_CACHE,             // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_REQUIRE_CERTIFICATE,  // tls_server_fuzz_target
     SSL_ENABLE_FDX,
     SSL_V2_COMPATIBLE_HELLO,  // obsolete
     SSL_ENABLE_TLS,           // obsolete
     SSL_ROLLBACK_DETECTION,
-    SSL_NO_STEP_DOWN,            // unsupported
-    SSL_BYPASS_PKCS11,           // unsupported
-    SSL_NO_LOCKS,                // tls_client, tls_server
-    SSL_ENABLE_SESSION_TICKETS,  // tls_client, tls_server
-    SSL_ENABLE_DEFLATE,          // tls_client, tls_server
+    SSL_NO_STEP_DOWN,   // unsupported
+    SSL_BYPASS_PKCS11,  // unsupported
+    SSL_NO_LOCKS,       // tls_client_fuzz_target. tls_server_fuzz_target
+    SSL_ENABLE_SESSION_TICKETS,  // tls_client_fuzz_target,
+                                 // tls_server_fuzz_target
+    SSL_ENABLE_DEFLATE,  // tls_client_fuzz_target, tls_server_fuzz_target
     SSL_ENABLE_RENEGOTIATION,
-    SSL_REQUIRE_SAFE_NEGOTIATION,  // tls_client, tls_server
-    SSL_ENABLE_FALSE_START,        // tls_client
-    SSL_CBC_RANDOM_IV,             // tls_client, tls_server
-    SSL_ENABLE_OCSP_STAPLING,      // tls_client
-    SSL_ENABLE_NPN,                // defunct
-    SSL_ENABLE_ALPN,               // tls_client, tls_server
+    SSL_REQUIRE_SAFE_NEGOTIATION,  // tls_client_fuzz_target,
+                                   // tls_server_fuzz_target
+    SSL_ENABLE_FALSE_START,        // tls_client_fuzz_target
+    SSL_CBC_RANDOM_IV,         // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_ENABLE_OCSP_STAPLING,  // tls_client_fuzz_target
+    SSL_ENABLE_NPN,            // defunct
+    SSL_ENABLE_ALPN,           // tls_client_fuzz_target, tls_server_fuzz_target
     SSL_REUSE_SERVER_ECDHE_KEY,
-    SSL_ENABLE_FALLBACK_SCSV,  // tls_client, tls_server
+    SSL_ENABLE_FALLBACK_SCSV,  // tls_client_fuzz_target,
+                               // tls_server_fuzz_target
     SSL_ENABLE_SERVER_DHE,
-    SSL_ENABLE_EXTENDED_MASTER_SECRET,  // tls_client, tls_server
+    SSL_ENABLE_EXTENDED_MASTER_SECRET,  // tls_client_fuzz_target,
+                                        // tls_server_fuzz_target
     SSL_ENABLE_SIGNED_CERT_TIMESTAMPS,
-    SSL_REQUIRE_DH_NAMED_GROUPS,  // tls_client
-    SSL_ENABLE_0RTT_DATA,         // tls_client, tls_server
+    SSL_REQUIRE_DH_NAMED_GROUPS,  // tls_client_fuzz_target
+    SSL_ENABLE_0RTT_DATA,  // tls_client_fuzz_target, tls_server_fuzz_target
     SSL_RECORD_SIZE_LIMIT,
-    SSL_ENABLE_TLS13_COMPAT_MODE,  // tls_client
-    SSL_ENABLE_DTLS_SHORT_HEADER,  // tls_client, tls_server
-    SSL_ENABLE_HELLO_DOWNGRADE_CHECK,
+    SSL_ENABLE_TLS13_COMPAT_MODE,  // tls_client_fuzz_target
+    SSL_ENABLE_DTLS_SHORT_HEADER, SSL_ENABLE_HELLO_DOWNGRADE_CHECK,
     SSL_ENABLE_V2_COMPATIBLE_HELLO,
-    SSL_ENABLE_POST_HANDSHAKE_AUTH,    // tls_client
-    SSL_ENABLE_DELEGATED_CREDENTIALS,  // tls_client, tls_server
-    SSL_SUPPRESS_END_OF_EARLY_DATA,
-    SSL_ENABLE_GREASE,                    // tls_client, tls_server
-    SSL_ENABLE_CH_EXTENSION_PERMUTATION,  // tls_client
+    SSL_ENABLE_POST_HANDSHAKE_AUTH,  // tls_client_fuzz_target
+    SSL_ENABLE_DELEGATED_CREDENTIALS, SSL_SUPPRESS_END_OF_EARLY_DATA,
+    SSL_ENABLE_GREASE,  // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_ENABLE_CH_EXTENSION_PERMUTATION,  // tls_client_fuzz_target
 };
 
 const uint8_t kShortEmptyFinished[8] = {0};

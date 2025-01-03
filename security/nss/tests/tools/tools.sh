@@ -127,7 +127,6 @@ tools_init()
   cp ${QADIR}/tools/pbmac1-invalid-bad-iter.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/pbmac1-invalid-bad-salt.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/pbmac1-invalid-no-length.p12 ${TOOLSDIR}/data
-  cp ${QADIR}/tools/corrupted_cert_bag.p12 ${TOOLSDIR}/data
 
   cd ${TOOLSDIR}
 }
@@ -502,12 +501,6 @@ tools_p12_import_old_files()
   html_msg $ret 0 "Importing PKCS#12 file with and implicit KDF value"
   check_tmpfile
 
-  echo "pk12util -I -l corrupted_cert_bag.p12 -W start"
-  ${BINDIR}/pk12util -I -l ${TOOLSDIR}/data/corrupted_cert_bag.p12 -W start 2>&1
-  ret=$?
-  html_msg $ret 17 "Listing a PKCS#12 file with corrupted certificate bag"
-  check_tmpfile
-
 }
 
 tools_p12_import_rsa_pss_private_key()
@@ -548,24 +541,24 @@ tools_p12_import_pbmac1_samples()
   html_msg $ret 0 "Importing private key pbmac1 hmac-sha-512 from PKCS#12 file"
   check_tmpfile
 
-  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-iter.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' -I"
-  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-iter.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' -I 2>&1
+  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-iter.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-iter.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
   ret=$?
-  html_msg $ret 19 "Fail to list private key with bad iterator"
+  html_msg $ret 17 "Fail to list private key with bad iterator"
   check_tmpfile
 
-  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-salt.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' -I"
-  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-salt.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' -I 2>&1
+  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-salt.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-salt.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
   ret=$?
   echo "Fail to list private key with bad salt val=$ret"
-  html_msg $ret 19 "Fail to import private key with bad salt"
+  html_msg $ret 17 "Fail to import private key with bad salt"
   check_tmpfile
 
-  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-no-length.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' -I "
-  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-no-length.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' -I 2>&1
+  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-no-length.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-no-length.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
   ret=$?
   echo "Fail to import private key with no length val=$ret"
-  html_msg $ret 19 "Fail to import private key with no length"
+  html_msg $ret 17 "Fail to import private key with no length"
   check_tmpfile
 }
 

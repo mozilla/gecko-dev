@@ -19,11 +19,9 @@
 #endif
 #define SSL_VERSION_RANGE_MAX_VALID 0x0304
 
-namespace TlsServer {
-
-class Config {
+class ServerConfig {
  public:
-  Config(const uint8_t* data, size_t len);
+  ServerConfig(const uint8_t* data, size_t len);
 
   void SetCallbacks(PRFileDesc* fd);
   void SetSocketOptions(PRFileDesc* fd);
@@ -35,8 +33,6 @@ class Config {
   };
   SSLVersionRange SslVersionRange() { return ssl_version_range_; };
 
-  // NOTE: When adding more config options here, don't forget to print
-  // them in the "<<"-overloaded operator.
   bool EnableExtendedMasterSecret() { return config_ & (1 << 0); };
   bool RequestCertificate() { return config_ & (1 << 1); };
   bool RequireCertificate() { return config_ & (1 << 2); };
@@ -54,17 +50,12 @@ class Config {
   bool EnableSessionTickets() { return config_ & (1 << 14); };
   bool NoLocks() { return config_ & (1 << 15); };
   bool FailCertificateAuthentication() { return config_ & (1 << 16); }
-  bool EnableTls13BackendEch() { return config_ & (1 << 17); }
-  bool EnableDelegatedCredentials() { return config_ & (1 << 18); };
-  bool EnableDtlsShortHeader() { return config_ & (1 << 19); };
 
  private:
   uint32_t config_;
   SSLVersionRange ssl_version_range_;
 };
 
-std::ostream& operator<<(std::ostream& out, Config& config);
-
-}  // namespace TlsServer
+std::ostream& operator<<(std::ostream& out, ServerConfig& config);
 
 #endif  // TLS_SERVER_CONFIG_H_

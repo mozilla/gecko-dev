@@ -2,38 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "client_config.h"
+#include "tls_server_config.h"
 
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 
 #include "nss_scoped_ptrs.h"
-#include "nssb64.h"
+#include "pk11pub.h"
 #include "prio.h"
-#include "prtypes.h"
 #include "seccomon.h"
 #include "ssl.h"
 #include "sslexp.h"
+#include "sslt.h"
 
-#include "common.h"
+#include "tls_common.h"
 
 const SSLCertificateCompressionAlgorithm kCompressionAlg = {
-    0x1337, "fuzz", TlsCommon::DummyCompressionEncode,
-    TlsCommon::DummyCompressionDecode};
+    0x1337, "fuzz", DummyCompressionEncode, DummyCompressionDecode};
 const PRUint8 kPskIdentity[] = "fuzz-psk-identity";
-#ifndef IS_DTLS_FUZZ
-const char kEchConfigs[] =
-    "AEX+"
-    "DQBBcQAgACDh4IuiuhhInUcKZx5uYcehlG9PQ1ZlzhvVZyjJl7dscQAEAAEAAQASY2xvdWRmbG"
-    "FyZS1lY2guY29tAAA=";
-#endif  // IS_DTLS_FUZZ
 
 static SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
                                      PRBool isServer) {
-  assert(!isServer);
-
-  auto config = reinterpret_cast<TlsClient::Config*>(arg);
+  assert(isServer);
+  auto config = reinterpret_cast<ServerConfig*>(arg);
   if (config->FailCertificateAuthentication()) return SECFailure;
 
   return SECSuccess;
@@ -45,12 +37,10 @@ static SECStatus CanFalseStartCallback(PRFileDesc* fd, void* arg,
   return SECSuccess;
 }
 
-namespace TlsClient {
-
 // XOR 64-bit chunks of data to build a bitmap of config options derived from
 // the fuzzing input. This seems the only way to fuzz various options while
 // still maintaining compatibility with BoringSSL or OpenSSL fuzzers.
-Config::Config(const uint8_t* data, size_t len) {
+ServerConfig::ServerConfig(const uint8_t* data, size_t len) {
   union {
     uint64_t bitmap;
     struct {
@@ -81,7 +71,7 @@ Config::Config(const uint8_t* data, size_t len) {
   };
 }
 
-void Config::SetCallbacks(PRFileDesc* fd) {
+void ServerConfig::SetCallbacks(PRFileDesc* fd) {
   SECStatus rv = SSL_AuthCertificateHook(fd, AuthCertificateHook, this);
   assert(rv == SECSuccess);
 
@@ -89,22 +79,21 @@ void Config::SetCallbacks(PRFileDesc* fd) {
   assert(rv == SECSuccess);
 }
 
-void Config::SetSocketOptions(PRFileDesc* fd) {
+void ServerConfig::SetSocketOptions(PRFileDesc* fd) {
   SECStatus rv = SSL_OptionSet(fd, SSL_ENABLE_EXTENDED_MASTER_SECRET,
                                this->EnableExtendedMasterSecret());
   assert(rv == SECSuccess);
 
-  rv = SSL_OptionSet(fd, SSL_REQUIRE_DH_NAMED_GROUPS,
-                     this->RequireDhNamedGroups());
+  rv = SSL_OptionSet(fd, SSL_REQUEST_CERTIFICATE, this->RequestCertificate());
   assert(rv == SECSuccess);
 
-  rv = SSL_OptionSet(fd, SSL_ENABLE_FALSE_START, this->EnableFalseStart());
+  rv = SSL_OptionSet(fd, SSL_REQUIRE_CERTIFICATE, this->RequireCertificate());
   assert(rv == SECSuccess);
 
   rv = SSL_OptionSet(fd, SSL_ENABLE_DEFLATE, this->EnableDeflate());
   assert(rv == SECSuccess);
 
-  rv = SSL_OptionSet(fd, SSL_CBC_RANDOM_IV, this->CbcRandomIv());
+  rv = SSL_OptionSet(fd, SSL_CBC_RANDOM_IV, this->EnableCbcRandomIv());
   assert(rv == SECSuccess);
 
   rv = SSL_OptionSet(fd, SSL_REQUIRE_SAFE_NEGOTIATION,
@@ -115,10 +104,6 @@ void Config::SetSocketOptions(PRFileDesc* fd) {
   assert(rv == SECSuccess);
 
   rv = SSL_OptionSet(fd, SSL_ENABLE_GREASE, this->EnableGrease());
-  assert(rv == SECSuccess);
-
-  rv = SSL_OptionSet(fd, SSL_ENABLE_CH_EXTENSION_PERMUTATION,
-                     this->EnableCHExtensionPermutation());
   assert(rv == SECSuccess);
 
   if (this->SetCertificateCompressionAlgorithm()) {
@@ -144,10 +129,6 @@ void Config::SetSocketOptions(PRFileDesc* fd) {
     assert(rv == SECSuccess);
   }
 
-  rv = SSL_OptionSet(fd, SSL_ENABLE_POST_HANDSHAKE_AUTH,
-                     this->EnablePostHandshakeAuth());
-  assert(rv == SECSuccess);
-
   rv = SSL_OptionSet(fd, SSL_ENABLE_0RTT_DATA, this->EnableZeroRtt());
   assert(rv == SECSuccess);
 
@@ -157,70 +138,38 @@ void Config::SetSocketOptions(PRFileDesc* fd) {
   rv = SSL_OptionSet(fd, SSL_ENABLE_FALLBACK_SCSV, this->EnableFallbackScsv());
   assert(rv == SECSuccess);
 
-  rv = SSL_OptionSet(fd, SSL_ENABLE_OCSP_STAPLING, this->EnableOcspStapling());
-  assert(rv == SECSuccess);
-
   rv = SSL_OptionSet(fd, SSL_ENABLE_SESSION_TICKETS,
                      this->EnableSessionTickets());
   assert(rv == SECSuccess);
 
-  rv = SSL_OptionSet(fd, SSL_ENABLE_TLS13_COMPAT_MODE,
-                     this->EnableTls13CompatMode());
-  assert(rv == SECSuccess);
-
   rv = SSL_OptionSet(fd, SSL_NO_LOCKS, this->NoLocks());
-  assert(rv == SECSuccess);
-
-  rv = SSL_EnableTls13GreaseEch(fd, this->EnableTls13GreaseEch());
-  assert(rv == SECSuccess);
-
-  rv = SSL_SetDtls13VersionWorkaround(fd, this->SetDtls13VersionWorkaround());
-  assert(rv == SECSuccess);
-
-  rv = SSL_OptionSet(fd, SSL_ENABLE_DELEGATED_CREDENTIALS,
-                     this->EnableDelegatedCredentials());
-  assert(rv == SECSuccess);
-
-  rv = SSL_OptionSet(fd, SSL_ENABLE_DTLS_SHORT_HEADER,
-                     this->EnableDtlsShortHeader());
   assert(rv == SECSuccess);
 
 #ifndef IS_DTLS_FUZZ
   rv =
       SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);
   assert(rv == SECSuccess);
-
-  if (this->SetClientEchConfigs()) {
-    ScopedSECItem echConfigsBin(NSSBase64_DecodeBuffer(
-        nullptr, nullptr, kEchConfigs, sizeof(kEchConfigs)));
-    assert(echConfigsBin);
-
-    rv = SSL_SetClientEchConfigs(fd, echConfigsBin->data, echConfigsBin->len);
-    assert(rv == SECSuccess);
-  }
-#endif  // IS_DTLS_FUZZ
+#endif
 }
 
-std::ostream& operator<<(std::ostream& out, Config& config) {
-  out << "============= ClientConfig ============="
+std::ostream& operator<<(std::ostream& out, ServerConfig& config) {
+  out << "============= ServerConfig ============="
       << "\n";
   out << "SSL_NO_CACHE:                           " << config.NoCache() << "\n";
   out << "SSL_ENABLE_EXTENDED_MASTER_SECRET:      "
       << config.EnableExtendedMasterSecret() << "\n";
-  out << "SSL_REQUIRE_DH_NAMED_GROUPS:            "
-      << config.RequireDhNamedGroups() << "\n";
-  out << "SSL_ENABLE_FALSE_START:                 " << config.EnableFalseStart()
-      << "\n";
+  out << "SSL_REQUEST_CERTIFICATE:                "
+      << config.RequestCertificate() << "\n";
+  out << "SSL_REQUIRE_CERTIFICATE:                "
+      << config.RequireCertificate() << "\n";
   out << "SSL_ENABLE_DEFLATE:                     " << config.EnableDeflate()
       << "\n";
-  out << "SSL_CBC_RANDOM_IV:                      " << config.CbcRandomIv()
-      << "\n";
+  out << "SSL_CBC_RANDOM_IV:                      "
+      << config.EnableCbcRandomIv() << "\n";
   out << "SSL_REQUIRE_SAFE_NEGOTIATION:           "
       << config.RequireSafeNegotiation() << "\n";
   out << "SSL_ENABLE_GREASE:                      " << config.EnableGrease()
       << "\n";
-  out << "SSL_ENABLE_CH_EXTENSION_PERMUTATION:    "
-      << config.EnableCHExtensionPermutation() << "\n";
   out << "SSL_SetCertificateCompressionAlgorithm: "
       << config.SetCertificateCompressionAlgorithm() << "\n";
   out << "SSL_VersionRangeSet:                    " << config.SetVersionRange()
@@ -233,30 +182,16 @@ std::ostream& operator<<(std::ostream& out, Config& config) {
       << "\n";
   out << "  Type:                                 " << config.PskHashType()
       << "\n";
-  out << "SSL_ENABLE_POST_HANDSHAKE_AUTH:         "
-      << config.EnablePostHandshakeAuth() << "\n";
   out << "SSL_ENABLE_0RTT_DATA:                   " << config.EnableZeroRtt()
       << "\n";
   out << "SSL_ENABLE_ALPN:                        " << config.EnableAlpn()
       << "\n";
   out << "SSL_ENABLE_FALLBACK_SCSV:               "
       << config.EnableFallbackScsv() << "\n";
-  out << "SSL_ENABLE_OCSP_STAPLING:               "
-      << config.EnableOcspStapling() << "\n";
   out << "SSL_ENABLE_SESSION_TICKETS:             "
       << config.EnableSessionTickets() << "\n";
-  out << "SSL_ENABLE_TLS13_COMPAT_MODE:           "
-      << config.EnableTls13CompatMode() << "\n";
   out << "SSL_NO_LOCKS:                           " << config.NoLocks() << "\n";
-  out << "SSL_EnableTls13GreaseEch:               "
-      << config.EnableTls13GreaseEch() << "\n";
-  out << "SSL_SetDtls13VersionWorkaround:         "
-      << config.SetDtls13VersionWorkaround() << "\n";
-  out << "SSL_SetClientEchConfigs:                "
-      << config.SetClientEchConfigs() << "\n";
   out << "========================================";
 
   return out;
 }
-
-}  // namespace TlsClient

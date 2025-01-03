@@ -1,3 +1,0 @@
-1 Added function:
-
-  'function SECMODModule* SECMOD_LoadUserModuleWithFunction(const char*, CK_C_GetFunctionList)'    {SECMOD_LoadUserModuleWithFunction@@NSS_3.107}

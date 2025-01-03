@@ -2,33 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 #include "keyhi.h"
-#include "nss_scoped_ptrs.h"
 #include "pk11pub.h"
 
-#include "asn1/mutators.h"
-#include "base/database.h"
-#include "base/mutate.h"
+#include "asn1_mutators.h"
+#include "shared.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-  static NSSDatabase db = NSSDatabase();
+  static std::unique_ptr<NSSDatabase> db(new NSSDatabase());
+
+  PK11SlotInfo *slot = PK11_GetInternalSlot();
+  assert(slot);
 
   SECItem derPki = {siBuffer, (unsigned char *)data, (unsigned int)size};
 
-  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
-  assert(slot);
-
   SECKEYPrivateKey *key = nullptr;
-  if (PK11_ImportDERPrivateKeyInfoAndReturnKey(slot.get(), &derPki, nullptr,
-                                               nullptr, false, false, KU_ALL,
-                                               &key, nullptr) == SECSuccess) {
+  if (PK11_ImportDERPrivateKeyInfoAndReturnKey(slot, &derPki, nullptr, nullptr,
+                                               false, false, KU_ALL, &key,
+                                               nullptr) == SECSuccess) {
     SECKEY_DestroyPrivateKey(key);
   }
 
+  PK11_FreeSlot(slot);
   return 0;
 }
 

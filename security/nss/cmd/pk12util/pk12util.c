@@ -32,12 +32,12 @@ static void
 Usage()
 {
 #define FPS PR_fprintf(PR_STDERR,
-    FPS "Usage:	 %s -i importfile [-I] [-d certdir] [-P dbprefix] [-h tokenname]\n",
+    FPS "Usage:	 %s -i importfile [-d certdir] [-P dbprefix] [-h tokenname]\n",
 				 progName);
     FPS "\t\t [-k slotpwfile | -K slotpw] [-w p12filepwfile | -W p12filepw]\n");
     FPS "\t\t [-v]\n");
 
-    FPS "Usage:	 %s -l listfile [-I] [-d certdir] [-P dbprefix] [-h tokenname]\n",
+    FPS "Usage:	 %s -l listfile [-d certdir] [-P dbprefix] [-h tokenname]\n",
 				 progName);
     FPS "\t\t [-k slotpwfile | -K slotpw] [-w p12filepwfile | -W p12filepw]\n");
     FPS "\t\t [-v]\n");
@@ -351,8 +351,7 @@ P12U_InitSlot(PK11SlotInfo *slot, secuPWData *slotPw)
  */
 SEC_PKCS12DecoderContext *
 p12U_ReadPKCS12File(SECItem *uniPwp, char *in_file, PK11SlotInfo *slot,
-                    secuPWData *slotPw, secuPWData *p12FilePw,
-                    PRBool ignoreIntegrity)
+                    secuPWData *slotPw, secuPWData *p12FilePw)
 {
     SEC_PKCS12DecoderContext *p12dcx = NULL;
     p12uContext *p12cxt = NULL;
@@ -459,10 +458,7 @@ p12U_ReadPKCS12File(SECItem *uniPwp, char *in_file, PK11SlotInfo *slot,
     /* rv has been set at this point */
 
 done:
-    /* if we are ignoring Integrity and we failed because we couldn't
-     * verify the integrity code, go ahead and succeed */
-    if (rv != SECSuccess && !(ignoreIntegrity &&
-                              (pk12uErrno == PK12UERR_DECODEVERIFY))) {
+    if (rv != SECSuccess) {
         if (p12dcx != NULL) {
             SEC_PKCS12DecoderFinish(p12dcx);
             p12dcx = NULL;
@@ -494,8 +490,7 @@ done:
  */
 PRIntn
 P12U_ImportPKCS12Object(char *in_file, PK11SlotInfo *slot,
-                        secuPWData *slotPw, secuPWData *p12FilePw,
-                        PRBool ignoreIntegrity)
+                        secuPWData *slotPw, secuPWData *p12FilePw)
 {
     SEC_PKCS12DecoderContext *p12dcx = NULL;
     SECItem uniPwitem = { 0 };
@@ -514,8 +509,7 @@ P12U_ImportPKCS12Object(char *in_file, PK11SlotInfo *slot,
     do {
         trypw = PR_FALSE; /* normally we do this once */
         rv = SECFailure;
-        p12dcx = p12U_ReadPKCS12File(&uniPwitem, in_file, slot, slotPw,
-                                     p12FilePw, ignoreIntegrity);
+        p12dcx = p12U_ReadPKCS12File(&uniPwitem, in_file, slot, slotPw, p12FilePw);
 
         if (p12dcx == NULL) {
             goto loser;
@@ -783,16 +777,14 @@ loser:
 
 PRIntn
 P12U_ListPKCS12File(char *in_file, PK11SlotInfo *slot,
-                    secuPWData *slotPw, secuPWData *p12FilePw,
-                    PRBool ignoreIntegrity)
+                    secuPWData *slotPw, secuPWData *p12FilePw)
 {
     SEC_PKCS12DecoderContext *p12dcx = NULL;
     SECItem uniPwitem = { 0 };
     SECStatus rv = SECFailure;
     const SEC_PKCS12DecoderItem *dip;
 
-    p12dcx = p12U_ReadPKCS12File(&uniPwitem, in_file, slot, slotPw, p12FilePw,
-                                 ignoreIntegrity);
+    p12dcx = p12U_ReadPKCS12File(&uniPwitem, in_file, slot, slotPw, p12FilePw);
     /* did the blob authenticate properly? */
     if (p12dcx == NULL) {
         SECU_PrintError(progName, "PKCS12 decode not verified");
@@ -1005,8 +997,7 @@ enum {
     opt_CertCipher,
     opt_KeyLength,
     opt_CertKeyLength,
-    opt_Mac,
-    opt_IgnoreIntegrity
+    opt_Mac
 };
 
 static secuCommandFlag pk12util_options[] = {
@@ -1027,8 +1018,7 @@ static secuCommandFlag pk12util_options[] = {
     { /* opt_CertCipher	       */ 'C', PR_TRUE, 0, PR_FALSE },
     { /* opt_KeyLength         */ 'm', PR_TRUE, 0, PR_FALSE, "key_len" },
     { /* opt_CertKeyLength     */ 0, PR_TRUE, 0, PR_FALSE, "cert_key_len" },
-    { /* opt_Mac               */ 'M', PR_TRUE, 0, PR_FALSE },
-    { /* opt_IgnoreIntegrity   */ 'I', PR_FALSE, 0, PR_FALSE }
+    { /* opt_Mac               */ 'M', PR_TRUE, 0, PR_FALSE, PR_FALSE }
 };
 
 int
@@ -1049,7 +1039,6 @@ main(int argc, char **argv)
     int certKeyLen = 0;
     secuCommand pk12util;
     PRInt32 forceUnicode;
-    PRBool ignoreIntegrity = PR_FALSE;
 
 #ifdef _CRTDBG_MAP_ALLOC
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -1124,9 +1113,6 @@ main(int argc, char **argv)
     if (pk12util.options[opt_Raw].activated) {
         dumpRawFile = PR_TRUE;
     }
-    if (pk12util.options[opt_IgnoreIntegrity].activated) {
-        ignoreIntegrity = PR_TRUE;
-    }
     if (pk12util.options[opt_KeyLength].activated) {
         keyLen = atoi(pk12util.options[opt_KeyLength].arg);
     }
@@ -1197,8 +1183,7 @@ main(int argc, char **argv)
     }
 
     if (pk12util.options[opt_Import].activated) {
-        P12U_ImportPKCS12Object(import_file, slot, &slotPw, &p12FilePw,
-                                ignoreIntegrity);
+        P12U_ImportPKCS12Object(import_file, slot, &slotPw, &p12FilePw);
 
     } else if (pk12util.options[opt_Export].activated) {
         P12U_ExportPKCS12Object(pk12util.options[opt_Nickname].arg,
@@ -1206,8 +1191,7 @@ main(int argc, char **argv)
                                 hash, &slotPw, &p12FilePw);
 
     } else if (pk12util.options[opt_List].activated) {
-        P12U_ListPKCS12File(import_file, slot, &slotPw, &p12FilePw,
-                            ignoreIntegrity);
+        P12U_ListPKCS12File(import_file, slot, &slotPw, &p12FilePw);
 
     } else {
         Usage();

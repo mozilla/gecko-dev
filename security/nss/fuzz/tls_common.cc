@@ -2,20 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "common.h"
+#include "tls_common.h"
 
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 
 #include "prio.h"
-#include "secport.h"
 #include "ssl.h"
 #include "sslexp.h"
 
 static PRTime FixedTime(void*) { return 1234; }
-
-namespace TlsCommon {
 
 // Fix the time input, to avoid any time-based variation.
 void FixTime(PRFileDesc* fd) {
@@ -71,7 +68,7 @@ void DoHandshake(PRFileDesc* fd, bool isServer) {
 
 SECStatus DummyCompressionEncode(const SECItem* input, SECItem* output) {
   if (!input || !input->data || input->len == 0 || !output) {
-    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
     return SECFailure;
   }
 
@@ -83,12 +80,12 @@ SECStatus DummyCompressionEncode(const SECItem* input, SECItem* output) {
 SECStatus DummyCompressionDecode(const SECItem* input, unsigned char* output,
                                  size_t outputLen, size_t* usedLen) {
   if (!input || !input->data || input->len == 0 || !output || outputLen == 0) {
-    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
     return SECFailure;
   }
 
   if (input->len > outputLen) {
-    PORT_SetError(SEC_ERROR_BAD_DATA);
+    PR_SetError(SEC_ERROR_BAD_DATA, 0);
     return SECFailure;
   }
 
@@ -97,5 +94,3 @@ SECStatus DummyCompressionDecode(const SECItem* input, unsigned char* output,
 
   return SECSuccess;
 }
-
-}  // namespace TlsCommon

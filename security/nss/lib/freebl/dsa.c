@@ -471,7 +471,7 @@ dsa_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest,
     err = MP_OKAY;
     signature->len = dsa_signature_len;
 cleanup:
-    PORT_SafeZero(localDigestData, DSA_MAX_SUBPRIME_LEN);
+    PORT_Memset(localDigestData, 0, DSA_MAX_SUBPRIME_LEN);
     mp_clear(&p);
     mp_clear(&q);
     mp_clear(&g);
@@ -532,7 +532,7 @@ DSA_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest)
         rv = dsa_SignDigest(key, signature, digest, kSeed);
     } while (rv != SECSuccess && PORT_GetError() == SEC_ERROR_NEED_RANDOM &&
              --retries > 0);
-    PORT_SafeZero(kSeed, sizeof kSeed);
+    PORT_Memset(kSeed, 0, sizeof kSeed);
     return rv;
 }
 
@@ -673,7 +673,7 @@ DSA_VerifyDigest(DSAPublicKey *key, const SECItem *signature,
         verified = SECSuccess; /* Signature verified. */
     }
 cleanup:
-    PORT_SafeZero(localDigestData, sizeof localDigestData);
+    PORT_Memset(localDigestData, 0, sizeof localDigestData);
     mp_clear(&p);
     mp_clear(&q);
     mp_clear(&g);
