@@ -10,11 +10,7 @@ support-files = [
 ["browser_test_browser.js"]
 
 ["browser_test_general.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && debug", # Bug 1781926
-  "os == 'mac' && os_version == '14.70' && debug", # Bug 1781926
-]
-
+skip-if = ["os == 'mac' && os_version == '10.15' && debug"] # Bug 1781926
 ["browser_test_scroll_hittest.js"]
 
 ["browser_test_shadowroot.js"]
