@@ -484,6 +484,7 @@ PORT_NewArena
 PORT_NewArena_Util
 PORT_Realloc_Util
 PORT_RegExpSearch
+PORT_SafeZero
 PORT_SetError
 PORT_SetError_Util
 PORT_SetUCS2_ASCIIConversionFunction
