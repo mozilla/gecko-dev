@@ -12,6 +12,10 @@ support-files = [
 ]
 
 ["browser_ManifestFinder_browserHasManifestLink.js"]
+skip-if = [
+  "win11_2009 && asan", # Bug 1904224
+  "win11_2009 && ccov", # Bug 1904224
+]
 
 ["browser_ManifestIcons_browserFetchIcon.js"]
 
