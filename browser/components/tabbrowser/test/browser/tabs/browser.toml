@@ -560,6 +560,9 @@ support-files = ["open_window_in_new_tab.html"]
 tags = "vertical-tabs"
 
 ["browser_tabswitch_updatecommands.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug && msix", # high frequency;
+]
 
 ["browser_tabswitch_window_focus.js"]
 
