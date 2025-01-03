@@ -162,18 +162,18 @@ class SearchPanel extends Component {
           const highlightedMatch = [
             span(
               { key: "match-" + match },
-              object.value.substring(indexStart, match - query.length)
+              object.value.substring(indexStart, match)
             ),
             span(
               {
                 className: "query-match",
                 key: "match-" + match + "-highlight",
               },
-              object.value.substring(match - query.length, match)
+              object.value.substring(match, match + query.length)
             ),
           ];
 
-          indexStart = match;
+          indexStart = match + query.length;
 
           return highlightedMatch;
         });

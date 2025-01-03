@@ -230,7 +230,7 @@ function searchInText(query, modifiers, text, data) {
     let singleMatch;
 
     while ((singleMatch = regexQuery.exec(lines[i])) !== null) {
-      const startIndex = regexQuery.lastIndex;
+      const startIndex = singleMatch.index;
       lineMatches.push(startIndex);
     }
 
@@ -287,16 +287,13 @@ function searchInArray(query, modifiers, arr, data) {
  */
 function getTruncatedValue(value, query, startIndex) {
   const valueSize = value.length;
-  const indexEnd = startIndex + query.length;
+  const endIndex = startIndex + query.length;
 
   if (valueSize < 100 + query.length) {
     return value;
   }
 
-  const start = value.substring(startIndex, startIndex - 50);
-  const end = value.substring(indexEnd, indexEnd + 50);
-
-  return start + end;
+  return value.substring(startIndex - 50, endIndex + 50);
 }
 
 /**
