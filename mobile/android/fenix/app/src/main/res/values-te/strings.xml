@@ -174,7 +174,7 @@
     <string name="browser_main_menu_content_description_settings_button">అమరికలు</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
-    <string name="browser_menu_save">భద్రపరుచు</string>dsa
+    <string name="browser_menu_save">భద్రపరుచు</string>
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->
     <string name="browser_toolbar_home">ముంగిలి తెర</string>

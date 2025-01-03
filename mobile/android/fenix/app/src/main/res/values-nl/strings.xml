@@ -67,9 +67,9 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="private_browsing_placeholder_description_2">%1$s wist uw zoek- en browsergeschiedenis zodra u de toepassing afsluit of alle privétabbladen sluit. Hoewel dit u niet anoniem maakt voor websites of uw internetprovider, maakt dit het makkelijker om wat u online doet privé te houden voor anderen die dit apparaat gebruiken.</string>
     <string name="private_browsing_common_myths">
-       
+
        Veelgehoorde mythes over privénavigatie
-    
+
     </string>
 
     <!-- True Private Browsing Mode -->
@@ -374,7 +374,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Lezerweergave uitschakelen</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Naar niet-privétabblad verplaatsen</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Naar niet-privétabblad verplaatsen</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Pagina vertalen…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -2052,10 +2052,10 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">Plakken &amp; Gaan</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">Plakken</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL naar klembord gekopieerd</string>
-  
+
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Toevoegen aan startscherm</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->

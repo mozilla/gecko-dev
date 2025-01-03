@@ -373,7 +373,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Stäng av Läsvyn</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Flytta till icke-privat flik</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Flytta till icke-privat flik</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Översätt sida…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -2068,10 +2068,10 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">Klistra in och kör</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">Klistra in</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL kopierad till urklipp</string>
-  
+
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Lägg till på startsidan</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->

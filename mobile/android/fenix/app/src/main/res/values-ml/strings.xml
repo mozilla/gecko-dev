@@ -350,9 +350,9 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">വായനാകാഴ്ച തുടങ്ങുക</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">വായനാകാഴ്ച അണക്കുക</string>dsa
+    <string name="browser_menu_turn_off_reader_view">വായനാകാഴ്ച അണക്കുക</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">സ്വകാര്യമല്ലാത്ത ടാബിലേക്കു് നീക്കുക</string>dsa
+    <string name="browser_menu_open_in_normal_tab">സ്വകാര്യമല്ലാത്ത ടാബിലേക്കു് നീക്കുക</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">ഈ താളിന്റെ വിവർത്തനം ചെയ്യുക…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->

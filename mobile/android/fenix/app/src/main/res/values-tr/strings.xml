@@ -1066,6 +1066,8 @@
     <string name="preferences_automatically_send_crashes_title">Çökme raporlarını otomatik olarak gönder</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Çökme raporlarını otomatik olarak gönder</string>
 
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_send_crashes_description">Bu sayede tarayıcıyla ilgili sorunları tanılayıp düzeltebiliriz. Raporlar kişisel veya hassas veriler içerebilir.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Çökme yaşandıktan sonra uygulama açılırken çökme verilerini Mozilla ile otomatik olarak paylaşır</string>
 
     <!-- Title for studies preferences -->
@@ -2056,10 +2058,10 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">Yapıştır ve git</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">Yapıştır</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">Adres panoya kopyalandı</string>
-  
+
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Ana ekrana ekle</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->

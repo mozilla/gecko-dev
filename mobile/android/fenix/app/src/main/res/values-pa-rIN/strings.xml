@@ -131,7 +131,7 @@
     <string name="camera_permissions_needed_negative_button_text">ਖ਼ਾਰਜ ਕਰੋ</string>
 
     <!-- Text for the banner message to tell users about our auto close feature. -->
-    <string name="tab_tray_close_tabs_banner_message">ਖੋਲ੍ਹੀਆਂ ਟੈਬਾਂ ਨੂੰ ਆਪਣੇ-ਆਪ ਬੰਦ ਕਰਨਾ ਨਿਯਤ ਕਰੋ, ਜੋ ਕਿ ਪਿਛਲੇ ਦਿਨ, ਹਫ਼ਤੇ ਜਾਂ ਮਹੀਨੇ ਵਿੱਚ 
+    <string name="tab_tray_close_tabs_banner_message">ਖੋਲ੍ਹੀਆਂ ਟੈਬਾਂ ਨੂੰ ਆਪਣੇ-ਆਪ ਬੰਦ ਕਰਨਾ ਨਿਯਤ ਕਰੋ, ਜੋ ਕਿ ਪਿਛਲੇ ਦਿਨ, ਹਫ਼ਤੇ ਜਾਂ ਮਹੀਨੇ ਵਿੱਚ
 ਵੇਖੀਆਂ ਗਈਆਂ।</string>
     <!-- Text for the positive action button to go to Settings for auto close tabs. -->
     <string name="tab_tray_close_tabs_banner_positive_button_text">ਚੋਣਾਂ ਵੇਖੋ</string>
@@ -375,7 +375,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">ਪੜ੍ਹਨ ਝਲਕ ਨੂੰ ਬੰਦ ਕਰੋ</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">ਗ਼ੈਰ-ਨਿੱਜੀ ਟੈਬ ਉੱਤੇ ਭੇਜੋ</string>dsa
+    <string name="browser_menu_open_in_normal_tab">ਗ਼ੈਰ-ਨਿੱਜੀ ਟੈਬ ਉੱਤੇ ਭੇਜੋ</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">…ਸਫ਼ੇ ਦਾ ਉਲੱਥਾ ਕਰੋ</string>
 
@@ -2073,7 +2073,7 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">ਚੇਪੋ ਤੇ ਜਾਓ</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">ਚੇਪੋ</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL ਕਲਿੱਪਬੋਰਡ ਵਿੱਚ ਕਾਪੀ ਕੀਤਾ</string>
 
@@ -2089,7 +2089,7 @@
     <string name="add_to_homescreen_text_placeholder">ਸ਼ਾਰਟਕੱਟ ਨਾਂ</string>
 
     <!-- Describes the add to homescreen functionality -->
-    <string name="add_to_homescreen_description_2">ਤੁਸੀਂ ਇਸ ਵੈੱਬਸਾਈਟ ਨੂੰ ਫ਼ੌਰੀ ਤੌਰ ਉੱਤੇ ਵਰਤਣ ਤੇ ਐਪ ਵਾਂਗ ਤੇਜ਼ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਸੌਖੀ ਤਰ੍ਹਾਂ 
+    <string name="add_to_homescreen_description_2">ਤੁਸੀਂ ਇਸ ਵੈੱਬਸਾਈਟ ਨੂੰ ਫ਼ੌਰੀ ਤੌਰ ਉੱਤੇ ਵਰਤਣ ਤੇ ਐਪ ਵਾਂਗ ਤੇਜ਼ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਸੌਖੀ ਤਰ੍ਹਾਂ
 ਮੁੱਖ ਸਕਰੀਨ ਉੱਤੇ ਸੌਖੀ ਤਰ੍ਹਾਂ ਜੋੜ ਸਕਦੇ ਹੋ।</string>
 
     <!-- Preference for managing the settings for logins and passwords in Fenix -->

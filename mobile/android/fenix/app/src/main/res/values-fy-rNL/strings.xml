@@ -63,9 +63,9 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="private_browsing_placeholder_description_2">%1$s wisket jo syk- en browserskiednis sa gau as jo de tapassing ôfslute of alle priveeljepblêden slute. Hoewol dit jo net anonym makket foar websites of jo ynternetprovider, makket dit it makliker om wat jo online dogge privee te hâlden tsjinoer oaren dy’t dit apparaat brûke.</string>
     <string name="private_browsing_common_myths">
-       
+
        Faaks hearde myten oer priveenavigaasje
-    
+
     </string>
 
     <!-- True Private Browsing Mode -->
@@ -369,7 +369,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Lêzerwerjefte útskeakelje</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Nei net-priveeljepblêd ferpleatse</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Nei net-priveeljepblêd ferpleatse</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Side oersette…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->

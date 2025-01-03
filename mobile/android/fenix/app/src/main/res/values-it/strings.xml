@@ -372,7 +372,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Disattiva Modalità lettura</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Sposta in una scheda non anonima</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Sposta in una scheda non anonima</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traduci pagina…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -2082,7 +2082,7 @@
         The first parameter is number of long clicks left to enable the menu -->
     <string name="about_debug_menu_toast_progress">Menu di debug: %1$d clic rimasto/i per attivare</string>
     <string name="about_debug_menu_toast_done">Menu di debug attivato</string>
-  
+
     <!-- Browser long press popup menu -->
     <!-- Copy the current url -->
     <string name="browser_toolbar_long_press_popup_copy">Copia</string>
@@ -2090,10 +2090,10 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">Incolla e vai</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">Incolla</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL copiato negli appunti</string>
-  
+
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Agg. a schermata principale</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->

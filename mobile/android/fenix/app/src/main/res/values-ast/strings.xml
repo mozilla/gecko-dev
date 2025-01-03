@@ -224,7 +224,7 @@
     <string name="browser_menu_edit">Editar</string>
 
     <!-- Button shown on the home page that opens the Customize home settings -->
-    <string name="browser_menu_customize_home_1">Personalizar la páxina d\'aniciu</string>dsa
+    <string name="browser_menu_customize_home_1">Personalizar la páxina d\'aniciu</string>
     <!-- Browser menu label that navigates to the Password screen -->
     <string name="browser_menu_passwords">Contraseñes</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
@@ -232,7 +232,7 @@
     <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
     <string name="browser_main_menu_content_description_help_button">Ayuda</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
-    <string name="browser_main_menu_content_description_settings_button">Configuración</string>dsa
+    <string name="browser_main_menu_content_description_settings_button">Configuración</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Imprentar…</string>
 

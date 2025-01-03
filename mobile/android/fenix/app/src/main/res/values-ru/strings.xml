@@ -377,7 +377,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Отключить Вид для чтения</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Переместить в обычную вкладку</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Переместить в обычную вкладку</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Перевести страницу…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -2086,10 +2086,10 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">Вставить и перейти</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">Вставить</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">Ссылка скопирована в буфер обмена</string>
-  
+
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Добавить на домашний экран</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->

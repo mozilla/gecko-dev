@@ -371,7 +371,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Хомӯш кардани намоиши хонанда</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Гузариш ба варақаи ғайрихусусӣ</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Гузариш ба варақаи ғайрихусусӣ</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Тарҷума кардани саҳифа…</string>
 

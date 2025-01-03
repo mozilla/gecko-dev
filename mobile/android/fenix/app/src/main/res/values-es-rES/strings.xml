@@ -371,7 +371,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Desactivar vista de lectura</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Mover a una pestaña no privada</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Mover a una pestaña no privada</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traducir página…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -1926,7 +1926,7 @@
     <string name="sign_out_disconnect">Desconectar</string>
     <!-- Option to cancel signing out shown in confirmation dialog to sign out of account -->
     <string name="sign_out_cancel">Cancelar</string>
-  
+
     <!-- Error message snackbar shown after the user tried to select a default folder which cannot be altered -->
     <string name="bookmark_cannot_edit_root">No se pueden editar las carpetas predeterminadas</string>
 
@@ -2074,10 +2074,10 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">Pegar e ir</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">Pegar</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL copiada al portapapeles</string>
-  
+
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Añadir a la pantalla de inicio</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->

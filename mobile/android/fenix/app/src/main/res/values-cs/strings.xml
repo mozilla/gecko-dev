@@ -372,7 +372,7 @@
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">Zapnout zobrazení čtečky</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">Vypnout zobrazení čtečky</string>dsa
+    <string name="browser_menu_turn_off_reader_view">Vypnout zobrazení čtečky</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
     <string name="browser_menu_open_in_normal_tab">Přesunout na neanonymní panel</string>dsa
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
@@ -461,6 +461,11 @@
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Vyhledávač: %s</string>
+
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: výběr vyhledávače</string>
 
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
@@ -2062,7 +2067,7 @@
         The first parameter is number of long clicks left to enable the menu -->
     <string name="about_debug_menu_toast_progress">Počet klepnutí pro povolení ladicí nabídky: %1$d</string>
     <string name="about_debug_menu_toast_done">Ladicí nabídka povolena</string>
-  
+
     <!-- Browser long press popup menu -->
     <!-- Copy the current url -->
     <string name="browser_toolbar_long_press_popup_copy">Kopírovat</string>
@@ -2070,10 +2075,10 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">Vložit a přejít</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">Vložit</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL adresa zkopírována do schránky</string>
-  
+
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Přidat na plochu</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->

@@ -373,7 +373,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">關閉閱讀畫面</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">移動到非隱私保護分頁</string>dsa
+    <string name="browser_menu_open_in_normal_tab">移動到非隱私保護分頁</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">翻譯此頁…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -2088,10 +2088,10 @@
     <string name="browser_toolbar_long_press_popup_paste_and_go">貼上並瀏覽</string>
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">貼上</string>
-  
+
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
     <string name="browser_toolbar_url_copied_to_clipboard_snackbar">已將網址複製至剪貼簿</string>
-  
+
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">新增至裝置主畫面</string>
     <!-- Cancel button text for the Add to Homescreen dialog -->
