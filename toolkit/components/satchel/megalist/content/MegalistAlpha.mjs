@@ -375,6 +375,11 @@ export class MegalistAlpha extends MozLitElement {
     return html`
       <moz-card class="empty-state-card">
         <div class="no-logins-card-content">
+          <img
+            src="chrome://global/content/megalist/icons/cpm-fox-illustration.svg"
+            role="presentation"
+            alt=""
+          />
           <strong
             class="no-logins-card-heading"
             data-l10n-id="passwords-no-passwords-header"

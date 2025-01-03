@@ -354,6 +354,15 @@ login-form {
   }
 }
 
+.no-logins-card-content {
+  display: flex;
+  flex-direction: column;
+
+  > img {
+    align-self: center;
+  }
+}
+
 .alert-card {
   display: flex;
   flex-direction: column;
