@@ -159,6 +159,9 @@ reason = "Windows only test"
 ["marSuccessPartial.js"]
 
 ["marSuccessPartialWhileBackgroundTaskRunning.js"]
+skip-if = [
+ "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1919455
+]
 
 ["marVersionDowngrade.js"]
 
