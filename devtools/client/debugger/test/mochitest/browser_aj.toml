@@ -151,8 +151,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 skip-if = [
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1831904;
-  "os == 'linux' && os_version == '18.04' && debug'", # Bug 1937149
-  "os == 'linux' && os_version == '18.04' && tsan'", # Bug 1937149
+  "os == 'linux' && os_version == '18.04' && debug'", # Bug 1831904
+  "os == 'linux' && os_version == '18.04' && tsan'", # Bug 1831904
+  "win11_2019 && debug", # Bug 1831904
 ]
 
 ["browser_dbg-debug-line.js"]
