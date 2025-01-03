@@ -15,7 +15,6 @@ support-files = [
 ["browser_dom_basic.js"]
 
 ["browser_dom_fission_target_switching.js"]
-skip-if = ["os == 'win' && os_version == '11.2009' && processor == 'x86_64' && opt"] # Bug 1928243
 
 ["browser_dom_iframe_picker.js"]
 
