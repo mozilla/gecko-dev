@@ -23,7 +23,10 @@ support-files = [
 ]
 
 ["browser_encrypted_play_time_telemetry.js"]
-skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64'"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",  # Bug 1909908
+]
 tags = "bleedover"
 
 ["browser_glean_first_frame_loaded_time.js"]
