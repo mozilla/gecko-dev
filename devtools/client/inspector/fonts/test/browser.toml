@@ -20,10 +20,8 @@ support-files = [
 ["browser_fontinspector_all-fonts.js"]
 
 ["browser_fontinspector_copy-URL.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_fontinspector_edit-previews.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_fontinspector_editor-font-size-conversion.js"]
 
@@ -51,4 +49,3 @@ skip-if = [
 ["browser_fontinspector_text-node.js"]
 
 ["browser_fontinspector_theme-change.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled

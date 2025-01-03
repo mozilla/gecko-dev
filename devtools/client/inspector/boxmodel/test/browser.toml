@@ -40,7 +40,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_boxmodel_jump-to-rule-on-hover.js"]
 
 ["browser_boxmodel_layout-accordion-state.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_boxmodel_navigation.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled

@@ -67,10 +67,10 @@ window.onload = async function() {
     matchSnapshot("Accordion basic render.", accordion);
 
     const tree = renderIntoDocument(accordion);
-    const headers = findAllInRenderedTree(tree, c => c.className === "accordion-header");
+    const toggles = findAllInRenderedTree(tree, c => c.className === "accordion-toggle");
 
-    Simulate.click(headers[0]);
-    ok(testItems[0].onToggle.calledWith(true), "Handle toggling with click.");
+    Simulate.click(toggles[0]);
+    ok(testItems[0].onToggle.calledOnce, "Handle toggling with click.");
     ok(testItems[1].onToggle.notCalled,
        "onToggle wasn't called on element we didn't click on.");
 
@@ -91,8 +91,8 @@ window.onload = async function() {
       "State updated correctly"
     );
 
-    Simulate.keyDown(headers[0], { key: "Enter" });
-    ok(testItems[0].onToggle.calledWith(false), "Handle toggling with Enter key.");
+    Simulate.click(toggles[0]);
+    ok(testItems[0].onToggle.calledTwice, "Handle toggling with clicks a second time.");
     isDeeply(
       tree.state,
       {
@@ -110,8 +110,8 @@ window.onload = async function() {
       "State updated correctly"
     );
 
-    Simulate.keyDown(headers[1], { key: " " });
-    ok(testItems[1].onToggle.calledWith(true), "Handle toggling with Space key.");
+    Simulate.click(toggles[1]);
+    ok(testItems[1].onToggle.calledOnce, "Handle toggling with clicks on another toggle.");
     isDeeply(
       tree.state,
       {

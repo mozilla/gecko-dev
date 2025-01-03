@@ -17,7 +17,7 @@ const TEST_URI = `
 `;
 
 const BOXMODEL_OPENED_PREF = "devtools.layout.boxmodel.opened";
-const ACCORDION_HEADER_SELECTOR = ".accordion-header";
+const ACCORDION_TOGGLE_SELECTOR = ".accordion-toggle";
 const ACCORDION_CONTENT_SELECTOR = ".accordion-content";
 
 add_task(async function () {
@@ -34,7 +34,7 @@ add_task(async function () {
 
 function testAccordionStateAfterClickingHeader(doc) {
   const item = doc.querySelector("#layout-section-boxmodel");
-  const header = item.querySelector(ACCORDION_HEADER_SELECTOR);
+  const toggle = item.querySelector(ACCORDION_TOGGLE_SELECTOR);
   const content = item.querySelector(ACCORDION_CONTENT_SELECTOR);
 
   info("Checking initial state of the box model panel.");
@@ -48,7 +48,7 @@ function testAccordionStateAfterClickingHeader(doc) {
   );
 
   info("Clicking the box model header to hide the box model panel.");
-  header.click();
+  toggle.click();
 
   info("Checking the new state of the box model panel.");
   ok(content.hidden, "The box model panel content is hidden.");

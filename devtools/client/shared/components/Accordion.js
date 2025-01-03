@@ -15,6 +15,7 @@ const {
   h2,
   div,
   span,
+  button,
 } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 
 class Accordion extends Component {
@@ -50,7 +51,6 @@ class Accordion extends Component {
     };
 
     this.onHeaderClick = this.onHeaderClick.bind(this);
-    this.onHeaderKeyDown = this.onHeaderKeyDown.bind(this);
     this.setInitialState = this.setInitialState.bind(this);
     this.updateCurrentState = this.updateCurrentState.bind(this);
   }
@@ -131,17 +131,6 @@ class Accordion extends Component {
   }
 
   /**
-   * @param {Event} event Keyboard event.
-   * @param {Object} item The item to be collapsed/expanded.
-   */
-  onHeaderKeyDown(event, item) {
-    if (event.key === " " || event.key === "Enter") {
-      event.preventDefault();
-      this.toggleItem(item);
-    }
-  }
-
-  /**
    * Expand or collapse an accordion list item.
    * @param  {Object} item The item to be collapsed or expanded.
    */
@@ -203,23 +192,26 @@ class Accordion extends Component {
         {
           id: headerId,
           className: "accordion-header",
-          tabIndex: 0,
           "aria-expanded": opened,
           // If the header contains buttons, make sure the heading name only
           // contains the "header" text and not the button text
           "aria-label": header,
-          onKeyDown: event => this.onHeaderKeyDown(event, item),
-          onClick: event => this.onHeaderClick(event, item),
         },
-        span({
-          className: `theme-twisty${opened ? " open" : ""}`,
-          role: "presentation",
-        }),
-        span(
+        button(
           {
-            className: "accordion-header-label",
+            className: "accordion-toggle",
+            onClick: event => this.onHeaderClick(event, item),
           },
-          header
+          span({
+            className: `theme-twisty${opened ? " open" : ""}`,
+            role: "presentation",
+          }),
+          span(
+            {
+              className: "accordion-header-label",
+            },
+            header
+          )
         ),
         buttons &&
           span(

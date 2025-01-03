@@ -7,7 +7,7 @@
 // view.
 
 const TEST_URI = URL_ROOT + "doc_flexbox_specific_cases.html";
-const ACCORDION_HEADER_SELECTOR = ".accordion-header";
+const ACCORDION_TOGGLE_SELECTOR = ".accordion-toggle";
 const ACCORDION_CONTENT_SELECTOR = ".accordion-content";
 
 add_task(async function () {
@@ -44,7 +44,7 @@ async function testAccordionStateAfterClickingHeader(pref, selector, { doc }) {
   info("Checking initial state of the flexbox panel.");
 
   const item = await waitFor(() => doc.querySelector(selector));
-  const header = item.querySelector(ACCORDION_HEADER_SELECTOR);
+  const toggle = item.querySelector(ACCORDION_TOGGLE_SELECTOR);
   const content = item.querySelector(ACCORDION_CONTENT_SELECTOR);
 
   ok(
@@ -54,7 +54,7 @@ async function testAccordionStateAfterClickingHeader(pref, selector, { doc }) {
   ok(Services.prefs.getBoolPref(pref), `${pref} is pref on by default.`);
 
   info("Clicking the flexbox header to hide the flexbox panel.");
-  header.click();
+  toggle.click();
 
   info("Checking the new state of the flexbox panel.");
   ok(content.hidden, "The flexbox panel content is hidden.");

@@ -13,7 +13,6 @@ support-files = [
 ]
 
 ["browser_grids_accordion-state.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_grids_color-in-rules-grid-toggle.js"]
 

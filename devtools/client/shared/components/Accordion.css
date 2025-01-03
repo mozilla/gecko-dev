@@ -43,6 +43,17 @@
   }
 }
 
+.accordion-header .accordion-toggle {
+  appearance: none;
+  background: none;
+  border: none;
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  /* UA stylesheet gives button element an inline padding that we don't want here */
+  padding: 0;
+}
+
 /*
   Arrow should be a bit closer to the text than to the start edge:
   - total distance between text and start edge = 20px

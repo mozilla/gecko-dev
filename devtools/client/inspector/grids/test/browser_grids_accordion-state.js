@@ -20,7 +20,7 @@ const TEST_URI = `
 
 const GRID_OPENED_PREF = "devtools.layout.grid.opened";
 const GRID_PANE_SELECTOR = "#layout-grid-section";
-const ACCORDION_HEADER_SELECTOR = ".accordion-header";
+const ACCORDION_TOGGLE_SELECTOR = ".accordion-toggle";
 const ACCORDION_CONTENT_SELECTOR = ".accordion-content";
 
 add_task(async function () {
@@ -37,7 +37,7 @@ add_task(async function () {
 
 async function testAccordionStateAfterClickingHeader(doc) {
   const item = await waitFor(() => doc.querySelector(GRID_PANE_SELECTOR));
-  const header = item.querySelector(ACCORDION_HEADER_SELECTOR);
+  const toggle = item.querySelector(ACCORDION_TOGGLE_SELECTOR);
   const content = item.querySelector(ACCORDION_CONTENT_SELECTOR);
 
   info("Checking initial state of the grid panel.");
@@ -51,7 +51,7 @@ async function testAccordionStateAfterClickingHeader(doc) {
   );
 
   info("Clicking the grid header to hide the grid panel.");
-  header.click();
+  toggle.click();
 
   info("Checking the new state of the grid panel.");
   ok(content.hidden, "The grid panel content is hidden.");

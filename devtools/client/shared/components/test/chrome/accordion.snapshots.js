@@ -24,25 +24,33 @@ window._snapshots = {
             props: {
               id: "accordion-item-1-header",
               className: "accordion-header",
-              tabIndex: 0,
               "aria-expanded": false,
               "aria-label": "Test Accordion Item 1",
-              onKeyDown: "event => this.onHeaderKeyDown(event, item)",
-              onClick: "event => this.onHeaderClick(event, item)",
             },
             children: [
               {
-                type: "span",
+                type: "button",
                 props: {
-                  className: "theme-twisty",
-                  role: "presentation",
+                  className: "accordion-toggle",
+                  onClick: "event => this.onHeaderClick(event, item)",
                 },
-                children: null,
-              },
-              {
-                type: "span",
-                props: { className: "accordion-header-label" },
-                children: ["Test Accordion Item 1"],
+                children: [
+                  {
+                    type: "span",
+                    props: {
+                      className: "theme-twisty",
+                      role: "presentation",
+                    },
+                    children: null,
+                  },
+                  {
+                    type: "span",
+                    props: {
+                      className: "accordion-header-label",
+                    },
+                    children: ["Test Accordion Item 1"],
+                  },
+                ],
               },
             ],
           },
@@ -70,25 +78,33 @@ window._snapshots = {
             props: {
               id: "accordion-item-2-header",
               className: "accordion-header",
-              tabIndex: 0,
               "aria-expanded": false,
               "aria-label": "Test Accordion Item 2",
-              onKeyDown: "event => this.onHeaderKeyDown(event, item)",
-              onClick: "event => this.onHeaderClick(event, item)",
             },
             children: [
               {
-                type: "span",
+                type: "button",
                 props: {
-                  className: "theme-twisty",
-                  role: "presentation",
+                  className: "accordion-toggle",
+                  onClick: "event => this.onHeaderClick(event, item)",
                 },
-                children: null,
-              },
-              {
-                type: "span",
-                props: { className: "accordion-header-label" },
-                children: ["Test Accordion Item 2"],
+                children: [
+                  {
+                    type: "span",
+                    props: {
+                      className: "theme-twisty",
+                      role: "presentation",
+                    },
+                    children: null,
+                  },
+                  {
+                    type: "span",
+                    props: {
+                      className: "accordion-header-label",
+                    },
+                    children: ["Test Accordion Item 2"],
+                  },
+                ],
               },
               {
                 type: "span",
@@ -130,27 +146,33 @@ window._snapshots = {
             props: {
               id: "accordion-item-3-header",
               className: "accordion-header",
-              tabIndex: 0,
               "aria-expanded": true,
               "aria-label": "Test Accordion Item 3",
-              onKeyDown: "event => this.onHeaderKeyDown(event, item)",
-              onClick: "event => this.onHeaderClick(event, item)",
             },
             children: [
               {
-                type: "span",
+                type: "button",
                 props: {
-                  className: "theme-twisty open",
-                  role: "presentation",
+                  className: "accordion-toggle",
+                  onClick: "event => this.onHeaderClick(event, item)",
                 },
-                children: null,
-              },
-              {
-                type: "span",
-                props: {
-                  className: "accordion-header-label",
-                },
-                children: ["Test Accordion Item 3"],
+                children: [
+                  {
+                    type: "span",
+                    props: {
+                      className: "theme-twisty open",
+                      role: "presentation",
+                    },
+                    children: null,
+                  },
+                  {
+                    type: "span",
+                    props: {
+                      className: "accordion-header-label",
+                    },
+                    children: ["Test Accordion Item 3"],
+                  },
+                ],
               },
             ],
           },
