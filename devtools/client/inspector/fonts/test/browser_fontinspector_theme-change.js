@@ -35,6 +35,11 @@ add_task(async function () {
   info(`Original theme was '${originalTheme}'.`);
 
   await setThemeAndWaitForUpdate(newTheme, inspector);
+
+  info("Wait until the preview image changed");
+  await waitFor(
+    () => fontEl.querySelector(".font-preview").src !== originalURI
+  );
   isnot(
     fontEl.querySelector(".font-preview").src,
     originalURI,
