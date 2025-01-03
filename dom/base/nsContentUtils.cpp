@@ -5493,8 +5493,8 @@ void nsContentUtils::SetHTMLUnsafe(FragmentOrElement* aTarget,
                                    Element* aContext,
                                    const TrustedHTMLOrString& aSource,
                                    bool aIsShadowRoot, ErrorResult& aError) {
-  constexpr nsLiteralString elementSink = u"Element setHTMLUnsafe "_ns;
-  constexpr nsLiteralString shadowRootSink = u"ShadowRoot setHTMLUnsafe "_ns;
+  constexpr nsLiteralString elementSink = u"Element setHTMLUnsafe"_ns;
+  constexpr nsLiteralString shadowRootSink = u"ShadowRoot setHTMLUnsafe"_ns;
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
