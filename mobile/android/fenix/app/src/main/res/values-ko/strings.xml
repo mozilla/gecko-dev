@@ -628,7 +628,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">저장하고 계속</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">건너뛰기</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">건너뛰기</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">위쪽</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -643,6 +643,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">하단 도구 모음 이미지</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">상단 도구 모음 이미지</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">나중에</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">테마 선택</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -650,7 +653,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">저장하고 탐색 시작</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">건너뛰기</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">건너뛰기</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">어둡게</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -661,6 +664,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">아티스트 및 빌더 도구를 그림으로 보여주는 테마 선택 뷰의 큰 헤더 이미지입니다.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">%1$s 테마 이미지</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">나중에</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

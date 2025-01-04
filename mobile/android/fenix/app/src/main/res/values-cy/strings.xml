@@ -367,7 +367,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Diffodd y Golwg Darllen</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Symud i tab nad yw\'n breifat</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Symud i tab nad yw\'n breifat</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Cyfieithu tudalen…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -614,7 +614,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Cadw a pharhau</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Hepgor</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Hepgor</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Brig</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -629,6 +629,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">Delwedd o\'r bar offer gwaelod</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">Delwedd o\'r bar offer uchaf</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">Nid nawr</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Dewiswch thema</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -636,7 +639,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Cadw a dechrau pori</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Hepgor</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Hepgor</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Tywyll</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -647,6 +650,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">Delwedd pennyn mawr o\'r olwg dewis thema yn dangos offer arlunydd ac adeiladwr darluniadol.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Delwedd o\'r thema %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">Nid nawr</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

@@ -371,7 +371,7 @@
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Sulje lukunäkymä</string>
     <!-- Browser menu button that reopens a private tab as a regular tab -->
-    <string name="browser_menu_open_in_normal_tab">Siirrä yksityisestä tavalliselle välilehdelle</string>dsa
+    <string name="browser_menu_open_in_normal_tab">Siirrä yksityisestä tavalliselle välilehdelle</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Käännä sivu…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->

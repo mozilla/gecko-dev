@@ -618,7 +618,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Składowaś a pókšacowaś</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Pśeskócyś</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Pśeskócyś</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Górjejce</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -633,6 +633,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">Wobraz górneje symboloweje rědki</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">Wobraz dolneje symboloweje rědki</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">Nic něnto</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Wubjeŕśo drastwu</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -640,7 +643,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Składowaś a pśeglědowanje zachopiś</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Pśeskócyś</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Pśeskócyś</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Śamny</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -651,6 +654,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">Wjeliki głowowy wobraz naglěda wuběrka drasty, kótaryž ilustrěrowane rědy wuměłca a wuwijarja pokazujo.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Wobraz drastwy %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">Nic něnto</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

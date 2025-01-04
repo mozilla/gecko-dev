@@ -621,7 +621,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Speichern und fortfahren</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Überspringen</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Überspringen</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Oben</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -636,6 +636,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">Grafik der unteren Symbolleiste</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">Grafik der oberen Symbolleiste</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">Nicht jetzt</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Wählen Sie ein Theme</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -643,7 +646,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Speichern und lossurfen</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Überspringen</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Überspringen</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Dunkel</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -654,6 +657,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">Große Kopfzeilengrafik der Theme-Auswahlansicht mit illustrierten Künstler- und Entwicklerwerkzeugen.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Grafik des Themes %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">Nicht jetzt</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
