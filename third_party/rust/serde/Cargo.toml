@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.31"
 name = "serde"
-version = "1.0.217"
+version = "1.0.215"
 authors = [
     "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
     "David Tolnay <dtolnay@gmail.com>",
@@ -56,14 +56,6 @@ features = [
     "rc",
 ]
 
-[features]
-alloc = []
-default = ["std"]
-derive = ["serde_derive"]
-rc = []
-std = []
-unstable = []
-
 [lib]
 name = "serde"
 path = "src/lib.rs"
@@ -76,5 +68,13 @@ optional = true
 [dev-dependencies.serde_derive]
 version = "1"
 
+[features]
+alloc = []
+default = ["std"]
+derive = ["serde_derive"]
+rc = []
+std = []
+unstable = []
+
 [target."cfg(any())".dependencies.serde_derive]
-version = "=1.0.217"
+version = "=1.0.215"
