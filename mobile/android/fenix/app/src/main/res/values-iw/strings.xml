@@ -613,7 +613,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">שמירה והמשך</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">דילוג</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">דילוג</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">למעלה</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -628,6 +628,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">תמונה של סרגל הכלים התחתון</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">תמונה של סרגל הכלים העליון</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">לא כעת</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">בחירת ערכת נושא</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -635,7 +638,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">שמירה והתחלת הגלישה</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">דילוג</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">דילוג</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">כהה</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -646,6 +649,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">תמונת כותרת גדולה של תצוגת בחירת ערכת הנושא המציגה כלי אמן ובנאי מאוירים.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">תמונה של ערכת הנושא - %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">לא כעת</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

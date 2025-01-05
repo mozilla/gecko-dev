@@ -612,7 +612,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">ساقلاپ داۋاملاشتۇر</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">ئاتلا</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">ئاتلا</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">چوققا</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -627,6 +627,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">ئاستى قورال بالداقنىڭ سۈرىتى</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">چوققا قورال بالداقنىڭ سۈرىتى</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">ھازىر ئەمەس</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">ئۆرنەك تاللىنىدۇ</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -634,7 +637,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">ساقلاپ كۆز يۈگۈرتۈشنى باشلايدۇ</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">ئاتلا</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">ئاتلا</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">قاراڭغۇ</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -645,6 +648,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">ئۆرنەك تاللاش كۆرۈنۈشىدە لايىھەلىگۈچى بىلەن ئىجادىيەت قورالى ئىسخېمىسىنىڭ چوڭ ماۋزۇ سۈرىتىنى كۆرسىتىدۇ.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">%1$s ئۆرنەكنىڭ سۈرىتى</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">ھازىر ئەمەس</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

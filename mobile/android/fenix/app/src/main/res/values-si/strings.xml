@@ -501,14 +501,28 @@
     <string name="onboarding_term_of_service_line_two_link_text" tools:ignore="UnusedResources,BrandUsage">රහස්‍යතා දැන්වීම</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text" tools:ignore="UnusedResources,BrandUsage">කළමනාකරණය</string>
-    <!-- Onboarding toolbar selection card label for 'save and continue' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_save_and_continue_button">සුරකින්න සහ ඉදිරියට</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">සුරකින්න සහ ඉදිරියට</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">මඟහරින්න</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">මඟහරින්න</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">මුදුන</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">පතුළ</string>
+
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">දැන් නොවේ</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">තේමාවක් තෝරන්න</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">මඟහරින්න</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">අඳුරු</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">දීප්ත</string>
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">දැන් නොවේ</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -900,6 +914,7 @@
     <string name="preferences_marketing_data">අලෙවිකරණ දත්ත</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">අපගේ ජංගම අලෙවිකරණ විකුණුම්කරු වන ඇජස්ට් සමඟ මූලික භාවිත දත්ත බෙදා ගැනෙයි</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">අධ්‍යන</string>
 
@@ -1067,14 +1082,14 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">තව දැනගන්න</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">වෙනස්කම් යෙදීම සඳහා යෙදුම ඉවත් වනු ඇත</string>
+    <string name="studies_restart_app" moz:removedIn="135">වෙනස්කම් යෙදීම සඳහා යෙදුම ඉවත් වනු ඇත</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">හරි</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">හරි</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">අවලංගු</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">අවලංගු</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">වෙනස්කම් යෙදීමට යෙදුමෙන් ඉවත් වෙමින්…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">වෙනස්කම් යෙදීමට යෙදුමෙන් ඉවත් වෙමින්…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->

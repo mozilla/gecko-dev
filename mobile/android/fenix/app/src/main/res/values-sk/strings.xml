@@ -623,7 +623,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Uložiť a pokračovať</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Preskočiť</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Preskočiť</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Hore</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -638,6 +638,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">Obrázok panela nástrojov umiestneného dole</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">Obrázok panela nástrojov umiestneného hore</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">Teraz nie</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Vyberte si tému</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -645,7 +648,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Uložiť a začať prehliadať</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Preskočiť</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Preskočiť</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Tmavá</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -656,6 +659,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">Veľký obrázok hlavičky zobrazenia výberu panela s nástrojmi zobrazujúci ilustrovaný panel s nástrojmi.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Obrázok témy vzhľadu %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">Teraz nie</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
