@@ -33,6 +33,9 @@ const SIDEBAR_CLOSED_COUNT_PREF =
 const SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF =
   "browser.shopping.experience2023.showKeepSidebarClosedMessage";
 const SHOPPING_SIDEBAR_ACTIVE_PREF = "browser.shopping.experience2023.active";
+const SIDEBAR_REVAMP_PREF = "sidebar.revamp";
+const INTEGRATED_SIDEBAR_PREF =
+  "browser.shopping.experience2023.integratedSidebar";
 
 export class ShoppingContainer extends MozLitElement {
   static properties = {
@@ -84,6 +87,9 @@ export class ShoppingContainer extends MozLitElement {
       return;
     }
     this.initialized = true;
+    this.showHeader =
+      !RPMGetBoolPref(INTEGRATED_SIDEBAR_PREF) ||
+      RPMGetBoolPref(SIDEBAR_REVAMP_PREF);
 
     window.document.addEventListener("Update", this);
     window.document.addEventListener("NewAnalysisRequested", this);
@@ -491,6 +497,27 @@ export class ShoppingContainer extends MozLitElement {
     return template;
   }
 
+  headerTemplate() {
+    return html`<div
+      id="header-wrapper"
+      class=${this.isOverflow ? "shopping-header-overflow" : ""}
+    >
+      <header id="shopping-header" data-l10n-id="shopping-a11y-header">
+        <h1
+          id="shopping-header-title"
+          data-l10n-id="shopping-main-container-title"
+        ></h1>
+        <p id="beta-marker" data-l10n-id="shopping-beta-marker"></p>
+      </header>
+      <button
+        id="close-button"
+        class="ghost-button shopping-button"
+        data-l10n-id="shopping-close-button"
+        @click=${this.handleCloseButtonClick}
+      ></button>
+    </div>`;
+  }
+
   renderContainer(sidebarContent, { showSettings = false } = {}) {
     return html`<link
         rel="stylesheet"
@@ -505,24 +532,7 @@ export class ShoppingContainer extends MozLitElement {
         href="chrome://browser/content/shopping/shopping-page.css"
       />
       <div id="shopping-container">
-        <div
-          id="header-wrapper"
-          class=${this.isOverflow ? "shopping-header-overflow" : ""}
-        >
-          <header id="shopping-header" data-l10n-id="shopping-a11y-header">
-            <h1
-              id="shopping-header-title"
-              data-l10n-id="shopping-main-container-title"
-            ></h1>
-            <p id="beta-marker" data-l10n-id="shopping-beta-marker"></p>
-          </header>
-          <button
-            id="close-button"
-            class="ghost-button shopping-button"
-            data-l10n-id="shopping-close-button"
-            @click=${this.handleCloseButtonClick}
-          ></button>
-        </div>
+        ${this.showHeader ? this.headerTemplate() : null}
         <div
           id="content"
           class=${!this.isProductPage && !this.isOffline

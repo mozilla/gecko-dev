@@ -282,6 +282,8 @@ export let RemotePageAccessManager = {
       RPMGetIntPref: ["browser.shopping.experience2023.sidebarClosedCount"],
       RPMGetBoolPref: [
         "browser.shopping.experience2023.showKeepSidebarClosedMessage",
+        "sidebar.revamp",
+        "browser.shopping.experience2023.integratedSidebar",
       ],
     },
     "about:tabcrashed": {
