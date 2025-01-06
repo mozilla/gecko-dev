@@ -17,10 +17,6 @@ If an out of bounds access occurs, the built-in function returns one of:
  * A vector (0,0,0,0) or (0,0,0,1) of the appropriate type for non-depth textures
  * 0.0 for depth textures
 
-TODO: Test textureLoad with depth textures as texture_2d, etc...
-TODO: Test textureLoad with multisampled stencil8 format
-TODO: Test un-encodable formats.
-TODO: Test stencil8 format.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import {
   canUseAsRenderTarget,
@@ -33,7 +29,7 @@ import {
   kTextureFormatInfo,
   textureDimensionAndFormatCompatible } from
 '../../../../../format_info.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { GPUTest, MaxLimitsTestMixin } from '../../../../../gpu_test.js';
 import { maxMipLevelCount, virtualMipSize } from '../../../../../util/texture/base.js';
 import { TexelFormats } from '../../../../types.js';
 
@@ -53,7 +49,9 @@ import {
   generateTextureBuiltinInputs2D,
   generateTextureBuiltinInputs3D,
 
-  createVideoFrameWithRandomDataAndGetTexels } from
+  createVideoFrameWithRandomDataAndGetTexels,
+
+  isFillable } from
 './texture_utils.js';
 
 export function normalizedCoordToTexelLoadTestCoord(
@@ -69,7 +67,20 @@ v)
   });
 }
 
-export const g = makeTestGroup(GPUTest);
+function skipIfStorageTexturesNotSupportedInStage(t, stage) {
+  if (t.isCompatibility) {
+    t.skipIf(
+      stage === 'f' && !(t.device.limits.maxStorageTexturesInFragmentStage > 0),
+      'device does not support storage textures in fragment shaders'
+    );
+    t.skipIf(
+      stage === 'v' && !(t.device.limits.maxStorageTexturesInVertexStage > 0),
+      'device does not support storage textures in vertex shaders'
+    );
+  }
+}
+
+export const g = makeTestGroup(MaxLimitsTestMixin(GPUTest));
 
 g.test('sampled_1d').
 specURL('https://www.w3.org/TR/WGSL/#textureload').
@@ -599,9 +610,8 @@ Parameters:
 params((u) =>
 u.
 combine('stage', kShortShaderStages).
-combine('format', kAllTextureFormats)
-// MAINTENANCE_TODO: Update createTextureFromTexelViews to support stencil8 and remove this filter.
-.filter((t) => t.format !== 'stencil8' && !isCompressedFloatTextureFormat(t.format)).
+combine('format', kAllTextureFormats).
+filter((t) => isFillable(t.format)).
 combine('texture_type', ['texture_2d_array', 'texture_depth_2d_array']).
 filter(
   (t) => !(t.texture_type === 'texture_depth_2d_array' && !isDepthTextureFormat(t.format))
@@ -626,7 +636,6 @@ fn(async (t) => {
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '3d' });
-
   const descriptor = {
     format,
     size,
@@ -712,6 +721,8 @@ beforeAllSubcases((t) => {
 fn(async (t) => {
   const { format, stage, samplePoints, C } = t.params;
 
+  skipIfStorageTexturesNotSupportedInStage(t, stage);
+
   // We want at least 3 blocks or something wide enough for 3 mip levels.
   const [width] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
   const size = [width, 1];
@@ -790,6 +801,8 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const { format, stage, samplePoints, C } = t.params;
+
+  skipIfStorageTexturesNotSupportedInStage(t, stage);
 
   // We want at least 3 blocks or something wide enough for 3 mip levels.
   const size = chooseTextureSize({ minSize: 8, minBlocks: 3, format });
@@ -870,6 +883,8 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const { format, stage, samplePoints, C, A } = t.params;
+
+  skipIfStorageTexturesNotSupportedInStage(t, stage);
 
   // We want at least 3 blocks or something wide enough for 3 mip levels.
   const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '3d' });
@@ -952,6 +967,8 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const { format, stage, samplePoints, C } = t.params;
+
+  skipIfStorageTexturesNotSupportedInStage(t, stage);
 
   // We want at least 3 blocks or something wide enough for 3 mip levels.
   const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '3d' });

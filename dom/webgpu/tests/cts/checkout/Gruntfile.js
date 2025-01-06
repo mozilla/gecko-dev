@@ -52,15 +52,19 @@ module.exports = function (grunt) {
         cmd: 'node',
         args: ['tools/gen_cache', 'src/webgpu', '--validate'],
       },
+      // Note these generate `cts*.https.html` directly into the out-wpt/ directory rather than
+      // the gen/ directory (as well as generating a `webgpu_variant_list*.json` file in gen/).
       'write-out-wpt-cts-html': {
-        // Note this generates directly into the out-wpt/ directory rather than the gen/ directory.
         cmd: 'node',
         args: ['tools/gen_wpt_cts_html', 'tools/gen_wpt_cfg_unchunked.json'],
       },
       'write-out-wpt-cts-html-chunked2sec': {
-        // Note this generates directly into the out-wpt/ directory rather than the gen/ directory.
         cmd: 'node',
         args: ['tools/gen_wpt_cts_html', 'tools/gen_wpt_cfg_chunked2sec.json'],
+      },
+      'write-out-wpt-cts-html-withsomeworkers': {
+        cmd: 'node',
+        args: ['tools/gen_wpt_cts_html', 'tools/gen_wpt_cfg_withsomeworkers.json'],
       },
       unittest: {
         cmd: 'node',
@@ -199,7 +203,11 @@ module.exports = function (grunt) {
 
     concurrent: {
       'write-out-wpt-cts-html-all': {
-        tasks: ['run:write-out-wpt-cts-html', 'run:write-out-wpt-cts-html-chunked2sec'],
+        tasks: [
+          'run:write-out-wpt-cts-html',
+          'run:write-out-wpt-cts-html-chunked2sec',
+          'run:write-out-wpt-cts-html-withsomeworkers',
+        ],
       },
       'all-builds': {
         tasks: ['build-standalone', 'build-wpt', 'run:build-out-node'],

@@ -70,22 +70,16 @@ enable f16;`,
     code: `enable subgroups;`,
     pass: true,
   },
-  subgroups_f16_fail: {
-    code: `enable subgroups_f16;`,
-    pass: false,
-  },
   subgroups_f16_pass1: {
     code: `
-    enable subgroups_f16;
-    enable subgroups;
-    enable f16;`,
+    enable f16;
+    enable subgroups;`,
     pass: true,
   },
   subgroups_f16_pass2: {
     code: `
-    enable f16;
     enable subgroups;
-    enable subgroups_f16;`,
+    enable f16;`,
     pass: true,
   },
 };
@@ -95,12 +89,11 @@ g.test('enable')
   .beforeAllSubcases(t => {
     const features: GPUFeatureName[] = [];
     const name: string = t.params.case as string;
-    if (name.includes('subgroups_f16')) {
+    if (name.includes('subgroups')) {
       features.push('subgroups' as GPUFeatureName);
-      features.push('subgroups-f16' as GPUFeatureName);
-      features.push('shader-f16');
-    } else if (name.includes('subgroups')) {
-      features.push('subgroups' as GPUFeatureName);
+      if (name.includes('f16')) {
+        features.push('shader-f16');
+      }
     } else {
       features.push('shader-f16');
     }

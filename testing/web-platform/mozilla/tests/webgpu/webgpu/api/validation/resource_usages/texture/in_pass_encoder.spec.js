@@ -11,6 +11,7 @@ import {
   kDepthStencilFormatResolvedAspect,
   kTextureFormatInfo } from
 '../../../../format_info.js';
+import { MaxLimitsTestMixin } from '../../../../gpu_test.js';
 import { ValidationTest } from '../../validation_test.js';
 
 
@@ -238,7 +239,7 @@ class TextureUsageTracking extends ValidationTest {
   }
 }
 
-export const g = makeTestGroup(TextureUsageTracking);
+export const g = makeTestGroup(MaxLimitsTestMixin(TextureUsageTracking));
 
 const BASE_LEVEL = 1;
 const TOTAL_LEVELS = 6;
@@ -1426,6 +1427,11 @@ expandWithParams(
 )
 ).
 fn((t) => {
+  t.skipIf(
+    t.isCompatibility && !(t.device.limits.maxStorageTexturesInFragmentStage >= 2),
+    `maxStorageTexturesInFragmentStage(${t.device.limits.maxStorageTexturesInFragmentStage}) < 2`
+  );
+
   const { setBindGroup0, setBindGroup1, usage1, usage2 } = t.params;
 
   const { bindGroup0, bindGroup1, encoder, pass } = t.testValidationScope(false, usage1, usage2);
@@ -1518,6 +1524,11 @@ expandWithParams(
 )
 ).
 fn((t) => {
+  t.skipIf(
+    t.isCompatibility && !(t.device.limits.maxStorageTexturesInFragmentStage >= 2),
+    `maxStorageTexturesInFragmentStage(${t.device.limits.maxStorageTexturesInFragmentStage}) < 2`
+  );
+
   const { splitPass, draw, usage1, usage2 } = t.params;
 
   const { bindGroupLayouts, bindGroups } = t.makeTwoBindGroupsWithOneTextureView(usage1, usage2);

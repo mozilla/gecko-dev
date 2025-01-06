@@ -65,7 +65,6 @@ beforeAllSubcases((t) => {
   const features = ['subgroups'];
   if (t.params.type === 'f16') {
     features.push('shader-f16');
-    features.push('subgroups-f16');
   }
   t.selectDeviceOrSkipTestCase(features);
 }).
@@ -170,7 +169,6 @@ beforeAllSubcases((t) => {
   const type = kDataTypes[t.params.type];
   if (type.requiresF16()) {
     features.push('shader-f16');
-    features.push('subgroups-f16');
   }
   t.selectDeviceOrSkipTestCase(features);
 }).
@@ -183,7 +181,7 @@ fn(async (t) => {
   const scalarType = scalarTypeOf(type);
   let enables = 'enable subgroups;\n';
   if (type.requiresF16()) {
-    enables += 'enable f16;\nenable subgroups_f16;\n';
+    enables += 'enable f16;\n';
   }
 
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];

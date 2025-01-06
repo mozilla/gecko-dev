@@ -81,7 +81,6 @@ g.test('data_type')
     const type = kTypes[t.params.type];
     if (type.requiresF16()) {
       features.push('shader-f16');
-      features.push('subgroups-f16' as GPUFeatureName);
     }
     t.selectDeviceOrSkipTestCase(features);
   })
@@ -89,7 +88,7 @@ g.test('data_type')
     const type = kTypes[t.params.type];
     let enables = `enable subgroups;\n`;
     if (type.requiresF16()) {
-      enables += `enable f16;\nenable subgroups_f16;`;
+      enables += `enable f16;`;
     }
     const wgsl = `
 ${enables}
@@ -115,7 +114,6 @@ g.test('return_type')
     const type = kTypes[t.params.type];
     if (type.requiresF16()) {
       features.push('shader-f16');
-      features.push('subgroups-f16' as GPUFeatureName);
     }
     t.selectDeviceOrSkipTestCase(features);
   })
@@ -123,7 +121,7 @@ g.test('return_type')
     const type = kTypes[t.params.type];
     let enables = `enable subgroups;\n`;
     if (type.requiresF16()) {
-      enables += `enable f16;\nenable subgroups_f16;`;
+      enables += `enable f16;`;
     }
     const wgsl = `
 ${enables}

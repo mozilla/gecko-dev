@@ -85,7 +85,7 @@ if (powerPreference || compatibility || forceFallbackAdapter) {
   setDefaultRequestAdapterOptions({
     ...(powerPreference && { powerPreference }),
     // MAINTENANCE_TODO: Change this to whatever the option ends up being
-    ...(compatibility && { compatibilityMode: true }),
+    ...(compatibility && { compatibilityMode: true, featureLevel: 'compatibility' }),
     ...(forceFallbackAdapter && { forceFallbackAdapter: true }),
   });
 }

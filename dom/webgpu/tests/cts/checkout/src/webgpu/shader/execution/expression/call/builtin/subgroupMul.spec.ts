@@ -65,7 +65,6 @@ and limit the number of permutations needed to calculate the final result.`
     const features: GPUFeatureName[] = ['subgroups' as GPUFeatureName];
     if (t.params.type === 'f16') {
       features.push('shader-f16');
-      features.push('subgroups-f16' as GPUFeatureName);
     }
     t.selectDeviceOrSkipTestCase(features);
   })
@@ -188,7 +187,6 @@ TODO: support vec3 types.
     const type = kDataTypes[t.params.type];
     if (type.requiresF16()) {
       features.push('shader-f16');
-      features.push('subgroups-f16' as GPUFeatureName);
     }
     t.selectDeviceOrSkipTestCase(features);
   })
@@ -201,7 +199,7 @@ TODO: support vec3 types.
     const scalarType = scalarTypeOf(type);
     let enables = 'enable subgroups;\n';
     if (type.requiresF16()) {
-      enables += 'enable f16;\nenable subgroups_f16;\n';
+      enables += 'enable f16;\n';
     }
 
     const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];

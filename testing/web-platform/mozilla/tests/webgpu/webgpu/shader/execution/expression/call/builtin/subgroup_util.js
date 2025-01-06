@@ -173,7 +173,7 @@ intervalGen)
   const val1 = range[prng.uniformInt(numVals)];
   const val2 = range[prng.uniformInt(numVals)];
 
-  const extraEnables = type === 'f16' ? `enable f16;\nenable subgroups_f16;` : ``;
+  const extraEnables = type === 'f16' ? `enable f16;` : ``;
   const wgsl = `
 enable subgroups;
 ${extraEnables}

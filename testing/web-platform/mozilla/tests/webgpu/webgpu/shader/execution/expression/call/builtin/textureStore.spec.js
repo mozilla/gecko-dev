@@ -14,7 +14,7 @@ If an out-of-bounds access occurs, the built-in function should not be executed.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { unreachable, iterRange, range } from '../../../../../../common/util/util.js';
 import { kTextureFormatInfo } from '../../../../../format_info.js';
-import { GPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
+import { GPUTest, MaxLimitsTestMixin, TextureTestMixin } from '../../../../../gpu_test.js';
 import {
   kFloat32Format,
   kFloat16Format,
@@ -29,7 +29,7 @@ import { TexelFormats } from '../../../../types.js';
 const kDims = ['1d', '2d', '3d'];
 const kViewDimensions = ['1d', '2d', '2d-array', '3d'];
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(TextureTestMixin(MaxLimitsTestMixin(GPUTest)));
 
 // We require a few values that are out of range for a given type
 // so we can check clamping behavior.
@@ -103,6 +103,13 @@ beforeAllSubcases((t) => {
 fn((t) => {
   const { format, stage, access, viewDimension, _shaderType } = t.params;
   const values = inputArray(format);
+
+  t.skipIf(
+    t.isCompatibility &&
+    stage === 'fragment' &&
+    t.device.limits.maxStorageTexturesInFragmentStage < 1,
+    'device does not support storage textures in fragment shaders'
+  );
 
   const suffix = format.endsWith('sint') ? 'i' : format.endsWith('uint') ? 'u' : 'f';
   const swizzleWGSL = viewDimension === '1d' ? 'x' : viewDimension === '3d' ? 'xyz' : 'xy';

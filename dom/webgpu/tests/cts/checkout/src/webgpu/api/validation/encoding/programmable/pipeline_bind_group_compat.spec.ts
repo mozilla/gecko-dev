@@ -21,6 +21,7 @@ import {
   ValidBindableResource,
 } from '../../../../capability_info.js';
 import { GPUConst } from '../../../../constants.js';
+import { MaxLimitsTestMixin } from '../../../../gpu_test.js';
 import {
   ProgrammableEncoderType,
   kProgrammableEncoderTypes,
@@ -424,7 +425,7 @@ class F extends ValidationTest {
   }
 }
 
-export const g = makeTestGroup(F);
+export const g = makeTestGroup(MaxLimitsTestMixin(F));
 
 g.test('bind_groups_and_pipeline_layout_mismatch')
   .desc(
@@ -530,6 +531,13 @@ g.test('buffer_binding,render_pipeline')
   .params(u => u.combine('type', kBufferBindingTypes))
   .fn(t => {
     const { type } = t.params;
+
+    t.skipIf(
+      (type === 'storage' || type === 'read-only-storage') &&
+        t.isCompatibility &&
+        !(t.device.limits.maxStorageBuffersInFragmentStage! > 1),
+      `maxStorageBuffersInFragmentStage(${t.device.limits.maxStorageBuffersInFragmentStage}) is not >= 1`
+    );
 
     // Create fixed bindGroup
     const uniformBuffer = t.getUniformBuffer();
@@ -748,6 +756,18 @@ g.test('bgl_visibility_mismatch')
     );
   });
 
+function resourceIsStorageTexture(resourceType: ValidBindableResource) {
+  return (
+    resourceType === 'readonlyStorageTex' ||
+    resourceType === 'readwriteStorageTex' ||
+    resourceType === 'writeonlyStorageTex'
+  );
+}
+
+function resourceIsStorageBuffer(resourceType: ValidBindableResource) {
+  return resourceType === 'storageBuf';
+}
+
 g.test('bgl_resource_type_mismatch')
   .desc(
     `
@@ -765,6 +785,20 @@ g.test('bgl_resource_type_mismatch')
   .fn(t => {
     const { encoderType, call, callWithZero, bgResourceType, plResourceType, useU32Array } =
       t.params;
+
+    t.skipIf(
+      t.isCompatibility &&
+        resourceIsStorageTexture(plResourceType) &&
+        !(t.device.limits.maxStorageTexturesInFragmentStage! >= 1),
+      `maxStorageTexturesInFragmentStage(${t.device.limits.maxStorageTexturesInFragmentStage}) is not >= 1`
+    );
+
+    t.skipIf(
+      t.isCompatibility &&
+        resourceIsStorageBuffer(plResourceType) &&
+        !(t.device.limits.maxStorageBuffersInFragmentStage! >= 1),
+      `maxStorageBuffersInFragmentStage(${t.device.limits.maxStorageBuffersInFragmentStage}) is not >= 1`
+    );
 
     const bglEntries: Array<GPUBindGroupLayoutEntry> = [
       t.createBindGroupLayoutEntry(encoderType, bgResourceType, useU32Array),

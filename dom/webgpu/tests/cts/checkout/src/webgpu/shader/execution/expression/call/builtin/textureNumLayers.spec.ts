@@ -6,6 +6,7 @@ Returns the number of layers (elements) of an array texture.
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { kTextureFormatInfo } from '../../../../../format_info.js';
+import { MaxLimitsTestMixin } from '../../../../../gpu_test.js';
 import { TexelFormats } from '../../../../types.js';
 import { kShaderStages } from '../../../../validation/decl/util.js';
 
@@ -34,7 +35,7 @@ function getLayerSettingsAndExpected({
       };
 }
 
-export const g = makeTestGroup(WGSLTextureQueryTest);
+export const g = makeTestGroup(MaxLimitsTestMixin(WGSLTextureQueryTest));
 
 g.test('sampled')
   .specURL('https://www.w3.org/TR/WGSL/#texturenumlayers')
@@ -205,6 +206,8 @@ Parameters
   })
   .fn(t => {
     const { stage, format, access_mode, view_type } = t.params;
+
+    t.skipIfNoStorageTexturesInStage(stage);
 
     const texture = t.createTextureTracked({
       format,

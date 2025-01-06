@@ -6,14 +6,14 @@ depth ranges as well.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
 import { kDepthStencilFormats, kTextureFormatInfo } from '../../../format_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { GPUTest, MaxLimitsTestMixin } from '../../../gpu_test.js';
 import {
   checkElementsBetween,
   checkElementsPassPredicate } from
 
 '../../../util/check_contents.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(MaxLimitsTestMixin(GPUTest));
 
 g.test('depth_clamp_and_clip').
 desc(
@@ -54,6 +54,10 @@ fn(async (t) => {
   const { format, unclippedDepth, writeDepth, multisampled } = t.params;
   const info = kTextureFormatInfo[format];
   assert(!!info.depth);
+
+  const hasStorageBuffers = t.isCompatibility ?
+  t.device.limits.maxStorageBuffersInFragmentStage > 0 :
+  true;
 
   /** Number of depth values to test for both vertex output and frag_depth output. */
   const kNumDepthValues = 8;
@@ -111,7 +115,13 @@ fn(async (t) => {
       @group(0) @binding(0) var <storage, read_write> output: Output;
 
       fn checkZ(vf: VFTest) {
-        output.fragInputZDiff[vf.vertexIndex] = vf.pos.z - expectedFragPosZ(vf.vertexIndex);
+        ${
+  hasStorageBuffers ?
+  `
+          output.fragInputZDiff[vf.vertexIndex] = vf.pos.z - expectedFragPosZ(vf.vertexIndex);
+        ` :
+  ''
+  }
       }
 
       @fragment
@@ -246,10 +256,12 @@ fn(async (t) => {
     size: 4 * kNumTestPoints,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  const testBindGroup = t.device.createBindGroup({
+  const testBindGroup = hasStorageBuffers ?
+  t.device.createBindGroup({
     layout: testPipeline.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: fragInputZFailedBuffer } }]
-  });
+  }) :
+  undefined;
 
   const enc = t.device.createCommandEncoder();
   {
@@ -266,7 +278,9 @@ fn(async (t) => {
       }
     });
     pass.setPipeline(testPipeline);
-    pass.setBindGroup(0, testBindGroup);
+    if (hasStorageBuffers) {
+      pass.setBindGroup(0, testBindGroup);
+    }
     pass.setViewport(0, 0, kNumTestPoints, 1, kViewportMinDepth, kViewportMaxDepth);
     pass.draw(kNumTestPoints);
     pass.end();
@@ -314,11 +328,13 @@ fn(async (t) => {
   }
   t.device.queue.submit([enc.finish()]);
 
-  t.expectGPUBufferValuesPassCheck(
-    fragInputZFailedBuffer,
-    (a) => checkElementsBetween(a, [() => -1e-5, () => 1e-5]),
-    { type: Float32Array, typedLength: kNumTestPoints }
-  );
+  if (hasStorageBuffers) {
+    t.expectGPUBufferValuesPassCheck(
+      fragInputZFailedBuffer,
+      (a) => checkElementsBetween(a, [() => -1e-5, () => 1e-5]),
+      { type: Float32Array, typedLength: kNumTestPoints }
+    );
+  }
 
   const kCheckPassedValue = 0;
   const predicatePrinter = [

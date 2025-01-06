@@ -6,6 +6,7 @@ createPipelineLayout validation tests.
 TODO: review existing tests, write descriptions, and make sure tests are complete.
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { bufferBindingTypeInfo, kBufferBindingTypes } from '../../capability_info.js';
+import { GPUConst } from '../../constants.js';
 
 import { ValidationTest } from './validation_test.js';
 
@@ -161,4 +162,97 @@ fn((t) => {
   t.expectValidationError(() => {
     t.device.createPipelineLayout({ bindGroupLayouts: [layout0, layout1] });
   }, mismatched);
+});
+
+const MaybeNullBindGroupLayoutTypes = ['Null', 'Undefined', 'Empty', 'NonEmpty'];
+
+g.test('bind_group_layouts,null_bind_group_layouts').
+desc(
+  `
+    Tests that it is valid to create a pipeline layout with null bind group layouts.
+    `
+).
+paramsSubcasesOnly((u) =>
+u //
+.combine('bindGroupLayoutCount', [1, 2, 3, 4]).
+combine('bindGroupLayout0', MaybeNullBindGroupLayoutTypes).
+expand('bindGroupLayout1', (p) =>
+p.bindGroupLayoutCount > 1 ? MaybeNullBindGroupLayoutTypes : ['Null']
+).
+expand('bindGroupLayout2', (p) =>
+p.bindGroupLayoutCount > 2 ? MaybeNullBindGroupLayoutTypes : ['Null']
+).
+expand('bindGroupLayout3', (p) =>
+p.bindGroupLayoutCount > 3 ? MaybeNullBindGroupLayoutTypes : ['Null']
+).
+filter((p) => {
+  // Only test cases where at least one of the bind group layouts is null.
+  const allBGLs = [
+  p.bindGroupLayout0,
+  p.bindGroupLayout1,
+  p.bindGroupLayout2,
+  p.bindGroupLayout3];
+
+  const bgls = allBGLs.slice(0, p.bindGroupLayoutCount);
+  return bgls.includes('Null') || bgls.includes('Undefined');
+})
+).
+fn((t) => {
+  const {
+    bindGroupLayoutCount,
+    bindGroupLayout0,
+    bindGroupLayout1,
+    bindGroupLayout2,
+    bindGroupLayout3
+  } = t.params;
+
+  const emptyBindGroupLayout = t.device.createBindGroupLayout({
+    entries: []
+  });
+  const nonEmptyBindGroupLayout = t.device.createBindGroupLayout({
+    entries: [
+    {
+      binding: 0,
+      visibility: GPUConst.ShaderStage.COMPUTE,
+      texture: {}
+    }]
+
+  });
+
+  const bindGroupLayouts = [];
+
+  const AddBindGroupLayout = function (
+  bindGroupLayoutType)
+  {
+    switch (bindGroupLayoutType) {
+      case 'Null':
+        bindGroupLayouts.push(null);
+        break;
+      case 'Undefined':
+        bindGroupLayouts.push(undefined);
+        break;
+      case 'Empty':
+        bindGroupLayouts.push(emptyBindGroupLayout);
+        break;
+      case 'NonEmpty':
+        bindGroupLayouts.push(nonEmptyBindGroupLayout);
+        break;
+    }
+  };
+
+  AddBindGroupLayout(bindGroupLayout0);
+  if (bindGroupLayoutCount > 1) {
+    AddBindGroupLayout(bindGroupLayout1);
+  }
+  if (bindGroupLayoutCount > 2) {
+    AddBindGroupLayout(bindGroupLayout2);
+  }
+  if (bindGroupLayoutCount > 3) {
+    AddBindGroupLayout(bindGroupLayout3);
+  }
+
+  const kShouldError = false;
+  t.expectValidationError(() => {
+    t.device.createPipelineLayout({ bindGroupLayouts });
+  }, kShouldError);
 });

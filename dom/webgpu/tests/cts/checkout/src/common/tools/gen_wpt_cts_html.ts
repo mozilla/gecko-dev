@@ -2,7 +2,10 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import { DefaultTestFileLoader } from '../internal/file_loader.js';
+import { compareQueries, Ordering } from '../internal/query/compare.js';
+import { parseQuery } from '../internal/query/parseQuery.js';
 import {
+  TestQuery,
   TestQueryMultiCase,
   TestQueryMultiFile,
   TestQueryMultiTest,
@@ -68,8 +71,11 @@ interface ConfigJSON {
    * (a typical default time limit in WPT test executors).
    */
   maxChunkTimeMS?: number;
-  /** List of argument prefixes (what comes before the test query). Defaults to `['?q=']`. */
-  argumentsPrefixes?: string[];
+  /**
+   * List of argument prefixes (what comes before the test query), and optionally a list of
+   * test queries to run under that prefix. Defaults to `['?q=']`.
+   */
+  argumentsPrefixes?: ArgumentsPrefixConfigJSON[];
   expectations?: {
     /** File containing a list of WPT paths to suppress. */
     file: string;
@@ -81,9 +87,10 @@ interface ConfigJSON {
     file: string;
     prefix: string;
   };
-  /*No long path assert */
+  /** Allow generating long variant names that could result in long filenames on some runners. */
   noLongPathAssert?: boolean;
 }
+type ArgumentsPrefixConfigJSON = string | { prefixes: string[]; filters?: string[] };
 
 interface Config {
   suite: string;
@@ -91,7 +98,7 @@ interface Config {
   outVariantList?: string;
   template: string;
   maxChunkTimeMS: number;
-  argumentsPrefixes: string[];
+  argumentsPrefixes: ArgumentsPrefixConfig[];
   noLongPathAssert: boolean;
   expectations?: {
     file: string;
@@ -101,6 +108,26 @@ interface Config {
     file: string;
     prefix: string;
   };
+}
+interface ArgumentsPrefixConfig {
+  readonly prefix: string;
+  readonly filters?: readonly TestQuery[];
+}
+
+/** Process the `argumentsPrefixes` config section into a format that will be useful later. */
+function* reifyArgumentsPrefixesConfig(
+  argumentsPrefixes: ArgumentsPrefixConfigJSON[]
+): Generator<ArgumentsPrefixConfig> {
+  for (const item of argumentsPrefixes) {
+    if (typeof item === 'string') {
+      yield { prefix: item, filters: undefined };
+    } else {
+      const filters = item.filters?.map(f => parseQuery(f));
+      for (const prefix of item.prefixes) {
+        yield { prefix, filters };
+      }
+    }
+  }
 }
 
 let config: Config;
@@ -118,7 +145,9 @@ let config: Config;
         out: path.resolve(jsonFileDir, configJSON.out),
         template: path.resolve(jsonFileDir, configJSON.template),
         maxChunkTimeMS: configJSON.maxChunkTimeMS ?? Infinity,
-        argumentsPrefixes: configJSON.argumentsPrefixes ?? ['?q='],
+        argumentsPrefixes: configJSON.argumentsPrefixes
+          ? [...reifyArgumentsPrefixesConfig(configJSON.argumentsPrefixes)]
+          : [{ prefix: '?q=' }],
         noLongPathAssert: configJSON.noLongPathAssert ?? false,
       };
       if (configJSON.outVariantList) {
@@ -153,17 +182,18 @@ let config: Config;
       ] = process.argv;
 
       config = {
+        suite,
         out: outFile,
         template: templateFile,
-        suite,
         maxChunkTimeMS: Infinity,
-        argumentsPrefixes: ['?q='],
+        argumentsPrefixes: [{ prefix: '?q=' }],
         noLongPathAssert: false,
       };
       if (process.argv.length >= 7) {
         config.argumentsPrefixes = (await fs.readFile(argsPrefixesFile, 'utf8'))
           .split(/\r?\n/)
-          .filter(a => a.length);
+          .filter(a => a.length)
+          .map(prefix => ({ prefix }));
         config.expectations = {
           file: expectationsFile,
           prefix: expectationsPrefix,
@@ -179,7 +209,7 @@ let config: Config;
   const useChunking = Number.isFinite(config.maxChunkTimeMS);
 
   // Sort prefixes from longest to shortest
-  config.argumentsPrefixes.sort((a, b) => b.length - a.length);
+  config.argumentsPrefixes.sort((a, b) => b.prefix.length - a.prefix.length);
 
   // Load expectations (if any)
   const expectations: Map<string, string[]> = await loadQueryFile(
@@ -196,10 +226,26 @@ let config: Config;
   const loader = new DefaultTestFileLoader();
   const lines = [];
   const tooLongQueries = [];
-  for (const prefix of config.argumentsPrefixes) {
+  // MAINTENANCE_TODO: Doing all this work for each prefix is inefficient,
+  // especially if there are no expectations.
+  for (const { prefix, filters } of config.argumentsPrefixes) {
     const rootQuery = new TestQueryMultiFile(config.suite, []);
+    const subqueriesToExpand = expectations.get(prefix) ?? [];
+    if (filters) {
+      // Make sure any queries we want to filter will show up in the output.
+      // Important: This also checks that all queries actually exist (no typos, correct suite).
+      for (const q of filters) {
+        // subqueriesToExpand doesn't error if this happens, so check it first:
+        assert(q.suite === config.suite, () => `Filter is for the wrong suite: ${q}`);
+        if (q.level >= 2) {
+          // No need to expand since it will be already expanded.
+          subqueriesToExpand.push(q.toString());
+        }
+      }
+    }
+
     const tree = await loader.loadTree(rootQuery, {
-      subqueriesToExpand: expectations.get(prefix),
+      subqueriesToExpand,
       fullyExpandSubtrees: fullyExpand.get(prefix),
       maxChunkTime: config.maxChunkTimeMS,
     });
@@ -213,10 +259,23 @@ let config: Config;
     let variantCount = 0;
 
     const alwaysExpandThroughLevel = 2; // expand to, at minimum, every test.
-    for (const { query, subtreeCounts } of tree.iterateCollapsedNodes({
+    loopOverNodes: for (const { query, subtreeCounts } of tree.iterateCollapsedNodes({
       alwaysExpandThroughLevel,
     })) {
       assert(query instanceof TestQueryMultiCase);
+
+      const queryMatchesFilter = (filter: TestQuery) => {
+        const compare = compareQueries(filter, query);
+        // StrictSubset should not happen because we pass these to subqueriesToExpand so
+        // they should always be expanded (and therefore iterated more finely than this).
+        assert(compare !== Ordering.StrictSubset);
+        return compare === Ordering.Equal || compare === Ordering.StrictSuperset;
+      };
+      // MAINTENANCE_TODO: Looping this inside another loop is inefficient.
+      if (filters && !filters.some(queryMatchesFilter)) {
+        continue loopOverNodes;
+      }
+
       if (!config.noLongPathAssert) {
         const queryString = query.toString();
         // Check for a safe-ish path length limit. Filename must be <= 255, and on Windows the whole
@@ -270,7 +329,7 @@ ${[...queryStrings.values()].join('\n')}`
 });
 
 async function loadQueryFile(
-  argumentsPrefixes: string[],
+  argumentsPrefixes: ArgumentsPrefixConfig[],
   queryFile?: {
     file: string;
     prefix: string;
@@ -284,13 +343,13 @@ async function loadQueryFile(
   }
 
   const result: Map<string, string[]> = new Map();
-  for (const prefix of argumentsPrefixes) {
+  for (const { prefix } of argumentsPrefixes) {
     result.set(prefix, []);
   }
 
   expLoop: for (const exp of lines) {
     // Take each expectation for the longest prefix it matches.
-    for (const argsPrefix of argumentsPrefixes) {
+    for (const { prefix: argsPrefix } of argumentsPrefixes) {
       const prefix = queryFile!.prefix + argsPrefix;
       if (exp.startsWith(prefix)) {
         result.get(argsPrefix)!.push(exp.substring(prefix.length));

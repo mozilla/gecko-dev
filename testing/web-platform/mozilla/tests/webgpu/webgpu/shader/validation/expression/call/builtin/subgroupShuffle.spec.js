@@ -153,7 +153,6 @@ beforeAllSubcases((t) => {
   const type = kTypes[t.params.type];
   if (type.requiresF16()) {
     features.push('shader-f16');
-    features.push('subgroups-f16');
   }
   t.selectDeviceOrSkipTestCase(features);
 }).
@@ -161,7 +160,7 @@ fn((t) => {
   const type = kTypes[t.params.type];
   let enables = `enable subgroups;\n`;
   if (type.requiresF16()) {
-    enables += `enable f16;\nenable subgroups_f16;`;
+    enables += `enable f16;`;
   }
   const wgsl = `
 ${enables}
@@ -193,7 +192,6 @@ beforeAllSubcases((t) => {
   const paramType = kTypes[t.params.paramType];
   if (retType.requiresF16() || paramType.requiresF16()) {
     features.push('shader-f16');
-    features.push('subgroups-f16');
   }
   t.selectDeviceOrSkipTestCase(features);
 }).
@@ -202,7 +200,7 @@ fn((t) => {
   const paramType = kTypes[t.params.paramType];
   let enables = `enable subgroups;\n`;
   if (retType.requiresF16() || paramType.requiresF16()) {
-    enables += `enable f16;\nenable subgroups_f16;`;
+    enables += `enable f16;`;
   }
   const wgsl = `
 ${enables}
@@ -232,7 +230,6 @@ beforeAllSubcases((t) => {
   const type = kTypes[t.params.type];
   if (type.requiresF16()) {
     features.push('shader-f16');
-    features.push('subgroups-f16');
   }
   t.selectDeviceOrSkipTestCase(features);
 }).
@@ -240,7 +237,7 @@ fn((t) => {
   const type = kTypes[t.params.type];
   let enables = `enable subgroups;\n`;
   if (type.requiresF16()) {
-    enables += `enable f16;\nenable subgroups_f16;`;
+    enables += `enable f16;`;
   }
   const wgsl = `
 ${enables}

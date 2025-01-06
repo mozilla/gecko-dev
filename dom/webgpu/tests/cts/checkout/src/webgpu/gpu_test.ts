@@ -43,7 +43,7 @@ import { CommandBufferMaker, EncoderType } from './util/command_buffer_maker.js'
 import { ScalarType } from './util/conversion.js';
 import {
   CanonicalDeviceDescriptor,
-  DescriptorModifierFn,
+  DescriptorModifier,
   DevicePool,
   DeviceProvider,
   UncanonicalizedDeviceDescriptor,
@@ -66,6 +66,17 @@ import {
 } from './util/texture/texture_ok.js';
 import { createTextureFromTexelViews } from './util/texture.js';
 import { reifyExtent3D, reifyOrigin3D } from './util/unions.js';
+
+// Declarations for WebGPU items we want tests for that are not yet officially part of the spec.
+declare global {
+  // MAINTENANCE_TODO: remove once added to @webgpu/types
+  interface GPUSupportedLimits {
+    readonly maxStorageBuffersInFragmentStage?: number;
+    readonly maxStorageTexturesInFragmentStage?: number;
+    readonly maxStorageBuffersInVertexStage?: number;
+    readonly maxStorageTexturesInVertexStage?: number;
+  }
+}
 
 const devicePool = new DevicePool();
 
@@ -145,13 +156,13 @@ export class GPUTestSubcaseBatchState extends SubcaseBatchState {
    */
   selectDeviceOrSkipTestCase(
     descriptor: DeviceSelectionDescriptor,
-    descriptorModifierFn?: DescriptorModifierFn
+    descriptorModifier?: DescriptorModifier
   ): void {
     assert(this.provider === undefined, "Can't selectDeviceOrSkipTestCase() multiple times");
     this.provider = devicePool.acquire(
       this.recorder,
       initUncanonicalizedDeviceDescriptor(descriptor),
-      descriptorModifierFn
+      descriptorModifier
     );
     // Suppress uncaught promise rejection (we'll catch it later).
     this.provider.catch(() => {});
@@ -1323,13 +1334,20 @@ function setAllLimitsToAdapterLimits(
 export class MaxLimitsGPUTestSubcaseBatchState extends GPUTestSubcaseBatchState {
   override selectDeviceOrSkipTestCase(
     descriptor: DeviceSelectionDescriptor,
-    descriptorModifierFn?: DescriptorModifierFn
+    descriptorModifier?: DescriptorModifier
   ): void {
-    const wrapper = (adapter: GPUAdapter, desc: CanonicalDeviceDescriptor | undefined) => {
-      desc = descriptorModifierFn ? descriptorModifierFn(adapter, desc) : desc;
-      return setAllLimitsToAdapterLimits(adapter, desc);
+    const mod: DescriptorModifier = {
+      descriptorModifier(adapter: GPUAdapter, desc: CanonicalDeviceDescriptor | undefined) {
+        desc = descriptorModifier?.descriptorModifier
+          ? descriptorModifier.descriptorModifier(adapter, desc)
+          : desc;
+        return setAllLimitsToAdapterLimits(adapter, desc);
+      },
+      keyModifier(baseKey: string) {
+        return `${baseKey}:MaxLimits`;
+      },
     };
-    super.selectDeviceOrSkipTestCase(initUncanonicalizedDeviceDescriptor(descriptor), wrapper);
+    super.selectDeviceOrSkipTestCase(initUncanonicalizedDeviceDescriptor(descriptor), mod);
   }
 }
 

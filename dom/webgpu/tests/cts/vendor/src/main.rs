@@ -284,9 +284,14 @@ fn run(args: CliArgs) -> miette::Result<()> {
     let cts_https_html_path = out_wpt_dir.child("cts.https.html");
 
     {
-        let extra_cts_https_html_path = out_wpt_dir.child("cts-chunked2sec.https.html");
-        log::info!("removing extraneous {extra_cts_https_html_path}…");
-        remove_file(&*extra_cts_https_html_path)?;
+        for file_name in [
+            "cts-chunked2sec.https.html",
+            "cts-withsomeworkers.https.html",
+        ] {
+            let file_name = out_wpt_dir.child(file_name);
+            log::info!("removing extraneous {file_name}…");
+            remove_file(&*file_name)?;
+        }
     }
 
     log::info!("analyzing {cts_https_html_path}…");

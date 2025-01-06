@@ -110,7 +110,6 @@ beforeAllSubcases((t) => {
   const type = kDataTypes[t.params.type];
   if (type.requiresF16()) {
     features.push('shader-f16');
-    features.push('subgroups-f16');
   }
   t.selectDeviceOrSkipTestCase(features);
 }).
@@ -119,7 +118,7 @@ fn(async (t) => {
   const type = kDataTypes[t.params.type];
   let enables = 'enable subgroups;\n';
   if (type.requiresF16()) {
-    enables += 'enable f16;\nenable subgroups_f16;\n';
+    enables += 'enable f16;\n';
   }
 
   const broadcast =

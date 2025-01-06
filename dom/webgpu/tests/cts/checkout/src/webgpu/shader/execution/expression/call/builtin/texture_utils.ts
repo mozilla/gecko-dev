@@ -787,6 +787,19 @@ function getWeightForMipLevel(
  * Used for textureNumSamples, textureNumLevels, textureNumLayers, textureDimension
  */
 export class WGSLTextureQueryTest extends GPUTest {
+  skipIfNoStorageTexturesInStage(stage: ShaderStage) {
+    if (this.isCompatibility) {
+      this.skipIf(
+        stage === 'fragment' && !(this.device.limits.maxStorageTexturesInFragmentStage! > 0),
+        'device does not support storage textures in fragment shaders'
+      );
+      this.skipIf(
+        stage === 'vertex' && !(this.device.limits.maxStorageTexturesInVertexStage! > 0),
+        'device does not support storage textures in vertex shaders'
+      );
+    }
+  }
+
   executeAndExpectResult(
     stage: ShaderStage,
     code: string,
@@ -795,6 +808,7 @@ export class WGSLTextureQueryTest extends GPUTest {
     expected: number[]
   ) {
     const { device } = this;
+
     const returnType = `vec4<u32>`;
     const castWGSL = `${returnType}(getValue()${range(4 - expected.length, () => ', 0').join('')})`;
     const stageWGSL =
@@ -1516,7 +1530,7 @@ export interface Texture {
 /**
  * Converts the src texel representation to an RGBA representation.
  */
-function convertPerTexelComponentToResultFormat(
+export function convertPerTexelComponentToResultFormat(
   src: PerTexelComponent<number>,
   format: EncodableTextureFormat
 ): PerTexelComponent<number> {
@@ -2223,6 +2237,8 @@ export function texelsApproximatelyEqual(
   for (const component of rgbaComponentsToCheck) {
     const g = gotRGBA[component]!;
     const e = expectRGBA[component]!;
+    assert(!isNaN(g), () => `got component is NaN: ${g}`);
+    assert(!isNaN(e), () => `expected component is NaN: ${e}`);
     const absDiff = Math.abs(g - e);
     const ulpDiff = Math.abs(gULP[component]! - eULP[component]!);
     if (ulpDiff > 3 && absDiff > maxFractionalDiff) {
@@ -2486,7 +2502,7 @@ export async function checkCallResults<T extends Dimensionality>(
             `          : as texel coord mip level[${mipLevel}]: (${t[0]}, ${t[1]}), face: ${faceNdx}(${kFaceNames[faceNdx]})`
           );
         }
-      } else {
+      } else if (call.coordType === 'f') {
         for (let mipLevel = 0; mipLevel < (texture.descriptor.mipLevelCount ?? 1); ++mipLevel) {
           const mipSize = virtualMipSize(
             texture.descriptor.dimension ?? '2d',
@@ -3109,12 +3125,15 @@ export async function readTextureToTexelViews(
           ((coord.z * size[0] * size[1] + coord.y * size[0] + coord.x) * sampleCount +
             (coord.sampleIndex ?? 0)) *
           4;
-        return {
-          R: data[offset + 0],
-          G: data[offset + 1],
-          B: data[offset + 2],
-          A: data[offset + 3],
-        };
+        return convertResultFormatToTexelViewFormat(
+          {
+            R: data[offset + 0],
+            G: data[offset + 1],
+            B: data[offset + 2],
+            A: data[offset + 3],
+          },
+          format
+        );
       })
     );
   }

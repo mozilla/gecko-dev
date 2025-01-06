@@ -67,6 +67,17 @@ import {
 import { createTextureFromTexelViews } from './util/texture.js';
 import { reifyExtent3D, reifyOrigin3D } from './util/unions.js';
 
+// Declarations for WebGPU items we want tests for that are not yet officially part of the spec.
+
+
+
+
+
+
+
+
+
+
 const devicePool = new DevicePool();
 
 // MAINTENANCE_TODO: When DevicePool becomes able to provide multiple devices at once, use the
@@ -145,13 +156,13 @@ export class GPUTestSubcaseBatchState extends SubcaseBatchState {
    */
   selectDeviceOrSkipTestCase(
   descriptor,
-  descriptorModifierFn)
+  descriptorModifier)
   {
     assert(this.provider === undefined, "Can't selectDeviceOrSkipTestCase() multiple times");
     this.provider = devicePool.acquire(
       this.recorder,
       initUncanonicalizedDeviceDescriptor(descriptor),
-      descriptorModifierFn
+      descriptorModifier
     );
     // Suppress uncaught promise rejection (we'll catch it later).
     this.provider.catch(() => {});
@@ -1323,13 +1334,20 @@ desc)
 export class MaxLimitsGPUTestSubcaseBatchState extends GPUTestSubcaseBatchState {
   selectDeviceOrSkipTestCase(
   descriptor,
-  descriptorModifierFn)
+  descriptorModifier)
   {
-    const wrapper = (adapter, desc) => {
-      desc = descriptorModifierFn ? descriptorModifierFn(adapter, desc) : desc;
-      return setAllLimitsToAdapterLimits(adapter, desc);
+    const mod = {
+      descriptorModifier(adapter, desc) {
+        desc = descriptorModifier?.descriptorModifier ?
+        descriptorModifier.descriptorModifier(adapter, desc) :
+        desc;
+        return setAllLimitsToAdapterLimits(adapter, desc);
+      },
+      keyModifier(baseKey) {
+        return `${baseKey}:MaxLimits`;
+      }
     };
-    super.selectDeviceOrSkipTestCase(initUncanonicalizedDeviceDescriptor(descriptor), wrapper);
+    super.selectDeviceOrSkipTestCase(initUncanonicalizedDeviceDescriptor(descriptor), mod);
   }
 }
 

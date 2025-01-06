@@ -23,10 +23,35 @@ class TestFailedButDeviceReusable extends Error {}
 class FeaturesNotSupported extends Error {}
 export class TestOOMedShouldAttemptGC extends Error {}
 
-export type DescriptorModifierFn = (
-  adapter: GPUAdapter,
-  desc: CanonicalDeviceDescriptor | undefined
-) => CanonicalDeviceDescriptor;
+/**
+ * DescriptorModifier lets you supply a function to select a device
+ * based on the limits/features available from the adapter.
+ * Devices pooled based on a key and that key is derived before
+ * an adapter is requested. That means you select key without
+ * knowledge of what the adapter will provide. You do this by
+ * providing a keyModifier function that appends a suffix.
+ *
+ * For example: If your modifier adds all the limits you might
+ * choose 'maxLimits' are your suffix
+ *
+ * ```js
+ *   keyModifier(s: string) { return `${s}:maxLimits`; },
+ * ```
+ *
+ * If your modifier selects only `maxBindGroups` and `maxColorAttachments`
+ * then your suffix might be `maxBindGroups&maxColorAttachments`
+ *
+ * ```js
+ *   keyModifier(s: string) { return `${s}:maxBindGroups&maxColorAttachments`; },
+ * ```
+ */
+export type DescriptorModifier = {
+  keyModifier(baseKey: string): string;
+  descriptorModifier(
+    adapter: GPUAdapter,
+    desc: CanonicalDeviceDescriptor | undefined
+  ): CanonicalDeviceDescriptor;
+};
 
 export class DevicePool {
   private holders: 'uninitialized' | 'failed' | DescriptorToHolderMap = 'uninitialized';
@@ -35,13 +60,13 @@ export class DevicePool {
   async acquire(
     recorder: TestCaseRecorder,
     descriptor: UncanonicalizedDeviceDescriptor | undefined,
-    descriptorModifierFn: DescriptorModifierFn | undefined
+    descriptorModifier: DescriptorModifier | undefined
   ): Promise<DeviceProvider> {
     let errorMessage = '';
     if (this.holders === 'uninitialized') {
       this.holders = new DescriptorToHolderMap();
       try {
-        await this.holders.getOrCreate(recorder, undefined, descriptorModifierFn);
+        await this.holders.getOrCreate(recorder, undefined, descriptorModifier);
       } catch (ex) {
         this.holders = 'failed';
         if (ex instanceof Error) {
@@ -55,7 +80,7 @@ export class DevicePool {
       `WebGPU device failed to initialize${errorMessage}; not retrying`
     );
 
-    const holder = await this.holders.getOrCreate(recorder, descriptor, descriptorModifierFn);
+    const holder = await this.holders.getOrCreate(recorder, descriptor, descriptorModifier);
 
     assert(holder.state === 'free', 'Device was in use on DevicePool.acquire');
     holder.state = 'acquired';
@@ -150,9 +175,10 @@ class DescriptorToHolderMap {
   async getOrCreate(
     recorder: TestCaseRecorder,
     uncanonicalizedDescriptor: UncanonicalizedDeviceDescriptor | undefined,
-    descriptorModifierFn: DescriptorModifierFn | undefined
+    descriptorModifier: DescriptorModifier | undefined
   ): Promise<DeviceHolder> {
-    const [descriptor, key] = canonicalizeDescriptor(uncanonicalizedDescriptor);
+    const [descriptor, baseKey] = canonicalizeDescriptor(uncanonicalizedDescriptor);
+    const key = descriptorModifier?.keyModifier(baseKey) || baseKey;
     // Quick-reject descriptors that are known to be unsupported already.
     if (this.unsupported.has(key)) {
       throw new SkipTestCase(
@@ -174,7 +200,7 @@ class DescriptorToHolderMap {
     // No existing item was found; add a new one.
     let value;
     try {
-      value = await DeviceHolder.create(recorder, descriptor, descriptorModifierFn);
+      value = await DeviceHolder.create(recorder, descriptor, descriptorModifier);
     } catch (ex) {
       if (ex instanceof FeaturesNotSupported) {
         this.unsupported.add(key);
@@ -313,13 +339,13 @@ class DeviceHolder implements DeviceProvider {
   static async create(
     recorder: TestCaseRecorder,
     descriptor: CanonicalDeviceDescriptor | undefined,
-    descriptorModifierFn: DescriptorModifierFn | undefined
+    descriptorModifier: DescriptorModifier | undefined
   ): Promise<DeviceHolder> {
     const gpu = getGPU(recorder);
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null, 'requestAdapter returned null');
-    if (descriptorModifierFn) {
-      descriptor = descriptorModifierFn(adapter, descriptor);
+    if (descriptorModifier) {
+      descriptor = descriptorModifier.descriptorModifier(adapter, descriptor);
     }
     if (!supportsFeature(adapter, descriptor)) {
       throw new FeaturesNotSupported('One or more features are not supported');

@@ -22,11 +22,11 @@ import {
   kTextureFormatInfo } from
 
 '../../../format_info.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { GPUTest, MaxLimitsTestMixin, TextureTestMixin } from '../../../gpu_test.js';
 import { kFullscreenQuadVertexShaderCode } from '../../../util/shader.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(TextureTestMixin(MaxLimitsTestMixin(GPUTest)));
 
 const kTextureViewWriteMethods = [
 'storage-write-fragment',
@@ -354,6 +354,13 @@ beforeAllSubcases((t) => {
 }).
 fn((t) => {
   const { format, method, sampleCount, viewUsageMethod } = t.params;
+
+  t.skipIf(
+    t.isCompatibility &&
+    method === 'storage-write-fragment' &&
+    !(t.device.limits.maxStorageBuffersInFragmentStage > 0),
+    `maxStorageBuffersInFragmentStage(${t.device.limits.maxStorageBuffersInFragmentStage}) < 1`
+  );
 
   const textureUsageForMethod = method.includes('storage') ?
   GPUTextureUsage.STORAGE_BINDING :

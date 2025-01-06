@@ -4,6 +4,7 @@
 Tests limitations of bind group usage in a pipeline in compat mode.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../common/util/data_tables.js';
+import { MaxLimitsTestMixin } from '../../../../../gpu_test.js';
 import { kRenderEncodeTypes } from '../../../../../util/command_buffer_maker.js';
 import { CompatibilityTest } from '../../../../compatibility_test.js';
 
@@ -293,7 +294,7 @@ bindConfig)
   return { texture, pipeline };
 }
 
-export const g = makeTestGroup(CompatibilityTest);
+export const g = makeTestGroup(MaxLimitsTestMixin(CompatibilityTest));
 
 g.test('twoDifferentTextureViews,render_pass,used').
 desc(
@@ -329,6 +330,14 @@ filter(
 ).
 fn((t) => {
   const { encoderType, bindCase, useCase, textureType } = t.params;
+
+  t.skipIf(
+    t.isCompatibility &&
+    textureType === 'storage' &&
+    !(t.device.limits.maxStorageBuffersInFragmentStage > 2),
+    `device only supports maxStorageBuffersInFragmentStage(${t.device.limits.maxStorageBuffersInFragmentStage}) but test needs 2`
+  );
+
   const { bindConfig, fn } = kBindCases[bindCase];
   const { texture, pipeline } = createResourcesForRenderPassTest(t, textureType, bindConfig);
   const { encoder, validateFinish } = t.createEncoder(encoderType);
@@ -347,6 +356,13 @@ Tests that binding 2 different views of the same texture but not using them does
 params((u) => u.combine('encoderType', kRenderEncodeTypes).combine('textureType', kTextureTypes)).
 fn((t) => {
   const { encoderType, textureType } = t.params;
+
+  t.skipIf(
+    t.isCompatibility &&
+    textureType === 'storage' &&
+    !(t.device.limits.maxStorageBuffersInFragmentStage > 2)
+  );
+
   const { texture, pipeline } = createResourcesForRenderPassTest(
     t,
     textureType,

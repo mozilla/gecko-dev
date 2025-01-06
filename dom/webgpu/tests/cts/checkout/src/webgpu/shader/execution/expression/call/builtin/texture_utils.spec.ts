@@ -16,6 +16,7 @@ import { kShaderStages } from '../../../../validation/decl/util.js';
 
 import {
   chooseTextureSize,
+  convertPerTexelComponentToResultFormat,
   createTextureWithRandomDataAndGetTexels,
   graphWeights,
   isSupportedViewFormatCombo,
@@ -51,7 +52,9 @@ g.test('createTextureWithRandomDataAndGetTexels_with_generator')
   })
   .fn(async t => {
     const { format, viewDimension } = t.params;
-    const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension });
+    // choose an odd size (9) so we're more likely to test alignment issue.
+    const size = chooseTextureSize({ minSize: 9, minBlocks: 4, format, viewDimension });
+    t.debug(`size: ${size.map(v => v.toString()).join(', ')}`);
     const descriptor: GPUTextureDescriptor = {
       format,
       dimension: getTextureDimensionFromView(viewDimension),
@@ -78,9 +81,8 @@ g.test('readTextureToTexelViews')
         { srcFormat: 'rgba32uint', texelViewFormat: 'rgba32uint' },
         { srcFormat: 'rgba32sint', texelViewFormat: 'rgba32sint' },
         { srcFormat: 'depth24plus', texelViewFormat: 'rgba32float' },
-        { srcFormat: 'depth24plus', texelViewFormat: 'r32float' },
-        { srcFormat: 'depth24plus-stencil8', texelViewFormat: 'r32float' },
-        { srcFormat: 'stencil8', texelViewFormat: 'rgba32sint' },
+        { srcFormat: 'depth24plus-stencil8', texelViewFormat: 'rgba32float' },
+        { srcFormat: 'stencil8', texelViewFormat: 'stencil8' },
       ] as const)
       .combine('viewDimension', ['1d', '2d', '2d-array', '3d', 'cube', 'cube-array'] as const)
       .filter(t => isSupportedViewFormatCombo(t.srcFormat, t.viewDimension))
@@ -96,7 +98,9 @@ g.test('readTextureToTexelViews')
   })
   .fn(async t => {
     const { srcFormat, texelViewFormat, viewDimension, sampleCount } = t.params;
-    const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format: srcFormat, viewDimension });
+    // choose an odd size (9) so we're more likely to test alignment issue.
+    const size = chooseTextureSize({ minSize: 9, minBlocks: 4, format: srcFormat, viewDimension });
+    t.debug(`size: ${size.map(v => v.toString()).join(', ')}`);
     const descriptor: GPUTextureDescriptor = {
       format: srcFormat,
       dimension: getTextureDimensionFromView(viewDimension),
@@ -126,26 +130,38 @@ g.test('readTextureToTexelViews')
       for (let z = 0; z < mipLevelSize[2]; ++z) {
         for (let y = 0; y < mipLevelSize[1]; ++y) {
           for (let x = 0; x < mipLevelSize[0]; ++x) {
-            const actual = actualMipLevelTexelView.color({ x, y, z });
-            const expected = expectedMipLevelTexelView.color({ x, y, z });
-            // This currently expects the exact same values in actual vs expected.
-            // It's possible this needs to be relaxed slightly but only for non-integer formats.
-            // For now, if the tests pass everywhere, we'll keep it at 0 tolerance.
-            const maxFractionalDiff = 0;
-            if (
-              !texelsApproximatelyEqual(
+            for (let sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
+              const actual = actualMipLevelTexelView.color({ x, y, z, sampleIndex });
+              const expected = expectedMipLevelTexelView.color({ x, y, z, sampleIndex });
+
+              const actualRGBA = convertPerTexelComponentToResultFormat(
                 actual,
-                actualMipLevelTexelView.format,
-                expected,
-                expectedMipLevelTexelView.format,
-                maxFractionalDiff
-              )
-            ) {
-              const actualStr = texelFormat(actual, actualRep);
-              const expectedStr = texelFormat(expected, expectedRep);
-              errors.push(
-                `texel at ${x}, ${y}, ${z}, expected: ${expectedStr}, actual: ${actualStr}`
+                actualMipLevelTexelView.format
               );
+              const expectedRGBA = convertPerTexelComponentToResultFormat(
+                expected,
+                expectedMipLevelTexelView.format
+              );
+
+              // This currently expects the exact same values in actual vs expected.
+              // It's possible this needs to be relaxed slightly but only for non-integer formats.
+              // For now, if the tests pass everywhere, we'll keep it at 0 tolerance.
+              const maxFractionalDiff = 0;
+              if (
+                !texelsApproximatelyEqual(
+                  actualRGBA,
+                  actualMipLevelTexelView.format,
+                  expectedRGBA,
+                  expectedMipLevelTexelView.format,
+                  maxFractionalDiff
+                )
+              ) {
+                const actualStr = texelFormat(actual, actualRep);
+                const expectedStr = texelFormat(expected, expectedRep);
+                errors.push(
+                  `texel at ${x}, ${y}, ${z}, sampleIndex: ${sampleIndex} expected: ${expectedStr}, actual: ${actualStr}`
+                );
+              }
             }
           }
         }
