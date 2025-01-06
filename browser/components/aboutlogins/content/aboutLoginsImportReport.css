@@ -104,7 +104,7 @@
 }
 
 import-details-row:nth-child(odd) {
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
 }
 
 import-details-row {
