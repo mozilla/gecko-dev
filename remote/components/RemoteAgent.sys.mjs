@@ -9,6 +9,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Deferred: "chrome://remote/content/shared/Sync.sys.mjs",
   HttpServer: "chrome://remote/content/server/httpd.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
+  PollPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   RecommendedPreferences:
     "chrome://remote/content/shared/RecommendedPreferences.sys.mjs",
   WebDriverBiDi: "chrome://remote/content/webdriver-bidi/WebDriverBiDi.sys.mjs",
@@ -264,15 +265,33 @@ class RemoteAgentParentProcess {
     }
 
     try {
-      // Bug 1783938: httpd.js refuses connections when started on a IPv4
-      // address. As workaround start on localhost and add another identity
-      // for that IP address.
       this.#server = new lazy.HttpServer();
       const host = isIPv4Host ? DEFAULT_HOST : this.#host;
-      this.server._start(port, host);
-      this.#port = this.server._port;
+
+      let error;
+      await lazy.PollPromise(
+        (resolve, reject) => {
+          try {
+            this.server._start(port, host);
+            this.#port = this.server._port;
+            resolve();
+          } catch (e) {
+            error = e;
+            lazy.logger.debug(`Could not bind to port ${port} (${error.name})`);
+            reject();
+          }
+        },
+        { interval: 250, timeout: 5000 }
+      );
+
+      if (!this.#server._socket) {
+        throw new Error(`Failed to start HTTP server on port ${port}`);
+      }
 
       if (isIPv4Host) {
+        // Bug 1783938: httpd.js refuses connections when started on a IPv4
+        // address. As workaround start on localhost and add another identity
+        // for that IP address.
         this.server.identity.add("http", this.#host, this.#port);
       }
 
@@ -281,7 +300,12 @@ class RemoteAgentParentProcess {
       await Promise.all([this.#webDriverBiDi?.start(), this.#cdp?.start()]);
     } catch (e) {
       await this.#stop();
-      lazy.logger.error(`Unable to start remote agent: ${e.message}`, e);
+      lazy.logger.error(
+        `Unable to start the RemoteAgent: ${e.message}, closing`,
+        e
+      );
+
+      Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
     }
   }
 
