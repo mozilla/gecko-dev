@@ -182,7 +182,7 @@ pub(crate) fn submit_ping_by_id(id: u32, reason: Option<&str>) {
 }
 
 #[cfg(feature = "with_gecko")]
-pub(crate) fn set_ping_enabled(id: u32, enabled: bool) {
+pub(crate) fn set_ping_enabled_by_id(id: u32, enabled: bool) {
     match id {
         1 => not_baseline.set_enabled(enabled),
         2 => not_deletion_request.set_enabled(enabled),

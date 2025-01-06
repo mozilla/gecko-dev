@@ -18,6 +18,6 @@ pub extern "C" fn fog_submit_ping_by_id(id: u32, reason: &nsACString) {
 }
 
 #[no_mangle]
-pub extern "C" fn fog_set_ping_enabled(id: u32, value: bool) {
-    pings::set_ping_enabled(id, value);
+pub extern "C" fn fog_set_ping_enabled_by_id(id: u32, value: bool) {
+    pings::set_ping_enabled_by_id(id, value);
 }

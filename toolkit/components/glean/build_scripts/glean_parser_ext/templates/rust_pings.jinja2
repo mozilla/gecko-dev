@@ -95,7 +95,7 @@ pub(crate) fn submit_ping_by_id(id: u32, reason: Option<&str>) {
 }
 
 #[cfg(feature = "with_gecko")]
-pub(crate) fn set_ping_enabled(id: u32, enabled: bool) {
+pub(crate) fn set_ping_enabled_by_id(id: u32, enabled: bool) {
     match id {
 {% for obj in all_objs['pings'].values() %}
         {{ obj.name|ping_id }} => {{ obj.name | snake_case }}.set_enabled(enabled),

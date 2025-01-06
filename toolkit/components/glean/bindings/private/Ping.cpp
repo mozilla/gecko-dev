@@ -58,7 +58,9 @@ nsresult Ping::SubmitInternal(const nsACString& aReason) const {
   return rv;
 }
 
-void Ping::SetEnabled(bool aValue) const { fog_set_ping_enabled(mId, aValue); }
+void Ping::SetEnabled(bool aValue) const {
+  fog_set_ping_enabled_by_id(mId, aValue);
+}
 
 void Ping::TestBeforeNextSubmit(PingTestCallback&& aCallback) const {
   TestBeforeNextSubmitFallible(
