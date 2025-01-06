@@ -31,7 +31,6 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/call/video_receive_stream.cc",
     "/third_party/libwebrtc/call/video_send_stream.cc"
 ]
 
@@ -229,4 +228,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("video_stream_api_gn")
+Library("video_send_stream_api_gn")
