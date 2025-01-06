@@ -224,3 +224,40 @@ add_task(async function test_html_data() {
   // Requesting a flavor that is not in the list should throw error.
   syncClipboardRequestGetData(request, "text/plain", Cr.NS_ERROR_FAILURE);
 });
+
+// Test for bug 1935127.
+add_task(async function test_invalidate_dataSnapshot() {
+  const type = clipboard.kGlobalClipboard;
+  writeRandomStringToClipboard("text/plain", type);
+  let request = await getClipboardDataSnapshot(type);
+  ok(request.valid, "request should be valid");
+
+  // Writing a new data should invalid existing get request.
+  writeRandomStringToClipboard("text/plain", type);
+
+  info(
+    "The ClipboardDataSnapshot should no longer be valid as the clipboard content has changed"
+  );
+  syncClipboardRequestGetData(request, "text/plain", Cr.NS_ERROR_NOT_AVAILABLE);
+
+  info("Requesting data again immediately should not cause a crash");
+  await Promise.all([
+    asyncClipboardRequestGetData(request, "text/plain").then(
+      () => {
+        ok(false, "should not success");
+      },
+      e => {
+        is(
+          e,
+          Cr.NS_ERROR_NOT_AVAILABLE,
+          "should be rejected with NS_ERROR_NOT_AVAILABLE error"
+        );
+      }
+    ),
+    syncClipboardRequestGetData(
+      request,
+      "text/plain",
+      Cr.NS_ERROR_NOT_AVAILABLE
+    ),
+  ]);
+});
