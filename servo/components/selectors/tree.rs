@@ -31,6 +31,11 @@ impl OpaqueElement {
         }
     }
 
+    /// Creates a new OpaqueElement from a type-erased non-null pointer
+    pub fn from_non_null_ptr(ptr: NonNull<()>) -> Self {
+        Self(ptr)
+    }
+
     /// Returns a const ptr to the contained reference.
     pub unsafe fn as_const_ptr<T>(&self) -> *const T {
         self.0.as_ptr() as *const T
