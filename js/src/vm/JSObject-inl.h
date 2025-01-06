@@ -9,7 +9,6 @@
 
 #include "vm/JSObject.h"
 
-#include "gc/Allocator.h"
 #include "gc/Zone.h"
 #include "js/Object.h"  // JS::GetBuiltinClass
 #include "vm/ArrayObject.h"
@@ -24,7 +23,6 @@
 #  include "vm/TupleType.h"
 #endif
 
-#include "gc/BufferAllocator-inl.h"
 #include "gc/GCContext-inl.h"
 #include "gc/ObjectKind-inl.h"
 #include "vm/ObjectOperations-inl.h"  // js::MaybeHasInterestingSymbolProperty
@@ -67,15 +65,11 @@ MOZ_ALWAYS_INLINE uint32_t js::NativeObject::calculateDynamicSlots() const {
   // the dynamic slots need to get increased again. ArrayObjects ignore
   // this because slots are uncommon in that case.
   if (clasp != &ArrayObject::class_ && ndynamic <= SLOT_CAPACITY_MIN) {
-#ifdef DEBUG
-    size_t count = SLOT_CAPACITY_MIN + ObjectSlots::VALUES_PER_HEADER;
-    MOZ_ASSERT(count == gc::GetGoodPower2ElementCount(count, sizeof(Value)));
-#endif
     return SLOT_CAPACITY_MIN;
   }
 
-  uint32_t count = gc::GetGoodPower2ElementCount(
-      ndynamic + ObjectSlots::VALUES_PER_HEADER, sizeof(Value));
+  uint32_t count =
+      mozilla::RoundUpPow2(ndynamic + ObjectSlots::VALUES_PER_HEADER);
 
   uint32_t slots = count - ObjectSlots::VALUES_PER_HEADER;
   MOZ_ASSERT(slots >= ndynamic);
@@ -104,6 +98,24 @@ inline void JSObject::finalize(JS::GCContext* gcx) {
   const JSClass* clasp = objShape->getObjectClass();
   if (clasp->hasFinalize()) {
     clasp->doFinalize(gcx, this);
+  }
+
+  if (!objShape->isNative()) {
+    return;
+  }
+
+  js::NativeObject* nobj = &as<js::NativeObject>();
+  if (nobj->hasDynamicSlots()) {
+    js::ObjectSlots* slotsHeader = nobj->getSlotsHeader();
+    size_t size = js::ObjectSlots::allocSize(slotsHeader->capacity());
+    gcx->free_(this, slotsHeader, size, js::MemoryUse::ObjectSlots);
+  }
+
+  if (nobj->hasDynamicElements()) {
+    js::ObjectElements* elements = nobj->getElementsHeader();
+    size_t size = elements->numAllocatedElements() * sizeof(js::HeapSlot);
+    gcx->free_(this, nobj->getUnshiftedElementsHeader(), size,
+               js::MemoryUse::ObjectElements);
   }
 }
 

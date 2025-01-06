@@ -35,9 +35,9 @@ check(() => { return Object(); });
 
 // Array construction.
 check(() => { return Array(); });
-check(() => { return Array(150); });
+check(() => { return Array(100); });
 check(() => { return new Array(); });
-check(() => { return new Array(150); });
+check(() => { return new Array(100); });
 
 // DOM Allocations
 let fdo = new FakeDOMObject();

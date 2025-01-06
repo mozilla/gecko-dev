@@ -1666,16 +1666,6 @@ scan_obj: {
 
   unsigned nslots = nobj->slotSpan();
 
-  if (nobj->hasDynamicSlots()) {
-    ObjectSlots* slots = nobj->getSlotsHeader();
-    BufferAllocator::MarkTenuredAlloc(slots);
-  }
-
-  if (nobj->hasDynamicElements()) {
-    void* elements = nobj->getUnshiftedElementsHeader();
-    BufferAllocator::MarkTenuredAlloc(elements);
-  }
-
   if (!nobj->hasEmptyElements()) {
     base = nobj->getDenseElements();
     kind = SlotsOrElementsKind::Elements;

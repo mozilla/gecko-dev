@@ -876,12 +876,13 @@ class NativeObject : public JSObject {
    * ArrayObjects don't use this limit and can have a lower slot capacity,
    * since they normally don't have a lot of slots.
    */
-  static const uint32_t SLOT_CAPACITY_MIN = 5;
+  static const uint32_t SLOT_CAPACITY_MIN = 8 - ObjectSlots::VALUES_PER_HEADER;
 
   /*
    * Minimum size for dynamically allocated elements in normal Objects.
    */
-  static const uint32_t ELEMENT_CAPACITY_MIN = 5;
+  static const uint32_t ELEMENT_CAPACITY_MIN =
+      8 - ObjectElements::VALUES_PER_HEADER;
 
   HeapSlot* fixedSlots() const {
     return reinterpret_cast<HeapSlot*>(uintptr_t(this) + sizeof(NativeObject));
