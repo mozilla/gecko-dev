@@ -76,53 +76,55 @@ void Queue::WriteBuffer(const Buffer& aBuffer, uint64_t aBufferOffset,
       elementByteSize = byteSize(type);
     }
   }
-  dom::ProcessTypedArraysFixed(aData, [&, elementByteSize](
-                                          const Span<const uint8_t>& aData) {
-    uint64_t byteLength = aData.Length();
+  dom::ProcessTypedArraysFixed(
+      aData, [&, elementByteSize](const Span<const uint8_t>& aData) {
+        uint64_t byteLength = aData.Length();
 
-    auto checkedByteOffset =
-        CheckedInt<uint64_t>(aDataOffset) * elementByteSize;
-    if (!checkedByteOffset.isValid()) {
-      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return;
-    }
-    auto offset = checkedByteOffset.value();
+        auto checkedByteOffset =
+            CheckedInt<uint64_t>(aDataOffset) * elementByteSize;
+        if (!checkedByteOffset.isValid()) {
+          aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+          return;
+        }
+        auto offset = checkedByteOffset.value();
 
-    const auto checkedByteSize =
-        aSize.WasPassed() ? CheckedInt<size_t>(aSize.Value()) * elementByteSize
-                          : CheckedInt<size_t>(byteLength) - offset;
-    if (!checkedByteSize.isValid()) {
-      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return;
-    }
-    auto size = checkedByteSize.value();
+        const auto checkedByteSize =
+            aSize.WasPassed()
+                ? CheckedInt<size_t>(aSize.Value()) * elementByteSize
+                : CheckedInt<size_t>(byteLength) - offset;
+        if (!checkedByteSize.isValid()) {
+          aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+          return;
+        }
+        auto size = checkedByteSize.value();
 
-    auto checkedByteEnd = CheckedInt<uint64_t>(offset) + size;
-    if (!checkedByteEnd.isValid() || checkedByteEnd.value() > byteLength) {
-      aRv.ThrowAbortError(nsPrintfCString("Wrong data size %" PRIuPTR, size));
-      return;
-    }
+        auto checkedByteEnd = CheckedInt<uint64_t>(offset) + size;
+        if (!checkedByteEnd.isValid() || checkedByteEnd.value() > byteLength) {
+          aRv.ThrowOperationError(
+              nsPrintfCString("Wrong data size %" PRIuPTR, size));
+          return;
+        }
 
-    if (size % 4 != 0) {
-      aRv.ThrowAbortError("Byte size must be a multiple of 4");
-      return;
-    }
+        if (size % 4 != 0) {
+          aRv.ThrowOperationError("Byte size must be a multiple of 4");
+          return;
+        }
 
-    auto alloc = mozilla::ipc::UnsafeSharedMemoryHandle::CreateAndMap(size);
-    if (alloc.isNothing()) {
-      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return;
-    }
+        auto alloc = mozilla::ipc::UnsafeSharedMemoryHandle::CreateAndMap(size);
+        if (alloc.isNothing()) {
+          aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+          return;
+        }
 
-    auto handle = std::move(alloc.ref().first);
-    auto mapping = std::move(alloc.ref().second);
+        auto handle = std::move(alloc.ref().first);
+        auto mapping = std::move(alloc.ref().second);
 
-    memcpy(mapping.Bytes().data(), aData.Elements() + offset, size);
-    ipc::ByteBuf bb;
-    ffi::wgpu_queue_write_buffer(aBuffer.mId, aBufferOffset, ToFFI(&bb));
-    mBridge->SendQueueWriteAction(mId, mParent->mId, std::move(bb),
-                                  std::move(handle));
-  });
+        memcpy(mapping.Bytes().data(), aData.Elements() + offset, size);
+        ipc::ByteBuf bb;
+        ffi::wgpu_queue_write_buffer(aBuffer.mId, aBufferOffset, ToFFI(&bb));
+        mBridge->SendQueueWriteAction(mId, mParent->mId, std::move(bb),
+                                      std::move(handle));
+      });
 }
 
 void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
@@ -139,14 +141,14 @@ void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
 
   dom::ProcessTypedArraysFixed(aData, [&](const Span<const uint8_t>& aData) {
     if (aData.IsEmpty()) {
-      aRv.ThrowAbortError("Input size cannot be zero.");
+      aRv.ThrowOperationError("Input size cannot be zero.");
       return;
     }
 
     const auto checkedSize =
         CheckedInt<size_t>(aData.Length()) - aDataLayout.mOffset;
     if (!checkedSize.isValid()) {
-      aRv.ThrowAbortError("Offset is higher than the size");
+      aRv.ThrowOperationError("Offset is higher than the size");
       return;
     }
     const auto size = checkedSize.value();
