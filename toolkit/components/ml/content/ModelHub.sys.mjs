@@ -35,7 +35,7 @@ const ALLOWED_HEADERS_KEYS = [
 ];
 
 // Default indexedDB revision.
-const DEFAULT_MODEL_REVISION = 3;
+const DEFAULT_MODEL_REVISION = 4;
 
 // The origin to use for storage. If null uses system.
 const DEFAULT_PRINCIPAL_ORIGIN = null;
@@ -100,7 +100,7 @@ export class IndexedDBCache {
   dbName;
 
   /**
-   * Name of the object store for storing files.
+   * Name of the object store for storing files. (Retained for deletion in previous versions.)
    * Files are expected to be unique for a given tuple of file name, model, file, revision
    *
    * @type {string}
@@ -329,9 +329,6 @@ export class IndexedDBCache {
         // Migrating is required anytime the keyPath for an existing store changes
         this.#migrateStore(db, event.oldVersion);
 
-        if (!db.objectStoreNames.contains(this.fileStoreName)) {
-          db.createObjectStore(this.fileStoreName, { keyPath: "id" });
-        }
         if (!db.objectStoreNames.contains(this.headersStoreName)) {
           db.createObjectStore(this.headersStoreName, {
             keyPath: ["model", "revision", "file"],
@@ -551,22 +548,22 @@ export class IndexedDBCache {
    */
   async fileExists({ model, revision, file }) {
     return this.#hasData({
-      storeName: this.fileStoreName,
-      key: this.#generatePrimaryKey({ model, revision, file }),
+      storeName: this.headersStoreName,
+      key: [model, revision, file],
     });
   }
 
   /**
-   * Generate the primary key to uniquely identify a model file.
+   * Generate the path where a model file will be stored in Origin Private FileSystem (OPFS).
    *
    * @param {object} config
    * @param {string} config.model - The model name (organization/name)
    * @param {string} config.revision - The model revision.
    * @param {string} config.file - The file name.
-   * @returns {string} The generated primary key.
+   * @returns {string} The generated file path.
    */
-  #generatePrimaryKey({ model, revision, file }) {
-    return `${model}/${revision}/${file}`;
+  generateFilePathInOPFS({ model, revision, file }) {
+    return `${this.dbName}/${model}/${revision}/${file}`;
   }
 
   /**
@@ -595,16 +592,12 @@ export class IndexedDBCache {
    * @param {string} config.model - The model name (organization/name)
    * @param {string} config.revision - The model revision.
    * @param {string} config.file - The file name.
-   * @returns {Promise<[ArrayBuffer, object]|null>} The file ArrayBuffer and its headers or null if not found.
+   * @returns {Promise<[Blob, object]|null>} The file Blob and its headers or null if not found.
    */
   async getFile({ engineId = lazy.DEFAULT_ENGINE_ID, model, revision, file }) {
-    const cacheKey = this.#generatePrimaryKey({ model, revision, file });
-    const stored = (
-      await this.#getData({ storeName: this.fileStoreName, key: cacheKey })
-    )[0];
-    if (stored) {
-      const headers = await this.getHeaders({ model, revision, file });
+    const headers = await this.getHeaders({ model, revision, file });
 
+    if (headers) {
       await this.#updateEngines({
         engineId,
         model,
@@ -612,7 +605,13 @@ export class IndexedDBCache {
         file,
       });
 
-      return [stored.data, headers];
+      const fileData = await (
+        await lazy.Progress.getFileHandleFromOPFS(
+          this.generateFilePathInOPFS({ model, revision, file })
+        )
+      ).getFile();
+
+      return [fileData, headers];
     }
     return null; // Return null if no file is found
   }
@@ -713,7 +712,7 @@ export class IndexedDBCache {
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model version.
    * @param {string} config.file - The file name.
-   * @param {Blob} config.data - The data to cache.
+   * @param {Blob | string} config.data - The content or path to the data to cache.
    * @param {object} [config.headers] - The headers for the file.
    * @returns {Promise<void>}
    */
@@ -727,8 +726,8 @@ export class IndexedDBCache {
     headers,
   }) {
     const updatePromises = [];
-    const fileSize = data.size;
-    const cacheKey = this.#generatePrimaryKey({ model, revision, file });
+    const fileSize = headers?.fileSize ?? data.size;
+    const cacheKey = this.generateFilePathInOPFS({ model, revision, file });
     const totalSize = await this.#estimateUsageForOrigin(
       DEFAULT_PRINCIPAL_ORIGIN
     );
@@ -737,11 +736,21 @@ export class IndexedDBCache {
       throw new Error(`Exceeding cache size limit of ${this.#maxSize}GiB"`);
     }
 
-    const fileEntry = { id: cacheKey, data };
-
-    // Store the file data
-    lazy.console.debug(`Storing ${cacheKey} with size:`, file);
-    updatePromises.push(this.#updateData(this.fileStoreName, fileEntry));
+    // Store the file data if a blob is passed.
+    if (Blob.isInstance(data) && !File.isInstance(data)) {
+      updatePromises.push(
+        data.stream().pipeTo(
+          await lazy.Progress.getFileHandleFromOPFS(cacheKey, {
+            create: true,
+          }).then(handle =>
+            handle.createWritable({
+              keepExistingData: false,
+              mode: "siloed",
+            })
+          )
+        )
+      );
+    }
 
     // Store task metadata
     updatePromises.push(
@@ -837,16 +846,12 @@ export class IndexedDBCache {
    * @returns {Promise<void>} A promise that resolves once the file and associated data are deleted.
    */
   async #deleteFile({ model, revision, file }) {
-    const cacheKey = this.#generatePrimaryKey({ model, revision, file });
-    let deletePromises = [];
-    for (const storage of [
-      this.fileStoreName,
-      this.headersStoreName,
-      this.enginesStoreName,
-    ]) {
-      deletePromises.push(await this.#deleteData(storage, cacheKey));
-    }
-    await Promise.all(deletePromises);
+    await Promise.all([
+      this.#deleteData(this.headersStoreName, [model, revision, file]),
+      lazy.Progress.removeFromOPFS(
+        this.generateFilePathInOPFS({ model, revision, file })
+      ),
+    ]);
   }
 
   /**
@@ -921,19 +926,12 @@ export class IndexedDBCache {
 
     for (const key of filesToDelete) {
       const [modelValue, revisionValue, fileValue] = JSON.parse(key);
-      const primaryKey = this.#generatePrimaryKey({
-        model: modelValue,
-        revision: revisionValue,
-        file: fileValue,
-      });
-      deletePromises.push(this.#deleteData(this.enginesStoreName, primaryKey));
-      deletePromises.push(this.#deleteData(this.fileStoreName, primaryKey));
       deletePromises.push(
-        this.#deleteData(this.headersStoreName, [
-          modelValue,
-          revisionValue,
-          fileValue,
-        ])
+        this.#deleteFile({
+          model: modelValue,
+          revision: revisionValue,
+          file: fileValue,
+        })
       );
     }
 
@@ -1323,7 +1321,7 @@ export class ModelHub {
       modelHubUrlTemplate,
     });
 
-    return new Response(blob, { headers });
+    return new Response(blob.stream(), { headers });
   }
 
   /**
@@ -1337,6 +1335,7 @@ export class ModelHub {
    * @param {string} config.file - The file name.
    * @param {string} config.modelHubRootUrl - root url of the model hub
    * @param {string} config.modelHubUrlTemplate - url template of the model hub
+   * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback A function to call to indicate progress status.
    * @returns {Promise<[Blob, object]>} The file content
    */
   async getModelFileAsBlob({
@@ -1347,8 +1346,9 @@ export class ModelHub {
     file,
     modelHubRootUrl,
     modelHubUrlTemplate,
+    progressCallback,
   }) {
-    const [buffer, headers] = await this.getModelFileAsArrayBuffer({
+    const [filePath, headers] = await this.getModelDataAsFile({
       engineId,
       taskName,
       model,
@@ -1356,8 +1356,15 @@ export class ModelHub {
       file,
       modelHubRootUrl,
       modelHubUrlTemplate,
+      progressCallback,
     });
-    return [new Blob([buffer]), headers];
+
+    const fileObject = await (
+      await lazy.Progress.getFileHandleFromOPFS(filePath)
+    ).getFile();
+
+    // A file is a blob, so we can return it directly.
+    return [fileObject, headers];
   }
 
   /**
@@ -1385,6 +1392,45 @@ export class ModelHub {
     modelHubUrlTemplate,
     progressCallback,
   }) {
+    let [blob, headers] = await this.getModelFileAsBlob({
+      engineId,
+      taskName,
+      model,
+      revision,
+      file,
+      modelHubRootUrl,
+      modelHubUrlTemplate,
+      progressCallback,
+    });
+
+    return [await blob.arrayBuffer(), headers];
+  }
+
+  /**
+   * Given an organization, model, and version, fetch a model file in the hub
+   * while supporting status callback.
+   *
+   * @param {object} config
+   * @param {string} config.engineId - The model engine id
+   * @param {string} config.taskName - name of the inference task.
+   * @param {string} config.model - The model name (organization/name).
+   * @param {string} config.revision - The model revision.
+   * @param {string} config.file - The file name.
+   * @param {string} config.modelHubRootUrl - root url of the model hub
+   * @param {string} config.modelHubUrlTemplate - url template of the model hub
+   * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback A function to call to indicate progress status.
+   * @returns {Promise<[string, headers]>} The local path to the file content and headers.
+   */
+  async getModelDataAsFile({
+    engineId,
+    taskName,
+    model,
+    revision,
+    file,
+    modelHubRootUrl,
+    modelHubUrlTemplate,
+    progressCallback,
+  }) {
     // Make sure inputs are clean. We don't sanitize them but throw an exception
     let checkError = this.#checkInput(model, revision, file);
     if (checkError) {
@@ -1403,17 +1449,15 @@ export class ModelHub {
 
     let useCached;
 
+    let cachedHeaders = null;
+
     // If the revision is `main` we want to check the ETag in the hub
     if (revision === "main") {
       // this can be null if no ETag was found or there were a network error
       const hubETag = await this.getETag(url);
 
       // Storage ETag lookup
-      const cachedHeaders = await this.cache.getHeaders({
-        model,
-        revision,
-        file,
-      });
+      cachedHeaders = await this.cache.getHeaders({ model, revision, file });
       const cachedEtag = cachedHeaders ? cachedHeaders.ETag : null;
 
       // If we have something in store, and the hub ETag is null or it matches the cached ETag, return the cached response
@@ -1437,6 +1481,12 @@ export class ModelHub {
       id: url,
     };
 
+    const localFilePath = this.cache.generateFilePathInOPFS({
+      model,
+      revision,
+      file,
+    });
+
     if (useCached) {
       lazy.console.debug(`Cache Hit for ${url}`);
       progressCallback?.(
@@ -1447,12 +1497,10 @@ export class ModelHub {
           statusText: lazy.Progress.ProgressStatusText.INITIATE,
         })
       );
-      const [blob, headers] = await this.cache.getFile({
-        engineId,
-        model,
-        revision,
-        file,
-      });
+
+      if (!cachedHeaders) {
+        cachedHeaders = await this.cache.getHeaders({ model, revision, file });
+      }
 
       // Ensure that we indicate that the taskName is stored
       await this.cache.updateTask({
@@ -1471,7 +1519,7 @@ export class ModelHub {
           statusText: lazy.Progress.ProgressStatusText.DONE,
         })
       );
-      return [await blob.arrayBuffer(), headers];
+      return [localFilePath, cachedHeaders];
     }
 
     progressCallback?.(
@@ -1487,8 +1535,19 @@ export class ModelHub {
     try {
       let response = await this.#fetch(url);
       let isFirstCall = true;
-      let responseContentArray = await lazy.Progress.readResponse(
+
+      const fileHandle = await lazy.Progress.getFileHandleFromOPFS(
+        localFilePath,
+        { create: true }
+      );
+      const writeableStream = await fileHandle.createWritable({
+        keepExistingData: false,
+        mode: "siloed",
+      });
+
+      await lazy.Progress.readResponseToWriter(
         response,
+        writeableStream,
         progressData => {
           progressCallback?.(
             new lazy.Progress.ProgressAndStatusCallbackParams({
@@ -1504,10 +1563,6 @@ export class ModelHub {
           isFirstCall = false;
         }
       );
-      let responseContent = responseContentArray.buffer.slice(
-        responseContentArray.byteOffset,
-        responseContentArray.byteLength + responseContentArray.byteOffset
-      );
 
       if (response.ok) {
         const headers = {
@@ -1516,6 +1571,7 @@ export class ModelHub {
           "Content-Type": response.headers.get("Content-Type").split(";")[0],
           "Content-Length": response.headers.get("Content-Length"),
           ETag: response.headers.get("ETag"),
+          fileSize: (await fileHandle.getFile()).size,
         };
 
         await this.cache.put({
@@ -1524,7 +1580,7 @@ export class ModelHub {
           model,
           revision,
           file,
-          data: new Blob([responseContent]),
+          data: localFilePath,
           headers,
         });
 
@@ -1537,7 +1593,7 @@ export class ModelHub {
           })
         );
 
-        return [responseContent, headers];
+        return [localFilePath, headers];
       }
     } catch (error) {
       if (error instanceof ForbiddenURLError) {

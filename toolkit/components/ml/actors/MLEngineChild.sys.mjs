@@ -231,10 +231,10 @@ export class MLEngineChild extends JSWindowActorChild {
   }
 
   /**
-   * Retrieves a model file as an ArrayBuffer and headers by communicating with the parent actor.
+   * Retrieves a model file and headers by communicating with the parent actor.
    *
    * @param {object} config - The configuration accepted by the parent function.
-   * @returns {Promise<[ArrayBuffer, object]>} The file content and headers
+   * @returns {Promise<[string, object]>} The file local path and headers
    */
   getModelFile(config) {
     return this.sendQuery("MLEngine:GetModelFile", config);
@@ -615,7 +615,7 @@ class EngineDispatcher {
 }
 
 /**
- * Wrapper for a function that fetches a model file as an ArrayBuffer from a specified URL and task name.
+ * Wrapper for a function that fetches a model file from a specified URL and task name.
  *
  * @param {object} config
  * @param {string} config.engineId - The engine id - defaults to "default-engine".
@@ -624,9 +624,9 @@ class EngineDispatcher {
  * the model hub root or an absolute URL.
  * @param {string} config.modelHubRootUrl - root url of the model hub. When not provided, uses the default from prefs.
  * @param {string} config.modelHubUrlTemplate - url template of the model hub. When not provided, uses the default from prefs.
- * @param {?function(object):Promise<[ArrayBuffer, object]>} config.getModelFileFn - A function that actually retrieves the model data and headers.
+ * @param {?function(object):Promise<[string, object]>} config.getModelFileFn - A function that actually retrieves the model and headers.
  * @returns {Promise} A promise that resolves to a Meta object containing the URL, response headers,
- * and data as an ArrayBuffer. The data is marked for transfer to avoid cloning.
+ * and model path.
  */
 async function getModelFile({
   engineId,
@@ -643,9 +643,7 @@ async function getModelFile({
     rootUrl: modelHubRootUrl || lazy.MODEL_HUB_ROOT_URL,
     urlTemplate: modelHubUrlTemplate || lazy.MODEL_HUB_URL_TEMPLATE,
   });
-  return new lazy.BasePromiseWorker.Meta([url, headers, data], {
-    transfers: [data],
-  });
+  return new lazy.BasePromiseWorker.Meta([url, headers, data], {});
 }
 
 /**
@@ -752,7 +750,7 @@ class InferenceEngine {
    * @param {ArrayBuffer} config.wasm
    * @param {PipelineOptions} config.pipelineOptions
    * @param {?function(ProgressAndStatusCallbackParams):void} config.notificationsCallback The callback to call for updating about notifications such as dowload progress status.
-   * @param {?function(object):Promise<[ArrayBuffer, object]>} config.getModelFileFn - A function that actually retrieves the model data and headers.
+   * @param {?function(object):Promise<[string, object]>} config.getModelFileFn - A function that actually retrieves the model and headers.
    * @param {?function(object):Promise<object>} config.getInferenceProcessInfoFn - A function to get inference process info
    * @returns {InferenceEngine}
    */

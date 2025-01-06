@@ -287,7 +287,7 @@ export class MLEngineParent extends JSWindowActorParent {
   }
 
   /**
-   * Retrieves a model file as an ArrayBuffer from the specified URL.
+   * Retrieves a model file from the specified URL.
    * This function normalizes the URL, extracts the organization, model name, and file path,
    * then fetches the model file using the ModelHub API. The `modelHub` instance is created
    * only once and reused for subsequent calls to optimize performance.
@@ -301,7 +301,7 @@ export class MLEngineParent extends JSWindowActorParent {
    * the model hub root or an absolute URL.
    * @param {string} config.urlTemplate - The URL of the model file to fetch. Can be a path relative to
    * the model hub root or an absolute URL.
-   * @returns {Promise<[ArrayBuffer, object]>} The file content and headers
+   * @returns {Promise<[string, object]>} The file local path and headers
    */
   async getModelFile({ engineId, taskName, url, rootUrl, urlTemplate }) {
     // Create the model hub instance if needed
@@ -326,7 +326,7 @@ export class MLEngineParent extends JSWindowActorParent {
     // if this errors out, it will be caught in the worker
     const parsedUrl = this.modelHub.parseUrl(url, { rootUrl, urlTemplate });
 
-    const [data, headers] = await this.modelHub.getModelFileAsArrayBuffer({
+    const [data, headers] = await this.modelHub.getModelDataAsFile({
       engineId,
       taskName,
       ...parsedUrl,
@@ -343,7 +343,7 @@ export class MLEngineParent extends JSWindowActorParent {
 
     lazy.console.debug(
       `Model ${parsedUrl.model} was fetched from ${url}, size ${Math.round(
-        data.byteLength / (1024 * 1024)
+        headers.fileSize / (1024 * 1024)
       )}MiB`
     );
 

@@ -3,12 +3,14 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
 const {
+  getFileHandleFromOPFS,
   MultiProgressAggregator,
   ProgressAndStatusCallbackParams,
   ProgressStatusText,
   readResponse,
   modelToResponse,
   URLChecker,
+  removeFromOPFS,
   RejectionType,
 } = ChromeUtils.importESModule("chrome://global/content/ml/Utils.sys.mjs");
 
@@ -405,41 +407,47 @@ add_task(async function test_multi_aggregator() {
  * Test modelToResponse function.
  */
 add_task(async function test_ml_utils_model_to_response() {
+  const modelPath = "test.txt";
+  await getFileHandleFromOPFS(modelPath, { create: true });
+
+  registerCleanupFunction(async () => {
+    await removeFromOPFS(modelPath);
+  });
+
   const cases = [
     {
-      model: new ArrayBuffer(8),
+      model: modelPath,
       headers: null,
       expected: {},
       msg: "valid response with no headers",
     },
     {
-      model: new ArrayBuffer(8),
+      model: modelPath,
       headers: { some: "header" },
       expected: { some: "header" },
       msg: "valid response",
     },
 
     {
-      model: new ArrayBuffer(8),
+      model: modelPath,
       headers: { some: "header", int: 1234 },
       expected: { some: "header", int: "1234" },
       msg: "valid response with ints conversion",
     },
     {
-      model: new ArrayBuffer(8),
+      model: modelPath,
       headers: { some: null, int: 1234 },
       expected: { int: "1234" },
       msg: "valid response with null keys ignored",
     },
   ];
 
-  cases.forEach(case_ => {
-    const response = modelToResponse(case_.model, case_.headers);
-
+  for (const case_ of cases) {
+    const response = await modelToResponse(case_.model, case_.headers);
     for (const [key, value] of Object.entries(case_.expected)) {
       Assert.deepEqual(response.headers.get(key), value, case_.message);
     }
-  });
+  }
 });
 
 /**

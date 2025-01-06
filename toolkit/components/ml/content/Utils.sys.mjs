@@ -318,11 +318,11 @@ export class MultiProgressAggregator {
 /**
  * Converts a model and its headers to a Response object.
  *
- * @param {ArrayBuffer} modelFile
+ * @param {string} modelFilePath - path to the model file in Origin Private FileSystem (OPFS).
  * @param {object|null} headers
  * @returns {Response} The generated Response instance
  */
-export function modelToResponse(modelFile, headers) {
+export async function modelToResponse(modelFilePath, headers) {
   let responseHeaders = {};
 
   if (headers) {
@@ -334,10 +334,141 @@ export function modelToResponse(modelFile, headers) {
     }
   }
 
-  return new Response(modelFile, {
+  const file = await (await getFileHandleFromOPFS(modelFilePath)).getFile();
+
+  return new Response(file.stream(), {
     status: 200,
     headers: responseHeaders,
   });
+}
+
+/**
+ * Retrieves a handle to a directory at the specified path in the Origin Private File System (OPFS).
+ *
+ * @param {string} path - The path to the directory, using "/" as the directory separator.
+ *                        Example: "subdir1/subdir2/subdir3"
+ * @param {object} options - Configuration object
+ * @param {boolean} options.create - if `true` (default is false), create any missing subdirectories.
+ * @returns {Promise<FileSystemDirectoryHandle>} - A promise that resolves to the directory handle
+ *                                                 for the specified path.
+ */
+export async function getDirectoryHandleFromOPFS(
+  path,
+  { create = false } = {}
+) {
+  let currentNavigator = globalThis.navigator;
+  if (!currentNavigator) {
+    currentNavigator =
+      Services.wm.getMostRecentWindow("navigator:browser").navigator;
+  }
+  let directoryHandle = await currentNavigator.storage.getDirectory();
+
+  // Split the `path` into directory components.
+  const components = path.split("/").filter(Boolean);
+
+  // Traverse or creates subdirectories based on the path components.
+  for (const dirName of components) {
+    directoryHandle = await directoryHandle.getDirectoryHandle(dirName, {
+      create,
+    });
+  }
+
+  return directoryHandle;
+}
+
+/**
+ * Retrieves a handle to a file at the specified file path in the Origin Private File System (OPFS).
+ *
+ * @param {string} filePath - The path to the file, using "/" as the directory separator.
+ *                            Example: "subdir1/subdir2/filename.txt"
+ * @param {object} options - Configuration object
+ * @param {boolean} options.create - if `true` (default is false), create any missing directories
+ *                                   and the file itself.
+ * @returns {Promise<FileSystemFileHandle>} - A promise that resolves to the file handle
+ *                                            for the specified file.
+ */
+export async function getFileHandleFromOPFS(filePath, { create = false } = {}) {
+  // Extract the directory path and filename from the filePath.
+  const lastSlashIndex = filePath.lastIndexOf("/");
+  const fileName = filePath.substring(lastSlashIndex + 1);
+  const dirPath = filePath.substring(0, lastSlashIndex);
+
+  // Get or create the directory handle for the file's parent directory.
+  const directoryHandle = await getDirectoryHandleFromOPFS(dirPath, { create });
+
+  // Retrieve or create the file handle within the directory.
+  const fileHandle = await directoryHandle.getFileHandle(fileName, { create });
+
+  return fileHandle;
+}
+
+/**
+ * Delete a file or directory from the Origin Private File System (OPFS).
+ *
+ * @param {string} path - The path to delete, using "/" as the directory separator.
+ * @param {object} options - Configuration object
+ * @param {boolean} options.recursive - if `true` (default is false) a directory path
+ *                                      is recursively deleted.
+ * @returns {Promise<void>} A promise that resolves when the path has been successfully deleted.
+ */
+export async function removeFromOPFS(path, { recursive = false } = {}) {
+  // Extract the root directory and basename from the path.
+  const lastSlashIndex = path.lastIndexOf("/");
+  const fileName = path.substring(lastSlashIndex + 1);
+  const dirPath = path.substring(0, lastSlashIndex);
+
+  const directoryHandle = await getDirectoryHandleFromOPFS(dirPath);
+
+  await directoryHandle.removeEntry(fileName, { recursive });
+}
+
+/**
+ * Reads the body of a fetch `Response` object and writes it to a provided `WritableStream`,
+ * tracking progress and reporting it via a callback.
+ *
+ * @param {Response} response - The fetch `Response` object containing the body to read.
+ * @param {WritableStream} writableStream - The destination stream where the response body
+ *                                          will be written.
+ * @param {?function(ProgressAndStatusCallbackParams):void} progressCallback The function to call with progress updates.
+ */
+export async function readResponseToWriter(
+  response,
+  writableStream,
+  progressCallback
+) {
+  // Attempts to retrieve the `Content-Length` header from the response to estimate total size.
+  const contentLength = response.headers.get("Content-Length");
+  if (!contentLength) {
+    console.warn(
+      "Unable to determine content-length from response headers. Progress percentage will be approximated."
+    );
+  }
+  let totalSize = parseInt(contentLength ?? "0");
+
+  let loadedSize = 0;
+
+  // Creates a `TransformStream` to monitor the transfer progress of each chunk.
+  const progressStream = new TransformStream({
+    transform(chunk, controller) {
+      controller.enqueue(chunk); // Pass the chunk along to the writable stream
+      loadedSize += chunk.length;
+      totalSize = Math.max(totalSize, loadedSize);
+
+      // Reports progress updates via the `progressCallback` function if provided.
+      progressCallback?.(
+        new ProgressAndStatusCallbackParams({
+          progress: (loadedSize / totalSize) * 100,
+          totalLoaded: loadedSize,
+          currentLoaded: chunk.length,
+          total: totalSize,
+          units: "bytes",
+        })
+      );
+    },
+  });
+
+  // Pipes the response body through the progress stream into the writable stream.
+  await response.body.pipeThrough(progressStream).pipeTo(writableStream);
 }
 
 // Create a "namespace" to make it easier to import multiple names.
@@ -346,6 +477,9 @@ Progress.ProgressAndStatusCallbackParams = ProgressAndStatusCallbackParams;
 Progress.ProgressStatusText = ProgressStatusText;
 Progress.ProgressType = ProgressType;
 Progress.readResponse = readResponse;
+Progress.getFileHandleFromOPFS = getFileHandleFromOPFS;
+Progress.removeFromOPFS = removeFromOPFS;
+Progress.readResponseToWriter = readResponseToWriter;
 
 export async function getInferenceProcessInfo() {
   // for now we only have a single inference process.

@@ -6,9 +6,12 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
-const { ProgressStatusText, ProgressType } = ChromeUtils.importESModule(
-  "chrome://global/content/ml/Utils.sys.mjs"
-);
+const {
+  getDirectoryHandleFromOPFS,
+  ProgressStatusText,
+  ProgressType,
+  removeFromOPFS,
+} = ChromeUtils.importESModule("chrome://global/content/ml/Utils.sys.mjs");
 
 // Root URL of the fake hub, see the `data` dir in the tests.
 const FAKE_HUB =
@@ -539,7 +542,9 @@ add_task(async function testTooFewParts() {
  */
 async function initializeCache() {
   const randomSuffix = Math.floor(Math.random() * 10000);
-  return await IndexedDBCache.init({ dbName: `modelFiles-${randomSuffix}` });
+  const dbName = `modelFiles-${randomSuffix}`;
+  await getDirectoryHandleFromOPFS(dbName, { create: true });
+  return await IndexedDBCache.init({ dbName });
 }
 
 /**
@@ -548,6 +553,7 @@ async function initializeCache() {
 async function deleteCache(cache) {
   await cache.dispose();
   indexedDB.deleteDatabase(cache.dbName);
+  await removeFromOPFS(cache.dbName, { recursive: true });
 }
 
 /**
@@ -801,6 +807,7 @@ add_task(async function test_nonDeletedModels() {
     testData,
     "The retrieved data should match the stored data."
   );
+
   Assert.equal(
     headers.ETag,
     "ETAG123",
@@ -1216,10 +1223,7 @@ add_task(async function test_listFilesUsingNonExistingTaskName() {
  * Test the ability to add a database from a non-existing database.
  */
 add_task(async function test_initDbFromNonExisting() {
-  const randomSuffix = Math.floor(Math.random() * 10000);
-  const cache = await IndexedDBCache.init({
-    dbName: `modelFiles-${randomSuffix}`,
-  });
+  const cache = await initializeCache();
 
   Assert.notEqual(cache, null);
 
