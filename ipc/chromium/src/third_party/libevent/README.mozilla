@@ -26,6 +26,12 @@ You also need to modify the EVENT__HAVE_ARC4RANDOM and EVENT__HAVE_ARC4RANDOM_BU
 constants in the generated Linux header to account for the results of the arc4random
 and arc4random_buf configure checks.
 
-2. No additional patches are needed at this time, but be careful to avoid
-clobbering changes to the various event-config.h files which have been customized
-over time to avoid various build bustages.
+2. Apply the following patch from ipc/chromium/src/third_party/libevent/patches/:
+
+- "prevent-use-of-evsig.patch".  Prevents using (via intentional crash) any
+  of libevent's signal handling code; see bug 1616462.  This isn't strictly
+  required for functionality but it's a local patch we'd like to retain.
+
+Additionally, be careful to avoid clobbering changes to the various
+event-config.h files which have been customized over time to avoid
+various build bustages.
