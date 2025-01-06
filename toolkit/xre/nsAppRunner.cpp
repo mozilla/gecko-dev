@@ -3821,76 +3821,61 @@ void mozilla::startup::IncreaseDescriptorLimits() {
 }
 
 #ifdef XP_WIN
+// Looks for the current CPU microcode version, returns 0 if it cannot find it
+static uint32_t FindCPUMicrocodeVersion(HKEY key) {
+  // Windows uses different registry values to surface the current microcode
+  // value, and sometimes different update levels of the same version use
+  // different values (e.g. Windows 11 24H2 uses "Current Record Version",
+  // older Windows 11 and Windows 8/10 use "Update Revision", Windows 7 uses
+  // "Update Signature" or sometimes "CurrentPatchLevel" for AMD CPUs.
+  // Microcode version is represented by a 32-bit value but sometimes a 64-bit
+  // value is surfaced instead with only half of it populated (e.g.
+  // "Update Revision" on Windows 8, 10 and 11 pre-24H2). Since in these cases
+  // the other half is zero, we pick the first non-zero 32-bit value we find
+  // starting with the most "modern" registry value.
+  LPCWSTR choices[] = {L"Current Record Version", L"Update Revision",
+                       L"Update Signature", L"CurrentPatchLevel"};
+  for (const auto& oneChoice : choices) {
+    DWORD keyValue[2] = {};
+    DWORD len = sizeof(keyValue);
+    DWORD vtype;
 
-static uint32_t GetMicrocodeVersionByVendor(HKEY key, DWORD upper,
-                                            DWORD lower) {
-  WCHAR data[13];  // The CPUID vendor string is 12 characters long plus null
-  DWORD len = sizeof(data);
-  DWORD vtype;
+    if (RegQueryValueExW(key, oneChoice, nullptr, &vtype,
+                         reinterpret_cast<LPBYTE>(keyValue),
+                         &len) == ERROR_SUCCESS) {
+      if ((vtype == REG_BINARY) || (vtype == REG_DWORD)) {
+        for (size_t i = 0; i < (len / sizeof(DWORD)); i++) {
+          uint32_t value = keyValue[i];
 
-  if (RegQueryValueExW(key, L"VendorIdentifier", nullptr, &vtype,
-                       reinterpret_cast<LPBYTE>(data), &len) == ERROR_SUCCESS) {
-    if (wcscmp(L"GenuineIntel", data) == 0) {
-      // Intel reports the microcode version in the upper 32 bits of the MSR
-      return upper;
+          if (value != 0) {
+            return value;
+          }
+        }
+      }
     }
-
-    if (wcscmp(L"AuthenticAMD", data) == 0) {
-      // AMD reports the microcode version in the lower 32 bits of the MSR
-      return lower;
-    }
-
-    // Unknown CPU vendor, return whatever half is non-zero
-    return lower ? lower : upper;
   }
 
-  return 0;  // No clue
+  return 0;
 }
-
-#endif  // XP_WIN
+#endif
 
 static void MaybeAddCPUMicrocodeCrashAnnotation() {
 #ifdef XP_WIN
   // Add CPU microcode version to the crash report as "CPUMicrocodeVersion".
   // It feels like this code may belong in nsSystemInfo instead.
-  uint32_t cpuUpdateRevision = 0;
   HKEY key;
   static const WCHAR keyName[] =
       L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
 
   if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, keyName, 0, KEY_QUERY_VALUE, &key) ==
       ERROR_SUCCESS) {
-    DWORD updateRevision[2];
-    DWORD len = sizeof(updateRevision);
-    DWORD vtype;
+    uint32_t cpuMicrocodeVersion = FindCPUMicrocodeVersion(key);
 
-    // Windows 7 uses "Update Signature", 8 uses "Update Revision".
-    // For AMD CPUs, "CurrentPatchLevel" is sometimes used.
-    // Take the first one we find.
-    LPCWSTR choices[] = {L"Update Signature", L"Update Revision",
-                         L"CurrentPatchLevel"};
-    for (const auto& oneChoice : choices) {
-      if (RegQueryValueExW(key, oneChoice, nullptr, &vtype,
-                           reinterpret_cast<LPBYTE>(updateRevision),
-                           &len) == ERROR_SUCCESS) {
-        if (vtype == REG_BINARY && len == sizeof(updateRevision)) {
-          cpuUpdateRevision = GetMicrocodeVersionByVendor(
-              key, updateRevision[1], updateRevision[0]);
-          break;
-        }
-
-        if (vtype == REG_DWORD && len == sizeof(updateRevision[0])) {
-          cpuUpdateRevision = static_cast<int>(updateRevision[0]);
-          break;
-        }
-      }
+    if (cpuMicrocodeVersion != 0) {
+      CrashReporter::RecordAnnotationNSCString(
+          CrashReporter::Annotation::CPUMicrocodeVersion,
+          nsPrintfCString("0x%" PRIx32, cpuMicrocodeVersion));
     }
-  }
-
-  if (cpuUpdateRevision > 0) {
-    CrashReporter::RecordAnnotationNSCString(
-        CrashReporter::Annotation::CPUMicrocodeVersion,
-        nsPrintfCString("0x%" PRIx32, cpuUpdateRevision));
   }
 #endif
 }
