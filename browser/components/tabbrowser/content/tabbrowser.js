@@ -6415,13 +6415,13 @@
 
         case ShortcutUtils.NEXT_TAB:
           if (AppConstants.platform == "macosx") {
-            this.tabContainer.advanceSelectedTab(1, true);
+            this.tabContainer.advanceSelectedTab(DIRECTION_FORWARD, true);
             aEvent.preventDefault();
           }
           break;
         case ShortcutUtils.PREVIOUS_TAB:
           if (AppConstants.platform == "macosx") {
-            this.tabContainer.advanceSelectedTab(-1, true);
+            this.tabContainer.advanceSelectedTab(DIRECTION_BACKWARD, true);
             aEvent.preventDefault();
           }
           break;
