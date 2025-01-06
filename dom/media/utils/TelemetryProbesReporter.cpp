@@ -246,10 +246,11 @@ void TelemetryProbesReporter::OnMediaContentChanged(MediaContent aContent) {
   mMediaContent = aContent;
 }
 
-void TelemetryProbesReporter::OntFirstFrameLoaded(
+void TelemetryProbesReporter::OnFirstFrameLoaded(
     const double aLoadedFirstFrameTime, const double aLoadedMetadataTime,
     const double aTotalWaitingDataTime, const double aTotalBufferingTime,
-    const FirstFrameLoadedFlagSet aFlags, const MediaInfo& aInfo) {
+    const FirstFrameLoadedFlagSet aFlags, const MediaInfo& aInfo,
+    const nsCString& aVideoDecoderName) {
   MOZ_ASSERT(aInfo.HasVideo());
   nsCString resolution;
   DetermineResolutionForTelemetry(aInfo, resolution);
@@ -283,9 +284,8 @@ void TelemetryProbesReporter::OntFirstFrameLoaded(
   if (const auto keySystem = mOwner->GetKeySystem()) {
     extraData.keySystem = Some(NS_ConvertUTF16toUTF8(*keySystem));
   }
-  if (aFlags.contains(FirstFrameLoadedFlag::IsHardwareDecoding)) {
-    extraData.isHardwareDecoding = Some(true);
-  }
+  extraData.isHardwareDecoding =
+      Some(aFlags.contains(FirstFrameLoadedFlag::IsHardwareDecoding));
 
 #ifdef MOZ_WIDGET_ANDROID
   if (aFlags.contains(FirstFrameLoadedFlag::IsHLS)) {
@@ -293,12 +293,17 @@ void TelemetryProbesReporter::OntFirstFrameLoaded(
   }
 #endif
 
+  extraData.decoderName = Some(aVideoDecoderName);
+  extraData.isHdr = Some(static_cast<bool>(
+      mMediaContent & MediaContent::MEDIA_HAS_COLOR_DEPTH_ABOVE_8));
+
   if (MOZ_LOG_TEST(gTelemetryProbesReporterLog, LogLevel::Debug)) {
     nsPrintfCString logMessage{
         "Media_Playabck First_Frame_Loaded event, time(ms)=["
         "full:%f, loading-meta:%f, waiting-data:%f, buffering:%f], "
         "playback-type=%s, "
-        "videoCodec=%s, resolution=%s, hardware=%d",
+        "videoCodec=%s, resolution=%s, hardwareAccelerated=%d, decoderName=%s, "
+        "hdr=%d",
         aLoadedFirstFrameTime,
         aLoadedMetadataTime,
         aTotalWaitingDataTime,
@@ -306,7 +311,9 @@ void TelemetryProbesReporter::OntFirstFrameLoaded(
         extraData.playbackType->get(),
         extraData.videoCodec->get(),
         extraData.resolution->get(),
-        aFlags.contains(FirstFrameLoadedFlag::IsHardwareDecoding)};
+        aFlags.contains(FirstFrameLoadedFlag::IsHardwareDecoding),
+        aVideoDecoderName.get(),
+        *extraData.isHdr};
     if (const auto keySystem = mOwner->GetKeySystem()) {
       logMessage.AppendPrintf(", keySystem=%s",
                               NS_ConvertUTF16toUTF8(*keySystem).get());

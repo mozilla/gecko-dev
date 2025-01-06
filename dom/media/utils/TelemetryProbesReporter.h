@@ -76,12 +76,13 @@ class TelemetryProbesReporter final {
     IsHardwareDecoding,
   };
   using FirstFrameLoadedFlagSet = EnumSet<FirstFrameLoadedFlag, uint8_t>;
-  void OntFirstFrameLoaded(const double aLoadedFirstFrameTime,
-                           const double aLoadedMetadataTime,
-                           const double aTotalWaitingDataTime,
-                           const double aTotalBufferingTime,
-                           const FirstFrameLoadedFlagSet aFlags,
-                           const MediaInfo& aInfo);
+  void OnFirstFrameLoaded(const double aLoadedFirstFrameTime,
+                          const double aLoadedMetadataTime,
+                          const double aTotalWaitingDataTime,
+                          const double aTotalBufferingTime,
+                          const FirstFrameLoadedFlagSet aFlags,
+                          const MediaInfo& aInfo,
+                          const nsCString& aVideoDecoderName);
 
   double GetTotalVideoPlayTimeInSeconds() const;
   double GetTotalVideoHDRPlayTimeInSeconds() const;

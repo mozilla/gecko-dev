@@ -165,7 +165,14 @@ media.playback:
       is_hardware_decoding:
         description: True if the first frame is decoded by a hardware decoder.
         type: boolean
+      decoder_name:
+        description: The name of video decoder used for playback.
+        type: string
+      is_hdr:
+        description: True if the playback is from a HDR video content.
+        type: boolean
     expires: never
+
   device_hardware_decoder_support:
     type: labeled_boolean
     description:

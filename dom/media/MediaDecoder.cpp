@@ -897,10 +897,11 @@ void MediaDecoder::FirstFrameLoaded(
           if (result->mReader.mVideoHardwareAccelerated) {
             flags += FirstFrameLoadedFlag::IsHardwareDecoding;
           }
-          mTelemetryProbesReporter->OntFirstFrameLoaded(
+          mTelemetryProbesReporter->OnFirstFrameLoaded(
               firstFrameLoadedTime, result->mReader.mTotalReadMetadataTimeMs,
               result->mReader.mTotalWaitingForVideoDataTimeMs,
-              result->mStateMachine.mTotalBufferingTimeMs, flags, *mInfo);
+              result->mStateMachine.mTotalBufferingTimeMs, flags, *mInfo,
+              NS_ConvertUTF16toUTF8(result->mReader.mVideoDecoderName));
         });
     mMDSMCreationTime.reset();
   }
