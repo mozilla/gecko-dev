@@ -37,12 +37,12 @@ index d737ea5ab070..54f8c09a0751 100644
    // Eliminate redundancies.
    FPM.addPass(MergedLoadStoreMotionPass());
 diff --git a/llvm/lib/Transforms/Vectorize/VectorCombine.cpp b/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
-index db77d6c95579..b0d921f109cc 100644
+index ecbc13d489eb..a43724d467ec 100644
 --- a/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
 +++ b/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
-@@ -3009,23 +3009,6 @@ bool VectorCombine::run() {
-     bool IsFixedVectorType = isa<FixedVectorType>(I.getType());
-     auto Opcode = I.getOpcode();
+@@ -3092,23 +3092,6 @@ bool VectorCombine::run() {
+ 
+     LLVM_DEBUG(dbgs() << "VC: Visiting: " << I << '\n');
  
 -    // These folds should be beneficial regardless of when this pass is run
 -    // in the optimization pipeline.
@@ -64,7 +64,7 @@ index db77d6c95579..b0d921f109cc 100644
      // This transform works with scalable and fixed vectors
      // TODO: Identify and allow other scalable transforms
      if (IsVectorType) {
-@@ -3048,10 +3031,12 @@ bool VectorCombine::run() {
+@@ -3131,10 +3114,12 @@ bool VectorCombine::run() {
      if (IsFixedVectorType) {
        switch (Opcode) {
        case Instruction::InsertElement:
