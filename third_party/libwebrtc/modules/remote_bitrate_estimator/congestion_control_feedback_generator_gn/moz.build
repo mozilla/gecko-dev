@@ -31,7 +31,8 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/congestion_control_feedback_generator.cc"
+    "/third_party/libwebrtc/modules/remote_bitrate_estimator/congestion_control_feedback_generator.cc",
+    "/third_party/libwebrtc/modules/remote_bitrate_estimator/congestion_control_feedback_tracker.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
