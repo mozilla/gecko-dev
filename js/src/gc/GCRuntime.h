@@ -603,6 +603,8 @@ class GCRuntime {
   // the given kind. (TraceKind::Null means to ignore the kind.)
   bool isPointerWithinTenuredCell(
       void* ptr, JS::TraceKind traceKind = JS::TraceKind::Null);
+  // Crawl the heap to check whether an arbitary pointer is within a buffer.
+  bool isPointerWithinBufferAlloc(void* ptr);
 
 #ifdef DEBUG
   bool hasZone(Zone* target);
@@ -1223,6 +1225,9 @@ class GCRuntime {
   HelperThreadLockData<Nursery::BufferSet> buffersToFreeAfterMinorGC;
   HelperThreadLockData<Nursery::StringBufferVector>
       stringBuffersToReleaseAfterMinorGC;
+
+  /* The number of the minor GC peformed at the start of major GC. */
+  MainThreadData<uint64_t> initialMinorGCNumber;
 
   /* Index of current sweep group (for stats). */
   MainThreadData<unsigned> sweepGroupIndex;

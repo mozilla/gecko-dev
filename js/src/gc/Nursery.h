@@ -14,6 +14,8 @@
 #include <tuple>
 
 #include "ds/LifoAlloc.h"
+#include "ds/SlimLinkedList.h"
+#include "gc/Allocator.h"
 #include "gc/GCEnum.h"
 #include "gc/GCProbes.h"
 #include "gc/Heap.h"
@@ -70,13 +72,16 @@ class HeapSlot;
 class JSONPrinter;
 class MapObject;
 class NurseryDecommitTask;
+class NurserySweepTask;
 class SetObject;
 class JS_PUBLIC_API Sprinter;
 
 namespace gc {
+
 class AutoGCSession;
 struct Cell;
 class GCSchedulingTunables;
+class LargeBuffer;
 class StoreBuffer;
 class TenuringTracer;
 
@@ -152,6 +157,7 @@ class Nursery {
   std::tuple<void*, bool> allocNurseryOrMallocBuffer(JS::Zone* zone,
                                                      size_t nbytes,
                                                      arena_id_t arenaId);
+  std::tuple<void*, bool> allocateBuffer(JS::Zone* zone, size_t nbytes);
 
   // Like allocNurseryOrMallocBuffer, but returns nullptr if the buffer can't
   // be allocated in the nursery.
@@ -162,6 +168,7 @@ class Nursery {
   // owner is in the nursery.
   void* allocNurseryOrMallocBuffer(JS::Zone* zone, gc::Cell* owner,
                                    size_t nbytes, arena_id_t arenaId);
+  void* allocateBuffer(JS::Zone* zone, gc::Cell* owner, size_t nbytes);
 
   // Allocate a zero-initialized buffer for a given zone, using the nursery if
   // possible. If the buffer isn't allocated in the nursery, the given arena is
@@ -179,6 +186,10 @@ class Nursery {
   void* reallocNurseryOrMallocBuffer(JS::Zone* zone, gc::Cell* cell,
                                      void* oldBuffer, size_t oldBytes,
                                      size_t newBytes, arena_id_t arena);
+
+  // Resize an existing buffer.
+  void* reallocateBuffer(JS::Zone* zone, gc::Cell* cell, void* oldBuffer,
+                         size_t oldBytes, size_t newBytes);
 
   // Free an object buffer.
   void freeBuffer(void* buffer, size_t nbytes);
@@ -224,10 +235,20 @@ class Nursery {
     return maybeMoveBufferOnPromotion(bufferp, owner, nbytes, use, MallocArena);
   }
 
+  WasBufferMoved maybeMoveRawBufferOnPromotion(void** bufferp, gc::Cell* owner,
+                                               size_t nbytes);
+  template <typename T>
+  WasBufferMoved maybeMoveBufferOnPromotion(T** bufferp, gc::Cell* owner,
+                                            size_t nbytes) {
+    return maybeMoveRawBufferOnPromotion(reinterpret_cast<void**>(bufferp),
+                                         owner, nbytes);
+  }
+
   // Register a malloced buffer that is held by a nursery object, which
   // should be freed at the end of a minor GC. Buffers are unregistered when
   // their owning objects are tenured.
   [[nodiscard]] bool registerMallocedBuffer(void* buffer, size_t nbytes);
+  void registerBuffer(void* buffer, size_t nbytes);
 
   // Mark a malloced buffer as no longer needing to be freed.
   inline void removeMallocedBuffer(void* buffer, size_t nbytes);
@@ -332,7 +353,12 @@ class Nursery {
     return setsWithNurseryIterators_.append(obj);
   }
 
+  void joinSweepTask();
   void joinDecommitTask();
+
+#ifdef DEBUG
+  bool sweepTaskIsIdle();
+#endif
 
   mozilla::TimeStamp collectionStartTime() {
     return startTimes_[ProfileKey::Total];
@@ -354,6 +380,7 @@ class Nursery {
 
   void trackMallocedBufferOnPromotion(void* buffer, gc::Cell* owner,
                                       size_t nbytes, MemoryUse use);
+  void trackBufferOnPromotion(void* buffer, gc::Cell* owner, size_t nbytes);
   void trackTrailerOnPromotion(void* buffer, gc::Cell* owner, size_t nbytes,
                                size_t overhead, MemoryUse use);
 
@@ -514,6 +541,8 @@ class Nursery {
 
   void sweepStringsWithBuffer();
 
+  void sweepBuffers();
+
   // Get per-space size limits.
   size_t maxSpaceSize() const;
   size_t minSpaceSize() const;
@@ -576,7 +605,7 @@ class Nursery {
     uint32_t startChunk_ = 0;
     uintptr_t startPosition_ = 0;
 
-    // The set of malloced-allocated buffers owned by nursery objects. Any
+    // The set of malloc-allocated buffers owned by nursery objects. Any
     // buffers that do not belong to a promoted thing at the end of a minor GC
     // must be freed.
     BufferSet mallocedBuffers;
@@ -742,6 +771,7 @@ class Nursery {
       Vector<mozilla::StringBuffer*, 8, SystemAllocPolicy>;
   StringBufferVector stringBuffersToReleaseAfterMinorGC_;
 
+  UniquePtr<NurserySweepTask> sweepTask;
   UniquePtr<NurseryDecommitTask> decommitTask;
 
   // A cache of small C++-heap allocated blocks associated with this Nursery.
@@ -775,6 +805,13 @@ MOZ_ALWAYS_INLINE bool Nursery::Space::isInside(const void* p) const {
     }
   }
   return false;
+}
+
+// Test whether a GC cell or buffer is in the nursery. Equivalent to
+// IsInsideNursery but take not to call this with malloc memory. Faster than
+// Nursery::isInside.
+MOZ_ALWAYS_INLINE bool ChunkPtrIsInsideNursery(void* ptr) {
+  return gc::detail::ChunkPtrHasStoreBuffer(ptr);
 }
 
 }  // namespace js

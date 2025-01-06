@@ -323,6 +323,27 @@ static inline T* AllocNurseryOrMallocBuffer(JSContext* cx, gc::Cell* cell,
   return buffer;
 }
 
+template <typename T>
+static inline T* AllocateCellBuffer(Nursery& nursery, JS::Zone* zone,
+                                    gc::Cell* cell, uint32_t count) {
+  MOZ_ASSERT(zone == cell->zone());
+
+  size_t nbytes = RoundUp(count * sizeof(T), sizeof(Value));
+  return static_cast<T*>(nursery.allocateBuffer(zone, cell, nbytes));
+}
+
+template <typename T>
+static inline T* AllocateCellBuffer(JSContext* cx, gc::Cell* cell,
+                                    uint32_t count) {
+  T* buffer = AllocateCellBuffer<T>(cx->nursery(), cx->zone(), cell, count);
+  if (!buffer) {
+    ReportOutOfMemory(cx);
+    return nullptr;
+  }
+
+  return buffer;
+}
+
 // If this returns null then the old buffer will be left alone.
 template <typename T>
 static inline T* ReallocNurseryOrMallocBuffer(JSContext* cx, gc::Cell* cell,
@@ -334,6 +355,34 @@ static inline T* ReallocNurseryOrMallocBuffer(JSContext* cx, gc::Cell* cell,
 
   T* buffer = static_cast<T*>(cx->nursery().reallocNurseryOrMallocBuffer(
       cell->zone(), cell, oldBuffer, oldBytes, newBytes, arenaId));
+  if (!buffer) {
+    ReportOutOfMemory(cx);
+  }
+
+  return buffer;
+}
+
+// If this returns null then the old buffer will be left alone.
+template <typename T>
+static inline T* ReallocateCellBuffer(Nursery& nursery, JS::Zone* zone,
+                                      gc::Cell* cell, T* oldBuffer,
+                                      uint32_t oldCount, uint32_t newCount) {
+  MOZ_ASSERT(zone == cell->zone());
+
+  size_t oldBytes = RoundUp(oldCount * sizeof(T), sizeof(Value));
+  size_t newBytes = RoundUp(newCount * sizeof(T), sizeof(Value));
+
+  return static_cast<T*>(
+      nursery.reallocateBuffer(zone, cell, oldBuffer, oldBytes, newBytes));
+}
+
+// If this returns null then the old buffer will be left alone.
+template <typename T>
+static inline T* ReallocateCellBuffer(JSContext* cx, gc::Cell* cell,
+                                      T* oldBuffer, uint32_t oldCount,
+                                      uint32_t newCount) {
+  T* buffer = ReallocateCellBuffer<T>(cx->nursery(), cx->zone(), cell,
+                                      oldBuffer, oldCount, newCount);
   if (!buffer) {
     ReportOutOfMemory(cx);
   }

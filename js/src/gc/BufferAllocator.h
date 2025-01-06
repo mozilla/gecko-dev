@@ -9,6 +9,10 @@
 #ifndef gc_BufferAllocator_h
 #define gc_BufferAllocator_h
 
+#include "mozilla/Array.h"
+#include "mozilla/Atomics.h"
+#include "mozilla/BitSet.h"
+
 #include <cstdint>
 #include <stddef.h>
 #include <utility>
@@ -16,6 +20,7 @@
 #include "jstypes.h"  // JS_PUBLIC_API
 
 #include "ds/SlimLinkedList.h"
+#include "threading/Mutex.h"
 #include "threading/ProtectedData.h"
 
 class JS_PUBLIC_API JSTracer;
@@ -33,7 +38,9 @@ namespace gc {
 
 enum class AllocKind : uint8_t;
 
+struct BufferChunk;
 struct Cell;
+struct MediumBuffer;
 
 // BufferAllocator allocates dynamically sized blocks of memory which can be
 // reclaimed by the garbage collector and are associated with GC things.
@@ -63,6 +70,21 @@ struct Cell;
 //    edge to the buffer. This will mark the buffer in a GC and prevent it from
 //    being swept.
 //
+// Integration with the rest of the GC
+// -----------------------------------
+//
+// The GC calls the allocator at several points during minor and major GC (at
+// the start, when sweeping starts and at the end). Allocations are swept on a
+// background thread and the memory used by unmarked allocations is reclaimed.
+//
+// The allocator tries hard to avoid locking, and where it is necessary tries to
+// minimize the time spent holding locks. A lock is required to allocate a chunk
+// but after that no locks are required to allocate on the main thread, even
+// when off-thread sweeping is taking place. This is achieved by moving data to
+// be swept to separate containers from those used for allocation on the main
+// thread. Synchronization is required to merge data about swept allocations at
+// the end of sweeping.
+//
 // Small allocations
 // -----------------
 //
@@ -72,6 +94,63 @@ struct Cell;
 // Note: currently we do not allocate these in the nursery because nursery-owned
 // buffers are allocated directly in the nursery without going through this
 // allocation API.
+//
+// Medium allocations
+// ------------------
+//
+// These are allocated in their own zone-specific chunks using a segregated free
+// list strategy. This is the main part of the allocator.
+//
+// The requested allocation size is used to pick a size class, which is used to
+// index into an array giving a list of free regions of suitable size. The first
+// region in the list is used and its start address updated; it may also be
+// moved to a different list if it is now empty or too small to satisfy further
+// allocations for this size class. A bitmap in the chunk header is used to
+// track the start offsets of allocations.
+//
+// Sweeping works by processing a list of chunks, scanning each one for
+// allocated but unmarked buffers and rebuilding the free region data for that
+// chunk. Sweeping happens separately for minor and major GC and only
+// nursery-owned or tenured-owned buffers are swept at one time. This means that
+// chunks containing nursery-owned allocations are swept twice during a major
+// GC, once to sweep nursery-owned allocations and once for tenured-owned
+// allocations. This is required because the sweeping happens at different
+// times.
+//
+// Chunks containing nursery-owned buffers are stored in a separate list to
+// chunks that only contain tenured-owned buffers to reduce the number of chunks
+// that need to be swept for minor GC. They are stored in |mediumMixedChunks|
+// and are moved to |mediumMixedChunksToSweep| at the start of minor GC. They
+// are then swept on a background thread and are placed in
+// |sweptMediumMixedChunks| if they are not freed. From there they can merged
+// back into one of the main thread lists (since they may no longer contain
+// nursery-owned buffers).
+//
+// Chunks containing tenured-owned buffers are stored in |mediumTenuredChunks|
+// and are moved to |mediumTenuredChunksToSweep| at the start of major GC. They
+// are unavailable for allocation after this point and will be swept on a
+// background thread and placed in |sweptMediumTenuredChunks| if they are not
+// freed. From there they will be merged back into |mediumTenuredChunks|. This
+// means that allocation during an incremental GC will allocate a new
+// chunk.
+//
+// Merging swept data requires taking a lock and so only happens when
+// necessary. This happens when a new chunk is needed or at various points
+// during GC. During sweeping no additional synchronization is required for
+// allocation.
+//
+// Since major GC requires doing a minor GC at the start and we don't want to
+// have to wait for minor GC sweeping to finish there is an optimization where
+// chunks containing nursery-owned buffers swept as part of minor GC at the
+// start of a major GC are moved directly from |sweptMediumMixedChunks| to
+// |mediumTenuredChunksToSweep| at the end of minor GC sweeping. This is
+// controlled by the |majorStartedWhileMinorSweeping| flag.
+//
+// Similarly, if a major GC finishes while minor GC is sweeping then rather than
+// waiting for it to finish we set the |majorFinishedWhileMinorSweeping| flag so
+// that we clear the |allocatedDuringCollection| for these chunks the end of the
+// minor sweeping.
+//
 
 class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
  public:
@@ -82,11 +161,111 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
       MaxMediumAllocShift - MinMediumAllocShift + 1;
 
  private:
+  class AutoLockAllocator;
+
+  using BufferChunkList = SlimLinkedList<BufferChunk>;
+
+  struct FreeRegion;
+  using FreeList = SlimLinkedList<FreeRegion>;
+
+  // Segregated free list: an array of free lists, one per size class.
+  class FreeLists {
+    using FreeListArray = mozilla::Array<FreeList, MediumAllocClasses>;
+    FreeListArray lists;
+    mozilla::BitSet<MediumAllocClasses, uint32_t> available;
+
+   public:
+    FreeLists() = default;
+
+    FreeLists(FreeLists&& other);
+    FreeLists& operator=(FreeLists&& other);
+
+    using const_iterator = FreeListArray::const_iterator;
+    auto begin() const { return lists.begin(); }
+    auto end() const { return lists.end(); }
+
+    // Returns SIZE_MAX if none available.
+    size_t getFirstAvailableSizeClass(size_t minSizeClass) const;
+
+    FreeRegion* getFirstRegion(size_t sizeClass);
+
+    void pushFront(size_t sizeClass, FreeRegion* region);
+    void pushBack(size_t sizeClass, FreeRegion* region);
+
+    void append(FreeLists&& other);
+    void prepend(FreeLists&& other);
+
+    void remove(size_t sizeClass, FreeRegion* region);
+
+    void clear();
+
+    template <typename Pred>
+    void eraseIf(Pred&& pred);
+
+    void assertEmpty() const;
+    void assertContains(size_t sizeClass, FreeRegion* region) const;
+    void checkAvailable() const;
+  };
+
+  enum class State : uint8_t { NotCollecting, Marking, Sweeping };
+
+  enum class OwnerKind : uint8_t { Tenured = 0, Nursery, None };
+
   // The zone this allocator is associated with.
   MainThreadOrGCTaskData<JS::Zone*> zone;
 
+  // Mutex used to synchronise data passed back to the main thread by background
+  // sweeping.
+  Mutex lock MOZ_UNANNOTATED;
+
+  // Chunks that contain medium buffers. May contain both nursery-owned and
+  // tenured-owned buffers.
+  MainThreadData<BufferChunkList> mediumMixedChunks;
+
+  // Chunks that contain only tenured-owned medium sized buffers.
+  MainThreadData<BufferChunkList> mediumTenuredChunks;
+
+  // Free lists for medium sized buffers. Used for allocation.
+  MainThreadData<FreeLists> mediumFreeLists;
+
+  // Chunks that may contain nursery-owned buffers waiting to be swept during a
+  // minor GC. Populated from |mediumMixedChunks|.
+  MainThreadOrGCTaskData<BufferChunkList> mediumMixedChunksToSweep;
+
+  // Chunks that contain only tenured-owned buffers waiting to be swept during a
+  // major GC. Populated from |mediumTenuredChunks|.
+  MainThreadOrGCTaskData<BufferChunkList> mediumTenuredChunksToSweep;
+
+  // Chunks that have been swept and their associated free lists.
+  MutexData<BufferChunkList> sweptMediumMixedChunks;
+  MutexData<BufferChunkList> sweptMediumTenuredChunks;
+  MutexData<FreeLists> sweptMediumNurseryFreeLists;
+  MutexData<FreeLists> sweptMediumTenuredFreeLists;
+
+  // Flag to indicate that swept chunks are available to be merged in the
+  // sweptMediumMixedChunks or sweptMediumTenuredChunks lists.
+  mozilla::Atomic<bool, mozilla::Relaxed> sweptChunksAvailable;
+
+  // GC state for minor and major GC.
+  MainThreadData<State> minorState;
+  MainThreadData<State> majorState;
+
+  // A major GC was started while a minor GC was still sweeping. Chunks by the
+  // minor GC will be moved directly to the list of chunks to sweep for the
+  // major GC. This happens for the minor GC at the start of every major GC.
+  MainThreadData<bool> majorStartedWhileMinorSweeping;
+
+  // A major GC finished while a minor GC was still sweeping. Some post major GC
+  // cleanup will be deferred to the end of the minor sweeping.
+  MainThreadData<bool> majorFinishedWhileMinorSweeping;
+
+  // Flag to tell the main thread that minor sweeping has finished and
+  // minorState should be updated.
+  MutexData<bool> minorSweepingFinished;
+
  public:
   explicit BufferAllocator(JS::Zone* zone);
+  ~BufferAllocator();
 
   static size_t GetGoodAllocSize(size_t requiredBytes);
   static size_t GetGoodElementCount(size_t requiredElements,
@@ -107,12 +286,35 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void* realloc(void* ptr, size_t bytes, bool nurseryOwned);
   void free(void* ptr);
 
+  void startMinorCollection();
+  bool startMinorSweeping();
+  void sweepForMinorCollection();
+
+  void startMajorCollection();
+  void startMajorSweeping();
+  void sweepForMajorCollection(bool shouldDecommit);
+  void finishMajorCollection();
+
+  void maybeMergeSweptData();
+  void mergeSweptData();
+
+  bool isEmpty() const;
+
+  // For debugging, used to implement GetMarkInfo. Returns false for allocations
+  // being swept on another thread.
+  bool isPointerWithinMediumOrLargeBuffer(void* ptr);
+
+#ifdef DEBUG
+  void checkGCStateNotInUse();
+  void checkGCStateNotInUse(const AutoLockAllocator& lock);
+#endif
+
  private:
   // GC-internal APIs:
   static bool MarkTenuredAlloc(void* alloc);
   friend class js::GCMarker;
 
-  void markNurseryOwned(void* alloc, bool ownerWasTenured);
+  void markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured);
   friend class js::Nursery;
 
   // Small allocation methods:
@@ -124,6 +326,59 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void* allocSmallInGC(size_t bytes, bool nurseryOwned);
 
   static AllocKind AllocKindForSmallAlloc(size_t bytes);
+
+  // Medium allocation methods:
+
+  static bool IsMediumAlloc(void* alloc);
+
+  void* allocMedium(size_t bytes, bool nurseryOwned, bool inGC);
+  void* bumpAllocOrRetry(size_t sizeClass, bool inGC);
+  void* bumpAlloc(size_t sizeClass);
+  void* allocFromFreeList(FreeLists* freeLists, FreeRegion* region,
+                          size_t requestedBytes, size_t sizeClass);
+  void recommitRegion(FreeRegion* region);
+  bool allocNewChunk(bool inGC);
+  bool sweepChunk(BufferChunk* chunk, OwnerKind ownerKindToSweep,
+                  bool shouldDecommit, FreeLists& freeLists);
+  void addSweptRegion(BufferChunk* chunk, uintptr_t freeStart,
+                      uintptr_t freeEnd, bool shouldDecommit,
+                      bool expectUnchanged, FreeLists& freeLists);
+  enum class ListPosition { Front, Back };
+  FreeRegion* addFreeRegion(FreeLists* freeLists, size_t sizeClass,
+                            uintptr_t start, uintptr_t end, bool anyDecommitted,
+                            ListPosition position,
+                            bool expectUnchanged = false);
+  void updateFreeRegionStart(FreeLists* freeLists, FreeRegion* region,
+                             uintptr_t newStart);
+  FreeLists* getChunkFreeLists(BufferChunk* chunk);
+
+  // Get the size class for an allocation. This rounds up to a class that is
+  // large enough to hold the required size.
+  static size_t SizeClassForAlloc(size_t bytes);
+
+  // Get the maximum size class of allocations that can use a free region. This
+  // rounds down to the largest class that can fit in this region.
+  static size_t SizeClassForFreeRegion(size_t bytes);
+
+  static size_t SizeClassBytes(size_t sizeClass);
+  friend struct MediumBuffer;
+
+  static bool IsLargeAllocSize(size_t bytes);
+
+  void updateHeapSize(size_t bytes, bool checkThresholds,
+                      bool updateRetainedSize);
+#ifdef DEBUG
+  void checkChunkListGCStateNotInUse(BufferChunkList& chunks,
+                                     bool hasNurseryOwnedAllocs,
+                                     bool allowAllocatedDuringCollection);
+  void checkChunkGCStateNotInUse(BufferChunk* chunk,
+                                 bool allowAllocatedDuringCollection);
+  void verifyChunk(BufferChunk* chunk, bool hasNurseryOwnedAllocs);
+  void verifyFreeRegion(BufferChunk* chunk, uintptr_t endOffset,
+                        size_t expectedSize);
+  template <typename T>
+  bool listIsEmpty(const MutexData<SlimLinkedList<T>>& list);
+#endif
 };
 
 }  // namespace gc

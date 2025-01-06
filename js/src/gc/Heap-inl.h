@@ -188,13 +188,18 @@ template <size_t BytesPerMarkBit, size_t FirstThingOffset>
 MOZ_ALWAYS_INLINE void
 js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::unmark(
     const void* cell) {
+  unmarkOneBit(cell, ColorBit::BlackBit);
+  unmarkOneBit(cell, ColorBit::GrayOrBlackBit);
+}
+
+template <size_t BytesPerMarkBit, size_t FirstThingOffset>
+MOZ_ALWAYS_INLINE void
+js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::unmarkOneBit(
+    const void* cell, ColorBit colorBit) {
   MarkBitmapWord* word;
   uintptr_t mask;
   uintptr_t bits;
-  getMarkWordAndMask(cell, ColorBit::BlackBit, &word, &mask);
-  bits = *word;
-  *word = bits & ~mask;
-  getMarkWordAndMask(cell, ColorBit::GrayOrBlackBit, &word, &mask);
+  getMarkWordAndMask(cell, colorBit, &word, &mask);
   bits = *word;
   *word = bits & ~mask;
 }
@@ -219,6 +224,13 @@ void js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::copyFrom(
     const MarkBitmap& other) {
   for (size_t i = 0; i < WordCount; i++) {
     bitmap[i] = uintptr_t(other.bitmap[i]);
+  }
+}
+
+template <size_t BytesPerMarkBit, size_t FirstThingOffset>
+void js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::clear() {
+  for (size_t i = 0; i < WordCount; i++) {
+    bitmap[i] = 0;
   }
 }
 

@@ -2938,6 +2938,10 @@ MarkInfo GetMarkInfo(void* vp) {
                : MarkInfo::NURSERY_TOSPACE;
   }
 
+  if (gc.isPointerWithinBufferAlloc(vp)) {
+    return MarkInfo::BUFFER;
+  }
+
   if (!gc.isPointerWithinTenuredCell(vp)) {
     return MarkInfo::UNKNOWN;
   }

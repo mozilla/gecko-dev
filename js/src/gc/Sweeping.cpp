@@ -25,6 +25,7 @@
 #include "builtin/WeakRefObject.h"
 #include "debugger/DebugAPI.h"
 #include "gc/AllocKind.h"
+#include "gc/BufferAllocator.h"
 #include "gc/FinalizationObservers.h"
 #include "gc/GCInternals.h"
 #include "gc/GCLock.h"
@@ -330,6 +331,7 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
 
     // We must finalize thing kinds in the order specified by
     // BackgroundFinalizePhases.
+
     for (const auto& phase : BackgroundFinalizePhases) {
       for (auto kind : phase.kinds) {
         backgroundFinalize(gcx, zone, kind, &emptyArenas);
@@ -355,6 +357,9 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
       Arena* arenasToRelease[BatchSize];
       size_t count = 0;
 
+      size_t gcHeapBytesFreed = 0;
+      size_t mallocHeapBytesFreed = 0;
+
       {
         mozilla::Maybe<AutoLockGC> maybeLock;
         if (zone->isAtomsZone()) {
@@ -367,13 +372,20 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
           Arena* arena = emptyArenas;
           emptyArenas = arena->next;
 
+          if (IsBufferAllocKind(arena->getAllocKind())) {
+            mallocHeapBytesFreed += ArenaSize - arena->getFirstThingOffset();
+          } else {
+            gcHeapBytesFreed += ArenaSize;
+          }
+
           arena->release(this, maybeLock.ptrOr(nullptr));
           arenasToRelease[i] = arena;
           count++;
         }
       }
 
-      zone->gcHeapSize.removeBytes(ArenaSize * count, true, heapSize);
+      zone->mallocHeapSize.removeBytes(mallocHeapBytesFreed, true);
+      zone->gcHeapSize.removeBytes(gcHeapBytesFreed, true, heapSize);
 
       AutoLockGC lock(this);
       for (size_t i = 0; i < count; i++) {
@@ -381,6 +393,11 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
         arena->chunk()->releaseArena(this, arena, lock);
       }
     }
+
+    // Bug 1930497: If we had a separate phase for finalizing GC things with
+    // trivial finalizers, we could run this before it, potentially freeing more
+    // memory sooner. This could also happen in parallel with it.
+    zone->bufferAllocator.sweepForMajorCollection(shouldDecommit());
 
     // Record time spent sweeping this zone.
     TimeStamp endTime = TimeStamp::Now();
@@ -1731,6 +1748,12 @@ IncrementalProgress GCRuntime::endSweepingSweepGroup(JS::GCContext* gcx,
     zone->pretenuring.clearCellCountsInNewlyCreatedArenas();
   }
 
+  /* Ensure the initial minor GC has finished sweeping. */
+  MOZ_ASSERT(minorGCNumber >= initialMinorGCNumber);
+  if (minorGCNumber == initialMinorGCNumber) {
+    nursery().joinSweepTask();
+  }
+
   /*
    * Start background thread to sweep zones if required, sweeping any atoms
    * zones last if present.
@@ -1742,6 +1765,8 @@ IncrementalProgress GCRuntime::endSweepingSweepGroup(JS::GCContext* gcx,
     } else {
       zones.prepend(zone);
     }
+
+    zone->bufferAllocator.startMajorSweeping();
   }
 
   queueZonesAndStartBackgroundSweep(std::move(zones));

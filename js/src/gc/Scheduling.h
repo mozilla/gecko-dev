@@ -659,10 +659,13 @@ class HeapSize {
     MOZ_ASSERT(retainedBytes_ <= bytes_);
   }
 
-  void addBytes(size_t nbytes) {
+  void addBytes(size_t nbytes, bool updateRetainedSize = false) {
     mozilla::DebugOnly<size_t> initialBytes(bytes_);
     MOZ_ASSERT(initialBytes + nbytes > initialBytes);
     bytes_ += nbytes;
+    if (updateRetainedSize) {
+      retainedBytes_ += nbytes;
+    }
   }
   void removeBytes(size_t nbytes, bool updateRetainedSize) {
     if (updateRetainedSize) {

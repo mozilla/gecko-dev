@@ -84,6 +84,7 @@ const size_t ArenaBitmapWords = HowMany(ArenaBitmapBits, JS_BITS_PER_WORD);
 enum class ChunkKind : uint8_t {
   Invalid = 0,
   TenuredArenas,
+  MediumBuffers,
   NurseryToSpace,
   NurseryFromSpace
 };
@@ -134,7 +135,9 @@ class ChunkBase {
     return kind == ChunkKind::NurseryToSpace ||
            kind == ChunkKind::NurseryFromSpace;
   }
-  bool isTenuredChunk() const { return kind == ChunkKind::TenuredArenas; }
+  bool isTenuredChunk() const {
+    return kind == ChunkKind::TenuredArenas || kind == ChunkKind::MediumBuffers;
+  }
 
   // The store buffer for pointers from tenured things to things in this
   // chunk. Will be non-null if and only if this is a nursery chunk.

@@ -1149,3 +1149,17 @@ bool GCRuntime::isPointerWithinTenuredCell(void* ptr, JS::TraceKind traceKind) {
 
   return false;
 }
+
+bool GCRuntime::isPointerWithinBufferAlloc(void* ptr) {
+  if (isPointerWithinTenuredCell(ptr, JS::TraceKind::SmallBuffer)) {
+    return true;
+  }
+
+  for (AllZonesIter zone(this); !zone.done(); zone.next()) {
+    if (zone->bufferAllocator.isPointerWithinMediumOrLargeBuffer(ptr)) {
+      return true;
+    }
+  }
+
+  return false;
+}
