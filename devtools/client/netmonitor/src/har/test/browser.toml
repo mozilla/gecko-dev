@@ -36,4 +36,6 @@ skip-if = [
 
 ["browser_net_har_post_data_on_get.js"]
 
+["browser_net_har_save_as_har.js"]
+
 ["browser_net_har_throttle_upload.js"]
