@@ -154,7 +154,7 @@ class BoxModelMain extends PureComponent {
       parseFloat(layout["padding-bottom"]);
     property = parseFloat(property.toPrecision(6));
 
-    return property;
+    return property >= 0 ? property : "auto";
   }
 
   getMarginValue(property, direction) {
@@ -214,7 +214,7 @@ class BoxModelMain extends PureComponent {
       parseFloat(layout["padding-right"]);
     property = parseFloat(property.toPrecision(6));
 
-    return property;
+    return property >= 0 ? property : "auto";
   }
 
   /**
