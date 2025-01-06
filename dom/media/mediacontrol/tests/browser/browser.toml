@@ -24,21 +24,25 @@ support-files = [
 ]
 
 ["browser_audio_focus_management.js"]
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64'"] # Bug 1866742
 
 ["browser_control_page_with_audible_and_inaudible_media.js"]
 
 ["browser_default_action_handler.js"]
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64'"] # Bug 1866742
 
 ["browser_media_control_audio_focus_within_a_page.js"]
 
 ["browser_media_control_before_media_starts.js"]
 tags = "os_integration"
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64'"] # Bug 1866742
 
 ["browser_media_control_captured_audio.js"]
 
 ["browser_media_control_keys_event.js"]
 
 ["browser_media_control_main_controller.js"]
+skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64'"] # Bug 1866742
 
 ["browser_media_control_metadata.js"]
 
