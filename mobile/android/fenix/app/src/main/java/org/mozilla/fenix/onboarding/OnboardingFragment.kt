@@ -103,7 +103,8 @@ class OnboardingFragment : Fragment() {
             .registerReceiver(pinAppWidgetReceiver, filter)
 
         if (isNotDefaultBrowser(context) &&
-            activity?.isDefaultBrowserPromptSupported() == true
+            activity?.isDefaultBrowserPromptSupported() == true &&
+            !requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding
         ) {
             requireComponents.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
                 promptToSetAsDefaultBrowser()
@@ -124,6 +125,8 @@ class OnboardingFragment : Fragment() {
                 ScreenContent()
             }
         }
+
+        requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding = false
     }
 
     override fun onResume() {

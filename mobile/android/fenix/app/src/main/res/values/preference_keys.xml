@@ -416,6 +416,7 @@
     <string name="pref_key_last_set_as_default_prompt_shown_time" translatable="false">pref_key_last_set_as_default_prompt_shown_time</string>
     <string name="pref_key_number_of_set_as_default_prompt_shown_times" translatable="false">pref_key_number_of_set_as_default_prompt_shown_times</string>
     <string name="pref_key_app_cold_start_count" translatable="false">pref_key_app_cold_start_count</string>
+    <string name="pref_key_app_is_onboarding_set_as_default_displayed" translatable="false">pref_key_app_is_onboarding_set_as_default_displayed</string>
 
     <string name="pref_key_desktop_browsing" translatable="false">pref_key_desktop_browsing</string>
     <string name="pref_key_category_content" translatable="false">pref_key_category_content</string>
