@@ -46,6 +46,23 @@ assertThrowsInstanceOf(() => Iterator.range(0, 10, { step: '2' }), TypeError);
 Iterator.range(0, 10);
 Iterator.range(0, 10, 2);
 
+
+// Basic sequences with increasing steps of 1
+const result1 = Array.from(Iterator.range(0, 10));
+assertDeepEq(result1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+const result2 = Array.from(Iterator.range(2, 6));
+assertDeepEq(result2, [2, 3, 4, 5]);
+
+// Test empty range
+const result3 = Array.from(Iterator.range(0, 0));
+assertDeepEq(result3, []);
+
+const result4 = Array.from(Iterator.range(5, 5));
+assertDeepEq(result4, []);
+
+//TODO: support/test other sequences
+
 if (typeof reportCompare === 'function') {
     reportCompare(0, 0);
 }
