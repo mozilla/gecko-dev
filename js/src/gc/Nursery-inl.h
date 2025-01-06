@@ -71,6 +71,21 @@ inline bool js::Nursery::addExtensibleStringBuffer(
   return true;
 }
 
+inline void js::Nursery::removeMallocedBuffer(void* buffer, size_t nbytes) {
+  MOZ_ASSERT(!JS::RuntimeHeapIsMinorCollecting());
+  MOZ_ASSERT(toSpace.mallocedBuffers.has(buffer));
+  MOZ_ASSERT(nbytes > 0);
+  MOZ_ASSERT(toSpace.mallocedBufferBytes >= nbytes);
+  toSpace.mallocedBuffers.remove(buffer);
+  toSpace.mallocedBufferBytes -= nbytes;
+}
+
+void js::Nursery::removeMallocedBufferDuringMinorGC(void* buffer) {
+  MOZ_ASSERT(JS::RuntimeHeapIsMinorCollecting());
+  MOZ_ASSERT(fromSpace.mallocedBuffers.has(buffer));
+  fromSpace.mallocedBuffers.remove(buffer);
+}
+
 inline void js::Nursery::removeExtensibleStringBuffer(JSLinearString* s,
                                                       bool updateMallocBytes) {
   MOZ_ASSERT(gc::IsInsideNursery(s));

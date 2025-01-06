@@ -225,23 +225,12 @@ class Nursery {
   [[nodiscard]] bool registerMallocedBuffer(void* buffer, size_t nbytes);
 
   // Mark a malloced buffer as no longer needing to be freed.
-  void removeMallocedBuffer(void* buffer, size_t nbytes) {
-    MOZ_ASSERT(!JS::RuntimeHeapIsMinorCollecting());
-    MOZ_ASSERT(toSpace.mallocedBuffers.has(buffer));
-    MOZ_ASSERT(nbytes > 0);
-    MOZ_ASSERT(toSpace.mallocedBufferBytes >= nbytes);
-    toSpace.mallocedBuffers.remove(buffer);
-    toSpace.mallocedBufferBytes -= nbytes;
-  }
+  inline void removeMallocedBuffer(void* buffer, size_t nbytes);
 
   // Mark a malloced buffer as no longer needing to be freed during minor
   // GC. There's no need to account for the size here since all remaining
   // buffers will soon be freed.
-  void removeMallocedBufferDuringMinorGC(void* buffer) {
-    MOZ_ASSERT(JS::RuntimeHeapIsMinorCollecting());
-    MOZ_ASSERT(fromSpace.mallocedBuffers.has(buffer));
-    fromSpace.mallocedBuffers.remove(buffer);
-  }
+  inline void removeMallocedBufferDuringMinorGC(void* buffer);
 
   [[nodiscard]] bool addedUniqueIdToCell(gc::Cell* cell) {
     MOZ_ASSERT(IsInsideNursery(cell));
