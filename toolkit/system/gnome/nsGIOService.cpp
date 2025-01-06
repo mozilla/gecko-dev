@@ -571,6 +571,17 @@ nsGIOMimeApp::SetAsDefaultForURIScheme(nsACString const& aURIScheme) {
     return NS_ERROR_FAILURE;
   }
 
+  // Its consistent with the way `gio mime x-scheme-handler/contentType
+  // some.desktop` registers mime types to also add the registered application
+  // to the list of supported applications for the handler.
+  g_app_info_set_as_last_used_for_type(mApp, contentType.get(),
+                                       getter_Transfers(error));
+  if (error) {
+    g_warning("Cannot register as compatible URI scheme handler for %s: %s",
+              PromiseFlatCString(aURIScheme).get(), error->message);
+    return NS_ERROR_FAILURE;
+  }
+
   return NS_OK;
 }
 
