@@ -2732,7 +2732,7 @@ pref("font.size.monospace.x-math", 13);
 
   // fontconfig doesn't support emoji yet
   // https://lists.freedesktop.org/archives/fontconfig/2016-October/005842.html
-  pref("font.name-list.emoji", "Noto Color Emoji, Twemoji Mozilla");
+  pref("font.name-list.emoji", "Twemoji Mozilla");
 
   pref("font.name-list.serif.ar", "serif");
   pref("font.name-list.sans-serif.ar", "sans-serif");
