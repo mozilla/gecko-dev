@@ -1,6 +1,7 @@
 [DEFAULT]
 subsuite = "media-bc"
-prefs = ["gfx.font_loader.delay=0"]
+# disable hw decoding for browser_glean_first_frame_loaded_time.js
+prefs = ["gfx.font_loader.delay=0", "media.hardware-video-decoding.enabled=false"]
 support-files = [
   "decode_error_vp9.webm",
   "head.js",
@@ -14,12 +15,13 @@ support-files = [
   "../gizmo.mp4",
   "../gizmo.webm",
   "../sintel-short-clearkey-subsample-encrypted-video.webm",
+  "../vp9-yuv420p10.webm",
   "../small-shot.flac",
   "../small-shot.m4a",
   "../small-shot.mp3",
   "../small-shot.ogg",
   "../TestPatternHDR.mp4",
-  "../../mediasource/test/bipbop/bipbop2s.mp4",
+  "../../mediasource/test/bipbop/bipbop_300-3s.webm",
 ]
 
 ["browser_encrypted_play_time_telemetry.js"]

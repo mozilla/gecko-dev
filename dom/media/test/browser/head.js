@@ -13,16 +13,20 @@ function openTab() {
 // Creates and configures a video element for non-MSE playback in `tab`. Does not
 // start playback for the element. Returns a promise that will resolve once
 // the element is setup and ready for playback.
-function loadVideo(tab, extraEvent = undefined) {
+function loadVideo(tab, { extraEvent = undefined, loadHDR = false } = {}) {
   return SpecialPowers.spawn(
     tab.linkedBrowser,
-    [extraEvent],
-    async _extraEvent => {
+    [extraEvent, loadHDR],
+    async (_extraEvent, _loadHDR) => {
       let video = content.document.createElement("video");
       video.id = "media";
       content.document.body.appendChild(video);
 
-      video.src = "gizmo.mp4";
+      if (_loadHDR) {
+        video.src = "vp9-yuv420p10.webm";
+      } else {
+        video.src = "gizmo.webm";
+      }
       video.load();
 
       info(`waiting 'loadeddata' event to ensure playback is ready`);
@@ -65,8 +69,8 @@ function loadMseVideo(tab, extraEvent = undefined) {
       const ms = new content.wrappedJSObject.MediaSource();
       video.src = content.wrappedJSObject.URL.createObjectURL(ms);
       await once(ms, "sourceopen");
-      const sb = ms.addSourceBuffer("video/mp4");
-      const videoFile = "bipbop2s.mp4";
+      const sb = ms.addSourceBuffer("video/webm");
+      const videoFile = "bipbop_300-3s.webm";
       let fetchResponse = await content.fetch(videoFile);
       sb.appendBuffer(await fetchResponse.arrayBuffer());
       await once(sb, "updateend");
