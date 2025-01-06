@@ -299,7 +299,6 @@ const rollouts = [
     // Bug 877389 - Gradually migrate from Cu.reportError to console.error.
     // Enable these as we fix more areas.
     files: [
-      "dom/push/test/mockpushserviceparent.js",
       "browser/components/extensions/**",
       "toolkit/components/extensions/**",
       "toolkit/mozapps/extensions/**",

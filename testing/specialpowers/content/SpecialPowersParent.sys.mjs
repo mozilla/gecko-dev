@@ -1145,6 +1145,7 @@ export class SpecialPowersParent extends JSWindowActorParent {
               }
             },
             actorParent: this.manager,
+            console,
           });
 
           // Evaluate the chrome script
