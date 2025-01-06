@@ -117,7 +117,7 @@ void Queue::WriteBuffer(const Buffer& aBuffer, uint64_t aBufferOffset,
     auto handle = std::move(alloc.ref().first);
     auto mapping = std::move(alloc.ref().second);
 
-    memcpy(mapping.Bytes().data(), aData.Elements() + aDataOffset, size);
+    memcpy(mapping.Bytes().data(), aData.Elements() + offset, size);
     ipc::ByteBuf bb;
     ffi::wgpu_queue_write_buffer(aBuffer.mId, aBufferOffset, ToFFI(&bb));
     mBridge->SendQueueWriteAction(mId, mParent->mId, std::move(bb),
