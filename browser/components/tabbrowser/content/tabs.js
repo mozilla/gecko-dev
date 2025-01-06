@@ -2772,14 +2772,12 @@
               selectedTab = {
                 left: selectedTab.left,
                 right: selectedTab.right,
-                top: selectedTab.top,
-                bottom: selectedTab.bottom,
               };
             }
             return [
               this._lastTabToScrollIntoView,
               this.arrowScrollbox.scrollClientRect,
-              lastTabRect,
+              { left: lastTabRect.left, right: lastTabRect.right },
               selectedTab,
             ];
           })
@@ -2796,11 +2794,8 @@
             delete this._lastTabToScrollIntoView;
             // Is the new tab already completely visible?
             if (
-              this.verticalMode
-                ? scrollRect.top <= tabRect.top &&
-                  tabRect.bottom <= scrollRect.bottom
-                : scrollRect.left <= tabRect.left &&
-                  tabRect.right <= scrollRect.right
+              scrollRect.left <= tabRect.left &&
+              tabRect.right <= scrollRect.right
             ) {
               return;
             }
@@ -2808,29 +2803,21 @@
             if (this.arrowScrollbox.smoothScroll) {
               // Can we make both the new tab and the selected tab completely visible?
               if (
-                !selectedRect || this.verticalMode
-                  ? Math.max(
-                      tabRect.bottom - selectedRect.top,
-                      selectedRect.bottom - tabRect.top
-                    ) <= scrollRect.height
-                  : Math.max(
-                      tabRect.right - selectedRect.left,
-                      selectedRect.right - tabRect.left
-                    ) <= scrollRect.width
+                !selectedRect ||
+                Math.max(
+                  tabRect.right - selectedRect.left,
+                  selectedRect.right - tabRect.left
+                ) <= scrollRect.width
               ) {
                 this.arrowScrollbox.ensureElementIsVisible(tabToScrollIntoView);
                 return;
               }
 
-              let scrollPixels;
-              if (this.verticalMode) {
-                scrollPixels = tabRect.top - selectedRect.top;
-              } else if (this.#rtlMode) {
-                scrollPixels = selectedRect.right - scrollRect.right;
-              } else {
-                scrollPixels = selectedRect.left - scrollRect.left;
-              }
-              this.arrowScrollbox.scrollByPixels(scrollPixels);
+              this.arrowScrollbox.scrollByPixels(
+                this.#rtlMode
+                  ? selectedRect.right - scrollRect.right
+                  : selectedRect.left - scrollRect.left
+              );
             }
 
             if (!this._animateElement.hasAttribute("highlight")) {
