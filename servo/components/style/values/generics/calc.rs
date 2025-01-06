@@ -1746,6 +1746,9 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 true
             },
             Self::Invert(_) => {
+                if matches!(level, ArgumentLevel::CalculationRoot) {
+                    dest.write_str("calc")?;
+                }
                 dest.write_str("(1 / ")?;
                 true
             },
