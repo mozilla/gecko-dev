@@ -30,7 +30,7 @@ virtualized-list {
   box-sizing: border-box;
   height: 64px;
 
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
   border-inline: 1px solid var(--in-content-border-color);
 
   color: var(--in-content-text-color);
