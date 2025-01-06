@@ -1035,21 +1035,17 @@ bool NativeObject::prepareForSwap(JSContext* cx,
     size_t count = elements->numAllocatedElements();
     size_t size = count * sizeof(HeapSlot);
 
-    if (isTenured()) {
-      RemoveCellMemory(this, size, MemoryUse::ObjectElements);
-    } else if (cx->nursery().isInside(allocatedElements)) {
+    if (ChunkPtrIsInsideNursery(allocatedElements)) {
       // Move nursery allocated elements in case they end up in a tenured
       // object.
-      ObjectElements* newElements =
-          reinterpret_cast<ObjectElements*>(js_pod_malloc<HeapSlot>(count));
+      ObjectElements* newElements = static_cast<ObjectElements*>(
+          AllocBuffer(cx->zone(), size, !isTenured()));
       if (!newElements) {
         return false;
       }
 
       memmove(newElements, elements, size);
       elements_ = newElements->elements();
-    } else {
-      cx->nursery().removeMallocedBuffer(allocatedElements, size);
     }
     MOZ_ASSERT(hasDynamicElements());
   }
@@ -1098,17 +1094,8 @@ bool NativeObject::fixupAfterSwap(JSContext* cx, Handle<NativeObject*> obj,
     obj->initSlotUnchecked(i, slotValues[i]);
   }
 
-  if (obj->hasDynamicElements()) {
-    ObjectElements* elements = obj->getElementsHeader();
-    void* allocatedElements = obj->getUnshiftedElementsHeader();
-    MOZ_ASSERT(!cx->nursery().isInside(allocatedElements));
-    size_t size = elements->numAllocatedElements() * sizeof(HeapSlot);
-    if (obj->isTenured()) {
-      AddCellMemory(obj, size, MemoryUse::ObjectElements);
-    } else if (!cx->nursery().registerMallocedBuffer(allocatedElements, size)) {
-      return false;
-    }
-  }
+  MOZ_ASSERT_IF(obj->hasDynamicElements(),
+                gc::IsBufferAlloc(obj->getUnshiftedElementsHeader()));
 
   return true;
 }
@@ -1299,7 +1286,6 @@ void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
     js_memcpy(a, b, size);
     js_memcpy(b, tmp, size);
 
-    zone->swapCellMemory(a, b, MemoryUse::ObjectElements);
     zone->swapCellMemory(a, b, MemoryUse::ProxyExternalValueArray);
 
     if (aIsProxyWithInlineValues) {
@@ -3319,6 +3305,7 @@ js::gc::AllocKind JSObject::allocKindForTenure(
 void JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                       JS::ClassInfo* info,
                                       JS::RuntimeSizes* runtimeSizes) {
+  // TODO: These will eventually count as GC heap memory.
   if (is<NativeObject>() && as<NativeObject>().hasDynamicSlots()) {
     info->objectsMallocHeapSlots +=
         gc::GetAllocSize(as<NativeObject>().getSlotsHeader());
@@ -3326,7 +3313,8 @@ void JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
 
   if (is<NativeObject>() && as<NativeObject>().hasDynamicElements()) {
     void* allocatedElements = as<NativeObject>().getUnshiftedElementsHeader();
-    info->objectsMallocHeapElementsNormal += mallocSizeOf(allocatedElements);
+    info->objectsMallocHeapElementsNormal +=
+        gc::GetAllocSize(allocatedElements);
   }
 
   // Other things may be measured in the future if DMD indicates it is
@@ -3446,6 +3434,11 @@ void JSObject::traceChildren(JSTracer* trc) {
         JS::AutoTracingDetails ctx(trc, func);
         TraceRange(trc, nslots - nfixed, nobj->slots_, "objectDynamicSlots");
       }
+    }
+
+    if (nobj->hasDynamicElements()) {
+      TraceEdgeToBuffer(trc, nobj, nobj->getUnshiftedElementsHeader(),
+                        "objectDynamicElements allocation");
     }
 
     TraceRange(trc, nobj->getDenseInitializedLength(),
