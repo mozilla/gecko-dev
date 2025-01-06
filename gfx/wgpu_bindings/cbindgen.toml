@@ -18,39 +18,39 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
 #include "nsString.h"
 
 struct WGPUByteBuf;
-typedef uint64_t WGPUNonZeroU64;
-typedef uint64_t WGPUOption_BufferSize;
-typedef uint32_t WGPUOption_NonZeroU32;
-typedef uint8_t WGPUOption_NonZeroU8;
-typedef uint64_t WGPUOption_AdapterId;
-typedef uint64_t WGPUOption_BufferId;
-typedef uint64_t WGPUOption_PipelineLayoutId;
-typedef uint64_t WGPUOption_BindGroupId;
-typedef uint64_t WGPUOption_BindGroupLayoutId;
-typedef uint64_t WGPUOption_SamplerId;
-typedef uint64_t WGPUOption_SurfaceId;
-typedef uint64_t WGPUOption_TextureViewId;
-typedef uint64_t WGPUOption_QuerySetId;
+using WGPUNonZeroU64 = uint64_t;
+using WGPUOption_BufferSize = uint64_t;
+using WGPUOption_NonZeroU32 = uint32_t;
+using WGPUOption_NonZeroU8 = uint8_t;
+using WGPUOption_AdapterId = uint64_t;
+using WGPUOption_BufferId = uint64_t;
+using WGPUOption_PipelineLayoutId = uint64_t;
+using WGPUOption_BindGroupId = uint64_t;
+using WGPUOption_BindGroupLayoutId = uint64_t;
+using WGPUOption_SamplerId = uint64_t;
+using WGPUOption_SurfaceId = uint64_t;
+using WGPUOption_TextureViewId = uint64_t;
+using WGPUOption_QuerySetId = uint64_t;
 
-typedef uint64_t WGPUAdapterId;
-typedef uint64_t WGPUBindGroupId;
-typedef uint64_t WGPUBindGroupLayoutId;
-typedef uint64_t WGPUBufferId;
-typedef uint64_t WGPUCommandBufferId;
-typedef uint64_t WGPUCommandEncoderId;
-typedef uint64_t WGPUComputePipelineId;
-typedef uint64_t WGPUDeviceId;
-typedef uint64_t WGPUPipelineLayoutId;
-typedef uint64_t WGPUQuerySetId;
-typedef uint64_t WGPUQueueId;
-typedef uint64_t WGPURenderBundleId;
-typedef uint64_t WGPURenderPipelineId;
-typedef uint64_t WGPUSamplerId;
-typedef uint64_t WGPUShaderModuleId;
-typedef uint64_t WGPUStagingBufferId;
-typedef uint64_t WGPUSurfaceId;
-typedef uint64_t WGPUTextureId;
-typedef uint64_t WGPUTextureViewId;
+using WGPUAdapterId = uint64_t;
+using WGPUBindGroupId = uint64_t;
+using WGPUBindGroupLayoutId = uint64_t;
+using WGPUBufferId = uint64_t;
+using WGPUCommandBufferId = uint64_t;
+using WGPUCommandEncoderId = uint64_t;
+using WGPUComputePipelineId = uint64_t;
+using WGPUDeviceId = uint64_t;
+using WGPUPipelineLayoutId = uint64_t;
+using WGPUQuerySetId = uint64_t;
+using WGPUQueueId = uint64_t;
+using WGPURenderBundleId = uint64_t;
+using WGPURenderPipelineId = uint64_t;
+using WGPUSamplerId = uint64_t;
+using WGPUShaderModuleId = uint64_t;
+using WGPUStagingBufferId = uint64_t;
+using WGPUSurfaceId = uint64_t;
+using WGPUTextureId = uint64_t;
+using WGPUTextureViewId = uint64_t;
 """
 include_version = true
 braces = "SameLine"
