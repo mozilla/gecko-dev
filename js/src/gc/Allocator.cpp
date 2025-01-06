@@ -344,7 +344,7 @@ void* GCRuntime::refillFreeList(JS::Zone* zone, AllocKind thingKind) {
 
   // It should not be possible to allocate on the main thread while we are
   // inside a GC.
-  MOZ_ASSERT(!JS::RuntimeHeapIsBusy(), "allocating while under GC");
+  MOZ_ASSERT(!JS::RuntimeHeapIsCollecting(), "allocating while under GC");
 
   return zone->arenas.refillFreeListAndAllocate(
       thingKind, ShouldCheckThresholds::CheckThresholds, StallAndRetry::No);
@@ -353,7 +353,6 @@ void* GCRuntime::refillFreeList(JS::Zone* zone, AllocKind thingKind) {
 /* static */
 void* GCRuntime::refillFreeListInGC(Zone* zone, AllocKind thingKind) {
   // Called when tenuring nursery cells and during compacting GC.
-  MOZ_ASSERT(JS::RuntimeHeapIsCollecting());
   MOZ_ASSERT_IF(!JS::RuntimeHeapIsMinorCollecting(),
                 !zone->runtimeFromMainThread()->gc.isBackgroundSweeping());
 
@@ -469,7 +468,15 @@ Arena* GCRuntime::allocateArena(ArenaChunk* chunk, Zone* zone,
   }
 
   Arena* arena = chunk->allocateArena(this, zone, thingKind, lock);
-  zone->gcHeapSize.addGCArena(heapSize);
+
+  if (IsBufferAllocKind(thingKind)) {
+    // Try to keep GC scheduling the same to minimize benchmark noise.
+    // Keep this in sync with Arena::release.
+    size_t usableSize = ArenaSize - arena->getFirstThingOffset();
+    zone->mallocHeapSize.addBytes(usableSize);
+  } else {
+    zone->gcHeapSize.addGCArena(heapSize);
+  }
 
   // Trigger an incremental slice if needed.
   if (checkThresholds != ShouldCheckThresholds::DontCheckThresholds) {

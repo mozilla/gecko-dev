@@ -159,6 +159,7 @@ template class TrackedAllocPolicy<TrackingKind::Cell>;
 JS::Zone::Zone(JSRuntime* rt, Kind kind)
     : ZoneAllocator(rt, kind),
       arenas(this),
+      bufferAllocator(this),
       data(nullptr),
       suppressAllocationMetadataBuilder(false),
       allocNurseryObjects_(true),

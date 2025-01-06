@@ -25,8 +25,6 @@
 /* These values are private to the JS engine. */
 namespace js {
 
-class NurseryDecommitTask;
-
 JS_PUBLIC_API bool CurrentThreadCanAccessZone(JS::Zone* zone);
 
 // To prevent false sharing, some data structures are aligned to a typical cache
@@ -53,6 +51,7 @@ const size_t PageShift = 12;
 // Expected page size, so we could initialze ArenasPerPage at compile-time.
 // The actual system page size should be queried by SystemPageSize().
 const size_t PageSize = size_t(1) << PageShift;
+const size_t PageMask = PageSize - 1;
 constexpr size_t ArenasPerPage = PageSize / ArenaSize;
 
 const size_t ChunkShift = 20;
@@ -113,19 +112,29 @@ class ChunkBase {
         runtime(rt),
         kind(kind),
         nurseryChunkIndex(chunkIndex) {
-    MOZ_ASSERT(kind == ChunkKind::NurseryFromSpace ||
-               kind == ChunkKind::NurseryToSpace);
+    MOZ_ASSERT(isNurseryChunk());
     MOZ_ASSERT((uintptr_t(this) & ChunkMask) == 0);
     MOZ_ASSERT(storeBuffer);
   }
 
+  ChunkBase(JSRuntime* rt, ChunkKind kind)
+      : storeBuffer(nullptr),
+        runtime(rt),
+        kind(kind),
+        nurseryChunkIndex(UINT8_MAX) {}
+
  public:
   ChunkKind getKind() const {
-    MOZ_ASSERT_IF(storeBuffer, kind == ChunkKind::NurseryToSpace ||
-                                   kind == ChunkKind::NurseryFromSpace);
-    MOZ_ASSERT_IF(!storeBuffer, kind == ChunkKind::TenuredArenas);
+    MOZ_ASSERT_IF(storeBuffer, isNurseryChunk());
+    MOZ_ASSERT_IF(!storeBuffer, isTenuredChunk());
     return kind;
   }
+
+  bool isNurseryChunk() const {
+    return kind == ChunkKind::NurseryToSpace ||
+           kind == ChunkKind::NurseryFromSpace;
+  }
+  bool isTenuredChunk() const { return kind == ChunkKind::TenuredArenas; }
 
   // The store buffer for pointers from tenured things to things in this
   // chunk. Will be non-null if and only if this is a nursery chunk.
@@ -293,9 +302,11 @@ class alignas(TypicalCacheLineSize) MarkBitmap {
   inline void copyMarkBit(TenuredCell* dst, const TenuredCell* src,
                           ColorBit colorBit);
   inline void unmark(const void* cell);
+  inline void unmarkOneBit(const void* cell, ColorBit colorBit);
   inline MarkBitmapWord* arenaBits(Arena* arena);
 
   inline void copyFrom(const MarkBitmap& other);
+  inline void clear();
 };
 
 using ChunkMarkBitmap = MarkBitmap<CellBytesPerMarkBit, FirstArenaOffset>;
@@ -655,15 +666,15 @@ extern JS_PUBLIC_API void AssertCellIsNotGray(const Cell* cell);
 extern JS_PUBLIC_API bool ObjectIsMarkedBlack(const JSObject* obj);
 #endif
 
-MOZ_ALWAYS_INLINE bool CellHasStoreBuffer(const Cell* cell) {
-  return GetCellChunkBase(cell)->storeBuffer;
+MOZ_ALWAYS_INLINE bool ChunkPtrHasStoreBuffer(const void* ptr) {
+  return GetGCAddressChunkBase(ptr)->storeBuffer;
 }
 
 } /* namespace detail */
 
 MOZ_ALWAYS_INLINE bool IsInsideNursery(const Cell* cell) {
   MOZ_ASSERT(cell);
-  return detail::CellHasStoreBuffer(cell);
+  return detail::ChunkPtrHasStoreBuffer(cell);
 }
 
 MOZ_ALWAYS_INLINE bool IsInsideNursery(const TenuredCell* cell) {

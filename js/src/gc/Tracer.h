@@ -328,6 +328,11 @@ void TraceRootRange(JSTracer* trc, size_t len, T* vec, const char* name) {
   gc::TraceRangeInternal(trc, len, gc::ConvertToBase(vec), name);
 }
 
+// Note that this doesn't trace the contents of the alloc.
+// TODO: Unify this with other TraceEdge methods.
+void TraceEdgeToBuffer(JSTracer* trc, gc::Cell* owner, void* buffer,
+                       const char* name);
+
 // As below but with manual barriers.
 template <typename T>
 void TraceManuallyBarrieredCrossCompartmentEdge(JSTracer* trc, JSObject* src,

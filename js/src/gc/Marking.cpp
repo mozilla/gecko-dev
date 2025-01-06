@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <type_traits>
 
+#include "gc/BufferAllocator.h"
 #include "gc/GCInternals.h"
 #include "gc/ParallelMarking.h"
 #include "gc/TraceKind.h"
@@ -25,6 +26,7 @@
 #include "util/Poison.h"
 #include "vm/GeneratorObject.h"
 
+#include "gc/BufferAllocator-inl.h"
 #include "gc/GC-inl.h"
 #include "gc/PrivateIterators-inl.h"
 #include "gc/TraceMethods-inl.h"
@@ -724,6 +726,11 @@ void js::gc::TraceRangeInternal(JSTracer* trc, size_t len, T* vec,
   }
 }
 
+void js::TraceEdgeToBuffer(JSTracer* trc, Cell* owner, void* buffer,
+                           const char* name) {
+  BufferAllocator::TraceEdge(trc, owner, buffer, name);
+}
+
 /*** GC Marking Interface ***************************************************/
 
 namespace js {
@@ -1075,6 +1082,10 @@ void GCMarker::traverse(jit::JitCode* thing) {
 template <uint32_t opts>
 void GCMarker::traverse(BaseScript* thing) {
   pushThing<opts>(thing);
+}
+template <uint32_t opts>
+void GCMarker::traverse(SmallBuffer* thing) {
+  // Buffer contents are traced by their owning GC thing.
 }
 
 template <uint32_t opts, typename T>

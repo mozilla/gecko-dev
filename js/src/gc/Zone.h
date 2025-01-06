@@ -22,6 +22,7 @@
 #include "ds/Bitmap.h"
 #include "gc/ArenaList.h"
 #include "gc/Barrier.h"
+#include "gc/BufferAllocator.h"
 #include "gc/FindSCCs.h"
 #include "gc/GCMarker.h"
 #include "gc/NurseryAwareHashMap.h"
@@ -396,6 +397,8 @@ namespace JS {
 class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
  public:
   js::gc::ArenaLists arenas;
+
+  js::gc::BufferAllocator bufferAllocator;
 
   // Per-zone data for use by an embedder.
   js::MainThreadData<void*> data;

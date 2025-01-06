@@ -69,6 +69,7 @@ struct NurseryChunk;
 class HeapSlot;
 class JSONPrinter;
 class MapObject;
+class NurseryDecommitTask;
 class SetObject;
 class JS_PUBLIC_API Sprinter;
 
