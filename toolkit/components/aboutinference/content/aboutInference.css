@@ -77,11 +77,11 @@ td {
 }
 
 tr:nth-child(even) td {
-  background-color: var(--background-color-box);
+  background-color: var(--table-row-background-color);
 }
 
 tr:nth-child(odd) td {
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
 }
 textarea {
   width: 100%;
