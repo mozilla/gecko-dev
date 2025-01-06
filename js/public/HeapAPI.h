@@ -244,8 +244,7 @@ class alignas(TypicalCacheLineSize) MarkBitmap {
   static constexpr size_t FirstThingAdjustmentWords =
       FirstThingAdjustmentBits / MarkBitmapWordBits;
 
-  MOZ_ALWAYS_INLINE void getMarkWordAndMask(const TenuredCell* cell,
-                                            ColorBit colorBit,
+  MOZ_ALWAYS_INLINE void getMarkWordAndMask(const void* cell, ColorBit colorBit,
                                             MarkBitmapWord** wordp,
                                             uintptr_t* maskp) {
     // Note: the JIT pre-barrier trampolines inline this code. Update
@@ -264,36 +263,36 @@ class alignas(TypicalCacheLineSize) MarkBitmap {
   }
 
   // The following are not exported and are defined in gc/Heap.h:
-  MOZ_ALWAYS_INLINE bool markBit(const TenuredCell* cell, ColorBit colorBit) {
+  MOZ_ALWAYS_INLINE bool markBit(const void* cell, ColorBit colorBit) {
     MarkBitmapWord* word;
     uintptr_t mask;
     getMarkWordAndMask(cell, colorBit, &word, &mask);
     return *word & mask;
   }
 
-  MOZ_ALWAYS_INLINE bool isMarkedAny(const TenuredCell* cell) {
+  MOZ_ALWAYS_INLINE bool isMarkedAny(const void* cell) {
     return markBit(cell, ColorBit::BlackBit) ||
            markBit(cell, ColorBit::GrayOrBlackBit);
   }
 
-  MOZ_ALWAYS_INLINE bool isMarkedBlack(const TenuredCell* cell) {
+  MOZ_ALWAYS_INLINE bool isMarkedBlack(const void* cell) {
     // Return true if BlackBit is set.
     return markBit(cell, ColorBit::BlackBit);
   }
 
-  MOZ_ALWAYS_INLINE bool isMarkedGray(const TenuredCell* cell) {
+  MOZ_ALWAYS_INLINE bool isMarkedGray(const void* cell) {
     // Return true if GrayOrBlackBit is set and BlackBit is not set.
     return !markBit(cell, ColorBit::BlackBit) &&
            markBit(cell, ColorBit::GrayOrBlackBit);
   }
 
-  inline bool markIfUnmarked(const TenuredCell* cell, MarkColor color);
-  inline bool markIfUnmarkedAtomic(const TenuredCell* cell, MarkColor color);
-  inline void markBlack(const TenuredCell* cell);
-  inline void markBlackAtomic(const TenuredCell* cell);
+  inline bool markIfUnmarked(const void* cell, MarkColor color);
+  inline bool markIfUnmarkedAtomic(const void* cell, MarkColor color);
+  inline void markBlack(const void* cell);
+  inline void markBlackAtomic(const void* cell);
   inline void copyMarkBit(TenuredCell* dst, const TenuredCell* src,
                           ColorBit colorBit);
-  inline void unmark(const TenuredCell* cell);
+  inline void unmark(const void* cell);
   inline MarkBitmapWord* arenaBits(Arena* arena);
 
   inline void copyFrom(const MarkBitmap& other);

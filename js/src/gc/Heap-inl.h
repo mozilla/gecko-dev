@@ -91,7 +91,7 @@ inline size_t& js::gc::Arena::atomBitmapStart() {
 template <size_t BytesPerMarkBit, size_t FirstThingOffset>
 MOZ_ALWAYS_INLINE bool
 js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markIfUnmarked(
-    const TenuredCell* cell, MarkColor color) {
+    const void* cell, MarkColor color) {
   MarkBitmapWord* word;
   uintptr_t mask;
   getMarkWordAndMask(cell, ColorBit::BlackBit, &word, &mask);
@@ -117,7 +117,7 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markIfUnmarked(
 template <size_t BytesPerMarkBit, size_t FirstThingOffset>
 MOZ_ALWAYS_INLINE bool
 js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markIfUnmarkedAtomic(
-    const TenuredCell* cell, MarkColor color) {
+    const void* cell, MarkColor color) {
   // This version of the method is safe in the face of concurrent writes to the
   // mark bitmap but may return false positives. The extra synchronisation
   // necessary to avoid this resulted in worse performance overall.
@@ -145,7 +145,7 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markIfUnmarkedAtomic(
 template <size_t BytesPerMarkBit, size_t FirstThingOffset>
 MOZ_ALWAYS_INLINE void
 js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markBlack(
-    const TenuredCell* cell) {
+    const void* cell) {
   MarkBitmapWord* word;
   uintptr_t mask;
   getMarkWordAndMask(cell, ColorBit::BlackBit, &word, &mask);
@@ -156,7 +156,7 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markBlack(
 template <size_t BytesPerMarkBit, size_t FirstThingOffset>
 MOZ_ALWAYS_INLINE void
 js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markBlackAtomic(
-    const TenuredCell* cell) {
+    const void* cell) {
   MarkBitmapWord* word;
   uintptr_t mask;
   getMarkWordAndMask(cell, ColorBit::BlackBit, &word, &mask);
@@ -187,7 +187,7 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::copyMarkBit(
 template <size_t BytesPerMarkBit, size_t FirstThingOffset>
 MOZ_ALWAYS_INLINE void
 js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::unmark(
-    const TenuredCell* cell) {
+    const void* cell) {
   MarkBitmapWord* word;
   uintptr_t mask;
   uintptr_t bits;
@@ -210,8 +210,7 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::arenaBits(Arena* arena) {
 
   MarkBitmapWord* word;
   uintptr_t unused;
-  getMarkWordAndMask(reinterpret_cast<TenuredCell*>(arena->address()),
-                     ColorBit::BlackBit, &word, &unused);
+  getMarkWordAndMask(arena, ColorBit::BlackBit, &word, &unused);
   return word;
 }
 
