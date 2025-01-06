@@ -630,6 +630,18 @@ features:
         type: Boolean
         default: false
 
+  encourage-search-cfr:
+    description: A feature that shows a CFR on first launch to encourage users to make a search
+    variables:
+      enabled:
+        description: When true, the CFR will show
+        type: Boolean
+        default: false
+      cfrText:
+        description: The text to show in the CFR
+        type: Text
+        default: ""
+
 types:
   objects: {}
 
