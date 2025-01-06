@@ -74,7 +74,7 @@ IPCResult ClipboardReadRequestParent::RecvGetData(
   bool valid = false;
   if (NS_FAILED(mClipboardDataSnapshot->GetValid(&valid)) || !valid) {
     Unused << PClipboardReadRequestParent::Send__delete__(this);
-    aResolver(NS_ERROR_FAILURE);
+    aResolver(NS_ERROR_NOT_AVAILABLE);
     return IPC_OK();
   }
 
@@ -130,7 +130,7 @@ IPCResult ClipboardReadRequestParent::RecvGetDataSync(
   bool valid = false;
   if (NS_FAILED(mClipboardDataSnapshot->GetValid(&valid)) || !valid) {
     destroySoon();
-    *aTransferableDataOrError = NS_ERROR_FAILURE;
+    *aTransferableDataOrError = NS_ERROR_NOT_AVAILABLE;
     return IPC_OK();
   }
 

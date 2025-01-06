@@ -27,6 +27,7 @@
 #include "nsContentUtils.h"
 #include "PermissionMessageUtils.h"
 
+using mozilla::ipc::ResponseRejectReason;
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -168,7 +169,7 @@ NS_IMETHODIMP ClipboardDataSnapshotProxy::GetData(
   }
 
   if (!mActor->CanSend()) {
-    return aCallback->OnComplete(NS_ERROR_FAILURE);
+    return aCallback->OnComplete(NS_ERROR_NOT_AVAILABLE);
   }
 
   mActor->SendGetData(flavors)->Then(
@@ -196,9 +197,10 @@ NS_IMETHODIMP ClipboardDataSnapshotProxy::GetData(
         callback->OnComplete(NS_OK);
       },
       /* reject */
-      [callback =
-           nsCOMPtr{aCallback}](mozilla::ipc::ResponseRejectReason aReason) {
-        callback->OnComplete(NS_ERROR_FAILURE);
+      [callback = nsCOMPtr{aCallback}](ResponseRejectReason aReason) {
+        callback->OnComplete(ResponseRejectReason::ActorDestroyed == aReason
+                                 ? NS_ERROR_NOT_AVAILABLE
+                                 : NS_ERROR_FAILURE);
       });
 
   return NS_OK;
@@ -226,13 +228,13 @@ NS_IMETHODIMP ClipboardDataSnapshotProxy::GetDataSync(
   }
 
   if (!mActor->CanSend()) {
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   IPCTransferableDataOrError ipcTransferableDataOrError;
   bool success = mActor->SendGetDataSync(flavors, &ipcTransferableDataOrError);
   if (!success) {
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_NOT_AVAILABLE;
   }
   if (ipcTransferableDataOrError.type() ==
       IPCTransferableDataOrError::Tnsresult) {
@@ -309,8 +311,7 @@ NS_IMETHODIMP nsClipboardProxy::GetDataSnapshot(
             callback->OnSuccess(result.inspect());
           },
           /* reject */
-          [callback = nsCOMPtr{aCallback}](
-              mozilla::ipc::ResponseRejectReason aReason) {
+          [callback = nsCOMPtr{aCallback}](ResponseRejectReason aReason) {
             callback->OnError(NS_ERROR_FAILURE);
           });
   return NS_OK;

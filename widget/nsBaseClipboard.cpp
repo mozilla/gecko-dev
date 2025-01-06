@@ -1010,7 +1010,7 @@ NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetData(
   }
 
   if (!IsValid()) {
-    aCallback->OnComplete(NS_ERROR_FAILURE);
+    aCallback->OnComplete(NS_ERROR_NOT_AVAILABLE);
     return NS_OK;
   }
 
@@ -1066,7 +1066,7 @@ NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetData(
         // `IsValid()` checks the clipboard sequence number to ensure the data
         // we are requesting is still valid.
         if (!self->IsValid()) {
-          callback->OnComplete(NS_ERROR_FAILURE);
+          callback->OnComplete(NS_ERROR_NOT_AVAILABLE);
           return;
         }
         mozilla::contentanalysis::ContentAnalysis::
@@ -1102,7 +1102,7 @@ NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetDataSync(
   }
 
   if (!IsValid()) {
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   MOZ_ASSERT(mClipboard);
