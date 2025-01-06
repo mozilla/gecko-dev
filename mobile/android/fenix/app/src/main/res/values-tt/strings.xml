@@ -456,7 +456,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Саклау һәм дәвам итү</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Калдырып тору</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Калдырып тору</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Өстә</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -465,7 +465,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Саклау һәм гизүне башлау</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Калдырып тору</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Калдырып тору</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Караңгы</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -829,6 +829,7 @@
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Күбрәк белү</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маркетинг мәгълүматлары</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Тикшеренүләр</string>
     <!-- Summary for studies preferences -->
@@ -1102,6 +1103,9 @@
 
     <!-- WebCompat Reporter -->
 
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Ватык сайт турында хәбәр итү</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
     <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
@@ -1129,6 +1133,8 @@
     <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
     <string name="unsubmitted_crash_dialog_title">%s кушымчасын сүндереп кабызырга туры килде</string>
 
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Ватылу турындагы хәбәрләрне автоматик рәвештә җибәрү</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">Ябу</string>
     <!-- Unsubmitted crash dialog positive button to submit crash report -->

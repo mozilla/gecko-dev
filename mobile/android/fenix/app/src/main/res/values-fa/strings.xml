@@ -605,7 +605,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">ذخیره و ادامه</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">رد کردن</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">رد کردن</string>
 
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">بالا</string>
@@ -622,6 +622,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">تصویر نوار ابزار پایین</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">تصویر نوار ابزار بالا</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">اکنون نه</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">انتخاب یک زمینه</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -629,7 +632,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">ذخیره و آغاز به مرور</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">رد کردن</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">رد کردن</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">تیره</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -642,6 +645,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">تصویر بزرگ سربرگ نمای انتخاب زمینه که ابزارهای هنرمند و سازنده را نشان می‌دهد.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">تصویر زمینه %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">اکنون نه</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

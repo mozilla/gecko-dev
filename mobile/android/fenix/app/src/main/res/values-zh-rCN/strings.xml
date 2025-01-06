@@ -630,7 +630,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">保存并继续</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">跳过</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">跳过</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">顶部</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -645,6 +645,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">底部工具栏的图像</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">顶部工具栏的图像</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">暂时不要</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">选取主题</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -652,7 +655,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">保存并开始浏览</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">跳过</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">跳过</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">深邃</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -663,6 +666,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">主题选择视图中的大尺寸头图，展示设计师与开发者工具示意图。</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">%1$s主题的图像</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">暂时不要</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -791,7 +797,7 @@
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
     <string name="errorpage_httpsonly_message_title">该网站很可能只是不支持 HTTPS。</string>
     <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
-    <string name="errorpage_httpsonly_message_summary">然而也可能是受到网络攻击。若您要继续访问此网站，则不应输入任何敏感信息。若继续，将暂时为此网站关闭 HTTPS-Only 模式。</string>
+    <string name="errorpage_httpsonly_message_summary">但也可能是受到了网络攻击。若您要继续访问此网站，则不应输入任何敏感信息。若继续，将暂时为此网站关闭 HTTPS-Only 模式。</string>
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">无障碍环境</string>
     <!-- Preference to override the Mozilla account server -->
