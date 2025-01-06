@@ -12,6 +12,7 @@
 #include "mozilla/Array.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BitSet.h"
+#include "mozilla/TimeStamp.h"
 
 #include <cstdint>
 #include <stddef.h>
@@ -40,6 +41,7 @@ enum class AllocKind : uint8_t;
 
 struct BufferChunk;
 struct Cell;
+class GCRuntime;
 struct MediumBuffer;
 class LargeBuffer;
 
@@ -349,6 +351,19 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   // being swept on another thread.
   bool isPointerWithinMediumOrLargeBuffer(void* ptr);
 
+  size_t getSizeOfNurseryBuffers();
+
+  void addSizeOfExcludingThis(size_t* usedBytesOut, size_t* freeBytesOut,
+                              size_t* adminBytesOut);
+
+  static void printStatsHeader(FILE* file);
+  static void printStats(GCRuntime* gc, mozilla::TimeStamp creationTime,
+                         bool isMajorGC, FILE* file);
+  void getStats(size_t& usedBytes, size_t& freeBytes, size_t& adminBytes,
+                size_t& mediumNurseryChunkCount,
+                size_t& mediumTenuredChunkCount, size_t& freeRegions,
+                size_t& largeNurseryAllocCount, size_t& largeTenuredAllocCount);
+
 #ifdef DEBUG
   void checkGCStateNotInUse();
   void checkGCStateNotInUse(const AutoLockAllocator& lock);
@@ -416,6 +431,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   static size_t SizeClassBytes(size_t sizeClass);
   friend struct MediumBuffer;
 
+  // Large allocation methods:
+
   static bool IsLargeAllocSize(size_t bytes);
   static bool IsLargeAlloc(void* alloc);
   static bool IsLargeAllocMarked(void* alloc);
@@ -429,6 +446,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   void updateHeapSize(size_t bytes, bool checkThresholds,
                       bool updateRetainedSize);
+
 #ifdef DEBUG
   void checkChunkListGCStateNotInUse(BufferChunkList& chunks,
                                      bool hasNurseryOwnedAllocs,

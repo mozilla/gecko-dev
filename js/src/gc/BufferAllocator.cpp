@@ -15,6 +15,7 @@
 
 #include "gc/GCInternals.h"
 #include "gc/GCLock.h"
+#include "gc/PublicIterators.h"
 #include "gc/Zone.h"
 #include "js/HeapAPI.h"
 #include "util/Poison.h"
@@ -2348,6 +2349,192 @@ void BufferAllocator::unmapLarge(LargeBuffer* header, bool isSweeping) {
   }
 
   UnmapPages(header, bytes);
+}
+
+#include "js/Printer.h"
+#include "util/GetPidProvider.h"
+
+static const char* const BufferAllocatorStatsPrefix = "BufAllc:";
+
+#define FOR_EACH_BUFFER_STATS_FIELD(_)                \
+  _("PID", 7, "%7zu", pid)                            \
+  _("Runtime", 14, "0x%12p", runtime)                 \
+  _("Timestamp", 10, "%10.6f", timestamp.ToSeconds()) \
+  _("Reason", 20, "%-20.20s", reason)                 \
+  _("", 2, "%2s", "")                                 \
+  _("TotalKB", 8, "%8zu", totalBytes / 1024)          \
+  _("UsedKB", 8, "%8zu", usedBytes / 1024)            \
+  _("FreeKB", 8, "%8zu", freeBytes / 1024)            \
+  _("Zs", 3, "%3zu", zoneCount)                       \
+  _("", 7, "%7s", "")                                 \
+  _("MNCs", 6, "%6zu", mediumMixedChunks)             \
+  _("MTCs", 6, "%6zu", mediumTenuredChunks)           \
+  _("FRs", 6, "%6zu", freeRegions)                    \
+  _("LNAs", 6, "%6zu", largeNurseryAllocs)            \
+  _("LTAs", 6, "%6zu", largeTenuredAllocs)
+
+/* static */
+void BufferAllocator::printStatsHeader(FILE* file) {
+  Sprinter sprinter;
+  if (!sprinter.init()) {
+    return;
+  }
+  sprinter.put(BufferAllocatorStatsPrefix);
+
+#define PRINT_METADATA_NAME(name, width, _1, _2) \
+  sprinter.printf(" %-*s", width, name);
+
+  FOR_EACH_BUFFER_STATS_FIELD(PRINT_METADATA_NAME)
+#undef PRINT_METADATA_NAME
+
+  sprinter.put("\n");
+
+  JS::UniqueChars str = sprinter.release();
+  if (!str) {
+    return;
+  }
+  fputs(str.get(), file);
+}
+
+/* static */
+void BufferAllocator::printStats(GCRuntime* gc, mozilla::TimeStamp creationTime,
+                                 bool isMajorGC, FILE* file) {
+  Sprinter sprinter;
+  if (!sprinter.init()) {
+    return;
+  }
+  sprinter.put(BufferAllocatorStatsPrefix);
+
+  size_t pid = getpid();
+  JSRuntime* runtime = gc->rt;
+  mozilla::TimeDuration timestamp = mozilla::TimeStamp::Now() - creationTime;
+  const char* reason = isMajorGC ? "post major slice" : "pre minor GC";
+
+  size_t zoneCount = 0;
+  size_t usedBytes = 0;
+  size_t freeBytes = 0;
+  size_t adminBytes = 0;
+  size_t mediumMixedChunks = 0;
+  size_t mediumTenuredChunks = 0;
+  size_t freeRegions = 0;
+  size_t largeNurseryAllocs = 0;
+  size_t largeTenuredAllocs = 0;
+  for (AllZonesIter zone(gc); !zone.done(); zone.next()) {
+    zoneCount++;
+    zone->bufferAllocator.getStats(usedBytes, freeBytes, adminBytes,
+                                   mediumMixedChunks, mediumTenuredChunks,
+                                   freeRegions, largeNurseryAllocs,
+                                   largeTenuredAllocs);
+  }
+
+  size_t totalBytes = usedBytes + freeBytes + adminBytes;
+
+#define PRINT_FIELD_VALUE(_1, _2, format, value) \
+  sprinter.printf(" " format, value);
+
+  FOR_EACH_BUFFER_STATS_FIELD(PRINT_FIELD_VALUE)
+#undef PRINT_FIELD_VALUE
+
+  sprinter.put("\n");
+
+  JS::UniqueChars str = sprinter.release();
+  if (!str) {
+    return;
+  }
+
+  fputs(str.get(), file);
+}
+
+size_t BufferAllocator::getSizeOfNurseryBuffers() {
+  maybeMergeSweptData();
+
+  MOZ_ASSERT(minorState == State::NotCollecting);
+  MOZ_ASSERT(majorState == State::NotCollecting);
+
+  size_t bytes = 0;
+
+  for (BufferChunk* chunk : mediumMixedChunks.ref()) {
+    for (BufferChunkIter alloc(chunk); !alloc.done(); alloc.next()) {
+      if (alloc->isNurseryOwned) {
+        bytes += alloc->bytesIncludingHeader() - sizeof(MediumBuffer);
+      }
+    }
+  }
+
+  for (const LargeBuffer* buffer : largeNurseryAllocs.ref()) {
+    bytes += buffer->bytesIncludingHeader() - sizeof(LargeBuffer);
+  }
+
+  return bytes;
+}
+
+void BufferAllocator::addSizeOfExcludingThis(size_t* usedBytesOut,
+                                             size_t* freeBytesOut,
+                                             size_t* adminBytesOut) {
+  maybeMergeSweptData();
+
+  MOZ_ASSERT(minorState == State::NotCollecting);
+  MOZ_ASSERT(majorState == State::NotCollecting);
+
+  size_t usedBytes = 0;
+  size_t freeBytes = 0;
+  size_t adminBytes = 0;
+  size_t mediumMixedChunks = 0;
+  size_t mediumTenuredChunks = 0;
+  size_t freeRegions = 0;
+  size_t largeNurseryAllocs = 0;
+  size_t largeTenuredAllocs = 0;
+  getStats(usedBytes, freeBytes, adminBytes, mediumMixedChunks,
+           mediumTenuredChunks, freeRegions, largeNurseryAllocs,
+           largeTenuredAllocs);
+
+  *usedBytesOut += usedBytes;
+  *freeBytesOut += freeBytes;
+  *adminBytesOut += adminBytes;
+}
+
+void BufferAllocator::getStats(size_t& usedBytes, size_t& freeBytes,
+                               size_t& adminBytes,
+                               size_t& mediumNurseryChunkCount,
+                               size_t& mediumTenuredChunkCount,
+                               size_t& freeRegions,
+                               size_t& largeNurseryAllocCount,
+                               size_t& largeTenuredAllocCount) {
+  maybeMergeSweptData();
+
+  MOZ_ASSERT(minorState == State::NotCollecting);
+
+  for (const BufferChunk* chunk : mediumMixedChunks.ref()) {
+    (void)chunk;
+    mediumNurseryChunkCount++;
+    usedBytes += ChunkSize - FirstMediumAllocOffset;
+    adminBytes += FirstMediumAllocOffset;
+  }
+  for (const BufferChunk* chunk : mediumTenuredChunks.ref()) {
+    (void)chunk;
+    mediumTenuredChunkCount++;
+    usedBytes += ChunkSize - FirstMediumAllocOffset;
+    adminBytes += FirstMediumAllocOffset;
+  }
+  for (const LargeBuffer* buffer : largeNurseryAllocs.ref()) {
+    largeNurseryAllocCount++;
+    usedBytes += buffer->bytesIncludingHeader() - sizeof(LargeBuffer);
+    adminBytes += sizeof(LargeBuffer);
+  }
+  for (const LargeBuffer* buffer : largeTenuredAllocs.ref()) {
+    largeTenuredAllocCount++;
+    usedBytes += buffer->bytesIncludingHeader() - sizeof(LargeBuffer);
+    adminBytes += sizeof(LargeBuffer);
+  }
+  for (const FreeList& freeList : mediumFreeLists.ref()) {
+    for (const FreeRegion* region : freeList) {
+      freeRegions++;
+      size_t size = region->size();
+      MOZ_ASSERT(usedBytes >= size);
+      usedBytes -= size;
+      freeBytes += size;
+    }
+  }
 }
 
 JS::ubi::Node::Size JS::ubi::Concrete<SmallBuffer>::size(

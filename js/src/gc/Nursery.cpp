@@ -1381,6 +1381,12 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
   stats().beginNurseryCollection();
   gcprobes::MinorGCStart();
 
+  if (stats().bufferAllocStatsEnabled() && runtime()->isMainRuntime()) {
+    stats().maybePrintProfileHeaders();
+    BufferAllocator::printStats(gc, gc->stats().creationTime(), false,
+                                gc->stats().profileFile());
+  }
+
   gc->callNurseryCollectionCallbacks(
       JS::GCNurseryProgress::GC_NURSERY_COLLECTION_START, reason);
 
@@ -2075,8 +2081,9 @@ size_t Nursery::sizeOfMallocedBuffers(
   }
   total += toSpace.mallocedBuffers.shallowSizeOfExcludingThis(mallocSizeOf);
 
-  // TODO: Account for nursery-owned buffer allocations. This is addressed in a
-  // later patch.
+  for (AllZonesIter zone(runtime()); !zone.done(); zone.next()) {
+    total += zone->bufferAllocator.getSizeOfNurseryBuffers();
+  }
 
   return total;
 }

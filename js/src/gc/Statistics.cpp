@@ -827,6 +827,9 @@ Statistics::Statistics(GCRuntime* gc)
                      "Report major GCs taking more than N milliseconds for "
                      "all or just the main runtime\n",
                      &enableProfiling_, &profileWorkers_, &profileThreshold_);
+
+  const char* env = getenv("JS_GC_BUFFER_STATS");
+  enableBufferAllocStats_ = env && atoi(env);
 }
 
 Statistics::~Statistics() {
@@ -1267,14 +1270,18 @@ void Statistics::endSlice() {
     }
   }
 
-  if (!aborted &&
-      ShouldPrintProfile(gc->rt, enableProfiling_, profileWorkers_,
-                         profileThreshold_, slices_.back().duration())) {
-    printSliceProfile();
-  }
-
-  // Slice callbacks should only fire for the outermost level.
   if (!aborted) {
+    if (ShouldPrintProfile(gc->rt, enableProfiling_, profileWorkers_,
+                           profileThreshold_, slices_.back().duration())) {
+      printSliceProfile();
+    }
+
+    if (enableBufferAllocStats_ && gc->rt->isMainRuntime()) {
+      maybePrintProfileHeaders();
+      BufferAllocator::printStats(gc, creationTime(), true, profileFile());
+    }
+
+    // Slice callbacks should only fire for the outermost level.
     if (sliceCallback) {
       JSContext* cx = context();
       JS::GCDescription desc(!gc->fullGCRequested, last, gcOptions,
@@ -1630,9 +1637,14 @@ double Statistics::computeMMU(TimeDuration window) const {
 void Statistics::maybePrintProfileHeaders() {
   static int printedHeader = 0;
   if ((printedHeader++ % 200) == 0) {
-    printProfileHeader();
+    if (enableProfiling_) {
+      printProfileHeader();
+    }
     if (gc->nursery().enableProfiling()) {
       gc->nursery().printProfileHeader();
+    }
+    if (enableBufferAllocStats_) {
+      BufferAllocator::printStatsHeader(profileFile());
     }
   }
 }
@@ -1661,10 +1673,6 @@ void Statistics::maybePrintProfileHeaders() {
   FOR_EACH_GC_PROFILE_SLICE_METADATA(_)
 
 void Statistics::printProfileHeader() {
-  if (!enableProfiling_) {
-    return;
-  }
-
   Sprinter sprinter;
   if (!sprinter.init()) {
     return;
