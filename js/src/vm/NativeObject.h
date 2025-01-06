@@ -851,7 +851,7 @@ class NativeObject : public JSObject {
   }
 
 #ifdef DEBUG
-  enum SentinelAllowed{SENTINEL_NOT_ALLOWED, SENTINEL_ALLOWED};
+  enum SentinelAllowed { SENTINEL_NOT_ALLOWED, SENTINEL_ALLOWED };
 
   /*
    * Check that slot is in range for the object's allocated slots.
