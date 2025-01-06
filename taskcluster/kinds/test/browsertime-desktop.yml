@@ -15,7 +15,7 @@ task-defaults:
     limit-platforms:
         by-app:
             chrome:
-                - (?!(macosx1015|macosx1470)).*shippable.*
+                - (?!macosx1470).*shippable.*
             safari:
                 - .*macos.*shippable.*
             safari-tp:
@@ -85,7 +85,7 @@ browsertime-tp6:
         limit-platforms:
             by-app:
                 chrome:
-                    - (?!(macosx1015|macosx1470)).*shippable.*
+                    - (?!macosx1470).*shippable.*
                 safari:
                     - .*macos.*shippable.*
                 custom-car:
@@ -114,7 +114,7 @@ browsertime-tp6:
                         firefox:
                             by-test-platform:
                                 windows.*-32.*: []
-                                (macosx1015|macosx1470|linux|windows.*-64).*shippable.*: [trunk]
+                                (macosx1470|linux|windows.*-64).*shippable.*: [trunk]
                                 default: []
                         default: []
                 default:
@@ -301,7 +301,7 @@ browsertime-tp7:
         limit-platforms:
             by-app:
                 chrome:
-                    - (?!(macosx1015|macosx1470)).*shippable.*
+                    - (?!macosx1470).*shippable.*
                 safari:
                     - .*macos.*shippable.*
                 custom-car:
@@ -407,7 +407,6 @@ browsertime-benchmark:
                             - [motionmark-htmlsuite-1-3, mm-h-1.3]
                         chrome:
                             by-test-platform:
-                                macosx1015.*shippable.*: []
                                 macosx1470.*shippable.*: []
                                 default:
                                     - ares6
@@ -466,7 +465,7 @@ browsertime-benchmark:
                             windows10-64.*shippable.*: [mozilla-central]
                             windows11-64-2009-hw-ref-shippable/opt: [mozilla-central]
                             windows11-64-shippable-qr/opt: [trunk]
-                            (linux|macosx1015|macosx1470|macosx1400).*shippable.*: [trunk]
+                            (linux|macosx1470|macosx1400).*shippable.*: [trunk]
                             .*nightlyasrelease.*: [autoland, mozilla-central]
                             default: []
                     custom-car:
@@ -599,7 +598,6 @@ browsertime-youtube-playback:
     limit-platforms:
         by-subtest:
             youtube-playback-av1-sfr:
-                - macosx1015-64-shippable-qr/opt
                 - macosx1470-64-shippable/opt
             default: []
     max-run-time:
@@ -774,7 +772,7 @@ browsertime-tp6-profiling:
             - --gecko-profile
     run-on-projects:
         by-test-platform:
-            (linux|windows|macosx1015|macosx1470).*shippable.*: [mozilla-central]
+            (linux|windows|macosx1470).*shippable.*: [mozilla-central]
             default: []
     tier: 2
     treeherder-symbol: Btime-Prof(tp6)
@@ -951,7 +949,7 @@ browsertime-video-playback-latency:
         by-app:
             firefox:
                 by-test-platform:
-                    (macosx1015|macosx1470|linux|windows10-64).*shippable.*: [autoland, mozilla-central]
+                    (macosx1470|linux|windows10-64).*shippable.*: [autoland, mozilla-central]
                     default: []
             default: []
     tier: 3
@@ -1028,7 +1026,7 @@ browsertime-indexeddb:
     limit-platforms:
         by-app:
             chrome:
-                - (.*?!(macosx1015|macosx1470).*)shippable.*
+                - (.*?!macosx1470.*)shippable.*
             custom-car:
                 - (macosx1400|linux|windows.*-64).*shippable.*
             default: []

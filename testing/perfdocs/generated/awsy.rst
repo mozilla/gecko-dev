@@ -38,10 +38,6 @@ Awsy tests
             * awsy-base: trunk
             * awsy-base-dmd: None
 
-      * test-macosx1015-64-shippable-qr/opt
-            * awsy-base: trunk
-            * awsy-base-dmd: None
-
       * test-macosx1470-64-shippable/opt
             * awsy-base: trunk
             * awsy-base-dmd: None
@@ -87,10 +83,6 @@ Awsy tests
             * awsy-base-dmd: None
             * awsy-dmd: None
 
-      * test-macosx1015-64-shippable-qr/opt
-            * awsy-base-dmd: None
-            * awsy-dmd: None
-
       * test-macosx1470-64-shippable/opt
             * awsy-base-dmd: None
             * awsy-dmd: None
@@ -130,8 +122,6 @@ Awsy tests
 
       * test-linux1804-64-shippable-qr/opt
 
-      * test-macosx1015-64-shippable-qr/opt
-
       * test-macosx1470-64-shippable/opt
 
       * test-windows11-32-2009-qr/opt
@@ -162,9 +152,6 @@ Awsy tests
             * awsy-tp6: None
 
       * test-linux1804-64-shippable-qr/opt
-            * awsy-tp6: trunk
-
-      * test-macosx1015-64-shippable-qr/opt
             * awsy-tp6: trunk
 
       * test-macosx1470-64-shippable/opt

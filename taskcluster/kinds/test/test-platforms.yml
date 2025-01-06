@@ -374,17 +374,10 @@ macosx1470-64/debug:
 macosx1015-64-shippable-qr/opt:
     build-platform: macosx64-shippable/opt
     test-sets:
-        - awsy
-        - browsertime
-        - browsertime-profiling
         - desktop-screenshot-capture
         - macosx1015-64-qr-tests
         - web-platform-tests-1015
 
-macosx1015-64-nightlyasrelease-qr/opt:
-    build-platform: macosx64-nightlyasrelease/opt
-    test-sets:
-        - browsertime
 
 macosx1015-64-devedition-qr/opt:
     build-platform: macosx64-devedition/opt
@@ -398,7 +391,6 @@ macosx1015-64-qr/opt:
         - desktop-screenshot-capture
         - macosx1015-64-qr-tests
         - web-platform-tests-1015
-        - browsertime
 
 macosx1015-64-qr/debug:
     build-platform: macosx64/debug

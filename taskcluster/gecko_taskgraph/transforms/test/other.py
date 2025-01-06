@@ -361,11 +361,6 @@ def setup_browsertime(config, tasks):
             "by-test-platform": {
                 "android.*": ["browsertime", "linux64-geckodriver", "linux64-node"],
                 "linux.*": ["browsertime", "linux64-geckodriver", "linux64-node"],
-                "macosx1015.*": [
-                    "browsertime",
-                    "macosx64-geckodriver",
-                    "macosx64-node",
-                ],
                 "macosx1470.*": [
                     "browsertime",
                     "macosx64-geckodriver",
@@ -394,7 +389,6 @@ def setup_browsertime(config, tasks):
             "by-test-platform": {
                 "android.*": ["linux64-ffmpeg-4.4.1"],
                 "linux.*": ["linux64-ffmpeg-4.4.1"],
-                "macosx1015.*": ["mac64-ffmpeg-4.4.1"],
                 "macosx1470.*": ["mac64-ffmpeg-4.4.1"],
                 "macosx1400.*": ["mac64-ffmpeg-4.4.1"],
                 "windows.*aarch64.*": ["win64-ffmpeg-4.4.1"],
@@ -411,10 +405,6 @@ def setup_browsertime(config, tasks):
             "linux.*": [
                 "linux64-chromedriver-130",
                 "linux64-chromedriver-131",
-            ],
-            "macosx1015.*": [
-                "mac64-chromedriver-130",
-                "mac64-chromedriver-131",
             ],
             "macosx1470.*": [
                 "mac64-chromedriver-130",
