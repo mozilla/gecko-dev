@@ -2165,6 +2165,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the Set as default Browser prompt was displayed while onboarding.
+     */
+    var promptToSetAsDefaultBrowserDisplayedInOnboarding by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_app_is_onboarding_set_as_default_displayed),
+        default = false,
+    )
+
+    /**
      * Number of app cold starts between Set as default Browser prompts.
      */
     var coldStartsBetweenSetAsDefaultPrompts by intPreference(
