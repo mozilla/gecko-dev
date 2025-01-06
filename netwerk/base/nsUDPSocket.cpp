@@ -11,6 +11,7 @@
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/Telemetry.h"
 
+#include "MockNetworkLayer.h"
 #include "nsQueryObject.h"
 #include "nsSocketTransport2.h"
 #include "nsUDPSocket.h"
@@ -640,6 +641,16 @@ nsUDPSocket::InitWithAddress(const NetAddr* aAddr, nsIPrincipal* aPrincipal,
   }
 
   PRNetAddrToNetAddr(&addr, &mAddr);
+
+  if (StaticPrefs::network_socket_attach_mock_network_layer() &&
+      xpc::AreNonLocalConnectionsDisabled()) {
+    if (NS_FAILED(AttachMockNetworkLayer(mFD))) {
+      UDPSOCKET_LOG(
+          ("nsSocketTransport::InitiateSocket "
+           "AttachMockNetworkLayer failed [this=%p]\n",
+           this));
+    }
+  }
 
   // wait until AsyncListen is called before polling the socket for
   // client connections.

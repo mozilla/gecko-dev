@@ -392,6 +392,18 @@ nsHostRecord* nsHostResolver::InitRecord(const nsHostKey& key) {
   return new TypeHostRecord(key);
 }
 
+namespace {
+class NetAddrIPv6FirstComparator {
+ public:
+  static bool Equals(const NetAddr& aLhs, const NetAddr& aRhs) {
+    return aLhs.raw.family == aRhs.raw.family;
+  }
+  static bool LessThan(const NetAddr& aLhs, const NetAddr& aRhs) {
+    return aLhs.raw.family > aRhs.raw.family;
+  }
+};
+}  // namespace
+
 already_AddRefed<nsHostRecord> nsHostResolver::InitLoopbackRecord(
     const nsHostKey& key, nsresult* aRv) {
   MOZ_ASSERT(aRv);
@@ -409,6 +421,12 @@ already_AddRefed<nsHostRecord> nsHostResolver::InitLoopbackRecord(
   if (key.af == PR_AF_INET6 || key.af == PR_AF_UNSPEC) {
     MOZ_RELEASE_ASSERT(NS_SUCCEEDED(addr.InitFromString("::1"_ns)));
     addresses.AppendElement(addr);
+  }
+
+  if (StaticPrefs::network_dns_preferIPv6() && addresses.Length() > 1 &&
+      addresses[0].IsIPAddrV4()) {
+    // Sort IPv6 addresses first.
+    addresses.Sort(NetAddrIPv6FirstComparator());
   }
 
   RefPtr<AddrInfo> ai =
@@ -1513,18 +1531,6 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookup(
   return CompleteLookupLocked(rec, status, aNewRRSet, pb, aOriginsuffix,
                               aReason, aTRRRequest, lock);
 }
-
-namespace {
-class NetAddrIPv6FirstComparator {
- public:
-  static bool Equals(const NetAddr& aLhs, const NetAddr& aRhs) {
-    return aLhs.raw.family == aRhs.raw.family;
-  }
-  static bool LessThan(const NetAddr& aLhs, const NetAddr& aRhs) {
-    return aLhs.raw.family > aRhs.raw.family;
-  }
-};
-}  // namespace
 
 nsHostResolver::LookupStatus nsHostResolver::CompleteLookupLocked(
     nsHostRecord* rec, nsresult status, AddrInfo* aNewRRSet, bool pb,
