@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Document.close and successive document.open with pending stylesheet</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+  <script>
+    add_task(async () => {
+      const doc = document.getElementById("ifr").contentDocument;
+
+      doc.open()
+      doc.write("<link rel='stylesheet' href='https://example.com'></link>")
+      doc.close()
+      doc.open()
+      doc.close()
+
+      if (doc.readyState != "complete") {
+        is(doc.readyState, "interactive", "doc is loading");
+        await new Promise(res => doc.addEventListener("readystatechange", res));
+      }
+      is(doc.readyState, "complete", "load complete");
+    })
+  </script>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">
+  <iframe id="ifr"></iframe>
+</div>
+<pre id="test"></pre>
+</body>
+</html>

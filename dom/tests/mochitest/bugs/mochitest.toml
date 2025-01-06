@@ -270,6 +270,8 @@ skip-if = [
   "http2",
 ]
 
+["test_bug1840932.html"]
+
 ["test_devicemotion_multiple_listeners.html"]
 skip-if = [
   "os == 'android'",  # Bug 1780219
