@@ -1,0 +1,16 @@
+/* It's important to have those @font-face rules to cover the issue from Bug 1929891 */
+@font-face {
+  font-family: test-font;
+  src: url("ostrich-regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: test-font-bold;
+  src: url("ostrich-black.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}

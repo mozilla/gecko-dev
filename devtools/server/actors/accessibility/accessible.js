@@ -602,37 +602,20 @@ class AccessibleActor extends Actor {
       auditTypes = auditTypes.filter(auditType => types.includes(auditType));
     }
 
-    // For some reason keyboard checks for focus styling affect values (that are
-    // used by other types of checks (text names and values)) returned by
-    // accessible objects. This happens only when multiple checks are run at the
-    // same time (asynchronously) and the audit might return unexpected
-    // failures. We thus split the execution of the checks into two parts, first
-    // performing keyboard checks and only after the rest of the checks. See bug
-    // 1594743 for more detail.
-    let keyboardAuditResult;
-    const keyboardAuditIndex = auditTypes.indexOf(AUDIT_TYPE.KEYBOARD);
-    if (keyboardAuditIndex > -1) {
-      // If we are performing a keyboard audit, remove its value from the
-      // complete list and run it.
-      auditTypes.splice(keyboardAuditIndex, 1);
-      keyboardAuditResult = this._getAuditByType(AUDIT_TYPE.KEYBOARD);
-    }
-
-    this._auditing = Promise.resolve(keyboardAuditResult)
-      .then(keyboardResult => {
-        const audits = auditTypes.map(auditType =>
-          this._getAuditByType(auditType)
-        );
-
-        // If we are also performing a keyboard audit, add its type and its
-        // result back to the complete list of audits.
-        if (keyboardAuditIndex > -1) {
-          auditTypes.splice(keyboardAuditIndex, 0, AUDIT_TYPE.KEYBOARD);
-          audits.splice(keyboardAuditIndex, 0, keyboardResult);
-        }
-
-        return Promise.all(audits);
-      })
+    this._auditing = (async () => {
+      const results = [];
+      for (const auditType of auditTypes) {
+        // For some reason keyboard checks for focus styling affect values (that are
+        // used by other types of checks (text names and values)) returned by
+        // accessible objects. This happens only when multiple checks are run at the
+        // same time (asynchronously) and the audit might return unexpected
+        // failures. We thus run checks sequentially to avoid this.
+        // See bug 1594743 for more detail.
+        const audit = await this._getAuditByType(auditType);
+        results.push(audit);
+      }
+      return results;
+    })()
       .then(results => {
         if (this.isDefunct || this.isDestroyed()) {
           return null;
