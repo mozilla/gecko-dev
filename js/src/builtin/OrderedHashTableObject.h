@@ -639,8 +639,9 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     MOZ_ALWAYS_TRUE(calcAllocSize(dataCapacity, buckets, &numBytes));
 
     void* buf = oldData;
-    Nursery::WasBufferMoved result = nursery.maybeMoveBufferOnPromotion(
-        &buf, obj, numBytes, MemoryUse::MapObjectData);
+    Nursery::WasBufferMoved result =
+        nursery.maybeMoveNurseryOrMallocBufferOnPromotion(
+            &buf, obj, numBytes, MemoryUse::MapObjectData);
     if (result == Nursery::BufferNotMoved) {
       return;
     }

@@ -36,7 +36,7 @@ RareArgumentsData* RareArgumentsData::create(JSContext* cx,
                                              ArgumentsObject* obj) {
   size_t bytes = RareArgumentsData::bytesRequired(obj->initialLength());
 
-  uint8_t* data = AllocateCellBuffer<uint8_t>(cx, obj, bytes);
+  uint8_t* data = AllocNurseryOrMallocBuffer<uint8_t>(cx, obj, bytes);
   if (!data) {
     return nullptr;
   }
@@ -331,7 +331,7 @@ ArgumentsObject* ArgumentsObject::create(JSContext* cx, HandleFunction callee,
   }
 
   ArgumentsData* data = reinterpret_cast<ArgumentsData*>(
-      AllocateCellBuffer<uint8_t>(cx, obj, numBytes));
+      AllocNurseryOrMallocBuffer<uint8_t>(cx, obj, numBytes));
   if (!data) {
     // Make the object safe for GC.
     obj->initFixedSlot(DATA_SLOT, PrivateValue(nullptr));
@@ -439,7 +439,7 @@ ArgumentsObject* ArgumentsObject::finishPure(
   unsigned numBytes = ArgumentsData::bytesRequired(numArgs);
 
   ArgumentsData* data = reinterpret_cast<ArgumentsData*>(
-      AllocateCellBuffer<uint8_t>(cx, obj, numBytes));
+      AllocNurseryOrMallocBuffer<uint8_t>(cx, obj, numBytes));
   if (!data) {
     // Make the object safe for GC. Don't report OOM, the slow path will
     // retry the allocation.
@@ -1086,8 +1086,9 @@ size_t ArgumentsObject::objectMoved(JSObject* dst, JSObject* src) {
 
   ArgumentsData* data = nsrc->data();
   uint32_t nDataBytes = ArgumentsData::bytesRequired(nsrc->data()->numArgs());
-  Nursery::WasBufferMoved result = nursery.maybeMoveBufferOnPromotion(
-      &data, dst, nDataBytes, MemoryUse::ArgumentsData);
+  Nursery::WasBufferMoved result =
+      nursery.maybeMoveNurseryOrMallocBufferOnPromotion(
+          &data, dst, nDataBytes, MemoryUse::ArgumentsData);
   if (result == Nursery::BufferMoved) {
     ndst->initFixedSlot(DATA_SLOT, PrivateValue(data));
     nbytesTotal += nDataBytes;
@@ -1096,8 +1097,9 @@ size_t ArgumentsObject::objectMoved(JSObject* dst, JSObject* src) {
   if (RareArgumentsData* rareData = nsrc->maybeRareData()) {
     uint32_t nRareBytes =
         RareArgumentsData::bytesRequired(nsrc->initialLength());
-    Nursery::WasBufferMoved result = nursery.maybeMoveBufferOnPromotion(
-        &rareData, dst, nRareBytes, MemoryUse::RareArgumentsData);
+    Nursery::WasBufferMoved result =
+        nursery.maybeMoveNurseryOrMallocBufferOnPromotion(
+            &rareData, dst, nRareBytes, MemoryUse::RareArgumentsData);
     if (result == Nursery::BufferMoved) {
       ndst->data()->rareData = rareData;
       nbytesTotal += nRareBytes;

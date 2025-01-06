@@ -148,18 +148,19 @@ class Nursery {
   // needed. Returns false in |isMalloced| if the allocation fails.
   //
   // Use the following API if the owning Cell is already known.
-  std::tuple<void*, bool> allocateBuffer(JS::Zone* zone, size_t nbytes,
-                                         arena_id_t arenaId);
+  std::tuple<void*, bool> allocNurseryOrMallocBuffer(JS::Zone* zone,
+                                                     size_t nbytes,
+                                                     arena_id_t arenaId);
 
-  // Like allocateBuffer, but returns nullptr if the buffer can't be allocated
-  // in the nursery.
+  // Like allocNurseryOrMallocBuffer, but returns nullptr if the buffer can't
+  // be allocated in the nursery.
   void* tryAllocateNurseryBuffer(JS::Zone* zone, size_t nbytes,
                                  arena_id_t arenaId);
 
   // Allocate a buffer for a given Cell, using the nursery if possible and
   // owner is in the nursery.
-  void* allocateBuffer(JS::Zone* zone, gc::Cell* owner, size_t nbytes,
-                       arena_id_t arenaId);
+  void* allocNurseryOrMallocBuffer(JS::Zone* zone, gc::Cell* owner,
+                                   size_t nbytes, arena_id_t arenaId);
 
   // Allocate a zero-initialized buffer for a given zone, using the nursery if
   // possible. If the buffer isn't allocated in the nursery, the given arena is
@@ -174,8 +175,9 @@ class Nursery {
   void* allocateZeroedBuffer(gc::Cell* owner, size_t nbytes, arena_id_t arena);
 
   // Resize an existing buffer.
-  void* reallocateBuffer(JS::Zone* zone, gc::Cell* cell, void* oldBuffer,
-                         size_t oldBytes, size_t newBytes, arena_id_t arena);
+  void* reallocNurseryOrMallocBuffer(JS::Zone* zone, gc::Cell* cell,
+                                     void* oldBuffer, size_t oldBytes,
+                                     size_t newBytes, arena_id_t arena);
 
   // Free an object buffer.
   void freeBuffer(void* buffer, size_t nbytes);
@@ -214,8 +216,10 @@ class Nursery {
                                          owner, nbytes, use, arena);
   }
   template <typename T>
-  WasBufferMoved maybeMoveBufferOnPromotion(T** bufferp, gc::Cell* owner,
-                                            size_t nbytes, MemoryUse use) {
+  WasBufferMoved maybeMoveNurseryOrMallocBufferOnPromotion(T** bufferp,
+                                                           gc::Cell* owner,
+                                                           size_t nbytes,
+                                                           MemoryUse use) {
     return maybeMoveBufferOnPromotion(bufferp, owner, nbytes, use, MallocArena);
   }
 
@@ -508,9 +512,6 @@ class Nursery {
   void sweepMapAndSetObjects();
 
   void sweepStringsWithBuffer();
-
-  // Allocate a buffer for a given zone, using the nursery if possible.
-  void* allocateBuffer(JS::Zone* zone, size_t nbytes);
 
   // Get per-space size limits.
   size_t maxSpaceSize() const;
