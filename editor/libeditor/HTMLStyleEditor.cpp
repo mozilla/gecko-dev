@@ -2462,9 +2462,6 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::ClearStyleAt(
         NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
         return Err(rv);
       }
-      // Forget the line break which was in the next content because it's now
-      // removed from the tree but web apps may keep referring it.
-      lineBreak.reset();
     }
   }
 
