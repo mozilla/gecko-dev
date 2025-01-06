@@ -62,7 +62,6 @@ run-if = [
 skip-if = ["os == 'win' && msix"] # These tests rely on the ability to write postSigningData, which we can't do in MSIX builds. https://bugzilla.mozilla.org/show_bug.cgi?id=1805911
 
 ["browser_aboutwelcome_screen_targeting.js"]
-skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"] # Bug 1936427
 
 ["browser_aboutwelcome_toolbar_button.js"]
 
