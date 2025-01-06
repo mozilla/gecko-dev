@@ -109,7 +109,6 @@ run-if = ["nightly_build"]
 
 ["test_cert_overrides.js"]
 run-sequentially = "hardcoded ports"
-skip-if = ["true"] # Bug 1939625
 
 ["test_cert_overrides_read_only.js"]
 run-sequentially = "hardcoded ports"
@@ -120,7 +119,6 @@ run-sequentially = "hardcoded ports"
 
 ["test_cert_storage.js"]
 tags = "addons psm blocklist"
-skip-if = ["true"] # Bug 1939625
 
 ["test_cert_storage_broken_db.js"]
 
@@ -275,7 +273,6 @@ run-sequentially = "hardcoded ports"
 
 ["test_ocsp_stapling_with_intermediate.js"]
 run-sequentially = "hardcoded ports"
-skip-if = ["true"] # Bug 1939625
 
 ["test_ocsp_timeout.js"]
 skip-if = ["(os == 'win' && socketprocess_networking)"]
@@ -301,7 +298,6 @@ run-if = [
 
 ["test_pinning.js"]
 run-sequentially = "hardcoded ports"
-skip-if = ["true"] # Bug 1939625
 
 ["test_sanctions_symantec_apple_google.js"]
 run-sequentially = "hardcoded ports"
