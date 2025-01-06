@@ -107,6 +107,8 @@ export class MegalistAlpha extends MozLitElement {
   #onInputChange(e) {
     const searchText = e.target.value;
     this.searchText = searchText;
+    this.viewMode = VIEW_MODES.LIST;
+    this.selectedRecord = null;
 
     this.#debounce(
       () => this.#messageToViewModel("UpdateFilter", { searchText }),

@@ -13,19 +13,6 @@ add_setup(async function () {
   registerCleanupFunction(LoginTestUtils.clearData);
 });
 
-function waitForPasswordReveal(passwordLine) {
-  const revealBtnPromise = BrowserTestUtils.waitForMutationCondition(
-    passwordLine.loginLine,
-    {
-      attributeFilter: ["inputtype"],
-    },
-    () => passwordLine.loginLine.getAttribute("inputtype") === "text"
-  );
-  info("click on reveal button");
-  passwordLine.revealBtn.click();
-  return revealBtnPromise;
-}
-
 add_task(async function test_update_login_success() {
   if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
     ok(true, "Cannot test OSAuth.");
