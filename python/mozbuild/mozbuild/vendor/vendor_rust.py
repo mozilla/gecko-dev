@@ -766,7 +766,13 @@ license file's hash.
             env=env,
         )
         if res.returncode:
-            vet = json.loads(res.stdout)
+            try:
+                vet = json.loads(res.stdout)
+            except Exception:
+                # Most likely, if we're in a situation where stdout is not JSON,
+                # stderr will have had some error message printed out, so falling
+                # back to a failure case with no additional error message is fine.
+                vet = {}
             logged_error = False
             for failure in vet.get("failures", []):
                 failure["crate"] = failure.pop("name")
