@@ -568,7 +568,7 @@ export class MegalistAlpha extends MozLitElement {
           action="remove-all-logins"
           data-l10n-id="about-logins-menu-menuitem-remove-all-logins2"
           @click=${() => this.#sendCommand("RemoveAll")}
-          .disabled=${!this.header.value.total}
+          ?disabled=${!this.header.value.total}
         ></panel-item>
         <hr />
         <panel-item

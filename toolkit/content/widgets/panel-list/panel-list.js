@@ -600,7 +600,7 @@
     #defaultSlot;
 
     static get observedAttributes() {
-      return ["accesskey", "type"];
+      return ["accesskey", "type", "disabled"];
     }
 
     constructor() {
@@ -742,7 +742,7 @@
         } else {
           this._accessKey = null;
         }
-      } else if (name === "type") {
+      } else if (name === "type" || name === "disabled") {
         this.#setButtonAttributes();
       }
     }
@@ -755,6 +755,7 @@
         this.button.setAttribute("role", "menuitem");
         this.button.removeAttribute("aria-checked");
       }
+      this.button.toggleAttribute("disabled", this.disabled);
     }
 
     #setLabelContents() {
@@ -772,11 +773,11 @@
     }
 
     get disabled() {
-      return this.button.hasAttribute("disabled");
+      return this.hasAttribute("disabled");
     }
 
     set disabled(val) {
-      this.button.toggleAttribute("disabled", val);
+      this.toggleAttribute("disabled", val);
     }
 
     get checked() {

@@ -24,6 +24,7 @@ export default {
 panel-list-item-one = Item One
 panel-list-item-two = Item Two
 panel-list-item-three = Item Three
+panel-list-disabled = Disabled
 panel-list-checked = Checked
 panel-list-badged = Badged, look at me
 panel-list-passwords = Passwords
@@ -118,6 +119,7 @@ const Template = ({
             <panel-item
               icon=${item.icon ?? ""}
               ?checked=${item.checked}
+              ?disabled=${item.disabled}
               type=${ifDefined(item.checked ? "checkbox" : undefined)}
               ?badged=${item.badged}
               data-l10n-id=${item.l10nId ?? item}
@@ -148,6 +150,7 @@ Simple.args = {
     { l10nId: "panel-list-item-two" },
     "panel-list-item-three",
     "<hr>",
+    { l10nId: "panel-list-disabled", disabled: true },
     { l10nId: "panel-list-checked", checked: true },
     { l10nId: "panel-list-badged", badged: true, icon: "settings" },
   ],
