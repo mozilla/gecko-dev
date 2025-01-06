@@ -711,11 +711,11 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
 
 #elif defined(__loongarch_lp64)
 #    define CALLER_SAVED_REGS \
-      "ra", "a0", "a1", "a2","a3", "a4", "a5", "a6", "a7", "t0", "t1",    \
-      "t2", "t3", "t4", "t5", "t6", "t7", "t8",                           \
-      "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10",  \
-      "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19",      \
-      "f20", "f21", "f22", "f23"
+      "$ra", "$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7",      \
+      "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8",      \
+      "$f0", "$f1", "$f2", "$f3", "$f4", "$f5", "$f6", "$f7", "$f8",      \
+      "$f9", "$f10", "$f11", "$f12", "$f13", "$f14", "$f15", "$f16",      \
+      "$f17", "$f18", "$f19", "$f20", "$f21", "$f22", "$f23"
 #    define INLINED_ASM(MAIN_FP, MAIN_SP, SUSPENDABLE_FP, SUSPENDABLE_SP) \
       CHECK_OFFSETS(MAIN_FP, MAIN_SP, SUSPENDABLE_FP, SUSPENDABLE_SP);    \
       asm volatile(                                                       \
@@ -743,7 +743,7 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
           "\n   move    %0, $a0"                                          \
           : "=r"(res)                                                     \
           : "r"(stacks), "r"(fn), "r"(data)                               \
-          : "a0", "a3", CALLER_SAVED_REGS, "cc", "memory")
+          : "$a0", "$a3", CALLER_SAVED_REGS, "cc", "memory")
   INLINED_ASM(24, 32, 40, 48);
 
 #  else
