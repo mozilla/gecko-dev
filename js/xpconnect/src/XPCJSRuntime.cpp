@@ -1468,6 +1468,11 @@ static void ReportZoneStats(const JS::ZoneStats& zStats,
                  zStats.regExpSharedsMallocHeap,
                  "Shared compiled regexp data.");
 
+  // zStats.smallBuffersGCHeap is not reported as a separate item here as it's
+  // reported as part of the owning cell. We must still count it as part of the
+  // total heap size.
+  gcTotal += zStats.smallBuffersGCHeap;
+
   ZRREPORT_BYTES(pathPrefix + "zone-object"_ns, zStats.zoneObject,
                  "The JS::Zone object itself.");
 
@@ -2423,6 +2428,11 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
       KIND_OTHER, rtStats.zTotals.unusedGCThings.regExpShared,
       "Unused regexpshared cells within non-empty arenas.");
 
+  REPORT_BYTES(
+      "js-main-runtime-gc-heap-committed/unused/gc-things/small-buffers"_ns,
+      KIND_OTHER, rtStats.zTotals.unusedGCThings.smallBuffer,
+      "Unused small buffer cells within non-empty arenas.");
+
   REPORT_BYTES("js-main-runtime-gc-heap-committed/used/chunk-admin"_ns,
                KIND_OTHER, rtStats.gcHeapChunkAdmin,
                "The same as 'explicit/js-non-window/gc-heap/chunk-admin'.");
@@ -2489,8 +2499,30 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
       KIND_OTHER, rtStats.zTotals.regExpSharedsGCHeap,
       "Used regexpshared cells.");
 
+  MREPORT_BYTES(
+      "js-main-runtime-gc-heap-committed/used/gc-things/small-buffers"_ns,
+      KIND_OTHER, rtStats.zTotals.smallBuffersGCHeap,
+      "Used small buffer cells.");
+
   MOZ_ASSERT(gcThingTotal == rtStats.gcHeapGCThings);
   (void)gcThingTotal;
+
+  // Report totals from per-zone GC buffer allocators.
+
+  MREPORT_BYTES("js-main-runtime-gc-buffers/used"_ns, KIND_OTHER,
+                rtStats.zTotals.gcBuffers.usedBytes,
+                "Bookeeping information and padding within GC buffer memeory.");
+
+  MREPORT_BYTES("js-main-runtime-gc-buffers/free"_ns, KIND_OTHER,
+                rtStats.zTotals.gcBuffers.freeBytes,
+                "Free space within GC buffer memeory.");
+
+  MREPORT_BYTES("js-main-runtime-gc-buffers/admin"_ns, KIND_OTHER,
+                rtStats.zTotals.gcBuffers.adminBytes,
+                "Bookeeping information and padding within GC buffer memeory.");
+
+  REPORT("js-main-runtime-zone-count"_ns, KIND_OTHER, UNITS_COUNT,
+         rtStats.zoneStatsVector.length(), "Count of GC zones in the runtime.");
 
   // Report xpconnect.
 

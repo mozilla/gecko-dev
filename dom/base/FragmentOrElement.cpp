@@ -911,9 +911,8 @@ void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
         initialTarget = originalTargetAsNode == this;
       }
       if (initialTarget) {
-        nsCOMPtr<nsINode> relatedTargetAsNode =
-            FindChromeAccessOnlySubtreeOwner(
-                aVisitor.mEvent->mOriginalRelatedTarget);
+        nsINode* relatedTargetAsNode = FindChromeAccessOnlySubtreeOwner(
+            aVisitor.mEvent->mOriginalRelatedTarget);
         if (!originalTargetAsNode) {
           originalTargetAsNode =
               nsINode::FromEventTargetOrNull(aVisitor.mEvent->mOriginalTarget);

@@ -228,7 +228,7 @@ define(function (require, exports) {
     }
 
     onClickTab(index, event) {
-      this.setActive(index);
+      this.setActive(index, { fromMouseEvent: true });
 
       if (event) {
         event.preventDefault();
@@ -244,7 +244,16 @@ define(function (require, exports) {
 
     // API
 
-    setActive(index) {
+    /**
+     * Set the active tab from its index
+     *
+     * @param {Integer} index
+     *        Index of the tab that we want to set as the active one
+     * @param {Object} options
+     * @param {Boolean} options.fromMouseEvent
+     *        Set to true if this is called from a click on the tab
+     */
+    setActive(index, options = {}) {
       const onAfterChange = this.props.onAfterChange;
       const onBeforeChange = this.props.onBeforeChange;
 
@@ -270,9 +279,11 @@ define(function (require, exports) {
         const selectedTab = this.tabsEl.current.querySelector(
           `a[data-tab-index="${index}"]`
         );
-        if (selectedTab) {
-          selectedTab.focus();
-        }
+        selectedTab.focus({
+          // When focus is coming from a mouse event,
+          // prevent :focus-visible to be applied to the element
+          focusVisible: !options.fromMouseEvent,
+        });
 
         if (onAfterChange) {
           onAfterChange(index);

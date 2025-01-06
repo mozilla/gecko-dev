@@ -61,6 +61,7 @@
   _(StencilCache, 500)                \
   _(SourceCompression, 500)           \
   _(GCDelayedMarkingLock, 500)        \
+  _(BufferAllocator, 500)             \
                                       \
   _(SharedImmutableStringsCache, 600) \
   _(IrregexpLazyStatic, 600)          \

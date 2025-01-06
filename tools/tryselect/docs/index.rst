@@ -28,6 +28,15 @@ try:
 
    ./mach try fuzzy --env MOZ_LOG=cubeb:4
 
+On macOS and Linux Desktop, it is also possible to get a screen recording of the test run:
+
+.. code-block:: shell
+
+   ./mach try fuzzy --env MOZ_RECORD_TEST=1
+
+The screen recording will be in the ``Artifacts and Debugging Tools`` section on Treeherder.
+
+
 Resolving "<Try build> is damaged and can't be opened" error
 ------------------------------------------------------------
 

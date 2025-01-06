@@ -149,6 +149,21 @@ var res2 = [
   },
 ];
 
+var res3 = [
+  {
+    selector: ".boxmodel-element-size",
+    value: "0" + "\u00D7" + "0",
+  },
+  {
+    selector: ".boxmodel-size > .boxmodel-width",
+    value: "auto",
+  },
+  {
+    selector: ".boxmodel-size > .boxmodel-height",
+    value: "auto",
+  },
+];
+
 add_task(async function () {
   const style =
     "div { position: absolute; top: 42px; left: 42px; " +
@@ -160,8 +175,9 @@ add_task(async function () {
   const { inspector, boxmodel } = await openLayoutView();
   await selectNode("div", inspector);
 
-  await testInitialValues(inspector, boxmodel);
+  testInitialValues(inspector, boxmodel);
   await testChangingValues(inspector, boxmodel);
+  await testContentValueForHiddenElement(inspector, boxmodel);
 });
 
 function testInitialValues(inspector, boxmodel) {
@@ -196,6 +212,28 @@ async function testChangingValues(inspector, boxmodel) {
       elt.textContent,
       res2[i].value,
       res2[i].selector + " has the right value after style update."
+    );
+  }
+}
+
+async function testContentValueForHiddenElement(inspector, boxmodel) {
+  info("Test that content shows 'auto' x 'auto' for hidden elements");
+  const doc = boxmodel.document;
+
+  const onUpdated = waitForUpdate(inspector);
+  await setContentPageElementAttribute(
+    "div",
+    "style",
+    "padding: 10%; display: none;"
+  );
+  await onUpdated;
+
+  for (let i = 0; i < res3.length; i++) {
+    const elt = doc.querySelector(res3[i].selector);
+    is(
+      elt.textContent,
+      res3[i].value,
+      res3[i].selector + " has the right value after hiding element."
     );
   }
 }

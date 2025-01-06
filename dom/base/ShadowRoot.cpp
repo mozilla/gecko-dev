@@ -583,14 +583,14 @@ void ShadowRoot::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
 
   // https://dom.spec.whatwg.org/#ref-for-get-the-parent%E2%91%A6
   if (!aVisitor.mEvent->mFlags.mComposed) {
-    nsCOMPtr<nsIContent> originalTarget =
+    nsIContent* originalTarget =
         nsIContent::FromEventTargetOrNull(aVisitor.mEvent->mOriginalTarget);
     if (originalTarget && originalTarget->GetContainingShadow() == this) {
       // If we do stop propagation, we still want to propagate
       // the event to chrome (nsPIDOMWindow::GetParentTarget()).
       // The load event is special in that we don't ever propagate it
       // to chrome.
-      nsCOMPtr<nsPIDOMWindowOuter> win = OwnerDoc()->GetWindow();
+      nsPIDOMWindowOuter* win = OwnerDoc()->GetWindow();
       EventTarget* parentTarget = win && aVisitor.mEvent->mMessage != eLoad
                                       ? win->GetParentTarget()
                                       : nullptr;
@@ -603,8 +603,8 @@ void ShadowRoot::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   nsIContent* shadowHost = GetHost();
   aVisitor.SetParentTarget(shadowHost, false);
 
-  nsCOMPtr<nsIContent> content(
-      nsIContent::FromEventTargetOrNull(aVisitor.mEvent->mTarget));
+  nsIContent* content =
+      nsIContent::FromEventTargetOrNull(aVisitor.mEvent->mTarget);
   if (content && content->GetContainingShadow() == this) {
     aVisitor.mEventTargetAtParent = shadowHost;
   }

@@ -52,6 +52,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+export const TIMERS = {
+  tabSelectIdleTimeMs: 1000 * 60 * 60,
+};
+
 const DOMWINDOW_OPENED_TOPIC = "domwindowopened";
 
 /**
@@ -456,9 +460,13 @@ class _Interactions {
   }
 
   /**
-   * Handles the TabSelect notification. Updates the current interaction and
-   * then switches it to the interaction for the new tab. The new interaction
-   * may be null if it doesn't exist.
+   * Handles the TabSelect notification. If enough time has passed between the
+   * current time and the last time the current tab was selected and interacted
+   * with, the existing interaction will end, and a new one will begin. This
+   * approach accounts for scenarios where a user might leave a tab open for an
+   * extended period (e.g. pinned tabs), and engage in distinct sessions. A
+   * delay is used to prevent the creation of numerous short, separate
+   * interactions that may occur when a user quickly switches between tabs.
    *
    * @param {Browser} previousBrowser
    *   The instance of the browser that the user switched away from.
@@ -467,7 +475,22 @@ class _Interactions {
     lazy.logConsole.debug("Tab switched");
 
     this.#updateInteraction(previousBrowser);
+
     this._pageViewStartTime = Cu.now();
+
+    let browser = this.#activeWindow?.gBrowser.selectedBrowser;
+    if (browser && this.#interactions.has(browser)) {
+      let interaction = this.#interactions.get(browser);
+      let timePassedSinceUpdate = Date.now() - interaction.updated_at;
+      if (timePassedSinceUpdate >= TIMERS.tabSelectIdleTimeMs) {
+        this.registerEndOfInteraction(browser);
+        this.registerNewInteraction(browser, {
+          url: browser.currentURI.spec,
+          referrer: null,
+          isActive: true,
+        });
+      }
+    }
   }
 
   /**

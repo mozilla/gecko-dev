@@ -341,10 +341,14 @@ ChunkPool GCRuntime::expireEmptyChunkPool(const AutoLockGC& lock) {
   MOZ_ASSERT(emptyChunks(lock).verify());
 
   ChunkPool expired;
-  while (tooManyEmptyChunks(lock)) {
-    ArenaChunk* chunk = emptyChunks(lock).pop();
-    prepareToFreeChunk(chunk->info);
-    expired.push(chunk);
+  if (isShrinkingGC()) {
+    std::swap(expired, emptyChunks(lock));
+  } else {
+    while (tooManyEmptyChunks(lock)) {
+      ArenaChunk* chunk = emptyChunks(lock).pop();
+      prepareToFreeChunk(chunk->info);
+      expired.push(chunk);
+    }
   }
 
   MOZ_ASSERT(expired.verify());
@@ -395,7 +399,12 @@ void GCRuntime::releaseArena(Arena* arena, const AutoLockGC& lock) {
   MOZ_ASSERT(!arena->onDelayedMarkingList());
   MOZ_ASSERT(TlsGCContext.get()->isFinalizing());
 
-  arena->zone()->gcHeapSize.removeGCArena(heapSize);
+  if (IsBufferAllocKind(arena->getAllocKind())) {
+    size_t usableBytes = ArenaSize - arena->getFirstThingOffset();
+    arena->zone()->mallocHeapSize.removeBytes(usableBytes, true);
+  } else {
+    arena->zone()->gcHeapSize.removeBytes(ArenaSize, true, heapSize);
+  }
   arena->release(this, &lock);
   arena->chunk()->releaseArena(this, arena, lock);
 }
@@ -2254,11 +2263,13 @@ void GCRuntime::queueAllLifoBlocksForFreeAfterMinorGC(LifoAlloc* lifo) {
 }
 
 void GCRuntime::queueBuffersForFreeAfterMinorGC(
-    Nursery::BufferSet& buffers, Nursery::StringBufferVector& stringBuffers) {
+    Nursery::BufferSet& buffers, Nursery::StringBufferVector& stringBuffers,
+    Nursery::LargeAllocList& largeAllocs) {
   AutoLockHelperThreadState lock;
 
   if (!buffersToFreeAfterMinorGC.ref().empty() ||
-      !stringBuffersToReleaseAfterMinorGC.ref().empty()) {
+      !stringBuffersToReleaseAfterMinorGC.ref().empty() ||
+      !largeBuffersToFreeAfterMinorGC.ref().isEmpty()) {
     // In the rare case that this hasn't processed the buffers from a previous
     // minor GC we have to wait here.
     MOZ_ASSERT(!freeTask.isIdle(lock));
@@ -2270,6 +2281,9 @@ void GCRuntime::queueBuffersForFreeAfterMinorGC(
 
   MOZ_ASSERT(stringBuffersToReleaseAfterMinorGC.ref().empty());
   std::swap(stringBuffersToReleaseAfterMinorGC.ref(), stringBuffers);
+
+  MOZ_ASSERT(largeBuffersToFreeAfterMinorGC.ref().isEmpty());
+  std::swap(largeBuffersToFreeAfterMinorGC.ref(), largeAllocs);
 }
 
 void Realm::destroy(JS::GCContext* gcx) {
@@ -2397,8 +2411,9 @@ void GCRuntime::sweepZones(JS::GCContext* gcx, bool destroyingRuntime) {
     if (zone->wasGCStarted()) {
       MOZ_ASSERT(!zone->isQueuedForBackgroundSweep());
       AutoSetThreadIsSweeping threadIsSweeping(zone);
-      const bool zoneIsDead =
-          zone->arenas.arenaListsAreEmpty() && !zone->hasMarkedRealms();
+      const bool zoneIsDead = zone->arenas.arenaListsAreEmpty() &&
+                              zone->bufferAllocator.isEmpty() &&
+                              !zone->hasMarkedRealms();
       MOZ_ASSERT_IF(destroyingRuntime, zoneIsDead);
       if (zoneIsDead) {
         zone->arenas.checkEmptyFreeLists();
@@ -2937,8 +2952,11 @@ void GCRuntime::endPreparePhase(JS::GCReason reason) {
   }
 
   // This will start background free for lifo blocks queued by purgeRuntime,
-  // even if there's nothing in the nursery.
+  // even if there's nothing in the nursery. Record the number of the minor GC
+  // so we can check whether we need to wait for it to finish or whether a
+  // subsequent minor GC already did this.
   collectNurseryFromMajorGC(reason);
+  initialMinorGCNumber = minorGCNumber;
 
   {
     gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::PREPARE);
@@ -3036,6 +3054,9 @@ void GCRuntime::beginMarkPhase(AutoGCSession& session) {
     // the collecting arena lists.
     zone->arenas.mergeArenasFromCollectingLists();
     zone->arenas.moveArenasToCollectingLists();
+
+    // Prepare sized allocator for major GC.
+    zone->bufferAllocator.startMajorCollection();
 
     for (RealmsInZoneIter realm(zone); !realm.done(); realm.next()) {
       realm->clearAllocatedDuringGC();
@@ -3455,6 +3476,7 @@ void GCRuntime::checkGCStateNotInUse() {
     MOZ_ASSERT(!zone->isOnList());
     MOZ_ASSERT(!zone->gcNextGraphNode);
     MOZ_ASSERT(!zone->gcNextGraphComponent);
+    zone->bufferAllocator.checkGCStateNotInUse();
   }
 
   MOZ_ASSERT(zonesToMaybeCompact.ref().isEmpty());
@@ -3676,11 +3698,17 @@ GCRuntime::IncrementalResult GCRuntime::resetIncrementalGC(
         resetGrayList(c);
       }
 
+      // Wait for sweeping of nursery owned sized allocations to finish.
+      nursery().joinSweepTask();
+
       for (GCZonesIter zone(this); !zone.done(); zone.next()) {
         zone->changeGCState(zone->initialMarkingState(), Zone::NoGC);
         zone->clearGCSliceThresholds();
         zone->arenas.unmarkPreMarkedFreeCells();
         zone->arenas.mergeArenasFromCollectingLists();
+
+        // Merge sized alloc data structures back without sweeping them.
+        zone->bufferAllocator.finishMajorCollection();
       }
 
       {
@@ -3952,7 +3980,19 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
         break;
       }
 
+      for (GCZonesIter zone(this); !zone.done(); zone.next()) {
+        zone->bufferAllocator.finishMajorCollection();
+      }
+
       assertBackgroundSweepingFinished();
+
+      // Ensure freeing of nursery owned sized allocations from the initial
+      // minor GC has finished.
+      MOZ_ASSERT(minorGCNumber >= initialMinorGCNumber);
+      if (minorGCNumber == initialMinorGCNumber) {
+        MOZ_ASSERT(nursery().sweepTaskIsIdle());
+        waitBackgroundFreeEnd();
+      }
 
       {
         // Sweep the zones list now that background finalization is finished to

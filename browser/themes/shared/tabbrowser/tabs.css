@@ -804,14 +804,14 @@
   tab-group {
     flex-direction: column;
     position: relative;
+    margin-block: var(--space-xsmall);
 
     &:not([collapsed])::before {
       content: "";
       display: block;
       position: absolute;
       inset-inline-start: var(--tab-group-line-thickness);
-      inset-block-start: var(--space-medium);
-      inset-block-end: 0;
+      inset-block: 0;
       width: var(--tab-group-line-thickness);
       background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
       border-radius: 1px;
@@ -861,11 +861,6 @@
       border-start-start-radius: 1px;
       border-end-start-radius: 1px;
     }
-  }
-
-  #tabbrowser-tabs[orient="vertical"]:not([expanded]) & {
-    width: var(--tab-collapsed-width);
-    height: var(--tab-collapsed-width);
   }
 
   #tabbrowser-tabs[orient="vertical"][expanded] & {

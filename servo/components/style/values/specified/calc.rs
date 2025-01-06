@@ -979,7 +979,13 @@ impl CalcNode {
                                     return InPlaceDivisionResult::Merged;
                                 }
                             } else {
-                                return InPlaceDivisionResult::Invalid;
+                                // Color components are valid denominators, but they can't resolve
+                                // at parse time.
+                                return if resolved.unit().contains(CalcUnits::COLOR_COMPONENT) {
+                                    InPlaceDivisionResult::Unchanged
+                                } else {
+                                    InPlaceDivisionResult::Invalid
+                                };
                             }
                         }
                         InPlaceDivisionResult::Unchanged

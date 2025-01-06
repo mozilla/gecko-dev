@@ -14274,12 +14274,7 @@
 # true.
 - name: network.http.http3.ecn
   type: RelaxedAtomicBool
-# See network.http.http3.use_nspr_for_io above.
-#if defined(ANDROID) && !defined(HAVE_64BIT_BUILD)
-  value: false
-#else
   value: @IS_NIGHTLY_BUILD@
-#endif
   mirror: always
   rust: true
 

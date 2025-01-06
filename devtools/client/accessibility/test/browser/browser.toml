@@ -3,6 +3,8 @@ tags = "devtools"
 subsuite = "devtools"
 support-files = [
   "head.js",
+  "test_audit_all.css",
+  "test_audit_all.html",
   "!/devtools/client/shared/test/shared-head.js",
   "!/devtools/client/shared/test/highlighter-test-actor.js",
   "!/devtools/client/inspector/test/shared-head.js",
@@ -59,6 +61,8 @@ skip-if = ["true"] # bug 1674060
 ["browser_accessibility_tree.js"]
 
 ["browser_accessibility_tree_audit.js"]
+
+["browser_accessibility_tree_audit_all.js"]
 
 ["browser_accessibility_tree_audit_long.js"]
 

@@ -119,6 +119,21 @@ class js::VerifyPreTracer final : public JS::CallbackTracer {
   ~VerifyPreTracer() { js_free(root); }
 };
 
+inline bool IgnoreForPreBarrierVerifier(JSRuntime* runtime,
+                                        JS::GCCellPtr thing) {
+  // Skip things in other runtimes.
+  if (thing.asCell()->asTenured().runtimeFromAnyThread() != runtime) {
+    return true;
+  }
+
+  // Ignore buffers as these don't escape and are not barriered.
+  if (thing.kind() == JS::TraceKind::SmallBuffer) {
+    return true;
+  }
+
+  return false;
+}
+
 /*
  * This function builds up the heap snapshot by adding edges to the current
  * node.
@@ -126,8 +141,7 @@ class js::VerifyPreTracer final : public JS::CallbackTracer {
 void VerifyPreTracer::onChild(JS::GCCellPtr thing, const char* name) {
   MOZ_ASSERT(!IsInsideNursery(thing.asCell()));
 
-  // Skip things in other runtimes.
-  if (thing.asCell()->asTenured().runtimeFromAnyThread() != runtime()) {
+  if (IgnoreForPreBarrierVerifier(runtime(), thing)) {
     return;
   }
 
@@ -290,8 +304,7 @@ static const uint32_t MAX_VERIFIER_EDGES = 1000;
  * been modified) must point to marked objects.
  */
 void CheckEdgeTracer::onChild(JS::GCCellPtr thing, const char* name) {
-  // Skip things in other runtimes.
-  if (thing.asCell()->asTenured().runtimeFromAnyThread() != runtime()) {
+  if (IgnoreForPreBarrierVerifier(runtime(), thing)) {
     return;
   }
 
@@ -1131,6 +1144,20 @@ bool GCRuntime::isPointerWithinTenuredCell(void* ptr, JS::TraceKind traceKind) {
 
       return traceKind == JS::TraceKind::Null ||
              MapAllocToTraceKind(arena->getAllocKind()) == traceKind;
+    }
+  }
+
+  return false;
+}
+
+bool GCRuntime::isPointerWithinBufferAlloc(void* ptr) {
+  if (isPointerWithinTenuredCell(ptr, JS::TraceKind::SmallBuffer)) {
+    return true;
+  }
+
+  for (AllZonesIter zone(this); !zone.done(); zone.next()) {
+    if (zone->bufferAllocator.isPointerWithinMediumOrLargeBuffer(ptr)) {
+      return true;
     }
   }
 

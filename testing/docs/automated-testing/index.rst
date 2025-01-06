@@ -251,14 +251,16 @@ Need to get more data out of your tests?
 ----------------------------------------
 
 Most test jobs now expose an environment variable named
-``$MOZ_UPLOAD_DIR``. If this variable is set during automated test runs,
+``MOZ_UPLOAD_DIR``. If this variable is set during automated test runs,
 you can drop additional files into this directory, and they will be
 uploaded to a web server when the test finishes. The URLs to retrieve
 the files will be output in the test log.
 
-Passing ``$MOZ_RECORD_TEST=1`` as an environment variable when running some
-tests (e.g. mochitests) on Linux platform will trigger a recording of the
-desktop with GNOME Screencast.
+Passing ``MOZ_RECORD_TEST=1`` as an environment variable when running some
+tests (e.g. mochitests) on Linux Desktop and macOS will trigger a recording of the
+desktop with GNOME Screencast. This works on try as well, in which case the video
+file will be uploaded as an artifact and available in the
+``Artifacts and Debugging Tools`` panel on Treeherder.
 
 .. _Need_to_set_preferences_for_test-suites:
 

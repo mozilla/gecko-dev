@@ -635,6 +635,7 @@ enum class MarkInfo : int {
   NURSERY_FROMSPACE = -2,
   NURSERY_TOSPACE = -3,  // Unused if semispace disabled.
   UNKNOWN = -4,
+  BUFFER = -5,
 };
 
 // For calling from gdb only: given a pointer that is either in the nursery

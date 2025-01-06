@@ -322,6 +322,8 @@ struct Statistics {
   // Return JSON for the previous nursery collection.
   UniqueChars renderNurseryJson() const;
 
+  bool bufferAllocStatsEnabled() const { return enableBufferAllocStats_; }
+
 #ifdef DEBUG
   // Print a logging message.
   void log(const char* fmt, ...);
@@ -448,6 +450,7 @@ struct Statistics {
 
   bool enableProfiling_ = false;
   bool profileWorkers_ = false;
+  bool enableBufferAllocStats_ = false;
   TimeDuration profileThreshold_;
   ProfileDurations totalTimes_;
   uint64_t sliceCount_;
@@ -503,6 +506,11 @@ struct Statistics {
   const char* formatTotalSlices();
 
   size_t getMallocHeapSize();
+
+  void getBufferedAllocatorStats(Zone* zone, size_t& mediumChunks,
+                                 size_t& mediumTenuredChunks,
+                                 size_t& largeNurseryAllocs,
+                                 size_t& largeTenuredAllocs);
 
   static void printProfileTimes(const ProfileDurations& times,
                                 Sprinter& sprinter);

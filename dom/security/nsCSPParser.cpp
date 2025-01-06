@@ -814,9 +814,10 @@ void nsCSPParser::reportGroup(nsCSPDirective* aDir) {
   while (!atEnd()) {
     if (isGroupDelim(*mCurChar) ||
         nsContentUtils::IsHTMLWhitespace(*mCurChar)) {
-      AutoTArray<nsString, 1> params = {mCurToken};
+      nsString badChar(mozilla::Span(mCurChar, 1));
+      AutoTArray<nsString, 2> params = {mCurToken, badChar};
       logWarningErrorToConsole(nsIScriptError::warningFlag,
-                               "invalidGroupSyntax", params);
+                               "ignoringInvalidGroupSyntax", params);
       delete aDir;
       return;
     }

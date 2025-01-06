@@ -545,6 +545,7 @@ internal class ReleaseMetricController(
     private fun isTelemetryEnabled(type: MetricServiceType): Boolean = when (type) {
         MetricServiceType.Data -> isDataTelemetryEnabled()
         MetricServiceType.Marketing -> isMarketingDataTelemetryEnabled()
+        MetricServiceType.UsageReporting -> isDataTelemetryEnabled() // this will have a separate switch in future
     }
 
     companion object {

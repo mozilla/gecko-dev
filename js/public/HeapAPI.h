@@ -25,8 +25,6 @@
 /* These values are private to the JS engine. */
 namespace js {
 
-class NurseryDecommitTask;
-
 JS_PUBLIC_API bool CurrentThreadCanAccessZone(JS::Zone* zone);
 
 // To prevent false sharing, some data structures are aligned to a typical cache
@@ -53,6 +51,7 @@ const size_t PageShift = 12;
 // Expected page size, so we could initialze ArenasPerPage at compile-time.
 // The actual system page size should be queried by SystemPageSize().
 const size_t PageSize = size_t(1) << PageShift;
+const size_t PageMask = PageSize - 1;
 constexpr size_t ArenasPerPage = PageSize / ArenaSize;
 
 const size_t ChunkShift = 20;
@@ -85,6 +84,8 @@ const size_t ArenaBitmapWords = HowMany(ArenaBitmapBits, JS_BITS_PER_WORD);
 enum class ChunkKind : uint8_t {
   Invalid = 0,
   TenuredArenas,
+  MediumBuffers,
+  LargeBuffer,
   NurseryToSpace,
   NurseryFromSpace
 };
@@ -113,18 +114,32 @@ class ChunkBase {
         runtime(rt),
         kind(kind),
         nurseryChunkIndex(chunkIndex) {
-    MOZ_ASSERT(kind == ChunkKind::NurseryFromSpace ||
-               kind == ChunkKind::NurseryToSpace);
+    MOZ_ASSERT(isNurseryChunk());
     MOZ_ASSERT((uintptr_t(this) & ChunkMask) == 0);
     MOZ_ASSERT(storeBuffer);
   }
 
+  ChunkBase(JSRuntime* rt, ChunkKind kind)
+      : storeBuffer(nullptr),
+        runtime(rt),
+        kind(kind),
+        nurseryChunkIndex(UINT8_MAX) {}
+
  public:
   ChunkKind getKind() const {
-    MOZ_ASSERT_IF(storeBuffer, kind == ChunkKind::NurseryToSpace ||
-                                   kind == ChunkKind::NurseryFromSpace);
-    MOZ_ASSERT_IF(!storeBuffer, kind == ChunkKind::TenuredArenas);
+    MOZ_ASSERT_IF(storeBuffer, isNurseryChunk());
+    MOZ_ASSERT_IF(!storeBuffer, isTenuredChunk());
     return kind;
+  }
+
+  bool isNurseryChunk() const {
+    return kind == ChunkKind::NurseryToSpace ||
+           kind == ChunkKind::NurseryFromSpace;
+  }
+
+  bool isTenuredChunk() const {
+    return kind == ChunkKind::TenuredArenas ||
+           kind == ChunkKind::MediumBuffers || kind == ChunkKind::LargeBuffer;
   }
 
   // The store buffer for pointers from tenured things to things in this
@@ -244,8 +259,7 @@ class alignas(TypicalCacheLineSize) MarkBitmap {
   static constexpr size_t FirstThingAdjustmentWords =
       FirstThingAdjustmentBits / MarkBitmapWordBits;
 
-  MOZ_ALWAYS_INLINE void getMarkWordAndMask(const TenuredCell* cell,
-                                            ColorBit colorBit,
+  MOZ_ALWAYS_INLINE void getMarkWordAndMask(const void* cell, ColorBit colorBit,
                                             MarkBitmapWord** wordp,
                                             uintptr_t* maskp) {
     // Note: the JIT pre-barrier trampolines inline this code. Update
@@ -264,39 +278,41 @@ class alignas(TypicalCacheLineSize) MarkBitmap {
   }
 
   // The following are not exported and are defined in gc/Heap.h:
-  MOZ_ALWAYS_INLINE bool markBit(const TenuredCell* cell, ColorBit colorBit) {
+  MOZ_ALWAYS_INLINE bool markBit(const void* cell, ColorBit colorBit) {
     MarkBitmapWord* word;
     uintptr_t mask;
     getMarkWordAndMask(cell, colorBit, &word, &mask);
     return *word & mask;
   }
 
-  MOZ_ALWAYS_INLINE bool isMarkedAny(const TenuredCell* cell) {
+  MOZ_ALWAYS_INLINE bool isMarkedAny(const void* cell) {
     return markBit(cell, ColorBit::BlackBit) ||
            markBit(cell, ColorBit::GrayOrBlackBit);
   }
 
-  MOZ_ALWAYS_INLINE bool isMarkedBlack(const TenuredCell* cell) {
+  MOZ_ALWAYS_INLINE bool isMarkedBlack(const void* cell) {
     // Return true if BlackBit is set.
     return markBit(cell, ColorBit::BlackBit);
   }
 
-  MOZ_ALWAYS_INLINE bool isMarkedGray(const TenuredCell* cell) {
+  MOZ_ALWAYS_INLINE bool isMarkedGray(const void* cell) {
     // Return true if GrayOrBlackBit is set and BlackBit is not set.
     return !markBit(cell, ColorBit::BlackBit) &&
            markBit(cell, ColorBit::GrayOrBlackBit);
   }
 
-  inline bool markIfUnmarked(const TenuredCell* cell, MarkColor color);
-  inline bool markIfUnmarkedAtomic(const TenuredCell* cell, MarkColor color);
-  inline void markBlack(const TenuredCell* cell);
-  inline void markBlackAtomic(const TenuredCell* cell);
+  inline bool markIfUnmarked(const void* cell, MarkColor color);
+  inline bool markIfUnmarkedAtomic(const void* cell, MarkColor color);
+  inline void markBlack(const void* cell);
+  inline void markBlackAtomic(const void* cell);
   inline void copyMarkBit(TenuredCell* dst, const TenuredCell* src,
                           ColorBit colorBit);
-  inline void unmark(const TenuredCell* cell);
+  inline void unmark(const void* cell);
+  inline void unmarkOneBit(const void* cell, ColorBit colorBit);
   inline MarkBitmapWord* arenaBits(Arena* arena);
 
   inline void copyFrom(const MarkBitmap& other);
+  inline void clear();
 };
 
 using ChunkMarkBitmap = MarkBitmap<CellBytesPerMarkBit, FirstArenaOffset>;
@@ -656,15 +672,15 @@ extern JS_PUBLIC_API void AssertCellIsNotGray(const Cell* cell);
 extern JS_PUBLIC_API bool ObjectIsMarkedBlack(const JSObject* obj);
 #endif
 
-MOZ_ALWAYS_INLINE bool CellHasStoreBuffer(const Cell* cell) {
-  return GetCellChunkBase(cell)->storeBuffer;
+MOZ_ALWAYS_INLINE bool ChunkPtrHasStoreBuffer(const void* ptr) {
+  return GetGCAddressChunkBase(ptr)->storeBuffer;
 }
 
 } /* namespace detail */
 
 MOZ_ALWAYS_INLINE bool IsInsideNursery(const Cell* cell) {
   MOZ_ASSERT(cell);
-  return detail::CellHasStoreBuffer(cell);
+  return detail::ChunkPtrHasStoreBuffer(cell);
 }
 
 MOZ_ALWAYS_INLINE bool IsInsideNursery(const TenuredCell* cell) {

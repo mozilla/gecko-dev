@@ -29,6 +29,8 @@ pub enum ColorComponent<ValueType> {
     None,
     /// A absolute value.
     Value(ValueType),
+    /// A channel keyword, e.g. `r`, `l`, `alpha`, etc.
+    ChannelKeyword(ChannelKeyword),
     /// A calc() value.
     Calc(Box<GenericCalcNode<Leaf>>),
     /// Used when alpha components are not specified.
@@ -80,8 +82,7 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                 let Ok(channel_keyword) = ChannelKeyword::from_ident(ident) else {
                     return Err(location.new_unexpected_token_error(t.clone()));
                 };
-                let node = GenericCalcNode::Leaf(Leaf::ColorComponent(channel_keyword));
-                Ok(ColorComponent::Calc(Box::new(node)))
+                Ok(ColorComponent::ChannelKeyword(channel_keyword))
             },
             Token::Function(ref name) => {
                 let function = GenericCalcNode::math_function(context, name, location)?;
@@ -111,22 +112,24 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
         Ok(match self {
             ColorComponent::None => None,
             ColorComponent::Value(value) => Some(value.clone()),
+            ColorComponent::ChannelKeyword(channel_keyword) => match origin_color {
+                Some(origin_color) => {
+                    let value = origin_color.get_component_by_channel_keyword(*channel_keyword)?;
+                    Some(ValueType::from_value(value.unwrap_or(0.0)))
+                },
+                None => return Err(()),
+            },
             ColorComponent::Calc(node) => {
                 let Ok(resolved_leaf) = node.resolve_map(
                     |leaf| {
                         Ok(match leaf {
-                            Leaf::ColorComponent(channel_keyword) => {
-                                if let Some(origin_color) = origin_color {
-                                    if let Ok(value) = origin_color
-                                        .get_component_by_channel_keyword(*channel_keyword)
-                                    {
-                                        Leaf::Number(value.unwrap_or(0.0))
-                                    } else {
-                                        return Err(());
-                                    }
-                                } else {
-                                    return Err(());
-                                }
+                            Leaf::ColorComponent(channel_keyword) => match origin_color {
+                                Some(origin_color) => {
+                                    let value = origin_color
+                                        .get_component_by_channel_keyword(*channel_keyword)?;
+                                    Leaf::Number(value.unwrap_or(0.0))
+                                },
+                                None => return Err(()),
                             },
                             l => l.clone(),
                         })
@@ -161,18 +164,13 @@ impl<ValueType: ToCss> ToCss for ColorComponent<ValueType> {
         match self {
             ColorComponent::None => dest.write_str("none")?,
             ColorComponent::Value(value) => value.to_css(dest)?,
+            ColorComponent::ChannelKeyword(channel_keyword) => channel_keyword.to_css(dest)?,
             ColorComponent::Calc(node) => {
-                // Channel keywords used directly as a component serializes without `calc()`, but
-                // we store channel keywords inside a calc node irrespectively, so we have to remove
-                // it again here.
-                // There are some contradicting wpt's, which depends on resolution of:
+                // When we only have a channel keyword in a leaf node, we should serialize it with
+                // calc(..), except when one of the rgb color space functions are used, e.g.
+                // rgb(..), hsl(..) or hwb(..) for historical reasons.
                 // <https://github.com/web-platform-tests/wpt/issues/47921>
-                if let GenericCalcNode::Leaf(Leaf::ColorComponent(channel_keyword)) = node.as_ref()
-                {
-                    channel_keyword.to_css(dest)?;
-                } else {
-                    node.to_css(dest)?;
-                }
+                node.to_css(dest)?;
             },
             ColorComponent::AlphaOmitted => {
                 debug_assert!(false, "can't serialize an omitted alpha component");

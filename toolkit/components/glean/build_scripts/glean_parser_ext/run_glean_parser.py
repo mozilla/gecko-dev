@@ -159,7 +159,7 @@ def main(cpp_fd, *args):
         for app_id, ping_yamls in pings_by_app_id.items():
             input_files = [Path(path.join(topsrcdir, x)) for x in ping_yamls]
             ping_objs, _ = parse_with_options(input_files, options)
-            ping_names_by_app_id[app_id] = ping_objs["pings"].keys()
+            ping_names_by_app_id[app_id] = sorted(ping_objs["pings"].keys())
 
     with open_output(rust_path) as rust_fd:
         rust.output_rust(all_objs, rust_fd, ping_names_by_app_id, options)
