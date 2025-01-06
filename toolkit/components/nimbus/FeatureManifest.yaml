@@ -4040,12 +4040,23 @@ bounceTrackingProtection:
   owner: emz@mozilla.com
   hasExposure: false
   variables:
-    enabled:
+    mode:
       type: int
       setPref:
         branch: default
         pref: privacy.bounceTrackingProtection.mode
-      description: Mode to run the feature in. See nsIBounceTrackingProtection.idl for documentation.
+      description: >-
+        Mode to run the feature in. See nsIBounceTrackingProtection.idl for
+        documentation.
+    requireStatefulBounces:
+      type: boolean
+      setPref:
+        branch: default
+        pref: privacy.bounceTrackingProtection.requireStatefulBounces
+      description: >-
+        If true, only bounce redirects where the middle hop/s access cookies or
+        storage will be considered to be bounce trackers. If false, all
+        redirects that fit the bounce tracker heuristic will be considered.
 
 remoteTabManagement:
   description: >
