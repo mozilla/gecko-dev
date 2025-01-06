@@ -90,6 +90,8 @@ https_first_disabled = true
 
 ["browser_network_throttling.js"]
 
+["browser_offline_mode.js"]
+
 ["browser_orientationchange_event.js"]
 
 ["browser_page_redirection.js"]
