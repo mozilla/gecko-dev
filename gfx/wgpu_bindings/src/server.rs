@@ -1925,6 +1925,18 @@ impl Global {
                         return;
                     }
 
+                    let features = self.device_features(self_id);
+                    if desc.format == wgt::TextureFormat::Bgra8Unorm
+                        && desc.usage.contains(wgt::TextureUsages::STORAGE_BINDING)
+                        && !features.contains(wgt::Features::BGRA8UNORM_STORAGE)
+                    {
+                        error_buf.init(ErrMsg {
+                            message: "Bgra8Unorm with GPUStorageBinding usage with BGRA8UNORM_STORAGE disabled",
+                            r#type: ErrorBufferType::Validation,
+                        });
+                        return;
+                    }
+
                     #[cfg(target_os = "windows")]
                     {
                         let is_created = self.create_texture_with_external_texture_d3d11(
