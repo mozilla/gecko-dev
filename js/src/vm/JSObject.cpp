@@ -1026,15 +1026,6 @@ bool NativeObject::prepareForSwap(JSContext* cx,
   }
 
   if (hasDynamicSlots()) {
-    ObjectSlots* slotsHeader = getSlotsHeader();
-    size_t size = ObjectSlots::allocSize(slotsHeader->capacity());
-    RemoveCellMemory(this, size, MemoryUse::ObjectSlots);
-    if (!cx->nursery().isInside(slotsHeader)) {
-      if (!isTenured()) {
-        cx->nursery().removeMallocedBuffer(slotsHeader, size);
-      }
-      js_free(slotsHeader);
-    }
     setEmptyDynamicSlots(0);
   }
 
@@ -1299,9 +1290,6 @@ void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
   if (sa == sb && a->isTenured() == b->isTenured()) {
     // When both objects are the same size and in the same heap, just do a plain
     // swap of their contents.
-
-    // Swap slot associations.
-    zone->swapCellMemory(a, b, MemoryUse::ObjectSlots);
 
     size_t size = sa;
     char tmp[sizeof(JSObject_Slots16)];
@@ -2807,11 +2795,15 @@ JSObject* js::ToObjectSlowForPropertyAccess(JSContext* cx, JS::HandleValue val,
   return PrimitiveToObject(cx, val);
 }
 
+enum class SlotsKind { Fixed, Dynamic };
+
 class GetObjectSlotNameFunctor : public JS::TracingContext::Functor {
-  JSObject* obj;
+  NativeObject* obj;
+  SlotsKind kind;
 
  public:
-  explicit GetObjectSlotNameFunctor(JSObject* ctx) : obj(ctx) {}
+  explicit GetObjectSlotNameFunctor(NativeObject* obj, SlotsKind kind)
+      : obj(obj), kind(kind) {}
   virtual void operator()(JS::TracingContext* trc, const char* name, char* buf,
                           size_t bufsize) override;
 };
@@ -2822,15 +2814,16 @@ void GetObjectSlotNameFunctor::operator()(JS::TracingContext* tcx,
   MOZ_ASSERT(tcx->index() != JS::TracingContext::InvalidIndex);
 
   uint32_t slot = uint32_t(tcx->index());
+  if (kind == SlotsKind::Dynamic) {
+    slot += obj->numFixedSlots();
+  }
 
   Maybe<PropertyKey> key;
-  if (obj->is<NativeObject>()) {
-    NativeShape* shape = obj->as<NativeObject>().shape();
-    for (ShapePropertyIter<NoGC> iter(shape); !iter.done(); iter++) {
-      if (iter->hasSlot() && iter->slot() == slot) {
-        key.emplace(iter->key());
-        break;
-      }
+  NativeShape* shape = obj->as<NativeObject>().shape();
+  for (ShapePropertyIter<NoGC> iter(shape); !iter.done(); iter++) {
+    if (iter->hasSlot() && iter->slot() == slot) {
+      key.emplace(iter->key());
+      break;
     }
   }
 
@@ -2882,7 +2875,7 @@ void GetObjectSlotNameFunctor::operator()(JS::TracingContext* tcx,
     } else if (key->isSymbol()) {
       snprintf(buf, bufsize, "**SYMBOL KEY**");
     } else {
-      snprintf(buf, bufsize, "**FINALIZED ATOM KEY**");
+      MOZ_CRASH("Unexpected key kind");
     }
   }
 }
@@ -3328,7 +3321,7 @@ void JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                       JS::RuntimeSizes* runtimeSizes) {
   if (is<NativeObject>() && as<NativeObject>().hasDynamicSlots()) {
     info->objectsMallocHeapSlots +=
-        mallocSizeOf(as<NativeObject>().getSlotsHeader());
+        gc::GetAllocSize(as<NativeObject>().getSlotsHeader());
   }
 
   if (is<NativeObject>() && as<NativeObject>().hasDynamicElements()) {
@@ -3434,24 +3427,29 @@ void JSObject::traceChildren(JSTracer* trc) {
   Shape* objShape = shape();
   if (objShape->isNative()) {
     NativeObject* nobj = &as<NativeObject>();
+    const uint32_t nslots = nobj->slotSpan();
+    const uint32_t nfixed = nobj->numFixedSlots();
 
     {
-      GetObjectSlotNameFunctor func(nobj);
+      GetObjectSlotNameFunctor func(nobj, SlotsKind::Fixed);
       JS::AutoTracingDetails ctx(trc, func);
-      JS::AutoTracingIndex index(trc);
-      // Tracing can mutate the target but cannot change the slot count,
-      // but the compiler has no way of knowing this.
-      const uint32_t nslots = nobj->slotSpan();
-      for (uint32_t i = 0; i < nslots; ++i) {
-        TraceEdge(trc, &nobj->getSlotRef(i), "object slot");
-        ++index;
+      TraceRange(trc, std::min(nslots, nfixed), nobj->fixedSlots(),
+                 "objectFixedSlots");
+    }
+
+    if (nobj->hasDynamicSlots()) {
+      TraceEdgeToBuffer(trc, nobj, nobj->getSlotsHeader(),
+                        "objectDynamicSlots buffer");
+
+      if (nslots > nfixed) {
+        GetObjectSlotNameFunctor func(nobj, SlotsKind::Dynamic);
+        JS::AutoTracingDetails ctx(trc, func);
+        TraceRange(trc, nslots - nfixed, nobj->slots_, "objectDynamicSlots");
       }
-      MOZ_ASSERT(nslots == nobj->slotSpan());
     }
 
     TraceRange(trc, nobj->getDenseInitializedLength(),
-               static_cast<HeapSlot*>(nobj->getDenseElements()),
-               "objectElements");
+               nobj->getDenseElements().begin(), "objectElements");
   }
 
   // Call the trace hook at the end so that during a moving GC the trace hook

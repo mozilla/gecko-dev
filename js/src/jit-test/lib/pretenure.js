@@ -41,7 +41,10 @@ function setupPretenureTest() {
   // Force a nursery collection to apply size parameters.
   let o = {};
 
-  gc();
+  // Run a full (all-zones) shrinking GC. The heap size after this GC is
+  // significant because it affects the number of major GCs triggered by the
+  // tests.
+  gc(undefined, 'shrinking');
 }
 
 function allocateObjects(count, longLived) {

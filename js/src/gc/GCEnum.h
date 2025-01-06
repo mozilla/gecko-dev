@@ -109,7 +109,6 @@ enum class GCAbortReason {
   _(ArrayBufferContents)                   \
   _(StringContents)                        \
   _(ObjectElements)                        \
-  _(ObjectSlots)                           \
   _(ScriptPrivateData)                     \
   _(MapObjectData)                         \
   _(BigIntDigits)                          \
