@@ -321,6 +321,8 @@
 #include "js/GCAPI.h"
 #include "js/HashTable.h"
 #include "js/HeapAPI.h"
+#include "threading/LockGuard.h"
+#include "threading/Mutex.h"
 #include "threading/ProtectedData.h"
 
 // Macro to define scheduling tunables for GC parameters. Expands its argument
