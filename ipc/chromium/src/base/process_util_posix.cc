@@ -49,6 +49,12 @@
 #  define HAVE_WAITID
 #endif
 
+#ifdef DEBUG
+#  define LOG_AND_ASSERT CHROMIUM_LOG(FATAL)
+#else
+#  define LOG_AND_ASSERT CHROMIUM_LOG(ERROR)
+#endif
+
 namespace base {
 
 ProcessId GetCurrentProcId() { return getpid(); }
@@ -254,37 +260,73 @@ static bool IsZombieProcess(pid_t pid) {
 }
 #endif  // MOZ_ENABLE_FORKSERVER
 
-bool IsProcessDead(ProcessHandle handle, bool blocking) {
-  auto handleForkServer = [handle]() -> mozilla::Maybe<bool> {
+ProcessStatus WaitForProcess(ProcessHandle handle, BlockingWait blocking,
+                             int* info_out) {
+  *info_out = 0;
+
+  // Abstraction of the fork server workaround, inserted into the
+  // appropriate point in the waitid and waitpid paths; returns
+  // Nothing if the fork server isn't involved, or Some(rv) to return
+  // rv from WaitForProcess.
+  auto handleForkServer = [&]() -> mozilla::Maybe<ProcessStatus> {
 #ifdef MOZ_ENABLE_FORKSERVER
-    if (errno == ECHILD && mozilla::ipc::ForkServiceChild::WasUsed()) {
-      // We only know if a process exists, but not if it has crashed.
-      //
-      // Since content processes are not direct children of the chrome
-      // process any more, it is impossible to use |waitpid()| to wait for
-      // them.
-      const int r = kill(handle, 0);
-      if (r < 0) {
-        const int e = errno;
-        if (e != ESRCH) {
-          CHROMIUM_LOG(WARNING) << "unexpected error checking for process "
-                                << handle << ": " << strerror(e);
-          // Return true for unknown errors, to avoid the possibility
-          // of getting stuck in loop of failures.
-        }
-        return mozilla::Some(true);
-      }
-      // Annoying edge case (bug 1881386): if pid 1 isn't a real
-      // `init`, like in some container environments, and if the child
-      // exited after the fork server, it could become a permanent
-      // zombie.  We treat it as dead in that case.
-      return mozilla::Some(IsZombieProcess(handle));
+    // With the current design of the fork server we can't waitpid
+    // directly.  Instead, we simulate it by polling with `kill(pid, 0)`;
+    // this is unreliable because pids can be reused, so we could report
+    // that the process is still running when it's exited.
+    //
+    // Because of that possibility, the "blocking" mode has an arbitrary
+    // limit on the amount of polling it does for the process's
+    // nonexistence; if that limit is exceeded, an error is returned.
+    //
+    // See also bug 1752638 to improve the fork server so we can get
+    // accurate process information.
+    static constexpr long kDelayMS = 500;
+    static constexpr int kAttempts = 10;
+
+    if (errno != ECHILD || !mozilla::ipc::ForkServiceChild::WasUsed()) {
+      return mozilla::Nothing();
     }
+
+    // Note that this loop won't loop in the BlockingWait::No case.
+    for (int attempt = 0; attempt < kAttempts; ++attempt) {
+      const int rv = kill(handle, 0);
+      if (rv == 0) {
+        // Process is still running (or its pid was reassigned; oops).
+        if (blocking == BlockingWait::No) {
+          // Annoying edge case (bug 1881386): if pid 1 isn't a real
+          // `init`, like in some container environments, and if the child
+          // exited after the fork server, it could become a permanent
+          // zombie.  We treat it as dead in that case.
+          return mozilla::Some(IsZombieProcess(handle)
+                                   ? ProcessStatus::Exited
+                                   : ProcessStatus::Running);
+        }
+      } else {
+        if (errno == ESRCH) {
+          return mozilla::Some(ProcessStatus::Exited);
+        }
+        // Some other error (permissions, if it's the wrong process?).
+        *info_out = errno;
+        CHROMIUM_LOG(WARNING) << "Unexpected error probing process " << handle;
+        return mozilla::Some(ProcessStatus::Error);
+      }
+
+      // Wait and try again.
+      DCHECK(blocking == BlockingWait::Yes);
+      struct timespec delay = {(kDelayMS / 1000),
+                               (kDelayMS % 1000) * 1000 * 1000};
+      HANDLE_EINTR(nanosleep(&delay, &delay));
+    }
+
+    *info_out = ETIME;  // "Timer expired"; close enough.
+    return mozilla::Some(ProcessStatus::Error);
 #else
-    mozilla::Unused << handle;
-#endif
     return mozilla::Nothing();
+#endif
   };
+
+  const int maybe_wnohang = (blocking == BlockingWait::No) ? WNOHANG : 0;
 
 #ifdef HAVE_WAITID
 
@@ -294,60 +336,52 @@ bool IsProcessDead(ProcessHandle handle, bool blocking) {
   // reissued (see the end of this function) without that flag in
   // order to collect the process.
   siginfo_t si{};
-  const int wflags = WEXITED | WNOWAIT | (blocking ? 0 : WNOHANG);
+  const int wflags = WEXITED | WNOWAIT | maybe_wnohang;
   int result = HANDLE_EINTR(waitid(P_PID, handle, &si, wflags));
   if (result == -1) {
+    int wait_err = errno;
     if (auto forkServerReturn = handleForkServer()) {
       return *forkServerReturn;
     }
 
-    // This shouldn't happen, but sometimes it does.  The error is
-    // probably ECHILD and the reason is probably that a pid was
-    // waited on again after a previous wait reclaimed its zombie.
-    // (It could also occur if the process isn't a direct child, but
-    // don't do that.)  This is bad, because it risks interfering with
-    // an unrelated child process if the pid is reused.
-    //
-    // So, lacking reliable information, we indicate that the process
-    // is dead, in the hope that the caller will give up and stop
-    // calling us.  See also bug 943174 and bug 933680.
     CHROMIUM_LOG(ERROR) << "waitid failed pid:" << handle << " errno:" << errno;
-    return true;
+    *info_out = wait_err;
+    return ProcessStatus::Error;
   }
 
   if (si.si_pid == 0) {
     // the child hasn't exited yet.
-    return false;
+    return ProcessStatus::Running;
   }
 
+  ProcessStatus status;
   DCHECK(si.si_pid == handle);
   switch (si.si_code) {
     case CLD_STOPPED:
     case CLD_CONTINUED:
-      DCHECK(false) << "waitid returned an event type that it shouldn't have";
+      LOG_AND_ASSERT << "waitid returned an event type that it shouldn't have";
       [[fallthrough]];
     case CLD_TRAPPED:
       CHROMIUM_LOG(WARNING) << "ignoring non-exit event for process " << handle;
-      return false;
+      return ProcessStatus::Running;
 
     case CLD_KILLED:
     case CLD_DUMPED:
-      CHROMIUM_LOG(WARNING)
-          << "process " << handle << " exited on signal " << si.si_status;
+      status = ProcessStatus::Killed;
+      *info_out = si.si_status;
       break;
 
     case CLD_EXITED:
-      if (si.si_status != 0) {
-        CHROMIUM_LOG(WARNING)
-            << "process " << handle << " exited with status " << si.si_status;
-      }
+      status = ProcessStatus::Exited;
+      *info_out = si.si_status;
       break;
 
     default:
-      CHROMIUM_LOG(ERROR) << "unexpected waitid si_code value: " << si.si_code;
-      DCHECK(false);
+      LOG_AND_ASSERT << "unexpected waitid si_code value: " << si.si_code;
       // This shouldn't happen, but assume that the process exited to
       // avoid the caller possibly ending up in a loop.
+      *info_out = 0;
+      return ProcessStatus::Exited;
   }
 
   // Now consume the status / collect the dead process
@@ -359,33 +393,36 @@ bool IsProcessDead(ProcessHandle handle, bool blocking) {
   DCHECK(result == 0);
   DCHECK(si.si_pid == handle);
   DCHECK(si.si_code == old_si_code);
-  return true;
+  return status;
 
 #else  // no waitid
 
   int status;
-  const int result = waitpid(handle, &status, blocking ? 0 : WNOHANG);
+  const int result = waitpid(handle, &status, maybe_wnohang);
   if (result == -1) {
+    *info_out = errno;
     if (auto forkServerReturn = handleForkServer()) {
       return *forkServerReturn;
     }
 
     CHROMIUM_LOG(ERROR) << "waitpid failed pid:" << handle
                         << " errno:" << errno;
-    return true;
+    return ProcessStatus::Error;
   }
   if (result == 0) {
-    return false;
+    return ProcessStatus::Running;
   }
 
-  if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-    CHROMIUM_LOG(WARNING) << "process " << handle << " exited with status "
-                          << WEXITSTATUS(status);
-  } else if (WIFSIGNALED(status)) {
-    CHROMIUM_LOG(WARNING) << "process " << handle << " exited on signal "
-                          << WTERMSIG(status);
+  if (WIFEXITED(status)) {
+    *info_out = WEXITSTATUS(status);
+    return ProcessStatus::Exited;
   }
-  return true;
+  if (WIFSIGNALED(status)) {
+    *info_out = WTERMSIG(status);
+    return ProcessStatus::Killed;
+  }
+  LOG_AND_ASSERT << "unexpected wait status: " << status;
+  return ProcessStatus::Error;
 
 #endif  // waitid
 }
