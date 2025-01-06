@@ -48,8 +48,10 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.setFragmentResultListener
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -831,6 +833,37 @@ class HomeFragment : Fragment() {
         NavigationBar.homeInitializeTimespan.stop()
     }
 
+    private fun showEncourageSearchCfr() {
+        CFRPopup(
+            anchor = binding.toolbarWrapper,
+            properties = CFRPopupProperties(
+                popupBodyColors = listOf(
+                    getColor(requireContext(), R.color.fx_mobile_layer_color_gradient_end),
+                    getColor(requireContext(), R.color.fx_mobile_layer_color_gradient_start),
+                ),
+                popupVerticalOffset = ENCOURAGE_SEARCH_CFR_VERTICAL_OFFSET.dp,
+                dismissButtonColor = getColor(requireContext(), R.color.fx_mobile_icon_color_oncolor),
+                indicatorDirection = if (requireContext().isToolbarAtBottom()) {
+                    CFRPopup.IndicatorDirection.DOWN
+                } else {
+                    CFRPopup.IndicatorDirection.UP
+                },
+            ),
+            onDismiss = {
+                homeScreenPopupManager.get()?.onSearchBarCFRDismissed()
+            },
+            text = {
+                FirefoxTheme {
+                    Text(
+                        text = FxNimbus.features.encourageSearchCfr.value().cfrText,
+                        color = FirefoxTheme.colors.textOnColorPrimary,
+                        style = FirefoxTheme.typography.body2,
+                    )
+                }
+            },
+        ).show()
+    }
+
     @VisibleForTesting
     internal fun initializeMicrosurveyFeature(isMicrosurveyEnabled: Boolean) {
         if (isMicrosurveyEnabled) {
@@ -1192,6 +1225,16 @@ class HomeFragment : Fragment() {
             owner = viewLifecycleOwner,
             view = view,
         )
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                homeScreenPopupManager.get()?.searchBarCFRVisibility?.collect { showSearchBarCfr ->
+                    if (showSearchBarCfr) {
+                        showEncourageSearchCfr()
+                    }
+                }
+            }
+        }
 
         // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
         requireComponents.core.engine.profiler?.addMarker(
@@ -1705,5 +1748,7 @@ class HomeFragment : Fragment() {
 
         // Elevation for undo toasts
         internal const val TOAST_ELEVATION = 80f
+
+        private const val ENCOURAGE_SEARCH_CFR_VERTICAL_OFFSET = 0
     }
 }

@@ -27,17 +27,19 @@ class HomeScreenPopupManagerTest {
     @Mock
     private var settings: Settings = mockk()
 
-    private lateinit var homeScreenPopupManager: HomeScreenPopupManager
+    @Mock
+    private var nimbusManager: HomeScreenPopupManagerNimbusManager = mockk(relaxed = true)
 
     @Before
     fun setUp() {
         appStore = AppStore()
-        every { settings.shouldShowNavigationBarCFR } returns true
-        homeScreenPopupManager = HomeScreenPopupManager(appStore, settings)
     }
 
     @Test
     fun `WHEN search dialog becomes visible THEN navbar CFR gets hidden`() {
+        every { settings.shouldShowNavigationBarCFR } returns true
+        val homeScreenPopupManager = HomeScreenPopupManager(appStore, settings, nimbusManager)
+
         val searchDialogVisibility = true
 
         homeScreenPopupManager.start()
@@ -48,11 +50,66 @@ class HomeScreenPopupManagerTest {
 
     @Test
     fun `WHEN search dialog is not visible THEN navbar CFR is shown`() {
+        every { settings.shouldShowNavigationBarCFR } returns true
+        val homeScreenPopupManager = HomeScreenPopupManager(appStore, settings, nimbusManager)
+
         val searchDialogVisibility = false
 
         homeScreenPopupManager.start()
         appStore.dispatch(AppAction.UpdateSearchDialogVisibility(isVisible = searchDialogVisibility)).joinBlocking()
 
         assertEquals(true, homeScreenPopupManager.navBarCFRVisibility.value)
+    }
+
+    @Test
+    fun `WHEN the nav CFR is disabled AND the search bar CFR is enabled THEN the search bar CFR will show`() {
+        testSearchBar(
+            navCfrEnabled = false,
+            searchBarCfrEnabled = true,
+            expectedToShow = true,
+        )
+    }
+
+    @Test
+    fun `WHEN the nav CFR is enabled AND the search bar CFR is enabled THEN the search bar CFR will not show`() {
+        testSearchBar(
+            navCfrEnabled = true,
+            searchBarCfrEnabled = true,
+            expectedToShow = false,
+        )
+    }
+
+    @Test
+    fun `WHEN the nav CFR is enabled AND the search bar CFR is disabled THEN the search bar CFR will not show`() {
+        testSearchBar(
+            navCfrEnabled = true,
+            searchBarCfrEnabled = false,
+            expectedToShow = false,
+        )
+    }
+
+    @Test
+    fun `WHEN the nav CFR is disabled AND the search bar CFR is disabled THEN the search bar CFR will not show`() {
+        testSearchBar(
+            navCfrEnabled = false,
+            searchBarCfrEnabled = false,
+            expectedToShow = false,
+        )
+    }
+
+    private fun testSearchBar(
+        navCfrEnabled: Boolean,
+        searchBarCfrEnabled: Boolean,
+        expectedToShow: Boolean,
+    ) {
+        every { settings.shouldShowNavigationBarCFR } returns navCfrEnabled
+        every { settings.shouldShowSearchBarCFR } returns searchBarCfrEnabled
+        every { settings.canShowCfr } returns true
+
+        val homeScreenPopupManager = HomeScreenPopupManager(appStore, settings, nimbusManager)
+
+        homeScreenPopupManager.start()
+
+        assertEquals(expectedToShow, homeScreenPopupManager.searchBarCFRVisibility.value)
     }
 }

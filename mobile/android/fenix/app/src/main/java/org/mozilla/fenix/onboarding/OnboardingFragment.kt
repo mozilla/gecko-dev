@@ -211,6 +211,7 @@ class OnboardingFragment : Fragment() {
             onFinish = {
                 onFinish(it)
                 disableNavBarCFRForNewUser()
+                enableSearchBarCFRForNewUser()
             },
             onImpression = {
                 telemetryRecorder.onImpression(
@@ -325,6 +326,10 @@ class OnboardingFragment : Fragment() {
 
     private fun disableNavBarCFRForNewUser() {
         requireContext().settings().shouldShowNavigationBarCFR = false
+    }
+
+    private fun enableSearchBarCFRForNewUser() {
+        requireContext().settings().shouldShowSearchBarCFR = FxNimbus.features.encourageSearchCfr.value().enabled
     }
 
     // Marked as internal since it is used in unit tests

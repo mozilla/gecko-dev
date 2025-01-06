@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.distinctUntilChangedBy
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.utils.Settings
 
 /**
@@ -31,12 +32,47 @@ interface NavBarCFRVisibility {
 }
 
 /**
+ * Interface for the Search bar CFR Visibility.
+ */
+interface SearchBarCFRVisibility {
+    /**
+     * Returns the StateFlow for the search bar CFR visibility
+     */
+    val searchBarCFRVisibility: StateFlow<Boolean>
+
+    /**
+     * Callback for when search bar CFR is dismissed
+     */
+    fun onSearchBarCFRDismissed()
+}
+
+/**
+ * Interface for interacting with nimbus
+ */
+interface HomeScreenPopupManagerNimbusManager {
+    /**
+     * Records the encourage search CFR exposure
+     */
+    fun recordEncourageSearchCrfExposure()
+}
+
+/**
+ * Default implementation for [HomeScreenPopupManagerNimbusManager]
+ */
+class DefaultHomeScreenPopupManagerNimbusManager : HomeScreenPopupManagerNimbusManager {
+    override fun recordEncourageSearchCrfExposure() {
+        FxNimbus.features.encourageSearchCfr.recordExposure()
+    }
+}
+
+/**
  * Delegate for handling CFR Visibility.
  */
 class HomeScreenPopupManager(
-    val appStore: AppStore,
-    val settings: Settings,
-) : LifecycleAwareFeature, NavBarCFRVisibility {
+    private val appStore: AppStore,
+    private val settings: Settings,
+    private val nimbusManager: HomeScreenPopupManagerNimbusManager = DefaultHomeScreenPopupManagerNimbusManager(),
+) : LifecycleAwareFeature, NavBarCFRVisibility, SearchBarCFRVisibility {
     private var isCFRAnchorVisible = false
     private var isNavigationBarEnabled = settings.shouldShowNavigationBarCFR
     private val showNavBarCFR = MutableStateFlow(false)
@@ -46,12 +82,21 @@ class HomeScreenPopupManager(
     override val navBarCFRVisibility: StateFlow<Boolean>
         get() = showNavBarCFR.asStateFlow()
 
+    private val _searchBarCRFVisibility = MutableStateFlow(false)
+    override val searchBarCFRVisibility: StateFlow<Boolean> = _searchBarCRFVisibility.asStateFlow()
+
     override fun setNavbarCFRShown(cfrShown: Boolean) {
         if (!cfrShown) {
             settings.lastCfrShownTimeInMillis = System.currentTimeMillis()
         }
         isNavigationBarEnabled = !cfrShown
         settings.shouldShowNavigationBarCFR = !cfrShown
+    }
+
+    override fun onSearchBarCFRDismissed() {
+        settings.lastCfrShownTimeInMillis = System.currentTimeMillis()
+        settings.shouldShowSearchBarCFR = false
+        _searchBarCRFVisibility.value = false
     }
 
     override fun start() {
@@ -63,6 +108,9 @@ class HomeScreenPopupManager(
                         showNavBarCFR.value = isCFRAnchorVisible && isNavigationBarEnabled
                     }
             }
+        } else if (settings.shouldShowSearchBarCFR && settings.canShowCfr) {
+            nimbusManager.recordEncourageSearchCrfExposure()
+            _searchBarCRFVisibility.value = true
         }
     }
 
