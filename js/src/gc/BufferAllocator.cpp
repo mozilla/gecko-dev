@@ -525,6 +525,11 @@ void BufferAllocator::free(void* ptr) {
   DebugOnlyPoison(ptr, JS_FREED_BUFFER_PATTERN, GetAllocSize(ptr),
                   MemCheckKind::MakeUndefined);
 
+  if (IsMediumAlloc(ptr)) {
+    freeMedium(ptr);
+    return;
+  }
+
   // Can't free small allocations.
 }
 
@@ -1522,6 +1527,108 @@ void BufferAllocator::addSweptRegion(BufferChunk* chunk, uintptr_t freeStart,
                 ListPosition::Back, expectUnchanged);
 }
 
+void BufferAllocator::freeMedium(void* alloc) {
+  // Free a medium sized allocation. This coalesces the free space with any
+  // neighboring free regions. Coalescing is necessary for resize to work
+  // properly.
+
+  BufferChunk* chunk = BufferChunk::from(alloc);
+  if (isSweepingChunk(chunk)) {
+    return;  // We can't free if the chunk is currently being swept.
+  }
+
+  auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
+
+  // Set region as not allocated and then clear mark bit.
+  chunk->setAllocated(alloc, false);
+
+  // TODO: Since the mark bits are atomic, it's probably OK to unmark even if
+  // the chunk is currently being swept. If we get lucky the memory will be
+  // freed sooner.
+  chunk->markBits.ref().unmarkOneBit(alloc, ColorBit::BlackBit);
+
+  // Update heap size for tenured owned allocations.
+  size_t bytes = SizeClassBytes(header->sizeClass);
+  if (!header->isNurseryOwned) {
+    bool updateRetained =
+        majorState == State::Marking && !chunk->allocatedDuringCollection;
+    size_t usableBytes = bytes - sizeof(MediumBuffer);
+    zone->mallocHeapSize.removeBytes(usableBytes, updateRetained);
+  }
+
+  PoisonAlloc(header, JS_SWEPT_TENURED_PATTERN, bytes,
+              MemCheckKind::MakeUndefined);
+
+  FreeLists* freeLists = getChunkFreeLists(chunk);
+
+  uintptr_t startAddr = uintptr_t(header);
+  uintptr_t endAddr = startAddr + bytes;
+
+  // First check whether there is a free region following the allocation.
+  FreeRegion* region;
+  uintptr_t endOffset = endAddr & ChunkMask;
+  if (endOffset == 0 || chunk->isAllocated(endOffset)) {
+    // The allocation abuts the end of the chunk or another allocation. Add the
+    // allocation as a new free region.
+    //
+    // The new region is added to the front of relevant list so as to reuse
+    // recently freed memory preferentially. This may reduce fragmentation. See
+    // "The Memory Fragmentation Problem: Solved?"  by Johnstone et al.
+    size_t sizeClass = SizeClassForFreeRegion(bytes);
+    region = addFreeRegion(freeLists, sizeClass, startAddr, endAddr, false,
+                           ListPosition::Front);
+  } else {
+    // There is a free region following this allocation. Expand the existing
+    // region down to cover the newly freed space.
+    region = findFollowingFreeRegion(endAddr);
+    MOZ_ASSERT(region->startAddr == endAddr);
+    updateFreeRegionStart(freeLists, region, startAddr);
+  }
+
+  // Next check for any preceding free region and coalesce.
+  FreeRegion* precRegion = findPrecedingFreeRegion(startAddr);
+  if (precRegion) {
+    if (freeLists) {
+      size_t sizeClass = SizeClassForFreeRegion(precRegion->size());
+      freeLists->remove(sizeClass, precRegion);
+    }
+
+    updateFreeRegionStart(freeLists, region, precRegion->startAddr);
+    if (precRegion->hasDecommittedPages) {
+      region->hasDecommittedPages = true;
+    }
+  }
+}
+
+bool BufferAllocator::isSweepingChunk(BufferChunk* chunk) {
+  if (minorState == State::Sweeping && chunk->hasNurseryOwnedAllocs) {
+    // TODO: We could set a flag for nursery chunks allocated during minor
+    // collection to allow operations on chunks that are not being swept here.
+
+    if (!sweptChunksAvailable) {
+      // We are currently sweeping nursery owned allocations.
+      return true;
+    }
+
+    // Merge swept data, which may update hasNurseryOwnedAllocs.
+    //
+    // TODO: It would be good to know how often this helps and if it is
+    // worthwhile.
+    mergeSweptData();
+    if (chunk->hasNurseryOwnedAllocs) {
+      // We are currently sweeping nursery owned allocations.
+      return true;
+    }
+  }
+
+  if (majorState == State::Sweeping && !chunk->allocatedDuringCollection) {
+    // We are currently sweeping tenured owned allocations.
+    return true;
+  }
+
+  return false;
+}
+
 BufferAllocator::FreeRegion* BufferAllocator::addFreeRegion(
     FreeLists* freeLists, size_t sizeClass, uintptr_t start, uintptr_t end,
     bool anyDecommitted, ListPosition position,
@@ -1580,6 +1687,71 @@ BufferAllocator::FreeLists* BufferAllocator::getChunkFreeLists(
   }
 
   return &mediumFreeLists.ref();
+}
+
+BufferAllocator::FreeRegion* BufferAllocator::findFollowingFreeRegion(
+    uintptr_t startAddr) {
+  // Find the free region that starts at |startAddr|, which is not allocated and
+  // not at the end of the chunk. Always returns a region.
+
+  uintptr_t offset = uintptr_t(startAddr) & ChunkMask;
+  MOZ_ASSERT(offset >= FirstMediumAllocOffset);
+  MOZ_ASSERT(offset < ChunkSize);
+  MOZ_ASSERT((offset % MinMediumAllocSize) == 0);
+
+  BufferChunk* chunk = BufferChunk::from(reinterpret_cast<void*>(startAddr));
+  MOZ_ASSERT(!chunk->isAllocated(offset));  // Already marked as not allocated.
+  offset = chunk->findNextAllocated(offset);
+  MOZ_ASSERT(offset <= ChunkSize);
+
+  offset -= sizeof(FreeRegion);
+  auto* region = reinterpret_cast<FreeRegion*>(uintptr_t(chunk) + offset);
+  MOZ_ASSERT(region->startAddr == startAddr);
+
+  return region;
+}
+
+BufferAllocator::FreeRegion* BufferAllocator::findPrecedingFreeRegion(
+    uintptr_t endAddr) {
+  // Find the free region, if any, that ends at |endAddr|, which may be
+  // allocated or at the start of the chunk.
+
+  uintptr_t offset = uintptr_t(endAddr) & ChunkMask;
+  MOZ_ASSERT(offset >= FirstMediumAllocOffset);
+  MOZ_ASSERT(offset < ChunkSize);
+  MOZ_ASSERT((offset % MinMediumAllocSize) == 0);
+
+  if (offset == FirstMediumAllocOffset) {
+    return nullptr;  // Already at start of chunk.
+  }
+
+  BufferChunk* chunk = BufferChunk::from(reinterpret_cast<void*>(endAddr));
+  MOZ_ASSERT(!chunk->isAllocated(offset));
+  offset = chunk->findPrevAllocated(offset);
+
+  if (offset != ChunkSize) {
+    // Found a preceding allocation.
+    auto* header = reinterpret_cast<MediumBuffer*>(uintptr_t(chunk) + offset);
+    size_t bytes = SizeClassBytes(header->sizeClass);
+    MOZ_ASSERT(uintptr_t(header) + bytes <= endAddr);
+    if (uintptr_t(header) + bytes == endAddr) {
+      // No free space between preceding allocation and |endAddr|.
+      return nullptr;
+    }
+  }
+
+  auto* region = reinterpret_cast<FreeRegion*>(endAddr - sizeof(FreeRegion));
+#ifdef DEBUG
+  if (offset != ChunkSize) {
+    auto* header = reinterpret_cast<MediumBuffer*>(uintptr_t(chunk) + offset);
+    size_t bytes = SizeClassBytes(header->sizeClass);
+    MOZ_ASSERT(region->startAddr == uintptr_t(header) + bytes);
+  } else {
+    MOZ_ASSERT(region->startAddr == uintptr_t(chunk) + FirstMediumAllocOffset);
+  }
+#endif
+
+  return region;
 }
 
 /* static */

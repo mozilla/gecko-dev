@@ -70,6 +70,10 @@ struct MediumBuffer;
 //    edge to the buffer. This will mark the buffer in a GC and prevent it from
 //    being swept.
 //
+//  - Free a buffer. This allows uniquely owned buffers to be freed and reused
+//    without waiting for the next GC. It is a hint only and is not supported
+//    for all buffer kinds.
+//
 // Integration with the rest of the GC
 // -----------------------------------
 //
@@ -150,6 +154,11 @@ struct MediumBuffer;
 // waiting for it to finish we set the |majorFinishedWhileMinorSweeping| flag so
 // that we clear the |allocatedDuringCollection| for these chunks the end of the
 // minor sweeping.
+//
+// Free works by extending neighboring free regions to cover the freed
+// allocation or adding a new one if necessary. Free regions are found by
+// checking the allocated bitmap. Free is not supported if the containing chunk
+// is currently being swept off-thread.
 //
 
 class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
@@ -343,6 +352,9 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void addSweptRegion(BufferChunk* chunk, uintptr_t freeStart,
                       uintptr_t freeEnd, bool shouldDecommit,
                       bool expectUnchanged, FreeLists& freeLists);
+  void freeMedium(void* alloc);
+  FreeRegion* findFollowingFreeRegion(uintptr_t start);
+  FreeRegion* findPrecedingFreeRegion(uintptr_t start);
   enum class ListPosition { Front, Back };
   FreeRegion* addFreeRegion(FreeLists* freeLists, size_t sizeClass,
                             uintptr_t start, uintptr_t end, bool anyDecommitted,
@@ -351,6 +363,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void updateFreeRegionStart(FreeLists* freeLists, FreeRegion* region,
                              uintptr_t newStart);
   FreeLists* getChunkFreeLists(BufferChunk* chunk);
+  bool isSweepingChunk(BufferChunk* chunk);
 
   // Get the size class for an allocation. This rounds up to a class that is
   // large enough to hold the required size.
