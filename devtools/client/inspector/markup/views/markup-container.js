@@ -823,18 +823,14 @@ MarkupContainer.prototype = {
     // Elements with tabindex of -1 are not focusable.
     const focusable = this.editor.elt.querySelector("[tabindex='0']");
     if (focusable) {
-      if (fromMouseEvent) {
-        // When focus is coming from a mouse event:
-        // - prevent :focus-visible to be applied to the element
-        // - don't scroll element into view, as this could change the horizontal scroll,
-        //   and the element is already visible since the user clicked on it.
-        Services.focus.setFocus(
-          focusable,
-          Services.focus.FLAG_NOSHOWRING | Services.focus.FLAG_NOSCROLL
-        );
-      } else {
-        focusable.focus();
-      }
+      // When focus is coming from a mouse event:
+      // - prevent :focus-visible to be applied to the element
+      // - don't scroll element into view, as this could change the horizontal scroll,
+      //   and the element is already visible since the user clicked on it.
+      focusable.focus({
+        preventScroll: fromMouseEvent,
+        focusVisible: !fromMouseEvent,
+      });
     }
   },
 
