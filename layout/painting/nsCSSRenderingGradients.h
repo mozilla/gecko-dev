@@ -67,18 +67,27 @@ class MOZ_STACK_CLASS ColorStopInterpolator {
       // This is never the case on SVG gradients as they only use shorter hue.
       //
       // See https://bugzilla.mozilla.org/show_bug.cgi?id=1885716 for more info.
+      uint32_t extraStops = 0;
       if (mExtend) {
+        // If we're extending, we just need a single new stop, which will
+        // duplicate the end being extended; do not create interpolated stops
+        // within in the extension area!
         if (i == 0) {
           startPosition = std::min(startPosition, 0.0f);
+          extraStops = 1;
         }
         if (i == iterStops - 1) {
           endPosition = std::max(endPosition, 1.0f);
+          extraStops = 1;
         }
       }
-      uint32_t extraStops =
-          (uint32_t)(floor(endPosition * kFullRangeExtraStops) -
-                     floor(startPosition * kFullRangeExtraStops));
-      extraStops = std::clamp(extraStops, 1U, kFullRangeExtraStops);
+      if (!extraStops) {
+        // Within the actual gradient range, figure out how many extra stops
+        // to use for this section of the gradient.
+        extraStops = (uint32_t)(floor(endPosition * kFullRangeExtraStops) -
+                                floor(startPosition * kFullRangeExtraStops));
+        extraStops = std::clamp(extraStops, 1U, kFullRangeExtraStops);
+      }
       float step = 1.0f / (float)extraStops;
       for (uint32_t extraStop = 0; extraStop <= extraStops; extraStop++) {
         auto progress = (float)extraStop * step;
