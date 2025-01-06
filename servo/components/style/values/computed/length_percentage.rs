@@ -202,9 +202,12 @@ impl ToResolvedValue for LengthPercentage {
 
 /// An unpacked `<length-percentage>` that borrows the `calc()` variant.
 #[derive(Clone, Debug, PartialEq, ToCss)]
-enum Unpacked<'a> {
+pub enum Unpacked<'a> {
+    /// A `calc()` value
     Calc(&'a CalcLengthPercentage),
+    /// A length value
     Length(Length),
+    /// A percentage value
     Percentage(Percentage),
 }
 
@@ -397,8 +400,10 @@ impl LengthPercentage {
         }
     }
 
+    /// Unpack the tagged pointer representation of a length-percentage into an enum
+    /// representation with separate tag and value.
     #[inline]
-    fn unpack<'a>(&'a self) -> Unpacked<'a> {
+    pub fn unpack<'a>(&'a self) -> Unpacked<'a> {
         unsafe {
             match self.tag() {
                 Tag::Calc => Unpacked::Calc(&*self.calc_ptr()),
