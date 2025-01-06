@@ -52,12 +52,14 @@ class MOZ_STACK_CLASS ColorStopInterpolator {
 
   void CreateStops() {
     // This loop intentionally iterates extra stops at the beginning and end
-    // if extending was requested.
-    uint32_t iterStops = mStops.Length() - 1 + (mExtend ? 2 : 0);
+    // if extending was requested, or in the degenerate case where only one
+    // color stop was specified.
+    const bool extend = mExtend || mStops.Length() == 1;
+    const uint32_t iterStops = mStops.Length() - 1 + (extend ? 2 : 0);
     for (uint32_t i = 0; i < iterStops; i++) {
-      auto thisindex = mExtend ? (i == 0 ? 0 : i - 1) : i;
+      auto thisindex = extend ? (i == 0 ? 0 : i - 1) : i;
       auto nextindex =
-          mExtend && (i == iterStops - 1 || i == 0) ? thisindex : thisindex + 1;
+          extend && (i == iterStops - 1 || i == 0) ? thisindex : thisindex + 1;
       const auto& start = mStops[thisindex];
       const auto& end = mStops[nextindex];
       float startPosition = start.mPosition;
@@ -68,7 +70,7 @@ class MOZ_STACK_CLASS ColorStopInterpolator {
       //
       // See https://bugzilla.mozilla.org/show_bug.cgi?id=1885716 for more info.
       uint32_t extraStops = 0;
-      if (mExtend) {
+      if (extend) {
         // If we're extending, we just need a single new stop, which will
         // duplicate the end being extended; do not create interpolated stops
         // within in the extension area!

@@ -786,7 +786,7 @@ impl Gradient {
     ) -> Result<LengthPercentageItemList, ParseError<'i>> {
         let items =
             generic::GradientItem::parse_comma_separated(context, input, LengthPercentage::parse)?;
-        if items.len() < 2 {
+        if items.is_empty() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         Ok(items)
@@ -966,7 +966,7 @@ impl Gradient {
             AngleOrPercentage::parse_with_unitless,
         )?;
 
-        if items.len() < 2 {
+        if items.is_empty() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
@@ -1249,7 +1249,7 @@ impl<T> generic::GradientItem<Color, T> {
             }
         }
 
-        if !seen_stop || items.len() < 2 {
+        if !seen_stop || items.is_empty() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         Ok(items.into())

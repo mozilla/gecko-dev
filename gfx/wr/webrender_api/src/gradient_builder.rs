@@ -127,7 +127,7 @@ impl GradientBuilder {
     /// the amount to adjust the gradient line start and stop.
     fn normalize(&mut self, extend_mode: di::ExtendMode) -> (f32, f32) {
         let stops = &mut self.stops;
-        assert!(stops.len() >= 2);
+        assert!(stops.len() >= 1);
 
         let first = *stops.first().unwrap();
         let last = *stops.last().unwrap();

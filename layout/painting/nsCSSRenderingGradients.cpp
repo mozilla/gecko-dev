@@ -608,8 +608,8 @@ static nsTArray<ColorStop> ComputeColorStopsForItems(
     ComputedStyle* aComputedStyle,
     Span<const StyleGenericGradientItem<StyleColor, T>> aItems,
     CSSCoord aLineLength) {
-  MOZ_ASSERT(aItems.Length() >= 2,
-             "The parser should reject gradients with less than two stops");
+  MOZ_ASSERT(!aItems.IsEmpty(),
+             "The parser should reject gradients with no stops");
 
   nsTArray<ColorStop> stops(aItems.Length());
 
