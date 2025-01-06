@@ -542,11 +542,6 @@ class MessageLoopForIO : public MessageLoop {
   bool WatchFileDescriptor(int fd, bool persistent, Mode mode,
                            FileDescriptorWatcher* controller,
                            Watcher* delegate);
-
-  typedef base::MessagePumpLibevent::SignalEvent SignalEvent;
-  typedef base::MessagePumpLibevent::SignalWatcher SignalWatcher;
-  bool CatchSignal(int sig, SignalEvent* sigevent, SignalWatcher* delegate);
-
 #endif
 };
 
