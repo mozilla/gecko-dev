@@ -83,20 +83,28 @@ void Queue::WriteBuffer(const Buffer& aBuffer, uint64_t aBufferOffset,
         auto checkedByteOffset =
             CheckedInt<uint64_t>(aDataOffset) * elementByteSize;
         if (!checkedByteOffset.isValid()) {
-          aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+          aRv.ThrowOperationError("offset x element size overflows");
           return;
         }
         auto offset = checkedByteOffset.value();
 
-        const auto checkedByteSize =
-            aSize.WasPassed()
-                ? CheckedInt<size_t>(aSize.Value()) * elementByteSize
-                : CheckedInt<size_t>(byteLength) - offset;
-        if (!checkedByteSize.isValid()) {
-          aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-          return;
+        size_t size;
+        if (aSize.WasPassed()) {
+          const auto checkedByteSize =
+              CheckedInt<size_t>(aSize.Value()) * elementByteSize;
+          if (!checkedByteSize.isValid()) {
+            aRv.ThrowOperationError("write size x element size overflows");
+            return;
+          }
+          size = checkedByteSize.value();
+        } else {
+          const auto checkedByteSize = CheckedInt<size_t>(byteLength) - offset;
+          if (!checkedByteSize.isValid()) {
+            aRv.ThrowOperationError("data byte length - offset underflows");
+            return;
+          }
+          size = checkedByteSize.value();
         }
-        auto size = checkedByteSize.value();
 
         auto checkedByteEnd = CheckedInt<uint64_t>(offset) + size;
         if (!checkedByteEnd.isValid() || checkedByteEnd.value() > byteLength) {
