@@ -887,10 +887,15 @@ impl calc::CalcNodeLeaf for CalcLengthPercentageLeaf {
 pub type CalcNode = calc::GenericCalcNode<CalcLengthPercentageLeaf>;
 
 /// The representation of a calc() function with mixed lengths and percentages.
+///
+/// It is aligned to 16 bytes to allow the low 4 bits of a pointer referencing it to be used as
+/// a tag, which allows sizing keywords such as min-content, max-content, fit-content and units
+/// like fr to be packed into a single 64 bit value. Although this capability is not currently
+/// used within Stylo.
 #[derive(
     Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue, ToCss,
 )]
-#[repr(C)]
+#[repr(C, align(16))]
 pub struct CalcLengthPercentage {
     #[animation(constant)]
     #[css(skip)]
