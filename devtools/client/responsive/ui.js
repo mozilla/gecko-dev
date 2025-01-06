@@ -862,10 +862,19 @@ class ResponsiveUI {
   async updateNetworkThrottling(enabled, profile) {
     if (!enabled) {
       await this.networkFront.clearNetworkThrottling();
+      await this.commands.targetConfigurationCommand.updateConfiguration({
+        setTabOffline: false,
+      });
       return false;
     }
     const data = throttlingProfiles.profiles.find(({ id }) => id == profile);
-    const { download, upload, latency } = data;
+    const { download, upload, latency, id } = data;
+
+    // Update offline mode
+    await this.commands.targetConfigurationCommand.updateConfiguration({
+      setTabOffline: id === throttlingProfiles.PROFILE_CONSTANTS.OFFLINE,
+    });
+
     await this.networkFront.setNetworkThrottling({
       downloadThroughput: download,
       uploadThroughput: upload,
