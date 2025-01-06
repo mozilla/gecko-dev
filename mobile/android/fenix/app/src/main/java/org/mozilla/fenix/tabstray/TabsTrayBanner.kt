@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@file:Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927715
-
 package org.mozilla.fenix.tabstray
 
 import androidx.compose.foundation.background
@@ -63,6 +61,7 @@ private const val TAB_COUNT_SHOW_CFR = 6
  * @param selectedPage The current page the Tabs Tray is on.
  * @param normalTabCount The total of open normal tabs.
  * @param privateTabCount The total of open private tabs.
+ * @param syncedTabCount The total of open synced tabs.
  * @param selectionMode [TabsTrayState.Mode] indicating whether the Tabs Tray is in single selection.
  * @param isInDebugMode True for debug variant or if secret menu is enabled for this session.
  * @param shouldShowTabAutoCloseBanner Whether the tab auto closer banner should be displayed.
@@ -91,6 +90,7 @@ fun TabsTrayBanner(
     selectedPage: Page,
     normalTabCount: Int,
     privateTabCount: Int,
+    syncedTabCount: Int,
     selectionMode: TabsTrayState.Mode,
     isInDebugMode: Boolean,
     shouldShowTabAutoCloseBanner: Boolean,
@@ -155,6 +155,8 @@ fun TabsTrayBanner(
                 menuItems = menuItems,
                 selectedPage = selectedPage,
                 normalTabCount = normalTabCount,
+                privateTabCount = privateTabCount,
+                syncedTabCount = syncedTabCount,
                 onTabPageIndicatorClicked = onTabPageIndicatorClicked,
                 onDismissClick = onDismissClick,
             )
@@ -188,6 +190,8 @@ private fun TabPageBanner(
     menuItems: List<MenuItem>,
     selectedPage: Page,
     normalTabCount: Int,
+    privateTabCount: Int,
+    syncedTabCount: Int,
     onTabPageIndicatorClicked: (Page) -> Unit,
     onDismissClick: () -> Unit,
 ) {
@@ -246,7 +250,10 @@ private fun TabPageBanner(
                     icon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_private_browsing),
-                            contentDescription = stringResource(id = R.string.tabs_header_private_tabs_title),
+                            contentDescription = stringResource(
+                                id = R.string.tabs_header_private_tabs_counter_title,
+                                privateTabCount.toString(),
+                            ),
                         )
                     },
                     selectedContentColor = selectedColor,
@@ -262,7 +269,10 @@ private fun TabPageBanner(
                     icon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_synced_tabs),
-                            contentDescription = stringResource(id = R.string.tabs_header_synced_tabs_title),
+                            contentDescription = stringResource(
+                                id = R.string.tabs_header_synced_tabs_counter_title,
+                                syncedTabCount.toString(),
+                            ),
                         )
                     },
                     selectedContentColor = selectedColor,
@@ -460,6 +470,7 @@ private fun TabsTrayBannerPreviewRoot(
     selectedPage: Page = Page.NormalTabs,
     normalTabCount: Int = 10,
     privateTabCount: Int = 10,
+    syncedTabCount: Int = 10,
     shouldShowTabAutoCloseBanner: Boolean = false,
 ) {
     val normalTabs = generateFakeTabsList(normalTabCount)
@@ -482,6 +493,7 @@ private fun TabsTrayBannerPreviewRoot(
                 selectedPage = selectedPage,
                 normalTabCount = normalTabCount,
                 privateTabCount = privateTabCount,
+                syncedTabCount = syncedTabCount,
                 selectionMode = selectMode,
                 isInDebugMode = true,
                 shouldShowTabAutoCloseBanner = shouldShowTabAutoCloseBanner,

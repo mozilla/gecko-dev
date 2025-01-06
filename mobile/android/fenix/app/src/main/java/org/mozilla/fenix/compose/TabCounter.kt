@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -86,7 +87,7 @@ fun TabCounter(
     }
 
     val normalTabsContentDescription = stringResource(
-        R.string.mozac_tab_counter_open_tab_tray,
+        R.string.mozac_open_tab_counter_tab_tray,
         formattedTabCount,
     )
 
@@ -119,7 +120,7 @@ fun TabCounter(
 
         Text(
             text = normalTabCountText,
-            modifier = normalTabsTextModifier,
+            modifier = normalTabsTextModifier.clearAndSetSemantics {},
             color = textColor,
             fontSize = with(LocalDensity.current) { counterTabsTextSize.toDp().toSp() },
             fontWeight = FontWeight.W700,

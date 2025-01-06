@@ -89,7 +89,6 @@ import org.mozilla.fenix.tabstray.syncedtabs.OnTabCloseClick as OnSyncedTabClose
  * @param onInactiveTabsCFRClick Invoked when the inactive tabs CFR is clicked.
  * @param onInactiveTabsCFRDismiss Invoked when the inactive tabs CFR is dismissed.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Suppress("LongMethod", "LongParameterList", "ComplexMethod")
 @Composable
 fun TabsTray(
@@ -148,6 +147,12 @@ fun TabsTray(
         Modifier.clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
     }
 
+    val syncedTabCount = remember(tabsTrayState.syncedTabs) {
+        tabsTrayState.syncedTabs
+            .filterIsInstance<SyncedTabsListItem.DeviceSection>()
+            .sumOf { deviceSection: SyncedTabsListItem.DeviceSection -> deviceSection.tabs.size }
+    }
+
     LaunchedEffect(tabsTrayState.selectedPage) {
         pagerState.animateScrollToPage(tabsTrayState.selectedPage.ordinal)
     }
@@ -164,6 +169,7 @@ fun TabsTray(
                 selectedPage = tabsTrayState.selectedPage,
                 normalTabCount = tabsTrayState.normalTabs.size + tabsTrayState.inactiveTabs.size,
                 privateTabCount = tabsTrayState.privateTabs.size,
+                syncedTabCount = syncedTabCount,
                 selectionMode = tabsTrayState.mode,
                 isInDebugMode = isInDebugMode,
                 shouldShowTabAutoCloseBanner = shouldShowTabAutoCloseBanner,

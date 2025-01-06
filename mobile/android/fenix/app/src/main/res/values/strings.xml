@@ -1193,9 +1193,15 @@
     <!-- Title for the list of tabs -->
     <string name="tab_header_label">Open tabs</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Private tabs</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Private tabs</string>
+    <!-- Title for the list of tabs in the current private session
+    The %1$s will be replaced by the number of opened private tabs -->
+    <string name="tabs_header_private_tabs_counter_title">Private Tabs Open: %1$s. Tap to switch tabs.</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Synced tabs</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Synced tabs</string>
+    <!-- Title for the list of tabs in the synced tabs
+    The %1$s will be replaced by the number of opened synced tabs -->
+    <string name="tabs_header_synced_tabs_counter_title">Synced Tabs Open: %1$s. Tap to switch tabs.</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Add tab</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
