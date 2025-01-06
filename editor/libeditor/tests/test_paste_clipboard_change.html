@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+  <title>Test for clipboard content changes during the paste event handler</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<input type="text">
+<div contenteditable="true"></div>
+<script>
+document.querySelectorAll("input, div[contenteditable]").forEach((element) => {
+  add_task(async () => {
+    info("test for " + element);
+    info("Waiting for initializing clipboard...");
+    await SimpleTest.promiseClipboardChange(
+      "Original text",
+      () => SpecialPowers.clipboardCopyString("Original text")
+    );
+
+    element.focus();
+    element.addEventListener("paste", () => {
+      // Overwrite the clipboard content.
+      SpecialPowers.clipboardCopyString("New text");
+    }, { once: true });
+    SpecialPowers.doCommand(window, "cmd_paste");
+
+    // Check content.
+    is(element.isContentEditable ? element.textContent : element.value, "New text", "Check paste content");
+  });
+})
+</script>
+</body>
+</html>
