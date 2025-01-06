@@ -1686,7 +1686,8 @@ js::Nursery::CollectionResult js::Nursery::doCollection(AutoGCSession& session,
   // Sweep malloced buffers.
   startProfile(ProfileKey::FreeMallocedBuffers);
   gc->queueBuffersForFreeAfterMinorGC(fromSpace.mallocedBuffers,
-                                      stringBuffersToReleaseAfterMinorGC_);
+                                      stringBuffersToReleaseAfterMinorGC_,
+                                      largeAllocsToFreeAfterMinorGC_);
   fromSpace.mallocedBufferBytes = 0;
   endProfile(ProfileKey::FreeMallocedBuffers);
 
@@ -1995,8 +1996,11 @@ Nursery::WasBufferMoved js::Nursery::maybeMoveRawBufferOnPromotion(
 }
 
 void js::Nursery::sweepBuffers() {
+  MOZ_ASSERT(largeAllocsToFreeAfterMinorGC_.isEmpty());
+
   for (ZonesIter zone(runtime(), WithAtoms); !zone.done(); zone.next()) {
-    if (zone->bufferAllocator.startMinorSweeping()) {
+    if (zone->bufferAllocator.startMinorSweeping(
+            largeAllocsToFreeAfterMinorGC_)) {
       sweepTask->queueAllocatorToSweep(zone->bufferAllocator);
     }
   }

@@ -41,6 +41,7 @@ enum class AllocKind : uint8_t;
 struct BufferChunk;
 struct Cell;
 struct MediumBuffer;
+class LargeBuffer;
 
 // BufferAllocator allocates dynamically sized blocks of memory which can be
 // reclaimed by the garbage collector and are associated with GC things.
@@ -170,6 +171,14 @@ struct MediumBuffer;
 // being swept off-thread.  If not possible, a new allocation is made and the
 // contents of the buffer copied.
 //
+// Large allocations
+// -----------------
+//
+// These are implemented using the OS page allocator. Allocations of this size
+// are relatively rare and not much attempt is made to optimize them. They are
+// stored with a chunk header at the front to allow them to be distinguished
+// from the other allocation kinds easily.
+//
 
 class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
  public:
@@ -226,6 +235,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
     void checkAvailable() const;
   };
 
+  using LargeAllocList = SlimLinkedList<LargeBuffer>;
+
   enum class State : uint8_t { NotCollecting, Marking, Sweeping };
 
   enum class OwnerKind : uint8_t { Tenured = 0, Nursery, None };
@@ -260,6 +271,19 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   MutexData<BufferChunkList> sweptMediumTenuredChunks;
   MutexData<FreeLists> sweptMediumNurseryFreeLists;
   MutexData<FreeLists> sweptMediumTenuredFreeLists;
+
+  // List of large nursery-owned buffers.
+  MainThreadData<LargeAllocList> largeNurseryAllocs;
+
+  // List of large tenured-owned buffers.
+  MainThreadData<LargeAllocList> largeTenuredAllocs;
+
+  // Large buffers waiting to be swept.
+  MainThreadOrGCTaskData<LargeAllocList> largeTenuredAllocsToSweep;
+
+  // Large buffers that have been swept.
+  MainThreadData<LargeAllocList> sweptLargeNurseryAllocs;
+  MutexData<LargeAllocList> sweptLargeTenuredAllocs;
 
   // Flag to indicate that swept chunks are available to be merged in the
   // sweptMediumMixedChunks or sweptMediumTenuredChunks lists.
@@ -306,8 +330,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void free(void* ptr);
 
   void startMinorCollection();
-  bool startMinorSweeping();
+  bool startMinorSweeping(LargeAllocList& largeAllocsToFree);
   void sweepForMinorCollection();
+
+  static void FreeLargeAllocs(LargeAllocList& largeAllocsToFree);
 
   void startMajorCollection();
   void startMajorSweeping();
@@ -391,6 +417,15 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   friend struct MediumBuffer;
 
   static bool IsLargeAllocSize(size_t bytes);
+  static bool IsLargeAlloc(void* alloc);
+  static bool IsLargeAllocMarked(void* alloc);
+  static bool MarkLargeAlloc(void* alloc);
+
+  void* allocLarge(size_t bytes, bool nurseryOwned, bool inGC);
+  bool sweepLargeTenured(LargeBuffer* header);
+  void freeLarge(void* alloc);
+  bool shrinkLarge(void* alloc, size_t newBytes);
+  void unmapLarge(LargeBuffer* header, bool isSweeping);
 
   void updateHeapSize(size_t bytes, bool checkThresholds,
                       bool updateRetainedSize);
@@ -400,6 +435,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
                                      bool allowAllocatedDuringCollection);
   void checkChunkGCStateNotInUse(BufferChunk* chunk,
                                  bool allowAllocatedDuringCollection);
+  void checkAllocListGCStateNotInUse(LargeAllocList& list, bool isNurseryOwned);
   void verifyChunk(BufferChunk* chunk, bool hasNurseryOwnedAllocs);
   void verifyFreeRegion(BufferChunk* chunk, uintptr_t endOffset,
                         size_t expectedSize);

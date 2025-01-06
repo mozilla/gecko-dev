@@ -771,6 +771,9 @@ class Nursery {
       Vector<mozilla::StringBuffer*, 8, SystemAllocPolicy>;
   StringBufferVector stringBuffersToReleaseAfterMinorGC_;
 
+  using LargeAllocList = SlimLinkedList<gc::LargeBuffer>;
+  LargeAllocList largeAllocsToFreeAfterMinorGC_;
+
   UniquePtr<NurserySweepTask> sweepTask;
   UniquePtr<NurseryDecommitTask> decommitTask;
 
@@ -808,8 +811,8 @@ MOZ_ALWAYS_INLINE bool Nursery::Space::isInside(const void* p) const {
 }
 
 // Test whether a GC cell or buffer is in the nursery. Equivalent to
-// IsInsideNursery but take not to call this with malloc memory. Faster than
-// Nursery::isInside.
+// IsInsideNursery but take care not to call this with malloc memory. Faster
+// than Nursery::isInside.
 MOZ_ALWAYS_INLINE bool ChunkPtrIsInsideNursery(void* ptr) {
   return gc::detail::ChunkPtrHasStoreBuffer(ptr);
 }

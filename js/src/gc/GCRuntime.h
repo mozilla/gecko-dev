@@ -614,7 +614,8 @@ class GCRuntime {
   void queueUnusedLifoBlocksForFree(LifoAlloc* lifo);
   void queueAllLifoBlocksForFreeAfterMinorGC(LifoAlloc* lifo);
   void queueBuffersForFreeAfterMinorGC(
-      Nursery::BufferSet& buffers, Nursery::StringBufferVector& stringBuffers);
+      Nursery::BufferSet& buffers, Nursery::StringBufferVector& stringBuffers,
+      Nursery::LargeAllocList& largeAllocs);
 
   // Public here for ReleaseArenaLists and FinalizeTypedArenas.
   void releaseArena(Arena* arena, const AutoLockGC& lock);
@@ -686,7 +687,8 @@ class GCRuntime {
   bool hasBuffersForBackgroundFree() const {
     return !lifoBlocksToFree.ref().isEmpty() ||
            !buffersToFreeAfterMinorGC.ref().empty() ||
-           !stringBuffersToReleaseAfterMinorGC.ref().empty();
+           !stringBuffersToReleaseAfterMinorGC.ref().empty() ||
+           !largeBuffersToFreeAfterMinorGC.ref().isEmpty();
   }
 
   // Returns false on failure without raising an exception.
@@ -1225,6 +1227,8 @@ class GCRuntime {
   HelperThreadLockData<Nursery::BufferSet> buffersToFreeAfterMinorGC;
   HelperThreadLockData<Nursery::StringBufferVector>
       stringBuffersToReleaseAfterMinorGC;
+  HelperThreadLockData<SlimLinkedList<LargeBuffer>>
+      largeBuffersToFreeAfterMinorGC;
 
   /* The number of the minor GC peformed at the start of major GC. */
   MainThreadData<uint64_t> initialMinorGCNumber;

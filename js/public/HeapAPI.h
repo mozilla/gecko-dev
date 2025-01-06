@@ -85,6 +85,7 @@ enum class ChunkKind : uint8_t {
   Invalid = 0,
   TenuredArenas,
   MediumBuffers,
+  LargeBuffer,
   NurseryToSpace,
   NurseryFromSpace
 };
@@ -135,8 +136,10 @@ class ChunkBase {
     return kind == ChunkKind::NurseryToSpace ||
            kind == ChunkKind::NurseryFromSpace;
   }
+
   bool isTenuredChunk() const {
-    return kind == ChunkKind::TenuredArenas || kind == ChunkKind::MediumBuffers;
+    return kind == ChunkKind::TenuredArenas ||
+           kind == ChunkKind::MediumBuffers || kind == ChunkKind::LargeBuffer;
   }
 
   // The store buffer for pointers from tenured things to things in this
