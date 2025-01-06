@@ -317,6 +317,13 @@ class RequestListContextMenu {
         submenu: copySubMenu,
       },
       {
+        id: "request-list-context-save-as-har",
+        label: L10N.getStr("netmonitor.context.saveAsHar"),
+        accesskey: L10N.getStr("netmonitor.context.saveAsHar.accesskey"),
+        visible: !!clickedRequest,
+        click: () => HarMenuUtils.saveAsHar(clickedRequest, connector),
+      },
+      {
         id: "request-list-context-save-all-as-har",
         label: L10N.getStr("netmonitor.context.saveAllAsHar"),
         accesskey: L10N.getStr("netmonitor.context.saveAllAsHar.accesskey"),

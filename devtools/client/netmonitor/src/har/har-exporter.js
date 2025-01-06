@@ -64,6 +64,8 @@ const HarExporter = {
    *
    * - forceExport {Boolean}: The result HAR file is created even if
    *   there are no HTTP entries.
+   *
+   * - isSingleRequest {Boolean}: Set to true if only a single request.
    */
   async save(options) {
     // Set default options related to save operation.
@@ -80,11 +82,18 @@ const HarExporter = {
 
     const host = new URL(options.connector.currentTarget.url);
 
+    if (typeof options.isSingleRequest != "boolean") {
+      options.isSingleRequest = false;
+    }
+
     const fileName = HarUtils.getHarFileName(
       defaultFileName,
       options.jsonp,
       compress,
-      host.hostname
+      host.hostname,
+      options.isSingleRequest && options.items.length
+        ? new URL(options.items[0].url).pathname
+        : ""
     );
 
     if (compress) {
