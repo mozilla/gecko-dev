@@ -27,18 +27,6 @@ bool FindNetAddrOverride(const NetAddr& aInput, NetAddr& aOutput) {
   return controller->mNetAddrOverrides.Get(addrPort, &aOutput);
 }
 
-bool FindBlockedUDPAddr(const NetAddr& aInput) {
-  RefPtr<MockNetworkLayerController> controller = gController;
-  if (!controller) {
-    return false;
-  }
-
-  nsAutoCString addrPort;
-  aInput.ToAddrPortString(addrPort);
-  AutoReadLock lock(controller->mLock);
-  return controller->mBlockedUDPAddresses.Contains(addrPort);
-}
-
 // static
 already_AddRefed<nsIMockNetworkLayerController>
 MockNetworkLayerController::GetSingleton() {
@@ -102,29 +90,6 @@ NS_IMETHODIMP MockNetworkLayerController::ClearNetAddrOverrides() {
       Unused << parent->SendClearNetAddrOverrides();
     }
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP MockNetworkLayerController::BlockUDPAddrIO(nsINetAddr* aAddr) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  NetAddr addr;
-  aAddr->GetNetAddr(&addr);
-  nsAutoCString addrPort;
-  addr.ToAddrPortString(addrPort);
-  {
-    AutoWriteLock lock(mLock);
-    mBlockedUDPAddresses.Insert(addrPort);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP MockNetworkLayerController::ClearBlockedUDPAddr() {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  AutoWriteLock lock(mLock);
-  mBlockedUDPAddresses.Clear();
   return NS_OK;
 }
 

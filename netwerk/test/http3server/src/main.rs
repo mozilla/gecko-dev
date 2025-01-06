@@ -1038,7 +1038,7 @@ fn new_runner(
     port: u16,
 ) -> Result<(SocketAddr, Option<Vec<u8>>, ServerRunner), io::Error> {
     let mut ech_config = None;
-    let addr: SocketAddr = format!("[::]:{}", port).parse().unwrap();
+    let addr: SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
 
     let socket = match neqo_bin::udp::Socket::bind(&addr) {
         Err(err) => {

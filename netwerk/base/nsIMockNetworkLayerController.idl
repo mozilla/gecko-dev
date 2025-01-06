@@ -21,14 +21,4 @@ interface nsIMockNetworkLayerController : nsISupports
    * Clears all the NetAddr overrides that were previously set.
    */
   void clearNetAddrOverrides();
-
-  /**
-   * This method prevents any UDP traffic to and from the given network address.
-   */
-  void blockUDPAddrIO(in nsINetAddr aAddr);
-
-  /**
-   * Removes all entries from the UDP blocklist.
-   */
-  void clearBlockedUDPAddr();
 };

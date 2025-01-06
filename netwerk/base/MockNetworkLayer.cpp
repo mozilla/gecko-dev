@@ -98,46 +98,6 @@ static PRStatus MockNetworkClose(PRFileDesc* fd) {
   return fd->methods->close(fd);
 }
 
-static PRInt32 MockNetworkSendTo(PRFileDesc* fd, const void* buf,
-                                 PRInt32 amount, PRIntn flags,
-                                 const PRNetAddr* addr,
-                                 PRIntervalTime timeout) {
-  MOZ_RELEASE_ASSERT(fd->identity == sMockNetworkLayerIdentity);
-
-  MockNetworkSecret* secret = reinterpret_cast<MockNetworkSecret*>(fd->secret);
-  SOCKET_LOG(("MockNetworkSendTo %p", secret));
-  mozilla::net::NetAddr netAddr(addr);
-  if (FindBlockedUDPAddr(netAddr)) {
-    nsAutoCString addrPort;
-    netAddr.ToAddrPortString(addrPort);
-    SOCKET_LOG(
-        ("MockNetworkSendTo %p addr [%s] is blocked", secret, addrPort.get()));
-    return PR_SUCCESS;
-  }
-  return (fd->lower->methods->sendto)(fd->lower, buf, amount, flags, addr,
-                                      timeout);
-}
-
-static PRInt32 PR_CALLBACK MockNetworkRecvFrom(PRFileDesc* fd, void* buf,
-                                               PRInt32 amount, PRIntn flags,
-                                               PRNetAddr* addr,
-                                               PRIntervalTime timeout) {
-  MOZ_RELEASE_ASSERT(fd->identity == sMockNetworkLayerIdentity);
-
-  MockNetworkSecret* secret = reinterpret_cast<MockNetworkSecret*>(fd->secret);
-  SOCKET_LOG(("MockNetworkRecvFrom %p\n", secret));
-  mozilla::net::NetAddr netAddr(addr);
-  if (FindBlockedUDPAddr(netAddr)) {
-    nsAutoCString addrPort;
-    netAddr.ToAddrPortString(addrPort);
-    SOCKET_LOG(("MockNetworkRecvFrom %p addr [%s] is blocked", secret,
-                addrPort.get()));
-    return PR_SUCCESS;
-  }
-  return (fd->lower->methods->recvfrom)(fd->lower, buf, amount, flags, addr,
-                                        timeout);
-}
-
 nsresult AttachMockNetworkLayer(PRFileDesc* fd) {
   if (!sMockNetworkLayeyMethodsPtr) {
     sMockNetworkLayerIdentity = PR_GetUniqueIdentity("MockNetwork Layer");
@@ -148,8 +108,6 @@ nsresult AttachMockNetworkLayer(PRFileDesc* fd) {
     sMockNetworkLayeyMethods.recv = MockNetworkRecv;
     sMockNetworkLayeyMethods.read = MockNetworkRead;
     sMockNetworkLayeyMethods.close = MockNetworkClose;
-    sMockNetworkLayeyMethods.sendto = MockNetworkSendTo;
-    sMockNetworkLayeyMethods.recvfrom = MockNetworkRecvFrom;
     sMockNetworkLayeyMethodsPtr = &sMockNetworkLayeyMethods;
   }
 

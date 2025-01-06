@@ -14247,7 +14247,7 @@
   value: false
   mirror: always
 
-- name: network.http.move_to_pending_list_after_network_change
+- name: network.http.http2.move_to_pending_list_after_network_change
   type: RelaxedAtomicBool
   value: true
   mirror: always

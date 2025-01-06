@@ -80,7 +80,6 @@ class ConnectionEntry {
   void ClosePersistentConnections();
 
   uint32_t PruneDeadConnections();
-  void MakeConnectionPendingAndDontReuse(HttpConnectionBase* conn);
   void VerifyTraffic();
   void PruneNoTraffic();
   uint32_t TimeoutTick();

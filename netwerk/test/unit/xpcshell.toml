@@ -743,13 +743,6 @@ skip-if = [
 ]
 run-sequentially = "http3server"
 
-["test_http3_network_change.js"]
-skip-if = [
-  "os == 'android'",
-  "socketprocess_networking",
-]
-run-sequentially = "node server exceptions dont replay well"
-
 ["test_http3_perf.js"]
 skip-if = [
   "os == 'android'",

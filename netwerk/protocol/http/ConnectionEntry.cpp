@@ -487,53 +487,43 @@ uint32_t ConnectionEntry::PruneDeadConnections() {
   return timeToNextExpire;
 }
 
-void ConnectionEntry::MakeConnectionPendingAndDontReuse(
-    HttpConnectionBase* conn) {
-  gHttpHandler->ConnMgr()->DecrementActiveConnCount(conn);
-  mPendingConns.AppendElement(conn);
-  // After DontReuse(), the connection will be closed after the last
-  // transition is done.
-  conn->DontReuse();
-  LOG(("Move active connection to pending list [conn=%p]\n", conn));
-}
-
-template <typename ConnType>
-static void CheckForTrafficForConns(nsTArray<RefPtr<ConnType>>& aConns,
-                                    bool aCheck) {
-  for (uint32_t index = 0; index < aConns.Length(); ++index) {
-    RefPtr<nsHttpConnection> conn = do_QueryObject(aConns[index]);
-    if (conn) {
-      conn->CheckForTraffic(aCheck);
-    }
-  }
-}
-
 void ConnectionEntry::VerifyTraffic() {
   if (!mConnInfo->IsHttp3()) {
-    CheckForTrafficForConns(mPendingConns, true);
-    // Iterate the idle connections and unmark them for traffic checks.
-    CheckForTrafficForConns(mIdleConns, false);
-  }
-
-  uint32_t numConns = mActiveConns.Length();
-  if (numConns) {
-    // Walk the list backwards to allow us to remove entries easily.
-    for (int index = numConns - 1; index >= 0; index--) {
-      RefPtr<nsHttpConnection> conn = do_QueryObject(mActiveConns[index]);
-      RefPtr<HttpConnectionUDP> connUDP = do_QueryObject(mActiveConns[index]);
+    for (uint32_t index = 0; index < mPendingConns.Length(); ++index) {
+      RefPtr<nsHttpConnection> conn = do_QueryObject(mPendingConns[index]);
       if (conn) {
         conn->CheckForTraffic(true);
-        if (conn->EverUsedSpdy() &&
-            StaticPrefs::
-                network_http_move_to_pending_list_after_network_change()) {
-          mActiveConns.RemoveElementAt(index);
-          MakeConnectionPendingAndDontReuse(conn);
+      }
+    }
+
+    uint32_t numConns = mActiveConns.Length();
+    if (numConns) {
+      // Walk the list backwards to allow us to remove entries easily.
+      for (int index = numConns - 1; index >= 0; index--) {
+        RefPtr<nsHttpConnection> conn = do_QueryObject(mActiveConns[index]);
+        if (conn) {
+          conn->CheckForTraffic(true);
+          if (conn->EverUsedSpdy() &&
+              StaticPrefs::
+                  network_http_http2_move_to_pending_list_after_network_change()) {
+            mActiveConns.RemoveElementAt(index);
+            gHttpHandler->ConnMgr()->DecrementActiveConnCount(conn);
+            mPendingConns.AppendElement(conn);
+            // After DontReuse(), the connection will be closed after the last
+            // transition is done.
+            conn->DontReuse();
+            LOG(("Move active connection to pending list [conn=%p]\n",
+                 conn.get()));
+          }
         }
-      } else if (connUDP &&
-                 StaticPrefs::
-                     network_http_move_to_pending_list_after_network_change()) {
-        mActiveConns.RemoveElementAt(index);
-        MakeConnectionPendingAndDontReuse(connUDP);
+      }
+    }
+
+    // Iterate the idle connections and unmark them for traffic checks.
+    for (uint32_t index = 0; index < mIdleConns.Length(); ++index) {
+      RefPtr<nsHttpConnection> conn = do_QueryObject(mIdleConns[index]);
+      if (conn) {
+        conn->CheckForTraffic(false);
       }
     }
   }
