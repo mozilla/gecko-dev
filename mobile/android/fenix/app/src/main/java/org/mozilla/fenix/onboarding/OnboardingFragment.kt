@@ -50,7 +50,6 @@ import org.mozilla.fenix.onboarding.view.ManagePrivacyPreferencesDialogFragment
 import org.mozilla.fenix.onboarding.view.OnboardingAddOn
 import org.mozilla.fenix.onboarding.view.OnboardingPageUiData
 import org.mozilla.fenix.onboarding.view.OnboardingScreen
-import org.mozilla.fenix.onboarding.view.ThemeOptionType
 import org.mozilla.fenix.onboarding.view.ToolbarOptionType
 import org.mozilla.fenix.onboarding.view.sequencePosition
 import org.mozilla.fenix.onboarding.view.telemetrySequenceId
@@ -241,14 +240,8 @@ class OnboardingFragment : Fragment() {
             },
 
             onCustomizeThemeClick = {
-                val selectedTheme = when {
-                    requireContext().settings().shouldFollowDeviceTheme -> ThemeOptionType.THEME_SYSTEM
-                    requireContext().settings().shouldUseDarkTheme -> ThemeOptionType.THEME_DARK
-                    else -> ThemeOptionType.THEME_LIGHT
-                }
-
                 telemetryRecorder.onSelectThemeClick(
-                    selectedTheme.id,
+                    onboardingStore.state.themeOptionSelected.id,
                     pagesToDisplay.telemetrySequenceId(),
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.THEME_SELECTION),
                 )
