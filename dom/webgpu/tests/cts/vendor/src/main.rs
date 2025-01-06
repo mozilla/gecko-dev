@@ -384,21 +384,26 @@ fn run(args: CliArgs) -> miette::Result<()> {
             let mut parsing_failed = false;
             let meta_variant_regex = Regex::new(concat!(
                 "^",
-                "<meta name=variant content='\\?q=([^']*?):\\*'>",
+                "<meta name=variant content='",
+                r"\?",
+                r"q=(?P<test_path>[^']*?):\*'",
+                ">",
                 "$"
             ))
             .unwrap();
             cts_cases = cases_start
                 .split_terminator('\n')
                 .filter_map(|line| {
-                    let path_and_meta = meta_variant_regex
-                        .captures(line)
-                        .map(|caps| (caps[1].to_owned(), line));
-                    if path_and_meta.is_none() {
+                    let captures = meta_variant_regex.captures(line);
+                    if captures.is_none() {
                         parsing_failed = true;
                         log::error!("line is not a test case: {line:?}");
                     }
-                    path_and_meta
+                    let captures = captures?;
+
+                    let test_path = captures["test_path"].to_owned();
+
+                    Some((test_path, line))
                 })
                 .collect::<Vec<_>>();
             ensure!(
@@ -466,6 +471,7 @@ fn run(args: CliArgs) -> miette::Result<()> {
             cases: BTreeSet<&'a str>,
             timeout_length: TimeoutLength,
         }
+        #[derive(Clone, Copy, Debug)]
         enum TimeoutLength {
             Short,
             Long,
@@ -475,10 +481,19 @@ fn run(args: CliArgs) -> miette::Result<()> {
             fn insert_with_default_name<'a>(
                 split_cases: &mut BTreeMap<fs::Child<'a>, WptEntry<'a>>,
                 spec_file_dir: fs::Child<'a>,
-                cases: WptEntry<'a>,
+                cases: BTreeSet<&'a str>,
+                timeout_length: TimeoutLength,
             ) {
                 let path = spec_file_dir.child("cts.https.html");
-                assert!(split_cases.insert(path, cases).is_none());
+                assert!(split_cases
+                    .insert(
+                        path,
+                        WptEntry {
+                            cases,
+                            timeout_length
+                        }
+                    )
+                    .is_none());
             }
             {
                 let dld_path =
@@ -489,20 +504,16 @@ fn run(args: CliArgs) -> miette::Result<()> {
                 insert_with_default_name(
                     &mut split_cases,
                     spec_file_dir,
-                    WptEntry {
-                        cases,
-                        timeout_length: TimeoutLength::Short,
-                    },
+                    cases,
+                    TimeoutLength::Short,
                 );
             }
             for (spec_file_dir, cases) in cts_cases_by_spec_file_dir {
                 insert_with_default_name(
                     &mut split_cases,
                     spec_file_dir,
-                    WptEntry {
-                        cases,
-                        timeout_length: TimeoutLength::Long,
-                    },
+                    cases,
+                    TimeoutLength::Long,
                 );
             }
             split_cases
