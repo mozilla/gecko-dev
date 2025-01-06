@@ -2856,7 +2856,8 @@
             if (this.arrowScrollbox.smoothScroll) {
               // Can we make both the new tab and the selected tab completely visible?
               if (
-                !selectedRect || this.verticalMode
+                !selectedRect ||
+                (this.verticalMode
                   ? Math.max(
                       tabRect.bottom - selectedRect.top,
                       selectedRect.bottom - tabRect.top
@@ -2864,7 +2865,7 @@
                   : Math.max(
                       tabRect.right - selectedRect.left,
                       selectedRect.right - tabRect.left
-                    ) <= scrollRect.width
+                    ) <= scrollRect.width)
               ) {
                 this.arrowScrollbox.ensureElementIsVisible(tabToScrollIntoView);
                 return;
