@@ -80,6 +80,32 @@ class CfrToolsStoreTest {
     }
 
     @Test
+    fun `GIVEN the homepage searchbar CFR has been shown WHEN the homepage searchbar CFR is toggled THEN its preference is set to false`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                homepageSearchBarShown = true,
+            ),
+        )
+
+        assertTrue(store.state.homepageSearchBarShown)
+        store.dispatch(CfrToolsAction.HomepageSearchBarShownToggled)
+        assertFalse(store.state.homepageSearchBarShown)
+    }
+
+    @Test
+    fun `GIVEN the homepage searchbar CFR has not been shown WHEN the homepage searchbar CFR is toggled THEN its preference is set to true`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                homepageSearchBarShown = false,
+            ),
+        )
+
+        assertFalse(store.state.homepageSearchBarShown)
+        store.dispatch(CfrToolsAction.HomepageSearchBarShownToggled)
+        assertTrue(store.state.homepageSearchBarShown)
+    }
+
+    @Test
     fun `GIVEN the nav buttons CFR has been shown WHEN the nav buttons CFR is toggled THEN its preference is set to false`() {
         val store = CfrToolsStore(
             initialState = CfrToolsState(
@@ -294,6 +320,32 @@ class CfrToolsStoreTest {
         assertTrue(store.state.homepageNavToolbarShown)
         store.dispatch(CfrToolsAction.HomepageNavToolbarCfrUpdated(false))
         assertFalse(store.state.homepageNavToolbarShown)
+    }
+
+    @Test
+    fun `GIVEN the homepage searchbar CFR has not been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to true`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                homepageSearchBarShown = false,
+            ),
+        )
+
+        assertFalse(store.state.homepageSearchBarShown)
+        store.dispatch(CfrToolsAction.HomepageSearchbarCfrUpdated(true))
+        assertTrue(store.state.homepageSearchBarShown)
+    }
+
+    @Test
+    fun `GIVEN the homepage searchbar CFR has been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to false`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                homepageSearchBarShown = true,
+            ),
+        )
+
+        assertTrue(store.state.homepageSearchBarShown)
+        store.dispatch(CfrToolsAction.HomepageSearchbarCfrUpdated(false))
+        assertFalse(store.state.homepageSearchBarShown)
     }
 
     @Test

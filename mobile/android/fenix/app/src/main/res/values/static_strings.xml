@@ -174,6 +174,10 @@
     <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_title">Homepage Navigation Toolbar</string>
     <!-- The homepage nav toolbar CFR description in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_description">Displayed when the user is on the homepage and sees the new navigation bar for the first time. Note that this CFR must be displayed in order for the Homepage Sync CFR to be shown.</string>
+    <!-- The homepage search bar CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_searchbar_title">Homepage Searchbar</string>
+    <!-- The homepage searchbar CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_searchbar_description">Displayed when a new user sees the homepage for the first time.</string>
     <!-- The homepage sync CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_sync_title">Homepage Sync</string>
     <!-- The homepage sync CFR description in CFR Tools -->

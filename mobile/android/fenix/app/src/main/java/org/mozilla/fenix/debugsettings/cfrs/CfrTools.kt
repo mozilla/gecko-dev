@@ -25,6 +25,7 @@ import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.compose.button.SecondaryButton
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -117,6 +118,16 @@ private fun ResetCfrTool(
                     },
                 )
             }
+
+            CfrToggle(
+                title = stringResource(R.string.debug_drawer_cfr_tools_homepage_searchbar_title),
+                description = stringResource(R.string.debug_drawer_cfr_tools_homepage_searchbar_description),
+                checked = cfrPreferences.homepageSearchBarShown,
+                enabled = FxNimbus.features.encourageSearchCfr.value().enabled,
+                onCfrToggle = {
+                    cfrToolsStore.dispatch(CfrToolsAction.HomepageSearchBarShownToggled)
+                },
+            )
 
             CfrToggle(
                 title = stringResource(R.string.debug_drawer_cfr_tools_homepage_sync_title),

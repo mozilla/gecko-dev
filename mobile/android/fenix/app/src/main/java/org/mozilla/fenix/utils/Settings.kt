@@ -1775,6 +1775,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the search bar CFR should be displayed to the user.
+     */
+    var shouldShowSearchBarCFR by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_should_searchbar_cfr),
+        default = false,
+    )
+
+    /**
      * Indicates Navigation Bar's Navigation buttons CFR should be displayed to the user.
      */
     var shouldShowNavigationButtonsCFR by booleanPreference(

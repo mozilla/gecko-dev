@@ -32,6 +32,7 @@ interface CfrPreferencesRepository {
     ) {
         HomepageSync(preferenceKey = R.string.pref_key_should_show_sync_cfr),
         HomepageNavToolbar(preferenceKey = R.string.pref_key_should_navbar_cfr),
+        HomepageSearchBar(preferenceKey = R.string.pref_key_should_searchbar_cfr),
         NavButtons(preferenceKey = R.string.pref_key_toolbar_navigation_cfr),
         AddPrivateTabToHome(preferenceKey = R.string.pref_key_showed_private_mode_cfr),
         TabAutoCloseBanner(preferenceKey = R.string.pref_key_should_show_auto_close_tabs_banner),
@@ -100,6 +101,8 @@ class DefaultCfrPreferencesRepository(
                     settings.showSyncCFR
                 CfrPreferencesRepository.CfrPreference.HomepageNavToolbar ->
                     settings.shouldShowNavigationBarCFR
+                CfrPreferencesRepository.CfrPreference.HomepageSearchBar ->
+                    settings.shouldShowSearchBarCFR
                 CfrPreferencesRepository.CfrPreference.NavButtons ->
                     settings.shouldShowNavigationButtonsCFR
                 CfrPreferencesRepository.CfrPreference.AddPrivateTabToHome ->
@@ -161,6 +164,8 @@ class DefaultCfrPreferencesRepository(
                 settings.showSyncCFR = !preferenceUpdate.value
             CfrPreferencesRepository.CfrPreference.HomepageNavToolbar ->
                 settings.shouldShowNavigationBarCFR = !preferenceUpdate.value
+            CfrPreferencesRepository.CfrPreference.HomepageSearchBar ->
+                settings.shouldShowSearchBarCFR = !preferenceUpdate.value
             CfrPreferencesRepository.CfrPreference.NavButtons ->
                 settings.shouldShowNavigationButtonsCFR = !preferenceUpdate.value
             CfrPreferencesRepository.CfrPreference.AddPrivateTabToHome -> {
