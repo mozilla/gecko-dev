@@ -594,6 +594,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   nsCString mHashKeyOfConnectionEntry;
   // The CNAME of the host, or empty if none.
   nsCString mCname;
+  nsCString mServerHeader;
 
   nsCOMPtr<WebTransportSessionEventListener> mWebTransportSessionEventListener;
 

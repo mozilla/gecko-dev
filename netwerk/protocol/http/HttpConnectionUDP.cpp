@@ -357,10 +357,6 @@ nsresult HttpConnectionUDP::OnHeadersAvailable(nsAHttpTransaction* trans,
     }
   }
 
-  nsAutoCString server;
-  Unused << responseHead->GetHeader(nsHttp::Server, server);
-  mHttp3Session->SetServer(server);
-
   return NS_OK;
 }
 

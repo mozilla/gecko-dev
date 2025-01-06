@@ -106,12 +106,8 @@ class Http3StreamBase;
 class QuicSocketControl;
 
 // IID for the Http3Session interface
-#define NS_HTTP3SESSION_IID                          \
-  {                                                  \
-    0x8fc82aaf, 0xc4ef, 0x46ed, {                    \
-      0x89, 0x41, 0x93, 0x95, 0x8f, 0xac, 0x4f, 0x21 \
-    }                                                \
-  }
+#define NS_HTTP3SESSION_IID \
+  {0x8fc82aaf, 0xc4ef, 0x46ed, {0x89, 0x41, 0x93, 0x95, 0x8f, 0xac, 0x4f, 0x21}}
 
 enum class EchExtensionStatus {
   kNotPresent,  // No ECH Extension was sent
@@ -219,8 +215,6 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   void SetSendOrder(Http3StreamBase* aStream, Maybe<int64_t> aSendOrder);
 
   void CloseWebTransportConn();
-
-  void SetServer(const nsACString& aServer) { mServer.Assign(aServer); }
 
  private:
   ~Http3Session();
@@ -356,8 +350,6 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   int64_t mTotalBytesWritten = 0;  // total data read
   PRIntervalTime mLastWriteTime = 0;
   PRIntervalTime mLastReadTime = 0;
-  uint64_t mTotelReadInterval = 0;
-  uint32_t mTotelReadIntervalCount = 0;
   nsCString mServer;
 
   // Records whether we sent an ECH Extension and whether it was a GREASE Xtn

@@ -1679,59 +1679,83 @@ void nsHttpTransaction::Close(nsresult reason) {
     SetResponseEnd(TimeStamp::Now());
   }
 
-  // Accumulate download throughput telemetry
-  if ((mContentRead > TELEMETRY_REQUEST_SIZE_10M) &&
-      !timings.requestStart.IsNull() && !timings.responseEnd.IsNull()) {
+  if (!timings.requestStart.IsNull() && !timings.responseEnd.IsNull()) {
     TimeDuration elapsed = timings.responseEnd - timings.requestStart;
     double megabits = static_cast<double>(mContentRead) * 8.0 / 1000000.0;
-    uint32_t mpbs = static_cast<uint32_t>(megabits / elapsed.ToSeconds());
+    uint32_t mbps = static_cast<uint32_t>(megabits / elapsed.ToSeconds());
+    nsAutoCString serverKey;
 
     switch (mHttpVersion) {
       case HttpVersion::v1_0:
-      case HttpVersion::v1_1:
-        glean::networking::http_1_download_throughput.AccumulateSingleSample(
-            mpbs);
-        if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
-          glean::networking::http_1_download_throughput_10_50
-              .AccumulateSingleSample(mpbs);
-        } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
-          glean::networking::http_1_download_throughput_50_100
-              .AccumulateSingleSample(mpbs);
-        } else {
-          glean::networking::http_1_download_throughput_100
-              .AccumulateSingleSample(mpbs);
+      case HttpVersion::v1_1: {
+        if (NS_SUCCEEDED(reason)) {
+          serverKey.Assign(mServerHeader.EqualsLiteral("cloudflare")
+                               ? "h1_cloudflare"_ns
+                               : "h1_others"_ns);
+        }
+        if (mContentRead > TELEMETRY_REQUEST_SIZE_10M) {
+          glean::networking::http_1_download_throughput.AccumulateSingleSample(
+              mbps);
+          if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
+            glean::networking::http_1_download_throughput_10_50
+                .AccumulateSingleSample(mbps);
+          } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
+            glean::networking::http_1_download_throughput_50_100
+                .AccumulateSingleSample(mbps);
+          } else {
+            glean::networking::http_1_download_throughput_100
+                .AccumulateSingleSample(mbps);
+          }
         }
         break;
-      case HttpVersion::v2_0:
-        glean::networking::http_2_download_throughput.AccumulateSingleSample(
-            mpbs);
-        if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
-          glean::networking::http_2_download_throughput_10_50
-              .AccumulateSingleSample(mpbs);
-        } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
-          glean::networking::http_2_download_throughput_50_100
-              .AccumulateSingleSample(mpbs);
-        } else {
-          glean::networking::http_2_download_throughput_100
-              .AccumulateSingleSample(mpbs);
+      }
+      case HttpVersion::v2_0: {
+        if (NS_SUCCEEDED(reason)) {
+          serverKey.Assign(mServerHeader.EqualsLiteral("cloudflare")
+                               ? "h2_cloudflare"_ns
+                               : "h2_others"_ns);
+        }
+        if (mContentRead > TELEMETRY_REQUEST_SIZE_10M) {
+          if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
+            glean::networking::http_2_download_throughput_10_50
+                .AccumulateSingleSample(mbps);
+          } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
+            glean::networking::http_2_download_throughput_50_100
+                .AccumulateSingleSample(mbps);
+          } else {
+            glean::networking::http_2_download_throughput_100
+                .AccumulateSingleSample(mbps);
+          }
         }
         break;
-      case HttpVersion::v3_0:
-        glean::networking::http_3_download_throughput.AccumulateSingleSample(
-            mpbs);
-        if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
-          glean::networking::http_3_download_throughput_10_50
-              .AccumulateSingleSample(mpbs);
-        } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
-          glean::networking::http_3_download_throughput_50_100
-              .AccumulateSingleSample(mpbs);
-        } else {
-          glean::networking::http_3_download_throughput_100
-              .AccumulateSingleSample(mpbs);
+      }
+      case HttpVersion::v3_0: {
+        if (NS_SUCCEEDED(reason)) {
+          serverKey.Assign(mServerHeader.EqualsLiteral("cloudflare")
+                               ? "h3_cloudflare"_ns
+                               : "h3_others"_ns);
+        }
+        if (mContentRead > TELEMETRY_REQUEST_SIZE_10M) {
+          if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
+            glean::networking::http_3_download_throughput_10_50
+                .AccumulateSingleSample(mbps);
+          } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
+            glean::networking::http_3_download_throughput_50_100
+                .AccumulateSingleSample(mbps);
+          } else {
+            glean::networking::http_3_download_throughput_100
+                .AccumulateSingleSample(mbps);
+          }
         }
         break;
+      }
       default:
         break;
+    }
+
+    if (!serverKey.IsEmpty()) {
+      glean::network::http_fetch_duration.Get(serverKey).AccumulateRawDuration(
+          elapsed);
     }
   }
 
@@ -2299,6 +2323,8 @@ nsresult nsHttpTransaction::HandleContentStart() {
       // wait to be called again...
       return NS_OK;
     }
+
+    Unused << mResponseHead->GetHeader(nsHttp::Server, mServerHeader);
 
     bool responseChecked = false;
     if (mIsForWebTransport) {
