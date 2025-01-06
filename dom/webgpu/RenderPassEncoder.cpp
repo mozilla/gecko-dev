@@ -45,11 +45,12 @@ static ffi::WGPUStoreOp ConvertStoreOp(const dom::GPUStoreOp& aOp) {
 }
 
 static ffi::WGPUColor ConvertColor(const dom::Sequence<double>& aSeq) {
-  ffi::WGPUColor color;
-  color.r = aSeq.SafeElementAt(0, 0.0);
-  color.g = aSeq.SafeElementAt(1, 0.0);
-  color.b = aSeq.SafeElementAt(2, 0.0);
-  color.a = aSeq.SafeElementAt(3, 1.0);
+  ffi::WGPUColor color{
+      .r = aSeq.SafeElementAt(0, 0.0),
+      .g = aSeq.SafeElementAt(1, 0.0),
+      .b = aSeq.SafeElementAt(2, 0.0),
+      .a = aSeq.SafeElementAt(3, 1.0),
+  };
   return color;
 }
 
