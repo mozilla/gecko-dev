@@ -408,3 +408,90 @@ add_task(async function test_interactions_idle() {
     },
   ]);
 });
+
+add_task(async function test_interactions_switch_tabs_delayed() {
+  await Interactions.reset();
+
+  let tab1 = await BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    url: TEST_URL,
+  });
+
+  let tab2 = BrowserTestUtils.addTab(gBrowser, TEST_URL2);
+  await BrowserTestUtils.browserLoaded(tab2.linkedBrowser, false, TEST_URL2);
+
+  info("Switch to second tab");
+  await BrowserTestUtils.switchTab(gBrowser, tab2);
+
+  let tab1ViewTime = await TestUtils.waitForCondition(
+    async () => await getDatabaseValue(TEST_URL, "totalViewTime")
+  );
+
+  // Only the interaction of the first tab should be recorded so far.
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      exactTotalViewTime: tab1ViewTime,
+    },
+  ]);
+
+  // Use a threshold long enough so that there's no unintentional trigger
+  // of ending the existing interaction and creation of a new one, unless
+  // we explicitly wait. Otherwise, this could cause intermittent failures
+  // on debug builds.
+  const THRESHOLD_MS = 1000;
+  setTabSelectIdleTimer(THRESHOLD_MS);
+
+  info("Switch back to first tab after a delay");
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(resolve => setTimeout(resolve, THRESHOLD_MS));
+
+  await BrowserTestUtils.switchTab(gBrowser, tab1);
+  let tab2ViewTime = await getDatabaseValue(TEST_URL2, "totalViewTime");
+
+  // When switching back to a previously seen tab that is going to end its
+  // existing interaction, the view time from when the tab was first seen
+  // again and when the interaction is unloaded is added to the total view
+  // time. This is due to the fact that just before any interaction ends,
+  // the difference between the current time and the start time of the
+  // current page view is added to the interaction.
+  const DELTA = 50;
+
+  // The interaction of the second tab should now be recorded.
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      totalViewTime: tab1ViewTime,
+      maxViewTime: tab1ViewTime + DELTA,
+    },
+    {
+      url: TEST_URL2,
+      exactTotalViewTime: tab2ViewTime,
+    },
+  ]);
+
+  info("Switch to second tab again");
+  await BrowserTestUtils.switchTab(gBrowser, tab2);
+  let tab1ViewTime2 = await getDatabaseValue(TEST_URL, "totalViewTime");
+  tab2ViewTime = await getDatabaseValue(TEST_URL2, "totalViewTime");
+
+  // The interaction of the first tab should be separate.
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      totalViewTime: tab1ViewTime,
+      maxViewTime: tab1ViewTime + DELTA,
+    },
+    {
+      url: TEST_URL2,
+      exactTotalViewTime: tab2ViewTime,
+    },
+    {
+      url: TEST_URL,
+      exactTotalViewTime: tab1ViewTime2,
+    },
+  ]);
+
+  BrowserTestUtils.removeTab(tab1);
+  BrowserTestUtils.removeTab(tab2);
+});

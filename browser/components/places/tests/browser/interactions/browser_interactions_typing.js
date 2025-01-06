@@ -408,3 +408,106 @@ add_task(async function test_typing_switch_tabs() {
   BrowserTestUtils.removeTab(tab1);
   BrowserTestUtils.removeTab(tab2);
 });
+
+add_task(async function test_typing_switch_tabs_delayed() {
+  await Interactions.reset();
+
+  let tab1 = await BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    url: TEST_URL,
+  });
+
+  await sendTextToInput(tab1.linkedBrowser, sentence);
+
+  let tab2 = BrowserTestUtils.addTab(gBrowser, TEST_URL3);
+  await BrowserTestUtils.browserLoaded(tab2.linkedBrowser, false, TEST_URL3);
+
+  info("Switch to second tab");
+  await BrowserTestUtils.switchTab(gBrowser, tab2);
+
+  // Only the interaction of the first tab should be recorded so far
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      keypresses: sentence.length,
+      typingTimeIsGreaterThan: 0,
+    },
+  ]);
+
+  const tab1TyingTime = await getDatabaseValue(TEST_URL, "typingTime");
+
+  info("Switch back to first tab");
+  await BrowserTestUtils.switchTab(gBrowser, tab1);
+
+  // The interaction of the second tab should now be recorded (no typing)
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      keypresses: sentence.length,
+      exactTypingTime: tab1TyingTime,
+    },
+    {
+      url: TEST_URL3,
+      keypresses: 0,
+      exactTypingTime: 0,
+    },
+  ]);
+
+  info("Switch back to the second tab after a delay");
+  // Doing actions in a tab can increase the amount of time another tab is not
+  // viewed, so to avoid potentially triggering intermittents, adjust the
+  // timer close to when we expect to see the result and until the test ends
+  // minimize the number of interactions on the page.
+  const THRESHOLD_MS = 500;
+  setTabSelectIdleTimer(THRESHOLD_MS);
+
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(resolve => setTimeout(resolve, THRESHOLD_MS));
+  await BrowserTestUtils.switchTab(gBrowser, tab2);
+
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      keypresses: sentence.length,
+      exactTypingTime: tab1TyingTime,
+    },
+    {
+      url: TEST_URL3,
+      keypresses: 0,
+      exactTypingTime: 0,
+    },
+  ]);
+
+  // Typing into the second tab
+  await SpecialPowers.spawn(tab2.linkedBrowser, [], function () {
+    const input = content.document.getElementById("input_text");
+    input.focus();
+  });
+  await EventUtils.sendString(longSentence);
+
+  info("Switch back to first tab");
+  await BrowserTestUtils.switchTab(gBrowser, tab1);
+
+  // The interaction of the second tab should now also be recorded (with typing)
+  // in another entry.
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      keypresses: sentence.length,
+      exactTypingTime: tab1TyingTime,
+    },
+    {
+      url: TEST_URL3,
+      keypresses: 0,
+      exactTypingTime: 0,
+    },
+    {
+      url: TEST_URL3,
+      keypresses: longSentence.length,
+      typingTimeIsGreaterThan: 0,
+    },
+  ]);
+
+  BrowserTestUtils.removeTab(tab1);
+  BrowserTestUtils.removeTab(tab2);
+});
