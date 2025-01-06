@@ -74,6 +74,9 @@ struct MediumBuffer;
 //    without waiting for the next GC. It is a hint only and is not supported
 //    for all buffer kinds.
 //
+//  - Reallocate a buffer. This allows uniquely owned buffers to be resized,
+//    possibly in-place. This is important for performance on some benchmarks.
+//
 // Integration with the rest of the GC
 // -----------------------------------
 //
@@ -159,6 +162,13 @@ struct MediumBuffer;
 // allocation or adding a new one if necessary. Free regions are found by
 // checking the allocated bitmap. Free is not supported if the containing chunk
 // is currently being swept off-thread.
+//
+// Reallocation works by resizing in place if possible. It is always possible to
+// shrink a medium allocation in place if the target size is still
+// medium. In-place growth is possible if there is enough free space following
+// the allocation. This is not supported if the containing chunk is currently
+// being swept off-thread.  If not possible, a new allocation is made and the
+// contents of the buffer copied.
 //
 
 class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
@@ -343,8 +353,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void* allocMedium(size_t bytes, bool nurseryOwned, bool inGC);
   void* bumpAllocOrRetry(size_t sizeClass, bool inGC);
   void* bumpAlloc(size_t sizeClass);
-  void* allocFromFreeList(FreeLists* freeLists, FreeRegion* region,
-                          size_t requestedBytes, size_t sizeClass);
+  void* allocFromRegion(FreeRegion* region, size_t requestedBytes,
+                        size_t sizeClass);
+  void updateFreeListsAfterAlloc(FreeLists* freeLists, FreeRegion* region,
+                                 size_t sizeClass);
   void recommitRegion(FreeRegion* region);
   bool allocNewChunk(bool inGC);
   bool sweepChunk(BufferChunk* chunk, OwnerKind ownerKindToSweep,
@@ -353,6 +365,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
                       uintptr_t freeEnd, bool shouldDecommit,
                       bool expectUnchanged, FreeLists& freeLists);
   void freeMedium(void* alloc);
+  bool growMedium(void* alloc, size_t newBytes);
+  bool shrinkMedium(void* alloc, size_t newBytes);
   FreeRegion* findFollowingFreeRegion(uintptr_t start);
   FreeRegion* findPrecedingFreeRegion(uintptr_t start);
   enum class ListPosition { Front, Back };

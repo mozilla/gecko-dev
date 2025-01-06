@@ -502,6 +502,22 @@ void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
     return ptr;
   }
 
+  if (bytes > currentBytes) {
+    // Can only grow medium allocations.
+    if (IsMediumAlloc(ptr) && !IsLargeAllocSize(bytes)) {
+      if (growMedium(ptr, bytes)) {
+        return ptr;
+      }
+    }
+  } else {
+    // Can shrink medium allocations.
+    if (IsMediumAlloc(ptr) && !IsSmallAllocSize(bytes)) {
+      if (shrinkMedium(ptr, bytes)) {
+        return ptr;
+      }
+    }
+  }
+
   void* newPtr = alloc(bytes, nurseryOwned);
   if (!newPtr) {
     return nullptr;
@@ -1271,20 +1287,18 @@ void* BufferAllocator::bumpAlloc(size_t sizeClass) {
   }
 
   FreeRegion* region = mediumFreeLists.ref().getFirstRegion(sizeClass);
-  return allocFromFreeList(&mediumFreeLists.ref(), region, requestedBytes,
-                           sizeClass);
+  void* ptr = allocFromRegion(region, requestedBytes, sizeClass);
+  updateFreeListsAfterAlloc(&mediumFreeLists.ref(), region, sizeClass);
+  return ptr;
 }
 
-void* BufferAllocator::allocFromFreeList(FreeLists* freeLists,
-                                         FreeRegion* region,
-                                         size_t requestedBytes,
-                                         size_t sizeClass) {
+void* BufferAllocator::allocFromRegion(FreeRegion* region,
+                                       size_t requestedBytes,
+                                       size_t sizeClass) {
   uintptr_t start = region->startAddr;
-  uintptr_t end = region->getEnd();
-  size_t classBytes = SizeClassBytes(sizeClass);
-  MOZ_ASSERT(end > start);
-  MOZ_ASSERT(end - start >= classBytes);
-  MOZ_ASSERT(((end - start) % MinMediumAllocSize) == 0);
+  MOZ_ASSERT(region->getEnd() > start);
+  MOZ_ASSERT(region->size() >= SizeClassBytes(sizeClass));
+  MOZ_ASSERT((region->size() % MinMediumAllocSize) == 0);
 
   // Ensure whole region is commited.
   if (region->hasDecommittedPages) {
@@ -1294,16 +1308,28 @@ void* BufferAllocator::allocFromFreeList(FreeLists* freeLists,
   // Allocate from start of region.
   void* ptr = reinterpret_cast<void*>(start);
   start += requestedBytes;
-  MOZ_ASSERT(end >= start);
+  MOZ_ASSERT(region->getEnd() >= start);
 
   // Update region start.
   region->startAddr = start;
 
-  // If we don't have to update any free lists or if it's still valid for this
-  // size class then we're done.
-  size_t newSize = end - start;
-  if (!freeLists || newSize >= classBytes) {
-    return ptr;
+  return ptr;
+}
+
+void BufferAllocator::updateFreeListsAfterAlloc(FreeLists* freeLists,
+                                                FreeRegion* region,
+                                                size_t sizeClass) {
+  // Updates |freeLists| after an allocation of class |sizeClass| from |region|.
+
+  freeLists->assertContains(sizeClass, region);
+
+  // If the region is still valid for further allocations of this size class
+  // then there's nothing to do.
+  size_t classBytes = SizeClassBytes(sizeClass);
+  size_t newSize = region->size();
+  MOZ_ASSERT((newSize % MinMediumAllocSize) == 0);
+  if (newSize >= classBytes) {
+    return;
   }
 
   // Remove region from this free list.
@@ -1311,19 +1337,15 @@ void* BufferAllocator::allocFromFreeList(FreeLists* freeLists,
 
   // If the region is now empty then we're done.
   if (newSize == 0) {
-    return ptr;
+    return;
   }
 
   // Otherwise region is now too small. Move it to the appropriate bucket for
   // its reduced size.
-  MOZ_ASSERT(newSize >= MinMediumAllocSize);
-  MOZ_ASSERT((newSize % MinMediumAllocSize) == 0);
   size_t newSizeClass = SizeClassForFreeRegion(newSize);
   MOZ_ASSERT(newSize >= SizeClassBytes(newSizeClass));
   MOZ_ASSERT(newSizeClass < sizeClass);
   freeLists->pushFront(newSizeClass, region);
-
-  return ptr;
 }
 
 void BufferAllocator::recommitRegion(FreeRegion* region) {
@@ -1679,8 +1701,114 @@ void BufferAllocator::updateFreeRegionStart(FreeLists* freeLists,
   }
 }
 
+bool BufferAllocator::growMedium(void* alloc, size_t newBytes) {
+  BufferChunk* chunk = BufferChunk::from(alloc);
+  if (isSweepingChunk(chunk)) {
+    return false;  // We can't grow if the chunk is currently being swept.
+  }
+
+  auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
+  newBytes += sizeof(MediumBuffer);
+
+  size_t currentBytes = SizeClassBytes(header->sizeClass);
+  MOZ_ASSERT(newBytes > currentBytes);
+
+  uintptr_t endOffset = (uintptr_t(header) & ChunkMask) + currentBytes;
+  MOZ_ASSERT(endOffset <= ChunkSize);
+  if (endOffset == ChunkSize) {
+    return false;  // Can't extend because we're at the end of the chunk.
+  }
+
+  size_t endAddr = uintptr_t(chunk) + endOffset;
+  if (chunk->isAllocated(endOffset)) {
+    return false;  // Can't extend because we abut another allocation.
+  }
+
+  FreeRegion* region = findFollowingFreeRegion(endAddr);
+  MOZ_ASSERT(region->startAddr == endAddr);
+
+  size_t extraBytes = newBytes - currentBytes;
+  if (region->size() < extraBytes) {
+    return false;  // Can't extend because following free region is too small.
+  }
+
+  size_t sizeClass = SizeClassForFreeRegion(region->size());
+
+  allocFromRegion(region, extraBytes, sizeClass);
+
+  // If the allocation is in a chunk where we've cleared the free lists before
+  // sweeping we don't need to update the free lists.
+  if (FreeLists* freeLists = getChunkFreeLists(chunk)) {
+    updateFreeListsAfterAlloc(freeLists, region, sizeClass);
+  }
+
+  header->sizeClass = SizeClassForAlloc(newBytes);
+  if (!header->isNurseryOwned) {
+    bool updateRetained =
+        majorState == State::Marking && !chunk->allocatedDuringCollection;
+    updateHeapSize(extraBytes, true, updateRetained);
+  }
+
+  return true;
+}
+
+bool BufferAllocator::shrinkMedium(void* alloc, size_t newBytes) {
+  BufferChunk* chunk = BufferChunk::from(alloc);
+  if (isSweepingChunk(chunk)) {
+    return false;  // We can't shrink if the chunk is currently being swept.
+  }
+
+  auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
+  size_t currentBytes = SizeClassBytes(header->sizeClass);
+  newBytes += sizeof(MediumBuffer);
+
+  MOZ_ASSERT(newBytes < currentBytes);
+  size_t sizeChange = currentBytes - newBytes;
+
+  // Update allocation size.
+  header->sizeClass = SizeClassForAlloc(newBytes);
+  if (!header->isNurseryOwned) {
+    bool updateRetained =
+        majorState == State::Marking && !chunk->allocatedDuringCollection;
+    zone->mallocHeapSize.removeBytes(sizeChange, updateRetained);
+  }
+
+  uintptr_t startOffset = uintptr_t(header) & ChunkMask;
+  uintptr_t oldEndOffset = startOffset + currentBytes;
+  uintptr_t newEndOffset = startOffset + newBytes;
+  MOZ_ASSERT(oldEndOffset <= ChunkSize);
+
+  // Poison freed memory.
+  uintptr_t chunkAddr = uintptr_t(chunk);
+  PoisonAlloc(reinterpret_cast<void*>(chunkAddr + newEndOffset),
+              JS_SWEPT_TENURED_PATTERN, sizeChange,
+              MemCheckKind::MakeUndefined);
+
+  FreeLists* freeLists = getChunkFreeLists(chunk);
+
+  // If we abut another allocation then add a new free region.
+  if (oldEndOffset == ChunkSize || chunk->isAllocated(oldEndOffset)) {
+    size_t sizeClass = SizeClassForFreeRegion(sizeChange);
+    uintptr_t freeStart = chunkAddr + newEndOffset;
+    uintptr_t freeEnd = chunkAddr + oldEndOffset;
+    addFreeRegion(freeLists, sizeClass, freeStart, freeEnd, false,
+                  ListPosition::Front);
+    return true;
+  }
+
+  // Otherwise find the following free region and extend it down.
+  FreeRegion* region = findFollowingFreeRegion(chunkAddr + oldEndOffset);
+  MOZ_ASSERT(region->startAddr == chunkAddr + oldEndOffset);
+  updateFreeRegionStart(freeLists, region, chunkAddr + newEndOffset);
+
+  return true;
+}
+
 BufferAllocator::FreeLists* BufferAllocator::getChunkFreeLists(
     BufferChunk* chunk) {
+  MOZ_ASSERT_IF(majorState == State::Sweeping,
+                chunk->allocatedDuringCollection);
+
   if (majorState == State::Marking && !chunk->allocatedDuringCollection) {
     // The chunk has been queued for sweeping and the free lists cleared.
     return nullptr;
