@@ -119,6 +119,7 @@ run-sequentially = "hardcoded ports"
 
 ["test_cert_storage.js"]
 tags = "addons psm blocklist"
+skip-if = ["true"] # Bug 1939625
 
 ["test_cert_storage_broken_db.js"]
 
