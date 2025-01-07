@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 135.0 (In Development)
+# 136.0 (In Development)
+
+# 135.0
 * **feature-prompts**
     * 🆕 New `ToggleablePrompt` interface implemented by `AddressSelectBar`, `CreditCard` `LoginSelectBar` and `SuggestStrongPasswordBar` to inform when these are shown or hidden. [Bug 1909746](https://bugzilla.mozilla.org/show_bug.cgi?id=1909746).
     * 🆕 New `ExpandablePrompt` interface implemented by `LoginSelectBar` to inform when it is expanded or collapsed. [Bug 1909746](https://bugzilla.mozilla.org/show_bug.cgi?id=1909746).

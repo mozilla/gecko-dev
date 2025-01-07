@@ -3,10 +3,6 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-    <!-- Message announced to the user when tab tray is selected with 1 tab -->
-    <string name="mozac_tab_counter_open_tab_tray_single" moz:removedIn="133" tools:ignore="UnusedResources">1 open tab. Tap to switch tabs.</string>
-    <!-- Message announced to the user when tab tray is selected with multiple tabs -->
-    <string name="mozac_tab_counter_open_tab_tray_plural" moz:removedIn="133" tools:ignore="UnusedResources">%1$s open tabs. Tap to switch tabs.</string>
     <!-- Message announced to the user when tab tray is selected
     The %1$s will be replaced by the number of opened tabs -->
     <string name="mozac_tab_counter_open_tab_tray" moz:removedIn="136" tools:ignore="UnusedResources">Tabs Open: %1$s. Tap to switch tabs.</string>

@@ -197,13 +197,8 @@
         <li>If you are unable to load any pages, check your device’s data or Wi-Fi connection.</li>
       </ul>
     ]]></string>
-
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">No internet connection</string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Looks like there’s a problem with your internet connection</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Check your network connection or try reloading the page in a few moments.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Try connecting on a different device. Check your modem or router. Disconnect and reconnect to Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->
