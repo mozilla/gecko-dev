@@ -10,12 +10,22 @@
 #include "GeckoProfiler.h"
 #include "nsIThreadPool.h"
 
+// Treat runnable profiling separately, as this can add considerable overhead
+// and ETW allows disabling it explicitly.
+static inline bool profiler_thread_is_profiling_runnables() {
+  return profiler_thread_is_being_profiled(ThreadProfilingFeatures::Markers) ||
+         (profiler_is_etw_collecting_markers() &&
+          ETW::IsProfilingGroup(
+              mozilla::MarkerSchema::ETWMarkerGroup::Scheduling)) ||
+         profiler_is_perfetto_tracing();
+}
+
 #if !defined(MOZ_GECKO_PROFILER) || !defined(MOZ_COLLECTING_RUNNABLE_TELEMETRY)
 #  define AUTO_PROFILE_FOLLOWING_RUNNABLE(runnable)
 #else
 #  define AUTO_PROFILE_FOLLOWING_RUNNABLE(runnable)                  \
     mozilla::Maybe<mozilla::AutoProfileRunnable> raiiRunnableMarker; \
-    if (profiler_thread_is_being_profiled_for_markers()) {           \
+    if (profiler_thread_is_profiling_runnables()) {                  \
       raiiRunnableMarker.emplace(runnable);                          \
     }
 

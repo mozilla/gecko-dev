@@ -31,6 +31,10 @@ TRACELOGGING_DECLARE_PROVIDER(kFirefoxTraceLoggingProvider);
 
 void Init();
 void Shutdown();
+static inline bool IsProfilingGroup(
+    mozilla::MarkerSchema::ETWMarkerGroup aGroup) {
+  return gETWCollectionMask & uint64_t(aGroup);
+}
 
 template <typename T, typename = void>
 struct MarkerHasPayload : std::false_type {};
@@ -410,6 +414,9 @@ void OutputMarkerSchema(void* aContext, MarkerType aMarkerType,
 namespace ETW {
 static inline void Init() {}
 static inline void Shutdown() {}
+static inline bool IsProfilingGroup(mozilla::MarkerSchema::ETWMarkerGroup) {
+  return false;
+}
 template <typename MarkerType, typename... PayloadArguments>
 static inline void EmitETWMarker(const mozilla::ProfilerString8View& aName,
                                  const mozilla::MarkerCategory& aCategory,
