@@ -881,8 +881,7 @@ class NativeObject : public JSObject {
   /*
    * Minimum size for dynamically allocated elements in normal Objects.
    */
-  static const uint32_t ELEMENT_CAPACITY_MIN =
-      8 - ObjectElements::VALUES_PER_HEADER;
+  static const uint32_t ELEMENT_CAPACITY_MIN = 5;
 
   HeapSlot* fixedSlots() const {
     return reinterpret_cast<HeapSlot*>(uintptr_t(this) + sizeof(NativeObject));

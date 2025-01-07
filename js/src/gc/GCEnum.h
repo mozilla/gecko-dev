@@ -108,7 +108,6 @@ enum class GCAbortReason {
 #define JS_FOR_EACH_INTERNAL_MEMORY_USE(_) \
   _(ArrayBufferContents)                   \
   _(StringContents)                        \
-  _(ObjectElements)                        \
   _(ScriptPrivateData)                     \
   _(MapObjectData)                         \
   _(BigIntDigits)                          \

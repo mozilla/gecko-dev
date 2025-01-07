@@ -1671,6 +1671,11 @@ scan_obj: {
     BufferAllocator::MarkTenuredAlloc(slots);
   }
 
+  if (nobj->hasDynamicElements()) {
+    void* elements = nobj->getUnshiftedElementsHeader();
+    BufferAllocator::MarkTenuredAlloc(elements);
+  }
+
   if (!nobj->hasEmptyElements()) {
     base = nobj->getDenseElements();
     kind = SlotsOrElementsKind::Elements;

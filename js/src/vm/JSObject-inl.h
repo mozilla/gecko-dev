@@ -105,18 +105,6 @@ inline void JSObject::finalize(JS::GCContext* gcx) {
   if (clasp->hasFinalize()) {
     clasp->doFinalize(gcx, this);
   }
-
-  if (!objShape->isNative()) {
-    return;
-  }
-
-  js::NativeObject* nobj = &as<js::NativeObject>();
-  if (nobj->hasDynamicElements()) {
-    js::ObjectElements* elements = nobj->getElementsHeader();
-    size_t size = elements->numAllocatedElements() * sizeof(js::HeapSlot);
-    gcx->free_(this, nobj->getUnshiftedElementsHeader(), size,
-               js::MemoryUse::ObjectElements);
-  }
 }
 
 inline bool JSObject::isQualifiedVarObj() const {

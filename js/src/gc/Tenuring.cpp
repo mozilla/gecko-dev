@@ -930,8 +930,7 @@ size_t js::gc::TenuringTracer::moveElements(NativeObject* dst,
   /* TODO Bug 874151: Prefer to put element data inline if we have space. */
 
   Nursery::WasBufferMoved result =
-      nursery().maybeMoveNurseryOrMallocBufferOnPromotion(
-          &unshiftedHeader, dst, allocSize, MemoryUse::ObjectElements);
+      nursery().maybeMoveBufferOnPromotion(&unshiftedHeader, dst, allocSize);
   if (result == Nursery::BufferNotMoved) {
     return 0;
   }
