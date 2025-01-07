@@ -216,10 +216,10 @@ win64-compiler-rt-19:
     run:
         arguments:
             - build/build-clang/clang-19.json
-            - build/build-clang/compiler-rt-19.json
+            - build/build-clang/win64-compiler-rt-19.json
         resources:
             - build/build-clang/clang-19.json
-            - build/build-clang/compiler-rt-19.json
+            - build/build-clang/win64-compiler-rt-19.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-x86_64-pc-windows-msvc.tar.zst
     fetches:

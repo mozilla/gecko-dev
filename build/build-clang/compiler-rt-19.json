@@ -1,6 +1,0 @@
-{
-    "patches": [
-        "llvmorg-20-init-9466-gce4618a9c405.patch",
-        "llvmorg-20-init-9666-g8417f6af54c8.patch"
-    ]
-}
