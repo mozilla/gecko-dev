@@ -66,6 +66,10 @@ crash report to the geckodriver issue.
 
 ## Enabling the crash reporter
 
+**Deprecation warning**: `--enable-crash-reporter` argument is deprecated and planned
+to be removed with the 0.37.0 release of geckodriver. As such it shouldn't be used
+with version 0.36.0 or later anymore. Please use the solution described above.
+
 By default geckodriver disables the crash reporter so it doesn't submit crash
 reports to Mozilla's crash reporting system, and also doesn't interfere with
 testing.
