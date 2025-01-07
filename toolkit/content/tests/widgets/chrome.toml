@@ -62,6 +62,8 @@ skip-if = [
 
 ["test_panel_item_checkbox.html"]
 
+["test_panel_item_disabled.html"]
+
 ["test_panel_list_accessibility.html"]
 
 ["test_panel_list_anchoring.html"]

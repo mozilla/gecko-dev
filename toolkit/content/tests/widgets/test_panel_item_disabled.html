@@ -1,0 +1,114 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test Panel Item With Disabled Attribute</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<p id="display"></p>
+<div id="content">
+  <panel-list>
+    <panel-item>First item</panel-item>
+    <panel-item disabled="">Second item</panel-item>
+  </panel-list>
+</div>
+<pre id="test">
+  <script  class="testbody" type="application/javascript">
+
+    add_task(async function testDisabledPanelItem() {
+      let panelList = document.querySelector("panel-list");
+      let panelItems = panelList.children;
+      let firstItem = panelItems[0];
+      let secondItem = panelItems[1];
+
+      // Ensure declared markup items are rendered with correct attributes
+
+      const getButtonDisabledAttribute = (el) => el.shadowRoot.querySelector("button").disabled;
+
+      is(
+        firstItem.disabled,
+        false,
+        "Panel item's state should not have changed from initial render"
+      );
+      is(
+        getButtonDisabledAttribute(firstItem),
+        false,
+        "The inner button should not have the disabled attribute when the panel item is enabled"
+      );
+
+      is(
+        secondItem.disabled,
+        true,
+        "Panel item's state should not have changed from initial render"
+      );
+      is(
+        getButtonDisabledAttribute(secondItem),
+        true,
+        "Disabled panel item should have the disabled inner button"
+      );
+
+      // Ensure that creating a disabled panel-item dynamically works as expected
+
+      let dynamicItem = document.createElement("panel-item");
+      dynamicItem.disabled = true;
+      panelList.appendChild(dynamicItem);
+      dynamicItem = panelList.lastElementChild;
+
+      is(
+        dynamicItem.disabled,
+        true,
+        "Panel item's state should not have changed from initial render"
+      );
+      is(
+        getButtonDisabledAttribute(dynamicItem),
+        true,
+        "Disabled panel item should have the disabled inner button"
+      );
+
+      // Flip disabled attribute of initially rendered panel items
+      // and generated panel item and verify changes.
+
+      for(let item of panelItems) {
+        item.disabled = !item.disabled
+      }
+
+      is(
+        firstItem.disabled,
+        true,
+        "The disabled attribute of the panel item should be updated to reflect the new value"
+      );
+      is(
+        getButtonDisabledAttribute(firstItem),
+        true,
+        "Disabled panel item should have the disabled inner button"
+      );
+
+      is(
+        secondItem.disabled,
+        false,
+        "The disabled attribute of the panel item should be updated to reflect the new value"
+      );
+      is(
+        getButtonDisabledAttribute(secondItem),
+        false,
+        "The inner button should not have the disabled attribute when the panel item is enabled"
+      );
+
+      is(
+        dynamicItem.disabled,
+        false,
+        "The disabled attribute of the panel item should be updated to reflect the new value"
+      );
+      is(
+        getButtonDisabledAttribute(dynamicItem),
+        false,
+        "The inner button should not have the disabled attribute when the panel item is enabled"
+      );
+    });
+  </script>
+</pre>
+</body>
+</html>
