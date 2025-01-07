@@ -25,6 +25,8 @@ class nsCOMPtr;
 
 namespace mozilla {
 
+enum class PreventDefaultResult : uint8_t { No, ByContent, ByChrome };
+
 class PresShell;
 class ScrollContainerFrame;
 enum class PreventDefaultResult : uint8_t;
@@ -202,6 +204,10 @@ class APZCCallbackHelper {
 };
 
 }  // namespace layers
+
+std::ostream& operator<<(std::ostream& aOut,
+                         const PreventDefaultResult aPreventDefaultResult);
+
 }  // namespace mozilla
 
 #endif /* mozilla_layers_APZCCallbackHelper_h */

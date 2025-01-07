@@ -248,13 +248,9 @@ struct EventNameMapping {
   mozilla::EventClassID mEventClassID;
 };
 
-namespace mozilla {
-enum class PreventDefaultResult : uint8_t { No, ByContent, ByChrome };
-
-namespace dom {
+namespace mozilla::dom {
 enum JSONBehavior { UndefinedIsNullStringLiteral, UndefinedIsVoidString };
-}
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 class nsContentUtils {
   friend class nsAutoScriptBlockerSuppressNodeRemoved;
@@ -3018,8 +3014,8 @@ class nsContentUtils {
       float aY, int32_t aButton, int32_t aButtons, int32_t aClickCount,
       int32_t aModifiers, bool aIgnoreRootScrollFrame, float aPressure,
       unsigned short aInputSourceArg, uint32_t aIdentifier, bool aToWindow,
-      mozilla::PreventDefaultResult* aPreventDefault,
-      bool aIsDOMEventSynthesized, bool aIsWidgetEventSynthesized);
+      bool* aPreventDefault, bool aIsDOMEventSynthesized,
+      bool aIsWidgetEventSynthesized);
 
   static void FirePageShowEventForFrameLoaderSwap(
       nsIDocShellTreeItem* aItem,
@@ -3740,12 +3736,6 @@ nsContentUtils::InternalContentPolicyTypeToExternal(nsContentPolicyType aType) {
   MOZ_ASSERT(false, "Unhandled nsContentPolicyType value");
   return ExtContentPolicy::TYPE_INVALID;
 }
-
-namespace mozilla {
-std::ostream& operator<<(
-    std::ostream& aOut,
-    const mozilla::PreventDefaultResult aPreventDefaultResult);
-}  // namespace mozilla
 
 class MOZ_RAII nsAutoScriptBlocker {
  public:

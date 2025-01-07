@@ -1028,4 +1028,21 @@ void APZCCallbackHelper::NotifyPinchGesture(
 }
 
 }  // namespace layers
+
+std::ostream& operator<<(std::ostream& aOut,
+                         const PreventDefaultResult aPreventDefaultResult) {
+  switch (aPreventDefaultResult) {
+    case PreventDefaultResult::No:
+      aOut << "unhandled";
+      break;
+    case PreventDefaultResult::ByContent:
+      aOut << "handled-by-content";
+      break;
+    case PreventDefaultResult::ByChrome:
+      aOut << "handled-by-chrome";
+      break;
+  }
+  return aOut;
+}
+
 }  // namespace mozilla

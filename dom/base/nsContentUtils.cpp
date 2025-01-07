@@ -8739,7 +8739,7 @@ nsresult nsContentUtils::SendMouseEvent(
     int32_t aButton, int32_t aButtons, int32_t aClickCount, int32_t aModifiers,
     bool aIgnoreRootScrollFrame, float aPressure,
     unsigned short aInputSourceArg, uint32_t aIdentifier, bool aToWindow,
-    PreventDefaultResult* aPreventDefault, bool aIsDOMEventSynthesized,
+    bool* aPreventDefault, bool aIsDOMEventSynthesized,
     bool aIsWidgetEventSynthesized) {
   nsPoint offset;
   nsCOMPtr<nsIWidget> widget = GetWidget(aPresShell, &offset);
@@ -8842,15 +8842,7 @@ nsresult nsContentUtils::SendMouseEvent(
     NS_ENSURE_SUCCESS(rv, rv);
   }
   if (aPreventDefault) {
-    if (status == nsEventStatus_eConsumeNoDefault) {
-      if (mouseOrPointerEvent.mFlags.mDefaultPreventedByContent) {
-        *aPreventDefault = PreventDefaultResult::ByContent;
-      } else {
-        *aPreventDefault = PreventDefaultResult::ByChrome;
-      }
-    } else {
-      *aPreventDefault = PreventDefaultResult::No;
-    }
+    *aPreventDefault = (status == nsEventStatus_eConsumeNoDefault);
   }
 
   return NS_OK;
@@ -11621,21 +11613,3 @@ template int32_t nsContentUtils::CompareTreePosition<TreeKind::DOM>(
     const nsINode*, const nsINode*, const nsINode*);
 template int32_t nsContentUtils::CompareTreePosition<TreeKind::Flat>(
     const nsINode*, const nsINode*, const nsINode*);
-
-namespace mozilla {
-std::ostream& operator<<(std::ostream& aOut,
-                         const PreventDefaultResult aPreventDefaultResult) {
-  switch (aPreventDefaultResult) {
-    case PreventDefaultResult::No:
-      aOut << "unhandled";
-      break;
-    case PreventDefaultResult::ByContent:
-      aOut << "handled-by-content";
-      break;
-    case PreventDefaultResult::ByChrome:
-      aOut << "handled-by-chrome";
-      break;
-  }
-  return aOut;
-}
-}  // namespace mozilla

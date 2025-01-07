@@ -753,17 +753,10 @@ nsDOMWindowUtils::SendMouseEventCommon(
     bool aToWindow, bool* aPreventDefault, bool aIsDOMEventSynthesized,
     bool aIsWidgetEventSynthesized, int32_t aButtons) {
   RefPtr<PresShell> presShell = GetPresShell();
-  PreventDefaultResult preventDefaultResult;
-  nsresult rv = nsContentUtils::SendMouseEvent(
+  return nsContentUtils::SendMouseEvent(
       presShell, aType, aX, aY, aButton, aButtons, aClickCount, aModifiers,
       aIgnoreRootScrollFrame, aPressure, aInputSourceArg, aPointerId, aToWindow,
-      &preventDefaultResult, aIsDOMEventSynthesized, aIsWidgetEventSynthesized);
-
-  if (aPreventDefault) {
-    *aPreventDefault = preventDefaultResult != PreventDefaultResult::No;
-  }
-
-  return rv;
+      aPreventDefault, aIsDOMEventSynthesized, aIsWidgetEventSynthesized);
 }
 
 NS_IMETHODIMP
