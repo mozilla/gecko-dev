@@ -1,0 +1,11 @@
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  const enc = new VideoEncoder({"output": () => {}, "error": () => {}})
+  enc.configure({
+    "codec": "avc3.42001E",
+    "width": 1000,
+    "height": 229,
+    "framerate": -17.75,
+  })
+})
+</script>
