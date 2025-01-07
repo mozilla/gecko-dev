@@ -28,12 +28,6 @@ add_task(async function () {
     // about:protections uses RPM to send a message as soon as the page loads,
     // the page is destoryed before getting a response.
     "protections",
-
-    // These pages are disabled when profile management is disabled.
-    "profilemanager",
-    "editprofile",
-    "deleteprofile",
-    "newprofile",
   ];
 
   for (let cid in Cc) {
