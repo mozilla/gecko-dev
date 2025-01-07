@@ -9224,6 +9224,10 @@ static bool BaselineCompile(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     AutoRealm ar(cx, script);
+    if (script->isBaselineCompilingOffThread()) {
+      CancelOffThreadBaselineCompile(script);
+    }
+
     if (script->hasBaselineScript()) {
       if (forceDebug && !script->baselineScript()->hasDebugInstrumentation()) {
         // There isn't an easy way to do this for a script that might be on
@@ -9250,7 +9254,12 @@ static bool BaselineCompile(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    jit::MethodStatus status = jit::BaselineCompile(cx, script, forceDebug);
+    jit::BaselineOptions options = {
+        jit::BaselineOption::ForceMainThreadCompilation};
+    if (forceDebug) {
+      options.setFlag(jit::BaselineOption::ForceDebugInstrumentation);
+    }
+    jit::MethodStatus status = jit::BaselineCompile(cx, script, options);
     switch (status) {
       case jit::Method_Error:
         return false;

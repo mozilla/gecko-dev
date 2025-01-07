@@ -268,7 +268,7 @@ static bool DispatchOffThreadBaselineCompile(JSContext* cx,
 }
 
 MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
-                                  bool forceDebugInstrumentation) {
+                                  BaselineOptions options) {
   cx->check(script);
   MOZ_ASSERT(!script->hasBaselineScript());
   MOZ_ASSERT(script->canBaselineCompile());
@@ -278,7 +278,11 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
       JS::ProfilingCategoryPair::JS_BaselineCompilation);
 
   bool compileDebugInstrumentation =
-      forceDebugInstrumentation || script->isDebuggee();
+      script->isDebuggee() ||
+      options.hasFlag(BaselineOption::ForceDebugInstrumentation);
+  bool forceMainThread =
+      compileDebugInstrumentation ||
+      options.hasFlag(BaselineOption::ForceMainThreadCompilation);
 
   JitContext jctx(cx);
 
@@ -302,8 +306,7 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
                             baseWarmUpThreshold, isIonCompileable,
                             compileDebugInstrumentation);
 
-  if (OffThreadBaselineCompilationAvailable(cx, script) &&
-      !forceDebugInstrumentation) {
+  if (OffThreadBaselineCompilationAvailable(cx, script) && !forceMainThread) {
     if (!DispatchOffThreadBaselineCompile(cx, snapshot)) {
       ReportOutOfMemory(cx);
       return Method_Error;
@@ -425,9 +428,11 @@ static MethodStatus CanEnterBaselineJIT(JSContext* cx, HandleScript script,
   // Frames can be marked as debuggee frames independently of its underlying
   // script being a debuggee script, e.g., when performing
   // Debugger.Frame.prototype.eval.
-  bool forceDebugInstrumentation =
-      osrSourceFrame && osrSourceFrame.isDebuggee();
-  return BaselineCompile(cx, script, forceDebugInstrumentation);
+  BaselineOptions options;
+  if (osrSourceFrame && osrSourceFrame.isDebuggee()) {
+    options.setFlag(BaselineOption::ForceDebugInstrumentation);
+  }
+  return BaselineCompile(cx, script, options);
 }
 
 bool jit::CanBaselineInterpretScript(JSScript* script) {

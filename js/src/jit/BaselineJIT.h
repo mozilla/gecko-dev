@@ -454,8 +454,15 @@ enum class BailoutReason {
     BaselineBailoutInfo** bailoutInfo,
     const ExceptionBailoutInfo* exceptionInfo, BailoutReason reason);
 
+enum class BaselineOption : uint8_t {
+  ForceDebugInstrumentation = 1 << 0,
+  ForceMainThreadCompilation = 1 << 1,
+};
+
+using BaselineOptions = EnumFlags<BaselineOption>;
+
 MethodStatus BaselineCompile(JSContext* cx, JSScript* script,
-                             bool forceDebugInstrumentation = false);
+                             BaselineOptions options);
 
 // Class storing the generated Baseline Interpreter code for the runtime.
 class BaselineInterpreter {
