@@ -74,7 +74,18 @@
     --toolbar-color: var(--lwt-text-color, inherit);
 
     --toolbarbutton-icon-fill-attention: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
-    --toolbarbutton-icon-fill-attention-text: light-dark(rgb(240, 240, 244), rgb(28, 27, 34));
+    --toolbarbutton-icon-fill-attention-text-light: rgb(240, 240, 244);
+    --toolbarbutton-icon-fill-attention-text-dark: rgb(28, 27, 34);
+    --toolbarbutton-icon-fill-attention-text: light-dark(
+      var(--toolbarbutton-icon-fill-attention-text-light),
+      var(--toolbarbutton-icon-fill-attention-text-dark)
+    );
+    &[lwt-icon-fill-attention="dark"] {
+      --toolbarbutton-icon-fill-attention-text: var(--toolbarbutton-icon-fill-attention-text-light);
+    }
+    &[lwt-icon-fill-attention="light"] {
+      --toolbarbutton-icon-fill-attention-text: var(--toolbarbutton-icon-fill-attention-text-dark);
+    }
   }
 
   /* This color scheme should match --toolbar-color. However, note that
