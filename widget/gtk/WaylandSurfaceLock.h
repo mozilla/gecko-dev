@@ -24,7 +24,8 @@ class WaylandSurface;
 // locked.
 class WaylandSurfaceLock final {
  public:
-  explicit WaylandSurfaceLock(RefPtr<WaylandSurface> aWaylandSurface);
+  explicit WaylandSurfaceLock(RefPtr<WaylandSurface> aWaylandSurface,
+                              bool aForceCommit = false);
   ~WaylandSurfaceLock();
 
   WaylandSurface* GetWaylandSurface();
@@ -33,6 +34,7 @@ class WaylandSurfaceLock final {
 #ifdef MOZ_WAYLAND
   RefPtr<WaylandSurface> mWaylandSurface;
   wl_surface* mSurface = nullptr;
+  bool mForceCommit = false;
 #endif
 };
 
