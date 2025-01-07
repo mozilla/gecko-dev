@@ -10,15 +10,13 @@
 namespace mozilla::dom {
 
 /* static */
-void Nyx::Log(const GlobalObject&, const nsAString& aMsg) {
-  NS_ConvertUTF16toUTF8 cStr(aMsg);
-  MOZ_FUZZING_NYX_PRINTF("%s\n", cStr.get());
+void Nyx::Log(const GlobalObject&, const nsACString& aMsg) {
+  MOZ_FUZZING_NYX_PRINTF("%s\n", PromiseFlatCString(aMsg).get());
 }
 
 /* static */
-bool Nyx::IsEnabled(const GlobalObject&, const nsAString& aFuzzerName) {
-  return fuzzing::Nyx::instance().is_enabled(
-      NS_ConvertUTF16toUTF8(aFuzzerName).get());
+bool Nyx::IsEnabled(const GlobalObject&, const nsACString& aFuzzerName) {
+  return fuzzing::Nyx::instance().is_enabled(PromiseFlatCString(aFuzzerName).get());
 }
 
 /* static */
