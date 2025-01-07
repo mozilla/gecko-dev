@@ -236,7 +236,8 @@ static bool IsZombieProcess(pid_t pid) {
   int e = errno;
   close(fd);
   if (len < 1) {
-    CHROMIUM_LOG(ERROR) << "failed to read " << buffer << ": " << strerror(e);
+    CHROMIUM_LOG(ERROR) << "failed to read " << path.get() << ": "
+                        << strerror(e);
     return true;
   }
 
