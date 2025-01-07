@@ -555,9 +555,9 @@ void dav1d_flush(Dav1dContext *const c) {
     if (c->n_fc == 1 && c->n_tc == 1) return;
     atomic_store(c->flush, 1);
 
-    // stop running tasks in worker threads
     if (c->n_tc > 1) {
         pthread_mutex_lock(&c->task_thread.lock);
+        // stop running tasks in worker threads
         for (unsigned i = 0; i < c->n_tc; i++) {
             Dav1dTaskContext *const tc = &c->tc[i];
             while (!tc->task_thread.flushed) {
@@ -579,7 +579,6 @@ void dav1d_flush(Dav1dContext *const c) {
         pthread_mutex_unlock(&c->task_thread.lock);
     }
 
-    // wait for threads to complete flushing
     if (c->n_fc > 1) {
         for (unsigned n = 0, next = c->frame_thread.next; n < c->n_fc; n++, next++) {
             if (next == c->n_fc) next = 0;
@@ -587,6 +586,7 @@ void dav1d_flush(Dav1dContext *const c) {
             dav1d_decode_frame_exit(f, -1);
             f->n_tile_data = 0;
             f->task_thread.retval = 0;
+            f->task_thread.error = 0;
             Dav1dThreadPicture *out_delayed = &c->frame_thread.out_delayed[next];
             if (out_delayed->p.frame_hdr) {
                 dav1d_thread_picture_unref(out_delayed);

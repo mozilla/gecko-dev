@@ -1550,7 +1550,8 @@ ptrdiff_t dav1d_parse_obus(Dav1dContext *const c, Dav1dData *const in) {
             break;
         default:
             // print a warning but don't fail for unknown types
-            dav1d_log(c, "Unknown Metadata OBU type %d\n", meta_type);
+            if (meta_type > 31) // Types 6 to 31 are "Unregistered user private", so ignore them.
+                dav1d_log(c, "Unknown Metadata OBU type %d\n", meta_type);
             break;
         }
 

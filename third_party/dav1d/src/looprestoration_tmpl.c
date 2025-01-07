@@ -27,8 +27,11 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
+#include "common/attributes.h"
+#include "common/bitdepth.h"
 #include "common/intops.h"
 
 #include "src/looprestoration.h"
@@ -37,156 +40,348 @@
 // 256 * 1.5 + 3 + 3 = 390
 #define REST_UNIT_STRIDE (390)
 
-// TODO Reuse p when no padding is needed (add and remove lpf pixels in p)
-// TODO Chroma only requires 2 rows of padding.
-static NOINLINE void
-padding(pixel *dst, const pixel *p, const ptrdiff_t stride,
-        const pixel (*left)[4], const pixel *lpf, int unit_w,
-        const int stripe_h, const enum LrEdgeFlags edges)
+static void wiener_filter_h(uint16_t *dst, const pixel (*left)[4],
+                            const pixel *src, const int16_t fh[8],
+                            const int w, const enum LrEdgeFlags edges
+                            HIGHBD_DECL_SUFFIX)
 {
-    const int have_left = !!(edges & LR_HAVE_LEFT);
-    const int have_right = !!(edges & LR_HAVE_RIGHT);
-
-    // Copy more pixels if we don't have to pad them
-    unit_w += 3 * have_left + 3 * have_right;
-    pixel *dst_l = dst + 3 * !have_left;
-    p -= 3 * have_left;
-    lpf -= 3 * have_left;
-
-    if (edges & LR_HAVE_TOP) {
-        // Copy previous loop filtered rows
-        const pixel *const above_1 = lpf;
-        const pixel *const above_2 = above_1 + PXSTRIDE(stride);
-        pixel_copy(dst_l, above_1, unit_w);
-        pixel_copy(dst_l + REST_UNIT_STRIDE, above_1, unit_w);
-        pixel_copy(dst_l + 2 * REST_UNIT_STRIDE, above_2, unit_w);
-    } else {
-        // Pad with first row
-        pixel_copy(dst_l, p, unit_w);
-        pixel_copy(dst_l + REST_UNIT_STRIDE, p, unit_w);
-        pixel_copy(dst_l + 2 * REST_UNIT_STRIDE, p, unit_w);
-        if (have_left) {
-            pixel_copy(dst_l, &left[0][1], 3);
-            pixel_copy(dst_l + REST_UNIT_STRIDE, &left[0][1], 3);
-            pixel_copy(dst_l + 2 * REST_UNIT_STRIDE, &left[0][1], 3);
-        }
-    }
-
-    pixel *dst_tl = dst_l + 3 * REST_UNIT_STRIDE;
-    if (edges & LR_HAVE_BOTTOM) {
-        // Copy next loop filtered rows
-        const pixel *const below_1 = lpf + 6 * PXSTRIDE(stride);
-        const pixel *const below_2 = below_1 + PXSTRIDE(stride);
-        pixel_copy(dst_tl + stripe_h * REST_UNIT_STRIDE, below_1, unit_w);
-        pixel_copy(dst_tl + (stripe_h + 1) * REST_UNIT_STRIDE, below_2, unit_w);
-        pixel_copy(dst_tl + (stripe_h + 2) * REST_UNIT_STRIDE, below_2, unit_w);
-    } else {
-        // Pad with last row
-        const pixel *const src = p + (stripe_h - 1) * PXSTRIDE(stride);
-        pixel_copy(dst_tl + stripe_h * REST_UNIT_STRIDE, src, unit_w);
-        pixel_copy(dst_tl + (stripe_h + 1) * REST_UNIT_STRIDE, src, unit_w);
-        pixel_copy(dst_tl + (stripe_h + 2) * REST_UNIT_STRIDE, src, unit_w);
-        if (have_left) {
-            pixel_copy(dst_tl + stripe_h * REST_UNIT_STRIDE, &left[stripe_h - 1][1], 3);
-            pixel_copy(dst_tl + (stripe_h + 1) * REST_UNIT_STRIDE, &left[stripe_h - 1][1], 3);
-            pixel_copy(dst_tl + (stripe_h + 2) * REST_UNIT_STRIDE, &left[stripe_h - 1][1], 3);
-        }
-    }
-
-    // Inner UNIT_WxSTRIPE_H
-    for (int j = 0; j < stripe_h; j++) {
-        pixel_copy(dst_tl + 3 * have_left, p + 3 * have_left, unit_w - 3 * have_left);
-        dst_tl += REST_UNIT_STRIDE;
-        p += PXSTRIDE(stride);
-    }
-
-    if (!have_right) {
-        pixel *pad = dst_l + unit_w;
-        pixel *row_last = &dst_l[unit_w - 1];
-        // Pad 3x(STRIPE_H+6) with last column
-        for (int j = 0; j < stripe_h + 6; j++) {
-            pixel_set(pad, *row_last, 3);
-            pad += REST_UNIT_STRIDE;
-            row_last += REST_UNIT_STRIDE;
-        }
-    }
-
-    if (!have_left) {
-        // Pad 3x(STRIPE_H+6) with first column
-        for (int j = 0; j < stripe_h + 6; j++) {
-            pixel_set(dst, *dst_l, 3);
-            dst += REST_UNIT_STRIDE;
-            dst_l += REST_UNIT_STRIDE;
-        }
-    } else {
-        dst += 3 * REST_UNIT_STRIDE;
-        for (int j = 0; j < stripe_h; j++) {
-            pixel_copy(dst, &left[j][1], 3);
-            dst += REST_UNIT_STRIDE;
-        }
-    }
-}
-
-// FIXME Could split into luma and chroma specific functions,
-// (since first and last tops are always 0 for chroma)
-// FIXME Could implement a version that requires less temporary memory
-// (should be possible to implement with only 6 rows of temp storage)
-static void wiener_c(pixel *p, const ptrdiff_t stride,
-                     const pixel (*const left)[4],
-                     const pixel *lpf, const int w, const int h,
-                     const LooprestorationParams *const params,
-                     const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
-{
-    // Wiener filtering is applied to a maximum stripe height of 64 + 3 pixels
-    // of padding above and below
-    pixel tmp[70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE];
-    pixel *tmp_ptr = tmp;
-
-    padding(tmp, p, stride, left, lpf, w, h, edges);
-
-    // Values stored between horizontal and vertical filtering don't
-    // fit in a uint8_t.
-    uint16_t hor[70 /*(64 + 3 + 3)*/ * REST_UNIT_STRIDE];
-    uint16_t *hor_ptr = hor;
-
-    const int16_t (*const filter)[8] = params->filter;
     const int bitdepth = bitdepth_from_max(bitdepth_max);
     const int round_bits_h = 3 + (bitdepth == 12) * 2;
     const int rounding_off_h = 1 << (round_bits_h - 1);
     const int clip_limit = 1 << (bitdepth + 1 + 7 - round_bits_h);
-    for (int j = 0; j < h + 6; j++) {
-        for (int i = 0; i < w; i++) {
+
+    if (w < 6) {
+        // For small widths, do the fully conditional loop with
+        // conditions on each access.
+        for (int x = 0; x < w; x++) {
             int sum = (1 << (bitdepth + 6));
 #if BITDEPTH == 8
-            sum += tmp_ptr[i + 3] * 128;
+            sum += src[x] * 128;
 #endif
-
-            for (int k = 0; k < 7; k++) {
-                sum += tmp_ptr[i + k] * filter[0][k];
+            for (int i = 0; i < 7; i++) {
+                int idx = x + i - 3;
+                if (idx < 0) {
+                    if (!(edges & LR_HAVE_LEFT))
+                        sum += src[0] * fh[i];
+                    else if (left)
+                        sum += left[0][4 + idx] * fh[i];
+                    else
+                        sum += src[idx] * fh[i];
+                } else if (idx >= w && !(edges & LR_HAVE_RIGHT)) {
+                    sum += src[w - 1] * fh[i];
+                } else
+                    sum += src[idx] * fh[i];
             }
-
-            hor_ptr[i] =
-                iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+            sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+            dst[x] = sum;
         }
-        tmp_ptr += REST_UNIT_STRIDE;
-        hor_ptr += REST_UNIT_STRIDE;
+
+        return;
     }
+
+    // For larger widths, do separate loops with less conditions; first
+    // handle the start of the row.
+    int start = 3;
+    if (!(edges & LR_HAVE_LEFT)) {
+        // If there's no left edge, pad using the leftmost pixel.
+        for (int x = 0; x < 3; x++) {
+            int sum = (1 << (bitdepth + 6));
+#if BITDEPTH == 8
+            sum += src[x] * 128;
+#endif
+            for (int i = 0; i < 7; i++) {
+                int idx = x + i - 3;
+                if (idx < 0)
+                    sum += src[0] * fh[i];
+                else
+                    sum += src[idx] * fh[i];
+            }
+            sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+            dst[x] = sum;
+        }
+    } else if (left) {
+        // If we have the left edge and a separate left buffer, pad using that.
+        for (int x = 0; x < 3; x++) {
+            int sum = (1 << (bitdepth + 6));
+#if BITDEPTH == 8
+            sum += src[x] * 128;
+#endif
+            for (int i = 0; i < 7; i++) {
+                int idx = x + i - 3;
+                if (idx < 0)
+                    sum += left[0][4 + idx] * fh[i];
+                else
+                    sum += src[idx] * fh[i];
+            }
+            sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+            dst[x] = sum;
+        }
+    } else {
+        // If we have the left edge, but no separate left buffer, we're in the
+        // top/bottom area (lpf) with the left edge existing in the same
+        // buffer; just do the regular loop from the start.
+        start = 0;
+    }
+    int end = w - 3;
+    if (edges & LR_HAVE_RIGHT)
+        end = w;
+
+    // Do a condititon free loop for the bulk of the row.
+    for (int x = start; x < end; x++) {
+        int sum = (1 << (bitdepth + 6));
+#if BITDEPTH == 8
+        sum += src[x] * 128;
+#endif
+        for (int i = 0; i < 7; i++) {
+            int idx = x + i - 3;
+            sum += src[idx] * fh[i];
+        }
+        sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+        dst[x] = sum;
+    }
+
+    // If we need to, calculate the end of the row with a condition for
+    // right edge padding.
+    for (int x = end; x < w; x++) {
+        int sum = (1 << (bitdepth + 6));
+#if BITDEPTH == 8
+        sum += src[x] * 128;
+#endif
+        for (int i = 0; i < 7; i++) {
+            int idx = x + i - 3;
+            if (idx >= w)
+                sum += src[w - 1] * fh[i];
+            else
+                sum += src[idx] * fh[i];
+        }
+        sum = iclip((sum + rounding_off_h) >> round_bits_h, 0, clip_limit - 1);
+        dst[x] = sum;
+    }
+}
+
+static void wiener_filter_v(pixel *p, uint16_t **ptrs, const int16_t fv[8],
+                            const int w HIGHBD_DECL_SUFFIX)
+{
+    const int bitdepth = bitdepth_from_max(bitdepth_max);
 
     const int round_bits_v = 11 - (bitdepth == 12) * 2;
     const int rounding_off_v = 1 << (round_bits_v - 1);
     const int round_offset = 1 << (bitdepth + (round_bits_v - 1));
-    for (int j = 0; j < h; j++) {
-        for (int i = 0; i < w; i++) {
-            int sum = -round_offset;
 
-            for (int k = 0; k < 7; k++) {
-                sum += hor[(j + k) * REST_UNIT_STRIDE + i] * filter[1][k];
-            }
+    for (int i = 0; i < w; i++) {
+        int sum = -round_offset;
 
-            p[j * PXSTRIDE(stride) + i] =
-                iclip_pixel((sum + rounding_off_v) >> round_bits_v);
-        }
+        // Only filter using 6 input rows. The 7th row is assumed to be
+        // identical to the last one.
+        //
+        // This function is assumed to only be called at the end, when doing
+        // padding at the bottom.
+        for (int k = 0; k < 6; k++)
+            sum += ptrs[k][i] * fv[k];
+        sum += ptrs[5][i] * fv[6];
+
+        p[i] = iclip_pixel((sum + rounding_off_v) >> round_bits_v);
     }
+
+    // Shift the pointers, but only update the first 5; the 6th pointer is kept
+    // as it was before (and the 7th is implicitly identical to the 6th).
+    for (int i = 0; i < 5; i++)
+        ptrs[i] = ptrs[i + 1];
+}
+
+static void wiener_filter_hv(pixel *p, uint16_t **ptrs, const pixel (*left)[4],
+                             const pixel *src, const int16_t filter[2][8],
+                             const int w, const enum LrEdgeFlags edges
+                             HIGHBD_DECL_SUFFIX)
+{
+    const int bitdepth = bitdepth_from_max(bitdepth_max);
+
+    const int round_bits_v = 11 - (bitdepth == 12) * 2;
+    const int rounding_off_v = 1 << (round_bits_v - 1);
+    const int round_offset = 1 << (bitdepth + (round_bits_v - 1));
+
+    const int16_t *fh = filter[0];
+    const int16_t *fv = filter[1];
+
+    // Do combined horziontal and vertical filtering; doing horizontal
+    // filtering of one row, combined with vertical filtering of 6
+    // preexisting rows and the newly filtered row.
+
+    // For simplicity in the C implementation, just do a separate call
+    // of the horizontal filter, into a temporary buffer.
+    uint16_t tmp[REST_UNIT_STRIDE];
+    wiener_filter_h(tmp, left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
+
+    for (int i = 0; i < w; i++) {
+        int sum = -round_offset;
+
+        // Filter using the 6 stored preexisting rows, and the newly
+        // filtered one in tmp[].
+        for (int k = 0; k < 6; k++)
+            sum += ptrs[k][i] * fv[k];
+        sum += tmp[i] * fv[6];
+        // At this point, after having read all inputs at point [i], we
+        // could overwrite [i] with the newly filtered data.
+
+        p[i] = iclip_pixel((sum + rounding_off_v) >> round_bits_v);
+    }
+
+    // For simplicity in the C implementation, just memcpy the newly
+    // filtered row into ptrs[6]. Normally, in steady state filtering,
+    // this output row, ptrs[6], is equal to ptrs[0]. However at startup,
+    // at the top of the filtered area, we may have ptrs[0] equal to ptrs[1],
+    // so we can't assume we can write into ptrs[0] but we need to keep
+    // a separate pointer for the next row to write into.
+    memcpy(ptrs[6], tmp, sizeof(uint16_t) * REST_UNIT_STRIDE);
+
+    // Rotate the window of pointers. Shift the 6 pointers downwards one step.
+    for (int i = 0; i < 6; i++)
+        ptrs[i] = ptrs[i + 1];
+    // The topmost pointer, ptrs[6], which isn't used as input, is set to
+    // ptrs[0], which will be used as output for the next _hv call.
+    // At the start of the filtering, the caller may set ptrs[6] to the
+    // right next buffer to fill in, instead.
+    ptrs[6] = ptrs[0];
+}
+
+// FIXME Could split into luma and chroma specific functions,
+// (since first and last tops are always 0 for chroma)
+static void wiener_c(pixel *p, const ptrdiff_t stride,
+                     const pixel (*left)[4],
+                     const pixel *lpf, const int w, int h,
+                     const LooprestorationParams *const params,
+                     const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
+{
+    // Values stored between horizontal and vertical filtering don't
+    // fit in a uint8_t.
+    uint16_t hor[6 * REST_UNIT_STRIDE];
+    uint16_t *ptrs[7], *rows[6];
+    for (int i = 0; i < 6; i++)
+        rows[i] = &hor[i * REST_UNIT_STRIDE];
+    const int16_t (*const filter)[8] = params->filter;
+    const int16_t *fh = params->filter[0];
+    const int16_t *fv = params->filter[1];
+    const pixel *lpf_bottom = lpf + 6*PXSTRIDE(stride);
+
+    const pixel *src = p;
+    if (edges & LR_HAVE_TOP) {
+        ptrs[0] = rows[0];
+        ptrs[1] = rows[0];
+        ptrs[2] = rows[1];
+        ptrs[3] = rows[2];
+        ptrs[4] = rows[2];
+        ptrs[5] = rows[2];
+
+        wiener_filter_h(rows[0], NULL, lpf, fh, w, edges HIGHBD_TAIL_SUFFIX);
+        lpf += PXSTRIDE(stride);
+        wiener_filter_h(rows[1], NULL, lpf, fh, w, edges HIGHBD_TAIL_SUFFIX);
+
+        wiener_filter_h(rows[2], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v1;
+
+        ptrs[4] = ptrs[5] = rows[3];
+        wiener_filter_h(rows[3], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v2;
+
+        ptrs[5] = rows[4];
+        wiener_filter_h(rows[4], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v3;
+    } else {
+        ptrs[0] = rows[0];
+        ptrs[1] = rows[0];
+        ptrs[2] = rows[0];
+        ptrs[3] = rows[0];
+        ptrs[4] = rows[0];
+        ptrs[5] = rows[0];
+
+        wiener_filter_h(rows[0], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v1;
+
+        ptrs[4] = ptrs[5] = rows[1];
+        wiener_filter_h(rows[1], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v2;
+
+        ptrs[5] = rows[2];
+        wiener_filter_h(rows[2], left, src, fh, w, edges HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v3;
+
+        ptrs[6] = rows[3];
+        wiener_filter_hv(p, ptrs, left, src, filter, w, edges
+                         HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+        p += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v3;
+
+        ptrs[6] = rows[4];
+        wiener_filter_hv(p, ptrs, left, src, filter, w, edges
+                         HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+        p += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v3;
+    }
+
+    ptrs[6] = ptrs[5] + REST_UNIT_STRIDE;
+    do {
+        wiener_filter_hv(p, ptrs, left, src, filter, w, edges
+                         HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+        p += PXSTRIDE(stride);
+    } while (--h > 0);
+
+    if (!(edges & LR_HAVE_BOTTOM))
+        goto v3;
+
+    wiener_filter_hv(p, ptrs, NULL, lpf_bottom, filter, w, edges
+                     HIGHBD_TAIL_SUFFIX);
+    lpf_bottom += PXSTRIDE(stride);
+    p += PXSTRIDE(stride);
+
+    wiener_filter_hv(p, ptrs, NULL, lpf_bottom, filter, w, edges
+                     HIGHBD_TAIL_SUFFIX);
+    p += PXSTRIDE(stride);
+v1:
+    wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+
+    return;
+
+v3:
+    wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+    p += PXSTRIDE(stride);
+v2:
+    wiener_filter_v(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+    p += PXSTRIDE(stride);
+    goto v1;
 }
 
 // SGR

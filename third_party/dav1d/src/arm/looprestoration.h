@@ -58,9 +58,8 @@ void BF(dav1d_wiener_filter5, neon)(pixel *p, const ptrdiff_t stride,
 // reference C version, but with the end result subtracted by
 // 1 << (bitdepth + 6 - round_bits_h).
 void BF(dav1d_wiener_filter_h, neon)(int16_t *dst, const pixel (*left)[4],
-                                     const pixel *src, ptrdiff_t stride,
-                                     const int16_t fh[8], intptr_t w,
-                                     int h, enum LrEdgeFlags edges
+                                     const pixel *src, const int16_t fh[8],
+                                     const int w, const enum LrEdgeFlags edges
                                      HIGHBD_DECL_SUFFIX);
 // This calculates things slightly differently than the reference C version.
 // This version calculates roughly this:
@@ -69,39 +68,159 @@ void BF(dav1d_wiener_filter_h, neon)(int16_t *dst, const pixel (*left)[4],
 //     sum += mid[idx] * fv[i];
 // sum = (sum + rounding_off_v) >> round_bits_v;
 // This function assumes that the width is a multiple of 8.
-void BF(dav1d_wiener_filter_v, neon)(pixel *dst, ptrdiff_t stride,
-                                     const int16_t *mid, int w, int h,
-                                     const int16_t fv[8], enum LrEdgeFlags edges,
-                                     ptrdiff_t mid_stride HIGHBD_DECL_SUFFIX);
+void BF(dav1d_wiener_filter_v, neon)(pixel *dst, int16_t **ptrs,
+                                     const int16_t fv[8], const int w
+                                     HIGHBD_DECL_SUFFIX);
 
-static void wiener_filter_neon(pixel *const dst, const ptrdiff_t stride,
-                               const pixel (*const left)[4], const pixel *lpf,
-                               const int w, const int h,
+void BF(dav1d_wiener_filter_hv, neon)(pixel *dst, const pixel (*left)[4],
+                                      const pixel *src,
+                                      const int16_t filter[2][8],
+                                      const int w, const enum LrEdgeFlags edges,
+                                      int16_t **ptrs
+                                      HIGHBD_DECL_SUFFIX);
+
+static void wiener_filter_neon(pixel *p, const ptrdiff_t stride,
+                               const pixel (*left)[4], const pixel *lpf,
+                               const int w, int h,
                                const LooprestorationParams *const params,
                                const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
 {
+    ALIGN_STK_16(int16_t, hor, 6 * 384,);
+    int16_t *ptrs[7], *rows[6];
+    for (int i = 0; i < 6; i++)
+        rows[i] = &hor[i * 384];
     const int16_t (*const filter)[8] = params->filter;
-    ALIGN_STK_16(int16_t, mid, 68 * 384,);
-    int mid_stride = (w + 7) & ~7;
+    const int16_t *fh = params->filter[0];
+    const int16_t *fv = params->filter[1];
+    const pixel *lpf_bottom = lpf + 6*PXSTRIDE(stride);
 
-    // Horizontal filter
-    BF(dav1d_wiener_filter_h, neon)(&mid[2 * mid_stride], left, dst, stride,
-                                    filter[0], w, h, edges HIGHBD_TAIL_SUFFIX);
-    if (edges & LR_HAVE_TOP)
-        BF(dav1d_wiener_filter_h, neon)(mid, NULL, lpf, stride,
-                                        filter[0], w, 2, edges
+    const pixel *src = p;
+    if (edges & LR_HAVE_TOP) {
+        ptrs[0] = rows[0];
+        ptrs[1] = rows[0];
+        ptrs[2] = rows[1];
+        ptrs[3] = rows[2];
+        ptrs[4] = rows[2];
+        ptrs[5] = rows[2];
+
+        BF(dav1d_wiener_filter_h, neon)(rows[0], NULL, lpf, fh, w, edges
                                         HIGHBD_TAIL_SUFFIX);
-    if (edges & LR_HAVE_BOTTOM)
-        BF(dav1d_wiener_filter_h, neon)(&mid[(2 + h) * mid_stride], NULL,
-                                        lpf + 6 * PXSTRIDE(stride),
-                                        stride, filter[0], w, 2, edges
+        lpf += PXSTRIDE(stride);
+        BF(dav1d_wiener_filter_h, neon)(rows[1], NULL, lpf, fh, w, edges
                                         HIGHBD_TAIL_SUFFIX);
 
-    // Vertical filter
-    BF(dav1d_wiener_filter_v, neon)(dst, stride, &mid[2*mid_stride],
-                                    w, h, filter[1], edges,
-                                    mid_stride * sizeof(*mid)
-                                    HIGHBD_TAIL_SUFFIX);
+        BF(dav1d_wiener_filter_h, neon)(rows[2], left, src, fh, w, edges
+                                        HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v1;
+
+        ptrs[4] = ptrs[5] = rows[3];
+        BF(dav1d_wiener_filter_h, neon)(rows[3], left, src, fh, w, edges
+                                        HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v2;
+
+        ptrs[5] = rows[4];
+        BF(dav1d_wiener_filter_h, neon)(rows[4], left, src, fh, w, edges
+                                        HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v3;
+    } else {
+        ptrs[0] = rows[0];
+        ptrs[1] = rows[0];
+        ptrs[2] = rows[0];
+        ptrs[3] = rows[0];
+        ptrs[4] = rows[0];
+        ptrs[5] = rows[0];
+
+        BF(dav1d_wiener_filter_h, neon)(rows[0], left, src, fh, w, edges
+                                        HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v1;
+
+        ptrs[4] = ptrs[5] = rows[1];
+        BF(dav1d_wiener_filter_h, neon)(rows[1], left, src, fh, w, edges
+                                        HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v2;
+
+        ptrs[5] = rows[2];
+        BF(dav1d_wiener_filter_h, neon)(rows[2], left, src, fh, w, edges
+                                        HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v3;
+
+        ptrs[6] = rows[3];
+        BF(dav1d_wiener_filter_hv, neon)(p, left, src, filter, w, edges, ptrs
+                                         HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+        p += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v3;
+
+        ptrs[6] = rows[4];
+        BF(dav1d_wiener_filter_hv, neon)(p, left, src, filter, w, edges, ptrs
+                                         HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+        p += PXSTRIDE(stride);
+
+        if (--h <= 0)
+            goto v3;
+    }
+
+    ptrs[6] = ptrs[5] + 384;
+    do {
+        BF(dav1d_wiener_filter_hv, neon)(p, left, src, filter, w, edges, ptrs
+                                         HIGHBD_TAIL_SUFFIX);
+        left++;
+        src += PXSTRIDE(stride);
+        p += PXSTRIDE(stride);
+    } while (--h > 0);
+
+    if (!(edges & LR_HAVE_BOTTOM))
+        goto v3;
+
+    BF(dav1d_wiener_filter_hv, neon)(p, NULL, lpf_bottom, filter, w, edges, ptrs
+                                     HIGHBD_TAIL_SUFFIX);
+    lpf_bottom += PXSTRIDE(stride);
+    p += PXSTRIDE(stride);
+
+    BF(dav1d_wiener_filter_hv, neon)(p, NULL, lpf_bottom, filter, w, edges, ptrs
+                                     HIGHBD_TAIL_SUFFIX);
+    p += PXSTRIDE(stride);
+v1:
+    BF(dav1d_wiener_filter_v, neon)(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+
+    return;
+
+v3:
+    BF(dav1d_wiener_filter_v, neon)(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+    p += PXSTRIDE(stride);
+v2:
+    BF(dav1d_wiener_filter_v, neon)(p, ptrs, fv, w HIGHBD_TAIL_SUFFIX);
+    p += PXSTRIDE(stride);
+    goto v1;
 }
 #endif
 
