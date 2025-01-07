@@ -113,7 +113,7 @@
 
     <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-    <string name="address_bar_swipe_cfr_title">Stryg værktøjslinje op for at skifte faneblade</string>
+    <string name="address_bar_swipe_cfr_title">Stryg værktøjslinjen for at skifte faneblade</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Stryg til højre eller venstre for at skifte. Stryg til venstre på dit sidste faneblad for at åbne et nyt.</string>
 
@@ -610,7 +610,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Gem og fortsæt</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Spring over</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Spring over</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Top</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -631,7 +631,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Gem og gå i gang</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Spring over</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Spring over</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Mørk</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->

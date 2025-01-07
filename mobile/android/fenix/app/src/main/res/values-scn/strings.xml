@@ -593,7 +593,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Sarba e cuntinua</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Sauta</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Sauta</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Susu</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -608,6 +608,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">Mmàggini dâ barra dî stigghi di sutta</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">Mmàggini dâ barra dî stigghi di supra</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">Ora no</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Scarta un tema</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -615,7 +618,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Sarba e accumincia a navicari</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Sauta</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Sauta</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Scuru</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -626,6 +629,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">Mmàggini dâ tistata usata nnâ schirmata di scartata dî temi chi mustra na mmàggini dî stigghi di l\'artisti.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Mmàggini dû tema %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">Ora no</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

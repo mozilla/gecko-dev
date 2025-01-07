@@ -459,6 +459,11 @@
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Zoekmachine: %s</string>
 
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: zoekmachineselector</string>
+
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Welkom bij een meer persoonlijk internet</string>
@@ -620,7 +625,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Opslaan en doorgaan</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Overslaan</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Overslaan</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Boven</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -629,7 +634,13 @@
     <!-- Onboarding toolbar selection card content description for the main image. -->
     <string name="onboarding_customize_toolbar_main_image_content_description">Grote headerafbeelding van de selectieweergave van de werkbalk met een geïllustreerde werkbalk.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">Afbeelding van de %1$s werkbalk</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Afbeelding van de %1$s werkbalk</string>
+
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Afbeelding van de onderste werkbalk</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Afbeelding van de bovenste werkbalk</string>
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">Niet nu</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Kies een thema</string>
@@ -638,7 +649,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Opslaan en beginnen met browsen</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Overslaan</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Overslaan</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Donker</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -649,6 +660,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">Grote headerafbeelding van de themaselectieweergave met geïllustreerde hulpmiddelen voor kunstenaars en ontwikkelaars.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Afbeelding van het thema %1$s</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">Niet nu</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1059,10 +1073,15 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Deel informatie over hoe u Firefox hebt ontdekt met marketingpartners van Mozilla. Dit helpt ons Firefox te laten groeien en een beter internet te bouwen</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Meer info over marketinggegevens</string>
+
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Automatisch crashrapporten verzenden</string>
+    <string name="preferences_automatically_send_crashes_title">Automatisch crashrapporten verzenden</string>
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Automatisch crashrapporten verzenden</string>
+
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Deelt bij opstarten crashgegevens automatisch met Mozilla nadat crashes hebben plaatsgevonden</string>
+    <string name="preferences_automatically_send_crashes_description">Dit helpt ons problemen met de browser te analyseren en op te lossen. Rapporten kunnen persoonlijke of gevoelige gegevens bevatten.</string>
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Deelt bij opstarten crashgegevens automatisch met Mozilla nadat crashes hebben plaatsgevonden</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Onderzoeken</string>
     <!-- Summary for studies preferences -->

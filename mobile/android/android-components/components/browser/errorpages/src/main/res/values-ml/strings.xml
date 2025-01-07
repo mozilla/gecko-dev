@@ -148,7 +148,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_invalid_content_encoding_title">ഉള്ളടക്കം എന്‍കോഡ് ചെയ്യുന്നതില്‍ പിശകു് സംഭവിച്ചു</string>
+    <string name="mozac_browser_errorpages_invalid_content_encoding_title">ഉള്ളടക്കം ഇഴചേ‌ർക്കലിൽ സംഭവിച്ചു</string>
 
     <string name="mozac_browser_errorpages_invalid_content_encoding_message"><![CDATA[<p>നിങ്ങള്‍ ഇപ്പോള്‍ കാണുവാന്‍ ശ്രമിക്കുന്ന പോജ് ലഭ്യമല്ല. കാരണം അതു് തെറ്റായ ആല്ലെങ്കില്‍ പിന്തുണ ലഭ്യമല്ലാത്ത രീതിയിലുള്ള കംപ്രഷന്‍ ഉപയോഗിക്കുന്നു.</p>
       <ul>

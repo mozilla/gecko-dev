@@ -319,7 +319,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_safe_phishing_uri_title">Prubblemui c\'un situ falloppiu</string>
+    <string name="mozac_browser_errorpages_safe_phishing_uri_title">Prubblemi c\'un situ falloppiu</string>
     <!-- The %1$s will be replaced by the malicious website URL-->
     <string name="mozac_browser_errorpages_safe_phishing_uri_message"><![CDATA[
       <p>A pàggina a %1$s fu signalijata comu un situ falloppiu e fu bluccata sicutannu i to prifirenzi di sicurizza.</p>

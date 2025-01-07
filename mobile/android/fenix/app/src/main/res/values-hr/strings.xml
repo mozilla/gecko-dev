@@ -96,12 +96,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Odbaci</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Naša najmoćnija značajka privatnosti izolira međustranične programe za praćenje.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Saznajte više o totalnoj zaštiti kolačića</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -117,12 +111,6 @@
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Dodirni i drži strelice pritisnutima za kretanje po stranicama u povijesti ove kartice.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Novo: strelice naprijed i natrag jednim dodirom</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Uživaj u bržoj navigaciji koja je uvijek nadohvat ruke.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Potreban je pristup kameri. Otvori postavke Androida, odaberi dozvole i dopusti pristup kameri.</string>
@@ -323,9 +311,9 @@
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">Postavke</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Prikaz za čitanje, prevedi, ispiši, dijeli, otvori aplikaciju</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Prikaz za čitanje, prevedi, ispiši, dijeli, otvori aplikaciju</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Prikaz za čitanje, ispiši, dijeli, otvori aplikaciju</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Prikaz za čitanje, ispiši, dijeli, otvori aplikaciju</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Spremi</string>
@@ -423,8 +411,6 @@
     <string name="search_engine_icon_content_description_1">Tražilica: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Upoznajte svoju personaliziranu početnu stranicu. Ovdje će se pojaviti nedavne kartice, zabilješke i rezultati pretraživanja.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Dobrodošli na osobniji Internet</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -518,6 +504,41 @@
     <string name="onboarding_add_on_add_button_content_description">Gumb za dodavanje dodataka</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Ocijenjeno s %1$s od 5</string>
+
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button" tools:ignore="UnusedResources">Gotovo</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources">Odustani</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="UnusedResources,BrandUsage">Dobro došli u Firefox</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label" tools:ignore="UnusedResources">Prihvati i nastavi</string>
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">Spremi i nastavi</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Preskoči</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Slika donje trake alata</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Slika gornje trake alata</string>
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">Ne sada</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Odaberi temu</string>
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Pogledaj web u najboljem svjetlu.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Spremi i počni pregledavati</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Preskoči</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Tamna</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Svijetla</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Automatski od sustava</string>
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">Ne sada</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -911,13 +932,16 @@
     <string name="exceptions_empty_message_learn_more_link">Saznaj više</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Upotreba i tehnički podaci</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Upotreba i tehnički podaci</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Saznaj više</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Dijeli podatke o performansama, korištenju, hardveru i prilagodbama tvog preglednika s Mozillom, kako bismo unaprijedili %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketinški podaci</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Dijeli osnovne podatke o korištenju s Adjustom, našim pružateljem mobilnog marketinga</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Dijeli osnovne podatke o korištenju s Adjustom, našim pružateljem mobilnog marketinga</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Istraživanja</string>
     <!-- Summary for studies preferences -->
@@ -1085,14 +1109,14 @@
     <string name="studies_learn_more">Saznaj više</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Aplikacija će se zatvoriti da bi se primijenile promjene</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikacija će se zatvoriti da bi se primijenile promjene</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">U redu</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">U redu</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Odustani</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Odustani</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Zatvaranje aplikacije radi primjene promjena…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Zatvaranje aplikacije radi primjene promjena…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -1206,6 +1230,26 @@
 
     <!-- WebCompat Reporter -->
 
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Upiši ispravan URL</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken">Što ne radi? (opcionalno)</string>
+    <!-- The placeholder text for the dropdown where a user can select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Odaberi razlog</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Opiši problem (opcionalno)</string>
+
+
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Pošalji više informacija</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Odustani</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Pošalji</string>
+
+
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
     <string name="webcompat_reporter_reason_slow">Stranica je spora ili ne radi</string>
@@ -1231,8 +1275,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Obnovi karticu</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s se morao ponovno pokrenuti</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Automatski šalji izvještaje o prekidu programa</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">Zatvori</string>
+
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Pošalji izvještaj o prekidu programa</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
@@ -1245,8 +1296,6 @@
     <string name="bookmark_delete_negative">Odustani</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Dodaj mapu</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Zabilješka spremljena!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Spremljeno u „%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1593,8 +1642,6 @@
     <string name="snackbar_tabs_closed">Kartice su zatvorene</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Zatvorene kartice: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Zabilješke su spremljene!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Zabilješke su spremljene u „%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2461,14 +2508,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Da, probaj</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ne sada</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Saznaj je li možeš vjerovati recenzijama ovog proizvoda – prije kupnje.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Probaj provjeru recenzija</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Jesu li ove recenzije pouzdane? Provjeri sada za prikaz prilagođene ocjene.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Otvori provjeru recenzija</string>
 
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Otvori provjeru recenzija</string>
@@ -2738,6 +2777,18 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">Odustani</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">Oprez na ovoj stranici</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">Tvoja veza nije sigurna.</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">Isključio/la si zaštitu</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">Poboljšana zaštita od praćenja</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Zaštite su ISKLJUČENE. Predlažemo da ih ponovo uključiš.</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">Alati za otklanjanje grešaka</string>
@@ -2848,6 +2899,10 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Izbriši prijavu s korisničkim imenom %s</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Adrese</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">CFR alati</string>
@@ -2859,12 +2914,6 @@
     <string name="glean_debug_tools_title">Glean alati za otklanjanje grešaka</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Za napuštanje cjeloekranskog prikaza povuci prstom s vrha ekrana i koristi pokret za natrag</string>
-
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Za napuštanje cjeloekranskog prikaza povuci prstom s vrha ekrana i pritisni „Natrag”</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Povuci s vrha i koristi pokret natrag za izlaz</string>
@@ -2876,4 +2925,21 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Aktualiziraj sada</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Aktualiziraj Firefox preglednika</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Preporučuje se aktualiziranje</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Dodaci i neke funkcije će prestati raditi 14. ožujka.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Koristiš stariju Firefox verziju</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Za daljnje korištenje dodataka i drugih funkcija, aktualiziraj prije 14. ožujka.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Neke funkcije će sutra prestati raditi.</string>
 </resources>
