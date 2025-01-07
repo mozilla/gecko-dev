@@ -38,7 +38,7 @@ td.integer {
   --codec-bg-unsupported-even: #ffdfe7;
   --codec-bg-unsupported-odd: #ffbdc5;
   --codec-text-name-even: var(--background-color-box);
-  --codec-text-name-odd: var(--in-content-box-background-odd);
+  --codec-text-name-odd: var(--table-row-background-color-alternate);
   --codec-text-other: var(--in-content-text-color);
   --codec-text-supported: #15141a;
   --codec-text-unsupported: #15141a;
@@ -112,7 +112,7 @@ td.integer {
 }
 
 #codec-table tr:nth-child(odd) > td.lack-of-extension {
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
 }
 
 #update-dir-row > td:dir(rtl),
