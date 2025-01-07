@@ -2945,6 +2945,20 @@ toolbar#nav-bar {
             self.log.process_exit("Main app process", status)
             runner.process_handler = None
 
+            if not status and self.message_logger.is_test_running:
+                message = {
+                    "action": "test_end",
+                    "status": "FAIL",
+                    "expected": "PASS",
+                    "thread": None,
+                    "pid": None,
+                    "source": "mochitest",
+                    "time": int(time.time()) * 1000,
+                    "test": self.lastTestSeen,
+                    "message": "Application shut down (without crashing) in the middle of a test!",
+                }
+                self.message_logger.process_message(message)
+
             # finalize output handler
             outputHandler.finish()
 
