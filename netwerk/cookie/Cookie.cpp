@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Cookie.h"
-#include "CookieCommons.h"
 #include "CookieStorage.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/dom/ToJSValue.h"
@@ -73,12 +72,6 @@ already_AddRefed<Cookie> Cookie::FromCookieStruct(
   if (!Cookie::ValidateSameSite(cookie->mData)) {
     cookie->mData.sameSite() = nsICookie::SAMESITE_LAX;
     cookie->mData.rawSameSite() = nsICookie::SAMESITE_NONE;
-  }
-
-  // Enforce session cookie if the partition is session-only.
-  if (CookieCommons::ShouldEnforceSessionForOriginAttributes(
-          aOriginAttributes)) {
-    cookie->mData.isSession() = true;
   }
 
   return cookie.forget();

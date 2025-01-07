@@ -2939,7 +2939,6 @@ void Document::Reset(nsIChannel* aChannel, nsILoadGroup* aLoadGroup) {
 
   mChannel = aChannel;
   RecomputeResistFingerprinting();
-  MaybeRecomputePartitionKey();
 }
 
 void Document::DisconnectNodeTree() {
@@ -3677,8 +3676,6 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
 
   rv = loadInfo->GetCookieJarSettings(getter_AddRefs(mCookieJarSettings));
   NS_ENSURE_SUCCESS(rv, rv);
-
-  MaybeRecomputePartitionKey();
 
   // Generally XFO and CSP frame-ancestors is handled within
   // DocumentLoadListener. However, the DocumentLoadListener can not handle
@@ -16771,56 +16768,6 @@ void Document::SendPageUseCounters() {
 
   UseCounters counters = mUseCounters | mChildDocumentUseCounters;
   wgc->SendAccumulatePageUseCounters(counters);
-}
-
-void Document::MaybeRecomputePartitionKey() {
-  // We only need to recompute the partition key for the top-level content
-  // document.
-  if (!IsTopLevelContentDocument()) {
-    return;
-  }
-
-  // Bail out early if there is no cookieJarSettings for this document. For
-  // example, a chrome document.
-  if (!mCookieJarSettings) {
-    return;
-  }
-
-  // Check whether the partition key matches the document's node principal. They
-  // can be different if the document is sandboxed. In this case, the node
-  // principal is a null principal. But the partitionKey of the
-  // cookieJarSettings was derived from the channel URI of the top-level
-  // loading, which isn't a null principal. Therefore, we need to recompute
-  // the partition Key from the document's node principal to reflect the actual
-  // partition Key.
-  nsAutoCString originNoSuffix;
-  nsresult rv = NodePrincipal()->GetOriginNoSuffix(originNoSuffix);
-  NS_ENSURE_SUCCESS_VOID(rv);
-
-  nsCOMPtr<nsIURI> originURI;
-  rv = NS_NewURI(getter_AddRefs(originURI), originNoSuffix);
-  NS_ENSURE_SUCCESS_VOID(rv);
-
-  // Bail out early if we don't have a principal URI.
-  if (!originURI) {
-    return;
-  }
-
-  OriginAttributes attrs;
-  attrs.SetPartitionKey(originURI, false);
-
-  // We don't need to set the partition key if the cooieJarSettings'
-  // partitionKey matches the document's node principal.
-  if (attrs.mPartitionKey.Equals(
-          net::CookieJarSettings::Cast(mCookieJarSettings)
-              ->GetPartitionKey())) {
-    return;
-  }
-
-  // Set the partition key to the document's node principal. So we will use the
-  // right partition key afterward.
-  mozilla::net::CookieJarSettings::Cast(mCookieJarSettings)
-      ->SetPartitionKey(originURI, false);
 }
 
 bool Document::RecomputeResistFingerprinting() {

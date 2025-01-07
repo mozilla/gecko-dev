@@ -32,7 +32,6 @@
 #include "nsNetUtil.h"
 #include "nsSandboxFlags.h"
 #include "nsScriptSecurityManager.h"
-#include "nsReadableUtils.h"
 #include "ThirdPartyUtil.h"
 
 namespace mozilla {
@@ -577,24 +576,6 @@ bool CookieCommons::IsFirstPartyPartitionedCookieWithoutCHIPS(
   // partitionKey and it is not an ABA context
   return aBaseDomain.Equals(NS_ConvertUTF16toUTF8(baseDomain)) &&
          !foreignByAncestorContext;
-}
-
-// static
-bool CookieCommons::ShouldEnforceSessionForOriginAttributes(
-    const OriginAttributes& aOriginAttributes) {
-  // We don't need to enforce session for unpartitioned OAs.
-  if (aOriginAttributes.mPartitionKey.IsEmpty()) {
-    return false;
-  }
-
-  // We enforce session cookies if the partitionKey is from a null principal.
-  // This ensures that we don't create dangling cookies that cannot be deleted.
-  // A partitionKey from a null principal ends with ".mozilla".
-  if (StringEndsWith(aOriginAttributes.mPartitionKey, u".mozilla"_ns)) {
-    return true;
-  }
-
-  return false;
 }
 
 bool CookieCommons::IsSafeTopLevelNav(nsIChannel* aChannel) {

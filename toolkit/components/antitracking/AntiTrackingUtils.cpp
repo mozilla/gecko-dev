@@ -997,22 +997,12 @@ bool AntiTrackingUtils::IsThirdPartyWindow(nsPIDOMWindowInner* aWindow,
 /* static */
 bool AntiTrackingUtils::IsThirdPartyDocument(Document* aDocument) {
   MOZ_ASSERT(aDocument);
-
-  if (aDocument->IsTopLevelContentDocument()) {
-    return false;
-  }
-
   nsCOMPtr<mozIThirdPartyUtil> tpuService =
       mozilla::components::ThirdPartyUtil::Service();
   if (!tpuService) {
     return true;
   }
   bool thirdParty = true;
-
-  if (aDocument->GetSandboxFlags() & SANDBOXED_ORIGIN) {
-    return true;
-  }
-
   if (!aDocument->GetChannel()) {
     // If we can't get the channel from the document, i.e. initial about:blank
     // page, we use the browsingContext of the document to check if it's in the

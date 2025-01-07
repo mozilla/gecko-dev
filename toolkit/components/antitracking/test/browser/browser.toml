@@ -330,14 +330,6 @@ support-files = ["subResources.sjs"]
 ["browser_subResourcesPartitioned_alwaysPartition.js"]
 support-files = ["subResources.sjs"]
 
-["browser_thirdPartyChecks_sandboxed_context.js"]
-support-files = [
-  "sandboxedWithImg.html",
-  "sandboxedWithImg.html^headers^",
-  "setCookieImg.jpg",
-  "setCookieImg.jpg^headers^",
-]
-
 ["browser_thirdPartyStorageRejectionForCORS.js"]
 
 ["browser_urlDecorationStripping.js"]

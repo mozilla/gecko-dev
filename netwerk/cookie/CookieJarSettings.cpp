@@ -462,8 +462,7 @@ void CookieJarSettings::Serialize(CookieJarSettingsArgs& aData) {
   cookieJarSettings.forget(aCookieJarSettings);
 }
 
-already_AddRefed<nsICookieJarSettings> CookieJarSettings::Merge(
-    const CookieJarSettingsArgs& aData) {
+void CookieJarSettings::Merge(const CookieJarSettingsArgs& aData) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(
       mCookieBehavior == aData.cookieBehavior() ||
@@ -475,50 +474,39 @@ already_AddRefed<nsICookieJarSettings> CookieJarSettings::Merge(
        aData.cookieBehavior() == nsICookieService::BEHAVIOR_REJECT_TRACKER));
 
   if (mState == eFixed) {
-    return do_AddRef(this);
+    return;
   }
 
-  RefPtr<CookieJarSettings> newCookieJarSettings;
-  newCookieJarSettings = Clone();
-
   // Merge cookie behavior pref values
-  if (newCookieJarSettings->mCookieBehavior ==
-          nsICookieService::BEHAVIOR_REJECT_TRACKER &&
+  if (mCookieBehavior == nsICookieService::BEHAVIOR_REJECT_TRACKER &&
       aData.cookieBehavior() ==
           nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN) {
     // If the other side has decided to partition third-party cookies, update
     // our side when first-party isolation is disabled.
-    if (!newCookieJarSettings->mIsFirstPartyIsolated) {
-      newCookieJarSettings->mCookieBehavior =
+    if (!mIsFirstPartyIsolated) {
+      mCookieBehavior =
           nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN;
     }
   }
-  if (newCookieJarSettings->mCookieBehavior ==
+  if (mCookieBehavior ==
           nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN &&
       aData.cookieBehavior() == nsICookieService::BEHAVIOR_REJECT_TRACKER) {
     // If we've decided to partition third-party cookies, the other side may not
     // have caught up yet unless it has first-party isolation enabled.
     if (aData.isFirstPartyIsolated()) {
-      newCookieJarSettings->mCookieBehavior =
-          nsICookieService::BEHAVIOR_REJECT_TRACKER;
-      newCookieJarSettings->mIsFirstPartyIsolated = true;
+      mCookieBehavior = nsICookieService::BEHAVIOR_REJECT_TRACKER;
+      mIsFirstPartyIsolated = true;
     }
   }
   // Ignore all other cases.
   MOZ_ASSERT_IF(
-      newCookieJarSettings->mIsFirstPartyIsolated,
-      newCookieJarSettings->mCookieBehavior !=
+      mIsFirstPartyIsolated,
+      mCookieBehavior !=
           nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN);
 
   if (aData.shouldResistFingerprinting()) {
-    newCookieJarSettings->mShouldResistFingerprinting = true;
+    mShouldResistFingerprinting = true;
   }
-
-  // Merge partition Key. When a channel is created in the the child process and
-  // then opened in the parent process, the partition key will be created in the
-  // parent process, then sending back to the child process. Merging it here to
-  // ensure the child process has the latest value.
-  newCookieJarSettings->mPartitionKey = aData.partitionKey();
 
   PermissionComparator comparator;
 
@@ -535,13 +523,10 @@ already_AddRefed<nsICookieJarSettings> CookieJarSettings::Merge(
       continue;
     }
 
-    if (!newCookieJarSettings->mCookiePermissions.Contains(permission,
-                                                           comparator)) {
-      newCookieJarSettings->mCookiePermissions.AppendElement(permission);
+    if (!mCookiePermissions.Contains(permission, comparator)) {
+      mCookiePermissions.AppendElement(permission);
     }
   }
-
-  return newCookieJarSettings.forget();
 }
 
 void CookieJarSettings::SetPartitionKey(nsIURI* aURI,

@@ -130,9 +130,6 @@ class CookieCommons final {
       Cookie* aCookie, const nsACString& aBaseDomain,
       const OriginAttributes& aOriginAttributes);
 
-  static bool ShouldEnforceSessionForOriginAttributes(
-      const OriginAttributes& aOriginAttributes);
-
   static bool IsSchemeSupported(nsIPrincipal* aPrincipal);
   static bool IsSchemeSupported(nsIURI* aURI);
   static bool IsSchemeSupported(const nsACString& aScheme);
