@@ -255,6 +255,28 @@ config = {
             "enabled": ADJUST_MOUSE_AND_SCREEN,
         },
         {
+            "name": "enable microphone access for msix",
+            "cmd": [
+                "powershell",
+                "-command",
+                r'New-Item -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\ -Name "Mozilla.MozillaFirefoxNightly_5x4grbbqzn2q4" -Force',
+            ],
+            "architectures": ["32bit", "64bit"],
+            "halt_on_failure": True,
+            "enabled": True,
+        },
+        {
+            "name": "enable microphone access for msix, add allow key",
+            "cmd": [
+                "powershell",
+                "-command",
+                r'New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\Mozilla.MozillaFirefoxNightly_5x4grbbqzn2q4 -Name "Value" -Value "Allow" -Force',
+            ],
+            "architectures": ["32bit", "64bit"],
+            "halt_on_failure": True,
+            "enabled": True,
+        },
+        {
             "name": "disable windows security and maintenance notifications",
             "cmd": [
                 "powershell",
