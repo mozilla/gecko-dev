@@ -757,6 +757,11 @@ impl BatchBuilder {
         prim_header_index: PrimitiveHeaderIndex,
         resource_address: i32,
     ) {
+        assert!(
+            !(brush_flags.contains(BrushFlags::NORMALIZED_UVS)
+                && features.contains(BatchFeatures::REPETITION)),
+            "Normalized UVs are not supported with repetition."
+        );
         let instance = BrushInstance {
             segment_index,
             edge_flags,
