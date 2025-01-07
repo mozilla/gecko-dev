@@ -39,6 +39,11 @@
           'UNSAFE_FUZZER_MODE',
         ],
       }],
+      ['gtests_corpus==1', {
+        'defines': [
+          'GTESTS_CORPUS',
+        ]
+      }]
     ],
     'msvs_settings': {
       'VCCLCompilerTool': {

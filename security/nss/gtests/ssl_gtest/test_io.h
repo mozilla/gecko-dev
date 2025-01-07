@@ -67,8 +67,9 @@ class DummyPrSocket : public DummyIOLayerMethods {
         peer_(),
         input_(),
         filter_(nullptr),
-        write_error_(0) {}
-  virtual ~DummyPrSocket() {}
+        write_error_(0),
+        receivedData_() {}
+  virtual ~DummyPrSocket();
 
   static PRDescIdentity LayerId();
 
@@ -117,6 +118,8 @@ class DummyPrSocket : public DummyIOLayerMethods {
   std::queue<Packet> input_;
   std::shared_ptr<PacketFilter> filter_;
   PRErrorCode write_error_;
+
+  std::vector<uint8_t> receivedData_;
 };
 
 // Marker interface.

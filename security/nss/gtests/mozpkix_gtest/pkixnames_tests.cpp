@@ -105,6 +105,16 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   DNS_ID_MATCH("_example", "_example"),
   DNS_ID_MATCH("*._._", "x._._"),
 
+  // We allow reference ID labels to start and end with hyphens for
+  // compatibility.
+  DNS_ID_MATCH("*.example.com", "-.example.com"),
+  DNS_ID_MATCH("*.example.com", "-hyphenstart.example.com"),
+  DNS_ID_MATCH("*.example.com", "hyphenend-.example.com"),
+  // Presented ID labels may not start or end with hyphens.
+  DNS_ID_BAD_DER("-.example.com", "-.example.com"),
+  DNS_ID_BAD_DER("-hyphenstart.example.com", "-hyphenstart.example.com"),
+  DNS_ID_BAD_DER("hyphenend-.example.com", "hyphenend-.example.com"),
+
   // See bug 1139039
   // A DNS-ID must not end in an all-numeric label. We don't consider
   // underscores to be numeric.
@@ -371,13 +381,13 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("a...", false, false),
 
   // Punycode
-  I("xn--", false, false),
-  I("xn--.", false, false),
-  I("xn--.a", false, false),
-  I("a.xn--", false, false),
-  I("a.xn--.", false, false),
-  I("a.xn--.b", false, false),
-  I("a.xn--.b", false, false),
+  I("xn--", true, false),
+  I("xn--.", true, false),
+  I("xn--.a", true, false),
+  I("a.xn--", true, false),
+  I("a.xn--.", true, false),
+  I("a.xn--.b", true, false),
+  I("a.xn--.b", true, false),
   I("a.xn--\0.b", false, false),
   I("a.xn--a.b", true, true),
   I("xn--a", true, true),
@@ -416,7 +426,7 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z", true, true),
   I("A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z", true, true),
   I("0.1.2.3.4.5.6.7.8.9.a", true, true), // "a" needed to avoid numeric last label
-  I("a-b", true, true), // hyphen (a label cannot start or end with a hyphen)
+  I("a-b", true, true), // hyphen (presented ID labels cannot start or end with a hyphen)
 
   // Underscores
   I("a_b", true, true),
@@ -469,17 +479,17 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("a.1-1", true, true),
   I("a.1-a", true, true),
 
-  // labels cannot start with a hyphen
-  I("-", false, false),
-  I("-1", false, false),
+  // presented ID labels cannot start with a hyphen
+  I("-", true, false),
+  I("-1", true, false),
 
-  // labels cannot end with a hyphen
-  I("1-", false, false),
-  I("1-.a", false, false),
-  I("a-", false, false),
-  I("a-.a", false, false),
-  I("a.1-.a", false, false),
-  I("a.a-.a", false, false),
+  // presented ID labels cannot end with a hyphen
+  I("1-", true, false),
+  I("1-.a", true, false),
+  I("a-", true, false),
+  I("a-.a", true, false),
+  I("a.1-.a", true, false),
+  I("a.a-.a", true, false),
 
   // labels can contain a hyphen in the middle
   I("a-b", true, true),

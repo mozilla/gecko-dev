@@ -315,7 +315,7 @@
           'target_name': 'fuzz',
           'type': 'none',
           'dependencies': [
-            'fuzz/fuzz.gyp:nssfuzz',
+            'fuzz/fuzz.gyp:fuzz',
           ],
         },
       ],

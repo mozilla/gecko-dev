@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mutators.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -10,12 +12,6 @@
 #include <vector>
 
 #include "tls_parser.h"
-
-using namespace nss_test;
-
-// Number of additional bytes in the TLS header.
-// Used to properly skip DTLS seqnums.
-static size_t gExtraHeaderBytes = 0;
 
 // Helper class to simplify TLS record manipulation.
 class Record {
@@ -40,9 +36,9 @@ class Record {
   }
 
   void truncate(size_t length) {
-    assert(length >= 5 + gExtraHeaderBytes);
+    assert(length >= 5 + EXTRA_HEADER_BYTES);
     uint8_t *dest = const_cast<uint8_t *>(data_);
-    size_t l = length - (5 + gExtraHeaderBytes);
+    size_t l = length - (5 + EXTRA_HEADER_BYTES);
     dest[3] = (l >> 8) & 0xff;
     dest[4] = l & 0xff;
     memmove(dest + length, data_ + size_, remaining_);
@@ -70,23 +66,23 @@ class Record {
 std::vector<std::unique_ptr<Record>> ParseRecords(const uint8_t *data,
                                                   size_t size) {
   std::vector<std::unique_ptr<Record>> records;
-  TlsParser parser(data, size);
+  nss_test::TlsParser parser(data, size);
 
   while (parser.remaining()) {
     size_t offset = parser.consumed();
 
     // Skip type, version, and DTLS seqnums.
-    if (!parser.Skip(3 + gExtraHeaderBytes)) {
+    if (!parser.Skip(3 + EXTRA_HEADER_BYTES)) {
       break;
     }
 
-    DataBuffer fragment;
+    nss_test::DataBuffer fragment;
     if (!parser.ReadVariable(&fragment, 2)) {
       break;
     }
 
     records.push_back(Record::Create(data + offset,
-                                     fragment.len() + 5 + gExtraHeaderBytes,
+                                     fragment.len() + 5 + EXTRA_HEADER_BYTES,
                                      parser.remaining()));
   }
 
@@ -95,11 +91,8 @@ std::vector<std::unique_ptr<Record>> ParseRecords(const uint8_t *data,
 
 namespace TlsMutators {
 
-// Handle seqnums in DTLS transcripts.
-void SetIsDTLS() { gExtraHeaderBytes = 8; }
-
 // Mutator that drops whole TLS records.
-size_t DropRecord(uint8_t *data, size_t size, size_t max_size,
+size_t DropRecord(uint8_t *data, size_t size, size_t maxSize,
                   unsigned int seed) {
   std::mt19937 rng(seed);
 
@@ -121,7 +114,7 @@ size_t DropRecord(uint8_t *data, size_t size, size_t max_size,
 }
 
 // Mutator that shuffles TLS records in a transcript.
-size_t ShuffleRecords(uint8_t *data, size_t size, size_t max_size,
+size_t ShuffleRecords(uint8_t *data, size_t size, size_t maxSize,
                       unsigned int seed) {
   std::mt19937 rng(seed);
 
@@ -152,7 +145,7 @@ size_t ShuffleRecords(uint8_t *data, size_t size, size_t max_size,
 }
 
 // Mutator that duplicates a single TLS record and randomly inserts it.
-size_t DuplicateRecord(uint8_t *data, size_t size, size_t max_size,
+size_t DuplicateRecord(uint8_t *data, size_t size, size_t maxSize,
                        unsigned int seed) {
   std::mt19937 rng(seed);
 
@@ -165,7 +158,7 @@ size_t DuplicateRecord(uint8_t *data, size_t size, size_t max_size,
   // Pick a record to duplicate at random.
   std::uniform_int_distribution<size_t> dist(0, records.size() - 1);
   auto &rec = records.at(dist(rng));
-  if (size + rec->size() > max_size) {
+  if (size + rec->size() > maxSize) {
     return 0;
   }
 
@@ -177,7 +170,7 @@ size_t DuplicateRecord(uint8_t *data, size_t size, size_t max_size,
 }
 
 // Mutator that truncates a TLS record.
-size_t TruncateRecord(uint8_t *data, size_t size, size_t max_size,
+size_t TruncateRecord(uint8_t *data, size_t size, size_t maxSize,
                       unsigned int seed) {
   std::mt19937 rng(seed);
 
@@ -192,12 +185,12 @@ size_t TruncateRecord(uint8_t *data, size_t size, size_t max_size,
   auto &rec = records.at(dist(rng));
 
   // Need a record with data.
-  if (rec->size() <= 5 + gExtraHeaderBytes) {
+  if (rec->size() <= 5 + EXTRA_HEADER_BYTES) {
     return 0;
   }
 
   // Truncate.
-  std::uniform_int_distribution<size_t> dist2(5 + gExtraHeaderBytes,
+  std::uniform_int_distribution<size_t> dist2(5 + EXTRA_HEADER_BYTES,
                                               rec->size() - 1);
   size_t new_length = dist2(rng);
   rec->truncate(new_length);
@@ -207,16 +200,16 @@ size_t TruncateRecord(uint8_t *data, size_t size, size_t max_size,
 }
 
 // Mutator that splits a TLS record in two.
-size_t FragmentRecord(uint8_t *data, size_t size, size_t max_size,
+size_t FragmentRecord(uint8_t *data, size_t size, size_t maxSize,
                       unsigned int seed) {
   std::mt19937 rng(seed);
 
   // We can't deal with DTLS yet.
-  if (gExtraHeaderBytes > 0) {
+  if (EXTRA_HEADER_BYTES > 0) {
     return 0;
   }
 
-  if (size + 5 > max_size) {
+  if (size + 5 > maxSize) {
     return 0;
   }
 
@@ -259,7 +252,7 @@ size_t FragmentRecord(uint8_t *data, size_t size, size_t max_size,
 
 // Cross-over function that merges and shuffles two transcripts.
 size_t CrossOver(const uint8_t *data1, size_t size1, const uint8_t *data2,
-                 size_t size2, uint8_t *out, size_t max_out_size,
+                 size_t size2, uint8_t *out, size_t maxOutSize,
                  unsigned int seed) {
   std::mt19937 rng(seed);
 
@@ -283,7 +276,7 @@ size_t CrossOver(const uint8_t *data1, size_t size1, const uint8_t *data2,
   size_t total = 0;
   for (auto &rec : records1) {
     size_t length = rec->size();
-    if (total + length > max_out_size) {
+    if (total + length > maxOutSize) {
       break;
     }
 

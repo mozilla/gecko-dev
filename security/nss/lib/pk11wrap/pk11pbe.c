@@ -770,9 +770,10 @@ sec_pkcs5CreateAlgorithmID(SECOidTag algorithm,
             algorithm = sec_pkcs5v2_get_pbe(cipherAlgorithm);
         }
 
+        SECOidTag hashAlg = HASH_GetHashOidTagByHMACOidTag(cipherAlgorithm);
+
         /* set the PKCS5v2 specific parameters */
         if (keyLength == 0) {
-            SECOidTag hashAlg = HASH_GetHashOidTagByHMACOidTag(cipherAlgorithm);
             if (hashAlg != SEC_OID_UNKNOWN) {
                 keyLength = HASH_ResultLenByOidTag(hashAlg);
             } else {
@@ -787,18 +788,25 @@ sec_pkcs5CreateAlgorithmID(SECOidTag algorithm,
             prfAlg = SEC_OID_HMAC_SHA1;
         }
 
-        /* build the PKCS5v2 cipher algorithm id */
-        cipherParams = pk11_GenerateNewParamWithKeyLen(
-            PK11_AlgtagToMechanism(cipherAlgorithm), keyLength);
-        if (!cipherParams) {
-            goto loser;
+        /* build the PKCS5v2 cipher algorithm id, if cipher
+         * is an HMAC, the cipherParams should be NULL */
+        if (hashAlg == SEC_OID_UNKNOWN) {
+            cipherParams = pk11_GenerateNewParamWithKeyLen(
+                PK11_AlgtagToMechanism(cipherAlgorithm), keyLength);
+            if (!cipherParams) {
+                goto loser;
+            }
+        } else {
+            cipherParams = NULL;
         }
 
         PORT_Memset(&pbeV2_param, 0, sizeof(pbeV2_param));
 
         rv = PK11_ParamToAlgid(cipherAlgorithm, cipherParams,
                                poolp, &pbeV2_param.cipherAlgId);
-        SECITEM_FreeItem(cipherParams, PR_TRUE);
+        if (cipherParams) {
+            SECITEM_FreeItem(cipherParams, PR_TRUE);
+        }
         if (rv != SECSuccess) {
             goto loser;
         }

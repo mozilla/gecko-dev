@@ -113,10 +113,10 @@ PRBool ppc_crypto_support();
 #ifdef NSS_FIPS_DISABLED
 #define BLAPI_CLEAR_STACK(stack_size)
 #else
-#define BLAPI_CLEAR_STACK(stack_size)                    \
-    {                                                    \
-        volatile char _stkclr[stack_size];               \
-        PORT_Memset((void *)&_stkclr[0], 0, stack_size); \
+#define BLAPI_CLEAR_STACK(stack_size)                   \
+    {                                                   \
+        volatile char _stkclr[stack_size];              \
+        PORT_SafeZero((void *)&_stkclr[0], stack_size); \
     }
 #endif
 

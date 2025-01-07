@@ -90,4 +90,8 @@ ifeq ($(OS_ARCH), Darwin)
 EXTRA_SHARED_LIBS += -dylib_file @executable_path/libplc4.dylib:$(DIST)/lib/libplc4.dylib -dylib_file @executable_path/libplds4.dylib:$(DIST)/lib/libplds4.dylib
 endif
 
+ifdef NSS_FIPS_140_3
+DEFINES += -DNSS_FIPS_140_3
+endif
+
 endif

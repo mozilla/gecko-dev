@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <assert.h>
-#include <stdint.h>
+#include "server_certs.h"
 
-#include "ssl.h"
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
 
 #include "cpputil.h"
 #include "nss_scoped_ptrs.h"
-#include "tls_server_certs.h"
+#include "ssl.h"
 
 const uint8_t kP256ServerCert[] = {
     0x30, 0x82, 0x01, 0xcf, 0x30, 0x82, 0x01, 0x76, 0xa0, 0x03, 0x02, 0x01,
@@ -252,16 +253,16 @@ const uint8_t kRsaServerKey[] = {
     0xfe, 0xbf, 0xda, 0x0e, 0xce, 0x28, 0xb9, 0xdb, 0x9b, 0xcf, 0x6e, 0xa8,
     0xe4, 0x60, 0xca, 0x98};
 
-void InstallServerCertificate(PRFileDesc* fd, const uint8_t* cert_data,
-                              size_t cert_len, const uint8_t* key_data,
-                              size_t key_len) {
+static void InstallServerCertificate(PRFileDesc* fd, const uint8_t* certData,
+                                     size_t certLen, const uint8_t* keyData,
+                                     size_t keyLen) {
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
   assert(slot);
 
-  SECItem certItem = {siBuffer, toUcharPtr(cert_data),
-                      static_cast<unsigned int>(cert_len)};
-  SECItem pkcs8Item = {siBuffer, toUcharPtr(key_data),
-                       static_cast<unsigned int>(key_len)};
+  SECItem certItem = {siBuffer, toUcharPtr(certData),
+                      static_cast<unsigned int>(certLen)};
+  SECItem pkcs8Item = {siBuffer, toUcharPtr(keyData),
+                       static_cast<unsigned int>(keyLen)};
 
   // Import the certificate.
   static CERTCertDBHandle* certDB = CERT_GetDefaultCertDB();
@@ -284,6 +285,8 @@ void InstallServerCertificate(PRFileDesc* fd, const uint8_t* cert_data,
   assert(rv == SECSuccess);
 }
 
+namespace TlsServer {
+
 void InstallServerCertificates(PRFileDesc* fd) {
   // ECDSA P-256 certificate.
   InstallServerCertificate(fd, kP256ServerCert, sizeof(kP256ServerCert),
@@ -292,4 +295,8 @@ void InstallServerCertificates(PRFileDesc* fd) {
   // RSA-2048 certificate.
   InstallServerCertificate(fd, kRsaServerCert, sizeof(kRsaServerCert),
                            kRsaServerKey, sizeof(kRsaServerKey));
+
+  // TODO(mdauer): Install more different cerificate types.
 }
+
+}  // namespace TlsServer

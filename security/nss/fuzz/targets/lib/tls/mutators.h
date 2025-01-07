@@ -8,23 +8,29 @@
 #include <cstddef>
 #include <cstdint>
 
+// Number of additional bytes in the TLS header.
+// Used to properly skip DTLS seqnums.
+#ifdef IS_DTLS_FUZZ
+#define EXTRA_HEADER_BYTES 8
+#else
+#define EXTRA_HEADER_BYTES 0
+#endif
+
 namespace TlsMutators {
 
-void SetIsDTLS();
-
-size_t DropRecord(uint8_t *data, size_t size, size_t max_size,
+size_t DropRecord(uint8_t *data, size_t size, size_t maxSize,
                   unsigned int seed);
-size_t ShuffleRecords(uint8_t *data, size_t size, size_t max_size,
+size_t ShuffleRecords(uint8_t *data, size_t size, size_t maxSize,
                       unsigned int seed);
-size_t DuplicateRecord(uint8_t *data, size_t size, size_t max_size,
+size_t DuplicateRecord(uint8_t *data, size_t size, size_t maxSize,
                        unsigned int seed);
-size_t TruncateRecord(uint8_t *data, size_t size, size_t max_size,
+size_t TruncateRecord(uint8_t *data, size_t size, size_t maxSize,
                       unsigned int seed);
-size_t FragmentRecord(uint8_t *data, size_t size, size_t max_size,
+size_t FragmentRecord(uint8_t *data, size_t size, size_t maxSize,
                       unsigned int seed);
 
 size_t CrossOver(const uint8_t *data1, size_t size1, const uint8_t *data2,
-                 size_t size2, uint8_t *out, size_t max_out_size,
+                 size_t size2, uint8_t *out, size_t maxOutSize,
                  unsigned int seed);
 
 }  // namespace TlsMutators
