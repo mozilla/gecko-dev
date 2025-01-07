@@ -1250,19 +1250,19 @@ class AForm {
   AFSpecial_KeystrokeEx(cMask) {
     const event = globalThis.event;
     const simplifiedFormatStr = cMask.replaceAll(/[^9AOX]/g, "");
-    this.#AFSpecial_KeystrokeEx_helper(simplifiedFormatStr, false);
+    this.#AFSpecial_KeystrokeEx_helper(simplifiedFormatStr, null, false);
     if (event.rc) {
       return;
     }
     event.rc = true;
-    this.#AFSpecial_KeystrokeEx_helper(cMask, true);
+    this.#AFSpecial_KeystrokeEx_helper(cMask, null, true);
   }
-  #AFSpecial_KeystrokeEx_helper(cMask, warn) {
+  #AFSpecial_KeystrokeEx_helper(cMask, value, warn) {
     if (!cMask) {
       return;
     }
     const event = globalThis.event;
-    const value = this.AFMergeChange(event);
+    value ||= this.AFMergeChange(event);
     if (!value) {
       return;
     }
@@ -1321,7 +1321,8 @@ class AForm {
   AFSpecial_Keystroke(psf) {
     const event = globalThis.event;
     psf = this.AFMakeNumber(psf);
-    let formatStr;
+    let value = this.AFMergeChange(event);
+    let formatStr, secondFormatStr;
     switch (psf) {
       case 0:
         formatStr = "99999";
@@ -1330,8 +1331,8 @@ class AForm {
         formatStr = "99999-9999";
         break;
       case 2:
-        const value = this.AFMergeChange(event);
-        formatStr = value.startsWith("(") || value.length > 7 && /^\p{N}+$/.test(value) ? "(999) 999-9999" : "999-9999";
+        formatStr = "999-9999";
+        secondFormatStr = "(999) 999-9999";
         break;
       case 3:
         formatStr = "999-99-9999";
@@ -1339,7 +1340,24 @@ class AForm {
       default:
         throw new Error("Invalid psf in AFSpecial_Keystroke");
     }
-    this.AFSpecial_KeystrokeEx(formatStr);
+    const formats = secondFormatStr ? [formatStr, secondFormatStr] : [formatStr];
+    for (const format of formats) {
+      this.#AFSpecial_KeystrokeEx_helper(format, value, false);
+      if (event.rc) {
+        return;
+      }
+      event.rc = true;
+    }
+    const re = /([-()]|\s)+/g;
+    value = value.replaceAll(re, "");
+    for (const format of formats) {
+      this.#AFSpecial_KeystrokeEx_helper(format.replaceAll(re, ""), value, false);
+      if (event.rc) {
+        return;
+      }
+      event.rc = true;
+    }
+    this.AFSpecial_KeystrokeEx((secondFormatStr && value.match(/\d/g) || []).length > 7 ? secondFormatStr : formatStr);
   }
   AFTime_FormatEx(cFormat) {
     this.AFDate_FormatEx(cFormat);
@@ -4029,8 +4047,8 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.10.22";
-const pdfjsBuild = "4547f230b";
+const pdfjsVersion = "4.10.56";
+const pdfjsBuild = "dfbd1d5db";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };
