@@ -399,32 +399,33 @@ def setup_browsertime(config, tasks):
 
         cd_fetches = {
             "android.*": [
-                "linux64-chromedriver-130",
-                "linux64-chromedriver-131",
+                "linux64-cft-cd-backup",
+                "linux64-cft-cd-stable",
             ],
             "linux.*": [
-                "linux64-chromedriver-130",
-                "linux64-chromedriver-131",
+                "linux64-cft-cd-backup",
+                "linux64-cft-cd-stable",
             ],
             "macosx1470.*": [
-                "mac64-chromedriver-130",
-                "mac64-chromedriver-131",
+                "mac-cft-cd-backup",
+                "mac-cft-cd-stable",
             ],
             "macosx1400.*": [
-                "mac-arm-chromedriver-130",
-                "mac-arm-chromedriver-131",
+                "mac-cft-cd-arm-backup",
+                "mac-cft-cd-arm-stable",
             ],
             "windows.*-64.*": [
-                "win64-chromedriver-130",
-                "win64-chromedriver-131",
+                "win64-cft-cd-backup",
+                "win64-cft-cd-stable",
             ],
         }
 
         chromium_fetches = {
-            "linux.*": ["linux64-cft-chromedriver"],
-            "macosx1400.*": ["mac-cft-chromedriver-arm"],
-            "windows.*-64.*": ["win64-cft-chromedriver"],
-            "android.*": ["linux64-cft-chromedriver"],
+            "linux.*": ["linux64-cft-cd-canary"],
+            "macosx1400.*": ["mac-cft-cd-arm-canary"],
+            "macosx1470.*": ["mac-cft-cd-canary"],
+            "windows.*-64.*": ["win64-cft-cd-canary"],
+            "android.*": ["linux64-cft-cd-canary"],
         }
 
         cd_extracted_name = {

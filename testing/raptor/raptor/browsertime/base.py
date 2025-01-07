@@ -186,16 +186,16 @@ class Browsertime(Perftest):
                 # setup once all chrome versions use the new artifact setup.
                 cd_extracted_names_115 = {
                     "windows": str(
-                        pathlib.Path("{}chromedriver-win64", "chromedriver.exe")
+                        pathlib.Path("{}cft-chromedriver-win64", "chromedriver.exe")
                     ),
                     "mac-x86_64": str(
-                        pathlib.Path("{}chromedriver-mac-x64", "chromedriver")
+                        pathlib.Path("{}cft-chromedriver-mac", "chromedriver")
                     ),
                     "mac-aarch64": str(
-                        pathlib.Path("{}chromedriver-mac-arm64", "chromedriver")
+                        pathlib.Path("{}cft-chromedriver-mac", "chromedriver")
                     ),
                     "default": str(
-                        pathlib.Path("{}chromedriver-linux64", "chromedriver")
+                        pathlib.Path("{}cft-chromedriver-linux", "chromedriver")
                     ),
                 }
 
