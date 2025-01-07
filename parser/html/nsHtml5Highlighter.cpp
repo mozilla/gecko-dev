@@ -278,14 +278,15 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     // most comment states are omitted, because they don't matter to
     // highlighting
     case nsHtml5Tokenizer::COMMENT_START:
+    case nsHtml5Tokenizer::BOGUS_COMMENT:
+      AddClass(u"comment");
+      [[fallthrough]];
     case nsHtml5Tokenizer::COMMENT_END:
     case nsHtml5Tokenizer::COMMENT_END_BANG:
     case nsHtml5Tokenizer::COMMENT_START_DASH:
-    case nsHtml5Tokenizer::BOGUS_COMMENT:
     case nsHtml5Tokenizer::BOGUS_COMMENT_HYPHEN:
     case nsHtml5Tokenizer::COMMENT_LESSTHAN_BANG_DASH_DASH:
       if (aState == nsHtml5Tokenizer::DATA) {
-        AddClass(u"comment");
         FinishTag();
       }
       break;
