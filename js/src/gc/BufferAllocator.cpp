@@ -1658,13 +1658,19 @@ void BufferAllocator::recommitRegion(FreeRegion* region) {
   MOZ_ASSERT(region->hasDecommittedPages);
 
   BufferChunk* chunk = BufferChunk::from(region);
-  uintptr_t startAddr = RoundDown(region->startAddr, PageSize);
+  uintptr_t startAddr = RoundUp(region->startAddr, PageSize);
   uintptr_t endAddr = RoundDown(uintptr_t(region), PageSize);
 
   size_t startPage = (startAddr - uintptr_t(chunk)) / PageSize;
   size_t endPage = (endAddr - uintptr_t(chunk)) / PageSize;
 
-  // We shouldn't have decommitted the page holding |region|.
+  // If the start of the region does not lie on a page boundary the page it is
+  // in should be committed as it must either contain the start of the chunk, a
+  // FreeRegion or an allocation.
+  MOZ_ASSERT_IF((region->startAddr % PageSize) != 0,
+                !chunk->decommittedPages.ref()[startPage - 1]);
+
+  // The end of the region should be committed as it holds FreeRegion |region|.
   MOZ_ASSERT(!chunk->decommittedPages.ref()[endPage]);
 
   MarkPagesInUseSoft(reinterpret_cast<void*>(startAddr), endAddr - startAddr);
