@@ -81,6 +81,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1559315
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
   "win11_2009", # Bug 1797751
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1797751
 ]
 
 ["browser_rules_authored_override.js"]

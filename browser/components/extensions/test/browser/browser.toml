@@ -155,7 +155,10 @@ https_first_disabled = true
 ["browser_ext_contentscript_nontab_connect.js"]
 
 ["browser_ext_contentscript_sender_url.js"]
-skip-if = ["debug"] # The nature of the reduced STR test triggers an unrelated debug assertion in DOM IPC code, see bug 1736590.
+skip-if = [
+  "debug", # The nature of the reduced STR test triggers an unrelated debug assertion in DOM IPC code, see bug 1736590.
+  "os == 'win' && os_version == '11.26100' && bits == 64 && opt", # Bug 1933435
+]
 tags = "bleedover"
 
 ["browser_ext_contextMenus.js"]
@@ -496,7 +499,7 @@ https_first_disabled = true
 ["browser_ext_tabs_events.js"]
 skip-if = [
   "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug", # Bug 1786601
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1786601
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1786601
 ]
 
 ["browser_ext_tabs_events_order.js"]
@@ -544,6 +547,9 @@ https_first_disabled = true
 https_first_disabled = true
 
 ["browser_ext_tabs_move_array_multiple_windows.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1786601
+]
 
 ["browser_ext_tabs_move_discarded.js"]
 
@@ -614,6 +620,7 @@ skip-if = [
   "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug", # Bug 1797751
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1797751
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1797751
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1797751
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
 ]
 

@@ -126,6 +126,7 @@ skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks res
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1817966
   "win11_2009 && ccov", # Bug 1817966
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov",  # Bug 1817966
 ]
 
 ["browser_dbg-pretty-print.js"]

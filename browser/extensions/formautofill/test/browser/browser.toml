@@ -33,6 +33,9 @@ skip-if = [
 ["browser_autofill_creditCard_type.js"]
 
 ["browser_autofill_duplicate_fields.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug && socketprocess_networking", # frequent failure; Bug 1917060
+]
 
 ["browser_autofill_invisible_fields.js"]
 
@@ -88,6 +91,7 @@ skip-if = [
 ["browser_page_navigation_in_subtree.js"]
 skip-if = [
   "win11_2009", # Bug 1924248
+  "os == 'win' && os_version == '11.26100' && bits == 64", # Bug 1924248
 ]
 
 ["browser_previewFormFields.js"]

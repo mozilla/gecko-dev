@@ -67,6 +67,9 @@ skip-if = [
 
 ["browser_async_window_flushing.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && bits == 64 && opt", # Bug 1775616
+]
 
 ["browser_attributes.js"]
 
@@ -179,6 +182,7 @@ skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "os == 'win' && os_version == '11.2009' && processor == 'x86' && opt", # Bug 1775605
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && opt", # Bug 1775605
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1775605
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1868915
 ]
 

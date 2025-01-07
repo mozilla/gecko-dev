@@ -162,6 +162,7 @@ skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
+  "os == 'win' && os_version == '11.26100' && ccov", # Bug 1775943
 ]
 
 ["browser_tab_switch_warning.js"]

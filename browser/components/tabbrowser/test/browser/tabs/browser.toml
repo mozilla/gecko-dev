@@ -482,6 +482,7 @@ skip-if = [
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929417 (secondary)
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1928146
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # high frequency; Bug 1850123
 ]
 tags = "vertical-tabs"
 

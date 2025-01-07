@@ -13,6 +13,7 @@ https_first_disabled = true
 ["browser_cpu_microcode.js"]
 run-if = ["os == 'win'"]
 reason = "Windows-specific crash annotation"
+skip-if = ["os == 'win' && os_version == '11.26100'"] # Bug 1936467
 
 ["browser_sandbox_crash.js"]
 run-if = ["os == 'linux' && !release_or_beta"] # Linux-specific crash type, release/beta builds do not crash on sandbox violations

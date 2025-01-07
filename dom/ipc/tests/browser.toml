@@ -44,6 +44,7 @@ run-if = ["crashreporter"]
 skip-if = [
   "verify",
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1775837
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug && msix", # Bug 1775837
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && asan", # Bug 1775837
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && tsan", # Bug 1775837
 ]
