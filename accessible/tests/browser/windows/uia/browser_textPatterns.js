@@ -1468,7 +1468,9 @@ addUiaTask(
     `);
     is(await runPython(`text.GetSelection().Length`), 0, "No selection");
     info("Focusing textarea");
-    const textarea = findAccessibleChildByID(docAcc, "textarea");
+    const textarea = findAccessibleChildByID(docAcc, "textarea", [
+      nsIAccessibleText,
+    ]);
     let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, textarea);
     textarea.takeFocus();
     await moved;
@@ -1479,17 +1481,24 @@ addUiaTask(
 
     info("Selecting ab");
     moved = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, textarea);
-    await invokeContentTask(browser, [], () => {
-      content.document.getElementById("textarea").setSelectionRange(0, 2);
-    });
+    textarea.addSelection(0, 2);
     await moved;
     is(await runPython(`text.GetSelection().Length`), 1, "1 selection");
     await definePyVar("range", `text.GetSelection().GetElement(0)`);
     ok(await runPython(`bool(range)`), "Got selection range 0");
     is(await runPython(`range.GetText(-1)`), "ab", "range text correct");
 
-    // XXX Multiple selections aren't possible in editable text. A test for that
-    // should be added in bug 1901458.
+    info("Adding cd to selection");
+    moved = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, textarea);
+    textarea.addSelection(3, 5);
+    await moved;
+    is(await runPython(`text.GetSelection().Length`), 2, "2 selections");
+    await definePyVar("range", `text.GetSelection().GetElement(0)`);
+    ok(await runPython(`bool(range)`), "Got selection range 0");
+    is(await runPython(`range.GetText(-1)`), "ab", "range text correct");
+    await definePyVar("range", `text.GetSelection().GetElement(1)`);
+    ok(await runPython(`bool(range)`), "Got selection range 1");
+    is(await runPython(`range.GetText(-1)`), "cd", "range text correct");
   }
 );
 
