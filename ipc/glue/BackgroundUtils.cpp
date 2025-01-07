@@ -1059,8 +1059,11 @@ nsresult MergeParentLoadInfoForwarder(
     nsresult rv =
         aLoadInfo->GetCookieJarSettings(getter_AddRefs(cookieJarSettings));
     if (NS_SUCCEEDED(rv) && cookieJarSettings) {
-      static_cast<CookieJarSettings*>(cookieJarSettings.get())
-          ->Merge(cookieJarSettingsArgs.ref());
+      nsCOMPtr<nsICookieJarSettings> mergedCookieJarSettings;
+      mergedCookieJarSettings =
+          static_cast<CookieJarSettings*>(cookieJarSettings.get())
+              ->Merge(cookieJarSettingsArgs.ref());
+      aLoadInfo->SetCookieJarSettings(mergedCookieJarSettings);
     }
   }
 
