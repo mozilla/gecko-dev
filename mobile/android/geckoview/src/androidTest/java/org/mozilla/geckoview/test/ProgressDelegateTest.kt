@@ -605,4 +605,85 @@ class ProgressDelegateTest : BaseSessionTest() {
             assertTrue("Expect an exception while getting web compat info.", true)
         }
     }
+
+    @Test
+    fun pageLoadProgressCompletedAtPageStop() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("page_load.progressbar_completion" to 0))
+        val progressChanges = mutableListOf<Int>()
+
+        sessionRule.delegateUntilTestEnd(object : ProgressDelegate {
+            @AssertCalled
+            override fun onProgressChange(session: GeckoSession, progress: Int) {
+                progressChanges.add(progress)
+            }
+        })
+
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        sessionRule.waitForPageStop()
+
+        val completionIndex = progressChanges.indexOf(100)
+        assertThat("Must have more than 1 progress value", completionIndex, greaterThan(0))
+
+        val lastProgressBeforeCompletion = progressChanges[completionIndex - 1]
+
+        assertThat(
+            "Last progress before completion should be less than or equal to 80",
+            lastProgressBeforeCompletion,
+            lessThanOrEqualTo(80),
+        )
+    }
+
+    @Test
+    fun pageLoadProgressCompletedAtDOMContentLoaded() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("page_load.progressbar_completion" to 1))
+        val progressChanges = mutableListOf<Int>()
+
+        sessionRule.delegateUntilTestEnd(object : ProgressDelegate {
+            @AssertCalled
+            override fun onProgressChange(session: GeckoSession, progress: Int) {
+                progressChanges.add(progress)
+            }
+        })
+
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        sessionRule.waitForPageStop()
+
+        val completionIndex = progressChanges.indexOf(100)
+        assertThat("Must have more than 1 progress value", completionIndex, greaterThan(0))
+
+        val lastProgressBeforeCompletion = progressChanges[completionIndex - 1]
+
+        assertThat(
+            "Last progress before completion should be less than 55",
+            lastProgressBeforeCompletion,
+            lessThan(55),
+        )
+    }
+
+    @Test
+    fun pageLoadProgressCompletedAtMozAfterPaintAfterDOMContentLoaded() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("page_load.progressbar_completion" to 2))
+        val progressChanges = mutableListOf<Int>()
+
+        sessionRule.delegateUntilTestEnd(object : ProgressDelegate {
+            @AssertCalled
+            override fun onProgressChange(session: GeckoSession, progress: Int) {
+                progressChanges.add(progress)
+            }
+        })
+
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        sessionRule.waitForPageStop()
+
+        val completionIndex = progressChanges.indexOf(100)
+        assertThat("Must have more than 1 progress value", completionIndex, greaterThan(0))
+
+        val lastProgressBeforeCompletion = progressChanges[completionIndex - 1]
+
+        assertThat(
+            "Last progress before completion should be less than 80",
+            lastProgressBeforeCompletion,
+            lessThan(80),
+        )
+    }
 }

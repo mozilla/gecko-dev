@@ -335,11 +335,23 @@ class ProgressTracker extends Tracker {
     switch (aEvent.name) {
       case "DOMContentLoaded":
         needsUpdate = needsUpdate || !data.parsed;
-        data.parsed = true;
+        // if page_load.progressbar_completion is set to 1, we complete the page load progress when
+        // DOMContentLoaded is received.
+        if (this._progressBarCompletion == 1) {
+          data.completeProgress = true;
+        } else {
+          data.parsed = true;
+        }
         break;
       case "MozAfterPaint":
         needsUpdate = needsUpdate || !data.firstPaint;
-        data.firstPaint = true;
+        // if page_load.progressbar_completion is set to 2, we complete the page load progress at
+        // the first MozAfterPaint after DOMContentLoaded is received.
+        if (this._progressBarCompletion == 2 && data.parsed) {
+          data.completeProgress = true;
+        } else {
+          data.firstPaint = true;
+        }
         break;
       case "pageshow":
         needsUpdate = needsUpdate || !data.pageShow;
@@ -364,7 +376,11 @@ class ProgressTracker extends Tracker {
       firstPaint: false,
       pageShow: false,
       parsed: false,
+      completeProgress: false,
     };
+    this._progressBarCompletion = Services.prefs.getIntPref(
+      "page_load.progressbar_completion"
+    );
   }
 
   _debugData() {
@@ -390,7 +406,7 @@ class ProgressTracker extends Tracker {
     }
 
     let progress = 0;
-    if (data.pageStop || data.pageShow) {
+    if (data.pageStop || data.pageShow || data.completeProgress) {
       progress = 100;
     } else if (data.firstPaint) {
       progress = 80;
