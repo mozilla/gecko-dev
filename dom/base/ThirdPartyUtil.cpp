@@ -45,6 +45,7 @@
 #include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIDOMWindowInlines.h"
+#include "nsSandboxFlags.h"
 #include "nsServiceManagerUtils.h"
 #include "nsTLiteralString.h"
 
@@ -213,6 +214,18 @@ ThirdPartyUtil::IsThirdPartyWindow(mozIDOMWindowProxy* aWindow, nsIURI* aURI,
   auto* const browsingContext = current->GetBrowsingContext();
   MOZ_ASSERT(browsingContext);
 
+  if (browsingContext->IsTopContent()) {
+    *aResult = false;
+    return NS_OK;
+  }
+
+  // If the document is sandboxed, it's always third party.
+  RefPtr<Document> doc = current->GetExtantDoc();
+  if (doc && (doc->GetSandboxFlags() & SANDBOXED_ORIGIN)) {
+    *aResult = true;
+    return NS_OK;
+  }
+
   WindowContext* wc = browsingContext->GetCurrentWindowContext();
   if (NS_WARN_IF(!wc)) {
     *aResult = true;
@@ -235,6 +248,13 @@ nsresult ThirdPartyUtil::IsThirdPartyGlobal(
       *aResult = false;
       return NS_OK;
     }
+
+    // If the window global is sandboxed, it's always third party.
+    if (currentWGP->SandboxFlags() & SANDBOXED_ORIGIN) {
+      *aResult = true;
+      return NS_OK;
+    }
+
     nsCOMPtr<nsIPrincipal> currentPrincipal = currentWGP->DocumentPrincipal();
     RefPtr<WindowGlobalParent> parent =
         currentWGP->BrowsingContext()->GetEmbedderWindowGlobal();
