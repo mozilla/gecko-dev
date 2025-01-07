@@ -15,8 +15,6 @@
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/ContentChild.h"
 
-#define PROFILES_ENABLED_PREF "browser.profiles.enabled"
-
 namespace mozilla {
 namespace browser {
 
@@ -225,12 +223,6 @@ AboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
 
       return aboutNewTabService->AboutHomeChannel(aURI, aLoadInfo, result);
     }
-  }
-
-  if ((path.EqualsASCII("profilemanager") || path.EqualsASCII("editprofile") ||
-       path.EqualsASCII("deleteprofile") || path.EqualsASCII("newprofile")) &&
-      !mozilla::Preferences::GetBool(PROFILES_ENABLED_PREF, false)) {
-    return NS_ERROR_NOT_AVAILABLE;
   }
 
   for (auto& redir : kRedirMap) {
