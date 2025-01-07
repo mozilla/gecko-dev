@@ -14,6 +14,10 @@
 
 #include "./xsimd_sse4_2_register.hpp"
 
+#if XSIMD_WITH_FMA4
+#include <x86intrin.h>
+#endif
+
 namespace xsimd
 {
     /**

@@ -9,6 +9,40 @@
 Changelog
 =========
 
+13.1.0
+------
+
+    * Fix rotate_left and rotate_right behavior (it was swapped!)
+
+    * Fix compress implementation on RISC-V
+
+    * Improve RISC-V CI
+
+    * Fix clang-17 compilation on RISC-V
+
+    * Validate cmake integration
+
+    * Provide xsimd::transpose on 64 and 32 bits on most platforms
+
+    * Improve documentation
+
+    * Provide xsimd::batch_bool::count
+
+    * Fix interaction between xsimd::make_sized_batch_t and
+      xsimd::batch<std::complex, ...>
+
+    * Fix vbmi, sve and rvv detection through xsimd::available_architectures
+
+    * Fix compilation on MS targets where ``small`` can be defined.
+
+    * Change default install directory for installed headers.
+
+    * Support mixed-complex implementations of xsimd::pow()
+
+    * Improve xsimd::pow implementation for complex numbers
+
+    * Fix uninitialized read in lgamma implementation
+
 13.0.0
 ------
 
