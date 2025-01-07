@@ -10,7 +10,7 @@
 
 namespace TelemetryUserInteraction {
 
-void InitializeGlobalState(bool canRecordBase, bool canRecordExtended);
+void InitializeGlobalState(bool canRecord);
 void DeInitializeGlobalState();
 
 bool CanRecord(const nsAString& aName);

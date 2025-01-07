@@ -300,12 +300,12 @@ class KeyedHistogram {
 namespace {
 
 // Set to true once this global state has been initialized
-bool gInitDone = false;
+bool gTelemetryHistogramInitDone = false;
 
 // Whether we are collecting the base, opt-out, Histogram data.
-bool gCanRecordBase = false;
+bool gTelemetryHistogramCanRecordBase = false;
 // Whether we are collecting the extended, opt-in, Histogram data.
-bool gCanRecordExtended = false;
+bool gTelemetryHistogramCanRecordExtended = false;
 
 // The storage for actual Histogram instances.
 // We use separate ones for plain and keyed histograms.
@@ -502,9 +502,11 @@ nsresult internal_GetHistogramIdByName(const StaticMutexAutoLock& aLock,
 
 namespace {
 
-bool internal_CanRecordBase() { return gCanRecordBase; }
+bool internal_CanRecordBase() { return gTelemetryHistogramCanRecordBase; }
 
-bool internal_CanRecordExtended() { return gCanRecordExtended; }
+bool internal_CanRecordExtended() {
+  return gTelemetryHistogramCanRecordExtended;
+}
 
 bool internal_AttemptedGPUProcess() {
   // Check if it was tried to launch a process.
@@ -1589,7 +1591,7 @@ void internal_Accumulate(const StaticMutexAutoLock& aLock, HistogramID aId,
 
 void internal_Accumulate(const StaticMutexAutoLock& aLock, HistogramID aId,
                          const nsCString& aKey, uint32_t aSample) {
-  if (!gInitDone || !internal_CanRecordBase() ||
+  if (!gTelemetryHistogramInitDone || !internal_CanRecordBase() ||
       internal_RemoteAccumulate(aLock, aId, aKey, aSample)) {
     return;
   }
@@ -1622,7 +1624,7 @@ void internal_AccumulateChild(const StaticMutexAutoLock& aLock,
 void internal_AccumulateChildKeyed(const StaticMutexAutoLock& aLock,
                                    ProcessID aProcessType, HistogramID aId,
                                    const nsCString& aKey, uint32_t aSample) {
-  if (!gInitDone || !internal_CanRecordBase()) {
+  if (!gTelemetryHistogramInitDone || !internal_CanRecordBase()) {
     return;
   }
 
@@ -2466,12 +2468,12 @@ void internal_JSKeyedHistogram_finalize(JS::GCContext* gcx, JSObject* obj) {
 void TelemetryHistogram::InitializeGlobalState(bool canRecordBase,
                                                bool canRecordExtended) {
   StaticMutexAutoLock locker(gTelemetryHistogramMutex);
-  MOZ_ASSERT(!gInitDone,
+  MOZ_ASSERT(!gTelemetryHistogramInitDone,
              "TelemetryHistogram::InitializeGlobalState "
              "may only be called once");
 
-  gCanRecordBase = canRecordBase;
-  gCanRecordExtended = canRecordExtended;
+  gTelemetryHistogramCanRecordBase = canRecordBase;
+  gTelemetryHistogramCanRecordExtended = canRecordExtended;
 
   if (XRE_IsParentProcess()) {
     gHistogramStorage =
@@ -2498,14 +2500,14 @@ void TelemetryHistogram::InitializeGlobalState(bool canRecordBase,
 
   // clang-format on
 
-  gInitDone = true;
+  gTelemetryHistogramInitDone = true;
 }
 
 void TelemetryHistogram::DeInitializeGlobalState() {
   StaticMutexAutoLock locker(gTelemetryHistogramMutex);
-  gCanRecordBase = false;
-  gCanRecordExtended = false;
-  gInitDone = false;
+  gTelemetryHistogramCanRecordBase = false;
+  gTelemetryHistogramCanRecordExtended = false;
+  gTelemetryHistogramInitDone = false;
 
   // FactoryGet `new`s Histograms for us, but requires us to manually delete.
   if (XRE_IsParentProcess()) {
@@ -2529,7 +2531,7 @@ void TelemetryHistogram::DeInitializeGlobalState() {
 #ifdef DEBUG
 bool TelemetryHistogram::GlobalStateHasBeenInitialized() {
   StaticMutexAutoLock locker(gTelemetryHistogramMutex);
-  return gInitDone;
+  return gTelemetryHistogramInitDone;
 }
 #endif
 
@@ -2540,7 +2542,7 @@ bool TelemetryHistogram::CanRecordBase() {
 
 void TelemetryHistogram::SetCanRecordBase(bool b) {
   StaticMutexAutoLock locker(gTelemetryHistogramMutex);
-  gCanRecordBase = b;
+  gTelemetryHistogramCanRecordBase = b;
 }
 
 bool TelemetryHistogram::CanRecordExtended() {
@@ -2550,7 +2552,7 @@ bool TelemetryHistogram::CanRecordExtended() {
 
 void TelemetryHistogram::SetCanRecordExtended(bool b) {
   StaticMutexAutoLock locker(gTelemetryHistogramMutex);
-  gCanRecordExtended = b;
+  gTelemetryHistogramCanRecordExtended = b;
 }
 
 void TelemetryHistogram::InitHistogramRecordingEnabled() {

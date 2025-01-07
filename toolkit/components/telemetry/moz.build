@@ -65,7 +65,7 @@ EXPORTS.mozilla.telemetry += [
     "core/Stopwatch.h",
 ]
 
-SOURCES += [
+UNIFIED_SOURCES += [
     "core/Stopwatch.cpp",
     "core/Telemetry.cpp",
     "core/TelemetryCommon.cpp",
@@ -81,18 +81,18 @@ SOURCES += [
 
 # Android and iOS don't support Legacy Telemetry.
 if CONFIG["MOZ_WIDGET_TOOLKIT"] not in ("android", "uikit"):
-    SOURCES += [
+    UNIFIED_SOURCES += [
         "core/ipc/TelemetryIPC.cpp",
         "core/ipc/TelemetryIPCAccumulator.cpp",
     ]
 else:
-    SOURCES += [
+    UNIFIED_SOURCES += [
         "core/ipc/TelemetryIPCAccumulatorStub.cpp",
         "core/ipc/TelemetryIPCStub.cpp",
     ]
 
 if CONFIG["OS_ARCH"] == "WINNT":
-    SOURCES += [
+    UNIFIED_SOURCES += [
         "other/UntrustedModules.cpp",
         "other/UntrustedModulesBackupService.cpp",
         "other/UntrustedModulesDataSerializer.cpp",

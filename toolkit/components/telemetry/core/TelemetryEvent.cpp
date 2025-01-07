@@ -321,10 +321,10 @@ void TruncateToByteLength(nsCString& str, uint32_t length) {
 namespace {
 
 // Set to true once this global state has been initialized.
-bool gInitDone = false;
+bool gTelemetryEventInitDone = false;
 
-bool gCanRecordBase;
-bool gCanRecordExtended;
+bool gTelemetryEventCanRecordBase;
+bool gTelemetryEventCanRecordExtended;
 
 // The EventName -> EventKey cache map.
 MOZ_RUNINIT nsTHashMap<nsCStringHashKey, EventKey> gEventNameIDMap(kEventCount);
@@ -371,12 +371,13 @@ unsigned int GetDataset(const StaticMutexAutoLock& lock,
 
 bool CanRecordEvent(const StaticMutexAutoLock& lock, const EventKey& eventKey,
                     ProcessID process) {
-  if (!gCanRecordBase) {
+  if (!gTelemetryEventCanRecordBase) {
     return false;
   }
 
-  if (!CanRecordDataset(GetDataset(lock, eventKey), gCanRecordBase,
-                        gCanRecordExtended)) {
+  if (!CanRecordDataset(GetDataset(lock, eventKey),
+                        gTelemetryEventCanRecordBase,
+                        gTelemetryEventCanRecordExtended)) {
     return false;
   }
 
@@ -666,12 +667,12 @@ static StaticMutex gTelemetryEventsMutex MOZ_UNANNOTATED;
 void TelemetryEvent::InitializeGlobalState(bool aCanRecordBase,
                                            bool aCanRecordExtended) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
-  MOZ_ASSERT(!gInitDone,
+  MOZ_ASSERT(!gTelemetryEventInitDone,
              "TelemetryEvent::InitializeGlobalState "
              "may only be called once");
 
-  gCanRecordBase = aCanRecordBase;
-  gCanRecordExtended = aCanRecordExtended;
+  gTelemetryEventCanRecordBase = aCanRecordBase;
+  gTelemetryEventCanRecordExtended = aCanRecordExtended;
 
   // Populate the static event name->id cache. Note that the event names are
   // statically allocated and come from the automatically generated
@@ -694,15 +695,15 @@ void TelemetryEvent::InitializeGlobalState(bool aCanRecordBase,
     gCategoryNames.Insert(info.common_info.category());
   }
 
-  gInitDone = true;
+  gTelemetryEventInitDone = true;
 }
 
 void TelemetryEvent::DeInitializeGlobalState() {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
-  MOZ_ASSERT(gInitDone);
+  MOZ_ASSERT(gTelemetryEventInitDone);
 
-  gCanRecordBase = false;
-  gCanRecordExtended = false;
+  gTelemetryEventCanRecordBase = false;
+  gTelemetryEventCanRecordExtended = false;
 
   gEventNameIDMap.Clear();
   gCategoryNames.Clear();
@@ -710,17 +711,17 @@ void TelemetryEvent::DeInitializeGlobalState() {
 
   gDynamicEventInfo = nullptr;
 
-  gInitDone = false;
+  gTelemetryEventInitDone = false;
 }
 
 void TelemetryEvent::SetCanRecordBase(bool b) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
-  gCanRecordBase = b;
+  gTelemetryEventCanRecordBase = b;
 }
 
 void TelemetryEvent::SetCanRecordExtended(bool b) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
-  gCanRecordExtended = b;
+  gTelemetryEventCanRecordExtended = b;
 }
 
 nsresult TelemetryEvent::RecordChildEvents(
@@ -792,7 +793,7 @@ void TelemetryEvent::RecordEventNative(
   } else {
     StaticMutexAutoLock lock(gTelemetryEventsMutex);
 
-    if (!gInitDone) {
+    if (!gTelemetryEventInitDone) {
       return;
     }
 
@@ -1094,7 +1095,7 @@ nsresult TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear,
   {
     StaticMutexAutoLock locker(gTelemetryEventsMutex);
 
-    if (!gInitDone) {
+    if (!gTelemetryEventInitDone) {
       return NS_ERROR_FAILURE;
     }
 
@@ -1176,7 +1177,7 @@ nsresult TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear,
 void TelemetryEvent::ClearEvents() {
   StaticMutexAutoLock lock(gTelemetryEventsMutex);
 
-  if (!gInitDone) {
+  if (!gTelemetryEventInitDone) {
     return;
   }
 

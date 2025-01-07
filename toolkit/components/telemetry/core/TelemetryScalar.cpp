@@ -932,10 +932,10 @@ typedef nsTHashMap<ProcessIDHashKey, KeyedScalarTupleArray>
 namespace {
 
 // Set to true once this global state has been initialized.
-bool gInitDone = false;
+bool gTelemetryScalarInitDone = false;
 
-bool gCanRecordBase;
-bool gCanRecordExtended;
+bool gTelemetryScalarCanRecordBase;
+bool gTelemetryScalarCanRecordExtended;
 
 // The Name -> ID cache map.
 MOZ_RUNINIT ScalarMapType gScalarNameIDMap(kScalarCount);
@@ -960,11 +960,11 @@ MOZ_RUNINIT ProcessesKeyedScalarsMapType gDynamicBuiltinKeyedScalarStorageMap;
 namespace {
 
 bool internal_CanRecordBase(const StaticMutexAutoLock& lock) {
-  return gCanRecordBase;
+  return gTelemetryScalarCanRecordBase;
 }
 
 bool internal_CanRecordExtended(const StaticMutexAutoLock& lock) {
-  return gCanRecordExtended;
+  return gTelemetryScalarCanRecordExtended;
 }
 
 /**
@@ -1078,7 +1078,7 @@ ScalarResult internal_CanRecordScalar(const StaticMutexAutoLock& lock,
  */
 nsresult internal_GetEnumByScalarName(const StaticMutexAutoLock& lock,
                                       const nsACString& aName, ScalarKey* aId) {
-  if (!gInitDone) {
+  if (!gTelemetryScalarInitDone) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1775,12 +1775,12 @@ static StaticMutex gTelemetryScalarsMutex MOZ_UNANNOTATED;
 void TelemetryScalar::InitializeGlobalState(bool aCanRecordBase,
                                             bool aCanRecordExtended) {
   StaticMutexAutoLock locker(gTelemetryScalarsMutex);
-  MOZ_ASSERT(!gInitDone,
+  MOZ_ASSERT(!gTelemetryScalarInitDone,
              "TelemetryScalar::InitializeGlobalState "
              "may only be called once");
 
-  gCanRecordBase = aCanRecordBase;
-  gCanRecordExtended = aCanRecordExtended;
+  gTelemetryScalarCanRecordBase = aCanRecordBase;
+  gTelemetryScalarCanRecordExtended = aCanRecordExtended;
 
   // Populate the static scalar name->id cache. Note that the scalar names are
   // statically allocated and come from the automatically generated
@@ -1805,13 +1805,13 @@ void TelemetryScalar::InitializeGlobalState(bool aCanRecordBase,
   });
   internal_RegisterScalars(locker, initialDynamicScalars);
 
-  gInitDone = true;
+  gTelemetryScalarInitDone = true;
 }
 
 void TelemetryScalar::DeInitializeGlobalState() {
   StaticMutexAutoLock locker(gTelemetryScalarsMutex);
-  gCanRecordBase = false;
-  gCanRecordExtended = false;
+  gTelemetryScalarCanRecordBase = false;
+  gTelemetryScalarCanRecordExtended = false;
   gScalarNameIDMap.Clear();
   gScalarStorageMap.Clear();
   gKeyedScalarStorageMap.Clear();
@@ -1819,17 +1819,17 @@ void TelemetryScalar::DeInitializeGlobalState() {
   gDynamicBuiltinKeyedScalarStorageMap.Clear();
   gDynamicScalarInfo = nullptr;
   gDynamicStoreNames = nullptr;
-  gInitDone = false;
+  gTelemetryScalarInitDone = false;
 }
 
 void TelemetryScalar::SetCanRecordBase(bool b) {
   StaticMutexAutoLock locker(gTelemetryScalarsMutex);
-  gCanRecordBase = b;
+  gTelemetryScalarCanRecordBase = b;
 }
 
 void TelemetryScalar::SetCanRecordExtended(bool b) {
   StaticMutexAutoLock locker(gTelemetryScalarsMutex);
-  gCanRecordExtended = b;
+  gTelemetryScalarCanRecordExtended = b;
 }
 
 /**
