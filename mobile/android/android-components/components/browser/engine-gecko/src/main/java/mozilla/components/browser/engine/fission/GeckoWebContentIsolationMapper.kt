@@ -39,8 +39,7 @@ object GeckoWebContentIsolationMapper {
      * Convenience method for mapping a Android Components defined [EngineWebContentIsolationStrategy],
      * to the GeckoView [GeckoWebContentIsolationStrategy], which is an int.
      *
-     * @return The corresponding [GeckoWebContentIsolationStrategy] or else will return
-     * [STRATEGY_ISOLATE_HIGH_VALUE] as a reasonable default.
+     * @return The corresponding [GeckoWebContentIsolationStrategy].
      */
     fun EngineWebContentIsolationStrategy.intoWebContentIsolationStrategy(): Int {
         return when (this) {
@@ -50,9 +49,6 @@ object GeckoWebContentIsolationMapper {
                 STRATEGY_ISOLATE_EVERYTHING
             EngineWebContentIsolationStrategy.ISOLATE_HIGH_VALUE ->
                 STRATEGY_ISOLATE_HIGH_VALUE
-            else -> {
-                STRATEGY_ISOLATE_HIGH_VALUE
-            }
         }
     }
 }

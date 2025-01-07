@@ -448,7 +448,6 @@ internal fun Status.toGeckoStatus(): Int {
         NO_DECISION -> VALUE_PROMPT
         BLOCKED -> VALUE_DENY
         ALLOWED -> VALUE_ALLOW
-        else -> VALUE_ALLOW
     }
 }
 

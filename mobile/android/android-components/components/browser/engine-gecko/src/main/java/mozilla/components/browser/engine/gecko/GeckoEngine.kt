@@ -1579,6 +1579,5 @@ internal fun InstallationMethod.toGeckoInstallationMethod(): String? {
         InstallationMethod.MANAGER -> WebExtensionController.INSTALLATION_METHOD_MANAGER
         InstallationMethod.FROM_FILE -> WebExtensionController.INSTALLATION_METHOD_FROM_FILE
         InstallationMethod.ONBOARDING -> WebExtensionController.INSTALLATION_METHOD_ONBOARDING
-        else -> null
     }
 }
