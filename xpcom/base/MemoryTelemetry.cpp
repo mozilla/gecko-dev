@@ -152,9 +152,11 @@ void MemoryTelemetry::Poke() {
   TimeStamp now = TimeStamp::Now();
 
   if (mLastRun &&
-      mLastRun + TimeDuration::FromSeconds(kTelemetryCooldownS) < now) {
+      now - mLastRun < TimeDuration::FromSeconds(kTelemetryCooldownS)) {
     // If we last gathered telemetry less than kTelemetryCooldownS seconds ago
     // then Poke() does nothing.  This is to prevent our own timer waking us up.
+    // In the condition above `now - mLastRun` is how long ago we last gathered
+    // telemetry.
     return;
   }
 
