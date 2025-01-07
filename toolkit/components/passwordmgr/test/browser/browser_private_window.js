@@ -219,16 +219,6 @@ add_task(async function test_private_popup_notification_2() {
         notif.anchorElement.click();
         await promiseShown;
 
-        let notificationElement = panel.childNodes[0];
-        let toggleCheckbox = notificationElement.querySelector(
-          "#password-notification-visibilityToggle"
-        );
-
-        Assert.ok(
-          !toggleCheckbox.hidden,
-          "Toggle should be visible upon 1st opening"
-        );
-
         info("Hiding popup.");
         let promiseHidden = BrowserTestUtils.waitForEvent(panel, "popuphidden");
         panel.hidePopup();
@@ -238,11 +228,6 @@ add_task(async function test_private_popup_notification_2() {
         promiseShown = BrowserTestUtils.waitForEvent(panel, "popupshown");
         notif.anchorElement.click();
         await promiseShown;
-
-        Assert.ok(
-          toggleCheckbox.hidden,
-          "Toggle should be hidden upon 2nd opening"
-        );
 
         await cleanupDoorhanger(notif);
       }

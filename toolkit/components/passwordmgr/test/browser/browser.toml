@@ -162,8 +162,6 @@ skip-if = [
 ["browser_doorhanger_target_blank.js"]
 support-files = ["subtst_notifications_12_target_blank.html"]
 
-["browser_doorhanger_toggles.js"]
-
 ["browser_doorhanger_username_edits.js"]
 
 ["browser_doorhanger_window_open.js"]

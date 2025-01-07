@@ -1100,14 +1100,6 @@ popupnotificationcontent {
   }
 }
 
-#password-notification-visibilityToggle {
-  margin-block-start: 14px;
-
-  > .checkbox-label-box > .checkbox-label {
-    opacity: 0.7;
-  }
-}
-
 #tab-notification-deck {
   display: block;
 }

@@ -33,7 +33,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "",
         password: "abcXYZ",
-        toggle: "visible",
       },
     },
   },
@@ -59,7 +58,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "",
         password: "pass-changed",
-        toggle: "visible",
       },
     },
   },
@@ -107,7 +105,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "user2",
         password: "pass2",
-        toggle: "visible",
       },
     },
   },
@@ -150,7 +147,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "user2",
         password: "pass1",
-        toggle: "visible",
       },
     },
   },
@@ -177,7 +173,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "user-saved",
         password: "pass2",
-        toggle: "visible",
       },
     },
   },
@@ -201,7 +196,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "user1",
         password: "pass1",
-        toggle: "visible",
       },
     },
   },
@@ -247,7 +241,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "",
         password: "a",
-        toggle: "visible",
       },
     },
   },
@@ -274,7 +267,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "",
         password: "abc",
-        toggle: "visible",
       },
     },
   },
@@ -299,7 +291,6 @@ let testCases = [
         anchorExtraAttr: null,
         username: "",
         password: "pass",
-        toggle: "visible",
       },
     },
   },
@@ -542,21 +533,5 @@ async function openAndVerifyDoorhanger(browser, type, expected) {
   await Promise.resolve();
   await checkDoorhangerUsernamePassword(expected.username, expected.password);
 
-  let notificationElement = PopupNotifications.panel.childNodes[0];
-  let checkbox = notificationElement.querySelector(
-    "#password-notification-visibilityToggle"
-  );
-
-  if (expected.toggle == "visible") {
-    // Bug 1692284
-    // Assert.ok(BrowserTestUtils.isVisible(checkbox), "Toggle checkbox visible as expected");
-  } else if (expected.toggle == "hidden") {
-    Assert.ok(
-      BrowserTestUtils.isHidden(checkbox),
-      "Toggle checkbox hidden as expected"
-    );
-  } else {
-    info("Not checking toggle checkbox visibility");
-  }
   return notif;
 }

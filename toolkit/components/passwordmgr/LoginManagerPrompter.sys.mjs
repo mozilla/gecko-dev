@@ -30,13 +30,6 @@ const LoginInfo = Components.Constructor(
 );
 
 /**
- * The maximum age of the password in ms (using `timePasswordChanged`) whereby
- * a user can toggle the password visibility in a doorhanger to add a username to
- * a saved login.
- */
-const VISIBILITY_TOGGLE_MAX_PW_AGE_MS = 2 * 60 * 1000; // 2 minutes
-
-/**
  * Constants for password prompt telemetry.
  */
 const PROMPT_DISPLAYED = 0;
@@ -294,10 +287,6 @@ export class LoginManagerPrompter {
       nameField.placeholder = usernamePlaceholder;
       nameField.value = login.username;
 
-      const toggleCheckbox = chromeDoc.getElementById(
-        "password-notification-visibilityToggle"
-      );
-      toggleCheckbox.removeAttribute("checked");
       const passwordField = chromeDoc.getElementById(
         "password-notification-password"
       );
@@ -348,24 +337,6 @@ export class LoginManagerPrompter {
       if (e.key == "Enter") {
         e.target.closest("popupnotification").button.doCommand();
       }
-    };
-
-    const onVisibilityToggle = commandEvent => {
-      const passwordField = chromeDoc.getElementById(
-        "password-notification-password"
-      );
-      // Gets the caret position before changing the type of the textbox
-      const selectionStart = passwordField.selectionStart;
-      const selectionEnd = passwordField.selectionEnd;
-      passwordField.setAttribute(
-        "type",
-        commandEvent.target.checked ? "" : "password"
-      );
-      if (!passwordField.hasAttribute("focused")) {
-        return;
-      }
-      passwordField.selectionStart = selectionStart;
-      passwordField.selectionEnd = selectionEnd;
     };
 
     const togglePopup = event => {
@@ -609,9 +580,6 @@ export class LoginManagerPrompter {
     const usernamePlaceholder = lazy.l10n.formatValueSync(
       "password-manager-no-username-placeholder"
     );
-    const togglePassword = this.getLabelAndAccessKey(
-      "password-manager-toggle-password"
-    );
 
     // .wrappedJSObject needed here -- see bug 422974 comment 5.
     const { PopupNotifications } = browser.ownerGlobal.wrappedJSObject;
@@ -690,37 +658,6 @@ export class LoginManagerPrompter {
                   }
                 });
 
-                const toggleBtn = chromeDoc.getElementById(
-                  "password-notification-visibilityToggle"
-                );
-
-                if (
-                  Services.prefs.getBoolPref(
-                    "signon.rememberSignons.visibilityToggle"
-                  )
-                ) {
-                  toggleBtn.addEventListener("command", onVisibilityToggle);
-
-                  toggleBtn.setAttribute("label", togglePassword.label);
-                  toggleBtn.setAttribute("accesskey", togglePassword.accessKey);
-
-                  const hideToggle =
-                    lazy.LoginHelper.isPrimaryPasswordSet() ||
-                    // Don't show the toggle when the login was autofilled
-                    !!autoFilledLoginGuid ||
-                    // Dismissed-by-default prompts should still show the toggle.
-                    (this.timeShown && this.wasDismissed) ||
-                    // If we are only adding a username then the password is
-                    // one that is already saved and we don't want to reveal
-                    // it as the submitter of this form may not be the account
-                    // owner, they may just be using the saved password.
-                    (messageStringID ==
-                      "password-manager-update-login-add-username" &&
-                      login.timePasswordChanged <
-                        Date.now() - VISIBILITY_TOGGLE_MAX_PW_AGE_MS);
-                  toggleBtn.hidden = hideToggle;
-                }
-
                 let popup = chromeDoc.getElementById("PopupAutoComplete");
                 popup.onUsernameSelect = onUsernameSelect;
                 popup.onPasswordSelect = onPasswordSelect;
@@ -761,7 +698,6 @@ export class LoginManagerPrompter {
               );
               passwordField.removeEventListener("input", onPasswordInput);
               passwordField.removeEventListener("keyup", onKeyUp);
-              passwordField.removeEventListener("command", onVisibilityToggle);
               chromeDoc
                 .getElementById("password-notification-username-dropmarker")
                 .removeEventListener("click", togglePopup);

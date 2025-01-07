@@ -3017,7 +3017,6 @@ pref("font.size.monospace.x-math", 13);
 
 // Login Manager prefs
 pref("signon.rememberSignons",              true);
-pref("signon.rememberSignons.visibilityToggle", true);
 pref("signon.autofillForms",                true);
 pref("signon.autofillForms.autocompleteOff", true);
 pref("signon.autofillForms.http",           false);

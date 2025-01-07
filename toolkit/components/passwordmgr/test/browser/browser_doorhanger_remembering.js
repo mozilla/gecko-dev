@@ -459,15 +459,6 @@ add_task(async function test_pwOnlyNewLoginMatchesUPForm() {
         "Check message"
       );
 
-      let { panel } = PopupNotifications;
-      let passwordVisiblityToggle = panel.querySelector(
-        "#password-notification-visibilityToggle"
-      );
-      Assert.ok(
-        !passwordVisiblityToggle.hidden,
-        "Toggle visible for a recently saved pw"
-      );
-
       await checkDoorhangerUsernamePassword("notifyu1", "notifyp1");
       clickDoorhangerButton(notif, CHANGE_BUTTON);
 
@@ -524,15 +515,6 @@ add_task(async function test_pwOnlyOldLoginMatchesUPForm() {
         notif.message,
         "Add username to saved password?",
         "Check message"
-      );
-
-      let { panel } = PopupNotifications;
-      let passwordVisiblityToggle = panel.querySelector(
-        "#password-notification-visibilityToggle"
-      );
-      Assert.ok(
-        passwordVisiblityToggle.hidden,
-        "Toggle hidden for an old saved pw"
       );
 
       await checkDoorhangerUsernamePassword("notifyu1", "notifyp1");
@@ -1252,48 +1234,6 @@ add_task(async function test_noShowPasswordOnDismissal() {
       notif.anchorElement.click();
       await promiseShown;
 
-      let passwordVisiblityToggle = panel.querySelector(
-        "#password-notification-visibilityToggle"
-      );
-      Assert.equal(
-        passwordVisiblityToggle.hidden,
-        true,
-        "Check that the Show Password field is Hidden"
-      );
-      await cleanupDoorhanger(notif);
-    }
-  );
-});
-
-add_task(async function test_showPasswordOn1stOpenOfDismissedByDefault() {
-  info("Show Password toggle when the doorhanger is dismissed by default");
-
-  await testSubmittingLoginFormHTTP(
-    "subtst_notifications_1.html",
-    async function (_fieldValues) {
-      info("Opening popup");
-      let notif = await getCaptureDoorhangerThatMayOpen("password-save");
-      Assert.ok(!notif.dismissed, "doorhanger is not dismissed");
-      let { panel } = PopupNotifications;
-
-      info("Hiding popup.");
-      let promiseHidden = BrowserTestUtils.waitForEvent(panel, "popuphidden");
-      panel.hidePopup();
-      await promiseHidden;
-
-      info("Clicking on anchor to reshow popup.");
-      let promiseShown = BrowserTestUtils.waitForEvent(panel, "popupshown");
-      notif.anchorElement.click();
-      await promiseShown;
-
-      let passwordVisiblityToggle = panel.querySelector(
-        "#password-notification-visibilityToggle"
-      );
-      Assert.equal(
-        passwordVisiblityToggle.hidden,
-        true,
-        "Check that the Show Password field is Hidden"
-      );
       await cleanupDoorhanger(notif);
     }
   );

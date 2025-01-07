@@ -1,9 +1,6 @@
 const TEST_ORIGIN = "https://example.com";
 
 add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["signon.rememberSignons.visibilityToggle", true]],
-  });
   Services.telemetry.clearEvents();
 });
 
