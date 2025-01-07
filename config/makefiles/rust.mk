@@ -62,9 +62,9 @@ RUSTFLAGS += -Zsanitizer=thread
 endif
 
 rustflags_sancov =
-ifdef LIBFUZZER
 ifndef MOZ_TSAN
 ifndef FUZZING_JS_FUZZILLI
+ifdef LIBFUZZER
 # These options should match what is implicitly enabled for `clang -fsanitize=fuzzer`
 #   here: https://github.com/llvm/llvm-project/blob/release/13.x/clang/lib/Driver/SanitizerArgs.cpp#L422
 #
@@ -75,6 +75,15 @@ ifndef FUZZING_JS_FUZZILLI
 #
 # In TSan builds, we must not pass any of these, because sanitizer coverage is incompatible with TSan.
 rustflags_sancov += -Cpasses=sancov-module -Cllvm-args=-sanitizer-coverage-inline-8bit-counters -Cllvm-args=-sanitizer-coverage-level=4 -Cllvm-args=-sanitizer-coverage-trace-compares -Cllvm-args=-sanitizer-coverage-pc-table
+else
+ifdef AFLFUZZ
+# Use the same flags as afl-cc, specified here:
+# https://github.com/AFLplusplus/AFLplusplus/blob/4eaacfb095ac164afaaf9c10b8112f98d8ad7c2a/src/afl-cc.c#L2101
+#  -sanitizer-coverage-level=3                   Enable coverage for all blocks, critical edges. Implied by clang as default.
+#  -sanitizer-coverage-pc-table                  Create a static PC table.
+#  -sanitizer-coverage-trace-pc-guard            Adds guard_variable (uint32_t) to every edge
+rustflags_sancov += -Cpasses=sancov-module -Cllvm-args=-sanitizer-coverage-level=3  -Cllvm-args=-sanitizer-coverage-pc-table -Cllvm-args=-sanitizer-coverage-trace-pc-guard
+endif
 endif
 endif
 endif
