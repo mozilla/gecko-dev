@@ -31,6 +31,8 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
 
+const val WEBCOMPAT_SNACKBAR_DURATION_MS = 20000
+
 /**
  * A binding for observing the [SnackbarState] in the [AppStore] and displaying the snackbar.
  *
@@ -200,6 +202,15 @@ class SnackbarBinding(
                         )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
+                    SnackbarState.WebCompatReportSent -> {
+                        snackbarDelegate.show(
+                            text = context.getString(R.string.webcompat_reporter_success_snackbar_text),
+                            duration = WEBCOMPAT_SNACKBAR_DURATION_MS,
+                            action = context.getString(R.string.webcompat_reporter_dismiss_success_snackbar_text),
+                            listener = { snackbarDelegate.dismiss() },
+                        )
                     }
 
                     SnackbarState.None -> Unit

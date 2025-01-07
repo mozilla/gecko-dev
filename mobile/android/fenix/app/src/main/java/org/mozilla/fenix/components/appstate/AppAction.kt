@@ -577,13 +577,18 @@ sealed class AppAction : Action {
      */
     sealed class WebCompatAction : AppAction() {
         /**
-         * Dispatched then the [WebCompatState] has been updated.
+         * Dispatched when the [WebCompatState] has been updated.
          */
         data class WebCompatStateUpdated(val newState: WebCompatState) : WebCompatAction()
 
         /**
-         * Dispatched then the [WebCompatState] has been cleared.
+         * Dispatched when the [WebCompatState] has been cleared.
          */
         data object WebCompatStateReset : WebCompatAction()
+
+        /**
+         * Dispatched when the WebCompat reporter has been submitted successfully.
+         */
+        data object WebCompatReportSent : WebCompatAction()
     }
 }

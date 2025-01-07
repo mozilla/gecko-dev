@@ -7,6 +7,7 @@ package org.mozilla.fenix.components.appstate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mozilla.fenix.components.appstate.AppAction.WebCompatAction
+import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.components.appstate.webcompat.WebCompatReducer
 import org.mozilla.fenix.components.appstate.webcompat.WebCompatState
 
@@ -47,5 +48,23 @@ class WebCompatReducerTest {
         )
 
         assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `WHEN the WebCompat report is successfully submitted THEN the snackbar state should be updated and the web compat data should remain the same`() {
+        val appState = AppState(
+            webCompatState = WebCompatState(
+                tabUrl = "www.mozilla.org",
+                enteredUrl = "www.mozilla.org/3",
+                reason = "slow",
+                problemDescription = "problem description",
+            ),
+            snackbarState = SnackbarState.None,
+        )
+
+        val actual = WebCompatReducer.reduce(appState, WebCompatAction.WebCompatReportSent)
+
+        assertEquals(appState.webCompatState, actual.webCompatState)
+        assertEquals(SnackbarState.WebCompatReportSent, actual.snackbarState)
     }
 }

@@ -35,6 +35,7 @@ object WebCompatReporterMiddlewareProvider {
     ) = listOf(
         provideStorageMiddleware(appStore),
         provideSubmissionMiddleware(
+            appStore = appStore,
             browserStore = browserStore,
             webCompatInfoDeserializer = provideWebCompatInfoDeserializer(),
             scope = scope,
@@ -49,10 +50,12 @@ object WebCompatReporterMiddlewareProvider {
     )
 
     private fun provideSubmissionMiddleware(
+        appStore: AppStore,
         browserStore: BrowserStore,
         webCompatInfoDeserializer: WebCompatInfoDeserializer,
         scope: CoroutineScope,
     ) = WebCompatReporterSubmissionMiddleware(
+        appStore = appStore,
         webCompatReporterRetrievalService = DefaultWebCompatReporterRetrievalService(
             browserStore = browserStore,
             webCompatInfoDeserializer = webCompatInfoDeserializer,

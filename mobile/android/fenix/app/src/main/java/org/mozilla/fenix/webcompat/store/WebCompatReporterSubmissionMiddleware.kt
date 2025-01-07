@@ -17,16 +17,20 @@ import org.mozilla.fenix.GleanMetrics.BrokenSiteReportTabInfo
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportTabInfoAntitracking
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportTabInfoFrameworks
 import org.mozilla.fenix.GleanMetrics.Pings
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.webcompat.retrievalservice.WebCompatInfoDto
 import org.mozilla.fenix.webcompat.retrievalservice.WebCompatReporterRetrievalService
 
 /**
  * [Middleware] that reacts to submission related [WebCompatReporterAction]s.
  *
+ * @param appStore [AppStore] used to dispatch [AppAction]s.
  * @param webCompatReporterRetrievalService The service that handles submission requests.
  * @param scope The [CoroutineScope] for launching coroutines.
  */
 class WebCompatReporterSubmissionMiddleware(
+    private val appStore: AppStore,
     private val webCompatReporterRetrievalService: WebCompatReporterRetrievalService,
     private val scope: CoroutineScope,
 ) : Middleware<WebCompatReporterState, WebCompatReporterAction> {
@@ -60,6 +64,7 @@ class WebCompatReporterSubmissionMiddleware(
 
                     Pings.brokenSiteReport.submit()
                     context.store.dispatch(WebCompatReporterAction.ReportSubmitted)
+                    appStore.dispatch(AppAction.WebCompatAction.WebCompatReportSent)
                 }
             }
             else -> {}

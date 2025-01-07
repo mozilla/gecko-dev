@@ -1308,7 +1308,10 @@
     <string name="webcompat_reporter_cancel">Cancel</string>
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">Send</string>
-
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">Your report was sent</string>
+    <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+    <string name="webcompat_reporter_dismiss_success_snackbar_text">Close</string>
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

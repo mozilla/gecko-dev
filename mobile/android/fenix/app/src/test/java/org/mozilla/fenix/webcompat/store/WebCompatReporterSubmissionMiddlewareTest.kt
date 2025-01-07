@@ -5,6 +5,8 @@
 package org.mozilla.fenix.webcompat.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.addJsonObject
@@ -28,11 +30,14 @@ import org.mozilla.fenix.GleanMetrics.BrokenSiteReportTabInfo
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportTabInfoAntitracking
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportTabInfoFrameworks
 import org.mozilla.fenix.GleanMetrics.Pings
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.webcompat.retrievalservice.WebCompatInfoDto
 import org.mozilla.fenix.webcompat.retrievalservice.WebCompatReporterRetrievalService
 
 @RunWith(AndroidJUnit4::class)
 class WebCompatReporterSubmissionMiddlewareTest {
+    private val appStore: AppStore = mockk()
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
@@ -42,7 +47,8 @@ class WebCompatReporterSubmissionMiddlewareTest {
 
     @Test
     fun `GIVEN the URL is not changed WHEN WebCompatInfo is retrieved successfully THEN all report broken site pings are submitted`() = runTest {
-        val webCompatReporterRetrievalService: WebCompatReporterRetrievalService = FakeWebCompatReporterRetrievalService()
+        val webCompatReporterRetrievalService: WebCompatReporterRetrievalService =
+            FakeWebCompatReporterRetrievalService()
 
         val store = createStore(service = webCompatReporterRetrievalService)
 
@@ -170,10 +176,21 @@ class WebCompatReporterSubmissionMiddlewareTest {
                 store.state.reason?.name,
                 BrokenSiteReport.breakageCategory.testGetValue(),
             )
-            assertEquals(store.state.problemDescription, BrokenSiteReport.description.testGetValue())
+            assertEquals(
+                store.state.problemDescription,
+                BrokenSiteReport.description.testGetValue(),
+            )
         }
+    }
+
+    fun `WHEN the report is sent successfully THEN appState is updated`() {
+        val webCompatReporterRetrievalService: WebCompatReporterRetrievalService = FakeWebCompatReporterRetrievalService()
+
+        val store = createStore(service = webCompatReporterRetrievalService)
 
         store.dispatch(WebCompatReporterAction.SendReportClicked)
+
+        verify { appStore.dispatch(AppAction.WebCompatAction.WebCompatReportSent) }
     }
 
     @Test
@@ -351,6 +368,7 @@ class WebCompatReporterSubmissionMiddlewareTest {
         ),
         middleware = listOf(
             WebCompatReporterSubmissionMiddleware(
+                appStore = appStore,
                 webCompatReporterRetrievalService = service,
                 scope = coroutinesTestRule.scope,
             ),
