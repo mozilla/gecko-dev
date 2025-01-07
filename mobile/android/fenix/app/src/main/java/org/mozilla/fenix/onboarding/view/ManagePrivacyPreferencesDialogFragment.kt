@@ -4,8 +4,10 @@
 
 package org.mozilla.fenix.onboarding.view
 
-import android.app.Dialog
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.DialogFragment
 import org.mozilla.fenix.components.lazyStore
@@ -38,22 +40,20 @@ class ManagePrivacyPreferencesDialogFragment(
         )
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return Dialog(requireContext()).apply {
-            setContentView(
-                ComposeView(requireContext()).apply {
-                    setContent {
-                        FirefoxTheme {
-                            ManagePrivacyPreferencesDialog(
-                                store = store,
-                                onDismissRequest = { dismiss() },
-                                onCrashReportingLinkClick = onCrashReportingLinkClick,
-                                onUsageDataLinkClick = onUsageDataLinkClick,
-                            )
-                        }
-                    }
-                },
-            )
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setContent {
+            FirefoxTheme {
+                ManagePrivacyPreferencesDialog(
+                    store = store,
+                    onDismissRequest = { dismiss() },
+                    onCrashReportingLinkClick = onCrashReportingLinkClick,
+                    onUsageDataLinkClick = onUsageDataLinkClick,
+                )
+            }
         }
     }
 
