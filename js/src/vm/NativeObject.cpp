@@ -362,9 +362,9 @@ bool NativeObject::growSlots(JSContext* cx, uint32_t oldCapacity,
   ObjectSlots* oldHeaderSlots = ObjectSlots::fromSlots(slots_);
   MOZ_ASSERT(oldHeaderSlots->capacity() == oldCapacity);
 
-  HeapSlot* allocation = ReallocNurseryOrMallocBuffer<HeapSlot>(
+  HeapSlot* allocation = ReallocateCellBuffer<HeapSlot>(
       cx, this, reinterpret_cast<HeapSlot*>(oldHeaderSlots), oldAllocated,
-      newAllocated, js::MallocArena);
+      newAllocated);
   if (!allocation) {
     return false; /* Leave slots at its old size. */
   }
@@ -375,11 +375,6 @@ bool NativeObject::growSlots(JSContext* cx, uint32_t oldCapacity,
 
   Debug_SetSlotRangeToCrashOnTouch(slots_ + oldCapacity,
                                    newCapacity - oldCapacity);
-
-  RemoveCellMemory(this, ObjectSlots::allocSize(oldCapacity),
-                   MemoryUse::ObjectSlots);
-  AddCellMemory(this, ObjectSlots::allocSize(newCapacity),
-                MemoryUse::ObjectSlots);
 
   MOZ_ASSERT(hasDynamicSlots());
   return true;
@@ -401,7 +396,7 @@ bool NativeObject::growSlotsForNewSlot(JSContext* cx, uint32_t numFixed,
 
 bool NativeObject::allocateInitialSlots(JSContext* cx, uint32_t capacity) {
   uint32_t count = ObjectSlots::allocCount(capacity);
-  HeapSlot* allocation = AllocNurseryOrMallocBuffer<HeapSlot>(cx, this, count);
+  HeapSlot* allocation = AllocateCellBuffer<HeapSlot>(cx, this, count);
   if (MOZ_UNLIKELY(!allocation)) {
     // The new object will be unreachable, but we have to make it safe for
     // finalization. It can also be observed with dumpHeap().
@@ -417,11 +412,6 @@ bool NativeObject::allocateInitialSlots(JSContext* cx, uint32_t capacity) {
 
   Debug_SetSlotRangeToCrashOnTouch(slots_, capacity);
 
-  if (!IsInsideNursery(this)) {
-    AddCellMemory(this, ObjectSlots::allocSize(capacity),
-                  MemoryUse::ObjectSlots);
-  }
-
   MOZ_ASSERT(hasDynamicSlots());
   return true;
 }
@@ -435,7 +425,7 @@ bool NativeObject::allocateSlots(Nursery& nursery, uint32_t newCapacity) {
   uint32_t dictionarySpan = getSlotsHeader()->dictionarySlotSpan();
 
   HeapSlot* allocation =
-      AllocNurseryOrMallocBuffer<HeapSlot>(nursery, this, newAllocated);
+      AllocateCellBuffer<HeapSlot>(nursery, zone(), this, newAllocated);
   if (!allocation) {
     return false;
   }
@@ -445,9 +435,6 @@ bool NativeObject::allocateSlots(Nursery& nursery, uint32_t newCapacity) {
   slots_ = newHeaderSlots->slots();
 
   Debug_SetSlotRangeToCrashOnTouch(slots_, newCapacity);
-
-  AddCellMemory(this, ObjectSlots::allocSize(newCapacity),
-                MemoryUse::ObjectSlots);
 
   MOZ_ASSERT(hasDynamicSlots());
   return true;
@@ -492,17 +479,6 @@ bool NativeObject::addDenseElementPure(JSContext* cx, NativeObject* obj) {
   return true;
 }
 
-static inline void FreeSlots(JSContext* cx, NativeObject* obj,
-                             ObjectSlots* slots, size_t nbytes) {
-  // Note: this is called when shrinking slots, not from the finalizer.
-  if (obj->isTenured()) {
-    MOZ_ASSERT(!cx->nursery().isInside(slots));
-    js_free(slots);
-  } else {
-    cx->nursery().freeBuffer(slots, nbytes);
-  }
-}
-
 void NativeObject::shrinkSlots(JSContext* cx, uint32_t oldCapacity,
                                uint32_t newCapacity) {
   MOZ_ASSERT(hasDynamicSlots());
@@ -517,9 +493,6 @@ void NativeObject::shrinkSlots(JSContext* cx, uint32_t oldCapacity,
   uint32_t oldAllocated = ObjectSlots::allocCount(oldCapacity);
 
   if (newCapacity == 0 && uid == 0) {
-    size_t nbytes = ObjectSlots::allocSize(oldCapacity);
-    RemoveCellMemory(this, nbytes, MemoryUse::ObjectSlots);
-    FreeSlots(cx, this, oldHeaderSlots, nbytes);
     // dictionarySlotSpan is initialized to the correct value by the callers.
     setEmptyDynamicSlots(0);
     return;
@@ -532,9 +505,9 @@ void NativeObject::shrinkSlots(JSContext* cx, uint32_t oldCapacity,
 
   uint32_t newAllocated = ObjectSlots::allocCount(newCapacity);
 
-  HeapSlot* allocation = ReallocNurseryOrMallocBuffer<HeapSlot>(
+  HeapSlot* allocation = ReallocateCellBuffer<HeapSlot>(
       cx, this, reinterpret_cast<HeapSlot*>(oldHeaderSlots), oldAllocated,
-      newAllocated, js::MallocArena);
+      newAllocated);
   if (!allocation) {
     // It's possible for realloc to fail when shrinking an allocation. In this
     // case we continue using the original allocation but still update the
@@ -543,11 +516,6 @@ void NativeObject::shrinkSlots(JSContext* cx, uint32_t oldCapacity,
     cx->recoverFromOutOfMemory();
     allocation = reinterpret_cast<HeapSlot*>(getSlotsHeader());
   }
-
-  RemoveCellMemory(this, ObjectSlots::allocSize(oldCapacity),
-                   MemoryUse::ObjectSlots);
-  AddCellMemory(this, ObjectSlots::allocSize(newCapacity),
-                MemoryUse::ObjectSlots);
 
   auto* newHeaderSlots =
       new (allocation) ObjectSlots(newCapacity, dictionarySpan, uid);
