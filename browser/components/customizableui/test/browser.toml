@@ -344,6 +344,8 @@ skip-if = ["(verify && debug && (os == 'linux' || os == 'mac'))"]
 
 ["browser_searchbar_removal.js"]
 
+["browser_sidebar_button_reset.js"]
+
 ["browser_sidebar_toggle.js"]
 skip-if = ["verify"]
 

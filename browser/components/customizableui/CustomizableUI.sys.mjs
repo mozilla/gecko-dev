@@ -4245,6 +4245,17 @@ var CustomizableUIInternal = {
         break;
       }
       case kPrefSidebarRevampEnabled: {
+        // If we are changing the pref after startup, update the nav bar defaultPlacements to include/exclude sidebar-button
+        let props = gAreas.get(CustomizableUI.AREA_NAVBAR);
+        let defaults = props.get("defaultPlacements");
+        let sidebarButtonIndex = defaults.indexOf("sidebar-button");
+        if (sidebarRevampEnabled && sidebarButtonIndex < 0) {
+          defaults.unshift("sidebar-button");
+        } else if (!sidebarRevampEnabled && sidebarButtonIndex > -1) {
+          defaults.splice(sidebarButtonIndex, 1);
+        }
+        props.set("defaultPlacements", defaults);
+        gAreas.set(CustomizableUI.AREA_NAVBAR, props);
         // We need to also disable vertical tabs if sidebar.revamp is no longer enabled
         if (!sidebarRevampEnabled && verticalTabsEnabled) {
           lazy.log.debug(
