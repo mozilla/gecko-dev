@@ -4259,6 +4259,11 @@ JS_PUBLIC_API void JS_SetParallelParsingEnabled(JSContext* cx, bool enabled) {
   cx->runtime()->setParallelParsingEnabled(enabled);
 }
 
+JS_PUBLIC_API void JS_SetOffthreadBaselineCompilationEnabled(JSContext* cx,
+                                                             bool enabled) {
+  cx->runtime()->setOffthreadBaselineCompilationEnabled(enabled);
+}
+
 JS_PUBLIC_API void JS_SetOffthreadIonCompilationEnabled(JSContext* cx,
                                                         bool enabled) {
   cx->runtime()->setOffthreadIonCompilationEnabled(enabled);
@@ -4404,10 +4409,10 @@ JS_PUBLIC_API void JS_SetGlobalJitCompilerOption(JSContext* cx,
       break;
     case JSJITCOMPILER_OFFTHREAD_COMPILATION_ENABLE:
       if (value == 1) {
-        rt->setOffthreadIonCompilationEnabled(true);
+        rt->setOffthreadCompilationEnabled(true);
         JitSpew(js::jit::JitSpew_IonScripts, "Enable offthread compilation");
       } else if (value == 0) {
-        rt->setOffthreadIonCompilationEnabled(false);
+        rt->setOffthreadCompilationEnabled(false);
         JitSpew(js::jit::JitSpew_IonScripts, "Disable offthread compilation");
       }
       break;

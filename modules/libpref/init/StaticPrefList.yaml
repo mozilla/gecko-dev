@@ -8078,6 +8078,15 @@
   mirror: always  # LoadStartupJSPrefs
   do_not_use_directly: true
 
+#ifdef NIGHTLY_BUILD
+# Experimental support for off-main-thread baseline compilation.
+- name: javascript.options.experimental.baselinejit.offthread_compilation
+  type: bool
+  value: false
+  mirror: always  # LoadStartupJSPrefs
+  do_not_use_directly: true
+#endif
+
 # Enable off-main-thread Warp compilation.
 - name: javascript.options.ion.offthread_compilation
   type: bool

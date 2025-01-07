@@ -140,6 +140,7 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
       liveSABs(0),
       beforeWaitCallback(nullptr),
       afterWaitCallback(nullptr),
+      offthreadBaselineCompilationEnabled_(false),
       offthreadIonCompilationEnabled_(true),
       parallelParsingEnabled_(true),
       autoWritableJitCodeActive_(false),

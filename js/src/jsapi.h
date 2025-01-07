@@ -825,6 +825,8 @@ extern JS_PUBLIC_API JSObject* JS_NewObjectForConstructor(
 extern JS_PUBLIC_API void JS_SetParallelParsingEnabled(JSContext* cx,
                                                        bool enabled);
 
+extern JS_PUBLIC_API void JS_SetOffthreadBaselineCompilationEnabled(
+    JSContext* cx, bool enabled);
 extern JS_PUBLIC_API void JS_SetOffthreadIonCompilationEnabled(JSContext* cx,
                                                                bool enabled);
 

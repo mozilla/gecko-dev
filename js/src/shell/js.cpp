@@ -827,7 +827,8 @@ const char* shell::selfHostedXDRPath = nullptr;
 bool shell::encodeSelfHostedCode = false;
 bool shell::enableCodeCoverage = false;
 bool shell::enableDisassemblyDumps = false;
-bool shell::offthreadCompilation = false;
+bool shell::offthreadBaselineCompilation = false;
+bool shell::offthreadIonCompilation = false;
 JS::DelazificationOption shell::defaultDelazificationMode =
     JS::DelazificationOption::OnDemandOnly;
 bool shell::enableAsmJS = false;
@@ -11767,7 +11768,9 @@ static void SetWorkerContextOptions(JSContext* cx) {
       .setTestWasmAwaitTier2(enableTestWasmAwaitTier2)
       .setSourcePragmas(enableSourcePragmas);
 
-  cx->runtime()->setOffthreadIonCompilationEnabled(offthreadCompilation);
+  cx->runtime()->setOffthreadBaselineCompilationEnabled(
+      offthreadBaselineCompilation);
+  cx->runtime()->setOffthreadIonCompilationEnabled(offthreadIonCompilation);
   cx->runtime()->profilingScripts =
       enableCodeCoverage || enableDisassemblyDumps;
 
@@ -12654,8 +12657,11 @@ bool InitOptionParser(OptionParser& op) {
           "Always ion-compile methods (implies --baseline-eager)") ||
       !op.addBoolOption('\0', "fast-warmup",
                         "Reduce warmup thresholds for each tier.") ||
+      !op.addStringOption(
+          '\0', "baseline-offthread-compile", "on/off",
+          "Compile baseline scripts offthread (default: off)") ||
       !op.addStringOption('\0', "ion-offthread-compile", "on/off",
-                          "Compile scripts off thread (default: on)") ||
+                          "Compile Ion scripts offthread (default: on)") ||
       !op.addStringOption('\0', "ion-parallel-compile", "on/off",
                           "--ion-parallel compile is deprecated. Use "
                           "--ion-offthread-compile.") ||
@@ -13718,15 +13724,26 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
     jit::JitOptions.setEagerIonCompilation();
   }
 
-  offthreadCompilation = true;
+  offthreadBaselineCompilation = false;
+  if (const char* str = op.getStringOption("baseline-offthread-compile")) {
+    if (strcmp(str, "on") == 0) {
+      offthreadBaselineCompilation = true;
+    } else if (strcmp(str, "off") != 0) {
+      return OptionFailure("baseline-offthread-compile", str);
+    }
+  }
+  cx->runtime()->setOffthreadBaselineCompilationEnabled(
+      offthreadBaselineCompilation);
+
+  offthreadIonCompilation = true;
   if (const char* str = op.getStringOption("ion-offthread-compile")) {
     if (strcmp(str, "off") == 0) {
-      offthreadCompilation = false;
+      offthreadIonCompilation = false;
     } else if (strcmp(str, "on") != 0) {
       return OptionFailure("ion-offthread-compile", str);
     }
   }
-  cx->runtime()->setOffthreadIonCompilationEnabled(offthreadCompilation);
+  cx->runtime()->setOffthreadIonCompilationEnabled(offthreadIonCompilation);
 
   if (op.getStringOption("ion-parallel-compile")) {
     fprintf(stderr,
