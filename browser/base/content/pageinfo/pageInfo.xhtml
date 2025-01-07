@@ -14,7 +14,6 @@
   drawtitle="true"
   customtitlebar="true"
 #endif
-  onload="onLoadPageInfo()"
   align="stretch"
   screenX="10" screenY="10"
   persist="screenX screenY width height sizemode">
@@ -47,8 +46,8 @@
   </stringbundleset>
 
   <commandset id="pageInfoCommandSet">
-    <command id="cmd_close"     oncommand="window.close();"/>
-    <command id="cmd_help"      oncommand="doHelpButton();"/>
+    <command id="cmd_close"/>
+    <command id="cmd_help"/>
   </commandset>
 
   <keyset id="pageInfoKeySet">
@@ -71,14 +70,10 @@
 
   <vbox id="topBar">
     <radiogroup id="viewGroup" class="chromeclass-toolbar" orient="horizontal">
-      <radio id="generalTab"  data-l10n-id="general-tab"
-           oncommand="showTab('general');"/>
-      <radio id="mediaTab"    data-l10n-id="media-tab"
-           oncommand="showTab('media');" hidden="true"/>
-      <radio id="permTab"     data-l10n-id="perm-tab"
-           oncommand="showTab('perm');"/>
-      <radio id="securityTab" data-l10n-id="security-tab"
-           oncommand="showTab('security');"/>
+      <radio id="generalTab"  data-l10n-id="general-tab"/>
+      <radio id="mediaTab"    data-l10n-id="media-tab" hidden="true"/>
+      <radio id="permTab"     data-l10n-id="perm-tab"/>
+      <radio id="securityTab" data-l10n-id="security-tab"/>
     </radiogroup>
   </vbox>
 
@@ -255,12 +250,8 @@
         </table>
         <hbox id="imageSaveBox" align="end">
           <spacer id="imageSaveBoxSpacer" flex="1"/>
-          <button data-l10n-id="media-select-all"
-                  id="selectallbutton"
-                  oncommand="doSelectAllMedia();"/>
-          <button data-l10n-id="media-save-as"
-                  id="imagesaveasbutton"
-                  oncommand="saveMedia();"/>
+          <button data-l10n-id="media-select-all" id="selectallbutton"/>
+          <button data-l10n-id="media-save-as" id="imagesaveasbutton"/>
         </hbox>
         <vbox id="imagecontainerbox" flex="1">
           <hbox id="theimagecontainer">
@@ -273,9 +264,7 @@
       </vbox>
       <hbox id="mediaSaveBox" collapsed="true">
         <spacer id="mediaSaveBoxSpacer" flex="1"/>
-        <button data-l10n-id="media-save-image-as"
-                id="mediasaveasbutton"
-                oncommand="saveMedia();"/>
+        <button data-l10n-id="media-save-image-as" id="mediasaveasbutton"/>
       </hbox>
       <hbox pack="end">
         <button command="cmd_help" data-l10n-id="help-button" class="help-button"/>
@@ -334,8 +323,7 @@
                 <input id="security-identity-verifier-value" readonly="readonly"
                             data-l10n-attrs="value"/>
                 <xul:button id="security-view-cert" data-l10n-id="security-view"
-                            collapsed="true"
-                            oncommand="security.viewCert();"/>
+                            collapsed="true"/>
               </div>
             </td>
           </tr>
@@ -376,8 +364,7 @@
                 <xul:label id="security-privacy-sitedata-value" data-l10n-id="security-view-unknown"/>
                 <xul:button id="security-clear-sitedata"
                             disabled="true"
-                            data-l10n-id="security-view-privacy-clearsitedata"
-                            oncommand="security.clearSiteData();"/>
+                            data-l10n-id="security-view-privacy-clearsitedata"/>
               </div>
             </td>
           </tr>
@@ -391,8 +378,7 @@
                 <xul:label id="security-privacy-passwords-value"
                            data-l10n-id="security-view-unknown"/>
                 <xul:button id="security-view-password"
-                            data-l10n-id="security-view-privacy-viewpasswords"
-                            oncommand="security.viewPasswords();"/>
+                            data-l10n-id="security-view-privacy-viewpasswords"/>
               </div>
             </td>
           </tr>

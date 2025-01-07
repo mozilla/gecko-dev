@@ -31,7 +31,7 @@ async function testPermissions(defaultPermission) {
     ok(!defaultCheckbox.checked, "The default checkbox should not be checked.");
 
     defaultCheckbox.checked = true;
-    defaultCheckbox.dispatchEvent(new Event("command"));
+    defaultCheckbox.doCommand();
 
     ok(
       !PermissionTestUtils.getPermissionObject(gBrowser.currentURI, "geo"),
@@ -39,7 +39,7 @@ async function testPermissions(defaultPermission) {
     );
 
     defaultCheckbox.checked = false;
-    defaultCheckbox.dispatchEvent(new Event("command"));
+    defaultCheckbox.doCommand();
 
     ok(
       !PermissionTestUtils.getPermissionObject(gBrowser.currentURI, "geo"),
@@ -52,7 +52,7 @@ async function testPermissions(defaultPermission) {
     );
 
     radioGroup.selectedItem = blockRadioButton;
-    blockRadioButton.dispatchEvent(new Event("command"));
+    blockRadioButton.doCommand();
 
     is(
       PermissionTestUtils.getPermissionObject(gBrowser.currentURI, "geo")
@@ -62,7 +62,7 @@ async function testPermissions(defaultPermission) {
     );
 
     radioGroup.selectedItem = defaultRadioButton;
-    defaultRadioButton.dispatchEvent(new Event("command"));
+    defaultRadioButton.doCommand();
 
     ok(
       !PermissionTestUtils.getPermissionObject(gBrowser.currentURI, "geo"),
@@ -220,7 +220,7 @@ add_task(async function test_cookie_permission() {
     );
 
     radioGroup.selectedItem = blockRadioButton;
-    blockRadioButton.dispatchEvent(new Event("command"));
+    blockRadioButton.doCommand();
 
     is(
       PermissionTestUtils.testPermission(gBrowser.currentURI, "cookie"),
@@ -229,7 +229,7 @@ add_task(async function test_cookie_permission() {
     );
 
     radioGroup.selectedItem = allowRadioButton;
-    allowRadioButton.dispatchEvent(new Event("command"));
+    allowRadioButton.doCommand();
 
     is(
       PermissionTestUtils.testPermission(gBrowser.currentURI, "cookie"),
@@ -239,7 +239,7 @@ add_task(async function test_cookie_permission() {
     ok(!defaultCheckbox.checked, "The default checkbox should not be checked.");
 
     defaultCheckbox.checked = true;
-    defaultCheckbox.dispatchEvent(new Event("command"));
+    defaultCheckbox.doCommand();
 
     is(
       PermissionTestUtils.testPermission(gBrowser.currentURI, "cookie"),
