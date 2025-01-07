@@ -1264,7 +1264,9 @@ for (let testcase of TESTCASES) {
     let formLike = FormLikeFactory.createFromForm(form);
     let handler = new FormAutofillHandler(formLike);
 
-    const fieldDetails = FormAutofillHandler.collectFormFields(handler.form);
+    const fieldDetails = FormAutofillHandler.collectFormFieldDetails(
+      handler.form
+    );
 
     // TODO: This test should be a browser test instead
     FormAutofillHeuristics.parseAndUpdateFieldNamesParent(fieldDetails);

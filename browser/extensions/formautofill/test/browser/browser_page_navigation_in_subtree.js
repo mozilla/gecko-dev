@@ -18,7 +18,6 @@ const ADDRESS_VALUES = {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["extensions.formautofill.loglevel", "Debug"],
       ["extensions.formautofill.addresses.capture.enabled", true],
       ["extensions.formautofill.addresses.supported", "on"],
       ["extensions.formautofill.heuristics.captureOnPageNavigation", true],
@@ -369,6 +368,8 @@ add_task(async function test_cross_origin_iframe_window_is_navigated() {
   );
 });
 
+// Third-level tests are removed because currently we don't support nested iframe.
+// We always assume autofillable fields are in a first-level iframe
 /**
  * Tests that address fields are captured (doorhanger is shown)
  * when we have the three following nested frames:
@@ -379,6 +380,7 @@ add_task(async function test_cross_origin_iframe_window_is_navigated() {
  * Test also that the we don't instantiate a FormHandler actor pair in the second level window.
  * This is to make sure that we don't set up more instances then necessary
  */
+/*
 add_task(
   async function test_third_level_same_origin_window_is_effected_when_second_level_same_origin_window_is_navigated() {
     await BrowserTestUtils.withNewTab(
@@ -468,7 +470,10 @@ add_task(
     );
   }
 );
+*/
 
+// Third-level tests are removed because currently we don't support nested iframe.
+// We always assume autofillable fields are in a first-level iframe
 /**
  * Tests that address fields are captured (doorhanger is shown)
  * when we have the three following nested frames:
@@ -479,6 +484,7 @@ add_task(
  * Test also that the we also instantiate a FormHandler actor pair in the top window.
  * This way also a top navigation would have trigger the address capturing.
  */
+/*
 add_task(
   async function test_third_level_cross_origin_window_is_effected_when_second_level_cross_origin_window_is_navigated() {
     await BrowserTestUtils.withNewTab(
@@ -586,3 +592,4 @@ add_task(
     );
   }
 );
+*/
