@@ -209,17 +209,9 @@ void WarpPolymorphicTypes::dumpData(GenericPrinter& out) const {
 
 #endif  // JS_JITSPEW
 
-template <typename T>
-static void TraceWarpGCPtr(JSTracer* trc, const WarpGCPtr<T>& thing,
-                           const char* name) {
-  T thingRaw = thing;
-  TraceManuallyBarrieredEdge(trc, &thingRaw, name);
-  MOZ_ASSERT(static_cast<T>(thing) == thingRaw, "Unexpected moving GC!");
-}
-
 void WarpSnapshot::trace(JSTracer* trc) {
   // Nursery objects can be tenured in parallel with Warp compilation.
-  // Note: don't use TraceWarpGCPtr here as that asserts non-moving.
+  // Note: don't use TraceOffthreadGCPtr here as that asserts non-moving.
   for (size_t i = 0; i < nurseryObjects_.length(); i++) {
     TraceManuallyBarrieredEdge(trc, &nurseryObjects_[i], "warp-nursery-object");
   }
@@ -234,37 +226,38 @@ void WarpSnapshot::trace(JSTracer* trc) {
   }
   for (JitCode* stub : zoneStubs_) {
     if (stub) {
-      WarpGCPtr<JitCode*> ptr(stub);
-      TraceWarpGCPtr(trc, ptr, "warp-zone-stub");
+      OffthreadGCPtr<JitCode*> ptr(stub);
+      TraceOffthreadGCPtr(trc, ptr, "warp-zone-stub");
     }
   }
-  TraceWarpGCPtr(trc, globalLexicalEnv_, "warp-lexical");
-  TraceWarpGCPtr(trc, globalLexicalEnvThis_, "warp-lexicalthis");
+  TraceOffthreadGCPtr(trc, globalLexicalEnv_, "warp-lexical");
+  TraceOffthreadGCPtr(trc, globalLexicalEnvThis_, "warp-lexicalthis");
 }
 
 void WarpScriptSnapshot::trace(JSTracer* trc) {
-  TraceWarpGCPtr(trc, script_, "warp-script");
+  TraceOffthreadGCPtr(trc, script_, "warp-script");
 
-  environment_.match(
-      [](const NoEnvironment&) {},
-      [trc](WarpGCPtr<JSObject*>& obj) {
-        TraceWarpGCPtr(trc, obj, "warp-env-object");
-      },
-      [trc](FunctionEnvironment& env) {
-        if (env.callObjectTemplate) {
-          TraceWarpGCPtr(trc, env.callObjectTemplate, "warp-env-callobject");
-        }
-        if (env.namedLambdaTemplate) {
-          TraceWarpGCPtr(trc, env.namedLambdaTemplate, "warp-env-namedlambda");
-        }
-      });
+  environment_.match([](const NoEnvironment&) {},
+                     [trc](OffthreadGCPtr<JSObject*>& obj) {
+                       TraceOffthreadGCPtr(trc, obj, "warp-env-object");
+                     },
+                     [trc](FunctionEnvironment& env) {
+                       if (env.callObjectTemplate) {
+                         TraceOffthreadGCPtr(trc, env.callObjectTemplate,
+                                             "warp-env-callobject");
+                       }
+                       if (env.namedLambdaTemplate) {
+                         TraceOffthreadGCPtr(trc, env.namedLambdaTemplate,
+                                             "warp-env-namedlambda");
+                       }
+                     });
 
   for (WarpOpSnapshot* snapshot : opSnapshots_) {
     snapshot->trace(trc);
   }
 
   if (moduleObject_) {
-    TraceWarpGCPtr(trc, moduleObject_, "warp-module-obj");
+    TraceOffthreadGCPtr(trc, moduleObject_, "warp-module-obj");
   }
 }
 
@@ -282,7 +275,7 @@ void WarpOpSnapshot::trace(JSTracer* trc) {
 
 void WarpArguments::traceData(JSTracer* trc) {
   if (templateObj_) {
-    TraceWarpGCPtr(trc, templateObj_, "warp-args-template");
+    TraceOffthreadGCPtr(trc, templateObj_, "warp-args-template");
   }
 }
 
@@ -291,35 +284,35 @@ void WarpRegExp::traceData(JSTracer* trc) {
 }
 
 void WarpBuiltinObject::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, builtin_, "warp-builtin-object");
+  TraceOffthreadGCPtr(trc, builtin_, "warp-builtin-object");
 }
 
 void WarpGetIntrinsic::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, intrinsic_, "warp-intrinsic");
+  TraceOffthreadGCPtr(trc, intrinsic_, "warp-intrinsic");
 }
 
 void WarpGetImport::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, targetEnv_, "warp-import-env");
+  TraceOffthreadGCPtr(trc, targetEnv_, "warp-import-env");
 }
 
 void WarpRest::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, shape_, "warp-rest-shape");
+  TraceOffthreadGCPtr(trc, shape_, "warp-rest-shape");
 }
 
 void WarpBindUnqualifiedGName::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, globalEnv_, "warp-bindunqualifiedgname-globalenv");
+  TraceOffthreadGCPtr(trc, globalEnv_, "warp-bindunqualifiedgname-globalenv");
 }
 
 void WarpVarEnvironment::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, templateObj_, "warp-varenv-template");
+  TraceOffthreadGCPtr(trc, templateObj_, "warp-varenv-template");
 }
 
 void WarpLexicalEnvironment::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, templateObj_, "warp-lexenv-template");
+  TraceOffthreadGCPtr(trc, templateObj_, "warp-lexenv-template");
 }
 
 void WarpClassBodyEnvironment::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, templateObj_, "warp-classbodyenv-template");
+  TraceOffthreadGCPtr(trc, templateObj_, "warp-classbodyenv-template");
 }
 
 void WarpBailout::traceData(JSTracer* trc) {
@@ -333,11 +326,11 @@ void WarpPolymorphicTypes::traceData(JSTracer* trc) {
 template <typename T>
 static void TraceWarpStubPtr(JSTracer* trc, uintptr_t word, const char* name) {
   T* ptr = reinterpret_cast<T*>(word);
-  TraceWarpGCPtr(trc, WarpGCPtr<T*>(ptr), name);
+  TraceOffthreadGCPtr(trc, OffthreadGCPtr<T*>(ptr), name);
 }
 
 void WarpCacheIR::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, stubCode_, "warp-stub-code");
+  TraceOffthreadGCPtr(trc, stubCode_, "warp-stub-code");
   if (stubData_) {
     uint32_t field = 0;
     size_t offset = 0;
@@ -397,13 +390,15 @@ void WarpCacheIR::traceData(JSTracer* trc) {
         case StubField::Type::Id: {
           uintptr_t word = stubInfo_->getStubRawWord(stubData_, offset);
           jsid id = jsid::fromRawBits(word);
-          TraceWarpGCPtr(trc, WarpGCPtr<jsid>(id), "warp-cacheir-jsid");
+          TraceOffthreadGCPtr(trc, OffthreadGCPtr<jsid>(id),
+                              "warp-cacheir-jsid");
           break;
         }
         case StubField::Type::Value: {
           uint64_t data = stubInfo_->getStubRawInt64(stubData_, offset);
           Value val = Value::fromRawBits(data);
-          TraceWarpGCPtr(trc, WarpGCPtr<Value>(val), "warp-cacheir-value");
+          TraceOffthreadGCPtr(trc, OffthreadGCPtr<Value>(val),
+                              "warp-cacheir-value");
           break;
         }
         case StubField::Type::AllocSite: {
