@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FieldScanner: "resource://gre/modules/shared/FieldScanner.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
   LabelUtils: "resource://gre/modules/shared/LabelUtils.sys.mjs",
+  MLAutofill: "resource://autofill/MLAutofill.sys.mjs",
 });
 
 /**
@@ -716,8 +717,16 @@ export const FormAutofillHeuristics = {
       lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element)
     );
 
+    let closestHeaders;
+    let closestButtons;
+    if (FormAutofill.isMLExperimentEnabled && elements.length) {
+      closestHeaders = lazy.MLAutofill.closestHeaderAbove(elements);
+      closestButtons = lazy.MLAutofill.closestButtonBelow(elements);
+    }
+
     const fieldDetails = [];
-    for (const element of elements) {
+    for (let idx = 0; idx < elements.length; idx++) {
+      const element = elements[idx];
       // Ignore invisible <input>, we still keep invisible <select> since
       // some websites implements their custom dropdown and use invisible <select>
       // to store the value.
@@ -753,6 +762,8 @@ export const FormAutofillHeuristics = {
           fathomLabel: inferInfo.fathomLabel,
           fathomConfidence: inferInfo.fathomConfidence,
           isVisible,
+          mlHeaderInput: closestHeaders[idx],
+          mlButtonInput: closestButtons[idx],
         })
       );
     }

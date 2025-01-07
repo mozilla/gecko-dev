@@ -317,6 +317,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofill,
+  "MLModelRevision",
+  "extensions.formautofill.ml.experiment.modelRevision",
+  null
+);
+
 ChromeUtils.defineLazyGetter(FormAutofill, "countries", () =>
   AddressMetaDataLoader.getCountries()
 );
