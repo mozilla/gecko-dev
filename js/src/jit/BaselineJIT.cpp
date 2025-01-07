@@ -17,6 +17,7 @@
 #include "gc/PublicIterators.h"
 #include "jit/AutoWritableJitCode.h"
 #include "jit/BaselineCodeGen.h"
+#include "jit/BaselineCompileTask.h"
 #include "jit/BaselineIC.h"
 #include "jit/CalleeToken.h"
 #include "jit/Ion.h"
@@ -224,20 +225,19 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
   JSObject* globalThis = globalLexical->thisObject();
   uint32_t baseWarmUpThreshold =
       OptimizationInfo::baseWarmUpThresholdForScript(cx, script);
-  BaselineCompiler compiler(cx, temp, masm, script, globalLexical, globalThis,
-                            baseWarmUpThreshold);
+  bool isIonCompileable = IsIonEnabled(cx) && CanIonCompileScript(cx, script);
+  bool compileDebugInstrumentation =
+      forceDebugInstrumentation || script->isDebuggee();
+
+  BaselineSnapshot snapshot(script, globalLexical, globalThis,
+                            baseWarmUpThreshold, isIonCompileable,
+                            compileDebugInstrumentation);
+
+  BaselineCompiler compiler(temp, CompileRuntime::get(cx->runtime()), masm,
+                            &snapshot);
   if (!compiler.init()) {
     ReportOutOfMemory(cx);
     return Method_Error;
-  }
-
-  bool ionCompileable = IsIonEnabled(cx) && CanIonCompileScript(cx, script);
-  if (!ionCompileable) {
-    compiler.setIonCompileable(false);
-  }
-
-  if (forceDebugInstrumentation) {
-    compiler.setCompileDebugInstrumentation();
   }
 
   MethodStatus status = compiler.compile(cx);

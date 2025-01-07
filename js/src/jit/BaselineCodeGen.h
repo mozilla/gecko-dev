@@ -18,6 +18,8 @@ namespace js {
 
 namespace jit {
 
+class BaselineSnapshot;
+
 enum class ScriptGCThingType {
   Atom,
   String,
@@ -308,8 +310,7 @@ class BaselineCompilerHandler {
   using FrameInfoT = CompilerFrameInfo;
 
   BaselineCompilerHandler(MacroAssembler& masm, TempAllocator& alloc,
-                          JSScript* script, JSObject* globalLexical,
-                          JSObject* globalThis, uint32_t baseWarmUpThreshold);
+                          BaselineSnapshot* snapshot);
 
   [[nodiscard]] bool init();
 
@@ -338,7 +339,6 @@ class BaselineCompilerHandler {
 
   ModuleObject* module() const { return script_->module(); }
 
-  void setCompileDebugInstrumentation() { compileDebugInstrumentation_ = true; }
   bool compileDebugInstrumentation() const {
     return compileDebugInstrumentation_;
   }
@@ -398,9 +398,8 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
   BaselinePerfSpewer perfSpewer_;
 
  public:
-  BaselineCompiler(JSContext* cx, TempAllocator& alloc, MacroAssembler& masm,
-                   JSScript* script, JSObject* globalLexical,
-                   JSObject* globalThis, uint32_t baseWarmUpThreshold);
+  BaselineCompiler(TempAllocator& alloc, CompileRuntime* runtime,
+                   MacroAssembler& masm, BaselineSnapshot* snapshot);
   [[nodiscard]] bool init();
 
   static bool prepareToCompile(JSContext* cx, Handle<JSScript*> script,
@@ -412,10 +411,6 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
   bool compileDebugInstrumentation() const {
     return handler.compileDebugInstrumentation();
   }
-  void setCompileDebugInstrumentation() {
-    handler.setCompileDebugInstrumentation();
-  }
-  void setIonCompileable(bool value) { handler.setIonCompileable(value); }
 
  private:
   bool compileImpl();

@@ -9,6 +9,7 @@
 #include "mozilla/Casting.h"
 
 #include "gc/GC.h"
+#include "jit/BaselineCompileTask.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
 #include "jit/CacheIRCompiler.h"
@@ -66,23 +67,23 @@ class PlainObject;
 
 namespace jit {
 
-BaselineCompilerHandler::BaselineCompilerHandler(
-    MacroAssembler& masm, TempAllocator& alloc, JSScript* script,
-    JSObject* globalLexical, JSObject* globalThis, uint32_t baseWarmUpThreshold)
-    : frame_(script, masm),
+BaselineCompilerHandler::BaselineCompilerHandler(MacroAssembler& masm,
+                                                 TempAllocator& alloc,
+                                                 BaselineSnapshot* snapshot)
+    : frame_(snapshot->script(), masm),
       alloc_(alloc),
-      analysis_(alloc, script),
+      analysis_(alloc, snapshot->script()),
 #ifdef DEBUG
       masm_(masm),
 #endif
-      script_(script),
-      pc_(script->code()),
-      globalLexicalEnvironment_(globalLexical),
-      globalThis_(globalThis),
+      script_(snapshot->script()),
+      pc_(snapshot->script()->code()),
+      globalLexicalEnvironment_(snapshot->globalLexical()),
+      globalThis_(snapshot->globalThis()),
       icEntryIndex_(0),
-      baseWarmUpThreshold_(baseWarmUpThreshold),
-      compileDebugInstrumentation_(script->isDebuggee()),
-      ionCompileable_(true) {
+      baseWarmUpThreshold_(snapshot->baseWarmUpThreshold()),
+      compileDebugInstrumentation_(snapshot->compileDebugInstrumentation()),
+      ionCompileable_(snapshot->isIonCompileable()) {
 }
 
 BaselineInterpreterHandler::BaselineInterpreterHandler(MacroAssembler& masm)
@@ -99,14 +100,12 @@ BaselineCodeGen<Handler>::BaselineCodeGen(TempAllocator& alloc,
       masm(masmArg),
       frame(handler.frame()) {}
 
-BaselineCompiler::BaselineCompiler(JSContext* cx, TempAllocator& alloc,
-                                   MacroAssembler& masm, JSScript* script,
-                                   JSObject* globalLexical,
-                                   JSObject* globalThis,
-                                   uint32_t baseWarmUpThreshold)
-    : BaselineCodeGen(alloc, masm, CompileRuntime::get(cx->runtime()),
-                      /* HandlerArgs = */ alloc, script, globalLexical,
-                      globalThis, baseWarmUpThreshold) {
+BaselineCompiler::BaselineCompiler(TempAllocator& alloc,
+                                   CompileRuntime* runtime,
+                                   MacroAssembler& masm,
+                                   BaselineSnapshot* snapshot)
+    : BaselineCodeGen(alloc, masm, runtime,
+                      /* HandlerArgs = */ alloc, snapshot) {
 #ifdef JS_CODEGEN_NONE
   MOZ_CRASH();
 #endif
