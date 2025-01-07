@@ -182,3 +182,8 @@ Assert.equal(
   ipv6Principal.siteOriginNoSuffix,
   "https://[2001:db8::ff00:42:8329]"
 );
+
+// Checks for non-http URIs not using the TLD service.
+let resourceURI = Services.io.newURI("resource://test.example.com/test");
+let resourcePrincipal = scriptSecMan.createContentPrincipal(resourceURI, {});
+Assert.equal(resourcePrincipal.siteOrigin, "resource://test.example.com");
