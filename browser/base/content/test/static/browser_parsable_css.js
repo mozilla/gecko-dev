@@ -165,10 +165,6 @@ let propNameAllowlist = [
 
   /* Allow design tokens in devtools without all variables being used there */
   { sourceName: /\/design-system\/tokens-.*\.css$/, isFromDevTools: true },
-
-  /* Temporary exceptions for unused variables in pdf.js */
-  { propName: "--toggle-background-color-disabled", isFromDevTools: false },
-  { propName: "--toggle-border-color-disabled", isFromDevTools: false },
 ];
 
 // Add suffix to stylesheets' URI so that we always load them here and
