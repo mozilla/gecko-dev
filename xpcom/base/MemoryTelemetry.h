@@ -19,6 +19,8 @@
 
 class nsIEventTarget;
 
+class TimeStampWindow;
+
 namespace mozilla {
 
 namespace ipc {
@@ -71,6 +73,7 @@ class MemoryTelemetry final : public nsIObserver,
 
   TimeStamp mLastRun{};
   TimeStamp mLastPoke{};
+  UniquePtr<TimeStampWindow> mPokeWindow;
   nsCOMPtr<nsITimer> mTimer;
 
   // True if startup is finished and it's okay to start gathering telemetry.
