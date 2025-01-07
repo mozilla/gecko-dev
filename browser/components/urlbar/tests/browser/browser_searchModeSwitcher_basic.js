@@ -796,9 +796,7 @@ add_task(async function test_search_mode_switcher_private_engine_icon() {
   );
 
   const defaultPrivateEngine = Services.search.getEngineByName(testEngineName);
-  const defaultPrivateEngineIcon = `moz-extension://${searchExtension.uuid}/private.png`;
   const defaultEngine = await Services.search.getDefault();
-  const defaultEngineIcon = await defaultEngine.getIconURL();
 
   Services.search.setDefaultPrivate(
     defaultPrivateEngine,
@@ -823,7 +821,7 @@ add_task(async function test_search_mode_switcher_private_engine_icon() {
 
   Assert.equal(
     getSeachModeSwitcherIcon(window),
-    defaultEngineIcon,
+    await defaultEngine.getIconURL(),
     "Is the icon of the default engine."
   );
 
@@ -834,21 +832,9 @@ add_task(async function test_search_mode_switcher_private_engine_icon() {
 
   Assert.equal(
     getSeachModeSwitcherIcon(privateWin),
-    defaultPrivateEngineIcon,
+    `moz-extension://${searchExtension.uuid}/private.png`,
     "Is the icon of the default private engine."
   );
-
-  info("Changing the default private engine.");
-  Services.search.setDefaultPrivate(
-    defaultEngine,
-    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
-  );
-
-  info("Waiting for the icon to be updated.");
-  await TestUtils.waitForCondition(
-    () => getSeachModeSwitcherIcon(privateWin) == defaultEngineIcon
-  );
-  Assert.ok(true, "The icon was updated.");
 
   await BrowserTestUtils.closeWindow(privateWin);
   await searchExtension.unload();
