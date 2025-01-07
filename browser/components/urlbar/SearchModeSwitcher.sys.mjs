@@ -216,9 +216,13 @@ export class SearchModeSwitcher {
   }
 
   observe(_subject, topic, data) {
+    if (!this.#input.window || this.#input.window.closed) {
+      return;
+    }
+
     switch (topic) {
       case "browser-search-engine-modified": {
-        if (data === "engine-default") {
+        if (data === "engine-default" || data === "engine-default-private") {
           this.#updateSearchIcon();
         }
         break;
@@ -256,10 +260,6 @@ export class SearchModeSwitcher {
   }
 
   async #updateSearchIcon() {
-    if (!this.#input.window || this.#input.window.closed) {
-      return;
-    }
-
     try {
       await lazy.UrlbarSearchUtils.init();
     } catch {
