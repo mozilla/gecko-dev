@@ -364,6 +364,12 @@ window.addEventListener(
         }
       });
 
+    let imagetree = document.getElementById("imagetree");
+    imagetree.addEventListener("select", onImageSelect);
+    imagetree.addEventListener("dragstart", event =>
+      onBeginLinkDrag(event, "image-address", "image-alt")
+    );
+
     document.addEventListener("command", event => {
       switch (event.target.id) {
         // == pageInfoCommandSet ==
