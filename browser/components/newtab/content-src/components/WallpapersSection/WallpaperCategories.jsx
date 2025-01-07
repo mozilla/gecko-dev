@@ -15,11 +15,15 @@ export class _WallpaperCategories extends React.PureComponent {
     this.handleReset = this.handleReset.bind(this);
     this.handleCategory = this.handleCategory.bind(this);
     this.handleBack = this.handleBack.bind(this);
+    this.getRGBColors = this.getRGBColors.bind(this);
     this.prefersHighContrastQuery = null;
     this.prefersDarkQuery = null;
     this.state = {
       activeCategory: null,
       activeCategoryFluentID: null,
+      showColorPicker: false,
+      inputType: "radio",
+      activeId: null,
     };
   }
 
@@ -30,11 +34,21 @@ export class _WallpaperCategories extends React.PureComponent {
   }
 
   handleChange(event) {
-    const { id } = event.target;
+    let { id } = event.target;
+
+    if (id === "solid-color-picker") {
+      id = `solid-color-picker-${event.target.value}`;
+      const rgbColors = this.getRGBColors(event.target.value);
+      event.target.style.backgroundColor = `rgb(${rgbColors.toString()})`;
+      event.target.checked = true;
+      this.setState({ customHexValue: event.target.style.backgroundColor });
+    }
+
     this.props.setPref("newtabWallpapers.wallpaper-light", id);
     this.props.setPref("newtabWallpapers.wallpaper-dark", id);
     // Setting this now so when we remove v1 we don't have to migrate v1 values.
     this.props.setPref("newtabWallpapers.wallpaper", id);
+
     this.handleUserEvent(at.WALLPAPER_CLICK, {
       selected_wallpaper: id,
       had_previous_wallpaper: !!this.props.activeWallpaper,
@@ -79,11 +93,27 @@ export class _WallpaperCategories extends React.PureComponent {
     this.props.dispatch(ac.OnlyToMain({ type, data }));
   }
 
+  setActiveId = id => {
+    this.setState({ activeId: id }); // Set the active ID
+  };
+
+  getRGBColors(input) {
+    if (input.length !== 7) {
+      return [];
+    }
+
+    const r = parseInt(input.substr(1, 2), 16);
+    const g = parseInt(input.substr(3, 2), 16);
+    const b = parseInt(input.substr(5, 2), 16);
+
+    return [r, g, b];
+  }
+
   render() {
     const prefs = this.props.Prefs.values;
     const { wallpaperList, categories } = this.props.Wallpapers;
     const { activeWallpaper } = this.props;
-    const { activeCategory } = this.state;
+    const { activeCategory, showColorPicker } = this.state;
     const { activeCategoryFluentID } = this.state;
     const filteredWallpapers = wallpaperList.filter(
       wallpaper => wallpaper.category === activeCategory
@@ -93,6 +123,55 @@ export class _WallpaperCategories extends React.PureComponent {
     if (prefs["newtabWallpapers.v2.enabled"]) {
       categorySectionClassname += " ignore-color-mode";
     }
+
+    let wallpaperCustomSolidColorHex = null;
+
+    const wallpaperLight = prefs["newtabWallpapers.wallpaper-light"];
+    const wallpaperDark = prefs["newtabWallpapers.wallpaper-dark"];
+
+    // User has previous selected a custom color
+    if (
+      wallpaperLight.includes("solid-color-picker") &&
+      wallpaperDark.includes("solid-color-picker")
+    ) {
+      this.setState({ showColorPicker: true });
+      const regex = /#([a-fA-F0-9]{6})/;
+      [wallpaperCustomSolidColorHex] = wallpaperLight.match(regex);
+    }
+
+    // Enable custom color select if preffed on
+    if (prefs["newtabWallpapers.customColor.enabled"]) {
+      this.setState({ showColorPicker: true });
+    }
+
+    let colorPickerInput =
+      showColorPicker && activeCategory === "solid-colors" ? (
+        <>
+          <input
+            onChange={this.handleChange}
+            onClick={() => this.setActiveId("solid-color-picker")} //
+            type="color"
+            name={`wallpaper-solid-color-picker`}
+            id="solid-color-picker"
+            // aria-checked is not applicable for input[type="color"] elements
+            aria-current={this.state.activeId === "solid-color-picker"}
+            // If nothing selected, default to Zilla Green
+            value={wallpaperCustomSolidColorHex || "#00d230"}
+            className={`wallpaper-input theme-solid-color-picker 
+              ${this.state.activeId === "solid-color-picker" ? "active" : ""}`}
+          />
+          <label
+            htmlFor="solid-color-picker"
+            className="sr-only"
+            // TODO: Add Fluent string
+            // data-l10n-id={fluent_id}
+          >
+            Solid Color Picker
+          </label>
+        </>
+      ) : (
+        ""
+      );
 
     return (
       <div>
@@ -183,7 +262,8 @@ export class _WallpaperCategories extends React.PureComponent {
                         value={title}
                         checked={title === activeWallpaper}
                         aria-checked={title === activeWallpaper}
-                        className={`wallpaper-input theme-${theme}`}
+                        className={`wallpaper-input theme-${theme} ${this.state.activeId === title ? "active" : ""}`}
+                        onClick={() => this.setActiveId(title)} //
                       />
                       <label
                         htmlFor={title}
@@ -196,6 +276,7 @@ export class _WallpaperCategories extends React.PureComponent {
                   );
                 }
               )}
+              {colorPickerInput}
             </fieldset>
           </section>
         </CSSTransition>

@@ -377,10 +377,32 @@ export class BaseContent extends React.PureComponent {
     const { wallpaperList } = this.props.Wallpapers;
 
     if (wallpaperList) {
-      const lightWallpaper =
+      let lightWallpaper =
         wallpaperList.find(wp => wp.title === wallpaperLight) || "";
-      const darkWallpaper =
+      let darkWallpaper =
         wallpaperList.find(wp => wp.title === wallpaperDark) || "";
+
+      // solid-color-picker-#00d100
+      const regexRGB = /#([a-fA-F0-9]{6})/;
+
+      // Override Remote Settings to set custom HEX bg color
+      if (wallpaperLight.includes("solid-color-picker")) {
+        lightWallpaper = {
+          theme: "light",
+          title: "solid-color-picker",
+          category: "solid-colors",
+          solid_color: wallpaperLight.match(regexRGB)[0],
+        };
+      }
+
+      if (wallpaperDark.includes("solid-color-picker")) {
+        darkWallpaper = {
+          theme: "dark",
+          title: "solid-color-picker",
+          category: "solid-colors",
+          solid_color: wallpaperDark.match(regexRGB)[0],
+        };
+      }
 
       const wallpaperColor =
         darkWallpaper?.solid_color || lightWallpaper?.solid_color || "";

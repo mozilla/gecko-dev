@@ -25,6 +25,7 @@ export class _WallpapersSection extends React.PureComponent {
     const { id } = event.target;
     const prefs = this.props.Prefs.values;
     const colorMode = this.prefersDarkQuery?.matches ? "dark" : "light";
+
     if (prefs["newtabWallpapers.v2.enabled"]) {
       // If we don't care about color mode, set both to the same wallpaper.
       this.props.setPref(`newtabWallpapers.wallpaper-dark`, id);

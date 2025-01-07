@@ -10798,20 +10798,33 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     this.handleReset = this.handleReset.bind(this);
     this.handleCategory = this.handleCategory.bind(this);
     this.handleBack = this.handleBack.bind(this);
+    this.getRGBColors = this.getRGBColors.bind(this);
     this.prefersHighContrastQuery = null;
     this.prefersDarkQuery = null;
     this.state = {
       activeCategory: null,
-      activeCategoryFluentID: null
+      activeCategoryFluentID: null,
+      showColorPicker: false,
+      inputType: "radio",
+      activeId: null
     };
   }
   componentDidMount() {
     this.prefersDarkQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
   }
   handleChange(event) {
-    const {
+    let {
       id
     } = event.target;
+    if (id === "solid-color-picker") {
+      id = `solid-color-picker-${event.target.value}`;
+      const rgbColors = this.getRGBColors(event.target.value);
+      event.target.style.backgroundColor = `rgb(${rgbColors.toString()})`;
+      event.target.checked = true;
+      this.setState({
+        customHexValue: event.target.style.backgroundColor
+      });
+    }
     this.props.setPref("newtabWallpapers.wallpaper-light", id);
     this.props.setPref("newtabWallpapers.wallpaper-dark", id);
     // Setting this now so when we remove v1 we don't have to migrate v1 values.
@@ -10864,6 +10877,20 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       data
     }));
   }
+  setActiveId = id => {
+    this.setState({
+      activeId: id
+    }); // Set the active ID
+  };
+  getRGBColors(input) {
+    if (input.length !== 7) {
+      return [];
+    }
+    const r = parseInt(input.substr(1, 2), 16);
+    const g = parseInt(input.substr(3, 2), 16);
+    const b = parseInt(input.substr(5, 2), 16);
+    return [r, g, b];
+  }
   render() {
     const prefs = this.props.Prefs.values;
     const {
@@ -10874,7 +10901,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       activeWallpaper
     } = this.props;
     const {
-      activeCategory
+      activeCategory,
+      showColorPicker
     } = this.state;
     const {
       activeCategoryFluentID
@@ -10884,6 +10912,46 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     if (prefs["newtabWallpapers.v2.enabled"]) {
       categorySectionClassname += " ignore-color-mode";
     }
+    let wallpaperCustomSolidColorHex = null;
+    const wallpaperLight = prefs["newtabWallpapers.wallpaper-light"];
+    const wallpaperDark = prefs["newtabWallpapers.wallpaper-dark"];
+
+    // User has previous selected a custom color
+    if (wallpaperLight.includes("solid-color-picker") && wallpaperDark.includes("solid-color-picker")) {
+      this.setState({
+        showColorPicker: true
+      });
+      const regex = /#([a-fA-F0-9]{6})/;
+      [wallpaperCustomSolidColorHex] = wallpaperLight.match(regex);
+    }
+
+    // Enable custom color select if preffed on
+    if (prefs["newtabWallpapers.customColor.enabled"]) {
+      this.setState({
+        showColorPicker: true
+      });
+    }
+    let colorPickerInput = showColorPicker && activeCategory === "solid-colors" ? /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("input", {
+      onChange: this.handleChange,
+      onClick: () => this.setActiveId("solid-color-picker") //
+      ,
+      type: "color",
+      name: `wallpaper-solid-color-picker`,
+      id: "solid-color-picker"
+      // aria-checked is not applicable for input[type="color"] elements
+      ,
+      "aria-current": this.state.activeId === "solid-color-picker"
+      // If nothing selected, default to Zilla Green
+      ,
+      value: wallpaperCustomSolidColorHex || "#00d230",
+      className: `wallpaper-input theme-solid-color-picker 
+              ${this.state.activeId === "solid-color-picker" ? "active" : ""}`
+    }), /*#__PURE__*/external_React_default().createElement("label", {
+      htmlFor: "solid-color-picker",
+      className: "sr-only"
+      // TODO: Add Fluent string
+      // data-l10n-id={fluent_id}
+    }, "Solid Color Picker")) : "";
     return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("div", {
       className: "category-header"
     }, /*#__PURE__*/external_React_default().createElement("h2", {
@@ -10960,13 +11028,14 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
         value: title,
         checked: title === activeWallpaper,
         "aria-checked": title === activeWallpaper,
-        className: `wallpaper-input theme-${theme}`
+        className: `wallpaper-input theme-${theme} ${this.state.activeId === title ? "active" : ""}`,
+        onClick: () => this.setActiveId(title) //
       }), /*#__PURE__*/external_React_default().createElement("label", {
         htmlFor: title,
         className: "sr-only",
         "data-l10n-id": fluent_id
       }, fluent_id));
-    })))));
+    }), colorPickerInput))));
   }
 }
 const WallpaperCategories = (0,external_ReactRedux_namespaceObject.connect)(state => {
@@ -12709,8 +12778,29 @@ class BaseContent extends (external_React_default()).PureComponent {
       wallpaperList
     } = this.props.Wallpapers;
     if (wallpaperList) {
-      const lightWallpaper = wallpaperList.find(wp => wp.title === wallpaperLight) || "";
-      const darkWallpaper = wallpaperList.find(wp => wp.title === wallpaperDark) || "";
+      let lightWallpaper = wallpaperList.find(wp => wp.title === wallpaperLight) || "";
+      let darkWallpaper = wallpaperList.find(wp => wp.title === wallpaperDark) || "";
+
+      // solid-color-picker-#00d100
+      const regexRGB = /#([a-fA-F0-9]{6})/;
+
+      // Override Remote Settings to set custom HEX bg color
+      if (wallpaperLight.includes("solid-color-picker")) {
+        lightWallpaper = {
+          theme: "light",
+          title: "solid-color-picker",
+          category: "solid-colors",
+          solid_color: wallpaperLight.match(regexRGB)[0]
+        };
+      }
+      if (wallpaperDark.includes("solid-color-picker")) {
+        darkWallpaper = {
+          theme: "dark",
+          title: "solid-color-picker",
+          category: "solid-colors",
+          solid_color: wallpaperDark.match(regexRGB)[0]
+        };
+      }
       const wallpaperColor = darkWallpaper?.solid_color || lightWallpaper?.solid_color || "";
       __webpack_require__.g.document?.body.style.setProperty(`--newtab-wallpaper-light`, `url(${lightWallpaper?.wallpaperUrl || ""})`);
       __webpack_require__.g.document?.body.style.setProperty(`--newtab-wallpaper-dark`, `url(${darkWallpaper?.wallpaperUrl || ""})`);

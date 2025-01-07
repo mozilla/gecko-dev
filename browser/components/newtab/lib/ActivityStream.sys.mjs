@@ -416,6 +416,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "newtabWallpapers.customColor.enabled",
+    {
+      title: "Boolean flag to turn show custom color select box",
+      value: false,
+    },
+  ],
+  [
     "newtabAdSize.variant-a",
     {
       title: "Boolean flag to turn ad size variant A on and off",

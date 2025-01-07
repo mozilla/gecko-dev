@@ -56,6 +56,14 @@
   padding: 0;
   width: 100%;
 
+  &.theme-solid-color-picker {
+    // Used input[type="color"] element
+    &::-moz-color-swatch {
+      border-color: transparent;
+      border-radius: 8px;
+    }
+  }
+
   $wallpapers: dark-landscape, dark-color, dark-mountain, dark-panda, dark-sky, dark-beach, light-beach, light-color, light-landscape, light-mountain, light-panda, light-sky;
 
   @each $wallpaper in $wallpapers {
@@ -64,6 +72,7 @@
     }
   }
 
+  &.theme-solid-color-picker.active,
   &:checked {
     outline-color: var(--color-accent-primary-active);
     padding: 2px;
