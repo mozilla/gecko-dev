@@ -49,6 +49,12 @@ static constexpr uint32_t kTelemetryIntervalS = 60;
 // fires.  This exists so that we don't respond to our own timer.
 static constexpr uint32_t kTelemetryCooldownS = 10;
 
+// We use a sliding window to detect a reasonable amount of activity.  If there
+// are more than kPokeWindowEvents events within kPokeWindowSeconds seconds then
+// that counts as "active".
+static constexpr unsigned kPokeWindowEvents = 10;
+static constexpr unsigned kPokeWindowSeconds = 1;
+
 static constexpr const char* kTopicShutdown = "content-child-shutdown";
 
 namespace {
@@ -90,6 +96,49 @@ static uint32_t PrevValueIndex(Telemetry::HistogramID aId) {
       return 0;
   }
 }
+
+/*
+ * Because even in "idle" processes there may be some background events,
+ * ideally there shouldn't, we use a sliding window to determine if the process
+ * is active or not.  If there are N recent calls to Poke() the browser is
+ * active.
+ *
+ * This class implements the sliding window of timestamps.
+ */
+class TimeStampWindow {
+ public:
+  void push(TimeStamp aNow) {
+    mEvents.insertBack(new Event(aNow));
+    mNumEvents++;
+  }
+
+  // Remove any events older than aOld.
+  void clearExpired(TimeStamp aOld) {
+    Event* e = mEvents.getFirst();
+    while (e && e->olderThan(aOld)) {
+      e->removeFrom(mEvents);
+      mNumEvents--;
+      delete e;
+      e = mEvents.getFirst();
+    }
+  }
+
+  size_t numEvents() const { return mNumEvents; }
+
+ private:
+  class Event : public LinkedListElement<Event> {
+   public:
+    explicit Event(TimeStamp aTime) : mTime(aTime) {}
+
+    bool olderThan(TimeStamp aOld) const { return mTime < aOld; }
+
+   private:
+    TimeStamp mTime;
+  };
+
+  size_t mNumEvents = 0;
+  AutoCleanLinkedList<Event> mEvents;
+};
 
 NS_IMPL_ISUPPORTS(MemoryTelemetry, nsIObserver, nsISupportsWeakReference)
 
@@ -150,6 +199,10 @@ void MemoryTelemetry::Poke() {
   }
 
   TimeStamp now = TimeStamp::Now();
+  if (mPokeWindow) {
+    mPokeWindow->clearExpired(now -
+                              TimeDuration::FromSeconds(kPokeWindowSeconds));
+  }
 
   if (mLastRun &&
       now - mLastRun < TimeDuration::FromSeconds(kTelemetryCooldownS)) {
@@ -159,6 +212,17 @@ void MemoryTelemetry::Poke() {
     // telemetry.
     return;
   }
+
+  // Even idle processes have some events, so we only want to create the timer
+  // if there's been several events in the last small window.
+  if (!mPokeWindow) {
+    mPokeWindow = MakeUnique<TimeStampWindow>();
+  }
+  mPokeWindow->push(now);
+  if (mPokeWindow->numEvents() < kPokeWindowEvents) {
+    return;
+  }
+  mPokeWindow = nullptr;
 
   mLastPoke = now;
   if (!mTimer) {
