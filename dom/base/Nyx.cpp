@@ -10,6 +10,12 @@
 namespace mozilla::dom {
 
 /* static */
+void Nyx::Log(const GlobalObject&, const nsAString& aMsg) {
+  NS_ConvertUTF16toUTF8 cStr(aMsg);
+  MOZ_FUZZING_NYX_PRINTF("%s\n", cStr.get());
+}
+
+/* static */
 bool Nyx::IsEnabled(const GlobalObject&, const nsAString& aFuzzerName) {
   return fuzzing::Nyx::instance().is_enabled(
       NS_ConvertUTF16toUTF8(aFuzzerName).get());
