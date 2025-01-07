@@ -71,7 +71,6 @@ gecko_metrics = [
     "toolkit/components/printing/metrics.yaml",
     "toolkit/components/processtools/metrics.yaml",
     "toolkit/components/reader/metrics.yaml",
-    "toolkit/components/reportbrokensite/metrics.yaml",
     "toolkit/components/resistfingerprinting/metrics.yaml",
     "toolkit/components/startup/metrics.yaml",
     "toolkit/components/translations/metrics.yaml",
@@ -121,6 +120,7 @@ firefox_desktop_metrics = [
     "toolkit/components/nimbus/metrics.yaml",
     "toolkit/components/pictureinpicture/metrics.yaml",
     "toolkit/components/places/metrics.yaml",
+    "toolkit/components/reportbrokensite/metrics.yaml",
     "toolkit/components/search/metrics.yaml",
     "toolkit/components/shopping/metrics.yaml",
     "toolkit/components/telemetry/metrics.yaml",
@@ -173,7 +173,6 @@ gecko_pings = [
     "toolkit/components/antitracking/bouncetrackingprotection/pings.yaml",
     "toolkit/components/captchadetection/pings.yaml",
     "toolkit/components/glean/pings.yaml",
-    "toolkit/components/reportbrokensite/pings.yaml",
     "toolkit/components/resistfingerprinting/pings.yaml",
 ]
 
@@ -188,6 +187,7 @@ firefox_desktop_pings = [
     "services/fxaccounts/pings.yaml",
     "toolkit/components/crashes/pings.yaml",
     "toolkit/components/nimbus/pings.yaml",
+    "toolkit/components/reportbrokensite/pings.yaml",
     "toolkit/components/telemetry/pings.yaml",
     "toolkit/modules/pings.yaml",
 ]
