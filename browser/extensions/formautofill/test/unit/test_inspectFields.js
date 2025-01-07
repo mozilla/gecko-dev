@@ -31,8 +31,11 @@ add_task(async function test_inspectFields() {
     `
   );
   const fac = new FormAutofillChild();
-  Object.defineProperty(fac, "document", {
-    value: doc,
+  sinon.stub(fac, "document").get(() => {
+    return doc;
+  });
+  sinon.stub(fac, "browsingContext").get(() => {
+    return {};
   });
 
   const fields = fac.inspectFields();
@@ -44,4 +47,6 @@ add_task(async function test_inspectFields() {
     inspectedElements,
     "inspectedElements should return all the eligible fields"
   );
+
+  sinon.restore();
 });

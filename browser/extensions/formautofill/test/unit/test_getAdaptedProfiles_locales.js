@@ -250,7 +250,9 @@ for (let localeTests of TESTCASES) {
       let formLike = FormLikeFactory.createFromForm(form);
       let handler = new FormAutofillHandler(formLike);
 
-      const fieldDetails = FormAutofillHandler.collectFormFields(handler.form);
+      const fieldDetails = FormAutofillHandler.collectFormFieldDetails(
+        handler.form
+      );
       FormAutofillHeuristics.parseAndUpdateFieldNamesParent(fieldDetails);
       handler.setIdentifiedFieldDetails(fieldDetails);
 

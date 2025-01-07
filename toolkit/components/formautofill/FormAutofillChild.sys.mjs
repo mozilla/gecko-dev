@@ -183,8 +183,10 @@ export class FormAutofillChild extends JSWindowActorChild {
         handler.getFieldDetailByElement(element)?.fieldName ?? "";
       this.showPopupIfEmpty(element, fieldName);
     } else {
-      const detectedFields = lazy.FormAutofillHandler.collectFormFields(
-        handler.form
+      const includeIframe = this.browsingContext == this.browsingContext.top;
+      let detectedFields = lazy.FormAutofillHandler.collectFormFieldDetails(
+        handler.form,
+        includeIframe
       );
 
       // If none of the detected fields are credit card or address fields,
@@ -244,10 +246,12 @@ export class FormAutofillChild extends JSWindowActorChild {
     const handler = this._fieldDetailsManager.getOrCreateFormHandler(element);
 
     // We don't have to call 'updateFormIfNeeded' like we do in
-    // 'identifyFieldsWhenFocused' because 'collectFormFields' doesn't use cached
+    // 'identifyFieldsWhenFocused' because 'collectFormFieldDetails' doesn't use cached
     // result.
-    const detectedFields = lazy.FormAutofillHandler.collectFormFields(
-      handler.form
+    const includeIframe = isTop;
+    const detectedFields = lazy.FormAutofillHandler.collectFormFieldDetails(
+      handler.form,
+      includeIframe
     );
 
     if (detectedFields.length) {
@@ -611,15 +615,19 @@ export class FormAutofillChild extends JSWindowActorChild {
 
   /**
    * Returns all the identified fields for this document.
-   * This function is only used by about:autofill extension.
+   * This function is only used by the autofill developer tool extension.
    */
   inspectFields() {
-    const elements = Array.from(
-      this.document.querySelectorAll("input, select")
-    );
+    const isTop = this.browsingContext == this.browsingContext.top;
+    const elements = isTop
+      ? Array.from(this.document.querySelectorAll("input, select, iframe"))
+      : Array.from(this.document.querySelectorAll("input, select"));
 
+    // Unlike the case when users click on a field and we only run our heuristic
+    // on fields within the same form as the focused field, for inspection,
+    // we want to inspect all the forms in this page.
     const roots = new Set();
-    const fieldDetails = [];
+    let fieldDetails = [];
     for (const element of elements) {
       const formLike = lazy.FormLikeFactory.createFromField(element);
       if (roots.has(formLike.rootElement)) {
@@ -629,14 +637,30 @@ export class FormAutofillChild extends JSWindowActorChild {
       const handler = new lazy.FormAutofillHandler(formLike);
 
       // Fields that cannot be recognized will still be reported with this API.
-      const fields = lazy.FormAutofillHandler.collectFormFields(handler.form);
+      const includeIframe = isTop;
+      const fields = lazy.FormAutofillHandler.collectFormFieldDetails(
+        handler.form,
+        includeIframe,
+        false
+      );
       fieldDetails.push(...fields);
     }
 
-    // For inspection, we want to return the field according to their order
-    return elements
+    // The 'fieldDetails' array are grouped by form so might not follow their
+    // order in the DOM tree. We rebuild the array based on their order in
+    // the document.
+    fieldDetails = elements
       .map(element => fieldDetails.find(field => field.element == element))
-      .filter(field => !!field);
+      .filter(field => !!field && field.element);
+
+    // Add a data attribute with a unique identifier to allow the inspector
+    // to link the element with its associated 'FieldDetail' information.
+    for (const fd of fieldDetails) {
+      const INSPECT_ATTRIBUTE = "data-moz-autofill-inspect-id";
+      fd.inspectId = fd.element.getAttribute(INSPECT_ATTRIBUTE);
+    }
+
+    return fieldDetails;
   }
 
   #markAsAutofillField(fieldDetail) {
