@@ -19,6 +19,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindowOuter.h"
@@ -137,6 +138,15 @@ void MemoryTelemetry::Poke() {
     // we're not recording release data then don't setup the timers on content
     // processes.
     return;
+  }
+
+  if (XRE_IsContentProcess()) {
+    auto& remoteType = dom::ContentChild::GetSingleton()->GetRemoteType();
+    if (remoteType == PREALLOC_REMOTE_TYPE) {
+      // Preallocated processes should stay dormant and not run this telemetry
+      // code.
+      return;
+    }
   }
 
   TimeStamp now = TimeStamp::Now();
