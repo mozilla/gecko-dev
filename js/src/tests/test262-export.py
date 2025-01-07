@@ -121,12 +121,6 @@ def skipTest(source: bytes) -> Optional[bytes]:
 
 MODELINE_PATTERN = re.compile(rb"/(/|\*) -\*- .* -\*-( \*/)?[\r\n]+")
 
-UNSUPPORTED_FEATURES = [
-    "async-iterator-helpers",
-    "Iterator.range",
-    "record-tuple",
-]
-
 
 def convertTestFile(source: bytes, includes: "list[str]") -> Optional[bytes]:
     """
@@ -137,6 +131,8 @@ def convertTestFile(source: bytes, includes: "list[str]") -> Optional[bytes]:
 
     # Extract the reftest data from the source
     source, reftest = parseHeader(source)
+    if reftest and "record-tuple" in reftest.features:
+        return None
 
     # Add copyright, if needed.
     copyright, source = insertCopyrightLines(source)
@@ -144,15 +140,7 @@ def convertTestFile(source: bytes, includes: "list[str]") -> Optional[bytes]:
     # Extract the frontmatter data from the source
     frontmatter, source = extractMeta(source)
 
-    source, addincludes = translateHelpers(source)
-    includes = includes + addincludes
-
-    meta = computeMeta(source, reftest, frontmatter, includes)
-
-    if "features" in meta and any(f in UNSUPPORTED_FEATURES for f in meta["features"]):
-        return None
-
-    source = insertMeta(source, meta)
+    source = updateMeta(source, reftest, frontmatter, includes)
 
     source = convertReportCompare(source)
 
@@ -182,7 +170,7 @@ def featureFromReftest(reftest: str) -> Optional[str]:
     if reftest == "Iterator":
         return "iterator-helpers"
     if reftest == "AsyncIterator":
-        return "async-iterator-helpers"
+        return "async-iteration"
     if reftest == "Temporal":
         return "Temporal"
     if reftest in ("Intl", "addIntlExtras", "ReadableStream"):
@@ -372,7 +360,7 @@ def extractMeta(source: bytes) -> "tuple[dict[str, Any], bytes]":
     return result, source[:start] + source[end:]
 
 
-## computeMeta
+## updateMeta
 
 
 def translateHelpers(source: bytes) -> "tuple[bytes, list[str]]":
@@ -557,12 +545,12 @@ def insertMeta(source: bytes, frontmatter: "dict[str, Any]") -> bytes:
     return source
 
 
-def computeMeta(
+def updateMeta(
     source: bytes,
     reftest: "Optional[ReftestEntry]",
     frontmatter: "dict[str, Any]",
     includes: "list[str]",
-) -> "dict[str, Any]":
+) -> bytes:
     """
     Captures the reftest meta and a pre-existing meta if any and merge them
     into a single dict.
@@ -574,11 +562,16 @@ def computeMeta(
     if b"createIsHTMLDDA" in source:
         frontmatter.setdefault("features", []).append("IsHTMLDDA")
 
+    source, addincludes = translateHelpers(source)
+    includes = includes + addincludes
+
     # Merge the reftest and frontmatter
     merged = mergeMeta(reftest, frontmatter, includes)
 
     # Cleanup the metadata
-    return cleanupMeta(merged)
+    properData = cleanupMeta(merged)
+
+    return insertMeta(source, properData)
 
 
 ## convertReportCompare

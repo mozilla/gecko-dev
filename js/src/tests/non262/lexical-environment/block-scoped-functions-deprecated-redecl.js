@@ -74,5 +74,5 @@ try {
 
 assertEq(log, 'eee');
 
-if (typeof reportCompare === "function")
+if ('reportCompare' in this)
   reportCompare(true, true);
