@@ -377,10 +377,7 @@ export class MozBaseInputElement extends MozLitElement {
     if (!this.label) {
       return "";
     }
-
-    return html`<span class="label-content"
-      >${this.iconTemplate()}<span class="text">${this.label}</span></span
-    >`;
+    return html`${this.iconTemplate()}<span class="text">${this.label}</span>`;
   }
 
   descriptionTemplate() {

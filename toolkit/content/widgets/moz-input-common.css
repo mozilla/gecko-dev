@@ -48,10 +48,6 @@
     }
   }
 
-  .label-content {
-    position: relative;
-  }
-
   /* Input */
 
   #input {
@@ -76,7 +72,7 @@
   /* Icon */
 
   .icon {
-    position: absolute;
+    vertical-align: top;
     width: var(--icon-size-default);
     height: var(--icon-size-default);
     margin-block: var(--icon-margin-block-adjust);
@@ -85,7 +81,7 @@
     stroke: currentColor;
 
     + .text {
-      margin-inline-start: calc(var(--icon-size-default) + var(--space-small));
+      margin-inline-start: var(--space-small);
     }
   }
 

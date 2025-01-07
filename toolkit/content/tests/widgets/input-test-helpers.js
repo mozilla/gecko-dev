@@ -610,10 +610,10 @@ class InputTestHelpers {
       "Input element is not followed by whitespace."
     );
 
-    let labelContent = firstInput.labelEl.querySelector(".label-content");
+    let labelContent = firstInput.labelEl.querySelector(".text");
     ok(
       !isWhitespaceTextNode(labelContent.previousSibling),
-      "Label content is not preceded by whitespace."
+      "Label text is not preceded by whitespace."
     );
 
     // Usually labelContent won't be followed by anything, but adding this check
