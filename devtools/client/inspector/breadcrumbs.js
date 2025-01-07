@@ -849,23 +849,36 @@ HTMLBreadcrumbs.prototype = {
       return false;
     }
 
-    for (const { type, added, removed, target, attributeName } of mutations) {
-      if (type === "childList") {
-        // Only interested in childList mutations if the added or removed
-        // nodes are currently displayed.
-        return (
-          added.some(node => this.indexOf(node) > -1) ||
-          removed.some(node => this.indexOf(node) > -1)
-        );
-      } else if (type === "attributes" && this.indexOf(target) > -1) {
-        // Only interested in attributes mutations if the target is
-        // currently displayed, and the attribute is either id or class.
-        return attributeName === "class" || attributeName === "id";
+    for (const mutation of mutations) {
+      if (this._isInterestingMutation(mutation)) {
+        return true;
       }
     }
 
-    // Catch all return in case the mutations array was empty, or in case none
-    // of the changes iterated above were interesting.
+    return false;
+  },
+
+  /**
+   * Check if the provided mutation (from a markupmutation event) is relevant
+   * for the current breadcrumbs.
+   *
+   * @param {Object} mutation The mutation to check.
+   * @return {Boolean} true if the mutation is relevant, false otherwise.
+   */
+  _isInterestingMutation(mutation) {
+    const { type, added, removed, target, attributeName } = mutation;
+    if (type === "childList") {
+      // Only interested in childList mutations if the added or removed
+      // nodes are currently displayed.
+      return (
+        added.some(node => this.indexOf(node) > -1) ||
+        removed.some(node => this.indexOf(node) > -1)
+      );
+    } else if (type === "attributes" && this.indexOf(target) > -1) {
+      // Only interested in attributes mutations if the target is
+      // currently displayed, and the attribute is either id or class.
+      return attributeName === "class" || attributeName === "id";
+    }
     return false;
   },
 
