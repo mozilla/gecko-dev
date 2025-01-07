@@ -6,6 +6,7 @@
 
 #include "UiaTextRange.h"
 
+#include "mozilla/a11y/HyperTextAccessibleBase.h"
 #include "nsAccUtils.h"
 #include "nsIAccessibleTypes.h"
 #include "TextLeafRange.h"
@@ -99,6 +100,23 @@ static bool IsUiaEmbeddedObject(const Accessible* aAcc) {
       break;
   }
   return true;
+}
+
+static NotNull<Accessible*> GetSelectionContainer(TextLeafRange& aRange) {
+  Accessible* acc = aRange.Start().mAcc;
+  MOZ_ASSERT(acc);
+  if (acc->IsTextLeaf()) {
+    if (Accessible* parent = acc->Parent()) {
+      acc = parent;
+    }
+  }
+  if (acc->IsTextField()) {
+    // Gecko uses an independent selection for <input> and <textarea>.
+    return WrapNotNull(acc);
+  }
+  // For everything else (including contentEditable), Gecko uses the document
+  // selection.
+  return WrapNotNull(nsAccUtils::DocumentFor(acc));
 }
 
 // UiaTextRange
@@ -645,14 +663,59 @@ UiaTextRange::MoveEndpointByRange(
   return S_OK;
 }
 
-STDMETHODIMP
-UiaTextRange::Select() { return E_NOTIMPL; }
+// XXX Use MOZ_CAN_RUN_SCRIPT_BOUNDARY for now due to bug 1543294.
+MOZ_CAN_RUN_SCRIPT_BOUNDARY STDMETHODIMP UiaTextRange::Select() {
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  NotNull<Accessible*> container = GetSelectionContainer(range);
+  nsTArray<TextLeafRange> ranges;
+  TextLeafRange::GetSelection(container, ranges);
+  HyperTextAccessibleBase* conHyp = container->AsHyperTextBase();
+  MOZ_ASSERT(conHyp);
+  // Remove all ranges from the selection.
+  for (int32_t s = ranges.Length() - 1; s >= 0; --s) {
+    conHyp->RemoveFromSelection(s);
+  }
+  // Select just this range.
+  if (!range.SetSelection(0)) {
+    return UIA_E_INVALIDOPERATION;
+  }
+  return S_OK;
+}
 
-STDMETHODIMP
-UiaTextRange::AddToSelection() { return E_NOTIMPL; }
+// XXX Use MOZ_CAN_RUN_SCRIPT_BOUNDARY for now due to bug 1543294.
+MOZ_CAN_RUN_SCRIPT_BOUNDARY STDMETHODIMP UiaTextRange::AddToSelection() {
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  if (!range.SetSelection(-1)) {
+    return UIA_E_INVALIDOPERATION;
+  }
+  return S_OK;
+}
 
-STDMETHODIMP
-UiaTextRange::RemoveFromSelection() { return E_NOTIMPL; }
+// XXX Use MOZ_CAN_RUN_SCRIPT_BOUNDARY for now due to bug 1543294.
+MOZ_CAN_RUN_SCRIPT_BOUNDARY STDMETHODIMP UiaTextRange::RemoveFromSelection() {
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  NotNull<Accessible*> container = GetSelectionContainer(range);
+  nsTArray<TextLeafRange> ranges;
+  TextLeafRange::GetSelection(container, ranges);
+  auto index = ranges.IndexOf(range);
+  if (index != ranges.NoIndex) {
+    HyperTextAccessibleBase* conHyp = container->AsHyperTextBase();
+    MOZ_ASSERT(conHyp);
+    conHyp->RemoveFromSelection(index);
+    return S_OK;
+  }
+  // This range isn't in the collection of selected ranges.
+  return UIA_E_INVALIDOPERATION;
+}
 
 // XXX Use MOZ_CAN_RUN_SCRIPT_BOUNDARY for now due to bug 1543294.
 MOZ_CAN_RUN_SCRIPT_BOUNDARY STDMETHODIMP

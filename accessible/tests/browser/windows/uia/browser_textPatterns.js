@@ -4,6 +4,9 @@
 
 "use strict";
 
+/* import-globals-from ../../../mochitest/text.js */
+loadScripts({ name: "text.js", dir: MOCHITESTS_DIR });
+
 /* eslint-disable camelcase */
 const SupportedTextSelection_None = 0;
 const SupportedTextSelection_Multiple = 2;
@@ -1916,4 +1919,190 @@ addUiaTask(
     is(left, docLeft, "range is at left of document");
     is(top + height, docBottom, "range is at bottom of document");
   }
+);
+
+/**
+ * Test the TextRange pattern's Select method.
+ */
+addUiaTask(
+  `
+<input id="input" type="text" value="ab">
+<div id="contenteditable" contenteditable role="textbox">ab</div>
+  `,
+  async function testTextRangeSelect(browser, docAcc) {
+    // <input> and contentEditable should behave the same.
+    for (const id of ["input", "contenteditable"]) {
+      info(`Focusing ${id}`);
+      const acc = findAccessibleChildByID(docAcc, id, [nsIAccessibleText]);
+      let moved = waitForEvents([
+        [EVENT_FOCUS, acc],
+        [EVENT_TEXT_CARET_MOVED, acc],
+      ]);
+      acc.takeFocus();
+      await moved;
+
+      info("Selecting a");
+      moved = waitForEvents([
+        [EVENT_TEXT_SELECTION_CHANGED, acc],
+        [EVENT_TEXT_CARET_MOVED, acc],
+      ]);
+      await runPython(`
+        doc = getDocUia()
+        acc = findUiaByDomId(doc, "${id}")
+        text = getUiaPattern(acc, "Text")
+        global range
+        range = text.DocumentRange
+        range.ExpandToEnclosingUnit(TextUnit_Character)
+        range.Select()
+      `);
+      await moved;
+      testTextSelectionCount(acc, 1);
+      testTextGetSelection(acc, 0, 1, 0);
+
+      info("Moving caret to b");
+      moved = waitForEvent(EVENT_TEXT_CARET_MOVED, acc);
+      await runPython(`
+        # Collapse to b.
+        range.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Character, 1)
+        range.Select()
+      `);
+      await moved;
+      testTextSelectionCount(acc, 0);
+      is(acc.caretOffset, 1, "caret at 1");
+    }
+  }
+);
+
+/**
+ * Test the TextRange pattern's AddToSelection method.
+ */
+addUiaTask(
+  `
+<input id="input" type="text" value="abc">
+<div id="contenteditable" contenteditable role="textbox">abc</div>
+  `,
+  async function testTextRangeAddToSelection(browser, docAcc) {
+    // <input> and contentEditable should behave the same.
+    for (const id of ["input", "contenteditable"]) {
+      info(`Focusing ${id}`);
+      const acc = findAccessibleChildByID(docAcc, id, [nsIAccessibleText]);
+      let moved = waitForEvents([
+        [EVENT_FOCUS, acc],
+        [EVENT_TEXT_CARET_MOVED, acc],
+      ]);
+      acc.takeFocus();
+      await moved;
+
+      info("Adding a to selection");
+      moved = waitForEvents([
+        [EVENT_TEXT_SELECTION_CHANGED, acc],
+        [EVENT_TEXT_CARET_MOVED, acc],
+      ]);
+      await runPython(`
+        doc = getDocUia()
+        acc = findUiaByDomId(doc, "${id}")
+        text = getUiaPattern(acc, "Text")
+        global range
+        range = text.DocumentRange
+        range.ExpandToEnclosingUnit(TextUnit_Character)
+        range.AddToSelection()
+      `);
+      await moved;
+      testTextSelectionCount(acc, 1);
+      testTextGetSelection(acc, 0, 1, 0);
+
+      info("Adding c to selection");
+      moved = waitForEvent(EVENT_TEXT_CARET_MOVED, acc);
+      await runPython(`
+        # Move start to c.
+        range.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Character, 2)
+        range.ExpandToEnclosingUnit(TextUnit_Character)
+        range.AddToSelection()
+      `);
+      await moved;
+      testTextSelectionCount(acc, 2);
+      testTextGetSelection(acc, 0, 1, 0);
+      testTextGetSelection(acc, 2, 3, 1);
+    }
+  }
+);
+
+/**
+ * Test the TextRange pattern's RemoveFromSelection method.
+ */
+addUiaTask(
+  `
+<input id="input" type="text" value="abc">
+<div id="contenteditable" contenteditable role="textbox">abc</div>
+  `,
+  async function testTextRangeRemoveFromSelection(browser, docAcc) {
+    // <input> and contentEditable should behave the same.
+    for (const id of ["input", "contenteditable"]) {
+      info(`Focusing ${id}`);
+      const acc = findAccessibleChildByID(docAcc, id, [nsIAccessibleText]);
+      let moved = waitForEvents([
+        [EVENT_FOCUS, acc],
+        [EVENT_TEXT_CARET_MOVED, acc],
+      ]);
+      acc.takeFocus();
+      await moved;
+
+      info("Adding a to selection");
+      moved = waitForEvents([
+        [EVENT_TEXT_SELECTION_CHANGED, acc],
+        [EVENT_TEXT_CARET_MOVED, acc],
+      ]);
+      acc.addSelection(0, 1);
+      await moved;
+      info("Adding c to selection");
+      moved = waitForEvents([
+        [EVENT_TEXT_SELECTION_CHANGED, acc],
+        [EVENT_TEXT_CARET_MOVED, acc],
+      ]);
+      acc.addSelection(2, 3);
+      await moved;
+
+      info("Removing a from selection");
+      moved = waitForEvents([
+        [EVENT_TEXT_SELECTION_CHANGED, acc],
+        [EVENT_TEXT_CARET_MOVED, acc],
+      ]);
+      await runPython(`
+        doc = getDocUia()
+        acc = findUiaByDomId(doc, "${id}")
+        text = getUiaPattern(acc, "Text")
+        global range
+        range = text.DocumentRange
+        range.ExpandToEnclosingUnit(TextUnit_Character)
+        range.RemoveFromSelection()
+      `);
+      await moved;
+      testTextSelectionCount(acc, 1);
+      testTextGetSelection(acc, 2, 3, 0);
+
+      info("Removing b from selection even though it isn't selected");
+      await runPython(`
+        # Move start to b.
+        range.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Character, 1)
+        range.ExpandToEnclosingUnit(TextUnit_Character)
+      `);
+      await testPythonRaises(
+        `range.RemoveFromSelection()`,
+        "RemoveFromSelection failed"
+      );
+
+      info("Removing c from selection");
+      moved = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, acc);
+      await runPython(`
+        # Move start to c.
+        range.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Character, 1)
+        range.ExpandToEnclosingUnit(TextUnit_Character)
+        range.RemoveFromSelection()
+      `);
+      await moved;
+      testTextSelectionCount(acc, 0);
+    }
+  },
+  // The IA2 -> UIA proxy doesn't support RemoveFromSelection correctly.
+  { uiaEnabled: true, uiaDisabled: false }
 );
