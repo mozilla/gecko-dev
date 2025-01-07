@@ -325,6 +325,36 @@ function do_test() {
   ok(values.includes("url"), "property cursor values include url");
   ok(values.includes("image-set"), "property cursor values include image-set");
 
+  // Test for bug 1935181.
+  var values = InspectorUtils.getCSSValuesForProperty("align-items");
+  var expected = [
+    "baseline",
+    "center",
+    "end",
+    "first baseline",
+    "flex-end",
+    "flex-start",
+    "inherit",
+    "initial",
+    "last baseline",
+    "normal",
+    "revert",
+    "revert-layer",
+    "safe",
+    "self-end",
+    "self-start",
+    "start",
+    "stretch",
+    "unsafe",
+    "unset"
+  ];
+
+  if(SpecialPowers.getBoolPref("layout.css.anchor-positioning.enabled")) {
+    expected.push("anchor-center");
+  }
+
+  ok(testValues(values, expected), "property align-items values.");
+
   SimpleTest.finish();
 }
 

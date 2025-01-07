@@ -734,8 +734,12 @@ fn list_self_position_keywords(f: KeywordsCollectFn, axis: AxisDirection) {
         "center",
         "self-start",
         "self-end",
-        "anchor-center",
     ]);
+
+    if static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+        f(&["anchor-center"]);
+    }
+
     if axis == AxisDirection::Inline {
         f(&["left", "right"]);
     }
