@@ -145,9 +145,9 @@
     set label(val) {
       this.#label = val;
 
-      // Add a zero width space so we always create a text node and get
-      // consistent layout even if the group name is empty.
-      this.setAttribute("label", "\u200b" + val);
+      // If the group name is empty, use a zero width space so we
+      // always create a text node and get consistent layout.
+      this.setAttribute("label", val || "\u200b");
 
       this.#updateLabelAriaAttributes();
     }

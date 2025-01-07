@@ -900,7 +900,7 @@
     margin: auto;
     font-size: 0;
 
-    &:first-letter {
+    &::first-letter {
       font: message-box;
       font-weight: var(--font-weight-bold);
       line-height: 24px;
