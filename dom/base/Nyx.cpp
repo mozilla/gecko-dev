@@ -40,7 +40,7 @@ void Nyx::Start(const GlobalObject&) {
 
 /* static */
 void Nyx::Release(const GlobalObject&, uint32_t aIterations) {
-  MOZ_FUZZING_NYX_PRINT("INFO: Performing snapshot...\n");
+  MOZ_FUZZING_NYX_PRINT("INFO: Reverting snapshot...\n");
   fuzzing::Nyx::instance().release(aIterations);
 }
 
