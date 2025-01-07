@@ -785,7 +785,7 @@
 
 - name: apz.popups_without_remote.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 # Whether to print the APZC tree for debugging.
