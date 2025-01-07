@@ -212,7 +212,12 @@ add_task(async function test_aboutURL() {
         aboutType !== "newtab" &&
         // protections kicks of async messaging as soon as it loads,
         // this test closes the tab too soon causing errors
-        aboutType !== "protections"
+        aboutType !== "protections" &&
+        // These pages are disabled in certain cases.
+        aboutType !== "profilemanager" &&
+        aboutType !== "editprofile" &&
+        aboutType !== "deleteprofile" &&
+        aboutType !== "newprofile"
       ) {
         aboutURLs.push(aboutType);
       }
