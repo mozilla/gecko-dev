@@ -266,6 +266,13 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
   return Method_Compiled;
 }
 
+MethodStatus BaselineCompiler::compileOffThread() {
+  if (!compileImpl()) {
+    return Method_Error;
+  }
+  return Method_Compiled;
+}
+
 bool BaselineCompiler::compileImpl() {
   AutoCreatedBy acb(masm, "BaselineCompiler::compile");
 

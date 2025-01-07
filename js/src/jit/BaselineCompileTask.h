@@ -7,15 +7,18 @@
 #ifndef jit_BaselineCompileTask_h
 #define jit_BaselineCompileTask_h
 
+#include "mozilla/Maybe.h"
+
 #include "jit/BaselineCodeGen.h"
+#include "jit/OffthreadSnapshot.h"
 #include "vm/HelperThreadTask.h"
 
 namespace js::jit {
 
 class BaselineSnapshot {
-  JSScript* script_;
-  GlobalLexicalEnvironmentObject* globalLexical_;
-  JSObject* globalThis_;
+  OffthreadGCPtr<JSScript*> script_;
+  OffthreadGCPtr<GlobalLexicalEnvironmentObject*> globalLexical_;
+  OffthreadGCPtr<JSObject*> globalThis_;
   uint32_t baseWarmUpThreshold_;
   bool isIonCompileable_;
   bool compileDebugInstrumentation_;
@@ -43,19 +46,39 @@ class BaselineSnapshot {
   bool compileDebugInstrumentation() const {
     return compileDebugInstrumentation_;
   }
+
+  void trace(JSTracer* trc);
 };
 
 class BaselineCompileTask final : public HelperThreadTask {
  public:
+  BaselineCompileTask(CompileRealm* realm, TempAllocator* alloc,
+                      BaselineSnapshot* snapshot)
+      : realm_(realm), alloc_(alloc), snapshot_(snapshot) {}
+
   ThreadType threadType() override { return THREAD_TYPE_BASELINE; }
   void runTask();
   void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
 
-  JSRuntime* runtimeFromAnyThread() const { MOZ_CRASH("TODO"); }
+  JSRuntime* runtimeFromAnyThread() const {
+    return snapshot_->script()->runtimeFromAnyThread();
+  }
 
   const char* getName() override { return "BaselineCompileTask"; }
 
+  bool failed() const { return failed_; }
+
   void trace(JSTracer* trc);
+
+ private:
+  CompileRealm* realm_;
+  TempAllocator* alloc_;
+  BaselineSnapshot* snapshot_;
+
+  mozilla::Maybe<OffThreadMacroAssembler> masm_;
+  mozilla::Maybe<BaselineCompiler> compiler_;
+
+  bool failed_ = false;
 };
 
 }  // namespace js::jit

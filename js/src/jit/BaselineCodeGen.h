@@ -404,7 +404,9 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
 
   static bool prepareToCompile(JSContext* cx, Handle<JSScript*> script,
                                bool compileDebugInstrumentation);
+
   MethodStatus compile(JSContext* cx);
+  MethodStatus compileOffThread();
 
   bool finishCompile(JSContext* cx);
 
