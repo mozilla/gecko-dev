@@ -33,6 +33,13 @@ static constexpr size_t MaxMediumAllocSize =
     1 << BufferAllocator::MaxMediumAllocShift;
 static constexpr size_t MinLargeAllocSize = MaxMediumAllocSize + PageSize;
 
+#ifdef DEBUG
+// Magic check values used debug builds.
+static constexpr uint16_t MediumBufferCheckValue = 0xBFA1;
+static constexpr uint32_t LargeBufferCheckValue = 0xBFA110C2;
+static constexpr uint32_t FreeRegionCheckValue = 0xBFA110C3;
+#endif
+
 namespace js::gc {
 
 bool SmallBuffer::isNurseryOwned() const {
@@ -47,8 +54,22 @@ struct alignas(CellAlignBytes) MediumBuffer {
   uint8_t sizeClass;
   bool isNurseryOwned = false;
 
+#ifdef DEBUG
+  uint16_t checkValue = MediumBufferCheckValue;
+#endif
+
   MediumBuffer(uint8_t sizeClass, bool nurseryOwned)
       : sizeClass(sizeClass), isNurseryOwned(nurseryOwned) {}
+
+  static MediumBuffer* from(BufferChunk* chunk, uintptr_t offset) {
+    MOZ_ASSERT(offset < ChunkSize);
+    MOZ_ASSERT((offset % MinMediumAllocSize) == 0);
+    auto* buffer = reinterpret_cast<MediumBuffer*>(uintptr_t(chunk) + offset);
+    buffer->check();
+    return buffer;
+  }
+
+  void check() const { MOZ_ASSERT(checkValue == MediumBufferCheckValue); }
 
   size_t bytesIncludingHeader() const {
     return BufferAllocator::SizeClassBytes(sizeClass);
@@ -64,7 +85,10 @@ class alignas(CellAlignBytes) LargeBuffer
   mozilla::Atomic<uintptr_t, mozilla::Relaxed> zoneAndFlags;
   uint32_t sizeInPages;  // 16TB should be enough for anyone.
 
- private:
+#ifdef DEBUG
+  uint32_t checkValue = LargeBufferCheckValue;
+#endif
+
   enum Flags : uint8_t {
     MarkedFlag = 0,  // Cleared off-thread, hence requires atomic storage.
     NurseryOwnedFlag,
@@ -87,6 +111,8 @@ class alignas(CellAlignBytes) LargeBuffer
     MOZ_ASSERT((zoneAndFlags & FlagsMask) == 0);
     MOZ_ASSERT((bytes % PageSize) == 0);
   }
+
+  void check() const { MOZ_ASSERT(checkValue == LargeBufferCheckValue); }
 
   bool isMarked() const { return zoneAndFlags & MarkedMask; };
   void clearMarked() { zoneAndFlags &= ~MarkedMask; }
@@ -157,8 +183,25 @@ struct BufferAllocator::FreeRegion
   uintptr_t startAddr;
   bool hasDecommittedPages;
 
+#ifdef DEBUG
+  uint32_t checkValue = FreeRegionCheckValue;
+#endif
+
   explicit FreeRegion(uintptr_t startAddr, bool decommitted = false)
       : startAddr(startAddr), hasDecommittedPages(decommitted) {}
+
+  static FreeRegion* fromEndOffset(BufferChunk* chunk, uintptr_t endOffset) {
+    MOZ_ASSERT(endOffset <= ChunkSize);
+    return fromEndAddr(uintptr_t(chunk) + endOffset);
+  }
+  static FreeRegion* fromEndAddr(uintptr_t endAddr) {
+    MOZ_ASSERT((endAddr % MinMediumAllocSize) == 0);
+    auto* region = reinterpret_cast<FreeRegion*>(endAddr - sizeof(FreeRegion));
+    region->check();
+    return region;
+  }
+
+  void check() const { MOZ_ASSERT(checkValue == FreeRegionCheckValue); }
 
   uintptr_t getEnd() const { return uintptr_t(this + 1); }
   size_t size() const { return getEnd() - startAddr; }
@@ -238,7 +281,7 @@ class BufferChunkIter {
   }
   MediumBuffer* get() const {
     MOZ_ASSERT(!done());
-    return reinterpret_cast<MediumBuffer*>(uintptr_t(chunk) + offset);
+    return MediumBuffer::from(chunk, offset);
   }
   operator MediumBuffer*() { return get(); }
   MediumBuffer* operator->() { return get(); }
@@ -660,7 +703,9 @@ void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
 
 template <typename HeaderT>
 static HeaderT* GetHeaderFromAlloc(void* alloc) {
-  return reinterpret_cast<HeaderT*>(uintptr_t(alloc) - sizeof(HeaderT));
+  auto* header = reinterpret_cast<HeaderT*>(uintptr_t(alloc) - sizeof(HeaderT));
+  header->check();
+  return header;
 }
 
 void BufferAllocator::free(void* ptr) {
@@ -1279,8 +1324,8 @@ bool BufferChunk::isPointerWithinAllocation(void* ptr) const {
     return false;
   }
 
-  uintptr_t chunkAddr = uintptr_t(ptr) & ~ChunkMask;
-  auto* header = reinterpret_cast<MediumBuffer*>(chunkAddr + allocOffset);
+  auto* header =
+      MediumBuffer::from(const_cast<BufferChunk*>(this), allocOffset);
 
   return offset < allocOffset + header->bytesIncludingHeader();
 }
@@ -1393,9 +1438,7 @@ void BufferAllocator::verifyChunk(BufferChunk* chunk,
 
 void BufferAllocator::verifyFreeRegion(BufferChunk* chunk, uintptr_t endOffset,
                                        size_t expectedSize) {
-  MOZ_ASSERT(endOffset <= ChunkSize);
-  uintptr_t offset = endOffset - sizeof(FreeRegion);
-  auto* freeRegion = reinterpret_cast<FreeRegion*>(uintptr_t(chunk) + offset);
+  auto* freeRegion = FreeRegion::fromEndOffset(chunk, endOffset);
   MOZ_ASSERT(freeRegion->isInList());
   MOZ_ASSERT(freeRegion->size() == expectedSize);
 }
@@ -1923,7 +1966,8 @@ BufferAllocator::FreeRegion* BufferAllocator::addFreeRegion(
   if (expectUnchanged) {
     // We didn't free any allocations so there should already be a FreeRegion
     // from |start| to |end|.
-    auto* region = reinterpret_cast<FreeRegion*>(end - sizeof(FreeRegion));
+    auto* region = FreeRegion::fromEndAddr(end);
+    region->check();
     MOZ_ASSERT(region->startAddr == start);
   }
 #endif
@@ -2095,8 +2139,7 @@ BufferAllocator::FreeRegion* BufferAllocator::findFollowingFreeRegion(
   offset = chunk->findNextAllocated(offset);
   MOZ_ASSERT(offset <= ChunkSize);
 
-  offset -= sizeof(FreeRegion);
-  auto* region = reinterpret_cast<FreeRegion*>(uintptr_t(chunk) + offset);
+  auto* region = FreeRegion::fromEndOffset(chunk, offset);
   MOZ_ASSERT(region->startAddr == startAddr);
 
   return region;
@@ -2122,7 +2165,7 @@ BufferAllocator::FreeRegion* BufferAllocator::findPrecedingFreeRegion(
 
   if (offset != ChunkSize) {
     // Found a preceding allocation.
-    auto* header = reinterpret_cast<MediumBuffer*>(uintptr_t(chunk) + offset);
+    auto* header = MediumBuffer::from(chunk, offset);
     size_t bytes = SizeClassBytes(header->sizeClass);
     MOZ_ASSERT(uintptr_t(header) + bytes <= endAddr);
     if (uintptr_t(header) + bytes == endAddr) {
@@ -2131,10 +2174,11 @@ BufferAllocator::FreeRegion* BufferAllocator::findPrecedingFreeRegion(
     }
   }
 
-  auto* region = reinterpret_cast<FreeRegion*>(endAddr - sizeof(FreeRegion));
+  auto* region = FreeRegion::fromEndAddr(endAddr);
 #ifdef DEBUG
+  region->check();
   if (offset != ChunkSize) {
-    auto* header = reinterpret_cast<MediumBuffer*>(uintptr_t(chunk) + offset);
+    auto* header = MediumBuffer::from(chunk, offset);
     size_t bytes = SizeClassBytes(header->sizeClass);
     MOZ_ASSERT(region->startAddr == uintptr_t(header) + bytes);
   } else {

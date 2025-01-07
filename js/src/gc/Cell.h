@@ -877,6 +877,8 @@ class alignas(gc::CellAlignBytes) SmallBuffer : public TenuredCell {
  public:
   static constexpr uintptr_t NURSERY_OWNED_BIT = Bit(3);
 
+  void check() const {}  // No check value.
+
   bool isNurseryOwned() const;
   void setNurseryOwned(bool value);
 
