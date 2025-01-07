@@ -407,9 +407,11 @@ void DMABufSurface::CloseFileDescriptors(const MutexAutoLock& aProofOfLock,
 
 #ifdef MOZ_WAYLAND
 void DMABufSurface::ReleaseWlBuffer() {
-  LOGDMABUF(
-      ("DMABufSurface::ReleaseWlBuffer() [%p] UID %d", mWlBuffer, GetUID()));
-  MozClearPointer(mWlBuffer, wl_buffer_destroy);
+  if (mWlBuffer) {
+    LOGDMABUF(
+        ("DMABufSurface::ReleaseWlBuffer() [%p] UID %d", mWlBuffer, GetUID()));
+    MozClearPointer(mWlBuffer, wl_buffer_destroy);
+  }
 }
 #endif
 
