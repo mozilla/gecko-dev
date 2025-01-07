@@ -508,6 +508,12 @@ void CookieJarSettings::Merge(const CookieJarSettingsArgs& aData) {
     mShouldResistFingerprinting = true;
   }
 
+  // Merge partition Key. When a channel is created in the the child process and
+  // then opened in the parent process, the partition key will be created in the
+  // parent process, then sending back to the child process. Merging it here to
+  // ensure the child process has the latest value.
+  mPartitionKey = aData.partitionKey();
+
   PermissionComparator comparator;
 
   for (const CookiePermissionData& data : aData.cookiePermissions()) {
