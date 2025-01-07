@@ -77,6 +77,43 @@ add_task(async function test_selector_window() {
   const profileSelector = dialog.document.querySelector("profile-selector");
   await profileSelector.updateComplete;
 
+  Assert.ok(profileSelector.checkbox.checked, "Checkbox should be checked");
+
+  let asyncFlushCalled = false;
+  gProfileService.asyncFlush = () => (asyncFlushCalled = true);
+
+  profileSelector.checkbox.click();
+  await BrowserTestUtils.waitForCondition(
+    () => asyncFlushCalled,
+    "Expected asyncFlush to be called"
+  );
+  asyncFlushCalled = false;
+
+  Assert.ok(
+    !profileSelector.checkbox.checked,
+    "Checkbox should not be checked"
+  );
+  Assert.ok(
+    !gProfileService.groupProfile.showProfileSelector,
+    "Profile selector should be disabled"
+  );
+
+  // Simulate matching state.
+  gProfileService.groupProfile.showProfileSelector = true;
+
+  profileSelector.checkbox.click();
+  await BrowserTestUtils.waitForCondition(
+    () => asyncFlushCalled,
+    "Expected asyncFlush to be called"
+  );
+  asyncFlushCalled = false;
+
+  Assert.ok(profileSelector.checkbox.checked, "Checkbox should not be checked");
+  Assert.ok(
+    gProfileService.groupProfile.showProfileSelector,
+    "Profile selector should be disabled"
+  );
+
   profileSelector.selectableProfileService.getExecutableProcess = mock;
 
   const profiles = profileSelector.profileCards;

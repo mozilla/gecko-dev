@@ -35,12 +35,35 @@ add_task(async function test_updateDefaultProfileOnWindowSwitch() {
 
   let w = await BrowserTestUtils.openNewBrowserWindow();
   w.focus();
+
+  let asyncFlushCalled = false;
+  gProfileService.asyncFlush = () => (asyncFlushCalled = true);
+
   // Focus the original window so we get an "activate" event and update the toolkitProfile rootDir
   window.focus();
 
-  await BrowserTestUtils.waitForCondition(() => {
-    return gProfileService.currentProfile.rootDir.path === profileRootDir.path;
-  }, `Waited for gProfileService.currentProfile.rootDir.path to be updated to ${profileRootDir.path}, instead got ${gProfileService.currentProfile.rootDir.path}`);
+  await BrowserTestUtils.waitForCondition(
+    () => asyncFlushCalled,
+    "Expected asyncFlush to be called"
+  );
+
+  let unfocused = BrowserTestUtils.waitForEvent(window, "deactivate");
+  w.focus();
+  await unfocused;
+
+  gProfileService.asyncFlush = () => {
+    throw new Error("Failed");
+  };
+  let asyncFlushGroupProfileCalled = false;
+  gProfileService.asyncFlushGroupProfile = () =>
+    (asyncFlushGroupProfileCalled = true);
+
+  window.focus();
+
+  await BrowserTestUtils.waitForCondition(
+    () => asyncFlushGroupProfileCalled,
+    "Expected asyncFlushGroupProfile to be called"
+  );
 
   is(
     gProfileService.currentProfile.rootDir.path,
@@ -50,14 +73,21 @@ add_task(async function test_updateDefaultProfileOnWindowSwitch() {
 
   let testEvents = Glean.profilesDefault.updated.testGetValue();
   Assert.equal(
-    1,
+    3,
     testEvents.length,
     "Should have recorded the default profile updated event exactly once"
   );
-  TelemetryTestUtils.assertEvents([["profiles", "default", "updated"]], {
-    category: "profiles",
-    method: "default",
-  });
+  TelemetryTestUtils.assertEvents(
+    [
+      ["profiles", "default", "updated"],
+      ["profiles", "default", "updated"],
+      ["profiles", "default", "updated"],
+    ],
+    {
+      category: "profiles",
+      method: "default",
+    }
+  );
 
   await BrowserTestUtils.closeWindow(w);
   await SelectableProfileService.uninit();
