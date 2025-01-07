@@ -5053,7 +5053,7 @@
 
 - name: dom.webgpu.allow-present-without-readback
   type: RelaxedAtomicBool
-#if defined(XP_WIN)
+#if defined(XP_WIN) || defined(XP_MACOSX)
   value: true
 #else
   value: false
