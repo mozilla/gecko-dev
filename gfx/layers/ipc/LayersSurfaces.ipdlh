@@ -73,6 +73,7 @@ namespace layers {
 
 [Comparable] struct SurfaceDescriptorDMABuf {
   uint32_t bufferType;
+  uint32_t fourccFormat;
   uint64_t[] modifier;
   uint32_t flags;
   FileHandleWrapper[] fds;

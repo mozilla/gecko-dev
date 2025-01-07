@@ -219,6 +219,9 @@ class DMABufSurface {
   // Surface type (RGBA or YUV)
   SurfaceType mSurfaceType;
 
+  // Actual FOURCC format of whole surface (includes all planes).
+  int32_t mFOURCCFormat = 0;
+
   // Configuration of surface planes, it depends on surface modifiers.
   // RGBA surface may use one RGBA plane or two planes (RGB + A)
   // YUV surfaces use various planes setup (Y + UV planes or Y+U+V planes)
