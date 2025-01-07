@@ -17,5 +17,5 @@ g();
 assertEq(x, "global-x");
 assertEq(log, "42g");
 
-if ("reportCompare" in this)
+if (typeof reportCompare === "function")
   reportCompare(true, true)

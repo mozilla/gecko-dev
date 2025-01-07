@@ -4,5 +4,5 @@
 
 "" + eval("(function () { if (x) ; else if (y) n(); else { " + Array(10000).join("e;") + " } });");
 
-if (this.reportCompare)
+if (typeof reportCompare === "function")
     reportCompare(0, 0, "ok");

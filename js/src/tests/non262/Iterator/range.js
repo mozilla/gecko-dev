@@ -63,6 +63,5 @@ assertDeepEq(result4, []);
 
 //TODO: support/test other sequences
 
-if (typeof reportCompare === 'function') {
+if (typeof reportCompare === 'function')
     reportCompare(0, 0);
-}
