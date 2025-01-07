@@ -1,0 +1,3 @@
+<?xml-stylesheet type="text/xml" href="#style1"?>
+<xsl:stylesheet id="style1" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+</xsl:stylesheet>
