@@ -182,6 +182,10 @@ notes = "Part of the wgpu repository, pinned as the rest of wgpu crates."
 audit-as-crates-io = true
 notes = "This is a pinned version of the upstream code, pending update of the crate."
 
+[policy.objc]
+audit-as-crates-io = true
+notes = "This is the upstream code plus a backported fix."
+
 [policy.peek-poke]
 audit-as-crates-io = false
 

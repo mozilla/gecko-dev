@@ -45,6 +45,11 @@ git = "https://github.com/gfx-rs/wgpu"
 rev = "5543961a71cc8e5399b696fae3f6aae82c019717"
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/glandium/rust-objc?rev=4de89f5aa9851ceca4d40e7ac1e2759410c04324"]
+git = "https://github.com/glandium/rust-objc"
+rev = "4de89f5aa9851ceca4d40e7ac1e2759410c04324"
+replace-with = "vendored-sources"
+
 [source."git+https://github.com/hsivonen/any_all_workaround?rev=7fb1b7034c9f172aade21ee1c8554e8d8a48af80"]
 git = "https://github.com/hsivonen/any_all_workaround"
 rev = "7fb1b7034c9f172aade21ee1c8554e8d8a48af80"

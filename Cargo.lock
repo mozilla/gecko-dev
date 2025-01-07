@@ -4762,8 +4762,7 @@ dependencies = [
 [[package]]
 name = "objc"
 version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "915b1b472bc21c53464d6c8461c9d3af805ba1ef837e1cac254428f4a77177b1"
+source = "git+https://github.com/glandium/rust-objc?rev=4de89f5aa9851ceca4d40e7ac1e2759410c04324#4de89f5aa9851ceca4d40e7ac1e2759410c04324"
 dependencies = [
  "malloc_buf",
 ]

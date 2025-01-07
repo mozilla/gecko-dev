@@ -217,6 +217,9 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "85156e360a37d8517
 # in order to build standalone.
 malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
 
+# objc 0.2.7 + fa7ca43b862861dd1cd000d7ad01e6e0266cda13
+objc = { git = "https://github.com/glandium/rust-objc", rev = "4de89f5aa9851ceca4d40e7ac1e2759410c04324" }
+
 # application-services overrides to make updating them all simpler.
 interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
 relevancy = { git = "https://github.com/mozilla/application-services", rev = "03cf4a362408b9caffa6848aae2fcf472a789460" }
