@@ -1463,6 +1463,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 #allTabsMenu-groupsView {
   flex: auto;
   flex-grow: 0;
+  max-height: 30%;
 
   &:empty,
   &:empty + toolbarseparator {
