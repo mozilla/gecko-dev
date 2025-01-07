@@ -309,6 +309,11 @@ abstract class Settings {
      * Setting to control the cookie behavior opt-in partitioning in private browsing mode.
      */
     open var cookieBehaviorOptInPartitioningPBM: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control how Certificate Transparency information is processed.
+     */
+    open var certificateTransparencyMode: Int by UnsupportedSetting()
 }
 
 /**
@@ -371,6 +376,7 @@ data class DefaultSettings(
     val getDesktopMode: () -> Boolean = { false },
     override var cookieBehaviorOptInPartitioning: Boolean = false,
     override var cookieBehaviorOptInPartitioningPBM: Boolean = false,
+    override var certificateTransparencyMode: Int = 0,
 ) : Settings() {
     override val desktopModeEnabled: Boolean
         get() = getDesktopMode()

@@ -621,6 +621,15 @@ features:
         type: Boolean
         default: true
 
+  pki:
+    description: Certificate verification configuration
+    variables:
+      certificateTransparencyMode:
+        description: >
+          What mode Certificate Transparency is in (0=disable, 1=telemetry only, 2=enforce).
+        type: Int
+        default: 0
+
   javascript:
     description: Enables Javascript Engine (Spidermonkey) features
     variables:
