@@ -18,6 +18,9 @@
     <moz-message-bar id="warningMessage" type="warning" message="Test message"></moz-message-bar>
     <moz-message-bar id="successMessage" type="success" message="Test message"></moz-message-bar>
     <moz-message-bar id="errorMessage" type="error" message="Test message"></moz-message-bar>
+    <moz-message-bar id="messageWithLink" message="Test message">
+      <a slot="support-link" href="#learn-less">Learn less</a>
+    </moz-message-bar>
   </div>
   <pre id="test">
   <script class="testbody" type="application/javascript">
@@ -88,6 +91,38 @@
       ok(iconUrl.includes("error.svg"), "Error icon is showing up.");
       const iconAlt = icon.alt;
       is(iconAlt, "Error", "Alternate text for the error icon is present.");
+    });
+
+    add_task(async function test_support_link_slot() {
+      const mozMessageBar = document.querySelector("#messageWithLink");
+      const link = mozMessageBar.querySelector("[href='#learn-less']");
+      const msgEl = mozMessageBar.messageEl;
+      is(mozMessageBar.supportLinkEls[0], link, "Link is assigned");
+      // Inspect internal class name - this is relied upon to toggle the
+      // visibility of the gap between the message and link (bug 1938906).
+      is(msgEl.className, "message has-link-after", "Expected class list");
+
+      link.remove();
+      await mozMessageBar.updateComplete;
+      is(msgEl.className, "message", "has-link-after class should be gone");
+
+      mozMessageBar.append(link);
+      await mozMessageBar.updateComplete;
+      is(msgEl.className, "message has-link-after", "class should be back");
+
+      mozMessageBar.message = "Different test message";
+      await mozMessageBar.updateComplete;
+      is(msgEl.className, "message has-link-after", "class should not change");
+
+      mozMessageBar.message = "Test message";
+      await mozMessageBar.updateComplete;
+      is(msgEl.className, "message has-link-after", "class should not change");
+
+      // Sanity check: A moz-message-bar that never had any link should not
+      // have the .has-link-after class name.
+      const mozMessageBar2 = document.querySelector("#infoMessage");
+      const msgEl2 = mozMessageBar2.messageEl;
+      is(msgEl2.className, "message", "Class when link was never assigned");
     });
   </script>
 </pre>

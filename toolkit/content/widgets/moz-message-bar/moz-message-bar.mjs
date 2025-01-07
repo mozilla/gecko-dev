@@ -54,6 +54,7 @@ export default class MozMessageBar extends MozLitElement {
     actionsSlot: "slot[name=actions]",
     actionsEl: ".actions",
     closeButton: "moz-button.close",
+    messageEl: ".message",
     supportLinkSlot: "slot[name=support-link]",
   };
 
@@ -72,9 +73,16 @@ export default class MozMessageBar extends MozLitElement {
     this.dismissable = false;
   }
 
-  onSlotchange() {
+  onActionSlotchange() {
     let actions = this.actionsSlot.assignedNodes();
     this.actionsEl.classList.toggle("active", actions.length);
+  }
+
+  onLinkSlotChange() {
+    this.messageEl.classList.toggle(
+      "has-link-after",
+      !!this.supportLinkEls.length
+    );
   }
 
   connectedCallback() {
@@ -154,13 +162,16 @@ export default class MozMessageBar extends MozLitElement {
                   ${this.message}
                 </span>
                 <span class="link">
-                  <slot name="support-link"></slot>
+                  <slot
+                    name="support-link"
+                    @slotchange=${this.onLinkSlotChange}
+                  ></slot>
                 </span>
               </div>
             </div>
           </div>
           <span class="actions">
-            <slot name="actions" @slotchange=${this.onSlotchange}></slot>
+            <slot name="actions" @slotchange=${this.onActionSlotchange}></slot>
           </span>
         </div>
         ${this.closeButtonTemplate()}

@@ -101,7 +101,7 @@
 
 /* MozMessageBar message style */
 
-.message {
+.message.has-link-after {
   margin-inline-end: var(--space-xsmall);
 }
 
