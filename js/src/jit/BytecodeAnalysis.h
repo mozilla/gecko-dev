@@ -54,6 +54,7 @@ class BytecodeAnalysis {
   bool disableInlining_ = false;
 
   void disableIon() { disableIon_ = true; }
+  bool ionDisabled() const { return disableIon_; }
   void disableInlining() { disableInlining_ = true; }
 
  public:

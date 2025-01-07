@@ -306,6 +306,8 @@ class BaselineCompilerHandler {
   bool compileDebugInstrumentation_;
   bool ionCompileable_;
 
+  bool compilingOffThread_ = false;
+
  public:
   using FrameInfoT = CompilerFrameInfo;
 
@@ -379,6 +381,9 @@ class BaselineCompilerHandler {
     return allocSiteIndices_.append(entryIndex);
   }
   void createAllocSites();
+
+  bool compilingOffThread() const { return compilingOffThread_; }
+  void setCompilingOffThread() { compilingOffThread_ = true; }
 };
 
 using BaselineCompilerCodeGen = BaselineCodeGen<BaselineCompilerHandler>;

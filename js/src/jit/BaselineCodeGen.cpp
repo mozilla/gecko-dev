@@ -261,6 +261,7 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
 }
 
 MethodStatus BaselineCompiler::compileOffThread() {
+  handler.setCompilingOffThread();
   if (!compileImpl()) {
     return Method_Error;
   }
@@ -923,6 +924,12 @@ static void MaybeIncrementCodeCoverageCounter(MacroAssembler& masm,
 
 template <>
 bool BaselineCompilerCodeGen::emitHandleCodeCoverageAtPrologue() {
+  // TSAN disapproves of accessing scriptCounts off-thread.
+  // We don't compile off-thread if the script has scriptCounts.
+  if (handler.compilingOffThread()) {
+    return true;
+  }
+
   // If the main instruction is not a jump target, then we emit the
   // corresponding code coverage counter.
   JSScript* script = handler.script();
@@ -3288,6 +3295,10 @@ bool BaselineCompilerCodeGen::tryOptimizeBindUnqualifiedGlobalName() {
   JSScript* script = handler.script();
   MOZ_ASSERT(!script->hasNonSyntacticScope());
 
+  if (handler.compilingOffThread()) {
+    return false;
+  }
+
   GlobalObject* global = &script->global();
   PropertyName* name = script->getName(handler.pc());
   if (JSObject* binding =
@@ -3798,6 +3809,26 @@ bool BaselineCodeGen<Handler>::emit_DelName() {
 
 template <>
 bool BaselineCompilerCodeGen::emit_GetImport() {
+  if (handler.compilingOffThread()) {
+    frame.syncStack(0);
+    masm.loadPtr(frame.addressOfEnvironmentChain(), R0.scratchReg());
+
+    prepareVMCall();
+
+    pushBytecodePCArg();
+    pushScriptArg();
+    pushArg(R0.scratchReg());
+
+    using Fn = bool (*)(JSContext*, HandleObject, HandleScript, jsbytecode*,
+                        MutableHandleValue);
+    if (!callVM<Fn, GetImportOperation>()) {
+      return false;
+    }
+
+    frame.push(R0);
+    return true;
+  }
+
   JSScript* script = handler.script();
   ModuleEnvironmentObject* env = GetModuleEnvironmentForScript(script);
   MOZ_ASSERT(env);
@@ -6341,7 +6372,9 @@ bool BaselineCodeGen<Handler>::emit_IsConstructing() {
 
 template <>
 bool BaselineCompilerCodeGen::emit_JumpTarget() {
-  MaybeIncrementCodeCoverageCounter(masm, handler.script(), handler.pc());
+  if (!handler.compilingOffThread()) {
+    MaybeIncrementCodeCoverageCounter(masm, handler.script(), handler.pc());
+  }
   return true;
 }
 
