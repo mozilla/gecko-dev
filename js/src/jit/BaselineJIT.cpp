@@ -205,6 +205,68 @@ JitExecStatus jit::EnterBaselineInterpreterAtBranch(JSContext* cx,
   return JitExec_Ok;
 }
 
+static bool OffThreadBaselineCompilationAvailable(JSContext* cx,
+                                                  JSScript* script) {
+  if (!cx->runtime()->canUseOffthreadBaselineCompilation()) {
+    return false;
+  }
+  // TODO: Support off-thread scriptcounts?
+  if (cx->runtime()->profilingScripts) {
+    return false;
+  }
+  if (script->hasScriptCounts() || cx->realm()->collectCoverageForDebug()) {
+    return false;
+  }
+  if (script->isDebuggee()) {
+    return false;
+  }
+  return CanUseExtraThreads();
+}
+
+static bool DispatchOffThreadBaselineCompile(JSContext* cx,
+                                             BaselineSnapshot& snapshot) {
+  JSScript* script = snapshot.script();
+  MOZ_ASSERT(OffThreadBaselineCompilationAvailable(cx, script));
+
+  auto alloc = cx->make_unique<LifoAlloc>(TempAllocator::PreferredLifoChunkSize,
+                                          js::BackgroundMallocArena);
+  if (!alloc) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  TempAllocator* temp = alloc->new_<TempAllocator>(alloc.get());
+  if (!temp) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  BaselineSnapshot* snapshotCopy = alloc->new_<BaselineSnapshot>(snapshot);
+  if (!snapshotCopy) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  CompileRealm* realm = CompileRealm::get(cx->realm());
+  BaselineCompileTask* task =
+      alloc->new_<BaselineCompileTask>(realm, temp, snapshotCopy);
+  if (!task) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  AutoLockHelperThreadState lock;
+  if (!StartOffThreadBaselineCompile(task, lock)) {
+    return false;
+  }
+
+  script->jitScript()->setIsBaselineCompiling(script);
+
+  // The allocator and associated data will be destroyed after being
+  // processed in the finishedOffThreadCompilations list.
+  (void)alloc.release();
+
+  return true;
+}
+
 MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
                                   bool forceDebugInstrumentation) {
   cx->check(script);
@@ -215,10 +277,19 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
       cx, "Baseline script compilation",
       JS::ProfilingCategoryPair::JS_BaselineCompilation);
 
-  TempAllocator temp(&cx->tempLifoAlloc());
+  bool compileDebugInstrumentation =
+      forceDebugInstrumentation || script->isDebuggee();
+
   JitContext jctx(cx);
 
-  StackMacroAssembler masm(cx, temp);
+  // Suppress GC during compilation.
+  gc::AutoSuppressGC suppressGC(cx);
+
+  Rooted<JSScript*> rooted(cx, script);
+  if (!BaselineCompiler::PrepareToCompile(cx, rooted,
+                                          compileDebugInstrumentation)) {
+    return Method_Error;
+  }
 
   GlobalLexicalEnvironmentObject* globalLexical =
       &cx->global()->lexicalEnvironment();
@@ -226,12 +297,23 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
   uint32_t baseWarmUpThreshold =
       OptimizationInfo::baseWarmUpThresholdForScript(cx, script);
   bool isIonCompileable = IsIonEnabled(cx) && CanIonCompileScript(cx, script);
-  bool compileDebugInstrumentation =
-      forceDebugInstrumentation || script->isDebuggee();
 
   BaselineSnapshot snapshot(script, globalLexical, globalThis,
                             baseWarmUpThreshold, isIonCompileable,
                             compileDebugInstrumentation);
+
+  if (OffThreadBaselineCompilationAvailable(cx, script) &&
+      !forceDebugInstrumentation) {
+    if (!DispatchOffThreadBaselineCompile(cx, snapshot)) {
+      ReportOutOfMemory(cx);
+      return Method_Error;
+    }
+    return Method_Skipped;
+  }
+
+  TempAllocator temp(&cx->tempLifoAlloc());
+
+  StackMacroAssembler masm(cx, temp);
 
   BaselineCompiler compiler(temp, CompileRuntime::get(cx->runtime()), masm,
                             &snapshot);
@@ -301,6 +383,10 @@ static MethodStatus CanEnterBaselineJIT(JSContext* cx, HandleScript script,
 
   if (script->hasBaselineScript()) {
     return Method_Compiled;
+  }
+
+  if (script->isBaselineCompilingOffThread()) {
+    return Method_Skipped;
   }
 
   // If a hint is available, skip the warmup count threshold.

@@ -199,7 +199,7 @@ bool BaselineInterpreterHandler::addDebugInstrumentationOffset(
 }
 
 /*static*/
-bool BaselineCompiler::prepareToCompile(JSContext* cx, Handle<JSScript*> script,
+bool BaselineCompiler::PrepareToCompile(JSContext* cx, Handle<JSScript*> script,
                                         bool compileDebugInstrumentation) {
   JitSpew(JitSpew_BaselineScripts, "Baseline compiling script %s:%u:%u (%p)",
           script->filename(), script->lineno(),
@@ -238,13 +238,7 @@ bool BaselineCompiler::prepareToCompile(JSContext* cx, Handle<JSScript*> script,
 }
 
 MethodStatus BaselineCompiler::compile(JSContext* cx) {
-  // Suppress GC during compilation.
-  gc::AutoSuppressGC suppressGC(cx);
-
   Rooted<JSScript*> script(cx, handler.script());
-  if (!prepareToCompile(cx, script, compileDebugInstrumentation())) {
-    return Method_Error;
-  }
 
   JitSpew(JitSpew_Codegen, "# Emitting baseline code for script %s:%u:%u",
           script->filename(), script->lineno(),

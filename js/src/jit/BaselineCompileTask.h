@@ -24,11 +24,10 @@ class BaselineSnapshot {
   bool compileDebugInstrumentation_;
 
  public:
-  explicit BaselineSnapshot(JSScript* script,
-                            GlobalLexicalEnvironmentObject* globalLexical,
-                            JSObject* globalThis, uint32_t baseWarmUpThreshold,
-                            bool isIonCompileable,
-                            bool compileDebugInstrumentation)
+  BaselineSnapshot(JSScript* script,
+                   GlobalLexicalEnvironmentObject* globalLexical,
+                   JSObject* globalThis, uint32_t baseWarmUpThreshold,
+                   bool isIonCompileable, bool compileDebugInstrumentation)
       : script_(script),
         globalLexical_(globalLexical),
         globalThis_(globalThis),

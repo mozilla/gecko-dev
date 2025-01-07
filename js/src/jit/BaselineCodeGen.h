@@ -402,7 +402,7 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
                    MacroAssembler& masm, BaselineSnapshot* snapshot);
   [[nodiscard]] bool init();
 
-  static bool prepareToCompile(JSContext* cx, Handle<JSScript*> script,
+  static bool PrepareToCompile(JSContext* cx, Handle<JSScript*> script,
                                bool compileDebugInstrumentation);
 
   MethodStatus compile(JSContext* cx);
