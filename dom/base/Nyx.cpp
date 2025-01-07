@@ -16,7 +16,8 @@ void Nyx::Log(const GlobalObject&, const nsACString& aMsg) {
 
 /* static */
 bool Nyx::IsEnabled(const GlobalObject&, const nsACString& aFuzzerName) {
-  return fuzzing::Nyx::instance().is_enabled(PromiseFlatCString(aFuzzerName).get());
+  return fuzzing::Nyx::instance().is_enabled(
+      PromiseFlatCString(aFuzzerName).get());
 }
 
 /* static */
