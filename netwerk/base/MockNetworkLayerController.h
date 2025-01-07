@@ -11,10 +11,12 @@
 #include "mozilla/RWLock.h"
 #include "nsIMockNetworkLayerController.h"
 #include "nsTHashMap.h"
+#include "nsTHashSet.h"
 
 namespace mozilla::net {
 
 bool FindNetAddrOverride(const NetAddr& aInput, NetAddr& aOutput);
+bool FindBlockedUDPAddr(const NetAddr& aInput);
 
 class MockNetworkLayerController : public nsIMockNetworkLayerController {
  public:
@@ -30,8 +32,10 @@ class MockNetworkLayerController : public nsIMockNetworkLayerController {
   mozilla::RWLock mLock{"MockNetworkLayerController::mLock"};
 
   nsTHashMap<nsCStringHashKey, NetAddr> mNetAddrOverrides MOZ_GUARDED_BY(mLock);
+  nsTHashSet<nsCStringHashKey> mBlockedUDPAddresses MOZ_GUARDED_BY(mLock);
 
   friend bool FindNetAddrOverride(const NetAddr& aInput, NetAddr& aOutput);
+  friend bool FindBlockedUDPAddr(const NetAddr& aInput);
 };
 
 }  // namespace mozilla::net
