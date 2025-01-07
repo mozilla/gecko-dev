@@ -41,8 +41,8 @@ using namespace mozilla;
 using mozilla::dom::AutoJSAPI;
 using mozilla::dom::ContentParent;
 
-// Do not gather data more than once a minute (ms)
-static constexpr uint32_t kTelemetryIntervalMS = 60 * 1000;
+// Do not gather data more than once a minute (in seconds)
+static constexpr uint32_t kTelemetryIntervalS = 60;
 
 // Do not create a timer for telemetry this many seconds after the previous one
 // fires.  This exists so that we don't respond to our own timer.
@@ -150,15 +150,11 @@ void MemoryTelemetry::Poke() {
 
   mLastPoke = now;
   if (!mTimer) {
-    uint32_t delay = kTelemetryIntervalMS;
+    TimeDuration delay = TimeDuration::FromSeconds(kTelemetryIntervalS);
     if (mLastRun) {
-      delay = uint32_t(
-          std::min(
-              TimeDuration::FromMilliseconds(kTelemetryIntervalMS),
-              std::max(TimeDuration::FromSeconds(kTelemetryCooldownS),
-                       TimeDuration::FromMilliseconds(kTelemetryIntervalMS) -
-                           (now - mLastRun)))
-              .ToMilliseconds());
+      delay = std::min(delay,
+                       std::max(TimeDuration::FromSeconds(kTelemetryCooldownS),
+                                delay - (now - mLastRun)));
     }
     RefPtr<MemoryTelemetry> self(this);
     auto res = NS_NewTimerWithCallback(
