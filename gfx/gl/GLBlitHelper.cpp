@@ -1566,18 +1566,20 @@ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntSize& destSize,
     case DMABufSurface::SURFACE_RGBA:
       fragSample = kFragSample_OnePlane;
       break;
-    case DMABufSurface::SURFACE_NV12:
-      fragSample = kFragSample_TwoPlane;
-      pYuvArgs = &yuvArgs;
-      fragConvert = kFragConvert_ColorMatrix;
-      break;
-    case DMABufSurface::SURFACE_YUV420:
-      fragSample = kFragSample_ThreePlane;
+    case DMABufSurface::SURFACE_YUV:
+      if (surface->GetTextureCount() == 2) {
+        fragSample = kFragSample_TwoPlane;
+      } else if (surface->GetTextureCount() == 3) {
+        fragSample = kFragSample_ThreePlane;
+      } else {
+        gfxCriticalError() << "Unexpected planes count: "
+                           << surface->GetTextureCount();
+        return false;
+      }
       pYuvArgs = &yuvArgs;
       fragConvert = kFragConvert_ColorMatrix;
       break;
     default:
-      gfxCriticalError() << "Unexpected pixel format: " << pixelFormat;
       return false;
   }
 

@@ -256,8 +256,7 @@ already_AddRefed<DMABufSurface> DMABufSurface::CreateDMABufSurface(
     case SURFACE_RGBA:
       surf = new DMABufSurfaceRGBA();
       break;
-    case SURFACE_NV12:
-    case SURFACE_YUV420:
+    case SURFACE_YUV:
       surf = new DMABufSurfaceYUV();
       break;
     default:
@@ -415,17 +414,7 @@ void DMABufSurface::ReleaseWlBuffer() {
 }
 #endif
 
-int32_t DMABufSurface::GetFOURCCFormat() {
-  switch (mSurfaceType) {
-    case SURFACE_RGBA:
-      return mDrmFormats[0];
-    case SURFACE_NV12:
-      return VA_FOURCC_NV12;
-    case SURFACE_YUV420:
-      return VA_FOURCC_YV12;
-  }
-  return mDrmFormats[0];
-}
+int32_t DMABufSurface::GetFOURCCFormat() { return mFOURCCFormat; }
 
 DMABufSurfaceRGBA::DMABufSurfaceRGBA()
     : DMABufSurface(SURFACE_RGBA),
@@ -1148,7 +1137,7 @@ already_AddRefed<DMABufSurfaceYUV> DMABufSurfaceYUV::CreateYUVSurface(
 }
 
 DMABufSurfaceYUV::DMABufSurfaceYUV()
-    : DMABufSurface(SURFACE_NV12),
+    : DMABufSurface(SURFACE_YUV),
       mWidth(),
       mHeight(),
       mWidthAligned(),
@@ -1202,7 +1191,9 @@ void DMABufSurfaceYUV::CloseFileDescriptorForPlane(
 
 bool DMABufSurfaceYUV::ImportPRIMESurfaceDescriptor(
     const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth, int aHeight) {
-  LOGDMABUF(("DMABufSurfaceYUV::ImportPRIMESurfaceDescriptor() UID %d", mUID));
+  LOGDMABUF(
+      ("DMABufSurfaceYUV::ImportPRIMESurfaceDescriptor() UID %d FOURCC %x",
+       mUID, aDesc.fourcc));
   // Already exists?
   MOZ_DIAGNOSTIC_ASSERT(!mDmabufFds[0]);
 
@@ -1212,17 +1203,7 @@ bool DMABufSurfaceYUV::ImportPRIMESurfaceDescriptor(
                aDesc.num_layers, aDesc.num_objects));
     return false;
   }
-  if (aDesc.fourcc == VA_FOURCC_NV12) {
-    mSurfaceType = SURFACE_NV12;
-  } else if (aDesc.fourcc == VA_FOURCC_P010) {
-    mSurfaceType = SURFACE_NV12;
-  } else if (aDesc.fourcc == VA_FOURCC_YV12) {
-    mSurfaceType = SURFACE_YUV420;
-  } else {
-    LOGDMABUF(("  Can't import surface data of 0x%x format", aDesc.fourcc));
-    return false;
-  }
-
+  mSurfaceType = SURFACE_YUV;
   mBufferPlaneCount = aDesc.num_layers;
 
   for (unsigned int i = 0; i < aDesc.num_layers; i++) {
@@ -1395,13 +1376,9 @@ void DMABufSurfaceYUV::UpdateYUVPlane(int aPlane, void* aPixelData,
 
 bool DMABufSurfaceYUV::UpdateYUVData(void** aPixelData, int* aLineSizes) {
   LOGDMABUF(("DMABufSurfaceYUV::UpdateYUVData() UID %d", mUID));
-  if (mSurfaceType != SURFACE_YUV420) {
-    LOGDMABUF(("    UpdateYUVData can upload YUV420 surface type only!"));
-    return false;
-  }
 
-  if (mBufferPlaneCount != 3) {
-    LOGDMABUF(("    DMABufSurfaceYUV planes does not match!"));
+  if (mSurfaceType != SURFACE_YUV || mBufferPlaneCount != 3) {
+    LOGDMABUF(("    UpdateYUVData can upload YUV420 surface type only!"));
     return false;
   }
 
@@ -1437,7 +1414,7 @@ bool DMABufSurfaceYUV::Create(int aWidth, int aHeight, void** aPixelData,
   LOGDMABUF(("DMABufSurfaceYUV::Create() UID %d size %d x %d", mUID, aWidth,
              aHeight));
 
-  mSurfaceType = SURFACE_YUV420;
+  mSurfaceType = SURFACE_YUV;
   mBufferPlaneCount = 3;
 
   if (!CreateLinearYUVPlane(0, aWidth, aHeight, GBM_FORMAT_R8)) {
@@ -1462,7 +1439,7 @@ bool DMABufSurfaceYUV::Create(const SurfaceDescriptor& aDesc) {
 bool DMABufSurfaceYUV::ImportSurfaceDescriptor(
     const SurfaceDescriptorDMABuf& aDesc) {
   mBufferPlaneCount = aDesc.fds().Length();
-  mSurfaceType = (mBufferPlaneCount == 2) ? SURFACE_NV12 : SURFACE_YUV420;
+  mSurfaceType = SURFACE_YUV;
   mColorSpace = aDesc.yUVColorSpace();
   mColorRange = aDesc.colorRange();
   mColorPrimaries = aDesc.colorPrimaries();
@@ -1714,31 +1691,30 @@ bool DMABufSurfaceYUV::VerifyTextureCreation() {
 }
 
 gfx::SurfaceFormat DMABufSurfaceYUV::GetFormat() {
-  switch (mSurfaceType) {
-    case SURFACE_NV12:
+  switch (mFOURCCFormat) {
+    case VA_FOURCC_P010:
+    // ReportVA_FOURCC_P010 as NV12 as Gecko threats P010 as a variant of P016
+    // with zeroed bits, see gfx::SurfaceFormat for details.
+    // NV12 / P010 uses the same plane composition but NV12 is 8-bit format
+    // and P010 10-bit one.
+    // It doesn't matter much as long as we create textures with correct
+    // drm format.
+    case VA_FOURCC_NV12:
       return gfx::SurfaceFormat::NV12;
-    case SURFACE_YUV420:
+    case VA_FOURCC_YV12:
       return gfx::SurfaceFormat::YUV420;
     default:
-      NS_WARNING("DMABufSurfaceYUV::GetFormat(): Wrong surface format!");
+      gfxCriticalNoteOnce << "DMABufSurfaceYUV::GetFormat() unknow format: "
+                          << mFOURCCFormat;
       return gfx::SurfaceFormat::UNKNOWN;
   }
 }
 
 // GL uses swapped R and B components so report accordingly.
+// YUV formats are not affected so report what we have directly.
 gfx::SurfaceFormat DMABufSurfaceYUV::GetFormatGL() { return GetFormat(); }
 
-int DMABufSurfaceYUV::GetTextureCount() {
-  switch (mSurfaceType) {
-    case SURFACE_NV12:
-      return 2;
-    case SURFACE_YUV420:
-      return 3;
-    default:
-      NS_WARNING("DMABufSurfaceYUV::GetTextureCount(): Wrong surface format!");
-      return 1;
-  }
-}
+int DMABufSurfaceYUV::GetTextureCount() { return mBufferPlaneCount; }
 
 void DMABufSurfaceYUV::ReleaseSurface() {
   LOGDMABUF(("DMABufSurfaceYUV::ReleaseSurface() UID %d", mUID));

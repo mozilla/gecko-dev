@@ -78,12 +78,11 @@ class DMABufSurface {
 
   enum SurfaceType {
     SURFACE_RGBA = 0,
-    SURFACE_NV12 = 1,
-    SURFACE_YUV420 = 2,
+    SURFACE_YUV = 1,
   };
 
 #ifdef MOZ_LOGGING
-  constexpr static const char* sSurfaceTypeNames[] = {"RGBA", "NV12", "YUV420"};
+  constexpr static const char* sSurfaceTypeNames[] = {"RGBA", "YUV"};
 #endif
 
   // Import surface from SurfaceDescriptor. This is usually
@@ -217,14 +216,18 @@ class DMABufSurface {
 
   virtual ~DMABufSurface();
 
+  // Surface type (RGBA or YUV)
   SurfaceType mSurfaceType;
-  uint64_t mBufferModifiers[DMABUF_BUFFER_PLANES];
 
-  int mBufferPlaneCount;
+  // Configuration of surface planes, it depends on surface modifiers.
+  // RGBA surface may use one RGBA plane or two planes (RGB + A)
+  // YUV surfaces use various planes setup (Y + UV planes or Y+U+V planes)
+  int mBufferPlaneCount = 0;
   RefPtr<mozilla::gfx::FileHandleWrapper> mDmabufFds[DMABUF_BUFFER_PLANES];
   int32_t mDrmFormats[DMABUF_BUFFER_PLANES];
   int32_t mStrides[DMABUF_BUFFER_PLANES];
   int32_t mOffsets[DMABUF_BUFFER_PLANES];
+  uint64_t mBufferModifiers[DMABUF_BUFFER_PLANES];
 
   struct gbm_bo* mGbmBufferObject[DMABUF_BUFFER_PLANES];
   void* mMappedRegion[DMABUF_BUFFER_PLANES];
