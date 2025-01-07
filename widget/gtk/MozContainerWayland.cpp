@@ -111,7 +111,7 @@ bool moz_container_wayland_egl_window_set_size(MozContainer* container,
 
 void moz_container_wayland_add_or_fire_initial_draw_callback(
     MozContainer* container, const std::function<void(void)>& initial_draw_cb) {
-  MOZ_WL_SURFACE(container)->AddOrFireInitialDrawCallback(initial_draw_cb);
+  MOZ_WL_SURFACE(container)->AddOrFireReadyToDrawCallback(initial_draw_cb);
 }
 
 void moz_container_wayland_unmap(GtkWidget* widget) {
@@ -123,7 +123,14 @@ void moz_container_wayland_unmap(GtkWidget* widget) {
   LOGCONTAINER("%s [%p]\n", __FUNCTION__,
                (void*)moz_container_get_nsWindow(MOZ_CONTAINER(widget)));
 
-  MOZ_WL_SURFACE(widget)->Unmap();
+  WaylandSurface* surface = MOZ_WL_SURFACE(MOZ_CONTAINER(widget));
+  surface->RunUnmapCallback();
+
+  WaylandSurfaceLock lock(surface);
+  if (surface->IsPendingGdkCleanup()) {
+    surface->GdkCleanUpLocked(lock);
+  }
+  surface->UnmapLocked(lock);
 }
 
 gboolean moz_container_wayland_map_event(GtkWidget* widget,
@@ -148,7 +155,7 @@ gboolean moz_container_wayland_map_event(GtkWidget* widget,
   // wayland compositor makes it live.
   MOZ_WL_CONTAINER(widget)->waiting_to_show = true;
   MozContainer* container = MOZ_CONTAINER(widget);
-  MOZ_WL_SURFACE(container)->AddOrFireInitialDrawCallback(
+  MOZ_WL_SURFACE(container)->AddOrFireReadyToDrawCallback(
       [container]() -> void {
         LOGCONTAINER(
             "[%p] moz_container_wayland_add_or_fire_initial_draw_callback set "
@@ -208,8 +215,7 @@ static bool moz_container_wayland_ensure_surface(MozContainer* container,
   // We're already mapped, only move surface and quit.
   if (surface->IsMapped()) {
     if (aPosition) {
-      gfx::IntPoint subsurfacePosition = *aPosition;
-      surface->MoveLocked(lock, subsurfacePosition);
+      surface->MoveLocked(lock, *aPosition);
     }
     moz_container_wayland_invalidate(container);
     return true;
@@ -239,10 +245,13 @@ static bool moz_container_wayland_ensure_surface(MozContainer* container,
     subsurfacePosition = gfx::IntPoint(x, y);
   }
 
-  if (!surface->MapLocked(lock, gdkWindow, parentSurface, subsurfacePosition,
+  if (!surface->MapLocked(lock, parentSurface, subsurfacePosition,
                           MOZ_WL_CONTAINER(container)->commit_to_parent)) {
     return false;
   }
+
+  surface->AddOpaqueSurfaceHandlerLocked(lock, gdkWindow,
+                                         /* aRegisterCommitHandler */ true);
 
   nsWindow* window = moz_container_get_nsWindow(container);
   MOZ_RELEASE_ASSERT(window);

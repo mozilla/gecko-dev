@@ -129,7 +129,6 @@ void WaylandVsyncSource::SetHiddenWindowVSync() {
         mHiddenWindowTimeout,
         [](void* data) -> gint {
           RefPtr vsync = static_cast<WaylandVsyncSource*>(data);
-          LOGS("[%p]: Hidden window callback", vsync->GetWindowForLogging());
           if (vsync->HiddenWindowCallback()) {
             // We want to fire again, so don't clear mHiddenWindowTimerID
             return G_SOURCE_CONTINUE;
@@ -183,8 +182,8 @@ bool WaylandVsyncSource::HiddenWindowCallback() {
       return true;
     }
 
-    LOG("WaylandVsyncSource::HiddenWindowCallback(), time since last VSync %d "
-        "ms",
+    LOG("WaylandVsyncSource::HiddenWindowCallback() we're hidden, time since "
+        "last VSync %d ms",
         (int)timeSinceLastVSync.ToMilliseconds());
 
     CalculateVsyncRateLocked(lock, now);

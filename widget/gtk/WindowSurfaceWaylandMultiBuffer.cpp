@@ -287,7 +287,6 @@ void WindowSurfaceWaylandMB::Commit(
   MozContainer* container = mWindow->GetMozContainer();
   WaylandSurface* waylandSurface = MOZ_WL_SURFACE(container);
   WaylandSurfaceLock lock(waylandSurface);
-  // TODO: Mapped or read to draw?
   if (!waylandSurface->IsMapped()) {
     LOGWAYLAND(
         "WindowSurfaceWaylandMB::Commit [%p] frame queued: can't lock "
@@ -295,7 +294,7 @@ void WindowSurfaceWaylandMB::Commit(
         (void*)mWindow.get());
     if (!mCallbackRequested) {
       RefPtr<WindowSurfaceWaylandMB> self(this);
-      waylandSurface->AddInitialDrawCallbackLocked(
+      waylandSurface->AddReadyToDrawCallbackLocked(
           lock, [self, aInvalidRegion]() -> void {
             MutexAutoLock lock(self->mSurfaceLock);
             if (!self->mFrameInProcess) {
