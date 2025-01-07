@@ -751,25 +751,22 @@ void ReadableByteStreamControllerCommitPullIntoDescriptor(
 MOZ_CAN_RUN_SCRIPT
 void ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(
     JSContext* aCx, ReadableByteStreamController* aController,
-    nsTArray<RefPtr<PullIntoDescriptor>>& aFilledPullIntos, ErrorResult& aRv) {
+    ErrorResult& aRv) {
   // Step 1. Assert: controller.[[closeRequested]] is false.
   MOZ_ASSERT(!aController->CloseRequested());
 
-  // Step 2. Let filledPullIntos be a new empty list.
-  MOZ_ASSERT(aFilledPullIntos.IsEmpty());
-
-  // Step 3. While controller.[[pendingPullIntos]] is not empty,
+  // Step 2. While controller.[[pendingPullIntos]] is not empty,
   while (!aController->PendingPullIntos().isEmpty()) {
-    // Step 3.1. If controller.[[queueTotalSize]] is 0, then break.
+    // Step 2.1 If controller.[[queueTotalSize]] is 0, return.
     if (aController->QueueTotalSize() == 0) {
-      break;
+      return;
     }
 
-    // Step 3.2. Let pullIntoDescriptor be controller.[[pendingPullIntos]][0].
+    // Step 2.2. Let pullIntoDescriptor be controller.[[pendingPullIntos]][0].
     RefPtr<PullIntoDescriptor> pullIntoDescriptor =
         aController->PendingPullIntos().getFirst();
 
-    // Step 3.3. If
+    // Step 2.3. If
     // !ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller,
     // pullIntoDescriptor) is true,
     bool ready = ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(
@@ -779,17 +776,22 @@ void ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(
     }
 
     if (ready) {
-      //  Step 3.3.1. Perform
+      //  Step 2.3.1. Perform
       //  !ReadableByteStreamControllerShiftPendingPullInto(controller).
       RefPtr<PullIntoDescriptor> discardedPullIntoDescriptor =
           ReadableByteStreamControllerShiftPendingPullInto(aController);
 
-      // Step 3.3.2. Append pullIntoDescriptor to filledPullIntos.
-      aFilledPullIntos.AppendElement(pullIntoDescriptor);
+      // Step 2.3.2. Perform
+      // !ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]],
+      //         pullIntoDescriptor).
+      RefPtr<ReadableStream> stream(aController->Stream());
+      ReadableByteStreamControllerCommitPullIntoDescriptor(
+          aCx, stream, pullIntoDescriptor, aRv);
+      if (aRv.Failed()) {
+        return;
+      }
     }
   }
-
-  // Step 4: Return filledPullIntos. (Implicit)
 }
 
 MOZ_CAN_RUN_SCRIPT
@@ -1024,25 +1026,12 @@ void ReadableByteStreamControllerEnqueue(
     ReadableByteStreamControllerEnqueueChunkToQueue(
         aController, transferredBuffer, byteOffset, byteLength);
 
-    // Step 10.2. Let filledPullIntos be the result of performing !
+    // Step 10.2 Perform !
     // ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-    nsTArray<RefPtr<PullIntoDescriptor>> filledPullIntos;
     ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(
-        aCx, aController, filledPullIntos, aRv);
+        aCx, aController, aRv);
     if (aRv.Failed()) {
       return;
-    }
-
-    // Step 10.3. For each filledPullInto of filledPullIntos,
-    for (auto& filledPullInto : filledPullIntos) {
-      // Step 10.3.1. Perform !
-      // ReadableByteStreamControllerCommitPullIntoDescriptor(stream,
-      // filledPullInto).
-      ReadableByteStreamControllerCommitPullIntoDescriptor(
-          aCx, stream, MOZ_KnownLive(filledPullInto), aRv);
-      if (aRv.Failed()) {
-        return;
-      }
     }
 
     // Step 11. Otherwise,
@@ -1363,32 +1352,18 @@ static void ReadableByteStreamControllerRespondInClosedState(
 
   // Step 4. If ! ReadableStreamHasBYOBReader(stream) is true,
   if (ReadableStreamHasBYOBReader(stream)) {
-    // Step 4.1. Let filledPullIntos be a new empty list.
-    nsTArray<RefPtr<PullIntoDescriptor>> filledPullIntos;
-
-    // Step 4.2. While |filledPullInto|'s [=list/size=] < !
-    // ReadableStreamGetNumReadIntoRequests(stream),
-    while (filledPullIntos.Length() <
-           ReadableStreamGetNumReadIntoRequests(stream)) {
-      // Step 4.2.1. Let pullIntoDescriptor be !
+    // Step 4.1. While ! ReadableStreamGetNumReadIntoRequests(stream) > 0,
+    while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
+      // Step 4.1.1. Let pullIntoDescriptor be !
       // ReadableByteStreamControllerShiftPendingPullInto(controller).
       RefPtr<PullIntoDescriptor> pullIntoDescriptor =
           ReadableByteStreamControllerShiftPendingPullInto(aController);
 
-      // Step 4.2.2. Append pullIntoDescriptor to filledPullIntos.
-      filledPullIntos.AppendElement(pullIntoDescriptor);
-    }
-
-    // Step 4.3. For each filledPullInto of filledPullIntos,
-    for (auto& filledPullInto : filledPullIntos) {
-      // Step 4.3.1. Perform !
+      // Step 4.1.2. Perform !
       // ReadableByteStreamControllerCommitPullIntoDescriptor(stream,
-      // filledPullInto).
+      // pullIntoDescriptor).
       ReadableByteStreamControllerCommitPullIntoDescriptor(
-          aCx, stream, MOZ_KnownLive(filledPullInto), aRv);
-      if (aRv.Failed()) {
-        return;
-      }
+          aCx, stream, pullIntoDescriptor, aRv);
     }
   }
 }
@@ -1438,29 +1413,12 @@ static void ReadableByteStreamControllerRespondInReadableState(
       return;
     }
 
-    // Step 3.2. Let filledPullIntos be the result of performing !
+    // Step 3.2. Perform !
     // ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-    nsTArray<RefPtr<PullIntoDescriptor>> filledPullIntos;
     ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(
-        aCx, aController, filledPullIntos, aRv);
-    if (aRv.Failed()) {
-      return;
-    }
+        aCx, aController, aRv);
 
-    // Step 3.3. For each filledPullInto of filledPullIntos,
-    for (auto& filledPullInto : filledPullIntos) {
-      // Step 3.3.1. Perform !
-      // ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]],
-      // filledPullInto).
-      ReadableByteStreamControllerCommitPullIntoDescriptor(
-          aCx, MOZ_KnownLive(aController->Stream()),
-          MOZ_KnownLive(filledPullInto), aRv);
-      if (aRv.Failed()) {
-        return;
-      }
-    }
-
-    // Step 3.4. Return.
+    // Step 3.3. Return.
     return;
   }
 
@@ -1505,16 +1463,7 @@ static void ReadableByteStreamControllerRespondInReadableState(
   aPullIntoDescriptor->SetBytesFilled(aPullIntoDescriptor->BytesFilled() -
                                       remainderSize);
 
-  // Step 9. Let filledPullIntos be the result of performing !
-  // ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-  nsTArray<RefPtr<PullIntoDescriptor>> filledPullIntos;
-  ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(
-      aCx, aController, filledPullIntos, aRv);
-  if (aRv.Failed()) {
-    return;
-  }
-
-  // Step 10. Perform
+  // Step 9. Perform
   // !ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]],
   // pullIntoDescriptor).
   RefPtr<ReadableStream> stream(aController->Stream());
@@ -1524,17 +1473,10 @@ static void ReadableByteStreamControllerRespondInReadableState(
     return;
   }
 
-  // Step 11. For each filledPullInto of filledPullIntos,
-  for (auto& filledPullInto : filledPullIntos) {
-    // Step 11.1. Perform !
-    // ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]],
-    // filledPullInto).
-    ReadableByteStreamControllerCommitPullIntoDescriptor(
-        aCx, stream, MOZ_KnownLive(filledPullInto), aRv);
-    if (aRv.Failed()) {
-      return;
-    }
-  }
+  // Step 10. Perform
+  // !ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
+  ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(
+      aCx, aController, aRv);
 }
 
 // https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-internal
@@ -1727,60 +1669,6 @@ void ReadableByteStreamControllerRespondWithNewView(
                                               aRv);
 }
 
-#ifdef DEBUG
-// https://streams.spec.whatwg.org/#abstract-opdef-cancopydatablockbytes
-bool CanCopyDataBlockBytes(JS::Handle<JSObject*> aToBuffer, size_t aToIndex,
-                           JS::Handle<JSObject*> aFromBuffer, size_t aFromIndex,
-                           size_t aCount) {
-  // Step 1. Assert: toBuffer is an Object.
-  // Step 2. Assert: toBuffer has an [[ArrayBufferData]] internal slot.
-  MOZ_ASSERT(JS::IsArrayBufferObject(aToBuffer));
-
-  // Step 3. Assert: fromBuffer is an Object.
-  // Step 4. Assert: fromBuffer has an [[ArrayBufferData]] internal slot.
-  MOZ_ASSERT(JS::IsArrayBufferObject(aFromBuffer));
-
-  // Step 5. If toBuffer is fromBuffer, return false.
-  // Note: JS API makes it safe to just compare the pointers.
-  if (aToBuffer == aFromBuffer) {
-    return false;
-  }
-
-  // Step 6. If ! IsDetachedBuffer(toBuffer) is true, return false.
-  if (JS::IsDetachedArrayBufferObject(aToBuffer)) {
-    return false;
-  }
-
-  // Step 7. If ! IsDetachedBuffer(fromBuffer) is true, return false.
-  if (JS::IsDetachedArrayBufferObject(aFromBuffer)) {
-    return false;
-  }
-
-  // Step 8. If toIndex + count > toBuffer.[[ArrayBufferByteLength]], return
-  // false.
-  if (aToIndex + aCount > JS::GetArrayBufferByteLength(aToBuffer)) {
-    return false;
-  }
-  // (Not in the spec) also check overflow.
-  if (aToIndex + aCount < aToIndex) {
-    return false;
-  }
-
-  // Step 9. If fromIndex + count > fromBuffer.[[ArrayBufferByteLength]], return
-  // false.
-  if (aFromIndex + aCount > JS::GetArrayBufferByteLength(aFromBuffer)) {
-    return false;
-  }
-  // (Not in the spec) also check overflow.
-  if (aFromIndex + aCount < aFromIndex) {
-    return false;
-  }
-
-  // Step 10. Return true.
-  return true;
-}
-#endif
-
 // https://streams.spec.whatwg.org/#readable-byte-stream-controller-fill-pull-into-descriptor-from-queue
 bool ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(
     JSContext* aCx, ReadableByteStreamController* aController,
@@ -1802,119 +1690,105 @@ bool ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(
   // Step 4. Let ready be false.
   bool ready = false;
 
-  // Step 5. Assert: ! IsDetachedBuffer(pullIntoDescriptor ’s buffer) is false.
-  MOZ_ASSERT(!JS::IsDetachedArrayBufferObject(aPullIntoDescriptor->Buffer()));
-
-  // Step 6. Assert: pullIntoDescriptor’s bytes filled < pullIntoDescriptor’s
+  // Step 5. Assert: pullIntoDescriptor’s bytes filled < pullIntoDescriptor’s
   // minimum fill.
   MOZ_ASSERT(aPullIntoDescriptor->BytesFilled() <
              aPullIntoDescriptor->MinimumFill());
 
-  // Step 7. Let remainderBytes be the remainder after dividing maxBytesFilled
+  // Step 6. Let remainderBytes be the remainder after dividing maxBytesFilled
   // by pullIntoDescriptor’s element size.
   size_t remainderBytes = maxBytesFilled % aPullIntoDescriptor->ElementSize();
 
-  // Step 8. Let maxAlignedBytes be maxBytesFilled − remainderBytes.
+  // Step 7. Let maxAlignedBytes be maxBytesFilled − remainderBytes.
   size_t maxAlignedBytes = maxBytesFilled - remainderBytes;
 
-  // Step 9. If maxAlignedBytes ≥ pullIntoDescriptor’s minimum fill,
+  // Step 8. If maxAlignedBytes ≥ pullIntoDescriptor’s minimum fill,
   if (maxAlignedBytes >= aPullIntoDescriptor->MinimumFill()) {
-    // Step 9.1. Set totalBytesToCopyRemaining to maxAlignedBytes −
+    // Step 8.1. Set totalBytesToCopyRemaining to maxAlignedBytes −
     // pullIntoDescriptor’s bytes filled.
     totalBytesToCopyRemaining =
         maxAlignedBytes - aPullIntoDescriptor->BytesFilled();
-    // Step 9.2. Set ready to true.
+    // Step 8.2. Set ready to true.
     ready = true;
   }
 
-  // Step 10. Let queue be controller.[[queue]].
+  // Step 9. Let queue be controller.[[queue]].
   LinkedList<RefPtr<ReadableByteStreamQueueEntry>>& queue =
       aController->Queue();
 
-  // Step 11. While totalBytesToCopyRemaining > 0,
+  // Step 10. While totalBytesToCopyRemaining > 0,
   while (totalBytesToCopyRemaining > 0) {
-    // Step 11.1  Let headOfQueue be queue[0].
+    // Step 10.1  Let headOfQueue be queue[0].
     ReadableByteStreamQueueEntry* headOfQueue = queue.getFirst();
 
-    // Step 11.2. Let bytesToCopy be min(totalBytesToCopyRemaining,
+    // Step 10.2. Let bytesToCopy be min(totalBytesToCopyRemaining,
     // headOfQueue’s byte length).
     size_t bytesToCopy =
         std::min(totalBytesToCopyRemaining, headOfQueue->ByteLength());
 
-    // Step 11.3. Let destStart be pullIntoDescriptor’s byte offset +
+    // Step 10.3. Let destStart be pullIntoDescriptor’s byte offset +
     // pullIntoDescriptor’s bytes filled.
     size_t destStart =
         aPullIntoDescriptor->ByteOffset() + aPullIntoDescriptor->BytesFilled();
 
-    // Step 11.4. Let descriptorBuffer be pullIntoDescriptor’s buffer.
+    // Step 10.4. Perform !CopyDataBlockBytes(pullIntoDescriptor’s
+    //            buffer.[[ArrayBufferData]], destStart, headOfQueue’s
+    //            buffer.[[ArrayBufferData]], headOfQueue’s byte offset,
+    //            bytesToCopy).
     JS::Rooted<JSObject*> descriptorBuffer(aCx, aPullIntoDescriptor->Buffer());
-
-    // Step 11.5. Let queueBuffer be headOfQueue’s buffer.
     JS::Rooted<JSObject*> queueBuffer(aCx, headOfQueue->Buffer());
-
-    // Step 11.6.  Let queueByteOffset be headOfQueue’s byte offset.
-    size_t queueByteOffset = headOfQueue->ByteOffset();
-
-    // Step 11.7. Assert: ! CanCopyDataBlockBytes(descriptorBuffer, destStart,
-    // queueBuffer, queueByteOffset, bytesToCopy) is true.
-    MOZ_ASSERT(CanCopyDataBlockBytes(descriptorBuffer, destStart, queueBuffer,
-                                     queueByteOffset, bytesToCopy));
-
-    // Step 11.8. Perform !
-    // CopyDataBlockBytes(descriptorBuffer.[[ArrayBufferData]], destStart,
-    // queueBuffer.[[ArrayBufferData]], queueByteOffset, bytesToCopy).
     if (!JS::ArrayBufferCopyData(aCx, descriptorBuffer, destStart, queueBuffer,
-                                 queueByteOffset, bytesToCopy)) {
+                                 headOfQueue->ByteOffset(), bytesToCopy)) {
       aRv.StealExceptionFromJSContext(aCx);
       return false;
     }
 
-    // Step 11.9. If headOfQueue’s byte length is bytesToCopy,
+    // Step 10.5. If headOfQueue’s byte length is bytesToCopy,
     if (headOfQueue->ByteLength() == bytesToCopy) {
-      // Step 11.9.1. Remove queue[0].
+      // Step 10.5.1. Remove queue[0].
       queue.popFirst();
     } else {
-      // Step 11.10.  Otherwise,
+      // Step 10.6.  Otherwise,
 
-      // Step 11.10.1 Set headOfQueue’s byte offset to
+      // Step 10.6.1 Set headOfQueue’s byte offset to
       // headOfQueue’s byte offset +  bytesToCopy.
       headOfQueue->SetByteOffset(headOfQueue->ByteOffset() + bytesToCopy);
-      // Step 11.10.2  Set headOfQueue’s byte length to
+      // Step 10.6.2  Set headOfQueue’s byte length to
       // headOfQueue’s byte length − bytesToCopy.
       headOfQueue->SetByteLength(headOfQueue->ByteLength() - bytesToCopy);
     }
 
-    // Step 11.11. Set controller.[[queueTotalSize]] to
+    // Step 10.7. Set controller.[[queueTotalSize]] to
     // controller.[[queueTotalSize]] −  bytesToCopy.
     aController->SetQueueTotalSize(aController->QueueTotalSize() -
                                    (double)bytesToCopy);
 
-    // Step 11.12, Perform
+    // Step 10.8, Perform
     // !ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller,
     //     bytesToCopy, pullIntoDescriptor).
     ReadableByteStreamControllerFillHeadPullIntoDescriptor(
         aController, bytesToCopy, aPullIntoDescriptor);
 
-    // Step 11.13. Set totalBytesToCopyRemaining to totalBytesToCopyRemaining −
+    // Step 10.9. Set totalBytesToCopyRemaining to totalBytesToCopyRemaining −
     //     bytesToCopy.
     totalBytesToCopyRemaining = totalBytesToCopyRemaining - bytesToCopy;
   }
 
-  // Step 12. If ready is false,
+  // Step 11. If ready is false,
   if (!ready) {
-    // Step 12.1. Assert: controller.[[queueTotalSize]] is 0.
+    // Step 11.1. Assert: controller.[[queueTotalSize]] is 0.
     MOZ_ASSERT(aController->QueueTotalSize() == 0);
 
-    // Step 12.2. Assert: pullIntoDescriptor’s bytes filled > 0.
+    // Step 11.2. Assert: pullIntoDescriptor’s bytes filled > 0.
     MOZ_ASSERT(aPullIntoDescriptor->BytesFilled() > 0);
 
-    // Step 12.3. Assert: pullIntoDescriptor’s bytes filled <
+    // Step 11.3. Assert: pullIntoDescriptor’s bytes filled <
     // pullIntoDescriptor’s minimum fill.
     MOZ_ASSERT(aPullIntoDescriptor->BytesFilled() <
                aPullIntoDescriptor->MinimumFill());
   }
 
-  // Step 13. Return ready.
+  // Step 12. Return ready.
   return ready;
 }
 
