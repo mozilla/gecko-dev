@@ -1,4 +1,4 @@
-// |jit-test| --ion-pruning=on; --fast-warmup
+// |jit-test| --ion-pruning=on; --fast-warmup; --baseline-offthread-compile=off
 
 var max = 200;
 

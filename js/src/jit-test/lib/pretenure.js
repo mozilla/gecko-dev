@@ -21,6 +21,8 @@ function setupPretenureTest() {
   // Disable zeal modes that will interfere with this test.
   gczeal(0);
 
+  setJitCompilerOption("offthread-compilation.enable", 0)
+
   // Restrict nursery size so we can fill it quicker, and ensure it is resized.
   let size = 1024 * 1024;
   if (gcparam("semispaceNurseryEnabled")) {

@@ -1,9 +1,12 @@
-function test(lat1) {
-    assertEq(isLatin1(lat1), true);
-
+function makeTwoByte(lat1) {
+    with ({}) {}
     var twoByte = "\u1200" + lat1;
-    twoByte.indexOf("X"); // Flatten.
-    twoByte = twoByte.substr(1);
+    ensureLinearString(twoByte);
+    return twoByte.substr(1);
+}
+
+function test(lat1) {
+    var twoByte = makeTwoByte(lat1);
 
     assertEq(isLatin1(lat1), true);
     assertEq(isLatin1(twoByte), false);

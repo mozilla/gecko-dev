@@ -1,7 +1,8 @@
-// |jit-test| skip-if: isLcovEnabled()
+// |jit-test| --baseline-offthread-compile=off; skip-if: isLcovEnabled()
 
 // NOTE: Code coverage keeps top-level script alive even if normally it would be
-//       GC'd. Skip this test in that case.
+//       GC'd. Skip this test in that case. For the same reason, offthread
+//       baseline compilation must be disabled.
 
 // Check byte counts produced by takeCensus.
 
