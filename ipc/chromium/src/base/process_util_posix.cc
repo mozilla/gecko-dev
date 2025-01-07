@@ -213,8 +213,7 @@ static bool IsZombieProcess(pid_t pid) {
   int fd = open(path.get(), O_RDONLY | O_CLOEXEC);
   if (fd < 0) {
     int e = errno;
-    CHROMIUM_LOG(ERROR) << "failed to open " << path.get() << ": "
-                        << strerror(e);
+    DLOG(ERROR) << "failed to open " << path.get() << ": " << strerror(e);
     return true;
   }
 
@@ -236,8 +235,7 @@ static bool IsZombieProcess(pid_t pid) {
   int e = errno;
   close(fd);
   if (len < 1) {
-    CHROMIUM_LOG(ERROR) << "failed to read " << path.get() << ": "
-                        << strerror(e);
+    DLOG(ERROR) << "failed to read " << path.get() << ": " << strerror(e);
     return true;
   }
 
