@@ -455,6 +455,7 @@ class GlobalHelperThreadState {
   bool hasOffThreadIonCompile(Zone* zone, AutoLockHelperThreadState& lock);
 #endif
 
+  void cancelOffThreadBaselineCompile(const CompilationSelector& selector);
   void cancelOffThreadIonCompile(const CompilationSelector& selector);
   void cancelOffThreadWasmCompleteTier2Generator(
       AutoLockHelperThreadState& lock);

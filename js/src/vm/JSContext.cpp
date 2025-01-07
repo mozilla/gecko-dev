@@ -208,9 +208,9 @@ void js::DestroyContext(JSContext* cx) {
 
   cx->checkNoGCRooters();
 
-  // Cancel all off thread Ion compiles. Completed Ion compiles may try to
+  // Cancel all off thread compiles. Completed compiles may try to
   // interrupt this context. See HelperThread::handleIonWorkload.
-  CancelOffThreadIonCompile(cx->runtime());
+  CancelOffThreadCompile(cx->runtime());
 
   cx->jobQueue = nullptr;
   cx->internalJobQueue = nullptr;

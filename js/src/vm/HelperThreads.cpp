@@ -1134,6 +1134,95 @@ void js::FinishOffThreadBaselineCompile(jit::BaselineCompileTask* task,
       lock)++;
 }
 
+static bool BaselineCompileTaskMatches(const CompilationSelector& selector,
+                                       jit::BaselineCompileTask* task) {
+  struct TaskMatches {
+    jit::BaselineCompileTask* task_;
+
+    bool operator()(JSScript* script) { return script == task_->script(); }
+    bool operator()(Zone* zone) {
+      return zone == task_->script()->zoneFromAnyThread();
+    }
+    bool operator()(JSRuntime* runtime) {
+      return runtime == task_->script()->runtimeFromAnyThread();
+    }
+    bool operator()(ZonesInState zbs) {
+      return zbs.runtime == task_->script()->runtimeFromAnyThread() &&
+             zbs.state == task_->script()->zoneFromAnyThread()->gcState();
+    }
+  };
+
+  return selector.match(TaskMatches{task});
+}
+
+void GlobalHelperThreadState::cancelOffThreadBaselineCompile(
+    const CompilationSelector& selector) {
+  jit::JitRuntime* jitRuntime = GetSelectorRuntime(selector)->jitRuntime();
+  MOZ_ASSERT(jitRuntime);
+
+  {
+    AutoLockHelperThreadState lock;
+    if (!isInitialized(lock)) {
+      return;
+    }
+
+    /* Cancel any pending entries for which processing hasn't started. */
+    GlobalHelperThreadState::BaselineCompileTaskVector& worklist =
+        baselineWorklist(lock);
+    for (size_t i = 0; i < worklist.length(); i++) {
+      jit::BaselineCompileTask* task = worklist[i];
+      if (BaselineCompileTaskMatches(selector, task)) {
+        FinishOffThreadBaselineCompile(task, lock);
+        remove(worklist, &i);
+      }
+    }
+
+    /* Wait for in progress entries to finish up. */
+    while (true) {
+      bool inProgress = false;
+      for (auto* helper : helperTasks(lock)) {
+        if (!helper->is<jit::BaselineCompileTask>()) {
+          continue;
+        }
+
+        jit::BaselineCompileTask* task = helper->as<jit::BaselineCompileTask>();
+        if (BaselineCompileTaskMatches(selector, task)) {
+          inProgress = true;
+          break;
+        }
+      }
+      if (!inProgress) {
+        break;
+      }
+      wait(lock);
+    }
+
+    /* Cancel linking for any completed entries. */
+    GlobalHelperThreadState::BaselineCompileTaskVector& finished =
+        baselineFinishedList(lock);
+    for (size_t i = 0; i < finished.length(); i++) {
+      jit::BaselineCompileTask* task = finished[i];
+      if (BaselineCompileTaskMatches(selector, task)) {
+        jitRuntime->numFinishedOffThreadTasksRef(lock)--;
+        jit::BaselineCompileTask::FinishOffThreadTask(task);
+        remove(finished, &i);
+      }
+    }
+  }
+}
+
+void js::CancelOffThreadBaselineCompile(const CompilationSelector& selector) {
+  if (!JitDataStructuresExist(selector)) {
+    return;
+  }
+
+  if (jit::IsPortableBaselineInterpreterEnabled()) {
+    return;
+  }
+
+  HelperThreadState().cancelOffThreadBaselineCompile(selector);
+}
+
 //== DelazifyTask =========================================================
 
 bool GlobalHelperThreadState::canStartDelazifyTask(

@@ -244,6 +244,44 @@ bool HasOffThreadIonCompile(JS::Zone* zone);
 #endif
 
 /*
+ * Cancel scheduled or in progress Baseline compilations.
+ */
+void CancelOffThreadBaselineCompile(const CompilationSelector& selector);
+
+inline void CancelOffThreadBaselineCompile(JSScript* script) {
+  CancelOffThreadBaselineCompile(CompilationSelector(script));
+}
+
+inline void CancelOffThreadBaselineCompile(JS::Zone* zone) {
+  CancelOffThreadBaselineCompile(CompilationSelector(zone));
+}
+
+inline void CancelOffThreadBaselineCompile(JSRuntime* runtime,
+                                           JS::shadow::Zone::GCState state) {
+  CancelOffThreadBaselineCompile(
+      CompilationSelector(ZonesInState{runtime, state}));
+}
+
+inline void CancelOffThreadBaselineCompile(JSRuntime* runtime) {
+  CancelOffThreadBaselineCompile(CompilationSelector(runtime));
+}
+
+/*
+ * Cancel baseline and Ion compilations.
+ */
+inline void CancelOffThreadCompile(JSRuntime* runtime,
+                                   JS::shadow::Zone::GCState state) {
+  CancelOffThreadBaselineCompile(
+      CompilationSelector(ZonesInState{runtime, state}));
+  CancelOffThreadIonCompile(CompilationSelector(ZonesInState{runtime, state}));
+}
+
+inline void CancelOffThreadCompile(JSRuntime* runtime) {
+  CancelOffThreadBaselineCompile(runtime);
+  CancelOffThreadIonCompile(runtime);
+}
+
+/*
  * Cancel all scheduled or in progress eager delazification phases for a
  * runtime.
  */

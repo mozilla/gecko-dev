@@ -94,7 +94,7 @@ void PreventGCDuringInteractiveDebug() { TlsContext.get()->suppressGC++; }
 #endif
 
 void js::ReleaseAllJITCode(JS::GCContext* gcx) {
-  js::CancelOffThreadIonCompile(gcx->runtime());
+  js::CancelOffThreadCompile(gcx->runtime());
 
   for (ZonesIter zone(gcx->runtime(), SkipAtoms); !zone.done(); zone.next()) {
     zone->forceDiscardJitCode(gcx);

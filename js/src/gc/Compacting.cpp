@@ -431,7 +431,7 @@ bool GCRuntime::relocateArenas(Zone* zone, JS::GCReason reason,
   MOZ_ASSERT(!zone->isPreservingCode());
   MOZ_ASSERT(canRelocateZone(zone));
 
-  js::CancelOffThreadIonCompile(rt, JS::Zone::Compact);
+  js::CancelOffThreadCompile(rt, JS::Zone::Compact);
 
   if (!zone->arenas.relocateArenas(relocatedListOut, reason, sliceBudget,
                                    stats())) {

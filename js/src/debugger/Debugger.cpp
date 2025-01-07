@@ -3280,6 +3280,8 @@ static bool UpdateExecutionObservabilityOfScriptsInZone(
 
   AutoSuppressProfilerSampling suppressProfilerSampling(cx);
 
+  CancelOffThreadBaselineCompile(zone);
+
   JS::GCContext* gcx = cx->gcContext();
 
   Vector<JSScript*> scripts(cx);
