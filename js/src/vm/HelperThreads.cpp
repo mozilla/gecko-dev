@@ -15,6 +15,7 @@
 #include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
 #include "gc/GC.h"
 #include "gc/Zone.h"
+#include "jit/BaselineCompileTask.h"
 #include "jit/Ion.h"
 #include "jit/IonCompileTask.h"
 #include "jit/JitRuntime.h"
@@ -440,6 +441,13 @@ void GlobalHelperThreadState::addSizeOfIncludingThis(
   htStats.idleThreadCount = threadCount - totalCountRunningTasks;
 }
 
+size_t GlobalHelperThreadState::maxBaselineCompilationThreads() const {
+  if (IsHelperThreadSimulatingOOM(js::THREAD_TYPE_BASELINE)) {
+    return 1;
+  }
+  return threadCount;
+}
+
 size_t GlobalHelperThreadState::maxIonCompilationThreads() const {
   if (IsHelperThreadSimulatingOOM(js::THREAD_TYPE_ION)) {
     return 1;
@@ -524,6 +532,13 @@ void GlobalHelperThreadState::trace(JSTracer* trc) {
     });
 #endif
 
+    for (auto task : baselineWorklist(lock)) {
+      task->trace(trc);
+    }
+    for (auto task : baselineFinishedList(lock)) {
+      task->trace(trc);
+    }
+
     for (auto task : ionWorklist(lock)) {
       task->alloc().lifoAlloc()->setReadWrite();
       task->trace(trc);
@@ -538,6 +553,8 @@ void GlobalHelperThreadState::trace(JSTracer* trc) {
         jit::IonCompileTask* ionCompileTask = helper->as<jit::IonCompileTask>();
         ionCompileTask->alloc().lifoAlloc()->setReadWrite();
         ionCompileTask->trace(trc);
+      } else if (helper->is<jit::BaselineCompileTask>()) {
+        helper->as<jit::BaselineCompileTask>()->trace(trc);
       }
     }
   }
@@ -559,6 +576,7 @@ void GlobalHelperThreadState::trace(JSTracer* trc) {
 // Priority is determined by the order they're listed here.
 const GlobalHelperThreadState::Selector GlobalHelperThreadState::selectors[] = {
     &GlobalHelperThreadState::maybeGetGCParallelTask,
+    &GlobalHelperThreadState::maybeGetBaselineCompileTask,
     &GlobalHelperThreadState::maybeGetIonCompileTask,
     &GlobalHelperThreadState::maybeGetWasmTier1CompileTask,
     &GlobalHelperThreadState::maybeGetPromiseHelperTask,
@@ -573,8 +591,8 @@ const GlobalHelperThreadState::Selector GlobalHelperThreadState::selectors[] = {
 
 bool GlobalHelperThreadState::canStartTasks(
     const AutoLockHelperThreadState& lock) {
-  return canStartGCParallelTask(lock) || canStartIonCompileTask(lock) ||
-         canStartWasmTier1CompileTask(lock) ||
+  return canStartGCParallelTask(lock) || canStartBaselineCompileTask(lock) ||
+         canStartIonCompileTask(lock) || canStartWasmTier1CompileTask(lock) ||
          canStartPromiseHelperTask(lock) || canStartFreeDelazifyTask(lock) ||
          canStartDelazifyTask(lock) || canStartCompressionTask(lock) ||
          canStartIonFreeTask(lock) || canStartWasmTier2CompileTask(lock) ||
@@ -1064,6 +1082,56 @@ bool js::AutoStartIonFreeTask::addIonCompileToFreeTaskBatch(
 
 js::AutoStartIonFreeTask::~AutoStartIonFreeTask() {
   jitRuntime_->maybeStartIonFreeTask(force_);
+}
+
+//== BaselineCompileTask ==================================================
+
+bool GlobalHelperThreadState::canStartBaselineCompileTask(
+    const AutoLockHelperThreadState& lock) {
+  return !baselineWorklist(lock).empty() &&
+         checkTaskThreadLimit(THREAD_TYPE_BASELINE,
+                              maxBaselineCompilationThreads(), lock);
+}
+
+HelperThreadTask* GlobalHelperThreadState::maybeGetBaselineCompileTask(
+    const AutoLockHelperThreadState& lock) {
+  if (!canStartBaselineCompileTask(lock)) {
+    return nullptr;
+  }
+
+  return baselineWorklist(lock).popCopy();
+}
+
+bool GlobalHelperThreadState::submitTask(
+    jit::BaselineCompileTask* task, const AutoLockHelperThreadState& locked) {
+  MOZ_ASSERT(isInitialized(locked));
+
+  if (!baselineWorklist(locked).append(task)) {
+    return false;
+  }
+
+  dispatch(locked);
+  return true;
+}
+
+bool js::StartOffThreadBaselineCompile(jit::BaselineCompileTask* task,
+                                       const AutoLockHelperThreadState& lock) {
+  return HelperThreadState().submitTask(task, lock);
+}
+
+/*
+ * Move a BaselineCompileTask for which compilation has either finished, failed,
+ * or been cancelled into the global finished compilation list. All off thread
+ * compilations which are started must eventually be finished.
+ */
+void js::FinishOffThreadBaselineCompile(jit::BaselineCompileTask* task,
+                                        const AutoLockHelperThreadState& lock) {
+  AutoEnterOOMUnsafeRegion oomUnsafe;
+  if (!HelperThreadState().baselineFinishedList(lock).append(task)) {
+    oomUnsafe.crash("FinishOffThreadBaselineCompile");
+  }
+  task->runtimeFromAnyThread()->jitRuntime()->numFinishedOffThreadTasksRef(
+      lock)++;
 }
 
 //== DelazifyTask =========================================================

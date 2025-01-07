@@ -21,6 +21,7 @@ class GlobalHelperThreadState;
 class SourceCompressionTask;
 
 namespace jit {
+class BaselineCompileTask;
 class IonCompileTask;
 class IonFreeTask;
 }  // namespace jit
@@ -31,6 +32,11 @@ struct PartialTier2CompileTask;
 
 template <typename T>
 struct MapTypeToThreadType {};
+
+template <>
+struct MapTypeToThreadType<jit::BaselineCompileTask> {
+  static const ThreadType threadType = THREAD_TYPE_BASELINE;
+};
 
 template <>
 struct MapTypeToThreadType<jit::IonCompileTask> {

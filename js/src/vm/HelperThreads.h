@@ -50,6 +50,7 @@ class GCRuntime;
 }
 
 namespace jit {
+class BaselineCompileTask;
 class IonCompileTask;
 class IonFreeTask;
 class JitRuntime;
@@ -174,6 +175,15 @@ bool StartOffThreadPromiseHelperTask(JSContext* cx,
  * task to be cleaned up properly.
  */
 bool StartOffThreadPromiseHelperTask(PromiseHelperTask* task);
+
+/*
+ * Schedule an off-thread Baseline compilation for a script, given a task.
+ */
+bool StartOffThreadBaselineCompile(jit::BaselineCompileTask* task,
+                                   const AutoLockHelperThreadState& lock);
+
+void FinishOffThreadBaselineCompile(jit::BaselineCompileTask* task,
+                                    const AutoLockHelperThreadState& lock);
 
 /*
  * Schedule an off-thread Ion compilation for a script, given a task.

@@ -8,6 +8,7 @@
 #define jit_BaselineCompileTask_h
 
 #include "jit/BaselineCodeGen.h"
+#include "vm/HelperThreadTask.h"
 
 namespace js::jit {
 
@@ -42,6 +43,19 @@ class BaselineSnapshot {
   bool compileDebugInstrumentation() const {
     return compileDebugInstrumentation_;
   }
+};
+
+class BaselineCompileTask final : public HelperThreadTask {
+ public:
+  ThreadType threadType() override { return THREAD_TYPE_BASELINE; }
+  void runTask();
+  void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
+
+  JSRuntime* runtimeFromAnyThread() const { MOZ_CRASH("TODO"); }
+
+  const char* getName() override { return "BaselineCompileTask"; }
+
+  void trace(JSTracer* trc);
 };
 
 }  // namespace js::jit
