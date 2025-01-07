@@ -576,20 +576,25 @@ nsEventStatus APZCCallbackHelper::DispatchSynthesizedMouseEvent(
   return DispatchWidgetEvent(event);
 }
 
-PreventDefaultResult APZCCallbackHelper::DispatchMouseEvent(
-    PresShell* aPresShell, const nsString& aType, const CSSPoint& aPoint,
-    int32_t aButton, int32_t aClickCount, int32_t aModifiers,
-    unsigned short aInputSourceArg, uint32_t aPointerId) {
-  NS_ENSURE_TRUE(aPresShell, PreventDefaultResult::ByContent);
+PreventDefaultResult APZCCallbackHelper::DispatchSynthesizedContextmenuEvent(
+    const LayoutDevicePoint& aRefPoint, Modifiers aModifiers,
+    nsIWidget* aWidget) {
+  WidgetPointerEvent event(true, eContextMenu, aWidget);
+  event.mRefPoint = LayoutDeviceIntPoint::Truncate(aRefPoint.x, aRefPoint.y);
+  event.mButton = MouseButton::ePrimary;
+  event.mButtons = MouseButtonsFlag::ePrimaryFlag;
+  event.mInputSource = dom::MouseEvent_Binding::MOZ_SOURCE_TOUCH;
+  event.mModifiers = aModifiers;
+  // contextmenu events will never generate pointer events.
+  event.convertToPointer = false;
+  nsEventStatus result = DispatchWidgetEvent(event);
+  if (result != nsEventStatus_eConsumeNoDefault) {
+    return PreventDefaultResult::No;
+  }
 
-  PreventDefaultResult preventDefaultResult;
-  nsContentUtils::SendMouseEvent(
-      aPresShell, aType, aPoint.x, aPoint.y, aButton,
-      nsIDOMWindowUtils::MOUSE_BUTTONS_NOT_SPECIFIED, aClickCount, aModifiers,
-      /* aIgnoreRootScrollFrame = */ false, 0, aInputSourceArg, aPointerId,
-      false, &preventDefaultResult, false,
-      /* aIsWidgetEventSynthesized = */ false);
-  return preventDefaultResult;
+  return event.mFlags.mDefaultPreventedByContent
+             ? PreventDefaultResult::ByContent
+             : PreventDefaultResult::ByChrome;
 }
 
 void APZCCallbackHelper::FireSingleTapEvent(

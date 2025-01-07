@@ -33,6 +33,11 @@ support-files = ["helper_background_tab_scroll.html"]
 ["browser_test_content_response_timeout.js"]
 support-files = ["helper_content_response_timeout.html"]
 
+["browser_test_contextmenu_in_popup.js"]
+skip-if = [
+  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
+]
+
 ["browser_test_group_fission.js"]
 support-files = [
   "FissionTestHelperParent.sys.mjs",

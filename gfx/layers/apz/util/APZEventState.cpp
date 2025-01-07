@@ -46,52 +46,6 @@
 static mozilla::LazyLogModule sApzEvtLog("apz.eventstate");
 #define APZES_LOG(...) MOZ_LOG(sApzEvtLog, LogLevel::Debug, (__VA_ARGS__))
 
-// Static helper functions
-namespace {
-
-int32_t WidgetModifiersToDOMModifiers(mozilla::Modifiers aModifiers) {
-  int32_t result = 0;
-  if (aModifiers & mozilla::MODIFIER_SHIFT) {
-    result |= nsIDOMWindowUtils::MODIFIER_SHIFT;
-  }
-  if (aModifiers & mozilla::MODIFIER_CONTROL) {
-    result |= nsIDOMWindowUtils::MODIFIER_CONTROL;
-  }
-  if (aModifiers & mozilla::MODIFIER_ALT) {
-    result |= nsIDOMWindowUtils::MODIFIER_ALT;
-  }
-  if (aModifiers & mozilla::MODIFIER_META) {
-    result |= nsIDOMWindowUtils::MODIFIER_META;
-  }
-  if (aModifiers & mozilla::MODIFIER_ALTGRAPH) {
-    result |= nsIDOMWindowUtils::MODIFIER_ALTGRAPH;
-  }
-  if (aModifiers & mozilla::MODIFIER_CAPSLOCK) {
-    result |= nsIDOMWindowUtils::MODIFIER_CAPSLOCK;
-  }
-  if (aModifiers & mozilla::MODIFIER_FN) {
-    result |= nsIDOMWindowUtils::MODIFIER_FN;
-  }
-  if (aModifiers & mozilla::MODIFIER_FNLOCK) {
-    result |= nsIDOMWindowUtils::MODIFIER_FNLOCK;
-  }
-  if (aModifiers & mozilla::MODIFIER_NUMLOCK) {
-    result |= nsIDOMWindowUtils::MODIFIER_NUMLOCK;
-  }
-  if (aModifiers & mozilla::MODIFIER_SCROLLLOCK) {
-    result |= nsIDOMWindowUtils::MODIFIER_SCROLLLOCK;
-  }
-  if (aModifiers & mozilla::MODIFIER_SYMBOL) {
-    result |= nsIDOMWindowUtils::MODIFIER_SYMBOL;
-  }
-  if (aModifiers & mozilla::MODIFIER_SYMBOLLOCK) {
-    result |= nsIDOMWindowUtils::MODIFIER_SYMBOLLOCK;
-  }
-  return result;
-}
-
-}  // namespace
-
 namespace mozilla {
 namespace layers {
 
@@ -161,18 +115,9 @@ PreventDefaultResult APZEventState::FireContextmenuEvents(
       eMouseMove, aPoint * aScale, aModifiers, 0 /* clickCount */,
       mPrecedingPointerDownState, aWidget);
 
-  // Converting the modifiers to DOM format for the DispatchMouseEvent call
-  // is the most useless thing ever because nsDOMWindowUtils::SendMouseEvent
-  // just converts them back to widget format, but that API has many callers,
-  // including in JS code, so it's not trivial to change.
-  CSSPoint point = CSSPoint::FromAppUnits(
-      ViewportUtils::VisualToLayout(CSSPoint::ToAppUnits(aPoint), aPresShell));
   PreventDefaultResult preventDefaultResult =
-      APZCCallbackHelper::DispatchMouseEvent(
-          aPresShell, u"contextmenu"_ns, point, MouseButton::ePrimary, 1,
-          WidgetModifiersToDOMModifiers(aModifiers),
-          dom::MouseEvent_Binding::MOZ_SOURCE_TOUCH,
-          0 /* Use the default value here. */);
+      APZCCallbackHelper::DispatchSynthesizedContextmenuEvent(
+          aPoint * aScale, aModifiers, aWidget);
 
   APZES_LOG("Contextmenu event %s\n", ToString(preventDefaultResult).c_str());
   if (preventDefaultResult != PreventDefaultResult::No) {
