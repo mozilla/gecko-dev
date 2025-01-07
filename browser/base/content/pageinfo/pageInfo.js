@@ -337,6 +337,33 @@ window.addEventListener(
       .getElementById("metatree")
       .controllers.appendController(treeController);
 
+    document
+      .querySelector("#metatree > treecols")
+      .addEventListener("click", event => {
+        let id = event.target.id;
+        switch (id) {
+          case "meta-name":
+          case "meta-content":
+            gMetaView.onPageMediaSort(id);
+            break;
+        }
+      });
+
+    document
+      .querySelector("#imagetree > treecols")
+      .addEventListener("click", event => {
+        let id = event.target.id;
+        switch (id) {
+          case "image-address":
+          case "image-type":
+          case "image-size":
+          case "image-alt":
+          case "image-count":
+            gImageView.onPageMediaSort(id);
+            break;
+        }
+      });
+
     document.addEventListener("command", event => {
       switch (event.target.id) {
         // == pageInfoCommandSet ==
