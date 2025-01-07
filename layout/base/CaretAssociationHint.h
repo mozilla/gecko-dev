@@ -9,12 +9,29 @@
 
 namespace mozilla {
 
+template <typename PT, typename CT>
+class RangeBoundaryBase;
+
+namespace intl {
+class BidiEmbeddingLevel;
+};
+
 /**
  * Hint whether a caret is associated with the content before a
  * given character offset (Before), or with the content after a given
  * character offset (After).
  */
 enum class CaretAssociationHint { Before, After };
+
+/**
+ * Return better caret association hint for aCaretPoint than aDefault.
+ * This computes the result from layout.  Therefore, you should flush pending
+ * layout before calling this.
+ */
+template <typename PT, typename CT>
+CaretAssociationHint ComputeCaretAssociationHint(
+    CaretAssociationHint aDefault, intl::BidiEmbeddingLevel aBidiLevel,
+    const RangeBoundaryBase<PT, CT>& aCaretPoint);
 
 }  // namespace mozilla
 

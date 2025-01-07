@@ -212,20 +212,27 @@ If its parent it the limiter then the point is also valid.  In the case of
 NO limiter all points are valid since you are in a topmost iframe. (browser
 or composer)
 */
-bool nsFrameSelection::IsValidSelectionPoint(nsINode* aNode) const {
-  if (!aNode) {
+bool nsFrameSelection::NodeIsInLimiters(const nsINode* aContainerNode) const {
+  return NodeIsInLimiters(aContainerNode, GetLimiter(), GetAncestorLimiter());
+}
+
+// static
+bool nsFrameSelection::NodeIsInLimiters(
+    const nsINode* aContainerNode, const nsIContent* aSelectionLimiter,
+    const nsIContent* aSelectionAncestorLimiter) {
+  if (!aContainerNode) {
     return false;
   }
 
-  nsIContent* limiter = GetLimiter();
-  if (limiter && limiter != aNode && limiter != aNode->GetParent()) {
+  if (aSelectionLimiter && aSelectionLimiter != aContainerNode &&
+      aSelectionLimiter != aContainerNode->GetParent()) {
     // if newfocus == the limiter. that's ok. but if not there and not parent
     // bad
     return false;  // not in the right content. tLimiter said so
   }
 
-  limiter = GetAncestorLimiter();
-  return !limiter || aNode->IsInclusiveDescendantOf(limiter);
+  return !aSelectionAncestorLimiter ||
+         aContainerNode->IsInclusiveDescendantOf(aSelectionAncestorLimiter);
 }
 
 namespace mozilla {
@@ -356,11 +363,17 @@ struct MOZ_RAII AutoPrepareFocusRange {
 
 template Result<RefPtr<nsRange>, nsresult>
 nsFrameSelection::CreateRangeExtendedToSomewhere(
-    nsDirection aDirection, const nsSelectionAmount aAmount,
+    PresShell& aPresShell,
+    const mozilla::LimitersAndCaretData& aLimitersAndCaretData,
+    const AbstractRange& aRange, nsDirection aRangeDirection,
+    nsDirection aExtendDirection, nsSelectionAmount aAmount,
     CaretMovementStyle aMovementStyle);
 template Result<RefPtr<StaticRange>, nsresult>
 nsFrameSelection::CreateRangeExtendedToSomewhere(
-    nsDirection aDirection, const nsSelectionAmount aAmount,
+    PresShell& aPresShell,
+    const mozilla::LimitersAndCaretData& aLimitersAndCaretData,
+    const AbstractRange& aRange, nsDirection aRangeDirection,
+    nsDirection aExtendDirection, nsSelectionAmount aAmount,
     CaretMovementStyle aMovementStyle);
 
 nsFrameSelection::nsFrameSelection(PresShell* aPresShell, nsIContent* aLimiter,
@@ -437,8 +450,9 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLimiters.mAncestorLimiter)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
+// static
 bool nsFrameSelection::Caret::IsVisualMovement(
-    ExtendSelection aExtendSelection, CaretMovementStyle aMovementStyle) const {
+    ExtendSelection aExtendSelection, CaretMovementStyle aMovementStyle) {
   int32_t movementFlag = StaticPrefs::bidi_edit_caret_movement_style();
   return aMovementStyle == eVisual ||
          (aMovementStyle == eUsePrefStyle &&
@@ -758,7 +772,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
   }
 
   bool visualMovement =
-      mCaret.IsVisualMovement(aExtendSelection, aMovementStyle);
+      Caret::IsVisualMovement(aExtendSelection, aMovementStyle);
   const PrimaryFrameData frameForFocus =
       sel->GetPrimaryFrameForCaretAtFocusNode(visualMovement);
   if (!frameForFocus.mFrame) {
@@ -922,28 +936,29 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
 
   return rv;
 }
+
+// static
 Result<PeekOffsetOptions, nsresult>
 nsFrameSelection::CreatePeekOffsetOptionsForCaretMove(
-    dom::Selection* aSelection, ExtendSelection aExtendSelection,
-    CaretMovementStyle aMovementStyle) const {
+    const nsIContent* aSelectionLimiter,
+    ForceEditableRegion aForceEditableRegion, ExtendSelection aExtendSelection,
+    CaretMovementStyle aMovementStyle) {
   PeekOffsetOptions options;
-  // set data using mLimiters.mLimiter to stop on scroll views.  If we have a
+  // set data using aSelectionLimiter to stop on scroll views.  If we have a
   // limiter then we stop peeking when we hit scrollable views.  If no limiter
   // then just let it go ahead
-  if (mLimiters.mLimiter) {
+  if (aSelectionLimiter) {
     options += PeekOffsetOption::StopAtScroller;
   }
   const bool visualMovement =
-      mCaret.IsVisualMovement(aExtendSelection, aMovementStyle);
+      Caret::IsVisualMovement(aExtendSelection, aMovementStyle);
   if (visualMovement) {
     options += PeekOffsetOption::Visual;
   }
   if (aExtendSelection == ExtendSelection::Yes) {
     options += PeekOffsetOption::Extend;
   }
-
-  MOZ_ASSERT(aSelection);
-  if (aSelection->IsEditorSelection()) {
+  if (static_cast<bool>(aForceEditableRegion)) {
     options += PeekOffsetOption::ForceEditableRegion;
   }
   return options;
@@ -1206,7 +1221,7 @@ nsresult nsFrameSelection::HandleClick(nsIContent* aNewFocus,
 
   if (aFocusMode != FocusMode::kExtendSelection) {
     mMaintainedRange.mRange = nullptr;
-    if (!IsValidSelectionPoint(aNewFocus)) {
+    if (!NodeIsInLimiters(aNewFocus)) {
       mLimiters.mAncestorLimiter = nullptr;
     }
   }
@@ -1337,7 +1352,7 @@ nsresult nsFrameSelection::TakeFocus(nsIContent& aNewFocus,
                                      const FocusMode aFocusMode) {
   NS_ENSURE_STATE(mPresShell);
 
-  if (!IsValidSelectionPoint(&aNewFocus)) {
+  if (!NodeIsInLimiters(&aNewFocus)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1770,7 +1785,7 @@ nsresult nsFrameSelection::PageMove(bool aForward, bool aExtend,
   // If the scrolled frame is outside of current selection limiter,
   // we need to scroll the frame but keep moving selection in the limiter.
   nsIFrame* frameToClick = scrolledFrame;
-  if (!IsValidSelectionPoint(scrolledFrame->GetContent())) {
+  if (!NodeIsInLimiters(scrolledFrame->GetContent())) {
     frameToClick = GetFrameToPageSelect();
     if (NS_WARN_IF(!frameToClick)) {
       return NS_OK;
@@ -1990,50 +2005,55 @@ nsresult nsFrameSelection::IntraLineMove(bool aForward, bool aExtend) {
                    eLogical);
 }
 
+// static
 template <typename RangeType>
 Result<RefPtr<RangeType>, nsresult>
 nsFrameSelection::CreateRangeExtendedToSomewhere(
-    nsDirection aDirection, const nsSelectionAmount aAmount,
+    PresShell& aPresShell,
+    const mozilla::LimitersAndCaretData& aLimitersAndCaretData,
+    const AbstractRange& aRange, nsDirection aRangeDirection,
+    nsDirection aExtendDirection, nsSelectionAmount aAmount,
     CaretMovementStyle aMovementStyle) {
-  MOZ_ASSERT(aDirection == eDirNext || aDirection == eDirPrevious);
+  MOZ_ASSERT(aRangeDirection == eDirNext || aRangeDirection == eDirPrevious);
+  MOZ_ASSERT(aExtendDirection == eDirNext || aExtendDirection == eDirPrevious);
   MOZ_ASSERT(aAmount == eSelectCharacter || aAmount == eSelectCluster ||
              aAmount == eSelectWord || aAmount == eSelectBeginLine ||
              aAmount == eSelectEndLine);
   MOZ_ASSERT(aMovementStyle == eLogical || aMovementStyle == eVisual ||
              aMovementStyle == eUsePrefStyle);
 
-  if (!mPresShell) {
-    return Err(NS_ERROR_UNEXPECTED);
-  }
-  OwningNonNull<PresShell> presShell(*mPresShell);
-  presShell->FlushPendingNotifications(FlushType::Layout);
-  if (!mPresShell) {
+  aPresShell.FlushPendingNotifications(FlushType::Layout);
+  if (aPresShell.IsDestroying()) {
     return Err(NS_ERROR_FAILURE);
   }
-  Selection& selection = NormalSelection();
-  if (selection.RangeCount() != 1) {
+  if (!aRange.IsPositioned()) {
     return Err(NS_ERROR_FAILURE);
   }
-  RefPtr<const nsRange> firstRange = selection.GetRangeAt(0);
-  if (!firstRange || !firstRange->IsPositioned()) {
-    return Err(NS_ERROR_FAILURE);
-  }
+  const ForceEditableRegion forceEditableRegion = [&]() {
+    if (aRange.GetStartContainer()->IsEditable()) {
+      return ForceEditableRegion::Yes;
+    }
+    const auto* const element = Element::FromNode(aRange.GetStartContainer());
+    return element && element->State().HasState(ElementState::READWRITE)
+               ? ForceEditableRegion::Yes
+               : ForceEditableRegion::No;
+  }();
   Result<PeekOffsetOptions, nsresult> options =
-      CreatePeekOffsetOptionsForCaretMove(&selection, ExtendSelection::Yes,
-                                          aMovementStyle);
-  if (options.isErr()) {
+      CreatePeekOffsetOptionsForCaretMove(aLimitersAndCaretData.mLimiter,
+                                          forceEditableRegion,
+                                          ExtendSelection::Yes, aMovementStyle);
+  if (MOZ_UNLIKELY(options.isErr())) {
     return options.propagateErr();
-  }
-  Result<const Element*, nsresult> ancestorLimiter =
-      GetAncestorLimiterForCaretMove(&selection);
-  if (ancestorLimiter.isErr()) {
-    return ancestorLimiter.propagateErr();
   }
   Result<RawRangeBoundary, nsresult> result =
       SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
-          selection.FocusRef().AsRaw(), aDirection, GetHint(),
-          GetCaretBidiLevel(), aAmount, options.unwrap(),
-          ancestorLimiter.unwrap());
+          aRangeDirection == eDirNext ? aRange.StartRef().AsRaw()
+                                      : aRange.EndRef().AsRaw(),
+          aExtendDirection, aLimitersAndCaretData.mCaretAssociationHint,
+          aLimitersAndCaretData.mCaretBidiLevel, aAmount, options.unwrap(),
+          // FIXME: mAncestorLimiter should always be an Element, but it's not
+          // guaranteed at build time for now.
+          Element::FromNodeOrNull(aLimitersAndCaretData.mAncestorLimiter));
   if (result.isErr()) {
     return result.propagateErr();
   }
@@ -2042,12 +2062,10 @@ nsFrameSelection::CreateRangeExtendedToSomewhere(
   if (!rangeBoundary.IsSetAndValid()) {
     return range;
   }
-  if (aDirection == eDirPrevious) {
-    range =
-        RangeType::Create(rangeBoundary, firstRange->EndRef(), IgnoreErrors());
+  if (aExtendDirection == eDirPrevious) {
+    range = RangeType::Create(rangeBoundary, aRange.EndRef(), IgnoreErrors());
   } else {
-    range = RangeType::Create(firstRange->StartRef(), rangeBoundary,
-                              IgnoreErrors());
+    range = RangeType::Create(aRange.StartRef(), rangeBoundary, IgnoreErrors());
   }
   return range;
 }
@@ -3010,7 +3028,7 @@ void nsFrameSelection::SetAncestorLimiter(nsIContent* aLimiter) {
     const Selection& sel = NormalSelection();
     LogSelectionAPI(&sel, __FUNCTION__, "aLimiter", aLimiter);
 
-    if (!IsValidSelectionPoint(sel.GetFocusNode())) {
+    if (!NodeIsInLimiters(sel.GetFocusNode())) {
       ClearNormalSelection();
       if (mLimiters.mAncestorLimiter) {
         SetChangeReasons(nsISelectionListener::NO_REASON);

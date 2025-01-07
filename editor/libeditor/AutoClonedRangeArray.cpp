@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "AutoRangeArray.h"
+#include "AutoClonedRangeArray.h"
 
 #include "EditAction.h"
 #include "EditorDOMPoint.h"   // for EditorDOMPoint, EditorDOMRange, etc
@@ -13,12 +13,14 @@
 #include "TextEditor.h"       // for TextEditor
 #include "WSRunObject.h"      // for WSRunScanner
 
-#include "mozilla/IntegerRange.h"       // for IntegerRange
-#include "mozilla/OwningNonNull.h"      // for OwningNonNull
-#include "mozilla/dom/Document.h"       // for dom::Document
-#include "mozilla/dom/HTMLBRElement.h"  // for dom HTMLBRElement
-#include "mozilla/dom/Selection.h"      // for dom::Selection
-#include "mozilla/dom/Text.h"           // for dom::Text
+#include "mozilla/CaretAssociationHint.h"  // for CaretAssociationHint
+#include "mozilla/IntegerRange.h"          // for IntegerRange
+#include "mozilla/OwningNonNull.h"         // for OwningNonNull
+#include "mozilla/PresShell.h"             // for PresShell
+#include "mozilla/dom/Document.h"          // for dom::Document
+#include "mozilla/dom/HTMLBRElement.h"     // for dom HTMLBRElement
+#include "mozilla/dom/Selection.h"         // for dom::Selection
+#include "mozilla/dom/Text.h"              // for dom::Text
 
 #include "gfxFontUtils.h"      // for gfxFontUtils
 #include "nsError.h"           // for NS_SUCCESS_* and NS_ERROR_*
@@ -35,19 +37,19 @@ using namespace dom;
 using EmptyCheckOption = HTMLEditUtils::EmptyCheckOption;
 
 /******************************************************************************
- * mozilla::AutoRangeArray
+ * mozilla::AutoClonedRangeArray
  *****************************************************************************/
 
-template AutoRangeArray::AutoRangeArray(const EditorDOMRange& aRange);
-template AutoRangeArray::AutoRangeArray(const EditorRawDOMRange& aRange);
-template AutoRangeArray::AutoRangeArray(const EditorDOMPoint& aRange);
-template AutoRangeArray::AutoRangeArray(const EditorRawDOMPoint& aRange);
+template AutoClonedRangeArray::AutoClonedRangeArray(
+    const EditorDOMRange& aRange);
+template AutoClonedRangeArray::AutoClonedRangeArray(
+    const EditorRawDOMRange& aRange);
+template AutoClonedRangeArray::AutoClonedRangeArray(
+    const EditorDOMPoint& aRange);
+template AutoClonedRangeArray::AutoClonedRangeArray(
+    const EditorRawDOMPoint& aRange);
 
-AutoRangeArray::AutoRangeArray(const dom::Selection& aSelection) {
-  Initialize(aSelection);
-}
-
-AutoRangeArray::AutoRangeArray(const AutoRangeArray& aOther)
+AutoClonedRangeArray::AutoClonedRangeArray(const AutoClonedRangeArray& aOther)
     : mAnchorFocusRange(aOther.mAnchorFocusRange),
       mDirection(aOther.mDirection) {
   mRanges.SetCapacity(aOther.mRanges.Length());
@@ -59,7 +61,8 @@ AutoRangeArray::AutoRangeArray(const AutoRangeArray& aOther)
 }
 
 template <typename PointType>
-AutoRangeArray::AutoRangeArray(const EditorDOMRangeBase<PointType>& aRange) {
+AutoClonedRangeArray::AutoClonedRangeArray(
+    const EditorDOMRangeBase<PointType>& aRange) {
   MOZ_ASSERT(aRange.IsPositionedAndValid());
   RefPtr<nsRange> range = aRange.CreateRange(IgnoreErrors());
   if (NS_WARN_IF(!range) || NS_WARN_IF(!range->IsPositioned())) {
@@ -70,7 +73,8 @@ AutoRangeArray::AutoRangeArray(const EditorDOMRangeBase<PointType>& aRange) {
 }
 
 template <typename PT, typename CT>
-AutoRangeArray::AutoRangeArray(const EditorDOMPointBase<PT, CT>& aPoint) {
+AutoClonedRangeArray::AutoClonedRangeArray(
+    const EditorDOMPointBase<PT, CT>& aPoint) {
   MOZ_ASSERT(aPoint.IsSetAndValid());
   RefPtr<nsRange> range = aPoint.CreateCollapsedRange(IgnoreErrors());
   if (NS_WARN_IF(!range) || NS_WARN_IF(!range->IsPositioned())) {
@@ -80,24 +84,15 @@ AutoRangeArray::AutoRangeArray(const EditorDOMPointBase<PT, CT>& aPoint) {
   mAnchorFocusRange = std::move(range);
 }
 
-AutoRangeArray::~AutoRangeArray() {
-  if (mSavedRanges.isSome()) {
-    ClearSavedRanges();
-  }
-}
-
-AutoRangeArray::AutoRangeArray(nsRange& aRange) {
+AutoClonedRangeArray::AutoClonedRangeArray(const nsRange& aRange) {
   MOZ_ASSERT(aRange.IsPositioned());
-  if (NS_WARN_IF(!aRange.IsPositioned())) {
-    return;
-  }
-  mRanges.AppendElement(aRange);
-  mAnchorFocusRange = &aRange;
+  mRanges.AppendElement(aRange.CloneRange());
+  mAnchorFocusRange = mRanges[0];
 }
 
 // static
-bool AutoRangeArray::IsEditableRange(const dom::AbstractRange& aRange,
-                                     const Element& aEditingHost) {
+bool AutoClonedRangeArray::IsEditableRange(const dom::AbstractRange& aRange,
+                                           const Element& aEditingHost) {
   // TODO: Perhaps, we should check whether the start/end boundaries are
   //       first/last point of non-editable element.
   //       See https://github.com/w3c/editing/issues/283#issuecomment-788654850
@@ -139,10 +134,11 @@ bool AutoRangeArray::IsEditableRange(const dom::AbstractRange& aRange,
          commonAncestor->IsInclusiveDescendantOf(&aEditingHost);
 }
 
-void AutoRangeArray::EnsureOnlyEditableRanges(const Element& aEditingHost) {
+void AutoClonedRangeArray::EnsureOnlyEditableRanges(
+    const Element& aEditingHost) {
   for (const size_t index : Reversed(IntegerRange(mRanges.Length()))) {
     const OwningNonNull<nsRange>& range = mRanges[index];
-    if (!AutoRangeArray::IsEditableRange(range, aEditingHost)) {
+    if (!AutoClonedRangeArray::IsEditableRange(range, aEditingHost)) {
       mRanges.RemoveElementAt(index);
       continue;
     }
@@ -170,7 +166,7 @@ void AutoRangeArray::EnsureOnlyEditableRanges(const Element& aEditingHost) {
   mAnchorFocusRange = mRanges.IsEmpty() ? nullptr : mRanges.LastElement().get();
 }
 
-void AutoRangeArray::EnsureRangesInTextNode(const Text& aTextNode) {
+void AutoClonedRangeArray::EnsureRangesInTextNode(const Text& aTextNode) {
   auto GetOffsetInTextNode = [&aTextNode](const nsINode* aNode,
                                           uint32_t aOffset) -> uint32_t {
     MOZ_DIAGNOSTIC_ASSERT(aNode);
@@ -225,211 +221,8 @@ void AutoRangeArray::EnsureRangesInTextNode(const Text& aTextNode) {
   }
 }
 
-Result<nsIEditor::EDirection, nsresult>
-AutoRangeArray::ExtendAnchorFocusRangeFor(
-    const EditorBase& aEditorBase, nsIEditor::EDirection aDirectionAndAmount) {
-  MOZ_ASSERT(aEditorBase.IsEditActionDataAvailable());
-  MOZ_ASSERT(mAnchorFocusRange);
-  MOZ_ASSERT(mAnchorFocusRange->IsPositioned());
-  MOZ_ASSERT(mAnchorFocusRange->StartRef().IsSet());
-  MOZ_ASSERT(mAnchorFocusRange->EndRef().IsSet());
-
-  if (!EditorUtils::IsFrameSelectionRequiredToExtendSelection(
-          aDirectionAndAmount, *this)) {
-    return aDirectionAndAmount;
-  }
-
-  if (NS_WARN_IF(!aEditorBase.SelectionRef().RangeCount())) {
-    return Err(NS_ERROR_FAILURE);
-  }
-
-  // By a preceding call of EnsureOnlyEditableRanges(), anchor/focus range may
-  // have been changed.  In that case, we cannot use nsFrameSelection anymore.
-  // FIXME: We should make `nsFrameSelection::CreateRangeExtendedToSomewhere`
-  //        work without `Selection` instance.
-  if (MOZ_UNLIKELY(
-          aEditorBase.SelectionRef().GetAnchorFocusRange()->StartRef() !=
-              mAnchorFocusRange->StartRef() ||
-          aEditorBase.SelectionRef().GetAnchorFocusRange()->EndRef() !=
-              mAnchorFocusRange->EndRef())) {
-    return aDirectionAndAmount;
-  }
-
-  RefPtr<nsFrameSelection> frameSelection =
-      aEditorBase.SelectionRef().GetFrameSelection();
-  if (NS_WARN_IF(!frameSelection)) {
-    return Err(NS_ERROR_NOT_INITIALIZED);
-  }
-
-  RefPtr<Element> editingHost;
-  if (aEditorBase.IsHTMLEditor()) {
-    editingHost = aEditorBase.AsHTMLEditor()->ComputeEditingHost();
-    if (!editingHost) {
-      return Err(NS_ERROR_FAILURE);
-    }
-  }
-
-  Result<RefPtr<nsRange>, nsresult> result(NS_ERROR_UNEXPECTED);
-  nsIEditor::EDirection directionAndAmountResult = aDirectionAndAmount;
-  switch (aDirectionAndAmount) {
-    case nsIEditor::eNextWord:
-      result = frameSelection->CreateRangeExtendedToNextWordBoundary<nsRange>();
-      if (NS_WARN_IF(aEditorBase.Destroyed())) {
-        return Err(NS_ERROR_EDITOR_DESTROYED);
-      }
-      NS_WARNING_ASSERTION(
-          result.isOk(),
-          "nsFrameSelection::CreateRangeExtendedToNextWordBoundary() failed");
-      // DeleteSelectionWithTransaction() doesn't handle these actions
-      // because it's inside batching, so don't confuse it:
-      directionAndAmountResult = nsIEditor::eNone;
-      break;
-    case nsIEditor::ePreviousWord:
-      result =
-          frameSelection->CreateRangeExtendedToPreviousWordBoundary<nsRange>();
-      if (NS_WARN_IF(aEditorBase.Destroyed())) {
-        return Err(NS_ERROR_EDITOR_DESTROYED);
-      }
-      NS_WARNING_ASSERTION(
-          result.isOk(),
-          "nsFrameSelection::CreateRangeExtendedToPreviousWordBoundary() "
-          "failed");
-      // DeleteSelectionWithTransaction() doesn't handle these actions
-      // because it's inside batching, so don't confuse it:
-      directionAndAmountResult = nsIEditor::eNone;
-      break;
-    case nsIEditor::eNext:
-      result =
-          frameSelection
-              ->CreateRangeExtendedToNextGraphemeClusterBoundary<nsRange>();
-      if (NS_WARN_IF(aEditorBase.Destroyed())) {
-        return Err(NS_ERROR_EDITOR_DESTROYED);
-      }
-      NS_WARNING_ASSERTION(result.isOk(),
-                           "nsFrameSelection::"
-                           "CreateRangeExtendedToNextGraphemeClusterBoundary() "
-                           "failed");
-      // Don't set directionAndAmount to eNone (see Bug 502259)
-      break;
-    case nsIEditor::ePrevious: {
-      // Only extend the selection where the selection is after a UTF-16
-      // surrogate pair or a variation selector.
-      // For other cases we don't want to do that, in order
-      // to make sure that pressing backspace will only delete the last
-      // typed character.
-      // XXX This is odd if the previous one is a sequence for a grapheme
-      //     cluster.
-      const auto atStartOfSelection = GetFirstRangeStartPoint<EditorDOMPoint>();
-      if (MOZ_UNLIKELY(NS_WARN_IF(!atStartOfSelection.IsSet()))) {
-        return Err(NS_ERROR_FAILURE);
-      }
-
-      // node might be anonymous DIV, so we find better text node
-      const EditorDOMPoint insertionPoint =
-          aEditorBase.IsTextEditor()
-              ? aEditorBase.AsTextEditor()->FindBetterInsertionPoint(
-                    atStartOfSelection)
-              : atStartOfSelection.GetPointInTextNodeIfPointingAroundTextNode<
-                    EditorDOMPoint>();
-      if (MOZ_UNLIKELY(!insertionPoint.IsSet())) {
-        NS_WARNING(
-            "EditorBase::FindBetterInsertionPoint() failed, but ignored");
-        return aDirectionAndAmount;
-      }
-
-      if (!insertionPoint.IsInTextNode()) {
-        return aDirectionAndAmount;
-      }
-
-      const nsTextFragment* data =
-          &insertionPoint.ContainerAs<Text>()->TextFragment();
-      uint32_t offset = insertionPoint.Offset();
-      if (!(offset > 1 &&
-            data->IsLowSurrogateFollowingHighSurrogateAt(offset - 1)) &&
-          !(offset > 0 &&
-            gfxFontUtils::IsVarSelector(data->CharAt(offset - 1)))) {
-        return aDirectionAndAmount;
-      }
-      // Different from the `eNext` case, we look for character boundary.
-      // I'm not sure whether this inconsistency between "Delete" and
-      // "Backspace" is intentional or not.
-      result = frameSelection
-                   ->CreateRangeExtendedToPreviousCharacterBoundary<nsRange>();
-      if (NS_WARN_IF(aEditorBase.Destroyed())) {
-        return Err(NS_ERROR_EDITOR_DESTROYED);
-      }
-      NS_WARNING_ASSERTION(
-          result.isOk(),
-          "nsFrameSelection::"
-          "CreateRangeExtendedToPreviousGraphemeClusterBoundary() failed");
-      break;
-    }
-    case nsIEditor::eToBeginningOfLine:
-      result =
-          frameSelection->CreateRangeExtendedToPreviousHardLineBreak<nsRange>();
-      if (NS_WARN_IF(aEditorBase.Destroyed())) {
-        return Err(NS_ERROR_EDITOR_DESTROYED);
-      }
-      NS_WARNING_ASSERTION(
-          result.isOk(),
-          "nsFrameSelection::CreateRangeExtendedToPreviousHardLineBreak() "
-          "failed");
-      directionAndAmountResult = nsIEditor::eNone;
-      break;
-    case nsIEditor::eToEndOfLine:
-      result =
-          frameSelection->CreateRangeExtendedToNextHardLineBreak<nsRange>();
-      if (NS_WARN_IF(aEditorBase.Destroyed())) {
-        return Err(NS_ERROR_EDITOR_DESTROYED);
-      }
-      NS_WARNING_ASSERTION(
-          result.isOk(),
-          "nsFrameSelection::CreateRangeExtendedToNextHardLineBreak() failed");
-      directionAndAmountResult = nsIEditor::eNext;
-      break;
-    default:
-      return aDirectionAndAmount;
-  }
-
-  if (result.isErr()) {
-    return Err(result.inspectErr());
-  }
-  RefPtr<nsRange> extendedRange(result.unwrap().forget());
-  if (!extendedRange || NS_WARN_IF(!extendedRange->IsPositioned())) {
-    NS_WARNING("Failed to extend the range, but ignored");
-    return directionAndAmountResult;
-  }
-
-  // If the new range isn't editable, keep using the original range.
-  if (aEditorBase.IsHTMLEditor() &&
-      !AutoRangeArray::IsEditableRange(*extendedRange, *editingHost)) {
-    return aDirectionAndAmount;
-  }
-
-  if (NS_WARN_IF(!frameSelection->IsValidSelectionPoint(
-          extendedRange->GetStartContainer())) ||
-      NS_WARN_IF(!frameSelection->IsValidSelectionPoint(
-          extendedRange->GetEndContainer()))) {
-    NS_WARNING("A range was extended to outer of selection limiter");
-    return Err(NS_ERROR_FAILURE);
-  }
-
-  // Swap focus/anchor range with the extended range.
-  DebugOnly<bool> found = false;
-  for (OwningNonNull<nsRange>& range : mRanges) {
-    if (range == mAnchorFocusRange) {
-      range = *extendedRange;
-      found = true;
-      break;
-    }
-  }
-  MOZ_ASSERT(found);
-  mAnchorFocusRange.swap(extendedRange);
-  return directionAndAmountResult;
-}
-
 Result<bool, nsresult>
-AutoRangeArray::ShrinkRangesIfStartFromOrEndAfterAtomicContent(
+AutoClonedRangeArray::ShrinkRangesIfStartFromOrEndAfterAtomicContent(
     const HTMLEditor& aHTMLEditor, nsIEditor::EDirection aDirectionAndAmount,
     IfSelectingOnlyOneAtomicContent aIfSelectingOnlyOneAtomicContent,
     const Element* aEditingHost) {
@@ -480,28 +273,8 @@ AutoRangeArray::ShrinkRangesIfStartFromOrEndAfterAtomicContent(
   return changed;
 }
 
-bool AutoRangeArray::SaveAndTrackRanges(HTMLEditor& aHTMLEditor) {
-  if (mSavedRanges.isSome()) {
-    return false;
-  }
-  mSavedRanges.emplace(*this);
-  aHTMLEditor.RangeUpdaterRef().RegisterSelectionState(mSavedRanges.ref());
-  mTrackingHTMLEditor = &aHTMLEditor;
-  return true;
-}
-
-void AutoRangeArray::ClearSavedRanges() {
-  if (mSavedRanges.isNothing()) {
-    return;
-  }
-  OwningNonNull<HTMLEditor> htmlEditor(std::move(mTrackingHTMLEditor));
-  MOZ_ASSERT(!mTrackingHTMLEditor);
-  htmlEditor->RangeUpdaterRef().DropSelectionState(mSavedRanges.ref());
-  mSavedRanges.reset();
-}
-
 // static
-void AutoRangeArray::
+void AutoClonedRangeArray::
     UpdatePointsToSelectAllChildrenIfCollapsedInEmptyBlockElement(
         EditorDOMPoint& aStartPoint, EditorDOMPoint& aEndPoint,
         const Element& aEditingHost) {
@@ -855,9 +628,9 @@ GetPointAfterFollowingLineBreakOrAtFollowingHTMLBlock(
   return point;
 }
 
-void AutoRangeArray::ExtendRangesToWrapLines(EditSubAction aEditSubAction,
-                                             BlockInlineCheck aBlockInlineCheck,
-                                             const Element& aAncestorLimiter) {
+void AutoClonedRangeArray::ExtendRangesToWrapLines(
+    EditSubAction aEditSubAction, BlockInlineCheck aBlockInlineCheck,
+    const Element& aAncestorLimiter) {
   // FYI: This is originated in
   // https://searchfox.org/mozilla-central/rev/1739f1301d658c9bff544a0a095ab11fca2e549d/editor/libeditor/HTMLEditSubActionHandler.cpp#6712
 
@@ -914,7 +687,8 @@ void AutoRangeArray::ExtendRangesToWrapLines(EditSubAction aEditSubAction,
 }
 
 // static
-nsresult AutoRangeArray::ExtendRangeToWrapStartAndEndLinesContainingBoundaries(
+nsresult
+AutoClonedRangeArray::ExtendRangeToWrapStartAndEndLinesContainingBoundaries(
     nsRange& aRange, EditSubAction aEditSubAction,
     BlockInlineCheck aBlockInlineCheck, const Element& aEditingHost) {
   MOZ_DIAGNOSTIC_ASSERT(
@@ -932,7 +706,7 @@ nsresult AutoRangeArray::ExtendRangeToWrapStartAndEndLinesContainingBoundaries(
   // Therefore, we don't want to select the ancestor blocks in this case
   // even if they are empty.
   if (aEditSubAction != EditSubAction::eMergeBlockContents) {
-    AutoRangeArray::
+    AutoClonedRangeArray::
         UpdatePointsToSelectAllChildrenIfCollapsedInEmptyBlockElement(
             startPoint, endPoint, aEditingHost);
   }
@@ -982,11 +756,11 @@ nsresult AutoRangeArray::ExtendRangeToWrapStartAndEndLinesContainingBoundaries(
   return NS_OK;
 }
 
-Result<EditorDOMPoint, nsresult>
-AutoRangeArray::SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries(
-    HTMLEditor& aHTMLEditor, BlockInlineCheck aBlockInlineCheck,
-    const Element& aEditingHost,
-    const nsIContent* aAncestorLimiter /* = nullptr */) {
+Result<EditorDOMPoint, nsresult> AutoClonedRangeArray::
+    SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries(
+        HTMLEditor& aHTMLEditor, BlockInlineCheck aBlockInlineCheck,
+        const Element& aEditingHost,
+        const nsIContent* aAncestorLimiter /* = nullptr */) {
   // FYI: The following code is originated in
   // https://searchfox.org/mozilla-central/rev/c8e15e17bc6fd28f558c395c948a6251b38774ff/editor/libeditor/HTMLEditSubActionHandler.cpp#6971
 
@@ -1082,7 +856,7 @@ AutoRangeArray::SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries(
   return pointToPutCaret;
 }
 
-nsresult AutoRangeArray::CollectEditTargetNodes(
+nsresult AutoClonedRangeArray::CollectEditTargetNodes(
     const HTMLEditor& aHTMLEditor,
     nsTArray<OwningNonNull<nsIContent>>& aOutArrayOfContents,
     EditSubAction aEditSubAction,
@@ -1271,7 +1045,7 @@ nsresult AutoRangeArray::CollectEditTargetNodes(
   return NS_OK;
 }
 
-Element* AutoRangeArray::GetClosestAncestorAnyListElementOfRange() const {
+Element* AutoClonedRangeArray::GetClosestAncestorAnyListElementOfRange() const {
   for (const OwningNonNull<nsRange>& range : mRanges) {
     nsINode* commonAncestorNode = range->GetClosestCommonInclusiveAncestor();
     if (MOZ_UNLIKELY(!commonAncestorNode)) {
@@ -1285,6 +1059,311 @@ Element* AutoRangeArray::GetClosestAncestorAnyListElementOfRange() const {
     }
   }
   return nullptr;
+}
+
+/******************************************************************************
+ * mozilla::AutoClonedSelectionRangeArray
+ *****************************************************************************/
+
+template AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const EditorDOMRange& aRange,
+    const LimitersAndCaretData& aLimitersAndCaretData);
+template AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const EditorRawDOMRange& aRange,
+    const LimitersAndCaretData& aLimitersAndCaretData);
+template AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const EditorDOMPoint& aRange,
+    const LimitersAndCaretData& aLimitersAndCaretData);
+template AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const EditorRawDOMPoint& aRange,
+    const LimitersAndCaretData& aLimitersAndCaretData);
+
+AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const dom::Selection& aSelection) {
+  Initialize(aSelection);
+}
+
+AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const AutoClonedSelectionRangeArray& aOther)
+    : AutoClonedRangeArray(aOther),
+      mLimitersAndCaretData(aOther.mLimitersAndCaretData) {}
+
+template <typename PointType>
+AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const EditorDOMRangeBase<PointType>& aRange,
+    const LimitersAndCaretData& aLimitersAndCaretData)
+    : mLimitersAndCaretData(aLimitersAndCaretData) {
+  MOZ_ASSERT(aRange.IsPositionedAndValid());
+  RefPtr<nsRange> range = aRange.CreateRange(IgnoreErrors());
+  if (NS_WARN_IF(!range) || NS_WARN_IF(!range->IsPositioned()) ||
+      NS_WARN_IF(!RangeIsInLimiters(*range))) {
+    return;
+  }
+  mRanges.AppendElement(*range);
+  mAnchorFocusRange = std::move(range);
+}
+
+template <typename PT, typename CT>
+AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const EditorDOMPointBase<PT, CT>& aPoint,
+    const LimitersAndCaretData& aLimitersAndCaretData)
+    : mLimitersAndCaretData(aLimitersAndCaretData) {
+  MOZ_ASSERT(aPoint.IsSetAndValid());
+  if (NS_WARN_IF(!NodeIsInLimiters(aPoint.GetContainer()))) {
+    return;
+  }
+  RefPtr<nsRange> range = aPoint.CreateCollapsedRange(IgnoreErrors());
+  if (NS_WARN_IF(!range) || NS_WARN_IF(!range->IsPositioned())) {
+    return;
+  }
+  mRanges.AppendElement(*range);
+  mAnchorFocusRange = std::move(range);
+  SetNewCaretAssociationHint(aPoint.ToRawRangeBoundary(),
+                             aPoint.GetInterlinePosition());
+}
+
+AutoClonedSelectionRangeArray::AutoClonedSelectionRangeArray(
+    const nsRange& aRange, const LimitersAndCaretData& aLimitersAndCaretData)
+    : mLimitersAndCaretData(aLimitersAndCaretData) {
+  MOZ_ASSERT(aRange.IsPositioned());
+  if (NS_WARN_IF(!RangeIsInLimiters(aRange))) {
+    return;
+  }
+  mRanges.AppendElement(aRange.CloneRange());
+  mAnchorFocusRange = mRanges[0];
+}
+
+void AutoClonedSelectionRangeArray::SetNewCaretAssociationHint(
+    const RawRangeBoundary& aRawRangeBoundary,
+    InterlinePosition aInternlinePosition) {
+  if (aInternlinePosition == Selection::InterlinePosition::Undefined) {
+    mLimitersAndCaretData.mCaretAssociationHint = ComputeCaretAssociationHint(
+        mLimitersAndCaretData.mCaretAssociationHint,
+        mLimitersAndCaretData.mCaretBidiLevel, aRawRangeBoundary);
+  } else {
+    SetInterlinePosition(aInternlinePosition);
+  }
+}
+
+bool AutoClonedSelectionRangeArray::SaveAndTrackRanges(
+    HTMLEditor& aHTMLEditor) {
+  if (mSavedRanges.isSome()) {
+    return false;
+  }
+  mSavedRanges.emplace(*this);
+  aHTMLEditor.RangeUpdaterRef().RegisterSelectionState(mSavedRanges.ref());
+  mTrackingHTMLEditor = &aHTMLEditor;
+  return true;
+}
+
+void AutoClonedSelectionRangeArray::ClearSavedRanges() {
+  if (mSavedRanges.isNothing()) {
+    return;
+  }
+  OwningNonNull<HTMLEditor> htmlEditor(std::move(mTrackingHTMLEditor));
+  MOZ_ASSERT(!mTrackingHTMLEditor);
+  htmlEditor->RangeUpdaterRef().DropSelectionState(mSavedRanges.ref());
+  mSavedRanges.reset();
+}
+
+Result<nsIEditor::EDirection, nsresult>
+AutoClonedSelectionRangeArray::ExtendAnchorFocusRangeFor(
+    const EditorBase& aEditorBase, nsIEditor::EDirection aDirectionAndAmount) {
+  MOZ_ASSERT(aEditorBase.IsEditActionDataAvailable());
+  MOZ_ASSERT(mAnchorFocusRange);
+  MOZ_ASSERT(mAnchorFocusRange->IsPositioned());
+  MOZ_ASSERT(mAnchorFocusRange->StartRef().IsSet());
+  MOZ_ASSERT(mAnchorFocusRange->EndRef().IsSet());
+
+  if (!EditorUtils::IsFrameSelectionRequiredToExtendSelection(
+          aDirectionAndAmount, *this)) {
+    return aDirectionAndAmount;
+  }
+
+  if (NS_WARN_IF(mRanges.IsEmpty())) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  const RefPtr<PresShell> presShell = aEditorBase.GetPresShell();
+  if (NS_WARN_IF(!presShell)) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  const RefPtr<Element> editingHost =
+      aEditorBase.IsHTMLEditor()
+          ? aEditorBase.AsHTMLEditor()->ComputeEditingHost()
+          : nullptr;
+  if (aEditorBase.IsHTMLEditor() && NS_WARN_IF(!editingHost)) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  Result<RefPtr<nsRange>, nsresult> result(NS_ERROR_UNEXPECTED);
+  const OwningNonNull<nsRange> anchorFocusRange = *mAnchorFocusRange;
+  const LimitersAndCaretData limitersAndCaretData = mLimitersAndCaretData;
+  const nsDirection rangeDirection =
+      mDirection == eDirNext ? eDirNext : eDirPrevious;
+  nsIEditor::EDirection directionAndAmountResult = aDirectionAndAmount;
+  switch (aDirectionAndAmount) {
+    case nsIEditor::eNextWord:
+      result = nsFrameSelection::CreateRangeExtendedToNextWordBoundary<nsRange>(
+          *presShell, limitersAndCaretData, anchorFocusRange, rangeDirection);
+      if (NS_WARN_IF(aEditorBase.Destroyed())) {
+        return Err(NS_ERROR_EDITOR_DESTROYED);
+      }
+      NS_WARNING_ASSERTION(
+          result.isOk(),
+          "nsFrameSelection::CreateRangeExtendedToNextWordBoundary() failed");
+      // DeleteSelectionWithTransaction() doesn't handle these actions
+      // because it's inside batching, so don't confuse it:
+      directionAndAmountResult = nsIEditor::eNone;
+      break;
+    case nsIEditor::ePreviousWord:
+      result =
+          nsFrameSelection::CreateRangeExtendedToPreviousWordBoundary<nsRange>(
+              *presShell, limitersAndCaretData, anchorFocusRange,
+              rangeDirection);
+      if (NS_WARN_IF(aEditorBase.Destroyed())) {
+        return Err(NS_ERROR_EDITOR_DESTROYED);
+      }
+      NS_WARNING_ASSERTION(
+          result.isOk(),
+          "nsFrameSelection::CreateRangeExtendedToPreviousWordBoundary() "
+          "failed");
+      // DeleteSelectionWithTransaction() doesn't handle these actions
+      // because it's inside batching, so don't confuse it:
+      directionAndAmountResult = nsIEditor::eNone;
+      break;
+    case nsIEditor::eNext:
+      result =
+          nsFrameSelection::CreateRangeExtendedToNextGraphemeClusterBoundary<
+              nsRange>(*presShell, limitersAndCaretData, anchorFocusRange,
+                       rangeDirection);
+      if (NS_WARN_IF(aEditorBase.Destroyed())) {
+        return Err(NS_ERROR_EDITOR_DESTROYED);
+      }
+      NS_WARNING_ASSERTION(result.isOk(),
+                           "nsFrameSelection::"
+                           "CreateRangeExtendedToNextGraphemeClusterBoundary() "
+                           "failed");
+      // Don't set directionAndAmount to eNone (see Bug 502259)
+      break;
+    case nsIEditor::ePrevious: {
+      // Only extend the selection where the selection is after a UTF-16
+      // surrogate pair or a variation selector.
+      // For other cases we don't want to do that, in order
+      // to make sure that pressing backspace will only delete the last
+      // typed character.
+      // XXX This is odd if the previous one is a sequence for a grapheme
+      //     cluster.
+      const auto atStartOfSelection = GetFirstRangeStartPoint<EditorDOMPoint>();
+      if (MOZ_UNLIKELY(NS_WARN_IF(!atStartOfSelection.IsSet()))) {
+        return Err(NS_ERROR_FAILURE);
+      }
+
+      // node might be anonymous DIV, so we find better text node
+      const EditorDOMPoint insertionPoint =
+          aEditorBase.IsTextEditor()
+              ? aEditorBase.AsTextEditor()->FindBetterInsertionPoint(
+                    atStartOfSelection)
+              : atStartOfSelection.GetPointInTextNodeIfPointingAroundTextNode<
+                    EditorDOMPoint>();
+      if (MOZ_UNLIKELY(!insertionPoint.IsSet())) {
+        NS_WARNING(
+            "EditorBase::FindBetterInsertionPoint() failed, but ignored");
+        return aDirectionAndAmount;
+      }
+
+      if (!insertionPoint.IsInTextNode()) {
+        return aDirectionAndAmount;
+      }
+
+      const nsTextFragment* data =
+          &insertionPoint.ContainerAs<Text>()->TextFragment();
+      uint32_t offset = insertionPoint.Offset();
+      if (!(offset > 1 &&
+            data->IsLowSurrogateFollowingHighSurrogateAt(offset - 1)) &&
+          !(offset > 0 &&
+            gfxFontUtils::IsVarSelector(data->CharAt(offset - 1)))) {
+        return aDirectionAndAmount;
+      }
+      // Different from the `eNext` case, we look for character boundary.
+      // I'm not sure whether this inconsistency between "Delete" and
+      // "Backspace" is intentional or not.
+      result = nsFrameSelection::CreateRangeExtendedToPreviousCharacterBoundary<
+          nsRange>(*presShell, limitersAndCaretData, anchorFocusRange,
+                   rangeDirection);
+      if (NS_WARN_IF(aEditorBase.Destroyed())) {
+        return Err(NS_ERROR_EDITOR_DESTROYED);
+      }
+      NS_WARNING_ASSERTION(
+          result.isOk(),
+          "nsFrameSelection::"
+          "CreateRangeExtendedToPreviousGraphemeClusterBoundary() failed");
+      break;
+    }
+    case nsIEditor::eToBeginningOfLine:
+      result =
+          nsFrameSelection::CreateRangeExtendedToPreviousHardLineBreak<nsRange>(
+              *presShell, limitersAndCaretData, anchorFocusRange,
+              rangeDirection);
+      if (NS_WARN_IF(aEditorBase.Destroyed())) {
+        return Err(NS_ERROR_EDITOR_DESTROYED);
+      }
+      NS_WARNING_ASSERTION(
+          result.isOk(),
+          "nsFrameSelection::CreateRangeExtendedToPreviousHardLineBreak() "
+          "failed");
+      directionAndAmountResult = nsIEditor::eNone;
+      break;
+    case nsIEditor::eToEndOfLine:
+      result =
+          nsFrameSelection::CreateRangeExtendedToNextHardLineBreak<nsRange>(
+              *presShell, limitersAndCaretData, anchorFocusRange,
+              rangeDirection);
+      if (NS_WARN_IF(aEditorBase.Destroyed())) {
+        return Err(NS_ERROR_EDITOR_DESTROYED);
+      }
+      NS_WARNING_ASSERTION(
+          result.isOk(),
+          "nsFrameSelection::CreateRangeExtendedToNextHardLineBreak() failed");
+      directionAndAmountResult = nsIEditor::eNext;
+      break;
+    default:
+      return aDirectionAndAmount;
+  }
+
+  if (result.isErr()) {
+    return Err(result.inspectErr());
+  }
+  RefPtr<nsRange> extendedRange(result.unwrap().forget());
+  if (!extendedRange || NS_WARN_IF(!extendedRange->IsPositioned())) {
+    NS_WARNING("Failed to extend the range, but ignored");
+    return directionAndAmountResult;
+  }
+
+  // If the new range isn't editable, keep using the original range.
+  if (aEditorBase.IsHTMLEditor() &&
+      !AutoClonedRangeArray::IsEditableRange(*extendedRange, *editingHost)) {
+    return aDirectionAndAmount;
+  }
+
+  if (NS_WARN_IF(!mLimitersAndCaretData.RangeInLimiters(*extendedRange))) {
+    NS_WARNING("A range was extended to outer of selection limiter");
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  // Swap focus/anchor range with the extended range.
+  DebugOnly<bool> found = false;
+  for (OwningNonNull<nsRange>& range : mRanges) {
+    if (range == mAnchorFocusRange) {
+      range = *extendedRange;
+      found = true;
+      break;
+    }
+  }
+  MOZ_ASSERT(found);
+  mAnchorFocusRange.swap(extendedRange);
+  return directionAndAmountResult;
 }
 
 }  // namespace mozilla

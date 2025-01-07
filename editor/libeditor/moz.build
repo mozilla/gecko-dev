@@ -30,7 +30,7 @@ EXPORTS.mozilla += [
 ]
 
 UNIFIED_SOURCES += [
-    "AutoRangeArray.cpp",
+    "AutoClonedRangeArray.cpp",
     "AutoSelectionRestorer.cpp",
     "ChangeAttributeTransaction.cpp",
     "ChangeStyleTransaction.cpp",

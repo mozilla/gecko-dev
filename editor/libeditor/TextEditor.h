@@ -608,7 +608,7 @@ class TextEditor final : public EditorBase,
 
   int32_t mMaxTextLength = -1;
 
-  friend class AutoRangeArray;  // FindBetterInsertionPoint
+  friend class AutoClonedSelectionRangeArray;  // FindBetterInsertionPoint
   friend class DeleteNodeTransaction;
   friend class EditorBase;
   friend class InsertNodeTransaction;

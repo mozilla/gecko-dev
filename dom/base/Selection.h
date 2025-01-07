@@ -16,6 +16,7 @@
 #include "mozilla/WeakPtr.h"
 #include "mozilla/dom/Highlight.h"
 #include "mozilla/dom/StyledRange.h"
+#include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "nsDirection.h"
 #include "nsISelectionController.h"
 #include "nsISelectionListener.h"

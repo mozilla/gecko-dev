@@ -102,6 +102,7 @@ UNIFIED_SOURCES += [
     "AccessibleCaretEventHub.cpp",
     "AccessibleCaretManager.cpp",
     "Baseline.cpp",
+    "CaretAssociationHint.cpp",
     "ContainStyleScopeManager.cpp",
     "DepthOrderedFrameList.cpp",
     "DisplayPortUtils.cpp",

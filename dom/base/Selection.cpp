@@ -2705,7 +2705,7 @@ void Selection::CollapseInternal(InLimiter aInLimiter,
   RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
   frameSelection->InvalidateDesiredCaretPos();
   if (aInLimiter == InLimiter::eYes &&
-      !frameSelection->IsValidSelectionPoint(aPoint.Container())) {
+      !frameSelection->NodeIsInLimiters(aPoint.Container())) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -2725,33 +2725,8 @@ void Selection::CollapseInternal(InLimiter aInLimiter,
   frameSelection->ClearTableCellSelection();
 
   // Hack to display the caret on the right line (bug 1237236).
-  if (frameSelection->GetHint() == CaretAssociationHint::Before &&
-      aPoint.Container()->IsContent()) {
-    const nsCaret::CaretPosition pos{
-        aPoint.Container(),
-        int32_t(*aPoint.Offset(RawRangeBoundary::OffsetFilter::kValidOffsets)),
-        frameSelection->GetHint(), frameSelection->GetCaretBidiLevel()};
-    CaretFrameData frameData = nsCaret::GetFrameAndOffset(pos);
-    if (frameData.mFrame) {
-      frameSelection->SetHint(frameData.mHint);
-    }
-    nsTextFrame* f = do_QueryFrame(frameData.mFrame);
-    if (f && f->IsAtEndOfLine() && f->HasSignificantTerminalNewline()) {
-      // RawRangeBounary::Offset() causes computing offset if it's not been
-      // done yet.  However, it's called only when the container is a text
-      // node.  In such case, offset has always been set since it cannot have
-      // any children.  So, this doesn't cause computing offset with expensive
-      // method, nsINode::ComputeIndexOf().
-      if ((aPoint.Container()->AsContent() == f->GetContent() &&
-           f->GetContentEnd() ==
-               static_cast<int32_t>(*aPoint.Offset(
-                   RawRangeBoundary::OffsetFilter::kValidOffsets))) ||
-          (aPoint.Container() == f->GetContent()->GetParentNode() &&
-           f->GetContent() == aPoint.GetPreviousSiblingOfChildAtOffset())) {
-        frameSelection->SetHint(CaretAssociationHint::After);
-      }
-    }
-  }
+  frameSelection->SetHint(ComputeCaretAssociationHint(
+      frameSelection->GetHint(), frameSelection->GetCaretBidiLevel(), aPoint));
 
   RefPtr<nsRange> range = nsRange::Create(aPoint.Container());
   result = range->CollapseTo(aPoint);
@@ -3074,7 +3049,7 @@ void Selection::Extend(nsINode& aContainer, uint32_t aOffset,
   }
 
   nsresult res;
-  if (!mFrameSelection->IsValidSelectionPoint(&aContainer)) {
+  if (!mFrameSelection->NodeIsInLimiters(&aContainer)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -4267,12 +4242,12 @@ void Selection::SetStartAndEndInternal(InLimiter aInLimiter,
 
   if (aInLimiter == InLimiter::eYes) {
     if (!mFrameSelection ||
-        !mFrameSelection->IsValidSelectionPoint(aStartRef.Container())) {
+        !mFrameSelection->NodeIsInLimiters(aStartRef.Container())) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
     }
     if (aStartRef.Container() != aEndRef.Container() &&
-        !mFrameSelection->IsValidSelectionPoint(aEndRef.Container())) {
+        !mFrameSelection->NodeIsInLimiters(aEndRef.Container())) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
     }

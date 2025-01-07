@@ -8,7 +8,7 @@
 #include "HTMLEditorInlines.h"
 #include "HTMLEditorNestedClasses.h"
 
-#include "AutoRangeArray.h"
+#include "AutoClonedRangeArray.h"
 #include "CSSEditUtils.h"
 #include "EditAction.h"
 #include "EditorLineBreak.h"
@@ -74,11 +74,11 @@ template nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
     const Element& aEditingHost);
 
 template nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
-    AutoRangeArray& aRanges,
+    AutoClonedRangeArray& aRanges,
     const AutoTArray<EditorInlineStyleAndValue, 1>& aStylesToSet,
     const Element& aEditingHost);
 template nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
-    AutoRangeArray& aRanges,
+    AutoClonedRangeArray& aRanges,
     const AutoTArray<EditorInlineStyleAndValue, 32>& aStylesToSet,
     const Element& aEditingHost);
 
@@ -309,7 +309,7 @@ nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
   //       mutation event listeners.  We should try to delete this in a bug.
   AutoTransactionsConserveSelection dontChangeMySelection(*this);
 
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
   nsresult rv = SetInlinePropertiesAroundRanges(selectionRanges, aStylesToSet,
                                                 aEditingHost);
   if (NS_FAILED(rv)) {
@@ -321,13 +321,14 @@ nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
   if (NS_WARN_IF(Destroyed())) {
     return NS_ERROR_EDITOR_DESTROYED;
   }
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "AutoRangeArray::ApplyTo() failed");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "AutoClonedSelectionRangeArray::ApplyTo() failed");
   return rv;
 }
 
 template <size_t N>
 nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
-    AutoRangeArray& aRanges,
+    AutoClonedRangeArray& aRanges,
     const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet,
     const Element& aEditingHost) {
   MOZ_ASSERT(!aRanges.HasSavedRanges());
@@ -3437,7 +3438,7 @@ nsresult HTMLEditor::RemoveInlinePropertiesAsSubAction(
   //       mutation event listeners.  We should try to delete this in a bug.
   AutoTransactionsConserveSelection dontChangeMySelection(*this);
 
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
   for (const EditorInlineStyle& styleToRemove : aStylesToRemove) {
     // The ranges may be updated by changing the DOM tree.  In strictly
     // speaking, we should save and restore the ranges at every range loop,
@@ -3751,7 +3752,8 @@ nsresult HTMLEditor::RemoveInlinePropertiesAsSubAction(
   if (NS_WARN_IF(Destroyed())) {
     return NS_ERROR_EDITOR_DESTROYED;
   }
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "AutoRangeArray::ApplyTo() failed");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "AutoClonedSelectionRangeArray::ApplyTo() failed");
   return rv;
 }
 
@@ -3957,7 +3959,7 @@ nsresult HTMLEditor::IncrementOrDecrementFontSizeAsSubAction(
   //       mutation event listeners.  We should try to delete this in a bug.
   AutoTransactionsConserveSelection dontChangeMySelection(*this);
 
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
   MOZ_ALWAYS_TRUE(selectionRanges.SaveAndTrackRanges(*this));
   for (const OwningNonNull<nsRange>& domRange : selectionRanges.Ranges()) {
     // TODO: We should stop extending the range outside ancestor blocks because
@@ -4072,7 +4074,8 @@ nsresult HTMLEditor::IncrementOrDecrementFontSizeAsSubAction(
   if (NS_WARN_IF(Destroyed())) {
     return NS_ERROR_EDITOR_DESTROYED;
   }
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "AutoRangeArray::ApplyTo() failed");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "AutoClonedSelectionRangeArray::ApplyTo() failed");
   return rv;
 }
 

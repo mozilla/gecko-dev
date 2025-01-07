@@ -399,7 +399,7 @@ class MOZ_STACK_CLASS HTMLEditor::AutoListElementCreator final {
    * @param aEditingHost                The editing host.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<EditActionResult, nsresult> Run(
-      HTMLEditor& aHTMLEditor, AutoRangeArray& aRanges,
+      HTMLEditor& aHTMLEditor, AutoClonedSelectionRangeArray& aRanges,
       HTMLEditor::SelectAllOfCurrentList aSelectAllOfCurrentList,
       const Element& aEditingHost) const;
 
@@ -416,7 +416,7 @@ class MOZ_STACK_CLASS HTMLEditor::AutoListElementCreator final {
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   SplitAtRangeEdgesAndCollectContentNodesToMoveIntoList(
-      HTMLEditor& aHTMLEditor, AutoRangeArray& aRanges,
+      HTMLEditor& aHTMLEditor, AutoClonedRangeArray& aRanges,
       SelectAllOfCurrentList aSelectAllOfCurrentList,
       const Element& aEditingHost, ContentNodeArray& aOutArrayOfContents) const;
 
@@ -438,7 +438,7 @@ class MOZ_STACK_CLASS HTMLEditor::AutoListElementCreator final {
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<RefPtr<Element>, nsresult>
   ReplaceContentNodesWithEmptyNewList(
-      HTMLEditor& aHTMLEditor, const AutoRangeArray& aRanges,
+      HTMLEditor& aHTMLEditor, const AutoClonedRangeArray& aRanges,
       const AutoContentNodeArray& aArrayOfContents,
       const Element& aEditingHost) const;
 
@@ -450,7 +450,7 @@ class MOZ_STACK_CLASS HTMLEditor::AutoListElementCreator final {
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<RefPtr<Element>, nsresult>
   WrapContentNodesIntoNewListElements(HTMLEditor& aHTMLEditor,
-                                      AutoRangeArray& aRanges,
+                                      AutoClonedRangeArray& aRanges,
                                       AutoContentNodeArray& aArrayOfContents,
                                       const Element& aEditingHost) const;
 
@@ -518,7 +518,7 @@ class MOZ_STACK_CLASS HTMLEditor::AutoListElementCreator final {
    * aRanges in aListItemOrListToPutCaret again.
    */
   nsresult EnsureCollapsedRangeIsInListItemOrListElement(
-      Element& aListItemOrListToPutCaret, AutoRangeArray& aRanges) const;
+      Element& aListItemOrListToPutCaret, AutoClonedRangeArray& aRanges) const;
 
   MOZ_KNOWN_LIVE nsStaticAtom& mListTagName;
   MOZ_KNOWN_LIVE nsStaticAtom& mListItemTagName;

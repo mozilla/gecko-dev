@@ -91,7 +91,8 @@ class RangeUpdater;                // mozilla/SelectionState.h
 class SelectionState;              // mozilla/SelectionState.h
 class TextEditor;                  // mozilla/TextEditor.h
 
-class AutoRangeArray;                   // AutoRangeArray.h
+class AutoClonedRangeArray;             // AutoClonedRangeArray.h
+class AutoClonedSelectionRangeArray;    // AutoClonedRangeArray.h
 class AutoSelectionRestorer;            // AutoSelectionRestorer.h
 class AutoSelectionRangeArray;          // EditorUtils.h
 class CaretPoint;                       // EditorUtils.h

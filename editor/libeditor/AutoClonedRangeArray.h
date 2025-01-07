@@ -3,64 +3,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef AutoRangeArray_h
-#define AutoRangeArray_h
+#ifndef AutoClonedRangeArray_h
+#define AutoClonedRangeArray_h
 
 #include "EditAction.h"      // for EditSubAction
 #include "EditorBase.h"      // for EditorBase
 #include "EditorDOMPoint.h"  // for EditorDOMPoint, EditorDOMRange, etc
 #include "EditorForwards.h"
 #include "HTMLEditHelpers.h"  // for BlockInlineCheck
+#include "HTMLEditor.h"       // for HTMLEditor
 #include "SelectionState.h"   // for SelectionState
 
-#include "mozilla/ErrorResult.h"        // for ErrorResult
-#include "mozilla/IntegerRange.h"       // for IntegerRange
-#include "mozilla/Maybe.h"              // for Maybe
-#include "mozilla/RangeBoundary.h"      // for RangeBoundary
-#include "mozilla/Result.h"             // for Result<>
-#include "mozilla/dom/Element.h"        // for dom::Element
-#include "mozilla/dom/HTMLBRElement.h"  // for dom::HTMLBRElement
-#include "mozilla/dom/Selection.h"      // for dom::Selection
-#include "mozilla/dom/Text.h"           // for dom::Text
+#include "mozilla/ErrorResult.h"              // for ErrorResult
+#include "mozilla/IntegerRange.h"             // for IntegerRange
+#include "mozilla/Maybe.h"                    // for Maybe
+#include "mozilla/RangeBoundary.h"            // for RangeBoundary
+#include "mozilla/Result.h"                   // for Result<>
+#include "mozilla/dom/Element.h"              // for dom::Element
+#include "mozilla/dom/HTMLBRElement.h"        // for dom::HTMLBRElement
+#include "mozilla/dom/Selection.h"            // for dom::Selection
+#include "mozilla/dom/Text.h"                 // for dom::Text
+#include "mozilla/intl/BidiEmbeddingLevel.h"  // for BidiEmbeddingLevel
 
-#include "nsDebug.h"      // for NS_WARNING, etc
-#include "nsDirection.h"  // for nsDirection
-#include "nsError.h"      // for NS_SUCCESS_* and NS_ERROR_*
-#include "nsRange.h"      // for nsRange
+#include "nsDebug.h"           // for NS_WARNING, etc
+#include "nsDirection.h"       // for nsDirection
+#include "nsError.h"           // for NS_SUCCESS_* and NS_ERROR_*
+#include "nsFrameSelection.h"  // for nsFrameSelection
+#include "nsRange.h"           // for nsRange
 
 namespace mozilla {
 
+enum class CaretAssociationHint;
+
 /******************************************************************************
- * AutoRangeArray stores ranges which do no belong any `Selection`.
- * So, different from `AutoSelectionRangeArray`, this can be used for
- * ranges which may need to be modified before touching the DOM tree,
- * but does not want to modify `Selection` for the performance.
+ * AutoClonedRangeArray stores closed ranges and has similar API to Selection.
  *****************************************************************************/
-class MOZ_STACK_CLASS AutoRangeArray final {
+
+class MOZ_STACK_CLASS AutoClonedRangeArray {
  public:
-  explicit AutoRangeArray(const dom::Selection& aSelection);
   template <typename PointType>
-  explicit AutoRangeArray(const EditorDOMRangeBase<PointType>& aRange);
+  explicit AutoClonedRangeArray(const EditorDOMRangeBase<PointType>& aRange);
   template <typename PT, typename CT>
-  explicit AutoRangeArray(const EditorDOMPointBase<PT, CT>& aPoint);
-  explicit AutoRangeArray(nsRange& aRange);
+  explicit AutoClonedRangeArray(const EditorDOMPointBase<PT, CT>& aPoint);
+  explicit AutoClonedRangeArray(const nsRange& aRange);
   // The copy constructor copies everything except saved ranges.
-  explicit AutoRangeArray(const AutoRangeArray& aOther);
+  explicit AutoClonedRangeArray(const AutoClonedRangeArray& aOther);
 
-  ~AutoRangeArray();
-
-  void Initialize(const dom::Selection& aSelection) {
-    ClearSavedRanges();
-    mDirection = aSelection.GetDirection();
-    mRanges.Clear();
-    for (const uint32_t i : IntegerRange(aSelection.RangeCount())) {
-      MOZ_ASSERT(aSelection.GetRangeAt(i));
-      mRanges.AppendElement(aSelection.GetRangeAt(i)->CloneRange());
-      if (aSelection.GetRangeAt(i) == aSelection.GetAnchorFocusRange()) {
-        mAnchorFocusRange = mRanges.LastElement();
-      }
-    }
-  }
+  virtual ~AutoClonedRangeArray() = default;
 
   /**
    * Check whether all ranges in content nodes or not.  If the ranges is empty,
@@ -194,17 +183,6 @@ class MOZ_STACK_CLASS AutoRangeArray final {
   }
 
   /**
-   * ExtendAnchorFocusRangeFor() extends the anchor-focus range for deleting
-   * content for aDirectionAndAmount.  The range won't be extended to outer of
-   * selection limiter.  Note that if a range is extened, the range is
-   * recreated.  Therefore, caller cannot cache pointer of any ranges before
-   * calling this.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<nsIEditor::EDirection, nsresult>
-  ExtendAnchorFocusRangeFor(const EditorBase& aEditorBase,
-                            nsIEditor::EDirection aDirectionAndAmount);
-
-  /**
    * For compatiblity with the other browsers, we should shrink ranges to
    * start from an atomic content and/or end after one instead of start
    * from end of a preceding text node and end by start of a follwing text
@@ -248,6 +226,8 @@ class MOZ_STACK_CLASS AutoRangeArray final {
       }
     }
     mRanges.AppendElement(*mAnchorFocusRange);
+    SetNewCaretAssociationHint(aPoint.ToRawRangeBoundary(),
+                               aPoint.GetInterlinePosition());
     return NS_OK;
   }
   template <typename SPT, typename SCT, typename EPT, typename ECT>
@@ -342,42 +322,6 @@ class MOZ_STACK_CLASS AutoRangeArray final {
   }
 
   /**
-   * APIs to store ranges with only container node and offset in it, and track
-   * them with RangeUpdater.
-   */
-  [[nodiscard]] bool SaveAndTrackRanges(HTMLEditor& aHTMLEditor);
-  [[nodiscard]] bool HasSavedRanges() const { return mSavedRanges.isSome(); }
-  void ClearSavedRanges();
-  void RestoreFromSavedRanges() {
-    MOZ_DIAGNOSTIC_ASSERT(mSavedRanges.isSome());
-    if (mSavedRanges.isNothing()) {
-      return;
-    }
-    mSavedRanges->ApplyTo(*this);
-    ClearSavedRanges();
-  }
-
-  /**
-   * Apply mRanges and mDirection to aSelection.
-   */
-  MOZ_CAN_RUN_SCRIPT nsresult ApplyTo(dom::Selection& aSelection) {
-    dom::SelectionBatcher selectionBatcher(aSelection, __FUNCTION__);
-    aSelection.RemoveAllRanges(IgnoreErrors());
-    MOZ_ASSERT(!aSelection.RangeCount());
-    aSelection.SetDirection(mDirection);
-    IgnoredErrorResult error;
-    for (const OwningNonNull<nsRange>& range : mRanges) {
-      // MOZ_KnownLive(range) due to bug 1622253
-      aSelection.AddRangeAndSelectFramesAndNotifyListeners(MOZ_KnownLive(range),
-                                                           error);
-      if (error.Failed()) {
-        return error.StealNSResult();
-      }
-    }
-    return NS_OK;
-  }
-
-  /**
    * If the points are same (i.e., mean a collapsed range) and in an empty block
    * element except the padding <br> element, this makes aStartPoint and
    * aEndPoint contain the padding <br> element.
@@ -460,18 +404,215 @@ class MOZ_STACK_CLASS AutoRangeArray final {
    */
   dom::Element* GetClosestAncestorAnyListElementOfRange() const;
 
- private:
+  [[nodiscard]] virtual bool HasSavedRanges() const { return false; }
+
+ protected:
+  AutoClonedRangeArray() = default;
+
   static nsresult ExtendRangeToWrapStartAndEndLinesContainingBoundaries(
       nsRange& aRange, EditSubAction aEditSubAction,
       BlockInlineCheck aBlockInlineCheck, const dom::Element& aEditingHost);
 
+  using InterlinePosition = dom::Selection::InterlinePosition;
+  virtual void SetNewCaretAssociationHint(
+      const RawRangeBoundary& aPoint, InterlinePosition aInterlinePosition) {}
+
   AutoTArray<mozilla::OwningNonNull<nsRange>, 8> mRanges;
   RefPtr<nsRange> mAnchorFocusRange;
   nsDirection mDirection = nsDirection::eDirNext;
+};
+
+/******************************************************************************
+ * AutoClonedSelectionRangeArray stores closed ranges and have similar API of
+ * Selection.  So, different from `AutoSelectionRangeArray`, this can be used
+ * for ranges which may need to be modified before touching the DOM tree, but
+ * does not want to modify `Selection` for the performance.
+ *****************************************************************************/
+
+class MOZ_STACK_CLASS AutoClonedSelectionRangeArray final
+    : public AutoClonedRangeArray {
+  using Selection = dom::Selection;
+
+ public:
+  AutoClonedSelectionRangeArray() = delete;
+  explicit AutoClonedSelectionRangeArray(const Selection& aSelection);
+  template <typename PointType>
+  AutoClonedSelectionRangeArray(
+      const EditorDOMRangeBase<PointType>& aRange,
+      const LimitersAndCaretData& aLimitersAndCaretData);
+  template <typename PT, typename CT>
+  AutoClonedSelectionRangeArray(
+      const EditorDOMPointBase<PT, CT>& aPoint,
+      const LimitersAndCaretData& aLimitersAndCaretData);
+  AutoClonedSelectionRangeArray(
+      const nsRange& aRange, const LimitersAndCaretData& aLimitersAndCaretData);
+  // The copy constructor copies everything except saved ranges.
+  explicit AutoClonedSelectionRangeArray(
+      const AutoClonedSelectionRangeArray& aOther);
+
+  ~AutoClonedSelectionRangeArray() override {
+    if (HasSavedRanges()) {
+      ClearSavedRanges();
+    }
+  }
+
+  void Initialize(const Selection& aSelection) {
+    ClearSavedRanges();
+    mDirection = aSelection.GetDirection();
+    mRanges.Clear();
+    if (nsFrameSelection* frameSelection = aSelection.GetFrameSelection()) {
+      mLimitersAndCaretData = LimitersAndCaretData(*frameSelection);
+    }
+    for (const uint32_t i : IntegerRange(aSelection.RangeCount())) {
+      MOZ_ASSERT(aSelection.GetRangeAt(i));
+      const nsRange* const range = aSelection.GetRangeAt(i);
+      if (!RangeIsInLimiters(*range)) {
+        continue;
+      }
+      mRanges.AppendElement(range->CloneRange());
+      if (range == aSelection.GetAnchorFocusRange()) {
+        mAnchorFocusRange = mRanges.LastElement();
+      }
+    }
+  }
+
+  /**
+   * APIs to store ranges with only container node and offset in it, and track
+   * them with RangeUpdater.
+   */
+  [[nodiscard]] bool SaveAndTrackRanges(HTMLEditor& aHTMLEditor);
+  [[nodiscard]] bool HasSavedRanges() const override {
+    return mSavedRanges.isSome();
+  }
+  void ClearSavedRanges();
+  void RestoreFromSavedRanges() {
+    MOZ_DIAGNOSTIC_ASSERT(mSavedRanges.isSome());
+    if (MOZ_UNLIKELY(mSavedRanges.isNothing())) {
+      return;
+    }
+    mSavedRanges->ApplyTo(*this);
+    ClearSavedRanges();
+  }
+
+  /**
+   * Apply mRanges and mDirection to aSelection.
+   */
+  MOZ_CAN_RUN_SCRIPT nsresult ApplyTo(dom::Selection& aSelection) {
+    dom::SelectionBatcher selectionBatcher(aSelection, __FUNCTION__);
+    aSelection.RemoveAllRanges(IgnoreErrors());
+    MOZ_ASSERT(!aSelection.RangeCount());
+    aSelection.SetDirection(mDirection);
+    IgnoredErrorResult error;
+    for (const OwningNonNull<nsRange>& range : mRanges) {
+      // MOZ_KnownLive(range) due to bug 1622253
+      aSelection.AddRangeAndSelectFramesAndNotifyListeners(MOZ_KnownLive(range),
+                                                           error);
+      if (MOZ_UNLIKELY(error.Failed())) {
+        return error.StealNSResult();
+      }
+    }
+    // FIXME: If and only if the interline position is set explicitly, we need
+    // to call `Selection::SetInterlinePosition` here with the specified value.
+    // However, currently nobody does it.
+    return NS_OK;
+  }
+
+  [[nodiscard]] const LimitersAndCaretData& LimitersAndCaretDataRef() const {
+    return mLimitersAndCaretData;
+  }
+
+  /**
+   * Equivalent to nsFrameSelection::GetLimiter().
+   * NOTE: This should be called only when IsForSelection() returns true.
+   */
+  [[nodiscard]] nsIContent* GetLimiter() const {
+    return mLimitersAndCaretData.mLimiter;
+  }
+  /**
+   * Equivalent to nsFrameSelection::GetAncestorLimiter()
+   * NOTE: This should be called only when IsForSelection() returns true.
+   */
+  [[nodiscard]] nsIContent* GetAncestorLimiter() const {
+    return mLimitersAndCaretData.mAncestorLimiter;
+  }
+  /**
+   * Equivalent to nsFrameSelection::GetHint(), this may be updated when
+   * Collapse() is called.  Otherwise, this value may mismatch with what
+   * nsFrameSelection returns if you worked with nsFrameSelection and
+   * Selection directly.
+   */
+  [[nodiscard]] CaretAssociationHint GetHint() const {
+    return mLimitersAndCaretData.mCaretAssociationHint;
+  }
+  /**
+   * Equivalent to nsFrameSelection::GetCaretBidiLevel(), this returns the value
+   * when this is initialized with nsFrameSelection or inherits another
+   * instance.  Therefore, the value may be invalid once you already modified
+   * the ranges.
+   */
+  [[nodiscard]] intl::BidiEmbeddingLevel GetCaretBidiLevel() const {
+    return mLimitersAndCaretData.mCaretBidiLevel;
+  }
+
+  void SetAncestorLimiter(const nsIContent* aSelectionAncestorLimiter) {
+    if (mLimitersAndCaretData.mAncestorLimiter == aSelectionAncestorLimiter) {
+      return;
+    }
+    mLimitersAndCaretData.mAncestorLimiter =
+        const_cast<nsIContent*>(aSelectionAncestorLimiter);
+    if (NodeIsInLimiters(GetFocusNode())) {
+      return;
+    }
+    RemoveAllRanges();
+  }
+
+  void SetInterlinePosition(Selection::InterlinePosition aInterlinePosition) {
+    switch (aInterlinePosition) {
+      case Selection::InterlinePosition::EndOfLine:
+        mLimitersAndCaretData.mCaretAssociationHint =
+            CaretAssociationHint::Before;
+        break;
+      case Selection::InterlinePosition::StartOfNextLine:
+        mLimitersAndCaretData.mCaretAssociationHint =
+            CaretAssociationHint::After;
+        break;
+      case Selection::InterlinePosition::Undefined:
+        break;
+    }
+  }
+
+  void SetCaretBidiLevel(intl::BidiEmbeddingLevel aBidiLevel) {
+    mLimitersAndCaretData.mCaretBidiLevel = aBidiLevel;
+  }
+
+  [[nodiscard]] bool NodeIsInLimiters(const nsINode* aContainerNode) const {
+    return mLimitersAndCaretData.NodeIsInLimiters(aContainerNode);
+  }
+  [[nodiscard]] bool RangeIsInLimiters(const dom::AbstractRange& aRange) const {
+    return mLimitersAndCaretData.RangeInLimiters(aRange);
+  }
+
+  /**
+   * ExtendAnchorFocusRangeFor() extends the anchor-focus range for deleting
+   * content for aDirectionAndAmount.  The range won't be extended to outer of
+   * selection limiter.  Note that if a range is extened, the range is
+   * recreated.  Therefore, caller cannot cache pointer of any ranges before
+   * calling this.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<nsIEditor::EDirection, nsresult>
+  ExtendAnchorFocusRangeFor(const EditorBase& aEditorBase,
+                            nsIEditor::EDirection aDirectionAndAmount);
+
+ private:
+  void SetNewCaretAssociationHint(
+      const RawRangeBoundary& aRawRangeBoundary,
+      InterlinePosition aInternlinePosition) override;
+
   Maybe<SelectionState> mSavedRanges;
   RefPtr<HTMLEditor> mTrackingHTMLEditor;
+  LimitersAndCaretData mLimitersAndCaretData;
 };
 
 }  // namespace mozilla
 
-#endif  // #ifndef AutoRangeArray_h
+#endif  // #ifndef AutoClonedRangeArray_h

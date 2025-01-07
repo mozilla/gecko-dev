@@ -7,7 +7,7 @@
 #include "HTMLEditHelpers.h"
 #include "HTMLEditorInlines.h"
 
-#include "AutoRangeArray.h"
+#include "AutoClonedRangeArray.h"
 #include "CSSEditUtils.h"
 #include "EditAction.h"
 #include "EditorBase.h"
@@ -3140,7 +3140,7 @@ nsresult HTMLEditor::FormatBlockContainerAsSubAction(
   // FormatBlockContainerWithTransaction() creates AutoSelectionRestorer.
   // Therefore, even if it returns NS_OK, editor might have been destroyed
   // at restoring Selection.
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
   Result<RefPtr<Element>, nsresult> suggestBlockElementToPutCaretOrError =
       FormatBlockContainerWithTransaction(selectionRanges, aTagName,
                                           aFormatBlockMode, aEditingHost);
@@ -3174,7 +3174,7 @@ nsresult HTMLEditor::FormatBlockContainerAsSubAction(
     if (pointToPutCaret.IsSet()) {
       nsresult rv = selectionRanges.Collapse(pointToPutCaret);
       if (NS_FAILED(rv)) {
-        NS_WARNING("AutoRangeArray::Collapse() failed");
+        NS_WARNING("AutoClonedRangeArray::Collapse() failed");
         return rv;
       }
     }
@@ -3188,7 +3188,7 @@ nsresult HTMLEditor::FormatBlockContainerAsSubAction(
     }
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rv),
-        "AutoRangeArray::ApplyTo(SelectionRef()) failed, but ignored");
+        "AutoClonedSelectionRangeArray::ApplyTo() failed, but ignored");
     return rv;
   }
 
@@ -3212,7 +3212,7 @@ nsresult HTMLEditor::FormatBlockContainerAsSubAction(
     nsresult rv =
         selectionRanges.Collapse(pointInBlockElementOrError.inspect());
     if (NS_FAILED(rv)) {
-      NS_WARNING("AutoRangeArray::Collapse() failed");
+      NS_WARNING("AutoClonedRangeArray::Collapse() failed");
       return rv;
     }
   }
@@ -3223,7 +3223,7 @@ nsresult HTMLEditor::FormatBlockContainerAsSubAction(
   }
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rv),
-      "AutoRangeArray::ApplyTo(SelectionRef()) failed, but ignored");
+      "AutoClonedSelectionRangeArray::ApplyTo() failed, but ignored");
   return rv;
 }
 
@@ -6587,7 +6587,7 @@ nsresult HTMLEditor::SetBlockBackgroundColorWithCSSAsSubAction(
   //       mutation event listeners.  We should try to delete this in a bug.
   AutoTransactionsConserveSelection dontChangeMySelection(*this);
 
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
   MOZ_ALWAYS_TRUE(selectionRanges.SaveAndTrackRanges(*this));
   for (const OwningNonNull<nsRange>& domRange : selectionRanges.Ranges()) {
     EditorDOMRange range(domRange);
@@ -6813,7 +6813,8 @@ nsresult HTMLEditor::SetBlockBackgroundColorWithCSSAsSubAction(
   if (NS_WARN_IF(Destroyed())) {
     return NS_ERROR_EDITOR_DESTROYED;
   }
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "AutoRangeArray::ApplyTo() failed");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "AutoClonedSelectionRangeArray::ApplyTo() failed");
   return rv;
 }
 

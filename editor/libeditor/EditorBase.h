@@ -2556,8 +2556,8 @@ class EditorBase : public nsIEditor,
       case nsIEditor::eToBeginningOfLine:
       case nsIEditor::eToEndOfLine:
         // If the amount is word or
-        // line,`AutoRangeArray::ExtendAnchorFocusRangeFor()` must have already
-        // been extended collapsed ranges before.
+        // line,`AutoClonedSelectionRangeArray::ExtendAnchorFocusRangeFor()`
+        // must have already been extended collapsed ranges before.
         return HowToHandleCollapsedRange::Ignore;
     }
     MOZ_ASSERT_UNREACHABLE("Invalid nsIEditor::EDirection value");
@@ -2642,7 +2642,7 @@ class EditorBase : public nsIEditor,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual Result<CaretPoint, nsresult>
   DeleteRangesWithTransaction(nsIEditor::EDirection aDirectionAndAmount,
                               nsIEditor::EStripWrappers aStripWrappers,
-                              const AutoRangeArray& aRangesToDelete);
+                              const AutoClonedRangeArray& aRangesToDelete);
 
   /**
    * Create a transaction for delete the content in aRangesToDelete.
@@ -2657,7 +2657,7 @@ class EditorBase : public nsIEditor,
   already_AddRefed<DeleteMultipleRangesTransaction>
   CreateTransactionForDeleteSelection(
       HowToHandleCollapsedRange aHowToHandleCollapsedRange,
-      const AutoRangeArray& aRangesToDelete);
+      const AutoClonedRangeArray& aRangesToDelete);
 
   /**
    * Create a DeleteNodeTransaction or DeleteTextTransaction for removing a
@@ -3001,16 +3001,18 @@ class EditorBase : public nsIEditor,
   // Whether we are an HTML editor class.
   bool mIsHTMLEditorClass;
 
-  friend class AlignStateAtSelection;  // AutoEditActionDataSetter,
-                                       // ToGenericNSResult
-  friend class AutoRangeArray;  // IsSEditActionDataAvailable, SelectionRef
+  friend class AlignStateAtSelection;          // AutoEditActionDataSetter,
+                                               // ToGenericNSResult
+  friend class AutoClonedRangeArray;           // IsSEditActionDataAvailable,
+                                               // RangeUpdaterRef
+  friend class AutoClonedSelectionRangeArray;  // RangeUpdaterRef, SelectionRef
   friend class AutoSelectionRestorer;   // RangeUpdaterRef, SavedSelectionRef
   friend class CaretPoint;              // AllowsTransactionsToChangeSelection,
                                         // CollapseSelectionTo
   friend class CompositionTransaction;  // CollapseSelectionTo,
                                         // DoDeleteText, DoInsertText,
                                         // DoReplaceText, HideCaret,
-                                        // RangeupdaterRef
+                                        // RangeUpdaterRef
   friend class DeleteNodeTransaction;   // RangeUpdaterRef
   friend class DeleteRangeTransaction;  // AllowsTransactionsToChangeSelection,
                                         // CollapseSelectionTo

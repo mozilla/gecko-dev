@@ -97,7 +97,7 @@ struct RangeItem final {
 class SelectionState final {
  public:
   SelectionState() = default;
-  explicit SelectionState(const AutoRangeArray& aRanges);
+  explicit SelectionState(const AutoClonedSelectionRangeArray& aRanges);
 
   /**
    * Same as the API as dom::Selection
@@ -130,7 +130,7 @@ class SelectionState final {
   /**
    * Setting aRanges to have all ranges stored by this instance.
    */
-  void ApplyTo(AutoRangeArray& aRanges);
+  void ApplyTo(AutoClonedSelectionRangeArray& aRanges);
 
   /**
    * HasOnlyCollapsedRange() returns true only when there is a positioned range

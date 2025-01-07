@@ -6,7 +6,7 @@
 #include "ErrorList.h"
 #include "TextEditor.h"
 
-#include "AutoRangeArray.h"
+#include "AutoClonedRangeArray.h"
 #include "EditAction.h"
 #include "EditorDOMPoint.h"
 #include "EditorUtils.h"
@@ -657,11 +657,12 @@ Result<EditActionResult, nsresult> TextEditor::HandleDeleteSelectionInternal(
     }
   }
 
-  AutoRangeArray rangesToDelete(SelectionRef());
+  AutoClonedSelectionRangeArray rangesToDelete(SelectionRef());
   Result<nsIEditor::EDirection, nsresult> result =
       rangesToDelete.ExtendAnchorFocusRangeFor(*this, aDirectionAndAmount);
   if (result.isErr()) {
-    NS_WARNING("AutoRangeArray::ExtendAnchorFocusRangeFor() failed");
+    NS_WARNING(
+        "AutoClonedSelectionRangeArray::ExtendAnchorFocusRangeFor() failed");
     return result.propagateErr();
   }
   if (const Text* theTextNode = GetTextNode()) {

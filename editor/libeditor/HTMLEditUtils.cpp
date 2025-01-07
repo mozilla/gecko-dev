@@ -5,15 +5,15 @@
 
 #include "HTMLEditUtils.h"
 
-#include "AutoRangeArray.h"   // for AutoRangeArray
-#include "CSSEditUtils.h"     // for CSSEditUtils
-#include "EditAction.h"       // for EditAction
-#include "EditorBase.h"       // for EditorBase, EditorType
-#include "EditorDOMPoint.h"   // for EditorDOMPoint, etc.
-#include "EditorForwards.h"   // for CollectChildrenOptions
-#include "EditorUtils.h"      // for EditorUtils
-#include "HTMLEditHelpers.h"  // for EditorInlineStyle
-#include "WSRunObject.h"      // for WSRunScanner
+#include "AutoClonedRangeArray.h"  // for AutoClonedRangeArray
+#include "CSSEditUtils.h"          // for CSSEditUtils
+#include "EditAction.h"            // for EditAction
+#include "EditorBase.h"            // for EditorBase, EditorType
+#include "EditorDOMPoint.h"        // for EditorDOMPoint, etc.
+#include "EditorForwards.h"        // for CollectChildrenOptions
+#include "EditorUtils.h"           // for EditorUtils
+#include "HTMLEditHelpers.h"       // for EditorInlineStyle
+#include "WSRunObject.h"           // for WSRunScanner
 
 #include "mozilla/ArrayUtils.h"  // for ArrayLength
 #include "mozilla/Assertions.h"  // for MOZ_ASSERT, etc.
@@ -2996,7 +2996,7 @@ bool HTMLEditUtils::IsSameCSSColorValue(const nsTSubstring<CharType>& aColorA,
  ******************************************************************************/
 
 SelectedTableCellScanner::SelectedTableCellScanner(
-    const AutoRangeArray& aRanges) {
+    const AutoClonedRangeArray& aRanges) {
   if (aRanges.Ranges().IsEmpty()) {
     return;
   }

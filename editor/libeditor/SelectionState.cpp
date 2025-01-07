@@ -5,10 +5,10 @@
 
 #include "SelectionState.h"
 
-#include "AutoRangeArray.h"   // for AutoRangeArray
-#include "EditorUtils.h"      // for EditorUtils, AutoRangeArray
-#include "EditorLineBreak.h"  // for EditorLineBreak
-#include "HTMLEditHelpers.h"  // for DeleteRangeResult
+#include "AutoClonedRangeArray.h"  // for AutoClonedRangeArray
+#include "EditorUtils.h"           // for EditorUtils
+#include "EditorLineBreak.h"       // for EditorLineBreak
+#include "HTMLEditHelpers.h"       // for DeleteRangeResult
 
 #include "ErrorList.h"
 #include "mozilla/Assertions.h"    // for MOZ_ASSERT, etc.
@@ -61,7 +61,7 @@ template nsresult RangeUpdater::SelAdjInsertNode(const EditorDOMPoint& aPoint);
 template nsresult RangeUpdater::SelAdjInsertNode(
     const EditorRawDOMPoint& aPoint);
 
-SelectionState::SelectionState(const AutoRangeArray& aRanges)
+SelectionState::SelectionState(const AutoClonedSelectionRangeArray& aRanges)
     : mDirection(aRanges.GetDirection()) {
   mArray.SetCapacity(aRanges.Ranges().Length());
   for (const OwningNonNull<nsRange>& range : aRanges.Ranges()) {
@@ -125,7 +125,7 @@ nsresult SelectionState::RestoreSelection(Selection& aSelection) {
   return NS_OK;
 }
 
-void SelectionState::ApplyTo(AutoRangeArray& aRanges) {
+void SelectionState::ApplyTo(AutoClonedSelectionRangeArray& aRanges) {
   aRanges.RemoveAllRanges();
   aRanges.SetDirection(mDirection);
   for (const RefPtr<RangeItem>& rangeItem : mArray) {

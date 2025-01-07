@@ -8,7 +8,7 @@
 #include <stdio.h>   // for nullptr, stdout
 #include <string.h>  // for strcmp
 
-#include "AutoRangeArray.h"  // for AutoRangeArray
+#include "AutoClonedRangeArray.h"  // for AutoClonedRangeArray and AutoClonedSelectionRangeArray
 #include "AutoSelectionRestorer.h"
 #include "ChangeAttributeTransaction.h"
 #include "CompositionTransaction.h"
@@ -4182,7 +4182,7 @@ void EditorBase::DoAfterRedoTransaction() {
 already_AddRefed<DeleteMultipleRangesTransaction>
 EditorBase::CreateTransactionForDeleteSelection(
     HowToHandleCollapsedRange aHowToHandleCollapsedRange,
-    const AutoRangeArray& aRangesToDelete) {
+    const AutoClonedRangeArray& aRangesToDelete) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(!aRangesToDelete.Ranges().IsEmpty());
 
@@ -4498,8 +4498,8 @@ bool EditorBase::FlushPendingNotificationsIfToHandleDeletionWithFrameSelection(
           aDirectionAndAmount, SelectionRef())) {
     return true;
   }
-  // Although AutoRangeArray::ExtendAnchorFocusRangeFor() will use
-  // nsFrameSelection, if it still has dirty frame, nsFrameSelection doesn't
+  // Although AutoClonedSelectionRangeArray::ExtendAnchorFocusRangeFor() will
+  // use nsFrameSelection, if it still has dirty frame, nsFrameSelection doesn't
   // extend selection since we block script.
   if (RefPtr<PresShell> presShell = GetPresShell()) {
     presShell->FlushPendingNotifications(FlushType::Layout);
@@ -5069,7 +5069,7 @@ nsresult EditorBase::DeleteSelectionWithTransaction(
     return NS_ERROR_EDITOR_DESTROYED;
   }
 
-  AutoRangeArray rangesToDelete(SelectionRef());
+  AutoClonedSelectionRangeArray rangesToDelete(SelectionRef());
   if (NS_WARN_IF(rangesToDelete.Ranges().IsEmpty())) {
     NS_ASSERTION(
         false,
@@ -5117,7 +5117,7 @@ Result<CaretPoint, nsresult> EditorBase::DeleteRangeWithTransaction(
     return CaretPoint(EditorDOMPoint(aRangeToDelete.StartRef()));
   }
 
-  AutoRangeArray rangesToDelete(aRangeToDelete);
+  AutoClonedRangeArray rangesToDelete(aRangeToDelete);
   Result<CaretPoint, nsresult> result = DeleteRangesWithTransaction(
       aDirectionAndAmount, aStripWrappers, rangesToDelete);
   NS_WARNING_ASSERTION(result.isOk(),
@@ -5128,7 +5128,7 @@ Result<CaretPoint, nsresult> EditorBase::DeleteRangeWithTransaction(
 Result<CaretPoint, nsresult> EditorBase::DeleteRangesWithTransaction(
     nsIEditor::EDirection aDirectionAndAmount,
     nsIEditor::EStripWrappers aStripWrappers,
-    const AutoRangeArray& aRangesToDelete) {
+    const AutoClonedRangeArray& aRangesToDelete) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(!Destroyed());
   MOZ_ASSERT(aStripWrappers == eStrip || aStripWrappers == eNoStrip);
@@ -6351,7 +6351,7 @@ NS_IMETHODIMP EditorBase::SetNewlineHandling(int32_t aNewlineHandling) {
 bool EditorBase::IsSelectionRangeContainerNotContent() const {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
-  // TODO: Make all callers use !AutoRangeArray::IsInContent() instead.
+  // TODO: Make all callers use !AutoClonedRangeArray::IsInContent() instead.
   const uint32_t rangeCount = SelectionRef().RangeCount();
   for (const uint32_t i : IntegerRange(rangeCount)) {
     MOZ_ASSERT(SelectionRef().RangeCount() == rangeCount);
@@ -6793,7 +6793,7 @@ nsresult EditorBase::AutoEditActionDataSetter::MaybeDispatchBeforeInputEvent(
         return NS_ERROR_EDITOR_DESTROYED;
       }
 
-      AutoRangeArray rangesToDelete(editorBase->SelectionRef());
+      AutoClonedSelectionRangeArray rangesToDelete(editorBase->SelectionRef());
       if (!rangesToDelete.Ranges().IsEmpty()) {
         nsresult rv = MOZ_KnownLive(editorBase->AsHTMLEditor())
                           ->ComputeTargetRanges(aDeleteDirectionAndAmount,

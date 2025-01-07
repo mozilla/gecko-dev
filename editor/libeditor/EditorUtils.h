@@ -495,10 +495,10 @@ class EditorUtils final {
    * computed with nsFrameSelection that also requires flushed layout
    * information.
    */
-  template <typename SelectionOrAutoRangeArray>
+  template <typename SelectionOrAutoClonedRangeArray>
   static bool IsFrameSelectionRequiredToExtendSelection(
       nsIEditor::EDirection aDirectionAndAmount,
-      SelectionOrAutoRangeArray& aSelectionOrAutoRangeArray) {
+      SelectionOrAutoClonedRangeArray& aSelectionOrAutoClonedRangeArray) {
     switch (aDirectionAndAmount) {
       case nsIEditor::eNextWord:
       case nsIEditor::ePreviousWord:
@@ -507,7 +507,7 @@ class EditorUtils final {
         return true;
       case nsIEditor::ePrevious:
       case nsIEditor::eNext:
-        return aSelectionOrAutoRangeArray.IsCollapsed();
+        return aSelectionOrAutoClonedRangeArray.IsCollapsed();
       default:
         return false;
     }

@@ -2830,7 +2830,7 @@ class MOZ_STACK_CLASS SelectedTableCellScanner final {
     }
   }
 
-  explicit SelectedTableCellScanner(const AutoRangeArray& aRanges);
+  explicit SelectedTableCellScanner(const AutoClonedRangeArray& aRanges);
 
   bool IsInTableCellSelectionMode() const {
     return !mSelectedCellElements.IsEmpty();

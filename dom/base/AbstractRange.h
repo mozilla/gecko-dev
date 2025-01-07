@@ -100,6 +100,23 @@ class AbstractRange : public nsISupports,
   nsINode* GetEndContainer() const { return mEnd.Container(); }
   nsINode* GetMayCrossShadowBoundaryEndContainer() const;
 
+  /**
+   * Return GetStartContainer() and GetEndContainer() if this is positioned.
+   */
+  [[nodiscard]] bool IsPositionedAndSameContainer() const {
+    return MOZ_LIKELY(mIsPositioned) && mStart.Container() == mEnd.Container();
+  }
+  /**
+   * Return GetMayCrossShadowBoundaryStartContainer() and
+   * GetMayCrossShadowBoundaryEndContainer() if this is positioned.
+   */
+  [[nodiscard]] bool IsPositionedAndSameContainerMayCrossShadowBoundary()
+      const {
+    return MOZ_LIKELY(mIsPositioned) &&
+           GetMayCrossShadowBoundaryStartContainer() ==
+               GetMayCrossShadowBoundaryEndContainer();
+  }
+
   bool MayCrossShadowBoundary() const;
 
   Document* GetComposedDocOfContainers() const {

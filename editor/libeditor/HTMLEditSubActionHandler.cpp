@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <utility>
 
-#include "AutoRangeArray.h"
+#include "AutoClonedRangeArray.h"
 #include "AutoSelectionRestorer.h"
 #include "CSSEditUtils.h"
 #include "EditAction.h"
@@ -446,7 +446,7 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
             if (MOZ_UNLIKELY(!editingHost)) {
               break;
             }
-            RefPtr<nsRange> extendedChangedRange = AutoRangeArray::
+            RefPtr<nsRange> extendedChangedRange = AutoClonedRangeArray::
                 CreateRangeWrappingStartAndEndLinesContainingBoundaries(
                     changedRange, GetTopLevelEditSubAction(),
                     isBlockLevelSubAction
@@ -1831,7 +1831,7 @@ HTMLEditor::InsertParagraphSeparatorAsSubAction(const Element& aEditingHost) {
     }
   }
 
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
   {
     // If the editing host is the body element, the selection may be outside
     // aEditingHost.  In the case, we should use the editing host outside the
@@ -3626,7 +3626,7 @@ HTMLEditor::MakeOrChangeListAndListItemAsSubAction(
 
   AutoListElementCreator listCreator(*listTagName, *listItemTagName,
                                      aBulletType);
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
   Result<EditActionResult, nsresult> result = listCreator.Run(
       *this, selectionRanges, aSelectAllOfCurrentList, aEditingHost);
   if (MOZ_UNLIKELY(result.isErr())) {
@@ -3640,7 +3640,7 @@ HTMLEditor::MakeOrChangeListAndListItemAsSubAction(
     return Err(NS_ERROR_EDITOR_DESTROYED);
   }
   if (NS_FAILED(rv)) {
-    NS_WARNING("AutoRangeArray::ApplyTo() failed");
+    NS_WARNING("AutoClonedSelectionRangeArray::ApplyTo() failed");
     return Err(rv);
   }
   return result.inspect().Ignored() ? EditActionResult::CanceledResult()
@@ -3648,7 +3648,7 @@ HTMLEditor::MakeOrChangeListAndListItemAsSubAction(
 }
 
 Result<EditActionResult, nsresult> HTMLEditor::AutoListElementCreator::Run(
-    HTMLEditor& aHTMLEditor, AutoRangeArray& aRanges,
+    HTMLEditor& aHTMLEditor, AutoClonedSelectionRangeArray& aRanges,
     SelectAllOfCurrentList aSelectAllOfCurrentList,
     const Element& aEditingHost) const {
   MOZ_ASSERT(aHTMLEditor.IsTopLevelEditSubActionDataAvailable());
@@ -3692,7 +3692,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoListElementCreator::Run(
     nsresult rv = aRanges.Collapse(
         EditorRawDOMPoint(newListItemElementOrError.inspect(), 0u));
     if (NS_FAILED(rv)) {
-      NS_WARNING("AutoRangeArray::Collapse() failed");
+      NS_WARNING("AutoClonedRangeArray::Collapse() failed");
       return Err(rv);
     }
     return EditActionResult::IgnoredResult();
@@ -3727,7 +3727,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoListElementCreator::Run(
 
 nsresult HTMLEditor::AutoListElementCreator::
     SplitAtRangeEdgesAndCollectContentNodesToMoveIntoList(
-        HTMLEditor& aHTMLEditor, AutoRangeArray& aRanges,
+        HTMLEditor& aHTMLEditor, AutoClonedRangeArray& aRanges,
         SelectAllOfCurrentList aSelectAllOfCurrentList,
         const Element& aEditingHost,
         ContentNodeArray& aOutArrayOfContents) const {
@@ -3742,7 +3742,7 @@ nsresult HTMLEditor::AutoListElementCreator::
     }
   }
 
-  AutoRangeArray extendedRanges(aRanges);
+  AutoClonedRangeArray extendedRanges(aRanges);
 
   // TODO: We don't need AutoTransactionsConserveSelection here in the
   //       normal cases, but removing this may cause the behavior with the
@@ -3758,16 +3758,16 @@ nsresult HTMLEditor::AutoListElementCreator::
           aHTMLEditor, BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
   if (MOZ_UNLIKELY(splitResult.isErr())) {
     NS_WARNING(
-        "AutoRangeArray::"
+        "AutoClonedRangeArray::"
         "SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries() failed");
     return splitResult.unwrapErr();
   }
   nsresult rv = extendedRanges.CollectEditTargetNodes(
       aHTMLEditor, aOutArrayOfContents, EditSubAction::eCreateOrChangeList,
-      AutoRangeArray::CollectNonEditableNodes::No);
+      AutoClonedRangeArray::CollectNonEditableNodes::No);
   if (NS_FAILED(rv)) {
     NS_WARNING(
-        "AutoRangeArray::CollectEditTargetNodes(EditSubAction::"
+        "AutoClonedRangeArray::CollectEditTargetNodes(EditSubAction::"
         "eCreateOrChangeList, CollectNonEditableNodes::No) failed");
     return rv;
   }
@@ -3805,7 +3805,7 @@ bool HTMLEditor::AutoListElementCreator::
 
 Result<RefPtr<Element>, nsresult>
 HTMLEditor::AutoListElementCreator::ReplaceContentNodesWithEmptyNewList(
-    HTMLEditor& aHTMLEditor, const AutoRangeArray& aRanges,
+    HTMLEditor& aHTMLEditor, const AutoClonedRangeArray& aRanges,
     const AutoContentNodeArray& aArrayOfContents,
     const Element& aEditingHost) const {
   // if only breaks, delete them
@@ -3878,7 +3878,7 @@ HTMLEditor::AutoListElementCreator::ReplaceContentNodesWithEmptyNewList(
 
 Result<RefPtr<Element>, nsresult>
 HTMLEditor::AutoListElementCreator::WrapContentNodesIntoNewListElements(
-    HTMLEditor& aHTMLEditor, AutoRangeArray& aRanges,
+    HTMLEditor& aHTMLEditor, AutoClonedRangeArray& aRanges,
     AutoContentNodeArray& aArrayOfContents, const Element& aEditingHost) const {
   // if there is only one node in the array, and it is a list, div, or
   // blockquote, then look inside of it until we find inner list or content.
@@ -4568,7 +4568,8 @@ nsresult HTMLEditor::AutoListElementCreator::WrapContentIntoNewListItemElement(
 
 nsresult HTMLEditor::AutoListElementCreator::
     EnsureCollapsedRangeIsInListItemOrListElement(
-        Element& aListItemOrListToPutCaret, AutoRangeArray& aRanges) const {
+        Element& aListItemOrListToPutCaret,
+        AutoClonedRangeArray& aRanges) const {
   if (!aRanges.IsCollapsed() || aRanges.Ranges().IsEmpty()) {
     return NS_OK;
   }
@@ -4588,7 +4589,7 @@ nsresult HTMLEditor::AutoListElementCreator::
   if (pointToPutCaretOrError.inspect().IsSet()) {
     nsresult rv = aRanges.Collapse(pointToPutCaretOrError.inspect());
     if (NS_FAILED(rv)) {
-      NS_WARNING("AutoRangeArray::Collapse() failed");
+      NS_WARNING("AutoClonedRangeArray::Collapse() failed");
       return rv;
     }
   }
@@ -4658,7 +4659,7 @@ nsresult HTMLEditor::RemoveListAtSelectionAsSubAction(
     AutoTransactionsConserveSelection dontChangeMySelection(*this);
 
     {
-      AutoRangeArray extendedSelectionRanges(SelectionRef());
+      AutoClonedSelectionRangeArray extendedSelectionRanges(SelectionRef());
       extendedSelectionRanges.ExtendRangesToWrapLines(
           EditSubAction::eCreateOrChangeList,
           BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
@@ -4668,17 +4669,17 @@ nsresult HTMLEditor::RemoveListAtSelectionAsSubAction(
                   *this, BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
       if (MOZ_UNLIKELY(splitResult.isErr())) {
         NS_WARNING(
-            "AutoRangeArray::"
+            "AutoClonedRangeArray::"
             "SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries() "
             "failed");
         return splitResult.unwrapErr();
       }
       nsresult rv = extendedSelectionRanges.CollectEditTargetNodes(
           *this, arrayOfContents, EditSubAction::eCreateOrChangeList,
-          AutoRangeArray::CollectNonEditableNodes::No);
+          AutoClonedRangeArray::CollectNonEditableNodes::No);
       if (NS_FAILED(rv)) {
         NS_WARNING(
-            "AutoRangeArray::CollectEditTargetNodes(EditSubAction::"
+            "AutoClonedRangeArray::CollectEditTargetNodes(EditSubAction::"
             "eCreateOrChangeList, CollectNonEditableNodes::No) failed");
         return rv;
       }
@@ -4737,8 +4738,9 @@ nsresult HTMLEditor::RemoveListAtSelectionAsSubAction(
 
 Result<RefPtr<Element>, nsresult>
 HTMLEditor::FormatBlockContainerWithTransaction(
-    AutoRangeArray& aSelectionRanges, const nsStaticAtom& aNewFormatTagName,
-    FormatBlockMode aFormatBlockMode, const Element& aEditingHost) {
+    AutoClonedSelectionRangeArray& aSelectionRanges,
+    const nsStaticAtom& aNewFormatTagName, FormatBlockMode aFormatBlockMode,
+    const Element& aEditingHost) {
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
 
   // XXX Why do we do this only when there is only one selection range?
@@ -4754,11 +4756,11 @@ HTMLEditor::FormatBlockContainerWithTransaction(
       return extendedRange.propagateErr();
     }
     // Note that end point may be prior to start point.  So, we
-    // cannot use AutoRangeArray::SetStartAndEnd() here.
+    // cannot use AutoClonedRangeArray::SetStartAndEnd() here.
     if (NS_FAILED(aSelectionRanges.SetBaseAndExtent(
             extendedRange.inspect().StartRef(),
             extendedRange.inspect().EndRef()))) {
-      NS_WARNING("AutoRangeArray::SetBaseAndExtent() failed");
+      NS_WARNING("AutoClonedRangeArray::SetBaseAndExtent() failed");
       return Err(NS_ERROR_FAILURE);
     }
   }
@@ -4783,7 +4785,7 @@ HTMLEditor::FormatBlockContainerWithTransaction(
               aEditingHost);
   if (MOZ_UNLIKELY(splitResult.isErr())) {
     NS_WARNING(
-        "AutoRangeArray::"
+        "AutoClonedRangeArray::"
         "SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries() failed");
     return splitResult.propagateErr();
   }
@@ -4792,11 +4794,11 @@ HTMLEditor::FormatBlockContainerWithTransaction(
       aFormatBlockMode == FormatBlockMode::HTMLFormatBlockCommand
           ? EditSubAction::eFormatBlockForHTMLCommand
           : EditSubAction::eCreateOrRemoveBlock,
-      AutoRangeArray::CollectNonEditableNodes::Yes);
+      AutoClonedRangeArray::CollectNonEditableNodes::Yes);
   if (NS_FAILED(rv)) {
     NS_WARNING(
-        "AutoRangeArray::CollectEditTargetNodes(CollectNonEditableNodes::No) "
-        "failed");
+        "AutoClonedRangeArray::CollectEditTargetNodes(CollectNonEditableNodes::"
+        "No) failed");
     return Err(rv);
   }
 
@@ -4895,7 +4897,7 @@ HTMLEditor::FormatBlockContainerWithTransaction(
       nsresult rv =
           aSelectionRanges.Collapse(insertBRElementResult.UnwrapCaretPoint());
       if (NS_FAILED(rv)) {
-        NS_WARNING("AutoRangeArray::Collapse() failed");
+        NS_WARNING("AutoClonedRangeArray::Collapse() failed");
         return Err(rv);
       }
       return RefPtr<Element>();
@@ -4954,7 +4956,7 @@ HTMLEditor::FormatBlockContainerWithTransaction(
     nsresult rv = aSelectionRanges.Collapse(EditorRawDOMPoint(
         unwrappedCreateNewBlockElementResult.GetNewNode(), 0u));
     if (NS_FAILED(rv)) {
-      NS_WARNING("AutoRangeArray::Collapse() failed");
+      NS_WARNING("AutoClonedRangeArray::Collapse() failed");
       return Err(rv);
     }
     return unwrappedCreateNewBlockElementResult.UnwrapNewNode();
@@ -5218,7 +5220,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleIndentAtSelection(
     }
   }
 
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
 
   if (MOZ_UNLIKELY(!selectionRanges.IsInContent())) {
     NS_WARNING("Mutation event listener might have changed the selection");
@@ -5240,18 +5242,20 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleIndentAtSelection(
   }
   rv = selectionRanges.ApplyTo(SelectionRef());
   if (MOZ_UNLIKELY(Destroyed())) {
-    NS_WARNING("AutoRangeArray::ApplyTo() caused destroying the editor");
+    NS_WARNING(
+        "AutoClonedSelectionRangeArray::ApplyTo() caused destroying the "
+        "editor");
     return Err(NS_ERROR_EDITOR_DESTROYED);
   }
   if (NS_FAILED(rv)) {
-    NS_WARNING("AutoRangeArray::ApplyTo() failed");
+    NS_WARNING("AutoClonedSelectionRangeArray::ApplyTo() failed");
     return Err(rv);
   }
   return EditActionResult::HandledResult();
 }
 
-nsresult HTMLEditor::HandleCSSIndentAroundRanges(AutoRangeArray& aRanges,
-                                                 const Element& aEditingHost) {
+nsresult HTMLEditor::HandleCSSIndentAroundRanges(
+    AutoClonedSelectionRangeArray& aRanges, const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
   MOZ_ASSERT(!aRanges.Ranges().IsEmpty());
@@ -5278,7 +5282,7 @@ nsresult HTMLEditor::HandleCSSIndentAroundRanges(AutoRangeArray& aRanges,
     nsresult rv = aRanges.SetBaseAndExtent(extendedRange.inspect().StartRef(),
                                            extendedRange.inspect().EndRef());
     if (NS_FAILED(rv)) {
-      NS_WARNING("AutoRangeArray::SetBaseAndExtent() failed");
+      NS_WARNING("AutoClonedRangeArray::SetBaseAndExtent() failed");
       return rv;
     }
   }
@@ -5312,7 +5316,7 @@ nsresult HTMLEditor::HandleCSSIndentAroundRanges(AutoRangeArray& aRanges,
   EditorDOMPoint pointToPutCaret;
   if (arrayOfContents.IsEmpty()) {
     {
-      AutoRangeArray extendedRanges(aRanges);
+      AutoClonedSelectionRangeArray extendedRanges(aRanges);
       extendedRanges.ExtendRangesToWrapLines(
           EditSubAction::eIndent, BlockInlineCheck::UseHTMLDefaultStyle,
           aEditingHost);
@@ -5322,7 +5326,7 @@ nsresult HTMLEditor::HandleCSSIndentAroundRanges(AutoRangeArray& aRanges,
                   *this, BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
       if (MOZ_UNLIKELY(splitResult.isErr())) {
         NS_WARNING(
-            "AutoRangeArray::"
+            "AutoClonedRangeArray::"
             "SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries() "
             "failed");
         return splitResult.unwrapErr();
@@ -5332,11 +5336,11 @@ nsresult HTMLEditor::HandleCSSIndentAroundRanges(AutoRangeArray& aRanges,
       }
       nsresult rv = extendedRanges.CollectEditTargetNodes(
           *this, arrayOfContents, EditSubAction::eIndent,
-          AutoRangeArray::CollectNonEditableNodes::Yes);
+          AutoClonedRangeArray::CollectNonEditableNodes::Yes);
       if (NS_FAILED(rv)) {
         NS_WARNING(
-            "AutoRangeArray::CollectEditTargetNodes(EditSubAction::eIndent, "
-            "CollectNonEditableNodes::Yes) failed");
+            "AutoClonedRangeArray::CollectEditTargetNodes(EditSubAction::"
+            "eIndent, CollectNonEditableNodes::Yes) failed");
         return rv;
       }
     }
@@ -5408,7 +5412,8 @@ nsresult HTMLEditor::HandleCSSIndentAroundRanges(AutoRangeArray& aRanges,
     }
     aRanges.ClearSavedRanges();
     nsresult rv = aRanges.Collapse(EditorDOMPoint(newDivElement, 0u));
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "AutoRangeArray::Collapse() failed");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "AutoClonedRangeArray::Collapse() failed");
     return rv;
   }
 
@@ -5577,8 +5582,8 @@ nsresult HTMLEditor::HandleCSSIndentAroundRanges(AutoRangeArray& aRanges,
   return rv;
 }
 
-nsresult HTMLEditor::HandleHTMLIndentAroundRanges(AutoRangeArray& aRanges,
-                                                  const Element& aEditingHost) {
+nsresult HTMLEditor::HandleHTMLIndentAroundRanges(
+    AutoClonedSelectionRangeArray& aRanges, const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
   MOZ_ASSERT(!aRanges.Ranges().IsEmpty());
@@ -5600,7 +5605,7 @@ nsresult HTMLEditor::HandleHTMLIndentAroundRanges(AutoRangeArray& aRanges,
     nsresult rv = aRanges.SetBaseAndExtent(extendedRange.inspect().StartRef(),
                                            extendedRange.inspect().EndRef());
     if (NS_FAILED(rv)) {
-      NS_WARNING("AutoRangeArray::SetBaseAndExtent() failed");
+      NS_WARNING("AutoClonedRangeArray::SetBaseAndExtent() failed");
       return rv;
     }
   }
@@ -5619,7 +5624,7 @@ nsresult HTMLEditor::HandleHTMLIndentAroundRanges(AutoRangeArray& aRanges,
   // use these ranges to construct a list of nodes to act on.
   AutoTArray<OwningNonNull<nsIContent>, 64> arrayOfContents;
   {
-    AutoRangeArray extendedRanges(aRanges);
+    AutoClonedSelectionRangeArray extendedRanges(aRanges);
     extendedRanges.ExtendRangesToWrapLines(
         EditSubAction::eIndent, BlockInlineCheck::UseHTMLDefaultStyle,
         aEditingHost);
@@ -5629,7 +5634,7 @@ nsresult HTMLEditor::HandleHTMLIndentAroundRanges(AutoRangeArray& aRanges,
                 *this, BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
     if (MOZ_UNLIKELY(splitResult.isErr())) {
       NS_WARNING(
-          "AutoRangeArray::"
+          "AutoClonedRangeArray::"
           "SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries() "
           "failed");
       return splitResult.unwrapErr();
@@ -5639,11 +5644,11 @@ nsresult HTMLEditor::HandleHTMLIndentAroundRanges(AutoRangeArray& aRanges,
     }
     nsresult rv = extendedRanges.CollectEditTargetNodes(
         *this, arrayOfContents, EditSubAction::eIndent,
-        AutoRangeArray::CollectNonEditableNodes::Yes);
+        AutoClonedRangeArray::CollectNonEditableNodes::Yes);
     if (NS_FAILED(rv)) {
       NS_WARNING(
-          "AutoRangeArray::CollectEditTargetNodes(EditSubAction::eIndent, "
-          "CollectNonEditableNodes::Yes) failed");
+          "AutoClonedRangeArray::CollectEditTargetNodes(EditSubAction::eIndent,"
+          " CollectNonEditableNodes::Yes) failed");
       return rv;
     }
   }
@@ -6147,17 +6152,17 @@ HTMLEditor::HandleOutdentAtSelectionInternal(const Element& aEditingHost) {
   // in the range
   AutoTArray<OwningNonNull<nsIContent>, 64> arrayOfContents;
   {
-    AutoRangeArray extendedSelectionRanges(SelectionRef());
+    AutoClonedSelectionRangeArray extendedSelectionRanges(SelectionRef());
     extendedSelectionRanges.ExtendRangesToWrapLines(
         EditSubAction::eOutdent, BlockInlineCheck::UseHTMLDefaultStyle,
         aEditingHost);
     nsresult rv = extendedSelectionRanges.CollectEditTargetNodes(
         *this, arrayOfContents, EditSubAction::eOutdent,
-        AutoRangeArray::CollectNonEditableNodes::Yes);
+        AutoClonedRangeArray::CollectNonEditableNodes::Yes);
     if (NS_FAILED(rv)) {
       NS_WARNING(
-          "AutoRangeArray::CollectEditTargetNodes(EditSubAction::eOutdent, "
-          "CollectNonEditableNodes::Yes) failed");
+          "AutoClonedRangeArray::CollectEditTargetNodes(EditSubAction::"
+          "eOutdent, CollectNonEditableNodes::Yes) failed");
       return Err(rv);
     }
     Result<EditorDOMPoint, nsresult> splitAtBRElementsResult =
@@ -7009,9 +7014,9 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::CreateStyleForInsertText(
 
   // If we have preserved commands except relative font style changes, we can
   // use inline style setting code which reuse ancestors better.
-  AutoRangeArray ranges(pointToPutCaret);
+  AutoClonedRangeArray ranges(pointToPutCaret);
   if (MOZ_UNLIKELY(ranges.Ranges().IsEmpty())) {
-    NS_WARNING("AutoRangeArray::AutoRangeArray() failed");
+    NS_WARNING("AutoClonedRangeArray::AutoClonedRangeArray() failed");
     return Err(NS_ERROR_FAILURE);
   }
   nsresult rv =
@@ -7108,7 +7113,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AlignAsSubAction(
     }
   }
 
-  AutoRangeArray selectionRanges(SelectionRef());
+  AutoClonedSelectionRangeArray selectionRanges(SelectionRef());
 
   // XXX Why do we do this only when there is only one selection range?
   if (!selectionRanges.IsCollapsed() &&
@@ -7159,7 +7164,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AlignAsSubAction(
     if (pointToPutCaret.IsSet()) {
       nsresult rv = selectionRanges.Collapse(pointToPutCaret);
       if (NS_FAILED(rv)) {
-        NS_WARNING("AutoRangeArray::Collapse() failed");
+        NS_WARNING("AutoClonedRangeArray::Collapse() failed");
         return Err(rv);
       }
     }
@@ -7167,7 +7172,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AlignAsSubAction(
 
   rv = selectionRanges.ApplyTo(SelectionRef());
   if (NS_FAILED(rv)) {
-    NS_WARNING("AutoRangeArray::ApplyTo() failed");
+    NS_WARNING("AutoClonedRangeArray::ApplyTo() failed");
     return Err(rv);
   }
 
@@ -7179,9 +7184,9 @@ Result<EditActionResult, nsresult> HTMLEditor::AlignAsSubAction(
   return EditActionResult::HandledResult();
 }
 
-nsresult HTMLEditor::AlignContentsAtRanges(AutoRangeArray& aRanges,
-                                           const nsAString& aAlignType,
-                                           const Element& aEditingHost) {
+nsresult HTMLEditor::AlignContentsAtRanges(
+    AutoClonedSelectionRangeArray& aRanges, const nsAString& aAlignType,
+    const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
   MOZ_ASSERT(aRanges.IsInContent());
@@ -7198,7 +7203,7 @@ nsresult HTMLEditor::AlignContentsAtRanges(AutoRangeArray& aRanges,
   // in the range
   AutoTArray<OwningNonNull<nsIContent>, 64> arrayOfContents;
   {
-    AutoRangeArray extendedRanges(aRanges);
+    AutoClonedSelectionRangeArray extendedRanges(aRanges);
     extendedRanges.ExtendRangesToWrapLines(
         EditSubAction::eSetOrClearAlignment,
         BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
@@ -7208,7 +7213,7 @@ nsresult HTMLEditor::AlignContentsAtRanges(AutoRangeArray& aRanges,
                 *this, BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
     if (MOZ_UNLIKELY(splitResult.isErr())) {
       NS_WARNING(
-          "AutoRangeArray::"
+          "AutoClonedRangeArray::"
           "SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries() "
           "failed");
       return splitResult.unwrapErr();
@@ -7218,10 +7223,10 @@ nsresult HTMLEditor::AlignContentsAtRanges(AutoRangeArray& aRanges,
     }
     nsresult rv = extendedRanges.CollectEditTargetNodes(
         *this, arrayOfContents, EditSubAction::eSetOrClearAlignment,
-        AutoRangeArray::CollectNonEditableNodes::Yes);
+        AutoClonedRangeArray::CollectNonEditableNodes::Yes);
     if (NS_FAILED(rv)) {
       NS_WARNING(
-          "AutoRangeArray::CollectEditTargetNodes(EditSubAction::"
+          "AutoClonedRangeArray::CollectEditTargetNodes(EditSubAction::"
           "eSetOrClearAlignment, CollectNonEditableNodes::Yes) failed");
       return rv;
     }
@@ -7316,7 +7321,8 @@ nsresult HTMLEditor::AlignContentsAtRanges(AutoRangeArray& aRanges,
     EditorDOMPoint pointToPutCaret =
         unwrappedInsertNewDivElementResult.UnwrapCaretPoint();
     nsresult rv = aRanges.Collapse(pointToPutCaret);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "AutoRangeArray::Collapse() failed");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "AutoClonedRangeArray::Collapse() failed");
     return rv;
   }
 
@@ -7349,7 +7355,7 @@ nsresult HTMLEditor::AlignContentsAtRanges(AutoRangeArray& aRanges,
       } else if (pointInNewDivOrError.inspect().IsSet()) {
         nsresult rv = aRanges.Collapse(pointInNewDivOrError.unwrap());
         if (NS_FAILED(rv)) {
-          NS_WARNING("AutoRangeArray::Collapse() failed");
+          NS_WARNING("AutoClonedRangeArray::Collapse() failed");
           return rv;
         }
       }
@@ -7937,13 +7943,14 @@ already_AddRefed<nsRange> HTMLEditor::CreateRangeIncludingAdjuscentWhiteSpaces(
 
   EditorDOMPoint startPoint = aStartPoint.template To<EditorDOMPoint>();
   EditorDOMPoint endPoint = aEndPoint.template To<EditorDOMPoint>();
-  AutoRangeArray::UpdatePointsToSelectAllChildrenIfCollapsedInEmptyBlockElement(
-      startPoint, endPoint, *editingHost);
+  AutoClonedRangeArray::
+      UpdatePointsToSelectAllChildrenIfCollapsedInEmptyBlockElement(
+          startPoint, endPoint, *editingHost);
 
   if (NS_WARN_IF(!startPoint.IsInContentNode()) ||
       NS_WARN_IF(!endPoint.IsInContentNode())) {
     NS_WARNING(
-        "AutoRangeArray::"
+        "AutoClonedRangeArray::"
         "UpdatePointsToSelectAllChildrenIfCollapsedInEmptyBlockElement() "
         "failed");
     return nullptr;
@@ -10662,7 +10669,7 @@ nsresult HTMLEditor::RemoveEmptyNodesIn(const EditorDOMRange& aRange) {
   {
     const bool isMailEditor = IsMailEditor();
     AutoTArray<OwningNonNull<nsIContent>, 64> knownNonEmptyContents;
-    Maybe<AutoRangeArray> maybeSelectionRanges;
+    Maybe<AutoClonedSelectionRangeArray> maybeSelectionRanges;
     for (; !postOrderIter.IsDone(); postOrderIter.Next()) {
       MOZ_ASSERT(postOrderIter.GetCurrentNode()->IsContent());
 
@@ -11811,7 +11818,7 @@ nsresult HTMLEditor::MoveSelectedContentsToDivElementToMakeItAbsolutePosition(
   // Use these ranges to construct a list of nodes to act on.
   AutoTArray<OwningNonNull<nsIContent>, 64> arrayOfContents;
   {
-    AutoRangeArray extendedSelectionRanges(SelectionRef());
+    AutoClonedSelectionRangeArray extendedSelectionRanges(SelectionRef());
     extendedSelectionRanges.ExtendRangesToWrapLines(
         EditSubAction::eSetPositionToAbsolute,
         BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
@@ -11821,7 +11828,7 @@ nsresult HTMLEditor::MoveSelectedContentsToDivElementToMakeItAbsolutePosition(
                 *this, BlockInlineCheck::UseHTMLDefaultStyle, aEditingHost);
     if (MOZ_UNLIKELY(splitResult.isErr())) {
       NS_WARNING(
-          "AutoRangeArray::"
+          "AutoClonedRangeArray::"
           "SplitTextAtEndBoundariesAndInlineAncestorsAtBothBoundaries() "
           "failed");
       return splitResult.unwrapErr();
@@ -11831,10 +11838,10 @@ nsresult HTMLEditor::MoveSelectedContentsToDivElementToMakeItAbsolutePosition(
     }
     nsresult rv = extendedSelectionRanges.CollectEditTargetNodes(
         *this, arrayOfContents, EditSubAction::eSetPositionToAbsolute,
-        AutoRangeArray::CollectNonEditableNodes::Yes);
+        AutoClonedRangeArray::CollectNonEditableNodes::Yes);
     if (NS_FAILED(rv)) {
       NS_WARNING(
-          "AutoRangeArray::CollectEditTargetNodes(EditSubAction::"
+          "AutoClonedRangeArray::CollectEditTargetNodes(EditSubAction::"
           "eSetPositionToAbsolute, CollectNonEditableNodes::Yes) failed");
       return rv;
     }
