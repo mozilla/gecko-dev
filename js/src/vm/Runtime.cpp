@@ -401,8 +401,8 @@ static bool HandleInterrupt(JSContext* cx, bool invokeCallback) {
 
   cx->runtime()->gc.gcIfRequested();
 
-  // A worker thread may have requested an interrupt after finishing an Ion
-  // compilation.
+  // A worker thread may have requested an interrupt after finishing an
+  // offthread compilation.
   jit::AttachFinishedCompilations(cx);
 
   // Don't call the interrupt callback if we only interrupted for GC or Ion.

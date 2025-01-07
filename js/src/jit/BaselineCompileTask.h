@@ -60,15 +60,20 @@ class BaselineCompileTask final : public HelperThreadTask {
   void runTask();
   void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
 
+  void finishOnMainThread(JSContext* cx);
+
   JSRuntime* runtimeFromAnyThread() const {
     return snapshot_->script()->runtimeFromAnyThread();
   }
 
   const char* getName() override { return "BaselineCompileTask"; }
 
+  JSScript* script() { return snapshot_->script(); }
   bool failed() const { return failed_; }
 
   void trace(JSTracer* trc);
+
+  static void FinishOffThreadTask(BaselineCompileTask* task);
 
  private:
   CompileRealm* realm_;

@@ -6,7 +6,11 @@
 
 #include "jit/BaselineCompileTask.h"
 #include "jit/JitRuntime.h"
+#include "jit/JitScript.h"
 #include "vm/HelperThreadState.h"
+
+#include "vm/JSScript-inl.h"
+#include "vm/Realm-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -20,8 +24,10 @@ void BaselineCompileTask::runHelperThreadTask(
 
   FinishOffThreadBaselineCompile(this, locked);
 
-  // TODO: Ping the main thread so that the compiled code can be incorporated at
+  // Ping the main thread so that the compiled code can be incorporated at
   // the next interrupt callback.
+  runtimeFromAnyThread()->mainContextFromAnyThread()->requestInterrupt(
+      InterruptReason::AttachOffThreadCompilations);
 }
 
 // Debugging RAII class which marks the current thread as performing
@@ -57,6 +63,60 @@ void BaselineCompileTask::runTask() {
   MethodStatus status = compiler_->compileOffThread();
   if (status == Method_Error) {
     failed_ = true;
+  }
+}
+
+/* static */
+void BaselineCompileTask::FinishOffThreadTask(BaselineCompileTask* task) {
+  JSScript* script = task->script();
+  if (script->isBaselineCompilingOffThread()) {
+    script->jitScript()->clearIsBaselineCompiling(script);
+  }
+
+  task->masm_.reset();
+
+  // The task is allocated into its LifoAlloc, so destroying that will
+  // destroy the task and all other data accumulated during compilation.
+  js_delete(task->alloc_->lifoAlloc());
+}
+
+void BaselineCompileTask::finishOnMainThread(JSContext* cx) {
+  if (!compiler_->finishCompile(cx)) {
+    cx->recoverFromOutOfMemory();
+  }
+}
+
+void js::AttachFinishedBaselineCompilations(JSContext* cx,
+                                            AutoLockHelperThreadState& lock) {
+  JSRuntime* rt = cx->runtime();
+
+  while (true) {
+    GlobalHelperThreadState::BaselineCompileTaskVector& finished =
+        HelperThreadState().baselineFinishedList(lock);
+
+    // Find a finished task for this runtime.
+    bool found = false;
+    for (size_t i = 0; i < finished.length(); i++) {
+      BaselineCompileTask* task = finished[i];
+      if (task->runtimeFromAnyThread() != rt) {
+        continue;
+      }
+      found = true;
+
+      HelperThreadState().remove(finished, &i);
+      rt->jitRuntime()->numFinishedOffThreadTasksRef(lock)--;
+      {
+        if (!task->failed()) {
+          AutoUnlockHelperThreadState unlock(lock);
+          AutoRealm ar(cx, task->script());
+          task->finishOnMainThread(cx);
+          BaselineCompileTask::FinishOffThreadTask(task);
+        }
+      }
+    }
+    if (!found) {
+      break;
+    }
   }
 }
 

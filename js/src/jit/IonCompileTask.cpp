@@ -42,7 +42,7 @@ void IonCompileTask::runHelperThreadTask(AutoLockHelperThreadState& locked) {
   // context, and after we reset the current task we are no longer considered
   // to be Ion compiling.
   rt->mainContextFromAnyThread()->requestInterrupt(
-      InterruptReason::AttachIonCompilations);
+      InterruptReason::AttachOffThreadCompilations);
 }
 
 void IonCompileTask::runTask() {
@@ -136,6 +136,8 @@ void jit::AttachFinishedCompilations(JSContext* cx) {
   AutoLockHelperThreadState lock;
 
   while (true) {
+    AttachFinishedBaselineCompilations(cx, lock);
+
     MoveFinishedTasksToLazyLinkList(rt, lock);
 
     if (!TooManyUnlinkedTasks(rt)) {

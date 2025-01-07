@@ -1914,6 +1914,7 @@ class JSScript : public js::BaseScript {
   inline bool canIonCompile() const;
   inline void disableIon();
 
+  inline bool isBaselineCompilingOffThread() const;
   inline bool canBaselineCompile() const;
   inline void disableBaselineCompile();
 

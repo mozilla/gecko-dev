@@ -141,7 +141,7 @@ JSContext* MaybeGetJSContext();
 enum class InterruptReason : uint32_t {
   MinorGC = 1 << 0,
   MajorGC = 1 << 1,
-  AttachIonCompilations = 1 << 2,
+  AttachOffThreadCompilations = 1 << 2,
   CallbackUrgent = 1 << 3,
   CallbackCanWait = 1 << 4,
 };
