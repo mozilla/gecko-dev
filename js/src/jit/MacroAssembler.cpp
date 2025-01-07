@@ -4462,10 +4462,10 @@ StackMacroAssembler::StackMacroAssembler(JSContext* cx, TempAllocator& alloc)
     : MacroAssembler(alloc, CompileRuntime::get(cx->runtime()),
                      CompileRealm::get(cx->realm())) {}
 
-IonHeapMacroAssembler::IonHeapMacroAssembler(TempAllocator& alloc,
-                                             CompileRealm* realm)
+OffThreadMacroAssembler::OffThreadMacroAssembler(TempAllocator& alloc,
+                                                 CompileRealm* realm)
     : MacroAssembler(alloc, realm->runtime(), realm) {
-  MOZ_ASSERT(CurrentThreadIsIonCompiling());
+  MOZ_ASSERT(CurrentThreadIsOffThreadCompiling());
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)

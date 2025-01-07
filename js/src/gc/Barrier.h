@@ -364,7 +364,7 @@ struct InternalBarrierMethods<T*> {
 namespace gc {
 MOZ_ALWAYS_INLINE void ValuePostWriteBarrier(Value* vp, const Value& prev,
                                              const Value& next) {
-  MOZ_ASSERT(!CurrentThreadIsIonCompiling());
+  MOZ_ASSERT(!CurrentThreadIsOffThreadCompiling());
   MOZ_ASSERT(vp);
 
   // If the target needs an entry, add it.

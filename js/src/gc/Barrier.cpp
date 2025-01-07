@@ -60,9 +60,18 @@ void HeapSlot::assertPreconditionForPostWriteBarrier(
   }
 }
 
+bool CurrentThreadIsBaselineCompiling() {
+  jit::JitContext* jcx = jit::MaybeGetJitContext();
+  return jcx && jcx->inBaselineBackend();
+}
+
 bool CurrentThreadIsIonCompiling() {
   jit::JitContext* jcx = jit::MaybeGetJitContext();
   return jcx && jcx->inIonBackend();
+}
+
+bool CurrentThreadIsOffThreadCompiling() {
+  return CurrentThreadIsBaselineCompiling() || CurrentThreadIsIonCompiling();
 }
 
 #endif  // DEBUG

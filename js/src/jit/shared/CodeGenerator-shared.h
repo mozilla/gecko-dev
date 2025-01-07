@@ -37,7 +37,7 @@ class CodeGeneratorShared : public LElementVisitor {
 
   MacroAssembler& ensureMasm(MacroAssembler* masm, TempAllocator& alloc,
                              CompileRealm* realm);
-  mozilla::Maybe<IonHeapMacroAssembler> maybeMasm_;
+  mozilla::Maybe<OffThreadMacroAssembler> maybeMasm_;
 
  public:
   MacroAssembler& masm;

@@ -21,7 +21,7 @@ template <AllowedHelperThread Helper>
 static inline bool OnHelperThread() {
   if (Helper == AllowedHelperThread::IonCompile ||
       Helper == AllowedHelperThread::GCTaskOrIonCompile) {
-    if (CurrentThreadIsIonCompiling()) {
+    if (CurrentThreadIsOffThreadCompiling()) {
       return true;
     }
   }

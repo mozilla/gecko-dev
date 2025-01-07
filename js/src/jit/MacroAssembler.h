@@ -6161,11 +6161,11 @@ class MOZ_RAII WasmMacroAssembler : public MacroAssembler {
   ~WasmMacroAssembler() { assertNoGCThings(); }
 };
 
-// Heap-allocated MacroAssembler used for Ion off-thread code generation.
+// Heap-allocated MacroAssembler used for off-thread code generation.
 // GC cancels off-thread compilations.
-class IonHeapMacroAssembler : public MacroAssembler {
+class OffThreadMacroAssembler : public MacroAssembler {
  public:
-  IonHeapMacroAssembler(TempAllocator& alloc, CompileRealm* realm);
+  OffThreadMacroAssembler(TempAllocator& alloc, CompileRealm* realm);
 };
 
 //{{{ check_macroassembler_style
