@@ -101,9 +101,11 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   nsIFrame* GetSubdocumentRootFrame();
   enum { IGNORE_PAINT_SUPPRESSION = 0x1 };
   mozilla::PresShell* GetSubdocumentPresShellForPainting(uint32_t aFlags);
-  nsRect GetDestRect();
-  nsRect GetDestRect(const nsRect& aConstraintRect);
-  mozilla::LayoutDeviceIntSize GetSubdocumentSize();
+  nsRect GetDestRect() const;
+  nsRect GetDestRect(const nsRect& aConstraintRect) const;
+
+  mozilla::LayoutDeviceIntSize GetInitialSubdocumentSize() const;
+  mozilla::LayoutDeviceIntSize GetSubdocumentSize() const;
 
   bool ContentReactsToPointerEvents() const;
 

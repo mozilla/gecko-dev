@@ -963,7 +963,7 @@ bool nsFrameLoader::Show(nsSubDocumentFrame* aFrame) {
   if (IsRemoteFrame()) {
     return ShowRemoteFrame(aFrame);
   }
-  const LayoutDeviceIntSize size = aFrame->GetSubdocumentSize();
+  const LayoutDeviceIntSize size = aFrame->GetInitialSubdocumentSize();
   nsresult rv = MaybeCreateDocShell();
   if (NS_FAILED(rv)) {
     return false;
