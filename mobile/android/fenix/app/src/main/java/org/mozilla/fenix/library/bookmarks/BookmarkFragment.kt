@@ -15,7 +15,6 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
-import androidx.compose.material.SnackbarDuration
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.getSystemService
@@ -264,7 +263,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                 snackBarParentView = it,
                 snackbarState = SnackbarState(
                     message = text,
-                    duration = SnackbarDuration.Long,
+                    duration = SnackbarState.Duration.Preset.Long,
                 ),
             ).show()
         }

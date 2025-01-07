@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Snackbar
-import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -108,10 +107,12 @@ class Snackbar private constructor(
             val contentView = ComposeView(context = parent.context)
             val callback = SnackbarAnimationCallback(contentView)
             val durationOrAccessibleDuration =
-                if (parent.context.settings().accessibilityServicesEnabled) {
+                if (parent.context.settings().accessibilityServicesEnabled &&
+                    LENGTH_ACCESSIBLE > snackbarState.durationMs
+                ) {
                     LENGTH_ACCESSIBLE
                 } else {
-                    snackbarState.duration.toIntegerSnackbarDuration()
+                    snackbarState.durationMs
                 }
 
             return Snackbar(
@@ -330,7 +331,7 @@ private fun SnackbarHostPreview() {
                         snackbarHostState.showSnackbar(
                             snackbarState = SnackbarState(
                                 message = "Default snackbar",
-                                duration = SnackbarDuration.Short,
+                                duration = SnackbarState.Duration.Preset.Short,
                                 type = Type.Default,
                                 action = Action(
                                     label = "click me",
@@ -351,7 +352,7 @@ private fun SnackbarHostPreview() {
                         snackbarHostState.showSnackbar(
                             snackbarState = SnackbarState(
                                 message = "Warning snackbar",
-                                duration = SnackbarDuration.Short,
+                                duration = SnackbarState.Duration.Preset.Short,
                                 type = Type.Warning,
                                 action = Action(
                                     label = "click me",

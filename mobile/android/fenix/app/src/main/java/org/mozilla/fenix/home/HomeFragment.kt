@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.collectAsState
@@ -241,7 +240,7 @@ class HomeFragment : Fragment() {
                     snackBarParentView = binding.dynamicSnackbarContainer,
                     snackbarState = SnackbarState(
                         message = it.context.getString(message),
-                        duration = SnackbarDuration.Long,
+                        duration = SnackbarState.Duration.Preset.Long,
                     ),
                 ).show()
             }
@@ -1617,7 +1616,7 @@ class HomeFragment : Fragment() {
                 snackBarParentView = binding.dynamicSnackbarContainer,
                 snackbarState = SnackbarState(
                     message = view.context.getString(R.string.snackbar_collection_renamed),
-                    duration = SnackbarDuration.Long,
+                    duration = SnackbarState.Duration.Preset.Long,
                 ),
             ).show()
         }

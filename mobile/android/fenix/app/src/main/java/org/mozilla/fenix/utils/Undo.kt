@@ -6,7 +6,6 @@ package org.mozilla.fenix.utils
 
 import android.content.Context
 import android.view.View
-import androidx.compose.material.SnackbarDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -66,7 +65,7 @@ fun CoroutineScope.allowUndo(
                 snackBarParentView = view,
                 snackbarState = SnackbarState(
                     message = message,
-                    duration = SnackbarDuration.Indefinite,
+                    duration = SnackbarState.Duration.Preset.Indefinite,
                     action = Action(
                         label = undoActionTitle,
                         onClick = {

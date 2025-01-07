@@ -24,7 +24,6 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -2342,7 +2341,7 @@ abstract class BaseBrowserFragment :
                             snackBarParentView = binding.dynamicSnackbarContainer,
                             snackbarState = SnackbarState(
                                 message = getString(R.string.bookmark_invalid_url_error),
-                                duration = SnackbarDuration.Long,
+                                duration = SnackbarState.Duration.Preset.Long,
                             ),
                         ).show()
                     }
@@ -2356,7 +2355,7 @@ abstract class BaseBrowserFragment :
             snackBarParentView = binding.dynamicSnackbarContainer,
             snackbarState = SnackbarState(
                 message = message,
-                duration = SnackbarDuration.Long,
+                duration = SnackbarState.Duration.Preset.Long,
                 action = Action(
                     label = getString(R.string.edit_bookmark_snackbar_action),
                     onClick = onClick,

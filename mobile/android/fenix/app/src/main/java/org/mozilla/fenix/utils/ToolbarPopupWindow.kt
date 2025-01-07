@@ -15,7 +15,6 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import androidx.annotation.VisibleForTesting
-import androidx.compose.material.SnackbarDuration
 import androidx.core.view.isVisible
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.selector.selectedTab
@@ -99,7 +98,7 @@ object ToolbarPopupWindow {
                             snackBarParentView = snackbarParent,
                             snackbarState = SnackbarState(
                                 message = context.getString(R.string.browser_toolbar_url_copied_to_clipboard_snackbar),
-                                duration = SnackbarDuration.Long,
+                                duration = SnackbarState.Duration.Preset.Long,
                             ),
                         ).show()
                     }

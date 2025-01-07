@@ -6,7 +6,6 @@ package org.mozilla.fenix.browser
 
 import android.view.View
 import androidx.annotation.StringRes
-import androidx.compose.material.SnackbarDuration
 import mozilla.components.ui.widgets.SnackbarDelegate
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.Snackbar
@@ -59,7 +58,7 @@ class ContextMenuSnackbarDelegate : SnackbarDelegate {
             snackBarParentView = snackBarParentView,
             snackbarState = SnackbarState(
                 message = text,
-                duration = SnackbarDuration.Short,
+                duration = SnackbarState.Duration.Preset.Short,
                 action = snackbarAction,
             ),
         ).show()

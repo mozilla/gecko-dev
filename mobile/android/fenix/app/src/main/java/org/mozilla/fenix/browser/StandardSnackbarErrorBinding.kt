@@ -6,7 +6,6 @@ package org.mozilla.fenix.browser
 
 import android.content.Context
 import android.view.ViewGroup
-import androidx.compose.material.SnackbarDuration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -42,7 +41,7 @@ class StandardSnackbarErrorBinding(
                             snackBarParentView = view,
                             snackbarState = SnackbarState(
                                 message = standardSnackbarError.message,
-                                duration = SnackbarDuration.Indefinite,
+                                duration = SnackbarState.Duration.Preset.Indefinite,
                                 type = SnackbarState.Type.Warning,
                                 action = Action(
                                     label = context.getString(R.string.standard_snackbar_error_dismiss),

@@ -9,7 +9,6 @@ import android.os.Environment
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.material.SnackbarDuration
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceManager
@@ -319,7 +318,7 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
                     snackBarParentView = requireView(),
                     snackbarState = SnackbarState(
                         message = DynamicDownloadDialog.getCannotOpenFileErrorMessage(requireContext(), downloadState),
-                        duration = SnackbarDuration.Short,
+                        duration = SnackbarState.Duration.Preset.Short,
                     ),
                 ).show()
             }

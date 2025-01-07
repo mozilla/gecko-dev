@@ -5,7 +5,6 @@
 package org.mozilla.fenix.tabstray.browser
 
 import android.view.View
-import androidx.compose.material.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -91,7 +90,7 @@ class InactiveTabViewHolder(
             snackBarParentView = composeView.rootView,
             snackbarState = SnackbarState(
                 message = composeView.context.getString(R.string.inactive_tabs_auto_close_message_snackbar),
-                duration = SnackbarDuration.Long,
+                duration = SnackbarState.Duration.Preset.Long,
             ),
         ).apply {
             view.elevation = ELEVATION

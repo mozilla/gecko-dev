@@ -16,7 +16,6 @@ import android.view.ViewGroup
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDialogFragment
-import androidx.compose.material.SnackbarDuration
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.setFragmentResultListener
@@ -872,7 +871,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                             }
                         },
                     ),
-                    duration = SnackbarDuration.Long,
+                    duration = SnackbarState.Duration.Preset.Long,
                     action = Action(
                         label = getString(R.string.create_collection_view),
                         onClick = {
@@ -908,7 +907,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             snackBarParentView = requireView(),
             snackbarState = SnackbarState(
                 message = getString(displayResId, displayFolderTitle),
-                duration = SnackbarDuration.Long,
+                duration = SnackbarState.Duration.Preset.Long,
                 action = Action(
                     label = getString(R.string.create_collection_view),
                     onClick = {
@@ -938,7 +937,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             snackBarParentView = tabsTrayComposeBinding.root,
             snackbarState = SnackbarState(
                 message = getString(R.string.inactive_tabs_auto_close_message_snackbar),
-                duration = SnackbarDuration.Long,
+                duration = SnackbarState.Duration.Preset.Long,
             ),
         )
     }

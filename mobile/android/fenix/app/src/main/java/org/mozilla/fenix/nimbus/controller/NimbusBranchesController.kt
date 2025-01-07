@@ -5,7 +5,6 @@
 package org.mozilla.fenix.nimbus.controller
 
 import android.content.Context
-import androidx.compose.material.SnackbarDuration
 import androidx.navigation.NavController
 import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.service.nimbus.ui.NimbusBranchesAdapterDelegate
@@ -54,7 +53,7 @@ class NimbusBranchesController(
                     snackBarParentView = v,
                     snackbarState = SnackbarState(
                         message = context.getString(R.string.experiments_snackbar),
-                        duration = SnackbarDuration.Long,
+                        duration = SnackbarState.Duration.Preset.Long,
                         action = Action(
                             label = context.getString(R.string.experiments_snackbar_button),
                             onClick = {

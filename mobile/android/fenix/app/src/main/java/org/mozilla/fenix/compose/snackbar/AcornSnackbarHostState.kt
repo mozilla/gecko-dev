@@ -33,7 +33,7 @@ class AcornSnackbarHostState(
                 defaultSnackbarHostState.showSnackbar(
                     message = snackbarState.message,
                     actionLabel = snackbarState.action?.label,
-                    duration = snackbarState.duration,
+                    duration = snackbarState.toSnackbarDuration(),
                 )
             }
 
@@ -41,7 +41,7 @@ class AcornSnackbarHostState(
                 warningSnackbarHostState.showSnackbar(
                     message = snackbarState.message,
                     actionLabel = snackbarState.action?.label,
-                    duration = snackbarState.duration,
+                    duration = snackbarState.toSnackbarDuration(),
                 )
             }
         }

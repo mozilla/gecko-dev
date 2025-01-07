@@ -14,7 +14,6 @@ import android.text.InputFilter
 import android.text.format.DateUtils
 import android.view.View
 import androidx.appcompat.app.AlertDialog
-import androidx.compose.material.SnackbarDuration
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.preference.CheckBoxPreference
@@ -411,7 +410,7 @@ class AccountSettingsFragment : PreferenceFragmentCompat() {
                     snackBarParentView = requireView(),
                     snackbarState = SnackbarState(
                         message = getString(R.string.empty_device_name_error),
-                        duration = SnackbarDuration.Long,
+                        duration = SnackbarState.Duration.Preset.Long,
                     ),
                 ).show()
             }

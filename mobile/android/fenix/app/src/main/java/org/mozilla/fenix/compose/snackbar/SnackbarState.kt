@@ -5,10 +5,13 @@
 package org.mozilla.fenix.compose.snackbar
 
 import androidx.compose.material.SnackbarDuration
+import com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
+import com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.SnackbarState.Type
 
-private val defaultDuration = SnackbarDuration.Short
+private val defaultDuration = SnackbarState.Duration.Preset.Short
 private val defaultType = Type.Default
 private val defaultAction: Action? = null
 private val defaultOnDismiss: () -> Unit = {}
@@ -24,11 +27,54 @@ private val defaultOnDismiss: () -> Unit = {}
  */
 data class SnackbarState(
     val message: String,
-    val duration: SnackbarDuration = defaultDuration,
+    val duration: Duration = defaultDuration,
     val type: Type = defaultType,
     val action: Action? = defaultAction,
     val onDismiss: () -> Unit = defaultOnDismiss,
 ) {
+
+    /**
+     * A sealed type to represent a Snackbar's display duration.
+     */
+    sealed interface Duration {
+
+        /**
+         * A predefined display duration.
+         */
+        enum class Preset(val durationMs: Int) : Duration {
+            Indefinite(durationMs = Int.MAX_VALUE),
+            Long(durationMs = 10000),
+            Short(durationMs = 4000),
+        }
+
+        /**
+         * A custom display duration.
+         *
+         * @property durationMs The duration in milliseconds.
+         */
+        data class Custom(val durationMs: Int) : Duration
+    }
+
+    /**
+     * Get the display duration of the Snackbar in milliseconds.
+     */
+    val durationMs: Int
+        get() = when (duration) {
+            is Duration.Preset -> duration.durationMs
+            is Duration.Custom -> duration.durationMs
+        }
+
+    /**
+     * Convert [SnackbarState.Duration] to [SnackbarDuration].
+     */
+    fun toSnackbarDuration(): SnackbarDuration {
+        return when (duration) {
+            Duration.Preset.Indefinite -> SnackbarDuration.Indefinite
+            Duration.Preset.Long -> SnackbarDuration.Long
+            Duration.Preset.Short -> SnackbarDuration.Short
+            is Duration.Custom -> SnackbarDuration.Short
+        }
+    }
 
     /**
      * The type of Snackbar to display.
@@ -37,4 +83,14 @@ data class SnackbarState(
         Default,
         Warning,
     }
+}
+
+/**
+ * Helper function to convert a Material Integer constant to a [SnackbarState.Duration].
+ */
+fun Int.toSnackbarDuration(): SnackbarState.Duration = when (this) {
+    LENGTH_SHORT -> SnackbarState.Duration.Preset.Short
+    LENGTH_LONG -> SnackbarState.Duration.Preset.Long
+    LENGTH_INDEFINITE -> SnackbarState.Duration.Preset.Indefinite
+    else -> SnackbarState.Duration.Custom(durationMs = this)
 }

@@ -5,7 +5,6 @@
 package org.mozilla.fenix.addons
 
 import android.view.View
-import androidx.compose.material.SnackbarDuration
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.ui.AddonsManagerAdapterDelegate
 import org.mozilla.fenix.BrowserDirection
@@ -22,7 +21,11 @@ import org.mozilla.fenix.settings.SupportUtils
  * @param text The text to display in the [Snackbar].
  * @param duration The duration to show the [Snackbar] for.
  */
-internal fun showSnackBar(view: View, text: String, duration: SnackbarDuration = SnackbarDuration.Short) {
+internal fun showSnackBar(
+    view: View,
+    text: String,
+    duration: SnackbarState.Duration = SnackbarState.Duration.Preset.Short,
+) {
     Snackbar.make(
         snackBarParentView = view,
         snackbarState = SnackbarState(
