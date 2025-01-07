@@ -201,6 +201,48 @@ TEST_P(PeerConnectionIntegrationTest,
                      }));
 }
 
+TEST_P(PeerConnectionIntegrationTest, RtpSenderObserverOnFirstPacketSent) {
+  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ConnectFakeSignaling();
+  caller()->AddAudioVideoTracks();
+  callee()->AddAudioVideoTracks();
+  // Start offer/answer exchange and wait for it to complete.
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  // Should be one sender each for audio/video.
+  EXPECT_EQ(2U, caller()->rtp_sender_observers().size());
+  EXPECT_EQ(2U, callee()->rtp_sender_observers().size());
+  // Wait for all "first packet sent" callbacks to be fired.
+  EXPECT_TRUE_WAIT(
+      absl::c_all_of(caller()->rtp_sender_observers(),
+                     [](const std::unique_ptr<MockRtpSenderObserver>& o) {
+                       return o->first_packet_sent();
+                     }),
+      kMaxWaitForFramesMs);
+  EXPECT_TRUE_WAIT(
+      absl::c_all_of(callee()->rtp_sender_observers(),
+                     [](const std::unique_ptr<MockRtpSenderObserver>& o) {
+                       return o->first_packet_sent();
+                     }),
+      kMaxWaitForFramesMs);
+  // If new observers are set after the first packet was already sent, the
+  // callback should still be invoked.
+  caller()->ResetRtpSenderObservers();
+  callee()->ResetRtpSenderObservers();
+  EXPECT_EQ(2U, caller()->rtp_sender_observers().size());
+  EXPECT_EQ(2U, callee()->rtp_sender_observers().size());
+  EXPECT_TRUE(
+      absl::c_all_of(caller()->rtp_sender_observers(),
+                     [](const std::unique_ptr<MockRtpSenderObserver>& o) {
+                       return o->first_packet_sent();
+                     }));
+  EXPECT_TRUE(
+      absl::c_all_of(callee()->rtp_sender_observers(),
+                     [](const std::unique_ptr<MockRtpSenderObserver>& o) {
+                       return o->first_packet_sent();
+                     }));
+}
+
 class DummyDtmfObserver : public DtmfSenderObserverInterface {
  public:
   DummyDtmfObserver() : completed_(false) {}
@@ -4063,6 +4105,151 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   EXPECT_TRUE(caller()->SetRemoteDescription(std::move(answer)));
   EXPECT_EQ(caller()->pc()->signaling_state(),
             PeerConnectionInterface::kStable);
+}
+
+TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
+       OnlyOnePairWantsCorruptionScorePlumbing) {
+  // In order for corruption score to be logged, encryption of RTP header
+  // extensions must be allowed.
+  CryptoOptions crypto_options;
+  crypto_options.srtp.enable_encrypted_rtp_header_extensions = true;
+  PeerConnectionInterface::RTCConfiguration config;
+  config.crypto_options = crypto_options;
+  config.offer_extmap_allow_mixed = true;
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
+  ConnectFakeSignaling();
+
+  // Munge the corruption detection header extension into the SDP.
+  // If caller adds corruption detection header extension to its SDP offer, it
+  // will receive it from the callee.
+  caller()->AddCorruptionDetectionHeader();
+
+  // Do normal offer/answer and wait for some frames to be received in each
+  // direction, and `corruption_score` to be aggregated.
+  caller()->AddAudioVideoTracks();
+  callee()->AddAudioVideoTracks();
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_TRUE_WAIT(caller()->GetCorruptionScoreCount() > 0, kMaxWaitForStatsMs);
+  ASSERT_TRUE_WAIT(callee()->GetCorruptionScoreCount() == 0,
+                   kMaxWaitForStatsMs);
+
+  for (const auto& pair : {caller(), callee()}) {
+    rtc::scoped_refptr<const RTCStatsReport> report = pair->NewGetStats();
+    ASSERT_TRUE(report);
+    auto inbound_stream_stats =
+        report->GetStatsOfType<RTCInboundRtpStreamStats>();
+    for (const auto& stat : inbound_stream_stats) {
+      if (*stat->kind == "video") {
+        if (pair == caller()) {
+          EXPECT_TRUE(stat->total_corruption_probability.has_value());
+          EXPECT_TRUE(stat->total_squared_corruption_probability.has_value());
+
+          double average_corruption_score =
+              (*stat->total_corruption_probability) /
+              static_cast<int32_t>(*stat->corruption_measurements);
+          EXPECT_GE(average_corruption_score, 0.0);
+          EXPECT_LE(average_corruption_score, 1.0);
+        }
+        if (pair == callee()) {
+          // Since only `caller` requests corruption score calculation the
+          // callee should not aggregate it.
+          EXPECT_FALSE(stat->total_corruption_probability.has_value());
+          EXPECT_FALSE(stat->total_squared_corruption_probability.has_value());
+        }
+      }
+    }
+  }
+}
+
+TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
+       BothPairsWantCorruptionScorePlumbing) {
+  // In order for corruption score to be logged, encryption of RTP header
+  // extensions must be allowed.
+  CryptoOptions crypto_options;
+  crypto_options.srtp.enable_encrypted_rtp_header_extensions = true;
+  PeerConnectionInterface::RTCConfiguration config;
+  config.crypto_options = crypto_options;
+  config.offer_extmap_allow_mixed = true;
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
+  ConnectFakeSignaling();
+
+  // Munge the corruption detection header extension into the SDP.
+  // If caller adds corruption detection header extension to its SDP offer, it
+  // will receive it from the callee.
+  caller()->AddCorruptionDetectionHeader();
+  callee()->AddCorruptionDetectionHeader();
+
+  // Do normal offer/answer and wait for some frames to be received in each
+  // direction, and `corruption_score` to be aggregated.
+  caller()->AddAudioVideoTracks();
+  callee()->AddAudioVideoTracks();
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_TRUE_WAIT(caller()->GetCorruptionScoreCount() > 0, kMaxWaitForStatsMs);
+  ASSERT_TRUE_WAIT(callee()->GetCorruptionScoreCount() > 0, kMaxWaitForStatsMs);
+
+  for (const auto& pair : {caller(), callee()}) {
+    rtc::scoped_refptr<const RTCStatsReport> report = pair->NewGetStats();
+    ASSERT_TRUE(report);
+    auto inbound_stream_stats =
+        report->GetStatsOfType<RTCInboundRtpStreamStats>();
+    for (const auto& stat : inbound_stream_stats) {
+      if (*stat->kind == "video") {
+        EXPECT_TRUE(stat->total_corruption_probability.has_value());
+        EXPECT_TRUE(stat->total_squared_corruption_probability.has_value());
+
+        double average_corruption_score =
+            (*stat->total_corruption_probability) /
+            static_cast<int32_t>(*stat->corruption_measurements);
+        EXPECT_GE(average_corruption_score, 0.0);
+        EXPECT_LE(average_corruption_score, 1.0);
+      }
+    }
+  }
+}
+
+TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
+       CorruptionScorePlumbingShouldNotWorkWhenEncryptionIsOff) {
+  // In order for corruption score to be logged, encryption of RTP header
+  // extensions must be allowed.
+  CryptoOptions crypto_options;
+  crypto_options.srtp.enable_encrypted_rtp_header_extensions = false;
+  PeerConnectionInterface::RTCConfiguration config;
+  config.crypto_options = crypto_options;
+  config.offer_extmap_allow_mixed = true;
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
+  ConnectFakeSignaling();
+
+  // Munge the corruption detection header extension into the SDP.
+  // If caller adds corruption detection header extension to its SDP offer, it
+  // will receive it from the callee.
+  caller()->AddCorruptionDetectionHeader();
+  callee()->AddCorruptionDetectionHeader();
+
+  // Do normal offer/answer and wait for some frames to be received in each
+  // direction, and `corruption_score` to be aggregated.
+  caller()->AddAudioVideoTracks();
+  callee()->AddAudioVideoTracks();
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_TRUE_WAIT(caller()->GetCorruptionScoreCount() == 0,
+                   kMaxWaitForStatsMs);
+  ASSERT_TRUE_WAIT(callee()->GetCorruptionScoreCount() == 0,
+                   kMaxWaitForStatsMs);
+
+  for (const auto& pair : {caller(), callee()}) {
+    rtc::scoped_refptr<const RTCStatsReport> report = pair->NewGetStats();
+    ASSERT_TRUE(report);
+    auto inbound_stream_stats =
+        report->GetStatsOfType<RTCInboundRtpStreamStats>();
+    for (const auto& stat : inbound_stream_stats) {
+      if (*stat->kind == "video") {
+        EXPECT_FALSE(stat->total_corruption_probability.has_value());
+        EXPECT_FALSE(stat->total_squared_corruption_probability.has_value());
+      }
+    }
+  }
 }
 
 }  // namespace

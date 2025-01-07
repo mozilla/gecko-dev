@@ -27,8 +27,6 @@
 namespace rtc {
 namespace {
 
-constexpr bool kPermuteExtensions = true;
-
 class MockAsyncSocket : public Socket {
  public:
   virtual ~MockAsyncSocket() = default;
@@ -103,7 +101,7 @@ TEST(OpenSSLAdapterFactoryTest, CreateSingleOpenSSLAdapter) {
   OpenSSLAdapterFactory adapter_factory;
   Socket* async_socket = new MockAsyncSocket();
   auto simple_adapter = std::unique_ptr<OpenSSLAdapter>(
-      adapter_factory.CreateAdapter(async_socket, kPermuteExtensions));
+      adapter_factory.CreateAdapter(async_socket));
   EXPECT_NE(simple_adapter, nullptr);
 }
 
@@ -119,7 +117,7 @@ TEST(OpenSSLAdapterFactoryTest, CreateWorksWithCustomVerifier) {
   adapter_factory.SetCertVerifier(cert_verifier.get());
   Socket* async_socket = new MockAsyncSocket();
   auto simple_adapter = std::unique_ptr<OpenSSLAdapter>(
-      adapter_factory.CreateAdapter(async_socket, kPermuteExtensions));
+      adapter_factory.CreateAdapter(async_socket));
   EXPECT_NE(simple_adapter, nullptr);
 }
 

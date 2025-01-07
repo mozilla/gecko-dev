@@ -82,7 +82,8 @@ struct RTC_EXPORT VideoSinkWants {
   // should only be used as a hint when constructing the webrtc::VideoFrame.
   std::vector<FrameSize> resolutions;
 
-  // This is the resolution requested by the user using RtpEncodingParameters.
+  // This is the resolution requested by the user using RtpEncodingParameters,
+  // which is the maximum `scale_resolution_down_by` value of any encoding.
   std::optional<FrameSize> requested_resolution;
 
   // `is_active` : Is this VideoSinkWants from an encoder that is encoding any
@@ -96,7 +97,7 @@ struct RTC_EXPORT VideoSinkWants {
   // that aggregates several VideoSinkWants (and sends them to
   // AdaptedVideoTrackSource).
   struct Aggregates {
-    // `active_without_requested_resolution` is set by VideoBroadcaster
+    // `any_active_without_requested_resolution` is set by VideoBroadcaster
     // when aggregating sink wants if there exists any sink (encoder) that is
     // active but has not set the `requested_resolution`, i.e is relying on
     // OnOutputFormatRequest to handle encode resolution.

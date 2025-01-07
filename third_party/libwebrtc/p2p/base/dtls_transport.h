@@ -179,13 +179,8 @@ class DtlsTransport : public DtlsTransportInternal {
   // Once DTLS has established (i.e., this ice_transport is writable), this
   // method extracts the keys negotiated during the DTLS handshake, for use in
   // external encryption. DTLS-SRTP uses this to extract the needed SRTP keys.
-  // See the SSLStreamAdapter documentation for info on the specific parameters.
-  bool ExportKeyingMaterial(absl::string_view label,
-                            const uint8_t* context,
-                            size_t context_len,
-                            bool use_context,
-                            uint8_t* result,
-                            size_t result_len) override;
+  bool ExportSrtpKeyingMaterial(
+      rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) override;
 
   IceTransportInternal* ice_transport() override;
 

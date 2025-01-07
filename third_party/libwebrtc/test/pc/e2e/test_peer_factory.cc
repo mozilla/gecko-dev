@@ -9,24 +9,41 @@
  */
 #include "test/pc/e2e/test_peer_factory.h"
 
+#include <cstdint>
+#include <memory>
+#include <optional>
 #include <utility>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
-#include "api/enable_media_with_defaults.h"
-#include "api/task_queue/default_task_queue_factory.h"
+#include "api/audio/audio_device.h"
+#include "api/audio/audio_processing.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_event_log/rtc_event_log_factory.h"
+#include "api/scoped_refptr.h"
+#include "api/task_queue/task_queue_factory.h"
 #include "api/test/create_time_controller.h"
 #include "api/test/pclf/media_configuration.h"
+#include "api/test/pclf/media_quality_test_params.h"
 #include "api/test/pclf/peer_configurer.h"
 #include "api/test/time_controller.h"
 #include "api/transport/field_trial_based_config.h"
 #include "api/video_codecs/builtin_video_decoder_factory.h"
 #include "api/video_codecs/builtin_video_encoder_factory.h"
-#include "modules/audio_processing/aec_dump/aec_dump_factory.h"
+#include "api/video_codecs/video_decoder_factory.h"
+#include "api/video_codecs/video_encoder_factory.h"
+#include "modules/audio_device/include/test_audio_device.h"
+#include "p2p/base/port_allocator.h"
 #include "p2p/client/basic_port_allocator.h"
+#include "pc/test/mock_peer_connection_observers.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/system/file_wrapper.h"
 #include "rtc_base/thread.h"
 #include "test/pc/e2e/analyzer/video/quality_analyzing_video_encoder.h"
+#include "test/pc/e2e/analyzer/video/video_quality_analyzer_injection_helper.h"
 #include "test/pc/e2e/echo/echo_emulation.h"
+#include "test/pc/e2e/test_peer.h"
 #include "test/testsupport/copy_to_file_audio_capturer.h"
 
 namespace webrtc {
@@ -210,7 +227,10 @@ PeerConnectionFactoryDependencies CreatePCFDependencies(
 
   // Media dependencies
   pcf_deps.adm = std::move(audio_device_module);
-  pcf_deps.audio_processing = pcf_dependencies->audio_processing;
+  if (pcf_dependencies->audio_processing != nullptr) {
+    pcf_deps.audio_processing_builder =
+        CustomAudioProcessing(pcf_dependencies->audio_processing);
+  }
   pcf_deps.audio_mixer = pcf_dependencies->audio_mixer;
   pcf_deps.video_encoder_factory =
       std::move(pcf_dependencies->video_encoder_factory);
@@ -227,15 +247,19 @@ PeerConnectionFactoryDependencies CreatePCFDependencies(
 // from InjectableComponents::PeerConnectionComponents.
 PeerConnectionDependencies CreatePCDependencies(
     MockPeerConnectionObserver* observer,
-    uint32_t port_allocator_extra_flags,
+    std::optional<uint32_t> port_allocator_flags,
     std::unique_ptr<PeerConnectionComponents> pc_dependencies) {
   PeerConnectionDependencies pc_deps(observer);
 
   auto port_allocator = std::make_unique<cricket::BasicPortAllocator>(
       pc_dependencies->network_manager, pc_dependencies->packet_socket_factory);
 
-  // This test does not support TCP
-  int flags = port_allocator_extra_flags | cricket::PORTALLOCATOR_DISABLE_TCP;
+  // This test does not support TCP by default.
+  int flags =
+      cricket::kDefaultPortAllocatorFlags | cricket::PORTALLOCATOR_DISABLE_TCP;
+  if (port_allocator_flags.has_value()) {
+    flags = *port_allocator_flags;
+  }
   port_allocator->set_flags(port_allocator->flags() | flags);
 
   pc_deps.allocator = std::move(port_allocator);
@@ -288,14 +312,6 @@ std::unique_ptr<TestPeer> TestPeerFactory::CreateTestPeer(
   params->rtc_configuration.sdp_semantics = SdpSemantics::kUnifiedPlan;
 
   // Create peer connection factory.
-  if (components->pcf_dependencies->audio_processing == nullptr) {
-    components->pcf_dependencies->audio_processing =
-        webrtc::AudioProcessingBuilder().Create();
-  }
-  if (params->aec_dump_path) {
-    components->pcf_dependencies->audio_processing->CreateAndAttachAecDump(
-        *params->aec_dump_path, -1, task_queue_);
-  }
   rtc::scoped_refptr<AudioDeviceModule> audio_device_module =
       CreateAudioDeviceModule(params->audio_config, remote_audio_config,
                               echo_emulation_config,
@@ -317,10 +333,6 @@ std::unique_ptr<TestPeer> TestPeerFactory::CreateTestPeer(
     components->worker_thread = owned_worker_thread.get();
   }
 
-  // Store `webrtc::AudioProcessing` into local variable before move of
-  // `components->pcf_dependencies`
-  rtc::scoped_refptr<webrtc::AudioProcessing> audio_processing =
-      components->pcf_dependencies->audio_processing;
   PeerConnectionFactoryDependencies pcf_deps = CreatePCFDependencies(
       std::move(components->pcf_dependencies), time_controller_,
       std::move(audio_device_module), signaling_thread_,
@@ -328,10 +340,14 @@ std::unique_ptr<TestPeer> TestPeerFactory::CreateTestPeer(
   rtc::scoped_refptr<PeerConnectionFactoryInterface> peer_connection_factory =
       CreateModularPeerConnectionFactory(std::move(pcf_deps));
   peer_connection_factory->SetOptions(params->peer_connection_factory_options);
+  if (params->aec_dump_path) {
+    peer_connection_factory->StartAecDump(
+        FileWrapper::OpenWriteOnly(*params->aec_dump_path).Release(), -1);
+  }
 
   // Create peer connection.
   PeerConnectionDependencies pc_deps =
-      CreatePCDependencies(observer.get(), params->port_allocator_extra_flags,
+      CreatePCDependencies(observer.get(), params->port_allocator_flags,
                            std::move(components->pc_dependencies));
   rtc::scoped_refptr<PeerConnectionInterface> peer_connection =
       peer_connection_factory
@@ -340,11 +356,10 @@ std::unique_ptr<TestPeer> TestPeerFactory::CreateTestPeer(
           .MoveValue();
   peer_connection->SetBitrate(params->bitrate_settings);
 
-  return absl::WrapUnique(
-      new TestPeer(peer_connection_factory, peer_connection,
-                   std::move(observer), std::move(*params),
-                   std::move(*configurable_params), std::move(video_sources),
-                   audio_processing, std::move(owned_worker_thread)));
+  return absl::WrapUnique(new TestPeer(
+      peer_connection_factory, peer_connection, std::move(observer),
+      std::move(*params), std::move(*configurable_params),
+      std::move(video_sources), std::move(owned_worker_thread)));
 }
 
 }  // namespace webrtc_pc_e2e

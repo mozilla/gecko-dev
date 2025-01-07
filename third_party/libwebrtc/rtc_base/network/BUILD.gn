@@ -19,6 +19,7 @@ rtc_library("sent_packet") {
 rtc_source_set("ecn_marking") {
   visibility = [ "*" ]
   sources = [ "ecn_marking.h" ]
+  deps = [ "../../api/transport:ecn_marking" ]
 }
 
 rtc_library("received_packet") {

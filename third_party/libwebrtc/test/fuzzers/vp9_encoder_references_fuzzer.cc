@@ -209,7 +209,8 @@ class FieldTrials : public FieldTrialsView {
         key == "WebRTC-VP9-GetEncoderInfoOverride" ||
         key == "WebRTC-VP9-PerformanceFlags" ||
         key == "WebRTC-VP9QualityScaler" ||
-        key == "WebRTC-VP9-SvcForSimulcast") {
+        key == "WebRTC-VP9-SvcForSimulcast" ||
+        key == "WebRTC-StableTargetRate") {
       return "";
     }
 

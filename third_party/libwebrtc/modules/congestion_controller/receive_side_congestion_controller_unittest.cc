@@ -86,6 +86,17 @@ TEST(ReceiveSideCongestionControllerTest,
   controller.SetMaxDesiredReceiveBitrate(DataRate::BitsPerSec(123));
 }
 
+void CheckRfc8888Feedback(
+    const std::vector<std::unique_ptr<rtcp::RtcpPacket>>& rtcp_packets) {
+  ASSERT_THAT(rtcp_packets, SizeIs(1));
+  rtc::Buffer buffer = rtcp_packets[0]->Build();
+  rtcp::CommonHeader header;
+  EXPECT_TRUE(header.Parse(buffer.data(), buffer.size()));
+  // Check for RFC 8888 format message type 11(CCFB)
+  EXPECT_EQ(header.fmt(),
+            rtcp::CongestionControlFeedback::kFeedbackMessageType);
+}
+
 TEST(ReceiveSideCongestionControllerTest, SendsRfc8888FeedbackIfForced) {
   test::ExplicitKeyValueConfig field_trials(
       "WebRTC-RFC8888CongestionControlFeedback/force_send:true/");
@@ -97,7 +108,15 @@ TEST(ReceiveSideCongestionControllerTest, SendsRfc8888FeedbackIfForced) {
       CreateEnvironment(&clock, &field_trials), rtcp_sender.AsStdFunction(),
       remb_sender.AsStdFunction(), nullptr);
 
-  EXPECT_CALL(rtcp_sender, Call);
+  // Expect that RTCP feedback is sent.
+  EXPECT_CALL(rtcp_sender, Call)
+      .WillOnce(
+          [&](std::vector<std::unique_ptr<rtcp::RtcpPacket>> rtcp_packets) {
+            CheckRfc8888Feedback(rtcp_packets);
+          });
+  // Expect that REMB is not sent.
+  EXPECT_CALL(remb_sender, Call).Times(0);
+
   RtpPacketReceived packet;
   packet.set_arrival_time(clock.CurrentTime());
   controller.OnReceivedPacket(packet, MediaType::VIDEO);
@@ -116,16 +135,14 @@ TEST(ReceiveSideCongestionControllerTest, SendsRfc8888FeedbackIfEnabled) {
       remb_sender.AsStdFunction(), nullptr);
   controller.EnablSendCongestionControlFeedbackAccordingToRfc8888();
 
+  // Expect that RTCP feedback is sent.
   EXPECT_CALL(rtcp_sender, Call)
       .WillOnce(
           [&](std::vector<std::unique_ptr<rtcp::RtcpPacket>> rtcp_packets) {
-            ASSERT_THAT(rtcp_packets, SizeIs(1));
-            rtc::Buffer buffer = rtcp_packets[0]->Build();
-            rtcp::CommonHeader header;
-            EXPECT_TRUE(header.Parse(buffer.data(), buffer.size()));
-            EXPECT_EQ(header.fmt(),
-                      rtcp::CongestionControlFeedback::kFeedbackMessageType);
+            CheckRfc8888Feedback(rtcp_packets);
           });
+  // Expect that REMB is not sent.
+  EXPECT_CALL(remb_sender, Call).Times(0);
 
   RtpPacketReceived packet;
   packet.set_arrival_time(clock.CurrentTime());

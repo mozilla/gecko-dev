@@ -12,13 +12,19 @@
 
 #include <algorithm>
 #include <cmath>
-#include <memory>
+#include <cstddef>
+#include <numeric>
+#include <optional>
 #include <vector>
 
-#include "media/base/video_common.h"
+#include "api/video/video_codec_type.h"
+#include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/spatial_layer.h"
+#include "api/video_codecs/video_codec.h"
 #include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
 #include "modules/video_coding/svc/create_scalability_structure.h"
 #include "modules/video_coding/svc/scalability_mode_util.h"
+#include "modules/video_coding/svc/scalable_video_controller.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
@@ -105,8 +111,8 @@ std::vector<SpatialLayer> ConfigureSvcNormalVideo(
   if (config) {
     required_divisiblity = 1;
     for (size_t sl_idx = 0; sl_idx < num_spatial_layers; ++sl_idx) {
-      required_divisiblity = cricket::LeastCommonMultiple(
-          required_divisiblity, config->scaling_factor_den[sl_idx]);
+      required_divisiblity =
+          std::lcm(required_divisiblity, config->scaling_factor_den[sl_idx]);
     }
   }
   input_width = input_width - input_width % required_divisiblity;

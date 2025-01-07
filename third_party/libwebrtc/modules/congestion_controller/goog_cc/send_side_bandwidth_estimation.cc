@@ -372,8 +372,8 @@ void SendSideBandwidthEstimation::SetAcknowledgedRate(
 
 void SendSideBandwidthEstimation::UpdateLossBasedEstimator(
     const TransportPacketsFeedback& report,
-    BandwidthUsage delay_detector_state,
-    std::optional<DataRate> probe_bitrate,
+    BandwidthUsage /* delay_detector_state */,
+    std::optional<DataRate> /* probe_bitrate */,
     bool in_alr) {
   if (LossBasedBandwidthEstimatorV1Enabled()) {
     loss_based_bandwidth_estimator_v1_.UpdateLossStatistics(

@@ -32,6 +32,21 @@
 #include "rtc_base/numerics/safe_conversions.h"
 
 namespace webrtc {
+namespace {
+
+constexpr ScalabilityMode kH265SupportedScalabilityModes[] = {
+    ScalabilityMode::kL1T1, ScalabilityMode::kL1T2, ScalabilityMode::kL1T3};
+
+bool H265SupportsScalabilityMode(ScalabilityMode scalability_mode) {
+  for (const auto& entry : kH265SupportedScalabilityModes) {
+    if (entry == scalability_mode) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
 
 // TODO(sprang): Split this up and separate the codec specific parts.
 VideoCodec VideoCodecInitializer::SetupCodec(
@@ -328,7 +343,22 @@ VideoCodec VideoCodecInitializer::SetupCodec(
       break;
     }
     case kVideoCodecH265:
-      // TODO(bugs.webrtc.org/13485)
+      RTC_DCHECK(!config.encoder_specific_settings) << "No encoder-specific "
+                                                       "settings for H.265.";
+
+      // Validate specified scalability modes. If some layer has an unsupported
+      // mode, store it as the top-level scalability mode, which will make
+      // InitEncode fail with an appropriate error.
+      for (const auto& stream : streams) {
+        if (stream.scalability_mode.has_value() &&
+            !H265SupportsScalabilityMode(*stream.scalability_mode)) {
+          RTC_LOG(LS_WARNING)
+              << "Invalid scalability mode for H.265: "
+              << ScalabilityModeToString(*stream.scalability_mode);
+          video_codec.SetScalabilityMode(*stream.scalability_mode);
+          break;
+        }
+      }
       break;
     default:
       // TODO(pbos): Support encoder_settings codec-agnostically.
@@ -345,6 +375,9 @@ VideoCodec VideoCodecInitializer::SetupCodec(
     video_codec.minBitrate = experimental_min_bitrate_kbps;
     video_codec.simulcastStream[0].minBitrate = experimental_min_bitrate_kbps;
     if (video_codec.codecType == kVideoCodecVP9 ||
+#ifdef RTC_ENABLE_H265
+        video_codec.codecType == kVideoCodecH265 ||
+#endif
         video_codec.codecType == kVideoCodecAV1) {
       video_codec.spatialLayers[0].minBitrate = experimental_min_bitrate_kbps;
     }

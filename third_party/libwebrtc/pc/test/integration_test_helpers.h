@@ -70,7 +70,6 @@
 #include "media/base/media_engine.h"
 #include "media/base/stream_params.h"
 #include "media/engine/fake_webrtc_video_engine.h"
-#include "modules/audio_processing/test/audio_processing_builder_for_testing.h"
 #include "p2p/base/fake_ice_transport.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
@@ -231,6 +230,25 @@ class MockRtpReceiverObserver : public RtpReceiverObserverInterface {
   cricket::MediaType expected_media_type_;
 };
 
+class MockRtpSenderObserver : public RtpSenderObserverInterface {
+ public:
+  explicit MockRtpSenderObserver(cricket::MediaType media_type)
+      : expected_media_type_(media_type) {}
+
+  void OnFirstPacketSent(cricket::MediaType media_type) override {
+    ASSERT_EQ(expected_media_type_, media_type);
+    first_packet_sent_ = true;
+  }
+
+  bool first_packet_sent() const { return first_packet_sent_; }
+
+  virtual ~MockRtpSenderObserver() {}
+
+ private:
+  bool first_packet_sent_ = false;
+  cricket::MediaType expected_media_type_;
+};
+
 // Helper class that wraps a peer connection, observes it, and can accept
 // signaling messages from another wrapper.
 //
@@ -336,6 +354,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   void AddAudioVideoTracks() {
     AddAudioTrack();
     AddVideoTrack();
+    ResetRtpSenderObservers();
   }
 
   rtc::scoped_refptr<RtpSenderInterface> AddAudioTrack() {
@@ -619,6 +638,22 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     }
   }
 
+  const std::vector<std::unique_ptr<MockRtpSenderObserver>>&
+  rtp_sender_observers() {
+    return rtp_sender_observers_;
+  }
+
+  void ResetRtpSenderObservers() {
+    rtp_sender_observers_.clear();
+    for (const rtc::scoped_refptr<RtpSenderInterface>& sender :
+         pc()->GetSenders()) {
+      std::unique_ptr<MockRtpSenderObserver> observer(
+          new MockRtpSenderObserver(sender->media_type()));
+      sender->SetObserver(observer.get());
+      rtp_sender_observers_.push_back(std::move(observer));
+    }
+  }
+
   rtc::FakeNetworkManager* network_manager() const {
     return fake_network_manager_.get();
   }
@@ -679,6 +714,46 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
                           << ": SetRemoteDescription error: " << err.message();
     }
     return observer->error().ok();
+  }
+
+  void AddCorruptionDetectionHeader() {
+    SetGeneratedSdpMunger(
+        [&](std::unique_ptr<SessionDescriptionInterface>& sdp) {
+          for (ContentInfo& content : sdp->description()->contents()) {
+            cricket::MediaContentDescription* media =
+                content.media_description();
+            // Corruption detection is only a valid RTP header extension for
+            // video stream.
+            if (media->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+              continue;
+            }
+            cricket::RtpHeaderExtensions extensions =
+                media->rtp_header_extensions();
+
+            // Find a valid id.
+            int id = extensions.size();
+            while (IdExists(extensions, id)) {
+              ++id;
+            }
+
+            extensions.push_back(RtpExtension(
+                RtpExtension::kCorruptionDetectionUri, id, /*encrypt=*/true));
+            media->set_rtp_header_extensions(extensions);
+            break;
+          }
+        });
+  }
+
+  uint32_t GetCorruptionScoreCount() {
+    rtc::scoped_refptr<const RTCStatsReport> report = NewGetStats();
+    auto inbound_stream_stats =
+        report->GetStatsOfType<RTCInboundRtpStreamStats>();
+    for (const auto& stat : inbound_stream_stats) {
+      if (*stat->kind == "video") {
+        return stat->corruption_measurements.value_or(0);
+      }
+    }
+    return 0;
   }
 
  private:
@@ -1028,6 +1103,14 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     data_observers_.push_back(
         std::make_unique<MockDataChannelObserver>(data_channel.get()));
   }
+  bool IdExists(const cricket::RtpHeaderExtensions& extensions, int id) {
+    for (const auto& extension : extensions) {
+      if (extension.id == id) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   std::string debug_name_;
 
@@ -1079,6 +1162,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   std::vector<std::unique_ptr<MockDataChannelObserver>> data_observers_;
 
   std::vector<std::unique_ptr<MockRtpReceiverObserver>> rtp_receiver_observers_;
+  std::vector<std::unique_ptr<MockRtpSenderObserver>> rtp_sender_observers_;
 
   std::vector<PeerConnectionInterface::IceConnectionState>
       ice_connection_state_history_;

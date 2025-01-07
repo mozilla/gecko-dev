@@ -215,20 +215,20 @@ TEST_F(RtpSenderEgressTest, CollectsPacketsWhenBatchingWithVideo) {
   sender.OnBatchComplete();
 }
 
-TEST_F(RtpSenderEgressTest, PacketOptionsIsRetransmitSetByPacketType) {
+TEST_F(RtpSenderEgressTest, PacketOptionsIsMediaSetByPacketType) {
   std::unique_ptr<RtpSenderEgress> sender = CreateRtpSenderEgress();
 
   std::unique_ptr<RtpPacketToSend> media_packet = BuildRtpPacket();
   auto sequence_number = media_packet->SequenceNumber();
   media_packet->set_packet_type(RtpPacketMediaType::kVideo);
   sender->SendPacket(std::move(media_packet), PacedPacketInfo());
-  EXPECT_FALSE(transport_.last_packet()->options.is_retransmit);
+  EXPECT_TRUE(transport_.last_packet()->options.is_media);
 
   std::unique_ptr<RtpPacketToSend> retransmission = BuildRtpPacket();
   retransmission->set_packet_type(RtpPacketMediaType::kRetransmission);
   retransmission->set_retransmitted_sequence_number(sequence_number);
   sender->SendPacket(std::move(retransmission), PacedPacketInfo());
-  EXPECT_TRUE(transport_.last_packet()->options.is_retransmit);
+  EXPECT_FALSE(transport_.last_packet()->options.is_media);
 }
 
 TEST_F(RtpSenderEgressTest, DoesnSetIncludedInAllocationByDefault) {
@@ -785,7 +785,7 @@ TEST_F(RtpSenderEgressTest, SendPacketSetsPacketOptions) {
   EXPECT_EQ(packet_options.packet_id, kPacketId);
   EXPECT_TRUE(packet_options.included_in_allocation);
   EXPECT_TRUE(packet_options.included_in_feedback);
-  EXPECT_FALSE(packet_options.is_retransmit);
+  EXPECT_TRUE(packet_options.is_media);
 
   // Send another packet as retransmission, verify options are populated.
   std::unique_ptr<RtpPacketToSend> retransmission = BuildRtpPacket();
@@ -794,7 +794,7 @@ TEST_F(RtpSenderEgressTest, SendPacketSetsPacketOptions) {
   retransmission->set_retransmitted_sequence_number(kSequenceNumber);
   retransmission->set_original_ssrc(ssrc);
   sender->SendPacket(std::move(retransmission), PacedPacketInfo());
-  EXPECT_TRUE(transport_.last_packet()->options.is_retransmit);
+  EXPECT_FALSE(transport_.last_packet()->options.is_media);
 }
 
 TEST_F(RtpSenderEgressTest, SendPacketSetsPacketOptionsIdFromExtension) {

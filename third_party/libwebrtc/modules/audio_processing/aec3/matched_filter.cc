@@ -780,7 +780,7 @@ void MatchedFilter::Update(const DownsampledRenderBuffer& render_buffer,
   }
 }
 
-void MatchedFilter::LogFilterProperties(int sample_rate_hz,
+void MatchedFilter::LogFilterProperties(int /* sample_rate_hz */,
                                         size_t shift,
                                         size_t downsampling_factor) const {
   size_t alignment_shift = 0;

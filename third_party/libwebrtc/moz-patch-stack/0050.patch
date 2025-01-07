@@ -77,10 +77,10 @@ index c45de95ecc..28c691c3de 100644
  
    // Stops future invocations of the repeating task closure. Can only be called
 diff --git a/system_wrappers/include/clock.h b/system_wrappers/include/clock.h
-index 60296070cc..214b34c970 100644
+index ec4bae0aed..70b6e3aa16 100644
 --- a/system_wrappers/include/clock.h
 +++ b/system_wrappers/include/clock.h
-@@ -49,7 +49,7 @@ class RTC_EXPORT Clock {
+@@ -66,7 +66,7 @@ class RTC_EXPORT Clock {
    }
  
    // Returns an instance of the real-time system clock implementation.

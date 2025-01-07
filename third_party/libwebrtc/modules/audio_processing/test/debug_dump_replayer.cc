@@ -13,7 +13,8 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "modules/audio_processing/test/audio_processing_builder_for_testing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_processing/test/protobuf_utils.h"
 #include "modules/audio_processing/test/runtime_setting_util.h"
 #include "rtc_base/checks.h"
@@ -188,8 +189,8 @@ void DebugDumpReplayer::MaybeRecreateApm(const audioproc::Config& msg) {
 
   // We only create APM once, since changes on these fields should not
   // happen in current implementation.
-  if (!apm_.get()) {
-    apm_ = AudioProcessingBuilderForTesting().Create();
+  if (apm_ == nullptr) {
+    apm_ = BuiltinAudioProcessingBuilder().Build(CreateEnvironment());
   }
 }
 

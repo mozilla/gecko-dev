@@ -12,6 +12,7 @@
 
 #include "modules/video_coding/svc/create_scalability_structure.h"
 #include "modules/video_coding/svc/scalability_mode_util.h"
+#include "modules/video_coding/utility/simulcast_utility.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {
@@ -136,6 +137,40 @@ SimulcastToSvcConverter::LayerState::LayerState(
     dummy_bitrates.SetBitrate(0, i, 10000);
   }
   video_controller->OnRatesUpdated(dummy_bitrates);
+}
+
+// static
+bool SimulcastToSvcConverter::IsConfigSupported(const VideoCodec& codec) {
+  if (codec.numberOfSimulcastStreams <= 1 ||
+      !SimulcastUtility::ValidSimulcastParameters(
+          codec, codec.numberOfSimulcastStreams)) {
+    return false;
+  }
+  // Ensure there's 4:2:1 scaling.
+  for (int i = 1; i < codec.numberOfSimulcastStreams; ++i) {
+    if (codec.simulcastStream[i].active &&
+        codec.simulcastStream[i - 1].active &&
+        (codec.simulcastStream[i].width !=
+             codec.simulcastStream[i - 1].width * 2 ||
+         codec.simulcastStream[i].height !=
+             codec.simulcastStream[i - 1].height * 2)) {
+      return false;
+    }
+  }
+  int first_active_layer = -1;
+  int last_active_layer = -1;
+  int num_active_layers = 0;
+  for (int i = 0; i < codec.numberOfSimulcastStreams; ++i) {
+    if (codec.simulcastStream[i].active) {
+      if (first_active_layer < 0)
+        first_active_layer = i;
+      last_active_layer = i;
+      ++num_active_layers;
+    }
+  }
+  // Active layers must form a continuous segment. Can't have holes, because
+  // most SVC encoders can't process that.
+  return num_active_layers == last_active_layer - first_active_layer + 1;
 }
 
 }  // namespace webrtc

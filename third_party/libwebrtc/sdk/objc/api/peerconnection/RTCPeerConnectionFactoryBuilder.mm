@@ -19,12 +19,7 @@
 #include "api/video_codecs/video_encoder_factory.h"
 
 @implementation RTCPeerConnectionFactoryBuilder {
-  std::unique_ptr<webrtc::VideoEncoderFactory> _videoEncoderFactory;
-  std::unique_ptr<webrtc::VideoDecoderFactory> _videoDecoderFactory;
-  rtc::scoped_refptr<webrtc::AudioEncoderFactory> _audioEncoderFactory;
-  rtc::scoped_refptr<webrtc::AudioDecoderFactory> _audioDecoderFactory;
-  rtc::scoped_refptr<webrtc::AudioDeviceModule> _audioDeviceModule;
-  rtc::scoped_refptr<webrtc::AudioProcessing> _audioProcessingModule;
+  webrtc::PeerConnectionFactoryDependencies _dependencies;
 }
 
 + (RTCPeerConnectionFactoryBuilder *)builder {
@@ -32,41 +27,44 @@
 }
 
 - (RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)createPeerConnectionFactory {
-  RTC_OBJC_TYPE(RTCPeerConnectionFactory) *factory =
-      [RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc];
-  return [factory initWithNativeAudioEncoderFactory:_audioEncoderFactory
-                          nativeAudioDecoderFactory:_audioDecoderFactory
-                          nativeVideoEncoderFactory:std::move(_videoEncoderFactory)
-                          nativeVideoDecoderFactory:std::move(_videoDecoderFactory)
-                                  audioDeviceModule:_audioDeviceModule.get()
-                              audioProcessingModule:_audioProcessingModule];
+  return [[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc]
+      initWithMediaAndDependencies:std::move(_dependencies)];
+}
+
+- (void)setFieldTrials:(std::unique_ptr<webrtc::FieldTrialsView>)fieldTrials {
+  _dependencies.trials = std::move(fieldTrials);
 }
 
 - (void)setVideoEncoderFactory:(std::unique_ptr<webrtc::VideoEncoderFactory>)videoEncoderFactory {
-  _videoEncoderFactory = std::move(videoEncoderFactory);
+  _dependencies.video_encoder_factory = std::move(videoEncoderFactory);
 }
 
 - (void)setVideoDecoderFactory:(std::unique_ptr<webrtc::VideoDecoderFactory>)videoDecoderFactory {
-  _videoDecoderFactory = std::move(videoDecoderFactory);
+  _dependencies.video_decoder_factory = std::move(videoDecoderFactory);
 }
 
 - (void)setAudioEncoderFactory:
         (rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory {
-  _audioEncoderFactory = audioEncoderFactory;
+  _dependencies.audio_encoder_factory = std::move(audioEncoderFactory);
 }
 
 - (void)setAudioDecoderFactory:
         (rtc::scoped_refptr<webrtc::AudioDecoderFactory>)audioDecoderFactory {
-  _audioDecoderFactory = audioDecoderFactory;
+  _dependencies.audio_decoder_factory = std::move(audioDecoderFactory);
 }
 
 - (void)setAudioDeviceModule:(rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
-  _audioDeviceModule = audioDeviceModule;
+  _dependencies.adm = std::move(audioDeviceModule);
 }
 
 - (void)setAudioProcessingModule:
         (rtc::scoped_refptr<webrtc::AudioProcessing>)audioProcessingModule {
-  _audioProcessingModule = audioProcessingModule;
+  _dependencies.audio_processing_builder = CustomAudioProcessing(std::move(audioProcessingModule));
+}
+
+- (void)setAudioProcessingBuilder:
+    (std::unique_ptr<webrtc::AudioProcessingBuilderInterface>)audioProcessingBuilder {
+  _dependencies.audio_processing_builder = std::move(audioProcessingBuilder);
 }
 
 @end

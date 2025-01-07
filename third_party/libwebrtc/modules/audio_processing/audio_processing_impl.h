@@ -130,7 +130,7 @@ class AudioProcessingImpl : public AudioProcessing {
   size_t num_reverse_channels() const override;
   int stream_delay_ms() const override;
 
-  AudioProcessingStats GetStatistics(bool has_remote_tracks) override {
+  AudioProcessingStats GetStatistics(bool /* has_remote_tracks */) override {
     return GetStatistics();
   }
   AudioProcessingStats GetStatistics() override {

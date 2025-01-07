@@ -53,10 +53,10 @@ index e996bb2cd7..8da628695d 100644
    // Implements RtpVideoFrameReceiver.
    void ManageFrame(std::unique_ptr<RtpFrameObject> frame) override;
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index eda4f91329..d87e383569 100644
+index 1a63c4cb51..9b9dc814e5 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
-@@ -582,6 +582,14 @@ VideoReceiveStreamInterface::Stats VideoReceiveStream2::GetStats() const {
+@@ -581,6 +581,14 @@ VideoReceiveStreamInterface::Stats VideoReceiveStream2::GetStats() const {
      stats.sender_reports_bytes_sent = rtcp_sr_stats->bytes_sent;
      stats.sender_reports_reports_count = rtcp_sr_stats->reports_count;
    }

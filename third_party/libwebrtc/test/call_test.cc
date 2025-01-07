@@ -14,6 +14,7 @@
 #include <memory>
 
 #include "api/audio/audio_device.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/environment/environment.h"
@@ -111,13 +112,14 @@ void CallTest::RunBaseTest(BaseTest* test) {
     num_flexfec_streams_ = test->GetNumFlexfecStreams();
     RTC_DCHECK(num_video_streams_ > 0 || num_audio_streams_ > 0);
     CallConfig send_config = SendCallConfig();
+    CallConfig recv_config = RecvCallConfig();
     test->ModifySenderBitrateConfig(&send_config.bitrate_config);
     if (num_audio_streams_ > 0) {
       CreateFakeAudioDevices(test->CreateCapturer(), test->CreateRenderer());
       test->OnFakeAudioDevicesCreated(fake_send_audio_device_.get(),
                                       fake_recv_audio_device_.get());
-      apm_send_ = AudioProcessingBuilder().Create();
-      apm_recv_ = AudioProcessingBuilder().Create();
+      apm_send_ = BuiltinAudioProcessingBuilder().Build(send_config.env);
+      apm_recv_ = BuiltinAudioProcessingBuilder().Build(recv_config.env);
       EXPECT_EQ(0, fake_send_audio_device_->Init());
       EXPECT_EQ(0, fake_recv_audio_device_->Init());
       AudioState::Config audio_state_config;
@@ -130,7 +132,6 @@ void CallTest::RunBaseTest(BaseTest* test) {
     }
     CreateSenderCall(std::move(send_config));
     if (test->ShouldCreateReceivers()) {
-      CallConfig recv_config = RecvCallConfig();
       test->ModifyReceiverBitrateConfig(&recv_config.bitrate_config);
       if (num_audio_streams_ > 0) {
         AudioState::Config audio_state_config;

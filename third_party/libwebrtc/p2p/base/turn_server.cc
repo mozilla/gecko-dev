@@ -30,6 +30,7 @@
 #include "rtc_base/message_digest.h"
 #include "rtc_base/socket_adapters.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/time_utils.h"
 
 namespace cricket {
 namespace {
@@ -140,8 +141,8 @@ void TurnServer::AcceptConnection(rtc::Socket* server_socket) {
   if (accepted_socket != NULL) {
     const ServerSocketInfo& info = server_listen_sockets_[server_socket];
     if (info.ssl_adapter_factory) {
-      rtc::SSLAdapter* ssl_adapter = info.ssl_adapter_factory->CreateAdapter(
-          accepted_socket, /*permute_extensions=*/true);
+      rtc::SSLAdapter* ssl_adapter =
+          info.ssl_adapter_factory->CreateAdapter(accepted_socket);
       ssl_adapter->StartSSL("");
       accepted_socket = ssl_adapter;
     }

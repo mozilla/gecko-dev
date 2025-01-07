@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tarfile
 
+import dateutil
 import requests
 
 THIRDPARTY_USED_IN_FIREFOX = [
@@ -219,44 +220,42 @@ def make_googlesource_url(target, commit):
 
 
 def fetch(target, url):
-    print("Fetching commit from {}".format(url))
+    print(f"Fetching commit from {url}")
     req = requests.get(url)
     if req.status_code == 200:
         with open(target + ".tar.gz", "wb") as f:
             f.write(req.content)
     else:
         print(
-            "Hit status code {} fetching commit. Aborting.".format(req.status_code),
+            f"Hit status code {req.status_code} fetching commit. Aborting.",
             file=sys.stderr,
         )
         sys.exit(1)
     with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla"), "a") as f:
         # write the the command line used
-        f.write("# ./mach python {}\n".format(" ".join(sys.argv[0:])))
+        f.write(f"# ./mach python {' '.join(sys.argv[0:])}\n")
         f.write(
-            "{} updated from commit {} on {}.\n".format(
-                target, url, datetime.datetime.utcnow().isoformat()
-            )
+            f"{target} updated from commit {url} on {datetime.datetime.now(dateutil.tz.tzutc()).isoformat()}.\n"
         )
 
 
 def fetch_local(target, path, commit):
     target_archive = target + ".tar.gz"
-    cp = subprocess.run(["git", "archive", "-o", target_archive, commit], cwd=path)
+    cp = subprocess.run(
+        ["git", "archive", "-o", target_archive, commit], cwd=path, check=False
+    )
     if cp.returncode != 0:
         print(
-            "Hit return code {} fetching commit. Aborting.".format(cp.returncode),
+            f"Hit return code {cp.returncode} fetching commit. Aborting.",
             file=sys.stderr,
         )
         sys.exit(1)
 
     with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla"), "a") as f:
         # write the the command line used
-        f.write("# ./mach python {}\n".format(" ".join(sys.argv[0:])))
+        f.write(f"# ./mach python {' '.join(sys.argv[0:])}\n")
         f.write(
-            "{} updated from {} commit {} on {}.\n".format(
-                target, path, commit, datetime.datetime.utcnow().isoformat()
-            )
+            f"{target} updated from {path} commit {commit} on {datetime.datetime.now(dateutil.tz.tzutc()).isoformat()}.\n"
         )
     shutil.move(os.path.join(path, target_archive), target_archive)
 
@@ -285,7 +284,9 @@ def safe_extract(tar, path=".", *, numeric_owner=False):
             validate_tar_member(member, path)
             yield member
 
-    tar.extractall(path, members=_files(tar, path), numeric_owner=numeric_owner)
+    tar.extractall(
+        path, members=_files(tar, path), numeric_owner=numeric_owner, filter="tar"
+    )
 
 
 def unpack(target):

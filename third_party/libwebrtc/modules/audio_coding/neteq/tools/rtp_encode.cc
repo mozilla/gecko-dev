@@ -28,7 +28,6 @@
 #include "api/audio_codecs/L16/audio_encoder_L16.h"
 #include "api/audio_codecs/g711/audio_encoder_g711.h"
 #include "api/audio_codecs/g722/audio_encoder_g722.h"
-#include "api/audio_codecs/ilbc/audio_encoder_ilbc.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
 #include "api/environment/environment_factory.h"
 #include "modules/audio_coding/codecs/cng/audio_encoder_cng.h"
@@ -74,7 +73,6 @@ enum class CodecType {
   kPcm16b16,
   kPcm16b32,
   kPcm16b48,
-  kIlbc,
 };
 
 struct CodecTypeAndInfo {
@@ -96,8 +94,7 @@ const std::map<std::string, CodecTypeAndInfo>& CodecList() {
           {"pcm16b_8", {CodecType::kPcm16b8, 93, false}},
           {"pcm16b_16", {CodecType::kPcm16b16, 94, false}},
           {"pcm16b_32", {CodecType::kPcm16b32, 95, false}},
-          {"pcm16b_48", {CodecType::kPcm16b48, 96, false}},
-          {"ilbc", {CodecType::kIlbc, 102, false}}};
+          {"pcm16b_48", {CodecType::kPcm16b48, 96, false}}};
   return *codec_list;
 }
 
@@ -110,12 +107,12 @@ class Packetizer : public AudioPacketizationCallback {
         ssrc_(ssrc),
         timestamp_rate_hz_(timestamp_rate_hz) {}
 
-  int32_t SendData(AudioFrameType frame_type,
+  int32_t SendData(AudioFrameType /* frame_type */,
                    uint8_t payload_type,
                    uint32_t timestamp,
                    const uint8_t* payload_data,
                    size_t payload_len_bytes,
-                   int64_t absolute_capture_timestamp_ms) override {
+                   int64_t /* absolute_capture_timestamp_ms */) override {
     if (payload_len_bytes == 0) {
       return 0;
     }
@@ -234,11 +231,6 @@ std::unique_ptr<AudioEncoder> CreateEncoder(CodecType codec_type,
     case CodecType::kPcm16b48: {
       return AudioEncoderL16::MakeAudioEncoder(Pcm16bConfig(codec_type),
                                                payload_type);
-    }
-
-    case CodecType::kIlbc: {
-      return AudioEncoderIlbc::MakeAudioEncoder(
-          GetCodecConfig<AudioEncoderIlbc>(), payload_type);
     }
   }
   RTC_DCHECK_NOTREACHED();

@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f18c05287ce831369
  1 file changed, 12 insertions(+), 2 deletions(-)
 
 diff --git a/webrtc.gni b/webrtc.gni
-index 07f8395bd4..3b014a079a 100644
+index ccff1b4365..d29bf59424 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -548,7 +548,7 @@ template("rtc_test") {
+@@ -540,7 +540,7 @@ template("rtc_test") {
        min_sdk_version = 21
        target_sdk_version = 23
        deps += [
@@ -22,7 +22,7 @@ index 07f8395bd4..3b014a079a 100644
          webrtc_root + "test:native_test_java",
        ]
      }
-@@ -993,11 +993,21 @@ template("rtc_library") {
+@@ -985,11 +985,21 @@ template("rtc_library") {
        modified_deps = []
        foreach (dep, deps) {
          newdep = string_replace(dep, "//third_party/", "//libwebrtc/third_party/")
@@ -44,7 +44,7 @@ index 07f8395bd4..3b014a079a 100644
    }
  }
  
-@@ -1035,7 +1045,7 @@ template("rtc_executable") {
+@@ -1027,7 +1037,7 @@ template("rtc_executable") {
      if (is_win) {
        deps += [
          # Give executables the default manifest on Windows (a no-op elsewhere).

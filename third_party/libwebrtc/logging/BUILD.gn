@@ -424,13 +424,6 @@ if (rtc_enable_protobuf) {
   }
 }
 
-# TODO(bugs.webrtc.org/6463): For backwards compatibility; delete as
-# soon as downstream dependencies are updated.
-rtc_source_set("rtc_event_log_impl_output") {
-  sources = [ "rtc_event_log/output/rtc_event_log_output_file.h" ]
-  deps = [ "../api:rtc_event_log_output_file" ]
-}
-
 if (rtc_enable_protobuf) {
   rtc_library("rtc_event_log_impl") {
     visibility = [
@@ -538,7 +531,6 @@ if (rtc_enable_protobuf) {
       "../api/units:time_delta",
       "../api/units:timestamp",
       "../api/video:video_frame",
-      "../call:video_stream_api",
       "../modules:module_api_public",
       "../modules/audio_coding:audio_network_adaptor",
       "../modules/rtp_rtcp:rtp_rtcp_format",

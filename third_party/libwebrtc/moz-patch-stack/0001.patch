@@ -415,7 +415,7 @@ index 178aeb8b66..8db74fde2d 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index c51e0d2204..3464ba8f2f 100644
+index 6ce4327475..25cc708c67 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -437,7 +437,7 @@ index c51e0d2204..3464ba8f2f 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 9de6f43156..4a2ebfb08b 100644
+index f13a006e1e..25bf070cb7 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -235,6 +235,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -467,7 +467,7 @@ index 9f78aca6e2..115bfcf97b 100644
    }
    max_extrapolation_samples_ = 7 * fs_hz / 100;
 diff --git a/modules/desktop_capture/desktop_capturer.h b/modules/desktop_capture/desktop_capturer.h
-index 9c7ecc78f4..2c9c419bcd 100644
+index bb0742a410..60c04723d6 100644
 --- a/modules/desktop_capture/desktop_capturer.h
 +++ b/modules/desktop_capture/desktop_capturer.h
 @@ -82,6 +82,7 @@ class RTC_EXPORT DesktopCapturer {
@@ -1424,10 +1424,10 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index 2da0918062..e98fd428bf 100644
+index b3aff7a17b..4defd80355 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-@@ -283,6 +283,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
+@@ -282,6 +282,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
        force_all_active_layers_(false),
        enable_svc_for_simulcast_(
            !env.field_trials().IsDisabled("WebRTC-VP9-SvcForSimulcast")),
@@ -1435,7 +1435,7 @@ index 2da0918062..e98fd428bf 100644
        is_flexible_mode_(false),
        variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
        quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
-@@ -568,6 +569,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
+@@ -566,6 +567,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
  
    force_key_frame_ = true;
    pics_since_key_ = 0;
@@ -1443,7 +1443,7 @@ index 2da0918062..e98fd428bf 100644
  
    scalability_mode_ = codec_.GetScalabilityMode();
    if (scalability_mode_.has_value()) {
-@@ -1135,6 +1137,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1133,6 +1135,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
      config_changed_ = false;
    }
  
@@ -1458,7 +1458,7 @@ index 2da0918062..e98fd428bf 100644
    RTC_DCHECK_EQ(input_image.width(), raw_->d_w);
    RTC_DCHECK_EQ(input_image.height(), raw_->d_h);
  
-@@ -1257,6 +1267,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1255,6 +1265,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
    return WEBRTC_VIDEO_CODEC_OK;
  }
  
@@ -1530,7 +1530,7 @@ index 0073380520..c2dc03efda 100644
    const bool enable_svc_for_simulcast_;
    std::optional<SimulcastToSvcConverter> simulcast_to_svc_converter_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index a18e69590d..bc80ce27b5 100644
+index e772028b9a..d6a9de35f5 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -446,6 +446,12 @@ rtc_library("logging") {
@@ -1547,7 +1547,7 @@ index a18e69590d..bc80ce27b5 100644
      # Dependency on chromium's logging (in //base).
      deps += [ "//base" ]
 diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index 61a3c667ba..ad2303735e 100644
+index f0461f79e9..adf6deffa9 100644
 --- a/rtc_base/logging.cc
 +++ b/rtc_base/logging.cc
 @@ -44,6 +44,7 @@ static const int kMaxLogLineSize = 1024 - 60;
@@ -1593,7 +1593,7 @@ index 61a3c667ba..ad2303735e 100644
  // The list of logging streams currently configured.
  // Note: we explicitly do not clean this up, because of the uncertain ordering
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index 2a8f9ba5d6..650f73180d 100644
+index 6d5a4bebcf..4b5a99f14e 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
 @@ -555,6 +555,12 @@ class LogMessage {
@@ -1648,10 +1648,10 @@ index 0a9226ef6f..620c1c02f3 100644
    vcm_ = nullptr;
  }
 diff --git a/webrtc.gni b/webrtc.gni
-index fe5e6a0d71..eef511bfc7 100644
+index 6a09451900..b4f0cad7ab 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -126,7 +126,7 @@ declare_args() {
+@@ -123,7 +123,7 @@ declare_args() {
  
    # Selects whether debug dumps for the audio processing module
    # should be generated.

@@ -19,6 +19,7 @@
 #import "sdk/objc/helpers/RTCCameraPreviewView.h"
 
 #include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/enable_media.h"
@@ -124,7 +125,7 @@ void ObjCCallClient::CreatePeerConnectionFactory() {
       [[RTC_OBJC_TYPE(RTCDefaultVideoEncoderFactory) alloc] init]);
   dependencies.video_decoder_factory = webrtc::ObjCToNativeVideoDecoderFactory(
       [[RTC_OBJC_TYPE(RTCDefaultVideoDecoderFactory) alloc] init]);
-  dependencies.audio_processing = webrtc::AudioProcessingBuilder().Create();
+  dependencies.audio_processing_builder = std::make_unique<webrtc::BuiltinAudioProcessingBuilder>();
   webrtc::EnableMedia(dependencies);
   dependencies.event_log_factory = std::make_unique<webrtc::RtcEventLogFactory>();
   pcf_ = webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));

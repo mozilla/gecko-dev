@@ -56,7 +56,7 @@ class FakeStatisticsCalculator : public StatisticsCalculator {
   FakeStatisticsCalculator(TickTimer* tick_timer)
       : StatisticsCalculator(tick_timer) {}
 
-  void LogDelayedPacketOutageEvent(int num_samples, int fs_hz) override {
+  void LogDelayedPacketOutageEvent(int num_samples, int /* fs_hz */) override {
     last_outage_duration_samples_ = num_samples;
   }
 

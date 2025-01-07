@@ -24,7 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/audio/audio_device.h"
-#include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
@@ -150,7 +150,7 @@ class VideoRtcpAndSyncObserver : public test::RtpRtcpObserver,
         creation_time_ms_(clock_->TimeInMilliseconds()),
         task_queue_(task_queue) {}
 
-  void OnFrame(const VideoFrame& video_frame) override {
+  void OnFrame(const VideoFrame& /* video_frame */) override {
     task_queue_->PostTask([this]() { CheckStats(); });
   }
 
@@ -246,7 +246,7 @@ void CallPerfTest::TestAudioVideoSync(FecMode fec,
     AudioState::Config send_audio_state_config;
     send_audio_state_config.audio_mixer = AudioMixerImpl::Create();
     send_audio_state_config.audio_processing =
-        AudioProcessingBuilder().Create();
+        BuiltinAudioProcessingBuilder().Build(env());
     send_audio_state_config.audio_device_module = fake_audio_device;
     CallConfig sender_config = SendCallConfig();
 
@@ -452,7 +452,7 @@ TEST_F(CallPerfTest, ReceivesCpuOveruseAndUnderuse) {
     // OnSinkWantsChanged is called when FrameGeneratorCapturer::AddOrUpdateSink
     // is called.
     // TODO(sprang): Add integration test for maintain-framerate mode?
-    void OnSinkWantsChanged(rtc::VideoSinkInterface<VideoFrame>* sink,
+    void OnSinkWantsChanged(rtc::VideoSinkInterface<VideoFrame>* /* sink */,
                             const rtc::VideoSinkWants& wants) override {
       RTC_LOG(LS_INFO) << "OnSinkWantsChanged fps:" << wants.max_framerate_fps
                        << " max_pixel_count " << wants.max_pixel_count
@@ -518,9 +518,9 @@ TEST_F(CallPerfTest, ReceivesCpuOveruseAndUnderuse) {
     }
 
     void ModifyVideoConfigs(
-        VideoSendStream::Config* send_config,
-        std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
-        VideoEncoderConfig* encoder_config) override {}
+        VideoSendStream::Config* /* send_config */,
+        std::vector<VideoReceiveStreamInterface::Config>* /* receive_configs */,
+        VideoEncoderConfig* /* encoder_config */) override {}
 
     void PerformTest() override {
       EXPECT_TRUE(Wait()) << "Timed out before receiving an overuse callback.";
@@ -569,7 +569,7 @@ void CallPerfTest::TestMinTransmitBitrate(bool pad_to_min_bitrate) {
 
    private:
     // TODO(holmer): Run this with a timer instead of once per packet.
-    Action OnSendRtp(rtc::ArrayView<const uint8_t> packet) override {
+    Action OnSendRtp(rtc::ArrayView<const uint8_t> /* packet */) override {
       task_queue_->PostTask(SafeTask(task_safety_flag_, [this]() {
         VideoSendStream::Stats stats = send_stream_->GetStats();
 
@@ -594,15 +594,15 @@ void CallPerfTest::TestMinTransmitBitrate(bool pad_to_min_bitrate) {
 
     void OnVideoStreamsCreated(VideoSendStream* send_stream,
                                const std::vector<VideoReceiveStreamInterface*>&
-                                   receive_streams) override {
+                               /* receive_streams */) override {
       send_stream_ = send_stream;
     }
 
     void OnStreamsStopped() override { task_safety_flag_->SetNotAlive(); }
 
     void ModifyVideoConfigs(
-        VideoSendStream::Config* send_config,
-        std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
+        VideoSendStream::Config* /* send_config */,
+        std::vector<VideoReceiveStreamInterface::Config>* /* receive_configs */,
         VideoEncoderConfig* encoder_config) override {
       if (pad_to_min_bitrate_) {
         encoder_config->min_transmit_bitrate_bps = kMinTransmitBitrateBps;
@@ -732,7 +732,7 @@ TEST_F(CallPerfTest, MAYBE_KeepsHighBitrateWhenReconfiguringSender) {
 
     void ModifyVideoConfigs(
         VideoSendStream::Config* send_config,
-        std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
+        std::vector<VideoReceiveStreamInterface::Config>* /* receive_configs */,
         VideoEncoderConfig* encoder_config) override {
       send_config->encoder_settings.encoder_factory = &encoder_factory_;
       send_config->encoder_settings.bitrate_allocator_factory =
@@ -746,7 +746,7 @@ TEST_F(CallPerfTest, MAYBE_KeepsHighBitrateWhenReconfiguringSender) {
 
     void OnVideoStreamsCreated(VideoSendStream* send_stream,
                                const std::vector<VideoReceiveStreamInterface*>&
-                                   receive_streams) override {
+                               /* receive_streams */) override {
       send_stream_ = send_stream;
     }
 
@@ -839,9 +839,9 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
     }
 
     void OnTransportCreated(
-        test::PacketTransport* to_receiver,
+        test::PacketTransport* /* to_receiver */,
         SimulatedNetworkInterface* sender_network,
-        test::PacketTransport* to_sender,
+        test::PacketTransport* /* to_sender */,
         SimulatedNetworkInterface* receiver_network) override {
       send_simulated_network_ = sender_network;
       receive_simulated_network_ = receiver_network;
@@ -894,7 +894,7 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
           Unit::kUnitless, ImprovementDirection::kNeitherIsBetter);
     }
 
-    void OnCallsCreated(Call* sender_call, Call* receiver_call) override {
+    void OnCallsCreated(Call* sender_call, Call* /* receiver_call */) override {
       sender_call_ = sender_call;
       BitrateConstraints bitrate_config;
       bitrate_config.min_bitrate_bps = min_bwe_;
@@ -960,8 +960,8 @@ void CallPerfTest::TestEncodeFramerate(VideoEncoderFactory* encoder_factory,
       frame_generator_capturer->ChangeResolution(640, 360);
     }
 
-    void OnSinkWantsChanged(rtc::VideoSinkInterface<VideoFrame>* sink,
-                            const rtc::VideoSinkWants& wants) override {}
+    void OnSinkWantsChanged(rtc::VideoSinkInterface<VideoFrame>* /* sink */,
+                            const rtc::VideoSinkWants& /* wants */) override {}
 
     void ModifySenderBitrateConfig(
         BitrateConstraints* bitrate_config) override {
@@ -970,7 +970,7 @@ void CallPerfTest::TestEncodeFramerate(VideoEncoderFactory* encoder_factory,
 
     void OnVideoStreamsCreated(VideoSendStream* send_stream,
                                const std::vector<VideoReceiveStreamInterface*>&
-                                   receive_streams) override {
+                               /* receive_streams */) override {
       send_stream_ = send_stream;
     }
 
@@ -980,7 +980,7 @@ void CallPerfTest::TestEncodeFramerate(VideoEncoderFactory* encoder_factory,
 
     void ModifyVideoConfigs(
         VideoSendStream::Config* send_config,
-        std::vector<VideoReceiveStreamInterface::Config>* receive_configs,
+        std::vector<VideoReceiveStreamInterface::Config>* /* receive_configs */,
         VideoEncoderConfig* encoder_config) override {
       send_config->encoder_settings.encoder_factory = encoder_factory_;
       send_config->rtp.payload_name = payload_name_;
@@ -1021,7 +1021,7 @@ void CallPerfTest::TestEncodeFramerate(VideoEncoderFactory* encoder_factory,
       }
     }
 
-    Action OnSendRtp(rtc::ArrayView<const uint8_t> packet) override {
+    Action OnSendRtp(rtc::ArrayView<const uint8_t> /* packet */) override {
       const Timestamp now = clock_->CurrentTime();
       if (now - last_getstats_time_ > kMinGetStatsInterval) {
         last_getstats_time_ = now;
@@ -1059,7 +1059,7 @@ TEST_F(CallPerfTest, TestEncodeFramerateVp8Simulcast) {
   InternalEncoderFactory internal_encoder_factory;
   test::FunctionVideoEncoderFactory encoder_factory(
       [&internal_encoder_factory](const Environment& env,
-                                  const SdpVideoFormat& format) {
+                                  const SdpVideoFormat& /* format */) {
         return std::make_unique<SimulcastEncoderAdapter>(
             env, &internal_encoder_factory, nullptr, SdpVideoFormat::VP8());
       });
@@ -1072,7 +1072,7 @@ TEST_F(CallPerfTest, TestEncodeFramerateVp8SimulcastLowerInputFps) {
   InternalEncoderFactory internal_encoder_factory;
   test::FunctionVideoEncoderFactory encoder_factory(
       [&internal_encoder_factory](const Environment& env,
-                                  const SdpVideoFormat& format) {
+                                  const SdpVideoFormat& /* format */) {
         return std::make_unique<SimulcastEncoderAdapter>(
             env, &internal_encoder_factory, nullptr, SdpVideoFormat::VP8());
       });

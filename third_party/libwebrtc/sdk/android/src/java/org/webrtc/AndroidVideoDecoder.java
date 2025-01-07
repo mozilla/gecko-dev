@@ -422,7 +422,6 @@ class AndroidVideoDecoder implements VideoDecoder, VideoSink {
 
   @Override
   public void onFrame(VideoFrame frame) {
-    final VideoFrame newFrame;
     final Integer decodeTimeMs;
     final long timestampNs;
     synchronized (renderedTextureMetadataLock) {

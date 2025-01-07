@@ -114,9 +114,9 @@ class FakeVideoStream {
 class FakeVideoStreamAdapterListner : public VideoSourceRestrictionsListener {
  public:
   void OnVideoSourceRestrictionsUpdated(
-      VideoSourceRestrictions restrictions,
-      const VideoAdaptationCounters& adaptation_counters,
-      rtc::scoped_refptr<Resource> reason,
+      VideoSourceRestrictions /* restrictions */,
+      const VideoAdaptationCounters& /* adaptation_counters */,
+      rtc::scoped_refptr<Resource> /* reason */,
       const VideoSourceRestrictions& unfiltered_restrictions) override {
     calls_++;
     last_restrictions_ = unfiltered_restrictions;

@@ -27,7 +27,7 @@ class RTC_EXPORT RtcEventLogFactory : public RtcEventLogFactoryInterface {
   RtcEventLogFactory() = default;
 
   [[deprecated("Use default constructor")]]  //
-  explicit RtcEventLogFactory(TaskQueueFactory* task_queue_factory) {}
+  explicit RtcEventLogFactory(TaskQueueFactory* /* task_queue_factory */) {}
 
   ~RtcEventLogFactory() override = default;
 

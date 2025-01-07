@@ -1333,6 +1333,7 @@ if (!build_with_mozilla) {
   ]
   deps = [
     ":async_packet_socket",
+    ":buffer",
     ":checks",
     ":logging",
     ":macromagic",
@@ -1342,6 +1343,7 @@ if (!build_with_mozilla) {
     ":timeutils",
     "../api:sequence_checker",
     "../api/units:time_delta",
+    "../api/units:timestamp",
     "../system_wrappers:field_trial",
     "network:received_packet",
     "network:sent_packet",
@@ -1361,7 +1363,9 @@ if (!build_with_mozilla) {
     ":callback_list",
     ":checks",
     ":dscp",
+    ":macromagic",
     ":socket",
+    ":socket_address",
     ":timeutils",
     "../api:sequence_checker",
     "network:received_packet",
@@ -1369,6 +1373,7 @@ if (!build_with_mozilla) {
     "system:no_unique_address",
     "system:rtc_export",
     "third_party/sigslot",
+    "//third_party/abseil-cpp/absl/functional:any_invocable",
   ]
 }
 }
@@ -1385,6 +1390,24 @@ if (rtc_include_tests) {
       "../test:test_support",
       "network:received_packet",
       "third_party/sigslot",
+    ]
+  }
+
+  rtc_library("async_udp_socket_unittest") {
+    testonly = true
+    visibility = [ "*" ]
+    sources = [ "async_udp_socket_unittest.cc" ]
+    deps = [
+      ":async_packet_socket",
+      ":async_udp_socket",
+      ":gunit_helpers",
+      ":rtc_base_tests_utils",
+      ":socket",
+      ":socket_address",
+      "../test:test_support",
+      "network:received_packet",
+      "third_party/sigslot",
+      "//third_party/abseil-cpp/absl/memory",
     ]
   }
 }

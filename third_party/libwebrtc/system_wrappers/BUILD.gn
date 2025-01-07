@@ -142,6 +142,7 @@ if (rtc_include_tests && !build_with_chromium) {
       ":field_trial",
       ":metrics",
       ":system_wrappers",
+      "../api/units:time_delta",
       "../rtc_base:checks",
       "../rtc_base:random",
       "../rtc_base:stringutils",

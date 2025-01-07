@@ -439,7 +439,7 @@ class LogMessageVoidify {
   // This has to be an operator with a precedence lower than << but
   // higher than ?:
   template <typename... Ts>
-  void operator&(LogStreamer<Ts...>&& streamer) {}
+  void operator&(LogStreamer<Ts...>&& /* streamer */) {}
 };
 
 }  // namespace webrtc_logging_impl

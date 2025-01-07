@@ -458,7 +458,7 @@ bool ScreenCapturerMac::RegisterRefreshAndMoveHandlers() {
     DesktopVector display_origin = config.pixel_bounds.top_left();
 
     CGDisplayStreamFrameAvailableHandler handler = ^(CGDisplayStreamFrameStatus status,
-                                                     uint64_t display_time,
+                                                     uint64_t /* display_time */,
                                                      IOSurfaceRef frame_surface,
                                                      CGDisplayStreamUpdateRef updateRef) {
       RTC_DCHECK(thread_checker_.IsCurrent());

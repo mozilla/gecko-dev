@@ -507,6 +507,10 @@ TEST_F(WebRtcVideoEngineTest, AdvertiseGenericDescriptor00) {
   ExpectRtpCapabilitySupport(RtpExtension::kGenericFrameDescriptorUri00, false);
 }
 
+TEST_F(WebRtcVideoEngineTest, SupportCorruptionDetectionHeaderExtension) {
+  ExpectRtpCapabilitySupport(RtpExtension::kCorruptionDetectionUri, false);
+}
+
 class WebRtcVideoEngineTestWithGenericDescriptor
     : public WebRtcVideoEngineTest {
  public:
@@ -3176,6 +3180,9 @@ TEST_F(WebRtcVideoChannelTest, RecvVideoRotationHeaderExtensions) {
 TEST_F(WebRtcVideoChannelTest, SendCorruptionDetectionHeaderExtensions) {
   TestSetSendRtpHeaderExtensions(RtpExtension::kCorruptionDetectionUri);
 }
+TEST_F(WebRtcVideoChannelTest, RecvCorruptionDetectionHeaderExtensions) {
+  TestSetRecvRtpHeaderExtensions(RtpExtension::kCorruptionDetectionUri);
+}
 
 TEST_F(WebRtcVideoChannelTest, DisableFrameInstrumentationByDefault) {
   EXPECT_TRUE(send_channel_->SetSenderParameters(send_parameters_));
@@ -4128,7 +4135,7 @@ class Vp9SettingsTestWithFieldTrial
 
   void VerifySettings(int num_spatial_layers,
                       int num_temporal_layers,
-                      webrtc::InterLayerPredMode interLayerPred) {
+                      webrtc::InterLayerPredMode /* interLayerPred */) {
     cricket::VideoSenderParameters parameters;
     parameters.codecs.push_back(GetEngineCodec("VP9"));
     ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
@@ -9750,7 +9757,7 @@ TEST_F(WebRtcVideoChannelBaseTest, EncoderSelectorSwitchCodec) {
   send_channel_->SetEncoderSelector(kSsrc, nullptr);
 }
 
-TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecast) {
+TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecast) {
   cricket::VideoSenderParameters parameters;
   parameters.codecs.push_back(GetEngineCodec("VP8"));
   ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
@@ -9762,12 +9769,12 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecast) {
   EXPECT_TRUE(
       send_channel_->SetVideoSend(last_ssrc_, nullptr, &frame_forwarder));
 
-  {  // TEST requested_resolution < frame size
+  {  // TEST scale_resolution_down_to < frame size
     webrtc::RtpParameters rtp_parameters =
         send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 640,
-                                                        .height = 360};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 640,
+                                                            .height = 360};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -9778,11 +9785,11 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecast) {
     EXPECT_EQ(rtc::checked_cast<size_t>(360), streams[0].height);
   }
 
-  {  // TEST requested_resolution == frame size
+  {  // TEST scale_resolution_down_to == frame size
     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 1280,
-                                                        .height = 720};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
+                                                            .height = 720};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -9792,11 +9799,11 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecast) {
     EXPECT_EQ(rtc::checked_cast<size_t>(720), streams[0].height);
   }
 
-  {  // TEST requested_resolution > frame size
+  {  // TEST scale_resolution_down_to > frame size
     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 2 * 1280,
-                                                        .height = 2 * 720};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 2 * 1280,
+                                                            .height = 2 * 720};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -9809,7 +9816,7 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecast) {
   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
 }
 
-TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastScaling) {
+TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSinglecastScaling) {
   cricket::VideoSenderParameters parameters;
   parameters.codecs.push_back(GetEngineCodec("VP8"));
   ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
@@ -9824,8 +9831,8 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastScaling) {
   {
     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 720,
-                                                        .height = 720};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 720,
+                                                            .height = 720};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -9841,8 +9848,8 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastScaling) {
   {
     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 1280,
-                                                        .height = 1280};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 1280,
+                                                            .height = 1280};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -9857,8 +9864,8 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastScaling) {
   {
     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 650,
-                                                        .height = 650};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 650,
+                                                            .height = 650};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     auto streams = stream->GetVideoStreams();
@@ -9872,8 +9879,8 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastScaling) {
   {
     auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(1UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 2560,
-                                                        .height = 1440};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 2560,
+                                                            .height = 1440};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     auto streams = stream->GetVideoStreams();
@@ -9886,7 +9893,7 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastScaling) {
   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
 }
 
-TEST_F(WebRtcVideoChannelTest, RequestedResolutionSimulcast) {
+TEST_F(WebRtcVideoChannelTest, ScaleResolutionDownToSimulcast) {
   cricket::VideoSenderParameters parameters;
   parameters.codecs.push_back(GetEngineCodec("VP8"));
   ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
@@ -9902,12 +9909,12 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSimulcast) {
     webrtc::RtpParameters rtp_parameters =
         send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(3UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 320,
-                                                        .height = 180};
-    rtp_parameters.encodings[1].requested_resolution = {.width = 640,
-                                                        .height = 360};
-    rtp_parameters.encodings[2].requested_resolution = {.width = 1280,
-                                                        .height = 720};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 320,
+                                                            .height = 180};
+    rtp_parameters.encodings[1].scale_resolution_down_to = {.width = 640,
+                                                            .height = 360};
+    rtp_parameters.encodings[2].scale_resolution_down_to = {.width = 1280,
+                                                            .height = 720};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -9924,12 +9931,12 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSimulcast) {
     webrtc::RtpParameters rtp_parameters =
         send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(3UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 320,
-                                                        .height = 180};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 320,
+                                                            .height = 180};
     rtp_parameters.encodings[1].active = false;
 
-    rtp_parameters.encodings[2].requested_resolution = {.width = 1280,
-                                                        .height = 720};
+    rtp_parameters.encodings[2].scale_resolution_down_to = {.width = 1280,
+                                                            .height = 720};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
@@ -9945,13 +9952,13 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSimulcast) {
     webrtc::RtpParameters rtp_parameters =
         send_channel_->GetRtpSendParameters(last_ssrc_);
     EXPECT_EQ(3UL, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].requested_resolution = {.width = 320,
-                                                        .height = 180};
+    rtp_parameters.encodings[0].scale_resolution_down_to = {.width = 320,
+                                                            .height = 180};
     rtp_parameters.encodings[1].active = true;
-    rtp_parameters.encodings[1].requested_resolution = {.width = 640,
-                                                        .height = 360};
-    rtp_parameters.encodings[2].requested_resolution = {.width = 960,
-                                                        .height = 540};
+    rtp_parameters.encodings[1].scale_resolution_down_to = {.width = 640,
+                                                            .height = 360};
+    rtp_parameters.encodings[2].scale_resolution_down_to = {.width = 960,
+                                                            .height = 540};
     send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
 
     frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());

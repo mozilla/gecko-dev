@@ -494,7 +494,7 @@ TEST_F(NetEqImplTest, VerifyTimestampPropagation) {
     CountingSamplesDecoder() : next_value_(1) {}
 
     // Produce as many samples as input bytes (`encoded_len`).
-    int DecodeInternal(const uint8_t* encoded,
+    int DecodeInternal(const uint8_t* /* encoded */,
                        size_t encoded_len,
                        int /* sample_rate_hz */,
                        int16_t* decoded,
@@ -1690,7 +1690,7 @@ TEST_F(NetEqImplTest, NoCrashWith1000Channels) {
   EXPECT_CALL(*mock_decoder_database_, GetActiveDecoder())
       .WillRepeatedly(Return(decoder));
   EXPECT_CALL(*mock_decoder_database_, SetActiveDecoder(_, _))
-      .WillOnce(Invoke([](uint8_t rtp_payload_type, bool* new_decoder) {
+      .WillOnce(Invoke([](uint8_t /* rtp_payload_type */, bool* new_decoder) {
         *new_decoder = true;
         return 0;
       }));
@@ -1803,8 +1803,8 @@ class Decoder120ms : public AudioDecoder {
         next_value_(1),
         speech_type_(speech_type) {}
 
-  int DecodeInternal(const uint8_t* encoded,
-                     size_t encoded_len,
+  int DecodeInternal(const uint8_t* /* encoded */,
+                     size_t /* encoded_len */,
                      int sample_rate_hz,
                      int16_t* decoded,
                      SpeechType* speech_type) override {

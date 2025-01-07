@@ -82,6 +82,7 @@ class MockRtpSender : public RtpSenderInterface {
               SetEncoderSelector,
               (std::unique_ptr<VideoEncoderFactory::EncoderSelectorInterface>),
               (override));
+  MOCK_METHOD(void, SetObserver, (RtpSenderObserverInterface*), (override));
 };
 
 static_assert(!std::is_abstract_v<rtc::RefCountedObject<MockRtpSender>>, "");

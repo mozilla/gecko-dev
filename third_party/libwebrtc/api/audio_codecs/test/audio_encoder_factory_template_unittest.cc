@@ -22,7 +22,6 @@
 #include "api/audio_codecs/audio_format.h"
 #include "api/audio_codecs/g711/audio_encoder_g711.h"
 #include "api/audio_codecs/g722/audio_encoder_g722.h"
-#include "api/audio_codecs/ilbc/audio_encoder_ilbc.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
@@ -78,7 +77,7 @@ struct AudioEncoderFakeApi {
 
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
-      int payload_type,
+      int /* payload_type */,
       std::optional<AudioCodecPairId> /*codec_pair_id*/ = std::nullopt) {
     auto enc = std::make_unique<testing::StrictMock<MockAudioEncoder>>();
     EXPECT_CALL(*enc, SampleRateHz())
@@ -100,7 +99,8 @@ struct BaseAudioEncoderApi {
   static SdpAudioFormat AudioFormat() { return {"fake", 16'000, 2, {}}; }
   static AudioCodecInfo CodecInfo() { return {16'000, 2, 23456}; }
 
-  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(
+      const SdpAudioFormat& /* audio_format */) {
     return Config();
   }
 
@@ -114,8 +114,8 @@ struct BaseAudioEncoderApi {
 struct AudioEncoderApiWithV1Make : BaseAudioEncoderApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
-      int payload_type,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      int /* payload_type */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV1SameRate));
     return encoder;
@@ -124,9 +124,9 @@ struct AudioEncoderApiWithV1Make : BaseAudioEncoderApi {
 
 struct AudioEncoderApiWithV2Make : BaseAudioEncoderApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
-      const Environment& env,
-      const Config& config,
-      const AudioEncoderFactory::Options& options) {
+      const Environment& /* env */,
+      const Config& /* config */,
+      const AudioEncoderFactory::Options& /* options */) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV2SameRate));
     return encoder;
@@ -136,17 +136,17 @@ struct AudioEncoderApiWithV2Make : BaseAudioEncoderApi {
 struct AudioEncoderApiWithBothV1AndV2Make : BaseAudioEncoderApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
-      int payload_type,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      int /* payload_type */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV1SameRate));
     return encoder;
   }
 
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
-      const Environment& env,
-      const Config& config,
-      const AudioEncoderFactory::Options& options) {
+      const Environment& /* env */,
+      const Config& /* config */,
+      const AudioEncoderFactory::Options& /* options */) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV2SameRate));
     return encoder;
@@ -264,21 +264,6 @@ TEST(AudioEncoderFactoryTemplateTest, G722) {
   EXPECT_THAT(factory->Create(env, {"bar", 16000, 1}, {}), IsNull());
   EXPECT_THAT(factory->Create(env, {"G722", 8000, 1}, {}),
               Pointer(Property(&AudioEncoder::SampleRateHz, 16000)));
-}
-
-TEST(AudioEncoderFactoryTemplateTest, Ilbc) {
-  const Environment env = CreateEnvironment();
-  auto factory = CreateAudioEncoderFactory<AudioEncoderIlbc>();
-  EXPECT_THAT(factory->GetSupportedEncoders(),
-              ::testing::ElementsAre(
-                  AudioCodecSpec{{"ILBC", 8000, 1}, {8000, 1, 13333}}));
-  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
-  EXPECT_EQ(AudioCodecInfo(8000, 1, 13333),
-            factory->QueryAudioEncoder({"ilbc", 8000, 1}));
-
-  EXPECT_THAT(factory->Create(env, {"bar", 8000, 1}, {}), IsNull());
-  EXPECT_THAT(factory->Create(env, {"ilbc", 8000, 1}, {}),
-              Pointer(Property(&AudioEncoder::SampleRateHz, 8000)));
 }
 
 TEST(AudioEncoderFactoryTemplateTest, L16) {

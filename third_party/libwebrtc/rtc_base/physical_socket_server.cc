@@ -10,6 +10,7 @@
 #include "rtc_base/physical_socket_server.h"
 
 #include <cstdint>
+#include <cstring>
 #include <utility>
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
@@ -92,7 +93,7 @@ int64_t GetSocketRecvTimestamp(int socket) {
 
 #else
 
-int64_t GetSocketRecvTimestamp(int socket) {
+int64_t GetSocketRecvTimestamp(int /* socket */) {
   return -1;
 }
 #endif
@@ -552,10 +553,11 @@ int PhysicalSocket::DoReadFromSocket(void* buffer,
         if (cmsg->cmsg_level != SOL_SOCKET)
           continue;
         if (timestamp && cmsg->cmsg_type == SCM_TIMESTAMP) {
-          timeval* ts = reinterpret_cast<timeval*>(CMSG_DATA(cmsg));
+          timeval ts;
+          std::memcpy(static_cast<void*>(&ts), CMSG_DATA(cmsg), sizeof(ts));
           *timestamp =
-              rtc::kNumMicrosecsPerSec * static_cast<int64_t>(ts->tv_sec) +
-              static_cast<int64_t>(ts->tv_usec);
+              rtc::kNumMicrosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
+              static_cast<int64_t>(ts.tv_usec);
         }
       }
     }
@@ -1168,7 +1170,7 @@ class Signaler : public Dispatcher {
 
   uint32_t GetRequestedEvents() override { return DE_READ; }
 
-  void OnEvent(uint32_t ff, int err) override {
+  void OnEvent(uint32_t /* ff */, int /* err */) override {
     // It is not possible to perfectly emulate an auto-resetting event with
     // pipes.  This simulates it by resetting before the event is handled.
 
@@ -1350,7 +1352,7 @@ void PhysicalSocketServer::Remove(Dispatcher* pdispatcher) {
 #endif  // WEBRTC_USE_EPOLL
 }
 
-void PhysicalSocketServer::Update(Dispatcher* pdispatcher) {
+void PhysicalSocketServer::Update([[maybe_unused]] Dispatcher* pdispatcher) {
 #if defined(WEBRTC_USE_EPOLL)
   if (epoll_fd_ == INVALID_SOCKET) {
     return;

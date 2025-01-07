@@ -14,6 +14,7 @@
 #include <optional>
 #include <vector>
 
+#include "api/rtp_parameters.h"
 #include "media/base/codec.h"
 
 namespace webrtc {
@@ -29,10 +30,18 @@ bool MatchesWithCodecRules(const cricket::Codec& left_codec,
 // Finds a codec in `codecs2` that matches `codec_to_match`, which is
 // a member of `codecs1`. If `codec_to_match` is an RED or RTX codec, both
 // the codecs themselves and their associated codecs must match.
+// The purpose of this function is that codecs1 and codecs2 are different
+// PT numbering spaces, and it is trying to find the codec in codecs2
+// that has the same functionality as `codec_to_match` so that its PT
+// can be used in place of the original.
 std::optional<cricket::Codec> FindMatchingCodec(
     const std::vector<cricket::Codec>& codecs1,
     const std::vector<cricket::Codec>& codecs2,
     const cricket::Codec& codec_to_match);
+
+// Similar to `Codec::MatchesRtpCodec` but not an exact match of parameters.
+// Unspecified parameters are treated as default.
+bool IsSameRtpCodec(const cricket::Codec& codec, const RtpCodec& rtp_codec);
 
 }  // namespace webrtc
 

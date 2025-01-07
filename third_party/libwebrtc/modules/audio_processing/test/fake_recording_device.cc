@@ -57,8 +57,8 @@ class FakeRecordingDeviceIdentity final : public FakeRecordingDeviceWorker {
   explicit FakeRecordingDeviceIdentity(const int initial_mic_level)
       : FakeRecordingDeviceWorker(initial_mic_level) {}
   ~FakeRecordingDeviceIdentity() override = default;
-  void ModifyBufferInt16(rtc::ArrayView<int16_t> buffer) override {}
-  void ModifyBufferFloat(ChannelBuffer<float>* buffer) override {}
+  void ModifyBufferInt16(rtc::ArrayView<int16_t> /* buffer */) override {}
+  void ModifyBufferFloat(ChannelBuffer<float>* /* buffer */) override {}
 };
 
 // Linear fake recording device. The gain curve is a linear function mapping the

@@ -123,9 +123,6 @@ class Timestamp final : public rtc_units_impl::UnitBase<Timestamp> {
 };
 
 RTC_EXPORT std::string ToString(Timestamp value);
-inline std::string ToLogString(Timestamp value) {
-  return ToString(value);
-}
 
 template <typename Sink>
 void AbslStringify(Sink& sink, Timestamp value) {

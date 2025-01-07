@@ -181,7 +181,7 @@ std::string SdpVideoFormat::ToString() const {
     builder << "]";
   }
 
-  return builder.str();
+  return builder.Release();
 }
 
 bool SdpVideoFormat::IsSameCodec(const SdpVideoFormat& other) const {

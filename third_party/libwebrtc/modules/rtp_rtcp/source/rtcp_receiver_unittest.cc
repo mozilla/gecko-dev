@@ -22,6 +22,7 @@
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/environment/environment_factory.h"
+#include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -32,6 +33,7 @@
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/mocks/mock_network_link_rtcp_observer.h"
+#include "modules/rtp_rtcp/mocks/mock_network_state_estimator_observer.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
 #include "modules/rtp_rtcp/source/ntp_time_util.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/app.h"
@@ -46,6 +48,7 @@
 #include "modules/rtp_rtcp/source/rtcp_packet/rapid_resync_request.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/receiver_report.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/remb.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/remote_estimate.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/rtpfb.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/sdes.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/sender_report.h"
@@ -168,12 +171,14 @@ struct ReceiverMocks {
   StrictMock<MockVideoBitrateAllocationObserver> bitrate_allocation_observer;
   StrictMock<MockModuleRtpRtcp> rtp_rtcp_impl;
   NiceMock<MockNetworkLinkRtcpObserver> network_link_rtcp_observer;
+  NiceMock<MockNetworkStateEstimateObserver> network_state_estimate_observer;
 
   RtpRtcpInterface::Configuration config = {
       .receiver_only = false,
       .intra_frame_callback = &intra_frame_observer,
       .rtcp_loss_notification_observer = &rtcp_loss_notification_observer,
       .network_link_rtcp_observer = &network_link_rtcp_observer,
+      .network_state_estimate_observer = &network_state_estimate_observer,
       .bitrate_allocation_observer = &bitrate_allocation_observer,
       .rtcp_packet_type_counter_observer = &packet_type_counter_observer,
       .rtcp_report_interval_ms = kRtcpIntervalMs,
@@ -1539,8 +1544,7 @@ TEST(RtcpReceiverTest,
   const uint32_t kCumulativeLoss = 7;
   const uint32_t kJitter = 9;
   const uint16_t kSequenceNumber = 1234;
-  const int64_t kNtpNowMs =
-      mocks.clock.CurrentNtpInMilliseconds() - rtc::kNtpJan1970Millisecs;
+  const Timestamp kUtcNow = Clock::NtpToUtc(mocks.clock.CurrentNtpTime());
 
   rtcp::ReportBlock rtcp_block;
   rtcp_block.SetMediaSsrc(kReceiverMainSsrc);
@@ -1561,8 +1565,7 @@ TEST(RtcpReceiverTest,
         EXPECT_EQ(rtcp_block.extended_high_seq_num(),
                   report_block.extended_highest_sequence_number());
         EXPECT_EQ(rtcp_block.jitter(), report_block.jitter());
-        EXPECT_EQ(report_block.report_block_timestamp_utc(),
-                  Timestamp::Millis(kNtpNowMs));
+        EXPECT_EQ(report_block.report_block_timestamp_utc(), kUtcNow);
         // No RTT is calculated in this test.
         EXPECT_EQ(0u, report_block.num_rtts());
       });
@@ -1759,6 +1762,56 @@ TEST(RtcpReceiverTest, NotifiesNetworkLinkObserverOnCongestionControlFeedback) {
           mocks.clock.CurrentTime(),
           Property(&rtcp::CongestionControlFeedback::packets, SizeIs(1))));
   receiver.IncomingPacket(packet.Build());
+}
+
+TEST(RtcpReceiverTest,
+     NotifiesNetworkStateEstimateObserverOnRemoteNetworkEstimate) {
+  ReceiverMocks mocks;
+  RTCPReceiver receiver = Create(mocks);
+  receiver.SetRemoteSSRC(kSenderSsrc);
+
+  NetworkStateEstimate estimate;
+  estimate.link_capacity_lower = DataRate::BitsPerSec(1000);
+  estimate.link_capacity_upper = DataRate::BitsPerSec(10000);
+  rtcp::RemoteEstimate remote_estimate;
+  remote_estimate.SetEstimate(estimate);
+
+  EXPECT_CALL(mocks.network_state_estimate_observer,
+              OnRemoteNetworkEstimate(
+                  AllOf(Field(&NetworkStateEstimate::link_capacity_lower,
+                              DataRate::BitsPerSec(1000)),
+                        Field(&NetworkStateEstimate::link_capacity_upper,
+                              DataRate::BitsPerSec(10000)))));
+
+  receiver.IncomingPacket(remote_estimate.Build());
+}
+
+TEST(RtcpReceiverTest,
+     NotifiesNetworkStateEstimateObserverBeforeNetworkLinkObserver) {
+  ReceiverMocks mocks;
+  RTCPReceiver receiver = Create(mocks);
+  receiver.SetRemoteSSRC(kSenderSsrc);
+
+  NetworkStateEstimate estimate;
+  estimate.link_capacity_lower = DataRate::BitsPerSec(1000);
+  estimate.link_capacity_upper = DataRate::BitsPerSec(10000);
+  std::unique_ptr<rtcp::RemoteEstimate> remote_estimate =
+      std::make_unique<rtcp::RemoteEstimate>();
+  remote_estimate->SetEstimate(estimate);
+  std::unique_ptr<rtcp::TransportFeedback> feedback_packet =
+      std::make_unique<rtcp::TransportFeedback>();
+  feedback_packet->SetMediaSsrc(mocks.config.local_media_ssrc);
+  feedback_packet->SetSenderSsrc(kSenderSsrc);
+  feedback_packet->SetBase(123, Timestamp::Millis(1));
+  feedback_packet->AddReceivedPacket(123, Timestamp::Millis(1));
+  rtcp::CompoundPacket compound;
+  compound.Append(std::move(remote_estimate));
+  compound.Append(std::move(feedback_packet));
+
+  InSequence s;
+  EXPECT_CALL(mocks.network_state_estimate_observer, OnRemoteNetworkEstimate);
+  EXPECT_CALL(mocks.network_link_rtcp_observer, OnTransportFeedback);
+  receiver.IncomingPacket(compound.Build());
 }
 
 TEST(RtcpReceiverTest, HandlesInvalidCongestionControlFeedback) {

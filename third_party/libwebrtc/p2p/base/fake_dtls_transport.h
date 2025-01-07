@@ -11,6 +11,7 @@
 #ifndef P2P_BASE_FAKE_DTLS_TRANSPORT_H_
 #define P2P_BASE_FAKE_DTLS_TRANSPORT_H_
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
@@ -227,17 +228,12 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     }
     return std::make_unique<rtc::SSLCertChain>(remote_cert_->Clone());
   }
-  bool ExportKeyingMaterial(absl::string_view label,
-                            const uint8_t* context,
-                            size_t context_len,
-                            bool use_context,
-                            uint8_t* result,
-                            size_t result_len) override {
-    if (!do_dtls_) {
-      return false;
+  bool ExportSrtpKeyingMaterial(
+      rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) override {
+    if (do_dtls_) {
+      std::memset(keying_material.data(), 0xff, keying_material.size());
     }
-    memset(result, 0xff, result_len);
-    return true;
+    return do_dtls_;
   }
   void set_ssl_max_protocol_version(rtc::SSLProtocolVersion version) {
     ssl_max_version_ = version;

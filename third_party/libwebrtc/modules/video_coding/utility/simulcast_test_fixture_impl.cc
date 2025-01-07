@@ -246,12 +246,19 @@ void SimulcastTestFixtureImpl::DefaultSettings(
                   &settings->simulcastStream[layer_order[2]],
                   temporal_layer_profile[2]);
   settings->SetFrameDropEnabled(true);
-  if (codec_type == kVideoCodecVP8) {
-    settings->VP8()->denoisingOn = true;
-    settings->VP8()->automaticResizeOn = false;
-    settings->VP8()->keyFrameInterval = 3000;
-  } else {
-    settings->H264()->keyFrameInterval = 3000;
+  switch (codec_type) {
+    case kVideoCodecVP8:
+      settings->VP8()->denoisingOn = true;
+      settings->VP8()->automaticResizeOn = false;
+      settings->VP8()->keyFrameInterval = 3000;
+      break;
+    case kVideoCodecH264:
+      settings->H264()->keyFrameInterval = 3000;
+      break;
+    case kVideoCodecVP9:
+      break;
+    default:
+      RTC_CHECK_NOTREACHED();
   }
 }
 

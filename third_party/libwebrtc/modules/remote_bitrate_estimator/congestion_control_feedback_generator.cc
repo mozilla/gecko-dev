@@ -12,18 +12,22 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
+#include "api/sequence_checker.h"
+#include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/source/ntp_time_util.h"
+#include "modules/rtp_rtcp/source/rtcp_packet.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
-#include "rtc_base/logging.h"
-#include "rtc_base/network/ecn_marking.h"
+#include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "rtc_base/experiments/field_trial_parser.h"
 
 namespace webrtc {
 
@@ -47,26 +51,24 @@ void CongestionControlFeedbackGenerator::OnReceivedPacket(
   RTC_DCHECK_RUN_ON(&sequence_checker_);
 
   marker_bit_seen_ |= packet.Marker();
-  packets_.push_back({.ssrc = packet.Ssrc(),
-                      .unwrapped_sequence_number =
-                          sequence_number_unwrappers_[packet.Ssrc()].Unwrap(
-                              packet.SequenceNumber()),
-                      .arrival_time = packet.arrival_time(),
-                      .ecn = packet.ecn()});
+  if (!first_arrival_time_since_feedback_) {
+    first_arrival_time_since_feedback_ = packet.arrival_time();
+  }
+  feedback_trackers_[packet.Ssrc()].ReceivedPacket(packet);
   if (NextFeedbackTime() < packet.arrival_time()) {
     SendFeedback(env_.clock().CurrentTime());
   }
 }
 
 Timestamp CongestionControlFeedbackGenerator::NextFeedbackTime() const {
-  if (packets_.empty()) {
+  if (!first_arrival_time_since_feedback_) {
     return std::max(env_.clock().CurrentTime() + min_time_between_feedback_,
                     next_possible_feedback_send_time_);
   }
 
   if (!marker_bit_seen_) {
     return std::max(next_possible_feedback_send_time_,
-                    packets_.front().arrival_time +
+                    *first_arrival_time_since_feedback_ +
                         max_time_to_wait_for_packet_with_marker_.Get());
   }
   return next_possible_feedback_send_time_;
@@ -94,46 +96,14 @@ void CongestionControlFeedbackGenerator::SetTransportOverhead(
 }
 
 void CongestionControlFeedbackGenerator::SendFeedback(Timestamp now) {
-  absl::c_sort(packets_, [](const PacketInfo& a, const PacketInfo& b) {
-    return std::tie(a.ssrc, a.unwrapped_sequence_number, a.arrival_time) <
-           std::tie(b.ssrc, b.unwrapped_sequence_number, b.arrival_time);
-  });
   uint32_t compact_ntp =
       CompactNtp(env_.clock().ConvertTimestampToNtpTime(now));
   std::vector<rtcp::CongestionControlFeedback::PacketInfo> rtcp_packet_info;
-  rtcp_packet_info.reserve(packets_.size());
-
-  std::optional<uint32_t> previous_ssrc;
-  std::optional<int64_t> previous_seq_no;
-  for (const PacketInfo packet : packets_) {
-    if (previous_ssrc == packet.ssrc &&
-        previous_seq_no == packet.unwrapped_sequence_number) {
-      // According to RFC 8888:
-      // If duplicate copies of a particular RTP packet are received, then the
-      // arrival time of the first copy to arrive MUST be reported. If any of
-      // the copies of the duplicated packet are ECN-CE marked, then an ECN-CE
-      // mark MUST be reported for that packet; otherwise, the ECN mark of the
-      // first copy to arrive is reported.
-      if (packet.ecn == rtc::EcnMarking::kCe) {
-        rtcp_packet_info.back().ecn = packet.ecn;
-      }
-      RTC_LOG(LS_WARNING) << "Received duplicate packet ssrc:" << packet.ssrc
-                          << " seq:"
-                          << static_cast<uint16_t>(
-                                 packet.unwrapped_sequence_number);
-    } else {
-      previous_ssrc = packet.ssrc;
-      previous_seq_no = packet.unwrapped_sequence_number;
-      rtcp_packet_info.push_back(
-          {.ssrc = packet.ssrc,
-           .sequence_number =
-               static_cast<uint16_t>(packet.unwrapped_sequence_number),
-           .arrival_time_offset = now - packet.arrival_time,
-           .ecn = packet.ecn});
-    }
+  for (auto& [unused, tracker] : feedback_trackers_) {
+    tracker.AddPacketsToFeedback(now, rtcp_packet_info);
   }
-  packets_.clear();
   marker_bit_seen_ = false;
+  first_arrival_time_since_feedback_ = std::nullopt;
 
   auto feedback = std::make_unique<rtcp::CongestionControlFeedback>(
       std::move(rtcp_packet_info), compact_ntp);
@@ -154,7 +124,9 @@ void CongestionControlFeedbackGenerator::CalculateNextPossibleSendTime(
   send_rate_debt_ += feedback_size + packet_overhead_;
   last_feedback_sent_time_ = now;
   next_possible_feedback_send_time_ =
-      now + std::clamp(send_rate_debt_ / max_feedback_rate_,
+      now + std::clamp(max_feedback_rate_.IsZero()
+                           ? TimeDelta::PlusInfinity()
+                           : send_rate_debt_ / max_feedback_rate_,
                        min_time_between_feedback_.Get(),
                        max_time_between_feedback_.Get());
 }

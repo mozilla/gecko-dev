@@ -396,6 +396,7 @@ int16_t WebRtcOpus_DecoderCreate(OpusDecInst** inst,
       state->channels = channels;
       state->sample_rate_hz = sample_rate_hz;
       state->in_dtx_mode = 0;
+      state->last_packet_num_channels = channels;
       *inst = state;
       return 0;
     }
@@ -545,21 +546,37 @@ int WebRtcOpus_Decode(OpusDecInst* inst,
                       size_t encoded_bytes,
                       int16_t* decoded,
                       int16_t* audio_type) {
-  int decoded_samples;
-
+  int decoded_samples_per_channel;
   if (encoded_bytes == 0) {
     *audio_type = DetermineAudioType(inst, encoded_bytes);
-    decoded_samples = DecodePlc(inst, decoded);
+    decoded_samples_per_channel = DecodePlc(inst, decoded);
   } else {
-    decoded_samples = DecodeNative(inst, encoded, encoded_bytes,
-                                   MaxFrameSizePerChannel(inst->sample_rate_hz),
-                                   decoded, audio_type, 0);
+    decoded_samples_per_channel = DecodeNative(
+        inst, encoded, encoded_bytes,
+        MaxFrameSizePerChannel(inst->sample_rate_hz), decoded, audio_type, 0);
+
+    // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block
+    // below.
+    inst->last_packet_num_channels = opus_packet_get_nb_channels(encoded);
+    RTC_DCHECK(inst->last_packet_num_channels == 1 ||
+               inst->last_packet_num_channels == 2);
   }
-  if (decoded_samples < 0) {
+  if (decoded_samples_per_channel < 0) {
     return -1;
   }
 
-  return decoded_samples;
+  // TODO: https://issues.webrtc.org/376493209 - When fixed, remove block below.
+  // When stereo decoding is enabled and the last observed non-empty packet
+  // encoded mono audio, the Opus decoder may generate non-trivial stereo audio.
+  // As that is undesired, in that case make sure that `decoded` contains
+  // trivial stereo audio by copying the left channel into the right one.
+  if (inst->channels == 2 && inst->last_packet_num_channels == 1) {
+    for (int i = 0; i < decoded_samples_per_channel << 1; i += 2) {
+      decoded[i + 1] = decoded[i];
+    }
+  }
+
+  return decoded_samples_per_channel;
 }
 
 int WebRtcOpus_DecodeFec(OpusDecInst* inst,

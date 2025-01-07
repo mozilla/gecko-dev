@@ -114,7 +114,7 @@ index e607a182c2..5f2c5d0f2a 100644
  
  }  // namespace webrtc
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index ea408827bb..6e9a0b1937 100644
+index 352d016dde..574d8cea6d 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -116,6 +116,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -273,10 +273,10 @@ index e5266ed337..85606fd405 100644
        RTC_GUARDED_BY(packet_sequence_checker_);
    // h26x_packet_buffer_ is nullptr if codec list doens't contain H.264 or
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index 1a4401ca2b..d376829365 100644
+index 4914689649..b5cc283411 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
-@@ -212,6 +212,7 @@ VideoReceiveStream2::VideoReceiveStream2(
+@@ -213,6 +213,7 @@ VideoReceiveStream2::VideoReceiveStream2(
                                   &stats_proxy_,
                                   &stats_proxy_,
                                   nack_periodic_processor,

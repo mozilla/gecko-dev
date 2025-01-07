@@ -32,7 +32,7 @@ diff --git a/sdk/objc/components/capturer/RTCCameraVideoCapturer.m b/sdk/objc/co
 index d25f5e20ae..4f92f56807 100644
 --- a/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
 +++ b/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
-@@ -118,14 +118,27 @@ const int64_t kNanosecondsPerSecond = 1000000000;
+@@ -118,14 +118,27 @@ - (void)dealloc {
    [[NSNotificationCenter defaultCenter] removeObserver:self];
  }
  

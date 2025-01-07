@@ -398,7 +398,7 @@ RTCError CreateContentOffer(
   // Build the vector of header extensions with directions for this
   // media_description's options.
   RtpHeaderExtensions extensions;
-  for (auto extension_with_id : rtp_extensions) {
+  for (const auto& extension_with_id : rtp_extensions) {
     for (const auto& extension : media_description_options.header_extensions) {
       if (extension_with_id.uri == extension.uri &&
           extension_with_id.encrypt == extension.preferred_encrypt) {
@@ -491,7 +491,7 @@ webrtc::RTCError AssignCodecIdsAndLinkRed(
     for (cricket::Codec& codec : codecs) {
       if (codec.type == Codec::Type::kAudio &&
           absl::EqualsIgnoreCase(codec.name, kRedCodecName)) {
-        if (codec.params.size() == 0) {
+        if (codec.params.empty()) {
           char buffer[100];
           rtc::SimpleStringBuilder param(buffer);
           param << opus_codec << "/" << opus_codec;
@@ -980,7 +980,7 @@ bool CreateMediaContentAnswer(
 
   // Filter local extensions by capabilities and direction.
   RtpHeaderExtensions local_rtp_extensions_to_reply_with;
-  for (auto extension_with_id : local_rtp_extensions) {
+  for (const auto& extension_with_id : local_rtp_extensions) {
     for (const auto& extension : media_description_options.header_extensions) {
       if (extension_with_id.uri == extension.uri &&
           extension_with_id.encrypt == extension.preferred_encrypt) {
@@ -1974,7 +1974,10 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
   } else {
     content_description = std::make_unique<VideoContentDescription>();
   }
-
+  // RFC 8888 support.
+  content_description->set_rtcp_fb_ack_ccfb(
+      transport_desc_factory_->trials().IsEnabled(
+          "WebRTC-RFC8888CongestionControlFeedback"));
   auto error = CreateMediaContentOffer(
       media_description_options, session_options, codecs_to_include,
       header_extensions, ssrc_generator(), current_streams,
@@ -2166,6 +2169,15 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
     LOG_AND_RETURN_ERROR(RTCErrorType::INTERNAL_ERROR,
                          "Failed to set codecs in answer");
   }
+  // RFC 8888 support. Only answer with "ack ccfb" if offer has it and
+  // experiment is enabled.
+  // TODO: https://issues.webrtc.org/42225697 - disable transport-cc
+  // when ccfb is negotiated.
+  if (offer_content_description->rtcp_fb_ack_ccfb()) {
+    answer_content->set_rtcp_fb_ack_ccfb(
+        transport_desc_factory_->trials().IsEnabled(
+            "WebRTC-RFC8888CongestionControlFeedback"));
+  }
   if (!CreateMediaContentAnswer(
           offer_content_description, media_description_options, session_options,
           filtered_rtp_header_extensions(header_extensions), ssrc_generator(),
@@ -2186,8 +2198,8 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
                      << "' being rejected in answer.";
   }
 
-  auto error = AddTransportAnswer(media_description_options.mid,
-                                  *(transport.get()), answer);
+  auto error =
+      AddTransportAnswer(media_description_options.mid, *transport, answer);
   if (!error.ok()) {
     return error;
   }
@@ -2263,7 +2275,7 @@ RTCError MediaSessionDescriptionFactory::AddDataContentForAnswer(
                   !IsMediaProtocolSupported(MEDIA_TYPE_DATA,
                                             data_answer->protocol(), secure);
   auto error = AddTransportAnswer(media_description_options.mid,
-                                  *(data_transport.get()), answer);
+                                  *data_transport, answer);
   if (!error.ok()) {
     return error;
   }
@@ -2303,7 +2315,7 @@ RTCError MediaSessionDescriptionFactory::AddUnsupportedContentForAnswer(
   unsupported_answer->set_protocol(offer_unsupported_description->protocol());
 
   auto error = AddTransportAnswer(media_description_options.mid,
-                                  *(unsupported_transport.get()), answer);
+                                  *unsupported_transport, answer);
   if (!error.ok()) {
     return error;
   }

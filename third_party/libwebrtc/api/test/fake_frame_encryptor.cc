@@ -22,12 +22,13 @@ FakeFrameEncryptor::FakeFrameEncryptor(uint8_t fake_key, uint8_t postfix_byte)
     : fake_key_(fake_key), postfix_byte_(postfix_byte) {}
 
 // FrameEncryptorInterface implementation
-int FakeFrameEncryptor::Encrypt(cricket::MediaType media_type,
-                                uint32_t ssrc,
-                                rtc::ArrayView<const uint8_t> additional_data,
-                                rtc::ArrayView<const uint8_t> frame,
-                                rtc::ArrayView<uint8_t> encrypted_frame,
-                                size_t* bytes_written) {
+int FakeFrameEncryptor::Encrypt(
+    cricket::MediaType /* media_type */,
+    uint32_t /* ssrc */,
+    rtc::ArrayView<const uint8_t> /* additional_data */,
+    rtc::ArrayView<const uint8_t> frame,
+    rtc::ArrayView<uint8_t> encrypted_frame,
+    size_t* bytes_written) {
   if (fail_encryption_) {
     return static_cast<int>(FakeEncryptionStatus::FORCED_FAILURE);
   }
@@ -43,7 +44,7 @@ int FakeFrameEncryptor::Encrypt(cricket::MediaType media_type,
 }
 
 size_t FakeFrameEncryptor::GetMaxCiphertextByteSize(
-    cricket::MediaType media_type,
+    cricket::MediaType /* media_type */,
     size_t frame_size) {
   return frame_size + 1;
 }

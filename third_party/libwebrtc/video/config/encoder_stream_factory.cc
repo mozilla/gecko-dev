@@ -64,7 +64,8 @@ bool IsScaleFactorsPowerOfTwo(const webrtc::VideoEncoderConfig& config) {
 bool IsTemporalLayersSupported(webrtc::VideoCodecType codec_type) {
   return codec_type == webrtc::VideoCodecType::kVideoCodecVP8 ||
          codec_type == webrtc::VideoCodecType::kVideoCodecVP9 ||
-         codec_type == webrtc::VideoCodecType::kVideoCodecAV1;
+         codec_type == webrtc::VideoCodecType::kVideoCodecAV1 ||
+         codec_type == webrtc::VideoCodecType::kVideoCodecH265;
 }
 
 size_t FindRequiredActiveLayers(
@@ -150,7 +151,7 @@ void OverrideStreamSettings(
     webrtc::VideoStream& layer = layers[i];
     layer.active = overrides.active;
     layer.scalability_mode = overrides.scalability_mode;
-    layer.requested_resolution = overrides.requested_resolution;
+    layer.scale_resolution_down_to = overrides.scale_resolution_down_to;
     // Update with configured num temporal layers if supported by codec.
     if (overrides.num_temporal_layers > 0 && temporal_layers_supported) {
       layer.num_temporal_layers = *overrides.num_temporal_layers;
@@ -352,18 +353,18 @@ EncoderStreamFactory::CreateDefaultVideoStreams(
   layer.width = width;
   layer.height = height;
   layer.max_framerate = max_framerate;
-  layer.requested_resolution =
-      encoder_config.simulcast_layers[0].requested_resolution;
+  layer.scale_resolution_down_to =
+      encoder_config.simulcast_layers[0].scale_resolution_down_to;
   // Note: VP9 seems to have be sending if any layer is active,
   // (see `UpdateSendState`) and still use parameters only from
   // encoder_config.simulcast_layers[0].
   layer.active = absl::c_any_of(encoder_config.simulcast_layers,
                                 [](const auto& layer) { return layer.active; });
 
-  if (encoder_config.simulcast_layers[0].requested_resolution) {
-    auto res = GetLayerResolutionFromRequestedResolution(
+  if (encoder_config.simulcast_layers[0].scale_resolution_down_to) {
+    auto res = GetLayerResolutionFromScaleResolutionDownTo(
         width, height,
-        *encoder_config.simulcast_layers[0].requested_resolution);
+        *encoder_config.simulcast_layers[0].scale_resolution_down_to);
     layer.width = res.width;
     layer.height = res.height;
   } else if (encoder_config.simulcast_layers[0].scale_resolution_down_by > 1.) {
@@ -468,23 +469,23 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
 }
 
 webrtc::Resolution
-EncoderStreamFactory::GetLayerResolutionFromRequestedResolution(
+EncoderStreamFactory::GetLayerResolutionFromScaleResolutionDownTo(
     int frame_width,
     int frame_height,
-    webrtc::Resolution requested_resolution) const {
-  // Make frame and requested resolution have matching orientation.
+    webrtc::Resolution scale_resolution_down_to) const {
+  // Make frame and `scale_resolution_down_to` have matching orientation.
   if ((frame_width < frame_height) !=
-      (requested_resolution.width < requested_resolution.height)) {
-    requested_resolution = {.width = requested_resolution.height,
-                            .height = requested_resolution.width};
+      (scale_resolution_down_to.width < scale_resolution_down_to.height)) {
+    scale_resolution_down_to = {.width = scale_resolution_down_to.height,
+                                .height = scale_resolution_down_to.width};
   }
   // Downscale by smallest scaling factor, if necessary.
   if (frame_width > 0 && frame_height > 0 &&
-      (requested_resolution.width < frame_width ||
-       requested_resolution.height < frame_height)) {
+      (scale_resolution_down_to.width < frame_width ||
+       scale_resolution_down_to.height < frame_height)) {
     double scale_factor = std::min(
-        requested_resolution.width / static_cast<double>(frame_width),
-        requested_resolution.height / static_cast<double>(frame_height));
+        scale_resolution_down_to.width / static_cast<double>(frame_width),
+        scale_resolution_down_to.height / static_cast<double>(frame_height));
     frame_width = std::round(frame_width * scale_factor);
     frame_height = std::round(frame_height * scale_factor);
   }
@@ -528,33 +529,34 @@ std::vector<webrtc::Resolution> EncoderStreamFactory::GetStreamResolutions(
   } else {
     size_t min_num_layers = FindRequiredActiveLayers(encoder_config);
     size_t max_num_layers =
-        !encoder_config.HasRequestedResolution()
+        !encoder_config.HasScaleResolutionDownTo()
             ? LimitSimulcastLayerCount(
                   min_num_layers, encoder_config.number_of_streams, width,
                   height, trials, encoder_config.codec_type)
             : encoder_config.number_of_streams;
     RTC_DCHECK_LE(max_num_layers, encoder_config.number_of_streams);
 
-    // When the `requested_resolution` API is used, disable upper layers that
-    // are bigger than what adaptation restrictions allow. For example if
+    // When the `scale_resolution_down_to` API is used, disable upper layers
+    // that are bigger than what adaptation restrictions allow. For example if
     // restrictions are 540p, simulcast 180p:360p:720p becomes 180p:360p:- as
     // opposed to 180p:360p:540p. This makes CPU adaptation consistent with BW
     // adaptation (bitrate allocator disabling layers rather than downscaling)
     // and means we don't have to break power of two optimization paths (i.e.
     // S-modes based simulcast). Note that the lowest layer is never disabled.
-    if (encoder_config.HasRequestedResolution() && restrictions_.has_value() &&
+    if (encoder_config.HasScaleResolutionDownTo() &&
+        restrictions_.has_value() &&
         restrictions_->max_pixels_per_frame().has_value()) {
       int max_pixels = rtc::dchecked_cast<int>(
           restrictions_->max_pixels_per_frame().value());
       int prev_pixel_count =
           encoder_config.simulcast_layers[0]
-              .requested_resolution.value_or(webrtc::Resolution())
+              .scale_resolution_down_to.value_or(webrtc::Resolution())
               .PixelCount();
       std::optional<size_t> restricted_num_layers;
       for (size_t i = 1; i < max_num_layers; ++i) {
         int pixel_count =
             encoder_config.simulcast_layers[i]
-                .requested_resolution.value_or(webrtc::Resolution())
+                .scale_resolution_down_to.value_or(webrtc::Resolution())
                 .PixelCount();
         if (!restricted_num_layers.has_value() && max_pixels < pixel_count) {
           // Current layer is the highest layer allowed by restrictions.
@@ -596,10 +598,11 @@ std::vector<webrtc::Resolution> EncoderStreamFactory::GetStreamResolutions(
 
     resolutions.resize(max_num_layers);
     for (size_t i = 0; i < max_num_layers; i++) {
-      if (encoder_config.simulcast_layers[i].requested_resolution.has_value()) {
-        resolutions[i] = GetLayerResolutionFromRequestedResolution(
+      if (encoder_config.simulcast_layers[i]
+              .scale_resolution_down_to.has_value()) {
+        resolutions[i] = GetLayerResolutionFromScaleResolutionDownTo(
             normalized_width, normalized_height,
-            *encoder_config.simulcast_layers[i].requested_resolution);
+            *encoder_config.simulcast_layers[i].scale_resolution_down_to);
       } else if (has_scale_resolution_down_by) {
         const double scale_resolution_down_by = std::max(
             encoder_config.simulcast_layers[i].scale_resolution_down_by, 1.0);

@@ -43,7 +43,7 @@ struct FooDecoderTemplateAdapter {
   static std::vector<SdpVideoFormat> SupportedFormats() { return {kFooSdp}; }
 
   static std::unique_ptr<VideoDecoder> CreateDecoder(
-      const SdpVideoFormat& format) {
+      const SdpVideoFormat& /* format */) {
     auto decoder = std::make_unique<testing::StrictMock<MockVideoDecoder>>();
     EXPECT_CALL(*decoder, Destruct);
     return decoder;
@@ -56,8 +56,8 @@ struct BarDecoderTemplateAdapter {
   }
 
   static std::unique_ptr<VideoDecoder> CreateDecoder(
-      const Environment& env,
-      const SdpVideoFormat& format) {
+      const Environment& /* env */,
+      const SdpVideoFormat& /* format */) {
     auto decoder = std::make_unique<testing::StrictMock<MockVideoDecoder>>();
     EXPECT_CALL(*decoder, Destruct);
     return decoder;

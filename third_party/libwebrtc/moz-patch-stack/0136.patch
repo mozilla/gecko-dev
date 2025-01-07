@@ -1,59 +1,21 @@
-From: Jan Grulich <grulja@gmail.com>
-Date: Tue, 12 Nov 2024 12:28:00 +0000
-Subject: Bug 1930598 - WebRTC backport: PipeWire camera: use better unique
- device name for camera devices r=pehrsons,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 21 Nov 2024 13:57:00 -0600
+Subject: Bug 1928110 - (fix-d259a754a8) add missing include
 
-Originally we used node id from PipeWire as an unique device name and
-while this works, it will change everytime PipeWire is restarted. This
-has an impact on default camera selection, where for example Firefox can
-automatically request a camera device that was used before, but this can
-break with the next PipeWire restart.
-
-This is a simple backport of an WebRTC upstream change.
-
-Upstream commit: a5d71009ac1dce7da23813dc9413c03073cfa8ca
-
-Differential Revision: https://phabricator.services.mozilla.com/D228635
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b48b48759149275fc393d76c851f5b8cb75c63ed
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/250798952aa5b1f0c4996bcd95c77e917d44f738
 ---
- modules/video_capture/linux/pipewire_session.cc       |  2 +-
- modules/video_capture/linux/video_capture_pipewire.cc | 11 +++++++----
- 2 files changed, 8 insertions(+), 5 deletions(-)
+ rtc_base/ssl_stream_adapter.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index dc270b7b3a..0b1504170b 100644
---- a/modules/video_capture/linux/pipewire_session.cc
-+++ b/modules/video_capture/linux/pipewire_session.cc
-@@ -76,7 +76,7 @@ PipeWireNode::PipeWireNode(PipeWireSession* session,
-     : session_(session),
-       id_(id),
-       display_name_(spa_dict_lookup(props, PW_KEY_NODE_DESCRIPTION)),
--      unique_id_(rtc::ToString(id)) {
-+      unique_id_(spa_dict_lookup(props, PW_KEY_NODE_NAME)) {
-   RTC_LOG(LS_VERBOSE) << "Found Camera: " << display_name_;
+diff --git a/rtc_base/ssl_stream_adapter.h b/rtc_base/ssl_stream_adapter.h
+index ece5b44ac5..b9041d0b5e 100644
+--- a/rtc_base/ssl_stream_adapter.h
++++ b/rtc_base/ssl_stream_adapter.h
+@@ -15,6 +15,7 @@
+ #include <stdint.h>
  
-   proxy_ = static_cast<pw_proxy*>(pw_registry_bind(
-diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
-index e9d99133f5..f6cd57ac36 100644
---- a/modules/video_capture/linux/video_capture_pipewire.cc
-+++ b/modules/video_capture/linux/video_capture_pipewire.cc
-@@ -83,12 +83,15 @@ int32_t VideoCaptureModulePipeWire::Init(const char* deviceUniqueId) {
-   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
-   RTC_DCHECK_RUN_ON(&api_checker_);
+ #include <memory>
++#include <optional>
+ #include <string>
+ #include <vector>
  
--  std::optional<int> id;
--  id = rtc::StringToNumber<int>(deviceUniqueId);
--  if (id == std::nullopt)
-+  auto node =
-+      std::find_if(session_->nodes_.begin(), session_->nodes_.end(),
-+                   [deviceUniqueId](const PipeWireNode::PipeWireNodePtr& node) {
-+                     return node->unique_id() == deviceUniqueId;
-+                   });
-+  if (node == session_->nodes_.end())
-     return -1;
- 
--  node_id_ = id.value();
-+  node_id_ = (*node)->id();
- 
-   const int len = strlen(deviceUniqueId);
-   _deviceUniqueId = new (std::nothrow) char[len + 1];

@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -51,13 +52,14 @@
 #include "api/video_codecs/video_encoder_software_fallback_wrapper.h"
 #include "common_video/framerate_controller.h"
 #include "media/base/sdp_video_format_utils.h"
-#include "media/base/video_common.h"
 #include "modules/video_coding/include/video_error_codes.h"
 #include "modules/video_coding/include/video_error_codes_utils.h"
 #include "modules/video_coding/utility/simulcast_rate_allocator.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/rate_control_settings.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/strings/str_join.h"
+#include "rtc_base/strings/string_builder.h"
 
 namespace webrtc {
 namespace {
@@ -393,6 +395,9 @@ int SimulcastEncoderAdapter::InitEncode(
                         << WebRtcVideoCodecErrorToString(ret);
       return ret;
     }
+    RTC_LOG(LS_WARNING) << "[SEA] InitEncode: failed with error code: "
+                        << WebRtcVideoCodecErrorToString(ret)
+                        << ". Falling back to multi-encoder mode.";
   }
 
   // Multi-encoder simulcast or singlecast (deactivated layers).
@@ -707,7 +712,7 @@ EncodedImageCallback::Result SimulcastEncoderAdapter::OnEncodedImage(
                                                     &stream_codec_specific);
 }
 
-void SimulcastEncoderAdapter::OnDroppedFrame(size_t stream_idx) {
+void SimulcastEncoderAdapter::OnDroppedFrame(size_t /* stream_idx */) {
   // Not yet implemented.
 }
 
@@ -879,9 +884,9 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
 void SimulcastEncoderAdapter::OverrideFromFieldTrial(
     VideoEncoder::EncoderInfo* info) const {
   if (encoder_info_override_.requested_resolution_alignment()) {
-    info->requested_resolution_alignment = cricket::LeastCommonMultiple(
-        info->requested_resolution_alignment,
-        *encoder_info_override_.requested_resolution_alignment());
+    info->requested_resolution_alignment =
+        std::lcm(info->requested_resolution_alignment,
+                 *encoder_info_override_.requested_resolution_alignment());
     info->apply_alignment_to_all_simulcast_layers =
         info->apply_alignment_to_all_simulcast_layers ||
         encoder_info_override_.apply_alignment_to_all_simulcast_layers();
@@ -926,9 +931,9 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
     const VideoEncoder::EncoderInfo& fallback_info =
         encoder_context->FallbackInfo();
 
-    encoder_info.requested_resolution_alignment = cricket::LeastCommonMultiple(
-        primary_info.requested_resolution_alignment,
-        fallback_info.requested_resolution_alignment);
+    encoder_info.requested_resolution_alignment =
+        std::lcm(primary_info.requested_resolution_alignment,
+                 fallback_info.requested_resolution_alignment);
 
     encoder_info.apply_alignment_to_all_simulcast_layers =
         primary_info.apply_alignment_to_all_simulcast_layers ||
@@ -945,15 +950,17 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
   }
 
   encoder_info.scaling_settings = VideoEncoder::ScalingSettings::kOff;
+  std::vector<std::string> encoder_names;
 
   for (size_t i = 0; i < stream_contexts_.size(); ++i) {
     VideoEncoder::EncoderInfo encoder_impl_info =
         stream_contexts_[i].encoder().GetEncoderInfo();
-    if (i == 0) {
-      // Encoder name indicates names of all sub-encoders.
-      encoder_info.implementation_name += " (";
-      encoder_info.implementation_name += encoder_impl_info.implementation_name;
 
+    // Encoder name indicates names of all active sub-encoders.
+    if (!stream_contexts_[i].is_paused()) {
+      encoder_names.push_back(encoder_impl_info.implementation_name);
+    }
+    if (i == 0) {
       encoder_info.supports_native_handle =
           encoder_impl_info.supports_native_handle;
       encoder_info.has_trusted_rate_controller =
@@ -962,9 +969,6 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
           encoder_impl_info.is_hardware_accelerated;
       encoder_info.is_qp_trusted = encoder_impl_info.is_qp_trusted;
     } else {
-      encoder_info.implementation_name += ", ";
-      encoder_info.implementation_name += encoder_impl_info.implementation_name;
-
       // Native handle supported if any encoder supports it.
       encoder_info.supports_native_handle |=
           encoder_impl_info.supports_native_handle;
@@ -987,9 +991,9 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
           encoder_impl_info.is_qp_trusted.value_or(true);
     }
     encoder_info.fps_allocation[i] = encoder_impl_info.fps_allocation[0];
-    encoder_info.requested_resolution_alignment = cricket::LeastCommonMultiple(
-        encoder_info.requested_resolution_alignment,
-        encoder_impl_info.requested_resolution_alignment);
+    encoder_info.requested_resolution_alignment =
+        std::lcm(encoder_info.requested_resolution_alignment,
+                 encoder_impl_info.requested_resolution_alignment);
     // request alignment on all layers if any of the encoders may need it, or
     // if any non-top layer encoder requests a non-trivial alignment.
     if (encoder_impl_info.apply_alignment_to_all_simulcast_layers ||
@@ -999,7 +1003,13 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
       encoder_info.apply_alignment_to_all_simulcast_layers = true;
     }
   }
-  encoder_info.implementation_name += ")";
+
+  if (!encoder_names.empty()) {
+    rtc::StringBuilder implementation_name_builder(" (");
+    implementation_name_builder << StrJoin(encoder_names, ", ");
+    implementation_name_builder << ")";
+    encoder_info.implementation_name += implementation_name_builder.Release();
+  }
 
   OverrideFromFieldTrial(&encoder_info);
 

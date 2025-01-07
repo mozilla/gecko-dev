@@ -68,7 +68,7 @@ int32_t TestPack::SendData(AudioFrameType frame_type,
                            uint32_t timestamp,
                            const uint8_t* payload_data,
                            size_t payload_size,
-                           int64_t absolute_capture_timestamp_ms) {
+                           int64_t /* absolute_capture_timestamp_ms */) {
   RTPHeader rtp_header;
   int32_t status;
 
@@ -142,7 +142,6 @@ void TestAllCodecs::Perform() {
                      {110, {"PCMU", 8000, 2}},
                      {8, {"PCMA", 8000, 1}},
                      {118, {"PCMA", 8000, 2}},
-                     {102, {"ILBC", 8000, 1}},
                      {9, {"G722", 8000, 1}},
                      {119, {"G722", 8000, 2}},
                      {120, {"OPUS", 48000, 2, {{"stereo", "1"}}}},
@@ -176,23 +175,6 @@ void TestAllCodecs::Perform() {
   RegisterSendCodec(codec_g722, 16000, 64000, 960, 0);
   Run(channel_a_to_b_);
   outfile_b_.Close();
-#endif
-// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove iLBC.
-#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
-#ifdef WEBRTC_CODEC_ILBC
-  test_count_++;
-  OpenOutFile(test_count_);
-  char codec_ilbc[] = "ILBC";
-  RegisterSendCodec(codec_ilbc, 8000, 13300, 240, 0);
-  Run(channel_a_to_b_);
-  RegisterSendCodec(codec_ilbc, 8000, 13300, 480, 0);
-  Run(channel_a_to_b_);
-  RegisterSendCodec(codec_ilbc, 8000, 15200, 160, 0);
-  Run(channel_a_to_b_);
-  RegisterSendCodec(codec_ilbc, 8000, 15200, 320, 0);
-  Run(channel_a_to_b_);
-  outfile_b_.Close();
-#endif
 #endif
   test_count_++;
   OpenOutFile(test_count_);

@@ -92,7 +92,7 @@ StringToNumber(absl::string_view str, int base = 10) {
 template <typename T>
 typename std::enable_if<std::is_floating_point<T>::value,
                         std::optional<T>>::type
-StringToNumber(absl::string_view str, int base = 10) {
+StringToNumber(absl::string_view str, int /* base */ = 10) {
   static_assert(
       std::numeric_limits<T>::max() <= std::numeric_limits<long double>::max(),
       "StringToNumber only supports floating-point numbers as large "

@@ -86,7 +86,7 @@ class FunctionView<RetT(ArgT...)> final {
             typename std::enable_if<std::is_same<
                 std::nullptr_t,
                 typename std::remove_cv<F>::type>::value>::type* = nullptr>
-  FunctionView(F&& f) : call_(nullptr) {}
+  FunctionView(F&& /* f */) : call_(nullptr) {}
 
   // Default constructor. Creates an empty FunctionView.
   FunctionView() : call_(nullptr) {}

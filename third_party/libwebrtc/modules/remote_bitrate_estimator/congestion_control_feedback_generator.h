@@ -10,9 +10,9 @@
 #ifndef MODULES_REMOTE_BITRATE_ESTIMATOR_CONGESTION_CONTROL_FEEDBACK_GENERATOR_H_
 #define MODULES_REMOTE_BITRATE_ESTIMATOR_CONGESTION_CONTROL_FEEDBACK_GENERATOR_H_
 
+#include <cstdint>
 #include <map>
-#include <memory>
-#include <vector>
+#include <optional>
 
 #include "api/environment/environment.h"
 #include "api/sequence_checker.h"
@@ -20,11 +20,10 @@
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "modules/remote_bitrate_estimator/congestion_control_feedback_tracker.h"
 #include "modules/remote_bitrate_estimator/rtp_transport_feedback_generator.h"
-#include "modules/rtp_rtcp/source/rtcp_packet.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/experiments/field_trial_parser.h"
-#include "rtc_base/numerics/sequence_number_unwrapper.h"
 
 namespace webrtc {
 
@@ -58,13 +57,6 @@ class CongestionControlFeedbackGenerator
   void SetTransportOverhead(DataSize overhead_per_packet) override;
 
  private:
-  struct PacketInfo {
-    uint32_t ssrc;
-    int64_t unwrapped_sequence_number = 0;
-    Timestamp arrival_time;
-    rtc::EcnMarking ecn = rtc::EcnMarking::kNotEct;
-  };
-
   Timestamp NextFeedbackTime() const RTC_RUN_ON(sequence_checker_);
 
   void SendFeedback(Timestamp now) RTC_RUN_ON(sequence_checker_);
@@ -84,11 +76,12 @@ class CongestionControlFeedbackGenerator
   DataSize packet_overhead_ = DataSize::Zero();
   DataSize send_rate_debt_ = DataSize::Zero();
 
-  std::map</*ssrc=*/uint32_t, SeqNumUnwrapper<uint16_t>>
-      sequence_number_unwrappers_;
+  std::map</*ssrc=*/uint32_t, CongestionControlFeedbackTracker>
+      feedback_trackers_;
 
-  std::vector<PacketInfo> packets_;
+  // std::vector<PacketInfo> packets_;
   Timestamp last_feedback_sent_time_ = Timestamp::Zero();
+  std::optional<Timestamp> first_arrival_time_since_feedback_;
   bool marker_bit_seen_ = false;
   Timestamp next_possible_feedback_send_time_ = Timestamp::Zero();
 };

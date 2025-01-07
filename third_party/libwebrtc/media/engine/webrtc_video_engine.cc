@@ -51,6 +51,7 @@
 #include "common_video/frame_counts.h"
 #include "common_video/include/quality_limitation_reason.h"
 #include "media/base/codec.h"
+#include "media/base/codec_comparators.h"
 #include "media/base/media_channel.h"
 #include "media/base/media_constants.h"
 #include "media/base/rid_description.h"
@@ -845,6 +846,9 @@ WebRtcVideoEngine::GetRtpHeaderExtensions() const {
         webrtc::RtpExtension::kRidUri, webrtc::RtpExtension::kRepairedRidUri}) {
     result.emplace_back(uri, id++, webrtc::RtpTransceiverDirection::kSendRecv);
   }
+  result.emplace_back(webrtc::RtpExtension::kCorruptionDetectionUri, id++,
+                      /*preferred_encrypt=*/true,
+                      webrtc::RtpTransceiverDirection::kStopped);
   for (const auto& uri : {webrtc::RtpExtension::kAbsoluteCaptureTimeUri}) {
     result.emplace_back(uri, id, webrtc::RtpTransceiverDirection::kStopped);
   }
@@ -1090,8 +1094,8 @@ bool WebRtcVideoSendChannel::GetChangedSenderParameters(
     if (rtp_parameters.encodings[0].codec) {
       auto matched_codec =
           absl::c_find_if(negotiated_codecs, [&](auto negotiated_codec) {
-            return negotiated_codec.codec.MatchesRtpCodec(
-                *rtp_parameters.encodings[0].codec);
+            return IsSameRtpCodec(negotiated_codec.codec,
+                                  *rtp_parameters.encodings[0].codec);
           });
       if (matched_codec != negotiated_codecs.end()) {
         force_codec = *matched_codec;
@@ -1127,7 +1131,7 @@ bool WebRtcVideoSendChannel::GetChangedSenderParameters(
       if (encoding.codec) {
         auto matched_codec =
             absl::c_find_if(negotiated_codecs, [&](auto negotiated_codec) {
-              return negotiated_codec.codec.MatchesRtpCodec(*encoding.codec);
+              return IsSameRtpCodec(negotiated_codec.codec, *encoding.codec);
             });
         if (matched_codec != negotiated_codecs.end()) {
           send_codecs.push_back(*matched_codec);
@@ -1421,13 +1425,13 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
     // the first layer.
     // TODO(orphis): Support mixed-codec simulcast
     if (parameters.encodings[0].codec && send_codec_ &&
-        !send_codec_->codec.MatchesRtpCodec(*parameters.encodings[0].codec)) {
+        !IsSameRtpCodec(send_codec_->codec, *parameters.encodings[0].codec)) {
       RTC_LOG(LS_VERBOSE) << "Trying to change codec to "
                           << parameters.encodings[0].codec->name;
       auto matched_codec =
           absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
-            return negotiated_codec.codec.MatchesRtpCodec(
-                *parameters.encodings[0].codec);
+            return IsSameRtpCodec(negotiated_codec.codec,
+                                  *parameters.encodings[0].codec);
           });
       if (matched_codec == negotiated_codecs_.end()) {
         return webrtc::InvokeSetParametersCallback(
@@ -1995,7 +1999,8 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
       stream_config.raw_payload =
           cs.codec.packetization == kPacketizationParamRaw;
       if (i < parameters_.config.rtp.rtx.ssrcs.size()) {
-        auto& rtx = stream_config.rtx.emplace();
+        auto& rtx = stream_config.rtx.emplace(
+            decltype(stream_config.rtx)::value_type());
         rtx.ssrc = parameters_.config.rtp.rtx.ssrcs[i];
         rtx.payload_type = cs.rtx_payload_type;
       }
@@ -2085,8 +2090,8 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::SetRtpParameters(
          rtp_parameters_.encodings[i].scale_resolution_down_by) ||
         (new_parameters.encodings[i].num_temporal_layers !=
          rtp_parameters_.encodings[i].num_temporal_layers) ||
-        (new_parameters.encodings[i].requested_resolution !=
-         rtp_parameters_.encodings[i].requested_resolution) ||
+        (new_parameters.encodings[i].scale_resolution_down_to !=
+         rtp_parameters_.encodings[i].scale_resolution_down_to) ||
         (new_parameters.encodings[i].scalability_mode !=
          rtp_parameters_.encodings[i].scalability_mode) ||
         (new_parameters.encodings[i].codec !=
@@ -2226,7 +2231,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
        rtp_parameters_.encodings) {
     if (encoding.scalability_mode.has_value() &&
         (encoding.scale_resolution_down_by.has_value() ||
-         encoding.requested_resolution.has_value())) {
+         encoding.scale_resolution_down_to.has_value())) {
       legacy_scalability_mode = false;
       break;
     }
@@ -2307,8 +2312,8 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
       encoder_config.simulcast_layers[i].num_temporal_layers =
           *rtp_parameters_.encodings[i].num_temporal_layers;
     }
-    encoder_config.simulcast_layers[i].requested_resolution =
-        rtp_parameters_.encodings[i].requested_resolution;
+    encoder_config.simulcast_layers[i].scale_resolution_down_to =
+        rtp_parameters_.encodings[i].scale_resolution_down_to;
   }
 
   encoder_config.legacy_conference_mode = parameters_.conference_mode;
@@ -3844,11 +3849,11 @@ WebRtcVideoReceiveChannel::WebRtcVideoReceiveStream::GetVideoReceiverInfo(
   }
 
   // remote-outbound-rtp stats.
-  info.last_sender_report_timestamp_ms = stats.last_sender_report_timestamp_ms;
-  info.last_sender_report_utc_timestamp_ms =
-      stats.last_sender_report_utc_timestamp_ms;
-  info.last_sender_report_remote_utc_timestamp_ms =
-      stats.last_sender_report_remote_utc_timestamp_ms;
+  info.last_sender_report_timestamp = stats.last_sender_report_timestamp;
+  info.last_sender_report_utc_timestamp =
+      stats.last_sender_report_utc_timestamp;
+  info.last_sender_report_remote_utc_timestamp =
+      stats.last_sender_report_remote_utc_timestamp;
   info.sender_reports_packets_sent = stats.sender_reports_packets_sent;
   info.sender_reports_bytes_sent = stats.sender_reports_bytes_sent;
   info.sender_reports_reports_count = stats.sender_reports_reports_count;

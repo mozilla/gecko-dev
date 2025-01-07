@@ -11,19 +11,17 @@
 #ifndef TEST_PC_E2E_TEST_PEER_FACTORY_H_
 #define TEST_PC_E2E_TEST_PEER_FACTORY_H_
 
-#include <map>
 #include <memory>
+#include <optional>
 #include <string>
-#include <vector>
 
-#include "absl/strings/string_view.h"
-#include "api/rtc_event_log/rtc_event_log_factory.h"
+#include "absl/base/macros.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/pclf/media_configuration.h"
-#include "api/test/pclf/media_quality_test_params.h"
 #include "api/test/pclf/peer_configurer.h"
 #include "api/test/time_controller.h"
-#include "modules/audio_device/include/test_audio_device.h"
+#include "pc/test/mock_peer_connection_observers.h"
+#include "rtc_base/thread.h"
 #include "test/pc/e2e/analyzer/video/video_quality_analyzer_injection_helper.h"
 #include "test/pc/e2e/test_peer.h"
 
@@ -51,15 +49,21 @@ class TestPeerFactory {
   // factories and call factory.
   // `video_analyzer_helper` will be used to setup video quality analysis for
   // created peers.
-  // `task_queue` will be used for AEC dump if it is requested.
+  TestPeerFactory(rtc::Thread* signaling_thread,
+                  TimeController& time_controller,
+                  VideoQualityAnalyzerInjectionHelper* video_analyzer_helper)
+      : signaling_thread_(signaling_thread),
+        time_controller_(time_controller),
+        video_analyzer_helper_(video_analyzer_helper) {}
+
+  ABSL_DEPRECATE_AND_INLINE()
   TestPeerFactory(rtc::Thread* signaling_thread,
                   TimeController& time_controller,
                   VideoQualityAnalyzerInjectionHelper* video_analyzer_helper,
-                  TaskQueueBase* task_queue)
-      : signaling_thread_(signaling_thread),
-        time_controller_(time_controller),
-        video_analyzer_helper_(video_analyzer_helper),
-        task_queue_(task_queue) {}
+                  TaskQueueBase* /*task_queue*/)
+      : TestPeerFactory(signaling_thread,
+                        time_controller,
+                        video_analyzer_helper) {}
 
   // Setups all components, that should be provided to WebRTC
   // PeerConnectionFactory and PeerConnection creation methods,
@@ -75,7 +79,6 @@ class TestPeerFactory {
   rtc::Thread* signaling_thread_;
   TimeController& time_controller_;
   VideoQualityAnalyzerInjectionHelper* video_analyzer_helper_;
-  TaskQueueBase* const task_queue_;
 };
 
 }  // namespace webrtc_pc_e2e

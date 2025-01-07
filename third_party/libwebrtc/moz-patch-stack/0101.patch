@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecf
  1 file changed, 11 insertions(+), 6 deletions(-)
 
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 371e78d09c..9b2a439eac 100644
+index 666e909cd0..ddb6cd9d1b 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -55,6 +55,11 @@ rtc_library("rtc_media_base") {
@@ -25,8 +25,8 @@ index 371e78d09c..9b2a439eac 100644
      ":adapted_video_track_source",
      ":codec",
 @@ -127,12 +132,6 @@ rtc_library("rtc_media_base") {
-     "../rtc_base/third_party/sigslot",
      "../video/config:encoder_config",
+     "//third_party/abseil-cpp/absl/base:core_headers",
    ]
 -    if (build_with_mozilla) {
 -    sources -= [

@@ -245,6 +245,7 @@ std::optional<AudioEncoderOpusConfig> AudioEncoderOpusImpl::SdpToConfig(
   config.bitrate_bps =
       CalculateBitrate(config.max_playback_rate_hz, config.num_channels,
                        GetFormatParameter(format, "maxaveragebitrate"));
+  // TODO: https://issues.webrtc.org/376071290 - Use `contentHint` if available.
   config.application = config.num_channels == 1
                            ? AudioEncoderOpusConfig::ApplicationMode::kVoip
                            : AudioEncoderOpusConfig::ApplicationMode::kAudio;

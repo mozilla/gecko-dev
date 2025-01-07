@@ -117,8 +117,6 @@ ABSL_FLAG(bool,
           false,
           "List of registered plots (for use with the --plot flag)");
 
-using webrtc::Plot;
-
 namespace {
 std::vector<std::string> StrSplit(const std::string& s,
                                   const std::string& delimiter) {

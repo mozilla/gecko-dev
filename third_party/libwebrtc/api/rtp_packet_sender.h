@@ -32,7 +32,7 @@ class RtpPacketSender {
   // Clear any pending packets with the given SSRC from the queue.
   // TODO(crbug.com/1395081): Make pure virtual when downstream code has been
   // updated.
-  virtual void RemovePacketsForSsrc(uint32_t ssrc) {}
+  virtual void RemovePacketsForSsrc(uint32_t /* ssrc */) {}
 };
 
 }  // namespace webrtc

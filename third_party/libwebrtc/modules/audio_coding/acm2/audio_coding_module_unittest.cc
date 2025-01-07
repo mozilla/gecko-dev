@@ -114,7 +114,7 @@ class PacketizationCallbackStubOldApi : public AudioPacketizationCallback {
                    uint32_t timestamp,
                    const uint8_t* payload_data,
                    size_t payload_len_bytes,
-                   int64_t absolute_capture_timestamp_ms) override {
+                   int64_t /* absolute_capture_timestamp_ms */) override {
     MutexLock lock(&mutex_);
     ++num_calls_;
     last_frame_type_ = frame_type;
@@ -898,23 +898,6 @@ TEST_F(AcmSenderBitExactnessOldApi, Pcma_stereo_20ms) {
       /*expected_channels=*/test::AcmReceiveTestOldApi::kStereoOutput);
 }
 
-#if defined(WEBRTC_CODEC_ILBC) && defined(WEBRTC_LINUX) && \
-    defined(WEBRTC_ARCH_X86_64)
-
-// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove iLBC.
-#if defined(__has_feature) && __has_feature(undefined_behavior_sanitizer)
-TEST_F(AcmSenderBitExactnessOldApi, DISABLED_Ilbc_30ms) {
-#else
-TEST_F(AcmSenderBitExactnessOldApi, Ilbc_30ms) {
-#endif
-  ASSERT_NO_FATAL_FAILURE(SetUpTest("ILBC", 8000, 1, 102, 240, 240));
-  Run(/*audio_checksum_ref=*/"a739434bec8a754e9356ce2115603ce5",
-      /*payload_checksum_ref=*/"cfae2e9f6aba96e145f2bcdd5050ce78",
-      /*expected_packets=*/33,
-      /*expected_channels=*/test::AcmReceiveTestOldApi::kMonoOutput);
-}
-#endif
-
 #if defined(WEBRTC_LINUX) && defined(WEBRTC_ARCH_X86_64)
 
 // TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
@@ -1071,14 +1054,14 @@ class AcmSetBitRateTest : public ::testing::Test {
                                  int channels,
                                  int payload_type,
                                  int frame_size_samples,
-                                 int frame_size_rtp_timestamps) {
+                                 int /* frame_size_rtp_timestamps */) {
     return send_test_->RegisterCodec(payload_name, sampling_freq_hz, channels,
                                      payload_type, frame_size_samples);
   }
 
   void RegisterExternalSendCodec(
       std::unique_ptr<AudioEncoder> external_speech_encoder,
-      int payload_type) {
+      int /* payload_type */) {
     send_test_->RegisterExternalCodec(std::move(external_speech_encoder));
   }
 

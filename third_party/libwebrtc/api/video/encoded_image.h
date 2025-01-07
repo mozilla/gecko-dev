@@ -39,6 +39,8 @@ namespace webrtc {
 // releaseOutputBuffer.
 class EncodedImageBufferInterface : public RefCountInterface {
  public:
+  using value_type = uint8_t;
+
   virtual const uint8_t* data() const = 0;
   // TODO(bugs.webrtc.org/9378): Make interface essentially read-only, delete
   // this non-const data method.
@@ -105,12 +107,12 @@ class RTC_EXPORT EncodedImage {
     simulcast_index_ = simulcast_index;
   }
 
-  const std::optional<Timestamp>& CaptureTimeIdentifier() const {
-    return capture_time_identifier_;
+  const std::optional<Timestamp>& PresentationTimestamp() const {
+    return presentation_timestamp_;
   }
-  void SetCaptureTimeIdentifier(
-      const std::optional<Timestamp>& capture_time_identifier) {
-    capture_time_identifier_ = capture_time_identifier;
+  void SetPresentationTimestamp(
+      const std::optional<Timestamp>& presentation_timestamp) {
+    presentation_timestamp_ = presentation_timestamp;
   }
 
   // Encoded images can have dependencies between spatial and/or temporal
@@ -262,7 +264,7 @@ class RTC_EXPORT EncodedImage {
   size_t size_ = 0;  // Size of encoded frame data.
   uint32_t timestamp_rtp_ = 0;
   std::optional<int> simulcast_index_;
-  std::optional<Timestamp> capture_time_identifier_;
+  std::optional<Timestamp> presentation_timestamp_;
   std::optional<int> spatial_index_;
   std::optional<int> temporal_index_;
   std::map<int, size_t> spatial_layer_frame_size_bytes_;

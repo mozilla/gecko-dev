@@ -298,7 +298,8 @@ NetworkManager::EnumerationPermission NetworkManager::enumeration_permission()
   return ENUMERATION_ALLOWED;
 }
 
-bool NetworkManager::GetDefaultLocalAddress(int family, IPAddress* addr) const {
+bool NetworkManager::GetDefaultLocalAddress(int /* family */,
+                                            IPAddress* /* addr */) const {
   return false;
 }
 

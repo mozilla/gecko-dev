@@ -249,12 +249,12 @@ TEST_F(TestVp8Impl, Configure) {
 }
 
 TEST_F(TestVp8Impl, OnEncodedImageReportsInfo) {
-  constexpr Timestamp kCaptureTimeIdentifier = Timestamp::Micros(1000);
+  constexpr Timestamp kPresentationTimestamp = Timestamp::Micros(1000);
   VideoFrame input_frame = NextInputFrame();
   input_frame.set_rtp_timestamp(kInitialTimestampRtp);
   input_frame.set_timestamp_us(kInitialTimestampMs *
                                rtc::kNumMicrosecsPerMillisec);
-  input_frame.set_capture_time_identifier(kCaptureTimeIdentifier);
+  input_frame.set_presentation_timestamp(kPresentationTimestamp);
   EncodedImage encoded_frame;
   CodecSpecificInfo codec_specific_info;
   EncodeAndWaitForFrame(input_frame, &encoded_frame, &codec_specific_info);
@@ -262,9 +262,9 @@ TEST_F(TestVp8Impl, OnEncodedImageReportsInfo) {
   EXPECT_EQ(kInitialTimestampRtp, encoded_frame.RtpTimestamp());
   EXPECT_EQ(kWidth, static_cast<int>(encoded_frame._encodedWidth));
   EXPECT_EQ(kHeight, static_cast<int>(encoded_frame._encodedHeight));
-  ASSERT_TRUE(encoded_frame.CaptureTimeIdentifier().has_value());
-  EXPECT_EQ(kCaptureTimeIdentifier.us(),
-            encoded_frame.CaptureTimeIdentifier()->us());
+  ASSERT_TRUE(encoded_frame.PresentationTimestamp().has_value());
+  EXPECT_EQ(kPresentationTimestamp.us(),
+            encoded_frame.PresentationTimestamp()->us());
 }
 
 TEST_F(TestVp8Impl,

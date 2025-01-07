@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/58f47eacaf10d12e2
  11 files changed, 27 insertions(+), 27 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index 0ec7001941..87881380da 100644
+index 8e1550ce04..9789a9538e 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -443,12 +443,12 @@ config("common_config") {
@@ -48,7 +48,7 @@ index 0ec7001941..87881380da 100644
      if (mips_float_abi == "hard") {
        defines += [ "MIPS_FPU_LE" ]
 diff --git a/common_audio/BUILD.gn b/common_audio/BUILD.gn
-index 66895ccd0e..f6d06f6ad9 100644
+index 17db437708..4a03865f65 100644
 --- a/common_audio/BUILD.gn
 +++ b/common_audio/BUILD.gn
 @@ -66,7 +66,7 @@ rtc_library("common_audio") {
@@ -276,10 +276,10 @@ index e39700419d..1047f30ee4 100644
  config("x11_config") {
    if (rtc_use_x11_extensions) {
 diff --git a/webrtc.gni b/webrtc.gni
-index 1913a28759..152bca57ba 100644
+index 72f7d29fef..3ad9c41ff1 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -172,13 +172,13 @@ declare_args() {
+@@ -169,13 +169,13 @@ declare_args() {
  
    # Selects fixed-point code where possible.
    rtc_prefer_fixed_point = false

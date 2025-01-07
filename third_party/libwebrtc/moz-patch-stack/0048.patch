@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/99267b6d193fbcb3e
  11 files changed, 32 insertions(+), 22 deletions(-)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 423f2d93d3..ea408827bb 100644
+index 574bf3166b..352d016dde 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -170,10 +170,11 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -37,7 +37,7 @@ index 423f2d93d3..ea408827bb 100644
      // Timing frame info: all important timestamps for a full lifetime of a
      // single 'timing frame'.
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 7a582549b2..ede2ebffe0 100644
+index c79ff86a40..83f6fb1b7b 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -389,11 +389,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {
@@ -190,10 +190,10 @@ index 8da628695d..e5266ed337 100644
   private:
    // Implements RtpVideoFrameReceiver.
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index d87e383569..1a4401ca2b 100644
+index 9b9dc814e5..4914689649 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
-@@ -588,7 +588,8 @@ VideoReceiveStreamInterface::Stats VideoReceiveStream2::GetStats() const {
+@@ -587,7 +587,8 @@ VideoReceiveStreamInterface::Stats VideoReceiveStream2::GetStats() const {
    // seem to be any support for these stats right now. So, we hack this in.
    rtp_video_stream_receiver_.RemoteRTCPSenderInfo(
        &stats.rtcp_sender_packets_sent, &stats.rtcp_sender_octets_sent,

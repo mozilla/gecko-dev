@@ -29,7 +29,7 @@ namespace webrtc {
 
 std::unique_ptr<Vp8FrameBufferController> Vp8TemporalLayersFactory::Create(
     const VideoCodec& codec,
-    const VideoEncoder::Settings& settings,
+    const VideoEncoder::Settings& /* settings */,
     FecControllerOverride* fec_controller_override) {
   std::vector<std::unique_ptr<Vp8FrameBufferController>> controllers;
   const int num_streams = SimulcastUtility::NumberOfSimulcastStreams(codec);

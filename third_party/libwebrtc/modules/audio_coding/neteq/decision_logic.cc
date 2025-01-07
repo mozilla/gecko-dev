@@ -114,7 +114,7 @@ void DecisionLogic::SetSampleRate(int fs_hz, size_t output_size_samples) {
 }
 
 NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
-                                            bool* reset_decoder) {
+                                            bool* /* reset_decoder */) {
   prev_time_scale_ = prev_time_scale_ && IsTimestretch(status.last_mode);
   if (prev_time_scale_) {
     timescale_countdown_ = tick_timer_->GetNewCountdown(kMinTimescaleInterval);

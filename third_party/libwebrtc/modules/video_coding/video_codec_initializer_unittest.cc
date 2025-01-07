@@ -689,4 +689,66 @@ TEST_F(VideoCodecInitializerTest, UpdatesVp9SpecificFieldsWithScalabilityMode) {
   EXPECT_EQ(codec.VP9()->interLayerPred, InterLayerPredMode::kOff);
 }
 
+#ifdef RTC_ENABLE_H265
+TEST_F(VideoCodecInitializerTest, H265SingleSpatialLayerBitratesAreConsistent) {
+  VideoEncoderConfig config;
+  config.codec_type = VideoCodecType::kVideoCodecH265;
+  std::vector<VideoStream> streams = {DefaultStream()};
+  streams[0].scalability_mode = ScalabilityMode::kL1T2;
+
+  VideoCodec codec =
+      VideoCodecInitializer::SetupCodec(env_.field_trials(), config, streams);
+
+  EXPECT_GE(codec.spatialLayers[0].targetBitrate,
+            codec.spatialLayers[0].minBitrate);
+  EXPECT_LE(codec.spatialLayers[0].targetBitrate,
+            codec.spatialLayers[0].maxBitrate);
+}
+
+// Test that the H.265 codec initializer carries over invalid simulcast layer
+// scalability mode to top level scalability mode setting.
+TEST_F(VideoCodecInitializerTest,
+       H265ScalabilityModeConfiguredToTopLevelWhenNotAllowed) {
+  VideoEncoderConfig config;
+  config.codec_type = VideoCodecType::kVideoCodecH265;
+
+  std::vector<VideoStream> streams = {DefaultStream()};
+  streams[0].scalability_mode = ScalabilityMode::kL3T3;
+
+  VideoCodec codec =
+      VideoCodecInitializer::SetupCodec(env_.field_trials(), config, streams);
+
+  // Check that an unsupported scalability mode will cause top-level scalability
+  // to be set to the same unsupported mode.
+  EXPECT_EQ(codec.GetScalabilityMode(), ScalabilityMode::kL3T3);
+  EXPECT_EQ(codec.spatialLayers[0].numberOfTemporalLayers, 3);
+  EXPECT_EQ(codec.simulcastStream[0].numberOfTemporalLayers, 3);
+}
+
+// Test that inconistent scalability mode settings in simulcast streams will
+// clear top level scalability mode setting.
+TEST_F(VideoCodecInitializerTest,
+       H265InconsistentScalabilityModesWillClearTopLevelScalability) {
+  VideoEncoderConfig config;
+  config.simulcast_layers.resize(2);
+  config.simulcast_layers[0].active = true;
+  config.simulcast_layers[1].active = true;
+  config.codec_type = VideoCodecType::kVideoCodecH265;
+
+  std::vector<VideoStream> streams = {DefaultStream(), DefaultStream()};
+  streams[0].scalability_mode = ScalabilityMode::kL1T3;
+  streams[1].scalability_mode = ScalabilityMode::kL1T1;
+
+  VideoCodec codec =
+      VideoCodecInitializer::SetupCodec(env_.field_trials(), config, streams);
+
+  // Top level scalability mode should be cleared if the simulcast streams have
+  // different per-stream temporal layer settings.
+  EXPECT_EQ(codec.GetScalabilityMode(), std::nullopt);
+  EXPECT_EQ(codec.spatialLayers[0].numberOfTemporalLayers, 3);
+  EXPECT_EQ(codec.simulcastStream[0].numberOfTemporalLayers, 3);
+  EXPECT_EQ(codec.simulcastStream[1].numberOfTemporalLayers, 1);
+}
+#endif
+
 }  // namespace webrtc

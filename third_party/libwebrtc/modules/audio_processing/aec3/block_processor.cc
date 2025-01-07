@@ -84,8 +84,8 @@ std::atomic<int> BlockProcessorImpl::instance_count_(0);
 BlockProcessorImpl::BlockProcessorImpl(
     const EchoCanceller3Config& config,
     int sample_rate_hz,
-    size_t num_render_channels,
-    size_t num_capture_channels,
+    size_t /* num_render_channels */,
+    size_t /* num_capture_channels */,
     std::unique_ptr<RenderDelayBuffer> render_buffer,
     std::unique_ptr<RenderDelayController> delay_controller,
     std::unique_ptr<EchoRemover> echo_remover)

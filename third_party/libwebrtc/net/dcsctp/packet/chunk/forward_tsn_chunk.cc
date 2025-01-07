@@ -90,6 +90,6 @@ std::string ForwardTsnChunk::ToString() const {
   for (const auto& skipped : skipped_streams()) {
     sb << ", skip " << skipped.stream_id.value() << ":" << *skipped.ssn;
   }
-  return sb.str();
+  return sb.Release();
 }
 }  // namespace dcsctp

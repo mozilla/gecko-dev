@@ -43,6 +43,7 @@ rtc_library("voip_engine_factory") {
     "../audio:audio_device",
     "../audio:audio_processing",
     "../audio_codecs:audio_codecs_api",
+    "../environment",
     "../environment:environment_factory",
     "../task_queue",
   ]

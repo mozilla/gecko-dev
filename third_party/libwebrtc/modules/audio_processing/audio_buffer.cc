@@ -42,7 +42,7 @@ AudioBuffer::AudioBuffer(size_t input_rate,
                          size_t buffer_rate,
                          size_t buffer_num_channels,
                          size_t output_rate,
-                         size_t output_num_channels)
+                         size_t /* output_num_channels */)
     : input_num_frames_(static_cast<int>(input_rate) / 100),
       input_num_channels_(input_num_channels),
       buffer_num_frames_(static_cast<int>(buffer_rate) / 100),

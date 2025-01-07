@@ -11,8 +11,9 @@
 #include "modules/rtp_rtcp/source/ntp_time_util.h"
 
 #include <algorithm>
+#include <cstdint>
 
-#include "rtc_base/checks.h"
+#include "api/units/time_delta.h"
 #include "rtc_base/numerics/divide_round.h"
 #include "rtc_base/time_utils.h"
 
@@ -33,6 +34,19 @@ uint32_t SaturatedToCompactNtp(TimeDelta delta) {
                               rtc::kNumMicrosecsPerSec);
 }
 
+TimeDelta CompactNtpIntervalToTimeDelta(uint32_t compact_ntp_interval) {
+  // Convert to 64bit value to avoid multiplication overflow.
+  int64_t value = int64_t{compact_ntp_interval};
+  if (compact_ntp_interval > 0x8000'0000) {
+    value -= (int64_t{1} << 32);
+  }
+  // To convert to TimeDelta need to divide by 2^16 to get seconds,
+  // then multiply by 1'000'000 to get microseconds. To avoid float operations,
+  // multiplication and division are swapped.
+  int64_t us = DivideRoundToNearest(value * rtc::kNumMicrosecsPerSec, 1 << 16);
+  return TimeDelta::Micros(us);
+}
+
 TimeDelta CompactNtpRttToTimeDelta(uint32_t compact_ntp_interval) {
   static constexpr TimeDelta kMinRtt = TimeDelta::Millis(1);
   // Interval to convert expected to be positive, e.g. RTT or delay.
@@ -40,15 +54,7 @@ TimeDelta CompactNtpRttToTimeDelta(uint32_t compact_ntp_interval) {
   // it might become negative that is indistinguishable from very large values.
   // Since very large RTT/delay is less likely than non-monotonic ntp clock,
   // such value is considered negative and converted to minimum value of 1ms.
-  if (compact_ntp_interval > 0x80000000)
-    return kMinRtt;
-  // Convert to 64bit value to avoid multiplication overflow.
-  int64_t value = static_cast<int64_t>(compact_ntp_interval);
-  // To convert to TimeDelta need to divide by 2^16 to get seconds,
-  // then multiply by 1'000'000 to get microseconds. To avoid float operations,
-  // multiplication and division are swapped.
-  int64_t us = DivideRoundToNearest(value * rtc::kNumMicrosecsPerSec, 1 << 16);
   // Small RTT value is considered too good to be true and increased to 1ms.
-  return std::max(TimeDelta::Micros(us), kMinRtt);
+  return std::max(CompactNtpIntervalToTimeDelta(compact_ntp_interval), kMinRtt);
 }
 }  // namespace webrtc

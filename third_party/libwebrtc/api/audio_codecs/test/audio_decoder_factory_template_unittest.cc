@@ -22,7 +22,6 @@
 #include "api/audio_codecs/audio_format.h"
 #include "api/audio_codecs/g711/audio_decoder_g711.h"
 #include "api/audio_codecs/g722/audio_decoder_g722.h"
-#include "api/audio_codecs/ilbc/audio_decoder_ilbc.h"
 #include "api/audio_codecs/opus/audio_decoder_opus.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
@@ -94,7 +93,8 @@ struct BaseAudioDecoderApi {
 
   static SdpAudioFormat AudioFormat() { return {"fake", 16'000, 2, {}}; }
 
-  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(
+      const SdpAudioFormat& /* audio_format */) {
     return Config();
   }
 
@@ -111,17 +111,17 @@ struct TraitWithTwoMakeAudioDecoders : BaseAudioDecoderApi {
   static constexpr int kRateWithEnv = 20'000;
 
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
-      const Config& config,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      const Config& /* config */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     auto decoder = std::make_unique<NiceMock<MockAudioDecoder>>();
     ON_CALL(*decoder, SampleRateHz).WillByDefault(Return(kRateWithoutEnv));
     return decoder;
   }
 
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
-      const Environment& env,
-      const Config& config,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      const Environment& /* env */,
+      const Config& /* config */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     auto decoder = std::make_unique<NiceMock<MockAudioDecoder>>();
     ON_CALL(*decoder, SampleRateHz).WillByDefault(Return(kRateWithEnv));
     return decoder;
@@ -140,8 +140,8 @@ TEST(AudioDecoderFactoryTemplateTest,
 
 struct AudioDecoderApiWithV1Make : BaseAudioDecoderApi {
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
-      const Config& config,
-      std::optional<AudioCodecPairId> codec_pair_id) {
+      const Config& /* config */,
+      std::optional<AudioCodecPairId> /* codec_pair_id */) {
     return std::make_unique<NiceMock<MockAudioDecoder>>();
   }
 };
@@ -240,20 +240,6 @@ TEST(AudioDecoderFactoryTemplateTest, G722) {
   EXPECT_EQ(2u, dec2->Channels());
   auto dec3 = factory->Create(env, {"G722", 8000, 3}, std::nullopt);
   ASSERT_EQ(nullptr, dec3);
-}
-
-TEST(AudioDecoderFactoryTemplateTest, Ilbc) {
-  const Environment env = CreateEnvironment();
-  auto factory = CreateAudioDecoderFactory<AudioDecoderIlbc>();
-  EXPECT_THAT(factory->GetSupportedDecoders(),
-              ::testing::ElementsAre(
-                  AudioCodecSpec{{"ILBC", 8000, 1}, {8000, 1, 13300}}));
-  EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
-  EXPECT_TRUE(factory->IsSupportedDecoder({"ilbc", 8000, 1}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 8000, 1}, std::nullopt));
-  auto dec = factory->Create(env, {"ilbc", 8000, 1}, std::nullopt);
-  ASSERT_NE(nullptr, dec);
-  EXPECT_EQ(8000, dec->SampleRateHz());
 }
 
 TEST(AudioDecoderFactoryTemplateTest, L16) {

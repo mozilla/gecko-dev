@@ -12,10 +12,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8d52f2fd575479da7
  1 file changed, 17 insertions(+)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index f331bafdfd..ddaf9a9624 100644
+index 3d1751378c..d431ef0fc8 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -511,6 +511,7 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+@@ -511,6 +511,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    CGRect contentRect = {};
    CGRect boundingRect = {};
    CGRect overlayRect = {};
@@ -23,7 +23,7 @@ index f331bafdfd..ddaf9a9624 100644
    const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
    if (auto factor = (NSNumber *)attachment[SCStreamFrameInfoScaleFactor]) {
      scaleFactor = [factor floatValue];
-@@ -536,6 +537,22 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+@@ -536,6 +537,22 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
      }
    }
  

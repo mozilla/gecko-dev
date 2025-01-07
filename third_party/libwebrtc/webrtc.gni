@@ -109,9 +109,6 @@ declare_args() {
   # TLS-TURN server. In return disabling this saves around 100kb in the binary.
   rtc_builtin_ssl_root_certificates = true
 
-  # Include the iLBC audio codec?
-  rtc_include_ilbc = true
-
   # Disable this to avoid building the Opus audio codec.
   rtc_include_opus = true
 
@@ -298,15 +295,10 @@ declare_args() {
   rtc_build_opus = !build_with_mozilla
   rtc_build_ssl = !build_with_mozilla
 
-  # Enable libevent task queues on platforms that support it.
-  if (is_win || is_mac || is_ios || is_nacl || is_fuchsia ||
-      target_cpu == "wasm") {
-    rtc_enable_libevent = false
-    rtc_build_libevent = false
-  } else {
-    rtc_enable_libevent = true
-    rtc_build_libevent = !build_with_mozilla
-  }
+  # Disable libevent task queue unconditionally.
+  # TODO: bugs.webrtc.org/42224654 clean the flags up.
+  rtc_enable_libevent = false
+  rtc_build_libevent = false
 
   # Excluded in Chromium since its prerequisites don't require Pulse Audio.
   rtc_include_pulse_audio = !build_with_chromium

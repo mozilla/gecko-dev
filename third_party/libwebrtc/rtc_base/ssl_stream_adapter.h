@@ -199,23 +199,17 @@ class SSLStreamAdapter : public StreamInterface {
   virtual bool GetSslVersionBytes(int* version) const = 0;
 
   // Key Exporter interface from RFC 5705
-  // Arguments are:
-  // label               -- the exporter label.
-  //                        part of the RFC defining each exporter
-  //                        usage (IN)
-  // context/context_len -- a context to bind to for this connection;
-  //                        optional, can be null, 0 (IN)
-  // use_context         -- whether to use the context value
-  //                        (needed to distinguish no context from
-  //                        zero-length ones).
-  // result              -- where to put the computed value
-  // result_len          -- the length of the computed value
-  virtual bool ExportKeyingMaterial(absl::string_view label,
-                                    const uint8_t* context,
-                                    size_t context_len,
-                                    bool use_context,
-                                    uint8_t* result,
-                                    size_t result_len);
+  virtual bool ExportSrtpKeyingMaterial(
+      rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) = 0;
+  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] virtual bool
+  ExportKeyingMaterial(absl::string_view label,
+                       const uint8_t* context,
+                       size_t context_len,
+                       bool use_context,
+                       uint8_t* result,
+                       size_t result_len) {
+    return false;
+  }
 
   // Returns the signature algorithm or 0 if not applicable.
   virtual uint16_t GetPeerSignatureAlgorithm() const = 0;

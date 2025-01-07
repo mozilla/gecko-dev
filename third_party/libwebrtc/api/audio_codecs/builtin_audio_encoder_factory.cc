@@ -24,9 +24,6 @@
 #include "api/audio_codecs/g722/audio_encoder_g722.h"
 #include "api/field_trials_view.h"
 #include "api/scoped_refptr.h"
-#if WEBRTC_USE_BUILTIN_ILBC
-#include "api/audio_codecs/ilbc/audio_encoder_ilbc.h"  // nogncheck
-#endif
 #if WEBRTC_USE_BUILTIN_OPUS
 #include "api/audio_codecs/opus/audio_encoder_multi_channel_opus.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"  // nogncheck
@@ -43,7 +40,8 @@ struct NotAdvertised {
   static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
     return T::SdpToConfig(audio_format);
   }
-  static void AppendSupportedEncoders(std::vector<AudioCodecSpec>* specs) {
+  static void AppendSupportedEncoders(
+      std::vector<AudioCodecSpec>* /* specs */) {
     // Don't advertise support for anything.
   }
   static AudioCodecInfo QueryAudioEncoder(const Config& config) {
@@ -69,11 +67,6 @@ rtc::scoped_refptr<AudioEncoderFactory> CreateBuiltinAudioEncoderFactory() {
 #endif
 
       AudioEncoderG722,
-
-#if WEBRTC_USE_BUILTIN_ILBC
-      AudioEncoderIlbc,
-#endif
-
       AudioEncoderG711, NotAdvertised<AudioEncoderL16>>();
 }
 

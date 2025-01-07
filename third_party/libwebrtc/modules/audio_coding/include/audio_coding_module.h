@@ -39,17 +39,17 @@ class AudioPacketizationCallback {
                            uint32_t timestamp,
                            const uint8_t* payload_data,
                            size_t payload_len_bytes,
-                           int64_t absolute_capture_timestamp_ms) {
+                           int64_t /* absolute_capture_timestamp_ms */) {
     // TODO(bugs.webrtc.org/10739): Deprecate the old SendData and make this one
     // pure virtual.
     return SendData(frame_type, payload_type, timestamp, payload_data,
                     payload_len_bytes);
   }
-  virtual int32_t SendData(AudioFrameType frame_type,
-                           uint8_t payload_type,
-                           uint32_t timestamp,
-                           const uint8_t* payload_data,
-                           size_t payload_len_bytes) {
+  virtual int32_t SendData(AudioFrameType /* frame_type */,
+                           uint8_t /* payload_type */,
+                           uint32_t /* timestamp */,
+                           const uint8_t* /* payload_data */,
+                           size_t /* payload_len_bytes */) {
     RTC_DCHECK_NOTREACHED() << "This method must be overridden, or not used.";
     return -1;
   }

@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ade6f6dc0c5a5df1c
  1 file changed, 11 insertions(+), 3 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index ddaf9a9624..9136915033 100644
+index d431ef0fc8..191e79f991 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -305,10 +305,18 @@ void ScreenCapturerSck::EnsureVisible() {
+@@ -305,10 +305,18 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    SCContentSharingPickerConfiguration* config = picker.defaultConfiguration;
    config.allowedPickerModes = picker_modes_;
    picker.defaultConfiguration = config;

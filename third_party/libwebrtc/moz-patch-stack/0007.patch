@@ -21,7 +21,7 @@ Bug 1654112 - Replace custom upstream code for remote received audio stats with 
  8 files changed, 21 insertions(+), 10 deletions(-)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 8834dfc9a9..dcfc5e60a3 100644
+index c96a943f4a..7cb3c9bf02 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -171,6 +171,7 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -33,7 +33,7 @@ index 8834dfc9a9..dcfc5e60a3 100644
      // Timing frame info: all important timestamps for a full lifetime of a
      // single 'timing frame'.
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index ad93830459..32b3459ed2 100644
+index c41ad899e4..80f9298576 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -386,10 +386,12 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {

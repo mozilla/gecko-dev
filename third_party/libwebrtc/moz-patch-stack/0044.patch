@@ -16,10 +16,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c186df8a088e46285
  1 file changed, 1 deletion(-)
 
 diff --git a/audio/audio_receive_stream.cc b/audio/audio_receive_stream.cc
-index 4ad64b6ca1..a6bd4bb311 100644
+index 9daccb0bdd..7c0d0810c2 100644
 --- a/audio/audio_receive_stream.cc
 +++ b/audio/audio_receive_stream.cc
-@@ -371,7 +371,6 @@ int AudioReceiveStreamImpl::GetBaseMinimumPlayoutDelayMs() const {
+@@ -370,7 +370,6 @@ int AudioReceiveStreamImpl::GetBaseMinimumPlayoutDelayMs() const {
  }
  
  std::vector<RtpSource> AudioReceiveStreamImpl::GetSources() const {

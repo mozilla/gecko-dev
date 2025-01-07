@@ -48,6 +48,8 @@ if (rtc_include_tests) {
       "..:audioproc_test_utils",
       "../",
       "../../../api/audio:audio_processing",
+      "../../../api/audio:builtin_audio_processing_builder",
+      "../../../api/environment:environment_factory",
       "//testing/gtest",
     ]
   }

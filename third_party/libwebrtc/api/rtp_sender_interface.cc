@@ -15,8 +15,9 @@
 
 namespace webrtc {
 
-void RtpSenderInterface::SetParametersAsync(const RtpParameters& parameters,
-                                            SetParametersCallback callback) {
+void RtpSenderInterface::SetParametersAsync(
+    const RtpParameters& /* parameters */,
+    SetParametersCallback /* callback */) {
   RTC_DCHECK_NOTREACHED() << "Default implementation called";
 }
 

@@ -54,9 +54,15 @@ class TransformableFrameInterface {
   virtual uint32_t GetTimestamp() const = 0;
   virtual void SetRTPTimestamp(uint32_t timestamp) = 0;
 
+  // TODO(https://bugs.webrtc.org/373365537): Remove this once its usage is
+  // removed from blink.
+  virtual std::optional<Timestamp> GetCaptureTimeIdentifier() const {
+    return std::nullopt;
+  }
+
   // TODO(https://bugs.webrtc.org/14878): Change this to pure virtual after it
   // is implemented everywhere.
-  virtual std::optional<Timestamp> GetCaptureTimeIdentifier() const {
+  virtual std::optional<Timestamp> GetPresentationTimestamp() const {
     return std::nullopt;
   }
 
@@ -140,9 +146,9 @@ class FrameTransformerInterface : public RefCountInterface {
       rtc::scoped_refptr<TransformedFrameCallback>) {}
   virtual void RegisterTransformedFrameSinkCallback(
       rtc::scoped_refptr<TransformedFrameCallback>,
-      uint32_t ssrc) {}
+      uint32_t /* ssrc */) {}
   virtual void UnregisterTransformedFrameCallback() {}
-  virtual void UnregisterTransformedFrameSinkCallback(uint32_t ssrc) {}
+  virtual void UnregisterTransformedFrameSinkCallback(uint32_t /* ssrc */) {}
 
  protected:
   ~FrameTransformerInterface() override = default;

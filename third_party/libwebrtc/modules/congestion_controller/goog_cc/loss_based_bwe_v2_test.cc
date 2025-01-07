@@ -147,19 +147,23 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
   }
 
   std::vector<PacketResult> CreatePacketResultsWith100pLossRate(
-      Timestamp first_packet_timestamp) {
-    std::vector<PacketResult> enough_feedback(2);
-    enough_feedback[0].sent_packet.sequence_number =
+      Timestamp first_packet_timestamp, unsigned num_packets = 2) {
+    std::vector<PacketResult> enough_feedback(num_packets);
+    for (unsigned i = 0; i < num_packets - 1; ++i) {
+      enough_feedback[i].sent_packet.sequence_number =
+          transport_sequence_number_++;
+      enough_feedback[i].sent_packet.size = DataSize::Bytes(kPacketSize);
+      enough_feedback[i].sent_packet.send_time =
+          first_packet_timestamp + TimeDelta::Millis(i * 10);
+      enough_feedback[i].receive_time = Timestamp::PlusInfinity();
+    }
+    enough_feedback[num_packets - 1].sent_packet.sequence_number =
         transport_sequence_number_++;
-    enough_feedback[1].sent_packet.sequence_number =
-        transport_sequence_number_++;
-    enough_feedback[0].sent_packet.size = DataSize::Bytes(kPacketSize);
-    enough_feedback[1].sent_packet.size = DataSize::Bytes(kPacketSize);
-    enough_feedback[0].sent_packet.send_time = first_packet_timestamp;
-    enough_feedback[1].sent_packet.send_time =
+    enough_feedback[num_packets - 1].sent_packet.size =
+        DataSize::Bytes(kPacketSize);
+    enough_feedback[num_packets - 1].sent_packet.send_time =
         first_packet_timestamp + kObservationDurationLowerBound;
-    enough_feedback[0].receive_time = Timestamp::PlusInfinity();
-    enough_feedback[1].receive_time = Timestamp::PlusInfinity();
+    enough_feedback[num_packets - 1].receive_time = Timestamp::PlusInfinity();
     return enough_feedback;
   }
 
@@ -1838,6 +1842,40 @@ TEST_F(LossBasedBweV2Test, UseByteLossRateIgnoreLossSpike) {
   EXPECT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   EXPECT_LT(
+      loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
+      kDelayBasedEstimate);
+}
+
+TEST_F(LossBasedBweV2Test, UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst) {
+  ExplicitKeyValueConfig key_value_config(
+      "WebRTC-Bwe-LossBasedBweV2/"
+      "UseByteLossRate:true,ObservationWindowSize:5/");
+  LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
+  const DataRate kDelayBasedEstimate = DataRate::KilobitsPerSec(500);
+  loss_based_bandwidth_estimator.SetBandwidthEstimate(kDelayBasedEstimate);
+
+  // Fill the observation window.
+  for (int i = 0; i < 5; ++i) {
+    loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
+        CreatePacketResultsWithReceivedPackets(
+            /*first_packet_timestamp=*/Timestamp::Zero() +
+            i * kObservationDurationLowerBound),
+        kDelayBasedEstimate,
+        /*in_alr=*/false);
+  }
+
+  // If the loss happens when increasing sending rate, then
+  // the BWE should back down.
+  loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
+      CreatePacketResultsWith100pLossRate(
+          /*first_packet_timestamp=*/Timestamp::Zero() +
+              5 * kObservationDurationLowerBound,
+          /*num_packets=*/5),
+      kDelayBasedEstimate,
+      /*in_alr=*/false);
+  EXPECT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+            LossBasedState::kDecreasing);
+  EXPECT_LE(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       kDelayBasedEstimate);
 }

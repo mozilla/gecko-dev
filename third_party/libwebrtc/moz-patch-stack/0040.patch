@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d0b311007c033e838
  11 files changed, 55 insertions(+), 10 deletions(-)
 
 diff --git a/audio/audio_receive_stream.cc b/audio/audio_receive_stream.cc
-index 6edc7d03f1..4ad64b6ca1 100644
+index d693a47263..9daccb0bdd 100644
 --- a/audio/audio_receive_stream.cc
 +++ b/audio/audio_receive_stream.cc
 @@ -43,6 +43,8 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
@@ -42,7 +42,7 @@ index 6edc7d03f1..4ad64b6ca1 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index 865fe00442..723e13fe1d 100644
+index ea4c912d28..3e3165bb21 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
 @@ -109,7 +109,8 @@ class ChannelReceive : public ChannelReceiveInterface,
@@ -73,7 +73,7 @@ index 865fe00442..723e13fe1d 100644
  
    if (frame_transformer)
      InitFrameTransformerDelegate(std::move(frame_transformer));
-@@ -1217,13 +1220,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -1214,13 +1217,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
@@ -91,7 +91,7 @@ index 865fe00442..723e13fe1d 100644
  
  }  // namespace voe
 diff --git a/audio/channel_receive.h b/audio/channel_receive.h
-index ab6ce531d6..d396511ab5 100644
+index fbc7f1eea7..bf0c486dd8 100644
 --- a/audio/channel_receive.h
 +++ b/audio/channel_receive.h
 @@ -29,6 +29,7 @@
@@ -102,7 +102,7 @@ index ab6ce531d6..d396511ab5 100644
  #include "modules/rtp_rtcp/source/source_tracker.h"
  
  // TODO(solenberg, nisse): This file contains a few NOLINT marks, to silence
-@@ -188,7 +189,8 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -186,7 +187,8 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
@@ -113,7 +113,7 @@ index ab6ce531d6..d396511ab5 100644
  }  // namespace voe
  }  // namespace webrtc
 diff --git a/call/audio_receive_stream.h b/call/audio_receive_stream.h
-index 8056e9c0d9..ec8b5c04fb 100644
+index 9e64521796..e103122184 100644
 --- a/call/audio_receive_stream.h
 +++ b/call/audio_receive_stream.h
 @@ -21,6 +21,7 @@
@@ -147,7 +147,7 @@ index c03b053113..04e34ff579 100644
    return ss.str();
  }
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index c60aba7886..6a06bdda23 100644
+index 1b7d28cf50..dd1220e787 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -22,6 +22,7 @@
@@ -168,11 +168,11 @@ index c60aba7886..6a06bdda23 100644
  
      // Transport for outgoing packets (RTCP).
 diff --git a/modules/rtp_rtcp/include/rtp_rtcp_defines.h b/modules/rtp_rtcp/include/rtp_rtcp_defines.h
-index eb4d1d019c..2bdfe53ab9 100644
+index c9d1f17bc5..557e826372 100644
 --- a/modules/rtp_rtcp/include/rtp_rtcp_defines.h
 +++ b/modules/rtp_rtcp/include/rtp_rtcp_defines.h
-@@ -184,6 +184,14 @@ class NetworkLinkRtcpObserver {
-   virtual void OnRttUpdate(Timestamp receive_time, TimeDelta rtt) {}
+@@ -186,6 +186,14 @@ class NetworkLinkRtcpObserver {
+   virtual void OnRttUpdate(Timestamp /* receive_time */, TimeDelta /* rtt */) {}
  };
  
 +class RtcpEventObserver {
@@ -187,7 +187,7 @@ index eb4d1d019c..2bdfe53ab9 100644
  static constexpr size_t kNumMediaTypes = 5;
  enum class RtpPacketMediaType : size_t {
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 32b3459ed2..7a582549b2 100644
+index 80f9298576..c79ff86a40 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -166,6 +166,7 @@ RTCPReceiver::RTCPReceiver(const Environment& env,
@@ -206,7 +206,7 @@ index 32b3459ed2..7a582549b2 100644
        rtcp_intra_frame_observer_(config.intra_frame_callback),
        rtcp_loss_notification_observer_(config.rtcp_loss_notification_observer),
        network_state_estimate_observer_(config.network_state_estimate_observer),
-@@ -810,6 +812,10 @@ bool RTCPReceiver::HandleBye(const CommonHeader& rtcp_block) {
+@@ -809,6 +811,10 @@ bool RTCPReceiver::HandleBye(const CommonHeader& rtcp_block) {
      return false;
    }
  

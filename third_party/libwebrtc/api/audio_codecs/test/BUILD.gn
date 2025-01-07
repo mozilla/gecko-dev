@@ -33,8 +33,6 @@ if (rtc_include_tests) {
       "../g711:audio_encoder_g711",
       "../g722:audio_decoder_g722",
       "../g722:audio_encoder_g722",
-      "../ilbc:audio_decoder_ilbc",
-      "../ilbc:audio_encoder_ilbc",
       "../opus:audio_decoder_opus",
       "../opus:audio_encoder_opus",
     ]

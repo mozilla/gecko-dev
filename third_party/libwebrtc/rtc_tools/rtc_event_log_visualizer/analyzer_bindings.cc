@@ -32,8 +32,6 @@
 #include "rtc_tools/rtc_event_log_visualizer/proto/chart.pb.h"
 #endif
 
-using webrtc::PacketDirection;
-
 namespace {
 std::vector<std::string> StrSplit(const std::string& s,
                                   const std::string& delimiter) {

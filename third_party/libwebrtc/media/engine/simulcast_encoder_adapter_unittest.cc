@@ -21,7 +21,10 @@
 #include "api/test/simulcast_test_fixture.h"
 #include "api/test/video/function_video_decoder_factory.h"
 #include "api/test/video/function_video_encoder_factory.h"
+#include "api/units/data_rate.h"
+#include "api/video/video_bitrate_allocator.h"
 #include "api/video/video_codec_constants.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_encoder.h"
 #include "api/video_codecs/video_encoder_factory.h"
@@ -58,13 +61,13 @@ std::unique_ptr<SimulcastTestFixture> CreateSpecificSimulcastTestFixture(
   std::unique_ptr<VideoEncoderFactory> encoder_factory =
       std::make_unique<FunctionVideoEncoderFactory>(
           [internal_encoder_factory](const Environment& env,
-                                     const SdpVideoFormat& format) {
+                                     const SdpVideoFormat& /* format */) {
             return std::make_unique<SimulcastEncoderAdapter>(
                 env, internal_encoder_factory, nullptr, SdpVideoFormat::VP8());
           });
   std::unique_ptr<VideoDecoderFactory> decoder_factory =
       std::make_unique<FunctionVideoDecoderFactory>(
-          [](const Environment& env, const SdpVideoFormat& format) {
+          [](const Environment& env, const SdpVideoFormat& /* format */) {
             return CreateVp8Decoder(env);
           });
   return CreateSimulcastTestFixture(std::move(encoder_factory),
@@ -223,7 +226,7 @@ class MockVideoEncoder : public VideoEncoder {
               (override));
 
   int32_t InitEncode(const VideoCodec* codecSettings,
-                     const VideoEncoder::Settings& settings) override {
+                     const VideoEncoder::Settings& /* settings */) override {
     codec_ = *codecSettings;
     if (codec_.numberOfSimulcastStreams > 1 && fallback_from_simulcast_) {
       return *fallback_from_simulcast_;
@@ -374,7 +377,7 @@ std::vector<SdpVideoFormat> MockVideoEncoderFactory::GetSupportedFormats()
 }
 
 std::unique_ptr<VideoEncoder> MockVideoEncoderFactory::Create(
-    const Environment& env,
+    const Environment& /* env */,
     const SdpVideoFormat& format) {
   if (create_video_encoder_return_nullptr_) {
     return nullptr;
@@ -480,8 +483,9 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
     SetUp();
   }
 
-  Result OnEncodedImage(const EncodedImage& encoded_image,
-                        const CodecSpecificInfo* codec_specific_info) override {
+  Result OnEncodedImage(
+      const EncodedImage& encoded_image,
+      const CodecSpecificInfo* /* codec_specific_info */) override {
     last_encoded_image_width_ = encoded_image._encodedWidth;
     last_encoded_image_height_ = encoded_image._encodedHeight;
     last_encoded_image_simulcast_index_ = encoded_image.SimulcastIndex();
@@ -991,15 +995,15 @@ TEST_F(TestSimulcastEncoderAdapterFake, SupportsImplementationName) {
   SimulcastTestFixtureImpl::DefaultSettings(
       &codec_, static_cast<const int*>(kTestTemporalLayerProfile),
       kVideoCodecVP8);
+  codec_.numberOfSimulcastStreams = 2;
   std::vector<const char*> encoder_names;
   encoder_names.push_back("codec1");
   encoder_names.push_back("codec2");
-  encoder_names.push_back("codec3");
   helper_->factory()->SetEncoderNames(encoder_names);
   EXPECT_EQ("SimulcastEncoderAdapter",
             adapter_->GetEncoderInfo().implementation_name);
   EXPECT_EQ(0, adapter_->InitEncode(&codec_, kSettings));
-  EXPECT_EQ("SimulcastEncoderAdapter (codec1, codec2, codec3)",
+  EXPECT_EQ("SimulcastEncoderAdapter (codec1, codec2)",
             adapter_->GetEncoderInfo().implementation_name);
 
   // Single streams should not expose "SimulcastEncoderAdapter" in name.
@@ -1021,13 +1025,59 @@ TEST_F(TestSimulcastEncoderAdapterFake, RuntimeEncoderInfoUpdate) {
   encoder_names.push_back("codec3");
   helper_->factory()->SetEncoderNames(encoder_names);
   EXPECT_EQ(0, adapter_->InitEncode(&codec_, kSettings));
-  EXPECT_EQ("SimulcastEncoderAdapter (codec1, codec2, codec3)",
+  EXPECT_EQ("SimulcastEncoderAdapter (codec1, codec2)",
             adapter_->GetEncoderInfo().implementation_name);
 
   // Change name of first encoder to indicate it has done a fallback to another
   // implementation.
   helper_->factory()->encoders().front()->set_implementation_name("fallback1");
-  EXPECT_EQ("SimulcastEncoderAdapter (fallback1, codec2, codec3)",
+  EXPECT_EQ("SimulcastEncoderAdapter (fallback1, codec2)",
+            adapter_->GetEncoderInfo().implementation_name);
+}
+
+TEST_F(TestSimulcastEncoderAdapterFake, EncoderInfoDeactiveLayersUpdatesName) {
+  SimulcastTestFixtureImpl::DefaultSettings(
+      &codec_, static_cast<const int*>(kTestTemporalLayerProfile),
+      kVideoCodecVP8);
+  const DataRate target_bitrate =
+      DataRate::KilobitsPerSec(codec_.simulcastStream[0].targetBitrate +
+                               codec_.simulcastStream[1].targetBitrate +
+                               codec_.simulcastStream[2].targetBitrate);
+  const DataRate bandwidth_allocation =
+      target_bitrate + DataRate::KilobitsPerSec(600);
+  const DataRate target_bitrate_without_layer3 =
+      target_bitrate -
+      DataRate::KilobitsPerSec(codec_.simulcastStream[2].targetBitrate);
+  const DataRate bandwidth_allocation_without_layer3 =
+      target_bitrate + DataRate::KilobitsPerSec(300);
+
+  std::vector<const char*> encoder_names = {"codec1", "codec2", "codec3"};
+  helper_->factory()->SetEncoderNames(encoder_names);
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
+
+  EXPECT_EQ(0, adapter_->InitEncode(&codec_, kSettings));
+  adapter_->SetRates(VideoEncoder::RateControlParameters(
+      rate_allocator_->Allocate(
+          VideoBitrateAllocationParameters(target_bitrate, 30)),
+      30.0, bandwidth_allocation));
+  EXPECT_EQ("SimulcastEncoderAdapter (codec1, codec2, codec3)",
+            adapter_->GetEncoderInfo().implementation_name);
+
+  // Disable the third encoder using bitrate allocation.
+  adapter_->SetRates(VideoEncoder::RateControlParameters(
+      rate_allocator_->Allocate(
+          VideoBitrateAllocationParameters(target_bitrate_without_layer3, 30)),
+      30.0, bandwidth_allocation_without_layer3));
+  EXPECT_EQ("SimulcastEncoderAdapter (codec1, codec2)",
+            adapter_->GetEncoderInfo().implementation_name);
+
+  // Enable the third encoder again using bitrate allocation.
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
+  adapter_->SetRates(VideoEncoder::RateControlParameters(
+      rate_allocator_->Allocate(
+          VideoBitrateAllocationParameters(target_bitrate, 30)),
+      30.0, bandwidth_allocation));
+  EXPECT_EQ("SimulcastEncoderAdapter (codec1, codec2, codec3)",
             adapter_->GetEncoderInfo().implementation_name);
 }
 
@@ -1146,7 +1196,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, NativeHandleForwardingOnlyIfSupported) {
   // ...the lowest one gets a software buffer.
   EXPECT_CALL(*encoders[0], Encode)
       .WillOnce([&](const VideoFrame& frame,
-                    const std::vector<VideoFrameType>* frame_types) {
+                    const std::vector<VideoFrameType>* /* frame_types */) {
         EXPECT_EQ(frame.video_frame_buffer()->type(),
                   VideoFrameBuffer::Type::kI420);
         return 0;

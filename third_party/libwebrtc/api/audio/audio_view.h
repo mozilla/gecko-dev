@@ -167,7 +167,7 @@ class DeinterleavedView {
 };
 
 template <typename T>
-constexpr size_t NumChannels(const MonoView<T>& view) {
+constexpr size_t NumChannels(const MonoView<T>& /* view */) {
   return 1u;
 }
 
@@ -182,22 +182,22 @@ size_t NumChannels(const DeinterleavedView<T>& view) {
 }
 
 template <typename T>
-constexpr bool IsMono(const MonoView<T>& view) {
+constexpr bool IsMono(const MonoView<T>& /* view */) {
   return true;
 }
 
 template <typename T>
-constexpr bool IsInterleavedView(const MonoView<T>& view) {
+constexpr bool IsInterleavedView(const MonoView<T>& /* view */) {
   return true;
 }
 
 template <typename T>
-constexpr bool IsInterleavedView(const InterleavedView<T>& view) {
+constexpr bool IsInterleavedView(const InterleavedView<T>& /* view */) {
   return true;
 }
 
 template <typename T>
-constexpr bool IsInterleavedView(const DeinterleavedView<const T>& view) {
+constexpr bool IsInterleavedView(const DeinterleavedView<const T>& /* view */) {
   return false;
 }
 

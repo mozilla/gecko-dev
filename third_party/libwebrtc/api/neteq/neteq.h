@@ -194,7 +194,7 @@ class NetEq {
   // Returns 0 on success, -1 on failure.
   virtual int InsertPacket(const RTPHeader& rtp_header,
                            rtc::ArrayView<const uint8_t> payload,
-                           Timestamp receive_time) {
+                           Timestamp /* receive_time */) {
     // TODO: webrtc:343501093 - Make this method pure virtual.
     return InsertPacket(rtp_header, payload);
   }
@@ -300,7 +300,7 @@ class NetEq {
   // such payload type was registered.
   [[deprecated(
       "Use GetCurrentDecoderFormat")]] virtual std::optional<DecoderFormat>
-  GetDecoderFormat(int payload_type) const {
+  GetDecoderFormat(int /* payload_type */) const {
     return std::nullopt;
   }
 

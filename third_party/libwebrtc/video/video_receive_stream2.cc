@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/algorithm/container.h"
+#include "absl/strings/str_cat.h"
 #include "api/array_view.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/scoped_refptr.h"
@@ -160,8 +161,8 @@ bool IsKeyFrameAndUnspecifiedResolution(const EncodedFrame& frame) {
          frame.EncodedImage()._encodedHeight == 0;
 }
 
-std::string OptionalDelayToLogString(const std::optional<TimeDelta> opt) {
-  return opt.has_value() ? ToLogString(*opt) : "<unset>";
+std::string OptionalDelayToLogString(std::optional<TimeDelta> opt) {
+  return opt.has_value() ? absl::StrCat(*opt) : "<unset>";
 }
 
 }  // namespace
@@ -573,12 +574,10 @@ VideoReceiveStreamInterface::Stats VideoReceiveStream2::GetStats() const {
   std::optional<RtpRtcpInterface::SenderReportStats> rtcp_sr_stats =
       rtp_video_stream_receiver_.GetSenderReportStats();
   if (rtcp_sr_stats) {
-    stats.last_sender_report_utc_timestamp_ms =
-        rtcp_sr_stats->last_arrival_ntp_timestamp.ToMs() -
-        rtc::kNtpJan1970Millisecs;
-    stats.last_sender_report_remote_utc_timestamp_ms =
-        rtcp_sr_stats->last_remote_ntp_timestamp.ToMs() -
-        rtc::kNtpJan1970Millisecs;
+    stats.last_sender_report_utc_timestamp =
+        Clock::NtpToUtc(rtcp_sr_stats->last_arrival_ntp_timestamp);
+    stats.last_sender_report_remote_utc_timestamp =
+        Clock::NtpToUtc(rtcp_sr_stats->last_remote_ntp_timestamp);
     stats.sender_reports_packets_sent = rtcp_sr_stats->packets_sent;
     stats.sender_reports_bytes_sent = rtcp_sr_stats->bytes_sent;
     stats.sender_reports_reports_count = rtcp_sr_stats->reports_count;
@@ -878,7 +877,14 @@ VideoReceiveStream2::HandleEncodedFrameOnDecodeQueue(
     for (const Decoder& decoder : config_.decoders) {
       if (decoder.payload_type == frame->PayloadType()) {
         CreateAndRegisterExternalDecoder(decoder);
-        break;
+      } else {
+        // Unregister any external decoder not from this payload type.
+        // If not, any previous video decoder will be released when the next
+        // frame is decoded but the decoder wrapper will not.
+        // This will cause the decoder to be reused if we switch back to that
+        // payload in the future, failing to configure it and causing to
+        // fallback to the software decoder.
+        video_receiver_.RegisterExternalDecoder(nullptr, decoder.payload_type);
       }
     }
   }

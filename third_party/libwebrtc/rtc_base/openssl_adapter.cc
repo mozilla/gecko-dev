@@ -213,10 +213,6 @@ OpenSSLAdapter::OpenSSLAdapter(Socket* socket,
       ssl_ctx_(nullptr),
       ssl_mode_(SSL_MODE_TLS),
       ignore_bad_cert_(false),
-#ifdef OPENSSL_IS_BORINGSSL
-      permute_extension_(
-          !webrtc::field_trial::IsDisabled("WebRTC-PermuteTlsClientHello")),
-#endif
       custom_cert_verifier_status_(false) {
   // If a factory is used, take a reference on the factory's SSL_CTX.
   // Otherwise, we'll create our own later.
@@ -304,13 +300,7 @@ int OpenSSLAdapter::BeginSSL() {
   // need to create one, and specify `false` to disable session caching.
   if (ssl_session_cache_ == nullptr) {
     RTC_DCHECK(!ssl_ctx_);
-#ifdef OPENSSL_IS_BORINGSSL
-    ssl_ctx_ =
-        CreateContext(ssl_mode_, /* enable_cache= */ false, permute_extension_);
-#else
-    ssl_ctx_ = CreateContext(ssl_mode_, /* enable_cache= */ false,
-                             /* permute_extension= */ false);
-#endif
+    ssl_ctx_ = CreateContext(ssl_mode_, /* enable_cache= */ false);
   }
 
   if (!ssl_ctx_) {
@@ -945,9 +935,7 @@ int OpenSSLAdapter::NewSSLSessionCallback(SSL* ssl, SSL_SESSION* session) {
   return 1;  // We've taken ownership of the session; OpenSSL shouldn't free it.
 }
 
-SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode,
-                                       bool enable_cache,
-                                       bool permute_extension) {
+SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode, bool enable_cache) {
 #ifdef WEBRTC_USE_CRYPTO_BUFFER_CALLBACK
   // If X509 objects aren't used, we can use these methods to avoid
   // linking the sizable crypto/x509 code.
@@ -1006,7 +994,7 @@ SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode,
   }
 
 #ifdef OPENSSL_IS_BORINGSSL
-  SSL_CTX_set_permute_extensions(ctx, permute_extension);
+  SSL_CTX_set_permute_extensions(ctx, true);
 #endif
   return ctx;
 }
@@ -1066,11 +1054,9 @@ void OpenSSLAdapterFactory::SetIgnoreBadCert(bool ignore) {
   ignore_bad_cert_ = ignore;
 }
 
-OpenSSLAdapter* OpenSSLAdapterFactory::CreateAdapter(Socket* socket,
-                                                     bool permute_extension) {
+OpenSSLAdapter* OpenSSLAdapterFactory::CreateAdapter(Socket* socket) {
   if (ssl_session_cache_ == nullptr) {
-    SSL_CTX* ssl_ctx =
-        OpenSSLAdapter::CreateContext(ssl_mode_, true, permute_extension);
+    SSL_CTX* ssl_ctx = OpenSSLAdapter::CreateContext(ssl_mode_, true);
     if (ssl_ctx == nullptr) {
       return nullptr;
     }

@@ -61,6 +61,7 @@ LIB_TO_LICENSES_DICT = {
     'libunwind': ['third_party/libunwind/src/LICENSE.TXT'],
     'libvpx': ['third_party/libvpx/source/libvpx/LICENSE'],
     'libyuv': ['third_party/libyuv/LICENSE'],
+    'llvm-libc': ['third_party/llvm-libc/src/LICENSE.TXT'],
     'nasm': ['third_party/nasm/LICENSE'],
     'opus': ['third_party/opus/src/COPYING'],
     'pffft': ['third_party/pffft/LICENSE'],

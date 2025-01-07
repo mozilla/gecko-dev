@@ -354,16 +354,9 @@ std::unique_ptr<rtc::SSLCertChain> DtlsTransport::GetRemoteSSLCertChain()
   return dtls_->GetPeerSSLCertChain();
 }
 
-bool DtlsTransport::ExportKeyingMaterial(absl::string_view label,
-                                         const uint8_t* context,
-                                         size_t context_len,
-                                         bool use_context,
-                                         uint8_t* result,
-                                         size_t result_len) {
-  return (dtls_.get())
-             ? dtls_->ExportKeyingMaterial(label, context, context_len,
-                                           use_context, result, result_len)
-             : false;
+bool DtlsTransport::ExportSrtpKeyingMaterial(
+    rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) {
+  return dtls_ ? dtls_->ExportSrtpKeyingMaterial(keying_material) : false;
 }
 
 bool DtlsTransport::SetupDtls() {

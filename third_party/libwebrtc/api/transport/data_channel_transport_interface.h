@@ -88,7 +88,7 @@ class DataChannelSink {
   // Callback issued when the data channel becomes unusable (closed).
   // TODO(https://crbug.com/webrtc/10360): Make pure virtual when all
   // consumers updated.
-  virtual void OnTransportClosed(RTCError error) {}
+  virtual void OnTransportClosed(RTCError /* error */) {}
 
   // The data channel's buffered_amount has fallen to or below the threshold
   // set when calling `SetBufferedAmountLowThreshold`

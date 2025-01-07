@@ -139,9 +139,6 @@ inline constexpr DataRate operator*(const Frequency frequency,
 }
 
 RTC_EXPORT std::string ToString(DataRate value);
-inline std::string ToLogString(DataRate value) {
-  return ToString(value);
-}
 
 template <typename Sink>
 void AbslStringify(Sink& sink, DataRate value) {

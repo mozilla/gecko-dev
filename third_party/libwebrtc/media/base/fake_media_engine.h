@@ -97,9 +97,10 @@ class RtpReceiveChannelHelper : public Base, public MediaChannelUtil {
   std::optional<uint32_t> GetUnsignaledSsrc() const override {
     return std::nullopt;
   }
-  void ChooseReceiverReportSsrc(const std::set<uint32_t>& choices) override {}
+  void ChooseReceiverReportSsrc(
+      const std::set<uint32_t>& /* choices */) override {}
 
-  virtual bool SetLocalSsrc(const StreamParams& sp) { return true; }
+  virtual bool SetLocalSsrc(const StreamParams& /* sp */) { return true; }
   void OnDemuxerCriteriaUpdatePending() override {}
   void OnDemuxerCriteriaUpdateComplete() override {}
 
@@ -151,18 +152,19 @@ class RtpReceiveChannelHelper : public Base, public MediaChannelUtil {
   }
 
   void OnRtcpPacketReceived(rtc::CopyOnWriteBuffer* packet,
-                            int64_t packet_time_us) {
+                            int64_t /* packet_time_us */) {
     rtcp_packets_.push_back(std::string(packet->cdata<char>(), packet->size()));
   }
 
-  void SetFrameDecryptor(uint32_t ssrc,
+  void SetFrameDecryptor(uint32_t /* ssrc */,
                          rtc::scoped_refptr<webrtc::FrameDecryptorInterface>
-                             frame_decryptor) override {}
+                         /* frame_decryptor */) override {}
 
   void SetDepacketizerToDecoderFrameTransformer(
-      uint32_t ssrc,
-      rtc::scoped_refptr<webrtc::FrameTransformerInterface> frame_transformer)
-      override {}
+      uint32_t /* ssrc */,
+      rtc::scoped_refptr<
+          webrtc::FrameTransformerInterface> /* frame_transformer */) override {
+  }
 
   void SetInterface(MediaChannelNetworkInterface* iface) override {
     network_interface_ = iface;
@@ -363,18 +365,19 @@ class RtpSendChannelHelper : public Base, public MediaChannelUtil {
   }
 
   void OnRtcpPacketReceived(rtc::CopyOnWriteBuffer* packet,
-                            int64_t packet_time_us) {
+                            int64_t /* packet_time_us */) {
     rtcp_packets_.push_back(std::string(packet->cdata<char>(), packet->size()));
   }
 
   // Stuff that deals with encryptors, transformers and the like
-  void SetFrameEncryptor(uint32_t ssrc,
+  void SetFrameEncryptor(uint32_t /* ssrc */,
                          rtc::scoped_refptr<webrtc::FrameEncryptorInterface>
-                             frame_encryptor) override {}
+                         /* frame_encryptor */) override {}
   void SetEncoderToPacketizerFrameTransformer(
-      uint32_t ssrc,
-      rtc::scoped_refptr<webrtc::FrameTransformerInterface> frame_transformer)
-      override {}
+      uint32_t /* ssrc */,
+      rtc::scoped_refptr<
+          webrtc::FrameTransformerInterface> /* frame_transformer */) override {
+  }
 
   void SetInterface(MediaChannelNetworkInterface* iface) override {
     network_interface_ = iface;
@@ -407,9 +410,9 @@ class RtpSendChannelHelper : public Base, public MediaChannelUtil {
   void set_send_rtcp_parameters(const RtcpParameters& params) {
     send_rtcp_parameters_ = params;
   }
-  void OnPacketSent(const rtc::SentPacket& sent_packet) override {}
+  void OnPacketSent(const rtc::SentPacket& /* sent_packet */) override {}
   void OnReadyToSend(bool ready) override { ready_to_send_ = ready; }
-  void OnNetworkRouteChanged(absl::string_view transport_name,
+  void OnNetworkRouteChanged(absl::string_view /* transport_name */,
                              const rtc::NetworkRoute& network_route) override {
     last_network_route_ = network_route;
     ++num_network_route_changes_;
@@ -496,9 +499,9 @@ class FakeVoiceMediaReceiveChannel
       std::unique_ptr<webrtc::AudioSinkInterface> sink) override;
 
   std::vector<webrtc::RtpSource> GetSources(uint32_t ssrc) const override;
-  void SetReceiveNackEnabled(bool enabled) override {}
-  void SetRtcpMode(webrtc::RtcpMode mode) override {}
-  void SetReceiveNonSenderRttEnabled(bool enabled) override {}
+  void SetReceiveNackEnabled(bool /* enabled */) override {}
+  void SetRtcpMode(webrtc::RtcpMode /* mode */) override {}
+  void SetReceiveNonSenderRttEnabled(bool /* enabled */) override {}
 
  private:
   class VoiceChannelAudioSink : public AudioSource::Sink {
@@ -574,11 +577,11 @@ class FakeVoiceMediaSendChannel
 
   bool SenderNackEnabled() const override { return false; }
   bool SenderNonSenderRttEnabled() const override { return false; }
-  void SetReceiveNackEnabled(bool enabled) {}
-  void SetReceiveNonSenderRttEnabled(bool enabled) {}
+  void SetReceiveNackEnabled(bool /* enabled */) {}
+  void SetReceiveNonSenderRttEnabled(bool /* enabled */) {}
   bool SendCodecHasNack() const override { return false; }
   void SetSendCodecChangedCallback(
-      absl::AnyInvocable<void()> callback) override {}
+      absl::AnyInvocable<void()> /* callback */) override {}
   std::optional<Codec> GetSendCodec() const override;
 
   bool GetStats(VoiceMediaSendInfo* stats) override;
@@ -655,7 +658,7 @@ class FakeVideoMediaReceiveChannel
       rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) override;
   bool HasSink(uint32_t ssrc) const;
 
-  void SetReceive(bool receive) override {}
+  void SetReceive(bool /* receive */) override {}
 
   bool HasSource(uint32_t ssrc) const;
   bool AddRecvStream(const StreamParams& sp) override;
@@ -672,13 +675,14 @@ class FakeVideoMediaReceiveChannel
       override;
   void ClearRecordableEncodedFrameCallback(uint32_t ssrc) override;
   void RequestRecvKeyFrame(uint32_t ssrc) override;
-  void SetReceiverFeedbackParameters(bool lntf_enabled,
-                                     bool nack_enabled,
-                                     webrtc::RtcpMode rtcp_mode,
-                                     std::optional<int> rtx_time) override {}
+  void SetReceiverFeedbackParameters(
+      bool /* lntf_enabled */,
+      bool /* nack_enabled */,
+      webrtc::RtcpMode /* rtcp_mode */,
+      std::optional<int> /* rtx_time */) override {}
   bool GetStats(VideoMediaReceiveInfo* info) override;
 
-  bool AddDefaultRecvStreamForTesting(const StreamParams& sp) override {
+  bool AddDefaultRecvStreamForTesting(const StreamParams& /* sp */) override {
     RTC_CHECK_NOTREACHED();
     return false;
   }
@@ -739,9 +743,10 @@ class FakeVideoMediaSendChannel
     return webrtc::RtcpMode::kCompound;
   }
   void SetSendCodecChangedCallback(
-      absl::AnyInvocable<void()> callback) override {}
+      absl::AnyInvocable<void()> /* callback */) override {}
   void SetSsrcListChangedCallback(
-      absl::AnyInvocable<void(const std::set<uint32_t>&)> callback) override {}
+      absl::AnyInvocable<void(const std::set<uint32_t>&)> /* callback */)
+      override {}
 
   bool SendCodecHasLntf() const override { return false; }
   bool SendCodecHasNack() const override { return false; }

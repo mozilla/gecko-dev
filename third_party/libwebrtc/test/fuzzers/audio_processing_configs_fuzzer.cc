@@ -14,12 +14,14 @@
 #include "absl/base/nullability.h"
 #include "absl/memory/memory.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio/echo_canceller3_factory.h"
 #include "api/audio/echo_detector_creator.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "api/task_queue/task_queue_base.h"
 #include "modules/audio_processing/aec_dump/aec_dump_factory.h"
-#include "modules/audio_processing/test/audio_processing_builder_for_testing.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/numerics/safe_minmax.h"
 #include "system_wrappers/include/field_trial.h"
@@ -33,6 +35,11 @@ const std::string kFieldTrialNames[] = {
     "WebRTC-Aec3MinErleDuringOnsetsKillSwitch",
     "WebRTC-Aec3ShortHeadroomKillSwitch",
 };
+
+const Environment& GetEnvironment() {
+  static const Environment* const env = new Environment(CreateEnvironment());
+  return *env;
+}
 
 rtc::scoped_refptr<AudioProcessing> CreateApm(
     test::FuzzDataHelper* fuzz_data,
@@ -105,24 +112,18 @@ rtc::scoped_refptr<AudioProcessing> CreateApm(
   apm_config.noise_suppression.enabled = use_ns;
   apm_config.transient_suppression.enabled = use_ts;
 
-  rtc::scoped_refptr<AudioProcessing> apm =
-      AudioProcessingBuilderForTesting()
+  scoped_refptr<AudioProcessing> apm =
+      BuiltinAudioProcessingBuilder()
           .SetEchoControlFactory(std::move(echo_control_factory))
           .SetEchoDetector(use_red ? CreateEchoDetector() : nullptr)
           .SetConfig(apm_config)
-          .Create();
+          .Build(GetEnvironment());
 
 #ifdef WEBRTC_LINUX
   apm->AttachAecDump(AecDumpFactory::Create("/dev/null", -1, worker_queue));
 #endif
 
   return apm;
-}
-
-TaskQueueFactory* GetTaskQueueFactory() {
-  static TaskQueueFactory* const factory =
-      CreateDefaultTaskQueueFactory().release();
-  return factory;
 }
 
 }  // namespace
@@ -137,8 +138,8 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
   std::string field_trial_string = "";
 
   std::unique_ptr<TaskQueueBase, TaskQueueDeleter> worker_queue =
-      GetTaskQueueFactory()->CreateTaskQueue("rtc-low-prio",
-                                             TaskQueueFactory::Priority::LOW);
+      GetEnvironment().task_queue_factory().CreateTaskQueue(
+          "rtc-low-prio", TaskQueueFactory::Priority::LOW);
   auto apm = CreateApm(&fuzz_data, &field_trial_string, worker_queue.get());
 
   if (apm) {

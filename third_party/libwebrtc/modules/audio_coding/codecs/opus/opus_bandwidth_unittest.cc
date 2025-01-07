@@ -48,9 +48,9 @@ class PowerRatioEstimator : public LappedTransform::Callback {
  protected:
   void ProcessAudioBlock(const std::complex<float>* const* input,
                          size_t num_input_channels,
-                         size_t num_freq_bins,
-                         size_t num_output_channels,
-                         std::complex<float>* const* output) override {
+                         size_t /* num_freq_bins */,
+                         size_t /* num_output_channels */,
+                         std::complex<float>* const* /* output */) override {
     float low_pow = 0.f;
     float high_pow = 0.f;
     for (size_t i = 0u; i < num_input_channels; ++i) {

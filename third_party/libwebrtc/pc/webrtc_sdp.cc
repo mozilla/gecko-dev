@@ -21,7 +21,6 @@
 #include <optional>
 #include <set>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -31,6 +30,7 @@
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/candidate.h"
+#include "api/jsep.h"
 #include "api/jsep_ice_candidate.h"
 #include "api/jsep_session_description.h"
 #include "api/media_types.h"
@@ -61,11 +61,11 @@
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/string_encode.h"
-#include "rtc_base/string_utils.h"
 #include "rtc_base/strings/string_builder.h"
 
 using cricket::AudioContentDescription;
@@ -804,7 +804,7 @@ static void GetDefaultDestination(const std::vector<Candidate>& candidates,
 
 // Gets "a=rtcp" line if found default RTCP candidate from `candidates`.
 static std::string GetRtcpLine(const std::vector<Candidate>& candidates) {
-  std::string rtcp_line, rtcp_port, rtcp_ip, addr_type;
+  std::string rtcp_port, rtcp_ip, addr_type;
   GetDefaultDestination(candidates, ICE_CANDIDATE_COMPONENT_RTCP, &rtcp_port,
                         &rtcp_ip, &addr_type);
   // Found default RTCP candidate.
@@ -819,8 +819,7 @@ static std::string GetRtcpLine(const std::vector<Candidate>& candidates) {
   InitAttrLine(kAttributeRtcp, &os);
   os << kSdpDelimiterColon << rtcp_port << " " << kConnectionNettype << " "
      << addr_type << " " << rtcp_ip;
-  rtcp_line = os.str();
-  return rtcp_line;
+  return os.Release();
 }
 
 // Get candidates according to the mline index from SessionDescriptionInterface.
@@ -1948,6 +1947,14 @@ void BuildRtpmap(const MediaContentDescription* media_desc,
       AddAttributeLine(kCodecParamPTime, ptime, message);
     }
   }
+  if (media_desc->rtcp_fb_ack_ccfb()) {
+    // RFC 8888 section 6
+    rtc::StringBuilder os;
+    InitAttrLine(kAttributeRtcpFb, &os);
+    os << kSdpDelimiterColon;
+    os << "* ack ccfb";
+    AddLine(os.str(), message);
+  }
 }
 
 void BuildCandidate(const std::vector<Candidate>& candidates,
@@ -3005,6 +3012,10 @@ void UpdateFromWildcardCodecs(cricket::MediaContentDescription* desc) {
   }
   for (auto& codec : codecs) {
     AddFeedbackParameters(wildcard_codec->feedback_params, &codec);
+  }
+  // Special treatment for transport-wide feedback params.
+  if (wildcard_codec->feedback_params.Has({"ack", "ccfb"})) {
+    desc->set_rtcp_fb_ack_ccfb(true);
   }
   desc->set_codecs(codecs);
 }

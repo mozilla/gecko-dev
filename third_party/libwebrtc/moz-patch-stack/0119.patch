@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/aabf0bd94f282ae97
  1 file changed, 10 insertions(+), 15 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index b92399e6b6..96d54c5c03 100644
+index 28831d5cc5..e251120818 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -103,7 +103,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
@@ -22,7 +22,7 @@ index b92399e6b6..96d54c5c03 100644
  
   private:
    // Called when starting the capturer or the configuration has changed (either from a
-@@ -480,10 +480,13 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
+@@ -480,10 +480,13 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    }
  }
  
@@ -37,7 +37,7 @@ index b92399e6b6..96d54c5c03 100644
    rtc::ScopedCFTypeRef<IOSurfaceRef> scoped_io_surface(io_surface, rtc::RetainPolicy::RETAIN);
    std::unique_ptr<DesktopFrameIOSurface> desktop_frame_io_surface =
        DesktopFrameIOSurface::Wrap(scoped_io_surface);
-@@ -505,28 +508,20 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, CFDictionaryRef
+@@ -505,28 +508,20 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    }
  
    if (!dirty) {
@@ -70,7 +70,7 @@ index b92399e6b6..96d54c5c03 100644
        if (!CGRectIsEmpty(rect)) {
          dirty = true;
          break;
-@@ -673,7 +668,7 @@ std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(const DesktopCaptureOp
+@@ -673,7 +668,7 @@ - (void)stream:(SCStream*)stream
  
    webrtc::MutexLock lock(&_capturer_lock);
    if (_capturer) {

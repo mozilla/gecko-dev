@@ -43,6 +43,7 @@ PROXY_CONSTMETHOD0(rtc::scoped_refptr<DtmfSenderInterface>, GetDtmfSender)
 PROXY_METHOD1(void,
               SetFrameEncryptor,
               rtc::scoped_refptr<FrameEncryptorInterface>)
+PROXY_METHOD1(void, SetObserver, RtpSenderObserverInterface*)
 PROXY_CONSTMETHOD0(rtc::scoped_refptr<FrameEncryptorInterface>,
                    GetFrameEncryptor)
 PROXY_METHOD1(void, SetStreams, const std::vector<std::string>&)

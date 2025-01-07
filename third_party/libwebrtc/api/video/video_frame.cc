@@ -172,7 +172,7 @@ VideoFrame::Builder::~Builder() = default;
 VideoFrame VideoFrame::Builder::build() {
   RTC_CHECK(video_frame_buffer_ != nullptr);
   return VideoFrame(id_, video_frame_buffer_, timestamp_us_,
-                    capture_time_identifier_, reference_time_, timestamp_rtp_,
+                    presentation_timestamp_, reference_time_, timestamp_rtp_,
                     ntp_time_ms_, rotation_, color_space_, render_parameters_,
                     update_rect_, packet_infos_);
 }
@@ -196,8 +196,14 @@ VideoFrame::Builder& VideoFrame::Builder::set_timestamp_us(
 }
 
 VideoFrame::Builder& VideoFrame::Builder::set_capture_time_identifier(
-    const std::optional<Timestamp>& capture_time_identifier) {
-  capture_time_identifier_ = capture_time_identifier;
+    const std::optional<Timestamp>& presentation_timestamp) {
+  presentation_timestamp_ = presentation_timestamp;
+  return *this;
+}
+
+VideoFrame::Builder& VideoFrame::Builder::set_presentation_timestamp(
+    const std::optional<Timestamp>& presentation_timestamp) {
+  presentation_timestamp_ = presentation_timestamp;
   return *this;
 }
 
@@ -282,7 +288,7 @@ VideoFrame::VideoFrame(const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
 VideoFrame::VideoFrame(uint16_t id,
                        const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
                        int64_t timestamp_us,
-                       const std::optional<Timestamp>& capture_time_identifier,
+                       const std::optional<Timestamp>& presentation_timestamp,
                        const std::optional<Timestamp>& reference_time,
                        uint32_t timestamp_rtp,
                        int64_t ntp_time_ms,
@@ -296,7 +302,7 @@ VideoFrame::VideoFrame(uint16_t id,
       timestamp_rtp_(timestamp_rtp),
       ntp_time_ms_(ntp_time_ms),
       timestamp_us_(timestamp_us),
-      capture_time_identifier_(capture_time_identifier),
+      presentation_timestamp_(presentation_timestamp),
       reference_time_(reference_time),
       rotation_(rotation),
       color_space_(color_space),

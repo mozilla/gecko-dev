@@ -101,8 +101,8 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
         nal_unit.subview(H264::kNaluTypeSize);
 
     if (nalu_data.empty()) {
-      RTC_LOG(LS_ERROR) << "Empty NAL unit found.";
-      return std::nullopt;
+      RTC_LOG(LS_WARNING) << "Skipping empty NAL unit.";
+      continue;
     }
 
     switch (nalu.type) {

@@ -35,6 +35,8 @@ class RTC_EXPORT SimulcastToSvcConverter {
 
   ~SimulcastToSvcConverter() = default;
 
+  static bool IsConfigSupported(const VideoCodec& codec);
+
   VideoCodec GetConfig() const;
 
   void EncodeStarted(bool force_keyframe);

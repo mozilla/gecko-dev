@@ -323,7 +323,7 @@ void SuppressionGain::LowerBandGain(
 
 SuppressionGain::SuppressionGain(const EchoCanceller3Config& config,
                                  Aec3Optimization optimization,
-                                 int sample_rate_hz,
+                                 int /* sample_rate_hz */,
                                  size_t num_capture_channels)
     : data_dumper_(new ApmDataDumper(instance_count_.fetch_add(1) + 1)),
       optimization_(optimization),

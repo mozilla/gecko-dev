@@ -109,12 +109,15 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
       const override;
   bool GetSslVersionBytes(int* version) const override;
   // Key Extractor interface
-  bool ExportKeyingMaterial(absl::string_view label,
-                            const uint8_t* context,
-                            size_t context_len,
-                            bool use_context,
-                            uint8_t* result,
-                            size_t result_len) override;
+  bool ExportSrtpKeyingMaterial(
+      rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) override;
+  [[deprecated("Use ExportSrtpKeyingMaterial instead")]] bool
+  ExportKeyingMaterial(absl::string_view label,
+                       const uint8_t* context,
+                       size_t context_len,
+                       bool use_context,
+                       uint8_t* result,
+                       size_t result_len) override;
 
   uint16_t GetPeerSignatureAlgorithm() const override;
 
@@ -221,10 +224,6 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   // Our key and certificate.
 #ifdef OPENSSL_IS_BORINGSSL
   std::unique_ptr<BoringSSLIdentity> identity_;
-  // We check and store the `WebRTC-PermuteTlsClientHello` field trial config in
-  // the constructor for convenience to allow tests to apply different
-  // configurations across instances.
-  const bool permute_extension_;
 #else
   std::unique_ptr<OpenSSLIdentity> identity_;
 #endif

@@ -66,12 +66,6 @@ rtc_library("builtin_audio_decoder_factory") {
     "g722:audio_decoder_g722",
   ]
   defines = []
-  if (rtc_include_ilbc) {
-    deps += [ "ilbc:audio_decoder_ilbc" ]
-    defines += [ "WEBRTC_USE_BUILTIN_ILBC=1" ]
-  } else {
-    defines += [ "WEBRTC_USE_BUILTIN_ILBC=0" ]
-  }
   if (rtc_include_opus) {
     deps += [
       "opus:audio_decoder_multiopus",
@@ -99,15 +93,6 @@ rtc_library("builtin_audio_encoder_factory") {
     "g722:audio_encoder_g722",
   ]
   defines = []
-  if (rtc_include_ilbc) {
-    deps += [
-      "..:field_trials_view",
-      "ilbc:audio_encoder_ilbc",
-    ]
-    defines += [ "WEBRTC_USE_BUILTIN_ILBC=1" ]
-  } else {
-    defines += [ "WEBRTC_USE_BUILTIN_ILBC=0" ]
-  }
   if (rtc_include_opus) {
     deps += [
       "..:field_trials_view",

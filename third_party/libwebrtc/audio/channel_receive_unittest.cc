@@ -128,7 +128,7 @@ class ChannelReceiveTest : public Test {
     return packet;
   }
 
-  void HandleGeneratedRtcp(ChannelReceiveInterface& channel,
+  void HandleGeneratedRtcp(ChannelReceiveInterface& /* channel */,
                            rtc::ArrayView<const uint8_t> packet) {
     if (packet[1] == rtcp::ReceiverReport::kPacketType) {
       // Ignore RR, it requires no response

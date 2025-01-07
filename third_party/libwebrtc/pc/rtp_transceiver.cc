@@ -97,26 +97,11 @@ RTCError VerifyCodecPreferences(
           return codec.MatchesRtpCodec(codec_preference);
         });
     if (!is_recv_codec) {
-      if (!field_trials.IsDisabled(
-              "WebRTC-SetCodecPreferences-ReceiveOnlyFilterInsteadOfThrow")) {
         LOG_AND_RETURN_ERROR(
             RTCErrorType::INVALID_MODIFICATION,
             std::string(
                 "Invalid codec preferences: invalid codec with name \"") +
                 codec_preference.name + "\".");
-      } else {
-        // Killswitch behavior: filter out any codec not in receive codecs.
-        codecs.erase(std::remove_if(
-            codecs.begin(), codecs.end(),
-            [&recv_codecs](const RtpCodecCapability& codec) {
-              return codec.IsMediaCodec() &&
-                     !absl::c_any_of(
-                         recv_codecs,
-                         [&codec](const cricket::Codec& recv_codec) {
-                           return recv_codec.MatchesRtpCodec(codec);
-                         });
-            }));
-      }
     }
   }
 
@@ -356,6 +341,7 @@ void RtpTransceiver::SetChannel(
   context()->network_thread()->BlockingCall([&]() {
     if (channel_) {
       channel_->SetFirstPacketReceivedCallback(nullptr);
+      channel_->SetFirstPacketSentCallback(nullptr);
       channel_->SetRtpTransport(nullptr);
       channel_to_delete = std::move(channel_);
     }
@@ -367,6 +353,11 @@ void RtpTransceiver::SetChannel(
         [thread = thread_, flag = signaling_thread_safety_, this]() mutable {
           thread->PostTask(
               SafeTask(std::move(flag), [this]() { OnFirstPacketReceived(); }));
+        });
+    channel_->SetFirstPacketSentCallback(
+        [thread = thread_, flag = signaling_thread_safety_, this]() mutable {
+          thread->PostTask(
+              SafeTask(std::move(flag), [this]() { OnFirstPacketSent(); }));
         });
   });
   PushNewMediaChannelAndDeleteChannel(nullptr);
@@ -392,6 +383,7 @@ void RtpTransceiver::ClearChannel() {
   context()->network_thread()->BlockingCall([&]() {
     if (channel_) {
       channel_->SetFirstPacketReceivedCallback(nullptr);
+      channel_->SetFirstPacketSentCallback(nullptr);
       channel_->SetRtpTransport(nullptr);
       channel_to_delete = std::move(channel_);
     }
@@ -520,6 +512,12 @@ std::optional<std::string> RtpTransceiver::mid() const {
 void RtpTransceiver::OnFirstPacketReceived() {
   for (const auto& receiver : receivers_) {
     receiver->internal()->NotifyFirstPacketReceived();
+  }
+}
+
+void RtpTransceiver::OnFirstPacketSent() {
+  for (const auto& sender : senders_) {
+    sender->internal()->NotifyFirstPacketSent();
   }
 }
 

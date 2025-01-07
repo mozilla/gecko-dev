@@ -71,7 +71,7 @@ std::unique_ptr<AudioEncoder> AudioEncoderL16::MakeAudioEncoder(
     const AudioEncoderL16::Config& config,
     int payload_type,
     std::optional<AudioCodecPairId> /*codec_pair_id*/,
-    const FieldTrialsView* field_trials) {
+    const FieldTrialsView* /* field_trials */) {
   AudioEncoderPcm16B::Config c;
   c.sample_rate_hz = config.sample_rate_hz;
   c.num_channels = config.num_channels;

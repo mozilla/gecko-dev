@@ -32,7 +32,7 @@ struct LibaomAv1EncoderTemplateAdapter {
 
   static std::unique_ptr<VideoEncoder> CreateEncoder(
       const Environment& env,
-      const SdpVideoFormat& format) {
+      const SdpVideoFormat& /* format */) {
     return CreateLibaomAv1Encoder(env);
   }
 

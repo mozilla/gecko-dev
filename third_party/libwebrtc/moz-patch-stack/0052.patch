@@ -14,7 +14,7 @@ Subject: Bug 1766646 - (fix) breakout Call::Stats and SharedModuleThread into
  create mode 100644 call/call_basic_stats.h
 
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 8fb9bacedc..71b827ea82 100644
+index d564361465..60cd8e16da 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -33,6 +33,12 @@ rtc_library("call_interfaces") {
@@ -55,7 +55,7 @@ index 2b7751742f..11dbef3212 100644
    std::unique_ptr<RtpTransportControllerSendInterface> transport_send;
    if (config.rtp_transport_controller_send_factory != nullptr) {
 diff --git a/call/call.h b/call/call.h
-index 313e8a85d1..ef782c2bb8 100644
+index 341d55d52b..9a3afb46f7 100644
 --- a/call/call.h
 +++ b/call/call.h
 @@ -25,6 +25,7 @@

@@ -16,10 +16,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bbec1b95ddb5e0096
  5 files changed, 26 insertions(+), 6 deletions(-)
 
 diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
-index 1deb60608f..757d3ee807 100644
+index 1df856e2e9..e547f76cff 100644
 --- a/modules/audio_coding/BUILD.gn
 +++ b/modules/audio_coding/BUILD.gn
-@@ -538,7 +538,7 @@ rtc_library("webrtc_opus_wrapper") {
+@@ -358,7 +358,7 @@ rtc_library("webrtc_opus_wrapper") {
      deps += [ rtc_opus_dir ]
      public_configs = [ "//third_party/opus:opus_config" ]
    } else if (build_with_mozilla) {
@@ -61,7 +61,7 @@ index d9b3471572..60e191908b 100644
        }
      }
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index fce3ca62ff..d2a74716dd 100644
+index 94628394c1..bdfb7141e9 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -588,6 +588,20 @@ if (is_ios || is_mac) {
@@ -86,7 +86,7 @@ index fce3ca62ff..d2a74716dd 100644
  
      if (!build_with_mozilla) {
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index ac80805821..b4fd619f3d 100644
+index 4034e3f067..969966259f 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -483,6 +483,12 @@ rtc_source_set("test_support") {

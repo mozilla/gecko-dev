@@ -41,9 +41,6 @@ class NetEqTestFactory {
     // RTP payload type for PCM-a.
     static constexpr int default_pcma() { return 8; }
     int pcma = default_pcma();
-    // RTP payload type for iLBC.
-    static constexpr int default_ilbc() { return 102; }
-    int ilbc = default_ilbc();
     // RTP payload type for iSAC.
     static constexpr int default_isac() { return 103; }
     int isac = default_isac();

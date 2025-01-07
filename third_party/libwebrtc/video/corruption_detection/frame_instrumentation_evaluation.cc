@@ -85,9 +85,7 @@ std::optional<double> GetCorruptionScore(const FrameInstrumentationData& data,
     return std::nullopt;
   }
 
-  // TODO: bugs.webrtc.org/358039777 - Update before rollout. Which variant of
-  // classifier should we use? What input parameters should it have?
-  CorruptionClassifier classifier(2.5);
+  CorruptionClassifier classifier(0.5);
 
   return classifier.CalculateCorruptionProbability(data_samples, samples,
                                                    data.luma_error_threshold,

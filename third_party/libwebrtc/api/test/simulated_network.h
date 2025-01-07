@@ -124,7 +124,7 @@ class NetworkBehaviorInterface {
   // DequeueDeliverablePackets call when network parameters (such as link
   // capacity) changes.
   virtual void RegisterDeliveryTimeChangedCallback(
-      absl::AnyInvocable<void()> callback) {}
+      absl::AnyInvocable<void()> /* callback */) {}
   virtual ~NetworkBehaviorInterface() = default;
 };
 

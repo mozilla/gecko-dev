@@ -58,7 +58,6 @@
 #include "modules/video_coding/svc/scalable_video_controller_no_layering.h"
 #include "modules/video_coding/svc/svc_rate_allocator.h"
 #include "modules/video_coding/utility/framerate_controller_deprecated.h"
-#include "modules/video_coding/utility/simulcast_utility.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/containers/flat_map.h"
 #include "rtc_base/experiments/field_trial_list.h"
@@ -554,8 +553,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
   }
 
   if (enable_svc_for_simulcast_ && codec_.numberOfSimulcastStreams > 1) {
-    if (!SimulcastUtility::ValidSimulcastParameters(
-            codec_, codec_.numberOfSimulcastStreams)) {
+    if (!SimulcastToSvcConverter::IsConfigSupported(codec_)) {
       return WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED;
     }
     RTC_LOG(LS_INFO) << "Rewriting simulcast config to SVC.";
@@ -1785,8 +1783,8 @@ void LibvpxVp9Encoder::GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt) {
 
   TRACE_COUNTER1("webrtc", "EncodedFrameSize", encoded_image_.size());
   encoded_image_.SetRtpTimestamp(input_image_->rtp_timestamp());
-  encoded_image_.SetCaptureTimeIdentifier(
-      input_image_->capture_time_identifier());
+  encoded_image_.SetPresentationTimestamp(
+      input_image_->presentation_timestamp());
   encoded_image_.SetColorSpace(input_image_->color_space());
   encoded_image_._encodedHeight =
       pkt->data.frame.height[layer_id.spatial_layer_id];

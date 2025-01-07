@@ -830,7 +830,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // TODO(bugs.webrtc.org/9534): Rename to RemoveTrack once the other signature
   // is removed; remove default implementation once upstream is updated.
   virtual RTCError RemoveTrackOrError(
-      rtc::scoped_refptr<RtpSenderInterface> sender) {
+      rtc::scoped_refptr<RtpSenderInterface> /* sender */) {
     RTC_CHECK_NOTREACHED();
     return RTCError();
   }
@@ -971,8 +971,8 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // in SDP, so it should be done before CreateOffer is called, if the
   // application plans to use data channels.
   virtual RTCErrorOr<rtc::scoped_refptr<DataChannelInterface>>
-  CreateDataChannelOrError(const std::string& label,
-                           const DataChannelInit* config) {
+  CreateDataChannelOrError(const std::string& /* label */,
+                           const DataChannelInit* /* config */) {
     return RTCError(RTCErrorType::INTERNAL_ERROR, "dummy function called");
   }
   // TODO(crbug.com/788659): Remove "virtual" below and default implementation
@@ -1041,15 +1041,17 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // The observer is invoked as soon as the operation completes, which could be
   // before or after the SetLocalDescription() method has exited.
   virtual void SetLocalDescription(
-      std::unique_ptr<SessionDescriptionInterface> desc,
-      rtc::scoped_refptr<SetLocalDescriptionObserverInterface> observer) {}
+      std::unique_ptr<SessionDescriptionInterface> /* desc */,
+      rtc::scoped_refptr<SetLocalDescriptionObserverInterface> /* observer */) {
+  }
   // Creates an offer or answer (depending on current signaling state) and sets
   // it as the local session description.
   //
   // The observer is invoked as soon as the operation completes, which could be
   // before or after the SetLocalDescription() method has exited.
   virtual void SetLocalDescription(
-      rtc::scoped_refptr<SetLocalDescriptionObserverInterface> observer) {}
+      rtc::scoped_refptr<SetLocalDescriptionObserverInterface> /* observer */) {
+  }
   // Like SetLocalDescription() above, but the observer is invoked with a delay
   // after the operation completes. This helps avoid recursive calls by the
   // observer but also makes it possible for states to change in-between the
@@ -1059,7 +1061,8 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // ones taking SetLocalDescriptionObserverInterface as argument.
   virtual void SetLocalDescription(SetSessionDescriptionObserver* observer,
                                    SessionDescriptionInterface* desc) = 0;
-  virtual void SetLocalDescription(SetSessionDescriptionObserver* observer) {}
+  virtual void SetLocalDescription(
+      SetSessionDescriptionObserver* /* observer */) {}
 
   // Sets the remote session description.
   //
@@ -1078,8 +1081,9 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   // for synchronizing peer connection states to the application.
   // TODO(https://crbug.com/webrtc/11798): Delete this method in favor of the
   // ones taking SetRemoteDescriptionObserverInterface as argument.
-  virtual void SetRemoteDescription(SetSessionDescriptionObserver* observer,
-                                    SessionDescriptionInterface* desc) {}
+  virtual void SetRemoteDescription(
+      SetSessionDescriptionObserver* /* observer */,
+      SessionDescriptionInterface* /* desc */) {}
 
   // According to spec, we must only fire "negotiationneeded" if the Operations
   // Chain is empty. This method takes care of validating an event previously
@@ -1124,8 +1128,9 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
   virtual bool AddIceCandidate(const IceCandidateInterface* candidate) = 0;
   // TODO(hbos): Remove default implementation once implemented by downstream
   // projects.
-  virtual void AddIceCandidate(std::unique_ptr<IceCandidateInterface> candidate,
-                               std::function<void(RTCError)> callback) {}
+  virtual void AddIceCandidate(
+      std::unique_ptr<IceCandidateInterface> /* candidate */,
+      std::function<void(RTCError)> /* callback */) {}
 
   // Removes a group of remote candidates from the ICE agent. Needed mainly for
   // continual gathering, to avoid an ever-growing list of candidates as
@@ -1255,11 +1260,12 @@ class PeerConnectionObserver {
       PeerConnectionInterface::SignalingState new_state) = 0;
 
   // Triggered when media is received on a new stream from remote peer.
-  virtual void OnAddStream(rtc::scoped_refptr<MediaStreamInterface> stream) {}
+  virtual void OnAddStream(
+      rtc::scoped_refptr<MediaStreamInterface> /* stream */) {}
 
   // Triggered when a remote peer closes a stream.
-  virtual void OnRemoveStream(rtc::scoped_refptr<MediaStreamInterface> stream) {
-  }
+  virtual void OnRemoveStream(
+      rtc::scoped_refptr<MediaStreamInterface> /* stream */) {}
 
   // Triggered when a remote peer opens a data channel.
   virtual void OnDataChannel(
@@ -1277,7 +1283,7 @@ class PeerConnectionObserver {
   // PeerConnection::ShouldFireNegotiationNeededEvent() returns true since it is
   // possible for the event to become invalidated by operations subsequently
   // chained.
-  virtual void OnNegotiationNeededEvent(uint32_t event_id) {}
+  virtual void OnNegotiationNeededEvent(uint32_t /* event_id */) {}
 
   // Called any time the legacy IceConnectionState changes.
   //
@@ -1288,15 +1294,15 @@ class PeerConnectionObserver {
   //
   // TODO(jonasolsson): deprecate and remove this.
   virtual void OnIceConnectionChange(
-      PeerConnectionInterface::IceConnectionState new_state) {}
+      PeerConnectionInterface::IceConnectionState /* new_state */) {}
 
   // Called any time the standards-compliant IceConnectionState changes.
   virtual void OnStandardizedIceConnectionChange(
-      PeerConnectionInterface::IceConnectionState new_state) {}
+      PeerConnectionInterface::IceConnectionState /* new_state */) {}
 
   // Called any time the PeerConnectionState changes.
   virtual void OnConnectionChange(
-      PeerConnectionInterface::PeerConnectionState new_state) {}
+      PeerConnectionInterface::PeerConnectionState /* new_state */) {}
 
   // Called any time the IceGatheringState changes.
   virtual void OnIceGatheringChange(
@@ -1307,24 +1313,24 @@ class PeerConnectionObserver {
 
   // Gathering of an ICE candidate failed.
   // See https://w3c.github.io/webrtc-pc/#event-icecandidateerror
-  virtual void OnIceCandidateError(const std::string& address,
-                                   int port,
-                                   const std::string& url,
-                                   int error_code,
-                                   const std::string& error_text) {}
+  virtual void OnIceCandidateError(const std::string& /* address */,
+                                   int /* port */,
+                                   const std::string& /* url */,
+                                   int /* error_code */,
+                                   const std::string& /* error_text */) {}
 
   // Ice candidates have been removed.
   // TODO(honghaiz): Make this a pure virtual method when all its subclasses
   // implement it.
   virtual void OnIceCandidatesRemoved(
-      const std::vector<cricket::Candidate>& candidates) {}
+      const std::vector<cricket::Candidate>& /* candidates */) {}
 
   // Called when the ICE connection receiving status changes.
-  virtual void OnIceConnectionReceivingChange(bool receiving) {}
+  virtual void OnIceConnectionReceivingChange(bool /* receiving */) {}
 
   // Called when the selected candidate pair for the ICE connection changes.
   virtual void OnIceSelectedCandidatePairChanged(
-      const cricket::CandidatePairChangeEvent& event) {}
+      const cricket::CandidatePairChangeEvent& /* event */) {}
 
   // This is called when a receiver and its track are created.
   // TODO(zhihuang): Make this pure virtual when all subclasses implement it.
@@ -1332,8 +1338,9 @@ class PeerConnectionObserver {
   // Plan users should prefer OnTrack, OnAddTrack is only called as backwards
   // compatibility (and is called in the exact same situations as OnTrack).
   virtual void OnAddTrack(
-      rtc::scoped_refptr<RtpReceiverInterface> receiver,
-      const std::vector<rtc::scoped_refptr<MediaStreamInterface>>& streams) {}
+      rtc::scoped_refptr<RtpReceiverInterface> /* receiver */,
+      const std::vector<
+          rtc::scoped_refptr<MediaStreamInterface>>& /* streams */) {}
 
   // This is called when signaling indicates a transceiver will be receiving
   // media from the remote endpoint. This is fired during a call to
@@ -1345,7 +1352,7 @@ class PeerConnectionObserver {
   // RTCSessionDescription" algorithm:
   // https://w3c.github.io/webrtc-pc/#set-description
   virtual void OnTrack(
-      rtc::scoped_refptr<RtpTransceiverInterface> transceiver) {}
+      rtc::scoped_refptr<RtpTransceiverInterface> /* transceiver */) {}
 
   // Called when signaling indicates that media will no longer be received on a
   // track.
@@ -1356,7 +1363,7 @@ class PeerConnectionObserver {
   // https://w3c.github.io/webrtc-pc/#process-remote-track-removal
   // TODO(hbos,deadbeef): Make pure virtual when all subclasses implement it.
   virtual void OnRemoveTrack(
-      rtc::scoped_refptr<RtpReceiverInterface> receiver) {}
+      rtc::scoped_refptr<RtpReceiverInterface> /* receiver */) {}
 
   // Called when an interesting usage is detected by WebRTC.
   // An appropriate action is to add information about the context of the
@@ -1364,7 +1371,7 @@ class PeerConnectionObserver {
   // log function.
   // The heuristics for defining what constitutes "interesting" are
   // implementation-defined.
-  virtual void OnInterestingUsage(int usage_pattern) {}
+  virtual void OnInterestingUsage(int /* usage_pattern */) {}
 };
 
 // PeerConnectionDependencies holds all of PeerConnections dependencies.
@@ -1465,7 +1472,10 @@ struct RTC_EXPORT PeerConnectionFactoryDependencies final {
   rtc::scoped_refptr<AudioEncoderFactory> audio_encoder_factory;
   rtc::scoped_refptr<AudioDecoderFactory> audio_decoder_factory;
   rtc::scoped_refptr<AudioMixer> audio_mixer;
+  // TODO: bugs.webrtc.org/369904700 - Deprecate `audio_processing` in favor
+  // of `audio_processing_builder`.
   rtc::scoped_refptr<AudioProcessing> audio_processing;
+  std::unique_ptr<AudioProcessingBuilderInterface> audio_processing_builder;
   std::unique_ptr<AudioFrameProcessor> audio_frame_processor;
   std::unique_ptr<VideoEncoderFactory> video_encoder_factory;
   std::unique_ptr<VideoDecoderFactory> video_decoder_factory;
@@ -1605,7 +1615,7 @@ class RTC_EXPORT PeerConnectionFactoryInterface
   // StopAecDump function is called.
   // TODO(webrtc:6463): Delete default implementation when downstream mocks
   // classes are updated.
-  virtual bool StartAecDump(FILE* file, int64_t max_size_bytes) {
+  virtual bool StartAecDump(FILE* /* file */, int64_t /* max_size_bytes */) {
     return false;
   }
 

@@ -124,7 +124,7 @@ inline void EnvironmentFactory::Set(absl::Nullable<RtcEventLog*> utility) {
 
 namespace webrtc_create_environment_internal {
 
-inline void Set(EnvironmentFactory& factory) {}
+inline void Set(EnvironmentFactory& /* factory */) {}
 
 template <typename FirstUtility, typename... Utilities>
 void Set(EnvironmentFactory& factory,

@@ -749,7 +749,7 @@ if (rtc_include_tests) {
         "../api/video_codecs:builtin_video_encoder_factory",
         "../api/video_codecs:scalability_mode",
         "../api/video_codecs:video_codecs_api",
-        "../call:video_stream_api",
+        "../call:video_receive_stream_api",
         "../common_video",
         "../media:codec",
         "../media:media_constants",
@@ -1040,7 +1040,8 @@ rtc_library("encoder_settings") {
     "../api:scoped_refptr",
     "../api/video_codecs:video_codecs_api",
     "../call:rtp_interfaces",
-    "../call:video_stream_api",
+    "../call:video_receive_stream_api",
+    "../call:video_send_stream_api",
     "../rtc_base:checks",
     "../rtc_base:refcount",
     "../video/config:encoder_config",
@@ -1261,6 +1262,7 @@ if (!build_with_chromium) {
       "../api:simulated_network_api",
       "../api:transport_api",
       "../api/audio:audio_device",
+      "../api/audio:builtin_audio_processing_builder",
       "../api/audio_codecs:builtin_audio_decoder_factory",
       "../api/audio_codecs:builtin_audio_encoder_factory",
       "../api/environment",
@@ -1278,7 +1280,7 @@ if (!build_with_chromium) {
       "../call:call_interfaces",
       "../call:fake_network",
       "../call:simulated_packet_receiver",
-      "../call:video_stream_api",
+      "../call:video_send_stream_api",
       "../modules/audio_device:test_audio_device_module",
       "../modules/audio_mixer:audio_mixer_impl",
       "../modules/rtp_rtcp",
@@ -1329,7 +1331,7 @@ rtc_library("call_config_utils") {
     "call_config_utils.h",
   ]
   deps = [
-    "../call:video_stream_api",
+    "../call:video_receive_stream_api",
     "../rtc_base:rtc_json",
   ]
 }

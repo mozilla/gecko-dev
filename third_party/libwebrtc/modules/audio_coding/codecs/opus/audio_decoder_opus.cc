@@ -130,7 +130,7 @@ size_t AudioDecoderOpusImpl::Channels() const {
 }
 
 void AudioDecoderOpusImpl::GeneratePlc(
-    size_t requested_samples_per_channel,
+    size_t /* requested_samples_per_channel */,
     rtc::BufferT<int16_t>* concealment_audio) {
   if (!generate_plc_) {
     return;

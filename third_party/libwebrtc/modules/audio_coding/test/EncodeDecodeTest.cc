@@ -39,12 +39,13 @@ TestPacketization::TestPacketization(RTPStream* rtpStream, uint16_t frequency)
 
 TestPacketization::~TestPacketization() {}
 
-int32_t TestPacketization::SendData(const AudioFrameType /* frameType */,
-                                    const uint8_t payloadType,
-                                    const uint32_t timeStamp,
-                                    const uint8_t* payloadData,
-                                    const size_t payloadSize,
-                                    int64_t absolute_capture_timestamp_ms) {
+int32_t TestPacketization::SendData(
+    const AudioFrameType /* frameType */,
+    const uint8_t payloadType,
+    const uint32_t timeStamp,
+    const uint8_t* payloadData,
+    const size_t payloadSize,
+    int64_t /* absolute_capture_timestamp_ms */) {
   _rtpStream->Write(payloadType, timeStamp, _seqNo++, payloadData, payloadSize,
                     _frequency);
   return 1;
@@ -117,7 +118,6 @@ void Receiver::Setup(NetEq* neteq,
                       {109, {"L16", 32000, 1}},
                       {0, {"PCMU", 8000, 1}},
                       {8, {"PCMA", 8000, 1}},
-                      {102, {"ILBC", 8000, 1}},
                       {9, {"G722", 8000, 1}},
                       {120, {"OPUS", 48000, 2}},
                       {13, {"CN", 8000, 1}},
@@ -239,11 +239,8 @@ void EncodeDecodeTest::Perform() {
       {107, {"L16", 8000, 1}},  {108, {"L16", 16000, 1}},
       {109, {"L16", 32000, 1}}, {0, {"PCMU", 8000, 1}},
       {8, {"PCMA", 8000, 1}},
-// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722 and iLBC.
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
 #if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
-#ifdef WEBRTC_CODEC_ILBC
-      {102, {"ILBC", 8000, 1}},
-#endif
       {9, {"G722", 8000, 1}},
 #endif
   };

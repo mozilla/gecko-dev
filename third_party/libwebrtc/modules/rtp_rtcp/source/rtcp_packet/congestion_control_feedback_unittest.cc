@@ -13,7 +13,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
+#include "api/array_view.h"
+#include "api/function_view.h"
 #include "api/units/time_delta.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/common_header.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/rtpfb.h"
@@ -33,16 +36,21 @@ using ::testing::IsEmpty;
 // forth to CompactNtp.
 bool PacketInfoEqual(const CongestionControlFeedback::PacketInfo& a,
                      const CongestionControlFeedback::PacketInfo& b) {
+  bool arrival_time_offset_equal =
+      (a.arrival_time_offset.IsInfinite() &&
+       b.arrival_time_offset.IsInfinite()) ||
+      (a.arrival_time_offset.IsFinite() && b.arrival_time_offset.IsFinite() &&
+       (a.arrival_time_offset - b.arrival_time_offset).Abs() <
+           TimeDelta::Seconds(1) / 1024);
+
   bool equal = a.ssrc == b.ssrc && a.sequence_number == b.sequence_number &&
-               ((a.arrival_time_offset - b.arrival_time_offset).Abs() <
-                TimeDelta::Seconds(1) / 1024) &&
-               a.ecn == b.ecn;
+               arrival_time_offset_equal && a.ecn == b.ecn;
   RTC_LOG_IF(LS_INFO, !equal)
       << " Not equal got ssrc: " << a.ssrc << ", seq: " << a.sequence_number
-      << " arrival_time_offset: " << a.arrival_time_offset.ms()
+      << " arrival_time_offset: " << a.arrival_time_offset.ms_or(-1)
       << " ecn: " << a.ecn << " expected ssrc:" << b.ssrc
       << ", seq: " << b.sequence_number
-      << " arrival_time_offset: " << b.arrival_time_offset.ms()
+      << " arrival_time_offset: " << b.arrival_time_offset.ms_or(-1)
       << " ecn: " << b.ecn;
   return equal;
 }
@@ -205,6 +213,14 @@ TEST(CongestionControlFeedbackTest, CanCreateAndParseWithMissingPackets) {
       {.ssrc = 1,
        .sequence_number = 0xFFFE,
        .arrival_time_offset = TimeDelta::Millis(1)},
+      {.ssrc = 1,
+       .sequence_number = 0xFFFF,
+       // Packet lost
+       .arrival_time_offset = TimeDelta::MinusInfinity()},
+      {.ssrc = 1,
+       .sequence_number = 0,
+       // Packet lost
+       .arrival_time_offset = TimeDelta::MinusInfinity()},
       {.ssrc = 1,
        .sequence_number = 1,
        .arrival_time_offset = TimeDelta::Millis(1)}};

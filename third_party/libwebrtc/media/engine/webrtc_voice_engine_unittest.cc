@@ -23,6 +23,7 @@
 
 #include "absl/strings/match.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
@@ -40,9 +41,7 @@
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
-#include "api/task_queue/default_task_queue_factory.h"
 #include "api/transport/bitrate_settings.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/transport/rtp/rtp_source.h"
 #include "call/audio_receive_stream.h"
 #include "call/audio_send_stream.h"
@@ -89,11 +88,14 @@ using ::testing::ReturnPointee;
 using ::testing::SaveArg;
 using ::testing::StrictMock;
 using ::testing::UnorderedElementsAreArray;
+using ::webrtc::AudioProcessing;
 using ::webrtc::BitrateConstraints;
+using ::webrtc::BuiltinAudioProcessingBuilder;
 using ::webrtc::Call;
 using ::webrtc::CallConfig;
 using ::webrtc::CreateEnvironment;
 using ::webrtc::Environment;
+using ::webrtc::scoped_refptr;
 
 constexpr uint32_t kMaxUnsignaledRecvStreams = 4;
 
@@ -208,9 +210,8 @@ std::vector<cricket::Codec> ReceiveCodecsWithId(
 
 // Tests that our stub library "works".
 TEST(WebRtcVoiceEngineTestStubLibrary, StartupShutdown) {
+  Environment env = CreateEnvironment();
   for (bool use_null_apm : {false, true}) {
-    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory =
-        webrtc::CreateDefaultTaskQueueFactory();
     rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
         webrtc::test::MockAudioDeviceModule::CreateStrict();
     AdmSetupExpectations(adm.get());
@@ -226,12 +227,11 @@ TEST(WebRtcVoiceEngineTestStubLibrary, StartupShutdown) {
       EXPECT_CALL(*apm, DetachAecDump());
     }
     {
-      webrtc::FieldTrialBasedConfig trials;
       cricket::WebRtcVoiceEngine engine(
-          task_queue_factory.get(), adm.get(),
+          &env.task_queue_factory(), adm.get(),
           webrtc::MockAudioEncoderFactory::CreateUnusedFactory(),
           webrtc::MockAudioDecoderFactory::CreateUnusedFactory(), nullptr, apm,
-          nullptr, trials);
+          nullptr, env.field_trials());
       engine.Init();
     }
   }
@@ -239,11 +239,11 @@ TEST(WebRtcVoiceEngineTestStubLibrary, StartupShutdown) {
 
 class FakeAudioSink : public webrtc::AudioSinkInterface {
  public:
-  void OnData(const Data& audio) override {}
+  void OnData(const Data& /* audio */) override {}
 };
 
 class FakeAudioSource : public cricket::AudioSource {
-  void SetSink(Sink* sink) override {}
+  void SetSink(Sink* /* sink */) override {}
 };
 
 class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
@@ -714,7 +714,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     }
   }
   void VerifyVoiceSenderInfo(const cricket::VoiceSenderInfo& info,
-                             bool is_sending) {
+                             bool /* is_sending */) {
     const auto stats = GetAudioSendStreamStats();
     EXPECT_EQ(info.ssrc(), stats.local_ssrc);
     EXPECT_EQ(info.payload_bytes_sent, stats.payload_bytes_sent);
@@ -3754,8 +3754,8 @@ TEST(WebRtcVoiceEngineTest, StartupShutdown) {
     Environment env = CreateEnvironment();
     rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
         webrtc::test::MockAudioDeviceModule::CreateNice();
-    rtc::scoped_refptr<webrtc::AudioProcessing> apm =
-        use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
+    scoped_refptr<AudioProcessing> apm =
+        use_null_apm ? nullptr : BuiltinAudioProcessingBuilder().Build(env);
     cricket::WebRtcVoiceEngine engine(
         &env.task_queue_factory(), adm.get(),
         webrtc::MockAudioEncoderFactory::CreateUnusedFactory(),
@@ -3784,8 +3784,8 @@ TEST(WebRtcVoiceEngineTest, StartupShutdownWithExternalADM) {
     auto adm = rtc::make_ref_counted<
         ::testing::NiceMock<webrtc::test::MockAudioDeviceModule>>();
     {
-      rtc::scoped_refptr<webrtc::AudioProcessing> apm =
-          use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
+      scoped_refptr<AudioProcessing> apm =
+          use_null_apm ? nullptr : BuiltinAudioProcessingBuilder().Build(env);
       cricket::WebRtcVoiceEngine engine(
           &env.task_queue_factory(), adm.get(),
           webrtc::MockAudioEncoderFactory::CreateUnusedFactory(),
@@ -3812,21 +3812,19 @@ TEST(WebRtcVoiceEngineTest, StartupShutdownWithExternalADM) {
 
 // Verify the payload id of common audio codecs, including CN and G722.
 TEST(WebRtcVoiceEngineTest, HasCorrectPayloadTypeMapping) {
+  Environment env = CreateEnvironment();
   for (bool use_null_apm : {false, true}) {
-    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory =
-        webrtc::CreateDefaultTaskQueueFactory();
     // TODO(ossu): Why are the payload types of codecs with non-static payload
     // type assignments checked here? It shouldn't really matter.
     rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
         webrtc::test::MockAudioDeviceModule::CreateNice();
-    rtc::scoped_refptr<webrtc::AudioProcessing> apm =
-        use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
-    webrtc::FieldTrialBasedConfig field_trials;
+    scoped_refptr<AudioProcessing> apm =
+        use_null_apm ? nullptr : BuiltinAudioProcessingBuilder().Build(env);
     cricket::WebRtcVoiceEngine engine(
-        task_queue_factory.get(), adm.get(),
+        &env.task_queue_factory(), adm.get(),
         webrtc::MockAudioEncoderFactory::CreateUnusedFactory(),
         webrtc::MockAudioDecoderFactory::CreateUnusedFactory(), nullptr, apm,
-        nullptr, field_trials);
+        nullptr, env.field_trials());
     engine.Init();
     for (const cricket::Codec& codec : engine.send_codecs()) {
       auto is_codec = [&codec](const char* name, int clockrate = 0) {
@@ -3868,8 +3866,8 @@ TEST(WebRtcVoiceEngineTest, Has32Channels) {
     Environment env = CreateEnvironment();
     rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
         webrtc::test::MockAudioDeviceModule::CreateNice();
-    rtc::scoped_refptr<webrtc::AudioProcessing> apm =
-        use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
+    scoped_refptr<AudioProcessing> apm =
+        use_null_apm ? nullptr : BuiltinAudioProcessingBuilder().Build(env);
     cricket::WebRtcVoiceEngine engine(
         &env.task_queue_factory(), adm.get(),
         webrtc::MockAudioEncoderFactory::CreateUnusedFactory(),
@@ -3908,8 +3906,8 @@ TEST(WebRtcVoiceEngineTest, SetRecvCodecs) {
     // I think it will become clear once audio decoder injection is completed.
     rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
         webrtc::test::MockAudioDeviceModule::CreateNice();
-    rtc::scoped_refptr<webrtc::AudioProcessing> apm =
-        use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
+    scoped_refptr<AudioProcessing> apm =
+        use_null_apm ? nullptr : BuiltinAudioProcessingBuilder().Build(env);
     cricket::WebRtcVoiceEngine engine(
         &env.task_queue_factory(), adm.get(),
         webrtc::MockAudioEncoderFactory::CreateUnusedFactory(),
@@ -3975,6 +3973,7 @@ TEST(WebRtcVoiceEngineTest, SetRtpSendParametersMaxBitrate) {
 }
 
 TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
+  Environment env = CreateEnvironment();
   for (bool use_null_apm : {false, true}) {
     std::vector<webrtc::AudioCodecSpec> specs;
     webrtc::AudioCodecSpec spec1{{"codec1", 48000, 2, {{"param1", "value1"}}},
@@ -3993,8 +3992,6 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
     specs.push_back(
         webrtc::AudioCodecSpec{{"codec5", 8000, 2}, {8000, 1, 64000}});
 
-    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory =
-        webrtc::CreateDefaultTaskQueueFactory();
     rtc::scoped_refptr<webrtc::MockAudioEncoderFactory> unused_encoder_factory =
         webrtc::MockAudioEncoderFactory::CreateUnusedFactory();
     rtc::scoped_refptr<webrtc::MockAudioDecoderFactory> mock_decoder_factory =
@@ -4004,12 +4001,11 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
     rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
         webrtc::test::MockAudioDeviceModule::CreateNice();
 
-    rtc::scoped_refptr<webrtc::AudioProcessing> apm =
-        use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
-    webrtc::FieldTrialBasedConfig field_trials;
+    scoped_refptr<AudioProcessing> apm =
+        use_null_apm ? nullptr : BuiltinAudioProcessingBuilder().Build(env);
     cricket::WebRtcVoiceEngine engine(
-        task_queue_factory.get(), adm.get(), unused_encoder_factory,
-        mock_decoder_factory, nullptr, apm, nullptr, field_trials);
+        &env.task_queue_factory(), adm.get(), unused_encoder_factory,
+        mock_decoder_factory, nullptr, apm, nullptr, env.field_trials());
     engine.Init();
     auto codecs = engine.recv_codecs();
     EXPECT_EQ(11u, codecs.size());
@@ -4063,6 +4059,7 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
 TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
   webrtc::test::ScopedKeyValueConfig field_trials(
       "WebRTC-PayloadTypesInTransport/Enabled/");
+  Environment env = CreateEnvironment(&field_trials);
 
   for (bool use_null_apm : {false, true}) {
     std::vector<webrtc::AudioCodecSpec> specs;
@@ -4082,8 +4079,6 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
     specs.push_back(
         webrtc::AudioCodecSpec{{"codec5", 8000, 2}, {8000, 1, 64000}});
 
-    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory =
-        webrtc::CreateDefaultTaskQueueFactory();
     rtc::scoped_refptr<webrtc::MockAudioEncoderFactory> unused_encoder_factory =
         webrtc::MockAudioEncoderFactory::CreateUnusedFactory();
     rtc::scoped_refptr<webrtc::MockAudioDecoderFactory> mock_decoder_factory =
@@ -4093,11 +4088,11 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
     rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
         webrtc::test::MockAudioDeviceModule::CreateNice();
 
-    rtc::scoped_refptr<webrtc::AudioProcessing> apm =
-        use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
+    scoped_refptr<AudioProcessing> apm =
+        use_null_apm ? nullptr : BuiltinAudioProcessingBuilder().Build(env);
     cricket::WebRtcVoiceEngine engine(
-        task_queue_factory.get(), adm.get(), unused_encoder_factory,
-        mock_decoder_factory, nullptr, apm, nullptr, field_trials);
+        &env.task_queue_factory(), adm.get(), unused_encoder_factory,
+        mock_decoder_factory, nullptr, apm, nullptr, env.field_trials());
     engine.Init();
     auto codecs = engine.recv_codecs();
     EXPECT_EQ(11u, codecs.size());

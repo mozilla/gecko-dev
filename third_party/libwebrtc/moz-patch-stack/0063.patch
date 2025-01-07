@@ -11,7 +11,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b0658888969395dca
  2 files changed, 10 insertions(+)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index 7d3005cbe3..946de50dc2 100644
+index 4a41acb0d4..2e60d06388 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -636,6 +636,10 @@ if (!build_with_chromium) {
@@ -26,7 +26,7 @@ index 7d3005cbe3..946de50dc2 100644
        deps += [ "logging:rtc_event_log_proto" ]
      }
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 27fb4adada..fce3ca62ff 100644
+index e445cdc90f..94628394c1 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -527,6 +527,7 @@ if (is_ios || is_mac) {
@@ -69,7 +69,7 @@ index 27fb4adada..fce3ca62ff 100644
      rtc_library("videocodec_objc") {
        visibility = [ "*" ]
        configs += [ "..:no_global_constructors" ]
-@@ -1765,5 +1770,6 @@ if (is_ios || is_mac) {
+@@ -1766,5 +1771,6 @@ if (is_ios || is_mac) {
          "VideoToolbox.framework",
        ]
      }

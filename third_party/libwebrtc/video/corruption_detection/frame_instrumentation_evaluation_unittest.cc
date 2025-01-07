@@ -94,7 +94,8 @@ TEST(FrameInstrumentationEvaluationTest,
   std::optional<double> corruption_score = GetCorruptionScore(data, frame);
 
   ASSERT_TRUE(corruption_score.has_value());
-  EXPECT_DOUBLE_EQ(*corruption_score, 0.55);
+  EXPECT_LE(*corruption_score, 1);
+  EXPECT_GE(*corruption_score, 0);
 }
 
 TEST(FrameInstrumentationEvaluationTest,
@@ -116,7 +117,8 @@ TEST(FrameInstrumentationEvaluationTest,
   std::optional<double> corruption_score = GetCorruptionScore(data, frame);
 
   ASSERT_TRUE(corruption_score.has_value());
-  EXPECT_DOUBLE_EQ(*corruption_score, 0.3302493109581533);
+  EXPECT_LE(*corruption_score, 1);
+  EXPECT_GE(*corruption_score, 0);
 }
 
 TEST(FrameInstrumentationEvaluationTest, ApplySequenceIndexWhenProvided) {
@@ -137,7 +139,8 @@ TEST(FrameInstrumentationEvaluationTest, ApplySequenceIndexWhenProvided) {
   std::optional<double> corruption_score = GetCorruptionScore(data, frame);
 
   ASSERT_TRUE(corruption_score.has_value());
-  EXPECT_DOUBLE_EQ(*corruption_score, 0.12983429453668965);
+  EXPECT_LE(*corruption_score, 1);
+  EXPECT_GE(*corruption_score, 0);
 }
 
 }  // namespace

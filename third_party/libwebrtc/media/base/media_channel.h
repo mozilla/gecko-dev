@@ -242,9 +242,9 @@ class MediaSendChannelInterface {
   // note: The encoder_selector object must remain valid for the lifetime of the
   // MediaChannel, unless replaced.
   virtual void SetEncoderSelector(
-      uint32_t ssrc,
-      webrtc::VideoEncoderFactory::EncoderSelectorInterface* encoder_selector) {
-  }
+      uint32_t /* ssrc */,
+      webrtc::VideoEncoderFactory::
+          EncoderSelectorInterface* /* encoder_selector */) {}
   virtual webrtc::RtpParameters GetRtpSendParameters(uint32_t ssrc) const = 0;
   virtual bool SendCodecHasNack() const = 0;
   // Called whenever the list of sending SSRCs changes.
@@ -478,13 +478,11 @@ struct MediaReceiverInfo {
 
   // Remote outbound stats derived by the received RTCP sender reports.
   // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*
-  // TODO: bugs.webrtc.org/372393493 - timestamps should use the type Timestamp,
-  // not int64_t.
-  std::optional<int64_t> last_sender_report_timestamp_ms;
+  std::optional<webrtc::Timestamp> last_sender_report_timestamp;
   // TODO: bugs.webrtc.org/370535296 - Remove the utc timestamp when linked
   // issue is fixed.
-  std::optional<int64_t> last_sender_report_utc_timestamp_ms;
-  std::optional<int64_t> last_sender_report_remote_utc_timestamp_ms;
+  std::optional<webrtc::Timestamp> last_sender_report_utc_timestamp;
+  std::optional<webrtc::Timestamp> last_sender_report_remote_utc_timestamp;
   uint64_t sender_reports_packets_sent = 0;
   uint64_t sender_reports_bytes_sent = 0;
   uint64_t sender_reports_reports_count = 0;

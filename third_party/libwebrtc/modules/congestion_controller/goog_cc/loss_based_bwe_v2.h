@@ -128,6 +128,7 @@ class LossBasedBweV2 {
     TimeDelta padding_duration = TimeDelta::Zero();
     bool bound_best_candidate = false;
     bool pace_at_loss_based_estimate = false;
+    double median_sending_rate_factor = 0.0;
   };
 
   struct Derivatives {
@@ -169,12 +170,12 @@ class LossBasedBweV2 {
   bool IsConfigValid() const;
 
   // Returns `0.0` if not enough loss statistics have been received.
-  double GetAverageReportedLossRatio() const;
-  double GetAverageReportedPacketLossRatio() const;
+  void UpdateAverageReportedLossRatio();
+  double CalculateAverageReportedPacketLossRatio() const;
   // Calculates the average loss ratio over the last `observation_window_size`
   // observations but skips the observation with min and max loss ratio in order
   // to filter out loss spikes.
-  double GetAverageReportedByteLossRatio() const;
+  double CalculateAverageReportedByteLossRatio() const;
   std::vector<ChannelParameters> GetCandidates(bool in_alr) const;
   DataRate GetCandidateBandwidthUpperBound() const;
   Derivatives GetDerivatives(const ChannelParameters& channel_parameters) const;
@@ -199,6 +200,7 @@ class LossBasedBweV2 {
                                            DataRate new_estimate);
   bool IsInLossLimitedState() const;
   bool CanKeepIncreasingState(DataRate estimate) const;
+  DataRate GetMedianSendingRate() const;
 
   std::optional<DataRate> acknowledged_bitrate_;
   std::optional<Config> config_;
@@ -220,6 +222,7 @@ class LossBasedBweV2 {
   LossBasedBweV2::Result loss_based_result_ = LossBasedBweV2::Result();
   HoldInfo last_hold_info_ = HoldInfo();
   PaddingInfo last_padding_info_ = PaddingInfo();
+  double average_reported_loss_ratio_ = 0.0;
 };
 
 }  // namespace webrtc

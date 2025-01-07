@@ -207,6 +207,11 @@ INSTANTIATE_TEST_SUITE_P(
              .expected_bwe_min = webrtc::DataRate::KilobitsPerSec(400),
          }}));
 
+class MockRtpSenderObserver : public RtpSenderObserverInterface {
+ public:
+  MOCK_METHOD(void, OnFirstPacketSent, (cricket::MediaType));
+};
+
 // Test that caller and callee BWE rampup even if no media packets are sent.
 // - BandWidthEstimationSettings.allow_probe_without_media must be set.
 // - A Video RtpTransceiver with RTX support needs to be negotiated.
@@ -217,8 +222,12 @@ TEST_P(BweRampupWithInitialProbeTest, BweRampUpBothDirectionsWithoutMedia) {
   PeerScenarioClient* caller = s.CreateClient({});
   PeerScenarioClient* callee = s.CreateClient({});
 
-  auto video_result = caller->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
-  ASSERT_EQ(video_result.error().type(), RTCErrorType::NONE);
+  auto transceiver = caller->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  ASSERT_TRUE(transceiver.error().ok());
+
+  MockRtpSenderObserver observer;
+  EXPECT_CALL(observer, OnFirstPacketSent).Times(0);
+  transceiver.value()->sender()->SetObserver(&observer);
 
   caller->pc()->ReconfigureBandwidthEstimation(
       {.allow_probe_without_media = true});

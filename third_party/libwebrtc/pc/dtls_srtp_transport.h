@@ -64,8 +64,8 @@ class DtlsSrtpTransport : public SrtpTransport {
   void SetupRtcpDtlsSrtp();
   bool ExtractParams(cricket::DtlsTransportInternal* dtls_transport,
                      int* selected_crypto_suite,
-                     rtc::ZeroOnFreeBuffer<unsigned char>* send_key,
-                     rtc::ZeroOnFreeBuffer<unsigned char>* recv_key);
+                     rtc::ZeroOnFreeBuffer<uint8_t>* send_key,
+                     rtc::ZeroOnFreeBuffer<uint8_t>* recv_key);
   void SetDtlsTransport(cricket::DtlsTransportInternal* new_dtls_transport,
                         cricket::DtlsTransportInternal** old_dtls_transport);
   void SetRtpDtlsTransport(cricket::DtlsTransportInternal* rtp_dtls_transport);

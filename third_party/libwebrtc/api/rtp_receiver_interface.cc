@@ -36,7 +36,7 @@ std::vector<RtpSource> RtpReceiverInterface::GetSources() const {
 }
 
 void RtpReceiverInterface::SetFrameDecryptor(
-    rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor) {}
+    rtc::scoped_refptr<FrameDecryptorInterface> /* frame_decryptor */) {}
 
 rtc::scoped_refptr<FrameDecryptorInterface>
 RtpReceiverInterface::GetFrameDecryptor() const {
@@ -49,6 +49,6 @@ RtpReceiverInterface::dtls_transport() const {
 }
 
 void RtpReceiverInterface::SetFrameTransformer(
-    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer) {}
+    rtc::scoped_refptr<FrameTransformerInterface> /* frame_transformer */) {}
 
 }  // namespace webrtc

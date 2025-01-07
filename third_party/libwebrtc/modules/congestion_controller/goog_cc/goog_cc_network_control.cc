@@ -300,7 +300,7 @@ NetworkControlUpdate GoogCcNetworkController::OnSentPacket(
 }
 
 NetworkControlUpdate GoogCcNetworkController::OnReceivedPacket(
-    ReceivedPacket received_packet) {
+    ReceivedPacket /* received_packet */) {
   return NetworkControlUpdate();
 }
 

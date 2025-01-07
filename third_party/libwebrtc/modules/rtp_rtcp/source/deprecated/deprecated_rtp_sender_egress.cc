@@ -153,12 +153,9 @@ void DEPRECATED_RtpSenderEgress::SendPacket(
     }
   }
 
-  const bool is_media = packet->packet_type() == RtpPacketMediaType::kAudio ||
-                        packet->packet_type() == RtpPacketMediaType::kVideo;
+  options.is_media = packet->packet_type() == RtpPacketMediaType::kAudio ||
+                     packet->packet_type() == RtpPacketMediaType::kVideo;
 
-  // Downstream code actually uses this flag to distinguish between media and
-  // everything else.
-  options.is_retransmit = !is_media;
   if (auto packet_id = packet->GetExtension<TransportSequenceNumber>()) {
     options.packet_id = *packet_id;
     options.included_in_feedback = true;
@@ -176,7 +173,7 @@ void DEPRECATED_RtpSenderEgress::SendPacket(
 
   // Put packet in retransmission history or update pending status even if
   // actual sending fails.
-  if (is_media && packet->allow_retransmission()) {
+  if (options.is_media && packet->allow_retransmission()) {
     packet_history_->PutRtpPacket(std::make_unique<RtpPacketToSend>(*packet),
                                   now);
   } else if (packet->retransmitted_sequence_number()) {

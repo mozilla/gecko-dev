@@ -50,9 +50,6 @@ class DataSize final : public rtc_units_impl::RelativeUnit<DataSize> {
 };
 
 RTC_EXPORT std::string ToString(DataSize value);
-inline std::string ToLogString(DataSize value) {
-  return ToString(value);
-}
 
 template <typename Sink>
 void AbslStringify(Sink& sink, DataSize value) {

@@ -502,6 +502,7 @@ rtc_library("mock_rtp_rtcp") {
   testonly = true
   public = [
     "mocks/mock_network_link_rtcp_observer.h",
+    "mocks/mock_network_state_estimator_observer.h",
     "mocks/mock_recovered_packet_receiver.h",
     "mocks/mock_rtcp_rtt_stats.h",
     "mocks/mock_rtp_rtcp.h",
@@ -673,6 +674,7 @@ if (rtc_include_tests) {
       "../../api:create_time_controller",
       "../../api:field_trials_registry",
       "../../api:frame_transformer_factory",
+      "../../api:function_view",
       "../../api:make_ref_counted",
       "../../api:mock_frame_encryptor",
       "../../api:mock_frame_transformer",
@@ -705,7 +707,7 @@ if (rtc_include_tests) {
       "../../api/video:video_rtp_headers",
       "../../api/video_codecs:video_codecs_api",
       "../../call:rtp_receiver",
-      "../../call:video_stream_api",
+      "../../call:video_receive_stream_api",
       "../../common_video",
       "../../common_video:corruption_detection_message",
       "../../common_video:frame_instrumentation_data",
@@ -752,7 +754,7 @@ if (rtc_include_tests) {
       "../../api:mock_transformable_audio_frame",
       "../../api:mock_transformable_video_frame",
       "../../api:transport_api",
-      "../../call:video_stream_api",
+      "../../call:video_receive_stream_api",
       "../../modules/rtp_rtcp",
       "../../rtc_base:rtc_event",
       "../../test:test_support",

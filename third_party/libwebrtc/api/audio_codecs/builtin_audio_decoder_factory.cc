@@ -23,9 +23,6 @@
 #include "api/audio_codecs/g711/audio_decoder_g711.h"
 #include "api/audio_codecs/g722/audio_decoder_g722.h"
 #include "api/scoped_refptr.h"
-#if WEBRTC_USE_BUILTIN_ILBC
-#include "api/audio_codecs/ilbc/audio_decoder_ilbc.h"  // nogncheck
-#endif
 #if WEBRTC_USE_BUILTIN_OPUS
 #include "api/audio_codecs/opus/audio_decoder_multi_channel_opus.h"
 #include "api/audio_codecs/opus/audio_decoder_opus.h"  // nogncheck
@@ -42,7 +39,8 @@ struct NotAdvertised {
   static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
     return T::SdpToConfig(audio_format);
   }
-  static void AppendSupportedDecoders(std::vector<AudioCodecSpec>* specs) {
+  static void AppendSupportedDecoders(
+      std::vector<AudioCodecSpec>* /* specs */) {
     // Don't advertise support for anything.
   }
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
@@ -62,11 +60,6 @@ rtc::scoped_refptr<AudioDecoderFactory> CreateBuiltinAudioDecoderFactory() {
 #endif
 
       AudioDecoderG722,
-
-#if WEBRTC_USE_BUILTIN_ILBC
-      AudioDecoderIlbc,
-#endif
-
       AudioDecoderG711, NotAdvertised<AudioDecoderL16>>();
 }
 

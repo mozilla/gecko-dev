@@ -52,7 +52,8 @@ class VideoSourceSinkController {
   int resolution_alignment() const;
   const std::vector<rtc::VideoSinkWants::FrameSize>& resolutions() const;
   bool active() const;
-  std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution() const;
+  std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to()
+      const;
 
   // Updates the settings stored internally. In order for these settings to be
   // applied to the sink, PushSourceSinkSettings() must subsequently be called.
@@ -64,8 +65,8 @@ class VideoSourceSinkController {
   void SetResolutionAlignment(int resolution_alignment);
   void SetResolutions(std::vector<rtc::VideoSinkWants::FrameSize> resolutions);
   void SetActive(bool active);
-  void SetRequestedResolution(
-      std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution);
+  void SetScaleResolutionDownTo(
+      std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to);
 
  private:
   rtc::VideoSinkWants CurrentSettingsToSinkWants() const
@@ -93,7 +94,7 @@ class VideoSourceSinkController {
   std::vector<rtc::VideoSinkWants::FrameSize> resolutions_
       RTC_GUARDED_BY(&sequence_checker_);
   bool active_ RTC_GUARDED_BY(&sequence_checker_) = true;
-  std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution_
+  std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to_
       RTC_GUARDED_BY(&sequence_checker_);
 };
 

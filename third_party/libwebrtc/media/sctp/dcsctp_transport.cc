@@ -685,7 +685,7 @@ void DcSctpTransport::OnTransportWritableState(
 }
 
 void DcSctpTransport::OnTransportReadPacket(
-    rtc::PacketTransportInternal* transport,
+    rtc::PacketTransportInternal* /* transport */,
     const rtc::ReceivedPacket& packet) {
   RTC_DCHECK_RUN_ON(network_thread_);
   if (packet.decryption_info() != rtc::ReceivedPacket::kDtlsDecrypted) {

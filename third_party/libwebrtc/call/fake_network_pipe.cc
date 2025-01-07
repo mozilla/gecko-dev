@@ -110,7 +110,7 @@ FakeNetworkPipe::FakeNetworkPipe(
     Clock* clock,
     std::unique_ptr<NetworkBehaviorInterface> network_behavior,
     PacketReceiver* receiver,
-    uint64_t seed)
+    uint64_t /* seed */)
     : clock_(clock),
       network_behavior_(std::move(network_behavior)),
       receiver_(receiver),
@@ -161,7 +161,7 @@ bool FakeNetworkPipe::SendRtcp(rtc::ArrayView<const uint8_t> packet,
 void FakeNetworkPipe::DeliverRtpPacket(
     MediaType media_type,
     RtpPacketReceived packet,
-    OnUndemuxablePacketHandler undemuxable_packet_handler) {
+    OnUndemuxablePacketHandler /* undemuxable_packet_handler */) {
   MutexLock lock(&process_lock_);
   int64_t time_now_us = clock_->TimeInMicroseconds();
   EnqueuePacket(

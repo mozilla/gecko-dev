@@ -11,6 +11,7 @@
 #include "video/corruption_detection/frame_instrumentation_generator.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -684,6 +685,41 @@ TEST(FrameInstrumentationGeneratorTest, GetterAndSetterOperatesAsExpected) {
   EXPECT_TRUE(index.has_value());
   EXPECT_EQ(*index, 0);
 #endif  // GTEST_HAS_DEATH_TEST
+}
+
+TEST(FrameInstrumentationGeneratorTest, QueuesAtMostThreeInputFrames) {
+  auto generator = std::make_unique<FrameInstrumentationGenerator>(
+      VideoCodecType::kVideoCodecVP8);
+
+  bool frames_destroyed[4] = {};
+  class TestBuffer : public webrtc::I420Buffer {
+   public:
+    TestBuffer(int width, int height, bool* frame_destroyed_indicator)
+        : I420Buffer(width, height),
+          frame_destroyed_indicator_(frame_destroyed_indicator) {}
+
+   private:
+    friend class RefCountedObject<TestBuffer>;
+    ~TestBuffer() override { *frame_destroyed_indicator_ = true; }
+
+    bool* frame_destroyed_indicator_;
+  };
+
+  // Insert four frames, the first one should expire and be released.
+  for (int i = 0; i < 4; ++i) {
+    generator->OnCapturedFrame(
+        VideoFrame::Builder()
+            .set_video_frame_buffer(rtc::make_ref_counted<TestBuffer>(
+                kDefaultScaledWidth, kDefaultScaledHeight,
+                &frames_destroyed[i]))
+            .set_rtp_timestamp(1 + (33 * i))
+            .build());
+  }
+
+  EXPECT_THAT(frames_destroyed, ElementsAre(true, false, false, false));
+
+  generator.reset();
+  EXPECT_THAT(frames_destroyed, ElementsAre(true, true, true, true));
 }
 
 }  // namespace

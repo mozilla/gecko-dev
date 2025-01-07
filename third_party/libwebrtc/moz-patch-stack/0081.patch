@@ -18,10 +18,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2f1a0ba74bf71cfa0
  6 files changed, 24 insertions(+), 4 deletions(-)
 
 diff --git a/api/frame_transformer_interface.h b/api/frame_transformer_interface.h
-index 6959445285..47e2fddd3b 100644
+index 7133efaacc..f87b300640 100644
 --- a/api/frame_transformer_interface.h
 +++ b/api/frame_transformer_interface.h
-@@ -77,6 +77,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
+@@ -83,6 +83,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
    RTC_EXPORT explicit TransformableVideoFrameInterface(Passkey passkey);
    virtual ~TransformableVideoFrameInterface() = default;
    virtual bool IsKeyFrame() const = 0;
@@ -45,10 +45,10 @@ index 0a29968b0c..c23051401e 100644
      return flexfec_ssrc_;
    }
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index 95c5c41bb3..94ae84a790 100644
+index 8a21d0523f..80964b30ee 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
-@@ -183,6 +183,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
+@@ -189,6 +189,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
                      this,
                      config.frame_transformer,
                      rtp_sender_->SSRC(),
@@ -57,7 +57,7 @@ index 95c5c41bb3..94ae84a790 100644
                : nullptr),
        enable_av1_even_split_(
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
-index b49468b8f9..04d34eda14 100644
+index d119fdcecf..3ebfe1c742 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
 @@ -55,7 +55,8 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
@@ -71,7 +71,7 @@ index b49468b8f9..04d34eda14 100644
          encoded_data_(encoded_image.GetEncodedData()),
          pre_transform_payload_size_(encoded_image.size()),
 @@ -68,7 +69,8 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
-         capture_time_identifier_(encoded_image.CaptureTimeIdentifier()),
+         presentation_timestamp_(encoded_image.PresentationTimestamp()),
          expected_retransmission_time_(expected_retransmission_time),
          ssrc_(ssrc),
 -        csrcs_(csrcs) {
@@ -80,7 +80,7 @@ index b49468b8f9..04d34eda14 100644
      RTC_DCHECK_GE(payload_type_, 0);
      RTC_DCHECK_LE(payload_type_, 127);
    }
-@@ -131,6 +133,8 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
+@@ -134,6 +136,8 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
      return mime_type + CodecTypeToPayloadString(*codec_type_);
    }
  
@@ -89,7 +89,7 @@ index b49468b8f9..04d34eda14 100644
   private:
    rtc::scoped_refptr<EncodedImageBufferInterface> encoded_data_;
    const size_t pre_transform_payload_size_;
-@@ -145,16 +149,19 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
+@@ -148,16 +152,19 @@ class TransformableVideoSenderFrame : public TransformableVideoFrameInterface {
  
    uint32_t ssrc_;
    std::vector<uint32_t> csrcs_;
@@ -109,7 +109,7 @@ index b49468b8f9..04d34eda14 100644
        transformation_queue_(task_queue_factory->CreateTaskQueue(
            "video_frame_transformer",
            TaskQueueFactory::Priority::NORMAL)) {}
-@@ -185,7 +192,7 @@ bool RTPSenderVideoFrameTransformerDelegate::TransformFrame(
+@@ -188,7 +195,7 @@ bool RTPSenderVideoFrameTransformerDelegate::TransformFrame(
    frame_transformer_->Transform(std::make_unique<TransformableVideoSenderFrame>(
        encoded_image, video_header, payload_type, codec_type, rtp_timestamp,
        expected_retransmission_time, ssrc_,
@@ -118,7 +118,7 @@ index b49468b8f9..04d34eda14 100644
    return true;
  }
  
-@@ -287,7 +294,7 @@ std::unique_ptr<TransformableVideoFrameInterface> CloneSenderVideoFrame(
+@@ -290,7 +297,7 @@ std::unique_ptr<TransformableVideoFrameInterface> CloneSenderVideoFrame(
    return std::make_unique<TransformableVideoSenderFrame>(
        encoded_image, new_header, original->GetPayloadType(), new_header.codec,
        original->GetTimestamp(), kDefaultRetransmissionsTime,

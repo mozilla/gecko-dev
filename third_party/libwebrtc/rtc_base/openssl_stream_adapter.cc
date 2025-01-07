@@ -63,6 +63,12 @@
 #error "webrtc requires at least OpenSSL version 1.1.0, to support DTLS-SRTP"
 #endif
 
+namespace {
+// Value specified in RFC 5764.
+static constexpr absl::string_view kDtlsSrtpExporterLabel =
+    "EXTRACTOR-dtls_srtp";
+}  // namespace
+
 namespace rtc {
 namespace {
 using ::webrtc::SafeTask;
@@ -233,10 +239,6 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
       ssl_write_needs_read_(false),
       ssl_(nullptr),
       ssl_ctx_(nullptr),
-#ifdef OPENSSL_IS_BORINGSSL
-      permute_extension_(
-          !webrtc::field_trial::IsDisabled("WebRTC-PermuteTlsClientHello")),
-#endif
       ssl_mode_(SSL_MODE_DTLS),
       ssl_max_version_(SSL_PROTOCOL_DTLS_12),
       disable_handshake_ticket_(!webrtc::field_trial::IsDisabled(
@@ -377,7 +379,24 @@ bool OpenSSLStreamAdapter::GetSslVersionBytes(int* version) const {
   return true;
 }
 
-// Key Extractor interface
+bool OpenSSLStreamAdapter::ExportSrtpKeyingMaterial(
+    rtc::ZeroOnFreeBuffer<uint8_t>& keying_material) {
+  // Arguments are:
+  // keying material/len -- a buffer to hold the keying material.
+  // label               -- the exporter label.
+  //                        part of the RFC defining each exporter
+  //                        usage. We only use RFC 5764 for DTLS-SRTP.
+  // context/context_len -- a context to bind to for this connection;
+  // use_context            optional, can be null, 0 (IN). Not used by WebRTC.
+  if (SSL_export_keying_material(
+          ssl_, keying_material.data(), keying_material.size(),
+          kDtlsSrtpExporterLabel.data(), kDtlsSrtpExporterLabel.size(), nullptr,
+          0, false) != 1) {
+    return false;
+  }
+  return true;
+}
+
 bool OpenSSLStreamAdapter::ExportKeyingMaterial(absl::string_view label,
                                                 const uint8_t* context,
                                                 size_t context_len,
@@ -1002,7 +1021,7 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
   }
 
 #ifdef OPENSSL_IS_BORINGSSL
-  SSL_CTX_set_permute_extensions(ctx, permute_extension_);
+  SSL_CTX_set_permute_extensions(ctx, true);
 #endif
 
   if (disable_handshake_ticket_) {

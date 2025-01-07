@@ -33,6 +33,7 @@
 #include "api/array_view.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio/echo_control.h"
+#include "api/environment/environment.h"
 #include "api/ref_count.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
@@ -85,7 +86,6 @@ class EchoDetector;
 // float interfaces use deinterleaved data.
 //
 // Usage example, omitting error checking:
-// rtc::scoped_refptr<AudioProcessing> apm = AudioProcessingBuilder().Create();
 //
 // AudioProcessing::Config config;
 // config.echo_canceller.enabled = true;
@@ -101,7 +101,8 @@ class EchoDetector;
 //
 // config.high_pass_filter.enabled = true;
 //
-// apm->ApplyConfig(config)
+// scoped_refptr<AudioProcessing> apm =
+//     BuiltinAudioProcessingBuilder(config).Build(CreateEnvironment());
 //
 // // Start a voice call...
 //
@@ -733,6 +734,23 @@ class RTC_EXPORT AudioProcessing : public RefCountInterface {
   static int GetFrameSize(int sample_rate_hz) { return sample_rate_hz / 100; }
 };
 
+class AudioProcessingBuilderInterface {
+ public:
+  virtual ~AudioProcessingBuilderInterface() = default;
+
+  virtual absl::Nullable<scoped_refptr<AudioProcessing>> Build(
+      const Environment& env) = 0;
+};
+
+// Returns builder that returns the `audio_processing` ignoring the extra
+// construction parameter `env`.
+// nullptr `audio_processing` is not supported as in some scenarios that imply
+// no audio processing, while in others - default builtin audio processing.
+// Callers should be explicit which of these two behaviors they want.
+absl::Nonnull<std::unique_ptr<AudioProcessingBuilderInterface>>
+CustomAudioProcessing(
+    absl::Nonnull<scoped_refptr<AudioProcessing>> audio_processing);
+
 // Experimental interface for a custom analysis submodule.
 class CustomAudioAnalyzer {
  public:
@@ -762,7 +780,8 @@ class CustomProcessing {
   virtual ~CustomProcessing() {}
 };
 
-class RTC_EXPORT AudioProcessingBuilder {
+// Use BuiltinAudioProcessingBuilder instead, see bugs.webrtc.org/369904700
+class RTC_EXPORT [[deprecated]] AudioProcessingBuilder {
  public:
   AudioProcessingBuilder();
   AudioProcessingBuilder(const AudioProcessingBuilder&) = delete;

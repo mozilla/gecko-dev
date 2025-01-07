@@ -10,6 +10,7 @@
 
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio_codecs/audio_decoder_factory_template.h"
 #include "api/audio_codecs/audio_encoder_factory_template.h"
 #include "api/audio_codecs/opus/audio_decoder_opus.h"
@@ -48,7 +49,8 @@ void CreateSomeMediaDeps(PeerConnectionFactoryDependencies& media_deps) {
       std::make_unique<VideoDecoderFactoryTemplate<
           LibvpxVp8DecoderTemplateAdapter, LibvpxVp9DecoderTemplateAdapter,
           OpenH264DecoderTemplateAdapter, Dav1dDecoderTemplateAdapter>>();
-  media_deps.audio_processing = webrtc::AudioProcessingBuilder().Create();
+  media_deps.audio_processing_builder =
+      std::make_unique<BuiltinAudioProcessingBuilder>();
 }
 
 webrtc::PeerConnectionFactoryDependencies CreateSomePcfDeps() {

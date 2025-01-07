@@ -45,13 +45,13 @@ class TransparentModeImpl : public TransparentMode {
     prob_transparent_state_ = kInitialTransparentStateProbability;
   }
 
-  void Update(int filter_delay_blocks,
-              bool any_filter_consistent,
-              bool any_filter_converged,
+  void Update(int /* filter_delay_blocks */,
+              bool /* any_filter_consistent */,
+              bool /* any_filter_converged */,
               bool any_coarse_filter_converged,
-              bool all_filters_diverged,
+              bool /* all_filters_diverged */,
               bool active_render,
-              bool saturated_capture) override {
+              bool /* saturated_capture */) override {
     // The classifier is implemented as a Hidden Markov Model (HMM) with two
     // hidden states: "normal" and "transparent". The estimated probabilities of
     // the two states are updated by observing filter convergence during active
@@ -145,7 +145,7 @@ class LegacyTransparentModeImpl : public TransparentMode {
   void Update(int filter_delay_blocks,
               bool any_filter_consistent,
               bool any_filter_converged,
-              bool any_coarse_filter_converged,
+              bool /* any_coarse_filter_converged */,
               bool all_filters_diverged,
               bool active_render,
               bool saturated_capture) override {

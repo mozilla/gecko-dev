@@ -523,11 +523,11 @@ CreateRemoteOutboundMediaStreamStats(
     const RTCInboundRtpStreamStats& inbound_audio_stats,
     const std::string& transport_id,
     const bool stats_timestamp_with_environment_clock) {
-  std::optional<int64_t> last_sender_report_timestamp_ms =
+  std::optional<Timestamp> last_sender_report_timestamp =
       stats_timestamp_with_environment_clock
-          ? media_receiver_info.last_sender_report_timestamp_ms
-          : media_receiver_info.last_sender_report_utc_timestamp_ms;
-  if (!last_sender_report_timestamp_ms.has_value()) {
+          ? media_receiver_info.last_sender_report_timestamp
+          : media_receiver_info.last_sender_report_utc_timestamp;
+  if (!last_sender_report_timestamp.has_value()) {
     // Cannot create `RTCRemoteOutboundRtpStreamStats` when the RTCP SR arrival
     // timestamp is not available - i.e., until the first sender report is
     // received.
@@ -539,7 +539,7 @@ CreateRemoteOutboundMediaStreamStats(
   auto stats = std::make_unique<RTCRemoteOutboundRtpStreamStats>(
       /*id=*/RTCRemoteOutboundRTPStreamStatsIDFromSSRC(
           media_type, media_receiver_info.ssrc()),
-      Timestamp::Millis(*last_sender_report_timestamp_ms));
+      *last_sender_report_timestamp);
 
   // Populate.
   // - RTCRtpStreamStats.
@@ -556,10 +556,10 @@ CreateRemoteOutboundMediaStreamStats(
   stats->local_id = inbound_audio_stats.id();
   // last_sender_report_remote_utc_timestamp_ms is set together with
   // last_sender_report_utc_timestamp_ms.
-  RTC_DCHECK(media_receiver_info.last_sender_report_remote_utc_timestamp_ms
-                 .has_value());
-  stats->remote_timestamp = static_cast<double>(
-      *media_receiver_info.last_sender_report_remote_utc_timestamp_ms);
+  RTC_DCHECK(
+      media_receiver_info.last_sender_report_remote_utc_timestamp.has_value());
+  stats->remote_timestamp =
+      media_receiver_info.last_sender_report_remote_utc_timestamp->ms<double>();
   stats->reports_sent = media_receiver_info.sender_reports_reports_count;
   if (media_receiver_info.round_trip_time.has_value()) {
     stats->round_trip_time =
@@ -623,6 +623,16 @@ CreateInboundRTPStreamStatsFromVideoReceiverInfo(
   }
   if (video_receiver_info.qp_sum.has_value()) {
     inbound_video->qp_sum = *video_receiver_info.qp_sum;
+  }
+  if (video_receiver_info.corruption_score_sum.has_value()) {
+    RTC_CHECK(video_receiver_info.corruption_score_squared_sum.has_value());
+    RTC_CHECK_GT(video_receiver_info.corruption_score_count, 0);
+    inbound_video->total_corruption_probability =
+        *video_receiver_info.corruption_score_sum;
+    inbound_video->total_squared_corruption_probability =
+        *video_receiver_info.corruption_score_squared_sum;
+    inbound_video->corruption_measurements =
+        video_receiver_info.corruption_score_count;
   }
   if (video_receiver_info.timing_frame_info.has_value()) {
     inbound_video->goog_timing_frame_info =

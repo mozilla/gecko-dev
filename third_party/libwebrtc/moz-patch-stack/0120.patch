@@ -57,7 +57,7 @@ diff --git a/modules/desktop_capture/mac/desktop_frame_iosurface.mm b/modules/de
 index b59b319db9..7a5b595f19 100644
 --- a/modules/desktop_capture/mac/desktop_frame_iosurface.mm
 +++ b/modules/desktop_capture/mac/desktop_frame_iosurface.mm
-@@ -17,7 +17,7 @@ namespace webrtc {
+@@ -17,7 +17,7 @@
  
  // static
  std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
@@ -66,7 +66,7 @@ index b59b319db9..7a5b595f19 100644
    if (!io_surface) {
      return nullptr;
    }
-@@ -40,14 +40,39 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
+@@ -40,14 +40,39 @@
      return nullptr;
    }
  
@@ -112,7 +112,7 @@ index b59b319db9..7a5b595f19 100644
        io_surface_(io_surface) {
    RTC_DCHECK(io_surface_);
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 96d54c5c03..f331bafdfd 100644
+index e251120818..3d1751378c 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -169,6 +169,12 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
@@ -128,7 +128,7 @@ index 96d54c5c03..f331bafdfd 100644
  };
  
  ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
-@@ -240,6 +246,7 @@ void ScreenCapturerSck::CaptureFrame() {
+@@ -240,6 +246,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    }
  
    std::unique_ptr<DesktopFrame> frame;
@@ -136,7 +136,7 @@ index 96d54c5c03..f331bafdfd 100644
    {
      MutexLock lock(&latest_frame_lock_);
      if (latest_frame_) {
-@@ -250,6 +257,8 @@ void ScreenCapturerSck::CaptureFrame() {
+@@ -250,6 +257,8 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
          frame_is_dirty_ = false;
        }
      }
@@ -145,7 +145,7 @@ index 96d54c5c03..f331bafdfd 100644
    }
  
    if (frame) {
-@@ -260,6 +269,10 @@ void ScreenCapturerSck::CaptureFrame() {
+@@ -260,6 +269,10 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
      RTC_LOG(LS_VERBOSE) << "ScreenCapturerSck " << this << " CaptureFrame() -> ERROR_TEMPORARY";
      callback_->OnCaptureResult(Result::ERROR_TEMPORARY, nullptr);
    }
@@ -156,7 +156,7 @@ index 96d54c5c03..f331bafdfd 100644
  }
  
  void ScreenCapturerSck::EnsureVisible() {
-@@ -283,6 +296,9 @@ void ScreenCapturerSck::EnsureVisible() {
+@@ -283,6 +296,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
      stream = stream_;
      stream_ = nil;
      filter_ = nil;
@@ -166,7 +166,7 @@ index 96d54c5c03..f331bafdfd 100644
    }
    [stream removeStreamOutput:helper_ type:SCStreamOutputTypeScreen error:nil];
    [stream stopCaptureWithCompletionHandler:nil];
-@@ -439,12 +455,21 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
+@@ -439,12 +455,21 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    {
      MutexLock lock(&latest_frame_lock_);
      latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
@@ -189,7 +189,7 @@ index 96d54c5c03..f331bafdfd 100644
      [stream_ updateContentFilter:filter completionHandler:nil];
      [stream_ updateConfiguration:config completionHandler:nil];
    } else {
-@@ -481,20 +506,63 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
+@@ -481,20 +506,63 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
  }
  
  void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* attachment) {
@@ -258,7 +258,7 @@ index 96d54c5c03..f331bafdfd 100644
    std::unique_ptr<SharedDesktopFrame> frame =
        SharedDesktopFrame::Wrap(std::move(desktop_frame_io_surface));
  
-@@ -529,8 +597,15 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+@@ -529,8 +597,15 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
      }
    }
  

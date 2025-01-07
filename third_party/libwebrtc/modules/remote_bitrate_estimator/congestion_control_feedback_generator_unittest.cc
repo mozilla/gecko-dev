@@ -11,6 +11,7 @@
 #include "modules/remote_bitrate_estimator/congestion_control_feedback_generator.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -20,9 +21,11 @@
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "modules/rtp_rtcp/source/rtcp_packet.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/common_header.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "rtc_base/logging.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/network/ecn_marking.h"
 #include "system_wrappers/include/clock.h"
 #include "test/explicit_key_value_config.h"
@@ -36,35 +39,6 @@ using rtcp::CongestionControlFeedback;
 using ::testing::MockFunction;
 using ::testing::SizeIs;
 using ::testing::WithoutArgs;
-
-bool PacketInfoIsExpected(const CongestionControlFeedback::PacketInfo& a,
-                          const RtpPacketReceived b,
-                          Timestamp feedback_send_time) {
-  bool equal =
-      a.ssrc == b.Ssrc() && a.sequence_number == b.SequenceNumber() &&
-      (feedback_send_time - a.arrival_time_offset) == b.arrival_time() &&
-      a.ecn == b.ecn();
-  RTC_LOG_IF(LS_INFO, !equal)
-      << " Not equal got ssrc: " << a.ssrc << ", seq: " << a.sequence_number
-      << " arrival_time_offset: " << a.arrival_time_offset.ms()
-      << " ecn: " << a.ecn << " expected ssrc:" << b.Ssrc()
-      << ", seq: " << b.SequenceNumber() << " ecn: " << b.ecn();
-  return equal;
-}
-
-MATCHER_P2(PacketInfosAreExpected, expected_vector, feedback_send_time, "") {
-  if (expected_vector.size() != arg.size()) {
-    RTC_LOG(LS_INFO) << " Wrong size, expected: " << expected_vector.size()
-                     << " got: " << arg.size();
-    return false;
-  }
-  for (size_t i = 0; i < expected_vector.size(); ++i) {
-    if (!PacketInfoIsExpected(arg[i], expected_vector[i], feedback_send_time)) {
-      return false;
-    }
-  }
-  return true;
-}
 
 RtpPacketReceived CreatePacket(Timestamp arrival_time,
                                bool marker,
@@ -244,7 +218,43 @@ TEST(CongestionControlFeedbackGeneratorTest,
 }
 
 TEST(CongestionControlFeedbackGeneratorTest,
-     SortsReceivedPacketsBySsrcAndSeqno) {
+     SendsFeedbackAfterMax250MsIfBweZero) {
+  test::ExplicitKeyValueConfig field_trials(
+      "WebRTC-RFC8888CongestionControlFeedback/max_send_delta:250ms/");
+  MockFunction<void(std::vector<std::unique_ptr<rtcp::RtcpPacket>>)>
+      rtcp_sender;
+  SimulatedClock clock(123456);
+  constexpr TimeDelta kSmallTimeInterval = TimeDelta::Millis(2);
+  CongestionControlFeedbackGenerator generator(
+      CreateEnvironment(&clock, &field_trials), rtcp_sender.AsStdFunction());
+  // Regardless of BWE, feedback is sent at least every 250ms.
+  generator.OnSendBandwidthEstimateChanged(DataRate::Zero());
+  TimeDelta time_to_next_process = generator.Process(clock.CurrentTime());
+  clock.AdvanceTime(kSmallTimeInterval);
+  time_to_next_process -= kSmallTimeInterval;
+
+  Timestamp expected_feedback_time = clock.CurrentTime();
+  EXPECT_CALL(rtcp_sender, Call).Times(2).WillRepeatedly(WithoutArgs([&] {
+    EXPECT_EQ(clock.CurrentTime(), expected_feedback_time);
+    // Next feedback is not expected to be sent until 250ms after the
+    // previouse due to low send bandwidth.
+    expected_feedback_time += TimeDelta::Millis(250);
+  }));
+  generator.OnReceivedPacket(
+      CreatePacket(clock.CurrentTime(), /*marker=*/true));
+  clock.AdvanceTime(kSmallTimeInterval);
+  time_to_next_process -= kSmallTimeInterval;
+  generator.OnReceivedPacket(
+      CreatePacket(clock.CurrentTime(), /*marker=*/true));
+
+  clock.AdvanceTime(time_to_next_process);
+  time_to_next_process = generator.Process(clock.CurrentTime());
+  clock.AdvanceTime(time_to_next_process);
+  time_to_next_process = generator.Process(clock.CurrentTime());
+}
+
+TEST(CongestionControlFeedbackGeneratorTest,
+     CanGenerateRtcpPacketFromTwoSsrcWithMissingPacketsAndWrap) {
   MockFunction<void(std::vector<std::unique_ptr<rtcp::RtcpPacket>>)>
       rtcp_sender;
   SimulatedClock clock(123456);
@@ -254,7 +264,9 @@ TEST(CongestionControlFeedbackGeneratorTest,
 
   TimeDelta time_to_next_process = generator.Process(clock.CurrentTime());
 
-  const std::vector<RtpPacketReceived> kExpectedRtcpPackInfoOrder = {
+  // Receive packets out of order, with missing packets (between  0xFFA and 1 =
+  // 6  and FFFC and 1 = 4) => total 14 packets is expected in the feedback.
+  const std::vector<RtpPacketReceived> kReceivedPackets = {
       // Reordered packet.
       CreatePacket(clock.CurrentTime() + kSmallTimeInterval, /*marker*/ false,
                    /*ssrc=*/123,
@@ -264,7 +276,7 @@ TEST(CongestionControlFeedbackGeneratorTest,
       // Reordered packet.
       CreatePacket(clock.CurrentTime() + kSmallTimeInterval,
                    /*marker*/ false, /*ssrc=*/
-                   234,
+                   /*ssrc=*/234,
                    /*seq=*/0xFFFC),
       CreatePacket(clock.CurrentTime(), /*marker*/ false, /*ssrc=*/234,
                    /*seq=*/1),
@@ -277,14 +289,17 @@ TEST(CongestionControlFeedbackGeneratorTest,
             rtcp::CongestionControlFeedback* rtcp =
                 static_cast<rtcp::CongestionControlFeedback*>(
                     rtcp_packets[0].get());
-            Timestamp feedback_send_time = clock.CurrentTime();
-            EXPECT_THAT(rtcp->packets(),
-                        PacketInfosAreExpected(kExpectedRtcpPackInfoOrder,
-                                               feedback_send_time));
+
+            ASSERT_THAT(rtcp->packets(), SizeIs(14));
+            rtc::Buffer buffer = rtcp->Build();
+            CongestionControlFeedback parsed_fb;
+            rtcp::CommonHeader header;
+            EXPECT_TRUE(header.Parse(buffer.data(), buffer.size()));
+            EXPECT_TRUE(parsed_fb.Parse(header));
+            EXPECT_THAT(parsed_fb.packets(), SizeIs(14));
           });
 
-  std::vector<RtpPacketReceived> receive_time_sorted =
-      kExpectedRtcpPackInfoOrder;
+  std::vector<RtpPacketReceived> receive_time_sorted = kReceivedPackets;
   std::sort(receive_time_sorted.begin(), receive_time_sorted.end(),
             [](const RtpPacketReceived& a, const RtpPacketReceived& b) {
               return a.arrival_time() < b.arrival_time();

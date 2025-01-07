@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b21ca84c8b2620a98
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/.gn b/.gn
-index b374016a64..8325a46ed3 100644
+index 6c011fd453..01bb0e7b02 100644
 --- a/.gn
 +++ b/.gn
 @@ -13,7 +13,7 @@ buildconfig = "//build/config/BUILDCONFIG.gn"

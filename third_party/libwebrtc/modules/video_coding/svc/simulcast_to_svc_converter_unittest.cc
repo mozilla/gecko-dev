@@ -99,7 +99,7 @@ TEST(SimulcastToSvc, ConvertsEncodedImage) {
                               .minBitrate = 100,
                               .qpMax = 150,
                               .active = true};
-  codec.simulcastStream[2] = {.width = 12800,
+  codec.simulcastStream[2] = {.width = 1280,
                               .height = 720,
                               .maxFramerate = 30,
                               .numberOfTemporalLayers = 3,
@@ -168,7 +168,7 @@ TEST(SimulcastToSvc, PredictsInternalStateCorrectlyOnFrameDrops) {
                               .minBitrate = 100,
                               .qpMax = 150,
                               .active = true};
-  codec.simulcastStream[2] = {.width = 12800,
+  codec.simulcastStream[2] = {.width = 1280,
                               .height = 720,
                               .maxFramerate = 30,
                               .numberOfTemporalLayers = 3,
@@ -233,6 +233,152 @@ TEST(SimulcastToSvc, PredictsInternalStateCorrectlyOnFrameDrops) {
       EXPECT_EQ(codec_specific.scalability_mode, ScalabilityMode::kL1T3);
     }
   }
+}
+
+TEST(SimulcastToSvc, SupportsOnlyContinuousActiveStreams) {
+  VideoCodec codec;
+  codec.codecType = kVideoCodecVP9;
+  codec.SetScalabilityMode(ScalabilityMode::kL1T3);
+  codec.width = 1280;
+  codec.height = 720;
+  codec.minBitrate = 10;
+  codec.maxBitrate = 2500;
+  codec.numberOfSimulcastStreams = 3;
+  codec.VP9()->numberOfSpatialLayers = 1;
+  codec.VP9()->interLayerPred = InterLayerPredMode::kOff;
+
+  codec.simulcastStream[0] = {.width = 320,
+                              .height = 180,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 100,
+                              .targetBitrate = 70,
+                              .minBitrate = 50,
+                              .qpMax = 150,
+                              .active = true};
+  codec.simulcastStream[1] = {.width = 640,
+                              .height = 360,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 250,
+                              .targetBitrate = 150,
+                              .minBitrate = 100,
+                              .qpMax = 150,
+                              .active = true};
+  codec.simulcastStream[2] = {.width = 1280,
+                              .height = 720,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 1500,
+                              .targetBitrate = 1200,
+                              .minBitrate = 800,
+                              .qpMax = 150,
+                              .active = true};
+  EXPECT_TRUE(SimulcastToSvcConverter::IsConfigSupported(codec));
+
+  codec.simulcastStream[0].active = false;
+  codec.simulcastStream[1].active = true;
+  codec.simulcastStream[2].active = true;
+  EXPECT_TRUE(SimulcastToSvcConverter::IsConfigSupported(codec));
+
+  codec.simulcastStream[0].active = true;
+  codec.simulcastStream[1].active = true;
+  codec.simulcastStream[2].active = false;
+  EXPECT_TRUE(SimulcastToSvcConverter::IsConfigSupported(codec));
+
+  codec.simulcastStream[0].active = true;
+  codec.simulcastStream[1].active = false;
+  codec.simulcastStream[2].active = true;
+  EXPECT_FALSE(SimulcastToSvcConverter::IsConfigSupported(codec));
+}
+
+TEST(SimulcastToSvc, SupportsOnlySameTemporalStructure) {
+  VideoCodec codec;
+  codec.codecType = kVideoCodecVP9;
+  codec.width = 1280;
+  codec.height = 720;
+  codec.minBitrate = 10;
+  codec.maxBitrate = 2500;
+  codec.numberOfSimulcastStreams = 3;
+  codec.VP9()->numberOfSpatialLayers = 1;
+  codec.VP9()->interLayerPred = InterLayerPredMode::kOff;
+
+  codec.simulcastStream[0] = {.width = 320,
+                              .height = 180,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 100,
+                              .targetBitrate = 70,
+                              .minBitrate = 50,
+                              .qpMax = 150,
+                              .active = true};
+  codec.simulcastStream[1] = {.width = 640,
+                              .height = 360,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 250,
+                              .targetBitrate = 150,
+                              .minBitrate = 100,
+                              .qpMax = 150,
+                              .active = true};
+  codec.simulcastStream[2] = {.width = 1280,
+                              .height = 720,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 1500,
+                              .targetBitrate = 1200,
+                              .minBitrate = 800,
+                              .qpMax = 150,
+                              .active = true};
+  EXPECT_TRUE(SimulcastToSvcConverter::IsConfigSupported(codec));
+
+  codec.simulcastStream[0].numberOfTemporalLayers = 1;
+  EXPECT_FALSE(SimulcastToSvcConverter::IsConfigSupported(codec));
+}
+
+TEST(SimulcastToSvc, SupportsOnly421Scaling) {
+  VideoCodec codec;
+  codec.codecType = kVideoCodecVP9;
+  codec.width = 1280;
+  codec.height = 720;
+  codec.minBitrate = 10;
+  codec.maxBitrate = 2500;
+  codec.numberOfSimulcastStreams = 3;
+  codec.VP9()->numberOfSpatialLayers = 1;
+  codec.VP9()->interLayerPred = InterLayerPredMode::kOff;
+
+  codec.simulcastStream[0] = {.width = 320,
+                              .height = 180,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 100,
+                              .targetBitrate = 70,
+                              .minBitrate = 50,
+                              .qpMax = 150,
+                              .active = true};
+  codec.simulcastStream[1] = {.width = 640,
+                              .height = 360,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 250,
+                              .targetBitrate = 150,
+                              .minBitrate = 100,
+                              .qpMax = 150,
+                              .active = true};
+  codec.simulcastStream[2] = {.width = 1280,
+                              .height = 720,
+                              .maxFramerate = 30,
+                              .numberOfTemporalLayers = 3,
+                              .maxBitrate = 1500,
+                              .targetBitrate = 1200,
+                              .minBitrate = 800,
+                              .qpMax = 150,
+                              .active = true};
+  EXPECT_TRUE(SimulcastToSvcConverter::IsConfigSupported(codec));
+
+  codec.simulcastStream[0].width = 160;
+  codec.simulcastStream[0].height = 90;
+  EXPECT_FALSE(SimulcastToSvcConverter::IsConfigSupported(codec));
 }
 
 }  // namespace webrtc

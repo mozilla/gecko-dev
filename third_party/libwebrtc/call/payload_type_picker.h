@@ -17,8 +17,9 @@
 #include <vector>
 
 #include "api/rtc_error.h"
-#include "media/base/codec.h"
 #include "call/payload_type.h"
+#include "media/base/codec.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 
@@ -57,11 +58,23 @@ class PayloadTypeRecorder {
  public:
   explicit PayloadTypeRecorder(PayloadTypePicker& suggester)
       : suggester_(suggester) {}
+  ~PayloadTypeRecorder() {
+    // Ensure consistent use of paired Disallow/ReallowRedefintion calls.
+    RTC_DCHECK(disallow_redefinition_level_ == 0);
+  }
 
   RTCError AddMapping(PayloadType payload_type, cricket::Codec codec);
   std::vector<std::pair<PayloadType, cricket::Codec>> GetMappings() const;
   RTCErrorOr<PayloadType> LookupPayloadType(cricket::Codec codec) const;
   RTCErrorOr<cricket::Codec> LookupCodec(PayloadType payload_type) const;
+  // Redefinition guard.
+  // In some scenarios, redefinition must be allowed between one offer/answer
+  // set and the next offer/answer set, but within the processing of one
+  // SDP, it should never be allowed.
+  // Implemented as a stack push/pop for convenience; if Disallow has
+  // been called more times than Reallow, redefinition is prohibited.
+  void DisallowRedefinition();
+  void ReallowRedefinition();
   // Transaction support.
   // Commit() commits previous changes.
   void Commit();
@@ -72,6 +85,8 @@ class PayloadTypeRecorder {
   PayloadTypePicker& suggester_;
   std::map<PayloadType, cricket::Codec> payload_type_to_codec_;
   std::map<PayloadType, cricket::Codec> checkpoint_payload_type_to_codec_;
+  int disallow_redefinition_level_ = 0;
+  std::set<PayloadType> accepted_definitions_;
 };
 
 }  // namespace webrtc

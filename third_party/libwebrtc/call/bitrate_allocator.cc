@@ -305,7 +305,7 @@ std::map<BitrateAllocatorObserver*, int> NormalRateAllocation(
 std::map<BitrateAllocatorObserver*, int> MaxRateAllocation(
     const std::vector<AllocatableTrack>& allocatable_tracks,
     uint32_t bitrate,
-    uint32_t sum_max_bitrates) {
+    uint32_t /* sum_max_bitrates */) {
   std::map<BitrateAllocatorObserver*, int> allocation;
 
   for (const auto& observer_config : allocatable_tracks) {

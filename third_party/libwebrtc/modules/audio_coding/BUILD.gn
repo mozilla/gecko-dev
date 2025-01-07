@@ -191,186 +191,6 @@ rtc_library("g722_c") {
   deps = [ "../third_party/g722:g722_3p" ]
 }
 
-rtc_library("ilbc") {
-  visibility += webrtc_default_visibility
-  poisonous = [ "audio_codecs" ]
-  sources = [
-    "codecs/ilbc/audio_decoder_ilbc.cc",
-    "codecs/ilbc/audio_decoder_ilbc.h",
-    "codecs/ilbc/audio_encoder_ilbc.cc",
-    "codecs/ilbc/audio_encoder_ilbc.h",
-  ]
-
-  deps = [
-    ":legacy_encoded_audio_frame",
-    "../../api:array_view",
-    "../../api/audio_codecs:audio_codecs_api",
-    "../../api/audio_codecs/ilbc:audio_encoder_ilbc_config",
-    "../../api/units:time_delta",
-    "../../common_audio",
-    "../../rtc_base:buffer",
-    "../../rtc_base:checks",
-    "../../rtc_base:logging",
-    "../../rtc_base:safe_conversions",
-  ]
-  public_deps += [ ":ilbc_c" ]  # no-presubmit-check TODO(webrtc:8603)
-}
-
-rtc_library("ilbc_c") {
-  poisonous = [ "audio_codecs" ]
-  sources = [
-    "codecs/ilbc/abs_quant.c",
-    "codecs/ilbc/abs_quant.h",
-    "codecs/ilbc/abs_quant_loop.c",
-    "codecs/ilbc/abs_quant_loop.h",
-    "codecs/ilbc/augmented_cb_corr.c",
-    "codecs/ilbc/augmented_cb_corr.h",
-    "codecs/ilbc/bw_expand.c",
-    "codecs/ilbc/bw_expand.h",
-    "codecs/ilbc/cb_construct.c",
-    "codecs/ilbc/cb_construct.h",
-    "codecs/ilbc/cb_mem_energy.c",
-    "codecs/ilbc/cb_mem_energy.h",
-    "codecs/ilbc/cb_mem_energy_augmentation.c",
-    "codecs/ilbc/cb_mem_energy_augmentation.h",
-    "codecs/ilbc/cb_mem_energy_calc.c",
-    "codecs/ilbc/cb_mem_energy_calc.h",
-    "codecs/ilbc/cb_search.c",
-    "codecs/ilbc/cb_search.h",
-    "codecs/ilbc/cb_search_core.c",
-    "codecs/ilbc/cb_search_core.h",
-    "codecs/ilbc/cb_update_best_index.c",
-    "codecs/ilbc/cb_update_best_index.h",
-    "codecs/ilbc/chebyshev.c",
-    "codecs/ilbc/chebyshev.h",
-    "codecs/ilbc/comp_corr.c",
-    "codecs/ilbc/comp_corr.h",
-    "codecs/ilbc/constants.c",
-    "codecs/ilbc/constants.h",
-    "codecs/ilbc/create_augmented_vec.c",
-    "codecs/ilbc/create_augmented_vec.h",
-    "codecs/ilbc/decode.c",
-    "codecs/ilbc/decode.h",
-    "codecs/ilbc/decode_residual.c",
-    "codecs/ilbc/decode_residual.h",
-    "codecs/ilbc/decoder_interpolate_lsf.c",
-    "codecs/ilbc/decoder_interpolate_lsf.h",
-    "codecs/ilbc/defines.h",
-    "codecs/ilbc/do_plc.c",
-    "codecs/ilbc/do_plc.h",
-    "codecs/ilbc/encode.c",
-    "codecs/ilbc/encode.h",
-    "codecs/ilbc/energy_inverse.c",
-    "codecs/ilbc/energy_inverse.h",
-    "codecs/ilbc/enh_upsample.c",
-    "codecs/ilbc/enh_upsample.h",
-    "codecs/ilbc/enhancer.c",
-    "codecs/ilbc/enhancer.h",
-    "codecs/ilbc/enhancer_interface.c",
-    "codecs/ilbc/enhancer_interface.h",
-    "codecs/ilbc/filtered_cb_vecs.c",
-    "codecs/ilbc/filtered_cb_vecs.h",
-    "codecs/ilbc/frame_classify.c",
-    "codecs/ilbc/frame_classify.h",
-    "codecs/ilbc/gain_dequant.c",
-    "codecs/ilbc/gain_dequant.h",
-    "codecs/ilbc/gain_quant.c",
-    "codecs/ilbc/gain_quant.h",
-    "codecs/ilbc/get_cd_vec.c",
-    "codecs/ilbc/get_cd_vec.h",
-    "codecs/ilbc/get_lsp_poly.c",
-    "codecs/ilbc/get_lsp_poly.h",
-    "codecs/ilbc/get_sync_seq.c",
-    "codecs/ilbc/get_sync_seq.h",
-    "codecs/ilbc/hp_input.c",
-    "codecs/ilbc/hp_input.h",
-    "codecs/ilbc/hp_output.c",
-    "codecs/ilbc/hp_output.h",
-    "codecs/ilbc/ilbc.c",
-    "codecs/ilbc/ilbc.h",
-    "codecs/ilbc/index_conv_dec.c",
-    "codecs/ilbc/index_conv_dec.h",
-    "codecs/ilbc/index_conv_enc.c",
-    "codecs/ilbc/index_conv_enc.h",
-    "codecs/ilbc/init_decode.c",
-    "codecs/ilbc/init_decode.h",
-    "codecs/ilbc/init_encode.c",
-    "codecs/ilbc/init_encode.h",
-    "codecs/ilbc/interpolate.c",
-    "codecs/ilbc/interpolate.h",
-    "codecs/ilbc/interpolate_samples.c",
-    "codecs/ilbc/interpolate_samples.h",
-    "codecs/ilbc/lpc_encode.c",
-    "codecs/ilbc/lpc_encode.h",
-    "codecs/ilbc/lsf_check.c",
-    "codecs/ilbc/lsf_check.h",
-    "codecs/ilbc/lsf_interpolate_to_poly_dec.c",
-    "codecs/ilbc/lsf_interpolate_to_poly_dec.h",
-    "codecs/ilbc/lsf_interpolate_to_poly_enc.c",
-    "codecs/ilbc/lsf_interpolate_to_poly_enc.h",
-    "codecs/ilbc/lsf_to_lsp.c",
-    "codecs/ilbc/lsf_to_lsp.h",
-    "codecs/ilbc/lsf_to_poly.c",
-    "codecs/ilbc/lsf_to_poly.h",
-    "codecs/ilbc/lsp_to_lsf.c",
-    "codecs/ilbc/lsp_to_lsf.h",
-    "codecs/ilbc/my_corr.c",
-    "codecs/ilbc/my_corr.h",
-    "codecs/ilbc/nearest_neighbor.c",
-    "codecs/ilbc/nearest_neighbor.h",
-    "codecs/ilbc/pack_bits.c",
-    "codecs/ilbc/pack_bits.h",
-    "codecs/ilbc/poly_to_lsf.c",
-    "codecs/ilbc/poly_to_lsf.h",
-    "codecs/ilbc/poly_to_lsp.c",
-    "codecs/ilbc/poly_to_lsp.h",
-    "codecs/ilbc/refiner.c",
-    "codecs/ilbc/refiner.h",
-    "codecs/ilbc/simple_interpolate_lsf.c",
-    "codecs/ilbc/simple_interpolate_lsf.h",
-    "codecs/ilbc/simple_lpc_analysis.c",
-    "codecs/ilbc/simple_lpc_analysis.h",
-    "codecs/ilbc/simple_lsf_dequant.c",
-    "codecs/ilbc/simple_lsf_dequant.h",
-    "codecs/ilbc/simple_lsf_quant.c",
-    "codecs/ilbc/simple_lsf_quant.h",
-    "codecs/ilbc/smooth.c",
-    "codecs/ilbc/smooth.h",
-    "codecs/ilbc/smooth_out_data.c",
-    "codecs/ilbc/smooth_out_data.h",
-    "codecs/ilbc/sort_sq.c",
-    "codecs/ilbc/sort_sq.h",
-    "codecs/ilbc/split_vq.c",
-    "codecs/ilbc/split_vq.h",
-    "codecs/ilbc/state_construct.c",
-    "codecs/ilbc/state_construct.h",
-    "codecs/ilbc/state_search.c",
-    "codecs/ilbc/state_search.h",
-    "codecs/ilbc/swap_bytes.c",
-    "codecs/ilbc/swap_bytes.h",
-    "codecs/ilbc/unpack_bits.c",
-    "codecs/ilbc/unpack_bits.h",
-    "codecs/ilbc/vq3.c",
-    "codecs/ilbc/vq3.h",
-    "codecs/ilbc/vq4.c",
-    "codecs/ilbc/vq4.h",
-    "codecs/ilbc/window32_w32.c",
-    "codecs/ilbc/window32_w32.h",
-    "codecs/ilbc/xcorr_coef.c",
-    "codecs/ilbc/xcorr_coef.h",
-  ]
-
-  deps = [
-    "../../api/audio_codecs:audio_codecs_api",
-    "../../common_audio",
-    "../../common_audio:common_audio_c",
-    "../../rtc_base:checks",
-    "../../rtc_base:sanitizer",
-    "../../rtc_base/system:arch",
-    "//third_party/abseil-cpp/absl/base:core_headers",
-  ]
-}
-
 rtc_library("isac_vad") {
   visibility += [ "../audio_processing/vad:*" ]
   sources = [
@@ -546,9 +366,8 @@ if (rtc_enable_protobuf) {
   proto_library("ana_debug_dump_proto") {
     visibility += webrtc_default_visibility
     sources = [ "audio_network_adaptor/debug_dump.proto" ]
-    link_deps = [ ":ana_config_proto" ]
+    deps = [ ":ana_config_proto" ]
     proto_out_dir = "modules/audio_coding/audio_network_adaptor"
-    proto_data_sources = [ "audio_network_adaptor/config.proto" ]
   }
   proto_library("ana_config_proto") {
     visibility += [ "*" ]
@@ -949,9 +768,6 @@ if (rtc_include_tests) {
     "../../common_audio",
     "../../system_wrappers",
   ]
-  if (rtc_include_ilbc) {
-    audio_coding_deps += [ ":ilbc" ]
-  }
   if (rtc_include_opus) {
     audio_coding_deps += [ ":webrtc_opus" ]
   }
@@ -985,8 +801,6 @@ if (rtc_include_tests) {
         ":audio_decoder_unittests",
         ":g711_test",
         ":g722_test",
-        ":ilbc_test",
-        ":neteq_ilbc_quality_test",
         ":neteq_opus_quality_test",
         ":neteq_pcm16b_quality_test",
         ":neteq_pcmu_quality_test",
@@ -1046,8 +860,6 @@ if (rtc_include_tests) {
       "../../api/audio_codecs/g711:audio_encoder_g711",
       "../../api/audio_codecs/g722:audio_decoder_g722",
       "../../api/audio_codecs/g722:audio_encoder_g722",
-      "../../api/audio_codecs/ilbc:audio_decoder_ilbc",
-      "../../api/audio_codecs/ilbc:audio_encoder_ilbc",
       "../../api/audio_codecs/opus:audio_decoder_opus",
       "../../api/audio_codecs/opus:audio_encoder_opus",
       "../../api/environment",
@@ -1171,7 +983,6 @@ if (rtc_include_tests) {
       defines = neteq_defines
 
       deps = [
-               ":ilbc",
                ":neteq",
                ":neteq_input_audio_tools",
                ":neteq_tools",
@@ -1377,7 +1188,6 @@ if (rtc_include_tests) {
         "../../api/audio_codecs/L16:audio_encoder_L16",
         "../../api/audio_codecs/g711:audio_encoder_g711",
         "../../api/audio_codecs/g722:audio_encoder_g722",
-        "../../api/audio_codecs/ilbc:audio_encoder_ilbc",
         "../../api/audio_codecs/opus:audio_encoder_opus",
         "../../api/environment:environment_factory",
         "../../rtc_base:checks",
@@ -1469,25 +1279,6 @@ if (rtc_include_tests) {
       ]
     }
 
-    rtc_executable("neteq_ilbc_quality_test") {
-      testonly = true
-
-      sources = [ "neteq/test/neteq_ilbc_quality_test.cc" ]
-
-      deps = [
-        ":ilbc",
-        ":neteq",
-        ":neteq_quality_test_support",
-        ":neteq_tools",
-        "../../rtc_base:checks",
-        "../../rtc_base:safe_conversions",
-        "../../test:fileutils",
-        "../../test:test_main",
-        "//testing/gtest",
-        "//third_party/abseil-cpp/absl/flags:flag",
-      ]
-    }
-
     rtc_executable("neteq_pcmu_quality_test") {
       testonly = true
 
@@ -1542,14 +1333,6 @@ if (rtc_include_tests) {
   }
 
   if (!build_with_chromium) {
-    rtc_executable("ilbc_test") {
-      testonly = true
-
-      sources = [ "codecs/ilbc/test/iLBC_test.c" ]
-
-      deps = [ ":ilbc" ]
-    }
-
     rtc_executable("webrtc_opus_fec_test") {
       testonly = true
 
@@ -1588,9 +1371,9 @@ if (rtc_include_tests) {
         "codecs/builtin_audio_encoder_factory_unittest.cc",
         "codecs/cng/audio_encoder_cng_unittest.cc",
         "codecs/cng/cng_unittest.cc",
-        "codecs/ilbc/ilbc_unittest.cc",
         "codecs/legacy_encoded_audio_frame_unittest.cc",
         "codecs/opus/audio_decoder_multi_channel_opus_unittest.cc",
+        "codecs/opus/audio_decoder_opus_unittest.cc",
         "codecs/opus/audio_encoder_multi_channel_opus_unittest.cc",
         "codecs/opus/audio_encoder_opus_unittest.cc",
         "codecs/opus/opus_bandwidth_unittest.cc",
@@ -1654,7 +1437,6 @@ if (rtc_include_tests) {
         ":audio_encoder_cng",
         ":audio_network_adaptor",
         ":g711",
-        ":ilbc",
         ":legacy_encoded_audio_frame",
         ":mocks",
         ":neteq",
@@ -1678,6 +1460,7 @@ if (rtc_include_tests) {
         "../../api/audio_codecs/opus:audio_decoder_opus",
         "../../api/audio_codecs/opus:audio_encoder_multiopus",
         "../../api/audio_codecs/opus:audio_encoder_opus",
+        "../../api/audio_codecs/opus:audio_encoder_opus_config",
         "../../api/environment",
         "../../api/environment:environment_factory",
         "../../api/neteq:default_neteq_controller_factory",
@@ -1694,10 +1477,12 @@ if (rtc_include_tests) {
         "../../logging:mocks",
         "../../logging:rtc_event_audio",
         "../../modules/rtp_rtcp:rtp_rtcp_format",
+        "../../rtc_base:buffer",
         "../../rtc_base:checks",
         "../../rtc_base:digest",
         "../../rtc_base:macromagic",
         "../../rtc_base:platform_thread",
+        "../../rtc_base:random",
         "../../rtc_base:refcount",
         "../../rtc_base:rtc_base_tests_utils",
         "../../rtc_base:rtc_event",
@@ -1720,6 +1505,7 @@ if (rtc_include_tests) {
         "../../test:test_support",
         "codecs/opus/test",
         "codecs/opus/test:test_unittest",
+        "//testing/gmock",
         "//testing/gtest",
         "//third_party/abseil-cpp/absl/flags:flag",
         "//third_party/abseil-cpp/absl/memory",

@@ -199,9 +199,9 @@ TrendlineEstimator::~TrendlineEstimator() {}
 
 void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
                                          double send_delta_ms,
-                                         int64_t send_time_ms,
+                                         int64_t /* send_time_ms */,
                                          int64_t arrival_time_ms,
-                                         size_t packet_size) {
+                                         size_t /* packet_size */) {
   const double delta_ms = recv_delta_ms - send_delta_ms;
   ++num_of_deltas_;
   num_of_deltas_ = std::min(num_of_deltas_, kDeltaCounterMax);

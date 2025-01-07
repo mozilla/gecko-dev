@@ -44,7 +44,7 @@ void AudioDecoderL16::AppendSupportedDecoders(
 std::unique_ptr<AudioDecoder> AudioDecoderL16::MakeAudioDecoder(
     const Config& config,
     std::optional<AudioCodecPairId> /*codec_pair_id*/,
-    const FieldTrialsView* field_trials) {
+    const FieldTrialsView* /* field_trials */) {
   if (!config.IsOk()) {
     return nullptr;
   }

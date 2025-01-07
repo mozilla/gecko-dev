@@ -32,7 +32,7 @@ struct OpenH264DecoderTemplateAdapter {
   }
 
   static std::unique_ptr<VideoDecoder> CreateDecoder(
-      const SdpVideoFormat& format) {
+      const SdpVideoFormat& /* format */) {
 #if defined(WEBRTC_USE_H264)
 
     return H264Decoder::Create();

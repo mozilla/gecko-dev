@@ -54,7 +54,9 @@ class FakeFieldTrials : public FieldTrialsView {
     }
   }
 
-  std::string Lookup(absl::string_view key) const override { return "fake"; }
+  std::string Lookup(absl::string_view /* key */) const override {
+    return "fake";
+  }
 
  private:
   absl::AnyInvocable<void() &&> on_destroyed_;
@@ -72,8 +74,8 @@ class FakeTaskQueueFactory : public TaskQueueFactory {
   }
 
   std::unique_ptr<TaskQueueBase, TaskQueueDeleter> CreateTaskQueue(
-      absl::string_view name,
-      Priority priority) const override {
+      absl::string_view /* name */,
+      Priority /* priority */) const override {
     return nullptr;
   }
 

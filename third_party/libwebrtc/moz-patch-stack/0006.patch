@@ -16,7 +16,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b55b0368d9f21849f
  8 files changed, 34 insertions(+)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 4a2ebfb08b..8834dfc9a9 100644
+index 25bf070cb7..c96a943f4a 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -169,6 +169,9 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -30,7 +30,7 @@ index 4a2ebfb08b..8834dfc9a9 100644
      // single 'timing frame'.
      std::optional<webrtc::TimingFrameInfo> timing_frame_info;
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 8732b3772c..ad93830459 100644
+index 672ee98d29..c41ad899e4 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -385,6 +385,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {

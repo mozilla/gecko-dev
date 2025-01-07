@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/memory/memory.h"
+#include "api/audio/builtin_audio_processing_builder.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/task_queue/default_task_queue_factory.h"
@@ -130,7 +131,8 @@ void AndroidVoipClient::Init(
   config.task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
   config.audio_device_module =
       webrtc::CreateJavaAudioDeviceModule(env, application_context.obj());
-  config.audio_processing = webrtc::AudioProcessingBuilder().Create();
+  config.audio_processing_builder =
+      std::make_unique<webrtc::BuiltinAudioProcessingBuilder>();
 
   voip_thread_->Start();
 

@@ -345,7 +345,7 @@ class StunAttribute {
   virtual StunAttributeValueType value_type() const = 0;
 
   // Only XorAddressAttribute needs this so far.
-  virtual void SetOwner(StunMessage* owner) {}
+  virtual void SetOwner(StunMessage* /* owner */) {}
 
   // Reads the body (not the type or length) for this type of attribute from
   // the given buffer.  Return value is true if successful.

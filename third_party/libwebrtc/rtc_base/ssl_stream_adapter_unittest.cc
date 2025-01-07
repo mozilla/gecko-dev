@@ -56,10 +56,6 @@ using ::testing::Values;
 using ::testing::WithParamInterface;
 using ::webrtc::SafeTask;
 
-static const char kExporterLabel[] = "label";
-static const unsigned char kExporterContext[] = "context";
-static int kExporterContextLen = sizeof(kExporterContext);
-
 // A private key used for testing, broken into pieces in order to avoid
 // issues with Git's checks for private keys in repos.
 // Generated using `openssl genrsa -out key.pem 2048`
@@ -587,20 +583,19 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
 
     // Now run the handshake
     if (expect_success) {
-      EXPECT_TRUE_WAIT((client_ssl_->GetState() == rtc::SS_OPEN) &&
-                           (server_ssl_->GetState() == rtc::SS_OPEN),
-                       handshake_wait_);
+      EXPECT_TRUE_SIMULATED_WAIT((client_ssl_->GetState() == rtc::SS_OPEN) &&
+                                     (server_ssl_->GetState() == rtc::SS_OPEN),
+                                 handshake_wait_, clock_);
     } else {
-      EXPECT_TRUE_WAIT(client_ssl_->GetState() == rtc::SS_CLOSED,
-                       handshake_wait_);
+      EXPECT_TRUE_SIMULATED_WAIT(client_ssl_->GetState() == rtc::SS_CLOSED,
+                                 handshake_wait_, clock_);
     }
   }
 
   // This tests that we give up after 12 DTLS resends.
   // Only works for BoringSSL which allows advancing the fake clock.
   void TestHandshakeTimeout() {
-    rtc::ScopedFakeClock clock;
-    int64_t time_start = clock.TimeNanos();
+    int64_t time_start = clock_.TimeNanos();
     webrtc::TimeDelta time_increment = webrtc::TimeDelta::Millis(1000);
 
     if (!dtls_) {
@@ -628,12 +623,12 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     // Now wait for the handshake to timeout (or fail after an hour of simulated
     // time).
     while (client_ssl_->GetState() == rtc::SS_OPENING &&
-           (rtc::TimeDiff(clock.TimeNanos(), time_start) <
+           (rtc::TimeDiff(clock_.TimeNanos(), time_start) <
             3600 * rtc::kNumNanosecsPerSec)) {
-      EXPECT_TRUE_WAIT(!((client_ssl_->GetState() == rtc::SS_OPEN) &&
-                         (server_ssl_->GetState() == rtc::SS_OPEN)),
-                       1000);
-      clock.AdvanceTime(time_increment);
+      EXPECT_TRUE_SIMULATED_WAIT(!((client_ssl_->GetState() == rtc::SS_OPEN) &&
+                                   (server_ssl_->GetState() == rtc::SS_OPEN)),
+                                 1000, clock_);
+      clock_.AdvanceTime(time_increment);
     }
     EXPECT_EQ(client_ssl_->GetState(), rtc::SS_CLOSED);
   }
@@ -657,9 +652,9 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     ASSERT_EQ(0, client_ssl_->StartSSL());
 
     // Now run the handshake.
-    EXPECT_TRUE_WAIT(
+    EXPECT_TRUE_SIMULATED_WAIT(
         client_ssl_->IsTlsConnected() && server_ssl_->IsTlsConnected(),
-        handshake_wait_);
+        handshake_wait_, clock_);
 
     // Until the identity has been verified, the state should still be
     // SS_OPENING and writes should return SR_BLOCK.
@@ -818,21 +813,6 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
       return server_ssl_->GetSslVersionBytes(version);
   }
 
-  bool ExportKeyingMaterial(absl::string_view label,
-                            const unsigned char* context,
-                            size_t context_len,
-                            bool use_context,
-                            bool client,
-                            unsigned char* result,
-                            size_t result_len) {
-    if (client)
-      return client_ssl_->ExportKeyingMaterial(label, context, context_len,
-                                               use_context, result, result_len);
-    else
-      return server_ssl_->ExportKeyingMaterial(label, context, context_len,
-                                               use_context, result, result_len);
-  }
-
   // To be implemented by subclasses.
   virtual void WriteData() = 0;
   virtual void ReadData(rtc::StreamInterface* stream) = 0;
@@ -875,6 +855,7 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
   }
 
   rtc::AutoThread main_thread_;
+  rtc::ScopedFakeClock clock_;
   std::string client_cert_pem_;
   std::string client_private_key_pem_;
   rtc::KeyParams client_key_type_;
@@ -992,14 +973,15 @@ class SSLStreamAdapterTestDTLSBase : public SSLStreamAdapterTestBase {
 
     WriteData();
 
-    EXPECT_TRUE_WAIT(sent_ == count_, 10000);
+    EXPECT_TRUE_SIMULATED_WAIT(sent_ == count_, 10000, clock_);
     RTC_LOG(LS_INFO) << "sent_ == " << sent_;
 
     if (damage_) {
-      WAIT(false, 2000);
+      SIMULATED_WAIT(false, 2000, clock_);
       EXPECT_EQ(0U, received_.size());
     } else if (loss_ == 0) {
-      EXPECT_EQ_WAIT(static_cast<size_t>(sent_), received_.size(), 1000);
+      EXPECT_EQ_SIMULATED_WAIT(static_cast<size_t>(sent_), received_.size(),
+                               1000, clock_);
     } else {
       RTC_LOG(LS_INFO) << "Sent " << sent_ << " packets; received "
                        << received_.size();
@@ -1146,19 +1128,21 @@ TEST_P(SSLStreamAdapterTestDTLSHandshake, TestGetSslCipherSuite) {
 }
 
 // Test different key sizes with SHA-256, then different signature algorithms
-// with ECDSA.
+// with ECDSA. Two different RSA sizes are tested on the client and server.
+// TODO: bugs.webrtc.org/375552698 - these tests are slow in debug builds
+// and have caused flakyness in the past with a key size of 2048.
 INSTANTIATE_TEST_SUITE_P(
     SSLStreamAdapterTestDTLSHandshakeKeyParameters,
     SSLStreamAdapterTestDTLSHandshake,
-    Combine(Values(rtc::KeyParams::RSA(rtc::kRsaDefaultModSize,
-                                       rtc::kRsaDefaultExponent),
-                   rtc::KeyParams::RSA(2 * 1152, rtc::kRsaDefaultExponent),
-                   rtc::KeyParams::ECDSA(rtc::EC_NIST_P256)),
-            Values(rtc::KeyParams::RSA(rtc::kRsaDefaultModSize,
-                                       rtc::kRsaDefaultExponent),
-                   rtc::KeyParams::RSA(2 * 1152, rtc::kRsaDefaultExponent),
-                   rtc::KeyParams::ECDSA(rtc::EC_NIST_P256)),
-            Values(std::make_pair(rtc::DIGEST_SHA_256, SHA256_DIGEST_LENGTH))));
+    Values(std::make_tuple(rtc::KeyParams::ECDSA(rtc::EC_NIST_P256),
+                           rtc::KeyParams::RSA(rtc::kRsaDefaultModSize,
+                                               rtc::kRsaDefaultExponent),
+                           std::make_pair(rtc::DIGEST_SHA_256,
+                                          SHA256_DIGEST_LENGTH)),
+           std::make_tuple(rtc::KeyParams::RSA(1152, rtc::kRsaDefaultExponent),
+                           rtc::KeyParams::ECDSA(rtc::EC_NIST_P256),
+                           std::make_pair(rtc::DIGEST_SHA_256,
+                                          SHA256_DIGEST_LENGTH))));
 
 INSTANTIATE_TEST_SUITE_P(
     SSLStreamAdapterTestDTLSHandshakeSignatureAlgorithms,
@@ -1397,24 +1381,35 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpKeyAndSaltLengths) {
 }
 
 // Test an exporter
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSExporter) {
+  const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_80};
+  SetDtlsSrtpCryptoSuites(crypto_suites, true);
+  SetDtlsSrtpCryptoSuites(crypto_suites, false);
+
   TestHandshake();
-  unsigned char client_out[EVP_MAX_MD_SIZE];
-  unsigned char server_out[EVP_MAX_MD_SIZE];
+  int selected_crypto_suite;
+  EXPECT_TRUE(GetDtlsSrtpCryptoSuite(/*client=*/false, &selected_crypto_suite));
+  int key_len;
+  int salt_len;
+  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(selected_crypto_suite, &key_len,
+                                            &salt_len));
+  rtc::ZeroOnFreeBuffer<uint8_t> client_out(2 * (key_len + salt_len));
+  rtc::ZeroOnFreeBuffer<uint8_t> server_out(2 * (key_len + salt_len));
 
-  bool result;
-  result = ExportKeyingMaterial(kExporterLabel, kExporterContext,
-                                kExporterContextLen, true, true, client_out,
-                                sizeof(client_out));
-  ASSERT_TRUE(result);
+  EXPECT_TRUE(client_ssl_->ExportSrtpKeyingMaterial(client_out));
+  EXPECT_TRUE(server_ssl_->ExportSrtpKeyingMaterial(server_out));
+  EXPECT_EQ(client_out, server_out);
 
-  result = ExportKeyingMaterial(kExporterLabel, kExporterContext,
-                                kExporterContextLen, true, false, server_out,
-                                sizeof(server_out));
-  ASSERT_TRUE(result);
-
-  ASSERT_TRUE(!memcmp(client_out, server_out, sizeof(client_out)));
+  // Legacy variant.
+  rtc::ZeroOnFreeBuffer<uint8_t> legacy_out(2 * (key_len + salt_len));
+  EXPECT_TRUE(client_ssl_->ExportKeyingMaterial("EXTRACTOR-dtls_srtp", nullptr,
+                                                0, false, legacy_out.data(),
+                                                legacy_out.size()));
+  EXPECT_EQ(client_out, legacy_out);
 }
+#pragma clang diagnostic pop
 
 // Test not yet valid certificates are not rejected.
 TEST_F(SSLStreamAdapterTestDTLS, TestCertNotYetValid) {
@@ -1486,61 +1481,3 @@ TEST_F(SSLStreamAdapterTestDTLS, TestGetSslVersionBytes) {
   ASSERT_TRUE(GetSslVersionBytes(false, &server_version));
   EXPECT_EQ(server_version, kDtls1_2);
 }
-
-// Tests for enabling the (D)TLS extension permutation which randomizes the
-// order of extensions in the client hello.
-// These tests are a no-op under OpenSSL.
-#ifdef OPENSSL_IS_BORINGSSL
-class SSLStreamAdapterTestDTLSExtensionPermutation
-    : public SSLStreamAdapterTestDTLSBase {
- public:
-  SSLStreamAdapterTestDTLSExtensionPermutation()
-      : SSLStreamAdapterTestDTLSBase(
-            rtc::KeyParams::ECDSA(rtc::EC_NIST_P256),
-            rtc::KeyParams::ECDSA(rtc::EC_NIST_P256),
-            std::make_pair(rtc::DIGEST_SHA_256, SHA256_DIGEST_LENGTH)) {}
-
-  void Initialize(absl::string_view client_experiment,
-                  absl::string_view server_experiment) {
-    InitializeClientAndServerStreams(client_experiment, server_experiment);
-    client_ssl_->SetIdentity(
-        rtc::SSLIdentity::Create("client", client_key_type_));
-    server_ssl_->SetIdentity(
-        rtc::SSLIdentity::Create("server", server_key_type_));
-  }
-};
-
-TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
-       ClientDefaultServerDefault) {
-  Initialize("", "");
-  TestHandshake();
-}
-
-TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
-       ClientDisabledServerDisabled) {
-  Initialize("WebRTC-PermuteTlsClientHello/Disabled/",
-             "WebRTC-PermuteTlsClientHello/Disabled/");
-  TestHandshake();
-}
-
-TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
-       ClientDisabledServerPermute) {
-  Initialize("WebRTC-PermuteTlsClientHello/Disabled/",
-             "WebRTC-PermuteTlsClientHello/Enabled/");
-  TestHandshake();
-}
-
-TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
-       ClientPermuteServerDisabled) {
-  Initialize("WebRTC-PermuteTlsClientHello/Enabled/",
-             "WebRTC-PermuteTlsClientHello/Disabled/");
-  TestHandshake();
-}
-
-TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
-       ClientPermuteServerPermute) {
-  Initialize("WebRTC-PermuteTlsClientHello/Enabled/",
-             "WebRTC-PermuteTlsClientHello/Enabled/");
-  TestHandshake();
-}
-#endif  // OPENSSL_IS_BORINGSSL

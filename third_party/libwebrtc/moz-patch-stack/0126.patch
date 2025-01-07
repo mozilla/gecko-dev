@@ -13,7 +13,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7017edc7cfc880bb1
  4 files changed, 7 insertions(+), 7 deletions(-)
 
 diff --git a/.gn b/.gn
-index 52acee7e60..e6aa410434 100644
+index e379d18527..c810498584 100644
 --- a/.gn
 +++ b/.gn
 @@ -18,7 +18,7 @@ script_executable = "python3"
@@ -35,7 +35,7 @@ index 52acee7e60..e6aa410434 100644
  # Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
  # available yet.
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 9b2a439eac..30b62b4abc 100644
+index ddb6cd9d1b..e48d2ffada 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -7,7 +7,7 @@
@@ -48,7 +48,7 @@ index 9b2a439eac..30b62b4abc 100644
  
  group("media") {
 diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index ae832adb64..938f957060 100644
+index c5c6ce13dd..ee3a30dc4c 100644
 --- a/modules/video_coding/BUILD.gn
 +++ b/modules/video_coding/BUILD.gn
 @@ -7,7 +7,7 @@
@@ -61,7 +61,7 @@ index ae832adb64..938f957060 100644
  
  rtc_library("encoded_frame") {
 diff --git a/webrtc.gni b/webrtc.gni
-index b16f07f64d..c86c54776a 100644
+index 5efc1979fd..60fd992710 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -11,7 +11,7 @@ import("//build/config/mips.gni")
@@ -73,7 +73,7 @@ index b16f07f64d..c86c54776a 100644
  
  if (!build_with_chromium && is_component_build) {
    print("The Gn argument `is_component_build` is currently " +
-@@ -500,8 +500,8 @@ all_poison_types = [
+@@ -492,8 +492,8 @@ all_poison_types = [
    "software_video_codecs",
  ]
  

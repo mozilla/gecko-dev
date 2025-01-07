@@ -332,7 +332,7 @@ class BitrateAllocatorTestNoEnforceMin : public ::testing::Test {
                    uint32_t max_bitrate_bps,
                    uint32_t pad_up_bitrate_bps,
                    bool enforce_min_bitrate,
-                   absl::string_view track_id,
+                   absl::string_view /* track_id */,
                    double bitrate_priority) {
     allocator_->AddObserver(
         observer, {min_bitrate_bps, max_bitrate_bps, pad_up_bitrate_bps, 0,

@@ -77,7 +77,9 @@ namespace {
 using ::testing::_;
 using ::testing::Ge;
 using ::testing::IsEmpty;
+using ::testing::IsNull;
 using ::testing::NiceMock;
+using ::testing::NotNull;
 using ::testing::SaveArg;
 using ::testing::SizeIs;
 
@@ -1104,6 +1106,63 @@ TEST(RtpVideoSenderTest,
   ASSERT_THAT(sent_packets, SizeIs(2));
   EXPECT_TRUE(sent_packets[0].HasExtension<RtpDependencyDescriptorExtension>());
   EXPECT_TRUE(sent_packets[1].HasExtension<RtpDependencyDescriptorExtension>());
+}
+
+TEST(RtpVideoSenderTest,
+     SupportsDependencyDescriptorForH264NotProvidedByEncoder) {
+  RtpVideoSenderTestFixture test({kSsrc1}, {}, kPayloadType, {});
+  test.SetSending(true);
+
+  RtpHeaderExtensionMap extensions;
+  extensions.Register<RtpDependencyDescriptorExtension>(
+      kDependencyDescriptorExtensionId);
+  std::vector<RtpPacket> sent_packets;
+  EXPECT_CALL(test.transport(), SendRtp(_, _))
+      .Times(2)
+      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+                          const PacketOptions& options) -> bool {
+        sent_packets.emplace_back(&extensions);
+        EXPECT_TRUE(sent_packets.back().Parse(packet));
+        return true;
+      });
+
+  const uint8_t kPayload[1] = {'a'};
+  EncodedImage encoded_image;
+  encoded_image.SetRtpTimestamp(1);
+  encoded_image.capture_time_ms_ = 2;
+  encoded_image._frameType = VideoFrameType::kVideoFrameKey;
+  encoded_image._encodedWidth = 320;
+  encoded_image._encodedHeight = 180;
+  encoded_image.SetEncodedData(
+      EncodedImageBuffer::Create(kPayload, sizeof(kPayload)));
+
+  CodecSpecificInfo codec_specific;
+  codec_specific.codecType = VideoCodecType::kVideoCodecH264;
+  codec_specific.codecSpecific.H264.temporal_idx = kNoTemporalIdx;
+
+  // Send two tiny images, each mapping to single RTP packet.
+  EXPECT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+            EncodedImageCallback::Result::OK);
+
+  // Send in 2nd picture.
+  encoded_image._frameType = VideoFrameType::kVideoFrameDelta;
+  encoded_image.SetRtpTimestamp(3000);
+  EXPECT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+            EncodedImageCallback::Result::OK);
+
+  test.AdvanceTime(TimeDelta::Millis(33));
+
+  ASSERT_THAT(sent_packets, SizeIs(2));
+  DependencyDescriptor dd_key;
+  // Key frame should have attached structure.
+  EXPECT_TRUE(sent_packets[0].GetExtension<RtpDependencyDescriptorExtension>(
+      nullptr, &dd_key));
+  EXPECT_THAT(dd_key.attached_structure, NotNull());
+  // Delta frame does not have attached structure.
+  DependencyDescriptor dd_delta;
+  EXPECT_TRUE(sent_packets[1].GetExtension<RtpDependencyDescriptorExtension>(
+      dd_key.attached_structure.get(), &dd_delta));
+  EXPECT_THAT(dd_delta.attached_structure, IsNull());
 }
 
 TEST(RtpVideoSenderTest, GenerateDependecyDescriptorForGenericCodecs) {

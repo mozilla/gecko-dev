@@ -697,7 +697,7 @@ if (rtc_include_tests && !build_with_chromium) {
     deps = [
       "api:compile_all_headers",
       "api:rtc_api_unittests",
-      "api/audio/test:audio_api_unittests",
+      "api/audio:audio_api_unittests",
       "api/audio_codecs/test:audio_codecs_api_unittests",
       "api/numerics:numerics_unittests",
       "api/task_queue:pending_task_safety_flag_unittests",
@@ -713,6 +713,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "p2p:rtc_p2p_unittests",
       "rtc_base:async_dns_resolver_unittests",
       "rtc_base:async_packet_socket_unittest",
+      "rtc_base:async_udp_socket_unittest",
       "rtc_base:callback_list_unittests",
       "rtc_base:rtc_base_approved_unittests",
       "rtc_base:rtc_base_unittests",
@@ -772,6 +773,7 @@ if (rtc_include_tests && !build_with_chromium) {
 
   # TODO(pbos): Rename test suite, this is no longer "just" for video targets.
   video_engine_tests_resources = [
+    "resources/ConferenceMotion_1280_720_50.yuv",
     "resources/foreman_cif_short.yuv",
     "resources/voice_engine/audio_long16.pcm",
   ]

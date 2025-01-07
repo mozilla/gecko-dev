@@ -17,6 +17,8 @@
 #include "absl/strings/string_view.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio/audio_processing_statistics.h"
+#include "api/environment/environment.h"
+#include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
 #include "modules/audio_processing/include/aec_dump.h"
 #include "test/gmock.h"
@@ -172,6 +174,14 @@ class MockAudioProcessing : public AudioProcessing {
   MOCK_METHOD(AudioProcessingStats, GetStatistics, (bool), (override));
 
   MOCK_METHOD(AudioProcessing::Config, GetConfig, (), (const, override));
+};
+
+class MockAudioProcessingBuilder : public AudioProcessingBuilderInterface {
+ public:
+  MOCK_METHOD(scoped_refptr<AudioProcessing>,
+              Build,
+              (const Environment&),
+              (override));
 };
 
 }  // namespace test

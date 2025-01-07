@@ -26,6 +26,7 @@ def build_commit_list(revset, env):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     # return empty list instead of a list with one empty element if no
     # libwebrtc changing commits are found in the given range
@@ -40,6 +41,7 @@ def extract_author_date(sha1, env):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     return res.stdout.split("|")
 
@@ -50,6 +52,7 @@ def extract_description(sha1, env):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     return res.stdout
 
@@ -60,6 +63,7 @@ def extract_commit(sha1, env):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     return res.stdout
 
@@ -100,16 +104,14 @@ def fixup_paths(commit):
 
 def write_as_mbox(sha1, author, date, description, commit, ofile):
     # Use same magic date as git format-patch
-    ofile.write("From {} Mon Sep 17 00:00:00 2001\n".format(sha1))
-    ofile.write("From: {}\n".format(author))
-    ofile.write("Date: {}\n".format(date))
+    ofile.write(f"From {sha1} Mon Sep 17 00:00:00 2001\n")
+    ofile.write(f"From: {author}\n")
+    ofile.write(f"Date: {date}\n")
     description = description.split("\n")
-    ofile.write("Subject: {}\n".format(description[0]))
+    ofile.write(f"Subject: {description[0]}\n")
     ofile.write("\n".join(description[1:]))
     ofile.write(
-        "\nMercurial Revision: https://hg.mozilla.org/mozilla-central/rev/{}\n".format(
-            sha1
-        )
+        f"\nMercurial Revision: https://hg.mozilla.org/mozilla-central/rev/{sha1}\n"
     )
     ofile.write(commit)
     ofile.write("\n")

@@ -78,7 +78,7 @@ const NV12BufferInterface* VideoFrameBuffer::GetNV12() const {
 }
 
 rtc::scoped_refptr<VideoFrameBuffer> VideoFrameBuffer::GetMappedFrameBuffer(
-    rtc::ArrayView<Type> types) {
+    rtc::ArrayView<Type> /* types */) {
   RTC_CHECK(type() == Type::kNative);
   return nullptr;
 }

@@ -72,7 +72,7 @@ index c44ec6a9e8..51785a4085 100644
  
    rtc::scoped_refptr<FullScreenWindowDetector> full_screen_window_detector_;
 diff --git a/modules/desktop_capture/desktop_capturer.cc b/modules/desktop_capture/desktop_capturer.cc
-index a52a76c262..02f11b3867 100644
+index 7fd0fc31d8..45c13751aa 100644
 --- a/modules/desktop_capture/desktop_capturer.cc
 +++ b/modules/desktop_capture/desktop_capturer.cc
 @@ -30,6 +30,10 @@
@@ -254,7 +254,7 @@ index 105cbf0783..eb3a370eed 100644
  
  #endif  // MODULES_DESKTOP_CAPTURE_MAC_SCREEN_CAPTURER_SCK_H_
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index af1a4e360b..b92399e6b6 100644
+index 70284cb7e7..28831d5cc5 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -20,11 +20,13 @@
@@ -271,7 +271,7 @@ index af1a4e360b..b92399e6b6 100644
  
  namespace webrtc {
  class ScreenCapturerSck;
-@@ -35,7 +37,7 @@ class ScreenCapturerSck;
+@@ -35,7 +37,7 @@
  // Also, the `SCContentFilter` fields `contentRect` and `pointPixelScale` were introduced in
  // macOS 14.
  API_AVAILABLE(macos(14.0))
@@ -421,7 +421,7 @@ index af1a4e360b..b92399e6b6 100644
    StartOrReconfigureCapturer();
  }
  
-@@ -156,6 +227,7 @@ void ScreenCapturerSck::CaptureFrame() {
+@@ -156,6 +227,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    int64_t capture_start_time_millis = rtc::TimeMillis();
  
    if (permanent_error_) {
@@ -429,7 +429,7 @@ index af1a4e360b..b92399e6b6 100644
      callback_->OnCaptureResult(Result::ERROR_PERMANENT, nullptr);
      return;
    }
-@@ -181,14 +253,120 @@ void ScreenCapturerSck::CaptureFrame() {
+@@ -181,14 +253,120 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    }
  
    if (frame) {
@@ -550,7 +550,7 @@ index af1a4e360b..b92399e6b6 100644
    bool stream_started = false;
    {
      MutexLock lock(&lock_);
-@@ -209,20 +387,23 @@ bool ScreenCapturerSck::SelectSource(SourceId id) {
+@@ -209,20 +387,23 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
  
  void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
    if (!content) {
@@ -577,7 +577,7 @@ index af1a4e360b..b92399e6b6 100644
      for (SCDisplay* display in content.displays) {
        if (current_display_ == display.displayID) {
          captured_display = display;
-@@ -232,9 +413,10 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+@@ -232,9 +413,10 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
      if (!captured_display) {
        if (current_display_ == static_cast<CGDirectDisplayID>(kFullDesktopScreenId)) {
          RTC_LOG(LS_WARNING)
@@ -590,7 +590,7 @@ index af1a4e360b..b92399e6b6 100644
                              << " not found, falling back to first display.";
        }
        captured_display = content.displays.firstObject;
-@@ -243,26 +425,30 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+@@ -243,26 +425,30 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
  
    SCContentFilter* filter = [[SCContentFilter alloc] initWithDisplay:captured_display
                                                      excludingWindows:@[]];
@@ -626,7 +626,7 @@ index af1a4e360b..b92399e6b6 100644
      stream_ = [[SCStream alloc] initWithFilter:filter configuration:config delegate:helper_];
  
      // TODO: crbug.com/327458809 - Choose an appropriate sampleHandlerQueue for best performance.
-@@ -273,7 +459,8 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+@@ -273,7 +459,8 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
                                                         error:&add_stream_output_error];
      if (!add_stream_output_result) {
        stream_ = nil;
@@ -636,7 +636,7 @@ index af1a4e360b..b92399e6b6 100644
        permanent_error_ = true;
        return;
      }
-@@ -283,9 +470,9 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+@@ -283,9 +470,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
          // It should be safe to access `this` here, because the C++ destructor calls
          // stopCaptureWithCompletionHandler on the stream, which cancels this handler.
          permanent_error_ = true;
@@ -648,7 +648,7 @@ index af1a4e360b..b92399e6b6 100644
        }
      };
  
-@@ -294,6 +481,9 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+@@ -294,6 +481,9 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
  }
  
  void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, CFDictionaryRef attachment) {
@@ -658,7 +658,7 @@ index af1a4e360b..b92399e6b6 100644
    rtc::ScopedCFTypeRef<IOSurfaceRef> scoped_io_surface(io_surface, rtc::RetainPolicy::RETAIN);
    std::unique_ptr<DesktopFrameIOSurface> desktop_frame_io_surface =
        DesktopFrameIOSurface::Wrap(scoped_io_surface);
-@@ -352,6 +542,15 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, CFDictionaryRef
+@@ -352,6 +542,15 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
  }
  
  void ScreenCapturerSck::StartOrReconfigureCapturer() {
@@ -674,7 +674,7 @@ index af1a4e360b..b92399e6b6 100644
    // The copy is needed to avoid capturing `this` in the Objective-C block. Accessing `helper_`
    // inside the block is equivalent to `this->helper_` and would crash (UAF) if `this` is
    // deleted before the block is executed.
-@@ -370,6 +569,17 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+@@ -370,6 +569,17 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
    return nullptr;
  }
  
@@ -692,7 +692,7 @@ index af1a4e360b..b92399e6b6 100644
  }  // namespace webrtc
  
  @implementation SckHelper {
-@@ -394,6 +604,50 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+@@ -394,6 +604,50 @@ - (void)onShareableContentCreated:(SCShareableContent*)content {
    }
  }
  
@@ -743,7 +743,7 @@ index af1a4e360b..b92399e6b6 100644
  - (void)stream:(SCStream*)stream
      didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
                     ofType:(SCStreamOutputType)type {
-@@ -425,6 +679,7 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+@@ -425,6 +679,7 @@ - (void)stream:(SCStream*)stream
  
  - (void)releaseCapturer {
    webrtc::MutexLock lock(&_capturer_lock);

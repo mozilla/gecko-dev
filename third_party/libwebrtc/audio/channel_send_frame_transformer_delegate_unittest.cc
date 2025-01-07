@@ -188,10 +188,11 @@ TEST(ChannelSendFrameTransformerDelegateTest,
               SendFrame(_, 0, 0, ElementsAreArray(mock_data), _,
                         ElementsAreArray(csrcs), Optional(audio_level_dbov)));
   ON_CALL(*mock_frame_transformer, Transform)
-      .WillByDefault([&](std::unique_ptr<TransformableFrameInterface> frame) {
-        callback->OnTransformedFrame(CreateMockReceiverFrame(
-            csrcs, std::optional<uint8_t>(audio_level_dbov)));
-      });
+      .WillByDefault(
+          [&](std::unique_ptr<TransformableFrameInterface> /* frame */) {
+            callback->OnTransformedFrame(CreateMockReceiverFrame(
+                csrcs, std::optional<uint8_t>(audio_level_dbov)));
+          });
   delegate->Transform(AudioFrameType::kEmptyFrame, 0, 0, mock_data,
                       sizeof(mock_data), 0,
                       /*ssrc=*/0, /*mimeType=*/"audio/opus",

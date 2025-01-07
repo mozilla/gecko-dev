@@ -25,7 +25,7 @@ struct LibvpxVp9DecoderTemplateAdapter {
   }
 
   static std::unique_ptr<VideoDecoder> CreateDecoder(
-      const SdpVideoFormat& format) {
+      const SdpVideoFormat& /* format */) {
     return VP9Decoder::Create();
   }
 };

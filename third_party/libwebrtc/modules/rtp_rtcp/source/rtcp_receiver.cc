@@ -634,9 +634,8 @@ void RTCPReceiver::HandleReportBlock(const ReportBlock& report_block,
   NtpTime now_ntp = env_.clock().ConvertTimestampToNtpTime(now);
   // Number of seconds since 1900 January 1 00:00 GMT (see
   // https://tools.ietf.org/html/rfc868).
-  report_block_data->SetReportBlock(
-      remote_ssrc, report_block,
-      Timestamp::Millis(now_ntp.ToMs() - rtc::kNtpJan1970Millisecs), now);
+  report_block_data->SetReportBlock(remote_ssrc, report_block,
+                                    Clock::NtpToUtc(now_ntp), now);
 
   uint32_t send_time_ntp = report_block.last_sr();
   // RFC3550, section 6.4.1, LSR field discription states:
@@ -1180,6 +1179,13 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
           loss_notification->decodability_flag());
     }
   }
+  // Network state estimate should be applied before other feedback since it may
+  // affect how other feedback is handled.
+  if (network_state_estimate_observer_ &&
+      packet_information.network_state_estimate) {
+    network_state_estimate_observer_->OnRemoteNetworkEstimate(
+        *packet_information.network_state_estimate);
+  }
 
   if (network_link_rtcp_observer_) {
     Timestamp now = env_.clock().CurrentTime();
@@ -1209,12 +1215,6 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
       (packet_information.packet_type_flags & kRtcpRr)) {
     rtp_rtcp_->OnReceivedRtcpReportBlocks(
         packet_information.report_block_datas);
-  }
-
-  if (network_state_estimate_observer_ &&
-      packet_information.network_state_estimate) {
-    network_state_estimate_observer_->OnRemoteNetworkEstimate(
-        *packet_information.network_state_estimate);
   }
 
   if (bitrate_allocation_observer_ &&

@@ -225,7 +225,7 @@ void ScreenCapturerSck::Start(DesktopCapturer::Callback* callback) {
   StartOrReconfigureCapturer();
 }
 
-void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
+void ScreenCapturerSck::SetMaxFrameRate(uint32_t /* max_frame_rate */) {
   // TODO: crbug.com/327458809 - Implement this.
 }
 
@@ -650,7 +650,7 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
   // inside the block is equivalent to `this->helper_` and would crash (UAF) if `this` is
   // deleted before the block is executed.
   SckHelper* local_helper = helper_;
-  auto handler = ^(SCShareableContent* content, NSError* error) {
+  auto handler = ^(SCShareableContent* content, NSError* /* error */) {
     [local_helper onShareableContentCreated:content];
   };
 

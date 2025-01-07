@@ -28,6 +28,11 @@ rtc_library("bandwidth_estimation_settings") {
   deps = [ "../../rtc_base/system:rtc_export" ]
 }
 
+rtc_source_set("ecn_marking") {
+  visibility = [ "*" ]
+  sources = [ "ecn_marking.h" ]
+}
+
 rtc_source_set("enums") {
   visibility = [ "*" ]
   sources = [ "enums.h" ]
@@ -42,6 +47,7 @@ rtc_library("network_control") {
   ]
 
   deps = [
+    ":ecn_marking",
     "../../api:field_trials_view",
     "../../rtc_base/system:rtc_export",
     "../environment",

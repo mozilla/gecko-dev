@@ -97,7 +97,7 @@ AudioReceiveStreamImpl::AudioReceiveStreamImpl(
 }
 
 AudioReceiveStreamImpl::AudioReceiveStreamImpl(
-    const Environment& env,
+    const Environment& /* env */,
     PacketRouter* packet_router,
     const webrtc::AudioReceiveStreamInterface::Config& config,
     const rtc::scoped_refptr<webrtc::AudioState>& audio_state,
@@ -334,12 +334,11 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
   stats.decoding_plc_cng = ds.decoded_plc_cng;
   stats.decoding_muted_output = ds.decoded_muted_output;
 
-  stats.last_sender_report_timestamp_ms =
-      call_stats.last_sender_report_timestamp_ms;
-  stats.last_sender_report_utc_timestamp_ms =
-      call_stats.last_sender_report_utc_timestamp_ms;
-  stats.last_sender_report_remote_utc_timestamp_ms =
-      call_stats.last_sender_report_remote_utc_timestamp_ms;
+  stats.last_sender_report_timestamp = call_stats.last_sender_report_timestamp;
+  stats.last_sender_report_utc_timestamp =
+      call_stats.last_sender_report_utc_timestamp;
+  stats.last_sender_report_remote_utc_timestamp =
+      call_stats.last_sender_report_remote_utc_timestamp;
   stats.sender_reports_packets_sent = call_stats.sender_reports_packets_sent;
   stats.sender_reports_bytes_sent = call_stats.sender_reports_bytes_sent;
   stats.sender_reports_reports_count = call_stats.sender_reports_reports_count;

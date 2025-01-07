@@ -14,6 +14,7 @@
 
 #include <cstdio>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <utility>
@@ -30,7 +31,6 @@
 #include "api/video/video_frame_type.h"
 #include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_encoder.h"
-#include "media/base/video_common.h"
 #include "modules/video_coding/include/video_error_codes.h"
 #include "modules/video_coding/include/video_error_codes_utils.h"
 #include "modules/video_coding/utility/simulcast_utility.h"
@@ -463,9 +463,9 @@ VideoEncoder::EncoderInfo VideoEncoderSoftwareFallbackWrapper::GetEncoderInfo()
   EncoderInfo info =
       IsFallbackActive() ? fallback_encoder_info : default_encoder_info;
 
-  info.requested_resolution_alignment = cricket::LeastCommonMultiple(
-      fallback_encoder_info.requested_resolution_alignment,
-      default_encoder_info.requested_resolution_alignment);
+  info.requested_resolution_alignment =
+      std::lcm(fallback_encoder_info.requested_resolution_alignment,
+               default_encoder_info.requested_resolution_alignment);
   info.apply_alignment_to_all_simulcast_layers =
       fallback_encoder_info.apply_alignment_to_all_simulcast_layers ||
       default_encoder_info.apply_alignment_to_all_simulcast_layers;

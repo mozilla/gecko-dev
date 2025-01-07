@@ -377,18 +377,28 @@ webrtc::RTCError JsepTransport::RecordPayloadTypes(bool local,
                                                    webrtc::SdpType type,
                                                    const ContentInfo& content) {
   RTC_DCHECK_RUN_ON(network_thread_);
+  if (local) {
+    local_payload_types_.DisallowRedefinition();
+  } else {
+    remote_payload_types_.DisallowRedefinition();
+  }
+  webrtc::RTCError result = webrtc::RTCError::OK();
   for (auto codec : content.media_description()->codecs()) {
-    webrtc::RTCError result;
     if (local) {
       result = local_payload_types_.AddMapping(codec.id, codec);
     } else {
       result = remote_payload_types_.AddMapping(codec.id, codec);
     }
     if (!result.ok()) {
-      return result;
+      break;
     }
   }
-  return webrtc::RTCError::OK();
+  if (local) {
+    local_payload_types_.ReallowRedefinition();
+  } else {
+    remote_payload_types_.ReallowRedefinition();
+  }
+  return result;
 }
 
 void JsepTransport::SetRemoteIceParameters(

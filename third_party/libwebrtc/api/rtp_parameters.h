@@ -497,23 +497,16 @@ struct RTC_EXPORT RtpEncodingParameters {
   // https://w3c.github.io/webrtc-svc/#rtcrtpencodingparameters
   std::optional<std::string> scalability_mode;
 
-  // Requested encode resolution.
+  // This is an alternative API to `scale_resolution_down_by` but expressed in
+  // absolute terms (max width and max height) as opposed to relative terms (a
+  // scaling factor that is relative to the input frame size).
   //
-  // This field provides an alternative to `scale_resolution_down_by`
-  // that is not dependent on the video source.
+  // If both `scale_resolution_down_by` and `scale_resolution_down_to` are
+  // specified, the "scale by" value is ignored.
   //
-  // When setting requested_resolution it is not necessary to adapt the
-  // video source using OnOutputFormatRequest, since the VideoStreamEncoder
-  // will apply downscaling if necessary. requested_resolution will also be
-  // propagated to the video source, this allows downscaling earlier in the
-  // pipeline which can be beneficial if the source is consumed by multiple
-  // encoders, but is not strictly necessary.
-  //
-  // The `requested_resolution` is subject to resource adaptation.
-  //
-  // It is an error to set both `requested_resolution` and
-  // `scale_resolution_down_by`.
-  std::optional<Resolution> requested_resolution;
+  // See spec:
+  // https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-scaleresolutiondownto
+  std::optional<Resolution> scale_resolution_down_to;
 
   // For an RtpSender, set to true to cause this encoding to be encoded and
   // sent, and false for it not to be encoded and sent. This allows control
@@ -545,7 +538,8 @@ struct RTC_EXPORT RtpEncodingParameters {
            scale_resolution_down_by == o.scale_resolution_down_by &&
            active == o.active && rid == o.rid &&
            adaptive_ptime == o.adaptive_ptime &&
-           requested_resolution == o.requested_resolution && codec == o.codec;
+           scale_resolution_down_to == o.scale_resolution_down_to &&
+           codec == o.codec;
   }
   bool operator!=(const RtpEncodingParameters& o) const {
     return !(*this == o);

@@ -83,8 +83,9 @@ VideoEncoder::EncoderInfo GetEncoderInfoWithHardwareAccelerated(
 
 class FakeEncodedImageCallback : public EncodedImageCallback {
  public:
-  Result OnEncodedImage(const EncodedImage& encoded_image,
-                        const CodecSpecificInfo* codec_specific_info) override {
+  Result OnEncodedImage(
+      const EncodedImage& /* encoded_image */,
+      const CodecSpecificInfo* /* codec_specific_info */) override {
     ++callback_count_;
     return Result(Result::OK, callback_count_);
   }
@@ -109,18 +110,19 @@ class VideoEncoderSoftwareFallbackWrapperTestBase : public ::testing::Test {
   class CountingFakeEncoder : public VideoEncoder {
    public:
     void SetFecControllerOverride(
-        FecControllerOverride* fec_controller_override) override {
+        FecControllerOverride* /* fec_controller_override */) override {
       // Ignored.
     }
 
-    int32_t InitEncode(const VideoCodec* codec_settings,
-                       const VideoEncoder::Settings& settings) override {
+    int32_t InitEncode(const VideoCodec* /* codec_settings */,
+                       const VideoEncoder::Settings& /* settings */) override {
       ++init_encode_count_;
       return init_encode_return_code_;
     }
 
-    int32_t Encode(const VideoFrame& frame,
-                   const std::vector<VideoFrameType>* frame_types) override {
+    int32_t Encode(
+        const VideoFrame& frame,
+        const std::vector<VideoFrameType>* /* frame_types */) override {
       ++encode_count_;
       last_video_frame_ = frame;
       if (encode_complete_callback_ &&
@@ -141,7 +143,7 @@ class VideoEncoderSoftwareFallbackWrapperTestBase : public ::testing::Test {
       return WEBRTC_VIDEO_CODEC_OK;
     }
 
-    void SetRates(const RateControlParameters& parameters) override {}
+    void SetRates(const RateControlParameters& /* parameters */) override {}
 
     EncoderInfo GetEncoderInfo() const override {
       ++supports_native_handle_count_;
@@ -986,7 +988,7 @@ TEST_F(PreferTemporalLayersFallbackTest, PrimesEncoderOnSwitch) {
   FakeEncodedImageCallback callback1;
   class DummyFecControllerOverride : public FecControllerOverride {
    public:
-    void SetFecAllowed(bool fec_allowed) override {}
+    void SetFecAllowed(bool /* fec_allowed */) override {}
   };
   DummyFecControllerOverride fec_controller_override1;
   VideoEncoder::RateControlParameters rate_params1;

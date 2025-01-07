@@ -48,7 +48,6 @@ UNIFIED_SOURCES += [
     "/third_party/libwebrtc/common_audio/signal_processing/filter_ma_fast_q12.c",
     "/third_party/libwebrtc/common_audio/signal_processing/get_hanning_window.c",
     "/third_party/libwebrtc/common_audio/signal_processing/get_scaling_square.c",
-    "/third_party/libwebrtc/common_audio/signal_processing/ilbc_specific_functions.c",
     "/third_party/libwebrtc/common_audio/signal_processing/levinson_durbin.c",
     "/third_party/libwebrtc/common_audio/signal_processing/lpc_to_refl_coef.c",
     "/third_party/libwebrtc/common_audio/signal_processing/min_max_operations.c",
@@ -65,6 +64,7 @@ UNIFIED_SOURCES += [
     "/third_party/libwebrtc/common_audio/signal_processing/spl_sqrt.c",
     "/third_party/libwebrtc/common_audio/signal_processing/splitting_filter.c",
     "/third_party/libwebrtc/common_audio/signal_processing/sqrt_of_one_minus_x_squared.c",
+    "/third_party/libwebrtc/common_audio/signal_processing/vector_operations.c",
     "/third_party/libwebrtc/common_audio/signal_processing/vector_scaling_operations.c",
     "/third_party/libwebrtc/common_audio/vad/vad_filterbank.c",
     "/third_party/libwebrtc/common_audio/vad/vad_gmm.c",
@@ -88,7 +88,6 @@ if CONFIG["OS_TARGET"] == "Android":
     DEFINES["HAVE_SYS_UIO_H"] = True
     DEFINES["WEBRTC_ANDROID"] = True
     DEFINES["WEBRTC_ANDROID_OPENSLES"] = True
-    DEFINES["WEBRTC_ENABLE_LIBEVENT"] = True
     DEFINES["WEBRTC_LINUX"] = True
     DEFINES["WEBRTC_POSIX"] = True
     DEFINES["_GNU_SOURCE"] = True
@@ -125,7 +124,6 @@ if CONFIG["OS_TARGET"] == "Linux":
     DEFINES["USE_NSS_CERTS"] = "1"
     DEFINES["USE_OZONE"] = "1"
     DEFINES["USE_UDEV"] = True
-    DEFINES["WEBRTC_ENABLE_LIBEVENT"] = True
     DEFINES["WEBRTC_LINUX"] = True
     DEFINES["WEBRTC_POSIX"] = True
     DEFINES["_FILE_OFFSET_BITS"] = "64"
@@ -144,7 +142,6 @@ if CONFIG["OS_TARGET"] == "OpenBSD":
     DEFINES["USE_OZONE"] = "1"
     DEFINES["USE_X11"] = "1"
     DEFINES["WEBRTC_BSD"] = True
-    DEFINES["WEBRTC_ENABLE_LIBEVENT"] = True
     DEFINES["WEBRTC_POSIX"] = True
     DEFINES["_FILE_OFFSET_BITS"] = "64"
     DEFINES["_LARGEFILE64_SOURCE"] = True

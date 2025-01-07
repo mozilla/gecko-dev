@@ -151,7 +151,7 @@ bool RequiresEncoderReset(const VideoCodec& prev_send_codec,
       }
       break;
     case kVideoCodecH265:
-      // TODO(bugs.webrtc.org/13485): Implement new send codec H265
+      // No H.265 specific handling needed.
       [[fallthrough]];
     default:
       break;
@@ -881,38 +881,40 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
   RTC_DCHECK_RUN_ON(worker_queue_);
 
   // Inform source about max configured framerate,
-  // requested_resolution and which layers are active.
+  // scale_resolution_down_to and which layers are active.
   int max_framerate = -1;
   // Is any layer active.
   bool active = false;
-  // The max requested_resolution.
-  std::optional<rtc::VideoSinkWants::FrameSize> requested_resolution;
+  // The max scale_resolution_down_to.
+  std::optional<rtc::VideoSinkWants::FrameSize> scale_resolution_down_to;
   for (const auto& stream : config.simulcast_layers) {
     active |= stream.active;
     if (stream.active) {
       max_framerate = std::max(stream.max_framerate, max_framerate);
     }
-    // Note: we propagate the highest requested_resolution regardless
+    // Note: we propagate the highest scale_resolution_down_to regardless
     // if layer is active or not.
-    if (stream.requested_resolution) {
-      if (!requested_resolution) {
-        requested_resolution.emplace(stream.requested_resolution->width,
-                                     stream.requested_resolution->height);
+    if (stream.scale_resolution_down_to) {
+      if (!scale_resolution_down_to) {
+        scale_resolution_down_to.emplace(
+            stream.scale_resolution_down_to->width,
+            stream.scale_resolution_down_to->height);
       } else {
-        requested_resolution.emplace(
-            std::max(stream.requested_resolution->width,
-                     requested_resolution->width),
-            std::max(stream.requested_resolution->height,
-                     requested_resolution->height));
+        scale_resolution_down_to.emplace(
+            std::max(stream.scale_resolution_down_to->width,
+                     scale_resolution_down_to->width),
+            std::max(stream.scale_resolution_down_to->height,
+                     scale_resolution_down_to->height));
       }
     }
   }
-  if (requested_resolution !=
-          video_source_sink_controller_.requested_resolution() ||
+  if (scale_resolution_down_to !=
+          video_source_sink_controller_.scale_resolution_down_to() ||
       active != video_source_sink_controller_.active() ||
       max_framerate !=
           video_source_sink_controller_.frame_rate_upper_limit().value_or(-1)) {
-    video_source_sink_controller_.SetRequestedResolution(requested_resolution);
+    video_source_sink_controller_.SetScaleResolutionDownTo(
+        scale_resolution_down_to);
     if (max_framerate >= 0) {
       video_source_sink_controller_.SetFrameRateUpperLimit(max_framerate);
     } else {
@@ -1176,7 +1178,11 @@ void VideoStreamEncoder::ReconfigureEncoder() {
       env_.field_trials(), encoder_config_, streams);
 
   if (encoder_config_.codec_type == kVideoCodecVP9 ||
-      encoder_config_.codec_type == kVideoCodecAV1) {
+      encoder_config_.codec_type == kVideoCodecAV1
+#ifdef RTC_ENABLE_H265
+      || encoder_config_.codec_type == kVideoCodecH265
+#endif
+  ) {
     // Spatial layers configuration might impose some parity restrictions,
     // thus some cropping might be needed.
     RTC_CHECK_GE(last_frame_info_->width, codec.width);
@@ -1212,7 +1218,11 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     }
   }
   if (encoder_config_.codec_type == kVideoCodecVP9 ||
-      encoder_config_.codec_type == kVideoCodecAV1) {
+      encoder_config_.codec_type == kVideoCodecAV1
+#ifdef RTC_ENABLE_H265
+      || encoder_config_.codec_type == kVideoCodecH265
+#endif
+  ) {
     log_stream << ", spatial layers: ";
     for (int i = 0; i < GetNumSpatialLayers(codec); ++i) {
       log_stream << "{" << i << ": " << codec.spatialLayers[i].width << "x"
@@ -1343,7 +1353,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     num_layers = codec.VP8()->numberOfTemporalLayers;
   } else if (codec.codecType == kVideoCodecVP9) {
     num_layers = codec.VP9()->numberOfTemporalLayers;
-  } else if (codec.codecType == kVideoCodecAV1 &&
+  } else if ((codec.codecType == kVideoCodecAV1 ||
+              codec.codecType == kVideoCodecH265) &&
              codec.GetScalabilityMode().has_value()) {
     num_layers =
         ScalabilityModeToNumTemporalLayers(*(codec.GetScalabilityMode()));
@@ -1355,7 +1366,6 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     // TODO(sprang): Add a better way to disable frame dropping.
     num_layers = codec.simulcastStream[0].numberOfTemporalLayers;
   } else {
-    // TODO(bugs.webrtc.org/13485): Implement H265 temporal layer
     num_layers = 1;
   }
 
@@ -1399,10 +1409,15 @@ void VideoStreamEncoder::ReconfigureEncoder() {
       break;
     }
   }
-  // Set min_bitrate_bps, max_bitrate_bps, and max padding bit rate for VP9
-  // and AV1 and leave only one stream containing all necessary information.
-  if ((encoder_config_.codec_type == kVideoCodecVP9 ||
-       encoder_config_.codec_type == kVideoCodecAV1) &&
+  // Set min_bitrate_bps, max_bitrate_bps, and max padding bit rate for VP9,
+  // AV1 and H.265, and leave only one stream containing all necessary
+  // information.
+  if ((
+#ifdef RTC_ENABLE_H265
+          encoder_config_.codec_type == kVideoCodecH265 ||
+#endif
+          encoder_config_.codec_type == kVideoCodecVP9 ||
+          encoder_config_.codec_type == kVideoCodecAV1) &&
       single_stream_or_non_first_inactive) {
     // Lower max bitrate to the level codec actually can produce.
     streams[0].max_bitrate_bps =
@@ -1530,8 +1545,8 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
 
   // Identifier should remain the same for newly produced incoming frame and the
   // received |video_frame|.
-  incoming_frame.set_capture_time_identifier(
-      video_frame.capture_time_identifier());
+  incoming_frame.set_presentation_timestamp(
+      video_frame.presentation_timestamp());
 
   if (incoming_frame.ntp_time_ms() <= last_captured_timestamp_) {
     // We don't allow the same capture time for two frames, drop this one.
@@ -1554,9 +1569,6 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
 
   encoder_stats_observer_->OnIncomingFrame(incoming_frame.width(),
                                            incoming_frame.height());
-  if (frame_instrumentation_generator_) {
-    frame_instrumentation_generator_->OnCapturedFrame(incoming_frame);
-  }
   ++captured_frame_count_;
   bool cwnd_frame_drop =
       cwnd_frame_drop_interval_ &&
@@ -1985,8 +1997,7 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
     out_frame.set_video_frame_buffer(cropped_buffer);
     out_frame.set_update_rect(update_rect);
     out_frame.set_ntp_time_ms(video_frame.ntp_time_ms());
-    out_frame.set_capture_time_identifier(
-        video_frame.capture_time_identifier());
+    out_frame.set_presentation_timestamp(video_frame.presentation_timestamp());
     // Since accumulated_update_rect_ is constructed before cropping,
     // we can't trust it. If any changes were pending, we invalidate whole
     // frame here.
@@ -2026,6 +2037,10 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
                out_frame.video_frame_buffer()->storage_representation());
 
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
+
+  if (frame_instrumentation_generator_) {
+    frame_instrumentation_generator_->OnCapturedFrame(out_frame);
+  }
 
   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
   was_encode_called_since_last_initialization_ = true;
@@ -2421,12 +2436,12 @@ void VideoStreamEncoder::OnVideoSourceRestrictionsUpdated(
   // so that ownership on restrictions/wants is kept on &encoder_queue_
   latest_restrictions_ = restrictions;
 
-  // When the `requested_resolution` API is used, we need to reconfigure any
+  // When the `scale_resolution_down_to` API is used, we need to reconfigure any
   // time the restricted resolution is updated. When that API isn't used, the
   // encoder settings are relative to the frame size and reconfiguration happens
   // automatically on new frame size and we don't need to reconfigure here.
   if (encoder_ && max_pixels_updated &&
-      encoder_config_.HasRequestedResolution()) {
+      encoder_config_.HasScaleResolutionDownTo()) {
     // The encoder will be reconfigured on the next frame.
     pending_encoder_reconfiguration_ = true;
   }

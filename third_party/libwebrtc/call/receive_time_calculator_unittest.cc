@@ -93,7 +93,7 @@ class EmulatedMonotoneousClock : public EmulatedClock {
 
   bool Stalled() const { return stall_recovery_time_us_ > 0; }
 
-  int64_t GetRemainingStall(int64_t time_us) const {
+  int64_t GetRemainingStall(int64_t /* time_us */) const {
     return stall_recovery_time_us_ > 0 ? stall_recovery_time_us_ - GetClockUs()
                                        : 0;
   }
