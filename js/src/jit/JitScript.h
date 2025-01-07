@@ -55,21 +55,24 @@ class IonScript;
 class JitScript;
 class JitZone;
 
-// Magic BaselineScript value indicating Baseline compilation has been disabled.
-static constexpr uintptr_t BaselineDisabledScript = 0x1;
+// Magic values indicating compilation has been disabled or the script
+// is already scheduled for background compilation.
+static constexpr uintptr_t DisabledScript = 0x1;
+static constexpr uintptr_t CompilingScript = 0x3;
+
+static constexpr uint32_t CompilingOrDisabledBit = 0x1;
+static_assert((DisabledScript & CompilingOrDisabledBit) != 0);
+static_assert((CompilingScript & CompilingOrDisabledBit) != 0);
 
 static BaselineScript* const BaselineDisabledScriptPtr =
-    reinterpret_cast<BaselineScript*>(BaselineDisabledScript);
-
-// Magic IonScript values indicating Ion compilation has been disabled or the
-// script is being Ion-compiled off-thread.
-static constexpr uintptr_t IonDisabledScript = 0x1;
-static constexpr uintptr_t IonCompilingScript = 0x2;
+    reinterpret_cast<BaselineScript*>(DisabledScript);
+static BaselineScript* const BaselineCompilingScriptPtr =
+    reinterpret_cast<BaselineScript*>(CompilingScript);
 
 static IonScript* const IonDisabledScriptPtr =
-    reinterpret_cast<IonScript*>(IonDisabledScript);
+    reinterpret_cast<IonScript*>(DisabledScript);
 static IonScript* const IonCompilingScriptPtr =
-    reinterpret_cast<IonScript*>(IonCompilingScript);
+    reinterpret_cast<IonScript*>(CompilingScript);
 
 /* [SMDOC] ICScript Lifetimes
  *
@@ -319,8 +322,8 @@ class alignas(uintptr_t) JitScript final
 
   HeapPtr<JSScript*> owningScript_;
 
-  // Baseline code for the script. Either nullptr, BaselineDisabledScriptPtr or
-  // a valid BaselineScript*.
+  // Baseline code for the script. Either nullptr, BaselineDisabledScriptPtr,
+  // BaselineCompilingScriptPtr or a valid BaselineScript*.
   GCStructPtr<BaselineScript*> baselineScript_;
 
   // Ion code for this script. Either nullptr, IonDisabledScriptPtr,
@@ -472,7 +475,9 @@ class alignas(uintptr_t) JitScript final
  public:
   // Methods for getting/setting/clearing a BaselineScript*.
   bool hasBaselineScript() const {
-    bool res = baselineScript_ && baselineScript_ != BaselineDisabledScriptPtr;
+    bool res = baselineScript_ &&
+               baselineScript_ != BaselineDisabledScriptPtr &&
+               baselineScript_ != BaselineCompilingScriptPtr;
     MOZ_ASSERT_IF(!res, !hasIonScript());
     return res;
   }
@@ -490,6 +495,17 @@ class alignas(uintptr_t) JitScript final
     BaselineScript* baseline = baselineScript();
     setBaselineScriptImpl(gcx, script, nullptr);
     return baseline;
+  }
+  bool isBaselineCompiling() const {
+    return baselineScript_ == BaselineCompilingScriptPtr;
+  }
+  void setIsBaselineCompiling(JSScript* script) {
+    MOZ_ASSERT(baselineScript_ == nullptr);
+    setBaselineScriptImpl(script, BaselineCompilingScriptPtr);
+  }
+  void clearIsBaselineCompiling(JSScript* script) {
+    MOZ_ASSERT(isBaselineCompiling());
+    setBaselineScriptImpl(script, nullptr);
   }
 
  private:

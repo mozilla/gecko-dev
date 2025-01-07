@@ -3933,9 +3933,8 @@ void MacroAssembler::loadBaselineJitCodeRaw(Register func, Register dest,
   // Load BaselineScript
   loadPtr(Address(dest, JitScript::offsetOfBaselineScript()), dest);
   if (failure) {
-    static_assert(BaselineDisabledScript == 0x1);
-    branchPtr(Assembler::BelowOrEqual, dest, ImmWord(BaselineDisabledScript),
-              failure);
+    static_assert(DisabledScript < CompilingScript);
+    branchPtr(Assembler::BelowOrEqual, dest, ImmWord(CompilingScript), failure);
   }
 
   // Load Baseline jitcode

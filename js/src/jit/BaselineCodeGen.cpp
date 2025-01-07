@@ -1547,10 +1547,8 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
 
   // Do nothing if Ion is already compiling this script off-thread or if Ion has
   // been disabled for this script.
-  masm.branchPtr(Assembler::Equal, scriptReg, ImmPtr(IonCompilingScriptPtr),
-                 &done);
-  masm.branchPtr(Assembler::Equal, scriptReg, ImmPtr(IonDisabledScriptPtr),
-                 &done);
+  masm.branchTestPtr(Assembler::NonZero, scriptReg,
+                     Imm32(CompilingOrDisabledBit), &done);
 
   // Try to compile and/or finish a compilation.
   if (JSOp(*pc) == JSOp::LoopHead) {
@@ -1665,9 +1663,10 @@ bool BaselineInterpreterCodeGen::emitWarmUpCounterIncrement() {
   Label done;
   masm.branch32(Assembler::BelowOrEqual, countReg,
                 Imm32(JitOptions.baselineJitWarmUpThreshold), &done);
-  masm.branchPtr(Assembler::Equal,
-                 Address(scriptReg, JitScript::offsetOfBaselineScript()),
-                 ImmPtr(BaselineDisabledScriptPtr), &done);
+
+  masm.branchTestPtr(Assembler::NonZero,
+                     Address(scriptReg, JitScript::offsetOfBaselineScript()),
+                     Imm32(CompilingOrDisabledBit), &done);
   {
     prepareVMCall();
 
@@ -5981,7 +5980,7 @@ bool BaselineCodeGen<Handler>::emitEnterGeneratorCode(Register script,
                                                       Register scratch) {
   // Resume in either the BaselineScript (if present) or Baseline Interpreter.
 
-  static_assert(BaselineDisabledScript == 0x1,
+  static_assert(CompilingScript == 0x3,
                 "Comparison below requires specific sentinel encoding");
 
   // Initialize the icScript slot in the baseline frame.
@@ -5995,7 +5994,7 @@ bool BaselineCodeGen<Handler>::emitEnterGeneratorCode(Register script,
   masm.loadJitScript(script, scratch);
   masm.loadPtr(Address(scratch, JitScript::offsetOfBaselineScript()), scratch);
   masm.branchPtr(Assembler::BelowOrEqual, scratch,
-                 ImmPtr(BaselineDisabledScriptPtr), &noBaselineScript);
+                 ImmPtr(BaselineCompilingScriptPtr), &noBaselineScript);
 
   masm.load32(Address(scratch, BaselineScript::offsetOfResumeEntriesOffset()),
               script);
