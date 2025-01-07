@@ -7,6 +7,7 @@
     contenteditable="true"
     onpaste="handlePaste(event)"></div>
     <input id="testInput" type="text" onpaste="handlePaste(event)">
+  <label for="pasteAllowed">Paste allowed?</label><input id="pasteAllowed" type="checkbox">
 </div>
 <script class="testbody" type="application/javascript">
 function is(a, b, msg) {
@@ -16,8 +17,9 @@ function is(a, b, msg) {
 }
 
 function checkPasteHelper(event) {
-  is(event.clipboardData.getData('text/plain'), "Original text",  "getData(text/plain) should return Original text");
-  is(event.clipboardData.types.length, 1, "Correct number of types");
+  let pasteAllowed = document.getElementById("pasteAllowed").checked;
+  is(event.clipboardData.getData('text/plain'), pasteAllowed ? "Original text" : "",  "getData(text/plain) got wrong value");
+  is(event.clipboardData.types.length, pasteAllowed ? 1 : 0, "Correct number of types");
   document.execCommand("copy");
 }
 

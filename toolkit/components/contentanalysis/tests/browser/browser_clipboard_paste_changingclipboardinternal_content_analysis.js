@@ -16,8 +16,11 @@ const CLIPBOARD_TEXT_STRING_NEW = "New text";
 // while Content Analysis is ongoing, the new contents are properly put
 // in the DOM element. (whether a new CA scan is done or not depends on
 // the browser.contentanalysis.bypass_for_same_tab_operations pref)
-async function testClipboardPasteWithContentAnalysis(bypassForSameTab) {
-  mockCA.setupForTest(true);
+async function testClipboardPasteWithContentAnalysis(
+  shouldAllow,
+  bypassForSameTab
+) {
+  mockCA.setupForTest(shouldAllow);
   await SpecialPowers.pushPrefEnv({
     set: [
       [
@@ -33,24 +36,49 @@ async function testClipboardPasteWithContentAnalysis(bypassForSameTab) {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE_URL);
   let browser = tab.linkedBrowser;
 
-  await testPasteWithElementId("testDiv", browser, bypassForSameTab);
-  await testPasteWithElementId("testInput", browser, bypassForSameTab);
+  await SpecialPowers.spawn(browser, [shouldAllow], async shouldAllow => {
+    content.document.getElementById("pasteAllowed").checked = shouldAllow;
+  });
+
+  await testPasteWithElementId(
+    "testDiv",
+    browser,
+    shouldAllow,
+    bypassForSameTab
+  );
+  await testPasteWithElementId(
+    "testInput",
+    browser,
+    shouldAllow,
+    bypassForSameTab
+  );
 
   BrowserTestUtils.removeTab(tab);
 }
 
 add_task(
-  async function testClipboardPasteWithContentAnalysisWithBypassForSameTab() {
-    await testClipboardPasteWithContentAnalysis(true);
+  async function testClipboardPasteWithContentAnalysisAllowWithBypassForSameTab() {
+    await testClipboardPasteWithContentAnalysis(true, true);
   }
 );
 
 add_task(
-  async function testClipboardPasteWithContentAnalysisWithNoBypassForSameTab() {
-    await testClipboardPasteWithContentAnalysis(false);
+  async function testClipboardPasteWithContentAnalysisAllowWithNoBypassForSameTab() {
+    await testClipboardPasteWithContentAnalysis(true, false);
   }
 );
 
+add_task(
+  async function testClipboardPasteWithContentAnalysisBlockWithBypassForSameTab() {
+    await testClipboardPasteWithContentAnalysis(false, true);
+  }
+);
+
+add_task(
+  async function testClipboardPasteWithContentAnalysisBlockWithNoBypassForSameTab() {
+    await testClipboardPasteWithContentAnalysis(false, false);
+  }
+);
 function setClipboardData(clipboardString) {
   const trans = Cc["@mozilla.org/widget/transferable;1"].createInstance(
     Ci.nsITransferable
@@ -67,7 +95,12 @@ function setClipboardData(clipboardString) {
   Services.clipboard.setData(trans, null, Ci.nsIClipboard.kGlobalClipboard);
 }
 
-async function testPasteWithElementId(elementId, browser, bypassForSameTab) {
+async function testPasteWithElementId(
+  elementId,
+  browser,
+  shouldAllow,
+  bypassForSameTab
+) {
   setClipboardData(CLIPBOARD_TEXT_STRING_ORIGINAL);
   let resultPromise = SpecialPowers.spawn(browser, [], () => {
     return new Promise(resolve => {
@@ -82,6 +115,7 @@ async function testPasteWithElementId(elementId, browser, bypassForSameTab) {
   });
 
   // Paste into content
+  await setElementValue(browser, elementId, "");
   await SpecialPowers.spawn(browser, [elementId], async elementId => {
     content.document.getElementById(elementId).focus();
   });
@@ -95,16 +129,22 @@ async function testPasteWithElementId(elementId, browser, bypassForSameTab) {
     "Correct number of calls to Content Analysis"
   );
   assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING_ORIGINAL);
+  // Note that if bypassForSameTab is true we don't expect to check CLIPBOARD_TEXT_STRING_NEW
+  // since it was set from the webpage.
   if (!bypassForSameTab) {
     assertContentAnalysisRequest(mockCA.calls[1], CLIPBOARD_TEXT_STRING_NEW);
   }
-  // Note that if bypassForSameTab is true we don't expect to check CLIPBOARD_TEXT_STRING_NEW
-  // since it was set from the webpage.
   mockCA.clearCalls();
   let value = await getElementValue(browser, elementId);
   // Since the clipboard was set during the paste event, that new
   // value should get set in the HTML element.
-  is(value, CLIPBOARD_TEXT_STRING_NEW, "element has correct value");
+  // Similarly to above, if bypassForSameTab is true we expect
+  // the content to be set.
+  is(
+    value,
+    shouldAllow || bypassForSameTab ? CLIPBOARD_TEXT_STRING_NEW : "",
+    "element has correct value"
+  );
 }
 
 function assertContentAnalysisRequest(request, expectedText) {
@@ -136,4 +176,19 @@ async function getElementValue(browser, elementId) {
     let element = content.document.getElementById(elementId);
     return element.value ?? element.innerText;
   });
+}
+
+async function setElementValue(browser, elementId, value) {
+  await SpecialPowers.spawn(
+    browser,
+    [elementId, value],
+    async (elementId, value) => {
+      let element = content.document.getElementById(elementId);
+      if (element.hasOwnProperty("value")) {
+        element.value = value;
+      } else {
+        element.innerText = value;
+      }
+    }
+  );
 }

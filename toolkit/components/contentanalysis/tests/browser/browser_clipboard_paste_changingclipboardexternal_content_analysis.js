@@ -16,16 +16,27 @@ const CLIPBOARD_TEXT_STRING_NEW = "New text";
 // does a copy from some other application) while Content Analysis is ongoing,
 // the new contents are ignored and the original contents of the clipboard
 // are put in the DOM element.
-add_task(async function testClipboardPasteWithContentAnalysis() {
-  mockCA.setupForTest(true, true);
+async function testClipboardPasteWithContentAnalysis(shouldAllow) {
+  mockCA.setupForTest(shouldAllow, true);
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE_URL);
   let browser = tab.linkedBrowser;
 
-  await testPasteWithElementId("testDiv", browser);
-  await testPasteWithElementId("testInput", browser);
+  await SpecialPowers.spawn(browser, [shouldAllow], async shouldAllow => {
+    content.document.getElementById("pasteAllowed").checked = shouldAllow;
+  });
+  await testPasteWithElementId("testDiv", browser, shouldAllow);
+  await testPasteWithElementId("testInput", browser, shouldAllow);
 
   BrowserTestUtils.removeTab(tab);
+}
+
+add_task(async function testClipboardPasteWithContentAnalysisAllow() {
+  await testClipboardPasteWithContentAnalysis(true);
+});
+
+add_task(async function testClipboardPasteWithContentAnalysisBlock() {
+  await testClipboardPasteWithContentAnalysis(false);
 });
 
 function setClipboardData(clipboardString) {
@@ -44,7 +55,7 @@ function setClipboardData(clipboardString) {
   Services.clipboard.setData(trans, null, Ci.nsIClipboard.kGlobalClipboard);
 }
 
-async function testPasteWithElementId(elementId, browser) {
+async function testPasteWithElementId(elementId, browser, shouldAllow) {
   setClipboardData(CLIPBOARD_TEXT_STRING_ORIGINAL);
   let resultPromise = SpecialPowers.spawn(browser, [], () => {
     return new Promise(resolve => {
@@ -59,6 +70,7 @@ async function testPasteWithElementId(elementId, browser) {
   });
 
   // Paste into content
+  await setElementValue(browser, elementId, "");
   await SpecialPowers.spawn(browser, [elementId], async elementId => {
     content.document.getElementById(elementId).focus();
   });
@@ -78,8 +90,6 @@ async function testPasteWithElementId(elementId, browser) {
     );
   });
   setClipboardData(CLIPBOARD_TEXT_STRING_NEW);
-  // We don't expect another CA call, but set this so that if we get one
-  // we'll get a test failure rather than an annoying-to-debug timeout.
   mockCA.waitForEvent = false;
   mockCA.eventTarget.dispatchEvent(
     new CustomEvent("returnContentAnalysisResponse")
@@ -99,7 +109,11 @@ async function testPasteWithElementId(elementId, browser) {
   // on to do something else on their machine and copy some sensitive data
   // like a password for use elsewhere - in this case we don't want the page
   // to see that sensitive data.
-  is(value, CLIPBOARD_TEXT_STRING_ORIGINAL, "element has correct value");
+  is(
+    value,
+    shouldAllow ? CLIPBOARD_TEXT_STRING_ORIGINAL : "",
+    "element has correct value"
+  );
   mockCA.waitForEvent = true;
 }
 
@@ -132,4 +146,19 @@ async function getElementValue(browser, elementId) {
     let element = content.document.getElementById(elementId);
     return element.value ?? element.innerText;
   });
+}
+
+async function setElementValue(browser, elementId, value) {
+  await SpecialPowers.spawn(
+    browser,
+    [elementId, value],
+    async (elementId, value) => {
+      let element = content.document.getElementById(elementId);
+      if (element.hasOwnProperty("value")) {
+        element.value = value;
+      } else {
+        element.innerText = value;
+      }
+    }
+  );
 }

@@ -7269,14 +7269,24 @@ nsresult EditorBase::GetDataFromDataTransferOrClipboard(
   MOZ_ASSERT(aTransferable);
   if (aDataTransfer) {
     MOZ_ASSERT(aDataTransfer->ClipboardType() == Some(aClipboardType));
-    nsresult rv = [aDataTransfer, aTransferable]() -> nsresult {
+    bool readFromClipboard = true;
+    nsresult rv = [aDataTransfer, aTransferable,
+                   &readFromClipboard]() -> nsresult {
       nsIClipboardDataSnapshot* snapshot =
           aDataTransfer->GetClipboardDataSnapshot();
       MOZ_ASSERT(snapshot);
       bool snapshotIsValid = false;
       snapshot->GetValid(&snapshotIsValid);
+      // By default, if we have a valid snapshot, we should only read from that
+      // and not fall back to the clipboard to avoid bypassing a BLOCK result
+      // from Content Analysis (bug 1936204). There are some exceptions which
+      // are dealt with later, however.
+      readFromClipboard = !snapshotIsValid;
       if (!snapshotIsValid) {
-        NS_WARNING("DataTransfer::GetClipboardDataSnapshot() is not valid");
+        NS_WARNING(
+            "DataTransfer::GetClipboardDataSnapshot() is not valid, falling "
+            "back "
+            "to clipboard");
         return NS_ERROR_FAILURE;
       }
       AutoTArray<nsCString, 10> transferableFlavors;
@@ -7289,8 +7299,12 @@ nsresult EditorBase::GetDataFromDataTransferOrClipboard(
       if (transferableFlavors.Length() == 1) {
         // avoid creating unneeded temporary transferables
         rv = snapshot->GetDataSync(aTransferable);
-        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                             "nsIClipboardDataSnapshot::GetDataSync() failed");
+        if (NS_FAILED(rv)) {
+          NS_WARNING("nsIClipboardDataSnapshot::GetDataSync() failed");
+        }
+        // If this fails, it may be because the snapshot was invalid and we
+        // didn't detect it until now, so fall back to reading the clipboard.
+        readFromClipboard = rv == NS_ERROR_NOT_AVAILABLE;
         return rv;
       }
       AutoTArray<nsCString, 5> snapshotFlavors;
@@ -7313,6 +7327,10 @@ nsresult EditorBase::GetDataFromDataTransferOrClipboard(
           rv = snapshot->GetDataSync(singleTransferable);
           if (NS_FAILED(rv)) {
             NS_WARNING("nsIClipboardDataSnapshot::GetDataSync() failed");
+            // If this fails, it may be because the snapshot was invalid and we
+            // didn't detect it until now, so fall back to reading the
+            // clipboard.
+            readFromClipboard = rv == NS_ERROR_NOT_AVAILABLE;
             return rv;
           }
           nsCOMPtr<nsISupports> data;
@@ -7330,14 +7348,15 @@ nsresult EditorBase::GetDataFromDataTransferOrClipboard(
           return NS_OK;
         }
       }
-      // Couldn't find any data so return an error so we try the fallback.
-      return NS_ERROR_FAILURE;
-    }();
-    if (NS_SUCCEEDED(rv)) {
+      // The snapshot doesn't have any relevant data. Leave aTransferable empty
+      // but return NS_OK since the operation did succeed (there just isn't any
+      // data) and some tests expect this.
       return NS_OK;
+    }();
+    // If the operation failed, only fall back to the clipboard if indicated.
+    if (NS_SUCCEEDED(rv) || !readFromClipboard) {
+      return rv;
     }
-    // If this fails, the snapshot may have become invalidated. Fall back
-    // to getting data from the clipboard.
   }
 
   // Get Clipboard Service
