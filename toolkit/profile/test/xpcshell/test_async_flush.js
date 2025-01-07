@@ -156,29 +156,5 @@ add_task(async () => {
     installData = readInstallsIni();
     Assert.equal(profileData.installs[hash].default, newProfileDir.leafName);
     Assert.equal(installData.installs[hash].default, newProfileDir.leafName);
-
-    // Modify the on-disk data
-    writeProfilesIni({
-      profiles: [
-        {
-          name: "some other name",
-          path: "some other directory",
-          storeID: "7126354jdf",
-        },
-      ],
-      installs: {
-        [hash]: { default: "some other directory" },
-      },
-    });
-
-    await service.asyncFlushGroupProfile();
-
-    profileData = readProfilesIni();
-    Assert.equal(profileData.profiles.length, 1, "Should have one profile.");
-
-    found = profileData.profiles[0];
-    Assert.ok(found, "Should have found the current profile.");
-    Assert.equal(found.path, newProfileDir.leafName);
-    Assert.equal(found.storeID, "7126354jdf");
   }
 });

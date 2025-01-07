@@ -53,7 +53,7 @@ class MockProfileService {
 
   async asyncFlush() {}
 
-  async asyncFlushGroupProfile() {}
+  async asyncFlushCurrentProfile() {}
 }
 
 const gProfileService = new MockProfileService();
