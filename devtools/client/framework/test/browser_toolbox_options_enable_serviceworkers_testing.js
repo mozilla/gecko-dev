@@ -40,7 +40,16 @@ add_task(async function () {
 
   await unregister();
   data = await registerAndUnregisterInFrame();
-  is(data.success, true, "Register should success");
+  is(data.success, true, "Register should success in iframe");
+
+  data = await registerAndUnregisterInWorker();
+  is(data.success, true, "Register should success in worker");
+
+  data = await openAndDeleteCacheInWindow();
+  is(data.success, true, "Cache open and delete should success in window");
+
+  data = await openAndDeleteCacheInWorker();
+  is(data.success, true, "Cache open and delete should success in worker");
 
   info("Workers should be turned back off when we closes the toolbox");
   await toolbox.destroy();
@@ -73,4 +82,16 @@ function unregister() {
 
 function registerAndUnregisterInFrame() {
   return sendMessage("devtools:sw-test:iframe:register-and-unregister");
+}
+
+function registerAndUnregisterInWorker() {
+  return sendMessage("devtools:sw-test:worker:register-and-unregister");
+}
+
+function openAndDeleteCacheInWindow() {
+  return sendMessage("devtools:cache-test:window:open-and-delete");
+}
+
+function openAndDeleteCacheInWorker() {
+  return sendMessage("devtools:cache-test:worker:open-and-delete");
 }

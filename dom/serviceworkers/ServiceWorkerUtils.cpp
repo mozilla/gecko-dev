@@ -37,6 +37,10 @@ static bool IsServiceWorkersTestingEnabledInGlobal(JSObject* const aGlobal) {
     if (auto* bc = innerWindow->GetBrowsingContext()) {
       return bc->Top()->ServiceWorkersTestingEnabled();
     }
+    return false;
+  }
+  if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
+    return workerPrivate->ServiceWorkersTestingInWindow();
   }
   return false;
 }

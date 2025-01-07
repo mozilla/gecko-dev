@@ -3320,7 +3320,7 @@ bool nsGlobalWindowInner::DeviceSensorsEnabled(JSContext*, JSObject*) {
 bool nsGlobalWindowInner::CachesEnabled(JSContext* aCx, JSObject* aObj) {
   if (!IsSecureContextOrObjectIsFromSecureContext(aCx, aObj)) {
     return StaticPrefs::dom_caches_testing_enabled() ||
-           StaticPrefs::dom_serviceWorkers_testing_enabled();
+           ServiceWorkersEnabled(aCx, aObj);
   }
   return true;
 }
