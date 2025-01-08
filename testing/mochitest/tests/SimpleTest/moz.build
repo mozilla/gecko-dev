@@ -16,6 +16,7 @@ TEST_HARNESS_FILES.testing.mochitest.tests.SimpleTest += [
     "DragTargetParentContext.sys.mjs",
     "EventUtils.js",
     "ExtensionTestUtils.js",
+    "GleanTest.js",
     "iframe-between-tests.html",
     "LogController.js",
     "MemoryStats.js",
