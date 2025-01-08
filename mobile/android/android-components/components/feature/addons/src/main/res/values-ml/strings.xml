@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ബ്രൌസര്‍ ടാബുകള്‍ പരിശോധിക്കുക</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">പരിധിയില്ലാതെ ക്ലൈന്റ്-സൈഡ് ഡാറ്റ സൂക്ഷിക്കുക</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">പരിധിയില്ലാതെ ഉപഭോക്തൃ-വശ ദത്ത സൂക്ഷിക്കുക</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">നാവിഗേഷൻ ചെയ്യുമ്പോൾ ബ്രൗസർ പ്രവർത്തനം ആക്സസ്സുചെയ്യുക</string>
     <!-- Description for bookmarks permission. -->
@@ -35,9 +35,9 @@
     <!-- Description for browser_setting permission. -->
     <string name="mozac_feature_addons_permissions_browser_setting_description">ബ്രൗസർ ക്രമീകരണങ്ങൾ വായിക്കുക പരിഷ്കരിക്കുക</string>
     <!-- Description for browser_data permission. -->
-    <string name="mozac_feature_addons_permissions_browser_data_description">സമീപകാല ബ്രൗസിംഗ് ചരിത്രം, കുക്കികൾ, അതുമായി ബന്ധപ്പെട്ട ഡാറ്റ എന്നിവ നീക്കം ചെയ്യുക</string>
+    <string name="mozac_feature_addons_permissions_browser_data_description">സമീപകാല തിരച്ചിൽനാൾവഴിയും കുക്കികളും അതുമായി ബന്ധപ്പെട്ട ദത്ത എന്നിവ മായ്ക്കുക</string>
     <!-- Description for clipboard_read permission. -->
-    <string name="mozac_feature_addons_permissions_clipboard_read_description">ക്ലിപ്ബോര്‍ഡില്‍ നിന്നും ‍ഡാറ്റ എടുക്കുക</string>
+    <string name="mozac_feature_addons_permissions_clipboard_read_description">പകർത്തൽപെട്ടി നിന്നു് ദത്ത എടുക്കുക</string>
     <!-- Description for clipboard_write permission. -->
     <string name="mozac_feature_addons_permissions_clipboard_write_description">പകർത്തൽപെട്ടിലേക്കു് ദത്ത നൽകുക</string>
     <!-- Description for declarativeNetRequest permission. -->
@@ -45,9 +45,9 @@
     <!-- Description for declarativeNetRequestFeedback permission. -->
     <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">തിരയൽ നാൾവഴി വായിക്കുക</string>
     <!-- Description for downloads permission. -->
-    <string name="mozac_feature_addons_permissions_downloads_description">ഫയലുകൾ ഡൗൺലോഡ്‌ ചെയ്യുകയും ബ്രൗസറിന്റെ ഡൌൺലോഡ് ചരിത്രം വായിക്കുകയും പരിഷ്ക്കരിക്കുകയും ചെയ്യുക</string>
+    <string name="mozac_feature_addons_permissions_downloads_description">ഫയലുകൾ ഇറക്കിവയ്ക്കുകയും അന്വേഷിയന്ത്രത്തിന്റെ ഇറക്കിവയ്ക്കൽ നാൾവഴി വായിക്കുകയും പരിഷ്ക്കരിക്കുകയും ചെയ്യുക</string>
     <!-- Description for downloads_open permission. -->
-    <string name="mozac_feature_addons_permissions_downloads_open_description">നിങ്ങളുടെ ഉപകരണത്തിലേക്ക് ഡൗൺലോഡുചെയ്‌ത ഫയലുകൾ തുറക്കുക</string>
+    <string name="mozac_feature_addons_permissions_downloads_open_description">താങ്ങളുടെ ഉപകരണത്തിലോട്ടു് ഇറക്കിവച്ച ഫയലുകൾ തുറക്കുക</string>
     <!-- Description for find permission. -->
     <string name="mozac_feature_addons_permissions_find_description">തുറന്നിരിക്കുന്ന എല്ലാ ടാബുകളിലേയും കുറിപ്പ്‌ വായിക്കുക</string>
     <!-- Description for geolocation permission. -->

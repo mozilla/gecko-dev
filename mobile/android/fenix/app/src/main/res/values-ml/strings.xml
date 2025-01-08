@@ -197,6 +197,9 @@
     <string name="browser_menu_extensions_banner_onboarding_header">%s താങ്ങളുടേതാക്കുക</string>
     <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
     <string name="browser_menu_disabled_extensions_banner_onboarding_header">നിങ്ങൾ വിപുലീകരണങ്ങൾ സ്ഥാപിച്ചിരിക്കുന്നു, പക്ഷേ പ്രവർത്തനക്ഷമമാക്കിയിട്ടില്ല</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ താങ്ങളുടെ തിരയലിനെ സമനിലയിലാക്കുന്നു, %s എങ്ങനെ കാണുകയും പ്രവർത്തിക്കുകയും ചെയ്യുന്നു എന്നതു് മാറ്റുന്നതു് മുതൽ സ്വകാര്യതയും സുരക്ഷയും വർദ്ധിപ്പിക്കുന്നതു് വരെ.</string>
     <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
      The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
     <string name="browser_menu_disabled_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ ഉപയോഗിക്കുന്നതിനു് ക്രമീകരണങ്ങളിൽ അല്ലെങ്കിൽ ചുവടെയുള്ള &quot;%s&quot; തിരഞ്ഞെടുത്തു് അതിനു് പ്രവർത്തനക്ഷമമാക്കുക.</string>
@@ -561,7 +564,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">കരുതിവച്ചിട്ടു് തുടരുക</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">ഒഴിവാക്കുക</string>
+    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">മുകള്‍ഭാഗം</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -583,7 +586,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">കരുതിവച്ചിട്ടു് തിരയാൻ തുടങ്ങുക</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">ഒഴിവാക്കുക</string>
+    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">ഇരുണ്ടത്</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -641,7 +644,7 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="preferences_about">%1$s നെ കുറിച്ച്</string>
     <!-- Preference for settings related to changing the default browser -->
-    <string name="preferences_set_as_default_browser">സ്വതേയുള്ള ബ്രൗസര്‍ ആക്കുക</string>
+    <string name="preferences_set_as_default_browser">സ്വതേയുള്ള അന്വേഷിയന്ത്രം ആക്കുക</string>
     <!-- Preference category for advanced settings -->
     <string name="preferences_category_advanced">സങ്കീര്‍ണ്ണമായവ</string>
     <!-- Preference category for privacy and security settings -->
@@ -753,9 +756,9 @@
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">സ്വകാര്യ സെഷനുകളിൽ കാണിക്കുക</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
-    <string name="preferences_show_clipboard_suggestions">ക്ലിപ്പ്ബോർഡ് നിര്‍ദ്ദേശങ്ങള്‍ കാണിക്കുക</string>
+    <string name="preferences_show_clipboard_suggestions">പകർത്തൽപെട്ടി നിര്‍ദ്ദേശങ്ങള്‍ കാണിക്കുക</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
-    <string name="preferences_search_browsing_history">ബ്രൗസിങ്ങ് ചരിത്രം തിരയുക</string>
+    <string name="preferences_search_browsing_history">തിരയൽ നാൾവഴിയിൽ തപ്പുക</string>
     <!-- Preference title for switch preference to suggest bookmarks when searching -->
     <string name="preferences_search_bookmarks">അടയാളക്കുറിപ്പുകള്‍ തിരയുക</string>
     <!-- Preference title for switch preference to suggest synced tabs when searching -->
@@ -1206,7 +1209,7 @@
     <!-- Text for the button to clear all history -->
     <string name="history_delete_all">നാള്‍വഴികൾ ഇല്ലാതാക്കുക</string>
     <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
-    <string name="history_delete_multiple_items_snackbar">ചരിത്രം ഇല്ലാതാക്കി</string>
+    <string name="history_delete_multiple_items_snackbar">നാൾവഴി മായച്ചു</string>
     <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
     <string name="history_delete_single_item_snackbar">%1$s നീക്കം ചെയ്തു</string>
     <!-- Context description text for the button to delete a single history item -->
@@ -1226,7 +1229,7 @@
     <string name="history_older">പഴയത്</string>
 
     <!-- Text shown when no history exists -->
-    <string name="history_empty_message">ഇവിടെ ചരിത്രമൊന്നുമില്ല</string>
+    <string name="history_empty_message">ഇവിടെ നാൾവഴിയൊന്നുമില്ല</string>
 
 
     <!-- Downloads -->
@@ -1302,7 +1305,7 @@
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
-    <string name="bookmark_delete_folder_confirmation_dialog">ഈ ഫോൾഡർ നീക്കം ചെയ്യണമെന്ന് താങ്കൾക്ക് ഉറപ്പാണോ?</string>
+    <string name="bookmark_delete_folder_confirmation_dialog">ഈ അറയെ മായ്ക്കണമെന്നു് താങ്കൾക്ക് ഉറപ്പാണോ?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
     <string name="bookmark_delete_folders_confirmation_dialog">തിരഞ്ഞെടുക്കപ്പെട്ട ഇനങ്ങൾ മായ്ക്കണമെന്നു് ഉറപ്പുണ്ടോ?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
@@ -1310,7 +1313,7 @@
     <!-- Text for the cancel button on delete bookmark dialog -->
     <string name="bookmark_delete_negative">റദ്ദാക്കുക</string>
     <!-- Screen title for adding a bookmarks folder -->
-    <string name="bookmark_add_folder">ഫോൾഡർ ചേർക്കുക</string>
+    <string name="bookmark_add_folder">അറ ചേർക്കുക</string>
 
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">&quot;%s&quot;-ൽ കരുതവച്ചു</string>
@@ -1342,13 +1345,13 @@
     <!-- Bookmark editing screen title -->
     <string name="edit_bookmark_fragment_title">അടയാളക്കുറിപ്പ് തിരുത്തുക</string>
     <!-- Bookmark folder editing screen title -->
-    <string name="edit_bookmark_folder_fragment_title">ഫോള്‍ഡര്‍ തിരുത്തുക</string>
+    <string name="edit_bookmark_folder_fragment_title">അറ തിരുത്തുക</string>
     <!-- Bookmark sign in button message -->
     <string name="bookmark_sign_in_button">സമന്വയിപ്പിച്ച ബുക്ക്മാർക്കുകൾ കാണാൻ പ്രവേശിക്കുക</string>
     <!-- Bookmark URL editing field label -->
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
-    <string name="bookmark_folder_label">ഫോൾഡർ</string>
+    <string name="bookmark_folder_label">അറ</string>
     <!-- Text indicating which folder a bookmark or folder will be saved in -->
     <string name="bookmark_save_in_label">ഇതിൽ കരുതിവയ്ക്കൂ</string>
     <!-- Bookmark NAME editing field label -->
@@ -1356,9 +1359,9 @@
     <!-- Label for a text input field for a bookmark or folder name -->
     <string name="bookmark_name_label_normal_case">പേരു്</string>
     <!-- Bookmark add folder screen title -->
-    <string name="bookmark_add_folder_fragment_label">ഫോൾഡർ ചേർക്കുക</string>
+    <string name="bookmark_add_folder_fragment_label">അറ ചേർക്കുക</string>
     <!-- Bookmark select folder screen title -->
-    <string name="bookmark_select_folder_fragment_label">ഫോൾഡർ തിരഞ്ഞെടുക്കുക</string>
+    <string name="bookmark_select_folder_fragment_label">അറ തിരഞ്ഞെടുക്കുക</string>
     <!-- Bookmark editing error missing title -->
     <string name="bookmark_empty_title_error">നിർബന്ധമായും ഒരു ശീർഷകം ഉണ്ടായിരിക്കണം</string>
     <!-- Bookmark editing error missing or improper URL -->
@@ -1395,8 +1398,14 @@
     <string name="bookmark_item_menu_button_content_description">%s-നുള്ള ഇനം പട്ടിക</string>
     <!-- Title for the bookmark list empty state-->
     <string name="bookmark_empty_list_title">ഇതുവരെ അടയാളക്കുറിപ്പുകളൊന്നുമില്ല</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">താങ്ങൾ തിരയുമ്പോഴു് സൈറ്റുകളെ കരുതിവയ്ക്കുക. മറ്റു് സമന്വയിപ്പിച്ച ഉപകരണങ്ങളിൽ നിന്നു് അടയാളക്കുറിപ്പുകൾ പിടിച്ചുകൊണ്ടുവരാനായി പ്രവേശിക്കുക.</string>
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">സമന്വയിപ്പിക്കാനായി പ്രവേശിക്കൽ ചെയ്യുക</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">താങ്ങൾ തിരയുമ്പോഴു് സൈറ്റുകളെ കരുതിവയ്ക്കുക. മറ്റു് സമന്വയിപ്പിച്ച ഉപകരണങ്ങളിൽ നിന്നു് അടയാളക്കുറിപ്പുകൾ ഞങ്ങൾ കൊണ്ടുവരാം.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">താങ്ങളുടെ പ്രയപ്പെട്ട വെബ്സ്ഥാനങ്ങളെ പിന്നീടു് കണ്ടെത്താൻ താങ്ങൾക്കു് തിരയുമ്പോൾ അടയാളക്കുറിപ്പുകളൾ ചേൎക്കാം.</string>
     <!-- Description for the add new folder button when selecting a folder. -->
     <string name="bookmark_select_folder_new_folder_button_title">പുതിയ അറ</string>
 
@@ -1682,7 +1691,7 @@
     <string name="preference_accessibility_auto_size_summary">ഫോണ്ട് വലുപ്പം നിങ്ങളുടെ Android ക്രമീകരണങ്ങളുമായി പൊരുത്തപ്പെടും. ഫോണ്ട് വലുപ്പം ഇവിടെ നിയന്ത്രിക്കുന്നത് നിർജ്ജീവമാക്കുക.</string>
 
     <!-- Title for the Delete browsing data preference -->
-    <string name="preferences_delete_browsing_data">ബ്രൗസിങ്ങ് ഡാറ്റ നീക്കം ചെയ്യുക</string>
+    <string name="preferences_delete_browsing_data">തിരയൽ ദത്ത മായ്ക്കുക</string>
     <!-- Title for the tabs item in Delete browsing data -->
     <string name="preferences_delete_browsing_data_tabs_title_2">ടാബുകൾ തുറക്കുക</string>
     <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
@@ -1690,7 +1699,7 @@
 
     <!-- Title for the data and history items in Delete browsing data -->
     <!-- Title for the history item in Delete browsing data -->
-    <string name="preferences_delete_browsing_data_browsing_history_title">ചരിത്രം</string>
+    <string name="preferences_delete_browsing_data_browsing_history_title">നാൾവഴി</string>
     <!-- Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
         number of history items the user has -->
     <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d വിലാസങ്ങൾ</string>
@@ -1707,11 +1716,11 @@
     <!-- Title for the downloads item in Delete browsing data -->
     <string name="preferences_delete_browsing_data_downloads">ഇറക്കിവയ്ക്കലുകൾ</string>
     <!-- Text for the button to delete browsing data -->
-    <string name="preferences_delete_browsing_data_button">ബ്രൗസിങ്ങ് ഡാറ്റ നീക്കം ചെയ്യുക</string>
+    <string name="preferences_delete_browsing_data_button">തിരയൽ ദത്ത മായ്ക്കുക</string>
     <!-- Title for the Delete browsing data on quit preference -->
-    <string name="preferences_delete_browsing_data_on_quit">പുറത്ത് കടക്കുമ്പോൾ ബ്രൗസിങ്ങ് ഡാറ്റ നീക്കം ചെയ്യുക</string>
+    <string name="preferences_delete_browsing_data_on_quit">പുറത്ത് കടക്കുമ്പോൾ തിരയൽദത്ത മായ്ക്കുക</string>
     <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-    <string name="preference_summary_delete_browsing_data_on_quit_2">പ്രധാന മെനുവിൽ നിന്ന് \&quot;പുറത്തുകടക്കുക\&quot; തിരഞ്ഞെടുക്കുമ്പോൾ ബ്രൗസിംഗ് ഡാറ്റ തനിയേ നീക്കം ചെയ്യുന്നു</string>
+    <string name="preference_summary_delete_browsing_data_on_quit_2">പ്രധാനക്കുറിപ്പടികട്ടയിൽ നിന്ന്  “പുറത്തുകടക്കുക” തിരഞ്ഞെടുക്കുമ്പോൾ തിരച്ചിൽദത്ത തനിയേ മായ്ക്കുന്നു</string>
     <!-- Action item in menu for the Delete browsing data on quit feature -->
     <string name="delete_browsing_data_on_quit_action">പുറത്ത് കടക്കുക</string>
 
@@ -1727,15 +1736,15 @@
     <string name="delete_history_prompt_button_everything">എല്ലാം</string>
 
     <!-- Dialog message to the user asking to delete browsing data. Parameter will be replaced by app name. -->
-    <string name="delete_browsing_data_prompt_message_3">%s തിരഞ്ഞെടുത്ത ബ്രൗസിങ്ങ് ഡാറ്റ നീക്കം ചെയ്യും.</string>
+    <string name="delete_browsing_data_prompt_message_3">%s തിരഞ്ഞെടുത്ത തിരയൽദത്ത മായ്ക്കും.</string>
     <!-- Text for the cancel button for the data deletion dialog -->
     <string name="delete_browsing_data_prompt_cancel">റദ്ദാക്കുക</string>
     <!-- Text for the allow button for the data deletion dialog -->
     <string name="delete_browsing_data_prompt_allow">നീക്കം ചെയ്യുക</string>
     <!-- Text for the snackbar confirmation that the data was deleted -->
-    <string name="preferences_delete_browsing_data_snackbar">ബ്രൗസിംഗ് ഡാറ്റ നീക്കം ചെയ്തു</string>
+    <string name="preferences_delete_browsing_data_snackbar">തിരച്ചിൽ ദത്ത മായച്ചു</string>
     <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
-    <string name="deleting_browsing_data_in_progress">ബ്രൗസിംഗ് ഡാറ്റ നീക്കം ചെയ്യുന്നു…</string>
+    <string name="deleting_browsing_data_in_progress">തിരച്ചിൽ ദത്ത മായ്ക്കുന്നു…</string>
 
     <!-- Dialog message to the user asking to delete all history items inside the opened group. Parameter will be replaced by a history group name. -->
     <string name="delete_all_history_group_prompt_message">&quot;%s&quot;-ൽ എല്ലാ സൈറ്റുകൾ മായ്ക്കുക</string>
@@ -1760,7 +1769,7 @@
     <!-- Text shown in snackbar for the "retry" action that the user has after sharing tabs failed -->
     <string name="sync_sent_tab_error_snackbar_action">വീണ്ടും ശ്രമിക്കുക</string>
     <!-- Title of QR Pairing Fragment -->
-    <string name="sync_scan_code">കോഡ് സ്കാൻ ചെയ്യുക</string>
+    <string name="sync_scan_code">കൂ.ർ സങ്കേതം പരിശോധിക്കുക</string>
     <!-- Instructions on how to access pairing -->
     <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[താങ്കളുടെ കമ്പ്യൂട്ടറിൽ ഫയർഫോക്സ് തുറന്ന് <b>https://firefox.com/pair</b> എന്നതിലേക്ക് പോകുക]]></string>
     <!-- Text shown for sign in pairing when ready -->
@@ -1780,7 +1789,7 @@
     <string name="sign_out_cancel">റദ്ദാക്കുക</string>
 
     <!-- Error message snackbar shown after the user tried to select a default folder which cannot be altered -->
-    <string name="bookmark_cannot_edit_root">തനതു ഫോള്‍ഡറുകൾ എഡിറ്റ് ചെയ്യാൻ കഴിയില്ല</string>
+    <string name="bookmark_cannot_edit_root">തനതു അറകളെ തിരുത്താൻ കഴിയില്ല</string>
 
     <!-- Enhanced Tracking Protection -->
     <!-- Link displayed in enhanced tracking protection panel to access tracking protection settings -->
@@ -1810,7 +1819,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings for cookies-->
     <string name="preference_enhanced_tracking_protection_custom_cookies">കുക്കികള്‍</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
-    <string name="preference_enhanced_tracking_protection_custom_cookies_1">ക്രോസ്-സൈറ്റ്, സോഷ്യൽ മീഡിയ ട്രാക്കറുകൾ</string>
+    <string name="preference_enhanced_tracking_protection_custom_cookies_1">ക്രോസ്-സൈറ്റ്, പൊതുമാധ്യമ പിന്തുടൎച്ചയന്ത്രങ്ങൾ</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
     <string name="preference_enhanced_tracking_protection_custom_cookies_2">സന്ദർശിക്കാത്ത സൈറ്റുകളിൽ നിന്നുള്ള കുക്കികൾ</string>
 
@@ -1897,7 +1906,7 @@
     <!-- Paste the text in the clipboard -->
     <string name="browser_toolbar_long_press_popup_paste">പതിക്കുക</string>
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
-    <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL ക്ലിപ്ബോർഡിലേക്ക് പകർത്തി</string>
+    <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL പകർത്തൽപെട്ടിയിലോട്ടു് പകർത്തി</string>
 
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">ഹോം സ്‌ക്രീനിലേക്ക് ചേർക്കുക</string>
@@ -1960,9 +1969,9 @@
     <!-- The header for the password for a login -->
     <string name="preferences_passwords_saved_logins_password">രഹസ്യവാക്ക്</string>
     <!-- Shown in snackbar to tell user that the password has been copied -->
-    <string name="logins_password_copied">ക്ലിപ്പ്ബോര്‍ഡിലേക്കു് രഹസ്യവാക്ക് പകര്‍ത്തി</string>
+    <string name="logins_password_copied">പകർത്തൽപെട്ടിയിലോട്ടു് രഹസ്യവാക്ക് പകര്‍ത്തി</string>
     <!-- Shown in snackbar to tell user that the username has been copied -->
-    <string name="logins_username_copied">ഉപയോക്തൃനാമം ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തി</string>
+    <string name="logins_username_copied">ഉപയോക്തൃനാമം പകർത്തൽപെട്ടിയിലോട്ടു് പകർത്തി</string>
     <!-- Content Description (for screenreaders etc) read for the button to copy a password in logins-->
     <string name="saved_logins_copy_password">രഹസ്യവാക്ക് പകര്‍ത്തുക</string>
     <!-- Content Description (for screenreaders etc) read for the button to clear a password while editing a login-->
@@ -2327,6 +2336,10 @@
     <string name="google_search_engine_suggestion_header">Google തിരയൽ</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
     <string name="other_default_search_engine_suggestion_header">%s തിരച്ചിൽ</string>
+
+    <!-- Default browser experiment -->
+    <!-- Default browser card title -->
+    <string name="default_browser_experiment_card_title">താങ്ങളുടെ തനുതായ അന്വേഷിയന്ത്രം മാറുക</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">മാറ്റുക</string>
