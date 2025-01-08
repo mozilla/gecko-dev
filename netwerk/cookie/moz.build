@@ -15,6 +15,7 @@ XPIDL_SOURCES += [
     "nsICookieNotification.idl",
     "nsICookiePermission.idl",
     "nsICookieService.idl",
+    "nsIThirdPartyCookieBlockingExceptionListService.idl",
 ]
 
 XPIDL_MODULE = "necko_cookie"
@@ -71,8 +72,16 @@ LOCAL_INCLUDES += [
     "/netwerk/protocol/http",
 ]
 
+EXTRA_JS_MODULES += [
+    "ThirdPartyCookieBlockingExceptionListService.sys.mjs",
+]
+
 TESTING_JS_MODULES += [
     "CookieXPCShellUtils.sys.mjs",
+]
+
+XPCOM_MANIFESTS += [
+    "components.conf",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")

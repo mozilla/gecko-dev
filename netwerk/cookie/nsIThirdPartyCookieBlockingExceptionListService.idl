@@ -1,0 +1,40 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+/**
+ * Helper for syncing remote exception lists for third-party cookie blocking.
+ */
+[scriptable, uuid(1ee0cc18-c968-4105-a895-bdea08e187eb)]
+interface nsIThirdPartyCookieBlockingExceptionListService : nsISupports {
+  /**
+     * Initialize the service and import exceptions.
+     * Resolves once the initial set of exceptions has been imported.
+     */
+    Promise init();
+
+    /**
+     * Shutdown the service.
+     */
+    void shutdown();
+};
+
+[scriptable, uuid(8200e12c-416c-42eb-8af5-db9745d2e527)]
+interface nsIThirdPartyCookieExceptionEntry : nsISupports {
+  // The first-party site of the exception. This can be a wildcard to match all
+  // first-party sites.
+  readonly attribute ACString firstPartySite;
+
+  // The third-party site of the exception.
+  readonly attribute ACString thirdPartySite;
+
+  // Serialize the entry to a string in the format
+  // "firstPartySite,thirdPartySite".
+  ACString serialize();
+};
+
+%{C++
+#define NS_NSITHIRDPARTYCOOKIEBLOCKINGEXCEPTIONLISTSERVICE_CONTRACTID "@mozilla.org/third-party-cookie-blocking-exception-list-service;1"
+%}
