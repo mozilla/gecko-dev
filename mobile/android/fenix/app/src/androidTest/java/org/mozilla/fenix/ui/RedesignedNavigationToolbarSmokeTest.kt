@@ -119,8 +119,8 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         val helpPageUrl = "mozilla.org"
 
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar() {
-        }.openHelp(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openHelp {
         }.openSiteSecuritySheet {
             clickQuickActionSheetClearSiteData()
             verifyClearSiteDataPrompt(helpPageUrl)
@@ -153,8 +153,8 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.closeTabDrawer {
         }.goToHomescreenWithRedesignedToolbar {
             verifyExistingTopSitesList()
-        }.openThreeDotMenuFromRedesignedToolbar() {
-            verifySettingsButton(composeTestRule)
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            verifySettingsButton()
         }
     }
 
@@ -266,8 +266,8 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
     @Test
     fun verifyToolbarWithAddressBarAtTheTopTest() {
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar() {
-        }.openSettings(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openSettings {
         }.openCustomizeSubMenu {
             verifyAddressBarPositionPreference("Top")
         }
@@ -292,8 +292,8 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }
 
         homeScreen {
-        }.openThreeDotMenuFromRedesignedToolbar() {
-        }.openSettings(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openSettings {
         }.openCustomizeSubMenu {
             verifyAddressBarPositionPreference("Bottom")
         }
@@ -323,8 +323,8 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
         }.enterURLAndEnterToBrowser(genericURL.url) {
         }.goToHomescreenWithRedesignedToolbar {
             verifyHomeScreen()
-        }.openThreeDotMenuFromRedesignedToolbar() {
-        }.openSettings(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openSettings {
         }.openCustomizeSubMenu {
             clickBottomToolbarToggle()
             verifyAddressBarPositionPreference("Bottom")
