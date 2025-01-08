@@ -200,6 +200,18 @@ export const GenAI = {
       },
     ],
     [
+      "https://x.com/i/grok",
+      {
+        id: "grok",
+        learnLink: "https://x.ai/grok",
+        link1: "https://x.ai/legal/terms-of-service",
+        link2: "https://x.ai/legal/privacy-policy",
+        maxLength: 13830,
+        name: "Grok",
+        queryParam: "text",
+      },
+    ],
+    [
       "https://huggingface.co/chat",
       {
         choiceIds: [
@@ -772,7 +784,8 @@ export const GenAI = {
     const prompt = this.buildChatPrompt(promptObj, context);
 
     // Pass the prompt via GET url ?q= param or request header
-    const { header } = this.chatProviders.get(lazy.chatProvider) ?? {};
+    const { header, queryParam = "q" } =
+      this.chatProviders.get(lazy.chatProvider) ?? {};
     const url = new URL(lazy.chatProvider);
     const options = {
       inBackground: false,
@@ -789,7 +802,7 @@ export const GenAI = {
         `${header}: ${encodeURIComponent(prompt)}\r\n`
       );
     } else {
-      url.searchParams.set("q", prompt);
+      url.searchParams.set(queryParam, prompt);
     }
 
     // Get the desired browser to handle the prompt url request
