@@ -48,7 +48,7 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
 
     @VisibleForTesting
     internal var promptAbuserDetector =
-        PromptAbuserDetector(maxSuccessiveDialogSecondsLimit = TIME_SHOWN_OFFSET_SECONDS)
+        PromptAbuserDetector(maxSuccessiveDialogMillisLimit = TIME_SHOWN_OFFSET_MILLIS)
     // Safe Arguments
 
     private val safeArguments get() = requireNotNull(arguments)
@@ -275,6 +275,6 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
         }
 
         // See https://searchfox.org/mozilla-central/rev/76cb3efe3b19e649bf675bb6ec5d4af8109b9771/toolkit/modules/PopupNotifications.sys.mjs#18
-        private const val TIME_SHOWN_OFFSET_SECONDS = 1
+        private const val TIME_SHOWN_OFFSET_MILLIS = 1000
     }
 }
