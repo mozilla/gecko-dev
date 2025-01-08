@@ -148,6 +148,17 @@ void CSP_ApplyMetaCSPToDoc(mozilla::dom::Document& aDoc,
     return;
   }
 
+  // Make the <meta> policy in browser.xhtml toggleable.
+  if (nsIURI* uri = aDoc.GetDocumentURI();
+      uri->SchemeIs("chrome") &&
+      !StaticPrefs::security_browser_xhtml_csp_enabled()) {
+    nsAutoCString spec;
+    uri->GetSpec(spec);
+    if (spec.EqualsLiteral("chrome://browser/content/browser.xhtml")) {
+      return;
+    }
+  }
+
   // Multiple CSPs (delivered through either header of meta tag) need to
   // be joined together, see:
   // https://w3c.github.io/webappsec/specs/content-security-policy/#delivery-html-meta-element

@@ -34,3 +34,24 @@ add_task(async function test_blocks_event_handlers() {
     "sourceFile matches"
   );
 });
+
+add_task(async function test_pref_disable() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.browser_xhtml_csp.enabled", false]],
+  });
+  let win = await BrowserTestUtils.openNewBrowserWindow();
+
+  let ran = false;
+  win.run_me = function () {
+    ran = true;
+  };
+
+  let main = win.document.documentElement;
+  main.setAttribute("onclick", "run_me()");
+  main.click();
+
+  ok(ran, "Event listener in new window should run");
+
+  await BrowserTestUtils.closeWindow(win);
+  await SpecialPowers.popPrefEnv();
+});

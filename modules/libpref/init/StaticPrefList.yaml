@@ -15622,6 +15622,12 @@
   value: true
   mirror: always
 
+# Whether to apply the <meta http="Content-Security-Policy"> to browser.xhtml
+- name: security.browser_xhtml_csp.enabled
+  type: bool
+  value: true
+  mirror: always
+
 # Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
 # not allowed for Firefox Desktop in firefox.js
 - name: security.allow_parent_unrestricted_js_loads
