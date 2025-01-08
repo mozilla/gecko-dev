@@ -1506,6 +1506,12 @@ email-autocomplete-relay:
       type: string
       description: Which Relay UI treatment to show
       fallbackPref: signon.firefoxRelay.firstOfferVersionFallback
+    showToAllBrowsers:
+      type: boolean
+      setPref:
+        branch: user
+        pref: signon.firefoxRelay.showToAllBrowsers
+      description: Whether to show Relay to Firefox users who are NOT signed into FXA.
 
 # This feature flag mirrors the one used for ios
 # https://github.com/mozilla-mobile/firefox-ios/blob/main/nimbus-features/addressAutofillFeature.yaml
