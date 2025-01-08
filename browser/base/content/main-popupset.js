@@ -105,52 +105,6 @@ document.addEventListener(
           BrowserCommands.fullScreen();
           break;
 
-        // == open-tab-group-context-menu ==
-        case "open-tab-group-context-menu_moveToNewWindow":
-          {
-            let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            let tabGroup = gBrowser.getTabGroupById(tabGroupId);
-            gBrowser.replaceGroupWithWindow(tabGroup);
-          }
-          break;
-        case "open-tab-group-context-menu_moveToThisWindow":
-          {
-            let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            let tabGroup = gBrowser.getTabGroupById(tabGroupId);
-            gBrowser.adoptTabGroup(tabGroup, gBrowser.tabs.length);
-          }
-          break;
-        case "open-tab-group-context-menu_delete":
-          {
-            let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            let tabGroup = gBrowser.getTabGroupById(tabGroupId);
-            // Tabs need to be removed by their owning `Tabbrowser` or else
-            // there are errors.
-            tabGroup.ownerGlobal.gBrowser.removeTabGroup(tabGroup);
-          }
-          break;
-
-        // == saved-tab-group-context-menu ==
-        case "saved-tab-group-context-menu_openInThisWindow":
-          {
-            let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            SessionStore.openSavedTabGroup(tabGroupId, window);
-          }
-          break;
-        case "saved-tab-group-context-menu_openInNewWindow":
-          {
-            // TODO Bug 1940112: "Open Group in New Window" should directly restore saved tab groups into a new window
-            let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            let tabGroup = SessionStore.openSavedTabGroup(tabGroupId, window);
-            gBrowser.replaceGroupWithWindow(tabGroup);
-          }
-          break;
-        case "saved-tab-group-context-menu_delete":
-          {
-            let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            SessionStore.forgetSavedTabGroup(tabGroupId);
-          }
-          break;
         // == editBookmarkPanel ==
         case "editBookmarkPanel_showForNewBookmarks":
           StarUI.onShowForNewBookmarksCheckboxCommand();
@@ -465,23 +419,6 @@ document.addEventListener(
       .addEventListener("popupshowing", event => {
         if (event.target.id == "tabContextMenu") {
           TabContextMenu.updateContextMenu(event.target);
-        }
-      });
-
-    // Enable/disable some `open-tab-group-context-menu` options based on the
-    // specific tab group context.
-    document
-      .getElementById("open-tab-group-context-menu")
-      .addEventListener("popupshowing", event => {
-        if (event.target.id == "open-tab-group-context-menu") {
-          // Disable "Move Group to This Window" menu option for tab groups
-          // that are open in the current window.
-          let { tabGroupId } = event.target.triggerNode.dataset;
-          let tabGroup = gBrowser.getTabGroupById(tabGroupId);
-          let tabGroupIsInThisWindow = tabGroup.ownerDocument == document;
-          event.target.querySelector(
-            "#open-tab-group-context-menu_moveToThisWindow"
-          ).disabled = tabGroupIsInThisWindow;
         }
       });
 

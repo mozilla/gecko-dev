@@ -3034,11 +3034,7 @@
         newTabs.push(this.adoptTab(tab, index));
       }
 
-      this.addTabGroup(newTabs, {
-        id: group.id,
-        label: group.label,
-        color: group.color,
-      });
+      this.addTabGroup(newTabs, { label: group.label, color: group.color });
     }
 
     getAllTabGroups() {

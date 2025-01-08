@@ -35,19 +35,17 @@ export class GroupsPanel {
   }
 
   #handleCommand(event) {
-    let { tabGroupId } = event.target.dataset;
+    let groupId = event.target.closest("toolbaritem").groupId;
 
     switch (event.target.dataset.command) {
-      case "allTabsGroupView_selectGroup": {
-        let group = this.win.gBrowser.getTabGroupById(tabGroupId);
+      case "allTabsGroupView_selectGroup":
+        let group = this.win.gBrowser.getTabGroupById(groupId);
         group.select();
         group.ownerGlobal.focus();
 
         break;
-      }
-
       case "allTabsGroupView_restoreGroup":
-        this.win.SessionStore.openSavedTabGroup(tabGroupId, this.win);
+        this.win.SessionStore.openSavedTabGroup(groupId, this.win);
         break;
     }
   }
@@ -78,35 +76,20 @@ export class GroupsPanel {
       fragment.appendChild(header);
     }
     for (let groupData of otherWindowGroups) {
-      let row = this.#createRow(groupData);
-      let button = row.querySelector("toolbarbutton");
-      button.dataset.command = "allTabsGroupView_selectGroup";
-      button.dataset.tabGroupId = groupData.id;
-      button.setAttribute("context", "open-tab-group-context-menu");
-      fragment.appendChild(row);
+      fragment.appendChild(this.#createRow(groupData));
     }
     for (let groupData of savedGroups) {
-      let row = this.#createRow(groupData);
-      let button = row.querySelector("toolbarbutton");
-      button.dataset.command = "allTabsGroupView_restoreGroup";
-      button.dataset.tabGroupId = groupData.id;
-      button.classList.add("all-tabs-group-saved-group");
-      button.setAttribute("context", "saved-tab-group-context-menu");
-      fragment.appendChild(row);
+      fragment.appendChild(this.#createRow(groupData, "closed"));
     }
-    this.containerNode.replaceChildren(fragment);
+    this.containerNode.appendChild(fragment);
     this.#setupListeners();
   }
 
-  /**
-   * @param {TabGroupStateData} group
-   * @returns {XULElement}
-   */
-  #createRow(group) {
+  #createRow(group, kind = "open") {
     let { doc } = this;
     let row = doc.createXULElement("toolbaritem");
     row.setAttribute("class", "all-tabs-item all-tabs-group-item");
-
+    row.setAttribute("context", "tabContextMenu");
     row.style.setProperty(
       "--tab-group-color",
       `var(--tab-group-color-${group.color})`
@@ -119,11 +102,18 @@ export class GroupsPanel {
       "--tab-group-color-pale",
       `var(--tab-group-color-${group.color}-pale)`
     );
+    row.groupId = group.id;
     let button = doc.createXULElement("toolbarbutton");
     button.setAttribute(
       "class",
       "all-tabs-button subviewbutton subviewbutton-iconic all-tabs-group-action-button"
     );
+    if (kind != "open") {
+      button.classList.add("all-tabs-group-saved-group");
+      button.dataset.command = "allTabsGroupView_restoreGroup";
+    } else {
+      button.dataset.command = "allTabsGroupView_selectGroup";
+    }
     button.setAttribute("flex", "1");
     button.setAttribute("crop", "end");
 
