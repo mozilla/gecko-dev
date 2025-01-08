@@ -2639,7 +2639,7 @@
         let higherIndex = Math.max(movingTabOldIndex, draggedTabPos);
 
         for (let i = lowerIndex + 1; i < higherIndex; i++) {
-          let middleTab = gBrowser.visibleTabs[i];
+          let middleTab = gBrowser.tabs[i];
 
           if (middleTab.pinned != movingTab.pinned) {
             // Don't mix pinned and unpinned tabs
