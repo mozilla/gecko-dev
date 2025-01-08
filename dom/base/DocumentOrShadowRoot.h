@@ -140,8 +140,8 @@ class DocumentOrShadowRoot {
    */
   Element* ElementFromPointHelper(float aX, float aY,
                                   bool aIgnoreRootScrollFrame,
-                                  bool aFlushLayout,
-                                  ViewportType aViewportType);
+                                  bool aFlushLayout, ViewportType aViewportType,
+                                  bool aPerformRetargeting = true);
 
   void NodesFromRect(float aX, float aY, float aTopSize, float aRightSize,
                      float aBottomSize, float aLeftSize,

@@ -611,6 +611,7 @@ class MOZ_STACK_CLASS ContentEventHandler {
                                   const WritingMode& aWritingMode);
 
   nsresult QueryHittestImpl(WidgetQueryContentEvent* aEvent, bool aFlushLayout,
+                            bool aPerformRetargeting,
                             Element** aContentUnderMouse);
 };
 

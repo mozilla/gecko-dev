@@ -496,17 +496,19 @@ nsINode* DocumentOrShadowRoot::NodeFromPoint(float aX, float aY) {
 
 Element* DocumentOrShadowRoot::ElementFromPointHelper(
     float aX, float aY, bool aIgnoreRootScrollFrame, bool aFlushLayout,
-    ViewportType aViewportType) {
+    ViewportType aViewportType, bool aPerformRetargeting) {
   EnumSet<FrameForPointOption> options;
   if (aIgnoreRootScrollFrame) {
     options += FrameForPointOption::IgnoreRootScrollFrame;
   }
 
   auto flush = aFlushLayout ? FlushLayout::Yes : FlushLayout::No;
+  auto performRetargeting =
+      aPerformRetargeting ? PerformRetargeting::Yes : PerformRetargeting::No;
 
   AutoTArray<RefPtr<Element>, 1> elements;
   QueryNodesFromPoint(*this, aX, aY, options, flush, Multiple::No,
-                      aViewportType, PerformRetargeting::Yes, elements);
+                      aViewportType, performRetargeting, elements);
   return elements.SafeElementAt(0);
 }
 

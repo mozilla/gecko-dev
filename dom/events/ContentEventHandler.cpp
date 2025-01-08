@@ -3068,6 +3068,7 @@ nsresult ContentEventHandler::OnQueryCharacterAtPoint(
 
 nsresult ContentEventHandler::QueryHittestImpl(WidgetQueryContentEvent* aEvent,
                                                bool aFlushLayout,
+                                               bool aPerformRetargeting,
                                                Element** aContentUnderMouse) {
   NS_ASSERTION(aEvent, "aEvent must not be null");
 
@@ -3092,7 +3093,8 @@ nsresult ContentEventHandler::QueryHittestImpl(WidgetQueryContentEvent* aEvent,
       docFrame->PresContext()->DevPixelsToIntCSSPixels(eventLoc.y) -
           docFrameRect.y);
   RefPtr<Element> contentUnderMouse = mDocument->ElementFromPointHelper(
-      eventLocCSS.x, eventLocCSS.y, false, false, ViewportType::Visual);
+      eventLocCSS.x, eventLocCSS.y, false, false, ViewportType::Visual,
+      aPerformRetargeting);
 
   contentUnderMouse.forget(aContentUnderMouse);
   return NS_OK;
@@ -3102,8 +3104,9 @@ nsresult ContentEventHandler::OnQueryDOMWidgetHittest(
     WidgetQueryContentEvent* aEvent) {
   aEvent->mReply->mWidgetIsHit = false;
   RefPtr<Element> contentUnderMouse;
-  nsresult rv =
-      QueryHittestImpl(aEvent, true, getter_AddRefs(contentUnderMouse));
+  nsresult rv = QueryHittestImpl(aEvent, true /* flushLayout */,
+                                 true /* performRetargeting */,
+                                 getter_AddRefs(contentUnderMouse));
   NS_ENSURE_SUCCESS(rv, rv);
   if (contentUnderMouse) {
     if (nsIFrame* targetFrame = contentUnderMouse->GetPrimaryFrame()) {
@@ -3120,8 +3123,9 @@ nsresult ContentEventHandler::OnQueryDOMWidgetHittest(
 nsresult ContentEventHandler::OnQueryDropTargetHittest(
     WidgetQueryContentEvent* aEvent) {
   RefPtr<Element> contentUnderMouse;
-  nsresult rv =
-      QueryHittestImpl(aEvent, true, getter_AddRefs(contentUnderMouse));
+  nsresult rv = QueryHittestImpl(aEvent, true /* flushLayout */,
+                                 false /* performRetargeting */,
+                                 getter_AddRefs(contentUnderMouse));
   NS_ENSURE_SUCCESS(rv, rv);
   aEvent->EmplaceReply();
   aEvent->mReply->mDropElement = contentUnderMouse;
