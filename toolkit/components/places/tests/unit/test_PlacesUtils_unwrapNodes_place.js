@@ -6,29 +6,53 @@
 add_task(function () {
   let tests = [
     // Single url.
-    ["place:type=0&sort=1:", PlacesUtils.TYPE_X_MOZ_URL],
+    {
+      blob: "place:type=0&sort=1:",
+      type: PlacesUtils.TYPE_X_MOZ_URL,
+      invalidCount: 1,
+    },
     // Multiple urls.
-    [
-      "place:type=0&sort=1:\nfirst\nplace:type=0&sort=1\nsecond",
-      PlacesUtils.TYPE_X_MOZ_URL,
-    ],
+    {
+      blob: "place:type=0&sort=1:\nfirst\nplace:type=0&sort=1\nsecond",
+      type: PlacesUtils.TYPE_X_MOZ_URL,
+      invalidCount: 2,
+    },
     // Url == title.
-    ["place:type=0&sort=1:\nplace:type=0&sort=1", PlacesUtils.TYPE_X_MOZ_URL],
+    {
+      blob: "place:type=0&sort=1:\nplace:type=0&sort=1",
+      type: PlacesUtils.TYPE_X_MOZ_URL,
+      invalidCount: 1,
+    },
     // Malformed.
-    [
-      "place:type=0&sort=1:\nplace:type=0&sort=1\nmalformed",
-      PlacesUtils.TYPE_X_MOZ_URL,
-    ],
+    {
+      blob: "place:type=0&sort=1:\nplace:type=0&sort=1\nmalformed",
+      type: PlacesUtils.TYPE_X_MOZ_URL,
+      invalidCount: 0,
+    },
     // Single url.
-    ["place:type=0&sort=1:", PlacesUtils.TYPE_PLAINTEXT],
+    {
+      blob: "place:type=0&sort=1:",
+      type: PlacesUtils.TYPE_PLAINTEXT,
+      invalidCount: 1,
+    },
     // Multiple urls.
-    ["place:type=0&sort=1:\nplace:type=0&sort=1", PlacesUtils.TYPE_PLAINTEXT],
+    {
+      blob: "place:type=0&sort=1:\nplace:type=0&sort=1",
+      type: PlacesUtils.TYPE_PLAINTEXT,
+      invalidCount: 2,
+    },
   ];
-  for (let [blob, type] of tests) {
+  for (let { blob, type, invalidCount } of tests) {
     Assert.deepEqual(
-      PlacesUtils.unwrapNodes(blob, type),
+      PlacesUtils.unwrapNodes(blob, type).validNodes,
       [],
       "No valid entries should be found"
+    );
+
+    Assert.equal(
+      PlacesUtils.unwrapNodes(blob, type).invalidNodes.length,
+      invalidCount,
+      "Should correctly mark all invalid entries"
     );
   }
 });

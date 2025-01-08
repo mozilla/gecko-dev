@@ -18,3 +18,6 @@ places-bookmarks-restore-parse-error = Unable to process the backup file.
 
 places-bookmarks-import = Import Bookmarks File
 places-bookmarks-export = Export Bookmarks File
+
+places-bookmarks-paste-error-title = Invalid URL(s) found
+places-bookmarks-paste-error-message-header = The following URL(s) couldn’t be added to your bookmarks. Try checking the formatting and adding them again.
