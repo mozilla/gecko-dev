@@ -13,11 +13,12 @@ class BaseProfilerCount;
 namespace mozilla {
 namespace profiler {
 
-BaseProfilerCount* install_memory_hooks();
+BaseProfilerCount* install_memory_counter();
+void unregister_memory_counter();
+
 void remove_memory_hooks();
 void enable_native_allocations();
 void disable_native_allocations();
-void unregister_memory_counter();
 
 void memory_hooks_tls_init();
 

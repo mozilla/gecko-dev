@@ -6108,7 +6108,7 @@ void profiler_init(void* aStackTop) {
   if (ProfilerFeature::ShouldInstallMemoryHooks(features)) {
     // Start counting memory allocations (outside of lock because this may call
     // profiler_add_sampled_counter which would attempt to take the lock.)
-    ActivePS::SetMemoryCounter(mozilla::profiler::install_memory_hooks());
+    ActivePS::SetMemoryCounter(mozilla::profiler::install_memory_counter());
   } else {
     // Unregister the memory counter in case it was registered before. This will
     // make sure that the empty memory counter from the previous profiler run is
@@ -6737,7 +6737,7 @@ RefPtr<GenericPromise> profiler_start(PowerOfTwo32 aCapacity, double aInterval,
   if (ProfilerFeature::ShouldInstallMemoryHooks(aFeatures)) {
     // Start counting memory allocations (outside of lock because this may call
     // profiler_add_sampled_counter which would attempt to take the lock.)
-    ActivePS::SetMemoryCounter(mozilla::profiler::install_memory_hooks());
+    ActivePS::SetMemoryCounter(mozilla::profiler::install_memory_counter());
   } else {
     // Unregister the memory counter in case it was registered before. This will
     // make sure that the empty memory counter from the previous profiler run is
