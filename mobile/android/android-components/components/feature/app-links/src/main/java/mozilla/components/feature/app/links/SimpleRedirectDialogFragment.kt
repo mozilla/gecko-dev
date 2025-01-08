@@ -26,7 +26,7 @@ class SimpleRedirectDialogFragment : RedirectDialogFragment() {
 
     @VisibleForTesting
     internal var promptAbuserDetector =
-        PromptAbuserDetector(maxSuccessiveDialogSecondsLimit = TIME_SHOWN_OFFSET_SECONDS)
+        PromptAbuserDetector(maxSuccessiveDialogMillisLimit = TIME_SHOWN_OFFSET_MILLIS)
 
     @VisibleForTesting
     internal var testingContext: Context? = null
@@ -119,7 +119,7 @@ class SimpleRedirectDialogFragment : RedirectDialogFragment() {
         const val KEY_THEME_ID = "KEY_THEME_ID"
 
         const val KEY_CANCELABLE = "KEY_CANCELABLE"
-        private const val TIME_SHOWN_OFFSET_SECONDS = 1
+        private const val TIME_SHOWN_OFFSET_MILLIS = 1000
     }
 
     private fun requireBundle(): Bundle {
