@@ -32,7 +32,7 @@ fieldset {
 }
 
 option:nth-child(even) {
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
 }
 
 #addresses,
