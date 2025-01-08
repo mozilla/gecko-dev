@@ -251,6 +251,7 @@ add_task(async function test_network_markers_service_worker_use() {
           httpVersion: "http/1.1",
           classOfService: "UrgentStart",
           requestMethod: "GET",
+          responseStatus: 200,
           contentType: "text/html",
           startTime: Expect.number(),
           endTime: Expect.number(),
@@ -267,6 +268,7 @@ add_task(async function test_network_markers_service_worker_use() {
           httpVersion: "http/1.1",
           classOfService: "Unset",
           requestMethod: "GET",
+          responseStatus: 200,
           contentType: "text/html",
           // Because the request races with the cache, these 2 values are valid:
           // "Missed" when the cache answered before we get a result from the network.
@@ -322,6 +324,7 @@ add_task(async function test_network_markers_service_worker_use() {
           httpVersion: "http/1.1",
           classOfService: "Unset",
           requestMethod: "GET",
+          responseStatus: 200,
           contentType: "image/svg+xml",
           startTime: Expect.number(),
           endTime: Expect.number(),
@@ -363,6 +366,7 @@ add_task(async function test_network_markers_service_worker_use() {
           httpVersion: "http/1.1",
           classOfService: "Unset",
           requestMethod: "GET",
+          responseStatus: 200,
           contentType: "image/svg+xml",
           startTime: Expect.number(),
           endTime: Expect.number(),
@@ -380,6 +384,7 @@ add_task(async function test_network_markers_service_worker_use() {
           httpVersion: "http/1.1",
           classOfService: "Unset",
           requestMethod: "GET",
+          responseStatus: 200,
           contentType: "image/svg+xml",
           // Because the request races with the cache, these 2 values are valid:
           // "Missed" when the cache answered before we get a result from the network.
@@ -464,6 +469,7 @@ add_task(async function test_network_markers_service_worker_use() {
         httpVersion: "http/1.1",
         classOfService: "Unset",
         requestMethod: "GET",
+        responseStatus: 200,
         contentType: "text/html",
         startTime: Expect.number(),
         endTime: Expect.number(),
@@ -480,6 +486,7 @@ add_task(async function test_network_markers_service_worker_use() {
         httpVersion: "http/1.1",
         classOfService: "Unset",
         requestMethod: "GET",
+        responseStatus: 200,
         contentType: "image/svg+xml",
         startTime: Expect.number(),
         endTime: Expect.number(),
@@ -497,6 +504,7 @@ add_task(async function test_network_markers_service_worker_use() {
         httpVersion: "http/1.1",
         classOfService: "Unset",
         requestMethod: "GET",
+        responseStatus: 200,
         contentType: "image/svg+xml",
         startTime: Expect.number(),
         endTime: Expect.number(),

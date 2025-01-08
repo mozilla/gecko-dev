@@ -350,11 +350,13 @@ add_task(async function test_network_markers_service_worker_use() {
         Assert.objectContainsOnly(parentStopMarker.data, {
           ...commonDataProperties,
           status: "STATUS_STOP",
+          responseStatus: 200,
           classOfService: "UrgentStart",
         });
 
         Assert.objectContainsOnly(contentMarker.data, {
           ...commonDataProperties,
+          responseStatus: 200,
           status: "STATUS_STOP",
         });
       } else {
@@ -380,6 +382,7 @@ add_task(async function test_network_markers_service_worker_use() {
             ...commonDataProperties,
             innerWindowID: Expect.number(),
             status: "STATUS_STOP",
+            responseStatus: 200,
           }
         );
 
@@ -387,6 +390,7 @@ add_task(async function test_network_markers_service_worker_use() {
           ...commonDataProperties,
           innerWindowID: Expect.number(),
           status: "STATUS_STOP",
+          responseStatus: 200,
         });
       }
     }

@@ -2303,7 +2303,9 @@ TEST(GeckoProfiler, Markers)
   PROFILER_MARKER("tracing event with stack", OTHER,
                   MarkerStack::TakeBacktrace(std::move(bt)), Tracing, "B");
 
-  { AUTO_PROFILER_TRACING_MARKER("C", "auto tracing", OTHER); }
+  {
+    AUTO_PROFILER_TRACING_MARKER("C", "auto tracing", OTHER);
+  }
 
   PROFILER_MARKER_UNTYPED("M1", OTHER, {});
   PROFILER_MARKER_UNTYPED("M3", OTHER, {});
@@ -2499,6 +2501,7 @@ TEST(GeckoProfiler, Markers)
       /* const mozilla::net::TimingStruct* aTimings = nullptr */
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
+      /* const mozilla::Maybe<uint32_t> aResponseStatus = mozilla::Nothing() */
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
          mozilla::Nothing() */
       /* nsIURI* aRedirectURI = nullptr */
@@ -2524,6 +2527,8 @@ TEST(GeckoProfiler, Markers)
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
       nullptr,
+      /* const mozilla::Maybe<uint32_t> aResponseStatus = mozilla::Nothing() */
+      Some(200),
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
          mozilla::Nothing() */
       Some(nsDependentCString("text/html")),
@@ -2552,6 +2557,8 @@ TEST(GeckoProfiler, Markers)
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
       nullptr,
+      /* const mozilla::Maybe<uint32_t> aResponseStatus = mozilla::Nothing() */
+      Some(0),
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
          mozilla::Nothing() */
       mozilla::Nothing(),
@@ -2579,6 +2586,8 @@ TEST(GeckoProfiler, Markers)
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
       nullptr,
+      /* const mozilla::Maybe<uint32_t> aResponseStatus = mozilla::Nothing() */
+      mozilla::Nothing(),
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
          mozilla::Nothing() */
       mozilla::Nothing(),
@@ -2607,6 +2616,8 @@ TEST(GeckoProfiler, Markers)
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
       nullptr,
+      /* const mozilla::Maybe<uint32_t> aResponseStatus = mozilla::Nothing() */
+      mozilla::Nothing(),
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
          mozilla::Nothing() */
       mozilla::Nothing(),
@@ -2634,6 +2645,8 @@ TEST(GeckoProfiler, Markers)
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
       nullptr,
+      /* const mozilla::Maybe<uint32_t> aResponseStatus = mozilla::Nothing() */
+      mozilla::Nothing(),
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
          mozilla::Nothing() */
       mozilla::Nothing(),
@@ -2659,6 +2672,7 @@ TEST(GeckoProfiler, Markers)
       /* const mozilla::net::TimingStruct* aTimings = nullptr */
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
+      /* const mozilla::Maybe<uint32_t> aResponseStatus = mozilla::Nothing() */
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
          mozilla::Nothing() */
       /* nsIURI* aRedirectURI = nullptr */
@@ -3075,6 +3089,7 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_TRUE(payload["redirectType"].isNull());
                   EXPECT_TRUE(payload["isHttpToHttpsRedirect"].isNull());
                   EXPECT_TRUE(payload["redirectId"].isNull());
+                  EXPECT_EQ_JSON(payload["responseStatus"], Int64, 200);
                   EXPECT_EQ_JSON(payload["contentType"], String, "text/html");
 
                 } else if (nameString == "Load 3: http://mozilla.org/") {
@@ -4514,7 +4529,9 @@ TEST(GeckoProfiler, CPUUsage)
         GET_JSON(configuration, meta["configuration"], Object);
         {
           GET_JSON(features, configuration["features"], Array);
-          { EXPECT_JSON_ARRAY_CONTAINS(features, String, "cpu"); }
+          {
+            EXPECT_JSON_ARRAY_CONTAINS(features, String, "cpu");
+          }
         }
       }
 

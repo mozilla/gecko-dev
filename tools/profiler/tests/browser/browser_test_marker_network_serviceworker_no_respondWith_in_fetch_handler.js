@@ -209,6 +209,7 @@ add_task(async function test_network_markers_service_worker_use() {
         httpVersion: "http/1.1",
         classOfService: "Unset",
         requestMethod: "GET",
+        responseStatus: 200,
         contentType: Expect.stringMatches(/^(text\/html|image\/svg\+xml)$/),
         startTime: Expect.number(),
         endTime: Expect.number(),

@@ -102,6 +102,7 @@ add_task(async function test_network_markers_redirect_to_https() {
       httpVersion: "http/1.1",
       classOfService: "UrgentStart",
       requestMethod: "GET",
+      responseStatus: 200,
       contentType: "text/html",
       startTime: Expect.number(),
       endTime: Expect.number(),

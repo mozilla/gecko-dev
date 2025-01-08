@@ -768,8 +768,10 @@ InterceptedHttpChannel::ResetInterception(bool aBypass) {
     GetEncodedBodySize(&size);
 
     nsAutoCString contentType;
+    mozilla::Maybe<uint32_t> responseStatus = Nothing();
     if (mResponseHead) {
       mResponseHead->ContentType(contentType);
+      responseStatus = Some(mResponseHead->Status());
     }
 
     RefPtr<HttpBaseChannel> newBaseChannel = do_QueryObject(newChannel);
@@ -781,8 +783,9 @@ InterceptedHttpChannel::ResetInterception(bool aBypass) {
         size, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
-        std::move(mSource), Some(nsDependentCString(contentType.get())), mURI,
-        flags, newBaseChannel->ChannelId());
+        std::move(mSource), responseStatus,
+        Some(nsDependentCString(contentType.get())), mURI, flags,
+        newBaseChannel->ChannelId());
   }
 
   rv = SetupReplacementChannel(mURI, newChannel, true, flags);
@@ -1217,8 +1220,10 @@ InterceptedHttpChannel::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
     GetEncodedBodySize(&size);
 
     nsAutoCString contentType;
+    mozilla::Maybe<uint32_t> responseStatus = Nothing();
     if (mResponseHead) {
       mResponseHead->ContentType(contentType);
+      responseStatus = Some(mResponseHead->Status());
     }
     profiler_add_network_marker(
         mURI, requestMethod, priority, mChannelId, NetworkLoadType::LOAD_STOP,
@@ -1226,7 +1231,8 @@ InterceptedHttpChannel::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
-        std::move(mSource), Some(nsDependentCString(contentType.get())));
+        std::move(mSource), responseStatus,
+        Some(nsDependentCString(contentType.get())));
   }
 
   nsresult rv = NS_OK;

@@ -24,7 +24,8 @@ struct NetworkMarker {
       const ProfilerString8View& aRedirectURI,
       const ProfilerString8View& aContentType, uint32_t aRedirectFlags,
       int64_t aRedirectChannelId, mozilla::net::HttpVersion aHttpVersion,
-      unsigned long aClassOfServiceFlag) {
+      unsigned long aClassOfServiceFlag,
+      const mozilla::Maybe<uint32_t> aResponseStatus) {
     // This payload still streams a startTime and endTime property because it
     // made the migration to MarkerTiming on the front-end easier.
     aWriter.TimeProperty("startTime", aStart);
@@ -69,6 +70,10 @@ struct NetworkMarker {
     }
 
     aWriter.StringProperty("requestMethod", aRequestMethod);
+
+    if (aResponseStatus) {
+      aWriter.IntProperty("responseStatus", *aResponseStatus);
+    }
 
     if (aContentType.Length() != 0) {
       aWriter.StringProperty("contentType", aContentType);
@@ -378,6 +383,7 @@ void profiler_add_network_marker(
     unsigned long aClassOfServiceFlag,
     const mozilla::net::TimingStruct* aTimings,
     UniquePtr<ProfileChunkedBuffer> aSource,
+    const Maybe<uint32_t> aResponseStatus,
     const Maybe<nsDependentCString>& aContentType, nsIURI* aRedirectURI,
     uint32_t aRedirectFlags, uint64_t aRedirectChannelId) {
   if (!profiler_thread_is_being_profiled_for_markers()) {
@@ -412,6 +418,7 @@ void profiler_add_network_marker(
       aIsPrivateBrowsing, aTimings ? *aTimings : scEmptyNetTimingStruct,
       redirect_spec,
       aContentType ? ProfilerString8View(*aContentType) : ProfilerString8View(),
-      aRedirectFlags, aRedirectChannelId, aHttpVersion, aClassOfServiceFlag);
+      aRedirectFlags, aRedirectChannelId, aHttpVersion, aClassOfServiceFlag,
+      aResponseStatus);
 }
 }  // namespace mozilla::net

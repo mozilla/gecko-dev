@@ -5783,8 +5783,10 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
     GetEncodedBodySize(&size);
 
     nsAutoCString contentType;
+    mozilla::Maybe<uint32_t> responseStatus = Nothing();
     if (mResponseHead) {
       mResponseHead->ContentType(contentType);
+      responseStatus = Some(mResponseHead->Status());
     }
 
     RefPtr<nsIIdentChannel> newIdentChannel = do_QueryObject(newChannel);
@@ -5798,8 +5800,9 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
         size, mCacheDisposition, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         mRequestHead.Version(), mClassOfService.Flags(), &timings,
-        std::move(mSource), Some(nsDependentCString(contentType.get())), newURI,
-        redirectFlags, channelId);
+        std::move(mSource), responseStatus,
+        Some(nsDependentCString(contentType.get())), newURI, redirectFlags,
+        channelId);
   }
 
   nsresult rv = HttpBaseChannel::SetupReplacementChannel(
@@ -8919,16 +8922,20 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
     GetEncodedBodySize(&size);
 
     nsAutoCString contentType;
+    mozilla::Maybe<uint32_t> responseStatus = Nothing();
     if (mResponseHead) {
       mResponseHead->ContentType(contentType);
+      responseStatus = Some(mResponseHead->Status());
     }
+
     profiler_add_network_marker(
         mURI, requestMethod, priority, mChannelId, NetworkLoadType::LOAD_STOP,
         mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
-        std::move(mSource), Some(nsDependentCString(contentType.get())));
+        std::move(mSource), responseStatus,
+        Some(nsDependentCString(contentType.get())));
   }
 
   if (mAuthRetryPending &&

@@ -1018,8 +1018,10 @@ void HttpChannelChild::OnStopRequest(
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
     nsAutoCString contentType;
+    mozilla::Maybe<uint32_t> responseStatus = Nothing();
     if (mResponseHead) {
       mResponseHead->ContentType(contentType);
+      responseStatus = Some(mResponseHead->Status());
     }
     int32_t priority = PRIORITY_NORMAL;
     GetPriority(&priority);
@@ -1029,7 +1031,8 @@ void HttpChannelChild::OnStopRequest(
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
-        std::move(mSource), Some(nsDependentCString(contentType.get())));
+        std::move(mSource), responseStatus,
+        Some(nsDependentCString(contentType.get())));
   }
 
   TimeDuration channelCompletionDuration = now - mAsyncOpenTime;
@@ -1603,8 +1606,9 @@ void HttpChannelChild::Redirect1Begin(
         0, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
         mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
-        std::move(mSource), Some(nsDependentCString(contentType.get())),
-        newOriginalURI, redirectFlags, channelId);
+        std::move(mSource), Some(responseHead.Status()),
+        Some(nsDependentCString(contentType.get())), newOriginalURI,
+        redirectFlags, channelId);
   }
 
   mSecurityInfo = securityInfo;
