@@ -401,6 +401,31 @@ def unpack(target):
                 os.path.join(LIBWEBRTC_DIR, "third_party", path),
             )
 
+    elif target == "abseil-cpp":
+        vendor_into_dir = os.path.join(os.path.normpath("third_party"), target)
+
+        # adjust target_path if GitHub packaging is involved
+        if not os.path.exists(os.path.join(target_path, "abseil-cpp")):
+            # GitHub packs everything inside a separate directory
+            target_path = os.path.join(target_path, os.listdir(target_path)[0])
+
+        abseil_path = os.path.join(target_path, "abseil-cpp")
+
+        abseil_used_in_firefox = os.listdir(abseil_path)
+        for path in abseil_used_in_firefox:
+            try:
+                shutil.rmtree(os.path.join(vendor_into_dir, path))
+            except FileNotFoundError:
+                pass
+            except NotADirectoryError:
+                pass
+
+        for path in os.listdir(abseil_path):
+            shutil.move(
+                os.path.join(target_path, target, path),
+                os.path.join(vendor_into_dir, path),
+            )
+
 
 def cleanup(target):
     os.remove(target + ".tar.gz")
@@ -409,7 +434,9 @@ def cleanup(target):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update libwebrtc")
-    parser.add_argument("target", choices=("libwebrtc", "build", "third_party"))
+    parser.add_argument(
+        "target", choices=("libwebrtc", "build", "third_party", "abseil-cpp")
+    )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--from-github", type=str)
     group.add_argument("--from-googlesource", action="store_true", default=False)
