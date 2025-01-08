@@ -718,7 +718,7 @@ static void ZeroIsEmptyErrorTest() {
     mozilla::Result<V, EmptyErrorStruct> result(Err(EmptyErrorStruct{}));
 
     MOZ_RELEASE_ASSERT(result.isErr());
-    MOZ_RELEASE_ASSERT(*reinterpret_cast<V*>(&result) == nullptr);
+    MOZ_RELEASE_ASSERT(*mozilla::BitCast<V*>(&result) == nullptr);
   }
 
   {
@@ -739,7 +739,7 @@ static void ZeroIsEmptyErrorTest() {
     mozilla::Result<V, EmptyErrorStruct> result(Err(EmptyErrorStruct()));
 
     MOZ_RELEASE_ASSERT(result.isErr());
-    MOZ_RELEASE_ASSERT(*reinterpret_cast<uint8_t*>(&result) == 0);
+    MOZ_RELEASE_ASSERT(*mozilla::BitCast<uint8_t*>(&result) == 0);
   }
 
   {
@@ -760,7 +760,7 @@ static void ZeroIsEmptyErrorTest() {
     mozilla::Result<V, EmptyErrorStruct> result(Err(EmptyErrorStruct()));
 
     MOZ_RELEASE_ASSERT(result.isErr());
-    MOZ_RELEASE_ASSERT(*reinterpret_cast<uint16_t*>(&result) == 0);
+    MOZ_RELEASE_ASSERT(*mozilla::BitCast<uint16_t*>(&result) == 0);
   }
 
   {
@@ -781,7 +781,7 @@ static void ZeroIsEmptyErrorTest() {
     mozilla::Result<V, EmptyErrorStruct> result(Err(EmptyErrorStruct()));
 
     MOZ_RELEASE_ASSERT(result.isErr());
-    MOZ_RELEASE_ASSERT(*reinterpret_cast<uint32_t*>(&result) == 0);
+    MOZ_RELEASE_ASSERT(*mozilla::BitCast<uint32_t*>(&result) == 0);
   }
 
   {
@@ -802,7 +802,7 @@ static void ZeroIsEmptyErrorTest() {
     mozilla::Result<V, EmptyErrorStruct> result(Err(EmptyErrorStruct()));
 
     MOZ_RELEASE_ASSERT(result.isErr());
-    MOZ_RELEASE_ASSERT(*reinterpret_cast<uint64_t*>(&result) == 0);
+    MOZ_RELEASE_ASSERT(*mozilla::BitCast<uint64_t*>(&result) == 0);
   }
 }
 
