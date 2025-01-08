@@ -905,9 +905,7 @@ abstract class EngineSession(
     /**
      * Gets the web compat info.
      *
-     * @param onResult callback invoked if the engine API returned a valid response. Please note
-     * that the response can be null - which can indicate a bug, a miscommunication
-     * or other unexpected failure.
+     * @param onResult callback invoked if the engine API returned a valid response.
      * @param onException callback invoked if there was an error getting the response.
      */
     abstract fun getWebCompatInfo(onResult: (JSONObject) -> Unit, onException: (Throwable) -> Unit)
