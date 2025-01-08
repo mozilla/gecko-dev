@@ -90,6 +90,7 @@
   "AddKeywordForSearchField",
   "restoreLastClosedTabOrWindowOrSession",
   "undoCloseTab",
+  "undoCloseTabGroup",
   "undoCloseWindow",
   "ReportFalseDeceptiveSite",
   "ReportSiteIssue",

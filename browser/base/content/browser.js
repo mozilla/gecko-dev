@@ -5977,6 +5977,10 @@ function restoreLastClosedTabOrWindowOrSession() {
         undoCloseTab();
         break;
       }
+      case SessionStore.LAST_ACTION_CLOSED_TAB_GROUP: {
+        undoCloseTabGroup(lastActionTaken.closedId);
+        break;
+      }
       case SessionStore.LAST_ACTION_CLOSED_WINDOW: {
         undoCloseWindow();
         break;
@@ -6049,6 +6053,38 @@ function undoCloseTab(aIndex, sourceWindowSSId) {
   }
 
   return tab;
+}
+
+/**
+ * Re-open a closed tab group.
+ * @param {string} tabGroupId
+ *        The tab group's unique ID.
+ * @returns {MozTabbrowserTabGroup} the reopened group.
+ */
+function undoCloseTabGroup(tabGroupId) {
+  let targetWindow = window;
+
+  // wallpaper patch to prevent an unnecessary blank tab (bug 343895)
+  let blankTabToRemove = null;
+  if (
+    targetWindow.gBrowser.visibleTabs.length == 1 &&
+    targetWindow.gBrowser.selectedTab.isEmpty
+  ) {
+    blankTabToRemove = targetWindow.gBrowser.selectedTab;
+  }
+
+  let group;
+  try {
+    group = SessionStore.undoCloseTabGroup(window, tabGroupId, targetWindow);
+  } catch (err) {
+    group = SessionStore.openSavedTabGroup(tabGroupId, targetWindow);
+  }
+
+  if (group && blankTabToRemove) {
+    targetWindow.gBrowser.removeTab(blankTabToRemove);
+  }
+
+  return group;
 }
 
 /**
