@@ -8,6 +8,25 @@
  */
 export class TranslationsUtils {
   /**
+   * Checks if the language tag string parses as a valid BCP-47 language tag.
+   *
+   * @param {string} langTag - A BCP-47 language tag.
+   * @returns {boolean} - True if the given language tag parses or false if it does not.
+   */
+  static isLangTagValid(langTag) {
+    if (!langTag) {
+      return false;
+    }
+
+    try {
+      new Intl.Locale(langTag);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Normalizes the language tag for comparison within the Translations ecosystem.
    *
    * Prefers to compare languages with a script tag if one is available, only resorting
