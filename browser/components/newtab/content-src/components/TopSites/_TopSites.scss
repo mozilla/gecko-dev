@@ -708,6 +708,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     .top-site-button {
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
 
     span[dir='auto'] {
@@ -716,6 +718,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       text-overflow: ellipsis;
       white-space: nowrap;
       min-height: 20px;
+      width: 100px;
     }
 
     &:hover,
@@ -724,7 +727,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         overflow: unset;
         text-overflow: clip;
         white-space: normal;
-        text-wrap: wrap;
+        text-wrap: balance;
         contain: size;
         word-break: break-all;
       }

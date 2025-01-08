@@ -1329,6 +1329,8 @@ main section {
 .top-sites-list .top-site-outer .top-site-button {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 .top-sites-list .top-site-outer span[dir=auto] {
   display: block;
@@ -1336,12 +1338,13 @@ main section {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-height: 20px;
+  width: 100px;
 }
 .top-sites-list .top-site-outer:hover span[dir=auto], .top-sites-list .top-site-outer:focus-within span[dir=auto] {
   overflow: unset;
   text-overflow: clip;
   white-space: normal;
-  text-wrap: wrap;
+  text-wrap: balance;
   contain: size;
   word-break: break-all;
 }
