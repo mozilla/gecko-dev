@@ -77,7 +77,6 @@ def filter_nonwebrtc(commit):
         # moz.build files which are code generated.
         if (
             line.startswith("diff --git a/" + LIBWEBRTC_DIR)
-            and not line.startswith("diff --git a/" + LIBWEBRTC_DIR + "/build/")
             and not line.startswith("diff --git a/" + LIBWEBRTC_DIR + "/third_party/")
             and not line.startswith("diff --git a/" + LIBWEBRTC_DIR + "/README.moz")
             and not line.startswith(
@@ -131,7 +130,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    if args.target != "libwebrtc":
+    if args.target == "build":
+        LIBWEBRTC_DIR = "third_party/chromium/build"
+    elif args.target == "third_party":
         LIBWEBRTC_DIR = os.path.join(LIBWEBRTC_DIR, args.target)
 
     # must run 'hg' with HGPLAIN=1 to ensure aliases don't interfere with
