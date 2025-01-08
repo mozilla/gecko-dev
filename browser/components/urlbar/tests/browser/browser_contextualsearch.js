@@ -82,6 +82,30 @@ add_task(async function test_no_engine() {
   );
 });
 
+add_task(async function test_engine_match() {
+  await updateConfig(CONFIG);
+  await loadUri("https://example.org/");
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "example.net",
+  });
+
+  let onLoad = BrowserTestUtils.browserLoaded(
+    gBrowser.selectedBrowser,
+    false,
+    "https://example.net/?q=test"
+  );
+
+  let btn = window.document.querySelector(".urlbarView-action-btn");
+  EventUtils.synthesizeMouseAtCenter(btn, {}, window);
+  EventUtils.sendString("test");
+  EventUtils.synthesizeKey("KEY_Enter");
+
+  await onLoad;
+  await updateConfig(null);
+});
+
 add_task(async function test_selectContextualSearchResult_already_installed() {
   let ext = await SearchTestUtils.installSearchExtension({
     name: "Contextual",
@@ -127,7 +151,11 @@ add_task(async function test_selectContextualSearchResult_already_installed() {
     false,
     expectedUrl
   );
-  EventUtils.sendString(query);
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: query,
+  });
   EventUtils.synthesizeKey("KEY_Enter");
   await onLoad;
 

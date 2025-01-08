@@ -1023,6 +1023,16 @@ export class UrlbarInput {
       return;
     }
 
+    if (
+      result.providerName == lazy.UrlbarProviderGlobalActions.name &&
+      result.payload.providesSearchMode
+    ) {
+      this.maybeConfirmSearchModeFromResult({
+        result,
+        checkValue: false,
+      });
+      return;
+    }
     // When a one-off is selected, we restyle heuristic results to look like
     // search results. In the unlikely event that they are clicked, instead of
     // picking the results as usual, we confirm search mode, same as if the user

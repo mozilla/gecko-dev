@@ -65,6 +65,7 @@ export class ActionsResult {
   #dataset;
   #onPick;
   #onSelection;
+  #engine;
 
   /**
    * @param {object} options
@@ -84,8 +85,19 @@ export class ActionsResult {
    *    A callback function called when the result has been picked.
    * @param { Function} options.onSelection
    *    A callback function called when the result has been selected.
+   * @param { Function} options.engine
+   *    The name of an installed engine if the action prompts search mode.
    */
-  constructor({ key, l10nId, l10nArgs, icon, dataset, onPick, onSelection }) {
+  constructor({
+    key,
+    l10nId,
+    l10nArgs,
+    icon,
+    dataset,
+    onPick,
+    onSelection,
+    engine,
+  }) {
     this.#key = key;
     this.#l10nId = l10nId;
     this.#l10nArgs = l10nArgs;
@@ -93,6 +105,7 @@ export class ActionsResult {
     this.#dataset = dataset;
     this.#onPick = onPick;
     this.#onSelection = onSelection;
+    this.#engine = engine;
   }
 
   get key() {
@@ -121,5 +134,9 @@ export class ActionsResult {
 
   get onSelection() {
     return this.#onSelection;
+  }
+
+  get engine() {
+    return this.#engine;
   }
 }

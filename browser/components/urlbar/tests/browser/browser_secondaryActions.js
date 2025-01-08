@@ -167,7 +167,7 @@ add_task(async function test_sitesearch() {
     expectedUrl
   );
   EventUtils.synthesizeKey("KEY_Tab");
-  EventUtils.sendString(query);
+  EventUtils.sendString("rch");
   EventUtils.synthesizeKey("KEY_Enter");
   await onLoad;
 

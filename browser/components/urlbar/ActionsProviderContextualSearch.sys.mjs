@@ -66,7 +66,7 @@ class ProviderContextualSearch extends ActionsProvider {
       this.#resultEngine &&
       this.#resultEngine.engine?.name != defaultEngine?.name
     ) {
-      return [await this.createActionResult(this.#resultEngine)];
+      return [await this.#createActionResult(this.#resultEngine)];
     }
     return null;
   }
@@ -78,30 +78,23 @@ class ProviderContextualSearch extends ActionsProvider {
     this.#hostEngines.clear();
   }
 
-  async createActionResult({ type, engine }) {
+  async #createActionResult({ type, engine, key = "contextual-search" }) {
     let icon = engine?.icon || (await engine?.getIconURL?.()) || DEFAULT_ICON;
-    return new ActionsResult({
-      key: "contextual-search",
+    let result = {
+      key,
       l10nId: "urlbar-result-search-with",
       l10nArgs: { engine: engine.name || engine.title },
       icon,
       onPick: (context, controller) => {
         this.pickAction(context, controller);
       },
-      onSelection: async (result, element) => {
-        // We don't enter preview searchMode unless the engine is installed.
-        if (type != INSTALLED_ENGINE) {
-          return;
-        }
-        result.payload.engine = engine.name;
-        result.payload.query = "";
-        element.ownerGlobal.gURLBar.maybeConfirmSearchModeFromResult({
-          result,
-          checkValue: false,
-          startQuery: false,
-        });
-      },
-    });
+    };
+
+    if (type == INSTALLED_ENGINE) {
+      result.engine = engine.name;
+    }
+
+    return new ActionsResult(result);
   }
 
   /*
@@ -205,7 +198,11 @@ class ProviderContextualSearch extends ActionsProvider {
         stripWww: true,
       });
       if (host.startsWith(searchStr)) {
-        return { type: INSTALLED_ENGINE, engine };
+        return {
+          type: INSTALLED_ENGINE,
+          engine,
+          key: "matched-contextual-search",
+        };
       }
       if (host.includes("." + searchStr)) {
         partialMatchEnginesByHost.set(engine.searchUrlDomain, engine);
@@ -225,7 +222,11 @@ class ProviderContextualSearch extends ActionsProvider {
       );
       if (host) {
         let engine = partialMatchEnginesByHost.get(host);
-        return { type: INSTALLED_ENGINE, engine };
+        return {
+          type: INSTALLED_ENGINE,
+          engine,
+          key: "matched-contextual-search",
+        };
       }
     }
     return null;

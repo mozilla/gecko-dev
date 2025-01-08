@@ -66,9 +66,17 @@ class ProviderGlobalActions extends UrlbarProvider {
   async startQuery(queryContext, addCallback) {
     this.#actions.clear();
 
+    let searchModeEngine = "";
+
     for (let provider of globalActionsProviders) {
       if (provider.isActive(queryContext)) {
         for (let action of (await provider.queryActions(queryContext)) || []) {
+          if (action.engine && !searchModeEngine) {
+            searchModeEngine = action.engine;
+          } else if (action.engine) {
+            // We only allow one action that provides an engine search mode.
+            continue;
+          }
           this.#actions.set(action.key, action);
         }
       }
@@ -78,14 +86,29 @@ class ProviderGlobalActions extends UrlbarProvider {
       return;
     }
 
+    let results = [...this.#actions.keys()];
+
+    let query = results.includes("matched-contextual-search")
+      ? ""
+      : queryContext.searchString;
+
+    let payload = {
+      results,
+      dynamicType: DYNAMIC_TYPE_NAME,
+      inputLength: queryContext.searchString.length,
+      input: query,
+      query,
+    };
+
+    if (searchModeEngine) {
+      payload.providesSearchMode = true;
+      payload.engine = searchModeEngine;
+    }
+
     let result = new lazy.UrlbarResult(
       UrlbarUtils.RESULT_TYPE.DYNAMIC,
       UrlbarUtils.RESULT_SOURCE.ACTIONS,
-      {
-        results: [...this.#actions.keys()],
-        dynamicType: DYNAMIC_TYPE_NAME,
-        inputLength: queryContext.searchString.length,
-      }
+      payload
     );
     result.suggestedIndex = SUGGESTED_INDEX;
     addCallback(this, result);
