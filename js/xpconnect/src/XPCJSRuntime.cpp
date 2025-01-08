@@ -2712,6 +2712,15 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
     case JSUseCounter::OPTIMIZE_GET_ITERATOR_FUSE:
       SetUseCounter(obj, eUseCounter_custom_JS_optimizeGetIterator_fuse);
       return;
+    case JSUseCounter::THENABLE_USE:
+      SetUseCounter(obj, eUseCounter_custom_JS_thenable);
+      return;
+    case JSUseCounter::THENABLE_USE_PROTO:
+      SetUseCounter(obj, eUseCounter_custom_JS_thenable_proto);
+      return;
+    case JSUseCounter::THENABLE_USE_STANDARD_PROTO:
+      SetUseCounter(obj, eUseCounter_custom_JS_thenable_standard_proto);
+      return;
     case JSUseCounter::COUNT:
       break;
   }
