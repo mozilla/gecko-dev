@@ -1645,6 +1645,9 @@ def test_preview_description(options, call_count):
         (["awsy", "tp5n", "amazon"], 4, 3),
         (["awsy", "tp5n", "xperf"], 2, 3),
         (["non-existent"], 0, 0),
+        (["perftest_finder_ml_engine_perf.js"], 1, 1),
+        (["perftest/test/finder/path"], 1, 1),
+        (["perftest/test/finder/path/perftest_finder_ml_engine_perf.js"], 1, 1),
     ],
 )
 def test_test_selection(tests, tasks_found, categories_produced):

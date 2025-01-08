@@ -205,7 +205,14 @@ def perftest_test_finder(task_cmd, task_label, test):
     that mozperftest names don't include things like:
     aarch64, shippable, or opt among other identifiers
     """
-    return None
+    modified_task_label = None
+    for cmd in task_cmd:
+        cmd_list = cmd
+        found = any(test in arg for arg in cmd_list)
+        if found:
+            modified_task_label = task_label
+
+    return modified_task_label
 
 
 def awsy_test_finder(task_cmd, task_label, test):
