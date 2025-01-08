@@ -677,6 +677,17 @@ export class UrlbarView {
       }
     }
 
+    // Disable autofill when search terms persist, as users are likely refining
+    // their search rather than navigating to a website matching the search
+    // term. If they do want to navigate directly, users can modify their
+    // search, which resets persistence and re-enables autofill.
+    let state = this.input.getBrowserState(
+      this.window.gBrowser.selectedBrowser
+    );
+    if (state.persist?.shouldPersist) {
+      queryOptions.allowAutofill = false;
+    }
+
     this.controller.engagementEvent.discard();
     queryOptions.searchString = this.input.value;
     queryOptions.autofillIgnoresSelection = true;

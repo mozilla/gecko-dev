@@ -40,6 +40,9 @@ support-files = ["mixed_active.html"]
 ["browser_UrlbarInput_searchTerms.js"]
 tags = "persisted-search"
 
+["browser_UrlbarInput_searchTerms_autofill.js"]
+tags = "persisted-search"
+
 ["browser_UrlbarInput_searchTerms_backgroundTabs.js"]
 tags = "persisted-search"
 
