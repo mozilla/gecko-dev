@@ -18,11 +18,12 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.compose.button.SecondaryButton
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -32,10 +33,13 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * CFR Tools UI that allows for the CFR states to be reset.
  *
  * @param cfrToolsStore [CfrToolsStore] used to access [CfrToolsState].
+ * @param isNavigationBarShown Whether the navigation bar is shown or not navigation bar
+ * CFR toggles will be shown or not.
  */
 @Composable
 fun CfrTools(
     cfrToolsStore: CfrToolsStore,
+    isNavigationBarShown: Boolean = LocalContext.current.shouldAddNavigationBar(),
 ) {
     Column(
         modifier = Modifier
@@ -44,7 +48,10 @@ fun CfrTools(
             .padding(vertical = FirefoxTheme.space.small),
         verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
     ) {
-        ResetCfrTool(cfrToolsStore = cfrToolsStore)
+        ResetCfrTool(
+            cfrToolsStore = cfrToolsStore,
+            shouldAddNavigationBar = isNavigationBarShown,
+        )
     }
 }
 
@@ -52,6 +59,7 @@ fun CfrTools(
 @Composable
 private fun ResetCfrTool(
     cfrToolsStore: CfrToolsStore,
+    shouldAddNavigationBar: Boolean,
 ) {
     val cfrPreferences by cfrToolsStore.observeAsState(initialValue = cfrToolsStore.state) { state ->
         state
@@ -108,7 +116,7 @@ private fun ResetCfrTool(
                 },
             )
 
-            if (FeatureFlags.navigationToolbarEnabled) {
+            if (shouldAddNavigationBar) {
                 CfrToggle(
                     title = stringResource(R.string.debug_drawer_cfr_tools_homepage_nav_toolbar_title),
                     description = stringResource(R.string.debug_drawer_cfr_tools_homepage_nav_toolbar_description),
@@ -174,7 +182,7 @@ private fun ResetCfrTool(
                 text = stringResource(R.string.debug_drawer_cfr_tools_toolbar_cfr_title),
             )
 
-            if (FeatureFlags.navigationToolbarEnabled) {
+            if (shouldAddNavigationBar) {
                 CfrToggle(
                     title = stringResource(R.string.debug_drawer_cfr_tools_navigation_buttons_title),
                     description = stringResource(R.string.debug_drawer_cfr_tools_navigation_buttons_description),
@@ -265,6 +273,7 @@ private fun CfrToolsPreview() {
         ) {
             CfrTools(
                 cfrToolsStore = CfrToolsStore(),
+                isNavigationBarShown = true,
             )
         }
     }

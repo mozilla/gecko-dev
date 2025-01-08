@@ -79,11 +79,6 @@ object FeatureFlags {
     const val metaAttributionEnabled = true
 
     /**
-     * Enables Navigation Toolbar.
-     */
-    val navigationToolbarEnabled = Config.channel.isNightlyOrDebug
-
-    /**
      * Enables the Compose Homepage.
      */
     const val composeHomepage = false
