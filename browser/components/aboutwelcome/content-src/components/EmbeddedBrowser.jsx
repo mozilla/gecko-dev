@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import React, { useEffect, useRef } from "react";
 
@@ -24,34 +24,56 @@ function applyValidStyles(element, style, validStyles) {
 
 export const EmbeddedBrowser = props => {
   // Conditionally render the component only if the environment supports XULElements (such as in Spotlight modals)
-  return document.createXULElement ? <EmbeddedBrowserInner {...props} /> : null;
+  return document.createXULElement && props.url ? (
+    <EmbeddedBrowserInner {...props} />
+  ) : null;
 };
 
 const EmbeddedBrowserInner = ({ url, style }) => {
   const ref = useRef(null);
+  const browserRef = useRef(null);
 
   useEffect(() => {
-    const browser = document.createXULElement("browser");
-    browser.setAttribute("disableglobalhistory", "true");
-    browser.setAttribute("type", "content");
-    browser.setAttribute("remote", "true");
+    if (!ref.current || browserRef.current) {
+      return;
+    }
 
-    ref.current.appendChild(browser);
-  }, []);
+    const browserEl = document.createXULElement("browser");
+    const remoteType = window.AWPredictRemoteType({
+      browserEl,
+      url,
+    });
+    const attributes = [
+      ["disableglobalhistory", "true"],
+      ["type", "content"],
+      ["remote", "true"],
+      ["maychangeremoteness", "true"],
+      ["nodefaultsrc", "true"],
+      ["remoteType", remoteType],
+    ];
+    attributes.forEach(([attr, val]) => browserEl.setAttribute(attr, val));
+    browserRef.current = browserEl;
+
+    ref.current.appendChild(browserEl);
+    // Initialize the browser element only once when the component mounts. The
+    // empty dependency array ensures this effect runs only on the first render.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const browser = ref.current.querySelector("browser");
-    if (browser) {
-      if (style) {
-        applyValidStyles(browser, style, BROWSER_STYLES);
-      }
-      browser.fixupAndLoadURIString(url, {
+    if (browserRef.current) {
+      browserRef.current.fixupAndLoadURIString(url, {
         triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
           {}
         ),
       });
     }
-  }, [url, style]);
+  }, [url]);
+
+  useEffect(() => {
+    if (browserRef.current && style) {
+      applyValidStyles(browserRef.current, style, BROWSER_STYLES);
+    }
+  }, [style]);
 
   return <div className="embedded-browser-container" ref={ref}></div>;
 };

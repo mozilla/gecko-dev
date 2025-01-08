@@ -130,15 +130,12 @@ add_task(async function test_embedded_browser() {
   Assert.ok(embeddedBrowser, "Embedded browser rendered");
 
   await TestUtils.waitForCondition(
-    () => !embeddedBrowser.browsingContext.webProgress.isLoadingDocument
+    () =>
+      embeddedBrowser.currentURI.spec === TEST_SCREEN.content.tiles.data.url,
+    "Embedded browser's URI does not match configured URL"
   );
-  Assert.ok(embeddedBrowser.currentURI, "Should have a currentURI set.");
+  Assert.ok(true, "Embedded browser rendered with configured URL");
 
-  Assert.equal(
-    embeddedBrowser.currentURI.spec,
-    TEST_SCREEN.content.tiles.data.url,
-    "Embedded browser rendered with configured URL"
-  );
   Assert.equal(
     embeddedBrowser.style.height,
     TEST_SCREEN.content.tiles.data.style.height,
@@ -148,6 +145,11 @@ add_task(async function test_embedded_browser() {
     embeddedBrowser.style.width,
     TEST_SCREEN.content.tiles.data.style.width,
     "Embedded browser rendered with configured width"
+  );
+  Assert.equal(
+    embeddedBrowser.remoteType,
+    "webIsolated=https://example.com",
+    "Embedded browser has remoteType set"
   );
 
   win.close();

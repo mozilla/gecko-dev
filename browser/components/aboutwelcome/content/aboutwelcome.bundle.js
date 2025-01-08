@@ -2721,8 +2721,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 
 const BROWSER_STYLES = ["height", "width", "border", "border-radius", "flex", "margin", "padding"];
@@ -2735,31 +2735,43 @@ function applyValidStyles(element, style, validStyles) {
 }
 const EmbeddedBrowser = props => {
   // Conditionally render the component only if the environment supports XULElements (such as in Spotlight modals)
-  return document.createXULElement ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(EmbeddedBrowserInner, props) : null;
+  return document.createXULElement && props.url ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(EmbeddedBrowserInner, props) : null;
 };
 const EmbeddedBrowserInner = ({
   url,
   style
 }) => {
   const ref = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+  const browserRef = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    const browser = document.createXULElement("browser");
-    browser.setAttribute("disableglobalhistory", "true");
-    browser.setAttribute("type", "content");
-    browser.setAttribute("remote", "true");
-    ref.current.appendChild(browser);
-  }, []);
+    if (!ref.current || browserRef.current) {
+      return;
+    }
+    const browserEl = document.createXULElement("browser");
+    const remoteType = window.AWPredictRemoteType({
+      browserEl,
+      url
+    });
+    const attributes = [["disableglobalhistory", "true"], ["type", "content"], ["remote", "true"], ["maychangeremoteness", "true"], ["nodefaultsrc", "true"], ["remoteType", remoteType]];
+    attributes.forEach(([attr, val]) => browserEl.setAttribute(attr, val));
+    browserRef.current = browserEl;
+    ref.current.appendChild(browserEl);
+    // Initialize the browser element only once when the component mounts. The
+    // empty dependency array ensures this effect runs only on the first render.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    const browser = ref.current.querySelector("browser");
-    if (browser) {
-      if (style) {
-        applyValidStyles(browser, style, BROWSER_STYLES);
-      }
-      browser.fixupAndLoadURIString(url, {
+    if (browserRef.current) {
+      browserRef.current.fixupAndLoadURIString(url, {
         triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({})
       });
     }
-  }, [url, style]);
+  }, [url]);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (browserRef.current && style) {
+      applyValidStyles(browserRef.current, style, BROWSER_STYLES);
+    }
+  }, [style]);
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "embedded-browser-container",
     ref: ref

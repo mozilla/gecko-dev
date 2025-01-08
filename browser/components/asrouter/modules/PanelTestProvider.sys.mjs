@@ -20,6 +20,41 @@ const isMSIX =
 
 const MESSAGES = () => [
   {
+    id: "EMBEDDED_BROWSER_SPOTLIGHT",
+    groups: ["panel-test-provider"],
+    template: "spotlight",
+    targeting: true,
+    content: {
+      template: "multistage",
+      screens: [
+        {
+          id: "EMBEDDED_BROWSER_SCREEN",
+          content: {
+            logo: {},
+            title: {
+              raw: "Embedded browser test",
+            },
+            tiles: {
+              type: "embedded_browser",
+              data: {
+                style: {
+                  width: "100%",
+                  height: "200px",
+                },
+                url: "https://example.com",
+              },
+            },
+            dismiss_button: {
+              action: {
+                dismiss: true,
+              },
+            },
+          },
+        },
+      ],
+    },
+  },
+  {
     id: "TAB_GROUP_TEST_CALLOUT",
     template: "feature_callout",
     groups: ["cfr"],
