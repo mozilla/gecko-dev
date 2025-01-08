@@ -142,17 +142,18 @@ add_task(async () => {
       let root = await getMacAccessible(document);
       let rootChildCount = () => root.getAttributeValue("AXChildren").length;
 
-      // With no popups, the root accessible has 5 visible children:
+      // With no popups, the root accessible has 6 visible children:
       // 1. Tab bar (#TabsToolbar)
       // 2. Navigation bar (#nav-bar)
-      // 3. Content area (#tabbrowser-tabpanels)
-      // 4. Some fullscreen pointer grabber (#fullscreen-and-pointerlock-wrapper)
-      // 5. Accessibility announcements dialog (#a11y-announcement)
-      let baseRootChildCount = 5;
+      // 3. Notifications toolbar (#notifications-toolbar)
+      // 4. Content area (#tabbrowser-tabpanels)
+      // 5. Some fullscreen pointer grabber (#fullscreen-and-pointerlock-wrapper)
+      // 6. Accessibility announcements dialog (#a11y-announcement)
+      let baseRootChildCount = 6;
       is(
         rootChildCount(),
         baseRootChildCount,
-        "Root with no popups has 5 children"
+        `Root with no popups has ${baseRootChildCount} children`
       );
 
       // Open a context menu
