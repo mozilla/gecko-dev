@@ -7,19 +7,13 @@
  * https://gpuweb.github.io/gpuweb/
  */
 
-// NOTE: This is part of WebGPU. We don't include this in `WebGPU.webidl`, in part because this
-// split allows code to generate properly.
-
-[Func="mozilla::webgpu::Instance::PrefEnabled",
- Exposed=(Window, DedicatedWorker, SharedWorker), SecureContext]
-interface GPUUncapturedErrorEvent : Event {
-    constructor(
-        DOMString type,
-        GPUUncapturedErrorEventInit gpuUncapturedErrorEventInitDict
-    );
-    [SameObject] readonly attribute GPUError error;
-};
-
 dictionary GPUUncapturedErrorEventInit : EventInit {
     required GPUError error;
+};
+
+[Func="mozilla::webgpu::Instance::PrefEnabled",
+ Exposed=(Window, DedicatedWorker), SecureContext]
+interface GPUUncapturedErrorEvent: Event {
+    constructor(DOMString type, GPUUncapturedErrorEventInit gpuUncapturedErrorEventInitDict);
+    readonly attribute GPUError error;
 };

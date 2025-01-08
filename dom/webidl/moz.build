@@ -142,9 +142,6 @@ with Files("Glean*.webidl"):
 with Files("Grid.webidl"):
     BUG_COMPONENT = ("Core", "CSS Parsing and Computation")
 
-with Files("GPUUncapturedErrorEvent.webidl"):
-    BUG_COMPONENT = ("Core", "Graphics: WebGPU")
-
 with Files("HTML*"):
     BUG_COMPONENT = ("Core", "DOM: Core & HTML")
 
