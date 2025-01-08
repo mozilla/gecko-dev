@@ -518,6 +518,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_telemetry_persist_toggle_changed.js"]
 
 ["browser_net_telemetry_select_ws_frame.js"]
+skip-if = [
+  # Bug 1842200 - Frequent intermittent leaks.
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug"
+]
 
 ["browser_net_telemetry_sidepanel_changed.js"]
 
