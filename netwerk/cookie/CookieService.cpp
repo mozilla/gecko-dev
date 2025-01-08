@@ -583,7 +583,8 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
 
   cookieParser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieHeader,
                      dateHeader, true, isForeignAndNotAddon, mustBePartitioned,
-                     storagePrincipalOriginAttributes.IsPrivateBrowsing());
+                     storagePrincipalOriginAttributes.IsPrivateBrowsing(),
+                     loadInfo->GetIsOn3PCBExceptionList());
 
   if (!cookieParser.ContainsCookie()) {
     return NS_OK;
@@ -847,6 +848,9 @@ void CookieService::GetCookiesForURI(
 
   nsCOMPtr<nsIConsoleReportCollector> crc = do_QueryInterface(aChannel);
 
+  nsCOMPtr<nsILoadInfo> loadInfo = aChannel ? aChannel->LoadInfo() : nullptr;
+  const bool on3pcdException = loadInfo && loadInfo->GetIsOn3PCBExceptionList();
+
   for (const auto& attrs : aOriginAttrsList) {
     CookieStorage* storage = PickStorage(attrs);
 
@@ -974,13 +978,16 @@ void CookieService::GetCookiesForURI(
       // Check if we need to block the cookie because of opt-in partitioning.
       // We will only allow partitioned cookies with "partitioned" attribution
       // if opt-in partitioning is enabled.
+      //
+      // Note: If the cookie is on the 3pcd exception list, we will include
+      // the cookie.
       if (aIsForeign && cookieJarSettings->GetPartitionForeign() &&
           (StaticPrefs::network_cookie_cookieBehavior_optInPartitioning() ||
            (attrs.IsPrivateBrowsing() &&
             StaticPrefs::
                 network_cookie_cookieBehavior_optInPartitioning_pbmode())) &&
           !(cookie->IsPartitioned() && cookie->RawIsPartitioned()) &&
-          !aStorageAccessPermissionGranted) {
+          !aStorageAccessPermissionGranted && !on3pcdException) {
         continue;
       }
 

@@ -71,24 +71,25 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvGetRequest(
     const nsString& aDomain, const OriginAttributes& aOriginAttributes,
     const Maybe<OriginAttributes>& aPartitionedOriginAttributes,
     const bool& aThirdPartyContext, const bool& aPartitionForeign,
-    const bool& aUsingStorageAccess, const bool& aMatchName,
-    const nsString& aName, const nsCString& aPath, const bool& aOnlyFirstMatch,
-    GetRequestResolver&& aResolver) {
+    const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
+    const bool& aMatchName, const nsString& aName, const nsCString& aPath,
+    const bool& aOnlyFirstMatch, GetRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
-  InvokeAsync(
-      GetMainThreadSerialEventTarget(), __func__,
-      [self = RefPtr(this), aDomain, aOriginAttributes,
-       aPartitionedOriginAttributes, aThirdPartyContext, aPartitionForeign,
-       aUsingStorageAccess, aMatchName, aName, aPath, aOnlyFirstMatch]() {
-        CopyableTArray<CookieData> results;
-        self->GetRequestOnMainThread(
-            aDomain, aOriginAttributes, aPartitionedOriginAttributes,
-            aThirdPartyContext, aPartitionForeign, aUsingStorageAccess,
-            aMatchName, aName, aPath, aOnlyFirstMatch, results);
-        return GetRequestPromise::CreateAndResolve(std::move(results),
-                                                   __func__);
-      })
+  InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
+              [self = RefPtr(this), aDomain, aOriginAttributes,
+               aPartitionedOriginAttributes, aThirdPartyContext,
+               aPartitionForeign, aUsingStorageAccess, aIsOn3PCBExceptionList,
+               aMatchName, aName, aPath, aOnlyFirstMatch]() {
+                CopyableTArray<CookieData> results;
+                self->GetRequestOnMainThread(
+                    aDomain, aOriginAttributes, aPartitionedOriginAttributes,
+                    aThirdPartyContext, aPartitionForeign, aUsingStorageAccess,
+                    aIsOn3PCBExceptionList, aMatchName, aName, aPath,
+                    aOnlyFirstMatch, results);
+                return GetRequestPromise::CreateAndResolve(std::move(results),
+                                                           __func__);
+              })
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [aResolver = std::move(aResolver)](
                  const GetRequestPromise::ResolveOrRejectValue& aResult) {
@@ -102,28 +103,30 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvGetRequest(
 mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
     const nsString& aDomain, const OriginAttributes& aOriginAttributes,
     const bool& aThirdPartyContext, const bool& aPartitionForeign,
-    const bool& aUsingStorageAccess, const nsString& aName,
-    const nsString& aValue, const bool& aSession, const int64_t& aExpires,
-    const nsString& aPath, const int32_t& aSameSite, const bool& aPartitioned,
-    const nsID& aOperationID, SetRequestResolver&& aResolver) {
+    const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
+    const nsString& aName, const nsString& aValue, const bool& aSession,
+    const int64_t& aExpires, const nsString& aPath, const int32_t& aSameSite,
+    const bool& aPartitioned, const nsID& aOperationID,
+    SetRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
   RefPtr<ThreadsafeContentParentHandle> parent =
       BackgroundParent::GetContentParentHandle(Manager());
 
-  InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
-              [self = RefPtr(this), parent = RefPtr(parent), aDomain,
-               aOriginAttributes, aThirdPartyContext, aPartitionForeign,
-               aUsingStorageAccess, aName, aValue, aSession, aExpires, aPath,
-               aSameSite, aPartitioned, aOperationID]() {
-                bool waitForNotification = self->SetRequestOnMainThread(
-                    parent, aDomain, aOriginAttributes, aThirdPartyContext,
-                    aPartitionForeign, aUsingStorageAccess, aName, aValue,
-                    aSession, aExpires, aPath, aSameSite, aPartitioned,
-                    aOperationID);
-                return SetDeleteRequestPromise::CreateAndResolve(
-                    waitForNotification, __func__);
-              })
+  InvokeAsync(
+      GetMainThreadSerialEventTarget(), __func__,
+      [self = RefPtr(this), parent = RefPtr(parent), aDomain, aOriginAttributes,
+       aThirdPartyContext, aPartitionForeign, aUsingStorageAccess,
+       aIsOn3PCBExceptionList, aName, aValue, aSession, aExpires, aPath,
+       aSameSite, aPartitioned, aOperationID]() {
+        bool waitForNotification = self->SetRequestOnMainThread(
+            parent, aDomain, aOriginAttributes, aThirdPartyContext,
+            aPartitionForeign, aUsingStorageAccess, aIsOn3PCBExceptionList,
+            aName, aValue, aSession, aExpires, aPath, aSameSite, aPartitioned,
+            aOperationID);
+        return SetDeleteRequestPromise::CreateAndResolve(waitForNotification,
+                                                         __func__);
+      })
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [aResolver = std::move(aResolver)](
                  const SetDeleteRequestPromise::ResolveOrRejectValue& aResult) {
@@ -137,9 +140,9 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
 mozilla::ipc::IPCResult CookieStoreParent::RecvDeleteRequest(
     const nsString& aDomain, const OriginAttributes& aOriginAttributes,
     const bool& aThirdPartyContext, const bool& aPartitionForeign,
-    const bool& aUsingStorageAccess, const nsString& aName,
-    const nsString& aPath, const bool& aPartitioned, const nsID& aOperationID,
-    DeleteRequestResolver&& aResolver) {
+    const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
+    const nsString& aName, const nsString& aPath, const bool& aPartitioned,
+    const nsID& aOperationID, DeleteRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
   RefPtr<ThreadsafeContentParentHandle> parent =
@@ -148,12 +151,12 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvDeleteRequest(
   InvokeAsync(
       GetMainThreadSerialEventTarget(), __func__,
       [self = RefPtr(this), parent = RefPtr(parent), aDomain, aOriginAttributes,
-       aThirdPartyContext, aPartitionForeign, aUsingStorageAccess, aName, aPath,
-       aPartitioned, aOperationID]() {
+       aThirdPartyContext, aPartitionForeign, aUsingStorageAccess,
+       aIsOn3PCBExceptionList, aName, aPath, aPartitioned, aOperationID]() {
         bool waitForNotification = self->DeleteRequestOnMainThread(
             parent, aDomain, aOriginAttributes, aThirdPartyContext,
-            aPartitionForeign, aUsingStorageAccess, aName, aPath, aPartitioned,
-            aOperationID);
+            aPartitionForeign, aUsingStorageAccess, aIsOn3PCBExceptionList,
+            aName, aPath, aPartitioned, aOperationID);
         return SetDeleteRequestPromise::CreateAndResolve(waitForNotification,
                                                          __func__);
       })
@@ -177,8 +180,9 @@ void CookieStoreParent::GetRequestOnMainThread(
     const nsAString& aDomain, const OriginAttributes& aOriginAttributes,
     const Maybe<OriginAttributes>& aPartitionedOriginAttributes,
     bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
-    bool aMatchName, const nsAString& aName, const nsACString& aPath,
-    bool aOnlyFirstMatch, nsTArray<CookieData>& aResults) {
+    bool aIsOn3PCBExceptionList, bool aMatchName, const nsAString& aName,
+    const nsACString& aPath, bool aOnlyFirstMatch,
+    nsTArray<CookieData>& aResults) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<nsICookieService> service =
@@ -210,7 +214,7 @@ void CookieStoreParent::GetRequestOnMainThread(
       if (aThirdPartyContext &&
           !CookieCommons::ShouldIncludeCrossSiteCookie(
               cookie, aPartitionForeign, attrs.IsPrivateBrowsing(),
-              aUsingStorageAccess)) {
+              aUsingStorageAccess, aIsOn3PCBExceptionList)) {
         continue;
       }
 
@@ -242,7 +246,8 @@ void CookieStoreParent::GetRequestOnMainThread(
 bool CookieStoreParent::SetRequestOnMainThread(
     ThreadsafeContentParentHandle* aParent, const nsAString& aDomain,
     const OriginAttributes& aOriginAttributes, bool aThirdPartyContext,
-    bool aPartitionForeign, bool aUsingStorageAccess, const nsAString& aName,
+    bool aPartitionForeign, bool aUsingStorageAccess,
+    bool aIsOn3PCBExceptionList, const nsAString& aName,
     const nsAString& aValue, bool aSession, int64_t aExpires,
     const nsAString& aPath, int32_t aSameSite, bool aPartitioned,
     const nsID& aOperationID) {
@@ -258,7 +263,7 @@ bool CookieStoreParent::SetRequestOnMainThread(
       !CookieCommons::ShouldIncludeCrossSiteCookie(
           aSameSite, aPartitioned && !aOriginAttributes.mPartitionKey.IsEmpty(),
           aPartitionForeign, aOriginAttributes.IsPrivateBrowsing(),
-          aUsingStorageAccess)) {
+          aUsingStorageAccess, aIsOn3PCBExceptionList)) {
     return false;
   }
 
@@ -299,8 +304,9 @@ bool CookieStoreParent::SetRequestOnMainThread(
 bool CookieStoreParent::DeleteRequestOnMainThread(
     ThreadsafeContentParentHandle* aParent, const nsAString& aDomain,
     const OriginAttributes& aOriginAttributes, bool aThirdPartyContext,
-    bool aPartitionForeign, bool aUsingStorageAccess, const nsAString& aName,
-    const nsAString& aPath, bool aPartitioned, const nsID& aOperationID) {
+    bool aPartitionForeign, bool aUsingStorageAccess,
+    bool aIsOn3PCBExceptionList, const nsAString& aName, const nsAString& aPath,
+    bool aPartitioned, const nsID& aOperationID) {
   MOZ_ASSERT(NS_IsMainThread());
 
   NS_ConvertUTF16toUTF8 domain(aDomain);
@@ -367,8 +373,8 @@ bool CookieStoreParent::DeleteRequestOnMainThread(
       if (!CookieCommons::ShouldIncludeCrossSiteCookie(
               sameSiteAttr,
               isPartitioned && !aOriginAttributes.mPartitionKey.IsEmpty(),
-              aPartitionForeign, attrs.IsPrivateBrowsing(),
-              aUsingStorageAccess)) {
+              aPartitionForeign, attrs.IsPrivateBrowsing(), aUsingStorageAccess,
+              aIsOn3PCBExceptionList)) {
         return false;
       }
     }

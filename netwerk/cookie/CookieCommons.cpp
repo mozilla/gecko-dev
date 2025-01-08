@@ -424,9 +424,14 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
 
   nsCString cookieString(aCookieString);
 
+  nsCOMPtr<nsILoadInfo> loadInfo =
+      aDocument->GetChannel() ? aDocument->GetChannel()->LoadInfo() : nullptr;
+  const bool on3pcbException = loadInfo && loadInfo->GetIsOn3PCBExceptionList();
+
   aCookieParser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
                       EmptyCString(), false, isForeignAndNotAddon,
-                      mustBePartitioned, aDocument->IsInPrivateBrowsing());
+                      mustBePartitioned, aDocument->IsInPrivateBrowsing(),
+                      on3pcbException);
 
   if (!aCookieParser.ContainsCookie()) {
     return nullptr;
@@ -511,7 +516,8 @@ already_AddRefed<nsICookieJarSettings> CookieCommons::GetCookieJarSettings(
 bool CookieCommons::ShouldIncludeCrossSiteCookie(Cookie* aCookie,
                                                  bool aPartitionForeign,
                                                  bool aInPrivateBrowsing,
-                                                 bool aUsingStorageAccess) {
+                                                 bool aUsingStorageAccess,
+                                                 bool aOn3pcbException) {
   MOZ_ASSERT(aCookie);
 
   int32_t sameSiteAttr = 0;
@@ -519,15 +525,14 @@ bool CookieCommons::ShouldIncludeCrossSiteCookie(Cookie* aCookie,
 
   return ShouldIncludeCrossSiteCookie(
       sameSiteAttr, aCookie->IsPartitioned() && aCookie->RawIsPartitioned(),
-      aPartitionForeign, aInPrivateBrowsing, aUsingStorageAccess);
+      aPartitionForeign, aInPrivateBrowsing, aUsingStorageAccess,
+      aOn3pcbException);
 }
 
 // static
-bool CookieCommons::ShouldIncludeCrossSiteCookie(int32_t aSameSiteAttr,
-                                                 bool aCookiePartitioned,
-                                                 bool aPartitionForeign,
-                                                 bool aInPrivateBrowsing,
-                                                 bool aUsingStorageAccess) {
+bool CookieCommons::ShouldIncludeCrossSiteCookie(
+    int32_t aSameSiteAttr, bool aCookiePartitioned, bool aPartitionForeign,
+    bool aInPrivateBrowsing, bool aUsingStorageAccess, bool aOn3pcbException) {
   // CHIPS - If a third-party has storage access it can access both it's
   // partitioned and unpartitioned cookie jars, else its cookies are blocked.
   //
@@ -538,7 +543,7 @@ bool CookieCommons::ShouldIncludeCrossSiteCookie(int32_t aSameSiteAttr,
        (aInPrivateBrowsing &&
         StaticPrefs::
             network_cookie_cookieBehavior_optInPartitioning_pbmode())) &&
-      !aCookiePartitioned && !aUsingStorageAccess) {
+      !aCookiePartitioned && !aUsingStorageAccess && !aOn3pcbException) {
     return false;
   }
 
