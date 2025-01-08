@@ -175,3 +175,56 @@ add_task(async function test_filter_passwords_while_editing() {
   LoginTestUtils.clearData();
   SidebarController.hide();
 });
+
+add_task(async function test_filter_passwords_and_update_login() {
+  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    ok(true, "Cannot test OSAuth");
+    return;
+  }
+  await addMockPasswords();
+  const megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
+
+  info("Filter password using search input");
+  const searchInput = megalist.querySelector(".search");
+  searchInput.value = TEST_LOGIN_3.username;
+  searchInput.dispatchEvent(new Event("input"));
+  await checkSearchResults(1, megalist);
+
+  info("Ensure editing login with a filter works");
+  const passwordCard = megalist.querySelector("password-card");
+  await waitForReauth(() => passwordCard.editBtn.click());
+  await BrowserTestUtils.waitForCondition(
+    () => megalist.querySelector("login-form"),
+    "Login form failed to render"
+  );
+
+  const newUsername = `${TEST_LOGIN_3.username}_updated`;
+  const newPassword = `${TEST_LOGIN_3.password}_updated`;
+  const loginForm = megalist.querySelector("login-form");
+
+  info("Updating login.");
+  setInputValue(loginForm, "login-username-field", newUsername);
+  setInputValue(loginForm, "login-password-field", newPassword);
+  const saveButton = loginForm.shadowRoot.querySelector(
+    "moz-button[type=primary]"
+  );
+  info("Submitting form");
+  saveButton.buttonEl.click();
+
+  await waitForNotification(megalist, "update-login-success");
+  const updatedPasswordCard = megalist.querySelector("password-card");
+  info("Check that the login has a new username and password");
+  await BrowserTestUtils.waitForCondition(
+    () => updatedPasswordCard.usernameLine.value === newUsername,
+    "Username not updated"
+  );
+  await waitForPasswordReveal(updatedPasswordCard.passwordLine);
+  await BrowserTestUtils.waitForCondition(
+    () => updatedPasswordCard.passwordLine.value === newPassword,
+    "Password not updated"
+  );
+
+  LoginTestUtils.clearData();
+  SidebarController.hide();
+});

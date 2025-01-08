@@ -129,7 +129,7 @@ export class MegalistAlpha extends MozLitElement {
     switch (this.viewMode) {
       case VIEW_MODES.EDIT:
         this.#sendCommand("DiscardChanges", {
-          value: { passwordIndex: this.selectedRecord.password.lineIndex - 1 },
+          value: { passwordIndex: this.selectedRecord.password.lineIndex },
         });
         return;
       default:
@@ -148,12 +148,12 @@ export class MegalistAlpha extends MozLitElement {
       .sendAsyncMessage(messageName, data);
   }
 
-  #sendCommand(commandId, options = {}) {
+  #sendCommand(commandId, options = {}, snapshotId = 0) {
     // TODO(Bug 1913302): snapshotId should be optional for global commands.
     // Right now, we always pass 0 and overwrite when needed.
     this.#messageToViewModel("Command", {
       commandId,
-      snapshotId: 0,
+      snapshotId,
       ...options,
     });
   }
@@ -226,7 +226,10 @@ export class MegalistAlpha extends MozLitElement {
       !this.notification?.fromSidebar;
 
     if (shouldShowDiscardChangesPrompt) {
-      this.#sendCommand("DiscardChanges", { value: { fromSidebar: true } });
+      const passwordIndex = this.selectedRecord.password.lineIndex;
+      this.#sendCommand("DiscardChanges", {
+        value: { fromSidebar: true, passwordIndex },
+      });
       e.preventDefault();
     }
   }
@@ -447,10 +450,15 @@ export class MegalistAlpha extends MozLitElement {
           .onClose=${() => this.#onCancelLoginForm()}
           .onSaveClick=${loginForm => {
             loginForm.guid = this.selectedRecord.origin.guid;
-            const passwordIndex = this.selectedRecord.password.lineIndex - 1;
             this.#sendCommand("UpdateLogin", {
-              value: { login: loginForm, passwordIndex },
+              value: loginForm,
             });
+            this.#sendCommand(
+              "Cancel",
+              {},
+              this.selectedRecord.password.lineIndex
+            );
+          }}
           }}
           .onDeleteClick=${() => {
             const login = {
@@ -628,8 +636,8 @@ export class MegalistAlpha extends MozLitElement {
         .onDismiss=${() => {
           this.notification = null;
         }}
-        .messageHandler=${(commandId, options) =>
-          this.#sendCommand(commandId, options)}
+        .messageHandler=${(commandId, options, snapshotId) =>
+          this.#sendCommand(commandId, options, snapshotId)}
         @view-login=${e => this.#scrollPasswordCardIntoView(e.detail.guid)}
       >
       </notification-message-bar>

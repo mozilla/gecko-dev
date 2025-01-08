@@ -189,8 +189,7 @@ export class LoginDataSource extends DataSourceBase {
       this.#header.executeRemoveAll = () => this.#removeAllPasswords();
       this.#header.executeExport = async () => this.#exportLogins();
       this.#header.executeAddLogin = newLogin => this.#addLogin(newLogin);
-      this.#header.executeUpdateLogin = ({ login, passwordIndex }) =>
-        this.#updateLogin(login, passwordIndex);
+      this.#header.executeUpdateLogin = login => this.#updateLogin(login);
       this.#header.executeDeleteLogin = login => this.#deleteLogin(login);
       this.#header.executeDiscardChanges = options => this.#cancelEdit(options);
       this.#header.executeConfirmDiscardChanges = options =>
@@ -644,7 +643,7 @@ export class LoginDataSource extends DataSourceBase {
     }
   }
 
-  async #updateLogin(login, passwordIndex) {
+  async #updateLogin(login) {
     const logins = await Services.logins.searchLoginsAsync({
       origin: login.origin,
       guid: login.guid,
@@ -661,7 +660,6 @@ export class LoginDataSource extends DataSourceBase {
     }
     try {
       Services.logins.modifyLogin(logins[0], modifiedLogin);
-      this.lines[passwordIndex].executeCancel();
       this.setNotification({
         id: "update-login-success",
         viewMode: VIEW_MODES.LIST,
@@ -687,7 +685,6 @@ export class LoginDataSource extends DataSourceBase {
       const window = BrowserWindowTracker.getTopWindow();
       window.SidebarController.hide();
     } else {
-      this.lines[options.passwordIndex].executeCancel();
       this.discardChangesConfirmed();
     }
   }
