@@ -474,6 +474,41 @@ user-id = 106639
 user-login = "afranchuk"
 user-name = "Alex Franchuk"
 
+[[publisher.phf]]
+version = "0.11.2"
+when = "2023-06-24"
+user-id = 51017
+user-login = "JohnTitor"
+user-name = "Yuki Okushi"
+
+[[publisher.phf_codegen]]
+version = "0.11.2"
+when = "2023-06-24"
+user-id = 51017
+user-login = "JohnTitor"
+user-name = "Yuki Okushi"
+
+[[publisher.phf_generator]]
+version = "0.11.2"
+when = "2023-06-24"
+user-id = 51017
+user-login = "JohnTitor"
+user-name = "Yuki Okushi"
+
+[[publisher.phf_macros]]
+version = "0.11.2"
+when = "2023-06-24"
+user-id = 51017
+user-login = "JohnTitor"
+user-name = "Yuki Okushi"
+
+[[publisher.phf_shared]]
+version = "0.11.2"
+when = "2023-06-24"
+user-id = 51017
+user-login = "JohnTitor"
+user-name = "Yuki Okushi"
+
 [[publisher.presser]]
 version = "0.3.1"
 when = "2022-10-16"
