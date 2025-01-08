@@ -296,7 +296,7 @@ linux64-rust-nightly:
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'i686-unknown-linux-gnu',
             '--target', 'aarch64-unknown-linux-gnu',
-            '--target', 'wasm32-wasi',
+            '--target', 'wasm32-wasip1',
         ]
         toolchain-alias:
             by-project:
