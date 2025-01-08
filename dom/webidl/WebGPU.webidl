@@ -1288,6 +1288,8 @@ partial interface GPUDevice {
     Promise<GPUError?> popErrorScope();
 };
 
+// NOTE: `GPUUncapturedErrorEvent{,Init}` is in `GPUUncapturedErrorEvent.webidl`.
+
 partial interface GPUDevice {
     [Exposed=(Window, DedicatedWorker)]
     attribute EventHandler onuncapturederror;
