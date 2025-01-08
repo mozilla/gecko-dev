@@ -549,6 +549,11 @@ static inline void encode_nonrd_sb(AV1_COMP *cpi, ThreadData *td,
         x->content_state_sb.source_sad_nonrd < kLowSad) {
       bsize_select = cm->seq_params->sb_size;
     }
+    if (cpi->sf.rt_sf.skip_encoding_non_reference_slide_change &&
+        cpi->rc.high_source_sad && cpi->ppi->rtc_ref.non_reference_frame) {
+      bsize_select = cm->seq_params->sb_size;
+      x->force_zeromv_skip_for_sb = 1;
+    }
     const BLOCK_SIZE bsize = seg_skip ? sb_size : bsize_select;
     if (x->content_state_sb.source_sad_nonrd > kZeroSad)
       x->force_color_check_block_level = 1;

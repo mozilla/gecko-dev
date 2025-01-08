@@ -4796,6 +4796,18 @@ static int read_uncompressed_header(AV1Decoder *pbi,
           }
           buf = &frame_bufs[buf_idx];
           lock_buffer_pool(pool);
+#if CONFIG_SIZE_LIMIT
+          if (seq_params->max_frame_width > DECODE_WIDTH_LIMIT ||
+              seq_params->max_frame_height > DECODE_HEIGHT_LIMIT) {
+            decrease_ref_count(buf, pool);
+            unlock_buffer_pool(pool);
+            aom_internal_error(
+                cm->error, AOM_CODEC_CORRUPT_FRAME,
+                "Dimensions of %dx%d beyond allowed size of %dx%d.",
+                seq_params->max_frame_width, seq_params->max_frame_height,
+                DECODE_WIDTH_LIMIT, DECODE_HEIGHT_LIMIT);
+          }
+#endif
           if (aom_realloc_frame_buffer(
                   &buf->buf, seq_params->max_frame_width,
                   seq_params->max_frame_height, seq_params->subsampling_x,

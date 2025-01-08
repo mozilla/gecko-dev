@@ -1425,11 +1425,13 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
         if (x->source_variance > 100 && source_sad_nonrd > kLowSad) {
           int is_screen = cpi->oxcf.tune_cfg.content == AOM_CONTENT_SCREEN;
           int me_search_size_col =
-              is_screen ? 96 : block_size_wide[cm->seq_params->sb_size] >> 1;
+              is_screen ? source_sad_nonrd > kMedSad ? 160 : 96
+                        : block_size_wide[cm->seq_params->sb_size] >> 1;
           // For screen use larger search size row motion to capture
           // vertical scroll, which can be larger motion.
           int me_search_size_row =
-              is_screen ? 192 : block_size_high[cm->seq_params->sb_size] >> 1;
+              is_screen ? source_sad_nonrd > kMedSad ? 512 : 192
+                        : block_size_high[cm->seq_params->sb_size] >> 1;
           unsigned int y_sad_zero;
           *y_sad = av1_int_pro_motion_estimation(
               cpi, x, cm->seq_params->sb_size, mi_row, mi_col, &kZeroMv,

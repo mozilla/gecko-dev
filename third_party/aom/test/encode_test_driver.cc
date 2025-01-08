@@ -28,7 +28,7 @@ void Encoder::InitEncoder(VideoSource *video) {
   aom_codec_err_t res;
   const aom_image_t *img = video->img();
 
-  if (video->img() && !encoder_.priv) {
+  if (img && !encoder_.priv) {
     cfg_.g_w = img->d_w;
     cfg_.g_h = img->d_h;
     cfg_.g_timebase = video->timebase();

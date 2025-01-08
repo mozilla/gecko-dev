@@ -39,20 +39,21 @@ uint32_t aom_get_mb_ss_c(const int16_t *a) {
 static void variance(const uint8_t *a, int a_stride, const uint8_t *b,
                      int b_stride, int w, int h, uint32_t *sse, int *sum) {
   int i, j;
-
-  *sum = 0;
-  *sse = 0;
+  int tsum = 0;
+  uint32_t tsse = 0;
 
   for (i = 0; i < h; ++i) {
     for (j = 0; j < w; ++j) {
       const int diff = a[j] - b[j];
-      *sum += diff;
-      *sse += diff * diff;
+      tsum += diff;
+      tsse += diff * diff;
     }
 
     a += a_stride;
     b += b_stride;
   }
+  *sum = tsum;
+  *sse = tsse;
 }
 
 uint32_t aom_sse_odd_size(const uint8_t *a, int a_stride, const uint8_t *b,
@@ -772,21 +773,22 @@ static inline void obmc_variance(const uint8_t *pre, int pre_stride,
                                  const int32_t *wsrc, const int32_t *mask,
                                  int w, int h, unsigned int *sse, int *sum) {
   int i, j;
-
-  *sse = 0;
-  *sum = 0;
+  unsigned int tsse = 0;
+  int tsum = 0;
 
   for (i = 0; i < h; i++) {
     for (j = 0; j < w; j++) {
       int diff = ROUND_POWER_OF_TWO_SIGNED(wsrc[j] - pre[j] * mask[j], 12);
-      *sum += diff;
-      *sse += diff * diff;
+      tsum += diff;
+      tsse += diff * diff;
     }
 
     pre += pre_stride;
     wsrc += w;
     mask += w;
   }
+  *sse = tsse;
+  *sum = tsum;
 }
 
 #define OBMC_VAR(W, H)                                            \
@@ -881,21 +883,22 @@ static inline void highbd_obmc_variance64(const uint8_t *pre8, int pre_stride,
                                           uint64_t *sse, int64_t *sum) {
   int i, j;
   uint16_t *pre = CONVERT_TO_SHORTPTR(pre8);
-
-  *sse = 0;
-  *sum = 0;
+  uint64_t tsse = 0;
+  int64_t tsum = 0;
 
   for (i = 0; i < h; i++) {
     for (j = 0; j < w; j++) {
       int diff = ROUND_POWER_OF_TWO_SIGNED(wsrc[j] - pre[j] * mask[j], 12);
-      *sum += diff;
-      *sse += diff * diff;
+      tsum += diff;
+      tsse += diff * diff;
     }
 
     pre += pre_stride;
     wsrc += w;
     mask += w;
   }
+  *sse = tsse;
+  *sum = tsum;
 }
 
 static inline void highbd_obmc_variance(const uint8_t *pre8, int pre_stride,

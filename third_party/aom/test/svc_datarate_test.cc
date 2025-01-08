@@ -105,9 +105,8 @@ class DatarateTestSVC
                           ::libaom_test::Encoder *encoder) override {
     int spatial_layer_id = 0;
     current_video_frame_ = video->frame();
-    // video->frame() is called every superframe, so we should condition
-    // this on layer_frame_cnt_ = 0, so we only do this once on the very
-    // first frame.
+
+    // One-time initialization only done on the first frame.
     if (video->frame() == 0 && layer_frame_cnt_ == 0) {
       initialize_svc(number_temporal_layers_, number_spatial_layers_,
                      &svc_params_);

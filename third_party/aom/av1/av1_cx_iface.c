@@ -1790,8 +1790,10 @@ static aom_codec_err_t handle_tuning(aom_codec_alg_priv_t *ctx,
   if (extra_cfg->tuning == AOM_TUNE_SSIMULACRA2) {
     if (ctx->cfg.g_usage != AOM_USAGE_ALL_INTRA) return AOM_CODEC_INCAPABLE;
     // Enable QMs as they've been found to be beneficial for images, when used
-    // with alternative QM formulas (see aom_get_qmlevel_allintra() and
-    // aom_get_qmlevel_444_chroma_ssimulacra2()).
+    // with alternative QM formulas:
+    // - aom_get_qmlevel_allintra()
+    // - aom_get_qmlevel_luma_ssimulacra2()
+    // - aom_get_qmlevel_444_chroma_ssimulacra2()
     extra_cfg->enable_qm = 1;
     extra_cfg->qm_min = QM_FIRST_SSIMULACRA2;
     extra_cfg->qm_max = QM_LAST_SSIMULACRA2;
@@ -1802,8 +1804,12 @@ static aom_codec_err_t handle_tuning(aom_codec_alg_priv_t *ctx,
     // default PSNR metric), as it correlates better with subjective image
     // quality consistency and better SSIMULACRA2 scores.
     extra_cfg->dist_metric = AOM_DIST_METRIC_QM_PSNR;
-    // CDEF_ALL has been found to blur images at high quality QPs, so let's use
-    // a version that adapts on QP.
+    // CDEF_ALL has been found to blur images at medium and high quality
+    // qindexes, so let's use a version that adapts CDEF strength on frame
+    // qindexes. CDEF_ADAPTIVE strengths look like this for varying qindexes:
+    // - CDEF off:          0 -  32
+    // - Reduced strength: 33 - 220
+    // - Full strength:   221 - 255
     extra_cfg->enable_cdef = CDEF_ADAPTIVE;
     // Enable chroma deltaq so the encoder can factor in chroma subsampling and
     // adjust chroma quality when necessary.
@@ -3501,7 +3507,8 @@ static aom_codec_err_t encoder_encode(aom_codec_alg_priv_t *ctx,
         obu_header_size = av1_write_obu_header(
             &ppi->level_params, &cpi->frame_header_count,
             OBU_TEMPORAL_DELIMITER,
-            ppi->seq_params.has_nonzero_operating_point_idc, 0, ctx->cx_data);
+            ppi->seq_params.has_nonzero_operating_point_idc,
+            /*is_layer_specific_obu=*/false, 0, ctx->cx_data);
         if (obu_header_size != 1) {
           aom_internal_error(&ppi->error, AOM_CODEC_ERROR, NULL);
         }

@@ -5413,7 +5413,8 @@ aom_fixed_buf_t *av1_get_global_headers(AV1_PRIMARY *ppi) {
 
   if (av1_write_obu_header(&ppi->level_params, &ppi->cpi->frame_header_count,
                            OBU_SEQUENCE_HEADER,
-                           ppi->seq_params.has_nonzero_operating_point_idc, 0,
+                           ppi->seq_params.has_nonzero_operating_point_idc,
+                           /*is_layer_specific_obu=*/false, 0,
                            &header_buf[0]) != obu_header_size) {
     return NULL;
   }

@@ -1258,6 +1258,11 @@ YV12_BUFFER_CONFIG *av1_realloc_and_scale_if_required(
                            "Failed to allocate buffers during resize");
     }
 #endif
+    if (unscaled->metadata &&
+        aom_copy_metadata_to_frame_buffer(scaled, unscaled->metadata)) {
+      aom_internal_error(cm->error, AOM_CODEC_MEM_ERROR,
+                         "Failed to copy source metadata to scaled frame");
+    }
     return scaled;
   }
   return unscaled;

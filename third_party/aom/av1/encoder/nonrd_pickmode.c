@@ -1583,6 +1583,8 @@ void av1_nonrd_pick_intra_mode(AV1_COMP *cpi, MACROBLOCK *x, RD_STATS *rd_cost,
   const int left_ctx = intra_mode_context[L];
   const unsigned int source_variance = x->source_variance;
   bmode_costs = x->mode_costs.y_mode_costs[above_ctx][left_ctx];
+  const int mi_row = xd->mi_row;
+  const int mi_col = xd->mi_col;
 
   av1_invalid_rd_stats(&best_rdc);
   av1_invalid_rd_stats(&this_rdc);
@@ -1594,6 +1596,12 @@ void av1_nonrd_pick_intra_mode(AV1_COMP *cpi, MACROBLOCK *x, RD_STATS *rd_cost,
   // mode tests.
   for (int mode_index = 0; mode_index < RTC_INTRA_MODES; ++mode_index) {
     PREDICTION_MODE this_mode = intra_mode_list[mode_index];
+
+    // Force DC for spatially flat block for large bsize, on top-left corner.
+    // This removed potential artifact observed in gray scale image for high Q.
+    if (x->source_variance == 0 && mi_col == 0 && mi_row == 0 &&
+        bsize >= BLOCK_32X32 && this_mode > 0)
+      continue;
 
     // As per the statistics generated for intra mode evaluation in the nonrd
     // path, it is found that the probability of H_PRED mode being the winner is
@@ -3137,7 +3145,8 @@ static inline bool enable_palette(AV1_COMP *cpi, bool is_mode_intra,
                                   BLOCK_SIZE bsize,
                                   unsigned int source_variance,
                                   int force_zeromv_skip, int skip_idtx_palette,
-                                  int force_palette_test) {
+                                  int force_palette_test,
+                                  unsigned int best_intra_sad_norm) {
   if (!cpi->oxcf.tool_cfg.enable_palette) return false;
   if (!av1_allow_palette(cpi->common.features.allow_screen_content_tools,
                          bsize)) {
@@ -3150,6 +3159,10 @@ static inline bool enable_palette(AV1_COMP *cpi, bool is_mode_intra,
        bsize > BLOCK_16X16)) {
     return false;
   }
+
+  if (prune_palette_testing_inter(cpi, source_variance) &&
+      best_intra_sad_norm < 10)
+    return false;
 
   if ((is_mode_intra || force_palette_test) && source_variance > 0 &&
       !force_zeromv_skip &&
@@ -3503,21 +3516,28 @@ void av1_nonrd_pick_inter_mode_sb(AV1_COMP *cpi, TileDataEnc *tile_data,
   }
 
   // Evaluate Intra modes in inter frame
+  unsigned int best_intra_sad_norm = UINT_MAX;
   if (!x->force_zeromv_skip_for_blk)
     av1_estimate_intra_mode(cpi, x, bsize, best_early_term,
                             search_state.ref_costs_single[INTRA_FRAME],
                             reuse_inter_pred, &orig_dst, tmp_buffer,
                             &this_mode_pred, &search_state.best_rdc,
-                            best_pickmode, ctx);
+                            best_pickmode, ctx, &best_intra_sad_norm);
 
   int skip_idtx_palette = (x->color_sensitivity[COLOR_SENS_IDX(AOM_PLANE_U)] ||
                            x->color_sensitivity[COLOR_SENS_IDX(AOM_PLANE_V)]) &&
                           x->content_state_sb.source_sad_nonrd != kZeroSad &&
-                          !cpi->rc.high_source_sad;
+                          !cpi->rc.high_source_sad &&
+                          (cpi->rc.high_motion_content_screen_rtc ||
+                           cpi->rc.frame_source_sad < 10000);
 
   bool try_palette = enable_palette(
       cpi, is_mode_intra(best_pickmode->best_mode), bsize, x->source_variance,
-      x->force_zeromv_skip_for_blk, skip_idtx_palette, force_palette_test);
+      x->force_zeromv_skip_for_blk, skip_idtx_palette, force_palette_test,
+      best_intra_sad_norm);
+
+  if (try_palette && prune_palette_testing_inter(cpi, x->source_variance))
+    x->color_palette_thresh = 32;
 
   // Perform screen content mode evaluation for non-rd
   handle_screen_content_mode_nonrd(

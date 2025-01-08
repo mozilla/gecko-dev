@@ -198,16 +198,15 @@ static int get_init_ratio(double sse) { return (int)(300000 / sse); }
 // Allow for increase in enumerator to reduce overshoot.
 static int adjust_rtc_keyframe(const RATE_CONTROL *rc, int enumerator) {
   // Don't adjust if most of the image is flat.
-  if (rc->perc_flat_blocks_keyframe > 70) return enumerator;
+  if (rc->perc_spatial_flat_blocks > 70) return enumerator;
   if (rc->last_encoded_size_keyframe == 0 ||
       rc->frames_since_scene_change < rc->frames_since_key) {
     // Very first frame, or if scene change happened after last keyframe.
     if (rc->frame_spatial_variance > 1000 ||
-        (rc->frame_spatial_variance > 500 &&
-         rc->perc_flat_blocks_keyframe == 0))
+        (rc->frame_spatial_variance > 500 && rc->perc_spatial_flat_blocks == 0))
       return enumerator << 3;
     else if (rc->frame_spatial_variance > 500 &&
-             rc->perc_flat_blocks_keyframe < 10)
+             rc->perc_spatial_flat_blocks < 10)
       return enumerator << 2;
     else if (rc->frame_spatial_variance > 400)
       return enumerator << 1;
@@ -3082,18 +3081,15 @@ static int set_block_is_active(unsigned char *const active_map_4x4, int mi_cols,
 static unsigned int estimate_scroll_motion(
     const AV1_COMP *cpi, uint8_t *src_buf, uint8_t *last_src_buf,
     int src_stride, int ref_stride, BLOCK_SIZE bsize, int pos_col, int pos_row,
-    int *best_intmv_col, int *best_intmv_row) {
+    int *best_intmv_col, int *best_intmv_row, int sw_col, int sw_row) {
   const AV1_COMMON *const cm = &cpi->common;
   const int bw = block_size_wide[bsize];
   const int bh = block_size_high[bsize];
   const int full_search = 1;
   // Keep border a multiple of 16.
   const int border = (cpi->oxcf.border_in_pixels >> 4) << 4;
-  // Make search_size_height larger to capture more common vertical scroll.
-  // Increase the search if last two frames were dropped.
-  // Values set based on screen test set.
-  int search_size_width = 96;
-  int search_size_height = cpi->rc.drop_count_consec > 1 ? 224 : 192;
+  int search_size_width = sw_col;
+  int search_size_height = sw_row;
   // Adjust based on boundary.
   if ((pos_col - search_size_width < -border) ||
       (pos_col + search_size_width > cm->width + border))
@@ -3340,22 +3336,51 @@ static void rc_scene_detection_onepass_rt(AV1_COMP *cpi,
         unscaled_src->y_height >= 720) {
       cpi->rc.high_motion_content_screen_rtc = 1;
       // Compute fast coarse/global motion for 128x128 superblock centered
-      // at middle of frames, to determine if motion is scroll.
+      // at middle of frame, and one to the upper left and one to lower right.
+      // to determine if motion is scroll. Only test 3 points (pts) for now.
       // TODO(marpan): Only allow for 8 bit-depth for now.
       if (cm->seq_params->bit_depth == 8) {
-        int pos_col = (unscaled_src->y_width >> 1) - 64;
-        int pos_row = (unscaled_src->y_height >> 1) - 64;
-        src_y = unscaled_src->y_buffer + pos_row * src_ystride + pos_col;
-        last_src_y =
-            unscaled_last_src->y_buffer + pos_row * last_src_ystride + pos_col;
-        int best_intmv_col = 0;
-        int best_intmv_row = 0;
-        unsigned int y_sad = estimate_scroll_motion(
-            cpi, src_y, last_src_y, src_ystride, last_src_ystride,
-            BLOCK_128X128, pos_col, pos_row, &best_intmv_col, &best_intmv_row);
-        if (y_sad < 100 &&
-            (abs(best_intmv_col) > 16 || abs(best_intmv_row) > 16))
-          cpi->rc.high_motion_content_screen_rtc = 0;
+        const int sw_row = (cpi->rc.frame_source_sad > 20000) ? 512 : 192;
+        const int sw_col = (cpi->rc.frame_source_sad > 20000) ? 512 : 160;
+        const int num_pts =
+            unscaled_src->y_width * unscaled_src->y_height >= 1920 * 1080 ? 3
+                                                                          : 1;
+        for (int pts = 0; pts < num_pts; pts++) {
+          // fac and shift are used to move the center block for the other
+          // two points (pts).
+          int fac = 1;
+          int shift = 1;
+          if (pts == 1) {
+            fac = 1;
+            shift = 2;
+          } else if (pts == 2) {
+            fac = 3;
+            shift = 2;
+          }
+          int pos_col = (fac * unscaled_src->y_width >> shift) - 64;
+          int pos_row = (fac * unscaled_src->y_height >> shift) - 64;
+          pos_col = AOMMAX(sw_col,
+                           AOMMIN(unscaled_src->y_width - sw_col - 1, pos_col));
+          pos_row = AOMMAX(
+              sw_row, AOMMIN(unscaled_src->y_height - sw_row - 1, pos_row));
+          if (pos_col >= 0 && pos_col < unscaled_src->y_width - 64 &&
+              pos_row >= 0 && pos_row < unscaled_src->y_height - 64) {
+            src_y = unscaled_src->y_buffer + pos_row * src_ystride + pos_col;
+            last_src_y = unscaled_last_src->y_buffer +
+                         pos_row * last_src_ystride + pos_col;
+            int best_intmv_col = 0;
+            int best_intmv_row = 0;
+            unsigned int y_sad = estimate_scroll_motion(
+                cpi, src_y, last_src_y, src_ystride, last_src_ystride,
+                BLOCK_128X128, pos_col, pos_row, &best_intmv_col,
+                &best_intmv_row, sw_col, sw_row);
+            if (y_sad < 100 &&
+                (abs(best_intmv_col) > 16 || abs(best_intmv_row) > 16)) {
+              cpi->rc.high_motion_content_screen_rtc = 0;
+              break;
+            }
+          }
+        }
       }
     }
     // Pass the flag value to all layer frames.
@@ -3405,7 +3430,7 @@ static const uint8_t AV1_VAR_OFFS[MAX_SB_SIZE] = {
   128, 128, 128, 128, 128, 128, 128, 128
 };
 
-/*!\brief Compute spatial activity for keyframe,  1 pass real-time mode.
+/*!\brief Compute spatial activity for frame,  1 pass real-time mode.
  *
  * Compute average spatial activity/variance for source frame over a
  * subset of superblocks.
@@ -3418,8 +3443,8 @@ static const uint8_t AV1_VAR_OFFS[MAX_SB_SIZE] = {
  * \remark Nothing is returned. Instead the average spatial variance
  * computed is stored in flag \c cpi->rc.frame_spatial_variance.
  */
-static void rc_spatial_act_keyframe_onepass_rt(AV1_COMP *cpi, uint8_t *src_y,
-                                               int src_ystride) {
+static void rc_spatial_act_onepass_rt(AV1_COMP *cpi, uint8_t *src_y,
+                                      int src_ystride) {
   AV1_COMMON *const cm = &cpi->common;
   int num_mi_cols = cm->mi_params.mi_cols;
   int num_mi_rows = cm->mi_params.mi_rows;
@@ -3428,7 +3453,7 @@ static void rc_spatial_act_keyframe_onepass_rt(AV1_COMP *cpi, uint8_t *src_y,
   uint64_t avg_variance = 0;
   int num_samples = 0;
   int num_zero_var_blocks = 0;
-  cpi->rc.perc_flat_blocks_keyframe = 0;
+  cpi->rc.perc_spatial_flat_blocks = 0;
   const int sb_size_by_mb = (cm->seq_params->sb_size == BLOCK_128X128)
                                 ? (cm->seq_params->mib_size >> 1)
                                 : cm->seq_params->mib_size;
@@ -3447,7 +3472,7 @@ static void rc_spatial_act_keyframe_onepass_rt(AV1_COMP *cpi, uint8_t *src_y,
     src_y += (src_ystride << 6) - (sb_cols << 6);
   }
   if (num_samples > 0) {
-    cpi->rc.perc_flat_blocks_keyframe = 100 * num_zero_var_blocks / num_samples;
+    cpi->rc.perc_spatial_flat_blocks = 100 * num_zero_var_blocks / num_samples;
     avg_variance = avg_variance / num_samples;
   }
   cpi->rc.frame_spatial_variance = avg_variance >> 12;
@@ -3775,8 +3800,8 @@ void av1_get_one_pass_rt_params(AV1_COMP *cpi, FRAME_TYPE *const frame_type,
        (cpi->sf.rt_sf.rc_compute_spatial_var_sc && rc->high_source_sad)) &&
       svc->spatial_layer_id == 0 && cm->seq_params->bit_depth == 8 &&
       cpi->oxcf.rc_cfg.max_intra_bitrate_pct > 0)
-    rc_spatial_act_keyframe_onepass_rt(cpi, frame_input->source->y_buffer,
-                                       frame_input->source->y_stride);
+    rc_spatial_act_onepass_rt(cpi, frame_input->source->y_buffer,
+                              frame_input->source->y_stride);
   // Check for dynamic resize, for single spatial layer for now.
   // For temporal layers only check on base temporal layer.
   if (cpi->oxcf.resize_cfg.resize_mode == RESIZE_DYNAMIC) {

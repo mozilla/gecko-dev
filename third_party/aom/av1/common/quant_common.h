@@ -66,7 +66,7 @@ static inline int aom_get_qmlevel(int qindex, int first, int last) {
 // This formula was empirically derived by encoding the CID22 validation
 // testset for each QP/QM tuple, and building a convex hull that
 // maximizes SSIMULACRA 2 scores, and a final subjective visual quality pass
-// as a sanity check. This is a decreasing function in qindex.
+// as a quick validation. This is a decreasing function in qindex.
 // There are a total of 16 luma QM levels, and the higher the level, the
 // flatter these QMs are.
 // QM level 15 is a completely-flat matrix and level 0 is the steepest.
@@ -96,11 +96,50 @@ static inline int aom_get_qmlevel_allintra(int qindex, int first, int last) {
   return clamp(qm_level, first, last);
 }
 
+// Luma QM levels tuned for SSIMULACRA 2 tune
+// This formula was empirically derived by encoding Daala's subset1 validation
+// testset for each QP/QM tuple, and building a convex hull that maximizes
+// SSIMULACRA 2 scores, and a final subjective visual quality pass as a quick
+// validation. This is a decreasing function in qindex.
+// There are a total of 16 luma QM levels, and the higher the level, the
+// flatter these QMs are.
+// QM level 15 is a completely-flat matrix and level 0 is the steepest.
+// This formula only uses levels 2 through 10, unless qm-min and qm-max are
+// both set below or above this range.
+// For more information on quantization matrices, please refer to
+// https://arxiv.org/pdf/2008.06091, section F.
+static inline int aom_get_qmlevel_luma_ssimulacra2(int qindex, int first,
+                                                   int last) {
+  int qm_level = 0;
+
+  if (qindex <= 40) {
+    qm_level = 10;
+  } else if (qindex <= 60) {
+    qm_level = 9;
+  } else if (qindex <= 100) {
+    qm_level = 8;
+  } else if (qindex <= 120) {
+    qm_level = 7;
+  } else if (qindex <= 140) {
+    qm_level = 6;
+  } else if (qindex <= 160) {
+    qm_level = 5;
+  } else if (qindex <= 200) {
+    qm_level = 4;
+  } else if (qindex <= 220) {
+    qm_level = 3;
+  } else {
+    qm_level = 2;
+  }
+
+  return clamp(qm_level, first, last);
+}
+
 // Chroma QM levels for 4:4:4 subsampling tuned for SSIMULACRA 2 tune
 // This formula was empirically derived by encoding Daala's subset1 validation
 // testset for each QP/QM tuple, and building a convex hull that maximizes
-// SSIMULACRA 2 scores, and a final subjective visual quality pass as a sanity
-// check. This is a decreasing function in qindex.
+// SSIMULACRA 2 scores, and a final subjective visual quality pass as a quick
+// validation. This is a decreasing function in qindex.
 // Like with luma QMs, there are a total of 16 chroma QM levels, and the higher
 // the level, the flatter these QMs are.
 // QM level 15 is a completely-flat matrix and level 0 is the steepest.

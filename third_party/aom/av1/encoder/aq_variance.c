@@ -12,6 +12,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "aom_dsp/aom_dsp_common.h"
 #include "aom_ports/mem.h"
 
 #include "av1/encoder/aq_variance.h"
@@ -182,9 +183,11 @@ static int comp_unsigned_int(const void *a, const void *b) {
 
 unsigned int av1_get_variance_boost_block_variance(const AV1_COMP *cpi,
                                                    const MACROBLOCK *x) {
-#define SUBBLOCKS_IN_SB_DIM 8
-#define SUBBLOCKS_IN_SB 64
+#define SUPERBLOCK_SIZE 64
 #define SUBBLOCK_SIZE 8
+#define SUBBLOCKS_IN_SB_DIM (SUPERBLOCK_SIZE / SUBBLOCK_SIZE)
+#define SUBBLOCKS_IN_SB (SUBBLOCKS_IN_SB_DIM * SUBBLOCKS_IN_SB_DIM)
+#define SUBBLOCKS_IN_OCTILE (SUBBLOCKS_IN_SB / 8)
   DECLARE_ALIGNED(16, static const uint16_t,
                   av1_highbd_all_zeros[SUBBLOCK_SIZE]) = { 0 };
   DECLARE_ALIGNED(16, static const uint8_t,
@@ -205,15 +208,14 @@ unsigned int av1_get_variance_boost_block_variance(const AV1_COMP *cpi,
                                  : av1_all_zeros;
   unsigned int variances[SUBBLOCKS_IN_SB];
 
-  // TODO: bug https://crbug.com/aomedia/375221136 - the current implementation
-  // truncates variances to integers during normalization, similar to SVT-AV1's
-  // counterpart. A possible improvement would be to use rounding: `(n + 32) /
-  // 64`, or just return variances as doubles.
+  // Calculate subblock variances.
   aom_variance_fn_t vf = cpi->ppi->fn_ptr[BLOCK_8X8].vf;
   for (int subb_i = 0; subb_i < SUBBLOCKS_IN_SB_DIM; subb_i++) {
     int i = subb_i * SUBBLOCK_SIZE;
     for (int subb_j = 0; subb_j < SUBBLOCKS_IN_SB_DIM; subb_j++) {
       int j = subb_j * SUBBLOCK_SIZE;
+      // Truncating values to integers (i.e. the 64 term) was found to perform
+      // better than rounding, or returning them as doubles.
       variances[subb_i * SUBBLOCKS_IN_SB_DIM + subb_j] =
           vf(x->plane[0].src.buf + i * x->plane[0].src.stride + j,
              x->plane[0].src.stride, all_zeros, 0, &sse) /
@@ -224,9 +226,23 @@ unsigned int av1_get_variance_boost_block_variance(const AV1_COMP *cpi,
   // Order the 8x8 SB values from smallest to largest variance.
   qsort(variances, SUBBLOCKS_IN_SB, sizeof(unsigned int), comp_unsigned_int);
 
-  // Take the 8x8 variance value in the specified octile.
+  // Sample three 8x8 variance values: at the specified octile, previous octile,
+  // and next octile. Make sure we use the last subblock in each octile as the
+  // representative of the octile.
   assert(octile >= 1 && octile <= 8);
-  const unsigned int variance = variances[octile * (SUBBLOCKS_IN_SB / 8) - 1];
+  const int middle_index = octile * SUBBLOCKS_IN_OCTILE - 1;
+  const int lower_index =
+      AOMMAX(SUBBLOCKS_IN_OCTILE - 1, middle_index - SUBBLOCKS_IN_OCTILE);
+  const int upper_index =
+      AOMMIN(SUBBLOCKS_IN_SB - 1, middle_index + SUBBLOCKS_IN_OCTILE);
+
+  // Weigh the three variances in a 1:2:1 ratio, with rounding (the +2 term).
+  // This allows for smoother delta-q transitions among superblocks with
+  // mixed-variance features.
+  const unsigned int variance =
+      (variances[lower_index] + (variances[middle_index] * 2) +
+       variances[upper_index] + 2) /
+      4;
 
   return variance;
 }

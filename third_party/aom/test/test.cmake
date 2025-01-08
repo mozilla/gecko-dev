@@ -387,6 +387,11 @@ if(NOT BUILD_SHARED_LIBS)
   endif()
 endif()
 
+if(ENABLE_EXAMPLES)
+  list(APPEND AOM_UNIT_TEST_ENCODER_SOURCES
+              "${AOM_ROOT}/test/multilayer_metadata_test.cc")
+endif()
+
 if(CONFIG_AV1_ENCODER AND ENABLE_TESTS)
   list(APPEND AOM_RC_TEST_SOURCES "${AOM_ROOT}/test/codec_factory.h"
               "${AOM_ROOT}/test/decode_test_driver.cc"

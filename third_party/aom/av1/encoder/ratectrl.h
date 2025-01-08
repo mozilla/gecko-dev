@@ -199,7 +199,7 @@ typedef struct {
   int last_encoded_size_keyframe;
   int last_target_size_keyframe;
   int frames_since_scene_change;
-  int perc_flat_blocks_keyframe;
+  int perc_spatial_flat_blocks;
 
   int avg_frame_bandwidth;  // Average frame size target for clip
   int min_frame_bandwidth;  // Minimum allocation used for any frame
