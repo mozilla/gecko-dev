@@ -348,8 +348,8 @@ Result NameResolver::OnLocalTeeExpr(LocalTeeExpr* expr) {
 }
 
 Result NameResolver::OnMemoryCopyExpr(MemoryCopyExpr* expr) {
-  ResolveMemoryVar(&expr->srcmemidx);
   ResolveMemoryVar(&expr->destmemidx);
+  ResolveMemoryVar(&expr->srcmemidx);
   return Result::Ok;
 }
 
@@ -488,12 +488,12 @@ void NameResolver::VisitFunc(Func* func) {
     ResolveFuncTypeVar(&func->decl.type_var);
   }
 
-  func->bindings.FindDuplicates(
-      [=](const BindingHash::value_type& a, const BindingHash::value_type& b) {
-        const char* desc =
-            (a.second.index < func->GetNumParams()) ? "parameter" : "local";
-        PrintDuplicateBindingsError(a, b, desc);
-      });
+  func->bindings.FindDuplicates([func, this](const BindingHash::value_type& a,
+                                             const BindingHash::value_type& b) {
+    const char* desc =
+        (a.second.index < func->GetNumParams()) ? "parameter" : "local";
+    PrintDuplicateBindingsError(a, b, desc);
+  });
 
   visitor_.VisitFunc(func);
   current_func_ = nullptr;
