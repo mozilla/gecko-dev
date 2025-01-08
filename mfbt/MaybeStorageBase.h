@@ -63,7 +63,7 @@ struct MaybeStorageBase<T, true> {
   using NonConstT = std::remove_const_t<T>;
 
   union Union {
-    constexpr Union() : empty{} {}
+    constexpr Union() : empty() {}
     constexpr explicit Union(const T& aVal) : val{aVal} {}
     constexpr explicit Union(T&& aVal) : val{std::move(aVal)} {}
     template <typename... Args>
@@ -71,8 +71,7 @@ struct MaybeStorageBase<T, true> {
         : val{std::forward<Args>(aArgs)...} {}
 
     NonConstT val;
-    struct {
-    } empty;
+    char empty;
   } mStorage;
 
  public:
