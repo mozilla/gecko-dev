@@ -93,12 +93,12 @@ def filter_nonwebrtc(commit):
     return "\n".join(filtered)
 
 
-def fixup_paths(commit):
+def fixup_paths(commit, search_path):
     # make sure we only rewrite paths in the diff-related or rename lines
     commit = re.sub(
-        f"^rename (from|to) {LIBWEBRTC_DIR}/", "rename \\1 ", commit, flags=re.MULTILINE
+        f"^rename (from|to) {search_path}/", "rename \\1 ", commit, flags=re.MULTILINE
     )
-    return re.sub(f"( [ab])/{LIBWEBRTC_DIR}/", "\\1/", commit)
+    return re.sub(f"( [ab])/{search_path}/", "\\1/", commit)
 
 
 def write_as_mbox(sha1, author, date, description, commit, ofile):
@@ -126,12 +126,16 @@ if __name__ == "__main__":
         "revsets", metavar="revset", type=str, nargs="+", help="A revset to process"
     )
     parser.add_argument(
-        "--target", choices=("libwebrtc", "build", "third_party"), default="libwebrtc"
+        "--target",
+        choices=("libwebrtc", "build", "third_party", "abseil-cpp"),
+        default="libwebrtc",
     )
     args = parser.parse_args()
 
     if args.target == "build":
         LIBWEBRTC_DIR = "third_party/chromium/build"
+    elif args.target == "abseil-cpp":
+        LIBWEBRTC_DIR = "third_party/abseil-cpp"
     elif args.target == "third_party":
         LIBWEBRTC_DIR = os.path.join(LIBWEBRTC_DIR, args.target)
 
@@ -154,5 +158,8 @@ if __name__ == "__main__":
             filtered_commit = filter_nonwebrtc(extract_commit(sha1, env))
             if len(filtered_commit) == 0:
                 continue
-            fixedup_commit = fixup_paths(filtered_commit)
+            if args.target == "abseil-cpp":
+                fixedup_commit = fixup_paths(filtered_commit, "third_party")
+            else:
+                fixedup_commit = fixup_paths(filtered_commit, LIBWEBRTC_DIR)
             write_as_mbox(sha1, author, date, description, fixedup_commit, ofile)
