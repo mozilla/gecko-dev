@@ -7,22 +7,37 @@ package org.mozilla.fenix.components.metrics
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import org.mozilla.fenix.GleanMetrics.Pings
-import org.mozilla.fenix.GleanMetrics.Usage
+import org.mozilla.fenix.components.metrics.GleanUsageReportingApi.UsageReason.ACTIVE
+import org.mozilla.fenix.components.metrics.GleanUsageReportingApi.UsageReason.INACTIVE
 
-internal class GleanUsageReportingLifecycleObserver : LifecycleEventObserver {
+internal class GleanUsageReportingLifecycleObserver(
+    private val gleanUsageReportingApi: GleanUsageReportingApi = GleanUsageReporting(),
+    private val currentTimeProvider: () -> Long = { System.currentTimeMillis() },
+) : LifecycleEventObserver {
+
+    private var durationStartMs: Long? = null
+
     /**
      * Called when lifecycle events are triggered.
      */
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
         when (event) {
             Lifecycle.Event.ON_START -> {
-                Usage.reason.set("active")
-                Pings.usageReporting.submit()
+                durationStartMs = currentTimeProvider()
+                with(gleanUsageReportingApi) {
+                    setUsageReason(ACTIVE)
+                    submitPing()
+                }
             }
             Lifecycle.Event.ON_STOP -> {
-                Usage.reason.set("inactive")
-                Pings.usageReporting.submit()
+                with(gleanUsageReportingApi) {
+                    val lastDurationStartMs = durationStartMs
+                    lastDurationStartMs?.also {
+                        setDuration(currentTimeProvider() - lastDurationStartMs)
+                    }
+                    setUsageReason(INACTIVE)
+                    submitPing()
+                }
             }
             else -> {
                 // For other lifecycle events, do nothing

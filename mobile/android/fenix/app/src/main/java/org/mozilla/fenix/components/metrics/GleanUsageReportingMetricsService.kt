@@ -20,7 +20,7 @@ class GleanUsageReportingMetricsService(
     private val gleanUsageReportingLifecycleObserver: LifecycleEventObserver = GleanUsageReportingLifecycleObserver(),
 ) : MetricsService {
 
-    override val type: MetricServiceType = MetricServiceType.Data
+    override val type: MetricServiceType = MetricServiceType.UsageReporting
     private val logger = Logger("GleanUsageReportingMetricsService")
 
     override fun start() {

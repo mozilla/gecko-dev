@@ -31,4 +31,9 @@ fun startMetricsIfEnabled(
         analytics.metrics.start(MetricServiceType.Marketing)
         logger.info("Marketing metrics service started")
     }
+
+    if (isTelemetryEnabled) { // this will be behind a different switch
+        analytics.metrics.start(MetricServiceType.UsageReporting)
+        logger.info("Usage reporting metrics service started")
+    }
 }
