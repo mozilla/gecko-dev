@@ -122,6 +122,13 @@ typedef struct {
   size_t bookkeeping;     // Committed bytes used internally by the
                           // allocator.
   size_t bin_unused;      // Bytes committed to a bin but currently unused.
+
+  size_t num_operations;  // The number of malloc()+free() calls.  Note that
+                          // realloc calls
+                          // count as 0, 1 or 2 operations depending on internal
+                          // operations.  Which internal operations (eg in place
+                          // or move, or different size classes) require
+                          // different internal operations is unspecified.
 } jemalloc_stats_t;
 
 typedef struct {
@@ -133,6 +140,18 @@ typedef struct {
   size_t bytes_total;        // The total storage area for runs in this bin,
   size_t bytes_per_run;      // The number of bytes per run, including headers.
 } jemalloc_bin_stats_t;
+
+// jemalloc_stats_lite() is not a stable interface.  When using
+// jemalloc_stats_lite_t, be sure that the compiled results of mozjemalloc.cpp
+// are in sync with this header file.
+typedef struct {
+  size_t allocated_bytes;
+
+  // The number of malloc()+free() calls.  realloc calls count as 0, 1 or 2
+  // operations depending on whether they do nothing, resize in-place, or move
+  // the memory.
+  size_t num_operations;
+} jemalloc_stats_lite_t;
 
 enum PtrInfoTag {
   // The pointer is not currently known to the allocator.

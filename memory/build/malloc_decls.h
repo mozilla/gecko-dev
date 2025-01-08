@@ -72,6 +72,10 @@ MALLOC_DECL(jemalloc_stats_internal, void, jemalloc_stats_t*,
 // Return the size of the jemalloc_bin_stats_t array.
 MALLOC_DECL(jemalloc_stats_num_bins, size_t)
 
+// Return some of the information that jemalloc_stats returns but works
+// off-main-thread and is faster.
+MALLOC_DECL(jemalloc_stats_lite, void, jemalloc_stats_lite_t*)
+
 // Tell jemalloc this is the main thread. jemalloc will use this to validate
 // that main thread only arenas are only used on the main thread.
 MALLOC_DECL(jemalloc_set_main_thread, void)

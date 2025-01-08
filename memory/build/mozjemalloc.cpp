@@ -703,6 +703,9 @@ struct arena_stats_t {
   size_t allocated_small;
 
   size_t allocated_large;
+
+  // The number of "memory operations" aka mallocs/frees.
+  size_t operations;
 };
 
 // ***************************************************************************
@@ -1151,12 +1154,25 @@ struct arena_t {
   // and it keeps the value it had after the destructor.
   arena_id_t mId;
 
-  // All operations on this arena require that lock be locked. The MaybeMutex
+  // Operations on this arena require that lock be locked. The MaybeMutex
   // class will elude locking if the arena is accessed from a single thread
   // only (currently only the main thread can be used like this).
   MaybeMutex mLock MOZ_UNANNOTATED;
 
+  // The lock is required to write to fields of mStats, but it is not needed to
+  // read them, so long as inconsistents reads are okay (fields might not make
+  // sense together).
   arena_stats_t mStats MOZ_GUARDED_BY(mLock);
+
+  // We can read the allocated counts from mStats without a lock:
+  size_t AllocatedBytes() const MOZ_NO_THREAD_SAFETY_ANALYSIS {
+    return mStats.allocated_small + mStats.allocated_large;
+  }
+
+  // We can read the operations field from mStats without a lock:
+  size_t Operations() const MOZ_NO_THREAD_SAFETY_ANALYSIS {
+    return mStats.operations;
+  }
 
  private:
   // Tree of dirty-page-containing chunks this arena manages.
@@ -1519,6 +1535,10 @@ class ArenaCollection {
     return Iterator(&mArenas, &mPrivateArenas);
   }
 
+  Iterator iter_all() {
+    return Iterator(&mArenas, &mPrivateArenas, &mMainThreadArenas);
+  }
+
   inline arena_t* GetDefault() { return mDefaultArena; }
 
   Mutex mLock MOZ_UNANNOTATED;
@@ -1603,6 +1623,7 @@ static RedBlackTree<extent_node_t, ExtentTreeTrait> huge
 // Huge allocation statistics.
 static size_t huge_allocated MOZ_GUARDED_BY(huge_mtx);
 static size_t huge_mapped MOZ_GUARDED_BY(huge_mtx);
+static size_t huge_operations MOZ_GUARDED_BY(huge_mtx);
 
 // **************************
 // base (internal allocation).
@@ -3904,6 +3925,7 @@ void* arena_t::MallocSmall(size_t aSize, bool aZero) {
     }
 
     mStats.allocated_small += aSize;
+    mStats.operations++;
   }
 
   if (!aZero) {
@@ -3928,6 +3950,7 @@ void* arena_t::MallocLarge(size_t aSize, bool aZero) {
       return nullptr;
     }
     mStats.allocated_large += aSize;
+    mStats.operations++;
   }
 
   if (!aZero) {
@@ -3992,6 +4015,7 @@ void* arena_t::PallocLarge(size_t aAlignment, size_t aSize, size_t aAllocSize) {
     }
 
     mStats.allocated_large += aSize;
+    mStats.operations++;
   }
 
   // Note that since Bug 1488780we don't attempt purge dirty memory on this code
@@ -4360,6 +4384,7 @@ arena_chunk_t* arena_t::DallocSmall(arena_chunk_t* aChunk, void* aPtr,
   // the book-keeping overhead via measurements.
 
   mStats.allocated_small -= size;
+  mStats.operations++;
 
   return dealloc_chunk;
 }
@@ -4370,6 +4395,7 @@ arena_chunk_t* arena_t::DallocLarge(arena_chunk_t* aChunk, void* aPtr) {
   size_t size = aChunk->map[pageind].bits & ~gPageSizeMask;
 
   mStats.allocated_large -= size;
+  mStats.operations++;
 
   return DallocRun((arena_run_t*)aPtr, true);
 }
@@ -4447,6 +4473,7 @@ void arena_t::RallocShrinkLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
     MaybeMutexAutoLock lock(mLock);
     TrimRunTail(aChunk, (arena_run_t*)aPtr, aOldSize, aSize, true);
     mStats.allocated_large -= aOldSize - aSize;
+    mStats.operations++;
 
     should_purge = mNumDirty > EffectiveMaxDirty();
   }
@@ -4485,6 +4512,7 @@ bool arena_t::RallocGrowLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
     aChunk->map[pageind + npages].bits = CHUNK_MAP_LARGE | CHUNK_MAP_ALLOCATED;
 
     mStats.allocated_large += aSize - aOldSize;
+    mStats.operations++;
     return true;
   }
 
@@ -4749,6 +4777,7 @@ static void huge_init() MOZ_REQUIRES(gInitLock) {
   huge.Init();
   huge_allocated = 0;
   huge_mapped = 0;
+  huge_operations = 0;
   MOZ_POP_THREAD_SAFETY
 }
 
@@ -4820,6 +4849,7 @@ void* arena_t::PallocHuge(size_t aSize, size_t aAlignment, bool aZero) {
     // reasonably claim we never "allocated" them in the first place.
     huge_allocated += psize;
     huge_mapped += csize;
+    huge_operations++;
   }
 
   pages_decommit((void*)((uintptr_t)ret + psize), csize - psize);
@@ -4855,6 +4885,7 @@ void* arena_t::RallocHuge(void* aPtr, size_t aSize, size_t aOldSize) {
       MOZ_ASSERT(node->mSize == aOldSize);
       MOZ_RELEASE_ASSERT(node->mArena == this);
       huge_allocated -= aOldSize - psize;
+      huge_operations++;
       // No need to change huge_mapped, because we didn't (un)map anything.
       node->mSize = psize;
     } else if (psize > aOldSize) {
@@ -4874,6 +4905,7 @@ void* arena_t::RallocHuge(void* aPtr, size_t aSize, size_t aOldSize) {
       MOZ_ASSERT(node->mSize == aOldSize);
       MOZ_RELEASE_ASSERT(node->mArena == this);
       huge_allocated += psize - aOldSize;
+      huge_operations++;
       // No need to change huge_mapped, because we didn't
       // (un)map anything.
       node->mSize = psize;
@@ -4926,6 +4958,7 @@ static void huge_dalloc(void* aPtr, arena_t* aArena) {
     mapped = CHUNK_CEILING(node->mSize + gPageSize);
     huge_allocated -= node->mSize;
     huge_mapped -= mapped;
+    huge_operations++;
   }
 
   // Unmap chunk.
@@ -5332,6 +5365,7 @@ inline void MozJemalloc::jemalloc_stats_internal(
     MutexAutoLock lock(huge_mtx);
     non_arena_mapped += huge_mapped;
     aStats->allocated += huge_allocated;
+    aStats->num_operations += huge_operations;
     MOZ_ASSERT(huge_mapped >= huge_allocated);
   }
 
@@ -5374,6 +5408,8 @@ inline void MozJemalloc::jemalloc_stats_internal(
       arena_dirty = arena->mNumDirty << gPageSize2Pow;
       arena_fresh = arena->mNumFresh << gPageSize2Pow;
       arena_madvised = arena->mNumMAdvised << gPageSize2Pow;
+
+      aStats->num_operations += arena->mStats.operations;
 
       for (j = 0; j < NUM_SMALL_CLASSES; j++) {
         arena_bin_t* bin = &arena->mBins[j];
@@ -5434,6 +5470,36 @@ inline void MozJemalloc::jemalloc_stats_internal(
 
   MOZ_ASSERT(aStats->mapped >= aStats->allocated + aStats->waste +
                                    aStats->pages_dirty + aStats->bookkeeping);
+}
+
+inline void MozJemalloc::jemalloc_stats_lite(jemalloc_stats_lite_t* aStats) {
+  if (!aStats) {
+    return;
+  }
+  if (!malloc_init()) {
+    memset(aStats, 0, sizeof(*aStats));
+    return;
+  }
+
+  aStats->allocated_bytes = 0;
+  aStats->num_operations = 0;
+
+  // Get huge mapped/allocated.
+  {
+    MutexAutoLock lock(huge_mtx);
+    aStats->allocated_bytes += huge_allocated;
+    aStats->num_operations += huge_operations;
+    MOZ_ASSERT(huge_mapped >= huge_allocated);
+  }
+
+  {
+    MutexAutoLock lock(gArenas.mLock);
+    for (auto arena : gArenas.iter_all()) {
+      // We don't need to lock the arena to access these fields.
+      aStats->allocated_bytes += arena->AllocatedBytes();
+      aStats->num_operations += arena->Operations();
+    }
+  }
 }
 
 inline size_t MozJemalloc::jemalloc_stats_num_bins() {

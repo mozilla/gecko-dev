@@ -764,3 +764,105 @@ TEST(Jemalloc, DisposeArena)
 
   RESTORE_GDB_SLEEP_LOCAL();
 }
+
+static void CheckPtr(void* ptr, size_t size) {
+  EXPECT_TRUE(ptr);
+  jemalloc_ptr_info_t info;
+  jemalloc_ptr_info(ptr, &info);
+  EXPECT_EQ(info.tag, TagLiveAlloc);
+  EXPECT_EQ(info.size, malloc_good_size(size));
+}
+
+static void CheckStats(const char* operation, unsigned iteration,
+                       jemalloc_stats_lite_t& baseline,
+                       jemalloc_stats_lite_t& stats, size_t num_ops,
+                       ptrdiff_t bytes_diff) {
+  if ((baseline.allocated_bytes + bytes_diff != stats.allocated_bytes
+
+       || baseline.num_operations + num_ops != stats.num_operations)) {
+    // All the tests that check stats, perform some operation, then check stats
+    // again can race with other threads.  But the test can't be made thread
+    // safe without a sagnificant amount of work.  However this IS a problem
+    // when stepping through the test using a debugger, since other threads are
+    // likely to run while the current thread is paused.  Instead of neading a
+    // debugger our printf here can help understand a failing test.
+    fprintf(stderr, "Check stats failed after iteration %u operation %s\n",
+            iteration, operation);
+
+    EXPECT_EQ(baseline.allocated_bytes + bytes_diff, stats.allocated_bytes);
+    EXPECT_EQ(baseline.num_operations + num_ops, stats.num_operations);
+  }
+}
+
+TEST(Jemalloc, StatsLite)
+{
+  // Disable PHC allocations for this test, because even a single PHC
+  // allocation occurring can throw it off.
+  AutoDisablePHCOnCurrentThread disable;
+
+  // Use this data to make an allocation, resize it twice, then free it.  Some
+  // The data uses a few size classes and does a combination of in-place and
+  // moving reallocations.
+  struct {
+    // The initial allocation size.
+    size_t initial;
+    // The first reallocation size and number of operations of the reallocation.
+    size_t next;
+    size_t next_ops;
+    // The final reallocation size and number of operations of the reallocation.
+    size_t last;
+    size_t last_ops;
+  } TestData[] = {
+      /* clang-format off */
+      { 16,      15,     0, 256,     2},
+      {128_KiB,  64_KiB, 1,  68_KiB, 1},
+      {  4_MiB,  16_MiB, 2,   3_MiB, 2},
+      { 16_KiB, 512,     2,  32_MiB, 2},
+      /* clang-format on */
+  };
+
+  arena_id_t my_arena = moz_create_arena();
+
+  unsigned i = 0;
+  for (auto data : TestData) {
+    // Assert that the API returns /something/ a bit sensible.
+    jemalloc_stats_lite_t baseline;
+    jemalloc_stats_lite(&baseline);
+
+    // Allocate an object.
+    void* ptr = moz_arena_malloc(my_arena, data.initial);
+    CheckPtr(ptr, data.initial);
+
+    jemalloc_stats_lite_t stats1;
+    jemalloc_stats_lite(&stats1);
+    CheckStats("malloc()", i, baseline, stats1, 1,
+               malloc_good_size(data.initial));
+
+    // realloc the item in-place.
+    ptr = moz_arena_realloc(my_arena, ptr, data.next);
+    CheckPtr(ptr, data.next);
+
+    jemalloc_stats_lite_t stats2;
+    jemalloc_stats_lite(&stats2);
+    CheckStats("realloc() 1", i, stats1, stats2, data.next_ops,
+               malloc_good_size(data.next) - malloc_good_size(data.initial));
+
+    // realloc so it has to move to a different location
+    ptr = moz_arena_realloc(my_arena, ptr, data.last);
+    CheckPtr(ptr, data.last);
+
+    jemalloc_stats_lite_t stats3;
+    jemalloc_stats_lite(&stats3);
+    CheckStats("realloc() 2", i, stats2, stats3, data.last_ops,
+               malloc_good_size(data.last) - malloc_good_size(data.next));
+
+    moz_arena_free(my_arena, ptr);
+    jemalloc_stats_lite_t stats4;
+    jemalloc_stats_lite(&stats4);
+    CheckStats("free()", i, stats3, stats4, 1, -malloc_good_size(data.last));
+
+    i++;
+  }
+
+  moz_dispose_arena(my_arena);
+}

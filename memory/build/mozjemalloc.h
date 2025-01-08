@@ -108,6 +108,8 @@ struct MozJemallocPHC : public MozJemalloc {
 
   static void jemalloc_stats_internal(jemalloc_stats_t*, jemalloc_bin_stats_t*);
 
+  static void jemalloc_stats_lite(jemalloc_stats_lite_t*);
+
   static void jemalloc_ptr_info(const void*, jemalloc_ptr_info_t*);
 
 #    define MALLOC_DECL(name, return_type, ...) \

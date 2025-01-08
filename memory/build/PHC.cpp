@@ -1905,6 +1905,10 @@ inline void MozJemallocPHC::jemalloc_stats_internal(
   aStats->bookkeeping += bookkeeping;
 }
 
+inline void MozJemallocPHC::jemalloc_stats_lite(jemalloc_stats_lite_t* aStats) {
+  MozJemalloc::jemalloc_stats_lite(aStats);
+}
+
 inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
                                               jemalloc_ptr_info_t* aInfo) {
   if (!maybe_init()) {
