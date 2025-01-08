@@ -757,6 +757,7 @@ class MainMenuTestCompose : TestSetup() {
         }.openDetailedMenuForAddon(addonName) {
             disableExtension()
             verifySnackBarText("Successfully disabled $addonName")
+            waitUntilSnackbarGone()
         }.goBack {
         }.goBack {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
