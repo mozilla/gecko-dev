@@ -1105,7 +1105,11 @@ where
                 descendant_invalidations.dom_descendants.push(invalidation)
             },
             NormalDependencyInvalidationKind::Siblings => sibling_invalidations.push(invalidation),
-            _ => unreachable!(),
+            // Note(dshin, bug 1940212): Nesting can enabling stuffing pseudo-elements into :has, like `::marker { :has(&) }`.
+            // Ideally, we can just not insert the dependency into the invalidation map, but the necessary selector information
+            // for this (i.e. `HAS_PSEUDO`) is filtered out in `replace_parent_selector` through
+            // `SelectorFlags::forbidden_for_nesting`, so just ignoring such dependencies here is the best we can do.
+            _ => (),
         }
     }
 
