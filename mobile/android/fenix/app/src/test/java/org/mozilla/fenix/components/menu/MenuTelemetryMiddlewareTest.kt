@@ -483,6 +483,16 @@ class MenuTelemetryMiddlewareTest {
         assertTelemetryRecorded(Menu.dismissCfr)
     }
 
+    @Test
+    fun `WHEN navigating to web compat reporter THEN record the web compat reporter telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.Navigate.WebCompatReporter).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "report_broken_site")
+    }
+
     private fun assertTelemetryRecorded(
         event: EventMetricType<Events.BrowserMenuActionExtra>,
         item: String,

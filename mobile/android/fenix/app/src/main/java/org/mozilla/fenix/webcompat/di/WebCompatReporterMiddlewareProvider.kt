@@ -15,6 +15,7 @@ import org.mozilla.fenix.webcompat.store.WebCompatInfoDeserializer
 import org.mozilla.fenix.webcompat.store.WebCompatReporterNavigationMiddleware
 import org.mozilla.fenix.webcompat.store.WebCompatReporterStorageMiddleware
 import org.mozilla.fenix.webcompat.store.WebCompatReporterSubmissionMiddleware
+import org.mozilla.fenix.webcompat.store.WebCompatReporterTelemetryMiddleware
 
 /**
  * Provides middleware for the WebCompat Reporter store.
@@ -41,6 +42,7 @@ object WebCompatReporterMiddlewareProvider {
             scope = scope,
         ),
         provideNavigationMiddleware(),
+        provideTelemetryMiddleware(),
     )
 
     private fun provideStorageMiddleware(
@@ -65,6 +67,9 @@ object WebCompatReporterMiddlewareProvider {
 
     private fun provideNavigationMiddleware() =
         WebCompatReporterNavigationMiddleware()
+
+    private fun provideTelemetryMiddleware() =
+        WebCompatReporterTelemetryMiddleware()
 
     private val json by lazy {
         Json {

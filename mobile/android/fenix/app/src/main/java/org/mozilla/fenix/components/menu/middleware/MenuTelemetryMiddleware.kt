@@ -255,7 +255,11 @@ class MenuTelemetryMiddleware(
             }
 
             is MenuAction.Navigate.WebCompatReporter -> {
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
+                Events.browserMenuAction.record(
+                    Events.BrowserMenuActionExtra(
+                        item = "report_broken_site",
+                    ),
+                )
             }
 
             MenuAction.OpenInRegularTab -> {

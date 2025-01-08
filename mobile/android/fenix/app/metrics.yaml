@@ -13445,3 +13445,48 @@ broken_site_report.browser_info.prefs:
       - webcompat-reporting-tool-telemetry@mozilla.com
     send_in_pings:
       - broken-site-report
+
+webcompatreporting:
+  reason_dropdown:
+    type: string
+    description: |
+      Record whether the user chooses an option from the dropdown.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    expires: never
+  send:
+    type: event
+    description: |
+      Recorded when a user selects the Send button to submit webcompat report data.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    expires: never
+  send_more_info:
+    type: event
+    description: |
+      Recorded when a user clicks on the Send More Info link in the reporting UI
+      The user will be redirected to webcompat.com to submit a more comprehensive report.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1932462
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    expires: never
