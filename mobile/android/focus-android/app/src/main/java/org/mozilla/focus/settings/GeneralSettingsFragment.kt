@@ -100,7 +100,7 @@ class GeneralSettingsFragment :
         val value: String? =
             sharedConfig.getString(
                 resources.getString(R.string.pref_key_locale),
-                resources.getString(R.string.preference_language_systemdefault),
+                LOCALE_SYSTEM_DEFAULT,
             )
         return value?.let {
             if (value.isEmpty() || value == LOCALE_SYSTEM_DEFAULT) {
