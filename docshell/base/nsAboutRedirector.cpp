@@ -86,8 +86,10 @@ class CrashChannel final : public nsBaseChannel {
  */
 static const RedirEntry kRedirMap[] = {
     {"about", "chrome://global/content/aboutAbout.html", 0},
+#ifndef MOZ_WIDGET_ANDROID
     {"addons", "chrome://mozapps/content/extensions/aboutaddons.html",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI},
+#endif
     {"buildconfig", "chrome://global/content/buildconfig.html",
      nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::IS_SECURE_CHROME_UI},
@@ -97,7 +99,7 @@ static const RedirEntry kRedirMap[] = {
 #ifndef MOZ_WIDGET_ANDROID
     {"config", "chrome://global/content/aboutconfig/aboutconfig.html",
      nsIAboutModule::IS_SECURE_CHROME_UI},
-#else
+#elif defined(NIGHTLY_BUILD) || !defined(MOZILLA_OFFICIAL)
     {"config", "chrome://geckoview/content/config.xhtml",
      nsIAboutModule::IS_SECURE_CHROME_UI},
 #endif
