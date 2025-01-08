@@ -1808,5 +1808,14 @@ CookieService::RemoveThirdPartyCookieBlockingExceptions(
   return NS_OK;
 }
 
+NS_IMETHODIMP
+CookieService::TestGet3PCBExceptions(nsTArray<nsCString>& aExceptions) {
+  aExceptions.Clear();
+
+  mThirdPartyCookieBlockingExceptions.GetExceptions(aExceptions);
+
+  return NS_OK;
+}
+
 }  // namespace net
 }  // namespace mozilla
