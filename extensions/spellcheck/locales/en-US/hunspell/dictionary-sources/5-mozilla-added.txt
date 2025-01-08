@@ -5453,6 +5453,9 @@ bioinformatic
 bioinformatic's
 bioinformatics
 biologies
+bioluminescence
+bioluminescences
+bioluminescent
 biomasses
 biomechanics
 biomedicine
@@ -5491,6 +5494,8 @@ bon
 bona
 bono
 bons
+bookmarklet
+bookmarklets
 bookselling
 boson
 bougie
@@ -5529,6 +5534,8 @@ cardiomegaly
 carnitas
 carte
 cartes
+catenaries
+catenary
 cerevisiae
 cerevisiae's
 cerevisiaes
@@ -5612,6 +5619,7 @@ convolutional
 coproduct
 coproduct's
 coproducts
+copular
 copyrightable
 corrigibility
 corrigibility's
@@ -5644,6 +5652,7 @@ creatine
 crimeware
 crimeware's
 criminalization
+cromulent
 crore
 crore's
 crores
@@ -5727,6 +5736,8 @@ definitional
 definitionally
 degenerations
 dehydrogenase's
+demonization
+demonizations
 demonym
 demonyms
 dequeuing
@@ -5797,6 +5808,8 @@ dominator
 donator
 donator's
 donators
+doomer
+doomers
 doozie
 doozy
 dox
@@ -6002,6 +6015,12 @@ greyest
 greying
 greyness's
 greys
+grift
+grifted
+grifter
+grifters
+grifting
+grifts
 guac
 gunsmoke
 habanero
@@ -6046,6 +6065,8 @@ hypotheticals
 iPods
 iatrogenesis
 iatrogenic
+ideation
+ideations
 idolator
 idolator's
 idolators
@@ -6153,6 +6174,8 @@ kibibyte's
 kibibytes
 klansmen
 kleptocracies
+kleptocrat
+kleptocrats
 kludgy
 kombucha
 kryptonite
@@ -6306,6 +6329,10 @@ neato
 neoadjuvant
 neurocysticercoses
 neurocysticercosis
+neuropathic
+neuropathically
+neuropathies
+neuropathy
 neurophysiology's
 neuroscience's
 neurosciences
@@ -6347,6 +6374,7 @@ operationalizing
 opposable
 opposer
 oppositional
+ourself
 outlier's
 outsized
 overbroad
@@ -6354,6 +6382,10 @@ overinclusion
 overinclusive
 overrich
 overrichness
+oversaturate
+oversaturated
+oversaturates
+oversaturation
 oxymoronic
 oxymoronically
 oy
@@ -6420,6 +6452,8 @@ pixelate
 pixelated
 pixelates
 plaintext
+platformer
+platformers
 plusses
 polarizer
 polarizers
@@ -6581,6 +6615,7 @@ renderer
 renderer's
 renderers
 renewables
+renewably
 renominations
 repartitions
 repaver
@@ -6638,6 +6673,12 @@ ribbies
 roadmap
 roadmaps
 rollout
+romanization
+romanizations
+romanize
+romanized
+romanizes
+romanizing
 rotatable
 rotatably
 rotator

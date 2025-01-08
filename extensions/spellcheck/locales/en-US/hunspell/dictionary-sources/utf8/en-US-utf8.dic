@@ -1,4 +1,4 @@
-53569
+53587
 0/nm
 0th/pt
 1/n1
@@ -17058,6 +17058,8 @@ biologic
 biological/Y
 biologist/MS
 biology/SM
+bioluminescence/S
+bioluminescent
 biomarker/MS
 biomass/MS
 biomechanics
@@ -17606,6 +17608,7 @@ booklet/MS
 bookmaker/SM
 bookmaking/M
 bookmark/SMDG
+bookmarklet/S
 bookmobile/SM
 bookplate/MS
 bookseller/MS
@@ -19021,6 +19024,7 @@ categorical/Y
 categorization/MS
 categorize/GDS
 category/SM
+catenary/S
 cater/ZGJDRS
 catercorner
 caterer/M
@@ -21347,6 +21351,7 @@ coproduct/MS
 copse/SM
 copter/SM
 copula/SM
+copular
 copulate/GNVDS
 copulation/M
 copulative/SM
@@ -21953,6 +21958,7 @@ crocodile/SM
 crocus/MS
 croft/SRZG
 croissant/MS
+cromulent
 crone/SM
 crony/SM
 cronyism/M
@@ -22889,6 +22895,7 @@ demoniac
 demoniacal/Y
 demonic
 demonically
+demonization/S
 demonize/GDS
 demonology/SM
 demonstrability
@@ -23954,7 +23961,7 @@ doodlebug/SM
 doodler/M
 doohickey/SM
 doolally
-doom/MDGS
+doom/MDRZGS
 doomsayer/MS
 doomsday/M
 doomster/S
@@ -28994,6 +29001,7 @@ grievous/PY
 grievousness/M
 griffin/SM
 griffon/SM
+grift/ZGSDR
 grill/SGMDJ
 grille/MS
 grim/DYPG
@@ -30926,6 +30934,7 @@ idealistic
 idealistically
 idealization/MS
 idealize/DSG
+ideation/S
 idem
 idempotent
 identical/Y
@@ -32995,6 +33004,7 @@ kl
 klansmen
 klaxon/S
 kleptocracy/S
+kleptocrat/S
 kleptomania/M
 kleptomaniac/SM
 kludge/GDS
@@ -36931,6 +36941,9 @@ neurologist/SM
 neurology/M
 neuron/MS
 neuronal
+neuropathic
+neuropathically
+neuropathy/S
 neurophysiology's
 neuroscience/MS
 neuroscientist/MS
@@ -38295,6 +38308,7 @@ ought
 oughtn't
 ounce/MS
 our/S
+ourself
 ourselves
 oust/ZGDRS
 ouster/M
@@ -38635,6 +38649,7 @@ overrule/GDS
 overrun/SM
 overrunning
 oversampling
+oversaturate/NDS
 oversaw
 oversea/S
 oversee/RSZ
@@ -40365,7 +40380,7 @@ plateau/SMDG
 plateful/SM
 platelet/SM
 platen/M
-platform/SGMD
+platform/SZGMDR
 plating/M
 platinum/M
 platitude/SM
@@ -43071,6 +43086,7 @@ renege/DRSZG
 reneger/M
 renew/DSBG
 renewable/S
+renewably
 renewal/MS
 rennet/M
 rennin/M
@@ -43717,6 +43733,8 @@ romaine/MS
 roman/M
 romance/MZGDRS
 romancer/M
+romanization/S
+romanize/GDS
 romantic/MS
 romantically
 romanticism/M
