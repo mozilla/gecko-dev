@@ -158,19 +158,20 @@ fun TextField(
                         )
                     }
 
+                    Spacer(modifier = Modifier.height(4.dp))
+
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            // Ensures that the text field will remain the same height as the trailing icon
-                            .heightIn(min = trailingIconHeight),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(
                             modifier = Modifier
-                                .weight(1f),
+                                .weight(1f)
+                                // Ensures that the text field will remain the same height as the trailing icon
+                                .heightIn(min = trailingIconHeight),
                             // The difference in alignment is to ensure that the placeholder text
                             // aligns with the cursor when more than 1 line is displayed
-                            contentAlignment = if (singleLine || minLines == 1) {
+                            contentAlignment = if (singleLine || maxLines == 1) {
                                 Alignment.CenterStart
                             } else {
                                 Alignment.TopStart
