@@ -105,7 +105,7 @@ h3 > span {
 }
 
 .peer-connection table tr:nth-child(odd) {
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
 }
 
 .peer-connection table caption {
@@ -127,7 +127,7 @@ h3 > span {
 }
 
 .peer-connection-config div:nth-child(odd) {
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
 }
 
 /* The pale colour scheme is taken from:
