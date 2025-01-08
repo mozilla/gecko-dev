@@ -59,6 +59,20 @@
 #  define IF_WASM_JSPI(REAL, IMAGINARY) IMAGINARY
 #endif
 
+// IF_EXPLICIT_RESOURCE_MANAGEMENT is already used elsewhere.
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  define IF_HAVE_EXPLICIT_RESOURCE_MANAGEMENT(REAL, IMAGINARY) REAL
+#else
+#  define IF_HAVE_EXPLICIT_RESOURCE_MANAGEMENT(REAL, IMAGINARY) IMAGINARY
+#endif
+
+// IF_RECORD_TUPLE is already used elsewhere.
+#ifdef ENABLE_RECORD_TUPLE
+#  define IF_HAVE_RECORD_TUPLE(REAL, IMAGINARY) REAL
+#else
+#  define IF_HAVE_RECORD_TUPLE(REAL, IMAGINARY) IMAGINARY
+#endif
+
 #ifdef NIGHTLY_BUILD
 #  define IF_NIGHTLY(REAL, IMAGINARY) REAL
 #else
@@ -67,7 +81,8 @@
 
 #define JS_FOR_PROTOTYPES_(REAL, IMAGINARY, REAL_IF_INTL, REAL_IF_TEMPORAL, \
                            REAL_IF_WASM_TYPE, REAL_IF_WASM_JSPI,            \
-                           REAL_IF_NIGHTLY)                                 \
+                           REAL_IF_EXPLICIT_RESOURCE_MANAGEMENT,            \
+                           REAL_IF_RECORD_TUPLE, REAL_IF_NIGHTLY)           \
   IMAGINARY(Null, dummy)                                                    \
   REAL(Object, OCLASP(Plain))                                               \
   REAL(Function, &FunctionClass)                                            \
@@ -86,8 +101,8 @@
   REAL(EvalError, ERROR_CLASP(JSEXN_EVALERR))                               \
   REAL(RangeError, ERROR_CLASP(JSEXN_RANGEERR))                             \
   REAL(ReferenceError, ERROR_CLASP(JSEXN_REFERENCEERR))                     \
-  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                          \
-      REAL(SuppressedError, ERROR_CLASP(JSEXN_SUPPRESSEDERR)))              \
+  REAL_IF_EXPLICIT_RESOURCE_MANAGEMENT(SuppressedError,                     \
+                                       ERROR_CLASP(JSEXN_SUPPRESSEDERR))    \
   REAL(SyntaxError, ERROR_CLASP(JSEXN_SYNTAXERR))                           \
   REAL(TypeError, ERROR_CLASP(JSEXN_TYPEERR))                               \
   REAL(URIError, ERROR_CLASP(JSEXN_URIERR))                                 \
@@ -151,10 +166,10 @@
   REAL(WeakRef, OCLASP(WeakRef))                                            \
   REAL(Iterator, OCLASP(Iterator))                                          \
   REAL(AsyncIterator, OCLASP(AsyncIterator))                                \
-  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                          \
-      REAL(DisposableStack, OCLASP(DisposableStack)))                       \
-  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                          \
-      REAL(AsyncDisposableStack, OCLASP(AsyncDisposableStack)))             \
+  REAL_IF_EXPLICIT_RESOURCE_MANAGEMENT(DisposableStack,                     \
+                                       OCLASP(DisposableStack))             \
+  REAL_IF_EXPLICIT_RESOURCE_MANAGEMENT(AsyncDisposableStack,                \
+                                       OCLASP(AsyncDisposableStack))        \
   REAL_IF_TEMPORAL(Temporal, OCLASP(temporal::Temporal))                    \
   REAL_IF_TEMPORAL(Duration, OCLASP(temporal::Duration))                    \
   REAL_IF_TEMPORAL(Instant, OCLASP(temporal::Instant))                      \
@@ -165,14 +180,24 @@
   REAL_IF_TEMPORAL(PlainTime, OCLASP(temporal::PlainTime))                  \
   REAL_IF_TEMPORAL(TemporalNow, OCLASP(temporal::TemporalNow))              \
   REAL_IF_TEMPORAL(ZonedDateTime, OCLASP(temporal::ZonedDateTime))          \
-  IF_RECORD_TUPLE(REAL(Record, (&RecordType::class_)))                      \
-  IF_RECORD_TUPLE(REAL(Tuple, (&TupleType::class_)))
+  REAL_IF_RECORD_TUPLE(Record, (&RecordType::class_))                       \
+  REAL_IF_RECORD_TUPLE(Tuple, (&TupleType::class_))
+// DO NOT ADD CONDITIONAL ENTRIES TO THIS LIST! (As in, do not add entries that
+// are only present in some configurations.) It will break binary compatibility.
+// Instead, create an IF_<feature> macro and add it to the parameter list below
+// and add a corresponding parameter to JS_FOR_PROTOTYPES_ above.
+//
+// Note that entries may be freely added to or removed from this list, even in
+// the middle. The only invariant that must be upheld is that the offsets in the
+// list do not change depending on configuration settings of the same version of
+// the source.
 
 #define JS_FOR_PROTOTYPES(REAL, IMAGINARY)                                     \
   JS_FOR_PROTOTYPES_(                                                          \
       REAL, IMAGINARY, IF_INTL(REAL, IMAGINARY), IF_TEMPORAL(REAL, IMAGINARY), \
       IF_WASM_TYPE(REAL, IMAGINARY), IF_WASM_JSPI(REAL, IMAGINARY),            \
-      IF_NIGHTLY(REAL, IMAGINARY))
+      IF_HAVE_EXPLICIT_RESOURCE_MANAGEMENT(REAL, IMAGINARY),                   \
+      IF_HAVE_RECORD_TUPLE(REAL, IMAGINARY), IF_NIGHTLY(REAL, IMAGINARY))
 
 #define JS_FOR_EACH_PROTOTYPE(MACRO) JS_FOR_PROTOTYPES(MACRO, MACRO)
 
