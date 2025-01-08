@@ -7,6 +7,7 @@ package org.mozilla.focus.settings
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
+import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.Preference
 import androidx.preference.PreferenceManager
@@ -95,20 +96,27 @@ class GeneralSettingsFragment :
         }
     }
 
-    private fun getLocaleSummary(): CharSequence? {
+    @VisibleForTesting
+    internal fun getLocaleSummary(): CharSequence {
         val sharedConfig: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext())
         val value: String? =
             sharedConfig.getString(
                 resources.getString(R.string.pref_key_locale),
                 LOCALE_SYSTEM_DEFAULT,
             )
-        return value?.let {
-            if (value.isEmpty() || value == LOCALE_SYSTEM_DEFAULT) {
-                return resources.getString(R.string.preference_language_systemdefault)
-            }
-            LocaleDescriptor(it).getNativeName()
+
+        val defaultLocaleSummary = getString(R.string.preference_language_systemdefault)
+
+        return when {
+            value.isNullOrEmpty() || value == LOCALE_SYSTEM_DEFAULT -> defaultLocaleSummary
+
+            else -> getLocaleDescriptorNativeName(value) ?: defaultLocaleSummary
         }
     }
+
+    @VisibleForTesting
+    internal fun getLocaleDescriptorNativeName(localeTag: String): String? =
+        LocaleDescriptor(localeTag).getNativeName()
 
     private fun setupRadioGroups() {
         addToRadioGroup(
