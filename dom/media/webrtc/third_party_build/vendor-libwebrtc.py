@@ -352,6 +352,7 @@ def unpack(target):
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
             shutil.move(os.path.join(target_path, path), dest_path)
+
     elif target == "build":
         try:
             shutil.rmtree(os.path.join(LIBWEBRTC_DIR, "build"))
@@ -359,20 +360,17 @@ def unpack(target):
             pass
         os.makedirs(os.path.join(LIBWEBRTC_DIR, "build"))
 
-        if os.path.exists(os.path.join(target_path, "linux")):
-            for path in os.listdir(target_path):
-                shutil.move(
-                    os.path.join(target_path, path),
-                    os.path.join(LIBWEBRTC_DIR, "build", path),
-                )
-        else:
+        # adjust target_path if GitHub packaging is involved
+        if not os.path.exists(os.path.join(target_path, "linux")):
             # GitHub packs everything inside a separate directory
             target_path = os.path.join(target_path, os.listdir(target_path)[0])
-            for path in os.listdir(target_path):
-                shutil.move(
-                    os.path.join(target_path, path),
-                    os.path.join(LIBWEBRTC_DIR, "build", path),
-                )
+
+        for path in os.listdir(target_path):
+            shutil.move(
+                os.path.join(target_path, path),
+                os.path.join(LIBWEBRTC_DIR, "build", path),
+            )
+
     elif target == "third_party":
         # Only delete the THIRDPARTY_USED_IN_FIREFOX paths from
         # LIBWEBRTC_DIR/third_party to avoid deleting directories that
