@@ -14,11 +14,11 @@
     <color name="fx_mobile_layer_color_3">@color/photonLightGrey20</color>
     <color name="fx_mobile_layer_color_search">@color/photonLightGrey30</color>
     <!-- App Bar Top (edit), Text Cursor, Selected Tab Check -->
-    <color name="fx_mobile_layer_color_accent">@color/photonInk20</color>
+    <color name="fx_mobile_layer_color_accent" tools:ignore="UnusedResources">@color/photonInk20</color>
     <!-- Selected tab -->
     <color name="fx_mobile_layer_color_accent_nonopaque">@color/photonViolet70A12</color>
     <!-- Selected tab -->
-    <color name="fx_mobile_layer_color_accent_opaque">#EAE4F9</color>
+    <color name="fx_mobile_layer_color_accent_opaque" tools:ignore="UnusedResources">#EAE4F9</color>
     <color name="fx_mobile_layer_color_scrim">@color/photonDarkGrey30A95</color>
     <!-- Tooltip -->
     <color name="fx_mobile_layer_color_gradient_start">@color/photonViolet70</color>
@@ -103,7 +103,7 @@
     <!-- Primary icon -->
     <color name="fx_mobile_icon_color_primary">@color/photonDarkGrey90</color>
     <!-- Inactive tab -->
-    <color name="fx_mobile_icon_color_primary_inactive">@color/photonDarkGrey90A60</color>
+    <color name="fx_mobile_icon_color_primary_inactive" tools:ignore="UnusedResources">@color/photonDarkGrey90A60</color>
     <!-- Secondary icon -->
     <color name="fx_mobile_icon_color_secondary">@color/photonDarkGrey05</color>
     <!-- Active tab -->
@@ -146,7 +146,7 @@
     <!-- Form parts -->
     <color name="fx_mobile_border_color_form_default" tools:ignore="UnusedResources">@color/photonDarkGrey90</color>
     <!-- Active tab (Nav), Selected tab, Active form -->
-    <color name="fx_mobile_border_color_accent">@color/photonInk20</color>
+    <color name="fx_mobile_border_color_accent" tools:ignore="UnusedResources">@color/photonInk20</color>
     <!-- Form parts -->
     <color name="fx_mobile_border_color_disabled" tools:ignore="UnusedResources">@color/photonDarkGrey90A40</color>
     <!-- Form parts -->

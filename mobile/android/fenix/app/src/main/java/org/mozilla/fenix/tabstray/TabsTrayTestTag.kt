@@ -8,7 +8,7 @@ internal object TabsTrayTestTag {
     const val tabsTray = "tabstray"
 
     // Tabs Tray Banner
-    private const val bannerTestTagRoot = "$tabsTray.banner"
+    const val bannerTestTagRoot = "$tabsTray.banner"
     const val bannerHandle = "$bannerTestTagRoot.handle"
     const val normalTabsPageButton = "$bannerTestTagRoot.normalTabsPageButton"
     const val normalTabsCounter = "$normalTabsPageButton.counter"

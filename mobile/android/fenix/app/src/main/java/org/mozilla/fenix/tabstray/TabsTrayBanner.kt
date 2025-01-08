@@ -141,7 +141,9 @@ fun TabsTrayBanner(
         onAccountSettingsClick = onAccountSettingsClick,
     )
 
-    Column {
+    Column(
+        modifier = Modifier.testTag(tag = TabsTrayTestTag.bannerTestTagRoot),
+    ) {
         if (isInMultiSelectMode) {
             MultiSelectBanner(
                 menuItems = menuItems,

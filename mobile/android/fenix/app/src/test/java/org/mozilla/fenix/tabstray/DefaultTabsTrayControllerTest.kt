@@ -316,24 +316,6 @@ class DefaultTabsTrayControllerTest {
     }
 
     @Test
-    fun `WHEN handleTrayScrollingToPosition is called with smoothScroll=true THEN it scrolls to that position with smoothScroll`() {
-        val pagePosition = 3
-
-        every { trayStore.state.selectedPage } returns Page.positionToPage(pagePosition)
-
-        var selectTabPositionInvoked = false
-        createController(
-            selectTabPosition = { position, smoothScroll ->
-                assertEquals(3, position)
-                assertTrue(smoothScroll)
-                selectTabPositionInvoked = true
-            },
-        ).handleTrayScrollingToPosition(position = pagePosition, smoothScroll = true)
-
-        assertTrue(selectTabPositionInvoked)
-    }
-
-    @Test
     fun `WHEN handleTrayScrollingToPosition is called with smoothScroll=true THEN it emits an action for the tray page of that tab position`() {
         val pagePosition = 33
 
@@ -772,7 +754,7 @@ class DefaultTabsTrayControllerTest {
         trayStore.dispatch(TabsTrayAction.AddSelectTab(normalTab))
         trayStore.waitUntilIdle()
 
-        controller.handleTabSelected(inactiveTab, TrayPagerAdapter.INACTIVE_TABS_FEATURE_NAME)
+        controller.handleTabSelected(inactiveTab, INACTIVE_TABS_FEATURE_NAME)
 
         middleware.assertLastAction(TabsTrayAction.AddSelectTab::class) {
             assertEquals(normalTab, it.tab)
@@ -915,7 +897,7 @@ class DefaultTabsTrayControllerTest {
 
         assertNotNull(TabsTray.openInactiveTab.testGetValue())
 
-        verify { controller.handleTabSelected(tab, TrayPagerAdapter.INACTIVE_TABS_FEATURE_NAME) }
+        verify { controller.handleTabSelected(tab, INACTIVE_TABS_FEATURE_NAME) }
     }
 
     @Test
@@ -936,7 +918,7 @@ class DefaultTabsTrayControllerTest {
 
         assertNotNull(TabsTray.closeInactiveTab.testGetValue())
 
-        verify { controller.handleTabDeletion(tab.id, TrayPagerAdapter.INACTIVE_TABS_FEATURE_NAME) }
+        verify { controller.handleTabDeletion(tab.id, INACTIVE_TABS_FEATURE_NAME) }
     }
 
     @Test
@@ -979,7 +961,7 @@ class DefaultTabsTrayControllerTest {
                 url = "www.mozilla.com",
             ),
         )
-        val source = TrayPagerAdapter.INACTIVE_TABS_FEATURE_NAME
+        val source = INACTIVE_TABS_FEATURE_NAME
 
         every { controller.handleNavigateToBrowser() } just runs
 
@@ -1341,7 +1323,6 @@ class DefaultTabsTrayControllerTest {
 
     private fun createController(
         navigateToHomeAndDeleteSession: (String) -> Unit = { },
-        selectTabPosition: (Int, Boolean) -> Unit = { _, _ -> },
         dismissTray: () -> Unit = { },
         showUndoSnackbarForTab: (Boolean) -> Unit = { _ -> },
         showUndoSnackbarForInactiveTab: (Int) -> Unit = { _ -> },
@@ -1366,7 +1347,6 @@ class DefaultTabsTrayControllerTest {
             closeSyncedTabsUseCases = closeSyncedTabsUseCases,
             collectionStorage = collectionStorage,
             ioDispatcher = testDispatcher,
-            selectTabPosition = selectTabPosition,
             dismissTray = dismissTray,
             showUndoSnackbarForTab = showUndoSnackbarForTab,
             showUndoSnackbarForInactiveTab = showUndoSnackbarForInactiveTab,

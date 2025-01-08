@@ -48,11 +48,6 @@ object FeatureFlags {
     }
 
     /**
-     * Enables compose on the tabs tray items.
-     */
-    const val composeTabsTray = true
-
-    /**
      * Enables compose on the top sites.
      */
     const val composeTopSites = false

@@ -57,6 +57,8 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
 import org.mozilla.fenix.GleanMetrics.Tab as GleanTab
 
+const val INACTIVE_TABS_FEATURE_NAME = "Inactive tabs"
+
 /**
  * Controller for handling any actions in the tabs tray.
  */
@@ -191,7 +193,6 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
  * @param closeSyncedTabsUseCases Use cases for closing synced tabs.
  * @param ioDispatcher [CoroutineContext] used for storage operations.
  * @param collectionStorage Storage layer for interacting with collections.
- * @param selectTabPosition Lambda used to scroll the tabs tray to the desired position.
  * @param dismissTray Lambda used to dismiss/minimize the tabs tray.
  * @param showUndoSnackbarForTab Lambda used to display an undo snackbar when a normal or private tab is closed.
  * @param showUndoSnackbarForInactiveTab Lambda used to display an undo snackbar when an inactive tab is closed.
@@ -218,7 +219,6 @@ class DefaultTabsTrayController(
     private val closeSyncedTabsUseCases: CloseTabsUseCases,
     private val ioDispatcher: CoroutineContext,
     private val collectionStorage: TabCollectionStorage,
-    private val selectTabPosition: (Int, Boolean) -> Unit,
     private val dismissTray: () -> Unit,
     private val showUndoSnackbarForTab: (Boolean) -> Unit,
     private val showUndoSnackbarForInactiveTab: (Int) -> Unit,
@@ -283,7 +283,6 @@ class DefaultTabsTrayController(
             }
         }
 
-        selectTabPosition(position, smoothScroll)
         tabsTrayStore.dispatch(TabsTrayAction.PageSelected(page))
     }
 
@@ -582,7 +581,7 @@ class DefaultTabsTrayController(
                 handleNavigateToBrowser()
             }
             tab.id in selected.map { it.id } -> handleTabUnselected(tab)
-            source != TrayPagerAdapter.INACTIVE_TABS_FEATURE_NAME -> {
+            source != INACTIVE_TABS_FEATURE_NAME -> {
                 tabsTrayStore.dispatch(TabsTrayAction.AddSelectTab(tab))
             }
         }
@@ -602,12 +601,12 @@ class DefaultTabsTrayController(
 
     override fun handleInactiveTabClicked(tab: TabSessionState) {
         TabsTray.openInactiveTab.add()
-        handleTabSelected(tab, TrayPagerAdapter.INACTIVE_TABS_FEATURE_NAME)
+        handleTabSelected(tab, INACTIVE_TABS_FEATURE_NAME)
     }
 
     override fun handleCloseInactiveTabClicked(tab: TabSessionState) {
         TabsTray.closeInactiveTab.add()
-        handleTabDeletion(tab.id, TrayPagerAdapter.INACTIVE_TABS_FEATURE_NAME)
+        handleTabDeletion(tab.id, INACTIVE_TABS_FEATURE_NAME)
     }
 
     override fun handleInactiveTabsHeaderClicked(expanded: Boolean) {

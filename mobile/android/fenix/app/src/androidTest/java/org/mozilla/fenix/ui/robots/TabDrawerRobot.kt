@@ -13,6 +13,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.hasAnyChild
 import androidx.compose.ui.test.hasContentDescription
@@ -36,7 +37,6 @@ import androidx.compose.ui.test.swipeRight
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
-import androidx.test.espresso.action.GeneralLocation
 import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.matcher.ViewMatchers
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -53,7 +53,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.mDevice
-import org.mozilla.fenix.helpers.clickAtLocationInView
 import org.mozilla.fenix.helpers.idlingresource.BottomSheetBehaviorStateIdlingResource
 import org.mozilla.fenix.helpers.matchers.BottomSheetBehaviorHalfExpandedMaxRatioMatcher
 import org.mozilla.fenix.helpers.matchers.BottomSheetBehaviorStateMatcher
@@ -539,7 +538,7 @@ class TabDrawerRobot(private val composeTestRule: HomeActivityComposeTestRule) {
             // The topBar contains other views.
             // Don't do the default click in the middle, rather click in some free space - top right.
             Log.i(TAG, "clickTopBar: Trying to click the tabs tray top bar")
-            Espresso.onView(ViewMatchers.withId(R.id.topBar)).clickAtLocationInView(GeneralLocation.TOP_RIGHT)
+            composeTestRule.banner().performTouchInput { click(position = topRight) }
             Log.i(TAG, "clickTopBar: Clicked the tabs tray top bar")
             TabDrawerRobot(composeTestRule).interact()
             return Transition(composeTestRule)
@@ -778,3 +777,8 @@ private fun ComposeTestRule.bannerHandle() = onNodeWithTag(TabsTrayTestTag.banne
  * Obtains the media control button with the given [action] as its content description.
  */
 private fun ComposeTestRule.tabMediaControlButton(action: String) = onNodeWithContentDescription(action)
+
+/**
+ * Obtains the root of the Tabs Tray banner.
+ */
+private fun ComposeTestRule.banner() = onNodeWithTag(TabsTrayTestTag.bannerTestTagRoot)

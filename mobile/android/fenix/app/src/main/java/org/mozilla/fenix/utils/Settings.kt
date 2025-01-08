@@ -1884,14 +1884,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if the Tabs Tray to Compose changes are enabled.
-     */
-    var enableTabsTrayToCompose by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_enable_tabs_tray_to_compose),
-        default = FeatureFlags.composeTabsTray,
-    )
-
-    /**
      * Indicates if the Compose Top Sites are enabled.
      */
     var enableComposeTopSites by booleanPreference(

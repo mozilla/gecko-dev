@@ -17,8 +17,8 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.tabstray.FloatingActionButtonBinding
 import org.mozilla.fenix.tabstray.TabsTrayAction
+import org.mozilla.fenix.tabstray.TabsTrayFab
 import org.mozilla.fenix.tabstray.TabsTrayStore
 import org.mozilla.fenix.tabstray.ext.toComposeList
 import org.mozilla.fenix.tabstray.ext.toSyncedTabsListItem
@@ -86,7 +86,7 @@ class SyncedTabsIntegration(
     }
 
     /**
-     * Do nothing; the UI is handled with [FloatingActionButtonBinding].
+     * Do nothing; the UI is handled with [TabsTrayFab].
      */
     override fun startLoading() = Unit
 
