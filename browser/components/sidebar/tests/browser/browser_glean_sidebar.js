@@ -36,7 +36,7 @@ add_task(async function test_metrics_initialized() {
 });
 
 add_task(async function test_sidebar_expand() {
-  await SidebarController.setUIState({ expanded: false });
+  await SidebarController.initializeUIState({ launcherExpanded: false });
 
   info("Expand the sidebar.");
   EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
@@ -461,7 +461,7 @@ async function testIconClick(expanded) {
     Glean.sidebar.bookmarksIconClick,
   ];
   for (const [i, button] of Array.from(sidebarMain.toolButtons).entries()) {
-    await SidebarController.setUIState({ expanded });
+    await SidebarController.initializeUIState({ launcherExpanded: expanded });
 
     info(`Click the icon for: ${button.getAttribute("view")}`);
     EventUtils.synthesizeMouseAtCenter(button, {});
@@ -480,7 +480,7 @@ async function testIconClick(expanded) {
   await extension.startup();
   await extension.awaitMessage("sidebar");
 
-  await SidebarController.setUIState({ expanded });
+  await SidebarController.initializeUIState({ launcherExpanded: expanded });
 
   info("Click the icon for the extension.");
   const extensionButton = sidebarMain.extensionButtons[0];

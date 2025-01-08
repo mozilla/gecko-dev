@@ -419,7 +419,7 @@ add_task(async function test_vertical_tabs_expanded() {
       ["sidebar.verticalTabs", true],
     ],
   });
-  await SidebarController.setUIState({ expanded: true });
+  await SidebarController.initializeUIState({ launcherExpanded: true });
 
   info("Disable revamped sidebar.");
   Services.prefs.setBoolPref("sidebar.revamp", false);

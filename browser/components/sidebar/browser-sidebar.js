@@ -15,9 +15,6 @@ const defaultTools = {
   viewBookmarksSidebar: "bookmarks",
 };
 
-const LAUNCHER_MINIMUM_WIDTH = 100;
-const SIDEBAR_MAXIMUM_WIDTH = "75vw";
-
 var SidebarController = {
   makeSidebar({ elementId, ...rest }) {
     return {
@@ -432,7 +429,7 @@ var SidebarController = {
       // privacy level.)
       if (!this.uiStateInitialized && !isPopup && windowPrivacyMatches) {
         const backupState = this.SidebarManager.getBackupState();
-        this.setUIState(backupState);
+        this.initializeUIState(backupState);
       }
     });
     this._initDeferred.resolve();
@@ -484,10 +481,7 @@ var SidebarController = {
    * @param {ResizeObserverEntry} entry
    */
   _handleLauncherResize(entry) {
-    let sidebarBox = document.getElementById("sidebar-box");
-    let launcherWidth = entry.contentBoxSize[0].inlineSize;
-    sidebarBox.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${launcherWidth}px)`;
-    this._state.launcherWidth = launcherWidth;
+    this._state.launcherWidth = entry.contentBoxSize[0].inlineSize;
     if (this.isLauncherDragging) {
       this._state.launcherDragActive = true;
     }
@@ -498,34 +492,27 @@ var SidebarController = {
   },
 
   /**
-   * Update and store the UI state of the sidebar for this window.
+   * Load the UI state information given by session store, backup state, or
+   * adopted window.
    *
    * @param {SidebarStateProps} state
    */
-  async setUIState(state) {
-    // TODO: Bug 1935482 - Replace legacy properties with SidebarState properties
+  async initializeUIState(state) {
     if (!state) {
       return;
     }
-    const shouldOpenSidebar =
+    const hasOpenPanel =
       state.command &&
       this.sidebars.has(state.command) &&
       this.currentID !== state.command;
-    if (shouldOpenSidebar) {
-      // there's a sidebar to show, so ignore the contradictory hidden property
+    if (hasOpenPanel) {
+      // There's a panel to show, so ignore the contradictory hidden property.
       delete state.hidden;
-    }
-    if (shouldOpenSidebar && !this.isOpen) {
-      await this.showInitially(state.command);
+    } else {
+      delete state.command;
     }
     await this.promiseInitialized;
-    this._state.updateState({
-      panelWidth: state.width,
-      launcherWidth: state.launcherWidth,
-      expandedLauncherWidth: state.expandedLauncherWidth,
-      launcherExpanded: state.expanded,
-      launcherVisible: !state.hidden,
-    });
+    this._state.loadInitialState(state);
     this.uiStateInitialized = true;
   },
 
@@ -780,7 +767,7 @@ var SidebarController = {
 
     // Adopt the other window's UI state.
     const sourceState = sourceController.getUIState();
-    await this.setUIState(sourceState);
+    await this.initializeUIState(sourceState);
 
     return true;
   },
@@ -1124,10 +1111,9 @@ var SidebarController = {
       // Nothing to do.
       return;
     }
-    this._panelResizeObserver = new ResizeObserver(([entry]) => {
-      const panelWidth = entry.contentBoxSize[0].inlineSize;
-      this.sidebarContainer.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${panelWidth}px)`;
-    });
+    this._panelResizeObserver = new ResizeObserver(
+      ([entry]) => (this._state.panelWidth = entry.contentBoxSize[0].inlineSize)
+    );
     this._panelResizeObserver.observe(this._box);
 
     this._launcherDropHandler = () => (this._state.launcherDragActive = false);

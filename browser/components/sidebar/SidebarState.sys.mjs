@@ -26,6 +26,7 @@
  */
 
 const LAUNCHER_MINIMUM_WIDTH = 100;
+const SIDEBAR_MAXIMUM_WIDTH = "75vw";
 
 /**
  * A reactive data store for the sidebar's UI state. Similar to Lit's
@@ -37,13 +38,10 @@ export class SidebarState {
   /** @type {SidebarStateProps} */
   #props = {
     panelOpen: false,
-    panelWidth: undefined,
     launcherVisible: true,
     launcherExpanded: false,
     launcherDragActive: false,
     launcherHoverActive: false,
-    launcherWidth: undefined,
-    expandedLauncherWidth: undefined,
   };
   #previousExpandedState = false;
   #previousLauncherVisible = undefined;
@@ -118,15 +116,36 @@ export class SidebarState {
   }
 
   /**
-   * Update state properties.
+   * Load the state information given by session store, backup state, or
+   * adopted window.
    *
    * @param {SidebarStateProps} props
-   *   New properties to merge with the current state.
+   *   New properties to overwrite the default state with.
    */
-  updateState(props) {
+  loadInitialState(props) {
     for (const [key, value] of Object.entries(props)) {
-      if (Object.hasOwn(this.#props, key) && value !== undefined) {
-        this[key] = value;
+      if (value === undefined) {
+        // `undefined` means we should use the default value.
+        continue;
+      }
+      switch (key) {
+        case "command":
+          this.#controller.showInitially(value);
+          break;
+        case "panelWidth":
+          this.#panelEl.style.width = `${value}px`;
+          break;
+        case "width":
+          this.#panelEl.style.width = value;
+          break;
+        case "expanded":
+          this.launcherExpanded = value;
+          break;
+        case "hidden":
+          this.launcherVisible = !value;
+          break;
+        default:
+          this[key] = value;
       }
     }
   }
@@ -149,20 +168,13 @@ export class SidebarState {
    * @returns {SidebarStateProps}
    */
   getProperties() {
-    // TODO: Bug 1935482 - Replace legacy properties with SidebarState properties
     return {
-      width: this.#panelEl.style.width,
       command: this.#controller.currentID,
-      expanded: this.launcherExpanded,
-      hidden: !this.launcherVisible,
-      launcherWidth:
-        typeof this.launcherWidth === "number"
-          ? Math.round(this.launcherWidth)
-          : this.launcherWidth,
-      expandedLauncherWidth:
-        typeof this.expandedLauncherWidth === "number"
-          ? Math.round(this.expandedLauncherWidth)
-          : this.expandedLauncherWidth,
+      panelWidth: this.panelWidth,
+      launcherWidth: convertToInt(this.launcherWidth),
+      expandedLauncherWidth: convertToInt(this.expandedLauncherWidth),
+      launcherExpanded: this.launcherExpanded,
+      launcherVisible: this.launcherVisible,
     };
   }
 
@@ -193,12 +205,13 @@ export class SidebarState {
   }
 
   get panelWidth() {
-    return this.#props.panelWidth;
+    // Use the value from `style`. This is a more accurate user preference, as
+    // opposed to what the resize observer gives us.
+    return convertToInt(this.#panelEl.style.width);
   }
 
   set panelWidth(width) {
-    this.#props.panelWidth = width;
-    this.#panelEl.style.width = width;
+    this.#launcherContainerEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
   }
 
   get launcherVisible() {
@@ -312,6 +325,7 @@ export class SidebarState {
         "inDOMFullscreen"
       )
     ) {
+      this.#panelEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
       // Expand the launcher when it gets wide enough.
       this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
     }
@@ -347,4 +361,20 @@ export class SidebarState {
       .getElementById("tabbrowser-tabbox")
       .toggleAttribute("sidebar-shown", isSidebarShown);
   }
+}
+
+/**
+ * Convert a value to an integer.
+ *
+ * @param {string} value
+ *   The value to convert.
+ * @returns {number}
+ *   The resulting integer, or `undefined` if it's not a number.
+ */
+function convertToInt(value) {
+  const intValue = parseInt(value);
+  if (isNaN(intValue)) {
+    return undefined;
+  }
+  return intValue;
 }

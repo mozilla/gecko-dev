@@ -5122,22 +5122,8 @@ var SessionStoreInternal = {
       delete winData.hidden;
     }
 
-    let sidebarBox = aWindow.document.getElementById("sidebar-box");
-    let command = sidebarBox.getAttribute("sidebarcommand");
-    winData.sidebar = {};
-    if (sidebarBox.style.width) {
-      winData.sidebar.width = sidebarBox.style.width;
-    }
-    if (command && sidebarBox.getAttribute("checked") == "true") {
-      winData.sidebar.command = command;
-    } else if (winData.sidebar?.command) {
-      delete winData.sidebar.command;
-    }
-
-    if (aWindow.SidebarController.revampComponentsLoaded) {
-      const sidebarUIState = aWindow.SidebarController.getUIState();
-      winData.sidebar = structuredClone(sidebarUIState);
-    }
+    const sidebarUIState = aWindow.SidebarController.getUIState();
+    winData.sidebar = structuredClone(sidebarUIState);
 
     let workspaceID = aWindow.getWorkspaceID();
     if (workspaceID) {
@@ -6225,7 +6211,7 @@ var SessionStoreInternal = {
     if (!aSidebar || isPopup) {
       return;
     }
-    aWindow.SidebarController.setUIState(aSidebar);
+    aWindow.SidebarController.initializeUIState(aSidebar);
   },
 
   /**

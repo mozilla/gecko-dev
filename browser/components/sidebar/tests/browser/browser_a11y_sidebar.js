@@ -89,7 +89,7 @@ add_task(async function test_menu_items_labeled() {
   );
   const dynamicTooltips = Object.keys(SidebarController.sidebarMain.tooltips);
 
-  await SidebarController.setUIState({ expanded: false });
+  await SidebarController.initializeUIState({ launcherExpanded: false });
   await sidebar.updateComplete;
   for (const button of allButtons) {
     const view = button.getAttribute("view");
@@ -107,7 +107,7 @@ add_task(async function test_menu_items_labeled() {
     ok(!button.hasVisibleLabel, `Collapsed ${view} button has no label.`);
   }
 
-  await SidebarController.setUIState({ expanded: true });
+  await SidebarController.initializeUIState({ launcherExpanded: true });
   await sidebar.updateComplete;
   for (const button of allButtons) {
     const view = button.getAttribute("view");
