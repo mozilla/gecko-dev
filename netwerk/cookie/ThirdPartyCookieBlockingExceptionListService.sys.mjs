@@ -57,10 +57,10 @@ export class ThirdPartyCookieBlockingExceptionListService {
 
   #handleExceptionChange(created = [], deleted = []) {
     if (created.length) {
-      // TODO: Calling CookieService API to remove exception sites.
+      Services.cookies.addThirdPartyCookieBlockingExceptions(created);
     }
     if (deleted.length) {
-      // TODO: Calling CookieService API to add exception sites.
+      Services.cookies.removeThirdPartyCookieBlockingExceptions(deleted);
     }
   }
 
