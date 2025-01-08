@@ -463,3 +463,144 @@ add_task(async function test_aboutPreferencesPrivacy() {
     }
   );
 });
+
+add_task(async function test_saveAndFillAddressesCheckboxFunction() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["extensions.formautofill.addresses.enabled", true],
+      ["extensions.formautofill.addresses.capture.enabled", true],
+      ["extensions.formautofill.addresses.supported", "on"],
+      ["extensions.formautofill.addresses.capture.requiredFields", ""],
+    ],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: ADDRESS_FORM_URL },
+    async function (browser) {
+      let onPopupShown = waitForPopupShown();
+      await focusUpdateSubmitForm(browser, {
+        focusSelector: "#given-name",
+        newValues: {
+          "#given-name": "John",
+          "#family-name": "Doe",
+          "#organization": "Sesame Street",
+          "#street-address": "123 Sesame Street",
+          "#tel": "1-345-345-3456",
+        },
+      });
+
+      await onPopupShown;
+    }
+  );
+
+  let finalPrefPaneLoaded = TestUtils.topicObserved(
+    "sync-pane-loaded",
+    () => true
+  );
+  // Checkbox should be unchecked when form autofill addresses and credit cards are disabled.
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: PAGE_PRIVACY },
+    async function (browser) {
+      await finalPrefPaneLoaded;
+
+      await SpecialPowers.spawn(browser, [SELECTORS], selectors => {
+        const checkbox = content.document.querySelector(
+          selectors.addressAutofillCheckbox
+        );
+        is(
+          checkbox.disabled,
+          false,
+          "Autofill address checkbox should be enabled"
+        );
+        checkbox.click();
+      });
+    }
+  );
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: ADDRESS_FORM_URL },
+    async function (browser) {
+      await focusUpdateSubmitForm(browser, {
+        focusSelector: "#given-name",
+        newValues: {
+          "#given-name": "John",
+          "#family-name": "Doe",
+          "#organization": "Sesame Street",
+          "#street-address": "123 Sesame Street",
+          "#tel": "1-345-345-3456",
+        },
+      });
+
+      await ensureNoDoorhanger();
+      ok(true, "Address capture doorhanger is not shown");
+    }
+  );
+});
+
+add_task(async function test_saveAndFillPaymentMethodCheckboxFunction() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.formautofill.creditCards.enabled", true]],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: CREDITCARD_FORM_URL },
+    async function (browser) {
+      let onPopupShown = waitForPopupShown();
+      await focusUpdateSubmitForm(browser, {
+        focusSelector: "#cc-name",
+        newValues: {
+          "#cc-name": "User 1",
+          "#cc-number": "5577000055770004",
+          "#cc-exp-month": "12",
+          "#cc-exp-year": "2017",
+          "#cc-type": "mastercard",
+        },
+      });
+
+      await onPopupShown;
+    }
+  );
+
+  let finalPrefPaneLoaded = TestUtils.topicObserved(
+    "sync-pane-loaded",
+    () => true
+  );
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: PAGE_PRIVACY },
+    async function (browser) {
+      await finalPrefPaneLoaded;
+
+      await SpecialPowers.spawn(browser, [SELECTORS], selectors => {
+        const checkbox = content.document.querySelector(
+          selectors.creditCardAutofillCheckbox
+        );
+        is(
+          checkbox.disabled,
+          false,
+          "Autofill payment method checkbox should be enabled"
+        );
+        checkbox.click();
+      });
+    }
+  );
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: CREDITCARD_FORM_URL },
+    async function (browser) {
+      await focusUpdateSubmitForm(browser, {
+        focusSelector: "#cc-name",
+        newValues: {
+          "#cc-name": "User 1",
+          "#cc-number": "5577000055770004",
+          "#cc-exp-month": "12",
+          "#cc-exp-year": "2017",
+          "#cc-type": "mastercard",
+        },
+      });
+
+      await ensureNoDoorhanger();
+      ok(true, "Credit card capture doorhanger is not shown");
+    }
+  );
+});

@@ -736,6 +736,10 @@ export class FormAutofillParent extends JSWindowActorParent {
    */
 
   async _onAddressSubmit(address, browser) {
+    if (!FormAutofill.isAutofillAddressesEnabled) {
+      return false;
+    }
+
     const storage = lazy.gFormAutofillStorage.addresses;
 
     // Make sure record is normalized before comparing with records in the storage
