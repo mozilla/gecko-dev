@@ -3,6 +3,7 @@ scheme = "https"
 support-files = [
   "MockAlertsService.js",
   "NotificationTest.js",
+  "GleanTest.js",
 ]
 
 ["test_notification_basics.html"]

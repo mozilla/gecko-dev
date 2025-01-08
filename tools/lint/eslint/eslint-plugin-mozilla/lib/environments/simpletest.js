@@ -22,7 +22,6 @@ const simpleTestFiles = [
   "AccessibilityUtils.js",
   "ExtensionTestUtils.js",
   "EventUtils.js",
-  "GleanTest.js",
   "MockObjects.js",
   "SimpleTest.js",
   "WindowSnapshot.js",

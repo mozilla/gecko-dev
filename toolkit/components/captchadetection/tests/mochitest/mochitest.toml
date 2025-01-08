@@ -4,6 +4,7 @@ prefs = [
 ]
 scheme="https"
 support-files = [
+  "GleanTest.js",
   "CaptchaTestingUtils.js"
 ]
 
