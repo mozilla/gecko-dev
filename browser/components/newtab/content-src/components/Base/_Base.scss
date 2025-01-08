@@ -31,6 +31,10 @@ main {
   width: $wrapper-default-width;
   padding: 0;
 
+  &.newtab-main {
+    align-items: center;
+  }
+
   .vertical-center-wrapper {
     margin: auto 0;
   }

@@ -687,7 +687,7 @@ export class BaseContent extends React.PureComponent {
         </div>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions*/}
         <div className={outerClassName} onClick={this.closeCustomizationMenu}>
-          <main style={this.state.fixedNavStyle}>
+          <main className="newtab-main" style={this.state.fixedNavStyle}>
             {prefs.showSearch && (
               <div className="non-collapsible-section">
                 <ErrorBoundary>

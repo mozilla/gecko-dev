@@ -8,9 +8,27 @@
   overflow: hidden;
   // allow the ad banner to take up full width
   // of screen rather than card-grid width
-  width: 100vw;
+  width: 100%;
   margin-inline-start: 50%;
   transform: translate3d(-50%, 0, 0);
+
+  // Adding min-width if .billboard/.leaderboard exist within
+  // .ad-banner-inner to keep the banners from shrinking on smaller screens
+  &:has(.ad-banner-inner.billboard) {
+    min-width: 970px;
+
+    @media (width <= 1015px) {
+      min-width: auto;
+    }
+  }
+
+  &:has(.ad-banner-inner.leaderboard) {
+    min-width: 728px;
+
+    @media (width <= 758px) {
+      min-width: auto;
+    }
+  }
 
   .ad-banner-inner {
     margin-inline: auto;
@@ -50,7 +68,7 @@
     }
 
     &.billboard {
-      max-width: var(--billboard-width);
+      min-width: var(--billboard-width);
 
       .ad-banner-content {
         height: var(--billboard-height);

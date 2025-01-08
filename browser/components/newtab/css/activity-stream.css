@@ -473,6 +473,9 @@ main {
   width: 274px;
   padding: 0;
 }
+main.newtab-main {
+  align-items: center;
+}
 main .vertical-center-wrapper {
   margin: auto 0;
 }
@@ -7696,9 +7699,25 @@ main section {
   --leaderboard-height: 90px;
   grid-column: 1/-1;
   overflow: hidden;
-  width: 100vw;
+  width: 100%;
   margin-inline-start: 50%;
   transform: translate3d(-50%, 0, 0);
+}
+.ad-banner-wrapper:has(.ad-banner-inner.billboard) {
+  min-width: 970px;
+}
+@media (width <= 1015px) {
+  .ad-banner-wrapper:has(.ad-banner-inner.billboard) {
+    min-width: auto;
+  }
+}
+.ad-banner-wrapper:has(.ad-banner-inner.leaderboard) {
+  min-width: 728px;
+}
+@media (width <= 758px) {
+  .ad-banner-wrapper:has(.ad-banner-inner.leaderboard) {
+    min-width: auto;
+  }
 }
 .ad-banner-wrapper .ad-banner-inner {
   margin-inline: auto;
@@ -7733,7 +7752,7 @@ main section {
   }
 }
 .ad-banner-wrapper .ad-banner-inner.billboard {
-  max-width: var(--billboard-width);
+  min-width: var(--billboard-width);
 }
 .ad-banner-wrapper .ad-banner-inner.billboard .ad-banner-content {
   height: var(--billboard-height);
