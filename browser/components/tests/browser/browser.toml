@@ -50,4 +50,4 @@ run-if = ["os != 'mac'"] # On macOS we can't change browser.quitShortcut.disable
 run-if = ["os == 'win'"]
 
 ["browser_csp_blocks_event_handlers.js"]
-run-if = ["debug"]
+run-if = ["debug", "nightly_build"]

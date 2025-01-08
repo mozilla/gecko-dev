@@ -790,6 +790,8 @@ partial namespace ChromeUtils {
 
   boolean shouldResistFingerprinting(JSRFPTarget target,
                                      unsigned long long? overriddenFingerprintingSettings);
+
+  FileNameTypeDetails sanitizeTelemetryFileURL(UTF8String url);
 };
 
 /*
@@ -1184,4 +1186,9 @@ dictionary CDMInformation {
   required boolean clearlead;
   required boolean isHDCP22Compatible;
   required boolean isHardwareDecryption;
+};
+
+dictionary FileNameTypeDetails {
+  required UTF8String fileNameType;
+  UTF8String fileNameDetails;
 };

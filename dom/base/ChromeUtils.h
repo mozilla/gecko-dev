@@ -328,6 +328,10 @@ class ChromeUtils {
       GlobalObject& aGlobal, JSRFPTarget aTarget,
       const Nullable<uint64_t>& aOverriddenFingerprintingSettings);
 
+  static void SanitizeTelemetryFileURL(GlobalObject& aGlobal,
+                                       const nsACString& aURL,
+                                       FileNameTypeDetails& aFileTypeDetails);
+
 #ifdef MOZ_WMF_CDM
   static already_AddRefed<Promise> GetWMFContentDecryptionModuleInformation(
       GlobalObject& aGlobal, ErrorResult& aRv);

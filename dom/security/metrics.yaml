@@ -262,6 +262,59 @@ security:
         type: string
     telemetry_mirror: Security_Evalusage_Systemcontext
 
+  csp_violation_browser:
+    type: event
+    description: >
+      Information about CSP violations that happen in browser.xhtml, that
+      are caused by the Content-Security-Policy that restricts which scripts
+      can execute.
+    bugs:
+      - https://bugzil.la/1937080
+    data_reviews:
+      - https://bugzil.la/1937080
+    notification_emails:
+      - tschuster@mozilla.com
+      - freddy@mozilla.com
+    expires: never
+    extra_keys:
+      directive:
+        description: >
+          The same as SecurityPolicyViolationEvent's effectiveDirective.
+        type: string
+      sourcetype:
+        description: >
+          The sanitized type of SecurityPolicyViolationEvent's sourceFile,
+          e.g. "chromeuri".
+          This follows eval_usage_system_context sanitization procedure.
+        type: string
+      sourcedetails:
+        description: >
+          A sanitized version of SecurityPolicyViolationEvent's sourceFile,
+          e.g. the whole chrome:// URL in some cases.
+          This follows eval_usage_system_context sanitization procedure.
+        type: string
+      blockeduritype:
+        description: >
+          The sanitized type of SecurityPolicyViolationEvent's blockedURI.
+        type: string
+      blockeduridetails:
+        description: >
+          A sanitized version of SecurityPolicyViolationEvent's blockedURI.
+        type: string
+      linenumber:
+        description: >
+          The same as SecurityPolicyViolationEvent's lineNumber.
+        type: quantity
+      columnnumber:
+        description: >
+          The same as SecurityPolicyViolationEvent's columnNumber.
+        type: quantity
+      sample:
+        description: >
+          The same as SecurityPolicyViolationEvent's sample.
+          (Only for violations from chrome:)
+        type: string
+
   eval_usage_parent_process:
     type: event
     description: >

@@ -28,8 +28,8 @@
         persist="screenX screenY width height sizemode"
         data-l10n-sync="true">
 <head>
-#ifdef DEBUG
-  <meta http-equiv="Content-Security-Policy" content="script-src-attr 'none'" />
+#if defined(NIGHTLY_BUILD) || defined(DEBUG)
+  <meta http-equiv="Content-Security-Policy" content="script-src-attr 'none' 'report-sample'" />
 #endif
 
   <!-- The "global.css" stylesheet is imported first to allow other stylesheets to
@@ -142,6 +142,31 @@
   // may be leaking things because they will never be destroyed after.
   window.addEventListener("DOMContentLoaded",
     gBrowserInit.onDOMContentLoaded.bind(gBrowserInit), { once: true });
+
+  document.addEventListener("securitypolicyviolation", event => {
+    // Sanitize the URLs and the sample.
+    let source = ChromeUtils.sanitizeTelemetryFileURL(event.sourceFile);
+    let blocked = ChromeUtils.sanitizeTelemetryFileURL(event.blockedURI);
+    let sourceType = source.fileNameType;
+    let sample =
+      sourceType == "chromeuri" ||
+      sourceType == "resourceuri" ||
+      sourceType == "abouturi"
+        ? event.sample
+        : "";
+
+    let isInline = event.blockedURI == "inline";
+    Glean.security.cspViolationBrowser.record({
+      directive: event.effectiveDirective,
+      sourcetype: sourceType,
+      sourcedetails: source.fileNameDetails || "",
+      blockeduritype: isInline ? "inline" : blocked.fileNameType,
+      blockeduridetails: isInline ? "" : blocked.fileNameDetails || "",
+      linenumber: event.lineNumber,
+      columnnumber: event.columnNumber,
+      sample,
+    });
+  });
 </script>
 </head>
 <html:body xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
