@@ -266,7 +266,6 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
       loadInfo.mDomain, isSecureContext, ipcClientInfo, loadInfo.mReferrerInfo,
       storageAllowed, AntiTrackingUtils::IsThirdPartyWindow(window, nullptr),
       loadInfo.mShouldResistFingerprinting, overriddenFingerprintingSettingsArg,
-      loadInfo.mIsOn3PCBExceptionList,
       OriginTrials::FromWindow(nsGlobalWindowInner::Cast(window)),
       void_t() /* OptionalServiceWorkerData */, agentClusterId,
       remoteType.unwrap());

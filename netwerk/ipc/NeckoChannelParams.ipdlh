@@ -133,7 +133,6 @@ struct LoadInfoArgs
   bool                        initialSecurityCheckDone;
   bool                        isInThirdPartyContext;
   bool?                       isThirdPartyContextToTopWindow;
-  bool                        isOn3PCBExceptionList;
   bool                        isFormSubmission;
   bool                        isGETRequest;
   bool                        sendCSPViolationEvents;
@@ -290,8 +289,6 @@ struct ParentLoadInfoForwarderArgs
   bool? isThirdPartyContextToTopWindow;
 
   bool isInThirdPartyContext;
-
-  bool isOn3PCBExceptionList;
 
   nullable nsIURI unstrippedURI;
 

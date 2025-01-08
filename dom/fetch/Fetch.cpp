@@ -787,8 +787,6 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
 
       ipcArgs.isThirdPartyContext() = worker->IsThirdPartyContext();
 
-      ipcArgs.isOn3PCBExceptionList() = worker->IsOn3PCBExceptionList();
-
       ipcArgs.isWorkerRequest() = true;
 
       actor->DoFetchOp(ipcArgs);

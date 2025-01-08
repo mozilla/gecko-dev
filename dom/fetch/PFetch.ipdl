@@ -26,7 +26,6 @@ struct FetchOpArgs{
   uint64_t associatedBrowsingContextID;
   bool isThirdPartyContext;
   bool isWorkerRequest;
-  bool isOn3PCBExceptionList;
 };
 
 protocol PFetch {

@@ -7,7 +7,6 @@
 #include "CookieCommons.h"
 #include "CookieLogging.h"
 #include "CookieParser.h"
-#include "CookieService.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Components.h"
@@ -17,7 +16,6 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/Promise-inl.h"
 #include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/net/CookiePersistentStorage.h"
 #include "mozilla/net/CookiePrivateStorage.h"
@@ -260,13 +258,6 @@ nsresult CookieService::Init() {
   os->AddObserver(this, "profile-before-change", true);
   os->AddObserver(this, "profile-do-change", true);
   os->AddObserver(this, "last-pb-context-exited", true);
-
-  // Initialize the 3PCB exception service.
-  mThirdPartyCookieBlockingExceptions.Initialize();
-
-  RunOnShutdown([self = RefPtr{this}] {
-    self->mThirdPartyCookieBlockingExceptions.Shutdown();
-  });
 
   return NS_OK;
 }
@@ -586,8 +577,7 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
 
   cookieParser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieHeader,
                      dateHeader, true, isForeignAndNotAddon, mustBePartitioned,
-                     storagePrincipalOriginAttributes.IsPrivateBrowsing(),
-                     loadInfo->GetIsOn3PCBExceptionList());
+                     storagePrincipalOriginAttributes.IsPrivateBrowsing());
 
   if (!cookieParser.ContainsCookie()) {
     return NS_OK;
@@ -851,9 +841,6 @@ void CookieService::GetCookiesForURI(
 
   nsCOMPtr<nsIConsoleReportCollector> crc = do_QueryInterface(aChannel);
 
-  nsCOMPtr<nsILoadInfo> loadInfo = aChannel ? aChannel->LoadInfo() : nullptr;
-  const bool on3pcdException = loadInfo && loadInfo->GetIsOn3PCBExceptionList();
-
   for (const auto& attrs : aOriginAttrsList) {
     CookieStorage* storage = PickStorage(attrs);
 
@@ -981,16 +968,13 @@ void CookieService::GetCookiesForURI(
       // Check if we need to block the cookie because of opt-in partitioning.
       // We will only allow partitioned cookies with "partitioned" attribution
       // if opt-in partitioning is enabled.
-      //
-      // Note: If the cookie is on the 3pcd exception list, we will include
-      // the cookie.
       if (aIsForeign && cookieJarSettings->GetPartitionForeign() &&
           (StaticPrefs::network_cookie_cookieBehavior_optInPartitioning() ||
            (attrs.IsPrivateBrowsing() &&
             StaticPrefs::
                 network_cookie_cookieBehavior_optInPartitioning_pbmode())) &&
           !(cookie->IsPartitioned() && cookie->RawIsPartitioned()) &&
-          !aStorageAccessPermissionGranted && !on3pcdException) {
+          !aStorageAccessPermissionGranted) {
         continue;
       }
 
@@ -1737,72 +1721,6 @@ void CookieService::AddCookieFromDocument(
       ->AddCookie(&aCookieParser, aBaseDomain, aOriginAttributes, &aCookie,
                   aCurrentTimeInUsec, aDocumentURI, cookieString, false,
                   aThirdParty, aDocument->GetBrowsingContext());
-}
-
-/* static */
-void CookieService::Update3PCBExceptionInfo(nsIChannel* aChannel) {
-  MOZ_ASSERT(aChannel);
-  MOZ_ASSERT(XRE_IsParentProcess());
-
-  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  RefPtr<CookieService> csSingleton = CookieService::GetSingleton();
-
-  // Bail out if the channel is a top-level loading. The exception is only
-  // applicable to third-party loading.
-  if (loadInfo->GetExternalContentPolicyType() ==
-      ExtContentPolicy::TYPE_DOCUMENT) {
-    return;
-  }
-
-  // Bail out earlier if the 3PCB exception service is not initialized.
-  if (!csSingleton->mThirdPartyCookieBlockingExceptions.IsInitialized()) {
-    return;
-  }
-
-  // If the channel is triggered by a system principal, we don't need to do
-  // anything because the channel is for loading system resources.
-  if (loadInfo->TriggeringPrincipal()->IsSystemPrincipal()) {
-    return;
-  }
-
-  bool isInExceptionList =
-      csSingleton->mThirdPartyCookieBlockingExceptions.CheckExceptionForChannel(
-          aChannel);
-
-  Unused << loadInfo->SetIsOn3PCBExceptionList(isInExceptionList);
-}
-
-NS_IMETHODIMP
-CookieService::AddThirdPartyCookieBlockingExceptions(
-    const nsTArray<RefPtr<nsIThirdPartyCookieExceptionEntry>>& aExceptions) {
-  for (const auto& ex : aExceptions) {
-    nsAutoCString exception;
-    MOZ_ALWAYS_SUCCEEDS(ex->Serialize(exception));
-    mThirdPartyCookieBlockingExceptions.Insert(exception);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-CookieService::RemoveThirdPartyCookieBlockingExceptions(
-    const nsTArray<RefPtr<nsIThirdPartyCookieExceptionEntry>>& aExceptions) {
-  for (const auto& ex : aExceptions) {
-    nsAutoCString exception;
-    MOZ_ALWAYS_SUCCEEDS(ex->Serialize(exception));
-    mThirdPartyCookieBlockingExceptions.Remove(exception);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-CookieService::TestGet3PCBExceptions(nsTArray<nsCString>& aExceptions) {
-  aExceptions.Clear();
-
-  mThirdPartyCookieBlockingExceptions.GetExceptions(aExceptions);
-
-  return NS_OK;
 }
 
 }  // namespace net

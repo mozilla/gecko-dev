@@ -149,7 +149,6 @@ struct WorkerLoadInfoData {
   Maybe<RFPTarget> mOverriddenFingerprintingSettings;
   OriginAttributes mOriginAttributes;
   bool mIsThirdPartyContext;
-  bool mIsOn3PCBExceptionList;
 
   enum {
     eNotSet,
