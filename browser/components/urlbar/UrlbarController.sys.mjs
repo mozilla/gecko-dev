@@ -356,7 +356,9 @@ export class UrlbarController {
         // Change the tab behavior when urlbar view is open.
         if (
           lazy.UrlbarPrefs.get("scotchBonnet.enableOverride") &&
-          this.view.isOpen
+          this.view.isOpen &&
+          !event.ctrlKey &&
+          !event.altKey
         ) {
           if (
             (event.shiftKey &&

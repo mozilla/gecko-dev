@@ -500,3 +500,50 @@ add_task(async function test_esc_on_UnifiedSearchButton() {
 
   gURLBar.handleRevert();
 });
+
+add_task(async function test_ctrl_tab() {
+  info("Prepare multiple tabs");
+  let mainTab = gBrowser.selectedTab;
+  let newTab1 = BrowserTestUtils.addTab(gBrowser);
+  let newTab2 = BrowserTestUtils.addTab(gBrowser);
+
+  info("Open urlbar results");
+  const query = "abc";
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: query,
+  });
+
+  const testData = [
+    {
+      shiftKey: false,
+      expectedOrder: [newTab1, newTab2, mainTab],
+    },
+    {
+      shiftKey: true,
+      expectedOrder: [newTab2, newTab1, mainTab],
+    },
+  ];
+
+  for (let { shiftKey, expectedOrder } of testData) {
+    for (let nextTab of expectedOrder) {
+      EventUtils.synthesizeKey("KEY_Tab", { ctrlKey: true, shiftKey });
+      await BrowserTestUtils.waitForCondition(
+        () => gBrowser.selectedTab == nextTab
+      );
+      Assert.ok(true, "Expected tab is selected");
+      let expectedInput = nextTab == mainTab ? query : "";
+      Assert.equal(gURLBar.value, expectedInput, "Urlbar value is correct");
+      Assert.equal(
+        gURLBar.view.isOpen,
+        !!expectedInput,
+        "Urlbar view is opened as expected"
+      );
+    }
+  }
+
+  gBrowser.removeTab(newTab1);
+  gBrowser.removeTab(newTab2);
+  gURLBar.view.close();
+  gURLBar.handleRevert();
+});
