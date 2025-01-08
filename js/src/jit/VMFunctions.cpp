@@ -1821,6 +1821,27 @@ bool GetNativeDataPropertyPure(JSContext* cx, JSObject* obj, PropertyKey id,
   return MaybeGetNativePropertyAndWriteToCache<NoGC>(cx, obj, id, entry, vp);
 }
 
+// Non-inlined implementation of ValueToAtomOrSymbolPure for less common types.
+static bool ValueToAtomOrSymbolSlow(JSContext* cx, const Value& idVal,
+                                    jsid* id) {
+  MOZ_ASSERT(!idVal.isString());
+  MOZ_ASSERT(!idVal.isSymbol());
+
+  if (idVal.isNull()) {
+    *id = NameToId(cx->names().null);
+    return true;
+  }
+  if (idVal.isUndefined()) {
+    *id = NameToId(cx->names().undefined);
+    return true;
+  }
+  if (idVal.isBoolean()) {
+    *id = NameToId(idVal.toBoolean() ? cx->names().true_ : cx->names().false_);
+    return true;
+  }
+  return false;
+}
+
 static MOZ_ALWAYS_INLINE bool ValueToAtomOrSymbolPure(JSContext* cx,
                                                       const Value& idVal,
                                                       jsid* id) {
@@ -1849,17 +1870,7 @@ static MOZ_ALWAYS_INLINE bool ValueToAtomOrSymbolPure(JSContext* cx,
     return true;
   }
 
-  if (idVal.isNull()) {
-    *id = NameToId(cx->names().null);
-    return true;
-  }
-
-  if (idVal.isUndefined()) {
-    *id = NameToId(cx->names().undefined);
-    return true;
-  }
-
-  return false;
+  return ValueToAtomOrSymbolSlow(cx, idVal, id);
 }
 
 bool GetNativeDataPropertyByValuePure(JSContext* cx, JSObject* obj,

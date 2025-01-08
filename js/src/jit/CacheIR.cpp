@@ -395,7 +395,7 @@ static bool ValueToNameOrSymbolId(JSContext* cx, HandleValue idVal,
   *nameOrSymbol = false;
 
   if (!idVal.isString() && !idVal.isSymbol() && !idVal.isUndefined() &&
-      !idVal.isNull()) {
+      !idVal.isNull() && !idVal.isBoolean()) {
     return true;
   }
 
@@ -3355,20 +3355,30 @@ void IRGenerator::emitIdGuard(ValOperandId valId, const Value& idVal, jsid id) {
     MOZ_ASSERT(idVal.toSymbol() == id.toSymbol());
     SymbolOperandId symId = writer.guardToSymbol(valId);
     writer.guardSpecificSymbol(symId, id.toSymbol());
-  } else {
-    MOZ_ASSERT(id.isAtom());
-    if (idVal.isUndefined()) {
-      MOZ_ASSERT(id.isAtom(cx_->names().undefined));
-      writer.guardIsUndefined(valId);
-    } else if (idVal.isNull()) {
-      MOZ_ASSERT(id.isAtom(cx_->names().null));
-      writer.guardIsNull(valId);
-    } else {
-      MOZ_ASSERT(idVal.isString());
-      StringOperandId strId = writer.guardToString(valId);
-      writer.guardSpecificAtom(strId, id.toAtom());
-    }
+    return;
   }
+
+  MOZ_ASSERT(id.isAtom());
+
+  if (idVal.isString()) {
+    StringOperandId strId = writer.guardToString(valId);
+    writer.guardSpecificAtom(strId, id.toAtom());
+    return;
+  }
+  if (idVal.isUndefined()) {
+    MOZ_ASSERT(id.isAtom(cx_->names().undefined));
+    writer.guardIsUndefined(valId);
+    return;
+  }
+  if (idVal.isNull()) {
+    MOZ_ASSERT(id.isAtom(cx_->names().null));
+    writer.guardIsNull(valId);
+    return;
+  }
+  MOZ_ASSERT(idVal.isBoolean());
+  MOZ_ASSERT(id.isAtom(cx_->names().true_) || id.isAtom(cx_->names().false_));
+  Int32OperandId int32Id = writer.guardBooleanToInt32(valId);
+  writer.guardSpecificInt32(int32Id, int32_t(idVal.toBoolean()));
 }
 
 void GetPropIRGenerator::maybeEmitIdGuard(jsid id) {
