@@ -385,20 +385,16 @@ def unpack(target):
             except NotADirectoryError:
                 pass
 
-        if os.path.exists(os.path.join(target_path, THIRDPARTY_USED_IN_FIREFOX[0])):
-            for path in THIRDPARTY_USED_IN_FIREFOX:
-                shutil.move(
-                    os.path.join(target_path, path),
-                    os.path.join(LIBWEBRTC_DIR, "third_party", path),
-                )
-        else:
+        # adjust target_path if GitHub packaging is involved
+        if not os.path.exists(os.path.join(target_path, THIRDPARTY_USED_IN_FIREFOX[0])):
             # GitHub packs everything inside a separate directory
             target_path = os.path.join(target_path, os.listdir(target_path)[0])
-            for path in THIRDPARTY_USED_IN_FIREFOX:
-                shutil.move(
-                    os.path.join(target_path, path),
-                    os.path.join(LIBWEBRTC_DIR, "third_party", path),
-                )
+
+        for path in THIRDPARTY_USED_IN_FIREFOX:
+            shutil.move(
+                os.path.join(target_path, path),
+                os.path.join(LIBWEBRTC_DIR, "third_party", path),
+            )
 
 
 def cleanup(target):
