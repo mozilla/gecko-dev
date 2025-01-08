@@ -1914,12 +1914,7 @@ pub extern "C" fn wr_window_new(
         ColorF::new(0.0, 0.0, 0.0, 0.0)
     };
 
-    let compositor_config = if use_layer_compositor {
-        let compositor = Box::new(WrLayerCompositor::new(compositor)) as Box<dyn LayerCompositor>;
-        CompositorConfig::Layer {
-            compositor,
-        }
-    } else if software {
+    let compositor_config = if software {
         CompositorConfig::Native {
             compositor: Box::new(SwCompositor::new(
                 sw_gl.unwrap(),
