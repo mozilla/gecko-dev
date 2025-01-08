@@ -544,6 +544,7 @@ bool Module::instantiateMemories(
                            IsHugeMemoryEnabled(desc.addressType()));
 
     if (!memoryObjs.get().append(memory)) {
+      ReportOutOfMemory(cx);
       return false;
     }
   }
