@@ -25,7 +25,7 @@ const testCases = [
   {
     expected: {
       playback_type: "Non-MSE media-engine playback",
-      video_codec: "video/avc",
+      video_codec: "video/vp9",
       resolution: "AV,240<h<=480",
       key_system: undefined,
     },
@@ -36,8 +36,8 @@ const testCases = [
   {
     expected: {
       playback_type: "MSE media-engine playback",
-      video_codec: "video/avc",
-      resolution: "AV,240<h<=480",
+      video_codec: "video/vp9",
+      resolution: "V,240<h<=480",
       key_system: undefined,
     },
     async run(tab) {

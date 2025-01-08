@@ -21,7 +21,7 @@ support-files = [
   "../small-shot.mp3",
   "../small-shot.ogg",
   "../TestPatternHDR.mp4",
-  "../../mediasource/test/bipbop/bipbop_300-3s.webm",
+  "../../mediasource/test/bipbop/bipbop_300-3s-no-audio.webm",
 ]
 
 ["browser_encrypted_play_time_telemetry.js"]

@@ -70,7 +70,7 @@ function loadMseVideo(tab, extraEvent = undefined) {
       video.src = content.wrappedJSObject.URL.createObjectURL(ms);
       await once(ms, "sourceopen");
       const sb = ms.addSourceBuffer("video/webm");
-      const videoFile = "bipbop_300-3s.webm";
+      const videoFile = "bipbop_300-3s-no-audio.webm";
       let fetchResponse = await content.fetch(videoFile);
       sb.appendBuffer(await fetchResponse.arrayBuffer());
       await once(sb, "updateend");

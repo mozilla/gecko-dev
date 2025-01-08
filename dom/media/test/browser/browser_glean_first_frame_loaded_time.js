@@ -39,7 +39,7 @@ const testCases = [
     expected: {
       playback_type: "MSE playback",
       video_codec: "video/vp9",
-      resolution: "AV,240<h<=480",
+      resolution: "V,240<h<=480",
       key_system: undefined,
       decoder_name: "ffvpx video decoder",
       is_hdr: false,
