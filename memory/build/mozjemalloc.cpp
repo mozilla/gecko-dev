@@ -1452,8 +1452,8 @@ class ArenaCollection {
     MOZ_PUSH_IGNORE_THREAD_SAFETY
     mArenas.Init();
     mPrivateArenas.Init();
-    MOZ_POP_THREAD_SAFETY
     mMainThreadArenas.Init();
+    MOZ_POP_THREAD_SAFETY
     arena_params_t params;
     // The main arena allows more dirty pages than the default for other arenas.
     params.mMaxDirty = opt_dirty_max;
@@ -1563,11 +1563,13 @@ class ArenaCollection {
   arena_id_t mLastPublicArenaId MOZ_GUARDED_BY(mLock);
 
   // Accessing mArenas and mPrivateArenas can only be done while holding mLock.
-  // Since mMainThreadArenas can only be used from the main thread, it can be
-  // accessed without a lock which is why it is a seperate tree.
   Tree mArenas MOZ_GUARDED_BY(mLock);
   Tree mPrivateArenas MOZ_GUARDED_BY(mLock);
-  Tree mMainThreadArenas;
+
+  // Some mMainThreadArenas accesses to mMainThreadArenas can (and should) elude
+  // the lock, see GetById().
+  Tree mMainThreadArenas MOZ_GUARDED_BY(mLock);
+
   Atomic<int32_t, MemoryOrdering::Relaxed> mDefaultMaxDirtyPageModifier;
   // This is never changed except for forking, and it does not need mLock.
   Maybe<ThreadId> mMainThreadId;
@@ -5549,8 +5551,17 @@ inline arena_t* ArenaCollection::GetById(arena_id_t aArenaId, bool aIsPrivate) {
   Tree* tree = nullptr;
   if (aIsPrivate) {
     if (ArenaIdIsMainThreadOnly(aArenaId)) {
-      // Main thread only arena.  Do the lookup here without taking the lock.
+      // The main thread only arenas support lock free access, so it's desirable
+      // to do GetById without taking mLock either.
+      //
+      // Races can occur between writers and writers, or between writers and
+      // readers.  The only writer is the main thread and it will never race
+      // against itself so we can elude the lock when the main thread is
+      // reading.
+      MOZ_ASSERT(IsOnMainThread());
+      MOZ_PUSH_IGNORE_THREAD_SAFETY
       arena_t* result = GetByIdInternal(mMainThreadArenas, aArenaId);
+      MOZ_POP_THREAD_SAFETY
       MOZ_RELEASE_ASSERT(result);
       return result;
     }
