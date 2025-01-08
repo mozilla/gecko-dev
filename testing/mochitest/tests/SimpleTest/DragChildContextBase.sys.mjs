@@ -164,7 +164,21 @@ export class DragChildContextBase {
 
   initializeElementInfo(aDragElementId) {
     this.dragElement = this.dragWindow.document.getElementById(aDragElementId);
-    this.ok(this.dragElement, "dragElement exists");
+    if (!this.dragElement) {
+      for (let shadowRoot of this.dragWindow.document.getConnectedShadowRoots()) {
+        if (shadowRoot.isUAWidget()) {
+          continue;
+        }
+
+        this.dragElement = shadowRoot.getElementById(aDragElementId);
+        if (this.dragElement) {
+          break;
+        }
+      }
+      this.ok(this.dragElement, "dragElement found in shadow DOM");
+    } else {
+      this.ok(this.dragElement, "dragElement found");
+    }
     let rect = this.dragElement.getBoundingClientRect();
     let rectStr =
       `left: ${rect.left}, top: ${rect.top}, ` +

@@ -1,9 +1,4 @@
 [DEFAULT]
-support-files = [
-  "browser_dragdrop_impl.js",
-  "browser_dragdrop_inner.html",
-  "browser_dragdrop_outer.html",
-]
 
 ["browser_alt_keyup_in_content.js"]
 skip-if = [
@@ -21,12 +16,40 @@ support-files = [
 ["browser_bug1539497.js"]
 
 ["browser_dragdrop_protected_diff_origin.js"]
+support-files = [
+  "browser_dragdrop_impl.js",
+  "browser_dragdrop_inner.html",
+  "browser_dragdrop_outer.html",
+]
 
 ["browser_dragdrop_protected_same_origin.js"]
+support-files = [
+  "browser_dragdrop_impl.js",
+  "browser_dragdrop_inner.html",
+  "browser_dragdrop_outer.html",
+]
+
+["browser_dragdrop_shadow.js"]
+support-files = [
+  "browser_dragdrop_impl.js",
+  "browser_dragdrop_shadow_inner.html",
+  "browser_dragdrop_shadow_outer.html",
+]
+skip-if = ["true"] # bug 1932955
 
 ["browser_dragdrop_unprotected_diff_origin.js"]
+support-files = [
+  "browser_dragdrop_impl.js",
+  "browser_dragdrop_inner.html",
+  "browser_dragdrop_outer.html",
+]
 
 ["browser_dragdrop_unprotected_same_origin.js"]
+support-files = [
+  "browser_dragdrop_impl.js",
+  "browser_dragdrop_inner.html",
+  "browser_dragdrop_outer.html",
+]
 
 ["browser_dragimage.js"]
 support-files = [
