@@ -8,7 +8,8 @@
             MOCK_UNAVAILABLE_PRODUCT_REPORTED_RESPONSE, MOCK_PAGE_NOT_SUPPORTED_RESPONSE,
             MOCK_RECOMMENDED_ADS_RESPONSE, verifyAnalysisDetailsVisible,
             verifyAnalysisDetailsHidden, verifyFooterHidden, getAnalysisDetails,
-            getSettingsDetails, withReviewCheckerSidebar */
+            getSettingsDetails, withReviewCheckerSidebar, reviewCheckerSidebarUpdated
+            reviewCheckerSidebarAdsUpdated, verifyReviewCheckerSidebarProductInfo */
 
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/components/shopping/test/browser/head.js",
@@ -131,6 +132,11 @@ const MOCK_PAGE_NOT_SUPPORTED_RESPONSE = {
   page_not_supported: true,
 };
 
+const MOCK_ERROR_RESPONSE = {
+  ...MOCK_UNPOPULATED_DATA,
+  error: "error",
+};
+
 const MOCK_RECOMMENDED_ADS_RESPONSE = [
   {
     name: "VIVO Electric 60 x 24 inch Stand Up Desk | Black Table Top, Black Frame, Height Adjustable Standing Workstation with Memory Preset Controller (DESK-KIT-1B6B)",
@@ -188,6 +194,7 @@ function getAnalysisDetails(browser, data) {
   return SpecialPowers.spawn(browser, [data], async mockData => {
     let shoppingContainer =
       content.document.querySelector("shopping-container").wrappedJSObject;
+    shoppingContainer.isProductPage = true;
     shoppingContainer.data = Cu.cloneInto(mockData, content);
     await shoppingContainer.updateComplete;
     let returnState = {};
@@ -249,6 +256,13 @@ async function withReviewCheckerSidebar(task, args = [], win = window) {
     return;
   }
 
+  if (
+    !win.SidebarController.isOpen ||
+    win.SidebarController.currentID !== "viewReviewCheckerSidebar"
+  ) {
+    throw new Error("Review Checker is not shown");
+  }
+
   let { readyState } = sidebar.contentDocument;
   if (readyState === "loading" || readyState === "uninitialized") {
     await new Promise(resolve => {
@@ -261,7 +275,10 @@ async function withReviewCheckerSidebar(task, args = [], win = window) {
   let rcBrowser = sidebar.contentDocument.getElementById(
     "review-checker-browser"
   );
-  if (rcBrowser.webProgress.isLoadingDocument) {
+  if (
+    rcBrowser.webProgress.isLoadingDocument ||
+    rcBrowser.currentURI?.spec !== SHOPPING_SIDEBAR_URL
+  ) {
     await BrowserTestUtils.browserLoaded(
       rcBrowser,
       false,
@@ -269,5 +286,102 @@ async function withReviewCheckerSidebar(task, args = [], win = window) {
     );
   }
 
-  await ContentTask.spawn(rcBrowser, args, task);
+  await SpecialPowers.spawn(rcBrowser, args, task);
+}
+
+async function reviewCheckerSidebarUpdated(expectedProduct, win = window) {
+  await withReviewCheckerSidebar(
+    async prod => {
+      let prodURI = Services.io.newURI(prod);
+      function isLocationCurrent() {
+        let actor = content.windowGlobalChild.getExistingActor("ReviewChecker");
+        let currentURI = Services.io.newURI(actor?.currentURL);
+        return currentURI.equalsExceptRef(prodURI);
+      }
+      function isUpdated() {
+        let shoppingContainer =
+          content.document.querySelector("shopping-container").wrappedJSObject;
+        return (
+          !!shoppingContainer.data || shoppingContainer.isProductPage === false
+        );
+      }
+
+      if (isLocationCurrent() && isUpdated()) {
+        info("Sidebar already loaded.");
+        return true;
+      }
+      info(
+        "Waiting for sidebar to be updated. Document: " +
+          content.document.location.href
+      );
+      return ContentTaskUtils.waitForEvent(
+        content.document,
+        "Update",
+        true,
+        e => {
+          info("Sidebar updated for product: " + JSON.stringify(e.detail));
+          let hasData = !!e.detail.data;
+          let isNotProductPage = e.detail.isProductPage === false;
+          return (hasData || isNotProductPage) && isLocationCurrent();
+        },
+        true
+      ).then(() => true);
+    },
+    [expectedProduct],
+    win
+  );
+}
+
+async function reviewCheckerSidebarAdsUpdated(expectedProduct, win = window) {
+  await reviewCheckerSidebarUpdated(expectedProduct, win);
+  await withReviewCheckerSidebar(
+    () => {
+      let container =
+        content.document.querySelector("shopping-container").wrappedJSObject;
+      if (container.recommendationData) {
+        return true;
+      }
+      return ContentTaskUtils.waitForEvent(
+        content.document,
+        "UpdateRecommendations",
+        true,
+        null,
+        true
+      ).then(() => true);
+    },
+    [expectedProduct],
+    win
+  );
+}
+
+async function verifyReviewCheckerSidebarProductInfo(
+  expectedProductInfo,
+  win = window
+) {
+  await withReviewCheckerSidebar(
+    async prodInfo => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+      Assert.equal(
+        shoppingContainer.reviewReliabilityEl.getAttribute("letter"),
+        prodInfo.letterGrade,
+        `Should have correct letter grade for product ${prodInfo.id}.`
+      );
+      Assert.equal(
+        shoppingContainer.adjustedRatingEl.getAttribute("rating"),
+        prodInfo.adjustedRating,
+        `Should have correct adjusted rating for product ${prodInfo.id}.`
+      );
+      Assert.equal(
+        content.windowGlobalChild.getExistingActor("ReviewChecker")?.currentURL,
+        prodInfo.productURL,
+        `Should have correct url in the child.`
+      );
+    },
+    [expectedProductInfo],
+    win
+  );
 }

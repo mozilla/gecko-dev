@@ -1,4 +1,5 @@
 [DEFAULT]
+dupe-manifest=true
 support-files = [
   "head.js",
   "!/toolkit/components/shopping/test/mockapis/server_helper.js",
@@ -21,9 +22,18 @@ prefs = [
   "toolkit.shopping.ohttpRelayURL=https://example.com/relay", # These URLs don't actually host a relay or gateway config, but are needed to stop us making outside network connections.
   "toolkit.shopping.ohttpConfigURL=https://example.com/ohttp-config",
   "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features=false", # Disable the fakespot feature callouts to avoid interference. Individual tests that need them can re-enable them as needed.
-  "browser.shopping.experience2023.shoppingSidebar=true",
-  "browser.shopping.experience2023.integratedSidebar=false",
+  "sidebar.revamp=true",
+  "browser.shopping.experience2023.shoppingSidebar=false",
+  "browser.shopping.experience2023.integratedSidebar=true",
 ]
+
+["browser_reviewchecker_empty_states.js"]
+
+["browser_reviewchecker_onboarding.js"]
+
+["browser_reviewchecker_private_mode.js"]
+
+["browser_reviewchecker_sidebar.js"]
 
 ["browser_shopping_adjusted_rating.js"]
 
@@ -51,8 +61,6 @@ prefs = [
 
 ["browser_shopping_settings_telemetry.js"]
 
-["browser_shopping_sidebar.js"]
-
 ["browser_shopping_stale_product.js"]
 
 ["browser_shopping_survey.js"]
@@ -62,21 +70,3 @@ prefs = [
 ["browser_shopping_unanalyzed_product.js"]
 
 ["browser_shopping_unavailable_product.js"]
-
-["browser_shoppingsidebar_auto_open.js"]
-
-["browser_shoppingsidebar_keep_close_message_bar.js"]
-
-["browser_shoppingsidebar_message_triggers.js"]
-
-["browser_shoppingsidebar_onboarding.js"]
-
-["browser_shoppingsidebar_private_mode.js"]
-
-["browser_shoppingsidebar_recommended_ad_test.js"]
-
-["browser_shoppingsidebar_settings.js"]
-
-["browser_shoppingsidebar_telemetry.js"]
-
-["browser_shoppingsidebar_urlbar.js"]

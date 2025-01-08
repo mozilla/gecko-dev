@@ -9,6 +9,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ShoppingUtils: "resource:///modules/ShoppingUtils.sys.mjs",
 });
 
+const ABOUT_SHOPPING_SIDEBAR = "about:shoppingsidebar";
+
 /**
  * When a Review Checker sidebar panel is open ReviewCheckerParent
  * handles listening for location changes and determining if the
@@ -36,8 +38,12 @@ export class ReviewCheckerParent extends JSWindowActorParent {
   }
 
   updateCurrentURL(uri, flags, isSupportedSite) {
+    // about:shoppingsidebar is only used for testing with fake data.
+    if (!uri || uri.spec == ABOUT_SHOPPING_SIDEBAR) {
+      return;
+    }
     this.sendAsyncMessage("ShoppingSidebar:UpdateProductURL", {
-      url: uri?.spec ?? null,
+      url: uri.spec,
       isReload: !!(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_RELOAD),
       isSupportedSite,
     });
@@ -47,7 +53,11 @@ export class ReviewCheckerParent extends JSWindowActorParent {
     let window = this.browsingContext.topChromeWindow;
     let { selectedBrowser } = window.gBrowser;
     let uri = selectedBrowser.currentURI;
-    return uri.spec ?? null;
+    // about:shoppingsidebar is only used for testing with fake data.
+    if (!uri || uri.spec == ABOUT_SHOPPING_SIDEBAR) {
+      return null;
+    }
+    return uri.spec;
   }
 
   async receiveMessage(message) {

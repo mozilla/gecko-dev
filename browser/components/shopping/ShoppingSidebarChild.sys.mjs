@@ -87,6 +87,11 @@ export class ShoppingSidebarChild extends RemotePageChild {
 
   #productURI = null;
   #product = null;
+  #currentURL = null;
+
+  get currentURL() {
+    return this.#currentURL;
+  }
 
   receiveMessage(message) {
     if (this.browsingContext.usePrivateBrowsing) {
@@ -123,6 +128,8 @@ export class ShoppingSidebarChild extends RemotePageChild {
     if (!isReload && this.isSameProduct(uri, this.#productURI)) {
       return;
     }
+
+    this.#currentURL = url;
 
     if (!uri || isProductURL(uri) || !lazy.isIntegratedSidebar) {
       this.#productURI = uri;
@@ -336,6 +343,11 @@ export class ShoppingSidebarChild extends RemotePageChild {
           return;
         }
         let url = await this.sendQuery("GetProductURL");
+        this.#currentURL = url;
+        // ReviewCheckerParent will always return a url if possible.
+        if (lazy.isIntegratedSidebar && !url) {
+          return;
+        }
 
         // Bail out if we opted out in the meantime, or don't have a URI.
         if (!canContinue(null, false)) {
@@ -456,6 +468,12 @@ export class ShoppingSidebarChild extends RemotePageChild {
         return;
       }
       let url = await this.sendQuery("GetProductURL");
+      this.#currentURL = url;
+
+      // ReviewCheckerParent will always return a url if possible.
+      if (lazy.isIntegratedSidebar && !url) {
+        return;
+      }
 
       // Similar to canContinue() above, check to see if things
       // have changed while we were waiting. Bail out if the user

@@ -27,6 +27,7 @@ add_task(
   async function test_integrated_sidebar_empty_state_opted_in_supported_site() {
     await BrowserTestUtils.withNewTab(CONTENT_PAGE, async function (_browser) {
       await SidebarController.show("viewReviewCheckerSidebar");
+      await reviewCheckerSidebarUpdated(CONTENT_PAGE);
 
       await withReviewCheckerSidebar(async () => {
         let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -86,6 +87,7 @@ add_task(
   async function test_integrated_sidebar_empty_state_opted_in_not_supported_site() {
     await BrowserTestUtils.withNewTab("about:about", async function (_browser) {
       await SidebarController.show("viewReviewCheckerSidebar");
+      await reviewCheckerSidebarUpdated("about:about");
 
       await withReviewCheckerSidebar(async () => {
         let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -146,6 +148,7 @@ add_task(async function test_integrated_sidebar_no_empty_state_opted_in_pdp() {
     PRODUCT_TEST_URL,
     async function (_browser) {
       await SidebarController.show("viewReviewCheckerSidebar");
+      await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
 
       await withReviewCheckerSidebar(async () => {
         let shoppingContainer = await ContentTaskUtils.waitForCondition(

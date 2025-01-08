@@ -69,6 +69,7 @@ add_task(async function test_integrated_sidebar() {
 add_task(async function test_integrated_sidebar_renders_product() {
   await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async function (browser) {
     await SidebarController.show("viewReviewCheckerSidebar");
+    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
 
     await withReviewCheckerSidebar(async () => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -100,6 +101,7 @@ add_task(async function test_integrated_sidebar_renders_product() {
     BrowserTestUtils.startLoadingURIString(browser, OTHER_PRODUCT_TEST_URL);
     info("Loading another product.");
     await loadedPromise;
+    await reviewCheckerSidebarUpdated(OTHER_PRODUCT_TEST_URL);
 
     await withReviewCheckerSidebar(async () => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -141,6 +143,7 @@ add_task(async function test_integrated_sidebar_updates_on_tab_switch() {
     );
 
     await SidebarController.show("viewReviewCheckerSidebar");
+    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
 
     await withReviewCheckerSidebar(async () => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -165,6 +168,7 @@ add_task(async function test_integrated_sidebar_updates_on_tab_switch() {
     });
 
     await BrowserTestUtils.switchTab(gBrowser, newProductTab);
+    await reviewCheckerSidebarUpdated(OTHER_PRODUCT_TEST_URL);
 
     await withReviewCheckerSidebar(async () => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -201,6 +205,7 @@ add_task(async function test_integrated_sidebar_close() {
     // will not allow withReviewCheckerSidebar to finish.
     let hideStub = sandbox.stub(SidebarController, "hide");
     await SidebarController.show("viewReviewCheckerSidebar");
+    await reviewCheckerSidebarUpdated(CONTENT_PAGE);
 
     ok(SidebarController.isOpen, "Sidebar is open");
 
@@ -229,6 +234,7 @@ add_task(async function test_integrated_sidebar_close() {
 add_task(async function test_integrated_sidebar_empty_states() {
   await BrowserTestUtils.withNewTab(CONTENT_PAGE, async function (browser) {
     await SidebarController.show("viewReviewCheckerSidebar");
+    await reviewCheckerSidebarUpdated(CONTENT_PAGE);
 
     await withReviewCheckerSidebar(async () => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -257,6 +263,7 @@ add_task(async function test_integrated_sidebar_empty_states() {
 
     BrowserTestUtils.startLoadingURIString(browser, PRODUCT_TEST_URL);
     await BrowserTestUtils.browserLoaded(browser);
+    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
 
     await withReviewCheckerSidebar(async () => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -285,6 +292,7 @@ add_task(async function test_integrated_sidebar_empty_states() {
 
     BrowserTestUtils.startLoadingURIString(browser, "about:newtab");
     await BrowserTestUtils.browserLoaded(browser);
+    await reviewCheckerSidebarUpdated("about:newtab");
 
     await withReviewCheckerSidebar(async () => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
