@@ -7,18 +7,6 @@ browser.jar:
 % content activity-stream %content/activity-stream/ contentaccessible=yes
   res/activity-stream/lib/ (./lib/*)
   res/activity-stream/common/ (./common/*)
-  res/activity-stream/vendor/Redux.sys.mjs (./vendor/Redux.sys.mjs)
-  res/activity-stream/vendor/react.js (./vendor/react.js)
-  res/activity-stream/vendor/react-dom.js (./vendor/react-dom.js)
-  res/activity-stream/vendor/react-dom-server.js (./vendor/react-dom-server.js)
-#ifndef RELEASE_OR_BETA
-  res/activity-stream/vendor/react-dev.js (./vendor/react-dev.js)
-  res/activity-stream/vendor/react-dom-dev.js (./vendor/react-dom-dev.js)
-#endif
-  res/activity-stream/vendor/prop-types.js (./vendor/prop-types.js)
-  res/activity-stream/vendor/react-transition-group.js (./vendor/react-transition-group.js)
-  res/activity-stream/vendor/redux.js (./vendor/redux.js)
-  res/activity-stream/vendor/react-redux.js (./vendor/react-redux.js)
 * res/activity-stream/data/content/abouthomecache/page.html.template (./data/content/abouthomecache/page.html.template)
 * res/activity-stream/data/content/abouthomecache/script.js.template (./data/content/abouthomecache/script.js.template)
   content/activity-stream/data/content/assets/  (./data/content/assets/*)

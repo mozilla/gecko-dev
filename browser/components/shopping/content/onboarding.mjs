@@ -21,8 +21,8 @@ class Onboarding {
       link.href = href;
     };
     addStylesheet("chrome://browser/content/aboutwelcome/aboutwelcome.css");
-    const reactSrc = "resource://activity-stream/vendor/react.js";
-    const domSrc = "resource://activity-stream/vendor/react-dom.js";
+    const reactSrc = "chrome://global/content/vendor/react.js";
+    const domSrc = "chrome://global/content/vendor/react-dom.js";
     // Add React script
     const getReactReady = async () => {
       return new Promise(resolve => {

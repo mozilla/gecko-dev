@@ -6,7 +6,7 @@ import { ActivityStreamMessageChannel } from "resource://activity-stream/lib/Act
 import { ActivityStreamStorage } from "resource://activity-stream/lib/ActivityStreamStorage.sys.mjs";
 import { Prefs } from "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs";
 import { reducers } from "resource://activity-stream/common/Reducers.sys.mjs";
-import { redux } from "resource://activity-stream/vendor/Redux.sys.mjs";
+import { redux } from "chrome://global/content/vendor/Redux.sys.mjs";
 
 /**
  * Store - This has a similar structure to a redux store, but includes some extra

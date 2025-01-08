@@ -156,3 +156,17 @@ toolkit.jar:
 # Third party files
    content/global/third_party/d3/d3.js                (/third_party/js/d3/d3.js)
    content/global/third_party/cfworker/json-schema.js (/third_party/js/cfworker/json-schema.js)
+
+# React and Redux vendor libraries
+   content/global/vendor/Redux.sys.mjs (vendor/react/Redux.sys.mjs)
+   content/global/vendor/react.js (vendor/react/react.js)
+   content/global/vendor/react-dom.js (vendor/react/react-dom.js)
+   content/global/vendor/react-dom-server.js (vendor/react/react-dom-server.js)
+#ifndef RELEASE_OR_BETA
+   content/global/vendor/react-dev.js (vendor/react/react-dev.js)
+   content/global/vendor/react-dom-dev.js (vendor/react/react-dom-dev.js)
+#endif
+   content/global/vendor/prop-types.js (vendor/react/prop-types.js)
+   content/global/vendor/react-transition-group.js (vendor/react/react-transition-group.js)
+   content/global/vendor/redux.js (vendor/react/redux.js)
+   content/global/vendor/react-redux.js (vendor/react/react-redux.js)

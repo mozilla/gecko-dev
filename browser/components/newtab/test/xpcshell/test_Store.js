@@ -19,7 +19,7 @@ const { sinon } = ChromeUtils.importESModule(
 // This creates the Redux top-level object.
 /* globals Redux */
 Services.scriptloader.loadSubScript(
-  "resource://activity-stream/vendor/redux.js",
+  "chrome://global/content/vendor/redux.js",
   this
 );
 

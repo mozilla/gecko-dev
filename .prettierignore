@@ -1242,7 +1242,6 @@ toolkit/components/uniffi-bindgen-gecko-js/components/generated/*
 # When this is implemented, we'll update the configuration below (bug 1825508)
 ##############################################################################
 
-browser/components/newtab/vendor/
 browser/components/pocket/content/panels/css/normalize.scss
 browser/components/pocket/content/panels/js/vendor/
 browser/components/storybook/node_modules/
@@ -1438,6 +1437,7 @@ toolkit/components/url-classifier/chromium/
 toolkit/components/utils/mozjexl.sys.mjs
 toolkit/components/viaduct/fetch_msg_types.pb.cc
 toolkit/components/viaduct/fetch_msg_types.pb.h
+toolkit/content/vendor/react/
 toolkit/content/widgets/vendor/lit.all.mjs
 toolkit/crashreporter/breakpad-client/
 toolkit/crashreporter/google-breakpad/

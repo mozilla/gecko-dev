@@ -30,22 +30,22 @@ importScripts("resource://gre/modules/workers/require.js");
   // eslint-disable-next-line no-implicit-globals, no-global-assign
   ChromeUtils = undefined;
 
-  /* import-globals-from ../vendor/react.js */
-  /* import-globals-from ../vendor/react-dom.js */
-  /* import-globals-from ../vendor/react-dom-server.js */
-  /* import-globals-from ../vendor/redux.js */
-  /* import-globals-from ../vendor/react-transition-group.js */
-  /* import-globals-from ../vendor/prop-types.js */
-  /* import-globals-from ../vendor/react-redux.js */
+  /* import-globals-from ../../../../toolkit/content/vendor/react/react.js */
+  /* import-globals-from ../../../../toolkit/content/vendor/react/react-dom.js */
+  /* import-globals-from ../../../../toolkit/content/vendor/react/react-dom-server.js */
+  /* import-globals-from ../../../../toolkit/content/vendor/react/redux.js */
+  /* import-globals-from ../../../../toolkit/content/vendor/react/react-transition-group.js */
+  /* import-globals-from ../../../../toolkit/content/vendor/react/prop-types.js */
+  /* import-globals-from ../../../../toolkit/content/vendor/react/react-redux.js */
   /* import-globals-from ../data/content/activity-stream.bundle.js */
   importScripts(
-    "resource://activity-stream/vendor/react.js",
-    "resource://activity-stream/vendor/react-dom.js",
-    "resource://activity-stream/vendor/react-dom-server.js",
-    "resource://activity-stream/vendor/redux.js",
-    "resource://activity-stream/vendor/react-transition-group.js",
-    "resource://activity-stream/vendor/prop-types.js",
-    "resource://activity-stream/vendor/react-redux.js",
+    "chrome://global/content/vendor/react.js",
+    "chrome://global/content/vendor/react-dom.js",
+    "chrome://global/content/vendor/react-dom-server.js",
+    "chrome://global/content/vendor/redux.js",
+    "chrome://global/content/vendor/react-transition-group.js",
+    "chrome://global/content/vendor/prop-types.js",
+    "chrome://global/content/vendor/react-redux.js",
     "resource://activity-stream/data/content/activity-stream.bundle.js"
   );
 
