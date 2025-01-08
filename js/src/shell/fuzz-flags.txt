@@ -59,7 +59,6 @@
 --monomorphic-inlining=default
 --monomorphic-inlining=always
 --monomorphic-inlining=never
---disable-main-thread-denormals
 
 # GC-related
 # These 2 flags can cause the shell to slow down
