@@ -57,9 +57,18 @@ skip-if = [
 
 ["browser_feature_callout_panel.js"]
 
+["browser_foxdoodle_set_default.js"]
+
+["browser_multistage_spotlight.js"]
+
+["browser_multistage_spotlight_telemetry.js"]
+skip-if = ["verify"] # bug 1834620 - order of events not stable
+
 ["browser_remote_l10n.js"]
 
 ["browser_spotlight_default_messages.js"]
 
 ["browser_trigger_listeners.js"]
 https_first_disabled = true
+
+["browser_trigger_messagesLoaded.js"]

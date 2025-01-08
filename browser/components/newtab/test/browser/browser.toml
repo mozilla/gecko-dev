@@ -39,16 +39,9 @@ https_first_disabled = true
 
 ["browser_enabled_newtabpage.js"]
 
-["browser_foxdoodle_set_default.js"]
-
 ["browser_getScreenshots.js"]
 
 ["browser_highlights_section.js"]
-
-["browser_multistage_spotlight.js"]
-
-["browser_multistage_spotlight_telemetry.js"]
-skip-if = ["verify"] # bug 1834620 - order of events not stable
 
 ["browser_newtab_glean.js"]
 
@@ -75,5 +68,3 @@ run-if = [
 ["browser_topsites_contextMenu_options.js"]
 
 ["browser_topsites_section.js"]
-
-["browser_trigger_messagesLoaded.js"]
