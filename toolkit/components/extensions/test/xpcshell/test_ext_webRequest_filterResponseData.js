@@ -36,9 +36,7 @@ server.registerPathHandler("/script.js", (request, response) => {
 server.registerPathHandler("/302.html", (request, response) => {
   response.setStatusLine(request.httpVersion, 200, "OK");
   response.setHeader("Content-Type", "text/html");
-  response.write(String.raw`
-    <script type="application/javascript" src="http://example.com/script302.js"></script>
-  `);
+  response.write(String.raw`<script src="/script302.js"></script>`);
 });
 
 server.registerPathHandler("/dummy", (request, response) => {
@@ -368,6 +366,7 @@ add_task(async function test_filter_302() {
     background() {
       browser.webRequest.onBeforeRequest.addListener(
         details => {
+          let filename = details.url.split("/").pop();
           let filter = browser.webRequest.filterResponseData(details.requestId);
           browser.test.sendMessage("filter-created");
 
@@ -375,11 +374,13 @@ add_task(async function test_filter_302() {
             const script = "forceError();";
             filter.write(new Uint8Array(new TextEncoder().encode(script)));
             filter.close();
+            browser.test.assertEq("script.js", filename, "Is redirect target");
             browser.test.sendMessage("filter-ondata");
           };
 
           filter.onerror = () => {
             browser.test.assertEq(filter.error, "Channel redirected");
+            browser.test.assertEq("script302.js", filename, "Is initial file");
             browser.test.sendMessage("filter-redirect");
           };
         },
@@ -413,6 +414,165 @@ add_task(async function test_filter_302() {
   });
 
   await extension.unload();
+});
+
+async function do_test_filter_302_cross_origin(withFullPermissions) {
+  const HOST_PERMISSIONS_EXCLUDE_TARGET = [
+    "http://example.net/", // Origin of initiator and pre-redirect URL.
+  ];
+  const HOST_PERMISSIONS_INCLUDE_TARGET = [
+    "http://example.net/", // Origin of initiator and pre-redirect URL.
+    "http://example.com/", // Origin of redirect target.
+  ];
+
+  let host_permissions = withFullPermissions
+    ? HOST_PERMISSIONS_INCLUDE_TARGET
+    : HOST_PERMISSIONS_EXCLUDE_TARGET;
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["webRequest", "webRequestBlocking", ...host_permissions],
+    },
+    background() {
+      let requestId;
+      function checkStreamFilter(hasRedirected) {
+        let prefix = hasRedirected ? "AFTER: " : "BEFORE: ";
+        let filter = browser.webRequest.filterResponseData(requestId);
+        filter.onstart = () => {
+          const script = "forceAfterRedirError();";
+          filter.write(new Uint8Array(new TextEncoder().encode(script)));
+          filter.disconnect();
+          browser.test.sendMessage("filter-result", prefix + "onstart_fired");
+        };
+        filter.onerror = () => {
+          browser.test.sendMessage("filter-result", prefix + filter.error);
+        };
+      }
+      browser.test.onMessage.addListener((msg, otherRequestId) => {
+        // The test calls us when the request has redirected.
+        browser.test.assertEq("checkStreamFilter", msg, "expected msg");
+        browser.test.assertEq(requestId, otherRequestId, "Same requestId");
+        checkStreamFilter(/* hasRedirected */ true);
+        browser.test.sendMessage("checkStreamFilter_initialized");
+      });
+      browser.webRequest.onBeforeRequest.addListener(
+        details => {
+          requestId = details.requestId;
+          browser.test.log(`Seen request ${details.url} (${requestId})`);
+          checkStreamFilter(/* hasRedirected */ false);
+          browser.test.sendMessage("seenRequest");
+        },
+        { urls: ["http://example.net/script302.js"] },
+        ["blocking"]
+      );
+    },
+  });
+
+  // Helper extension is used to detect the post-redirect request.
+  const helperExtension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: [
+        "webRequest",
+        "webRequestBlocking",
+        ...HOST_PERMISSIONS_INCLUDE_TARGET,
+      ],
+    },
+    background() {
+      const { promise, resolve } = Promise.withResolvers();
+      browser.test.onMessage.addListener(msg => {
+        browser.test.assertEq("continueRedirect", msg, "Got continueRedirect");
+        resolve();
+      });
+      browser.webRequest.onBeforeRequest.addListener(
+        async details => {
+          browser.test.sendMessage("detectedRedirect", details.requestId);
+          browser.test.log(`Suspending request to ${details.url}`);
+          await promise;
+        },
+        { urls: ["http://example.com/script.js"] },
+        ["blocking"]
+      );
+    },
+  });
+
+  await extension.startup();
+  await helperExtension.startup();
+
+  let { messages } = await promiseConsoleOutput(async () => {
+    // Loads example.net/script302.js which redirects to example.com/script.js.
+    // helperExtension suspends the script request, which in turn prevents the
+    // HTML page from completing its load. We therefore don't await the
+    // loadContentPage promise here.
+    let contentPagePromise = ExtensionTestUtils.loadContentPage(
+      "http://example.net/302.html"
+    );
+
+    await extension.awaitMessage("seenRequest");
+
+    const requestId = await helperExtension.awaitMessage("detectedRedirect");
+
+    info(`Detected and suspended redirect request with ID ${requestId}`);
+
+    extension.sendMessage("checkStreamFilter", requestId);
+    await extension.awaitMessage("checkStreamFilter_initialized");
+
+    if (!withFullPermissions) {
+      // StreamFilter is usually processed after OnStartRequest, except when the
+      // extension does not have access to the channel - when the permission
+      // check fails, the StreamFilter creation request is immediately denied.
+      equal(
+        await extension.awaitMessage("filter-result"),
+        "AFTER: Invalid request ID",
+        "Without permission, filter is not created after redirect"
+      );
+    }
+
+    // Note: StreamFilter processing starts at OnStartRequest, after the
+    // onHeadersReceived stage. So we need to resume the request before we can
+    // receive any StreamFilter events.
+    helperExtension.sendMessage("continueRedirect");
+
+    if (withFullPermissions) {
+      equal(
+        await extension.awaitMessage("filter-result"),
+        "BEFORE: Channel redirected",
+        "With permission, pre-redirect filter is disconnected on redirect"
+      );
+      equal(
+        await extension.awaitMessage("filter-result"),
+        "AFTER: onstart_fired",
+        "With permission, filter registered after redirect is connected"
+      );
+    } else {
+      equal(
+        await extension.awaitMessage("filter-result"),
+        "BEFORE: Channel redirected",
+        "Without permission, pre-redirect filter is disconnected on redirect"
+      );
+    }
+
+    let contentPage = await contentPagePromise;
+    await contentPage.close();
+  });
+  if (withFullPermissions) {
+    AddonTestUtils.checkMessages(messages, {
+      expected: [{ message: /forceAfterRedirError is not defined/ }],
+    });
+  } else {
+    AddonTestUtils.checkMessages(messages, {
+      forbidden: [{ message: /forceAfterRedirError is not defined/ }],
+    });
+  }
+
+  await helperExtension.unload();
+  await extension.unload();
+}
+
+add_task(async function test_filter_302_cross_origin_and_full_permissions() {
+  await do_test_filter_302_cross_origin(/* withFullPermissions */ true);
+});
+
+add_task(async function test_filter_302_cross_origin_and_missing_permissions() {
+  await do_test_filter_302_cross_origin(/* withFullPermissions */ false);
 });
 
 add_task(async function test_alternate_cached_data() {

@@ -817,6 +817,13 @@ already_AddRefed<nsITraceableChannel> ChannelWrapper::GetTraceableChannel(
     dom::ContentParent* aContentParent) const {
   nsCOMPtr<nsIRemoteTab> remoteTab;
   if (mAddonEntries.Get(aAddon.Id(), getter_AddRefs(remoteTab))) {
+    // aAddon existing in mAddonEntries implies that RegisterTraceableChannel
+    // was called before (in WebRequest.sys.mjs), which implies that
+    // ChannelWrapper::Matches() returned true before. That implies that
+    // CanAccessURI() was also true for the request origin (DocumentURLInfo()),
+    // so we do not need to check that again here because it is constant for
+    // the duration of the request. We need to revalidate FinalURLInfo() in
+    // case it changed, e.g. due to a redirect or permission change.
     if (!HaveChannel() ||
         !aAddon.CanAccessURI(FinalURLInfo(), false, true, true)) {
       return nullptr;
