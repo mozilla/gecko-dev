@@ -2388,7 +2388,8 @@ export class UrlbarInput {
       return;
     }
     // The input may retain focus when switching tabs in which case we
-    // need to close the view explicitly.
+    // need to close the view and search mode switcher popup explicitly.
+    this.searchModeSwitcher.closePanel();
     this.view.close();
   }
 

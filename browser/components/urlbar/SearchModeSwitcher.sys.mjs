@@ -127,6 +127,13 @@ export class SearchModeSwitcher {
     Glean.urlbarUnifiedsearchbutton.opened.add(1);
   }
 
+  /**
+   * Close the SearchSwitcher popup.
+   */
+  closePanel() {
+    this.#popup.hidePopup();
+  }
+
   #openPreferences(event) {
     if (
       (event.type == "click" && event.button != 0) ||

@@ -850,3 +850,26 @@ function getSeachModeSwitcherIcon(window) {
   let re = /url\("([^"]+)"\)/;
   return searchModeSwitcherButton.style.listStyleImage.match(re)?.[1] ?? null;
 }
+
+add_task(async function open_new_tab_during_opening_popup() {
+  info("Open switcher popup");
+  let startTabCount = gBrowser.tabs.length;
+  let switcher = document.querySelector("#urlbar-searchmode-switcher");
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
+  let promisePopupShown = BrowserTestUtils.waitForEvent(popup, "popupshown");
+  switcher.click();
+  await promisePopupShown;
+  Assert.ok(switcher.hasAttribute("open"), "The popup is opened");
+
+  info("Open a new tab by key");
+  let promisePopupHidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
+  EventUtils.synthesizeKey("t", { accelKey: true });
+  await BrowserTestUtils.waitForCondition(
+    () => startTabCount < gBrowser.tabs.length,
+    "Wait until new tab is opened"
+  );
+  await promisePopupHidden;
+  Assert.ok(!switcher.hasAttribute("open"), "The popup is closed");
+
+  gBrowser.removeTab(gBrowser.selectedTab);
+});
