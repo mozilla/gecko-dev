@@ -1688,13 +1688,15 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "",
             )
         if args == ("--print", "target-list"):
-            # Raw list returned by rustc version 1.70
+            # Raw list returned by rustc version 1.76
             rust_targets = [
                 "aarch64-apple-darwin",
                 "aarch64-apple-ios",
                 "aarch64-apple-ios-macabi",
                 "aarch64-apple-ios-sim",
                 "aarch64-apple-tvos",
+                "aarch64-apple-tvos-sim",
+                "aarch64-apple-watchos",
                 "aarch64-apple-watchos-sim",
                 "aarch64-fuchsia",
                 "aarch64-kmc-solid_asp3",
@@ -1715,17 +1717,21 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "aarch64-unknown-nto-qnx710",
                 "aarch64-unknown-openbsd",
                 "aarch64-unknown-redox",
+                "aarch64-unknown-teeos",
                 "aarch64-unknown-uefi",
                 "aarch64-uwp-windows-msvc",
                 "aarch64-wrs-vxworks",
                 "aarch64_be-unknown-linux-gnu",
                 "aarch64_be-unknown-linux-gnu_ilp32",
+                "aarch64_be-unknown-netbsd",
                 "arm-linux-androideabi",
                 "arm-unknown-linux-gnueabi",
                 "arm-unknown-linux-gnueabihf",
                 "arm-unknown-linux-musleabi",
                 "arm-unknown-linux-musleabihf",
                 "arm64_32-apple-watchos",
+                "arm64e-apple-darwin",
+                "arm64e-apple-ios",
                 "armeb-unknown-linux-gnueabi",
                 "armebv7r-none-eabi",
                 "armebv7r-none-eabihf",
@@ -1738,7 +1744,6 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "armv6-unknown-freebsd",
                 "armv6-unknown-netbsd-eabihf",
                 "armv6k-nintendo-3ds",
-                "armv7-apple-ios",
                 "armv7-linux-androideabi",
                 "armv7-sony-vita-newlibeabihf",
                 "armv7-unknown-freebsd",
@@ -1759,22 +1764,26 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "armv7r-none-eabi",
                 "armv7r-none-eabihf",
                 "armv7s-apple-ios",
-                "asmjs-unknown-emscripten",
                 "avr-unknown-gnu-atmega328",
                 "bpfeb-unknown-none",
                 "bpfel-unknown-none",
+                "csky-unknown-linux-gnuabiv2",
+                "csky-unknown-linux-gnuabiv2hf",
                 "hexagon-unknown-linux-musl",
                 "i386-apple-ios",
                 "i586-pc-nto-qnx700",
                 "i586-pc-windows-msvc",
                 "i586-unknown-linux-gnu",
                 "i586-unknown-linux-musl",
+                "i586-unknown-netbsd",
                 "i686-apple-darwin",
                 "i686-linux-android",
                 "i686-pc-windows-gnu",
+                "i686-pc-windows-gnullvm",
                 "i686-pc-windows-msvc",
                 "i686-unknown-freebsd",
                 "i686-unknown-haiku",
+                "i686-unknown-hurd-gnu",
                 "i686-unknown-linux-gnu",
                 "i686-unknown-linux-musl",
                 "i686-unknown-netbsd",
@@ -1782,8 +1791,11 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "i686-unknown-uefi",
                 "i686-uwp-windows-gnu",
                 "i686-uwp-windows-msvc",
+                "i686-win7-windows-msvc",
                 "i686-wrs-vxworks",
                 "loongarch64-unknown-linux-gnu",
+                "loongarch64-unknown-none",
+                "loongarch64-unknown-none-softfloat",
                 "m68k-unknown-linux-gnu",
                 "mips-unknown-linux-gnu",
                 "mips-unknown-linux-musl",
@@ -1798,6 +1810,7 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "mipsel-unknown-linux-gnu",
                 "mipsel-unknown-linux-musl",
                 "mipsel-unknown-linux-uclibc",
+                "mipsel-unknown-netbsd",
                 "mipsel-unknown-none",
                 "mipsisa32r6-unknown-linux-gnu",
                 "mipsisa32r6el-unknown-linux-gnu",
@@ -1826,20 +1839,26 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "riscv32gc-unknown-linux-musl",
                 "riscv32i-unknown-none-elf",
                 "riscv32im-unknown-none-elf",
+                "riscv32imac-esp-espidf",
                 "riscv32imac-unknown-none-elf",
                 "riscv32imac-unknown-xous-elf",
+                "riscv32imafc-unknown-none-elf",
                 "riscv32imc-esp-espidf",
                 "riscv32imc-unknown-none-elf",
+                "riscv64-linux-android",
                 "riscv64gc-unknown-freebsd",
                 "riscv64gc-unknown-fuchsia",
+                "riscv64gc-unknown-hermit",
                 "riscv64gc-unknown-linux-gnu",
                 "riscv64gc-unknown-linux-musl",
+                "riscv64gc-unknown-netbsd",
                 "riscv64gc-unknown-none-elf",
                 "riscv64gc-unknown-openbsd",
                 "riscv64imac-unknown-none-elf",
                 "s390x-unknown-linux-gnu",
                 "s390x-unknown-linux-musl",
                 "sparc-unknown-linux-gnu",
+                "sparc-unknown-none-elf",
                 "sparc64-unknown-linux-gnu",
                 "sparc64-unknown-netbsd",
                 "sparc64-unknown-openbsd",
@@ -1861,6 +1880,7 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "wasm32-unknown-emscripten",
                 "wasm32-unknown-unknown",
                 "wasm32-wasi",
+                "wasm32-wasi-preview1-threads",
                 "wasm64-unknown-unknown",
                 "x86_64-apple-darwin",
                 "x86_64-apple-ios",
@@ -1875,7 +1895,7 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "x86_64-pc-windows-gnu",
                 "x86_64-pc-windows-gnullvm",
                 "x86_64-pc-windows-msvc",
-                "x86_64-sun-solaris",
+                "x86_64-unikraft-linux-musl",
                 "x86_64-unknown-dragonfly",
                 "x86_64-unknown-freebsd",
                 "x86_64-unknown-fuchsia",
@@ -1886,6 +1906,7 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "x86_64-unknown-linux-gnu",
                 "x86_64-unknown-linux-gnux32",
                 "x86_64-unknown-linux-musl",
+                "x86_64-unknown-linux-ohos",
                 "x86_64-unknown-netbsd",
                 "x86_64-unknown-none",
                 "x86_64-unknown-openbsd",
@@ -1893,67 +1914,94 @@ def gen_invoke_rustc(version, rustup_wrapper=False):
                 "x86_64-unknown-uefi",
                 "x86_64-uwp-windows-gnu",
                 "x86_64-uwp-windows-msvc",
+                "x86_64-win7-windows-msvc",
                 "x86_64-wrs-vxworks",
+                "x86_64h-apple-darwin",
             ]
-            # Additional targets from 1.71
-            if Version(version) >= "1.71.0":
-                rust_targets += [
-                    "x86_64h-apple-darwin",
-                ]
-            # Additional targets from 1.72
-            if Version(version) >= "1.72.0":
-                rust_targets += [
-                    "aarch64_be-unknown-netbsd",
-                    "loongarch64-unknown-none",
-                    "loongarch64-unknown-none-softfloat",
-                    "riscv32imac-esp-espidf",
-                    "riscv64gc-unknown-netbsd",
-                ]
-            # Additional targets from 1.73
-            if Version(version) >= "1.73.0":
-                rust_targets += [
-                    "aarch64-unknown-teeos",
-                    "csky-unknown-linux-gnuabiv2",
-                    "riscv64-linux-android",
-                    "riscv64gc-unknown-hermit",
-                    "sparc-unknown-none-elf",
-                    "wasm32-wasi-preview1-threads",
-                    "x86_64-unikraft-linux-musl",
-                    "x86_64-unknown-linux-ohos",
-                ]
-            # Additional targets from 1.74
-            if Version(version) >= "1.74.0":
-                rust_targets += [
-                    "i686-pc-windows-gnullvm",
-                    "i686-unknown-hurd-gnu",
-                ]
-                rust_targets.remove("armv7-apple-ios")
-            # Additional targets from 1.75
-            if Version(version) >= "1.75.0":
-                rust_targets += [
-                    "aarch64-apple-tvos-sim",
-                    "csky-unknown-linux-gnuabiv2hf",
-                    "i586-unknown-netbsd",
-                    "mipsel-unknown-netbsd",
-                ]
-            # Additional targets from 1.76
-            if Version(version) >= "1.76.0":
-                rust_targets += [
-                    "aarch64-apple-watchos",
-                    "arm64e-apple-darwin",
-                    "arm64e-apple-ios",
-                    "i686-win7-windows-msvc",
-                    "riscv32imafc-unknown-none-elf",
-                    "x86_64-win7-windows-msvc",
-                ]
-                rust_targets.remove("asmjs-unknown-emscripten")
-                rust_targets.remove("x86_64-sun-solaris")
             # Additional targets from 1.77
             if Version(version) >= "1.77.0":
                 rust_targets += [
                     "aarch64-unknown-illumos",
                     "hexagon-unknown-none-elf",
+                    "riscv32im-risc0-zkvm-elf",
+                    "riscv32imafc-esp-espidf",
                 ]
+            # Additional targets from 1.78
+            if Version(version) >= "1.78.0":
+                rust_targets += [
+                    "arm64ec-pc-windows-msvc",
+                    "armv8r-none-eabihf",
+                    "loongarch64-unknown-linux-musl",
+                    "wasm32-wasip1",
+                    "wasm32-wasip1-threads",
+                    "wasm32-wasip2",
+                ]
+                rust_targets.remove("wasm32-wasi-preview1-threads")
+            # Additional targets from 1.79
+            if Version(version) >= "1.79.0":
+                rust_targets += [
+                    "aarch64-apple-visionos",
+                    "aarch64-apple-visionos-sim",
+                    "riscv32ima-unknown-none-elf",
+                ]
+            # Additional targets from 1.80
+            if Version(version) >= "1.80.0":
+                rust_targets += [
+                    "x86_64-unknown-linux-none",
+                ]
+            # Additional targets from 1.81
+            if Version(version) >= "1.81.0":
+                rust_targets += [
+                    "i686-unknown-redox",
+                    "xtensa-esp32-espidf",
+                    "xtensa-esp32-none-elf",
+                    "xtensa-esp32s2-espidf",
+                    "xtensa-esp32s2-none-elf",
+                    "xtensa-esp32s3-espidf",
+                    "xtensa-esp32s3-none-elf",
+                ]
+            # Additional targets from 1.82
+            if Version(version) >= "1.82.0":
+                rust_targets += [
+                    "aarch64-unknown-trusty",
+                    "armv7-unknown-trusty",
+                    "powerpc-unknown-linux-muslspe",
+                    "riscv32imac-unknown-nuttx-elf",
+                    "riscv32imafc-unknown-nuttx-elf",
+                    "riscv32imc-unknown-nuttx-elf",
+                    "riscv64gc-unknown-nuttx-elf",
+                    "riscv64imac-unknown-nuttx-elf",
+                    "thumbv6m-nuttx-eabi",
+                    "thumbv7em-nuttx-eabi",
+                    "thumbv7em-nuttx-eabihf",
+                    "thumbv7m-nuttx-eabi",
+                    "thumbv8m.base-nuttx-eabi",
+                    "thumbv8m.main-nuttx-eabi",
+                    "thumbv8m.main-nuttx-eabihf",
+                ]
+            # Additional targets from 1.83
+            if Version(version) >= "1.83.0":
+                rust_targets += [
+                    "aarch64-unknown-nto-qnx700",
+                    "arm64e-apple-tvos",
+                    "armv7-rtems-eabihf",
+                    "loongarch64-unknown-linux-ohos",
+                    "riscv32-wrs-vxworks",
+                    "riscv32e-unknown-none-elf",
+                    "riscv32em-unknown-none-elf",
+                    "riscv32emc-unknown-none-elf",
+                    "riscv64-wrs-vxworks",
+                    "x86_64-unknown-hurd-gnu",
+                    "x86_64-unknown-trusty",
+                ]
+                rust_targets.remove("aarch64-fuchsia")
+                rust_targets.remove("x86_64-fuchsia")
+            # Additional targets from 1.84
+            if Version(version) >= "1.84.0":
+                rust_targets += [
+                    "wasm32v1-none",
+                ]
+                rust_targets.remove("wasm32-wasi")
 
             return 0, "\n".join(sorted(rust_targets)), ""
         if (
@@ -1984,7 +2032,11 @@ class RustTest(BaseConfigureTest):
         }
 
         self.TARGET = target
-        sandbox = self.get_sandbox(paths, {}, [], environ)
+        args = []
+        if target.startswith("wasm32-"):
+            # Wasm targets are only allowed on spidermonkey
+            args.append("--enable-project=js")
+        sandbox = self.get_sandbox(paths, {}, args, environ)
 
         # Trick the sandbox into not running the target compiler check
         dep = sandbox._depends[sandbox["c_compiler"]]
@@ -2162,9 +2214,40 @@ class RustTest(BaseConfigureTest):
             "armv4t-unknown-linux-gnueabi",
         )
 
+    def test_rust_wasi_target(self):
+        self.assertEqual(self.get_rust_target("wasm32-unknown-wasi"), "wasm32-wasi")
 
-class Rust177Test(RustTest):
-    VERSION = "1.77.0"
+
+# These tests are expensive, so we don't run them by default.
+if False:
+
+    class Rust177Test(RustTest):
+        VERSION = "1.77.0"
+
+    class Rust178Test(RustTest):
+        VERSION = "1.78.0"
+
+    class Rust179Test(RustTest):
+        VERSION = "1.79.0"
+
+    class Rust180Test(RustTest):
+        VERSION = "1.80.0"
+
+    class Rust181Test(RustTest):
+        VERSION = "1.81.0"
+
+    class Rust182Test(RustTest):
+        VERSION = "1.82.0"
+
+    class Rust183Test(RustTest):
+        VERSION = "1.83.0"
+
+
+class Rust184Test(RustTest):
+    VERSION = "1.84.0"
+
+    def test_rust_wasi_target(self):
+        self.assertEqual(self.get_rust_target("wasm32-unknown-wasi"), "wasm32-wasip1")
 
 
 if __name__ == "__main__":
