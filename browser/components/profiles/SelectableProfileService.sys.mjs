@@ -847,7 +847,7 @@ class SelectableProfileServiceClass {
    * set as the default.
    */
   async setDefaultProfileForGroup(aProfile = this.currentProfile) {
-    if (!aProfile || this.#groupToolkitProfile.rootDir.path === aProfile.path) {
+    if (!aProfile) {
       return;
     }
     this.#groupToolkitProfile.rootDir = await aProfile.rootDir;
@@ -862,10 +862,6 @@ class SelectableProfileServiceClass {
    * @param {boolean} shouldShow Whether or not we should show the profile selector
    */
   async showProfileSelectorWindow(shouldShow) {
-    if (shouldShow === this.groupToolkitProfile.showProfileSelector) {
-      return;
-    }
-
     this.groupToolkitProfile.showProfileSelector = shouldShow;
     await this.#attemptFlushProfileService();
   }
