@@ -26,7 +26,7 @@ add_task(function () {
   ];
   for (let [blob, type] of tests) {
     Assert.deepEqual(
-      PlacesUtils.unwrapNodes(blob, type),
+      PlacesUtils.unwrapNodes(blob, type).validNodes,
       [],
       "No valid entries should be found"
     );

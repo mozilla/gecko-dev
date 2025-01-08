@@ -1121,12 +1121,13 @@ export var PlacesUtils = {
    */
   unwrapNodes: function PU_unwrapNodes(blob, type) {
     // We split on "\n"  because the transferable system converts "\r\n" to "\n"
-    var nodes = [];
+    let validNodes = [];
+    let invalidNodes = [];
     switch (type) {
       case this.TYPE_X_MOZ_PLACE:
       case this.TYPE_X_MOZ_PLACE_SEPARATOR:
       case this.TYPE_X_MOZ_PLACE_CONTAINER:
-        nodes = JSON.parse("[" + blob + "]");
+        validNodes = JSON.parse("[" + blob + "]");
         break;
       case this.TYPE_X_MOZ_URL: {
         let parts = blob.split("\n");
@@ -1137,7 +1138,10 @@ export var PlacesUtils = {
           break;
         }
         for (let i = 0; i < parts.length; i = i + 2) {
-          let uriString = parts[i];
+          let uriString = parts[i].trimStart();
+          if (!uriString) {
+            continue;
+          }
           let titleString = "";
           if (parts.length > i + 1) {
             titleString = parts[i + 1];
@@ -1149,13 +1153,20 @@ export var PlacesUtils = {
                 .QueryInterface(Ci.nsIURL).fileName;
             } catch (ex) {}
           }
-          // note:  Services.io.newURI() will throw if uriString is not a valid URI
-          let uri = Services.io.newURI(uriString);
-          if (Services.io.newURI(uriString) && uri.scheme != "place") {
-            nodes.push({
+
+          try {
+            let uri = Services.io.newURI(uriString);
+            if (uri.scheme != "place") {
+              validNodes.push({
+                uri: uriString,
+                title: titleString ? titleString : uriString,
+                type: this.TYPE_X_MOZ_URL,
+              });
+            }
+          } catch (e) {
+            console.error(e);
+            invalidNodes.push({
               uri: uriString,
-              title: titleString ? titleString : uriString,
-              type: this.TYPE_X_MOZ_URL,
             });
           }
         }
@@ -1164,20 +1175,26 @@ export var PlacesUtils = {
       case this.TYPE_PLAINTEXT: {
         let parts = blob.split("\n");
         for (let i = 0; i < parts.length; i++) {
-          let uriString = parts[i];
+          let uriString = parts[i].trimStart();
           // text/uri-list is converted to TYPE_PLAINTEXT but it could contain
           // comments line prepended by #, we should skip them, as well as
           // empty uris.
           if (uriString.substr(0, 1) == "\x23" || uriString == "") {
             continue;
           }
-          // note: Services.io.newURI) will throw if uriString is not a valid URI
-          let uri = Services.io.newURI(uriString);
-          if (uri.scheme != "place") {
-            nodes.push({
+          try {
+            let uri = Services.io.newURI(uriString);
+            if (uri.scheme != "place") {
+              validNodes.push({
+                uri: uriString,
+                title: uriString,
+                type: this.TYPE_X_MOZ_URL,
+              });
+            }
+          } catch (e) {
+            console.error(e);
+            invalidNodes.push({
               uri: uriString,
-              title: uriString,
-              type: this.TYPE_X_MOZ_URL,
             });
           }
         }
@@ -1186,7 +1203,8 @@ export var PlacesUtils = {
       default:
         throw Components.Exception("", Cr.NS_ERROR_INVALID_ARG);
     }
-    return nodes;
+
+    return { validNodes, invalidNodes };
   },
 
   /**

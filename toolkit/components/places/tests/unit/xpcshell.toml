@@ -68,6 +68,8 @@ skip-if = ["os == 'linux'"] # Bug 821781
 
 ["test_PlacesUtils_isRootItem.js"]
 
+["test_PlacesUtils_unwrapNodes.js"]
+
 ["test_PlacesUtils_unwrapNodes_place.js"]
 
 ["test_asyncExecuteLegacyQueries.js"]
