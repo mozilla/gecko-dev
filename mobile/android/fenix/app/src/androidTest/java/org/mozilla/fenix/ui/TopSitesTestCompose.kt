@@ -32,7 +32,7 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
  * - Verifies existence of default top sites available on the home-screen
  */
 
-class ComposeTopSitesTest : TestSetup() {
+class TopSitesTestCompose : TestSetup() {
     @get:Rule
     val composeTestRule =
         AndroidComposeTestRule(

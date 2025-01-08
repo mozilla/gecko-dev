@@ -1124,9 +1124,9 @@ fun homeScreen(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition
     return HomeScreenRobot.Transition()
 }
 
-fun homeScreenWithComposeTopSites(composeTestRule: HomeActivityComposeTestRule, interact: ComposeTopSitesRobot.() -> Unit): ComposeTopSitesRobot.Transition {
-    ComposeTopSitesRobot(composeTestRule).interact()
-    return ComposeTopSitesRobot.Transition(composeTestRule)
+fun homeScreenWithComposeTopSites(composeTestRule: HomeActivityComposeTestRule, interact: TopSitesRobotCompose.() -> Unit): TopSitesRobotCompose.Transition {
+    TopSitesRobotCompose(composeTestRule).interact()
+    return TopSitesRobotCompose.Transition(composeTestRule)
 }
 
 private fun homeScreenList() =

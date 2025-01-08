@@ -33,7 +33,7 @@ import org.mozilla.fenix.home.topsites.TopSitesTestTag
 /**
  * Implementation of Robot Pattern for the Compose Top Sites.
  */
-class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestRule) {
+class TopSitesRobotCompose(private val composeTestRule: HomeActivityComposeTestRule) {
 
     @OptIn(ExperimentalTestApi::class)
     fun verifyExistingTopSitesList() {
@@ -129,7 +129,7 @@ class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestR
 
         fun openContextMenuOnTopSitesWithTitle(
             title: String,
-            interact: ComposeTopSitesRobot.() -> Unit,
+            interact: TopSitesRobotCompose.() -> Unit,
         ): Transition {
             Log.i(TAG, "openContextMenuOnTopSitesWithTitle: Trying to scroll to top site with title: $title")
             composeTestRule.topSiteItem(title).performScrollTo()
@@ -138,14 +138,14 @@ class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestR
             composeTestRule.topSiteItem(title).performTouchInput { longClick() }
             Log.i(TAG, "openContextMenuOnTopSitesWithTitle: Long clicked top site with title: $title")
 
-            ComposeTopSitesRobot(composeTestRule).interact()
+            TopSitesRobotCompose(composeTestRule).interact()
             return Transition(composeTestRule)
         }
 
         fun editTopSite(
             title: String,
             url: String,
-            interact: ComposeTopSitesRobot.() -> Unit,
+            interact: TopSitesRobotCompose.() -> Unit,
         ): Transition {
             Log.i(TAG, "editTopSite: Trying to click the \"Edit\" menu button")
             composeTestRule.contextMenuItemEdit().performClick()
@@ -172,13 +172,13 @@ class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestR
             itemWithResIdContainingText("android:id/button1", "Save").click()
             Log.i(TAG, "editTopSite: Clicked the \"Save\" dialog button")
 
-            ComposeTopSitesRobot(composeTestRule).interact()
+            TopSitesRobotCompose(composeTestRule).interact()
             return Transition(composeTestRule)
         }
 
         @OptIn(ExperimentalTestApi::class)
         fun removeTopSite(
-            interact: ComposeTopSitesRobot.() -> Unit,
+            interact: TopSitesRobotCompose.() -> Unit,
         ): Transition {
             Log.i(TAG, "removeTopSite: Trying to click the \"Remove\" menu button")
             composeTestRule.contextMenuItemRemove().performClick()
@@ -187,7 +187,7 @@ class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestR
             composeTestRule.waitUntilDoesNotExist(hasTestTag(TopSitesTestTag.remove), waitingTime)
             Log.i(TAG, "removeTopSite: Waited for $waitingTime ms until the \"Remove\" menu button does not exist")
 
-            ComposeTopSitesRobot(composeTestRule).interact()
+            TopSitesRobotCompose(composeTestRule).interact()
             return Transition(composeTestRule)
         }
     }

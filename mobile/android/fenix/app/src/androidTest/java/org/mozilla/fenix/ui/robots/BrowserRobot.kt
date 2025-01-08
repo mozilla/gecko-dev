@@ -1246,7 +1246,7 @@ class BrowserRobot {
             return HomeScreenRobot.Transition()
         }
 
-        fun goToHomescreenWithComposeTopSites(composeTestRule: HomeActivityComposeTestRule, interact: ComposeTopSitesRobot.() -> Unit): ComposeTopSitesRobot.Transition {
+        fun goToHomescreenWithComposeTopSites(composeTestRule: HomeActivityComposeTestRule, interact: TopSitesRobotCompose.() -> Unit): TopSitesRobotCompose.Transition {
             clickPageObject(itemWithDescription("Home screen"))
 
             Log.i(TAG, "goToHomescreenWithComposeTopSites: Waiting for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
@@ -1254,8 +1254,8 @@ class BrowserRobot {
                 .waitForExists(waitingTime)
             Log.i(TAG, "goToHomescreenWithComposeTopSites: Waited for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
 
-            ComposeTopSitesRobot(composeTestRule).interact()
-            return ComposeTopSitesRobot.Transition(composeTestRule)
+            TopSitesRobotCompose(composeTestRule).interact()
+            return TopSitesRobotCompose.Transition(composeTestRule)
         }
 
         fun goBack(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
