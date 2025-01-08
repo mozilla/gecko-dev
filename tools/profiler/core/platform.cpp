@@ -58,6 +58,7 @@
 #include "ETWTools.h"
 
 #include "js/ProfilingFrameIterator.h"
+#include "memory_counter.h"
 #include "memory_hooks.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoProfilerLabel.h"
@@ -420,8 +421,10 @@ static uint32_t AvailableFeatures() {
   }
 #else
   // The memory hooks are not available.
-  ProfilerFeature::ClearMemory(features);
   ProfilerFeature::ClearNativeAllocations(features);
+#endif
+#if !defined(MOZ_MEMORY) or !defined(MOZ_PROFILER_MEMORY)
+  ProfilerFeature::ClearMemory(features);
 #endif
 
 #if !defined(GP_OS_windows)
@@ -1199,7 +1202,7 @@ class ActivePS {
         "mMaybePowerCounters should have been deleted before ~ActivePS()");
     MOZ_ASSERT(!mMaybeCPUFreq,
                "mMaybeCPUFreq should have been deleted before ~ActivePS()");
-#if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
+#if defined(MOZ_MEMORY) && defined(MOZ_PROFILER_MEMORY)
     MOZ_ASSERT(!mMemoryCounter,
                "mMemoryCounter should have been deleted before ~ActivePS()");
 #endif
@@ -1292,7 +1295,7 @@ class ActivePS {
       sInstance->mMaybeCPUFreq = nullptr;
     }
 
-#if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
+#if defined(MOZ_MEMORY) && defined(MOZ_PROFILER_MEMORY)
     if (sInstance->mMemoryCounter) {
       locked_profiler_remove_sampled_counter(aLock,
                                              sInstance->mMemoryCounter.get());
@@ -1771,7 +1774,7 @@ class ActivePS {
     return profiles;
   }
 
-#if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
+#if defined(MOZ_MEMORY) && defined(MOZ_PROFILER_MEMORY)
   static void SetMemoryCounter(UniquePtr<BaseProfilerCount> aMemoryCounter,
                                PSLockRef aLock) {
     MOZ_ASSERT(sInstance);
@@ -1885,7 +1888,7 @@ class ActivePS {
   };
   Vector<ExitProfile> mExitProfiles;
 
-#if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
+#if defined(MOZ_MEMORY) && defined(MOZ_PROFILER_MEMORY)
   UniquePtr<BaseProfilerCount> mMemoryCounter;
 #endif
 };
@@ -4669,7 +4672,7 @@ void SamplerThread::Run() {
             buffer.AddEntry(ProfileBufferEntry::CounterId(counter));
             buffer.AddEntry(
                 ProfileBufferEntry::Time(counterSampleStartDeltaMs));
-#if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
+#if defined(MOZ_MEMORY) && defined(MOZ_PROFILER_MEMORY)
             if (ActivePS::IsMemoryCounter(counter, lock)) {
               // For the memory counter, substract the size of our buffer to
               // avoid giving the misleading impression that the memory use
@@ -6675,13 +6678,15 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
   }
 #endif
 
-#if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
+#if defined(MOZ_MEMORY) && defined(MOZ_PROFILER_MEMORY)
   if (ActivePS::FeatureMemory(aLock)) {
     auto counter = mozilla::profiler::create_memory_counter();
     locked_profiler_add_sampled_counter(aLock, counter.get());
     ActivePS::SetMemoryCounter(std::move(counter), aLock);
   }
+#endif
 
+#if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
   if (ActivePS::FeatureNativeAllocations(aLock)) {
     if (isMainThreadBeingProfiled) {
       mozilla::profiler::enable_native_allocations();

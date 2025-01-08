@@ -29,6 +29,10 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
         "gecko/ProfilerChild.cpp",
         "gecko/ProfilerIOInterposeObserver.cpp",
     ]
+    if CONFIG["MOZ_MEMORY"] and CONFIG["MOZ_PROFILER_MEMORY"]:
+        UNIFIED_SOURCES += [
+            "core/memory_counter.cpp",
+        ]
     if CONFIG["MOZ_REPLACE_MALLOC"] and CONFIG["MOZ_PROFILER_MEMORY"]:
         SOURCES += [
             "core/memory_hooks.cpp",  # Non-unified because of order of #includes
