@@ -79,6 +79,7 @@ export class EditProfileCard extends MozLitElement {
     nameInput: "#profile-name",
     errorMessage: "#error-message",
     savedMessage: "#saved-message",
+    deleteButton: "#delete-button",
     avatars: { all: "profiles-avatar" },
     headerAvatar: "#header-avatar",
     themeCards: { all: "profiles-theme-card" },
@@ -106,7 +107,7 @@ export class EditProfileCard extends MozLitElement {
 
     window.addEventListener("beforeunload", this);
 
-    this.init();
+    this.init().then(() => (this.initialized = true));
   }
 
   async init() {
@@ -126,8 +127,6 @@ export class EditProfileCard extends MozLitElement {
     this.themes = themes;
 
     this.setFavicon();
-
-    this.initialized = true;
   }
 
   async getUpdateComplete() {
@@ -136,6 +135,9 @@ export class EditProfileCard extends MozLitElement {
     await Promise.all(
       Array.from(this.themeCards).map(card => card.updateComplete)
     );
+
+    await this.mozCard.updateComplete;
+
     return result;
   }
 
@@ -343,6 +345,7 @@ export class EditProfileCard extends MozLitElement {
   }
 
   onDeleteClick() {
+    window.removeEventListener("beforeunload", this);
     RPMSendAsyncMessage("Profiles:OpenDeletePage");
   }
 
@@ -360,6 +363,7 @@ export class EditProfileCard extends MozLitElement {
 
   buttonsTemplate() {
     return html`<moz-button
+        id="delete-button"
         data-l10n-id="edit-profile-page-delete-button"
         @click=${this.onDeleteClick}
       ></moz-button>

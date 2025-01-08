@@ -5,6 +5,53 @@
 
 const NEW_PROFILE_NAME = "This is a new profile name";
 
+add_task(async function test_edit_profile_delete() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.require_user_interaction_for_beforeunload", false]],
+  });
+
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:editprofile",
+    },
+    async browser => {
+      let deletePageLoaded = BrowserTestUtils.browserLoaded(
+        browser,
+        false,
+        "about:deleteprofile"
+      );
+
+      await SpecialPowers.spawn(browser, [], async () => {
+        let editProfileCard =
+          content.document.querySelector("edit-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => editProfileCard.initialized,
+          "Waiting for edit-profile-card to be initialized"
+        );
+
+        await editProfileCard.updateComplete;
+
+        let nameInput = editProfileCard.nameInput;
+        nameInput.value = "";
+        nameInput.dispatchEvent(new content.Event("input"));
+
+        let deleteButton = editProfileCard.deleteButton;
+        deleteButton.click();
+      });
+
+      await deletePageLoaded;
+    }
+  );
+
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function test_edit_profile_name() {
   await initGroupDatabase();
   let profile = SelectableProfileService.currentProfile;
@@ -29,7 +76,6 @@ add_task(async function test_edit_profile_name() {
           );
 
           await editProfileCard.updateComplete;
-          await editProfileCard.mozCard.updateComplete;
 
           let nameInput = editProfileCard.nameInput;
           nameInput.value = newProfileName;
@@ -87,7 +133,6 @@ add_task(async function test_edit_profile_avatar() {
         );
 
         await editProfileCard.updateComplete;
-        await editProfileCard.mozCard.updateComplete;
 
         let avatars = editProfileCard.avatars;
         avatars[0].click();

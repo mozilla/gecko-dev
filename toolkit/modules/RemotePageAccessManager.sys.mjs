@@ -196,7 +196,7 @@ export let RemotePageAccessManager = {
       RPMSendAsyncMessage: [
         "Profiles:UpdateProfileName",
         "Profiles:UpdateProfileAvatar",
-        "Profiles:DeleteNewProfile",
+        "Profiles:DeleteProfile",
         "Profiles:CloseProfileTab",
       ],
       RPMGetBoolPref: ["browser.profiles.profile-name.updated"],

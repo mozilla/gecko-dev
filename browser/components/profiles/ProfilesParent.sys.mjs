@@ -196,10 +196,15 @@ export class ProfilesParent extends JSWindowActorParent {
           return null;
         }
 
-        await SelectableProfileService.deleteCurrentProfile();
+        try {
+          await SelectableProfileService.deleteCurrentProfile();
 
-        // Finally, exit.
-        Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
+          // Finally, exit.
+          Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
+        } catch (e) {
+          // This is expected in tests.
+          console.error(e);
+        }
         break;
       }
       case "Profiles:CancelDelete": {
@@ -302,11 +307,6 @@ export class ProfilesParent extends JSWindowActorParent {
         // "lightweight-theme-styling-update" observer so we know the profile
         // theme is up to date at this point.
         return SelectableProfileService.currentProfile.theme;
-      }
-      case "Profiles:DeleteNewProfile": {
-        // TODO: Bug 1925096 actually delete the newly created profile.
-        Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
-        break;
       }
       case "Profiles:CloseProfileTab": {
         let gBrowser = this.browsingContext.topChromeWindow.gBrowser;
