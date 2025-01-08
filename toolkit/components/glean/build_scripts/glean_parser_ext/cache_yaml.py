@@ -18,4 +18,5 @@ def main(out_fd, *args):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    with open(sys.argv[1], "wb") as out_fd:
+        main(out_fd, *sys.argv[2:])
