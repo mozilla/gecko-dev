@@ -40,7 +40,7 @@ def beetmover_apt(config, tasks):
             dependencies[dep.label] = dep.label
             gcs_sources.extend(generate_artifact_registry_gcs_sources(dep))
         description = f"Batch {index + 1} of beetmover APT submissions for the {config.params['release_type']} .deb packages"
-        platform = "firefox-release/opt"
+        platform = f"{product}-release/opt"
         treeherder = {
             "platform": platform,
             "tier": 1,
