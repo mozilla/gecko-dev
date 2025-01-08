@@ -92,8 +92,8 @@ typedef struct arena_params_s {
 } arena_params_t;
 
 // jemalloc_stats() is not a stable interface.  When using jemalloc_stats_t, be
-// sure that the compiled results of jemalloc.c are in sync with this header
-// file.
+// sure that the compiled results of mozjemalloc.cpp are in sync with this
+// header file.
 typedef struct {
   // Run-time configuration settings.
   bool opt_junk;             // Fill allocated memory with kAllocJunk?
