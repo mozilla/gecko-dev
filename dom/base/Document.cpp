@@ -19388,6 +19388,15 @@ bool Document::UsingStorageAccess() {
   return loadInfo->GetStoragePermission() != nsILoadInfo::NoStoragePermission;
 }
 
+bool Document::IsOn3PCBExceptionList() const {
+  if (!mChannel) {
+    return false;
+  }
+  nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
+
+  return loadInfo->GetIsOn3PCBExceptionList();
+}
+
 bool Document::HasStorageAccessPermissionGrantedByAllowList() {
   // We only care about if the document gets the storage permission via the
   // allow list here. So we don't check the storage access cache in the inner
