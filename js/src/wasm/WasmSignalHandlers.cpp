@@ -422,7 +422,7 @@ struct macos_aarch64_context {
 
 static void SetContextPC(CONTEXT* context, uint8_t* pc) {
 #  ifdef PC_sig
-  *mozilla::BitCast<uint8_t**>(&PC_sig(context)) = pc;
+  *reinterpret_cast<uint8_t**>(&PC_sig(context)) = pc;
 #  else
   MOZ_CRASH();
 #  endif
@@ -430,7 +430,7 @@ static void SetContextPC(CONTEXT* context, uint8_t* pc) {
 
 static uint8_t* ContextToPC(CONTEXT* context) {
 #  ifdef PC_sig
-  return mozilla::BitCast<uint8_t*>(PC_sig(context));
+  return reinterpret_cast<uint8_t*>(PC_sig(context));
 #  else
   MOZ_CRASH();
 #  endif
@@ -438,7 +438,7 @@ static uint8_t* ContextToPC(CONTEXT* context) {
 
 static uint8_t* ContextToFP(CONTEXT* context) {
 #  ifdef FP_sig
-  return mozilla::BitCast<uint8_t*>(FP_sig(context));
+  return reinterpret_cast<uint8_t*>(FP_sig(context));
 #  else
   MOZ_CRASH();
 #  endif
@@ -446,7 +446,7 @@ static uint8_t* ContextToFP(CONTEXT* context) {
 
 static uint8_t* ContextToSP(CONTEXT* context) {
 #  ifdef SP_sig
-  return mozilla::BitCast<uint8_t*>(SP_sig(context));
+  return reinterpret_cast<uint8_t*>(SP_sig(context));
 #  else
   MOZ_CRASH();
 #  endif
@@ -456,7 +456,7 @@ static uint8_t* ContextToSP(CONTEXT* context) {
       defined(__loongarch__) || defined(__riscv)
 static uint8_t* ContextToLR(CONTEXT* context) {
 #    ifdef LR_sig
-  return mozilla::BitCast<uint8_t*>(LR_sig(context));
+  return reinterpret_cast<uint8_t*>(LR_sig(context));
 #    else
   MOZ_CRASH();
 #    endif
