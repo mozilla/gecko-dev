@@ -228,7 +228,7 @@ BookmarkImporter.prototype = {
     let nodes = PlacesUtils.unwrapNodes(
       aString,
       PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER
-    ).validNodes;
+    );
 
     if (!nodes.length || !nodes[0].children || !nodes[0].children.length) {
       return 0;
