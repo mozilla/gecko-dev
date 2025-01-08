@@ -17,8 +17,6 @@
     <!-- Text for password field in an authentication dialog. -->
     <string name="mozac_feature_prompt_password_hint">Wachtwurd</string>
     <!-- Negative confirmation that we should not save the new or updated login -->
-    <string name="mozac_feature_prompt_dont_save" moz:removedIn="125" tools:ignore="UnusedResources">Net bewarje</string>
-    <!-- Negative confirmation that we should not save the new or updated login -->
     <string name="mozac_feature_prompt_dont_save_2">No net</string>
     <!-- Negative confirmation that we should never save a login for this site -->
     <string name="mozac_feature_prompt_never_save">Nea bewarje</string>
@@ -27,29 +25,17 @@
     <!-- Positive confirmation that we should save the new or updated login -->
     <string name="mozac_feature_prompt_save_confirmation">Bewarje</string>
     <!-- Negative confirmation that we should not save the updated login -->
-    <string name="mozac_feature_prompt_dont_update" moz:removedIn="125" tools:ignore="UnusedResources">Net bywurkje</string>
-    <!-- Negative confirmation that we should not save the updated login -->
     <string name="mozac_feature_prompt_dont_update_2">No net</string>
     <!-- Positive confirmation that we should save the updated login -->
     <string name="mozac_feature_prompt_update_confirmation">Bywurkje</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_empty_password" moz:removedIn="125" tools:ignore="UnusedResources">Wachtwurdfjild mei net leech wêze</string>
-    <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_empty_password_2">Folje in wachtwurd yn</string>
-    <!-- Error text displayed underneath the login field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_unknown_cause" moz:removedIn="125" tools:ignore="UnusedResources">Kin oanmelding net bewarje</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_unknown_cause_2">Kin wachtwurd net bewarje</string>
-    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new login. -->
-    <string name="mozac_feature_prompt_login_save_headline" moz:removedIn="125" tools:ignore="UnusedResources">Dizze oanmelding bewarje?</string>
     <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
     <string name="mozac_feature_prompt_login_save_headline_2">Wachtwurd bewarje?</string>
-    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_update_headline" moz:removedIn="125" tools:ignore="UnusedResources">Dizze oanmelding bywurkje?</string>
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">Wachtwurd bywurkje?</string>
-    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">Brûkersnamme oan bewarre wachtwurd tafoegje?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_add_username_headline_2">Brûkersnamme bywurkje?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
@@ -61,6 +47,8 @@
     <string name="mozac_feature_prompts_allow">Tastean</string>
     <!-- Text of a negative button in dialog requesting to open a new window. -->
     <string name="mozac_feature_prompts_deny">Wegerje</string>
+    <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+    <string name="mozac_feature_prompts_popup_dialog_title">Dizze website tastean om te iepenjen?</string>
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">Binne jo wis?</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
@@ -97,20 +85,12 @@
     <string name="mozac_feature_prompts_dec">des</string>
     <!-- Title of the time picker dialog. -->
     <string name="mozac_feature_prompts_set_time">Tiid ynstelle</string>
-    <!-- Option in expanded select login prompt that links to login settings -->
-    <string name="mozac_feature_prompts_manage_logins" moz:removedIn="125" tools:ignore="UnusedResources">Oanmeldingen beheare</string>
     <!-- Option in expanded select password prompt that links to password settings -->
     <string name="mozac_feature_prompts_manage_logins_2">Wachtwurden beheare</string>
-    <!-- Content description for expanding the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_expand_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Foarstelde oanmeldingen útklappe</string>
     <!-- Content description for expanding the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_expand_logins_content_description_2">Bewarre wachtwurden te útklappe</string>
-    <!-- Content description for collapsing the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Foarstelde oanmeldingen ynklappe</string>
     <!-- Content description for collapsing the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_collapse_logins_content_description_2">Bewarre wachtwurden ynklappe</string>
-    <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
-    <string name="mozac_feature_prompts_saved_logins" moz:removedIn="125" tools:ignore="UnusedResources">Foarstelde oanmeldingen</string>
 
     <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
     <string name="mozac_feature_prompts_saved_logins_2">Bewarre wachtwurden</string>
@@ -124,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Sterk wachtwurd brûke?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Beskermje jo accounts mei in sterk, willekeurich oanmakke wachtwurd. Krij rappe tagong ta jo wachtwurden troch it op te slaan yn jo account.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Beskermje jo accounts mei in sterk, willekeurich oanmakke wachtwurd. Dit wurdt foar takomstich gebrûk yn jo account bewarre.</string>
 
@@ -154,28 +132,18 @@
     <string name="mozac_feature_prompt_repost_negative_button_text">Annulearje</string>
 
     <!-- Credit Card Autofill -->
-    <!-- Header for the select credit card prompt to allow users to fill a form with a saved credit card. -->
-    <string name="mozac_feature_prompts_select_credit_card" moz:removedIn="125" tools:ignore="UnusedResources">Selektearje creditcard</string>
     <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
     <string name="mozac_feature_prompts_select_credit_card_2">Bewarre kaart brûke</string>
-    <!-- Content description for expanding the select credit card options in the select credit card prompt. -->
-    <string name="mozac_feature_prompts_expand_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Foarstelde creditcards útklappe</string>
     <!-- Content description for expanding the saved card options in the select card prompt. -->
     <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Bewarre kaarten te útklappe</string>
-    <!-- Content description for collapsing the select credit card options in the select credit prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Foarstelde creditcards ynklappe</string>
     <!-- Content description for collapsing the saved card options in the select prompt. -->
     <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Bewarre kaarten ynklappe</string>
-    <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
-    <string name="mozac_feature_prompts_manage_credit_cards" moz:removedIn="125" tools:ignore="UnusedResources">Creditcards beheare</string>
     <!-- Option in the expanded select card prompt that links to cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards_2">Kaarten beheare</string>
     <!-- Text for the title of a save credit card dialog. -->
     <string name="mozac_feature_prompts_save_credit_card_prompt_title">Dizze kaart feilich bewarje?</string>
     <!-- Text for the title of an update credit card dialog. -->
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">Ferrindatum kaart bywurkje?</string>
-    <!-- Subtitle text displayed under the title of the save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_body" moz:removedIn="125" tools:ignore="UnusedResources">It kaartnûmer sil fersifere wurde. De befeiligingskoade wurdt net bewarre.</string>
 
     <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
     <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s fersiferet jo kaartnûmer. Jo befeiligingskoade wurdt net bewarre.</string>
@@ -183,12 +151,8 @@
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
     <string name="mozac_feature_prompts_select_address_2">Adres selektearje</string>
-    <!-- Content description for expanding the select addresses options in the select address prompt. -->
-    <string name="mozac_feature_prompts_expand_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Foarstelde adressen útklappe</string>
     <!-- Content description for expanding the saved addresses options in the select address prompt. -->
     <string name="mozac_feature_prompts_expand_address_content_description_2">Bewarre adressen útklappe</string>
-    <!-- Content description for collapsing the select address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Foarstelde adressen ynklappe</string>
     <!-- Content description for collapsing the saved address options in the select address prompt. -->
     <string name="mozac_feature_prompts_collapse_address_content_description_2">Bewarre adressen ynklappe</string>
     <!-- Text for the manage addresses button. -->

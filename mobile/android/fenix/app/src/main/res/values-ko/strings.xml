@@ -628,7 +628,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">저장하고 계속</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">건너뛰기</string>
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">건너뛰기</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">위쪽</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -653,7 +653,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">저장하고 탐색 시작</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">건너뛰기</string>
+    <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">건너뛰기</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">어둡게</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -1574,7 +1574,7 @@
     <!-- Text for the cancel button on Clear permission dialog -->
     <string name="clear_permission_negative">취소</string>
     <!-- Button label for clearing all the information on all sites-->
-    <string name="clear_permissions_on_all_sites">모든 사이트에 대해 권한 지우기</string>
+    <string name="clear_permissions_on_all_sites">모든 사이트의 권한 지우기</string>
     <!-- Preference for altering video and audio autoplay for all websites -->
     <string name="preference_browser_feature_autoplay">자동 재생</string>
     <!-- Preference for altering the camera access for all websites -->
@@ -2415,11 +2415,11 @@
     <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
     <string name="confirm_clear_site_data"><![CDATA[<b>%s</b> 사이트의 모든 쿠키와 데이터를 지우시겠습니까?]]></string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites-->
-    <string name="confirm_clear_permissions_on_all_sites">모든 사이트에 대해 모든 권한을 지우시겠습니까?</string>
+    <string name="confirm_clear_permissions_on_all_sites">모든 사이트의 모든 권한을 지우시겠습니까?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site-->
-    <string name="confirm_clear_permissions_site">이 사이트에 대해 모든 권한을 지우시겠습니까?</string>
+    <string name="confirm_clear_permissions_site">이 사이트의 모든 권한을 지우시겠습니까?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to set default value a permission for a site-->
-    <string name="confirm_clear_permission_site">이 사이트에 대해 이 권한을 지우시겠습니까?</string>
+    <string name="confirm_clear_permission_site">이 사이트의 이 권한을 지우시겠습니까?</string>
     <!-- label shown when there are not site exceptions to show in the site exception settings -->
     <string name="no_site_exceptions">사이트 예외 없음</string>
     <!-- Bookmark deletion confirmation -->

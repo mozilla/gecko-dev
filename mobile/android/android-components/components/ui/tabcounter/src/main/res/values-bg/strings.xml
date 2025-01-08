@@ -6,7 +6,10 @@
     <string name="mozac_tab_counter_open_tab_tray_plural" moz:removedIn="133" tools:ignore="UnusedResources">%1$s отворени раздела. Докоснете, за превключване на раздели.</string>
     <!-- Message announced to the user when tab tray is selected
     The %1$s will be replaced by the number of opened tabs -->
-    <string name="mozac_tab_counter_open_tab_tray">Отворени раздели: %1$s. Докоснете, за да смените раздела.</string>
+    <string name="mozac_tab_counter_open_tab_tray" moz:removedIn="136" tools:ignore="UnusedResources">Отворени раздели: %1$s. Докоснете, за да смените раздела.</string>
+    <!-- Message announced to the user when tab tray is selected
+    The %1$s will be replaced by the number of opened tabs -->
+    <string name="mozac_open_tab_counter_tab_tray">Не-поверителни раздели Отворени: %1$s. Докоснете за превключване на разделите.</string>
     <!-- Browser menu button that creates a new tab -->
     <string name="mozac_browser_menu_new_tab">Нов раздел</string>
     <!-- Browser menu button that creates a private tab -->

@@ -152,6 +152,8 @@
     <string name="mozac_feature_addons_addons_manager">ആഡ്-ഓണ്‍ മാനേജര്‍</string>
     <!-- The title of the "crash" notification in the extensions manager -->
     <string name="mozac_feature_extensions_manager_notification_title_text">വിപുലീകരണങ്ങൾ താല്ക്കാലികമായി പ്രവർത്തനരഹിതമാക്കി</string>
+    <!-- The content of the "crash" notification in the extensions manager -->
+    <string name="mozac_feature_extensions_manager_notification_content_text">ഒന്നോ കൂടുതലോ വിപുലീകരണങ്ങൾ പ്രവർത്തിക്കാൻ നി‌ർത്തി. ഇതു് കാരണം താങ്ങളുടെ വ്യവസ്ഥ അസ്ഥിരമായിയിരിക്കുന്നു.</string>
     <!-- Button to re-enable the extensions in the "crash" notification -->
     <string name="mozac_feature_extensions_manager_notification_restart_button">വിപുലീകരണങ്ങൾ വീണ്ടും തുടങ്ങുക</string>
     <!-- Button in the extensions manager that opens AMO in a tab -->
@@ -202,8 +204,14 @@
     <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">അഴിമതി കാരണം ഈ വിപുലീകരണം സ്ഥാപിക്കാൻ കഴിഞ്ഞില്ല.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">ഈ വിപുലീകരണം ആധാരിക്കുപെടാത്തുകൊണ്ടു സ്ഥാപിക്കാൻ കഴിഞ്ഞില്ല.</string>
+    <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_failed_to_install_incompatible_error">%2$s %3$s -ന്റെ കൂടെ പൊരുത്തമില്ലാത്തുകൊണ്ടു് %1$s-നെ സ്ഥാപിക്കാൻ പറ്റിയില്ല.</string>
+    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">സുരക്ഷായും സ്ഥിരതാ പ്രശ്നങ്ങള്‍ക്കു് കാരണമാകാന്‍ സാധ്യതയുള്ളതിനാൽ %1$s-നെ സ്ഥാപിക്കാൻ പറ്റിയില്ല.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">%1$s മോസില്ലയുടെ നയങ്ങൾ ലംഘിക്കുന്നതിനാൽ %2$s-ൽ സ്ഥാപിക്കാൻ കഴിയില്ല.</string>
+    <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_admin_install_only">%1$s സ്ഥാപിക്കാൻ പറ്റിയില്ല കാരണം ഇതു് വെറും ഉദ്യമനയങ്ങൾ ഉപയോഗിക്കുന്നയൊരു സ്ഥാപനത്തിനെ സ്ഥാപിക്കാൻ കഴിയും. ഈ മഞ്ചത്തിൽ ഇതിനു് പിന്തുണയില്ല.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s മോസില്ലയുടെ നയങ്ങൾ ലംഘിക്കുന്ന കാരണം സ്ഥാപിക്കാൻ കഴിയില്ല.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
@@ -254,6 +262,18 @@
     <string name="mozac_feature_addons_status_learn_more">കൂടുതല്‍ അറിയുക</string>
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">വിശദാംശങ്ങൾ കാണിക്കുക</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">സുരക്ഷായും സ്ഥിരത പ്രശ്നങ്ങള്‍ കാരണം %1$s പ്രവര്‍ത്തനരഹിതമാക്കിയിരിക്കുന്നു.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">മോസില്ലയുടെ നയങ്ങൾ ലംഘിച്ചതിനാൽ ഈ വിപുലീകരണം തടയുകയും പ്രവർത്തനരഹിതമാക്കുകയും ചെയ്തു.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">ഈ വിപുലീകരണം മോസില്ലയുടെ നയങ്ങൾ ലംഘിക്കുന്നതിനാൽ പ്രവർത്തനരഹിതമാക്കിയിരിക്കുന്നു. താങ്ങൾക്കു് ഇതു് പ്രവർത്തനക്ഷമമാക്കാൻ കഴിയും, എന്നാൽ ഇതു് അപകടകരമായേക്കാം.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">ഈ വിപുലീകരണം മോസില്ലയുടെ നയങ്ങൾ ലംഘിക്കുന്നതിനാൽ പ്രവർത്തനരഹിതമാക്കിയിരിക്കുന്നു. താങ്ങൾക്കു് ഇതു് പ്രവർത്തനക്ഷമമാക്കാൻ കഴിയും, എന്നാൽ ഇതു് അപകടകരമായേക്കാം.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">ഈ വിപുലീകരണം മോസില്ലയുടെ നയങ്ങളെ ലംഘിക്കുന്നു. ഇത് ഉപയോഗിക്കുന്നതു് അപകടകരമായേക്കാം.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_unsigned">%1$s സുരക്ഷിതമാണെന്നു് ഉറപ്പിക്കാൻ കഴിഞ്ഞില്ല അതുകൊണ്ടു് അതിനെ പ്രവൎത്തനരഹിതമാക്കിയിരിക്കുന്നു.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_status_incompatible">%1$s താങ്ങളുടെ %2$s (പതിപ്പു് %3$s)-ന്റെ പതിപ്പുമായി പൊരുത്തപ്പെടുന്നില്ല</string>
 </resources>

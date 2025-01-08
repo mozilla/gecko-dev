@@ -434,6 +434,11 @@
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">തിരയൽയന്ത്രം: %s</string>
 
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: തിരയൽയന്ത്ര തിരഞ്ഞെടുക്കൽസഹായി</string>
+
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">താങ്ങളുടെ സ്വന്തം ഗോളാന്തരവലയിലേക്കു സ്വാഗതം</string>
@@ -468,12 +473,17 @@
     <string name="juno_onboarding_default_browser_description_nimbus_3">ഞങ്ങളുടെ ലാഭേച്ഛയില്ലാത്ത അന്വേഷിയന്ത്രം താങ്ങളെ വെബിലുടനീളം രഹസ്യമായി പിന്തുടരുന്നതിൽ നിന്ന് കമ്പനികളെ തടയാൻ സഹായിക്കുന്നു.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">ലാഭേച്ഛയില്ലാത്ത ഒരു അന്വേഷിയന്ത്രം തിരഞ്ഞെടുത്ത് 100 ദശലക്ഷത്തിലധികം ആൾക്കാർ അവരുടെ സ്വകാര്യത സംരക്ഷിക്കുന്നു.</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">അറിയപ്പെടുന്ന പിന്തു‌ർച്ചയന്ത്രങ്ങൾ? തന്നെതാനെ തടഞ്ഞു. വിപുലീകണങ്ങൾ? 700 മൊത്തം ശ്രമിച്ചു നോക്കാം. പീ.ഡീ.എഫുകൾ? ഞങ്ങളുടെ അന്തരനിർമിത വായനസഹായി അവയെ കൈകാര്യം ചെയ്യാൻ എളുപ്പമാക്കുന്നു.</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">തനതു അന്വേഷിയായി വയ്ക്കുക</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">ഇപ്പോഴല്ല</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">താങ്ങൾ ഉപകരണങ്ങൾക്കിടയിൽ ചാടുമ്പോഴു്  രൂപമാറ്റം വരുത്തിയിരിക്കുക</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">താങ്ങൾ സമന്വയിപ്പിച്ചിരിക്കുമ്പോഴു് ഫയർഫോക്സു് താങ്ങളുടെ രഹസ്യവാക്കുകളും അടയാളക്കുറിപ്പുകളും മറ്റും രൂപമാറ്റി വയ്ക്കാരുണ്ടു്. </string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">പ്രവേശിക്കുക</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -564,7 +574,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">കരുതിവച്ചിട്ടു് തുടരുക</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">മുകള്‍ഭാഗം</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -579,6 +589,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">കീഴ്ക്കരുപ്പട്ടയിന്റെ ചിത്രം</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">മേൽക്കരുപ്പട്ടയിന്റെ ചിത്രം</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button">ഇപ്പോഴല്ല</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">ഒരു അലങ്കാരം തിരഞ്ഞെടുക്കുക</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -586,7 +599,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">കരുതിവച്ചിട്ടു് തിരയാൻ തുടങ്ങുക</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
+    <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">ഇരുണ്ടത്</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -597,6 +610,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">ചിത്രീകരിച്ച കലാകാരന്മാരുടെയും രചയിതാക്കന്മാരുടെയും കരുരളും കാണിക്കുന്ന അലങ്കാരം തിരഞ്ഞെടുക്കൽ കാഴ്ചയുടെ വലിയ തലക്കെട്ട് ചിത്രം.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">%1$s അലങ്കാരത്തിന്റെ ചിത്രം</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">ഇപ്പോഴല്ല</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -2661,6 +2677,9 @@
     <string name="protection_panel_banner_protected_description">താങ്ങൾ സംരക്ഷിക്കപ്പെട്ടിരിക്കുന്നു. ഞങ്ങൾ എന്തെങ്കിലും കണ്ടെത്തിയാൽ താങ്ങളെ അറിയിക്കാം.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">മെച്ചപ്പെടുത്തിയ പിന്തുടർച്ച സംരക്ഷണം</string>
+
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">സംരക്ഷണങ്ങൾ അണച്ചിരിക്കുന്നു. അവയെ വീണ്ടും തുടങ്ങിവയ്ക്കുന്നതിലാണു് ബുദ്ധി.</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
