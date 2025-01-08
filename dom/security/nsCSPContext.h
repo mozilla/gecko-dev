@@ -21,12 +21,8 @@
 
 #define NS_CSPCONTEXT_CONTRACTID "@mozilla.org/cspcontext;1"
 // 09d9ed1a-e5d4-4004-bfe0-27ceb923d9ac
-#define NS_CSPCONTEXT_CID                            \
-  {                                                  \
-    0x09d9ed1a, 0xe5d4, 0x4004, {                    \
-      0xbf, 0xe0, 0x27, 0xce, 0xb9, 0x23, 0xd9, 0xac \
-    }                                                \
-  }
+#define NS_CSPCONTEXT_CID \
+  {0x09d9ed1a, 0xe5d4, 0x4004, {0xbf, 0xe0, 0x27, 0xce, 0xb9, 0x23, 0xd9, 0xac}}
 
 class nsINetworkInterceptController;
 class nsIEventTarget;
@@ -93,7 +89,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
   nsresult GatherSecurityPolicyViolationEventData(
       nsIURI* aOriginalURI, const nsAString& aEffectiveDirective,
       const mozilla::dom::CSPViolationData& aCSPViolationData,
-      const nsAString& aScriptSample,
+      bool aReportSample,
       mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit);
 
   nsresult SendReports(

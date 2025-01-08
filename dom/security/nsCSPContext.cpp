@@ -1021,8 +1021,7 @@ void StripURIForReporting(nsIURI* aSelfURI, nsIURI* aURI,
 
 nsresult nsCSPContext::GatherSecurityPolicyViolationEventData(
     nsIURI* aOriginalURI, const nsAString& aEffectiveDirective,
-    const mozilla::dom::CSPViolationData& aCSPViolationData,
-    const nsAString& aScriptSample,
+    const mozilla::dom::CSPViolationData& aCSPViolationData, bool aReportSample,
     mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit) {
   EnsureIPCPoliciesRead();
   NS_ENSURE_ARG_MAX(aCSPViolationData.mViolatedPolicyIndex,
@@ -1094,7 +1093,8 @@ nsresult nsCSPContext::GatherSecurityPolicyViolationEventData(
   }
 
   // sample (already truncated)
-  aViolationEventInit.mSample = aScriptSample;
+  aViolationEventInit.mSample =
+      aReportSample ? aCSPViolationData.mSample : EmptyString();
 
   // disposition
   aViolationEventInit.mDisposition =
@@ -1530,8 +1530,8 @@ class CSPReportSenderRunnable final : public Runnable {
         CSP_CSPDirectiveToString(mCSPViolationData.mEffectiveDirective));
 
     nsresult rv = mCSPContext->GatherSecurityPolicyViolationEventData(
-        mOriginalURI, effectiveDirective, mCSPViolationData,
-        mReportSample ? mCSPViolationData.mSample : EmptyString(), init);
+        mOriginalURI, effectiveDirective, mCSPViolationData, mReportSample,
+        init);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // 1) notify observers
