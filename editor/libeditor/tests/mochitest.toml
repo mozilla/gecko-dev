@@ -475,6 +475,9 @@ skip-if = ["os == 'android'"] # Needs interaction with the scrollbar
 
 ["test_label_contenteditable.html"]
 
+["test_mailcite_keep_trailing_br_after_delete.html"]
+skip-if = ["xorigin"] # Testing internal API for comm-central
+
 ["test_middle_click_paste.html"]
 skip-if = ["headless"]
 

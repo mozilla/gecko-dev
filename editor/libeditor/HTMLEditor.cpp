@@ -4518,6 +4518,23 @@ nsresult HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak(
     const Element& aEditingHost) {
   MOZ_ASSERT(aNextOrAfterModifiedPoint.IsInContentNode());
 
+  // If the point is in a mailcite in plaintext mail composer (it is a <span>
+  // styled as block), we should not treat its padding <br> as unnecessary
+  // because it's required by the serializer to give next content of the
+  // mailcite has its own line.
+  if (IsPlaintextMailComposer()) {
+    const Element* const blockElement =
+        HTMLEditUtils::GetInclusiveAncestorElement(
+            *aNextOrAfterModifiedPoint.ContainerAs<nsIContent>(),
+            HTMLEditUtils::ClosestEditableBlockElement,
+            BlockInlineCheck::UseComputedDisplayStyle);
+    if (blockElement && HTMLEditUtils::IsMailCite(*blockElement) &&
+        HTMLEditUtils::IsInlineContent(*blockElement,
+                                       BlockInlineCheck::UseHTMLDefaultStyle)) {
+      return NS_OK;
+    }
+  }
+
   const bool isWhiteSpacePreformatted = EditorUtils::IsWhiteSpacePreformatted(
       *aNextOrAfterModifiedPoint.ContainerAs<nsIContent>());
   const DebugOnly<bool> isNewLinePreformatted =
