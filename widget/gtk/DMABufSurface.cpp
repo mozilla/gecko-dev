@@ -1732,6 +1732,11 @@ nsresult DMABufSurfaceYUV::ReadIntoBuffer(uint8_t* aData, int32_t aStride,
                                           gfx::SurfaceFormat aFormat) {
   LOGDMABUF(("DMABufSurfaceYUV::ReadIntoBuffer UID %d", mUID));
 
+  // We're empty, nothing to copy
+  if (!GetTextureCount()) {
+    return NS_ERROR_FAILURE;
+  }
+
   MOZ_ASSERT(aSize.width == GetWidth());
   MOZ_ASSERT(aSize.height == GetHeight());
 
