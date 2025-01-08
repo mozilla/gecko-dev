@@ -5,11 +5,11 @@
 
 registerCleanupFunction(async () => {
   await SpecialPowers.popPrefEnv();
+  CustomizableUI.reset();
 });
 
 add_task(
   async function reset_defaults_should_include_sidebar_button_in_revamp() {
-    console.log(CustomizableUI.getPlacementOfWidget("sidebar-button"));
     ok(
       !CustomizableUI.getPlacementOfWidget("sidebar-button"),
       "Sidebar button is not in the nav bar initially"
