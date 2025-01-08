@@ -42,7 +42,7 @@ RUN apt-get update && \
       zip \
       zstd
 
-RUN pip3 install taskcluster==65.3.0
+RUN pip3 install taskcluster==77.0.0
 
 RUN locale-gen "$LANG"
 
@@ -55,7 +55,7 @@ RUN chown -R worker:worker ${HOME}/.config
 USER worker:worker
 
 ENV GOOGLE_SDK_DOWNLOAD ./gcloud.tar.gz
-ENV GOOGLE_SDK_VERSION 478
+ENV GOOGLE_SDK_VERSION 504
 
 ENV TEST_TOOLS /builds/worker/test-tools
 ENV PATH ${PATH}:${TEST_TOOLS}:${TEST_TOOLS}/google-cloud-sdk/bin
@@ -75,7 +75,7 @@ RUN curl -L https://github.com/Flank/flank/releases/download/v${FLANK_VERSION}/f
     && chmod +x ${FLANK_DOWNLOAD}
 
 # Used in parse-ui-test-fromfile.py
-RUN pip3 install junitparser==3.1.2 beautifultable==1.1.0
+RUN pip3 install junitparser==3.2.0 beautifultable==1.1.0
 
 # Used for env var ingest in testrail.py
 RUN pip3 install python-dotenv==1.0.1
