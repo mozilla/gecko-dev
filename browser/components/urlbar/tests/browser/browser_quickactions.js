@@ -26,6 +26,17 @@ const assertAction = async name => {
   Assert.ok(true, `We found action "${name}`);
 };
 
+const assertAccessibilityWhenSelected = name => {
+  let button = document.querySelector(
+    `.urlbarView-action-btn[data-action=${name}]`
+  );
+  Assert.ok(button.id);
+  Assert.equal(
+    gURLBar.inputField.getAttribute("aria-activedescendant"),
+    button.id
+  );
+};
+
 const hasQuickActions = win =>
   !!win.document.querySelector(".urlbarView-action-btn");
 
@@ -70,6 +81,7 @@ add_task(async function basic() {
 
   info("The callback of the action is fired when selected");
   EventUtils.synthesizeKey("KEY_Tab", {}, window);
+  assertAccessibilityWhenSelected("testaction");
   EventUtils.synthesizeKey("KEY_Enter", {}, window);
   Assert.equal(testActionCalled, 1, "Test action was called");
 });
@@ -110,6 +122,7 @@ add_task(async function test_viewsource() {
     "view-source:https://example.com/"
   );
   EventUtils.synthesizeKey("KEY_Tab", {}, window);
+  assertAccessibilityWhenSelected("viewsource");
   EventUtils.synthesizeKey("KEY_Enter", {}, window);
   const viewSourceTab = await onLoad;
 
