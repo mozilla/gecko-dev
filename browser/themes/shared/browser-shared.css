@@ -500,6 +500,11 @@ toolbarpaletteitem > #personal-bookmarks > #PlacesToolbar,
   pointer-events: none;
 }
 
+#notifications-toolbar {
+  min-height: 0;
+  flex-direction: column;
+}
+
 /* Menupopup drop indicators */
 
 menupopup::part(drop-indicator-container) {

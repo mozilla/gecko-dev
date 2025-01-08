@@ -552,12 +552,12 @@
       </hbox>
     </toolbaritem>
   </toolbar>
-
-  <html:template id="tab-notification-deck-template">
-    <html:named-deck id="tab-notification-deck"></html:named-deck>
-  </html:template>
-
-
+  <toolbar id="notifications-toolbar" class="browser-toolbar">
+    <!-- NOTE: This gets instantiated in-place -->
+    <html:template id="tab-notification-deck-template">
+      <html:named-deck id="tab-notification-deck"></html:named-deck>
+    </html:template>
+  </toolbar>
   <html:template id="BrowserToolbarPalette">
     <toolbarbutton id="import-button"
                    class="toolbarbutton-1 chromeclass-toolbar-additional"

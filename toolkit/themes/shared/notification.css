@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 .notificationbox-stack {
-  background-color: var(--toolbar-bgcolor);
   width: 100%;
 
   /* Prevent the animation from overlapping the navigation toolbar */

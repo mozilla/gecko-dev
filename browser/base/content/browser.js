@@ -414,8 +414,8 @@ ChromeUtils.defineLazyGetter(this, "gNotificationBox", () => {
     element.classList.add("global-notificationbox");
     element.setAttribute("notificationside", "top");
     element.setAttribute("prepend-notifications", true);
-    const tabNotifications = document.getElementById("tab-notification-deck");
-    gNavToolbox.insertBefore(element, tabNotifications);
+    // We want this before the tab notifications.
+    document.getElementById("notifications-toolbar").prepend(element);
   });
 });
 
