@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.onboarding.view
 
+import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -38,7 +40,9 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
+import mozilla.components.compose.base.utils.inComposePreview
 import mozilla.components.lib.state.ext.observeAsState
+import mozilla.components.support.ktx.android.content.setApplicationNightMode
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.PrimaryButton
@@ -104,7 +108,9 @@ fun ThemeOnboardingPage(
 
                 val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
 
-                applyThemeIfRequired(state.themeOptionSelected)
+                if (!inComposePreview) {
+                    LocalContext.current.applyThemeIfRequired(state.themeOptionSelected)
+                }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     themeOptions?.let {
@@ -163,8 +169,8 @@ fun ThemeOnboardingPage(
  * @param selectedTheme The [ThemeOptionType] selected by the user.
  * This determines which theme to apply.
  */
-fun applyThemeIfRequired(selectedTheme: ThemeOptionType) {
-    AppCompatDelegate.setDefaultNightMode(
+fun Context.applyThemeIfRequired(selectedTheme: ThemeOptionType) {
+    setApplicationNightMode(
         when (selectedTheme) {
             ThemeOptionType.THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
             ThemeOptionType.THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO

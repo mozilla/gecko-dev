@@ -5,6 +5,8 @@ permalink: /changelog/
 ---
 
 # 136.0 (In Development)
+* **support-ktx**
+    * 🆕 `Context.setApplicationNightMode()` will apply the provided night mode on all API levels and persist it on Android 31+ so that on new launches the splashscreen matches. [Bug 1919488](https://bugzilla.mozilla.org/show_bug.cgi?id=1919488)
 
 # 135.0
 * **feature-prompts**
