@@ -60,10 +60,9 @@ initPopupListener();
 add_task(async function history_only_menu_checking() {
   await setupFormHistory();
 
-  const promise = expectPopup();
   await setInput("#cc-number", "");
   synthesizeKey("KEY_ArrowDown");
-  await promise;
+  await expectPopup();
   checkMenuEntries(["6011029476355493"], false);
 
   await setInput("#cc-name", "");

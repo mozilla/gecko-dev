@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 const lazy = {};
@@ -14,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   InsecurePasswordUtils: "resource://gre/modules/InsecurePasswordUtils.sys.mjs",
   FieldDetail: "resource://gre/modules/shared/FieldScanner.sys.mjs",
   FormAutofill: "resource://autofill/FormAutofill.sys.mjs",
+  FormAutofillContent: "resource://autofill/FormAutofillContent.sys.mjs",
   FormAutofillHandler:
     "resource://gre/modules/shared/FormAutofillHandler.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
@@ -24,9 +26,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FORM_SUBMISSION_REASON: "resource://gre/actors/FormHandlerChild.sys.mjs",
 });
 
-const gFormFillController = Cc[
-  "@mozilla.org/satchel/form-fill-controller;1"
-].getService(Ci.nsIFormFillController);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "DELEGATE_AUTOCOMPLETE",
+  "toolkit.autocomplete.delegate",
+  false
+);
 
 /**
  * Handles content's interactions for the frame.
@@ -110,7 +115,7 @@ export class FormAutofillChild extends JSWindowActorChild {
     [...addressFields, ...creditcardFields].forEach(fieldDetail => {
       this.#markAsAutofillField(fieldDetail);
 
-      if (fieldDetail.element == gFormFillController.focusedInput) {
+      if (fieldDetail.element == lazy.FormAutofillContent.focusedInput) {
         this.showPopupIfEmpty(fieldDetail.element, fieldDetail.fieldName);
       }
     });
@@ -264,7 +269,7 @@ export class FormAutofillChild extends JSWindowActorChild {
     }
 
     if (fieldName.startsWith("cc-") || AppConstants.platform === "android") {
-      gFormFillController.showPopup();
+      lazy.FormAutofillContent.showPopup();
     }
   }
 
@@ -402,11 +407,22 @@ export class FormAutofillChild extends JSWindowActorChild {
         this._hasDOMContentLoadedHandler = true;
         doc.addEventListener(
           "DOMContentLoaded",
-          () => this.onFocusIn(gFormFillController.focusedInput),
+          () => this.onFocusIn(lazy.FormAutofillContent.focusedInput),
           { once: true }
         );
       }
       return;
+    }
+
+    if (
+      lazy.DELEGATE_AUTOCOMPLETE ||
+      !lazy.FormAutofillContent.savedFieldNames
+    ) {
+      this.debug("onFocusIn: savedFieldNames are not known yet");
+
+      // Init can be asynchronous because we don't need anything from the parent
+      // at this point.
+      this.sendAsyncMessage("FormAutofill:InitStorage");
     }
 
     this.identifyFieldsWhenFocused(element);
@@ -563,7 +579,7 @@ export class FormAutofillChild extends JSWindowActorChild {
         lazy.FormAutofillUtils.isCreditCardField(fieldDetail.fieldName) &&
         element.value === ""
       ) {
-        gFormFillController.showPopup();
+        lazy.FormAutofillContent.showPopup();
       }
     }
 
@@ -707,6 +723,11 @@ export class FormAutofillChild extends JSWindowActorChild {
       : lazy.FormAutofill.isAutofillCreditCardsEnabled;
     // If the specified autofill feature is pref off, do not search
     if (!searchPermitted) {
+      return false;
+    }
+
+    // No profile can fill the currently-focused input.
+    if (!lazy.FormAutofillContent.savedFieldNames.has(fieldName)) {
       return false;
     }
 

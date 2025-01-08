@@ -10,6 +10,8 @@ prefs = [
   "extensions.formautofill.test.ignoreVisibilityCheck=true",
 ]
 
+["test_activeStatus.js"]
+
 ["test_addressComponent_city.js"]
 head = "head_addressComponent.js"
 
