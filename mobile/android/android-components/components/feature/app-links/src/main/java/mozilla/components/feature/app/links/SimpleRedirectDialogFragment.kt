@@ -22,11 +22,13 @@ import mozilla.components.ui.widgets.withCenterAlignedButtons
  *
  * Intents passed are guaranteed to be openable by a non-browser app.
  */
-class SimpleRedirectDialogFragment : RedirectDialogFragment() {
+class SimpleRedirectDialogFragment(
+    maxSuccessiveDialogMillisLimit: Int = TIME_SHOWN_OFFSET_MILLIS,
+) : RedirectDialogFragment() {
 
     @VisibleForTesting
     internal var promptAbuserDetector =
-        PromptAbuserDetector(maxSuccessiveDialogMillisLimit = TIME_SHOWN_OFFSET_MILLIS)
+        PromptAbuserDetector(maxSuccessiveDialogMillisLimit)
 
     @VisibleForTesting
     internal var testingContext: Context? = null
@@ -84,8 +86,9 @@ class SimpleRedirectDialogFragment : RedirectDialogFragment() {
             @StringRes negativeButtonText: Int = R.string.mozac_feature_applinks_confirm_dialog_deny,
             @StyleRes themeResId: Int = 0,
             cancelable: Boolean = false,
+            maxSuccessiveDialogMillisLimit: Int = TIME_SHOWN_OFFSET_MILLIS,
         ): RedirectDialogFragment {
-            val fragment = SimpleRedirectDialogFragment()
+            val fragment = SimpleRedirectDialogFragment(maxSuccessiveDialogMillisLimit)
             val arguments = fragment.arguments ?: Bundle()
 
             with(arguments) {

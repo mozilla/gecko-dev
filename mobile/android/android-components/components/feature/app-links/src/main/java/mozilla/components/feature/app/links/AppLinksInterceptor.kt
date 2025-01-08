@@ -306,6 +306,7 @@ class AppLinksInterceptor(
             dialogMessageString = dialogMessage,
             positiveButtonText = R.string.mozac_feature_applinks_confirm_dialog_confirm,
             negativeButtonText = R.string.mozac_feature_applinks_confirm_dialog_deny,
+            maxSuccessiveDialogMillisLimit = MAX_SUCCESSIVE_DIALOG_MILLIS_LIMIT,
         )
     }
 
@@ -377,5 +378,8 @@ class AppLinksInterceptor(
 
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         internal const val APP_LINKS_DO_NOT_INTERCEPT_INTERVAL = 2000L // 2 second
+
+        // Minimum time for dialog to settle before accepting user interactions.
+        internal const val MAX_SUCCESSIVE_DIALOG_MILLIS_LIMIT: Int = 500 // 0.5 seconds
     }
 }
