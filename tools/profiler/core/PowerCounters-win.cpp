@@ -23,8 +23,7 @@ class PowerMeterChannel final : public BaseProfilerCount {
  public:
   explicit PowerMeterChannel(const WCHAR* aChannelName, ULONGLONG aInitialValue,
                              ULONGLONG aInitialTime)
-      : BaseProfilerCount(nullptr, nullptr, nullptr, "power",
-                          "Power utilization"),
+      : BaseProfilerCount(nullptr, "power", "Power utilization"),
         mChannelName(NS_ConvertUTF16toUTF8(aChannelName)),
         mPreviousValue(aInitialValue),
         mPreviousTime(aInitialTime),

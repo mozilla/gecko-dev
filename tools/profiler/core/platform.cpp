@@ -1594,11 +1594,11 @@ class ActivePS {
   // This is a counter to collect process CPU utilization during profiling.
   // It cannot be a raw `ProfilerCounter` because we need to manually add/remove
   // it while the profiler lock is already held.
-  class ProcessCPUCounter final : public BaseProfilerCount {
+  class ProcessCPUCounter final : public AtomicProfilerCount {
    public:
     explicit ProcessCPUCounter(PSLockRef aLock)
-        : BaseProfilerCount("processCPU", &mCounter, nullptr, "CPU",
-                            "Process CPU utilization") {
+        : AtomicProfilerCount("processCPU", &mCounter, nullptr, "CPU",
+                              "Process CPU utilization") {
       // Adding on construction, so it's ready before the sampler starts.
       locked_profiler_add_sampled_counter(aLock, this);
       // Note: Removed from ActivePS::Destroy, because a lock is needed.

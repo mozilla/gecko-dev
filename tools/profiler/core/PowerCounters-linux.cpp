@@ -139,7 +139,7 @@ class RaplProfilerCount final : public BaseProfilerCount {
   explicit RaplProfilerCount(int aPerfEventType,
                              const RaplEventType& aPerfEventConfig,
                              const char* aLabel, const char* aDescription)
-      : BaseProfilerCount(aLabel, nullptr, nullptr, "power", aDescription),
+      : BaseProfilerCount(aLabel, "power", aDescription),
         mLastResult(0),
         mPerfEventFd(-1) {
     RAPL_LOG("Creating RAPL Event for type: %s", mLabel);

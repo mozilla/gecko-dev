@@ -79,27 +79,13 @@ typedef mozilla::Atomic<uint64_t, mozilla::MemoryOrdering::Relaxed>
 
 class BaseProfilerCount {
  public:
-  BaseProfilerCount(const char* aLabel, ProfilerAtomicSigned* aCounter,
-                    ProfilerAtomicUnsigned* aNumber, const char* aCategory,
+  BaseProfilerCount(const char* aLabel, const char* aCategory,
                     const char* aDescription)
-      : mLabel(aLabel),
-        mCategory(aCategory),
-        mDescription(aDescription),
-        mCounter(aCounter),
-        mNumber(aNumber) {
-#  define COUNTER_CANARY 0xDEADBEEF
-#  ifdef DEBUG
-    mCanary = COUNTER_CANARY;
-    mPrevNumber = 0;
-#  endif
+      : mLabel(aLabel), mCategory(aCategory), mDescription(aDescription) {
     // Can't call profiler_* here since this may be non-xul-library
   }
 
-  virtual ~BaseProfilerCount() {
-#  ifdef DEBUG
-    mCanary = 0;
-#  endif
-  }
+  virtual ~BaseProfilerCount() {}
 
   struct CountSample {
     int64_t count;
@@ -112,7 +98,38 @@ class BaseProfilerCount {
     // It should always be true when calling Sample() for the first time.
     bool isSampleNew;
   };
-  virtual CountSample Sample() {
+
+  virtual CountSample Sample() = 0;
+
+  // These typically are static strings (for example if you use the macros
+  // below)
+  const char* mLabel;
+  const char* mCategory;
+  const char* mDescription;
+};
+
+class AtomicProfilerCount : public BaseProfilerCount {
+ public:
+  AtomicProfilerCount(const char* aLabel, ProfilerAtomicSigned* aCounter,
+                      ProfilerAtomicUnsigned* aNumber, const char* aCategory,
+                      const char* aDescription)
+      : BaseProfilerCount(aLabel, aCategory, aDescription),
+        mCounter(aCounter),
+        mNumber(aNumber) {
+#  define COUNTER_CANARY 0xDEADBEEF
+#  ifdef DEBUG
+    mCanary = COUNTER_CANARY;
+    mPrevNumber = 0;
+#  endif
+  }
+
+  virtual ~AtomicProfilerCount() {
+#  ifdef DEBUG
+    mCanary = 0;
+#  endif
+  }
+
+  CountSample Sample() override {
     MOZ_ASSERT(mCanary == COUNTER_CANARY);
 
     CountSample result;
@@ -138,11 +155,6 @@ class BaseProfilerCount {
   // increment the atomic counters, and the subclasses implement ++ and
   // Add() directly.
 
-  // These typically are static strings (for example if you use the macros
-  // below)
-  const char* mLabel;
-  const char* mCategory;
-  const char* mDescription;
   // We're ok with these being un-ordered in race conditions.  These are
   // pointers because we want to be able to use statics and increment them
   // directly.  Otherwise we could just have them inline, and not need the
@@ -163,11 +175,12 @@ class BaseProfilerCount {
 
 // Designed to be allocated dynamically, and simply incremented with obj++
 // or obj->Add(n)
-class ProfilerCounter final : public BaseProfilerCount {
+class ProfilerCounter final : public AtomicProfilerCount {
  public:
   ProfilerCounter(const char* aLabel, const char* aCategory,
                   const char* aDescription)
-      : BaseProfilerCount(aLabel, &mCounter, nullptr, aCategory, aDescription) {
+      : AtomicProfilerCount(aLabel, &mCounter, nullptr, aCategory,
+                            aDescription) {
     // Assume we're in libxul
     profiler_add_sampled_counter(this);
   }
@@ -185,11 +198,12 @@ class ProfilerCounter final : public BaseProfilerCount {
 };
 
 // Also keeps a heatmap (number of calls to ++/Add())
-class ProfilerCounterTotal final : public BaseProfilerCount {
+class ProfilerCounterTotal final : public AtomicProfilerCount {
  public:
   ProfilerCounterTotal(const char* aLabel, const char* aCategory,
                        const char* aDescription)
-      : BaseProfilerCount(aLabel, &mCounter, &mNumber, aCategory, aDescription),
+      : AtomicProfilerCount(aLabel, &mCounter, &mNumber, aCategory,
+                            aDescription),
         mRegistered(false, "ProfilerCounterTotal::mRegistered") {
     // Assume we're in libxul
     Register();
@@ -244,7 +258,7 @@ class ProfilerCounterTotal final : public BaseProfilerCount {
     ProfilerAtomicUnsigned profiler_number_##label(0);              \
     const char profiler_category_##label[] = category;              \
     const char profiler_description_##label[] = description;        \
-    mozilla::UniquePtr<BaseProfilerCount> AutoCount_##label;
+    mozilla::UniquePtr<AtomicProfilerCount> AutoCount_##label;
 
 // This counts, but doesn't keep track of the number of calls to
 // AUTO_PROFILER_COUNT()
@@ -252,16 +266,16 @@ class ProfilerCounterTotal final : public BaseProfilerCount {
     ProfilerAtomicSigned profiler_count_##label(0);           \
     const char profiler_category_##label[] = category;        \
     const char profiler_description_##label[] = description;  \
-    mozilla::UniquePtr<BaseProfilerCount> AutoCount_##label;
+    mozilla::UniquePtr<AtomicProfilerCount> AutoCount_##label;
 
 // This will create a static initializer if used, but avoids a possible
 // allocation.
-#  define PROFILER_DEFINE_STATIC_COUNT_TOTAL(label, category, description)  \
-    ProfilerAtomicSigned profiler_count_##label(0);                         \
-    ProfilerAtomicUnsigned profiler_number_##label(0);                      \
-    BaseProfilerCount AutoCount_##label(#label, &profiler_count_##label,    \
-                                        &profiler_number_##label, category, \
-                                        description);
+#  define PROFILER_DEFINE_STATIC_COUNT_TOTAL(label, category, description)    \
+    ProfilerAtomicSigned profiler_count_##label(0);                           \
+    ProfilerAtomicUnsigned profiler_number_##label(0);                        \
+    AtomicProfilerCount AutoCount_##label(#label, &profiler_count_##label,    \
+                                          &profiler_number_##label, category, \
+                                          description);
 
 // If we didn't care about static initializers, we could avoid the need for
 // a ptr to the BaseProfilerCount object.
@@ -276,7 +290,7 @@ class ProfilerCounterTotal final : public BaseProfilerCount {
         /* Ignore that we could call this twice in theory, and that we leak \
          * them                                                             \
          */                                                                 \
-        AutoCount_##label.reset(new BaseProfilerCount(                      \
+        AutoCount_##label.reset(new AtomicProfilerCount(                    \
             #label, &profiler_count_##label, &profiler_number_##label,      \
             profiler_category_##label, profiler_description_##label));      \
         profiler_add_sampled_counter(AutoCount_##label.get());              \
@@ -290,7 +304,7 @@ class ProfilerCounterTotal final : public BaseProfilerCount {
         /* Ignore that we could call this twice in theory, and that we leak \
          * them                                                             \
          */                                                                 \
-        AutoCount_##label.reset(new BaseProfilerCount(                      \
+        AutoCount_##label.reset(new AtomicProfilerCount(                    \
             #label, nullptr, &profiler_number_##label,                      \
             profiler_category_##label, profiler_description_##label));      \
         profiler_add_sampled_counter(AutoCount_##label.get());              \
@@ -310,7 +324,7 @@ class ProfilerCounterTotal final : public BaseProfilerCount {
         /* Ignore that we could call this twice in theory, and that we leak \
          * them                                                             \
          */                                                                 \
-        AutoCount_##label.reset(new BaseProfilerCount(                      \
+        AutoCount_##label.reset(new AtomicProfilerCount(                    \
             #label, &profiler_count_##label, &profiler_number_##label,      \
             profiler_category_##label, profiler_description_##label));      \
       }                                                                     \

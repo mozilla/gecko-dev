@@ -19,11 +19,11 @@ inline void profiler_count_bandwidth_written_bytes(int64_t aCount) {}
 #  include "mozilla/ProfilerMarkers.h"
 #  include "mozilla/ProfilerCounts.h"
 
-class ProfilerBandwidthCounter final : public BaseProfilerCount {
+class ProfilerBandwidthCounter final : public AtomicProfilerCount {
  public:
   ProfilerBandwidthCounter()
-      : BaseProfilerCount("bandwidth", &mCounter, &mNumber, "Bandwidth",
-                          "Amount of data transfered") {
+      : AtomicProfilerCount("bandwidth", &mCounter, &mNumber, "Bandwidth",
+                            "Amount of data transfered") {
     Register();
   }
 

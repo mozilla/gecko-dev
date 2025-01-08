@@ -50,7 +50,7 @@ class RailEnergy final : public BaseProfilerCount {
  public:
   explicit RailEnergy(RailEnergyData* data, const char* aRailName,
                       const char* aSubsystemName)
-      : BaseProfilerCount(aSubsystemName, nullptr, nullptr, "power", aRailName),
+      : BaseProfilerCount(aSubsystemName, "power", aRailName),
         mDataPtr(data),
         mLastTimestamp(0) {}
 
