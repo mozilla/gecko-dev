@@ -989,6 +989,11 @@ void nsCSPContext::logToConsole(const char* aName,
 void StripURIForReporting(nsIURI* aSelfURI, nsIURI* aURI,
                           const nsAString& aEffectiveDirective,
                           nsACString& outStrippedURI) {
+  if (aSelfURI->SchemeIs("chrome")) {
+    aURI->GetSpecIgnoringRef(outStrippedURI);
+    return;
+  }
+
   // If the origin of aURI is a globally unique identifier (for example,
   // aURI has a scheme of data, blob, or filesystem), then
   // return the ASCII serialization of uri’s scheme.

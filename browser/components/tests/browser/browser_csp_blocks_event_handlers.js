@@ -29,5 +29,8 @@ add_task(async function test_blocks_event_handlers() {
     "script-src-attr",
     "effectiveDirective matches"
   );
-  is(violation.sourceFile, "chrome", "sourceFile matches");
+  ok(
+    violation.sourceFile.endsWith("browser_csp_blocks_event_handlers.js"),
+    "sourceFile matches"
+  );
 });
