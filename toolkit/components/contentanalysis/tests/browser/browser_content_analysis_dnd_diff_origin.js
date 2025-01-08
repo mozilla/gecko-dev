@@ -7,12 +7,8 @@
 
 "use strict";
 
-const OUTER_BASE_1 = "https://example.org/browser/dom/events/test/";
-const OUTER_BASE_2 = "https://example.com/browser/dom/events/test/";
-
-// iframe domains
-const INNER_BASE_1 = OUTER_BASE_1;
-const INNER_BASE_2 = OUTER_BASE_2;
+const kBaseUrl1 = "https://example.org/browser/dom/events/test/";
+const kBaseUrl2 = "https://example.com/browser/dom/events/test/";
 
 // Resolve fn for promise we resolve after mockCA.analyzeContentRequest runs.
 let resolveDropPromise;
@@ -66,7 +62,12 @@ let mockCA = {
 add_setup(async function () {
   mockCA = await mockContentAnalysisService(mockCA);
 
-  await setup();
+  await setup({
+    outerURL1: kBaseUrl1 + "browser_dragdrop_outer.html",
+    outerURL2: kBaseUrl2 + "browser_dragdrop_outer.html",
+    innerURL1: kBaseUrl1 + "browser_dragdrop_inner.html",
+    innerURL2: kBaseUrl2 + "browser_dragdrop_inner.html",
+  });
 });
 
 Services.scriptloader.loadSubScript(
