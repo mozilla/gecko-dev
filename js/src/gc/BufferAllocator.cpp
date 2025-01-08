@@ -640,6 +640,10 @@ static inline void VirtualCopyPages(void* dst, const void* src, size_t bytes) {
 #endif
 
 void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
+  // Reallocate a buffer. This has the same semantics as standard libarary
+  // realloc: if |ptr| is null it creates a new allocation, and if it fails it
+  // returns |nullptr| and the original |ptr| is still valid.
+
   if (!ptr) {
     return alloc(bytes, nurseryOwned);
   }

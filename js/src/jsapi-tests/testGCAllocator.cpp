@@ -676,10 +676,11 @@ BEGIN_TEST(testBufferAllocator_stress) {
 
     if (!liveAllocs[index]) {
       liveAllocs[index] = AllocBuffer(zone, bytes, false);
-      CHECK(liveAllocs[index]);
     } else {
-      liveAllocs[index] = ReallocBuffer(zone, liveAllocs[index], bytes, false);
-      CHECK(liveAllocs[index]);
+      void* ptr = ReallocBuffer(zone, liveAllocs[index], bytes, false);
+      if (ptr) {
+        liveAllocs[index] = ptr;
+      }
     }
 
     index = std::rand() % MaxLiveAllocs;
