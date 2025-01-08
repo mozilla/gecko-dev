@@ -54,6 +54,8 @@ pushd "${MOZ_FETCHES_DIR}/symbol-scrapers/windows-graphics-drivers"
   zip -r9 "/builds/worker/artifacts/${SHA256SUMS}" SHA256SUMS
 popd
 
-if [ ! -f "/builds/worker/artifacts/target.crashreporter-symbols.zip" ]; then
+zip_files=$(find /builds/worker/artifacts -name "target.crashreporter-symbols.*.zip")
+
+if [ -z "${zip_files}" ]; then
   echo "No symbols zip produced, upload task will fail"
 fi
