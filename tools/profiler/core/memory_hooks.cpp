@@ -18,6 +18,7 @@
 #include "mozilla/ProfilerCounts.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/ThreadSafety.h"
+#include "mozilla/UniquePtr.h"
 
 #include "GeckoProfiler.h"
 #include "prenv.h"
@@ -48,9 +49,7 @@ namespace mozilla::profiler {
 class MemoryCounter : public BaseProfilerCount {
  public:
   MemoryCounter()
-      : BaseProfilerCount("malloc", "Memory", "Amount of allocated memory") {
-    profiler_add_sampled_counter(this);
-  };
+      : BaseProfilerCount("malloc", "Memory", "Amount of allocated memory") {};
 
   virtual ~MemoryCounter() {
     // The counter is removed by ActivePS::Destroy()
@@ -58,8 +57,6 @@ class MemoryCounter : public BaseProfilerCount {
 
   CountSample Sample() override;
 };
-
-static MemoryCounter* sCounter;
 
 }  // namespace mozilla::profiler
 
@@ -595,19 +592,8 @@ namespace mozilla::profiler {
 // Initialization
 //---------------------------------------------------------------------------
 
-BaseProfilerCount* install_memory_counter() {
-  if (!sCounter) {
-    sCounter = new MemoryCounter();
-  }
-  return sCounter;
-}
-
-void unregister_memory_counter() {
-  if (sCounter) {
-    profiler_remove_sampled_counter(sCounter);
-    delete sCounter;
-    sCounter = nullptr;
-  }
+UniquePtr<BaseProfilerCount> create_memory_counter() {
+  return MakeUnique<MemoryCounter>();
 }
 
 void remove_memory_hooks() { jemalloc_replace_dynamic(nullptr); }

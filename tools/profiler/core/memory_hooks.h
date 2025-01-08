@@ -7,16 +7,18 @@
 #ifndef memory_hooks_h
 #define memory_hooks_h
 
+#include "mozilla/UniquePtr.h"
+
 #if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
 class BaseProfilerCount;
 
 namespace mozilla {
 namespace profiler {
 
-BaseProfilerCount* install_memory_counter();
-void unregister_memory_counter();
+UniquePtr<BaseProfilerCount> create_memory_counter();
 
 void remove_memory_hooks();
+
 void enable_native_allocations();
 void disable_native_allocations();
 
