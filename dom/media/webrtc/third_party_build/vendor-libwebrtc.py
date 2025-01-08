@@ -354,21 +354,28 @@ def unpack(target):
             shutil.move(os.path.join(target_path, path), dest_path)
 
     elif target == "build":
-        try:
-            shutil.rmtree(os.path.join(LIBWEBRTC_DIR, "build"))
-        except FileNotFoundError:
-            pass
-        os.makedirs(os.path.join(LIBWEBRTC_DIR, "build"))
+        vendor_into_dir = os.path.join(
+            os.path.normpath("third_party/chromium"), "build"
+        )
 
         # adjust target_path if GitHub packaging is involved
         if not os.path.exists(os.path.join(target_path, "linux")):
             # GitHub packs everything inside a separate directory
             target_path = os.path.join(target_path, os.listdir(target_path)[0])
 
+        build_used_in_firefox = os.listdir(target_path)
+        for path in build_used_in_firefox:
+            try:
+                shutil.rmtree(os.path.join(vendor_into_dir, path))
+            except FileNotFoundError:
+                pass
+            except NotADirectoryError:
+                pass
+
         for path in os.listdir(target_path):
             shutil.move(
                 os.path.join(target_path, path),
-                os.path.join(LIBWEBRTC_DIR, "build", path),
+                os.path.join(vendor_into_dir, path),
             )
 
     elif target == "third_party":
