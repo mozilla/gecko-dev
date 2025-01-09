@@ -29,7 +29,13 @@ add_task(async function test_blocks_event_handlers() {
   );
 
   main.setAttribute("onclick", "dont_run_me()");
+
+  // The document is not meant to be clicked.
+  AccessibilityUtils.setEnv({
+    mustHaveAccessibleRule: false,
+  });
   main.click();
+  AccessibilityUtils.resetEnv();
 
   let violation = await violationPromise;
   is(
