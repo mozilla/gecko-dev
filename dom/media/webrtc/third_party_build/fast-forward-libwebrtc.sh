@@ -81,12 +81,6 @@ echo " RESUME: $RESUME"
 echo "SKIP_TO: $SKIP_TO"
 
 echo "-------"
-echo "------- Write cmd-line to third_party/libwebrtc/README.moz-ff-commit"
-echo "-------"
-echo "# MOZ_LIBWEBRTC_SRC=$MOZ_LIBWEBRTC_SRC MOZ_LIBWEBRTC_BRANCH=$MOZ_LIBWEBRTC_BRANCH bash $0" \
-    >> third_party/libwebrtc/README.moz-ff-commit
-
-echo "-------"
 echo "------- Write new-base to last line of third_party/libwebrtc/README.moz-ff-commit"
 echo "-------"
 echo "# base of lastest vendoring" >> third_party/libwebrtc/README.moz-ff-commit
