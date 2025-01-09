@@ -1,0 +1,30 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 29 Sep 2022 15:43:00 -0500
+Subject: Bug 1790097 (MOZ) - add is_castos to
+ libwebrtc/build/config/chromecast_build.gni.
+
+Upstream 56e01bffd1de3e5b27e0da87f8019d44aa55a562 replaces
+is_cast_desktop_build with is_castos.  Until we vendor an updated
+third_party/libwebrtc/build directory, we'll add is_castos with a
+default value of false to keep the upstream build files happy.
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2f2de125dab7be623f48da397a33989d90c86588
+---
+ config/chromecast_build.gni | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/config/chromecast_build.gni b/config/chromecast_build.gni
+index 65855a178..b309e29d9 100644
+--- a/config/chromecast_build.gni
++++ b/config/chromecast_build.gni
+@@ -41,6 +41,11 @@ declare_args() {
+   # TODO(slan): Remove instances of this when x86 is a fully supported platform.
+   is_cast_desktop_build = is_chromecast && target_os == "linux" &&
+                           (target_cpu == "x86" || target_cpu == "x64")
++
++  # Mozilla added: Until upstream's build repo is updated to
++  # 56e01bffd1de3e5b27e0da87f8019d44aa55a562, we'll default this to false
++  # to keep the build happy.
++  is_castos = false
+ }
+ 
+ declare_args() {

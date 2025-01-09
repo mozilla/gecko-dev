@@ -1,0 +1,62 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 1 Oct 2024 21:05:00 +0000
+Subject: Bug 1921706 - simplify removing libatomic on linux builds.
+ r=ng,webrtc-reviewers DONTBUILD
+
+Note: this produces no changes in the generated moz.build files.
+
+o  changeset:   597701:a26d44969a83
+~  user:        Michael Froman <mfroman@mozilla.com>
+   date:        Mon Jun 14 17:39:29 2021 -0500
+   files:       third_party/libwebrtc/build/config/linux/BUILD.gn
+   description:
+   Bug 1654112 - don't use libatomic on linux builds. r=ng
+
+In moz-central a26d44969a83 I added an include of webrtc.gni for
+the build_with_mozilla flag, but there is already a Mozilla
+modifcation in this file that does not rely on that flag.  This
+simplification will help with future google build directory move.
+
+Differential Revision: https://phabricator.services.mozilla.com/D224069
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d57bb9cfa9a7679fa5d3f47ae9343928700ec103
+---
+ config/linux/BUILD.gn | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/config/linux/BUILD.gn b/config/linux/BUILD.gn
+index c036e4ae9..9c35ee102 100644
+--- a/config/linux/BUILD.gn
++++ b/config/linux/BUILD.gn
+@@ -2,8 +2,6 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-import("../../../webrtc.gni")
+-
+ import("//build/config/c++/c++.gni")
+ import("//build/config/chromeos/ui_mode.gni")
+ import("//build/config/linux/pkg_config.gni")
+@@ -39,11 +37,14 @@ config("runtime_library") {
+     defines = [ "OS_CHROMEOS" ]
+   }
+ 
++  # Mozilla disable libatomic on linux builds
++  if (false) {
+   if ((!(is_chromeos_ash || is_chromeos_lacros) ||
+        default_toolchain != "//build/toolchain/cros:target") &&
+-      (!use_custom_libcxx || target_cpu == "mipsel") && !build_with_mozilla) {
++      (!use_custom_libcxx || target_cpu == "mipsel")) {
+     libs = [ "atomic" ]
+   }
++  }
+ }
+ 
+ config("libcap") {
+@@ -54,6 +55,7 @@ config("libresolv") {
+   libs = [ "resolv" ]
+ }
+ 
++# Mozilla disable glib - Bug 1654112 (hg sha 127ace4d8887)
+ if (false && use_glib) {
+   pkg_config("glib") {
+     packages = [

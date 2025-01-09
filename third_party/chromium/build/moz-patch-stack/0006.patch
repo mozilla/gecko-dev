@@ -1,0 +1,116 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt7 - (mirror) a62f6186e9d6 r=ng
+
+(skip-generation)
+
+Depends on D149820
+
+Differential Revision: https://phabricator.services.mozilla.com/D149821
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/243ea5e6411dc1b769419c07045e78d61f406541
+---
+ toolchain/win/setup_toolchain.py | 75 +++++++++++++++++---------------
+ 1 file changed, 39 insertions(+), 36 deletions(-)
+
+diff --git a/toolchain/win/setup_toolchain.py b/toolchain/win/setup_toolchain.py
+index c1d2fa2ce..1ff3608f0 100644
+--- a/toolchain/win/setup_toolchain.py
++++ b/toolchain/win/setup_toolchain.py
+@@ -239,10 +239,10 @@ def main():
+ 
+   cpus = ('x86', 'x64', 'arm', 'arm64')
+   assert target_cpu in cpus
+-  vc_bin_dir = ''
+-  vc_lib_path = ''
+-  vc_lib_atlmfc_path = ''
+-  vc_lib_um_path = ''
++  vc_bin_dir = 'fake_path/cl.exe'
++  vc_lib_path = 'fake_path/lib'
++  vc_lib_atlmfc_path = 'fake_path/atlmfc'
++  vc_lib_um_path = 'fake_path/lib_um'
+   include = ''
+   lib = ''
+ 
+@@ -258,39 +258,43 @@ def main():
+   def q(s):  # Quote s if it contains spaces or other weird characters.
+     return s if re.match(r'^[a-zA-Z0-9._/\\:-]*$', s) else '"' + s + '"'
+ 
+-  for cpu in cpus:
+-    if cpu == target_cpu:
+-      # Extract environment variables for subprocesses.
+-      env = _LoadToolchainEnv(cpu, toolchain_root, win_sdk_path, target_store)
+-      env['PATH'] = runtime_dirs + os.pathsep + env['PATH']
+-
+-      vc_bin_dir = FindFileInEnvList(env, 'PATH', os.pathsep, 'cl.exe')
+-      vc_lib_path = FindFileInEnvList(env, 'LIB', ';', 'msvcrt.lib')
+-      vc_lib_atlmfc_path = FindFileInEnvList(
+-          env, 'LIB', ';', 'atls.lib', optional=True)
+-      vc_lib_um_path = FindFileInEnvList(env, 'LIB', ';', 'user32.lib')
+-
+-      # The separator for INCLUDE here must match the one used in
+-      # _LoadToolchainEnv() above.
+-      include = [p.replace('"', r'\"') for p in env['INCLUDE'].split(';') if p]
+-      include = list(map(relflag, include))
+-
+-      lib = [p.replace('"', r'\"') for p in env['LIB'].split(';') if p]
+-      lib = list(map(relflag, lib))
+-
+-      include_I = ' '.join([q('/I' + i) for i in include])
+-      include_imsvc = ' '.join([q('-imsvc' + i) for i in include])
+-      libpath_flags = ' '.join([q('-libpath:' + i) for i in lib])
+-
+-      if (environment_block_name != ''):
+-        env_block = _FormatAsEnvironmentBlock(env)
+-        with open(environment_block_name, 'w') as f:
+-          f.write(env_block)
+-
++#   for cpu in cpus:
++#     if cpu == target_cpu:
++#       # Extract environment variables for subprocesses.
++#       env = _LoadToolchainEnv(cpu, toolchain_root, win_sdk_path, target_store)
++#       env['PATH'] = runtime_dirs + os.pathsep + env['PATH']
++# 
++#       vc_bin_dir = FindFileInEnvList(env, 'PATH', os.pathsep, 'cl.exe')
++#       vc_lib_path = FindFileInEnvList(env, 'LIB', ';', 'msvcrt.lib')
++#       vc_lib_atlmfc_path = FindFileInEnvList(
++#           env, 'LIB', ';', 'atls.lib', optional=True)
++#       vc_lib_um_path = FindFileInEnvList(env, 'LIB', ';', 'user32.lib')
++# 
++#       # The separator for INCLUDE here must match the one used in
++#       # _LoadToolchainEnv() above.
++#       include = [p.replace('"', r'\"') for p in env['INCLUDE'].split(';') if p]
++#       include = list(map(relflag, include))
++# 
++#       lib = [p.replace('"', r'\"') for p in env['LIB'].split(';') if p]
++#       lib = list(map(relflag, lib))
++# 
++#       include_I = ' '.join([q('/I' + i) for i in include])
++#       include_imsvc = ' '.join([q('-imsvc' + i) for i in include])
++#       libpath_flags = ' '.join([q('-libpath:' + i) for i in lib])
++# 
++#       if (environment_block_name != ''):
++#         env_block = _FormatAsEnvironmentBlock(env)
++#         with open(environment_block_name, 'w') as f:
++#           f.write(env_block)
++
++# We don't really use any of this information so it can be skipped altogether
++  env = {}
++  env['PATH'] = ''
++  include_I = include
++  include_imsvc = include
++  libpath_flags = ''
+   print('vc_bin_dir = ' + gn_helpers.ToGNString(vc_bin_dir))
+-  assert include_I
+   print('include_flags_I = ' + gn_helpers.ToGNString(include_I))
+-  assert include_imsvc
+   if bool(int(os.environ.get('DEPOT_TOOLS_WIN_TOOLCHAIN', 1))) and win_sdk_path:
+     print('include_flags_imsvc = ' +
+           gn_helpers.ToGNString(q('/winsysroot' + relflag(toolchain_root))))
+@@ -303,7 +307,6 @@ def main():
+     print('vc_lib_atlmfc_path = ' + gn_helpers.ToGNString(vc_lib_atlmfc_path))
+   print('vc_lib_um_path = ' + gn_helpers.ToGNString(vc_lib_um_path))
+   print('paths = ' + gn_helpers.ToGNString(env['PATH']))
+-  assert libpath_flags
+   print('libpath_flags = ' + gn_helpers.ToGNString(libpath_flags))
+ 
+ 

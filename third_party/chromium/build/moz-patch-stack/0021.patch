@@ -1,0 +1,29 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 13 Feb 2024 21:58:00 +0000
+Subject: Bug 1876554 - libwebrtc change to support openbsd riscv64 toolchain.
+ r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D201148
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9170e1167dfe486f45659e5e849f4edb433610f5
+---
+ toolchain/linux/BUILD.gn | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/toolchain/linux/BUILD.gn b/toolchain/linux/BUILD.gn
+index 697247abc..0f443a044 100644
+--- a/toolchain/linux/BUILD.gn
++++ b/toolchain/linux/BUILD.gn
+@@ -297,6 +297,13 @@ gcc_toolchain("mips64el") {
+   }
+ }
+ 
++clang_toolchain("clang_riscv64") {
++  toolchain_args = {
++    target_cpu = "riscv64"
++    current_os = "linux"
++  }
++}
++
+ gcc_toolchain("riscv64") {
+   toolprefix = "riscv64-linux-gnu"
+ 

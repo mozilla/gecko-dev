@@ -1,0 +1,36 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt6 - (mirror) 85b5cef7ef21 r=ng
+
+(skip-generation)
+
+Depends on D149819
+
+Differential Revision: https://phabricator.services.mozilla.com/D149820
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c86e44f4c5b143b421ea6b3267f545958ceeec4c
+---
+ win/BUILD.gn | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/win/BUILD.gn b/win/BUILD.gn
+index d449f5925..47773498e 100644
+--- a/win/BUILD.gn
++++ b/win/BUILD.gn
+@@ -2,6 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++import("//webrtc.gni")
+ import("//build/config/clang/clang.gni")
+ import("//build/config/sanitizers/sanitizers.gni")
+ import("//build/config/win/manifest.gni")
+@@ -16,7 +17,8 @@ windows_manifest("default_exe_manifest") {
+   ]
+ }
+ 
+-if (is_win) {
++build_with_mozilla = false
++if (is_win && !build_with_mozilla) {
+   assert(host_os != "mac" || target_cpu != "x86",
+          "Windows cross-builds from Mac must be 64-bit.")
+ 

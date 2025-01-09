@@ -1,0 +1,24 @@
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Wed, 18 Jan 2023 19:57:00 +0000
+Subject: Bug 1795993 - P0 - revert upstream change from SSE2 to SSE3 in
+ WebRTC;r=mjf
+
+Differential Revision: https://phabricator.services.mozilla.com/D161201
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/66f4374c461fe27b167062a09f676c5de73e058c
+---
+ config/compiler/BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+index b4a7a5efa..a1293bc43 100644
+--- a/config/compiler/BUILD.gn
++++ b/config/compiler/BUILD.gn
+@@ -891,7 +891,7 @@ config("compiler_cpu_abi") {
+       if (!is_nacl) {
+         cflags += [
+           "-mfpmath=sse",
+-          "-msse3",
++          "-msse2",
+         ]
+       }
+     } else if (target_cpu == "arm") {

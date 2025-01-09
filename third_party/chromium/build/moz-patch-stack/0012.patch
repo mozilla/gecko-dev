@@ -1,0 +1,36 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt13 - (mirror) 1c42d3204891 r=ng
+
+(skip-generation)
+
+Depends on D149826
+
+Differential Revision: https://phabricator.services.mozilla.com/D149827
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/529a83304a68891f3879535d245586e2f40b6d89
+---
+ toolchain/win/BUILD.gn | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/toolchain/win/BUILD.gn b/toolchain/win/BUILD.gn
+index 03c10be03..cf34007b9 100644
+--- a/toolchain/win/BUILD.gn
++++ b/toolchain/win/BUILD.gn
+@@ -494,7 +494,7 @@ template("win_toolchains") {
+         is_clang = false
+         use_clang_coverage = false
+         current_os = "win"
+-        current_cpu = toolchain_arch
++        current_cpu = "arm64"
+       }
+     }
+   }
+@@ -524,7 +524,7 @@ template("win_toolchains") {
+       }
+       is_clang = true
+       current_os = "win"
+-      current_cpu = toolchain_arch
++      current_cpu = "arm64"
+     }
+   }
+ }

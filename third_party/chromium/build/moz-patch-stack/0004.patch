@@ -1,0 +1,23 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt5 - (mirror) 1a29be9439c1 r=ng
+
+(skip-generation)
+
+Depends on D149818
+
+Differential Revision: https://phabricator.services.mozilla.com/D149819
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/756503e360abbe6979f029c2df86c29b8d9af61f
+---
+ util/LASTCHANGE.committime | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 util/LASTCHANGE.committime
+
+diff --git a/util/LASTCHANGE.committime b/util/LASTCHANGE.committime
+new file mode 100644
+index 000000000..c5633f84f
+--- /dev/null
++++ b/util/LASTCHANGE.committime
+@@ -0,0 +1 @@
++1597352396
+\ No newline at end of file

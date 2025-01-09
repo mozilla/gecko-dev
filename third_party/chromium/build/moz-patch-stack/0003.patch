@@ -1,0 +1,23 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt4 - (mirror) 9314046d89eb r=ng
+
+(skip-generation)
+
+Depends on D149817
+
+Differential Revision: https://phabricator.services.mozilla.com/D149818
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3a2609eb057851c69600f9fbcc088ba23c08ac73
+---
+ config/gclient_args.gni | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 config/gclient_args.gni
+
+diff --git a/config/gclient_args.gni b/config/gclient_args.gni
+new file mode 100644
+index 000000000..fa77ecc6d
+--- /dev/null
++++ b/config/gclient_args.gni
+@@ -0,0 +1 @@
++# Generated from 'DEPS'
+\ No newline at end of file

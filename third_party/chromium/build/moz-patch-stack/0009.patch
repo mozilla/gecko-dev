@@ -1,0 +1,36 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt10 - (mirror) a26d44969a83 r=ng
+
+(skip-generation)
+
+Depends on D149823
+
+Differential Revision: https://phabricator.services.mozilla.com/D149824
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1cdf94de5db5e884d57939defae73a9df4c19293
+---
+ config/linux/BUILD.gn | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/config/linux/BUILD.gn b/config/linux/BUILD.gn
+index 2bdd08fc4..863114e58 100644
+--- a/config/linux/BUILD.gn
++++ b/config/linux/BUILD.gn
+@@ -2,6 +2,8 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++import("../../../webrtc.gni")
++
+ import("//build/config/c++/c++.gni")
+ import("//build/config/chromeos/ui_mode.gni")
+ import("//build/config/linux/pkg_config.gni")
+@@ -39,7 +41,7 @@ config("runtime_library") {
+ 
+   if ((!(is_chromeos_ash || is_chromeos_lacros) ||
+        default_toolchain != "//build/toolchain/cros:target") &&
+-      (!use_custom_libcxx || current_cpu == "mipsel")) {
++      (!use_custom_libcxx || current_cpu == "mipsel") && !build_with_mozilla) {
+     libs = [ "atomic" ]
+   }
+ }

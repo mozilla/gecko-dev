@@ -1,0 +1,30 @@
+From: Ryan VanderMeulen <ryanvm@gmail.com>
+Date: Tue, 20 Feb 2024 14:10:00 +0000
+Subject: Bug 1822171 - Remove android_support dependency from libwebrtc.
+ r=webrtc-reviewers,mjf
+
+Differential Revision: https://phabricator.services.mozilla.com/D202075
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f5c9cd6cc881ec024c419b3aa071ac933ef5eabe
+---
+ config/android/BUILD.gn | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/config/android/BUILD.gn b/config/android/BUILD.gn
+index a77a628be..85d27ea89 100644
+--- a/config/android/BUILD.gn
++++ b/config/android/BUILD.gn
+@@ -89,14 +89,6 @@ config("runtime_library") {
+ 
+   libs = []
+ 
+-  # On 64-bit platforms, the only symbols provided by libandroid_support.a are
+-  # strto{d,f,l,ul}_l. These symbols are not used by our libc++, and newer NDKs
+-  # don't provide a libandroid_support.a on 64-bit platforms, so we only depend
+-  # on this library on 32-bit platforms.
+-  if (target_cpu == "arm" || target_cpu == "x86") {
+-    libs += [ "android_support" ]
+-  }
+-
+   # arm builds of libc++ starting in NDK r12 depend on unwind.
+   if (target_cpu == "arm") {
+     libs += [ "unwind" ]

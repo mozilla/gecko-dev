@@ -1,0 +1,42 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 1 Oct 2024 21:05:00 +0000
+Subject: Bug 1921706 - remove unnecessary Mozilla mods to
+ third_party/libwebrtc/build/win/BUILD.gn r=ng,webrtc-reviewers DONTBUILD
+
+Note: this produces no changes in the generated moz.build files.
+
+moz-central commit 85b5cef7ef21 (Bug 1654112 - Add check for mozilla build that was in the previous import, restore changes)
+readded changes to third_party/libwebrtc/build/win/BUILD.gn that are not needed.
+
+The include of webrtc.gni was originally added to reference our build_with_mozilla
+flag, but then in same change we set build_with_mozilla back to false meaning we
+never really needed the changes here at all.
+
+Differential Revision: https://phabricator.services.mozilla.com/D224068
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e4b7dbca00cb88d30f45700c32fbbe12d7185833
+---
+ win/BUILD.gn | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/win/BUILD.gn b/win/BUILD.gn
+index d41e55dcb..66f86d3f7 100644
+--- a/win/BUILD.gn
++++ b/win/BUILD.gn
+@@ -2,7 +2,6 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-import("//webrtc.gni")
+ import("//build/config/clang/clang.gni")
+ import("//build/config/sanitizers/sanitizers.gni")
+ import("//build/config/win/manifest.gni")
+@@ -17,8 +16,7 @@ windows_manifest("default_exe_manifest") {
+   ]
+ }
+ 
+-build_with_mozilla = false
+-if (is_win && !build_with_mozilla) {
++if (is_win) {
+ #  assert(host_os != "mac" || target_cpu != "x86",
+ #         "Windows cross-builds from Mac must be 64-bit.")
+ 

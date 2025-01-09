@@ -1,0 +1,27 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt9 - (mirror) 8b33eb369e9e r=ng
+
+(skip-generation)
+
+Depends on D149822
+
+Differential Revision: https://phabricator.services.mozilla.com/D149823
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/99575d260702afb300459d1bb5c23da1175a970a
+---
+ config/win/BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/config/win/BUILD.gn b/config/win/BUILD.gn
+index 59caa7b42..5da49a9a5 100644
+--- a/config/win/BUILD.gn
++++ b/config/win/BUILD.gn
+@@ -267,7 +267,7 @@ config("runtime_library") {
+ # manually override this config for their compiles.
+ config("winver") {
+   defines = [
+-    "NTDDI_VERSION=NTDDI_WIN10_VB",
++    "NTDDI_VERSION=0x0A000000",
+ 
+     # We can't say `=_WIN32_WINNT_WIN10` here because some files do
+     # `#if WINVER < 0x0600` without including windows.h before,

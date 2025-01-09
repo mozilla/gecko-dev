@@ -1,0 +1,29 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt11 - (mirror) 10bf2e8788d8 r=ng
+
+(skip-generation)
+
+Depends on D149824
+
+Differential Revision: https://phabricator.services.mozilla.com/D149825
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/953d7939aa46a1931c2f53477527e2e7ea2c8960
+---
+ build_config.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/build_config.h b/build_config.h
+index daf51ff9a..584b22a12 100644
+--- a/build_config.h
++++ b/build_config.h
+@@ -197,6 +197,10 @@
+ #define ARCH_CPU_32_BITS 1
+ #define ARCH_CPU_BIG_ENDIAN 1
+ #endif
++#elif defined(__riscv) && __riscv_xlen == 64
++#define ARCH_CPU_RISCV64 1
++#define ARCH_CPU_64_BITS 1
++#define ARCH_CPU_LITTLE_ENDIAN 1
+ #else
+ #error Please add support for your architecture in build/build_config.h
+ #endif

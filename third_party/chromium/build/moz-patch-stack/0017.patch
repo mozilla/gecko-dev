@@ -1,0 +1,90 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt18 - (mirror) (cherry-pick) glandium's D149205.patch
+ r=ng
+
+Depends on D149831
+
+Differential Revision: https://phabricator.services.mozilla.com/D149832
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3a785d486d97fc9cb263eafb0fe8f2148fc0b101
+---
+ config/BUILDCONFIG.gn                | 4 ++--
+ config/mac/mac_sdk.gni               | 6 +++---
+ config/rust.gni                      | 4 ++--
+ config/win/visual_studio_version.gni | 2 +-
+ win/BUILD.gn                         | 4 ++--
+ 5 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/config/BUILDCONFIG.gn b/config/BUILDCONFIG.gn
+index 4d7d4f103..571ae5f0d 100644
+--- a/config/BUILDCONFIG.gn
++++ b/config/BUILDCONFIG.gn
+@@ -234,8 +234,8 @@ if (target_os == "android") {
+ } else if (target_os == "ios") {
+   _default_toolchain = "//build/toolchain/ios:ios_clang_$target_cpu"
+ } else if (target_os == "mac") {
+-  assert(host_os == "mac" || host_os == "linux",
+-         "Mac cross-compiles are unsupported.")
++  #assert(host_os == "mac" || host_os == "linux",
++  #       "Mac cross-compiles are unsupported.")
+   _default_toolchain = "//build/toolchain/mac:clang_$target_cpu"
+ } else if (target_os == "win") {
+   # On Windows, we use the same toolchain for host and target by default.
+diff --git a/config/mac/mac_sdk.gni b/config/mac/mac_sdk.gni
+index 19aa06674..6671893ae 100644
+--- a/config/mac/mac_sdk.gni
++++ b/config/mac/mac_sdk.gni
+@@ -89,9 +89,9 @@ if (use_system_xcode && use_goma) {
+ }
+ sdk_info_args += [ mac_sdk_name ]
+ 
+-_mac_sdk_result = exec_script(script_name, sdk_info_args, "scope")
+-xcode_version = _mac_sdk_result.xcode_version
+-xcode_build = _mac_sdk_result.xcode_build
++#_mac_sdk_result = exec_script(script_name, sdk_info_args, "scope")
++#xcode_version = _mac_sdk_result.xcode_version
++#xcode_build = _mac_sdk_result.xcode_build
+ if (mac_sdk_path == "" && use_system_xcode && use_goma) {
+   mac_sdk_path = _mac_sdk_result.sdk_path
+ }
+diff --git a/config/rust.gni b/config/rust.gni
+index f612dc124..5ff90e6d1 100644
+--- a/config/rust.gni
++++ b/config/rust.gni
+@@ -73,8 +73,8 @@ if (use_unverified_rust_toolchain) {
+   rust_prefix = "$rust_bin_dir/"
+ } else if (toolchain_has_official_rust) {
+   if (host_os != "linux") {
+-    assert(false,
+-           "Attempt to use standard Rust toolchain on an unsupported platform")
++#     assert(false,
++#            "Attempt to use standard Rust toolchain on an unsupported platform")
+   }
+   rust_prefix =
+       rebase_path("//third_party/android_rust_toolchain/toolchain/1.54.0/bin/")
+diff --git a/config/win/visual_studio_version.gni b/config/win/visual_studio_version.gni
+index 982fbe8d3..80eb0355c 100644
+--- a/config/win/visual_studio_version.gni
++++ b/config/win/visual_studio_version.gni
+@@ -35,5 +35,5 @@ if (visual_studio_path == "") {
+          "You must set the visual_studio_version if you set the path")
+   assert(wdk_path != "",
+          "You must set the wdk_path if you set the visual studio path")
+-  visual_studio_runtime_dirs = []
++  visual_studio_runtime_dirs = ""
+ }
+diff --git a/win/BUILD.gn b/win/BUILD.gn
+index 55b5c746b..d41e55dcb 100644
+--- a/win/BUILD.gn
++++ b/win/BUILD.gn
+@@ -19,8 +19,8 @@ windows_manifest("default_exe_manifest") {
+ 
+ build_with_mozilla = false
+ if (is_win && !build_with_mozilla) {
+-  assert(host_os != "mac" || target_cpu != "x86",
+-         "Windows cross-builds from Mac must be 64-bit.")
++#  assert(host_os != "mac" || target_cpu != "x86",
++#         "Windows cross-builds from Mac must be 64-bit.")
+ 
+   action("copy_cdb_to_output") {
+     script = "//build/win/copy_cdb_to_output.py"

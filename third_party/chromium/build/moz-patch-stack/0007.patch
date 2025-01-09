@@ -1,0 +1,32 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt8 - (mirror) dc3478ddac7c r=ng
+
+(skip-generation)
+
+Depends on D149821
+
+Differential Revision: https://phabricator.services.mozilla.com/D149822
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9444d12972cebe7d8f805a6e7a81308c063fd91d
+---
+ config/BUILD.gn | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/config/BUILD.gn b/config/BUILD.gn
+index b51e3b9ce..9c82a4d9b 100644
+--- a/config/BUILD.gn
++++ b/config/BUILD.gn
+@@ -114,10 +114,11 @@ config("feature_flags") {
+ 
+ config("debug") {
+   defines = [
+-    "_DEBUG",
+     "DYNAMIC_ANNOTATIONS_ENABLED=1",
+   ]
+-
++  if (!is_win) {
++   defines += [ "_DEBUG" ]
++  }
+   if (is_nacl) {
+     defines += [ "DYNAMIC_ANNOTATIONS_PREFIX=NACL_" ]
+   }

@@ -1,0 +1,27 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 20 Jun 2022 22:34:00 +0000
+Subject: Bug 1775143 - pt12 - (mirror) 0391681090bb r=ng
+
+(skip-generation)
+
+Depends on D149825
+
+Differential Revision: https://phabricator.services.mozilla.com/D149826
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/75a76abe648ad8bdb9ea858a673bf99a4ec9eb20
+---
+ vs_toolchain.py | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/vs_toolchain.py b/vs_toolchain.py
+index ecf0971ab..55372ba3a 100755
+--- a/vs_toolchain.py
++++ b/vs_toolchain.py
+@@ -566,6 +566,8 @@ def main():
+   if len(sys.argv) < 2 or sys.argv[1] not in commands:
+     print('Expected one of: %s' % ', '.join(commands), file=sys.stderr)
+     return 1
++  if sys.argv[1] == 'copy_dlls':
++    return 0
+   return commands[sys.argv[1]](*sys.argv[2:])
+ 
+ 
