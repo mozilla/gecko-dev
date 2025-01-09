@@ -11,6 +11,7 @@ import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
+import org.mozilla.fenix.customannotations.DetectLeaks
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingResources
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
@@ -25,6 +26,7 @@ import org.mozilla.fenix.helpers.TestHelper.longTapSelectItem
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestSetup
+import org.mozilla.fenix.helpers.perf.DetectMemoryLeaksRule
 import org.mozilla.fenix.ui.robots.bookmarksMenu
 import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.homeScreen
@@ -47,7 +49,10 @@ class BookmarksTest : TestSetup() {
             HomeActivityIntentTestRule.withDefaultSettingsOverrides(),
         ) { it.activity }
 
-    @Rule(order = 1)
+    @get:Rule(order = 1)
+    val memoryLeaksRule = DetectMemoryLeaksRule()
+
+    @Rule(order = 2)
     @JvmField
     val retryTestRule = RetryTestRule(3)
 
@@ -710,6 +715,7 @@ class BookmarksTest : TestSetup() {
     // Verifies that deleting a Bookmarks folder also removes the item from inside it.
     @SmokeTest
     @Test
+    @DetectLeaks
     fun deleteBookmarkFoldersTest() {
         val website = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
