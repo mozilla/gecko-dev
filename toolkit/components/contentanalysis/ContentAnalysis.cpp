@@ -445,6 +445,14 @@ static nsresult ConvertToProtobuf(
   if (!urlString.IsEmpty()) {
     requestData->set_url(urlString.get());
   }
+  RefPtr<dom::WindowGlobalParent> windowGlobal;
+  rv = aIn->GetWindowGlobalParent(getter_AddRefs(windowGlobal));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (windowGlobal) {
+    nsString title;
+    windowGlobal->GetDocumentTitle(title);
+    requestData->set_tab_title(NS_ConvertUTF16toUTF8(title).get());
+  }
 
   nsString email;
   rv = aIn->GetEmail(email);
