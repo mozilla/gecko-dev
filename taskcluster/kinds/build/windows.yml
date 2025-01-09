@@ -988,7 +988,7 @@ win64-ccov/opt:
     fetches:
         toolchain:
             - win64-clang
-            - win64-rust-1.83
+            - win64-rust
             - win64-rust-size
             - win64-cbindgen
             - win64-grcov
@@ -1038,7 +1038,7 @@ win64-fuzzing-ccov/opt:
     fetches:
         toolchain:
             - win64-clang
-            - win64-rust-1.83
+            - win64-rust
             - win64-rust-size
             - win64-cbindgen
             - win64-grcov
