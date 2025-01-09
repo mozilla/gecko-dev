@@ -15,7 +15,7 @@ add_setup(async function () {
 add_task(async function testMigrationForDeleteOnClose() {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
       ["privacy.sanitize.sanitizeOnShutdown", false],
       ["privacy.clearOnShutdown_v2.cookiesAndStorage", true],
       ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", true],
@@ -86,18 +86,26 @@ add_task(async function testOldPrefRemoval() {
     set: [
       ["privacy.clearOnShutdown.history", true],
       ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", false],
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
-      ["privacy.sanitize.cpd.hasMigratedToNewPrefs2", false],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
+      ["privacy.sanitize.cpd.hasMigratedToNewPrefs3", false],
     ],
   });
 
-  // Add the old pref to indicate that a migration was done before
+  // Add the old prefs to indicate that a migration was done before
   Services.prefs.setBoolPref(
     "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs",
     true
   );
   Services.prefs.setBoolPref(
     "privacy.sanitize.cpd.hasMigratedToNewPrefs",
+    true
+  );
+  Services.prefs.setBoolPref(
+    "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2",
+    true
+  );
+  Services.prefs.setBoolPref(
+    "privacy.sanitize.cpd.hasMigratedToNewPrefs2",
     true
   );
 
@@ -115,6 +123,20 @@ add_task(async function testOldPrefRemoval() {
     "Old migration pref should exist"
   );
 
+  is(
+    Services.prefs.getPrefType(
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+    ),
+    Services.prefs.PREF_BOOL,
+    "Old migration pref should exist"
+  );
+
+  is(
+    Services.prefs.getPrefType("privacy.sanitize.cpd.hasMigratedToNewPrefs2"),
+    Services.prefs.PREF_BOOL,
+    "Old migration pref should exist"
+  );
+
   Sanitizer.maybeMigratePrefs("clearOnShutdown");
 
   is(
@@ -125,9 +147,17 @@ add_task(async function testOldPrefRemoval() {
     "Old clearonshutdown migration pref should not exist anymore"
   );
 
+  is(
+    Services.prefs.getPrefType(
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+    ),
+    Services.prefs.PREF_BOOL,
+    "Old clearonshutdown migration pref should still exist"
+  );
+
   ok(
     Services.prefs.getBoolPref(
-      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3"
     ),
     "Migration should be reflected on new clearonshutdown pref"
   );
@@ -147,8 +177,14 @@ add_task(async function testOldPrefRemoval() {
     "old cpd migration pref should not exist anymore"
   );
 
+  is(
+    Services.prefs.getPrefType("privacy.sanitize.cpd.hasMigratedToNewPrefs2"),
+    Services.prefs.PREF_BOOL,
+    "old cpd migration pref should still exist"
+  );
+
   ok(
-    Services.prefs.getBoolPref("privacy.sanitize.cpd.hasMigratedToNewPrefs2"),
+    Services.prefs.getBoolPref("privacy.sanitize.cpd.hasMigratedToNewPrefs3"),
     "Migration should be reflected on new cpd pref"
   );
 });
@@ -160,7 +196,7 @@ add_task(async function testMigrationOfCacheAndSiteSettings() {
       ["privacy.clearOnShutdown.siteSettings", true],
       ["privacy.clearOnShutdown_v2.cache", false],
       ["privacy.clearOnShutdown_v2.siteSettings", false],
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
     ],
   });
 
@@ -185,7 +221,7 @@ add_task(async function testMigrationOfCacheAndSiteSettings() {
 
   ok(
     Services.prefs.getBoolPref(
-      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3"
     ),
     "migration pref has been flipped"
   );
@@ -197,7 +233,7 @@ add_task(async function testHistoryAndFormData_historyTrue() {
       ["privacy.clearOnShutdown.history", true],
       ["privacy.clearOnShutdown.formdata", false],
       ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", false],
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
     ],
   });
 
@@ -220,19 +256,19 @@ add_task(async function testHistoryAndFormData_historyTrue() {
 
   ok(
     Services.prefs.getBoolPref(
-      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3"
     ),
     "migration pref has been flipped"
   );
 });
 
-add_task(async function testHistoryAndFormData_historyFalse() {
+add_task(async function testHistoryAndDownloads_historyFalse() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.clearOnShutdown.history", false],
       ["privacy.clearOnShutdown.formdata", true],
       ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", true],
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
     ],
   });
 
@@ -242,7 +278,7 @@ add_task(async function testHistoryAndFormData_historyFalse() {
     !Services.prefs.getBoolPref(
       "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
     ),
-    "browsingHistoryAndDownloads should be set to true"
+    "browsingHistoryAndDownloads should be set to false"
   );
   ok(
     !Services.prefs.getBoolPref("privacy.clearOnShutdown.history"),
@@ -255,7 +291,37 @@ add_task(async function testHistoryAndFormData_historyFalse() {
 
   ok(
     Services.prefs.getBoolPref(
-      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3"
+    ),
+    "migration pref has been flipped"
+  );
+});
+
+add_task(async function testFormData_historyFalse() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["privacy.clearOnShutdown_v2.historyFormDataAndDownloads", false],
+      ["privacy.clearOnShutdown_v2.formData", true],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
+    ],
+  });
+
+  Sanitizer.runSanitizeOnShutdown();
+
+  ok(
+    !Services.prefs.getBoolPref(
+      "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+    ),
+    "historyFormDataAndDownloads should still be false"
+  );
+  ok(
+    Services.prefs.getBoolPref("privacy.clearOnShutdown_v2.formData"),
+    "old history pref should be set to true"
+  );
+
+  ok(
+    Services.prefs.getBoolPref(
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3"
     ),
     "migration pref has been flipped"
   );
@@ -268,7 +334,7 @@ add_task(async function testCookiesAndStorage_cookiesFalse() {
       ["privacy.clearOnShutdown.offlineApps", true],
       ["privacy.clearOnShutdown.sessions", true],
       ["privacy.clearOnShutdown_v2.cookiesAndStorage", true],
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
     ],
   });
 
@@ -294,7 +360,7 @@ add_task(async function testCookiesAndStorage_cookiesFalse() {
 
   ok(
     Services.prefs.getBoolPref(
-      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3"
     ),
     "migration pref has been flipped"
   );
@@ -307,7 +373,7 @@ add_task(async function testCookiesAndStorage_cookiesTrue() {
       ["privacy.clearOnShutdown.offlineApps", false],
       ["privacy.clearOnShutdown.sessions", false],
       ["privacy.clearOnShutdown_v2.cookiesAndStorage", false],
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
     ],
   });
 
@@ -332,7 +398,7 @@ add_task(async function testCookiesAndStorage_cookiesTrue() {
 
   ok(
     Services.prefs.getBoolPref(
-      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3"
     ),
     "migration pref has been flipped"
   );
@@ -345,7 +411,7 @@ add_task(async function testMigrationDoesNotRepeat() {
       ["privacy.clearOnShutdown.offlineApps", false],
       ["privacy.clearOnShutdown.sessions", false],
       ["privacy.clearOnShutdown_v2.cookiesAndStorage", false],
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", true],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", true],
     ],
   });
 
@@ -371,7 +437,7 @@ add_task(async function testMigrationDoesNotRepeat() {
 
   ok(
     Services.prefs.getBoolPref(
-      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2"
+      "privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3"
     ),
     "migration pref has been flipped"
   );
@@ -388,7 +454,7 @@ add_task(async function ensureNoOldPrefsAreEffectedByMigration() {
       ["privacy.clearOnShutdown.siteSettings", true],
       ["privacy.clearOnShutdown.cache", true],
       ["privacy.clearOnShutdown_v2.cookiesAndStorage", false],
-      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
+      ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs3", false],
     ],
   });
 
