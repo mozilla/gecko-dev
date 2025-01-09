@@ -8,6 +8,7 @@
 #include "HTMLEditorInlines.h"
 
 #include "AutoRangeArray.h"
+#include "AutoSelectionRestorer.h"
 #include "CSSEditUtils.h"
 #include "EditAction.h"
 #include "EditorBase.h"
@@ -5049,7 +5050,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void HTMLEditor::ContentWillBeRemoved(
       return;
     }
 
-    nsresult rv = OnDocumentModified();
+    nsresult rv = OnDocumentModified(aChild);
     if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
       return;
     }
@@ -7723,30 +7724,20 @@ already_AddRefed<Element> HTMLEditor::GetInputEventTargetElement() const {
   return nullptr;
 }
 
-nsresult HTMLEditor::OnModifyDocument() {
+nsresult HTMLEditor::OnModifyDocument(const DocumentModifiedEvent& aRunner) {
   MOZ_ASSERT(mPendingDocumentModifiedRunner,
              "HTMLEditor::OnModifyDocument() should be called via a runner");
+  MOZ_ASSERT(&aRunner == mPendingDocumentModifiedRunner);
   mPendingDocumentModifiedRunner = nullptr;
 
-  if (IsEditActionDataAvailable()) {
-    return OnModifyDocumentInternal();
+  Maybe<AutoEditActionDataSetter> editActionData;
+  if (!IsEditActionDataAvailable()) {
+    editActionData.emplace(*this,
+                           EditAction::eCreatePaddingBRElementForEmptyEditor);
+    if (NS_WARN_IF(!editActionData->CanHandle())) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
   }
-
-  AutoEditActionDataSetter editActionData(
-      *this, EditAction::eCreatePaddingBRElementForEmptyEditor);
-  if (NS_WARN_IF(!editActionData.CanHandle())) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  nsresult rv = OnModifyDocumentInternal();
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "HTMLEditor::OnModifyDocumentInternal() failed");
-  return rv;
-}
-
-nsresult HTMLEditor::OnModifyDocumentInternal() {
-  MOZ_ASSERT(IsEditActionDataAvailable());
-  MOZ_ASSERT(!mPendingDocumentModifiedRunner);
 
   // EnsureNoPaddingBRElementForEmptyEditor() below may cause a flush, which
   // could destroy the editor
@@ -7792,6 +7783,48 @@ nsresult HTMLEditor::OnModifyDocumentInternal() {
     }
   }
 
+  // If padding <br> element which made preceding collapsible ASCII white-space
+  // visible was removed by web app, we need to replace the white-space with
+  // an NBSP to make it keep visible until bug 503838 is fixed.
+  if (!aRunner.NewInvisibleWhiteSpacesRef().IsEmpty()) {
+    AutoSelectionRestorer restoreSelection(this);
+    bool doRestoreSelection = false;
+    for (const EditorDOMPointInText& atCollapsibleWhiteSpace :
+         aRunner.NewInvisibleWhiteSpacesRef()) {
+      if (!atCollapsibleWhiteSpace.IsInComposedDoc() ||
+          !atCollapsibleWhiteSpace.IsAtLastContent() ||
+          !HTMLEditUtils::IsSimplyEditableNode(
+              *atCollapsibleWhiteSpace.ContainerAs<Text>()) ||
+          !atCollapsibleWhiteSpace.IsCharCollapsibleASCIISpace()) {
+        continue;
+      }
+      const Element* const editingHost =
+          atCollapsibleWhiteSpace.ContainerAs<Text>()->GetEditingHost();
+      MOZ_ASSERT(editingHost);
+      const WSScanResult nextThing =
+          WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
+              editingHost,
+              atCollapsibleWhiteSpace.AfterContainer<EditorRawDOMPoint>(),
+              BlockInlineCheck::UseComputedDisplayStyle);
+      if (!nextThing.ReachedBlockBoundary()) {
+        continue;
+      }
+      Result<InsertTextResult, nsresult> replaceToNBSPResultOrError =
+          ReplaceTextWithTransaction(
+              MOZ_KnownLive(*atCollapsibleWhiteSpace.ContainerAs<Text>()),
+              atCollapsibleWhiteSpace.Offset(), 1u, u"\xA0"_ns);
+      if (MOZ_UNLIKELY(replaceToNBSPResultOrError.isErr())) {
+        NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
+        continue;
+      }
+      doRestoreSelection = true;
+      replaceToNBSPResultOrError.unwrap().IgnoreCaretPointSuggestion();
+    }
+    if (!doRestoreSelection) {
+      restoreSelection.Abort();
+    }
+  }
+
   // Delete our padding <br> element for empty editor, if we have one, since
   // the document might not be empty any more.
   nsresult rv = EnsureNoPaddingBRElementForEmptyEditor();
@@ -7812,6 +7845,51 @@ nsresult HTMLEditor::OnModifyDocumentInternal() {
       "EditorBase::MaybeCreatePaddingBRElementForEmptyEditor() failed");
 
   return rv;
+}
+
+/*****************************************************************************
+ * mozilla::HTMLEditor::DocumentModifiedEvent
+ *****************************************************************************/
+
+void HTMLEditor::DocumentModifiedEvent::MaybeAppendNewInvisibleWhiteSpace(
+    const nsIContent* aContentWillBeRemoved) {
+  // If the web app deletes a padding `<br>` which is required for the previous
+  // collapsible white-space, we need to replace the collapsible white-space
+  // with an NBSP until bug 503838 gets fixed.  For here, we should just store
+  // the candidate white-space which becomes invisible.
+  // FIXME: This does not work well if a padding `<br>` is removed with its
+  // parent.
+  if (!aContentWillBeRemoved || !aContentWillBeRemoved->IsInComposedDoc() ||
+      !HTMLEditUtils::IsSimplyEditableNode(*aContentWillBeRemoved) ||
+      !aContentWillBeRemoved->IsHTMLElement(nsGkAtoms::br)) {
+    return;
+  }
+  const Element* const editingHost =
+      const_cast<nsIContent*>(aContentWillBeRemoved)->GetEditingHost();
+  MOZ_ASSERT(editingHost);
+  const WSScanResult nextThing =
+      WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
+          editingHost, EditorRawDOMPoint::After(*aContentWillBeRemoved),
+          BlockInlineCheck::UseComputedDisplayStyle);
+  if (!nextThing.ReachedBlockBoundary()) {
+    return;
+  }
+  const WSScanResult previousThing =
+      WSRunScanner::ScanPreviousVisibleNodeOrBlockBoundary(
+          editingHost, EditorRawDOMPoint(aContentWillBeRemoved),
+          BlockInlineCheck::UseComputedDisplayOutsideStyle);
+  if (!previousThing.ContentIsText() || !previousThing.IsContentEditable()) {
+    return;
+  }
+  const auto atCollapsibleWhiteSpace =
+      previousThing.PointAtReachedContent<EditorRawDOMPoint>();
+  MOZ_ASSERT(atCollapsibleWhiteSpace.IsAtLastContent());
+  if (!atCollapsibleWhiteSpace.IsCharCollapsibleASCIISpace()) {
+    return;
+  }
+  mNewInvisibleWhiteSpaces.AppendElement(
+      EditorDOMPointInText(atCollapsibleWhiteSpace.ContainerAs<Text>(),
+                           atCollapsibleWhiteSpace.Offset()));
 }
 
 }  // namespace mozilla

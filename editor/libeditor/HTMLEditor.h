@@ -1028,12 +1028,37 @@ class HTMLEditor final : public EditorBase,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   SetPositionToStatic(Element& aElement);
 
+  class DocumentModifiedEvent final : public Runnable {
+   public:
+    explicit DocumentModifiedEvent(HTMLEditor& aHTMLEditor)
+        : Runnable("DocumentModifiedEvent"), mHTMLEditor(aHTMLEditor) {}
+
+    MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() {
+      Unused << MOZ_KnownLive(mHTMLEditor)->OnModifyDocument(*this);
+      return NS_OK;
+    }
+
+    const nsTArray<EditorDOMPointInText>& NewInvisibleWhiteSpacesRef() const {
+      return mNewInvisibleWhiteSpaces;
+    }
+
+    void MaybeAppendNewInvisibleWhiteSpace(
+        const nsIContent* aContentWillBeRemoved);
+
+   private:
+    ~DocumentModifiedEvent() = default;
+
+    const OwningNonNull<HTMLEditor> mHTMLEditor;
+    nsTArray<EditorDOMPointInText> mNewInvisibleWhiteSpaces;
+  };
+
   /**
    * OnModifyDocument() is called when the editor is changed.  This should
-   * be called only by runnable in HTMLEditor::OnDocumentModified() to call
-   * HTMLEditor::OnModifyDocument() with AutoEditActionDataSetter instance.
+   * be called only by DocumentModifiedEvent when AutoEditActionDataSetter
+   * instance is in the stack.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult OnModifyDocument();
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  OnModifyDocument(const DocumentModifiedEvent& aRunner);
 
   /**
    * DoSplitNode() inserts aNewNode and moves all content before or after
@@ -2763,7 +2788,8 @@ class HTMLEditor final : public EditorBase,
   /**
    * OnDocumentModified() is called when editor content is changed.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult OnDocumentModified();
+  MOZ_CAN_RUN_SCRIPT nsresult
+  OnDocumentModified(const nsIContent* aContentWillBeRemoved = nullptr);
 
  protected:  // Called by helper classes.
   MOZ_CAN_RUN_SCRIPT void OnStartToHandleTopLevelEditSubAction(
@@ -4389,11 +4415,6 @@ class HTMLEditor final : public EditorBase,
                             BlobReader* aBlobReader);
 
   /**
-   * OnModifyDocumentInternal() is called by OnModifyDocument().
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult OnModifyDocumentInternal();
-
-  /**
    * For saving allocation cost in the constructor of
    * EditorBase::TopLevelEditSubActionData, we should reuse same RangeItem
    * instance with all top level edit sub actions.
@@ -4509,7 +4530,7 @@ class HTMLEditor final : public EditorBase,
   mutable RefPtr<nsRange> mChangedRangeForTopLevelEditSubAction;
 
   RefPtr<Runnable> mPendingRootElementUpdatedRunner;
-  RefPtr<Runnable> mPendingDocumentModifiedRunner;
+  RefPtr<DocumentModifiedEvent> mPendingDocumentModifiedRunner;
 
   // mPaddingBRElementForEmptyEditor should be used for placing caret
   // at proper position when editor is empty.
