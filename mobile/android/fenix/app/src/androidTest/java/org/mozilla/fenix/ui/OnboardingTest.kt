@@ -36,7 +36,6 @@ class OnboardingTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2122334
-    @SmokeTest
     @Test
     fun verifyFirstOnboardingCardItemsFunctionalityTest() {
         // Run UI test only on devices with Android version lower than 10
@@ -101,6 +100,7 @@ class OnboardingTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2609732
     @SdkSuppress(minSdkVersion = 29)
+    @SmokeTest
     @Test
     fun verifySetAsDefaultBrowserDialogWhileFirefoxIsNotSetAsDefaultBrowserTest() {
         activityTestRule.activityRule.applySettingsExceptions {
