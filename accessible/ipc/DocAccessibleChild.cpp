@@ -474,7 +474,18 @@ void DocAccessibleChild::MutationEventBatcher::AppendMutationEventData(
   // constraints, we construct batches of mutation event data, limiting our
   // events by number of Accessibles touched.
   MOZ_ASSERT(aAccCount <= kMaxAccsPerMessage,
-             "More accessibles given than can fit in a single batch");
+             "More Accessibles given than can fit in a single batch");
+  MOZ_ASSERT(aAccCount > 0, "Attempting to send an empty mutation event.");
+
+  // Mark a batch and reset the batch count if we hit the exact limit of max
+  // Accessibles per message. This happens somewhat often due to the logic in
+  // InsertIntoIpcTree that attempts to generate perfectly-sized ShowEventData.
+  if (mCurrentBatchAccCount + aAccCount == kMaxAccsPerMessage) {
+    mMutationEventData.AppendElement(std::move(aData));
+    mBatchBoundaries.AppendElement(mMutationEventData.Length());
+    mCurrentBatchAccCount = 0;
+    return;
+  }
 
   // If the latest batch cannot accommodate the number of new Accessibles,
   // create a new batch by marking the batch boundary.
@@ -489,7 +500,9 @@ void DocAccessibleChild::MutationEventBatcher::AppendMutationEventData(
 void DocAccessibleChild::MutationEventBatcher::SendQueuedMutationEvents(
     DocAccessibleChild& aDocAcc) {
   // Set up the final batch boundary at the end of the event data.
-  mBatchBoundaries.AppendElement(mMutationEventData.Length());
+  if (mCurrentBatchAccCount > 0) {
+    mBatchBoundaries.AppendElement(mMutationEventData.Length());
+  }
 
   // Loop over all of the batch boundaries and send the data within.
   size_t batchStartIndex = 0;
