@@ -26,6 +26,8 @@ support-files = [
   "code_math.js",
   "code_no_race.js",
   "doc_backward_forward_navigation.html",
+  "doc_broken_xml.xml",
+  "doc_broken_xml_frame.html",
   "doc_cached-resource.html",
   "doc_cached-resource_iframe.html",
   "doc_empty-tab-01.html",
@@ -141,6 +143,8 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1770314
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1770314
 ]
+
+["browser_toolbox_broken_xml_frame.js"]
 
 ["browser_toolbox_browsertoolbox_host.js"]
 
