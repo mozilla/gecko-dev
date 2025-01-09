@@ -304,11 +304,12 @@ class nsWindow final : public nsBaseWidget {
   /**
    * Event helpers
    */
+  enum class IsNonclient : bool { No = false, Yes = true };
   bool DispatchMouseEvent(mozilla::EventMessage aEventMessage, WPARAM wParam,
                           LPARAM lParam, bool aIsContextMenuKey,
                           int16_t aButton, uint16_t aInputSource,
                           WinPointerInfo* aPointerInfo = nullptr,
-                          bool aIgnoreAPZ = false);
+                          IsNonclient aIgnoreAPZ = IsNonclient::No);
   void DispatchPendingEvents();
   void DispatchCustomEvent(const nsString& eventName);
 
