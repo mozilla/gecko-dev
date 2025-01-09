@@ -670,10 +670,46 @@ static bool TryFastDeleteElementsForNewLength(JSContext* cx,
     return true;
   }
 
-  // We don't support sparse elements yet.
   if (arr->isIndexed()) {
-    *success = false;
-    return true;
+    // This fast path doesn't suppress deleted properties from active iterators.
+    if (arr->compartment()->objectMaybeInIteration(arr)) {
+      *success = false;
+      return true;
+    }
+
+    // First add all sparse indexes we want to remove to a vector and check for
+    // non-configurable elements.
+    JS::RootedVector<PropertyKey> keys(cx);
+    for (ShapePropertyIter<NoGC> iter(arr->shape()); !iter.done(); iter++) {
+      uint32_t index;
+      if (!IdIsIndex(iter->key(), &index)) {
+        continue;
+      }
+      if (index < newLen) {
+        continue;
+      }
+      // Non-configurable elements shouldn't be removed.
+      if (!iter->configurable()) {
+        *success = false;
+        return true;
+      }
+      if (!keys.append(iter->key())) {
+        return false;
+      }
+    }
+
+    // Remove the sparse elements. Note that this starts at the most recently
+    // added property because this is most efficient when removing many
+    // elements.
+    //
+    // The rest of this function must be infallible (other than OOM).
+    for (size_t i = 0, len = keys.length(); i < len; i++) {
+      MOZ_ASSERT(arr->containsPure(keys[i]), "must still be a sparse element");
+      if (!NativeObject::removeProperty(cx, arr, keys[i])) {
+        MOZ_ASSERT(cx->isThrowingOutOfMemory());
+        return false;
+      }
+    }
   }
 
   // Remove dense elements.
