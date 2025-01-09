@@ -6,7 +6,10 @@
     <string name="mozac_tab_counter_open_tab_tray_plural" moz:removedIn="133" tools:ignore="UnusedResources">%1$s lapelas abertas. Toque para cambiar de lapela.</string>
     <!-- Message announced to the user when tab tray is selected
     The %1$s will be replaced by the number of opened tabs -->
-    <string name="mozac_tab_counter_open_tab_tray">Pestanas abertas: %1$s. Toca para cambiar de pestana.</string>
+    <string name="mozac_tab_counter_open_tab_tray" moz:removedIn="136" tools:ignore="UnusedResources">Pestanas abertas: %1$s. Toca para cambiar de pestana.</string>
+    <!-- Message announced to the user when tab tray is selected
+    The %1$s will be replaced by the number of opened tabs -->
+    <string name="mozac_open_tab_counter_tab_tray">Pestanas non privadas abertas: %1$s. Toca para cambiar de pestana.</string>
     <!-- Browser menu button that creates a new tab -->
     <string name="mozac_browser_menu_new_tab">Nova lapela</string>
     <!-- Browser menu button that creates a private tab -->

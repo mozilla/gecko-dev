@@ -45,8 +45,13 @@
     <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->--&gt;
     <string name="mozac_feature_downloads_unable_to_open_third_party_app">%1$s തുറക്കാനായില്ല</string>
 
+    <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
+    <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">ഫയലുകളെ ഇറക്കിവയ്ക്കാൻ ഫയലും മാധ്യമ അനുമതികളുടെ ആവശ്യമുണ്ടു്. ആണ്ട്രോയിടു് ക്രമീകരണങ്ങളിലേക്കു് പോവുക പിന്നെ അനുമതികളുള്ള വിഭാഗത്തിൽ അമൎത്തുക പിന്നെ അനുവദിക്കുക എന്നു് ബട്ടണിൽ അമൎത്തുക. </string>
+
     <!-- Alert dialog confirmation before cancelling downloads, this is the title   -->
     <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">സ്വകാര്യ ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കട്ടെ?</string>
+    <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
+    <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">താങ്ങൾ സ്വകാര്യ തിരച്ചിൽ ടാബുകളെ അടച്ചാൽ %1$s ഇറക്കിവയ്ക്കാലിനെ റദ്ദാക്കണ്ടിവരും. സ്വകാര്യ തിരച്ചിൽ രീതിയില്‍ നിന്നു്  തീര്‍ച്ചയായും പുറത്തേക്കടക്കണോ?</string>
     <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
     <string name="mozac_feature_downloads_cancel_active_downloads_accept">ഇറക്കിവയ്ക്കലുകൾ റദ്ദാക്കുക</string>
     <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
