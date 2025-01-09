@@ -556,6 +556,12 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  if (tag.Language().Length() > 4) {
+    MOZ_ASSERT(cx->global());
+    cx->runtime()->setUseCounter(cx->global(),
+                                 JSUseCounter::LEGACY_LANG_SUBTAG);
+  }
+
   if (auto result = tag.CanonicalizeBaseName(); result.isErr()) {
     if (result.unwrapErr() ==
         mozilla::intl::Locale::CanonicalizationError::DuplicateVariant) {
