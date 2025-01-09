@@ -25,6 +25,18 @@ def early_exit_handler():
         print(error_help)
 
 
+def build_repo_name_from_path(input_dir):
+    # strip off the (probably moz-patch-stack) patch-stack location
+    output_dir = os.path.dirname(os.path.relpath(input_dir))
+
+    # if directory is under third_party (likely), give us the
+    # part after third_party
+    if os.path.commonpath([output_dir, "third_party"]) != "":
+        output_dir = os.path.relpath(output_dir, "third_party")
+
+    return output_dir
+
+
 def save_patch_stack(
     github_path,
     github_branch,
@@ -97,7 +109,9 @@ def save_patch_stack(
             run_hg("hg amend")
         else:
             run_shell(
-                f"hg commit --message 'Bug {bug_number} - updated libwebrtc patch stack'"
+                f"hg commit --message 'Bug {bug_number} - "
+                f"updated {build_repo_name_from_path(patch_directory)} "
+                f"patch stack' {patch_directory}"
             )
 
 
