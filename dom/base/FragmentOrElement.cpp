@@ -1969,9 +1969,7 @@ void FragmentOrElement::SetInnerHTMLInternal(const nsAString& aInnerHTML,
 
   // Remove childnodes.
   nsAutoMutationBatch mb(target, true, false);
-  while (target->HasChildren()) {
-    target->RemoveChildNode(target->GetFirstChild(), true);
-  }
+  target->RemoveAllChildren(true);
   mb.RemovalDone();
 
   nsAutoScriptLoaderDisabler sld(doc);

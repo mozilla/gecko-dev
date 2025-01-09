@@ -5850,9 +5850,7 @@ nsresult nsContentUtils::SetNodeTextContent(nsIContent* aContent,
     }
   } else {
     mb.Init(aContent, true, false);
-    while (aContent->HasChildren()) {
-      aContent->RemoveChildNode(aContent->GetFirstChild(), true);
-    }
+    aContent->RemoveAllChildren(true);
   }
   mb.RemovalDone();
 

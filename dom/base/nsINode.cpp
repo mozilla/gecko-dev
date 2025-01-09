@@ -2303,9 +2303,7 @@ void nsINode::ReplaceChildren(nsINode* aNode, ErrorResult& aRv) {
   nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
 
   // Replace all with node within this.
-  while (mFirstChild) {
-    RemoveChildNode(mFirstChild, true);
-  }
+  RemoveAllChildren(true);
   mb.RemovalDone();
 
   if (aNode) {
@@ -2775,9 +2773,7 @@ nsINode* nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       mozAutoDocUpdate batch(newContent->GetComposedDoc(), true);
       nsAutoMutationBatch mb(newContent, false, true);
 
-      while (newContent->HasChildren()) {
-        newContent->RemoveChildNode(newContent->GetLastChild(), true);
-      }
+      newContent->RemoveAllChildren<BatchRemovalOrder::BackToFront>(true);
     }
 
     // We expect |count| removals
