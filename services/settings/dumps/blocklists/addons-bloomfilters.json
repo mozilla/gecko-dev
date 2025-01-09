@@ -3,6 +3,21 @@
     {
       "stash": {
         "blocked": [
+          "robinhood-nba-scores@citrixereceiver.com:1.0.0",
+          "robinhood-nba-scores@citrixereceiver.com:1.1.0"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1735603204714,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1736166905736,
+      "id": "b99ccd3c-6aea-4144-bffc-a9c9734a5a77",
+      "last_modified": 1736166978010
+    },
+    {
+      "stash": {
+        "blocked": [
           "nba-news-score@itdigitalmedia.site:1.1",
           "nba-news-score@itdigitalmedia.site:1.2",
           "nba-news-score@itdigitalmedia.site:1.3"
@@ -96,5 +111,5 @@
       "last_modified": 1734363061859
     }
   ],
-  "timestamp": 1734978979500
+  "timestamp": 1736166978010
 }
