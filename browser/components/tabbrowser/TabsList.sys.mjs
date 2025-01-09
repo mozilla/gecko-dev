@@ -271,8 +271,10 @@ export class TabsPanel extends TabsListBase {
           this.gBrowser.removeTab(event.target.tab);
           break;
         }
-        if (event.target.classList.contains("all-tabs-group-button")) {
-          this.gBrowser.getTabGroupById(event.target.groupId).select();
+        if ("tabGroupId" in event.target.dataset) {
+          this.gBrowser
+            .getTabGroupById(event.target.dataset.tabGroupId)
+            ?.select();
         }
       // fall through
       default:
@@ -371,11 +373,14 @@ export class TabsPanel extends TabsListBase {
     return row;
   }
 
+  /**
+   * @param {MozTabbrowserTabGroup} group
+   * @returns {XULElement}
+   */
   _createGroupRow(group) {
     let { doc } = this;
     let row = doc.createXULElement("toolbaritem");
     row.setAttribute("class", "all-tabs-item all-tabs-group-item");
-    row.setAttribute("context", "none");
     row.style.setProperty(
       "--tab-group-color",
       `var(--tab-group-color-${group.color})`
@@ -390,14 +395,14 @@ export class TabsPanel extends TabsListBase {
     );
     row.addEventListener("command", this);
     let button = doc.createXULElement("toolbarbutton");
+    button.setAttribute("context", "open-tab-group-context-menu");
+    button.dataset.tabGroupId = group.id;
     button.setAttribute(
       "class",
       "all-tabs-button all-tabs-group-button subviewbutton subviewbutton-iconic"
     );
     button.setAttribute("flex", "1");
     button.setAttribute("crop", "end");
-    button.group = group;
-    button.groupId = group.id;
 
     if (group.label) {
       button.label = group.label;
