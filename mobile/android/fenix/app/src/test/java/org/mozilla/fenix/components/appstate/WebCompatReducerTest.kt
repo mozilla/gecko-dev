@@ -51,7 +51,7 @@ class WebCompatReducerTest {
     }
 
     @Test
-    fun `WHEN the WebCompat report is successfully submitted THEN the snackbar state should be updated and the web compat data should remain the same`() {
+    fun `WHEN the WebCompat report is successfully submitted THEN the snackbar state should be updated and the web compat data should be reset`() {
         val appState = AppState(
             webCompatState = WebCompatState(
                 tabUrl = "www.mozilla.org",
@@ -64,7 +64,7 @@ class WebCompatReducerTest {
 
         val actual = WebCompatReducer.reduce(appState, WebCompatAction.WebCompatReportSent)
 
-        assertEquals(appState.webCompatState, actual.webCompatState)
+        assertEquals(null, actual.webCompatState)
         assertEquals(SnackbarState.WebCompatReportSent, actual.snackbarState)
     }
 }

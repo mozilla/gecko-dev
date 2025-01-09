@@ -31,6 +31,7 @@ internal object WebCompatReducer {
 
         WebCompatAction.WebCompatReportSent -> state.copy(
             snackbarState = SnackbarState.WebCompatReportSent,
+            webCompatState = null,
         )
     }
 }
