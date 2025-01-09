@@ -649,6 +649,52 @@ struct ReverseIndexComparator {
   }
 };
 
+// Fast path to remove all elements with index >= newLen when setting the
+// .length property of an array to a smaller value.
+static bool TryFastDeleteElementsForNewLength(JSContext* cx,
+                                              Handle<ArrayObject*> arr,
+                                              uint32_t newLen, bool* success) {
+  MOZ_ASSERT(newLen < arr->length());
+
+  // If there might be an active for-in iterator for this array we have to use
+  // the generic code path because it supports suppressing deleted properties.
+  // Keys deleted before being reached during the iteration must not be visited.
+  if (arr->denseElementsMaybeInIteration()) {
+    *success = false;
+    return true;
+  }
+
+  // Sealed elements are non-configurable and shouldn't be removed.
+  if (arr->denseElementsAreSealed()) {
+    *success = false;
+    return true;
+  }
+
+  // We don't support sparse elements yet.
+  if (arr->isIndexed()) {
+    *success = false;
+    return true;
+  }
+
+  // Remove dense elements.
+  uint32_t oldCapacity = arr->getDenseCapacity();
+  uint32_t oldInitializedLength = arr->getDenseInitializedLength();
+  MOZ_ASSERT(oldCapacity >= oldInitializedLength);
+  if (oldInitializedLength > newLen) {
+    arr->setDenseInitializedLengthMaybeNonExtensible(cx, newLen);
+  }
+  if (oldCapacity > newLen) {
+    if (arr->isExtensible()) {
+      arr->shrinkElements(cx, newLen);
+    } else {
+      MOZ_ASSERT(arr->getDenseInitializedLength() == arr->getDenseCapacity());
+    }
+  }
+
+  *success = true;
+  return true;
+}
+
 /* ES6 draft rev 34 (2015 Feb 20) 9.4.2.4 ArraySetLength */
 bool js::ArraySetLength(JSContext* cx, Handle<ArrayObject*> arr, HandleId id,
                         Handle<PropertyDescriptor> desc,
@@ -728,41 +774,14 @@ bool js::ArraySetLength(JSContext* cx, Handle<ArrayObject*> arr, HandleId id,
       break;
     }
 
-    // Attempt to propagate dense-element optimization tricks, if possible,
-    // and avoid the generic (and accordingly slow) deletion code below.
-    // We can only do this if there are only densely-indexed elements.
-    // Once there's a sparse indexed element, there's no good way to know,
-    // save by enumerating all the properties to find it.  But we *have* to
-    // know in case that sparse indexed element is non-configurable, as
-    // that element must prevent any deletions below it.  Bug 586842 should
-    // fix this inefficiency by moving indexed storage to be entirely
-    // separate from non-indexed storage.
-    // A second reason for this optimization to be invalid is an active
-    // for..in iteration over the array. Keys deleted before being reached
-    // during the iteration must not be visited, and suppressing them here
-    // would be too costly.
-    // This optimization is also invalid when there are sealed
-    // (non-configurable) elements.
-    if (!arr->isIndexed() && !arr->denseElementsMaybeInIteration() &&
-        !arr->denseElementsAreSealed()) {
-      uint32_t oldCapacity = arr->getDenseCapacity();
-      uint32_t oldInitializedLength = arr->getDenseInitializedLength();
-      MOZ_ASSERT(oldCapacity >= oldInitializedLength);
-      if (oldInitializedLength > newLen) {
-        arr->setDenseInitializedLengthMaybeNonExtensible(cx, newLen);
-      }
-      if (oldCapacity > newLen) {
-        if (arr->isExtensible()) {
-          arr->shrinkElements(cx, newLen);
-        } else {
-          MOZ_ASSERT(arr->getDenseInitializedLength() ==
-                     arr->getDenseCapacity());
-        }
-      }
+    bool success;
+    if (!TryFastDeleteElementsForNewLength(cx, arr, newLen, &success)) {
+      return false;
+    }
 
-      // We've done the work of deleting any dense elements needing
-      // deletion, and there are no sparse elements.  Thus we can skip
-      // straight to defining the length.
+    if (success) {
+      // We've done the work of deleting any elements needing deletion.
+      // Thus we can skip straight to defining the length.
       break;
     }
 
