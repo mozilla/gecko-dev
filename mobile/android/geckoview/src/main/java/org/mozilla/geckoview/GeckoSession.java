@@ -2807,7 +2807,15 @@ public class GeckoSession {
       final GeckoBundle formdata = updateData.getBundle("formdata");
 
       if (history != null) {
-        mState.putBundle("history", history);
+        // when full session history update received, don't bother with partial state update ops.
+        // This is due to the suboptimal array ops in the partial update logic which regresses
+        // thread cpuTime while the legacy bundle operation performs better.
+        if (history.getInt("fromIdx") == -1) {
+          mState.putBundle("history", history);
+        } else {
+          mState.putBundle(
+              "history", getPartiallyUpdatedHistoryChange(history).getBundle("history"));
+        }
       }
 
       if (scroll != null) {
@@ -2819,6 +2827,44 @@ public class GeckoSession {
       }
 
       return;
+    }
+
+    private @NonNull GeckoBundle getPartiallyUpdatedHistoryChange(
+        final @NonNull GeckoBundle update) {
+      final int kLastIndex = Integer.MAX_VALUE - 1;
+      final GeckoBundle historyBundle = new GeckoBundle();
+      final GeckoBundle[] updateHistoryEntries = update.getBundleArray("entries");
+      final int updateFromIdx = update.getInt("fromIdx");
+
+      // start off with an empty session entries array and
+      // then populate it with the updated session entries
+      update.putBundleArray("entries", new GeckoBundle[] {});
+
+      // no need to store fromIdx in the history state bundle as it has nothing to do with it
+      update.remove("fromIdx");
+
+      historyBundle.putBundle("history", update);
+
+      if (updateFromIdx != kLastIndex) {
+        final int start = updateFromIdx + 1;
+        historyBundle
+            .getBundle("history")
+            .putBundleArray("entries", spliceSessionHistory(start, updateHistoryEntries));
+      }
+      return historyBundle;
+    }
+
+    private GeckoBundle[] spliceSessionHistory(final int startIndex, final GeckoBundle[] entries) {
+      final GeckoBundle[] historyEntries = getHistoryEntries();
+      if (historyEntries != null) {
+        // when a partial history update received, delete the session entries starting from
+        // startIndex then append the new session entries to the end.
+        final GeckoBundle[] newHistoryEntries = new GeckoBundle[startIndex + entries.length];
+        System.arraycopy(historyEntries, 0, newHistoryEntries, 0, startIndex);
+        System.arraycopy(entries, 0, newHistoryEntries, startIndex, entries.length);
+        return newHistoryEntries;
+      }
+      return new GeckoBundle[] {};
     }
 
     @Override
@@ -2968,7 +3014,9 @@ public class GeckoSession {
         throw new IllegalStateException("No history state exists.");
       }
 
-      return history.getInt("index") + history.getInt("fromIdx");
+      // The index for the array of session entries is 1-based,
+      // so we subtract 1 to get the current index
+      return history.getInt("index") - 1;
     }
 
     // Some helpers for common code.
