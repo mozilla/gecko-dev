@@ -35,19 +35,12 @@
     <script src="chrome://global/content/customElements.js" />
 
     <commandset id="selectEditMenuItems">
-      <command
-        id="cmd_copy"
-        oncommand="goDoCommand('cmd_copy')"
-        disabled="true"
-      />
-      <command id="cmd_selectAll" oncommand="goDoCommand('cmd_selectAll')" />
+      <command id="cmd_copy" disabled="true" />
+      <command id="cmd_selectAll" />
     </commandset>
 
     <popupset id="contentAreaContextSet">
-      <menupopup
-        id="contentAreaContextMenu"
-        onpopupshowing="goUpdateCommand('cmd_copy')"
-      >
+      <menupopup id="contentAreaContextMenu">
         <menuitem
           id="context-copy"
           data-l10n-id="common-dialog-copy-cmd"
@@ -95,7 +88,7 @@
       <div id="checkboxContainer" class="dialogRow" hidden="hidden">
         <div />
         <!-- spacer -->
-        <xul:checkbox id="checkbox" oncommand="Dialog.onCheckbox()" />
+        <xul:checkbox id="checkbox" />
       </div>
     </div>
   </dialog>
