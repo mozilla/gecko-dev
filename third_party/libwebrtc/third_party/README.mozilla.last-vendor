@@ -1,0 +1,4 @@
+# ./mach python dom/media/webrtc/third_party_build/vendor-libwebrtc.py --from-local .moz-vendoring/third_party --commit mozpatches third_party
+third_party updated from .moz-vendoring/third_party commit mozpatches on 2024-12-11T19:53:38.318322.
+# base of lastest vendoring
+31edcc46d68
