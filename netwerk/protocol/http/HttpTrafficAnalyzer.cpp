@@ -246,7 +246,7 @@ void HttpTrafficAnalyzer::IncrementHttpConnection(
 }
 
 #define CLAMP_U32(num) \
-  Clamp<uint32_t>(num, 0, std::numeric_limits<uint32_t>::max())
+  std::clamp<uint32_t>(num, 0, std::numeric_limits<uint32_t>::max())
 
 void HttpTrafficAnalyzer::AccumulateHttpTransferredSize(
     HttpTrafficCategory aCategory, uint64_t aBytesRead, uint64_t aBytesSent) {

@@ -8,35 +8,7 @@
 
 #include <stdint.h>
 
-using mozilla::Clamp;
 using mozilla::IsPowerOfTwo;
-
-static void TestClamp() {
-  MOZ_RELEASE_ASSERT(Clamp(0, 0, 0) == 0);
-  MOZ_RELEASE_ASSERT(Clamp(1, 0, 0) == 0);
-  MOZ_RELEASE_ASSERT(Clamp(-1, 0, 0) == 0);
-
-  MOZ_RELEASE_ASSERT(Clamp(0, 1, 1) == 1);
-  MOZ_RELEASE_ASSERT(Clamp(0, 1, 2) == 1);
-
-  MOZ_RELEASE_ASSERT(Clamp(0, -1, -1) == -1);
-  MOZ_RELEASE_ASSERT(Clamp(0, -2, -1) == -1);
-
-  MOZ_RELEASE_ASSERT(Clamp(0, 1, 3) == 1);
-  MOZ_RELEASE_ASSERT(Clamp(1, 1, 3) == 1);
-  MOZ_RELEASE_ASSERT(Clamp(2, 1, 3) == 2);
-  MOZ_RELEASE_ASSERT(Clamp(3, 1, 3) == 3);
-  MOZ_RELEASE_ASSERT(Clamp(4, 1, 3) == 3);
-  MOZ_RELEASE_ASSERT(Clamp(5, 1, 3) == 3);
-
-  MOZ_RELEASE_ASSERT(Clamp<uint8_t>(UINT8_MAX, 0, UINT8_MAX) == UINT8_MAX);
-  MOZ_RELEASE_ASSERT(Clamp<uint8_t>(0, 0, UINT8_MAX) == 0);
-
-  MOZ_RELEASE_ASSERT(Clamp<int8_t>(INT8_MIN, INT8_MIN, INT8_MAX) == INT8_MIN);
-  MOZ_RELEASE_ASSERT(Clamp<int8_t>(INT8_MIN, 0, INT8_MAX) == 0);
-  MOZ_RELEASE_ASSERT(Clamp<int8_t>(INT8_MAX, INT8_MIN, INT8_MAX) == INT8_MAX);
-  MOZ_RELEASE_ASSERT(Clamp<int8_t>(INT8_MAX, INT8_MIN, 0) == 0);
-}
 
 static void TestIsPowerOfTwo() {
   static_assert(!IsPowerOfTwo(0u), "0 isn't a power of two");
@@ -730,7 +702,6 @@ void TestGCD() {
 
 int main() {
   TestIsPowerOfTwo();
-  TestClamp();
   TestGCD();
 
   return 0;

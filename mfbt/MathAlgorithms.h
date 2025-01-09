@@ -410,21 +410,6 @@ constexpr bool IsPowerOfTwo(T x) {
 }
 
 template <typename T>
-inline T Clamp(const T aValue, const T aMin, const T aMax) {
-  static_assert(std::is_integral_v<T>,
-                "Clamp accepts only integral types, so that it doesn't have"
-                " to distinguish differently-signed zeroes (which users may"
-                " or may not care to distinguish, likely at a perf cost) or"
-                " to decide how to clamp NaN or a range with a NaN"
-                " endpoint.");
-  MOZ_ASSERT(aMin <= aMax);
-
-  if (aValue <= aMin) return aMin;
-  if (aValue >= aMax) return aMax;
-  return aValue;
-}
-
-template <typename T>
 inline uint_fast8_t CountTrailingZeroes(T aValue) {
   static_assert(sizeof(T) <= 8);
   static_assert(std::is_integral_v<T>);
