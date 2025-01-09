@@ -2336,6 +2336,9 @@ void QuotaManager::Shutdown() {
   auto crashBrowserTimerCallback = [](nsITimer* aTimer, void* aClosure) {
     auto* const quotaManager = static_cast<QuotaManager*>(aClosure);
 
+    quotaManager->RecordQuotaManagerShutdownStep(
+        "crashBrowserTimerCallback"_ns);
+
     nsCString annotation;
 
     for (Client::Type type : quotaManager->AllClientTypes()) {
