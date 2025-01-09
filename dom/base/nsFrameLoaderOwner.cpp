@@ -128,6 +128,11 @@ void nsFrameLoaderOwner::ChangeRemotenessCommon(
       // or want, so we use the initial (possibly pending) browsing context
       // directly, instead.
       bc = mFrameLoader->GetMaybePendingBrowsingContext();
+
+      if (nsFocusManager* fm = nsFocusManager::GetFocusManager()) {
+        fm->FixUpFocusBeforeFrameLoaderChange(*owner, bc);
+      }
+
       networkCreated = mFrameLoader->IsNetworkCreated();
 
       MOZ_ASSERT_IF(aOptions.mTryUseBFCache, aOptions.mReplaceBrowsingContext);

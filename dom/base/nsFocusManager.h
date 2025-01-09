@@ -223,6 +223,13 @@ class nsFocusManager final : public nsIFocusManager,
   /** Given a focused frame loader owner, fix up the focus to be consistent */
   MOZ_CAN_RUN_SCRIPT void FixUpFocusAfterFrameLoaderChange(
       mozilla::dom::Element&);
+  /**
+   * Keep track of whether the focused window is about to go away, and if so fix
+   * up the focus state so that we can know if we're still focused by the time
+   * the frame loader swap ends.
+   */
+  void FixUpFocusBeforeFrameLoaderChange(mozilla::dom::Element&,
+                                         mozilla::dom::BrowsingContext* aBc);
 
   /**
    * Raises the top-level window aWindow at the widget level.
