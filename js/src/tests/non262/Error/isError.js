@@ -1,5 +1,9 @@
 // |reftest| shell-option(--enable-error-iserror) skip-if(!Error.isError)
 
+/*---
+features: [Error.isError]
+---*/
+
 // Test non-object input should return false
 assertEq(Error.isError(null), false);
 assertEq(Error.isError(undefined), false);
