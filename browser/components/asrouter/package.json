@@ -68,6 +68,7 @@
     "lint:stylelint": "(cd $npm_package_config_mc_root && ./mach lint -l stylelint $npm_package_config_asrouter_path)",
     "test": "npm run testmc",
     "tdd": "npm run tddmc",
+    "try": "node ./bin/try-runner.js",
     "fix": "npm-run-all fix:*",
     "fix:eslint": "npm run lint:eslint -- --fix",
     "fix:stylelint": "npm run lint:stylelint -- --fix",

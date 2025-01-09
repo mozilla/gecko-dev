@@ -16,7 +16,6 @@ module.exports = (env = {}) => ({
     filename: "activity-stream.bundle.js",
     library: "NewtabRenderUtils",
   },
-  // TODO: switch to eval-source-map for faster builds. Requires CSP changes
   devtool: env.development ? "inline-source-map" : false,
   plugins: [
     // The ResourceUriPlugin handles translating resource URIs in import

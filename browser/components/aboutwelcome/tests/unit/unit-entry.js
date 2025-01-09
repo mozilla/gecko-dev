@@ -7,7 +7,6 @@ import {
   FakeLogger,
 } from "newtab/test/unit/utils";
 import Adapter from "enzyme-adapter-react-16";
-import { chaiAssertions } from "newtab/test/schemas/pings";
 import enzyme from "enzyme";
 
 enzyme.configure({ adapter: new Adapter() });
@@ -31,8 +30,6 @@ const files = req.keys();
 
 // This exposes sinon assertions to chai.assert
 sinon.assert.expose(assert, { prefix: "" });
-
-chai.use(chaiAssertions);
 
 const overrider = new GlobalOverrider();
 

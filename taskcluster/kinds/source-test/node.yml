@@ -29,12 +29,6 @@ newtab-unit-tests:
             cd /builds/worker/checkouts/gecko &&
             rm -rf node_modules &&
             npm ci &&
-            cd /builds/worker/checkouts/gecko/browser/components/aboutwelcome &&
-            rm -rf node_modules &&
-            npm ci &&
-            cd /builds/worker/checkouts/gecko/browser/components/asrouter &&
-            rm -rf node_modules &&
-            npm ci &&
             cd /builds/worker/checkouts/gecko/browser/components/newtab &&
             rm -rf node_modules &&
             npm ci &&
@@ -42,8 +36,6 @@ newtab-unit-tests:
     when:
         files-changed:
             - "browser/components/newtab/**"
-            - "browser/components/aboutwelcome/**"
-            - "browser/components/asrouter/**"
 
 newtab-unit-tests-ccov:
     description: newtab unit tests code coverage
@@ -74,13 +66,89 @@ newtab-unit-tests-ccov:
             cd /builds/worker/checkouts/gecko &&
             rm -rf node_modules &&
             npm ci &&
+            cd /builds/worker/checkouts/gecko/browser/components/newtab &&
+            rm -rf node_modules &&
+            npm ci &&
+            node bin/try-runner.js
+    # This should only run on mozilla-central, as the bot will only parse mozilla-central
+    # coverage anyways.
+    run-on-projects: ["mozilla-central"]
+    # Note the lack of a "when" rule here. This is to avoid seeing fluctuating
+    # coverage on coverage.moz.tools / searchfox depending on whether the latest
+    # push contained patches touching these files or not.
+
+messagingsystem-unit-tests:
+    description: messagingsystem unit tests
+    platform: linux1804-64/opt
+    treeherder:
+        symbol: node(messagingsystem)
+        kind: test
+        tier: 1
+    worker-type: t-linux-xlarge-source
+    worker:
+        docker-image: {in-tree: "ubuntu1804-test"}
+        max-run-time: 1800
+    require-build:
+        by-project:
+            autoland:
+                linux1804-64/opt: build-linux64/opt
+            try:
+                linux1804-64/opt: build-linux64/opt
+            default:
+                linux1804-64/opt: build-linux64-shippable/opt
+    run:
+        using: run-task
+        cache-dotcache: true
+        cwd: '{checkout}'
+        command: >
+            cd /builds/worker/checkouts/gecko &&
+            rm -rf node_modules &&
+            npm ci &&
             cd /builds/worker/checkouts/gecko/browser/components/aboutwelcome &&
             rm -rf node_modules &&
             npm ci &&
             cd /builds/worker/checkouts/gecko/browser/components/asrouter &&
             rm -rf node_modules &&
             npm ci &&
-            cd /builds/worker/checkouts/gecko/browser/components/newtab &&
+            node bin/try-runner.js
+    when:
+        files-changed:
+            - "browser/components/aboutwelcome/**"
+            - "browser/components/asrouter/**"
+
+messagingsystem-unit-tests-ccov:
+    description: messaging system unit tests code coverage
+    platform: linux1804-64/opt
+    treeherder:
+        symbol: node(messagingsystem-ccov)
+        kind: test
+        tier: 1
+    worker-type: t-linux-xlarge-source
+    worker:
+        docker-image: {in-tree: "ubuntu1804-test"}
+        max-run-time: 1800
+        artifacts:
+            - name: public/code-coverage-grcov.zip
+              path: /builds/worker/checkouts/gecko/browser/components/asrouter/logs/coverage/code-coverage-grcov.zip
+              type: file
+    require-build:
+        by-project:
+            try:
+                linux1804-64/opt: build-linux64/opt
+            default:
+                linux1804-64/opt: build-linux64-shippable/opt
+    run:
+        using: run-task
+        cache-dotcache: true
+        cwd: '{checkout}'
+        command: >
+            cd /builds/worker/checkouts/gecko &&
+            rm -rf node_modules &&
+            npm ci &&
+            cd /builds/worker/checkouts/gecko/browser/components/aboutwelcome &&
+            rm -rf node_modules &&
+            npm ci &&
+            cd /builds/worker/checkouts/gecko/browser/components/asrouter &&
             rm -rf node_modules &&
             npm ci &&
             node bin/try-runner.js

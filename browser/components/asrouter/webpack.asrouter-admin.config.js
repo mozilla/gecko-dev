@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const path = require("path");
-const config = require("../newtab/webpack.system-addon.config.js");
+const config = require("./webpack.base.config.js");
 const webpack = require("webpack");
 const absolute = relPath => path.join(__dirname, relPath);
 const banner = `
@@ -27,8 +27,6 @@ module.exports = Object.assign({}, config(), {
   resolve: {
     extensions: [".js", ".jsx", ".mjs"],
     alias: {
-      newtab: absolute("../newtab"),
-      common: absolute("../newtab/common"),
       modules: absolute("modules"),
     },
   },

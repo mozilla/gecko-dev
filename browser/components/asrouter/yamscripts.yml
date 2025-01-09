@@ -38,6 +38,12 @@ scripts:
   # tdd: Run content tests continuously
   tdd: =>tddmc
 
+  # script for the `source-test-node-messagingsystem-unit-tests` task on taskcluster.
+  # this is what appears as `messagingsystem` in treeherder results after pushing to try.
+  # so this npm script allows us to run the same tests locally that patches will
+  # be run against in CI.
+  try: node ./bin/try-runner.js
+
   fix:
     # Note that since we're currently running eslint-plugin-prettier,
     # running fix:eslint will also reformat changed JS files using prettier.
