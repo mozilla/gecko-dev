@@ -231,7 +231,7 @@ def fetch(target, url):
             file=sys.stderr,
         )
         sys.exit(1)
-    with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla"), "a") as f:
+    with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla.last-vendor"), "a") as f:
         # write the the command line used
         f.write(f"# ./mach python {' '.join(sys.argv[0:])}\n")
         f.write(
@@ -251,7 +251,7 @@ def fetch_local(target, path, commit):
         )
         sys.exit(1)
 
-    with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla"), "a") as f:
+    with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla.last-vendor"), "a") as f:
         # write the the command line used
         f.write(f"# ./mach python {' '.join(sys.argv[0:])}\n")
         f.write(
@@ -354,10 +354,6 @@ def unpack(target):
             shutil.move(os.path.join(target_path, path), dest_path)
 
     elif target == "build":
-        vendor_into_dir = os.path.join(
-            os.path.normpath("third_party/chromium"), "build"
-        )
-
         # adjust target_path if GitHub packaging is involved
         if not os.path.exists(os.path.join(target_path, "linux")):
             # GitHub packs everything inside a separate directory
@@ -366,7 +362,7 @@ def unpack(target):
         build_used_in_firefox = os.listdir(target_path)
         for path in build_used_in_firefox:
             try:
-                shutil.rmtree(os.path.join(vendor_into_dir, path))
+                shutil.rmtree(os.path.join(LIBWEBRTC_DIR, path))
             except FileNotFoundError:
                 pass
             except NotADirectoryError:
@@ -375,7 +371,7 @@ def unpack(target):
         for path in os.listdir(target_path):
             shutil.move(
                 os.path.join(target_path, path),
-                os.path.join(vendor_into_dir, path),
+                os.path.join(LIBWEBRTC_DIR, path),
             )
 
     elif target == "third_party":
@@ -384,7 +380,7 @@ def unpack(target):
         # we use to trampoline to libraries already in mozilla's tree.
         for path in THIRDPARTY_USED_IN_FIREFOX:
             try:
-                shutil.rmtree(os.path.join(LIBWEBRTC_DIR, "third_party", path))
+                shutil.rmtree(os.path.join(LIBWEBRTC_DIR, path))
             except FileNotFoundError:
                 pass
             except NotADirectoryError:
@@ -398,12 +394,10 @@ def unpack(target):
         for path in THIRDPARTY_USED_IN_FIREFOX:
             shutil.move(
                 os.path.join(target_path, path),
-                os.path.join(LIBWEBRTC_DIR, "third_party", path),
+                os.path.join(LIBWEBRTC_DIR, path),
             )
 
     elif target == "abseil-cpp":
-        vendor_into_dir = os.path.join(os.path.normpath("third_party"), target)
-
         # adjust target_path if GitHub packaging is involved
         if not os.path.exists(os.path.join(target_path, "abseil-cpp")):
             # GitHub packs everything inside a separate directory
@@ -414,7 +408,7 @@ def unpack(target):
         abseil_used_in_firefox = os.listdir(abseil_path)
         for path in abseil_used_in_firefox:
             try:
-                shutil.rmtree(os.path.join(vendor_into_dir, path))
+                shutil.rmtree(os.path.join(LIBWEBRTC_DIR, path))
             except FileNotFoundError:
                 pass
             except NotADirectoryError:
@@ -423,7 +417,7 @@ def unpack(target):
         for path in os.listdir(abseil_path):
             shutil.move(
                 os.path.join(target_path, target, path),
-                os.path.join(vendor_into_dir, path),
+                os.path.join(LIBWEBRTC_DIR, path),
             )
 
 
@@ -445,6 +439,14 @@ if __name__ == "__main__":
     parser.add_argument("--skip-fetch", action="store_true", default=False)
     parser.add_argument("--skip-cleanup", action="store_true", default=False)
     args = parser.parse_args()
+
+    # the default for LIBWEBRTC_DIR is set for target libwebrtc
+    if args.target == "build":
+        LIBWEBRTC_DIR = os.path.normpath("third_party/chromium/build")
+    elif args.target == "third_party":
+        LIBWEBRTC_DIR = os.path.join(LIBWEBRTC_DIR, "third_party")
+    elif args.target == "abseil-cpp":
+        LIBWEBRTC_DIR = os.path.normpath("third_party/abseil-cpp")
 
     os.makedirs(LIBWEBRTC_DIR, exist_ok=True)
 
