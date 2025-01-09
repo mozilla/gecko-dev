@@ -865,10 +865,11 @@ add_task(async function testClearingOptionsTelemetry() {
 
   let expectedObject = {
     context: "clearSiteData",
-    history_form_data_downloads: "true",
+    history_and_downloads: "true",
     cookies_and_storage: "false",
     cache: "true",
     site_settings: "true",
+    form_data: "false",
   };
 
   await performActionsOnDialog({

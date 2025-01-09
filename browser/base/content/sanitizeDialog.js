@@ -574,12 +574,13 @@ var gSanitizePromptDialog = {
       let selectedOptions = this.getItemsToClear();
       Glean.privacySanitize.clear.record({
         context: contextOpenedIn,
-        history_form_data_downloads: selectedOptions.includes(
+        history_and_downloads: selectedOptions.includes(
           "browsingHistoryAndDownloads"
         ),
         cookies_and_storage: selectedOptions.includes("cookiesAndStorage"),
         cache: selectedOptions.includes("cache"),
         site_settings: selectedOptions.includes("siteSettings"),
+        form_data: selectedOptions.includes("formData"),
       });
     }
     // if the dialog was just opened, just report which context it was opened in
