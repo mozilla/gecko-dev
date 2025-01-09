@@ -580,7 +580,7 @@ class nsWindow final : public nsBaseWidget {
       nsWindow* aWindow,
       mozilla::Maybe<POINT> aEventPoint = mozilla::Nothing());
   static void PostSleepWakeNotification(const bool aIsSleepMode);
-  int32_t ClientMarginHitTestPoint(int32_t mx, int32_t my);
+  int32_t ClientMarginHitTestPoint(int32_t aX, int32_t aY);
   void SetWindowButtonRect(WindowButtonType aButtonType,
                            const LayoutDeviceIntRect& aClientRect) override {
     mWindowBtnRect[aButtonType] = aClientRect;

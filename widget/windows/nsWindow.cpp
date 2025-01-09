@@ -6037,46 +6037,48 @@ int32_t nsWindow::ClientMarginHitTestPoint(int32_t aX, int32_t aY) {
     }
   }
 
-  if (!sIsInMouseCapture && allowContentOverride) {
-    {
-      POINT pt = {aX, aY};
-      ::ScreenToClient(mWnd, &pt);
-
-      if (pt.x == mCachedHitTestPoint.x.value &&
-          pt.y == mCachedHitTestPoint.y.value &&
-          TimeStamp::Now() - mCachedHitTestTime <
-              TimeDuration::FromMilliseconds(HITTEST_CACHE_LIFETIME_MS)) {
-        return mCachedHitTestResult;
-      }
-
-      mCachedHitTestPoint = {pt.x, pt.y};
-      mCachedHitTestTime = TimeStamp::Now();
-    }
-
-    auto pt = mCachedHitTestPoint;
-
-    if (mWindowBtnRect[WindowButtonType::Minimize].Contains(pt)) {
-      testResult = HTMINBUTTON;
-    } else if (mWindowBtnRect[WindowButtonType::Maximize].Contains(pt)) {
-#ifdef ACCESSIBILITY
-      a11y::Compatibility::SuppressA11yForSnapLayouts();
-#endif
-      testResult = HTMAXBUTTON;
-    } else if (mWindowBtnRect[WindowButtonType::Close].Contains(pt)) {
-      testResult = HTCLOSE;
-    } else if (!inResizeRegion) {
-      // If we're in the resize region, avoid overriding that with either a
-      // drag or a client result; resize takes priority over either (but not
-      // over the window controls, which is why we check this after those).
-      if (mDraggableRegion.Contains(pt)) {
-        testResult = HTCAPTION;
-      } else {
-        testResult = HTCLIENT;
-      }
-    }
-
-    mCachedHitTestResult = testResult;
+  if (sIsInMouseCapture || !allowContentOverride) {
+    return testResult;
   }
+
+  {
+    POINT pt = {aX, aY};
+    ::ScreenToClient(mWnd, &pt);
+
+    if (pt.x == mCachedHitTestPoint.x.value &&
+        pt.y == mCachedHitTestPoint.y.value &&
+        TimeStamp::Now() - mCachedHitTestTime <
+            TimeDuration::FromMilliseconds(HITTEST_CACHE_LIFETIME_MS)) {
+      return mCachedHitTestResult;
+    }
+
+    mCachedHitTestPoint = {pt.x, pt.y};
+    mCachedHitTestTime = TimeStamp::Now();
+  }
+
+  auto pt = mCachedHitTestPoint;
+
+  if (mWindowBtnRect[WindowButtonType::Minimize].Contains(pt)) {
+    testResult = HTMINBUTTON;
+  } else if (mWindowBtnRect[WindowButtonType::Maximize].Contains(pt)) {
+#ifdef ACCESSIBILITY
+    a11y::Compatibility::SuppressA11yForSnapLayouts();
+#endif
+    testResult = HTMAXBUTTON;
+  } else if (mWindowBtnRect[WindowButtonType::Close].Contains(pt)) {
+    testResult = HTCLOSE;
+  } else if (!inResizeRegion) {
+    // If we're in the resize region, avoid overriding that with either a
+    // drag or a client result; resize takes priority over either (but not
+    // over the window controls, which is why we check this after those).
+    if (mDraggableRegion.Contains(pt)) {
+      testResult = HTCAPTION;
+    } else {
+      testResult = HTCLIENT;
+    }
+  }
+
+  mCachedHitTestResult = testResult;
 
   return testResult;
 }
