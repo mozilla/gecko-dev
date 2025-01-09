@@ -6,8 +6,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1265841
 <head>
   <title>Bug 1265841 - Test ServiceWorkerGlobalScope.notificationclose event.</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
-  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
+  <script src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
+  <script src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -18,11 +18,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1265841
 <pre id="test">
 </pre>
 <script src="/tests/dom/serviceworkers/test/utils.js"></script>
-<script type="text/javascript">
+<script>
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show, click, and close events.");
 
-  function testFrame(src) {
-    var iframe = document.createElement("iframe");
+  async function testFrame(src, registration) {
+    let { promise, resolve } = Promise.withResolvers();
+    let iframe = document.createElement("iframe");
     iframe.src = src;
     window.callback = async function(data) {
       window.callback = null;
@@ -32,36 +33,23 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1265841
       ok(!data.windowOpened,
          "Shouldn't allow to openWindow in notificationclose");
       await registration.unregister();
-      SimpleTest.finish();
+      resolve();
     };
     document.body.appendChild(iframe);
+    await promise;
   }
 
-  var registration;
-
-  async function runTest() {
-    try {
-      await NotificationTest.allowNotifications();
-      await MockAlertsService.register();
-      await MockAlertsService.enableAutoClick();
-      registration = await navigator.serviceWorker.register(
-        "notificationclose.js",
-        { scope: "notificationclose.html" }
-      );
-      await waitForState(registration.installing, 'activated');
-    } catch (e) {
-      ok(false, "registration should have passed!");
-      SimpleTest.finish();
-    }
-    testFrame('notificationclose.html');
-  };
-
-  SimpleTest.waitForExplicitFinish();
-  SpecialPowers.pushPrefEnv({"set": [
-    ["dom.serviceWorkers.exemptFromPerDomainMax", true],
-    ["dom.serviceWorkers.enabled", true],
-    ["dom.serviceWorkers.testing.enabled", true],
-  ]}, runTest);
+  add_task(async function runTest() {
+    await NotificationTest.allowNotifications();
+    await MockAlertsService.register();
+    await MockAlertsService.enableAutoClick();
+    let registration = await navigator.serviceWorker.register(
+      "notificationclose.js",
+      { scope: "notificationclose.html" }
+    );
+    await waitForState(registration.installing, 'activated');
+    await testFrame('notificationclose.html', registration);
+  });
 </script>
 </body>
 </html>
