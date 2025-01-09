@@ -78,13 +78,14 @@ def save_patch_stack(
     # it is also helpful to save the no-op-cherry-pick-msg files from
     # the state directory so that if we're restoring a patch-stack we
     # also restore the possibly consumed no-op tracking files.
-    no_op_files = [
-        path
-        for path in os.listdir(state_directory)
-        if re.findall(".*no-op-cherry-pick-msg$", path)
-    ]
-    for file in no_op_files:
-        shutil.copy(os.path.join(state_directory, file), patch_directory)
+    if state_directory != "":
+        no_op_files = [
+            path
+            for path in os.listdir(state_directory)
+            if re.findall(".*no-op-cherry-pick-msg$", path)
+        ]
+        for file in no_op_files:
+            shutil.copy(os.path.join(state_directory, file), patch_directory)
 
     # get missing files (that should be marked removed)
     cmd = f"hg status --no-status --deleted {patch_directory}"
