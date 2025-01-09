@@ -262,7 +262,7 @@ android-custom-car:
         symbol: TL(custom-car-android)
     worker:
         docker-image: {in-tree: custom-car-android}
-        max-run-time: 25000
+        max-run-time: 30000
     use-python: default
     run-on-projects: []
     run:
