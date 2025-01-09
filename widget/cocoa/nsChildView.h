@@ -105,7 +105,8 @@ class WidgetRenderingContext;
                            NSTextInputClient,
                            NSDraggingSource,
                            NSDraggingDestination,
-                           NSPasteboardItemDataProvider> {
+                           NSPasteboardItemDataProvider,
+                           NSStandardKeyBindingResponding> {
  @private
   // the nsChildView that created the view. It retains this NSView, so
   // the link back to it must be weak.
@@ -229,6 +230,8 @@ class WidgetRenderingContext;
 
 - (void)viewWillStartLiveResize;
 - (void)viewDidEndLiveResize;
+
+- (void)showContextMenuForSelection:(id)sender;
 
 /*
  * Gestures support

@@ -2271,6 +2271,17 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
          [(BaseWindow*)[self window] drawsContentsIntoWindowFrame];
 }
 
+- (void)showContextMenuForSelection:(id)sender {
+  if (!mGeckoChild) {
+    return;
+  }
+  nsAutoRetainCocoaObject kungFuDeathGrip(self);
+  WidgetPointerEvent geckoEvent(true, eContextMenu, mGeckoChild,
+                                WidgetMouseEvent::eContextMenuKey);
+  geckoEvent.mRefPoint = {};
+  mGeckoChild->DispatchInputEvent(&geckoEvent);
+}
+
 - (void)viewWillStartLiveResize {
   nsCocoaWindow* windowWidget =
       mGeckoChild ? mGeckoChild->GetAppWindowWidget() : nullptr;
