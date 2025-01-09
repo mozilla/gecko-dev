@@ -1,0 +1,27 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 11 Jul 2022 15:04:00 -0500
+Subject: Bug 1766646 - (fix-e6106102f8a) restrict what we're building in
+ third_party/abseil-cpp/absl/cleanup
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7fb753d628ce9c685a65f5c80e795c512f102465
+---
+ abseil-cpp/absl/cleanup/BUILD.gn | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/abseil-cpp/absl/cleanup/BUILD.gn b/abseil-cpp/absl/cleanup/BUILD.gn
+index 3d3fa882689..e8b215a22d5 100644
+--- a/abseil-cpp/absl/cleanup/BUILD.gn
++++ b/abseil-cpp/absl/cleanup/BUILD.gn
+@@ -23,6 +23,7 @@ absl_source_set("cleanup") {
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_test("cleanup_test") {
+   sources = [ "cleanup_test.cc" ]
+   deps = [
+@@ -31,3 +32,4 @@ absl_test("cleanup_test") {
+     "//third_party/abseil-cpp/absl/utility",
+   ]
+ }
++}

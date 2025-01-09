@@ -1,0 +1,58 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Wed, 8 Mar 2023 00:26:00 +0000
+Subject: Bug 1820869 - avoid building unreachable files. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D171922
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/88b3cc6bbece7c53d00e124713330f3d34d2789d
+---
+ abseil-cpp/absl/strings/BUILD.gn | 30 ++++++++++++++++++------------
+ 1 file changed, 18 insertions(+), 12 deletions(-)
+
+diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
+index 0cbb0c3f8d7..37e706a9328 100644
+--- a/abseil-cpp/absl/strings/BUILD.gn
++++ b/abseil-cpp/absl/strings/BUILD.gn
+@@ -65,7 +65,6 @@ absl_source_set("strings") {
+     # :string_view.
+     ":string_view",
+   ]
+-  if (!moz_webrtc_build) {
+   deps = [
+     ":charset",
+     ":internal",
+@@ -81,17 +80,24 @@ absl_source_set("strings") {
+     "//third_party/abseil-cpp/absl/numeric:bits",
+     "//third_party/abseil-cpp/absl/numeric:int128",
+   ]
+-  } else {
+-  deps = [
+-    ":internal",
+-    "//third_party/abseil-cpp/absl/base:config",
+-    "//third_party/abseil-cpp/absl/base:core_headers",
+-    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
+-    "//third_party/abseil-cpp/absl/memory",
+-    "//third_party/abseil-cpp/absl/meta:type_traits",
+-    "//third_party/abseil-cpp/absl/numeric:bits",
+-    "//third_party/abseil-cpp/absl/numeric:int128",
+-  ]
++  if (moz_webrtc_build) {
++    # Removed for unreachable sources.  See Bug 1820869.
++    sources -= [
++      "charconv.cc",
++      "escaping.cc",
++      "internal/charconv_bigint.cc",
++      "internal/charconv_parse.cc",
++      "numbers.cc",
++      "str_cat.cc",
++      "str_replace.cc",
++      "substitute.cc",
++    ]
++    deps -= [
++      ":internal", # Removed for unreachable sources.  See Bug 1820869.
++      "//third_party/abseil-cpp/absl/base",
++      "//third_party/abseil-cpp/absl/base:endian",
++      "//third_party/abseil-cpp/absl/base:throw_delegate",
++    ]
+   }
+ }
+ 

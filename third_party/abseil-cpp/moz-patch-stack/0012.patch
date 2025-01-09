@@ -1,0 +1,150 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - abseil-cpp preprocessor, .json, .gni, and *.gn changes
+ r=ng
+
+Differential Revision: https://phabricator.services.mozilla.com/D224077
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6207cac8e337488d54927a5a09e574afec9b432d
+---
+ abseil-cpp/.gn                           | 10 ++++++++++
+ abseil-cpp/BUILD.gn                      | 17 +++++++++++++++++
+ abseil-cpp/absl.gni                      | 15 ++++++++-------
+ abseil-cpp/absl/random/internal/BUILD.gn |  2 ++
+ abseil-cpp/build_overrides/build.gni     |  4 ++++
+ 5 files changed, 41 insertions(+), 7 deletions(-)
+ create mode 100644 abseil-cpp/.gn
+ create mode 100644 abseil-cpp/build_overrides/build.gni
+
+diff --git a/abseil-cpp/.gn b/abseil-cpp/.gn
+new file mode 100644
+index 00000000000..648423a128f
+--- /dev/null
++++ b/abseil-cpp/.gn
+@@ -0,0 +1,10 @@
++# The location of the build configuration file.
++buildconfig = "//build/config/BUILDCONFIG.gn"
++script_executable = "python3"
++secondary_source = "//abseil-cpp/"
++
++default_args = {
++use_custom_libcxx = false
++is_component_build = false
++}
++
+diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
+index ec121b1ae1c..8607b28620c 100644
+--- a/abseil-cpp/BUILD.gn
++++ b/abseil-cpp/BUILD.gn
+@@ -56,6 +56,7 @@ component("absl") {
+ }
+ 
+ group("absl_component_deps") {
++  if (false) {
+   public_deps = [
+     "//third_party/abseil-cpp/absl/algorithm:container",
+     "//third_party/abseil-cpp/absl/base",
+@@ -101,6 +102,22 @@ group("absl_component_deps") {
+     "//third_party/abseil-cpp/absl/types:variant",
+     "//third_party/abseil-cpp/absl/utility",
+   ]
++  } else {
++  public_deps = [
++    "//abseil-cpp/absl/algorithm:container",
++    "//abseil-cpp/absl/base:nullability",
++    "//abseil-cpp/absl/cleanup",
++    "//abseil-cpp/absl/container:inlined_vector",
++    "//abseil-cpp/absl/functional:any_invocable",
++    "//abseil-cpp/absl/functional:bind_front",
++    "//abseil-cpp/absl/strings",
++    "//abseil-cpp/absl/strings:string_view",
++    "//abseil-cpp/absl/types:optional",
++    "//abseil-cpp/absl/types:span",
++    "//abseil-cpp/absl/types:variant",
++    "//abseil-cpp/absl/utility",
++  ]
++  }
+ 
+   # The following dependencies currently don't build with NaCl.
+   # TODO(https://crbug.com/1114625): Fix build errors and remove this section.
+diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
+index 52f572e0d12..02989eca222 100644
+--- a/abseil-cpp/absl.gni
++++ b/abseil-cpp/absl.gni
+@@ -30,8 +30,8 @@ template("absl_source_set") {
+     configs += [
+       "//build/config/compiler:no_chromium_code",
+       "//build/config/compiler:prevent_unsafe_narrowing",
+-      "//third_party/abseil-cpp:absl_default_cflags_cc",
+-      "//third_party/abseil-cpp:absl_define_config",
++      "//abseil-cpp:absl_default_cflags_cc",
++      "//abseil-cpp:absl_define_config",
+     ]
+ 
+     if (is_component_build) {
+@@ -45,7 +45,7 @@ template("absl_source_set") {
+     if (!defined(public_configs)) {
+       public_configs = []
+     }
+-    public_configs += [ "//third_party/abseil-cpp:absl_include_config" ]
++    public_configs += [ "//abseil-cpp:absl_include_config" ]
+ 
+     if (!defined(visibility)) {
+       # Within Chromium builds, restrict direct visibility of Abseil sources, so
+@@ -85,6 +85,7 @@ template("absl_source_set") {
+         visibility = [ "*" ]
+       }
+     }
++    visibility += [ "//abseil-cpp/*" ]
+   }
+ }
+ 
+@@ -95,15 +96,15 @@ template("absl_test") {
+     configs -= [ "//build/config/compiler:chromium_code" ]
+     configs += [
+       "//build/config/compiler:no_chromium_code",
+-      "//third_party/abseil-cpp:absl_default_cflags_cc",
+-      "//third_party/abseil-cpp:absl_define_config",
+-      "//third_party/abseil-cpp:absl_test_config",
++      "//abseil-cpp:absl_default_cflags_cc",
++      "//abseil-cpp:absl_define_config",
++      "//abseil-cpp:absl_test_config",
+     ]
+ 
+     if (!defined(public_configs)) {
+       public_configs = []
+     }
+-    public_configs += [ "//third_party/abseil-cpp:absl_include_config" ]
++    public_configs += [ "//abseil-cpp:absl_include_config" ]
+ 
+     visibility = [ "//third_party/abseil-cpp/:*" ]
+     deps += [
+diff --git a/abseil-cpp/absl/random/internal/BUILD.gn b/abseil-cpp/absl/random/internal/BUILD.gn
+index 54754f7757e..d776161bb4f 100644
+--- a/abseil-cpp/absl/random/internal/BUILD.gn
++++ b/abseil-cpp/absl/random/internal/BUILD.gn
+@@ -242,6 +242,7 @@ absl_source_set("randen_hwaes_impl") {
+   visibility = ["//third_party/abseil-cpp/absl/random/*"]
+ }
+ 
++if (false) {
+ executable("gaussian_distribution_gentables") {
+   sources = [ "gaussian_distribution_gentables.cc" ]
+   deps = [
+@@ -250,6 +251,7 @@ executable("gaussian_distribution_gentables") {
+   ]
+   visibility = ["//third_party/abseil-cpp/absl/random/*"]
+ }
++}
+ 
+ absl_source_set("distribution_test_util") {
+   testonly = true
+diff --git a/abseil-cpp/build_overrides/build.gni b/abseil-cpp/build_overrides/build.gni
+new file mode 100644
+index 00000000000..3ec49896ece
+--- /dev/null
++++ b/abseil-cpp/build_overrides/build.gni
+@@ -0,0 +1,4 @@
++build_with_chromium = false
++ignore_elf32_limitations = true
++use_system_xcode = false
++xcode_version = "10.15"

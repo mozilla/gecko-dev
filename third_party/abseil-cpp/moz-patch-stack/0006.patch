@@ -1,0 +1,29 @@
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Thu, 3 Nov 2022 07:37:00 +0000
+Subject: Bug 1797157 - Avoid std::launder under clang++ 5 even in c++17 mode.
+ r=mjf
+
+std::launder was implemented in clang 6:
+https://github.com/llvm/llvm-project/commit/9180eb1f4ab96481413e93d35f35c3685de3084c
+
+Differential Revision: https://phabricator.services.mozilla.com/D160683
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/617e69ce77120f6eb447c1044bc1bd2ca833cc7b
+---
+ abseil-cpp/absl/functional/internal/any_invocable.h | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/abseil-cpp/absl/functional/internal/any_invocable.h b/abseil-cpp/absl/functional/internal/any_invocable.h
+index f096bb02e15..8e0061d1cb2 100644
+--- a/abseil-cpp/absl/functional/internal/any_invocable.h
++++ b/abseil-cpp/absl/functional/internal/any_invocable.h
+@@ -205,7 +205,9 @@ union TypeErasedState {
+ template <class T>
+ T& ObjectInLocalStorage(TypeErasedState* const state) {
+   // We launder here because the storage may be reused with the same type.
+-#if defined(__cpp_lib_launder) && __cpp_lib_launder >= 201606L
++  // Mozilla: support clang 5 with c++17 but without launder (shipped in 6)
++#if ABSL_INTERNAL_CPLUSPLUS_LANG >= 201703L && \
++    (!defined(__clang__) || ABSL_INTERNAL_HAVE_MIN_CLANG_VERSION(6, 0))
+   return *std::launder(reinterpret_cast<T*>(&state->storage));
+ #elif ABSL_HAVE_BUILTIN(__builtin_launder)
+   return *__builtin_launder(reinterpret_cast<T*>(&state->storage));

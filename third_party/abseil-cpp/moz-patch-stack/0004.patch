@@ -1,0 +1,67 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 20 Oct 2022 16:14:00 +0000
+Subject: Bug 1795982 - pt3 - re-enable building absl/base:throw_delegate for
+ missing ThrowStdOutOfRange. r=ng
+
+More code in the new libwebrtc/third_party update uses throw_delegate, which
+until now we've been able to carefully avoid.  However, in most cases, it
+appears that ABSL_HAVE_EXCEPTIONS is turned off.  This is good because throwing
+exceptions isn't enabled, but upstream aborts instead.  A static_assert was
+added in throw_delegate.cc to verify that no exceptions can be thrown.
+
+Differential Revision: https://phabricator.services.mozilla.com/D159740
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3e09f1c91f790a6dbd0fb0faaa18fd2dd4535c50
+---
+ abseil-cpp/absl/base/BUILD.gn                   | 2 ++
+ abseil-cpp/absl/base/internal/throw_delegate.cc | 4 ++++
+ abseil-cpp/absl/types/BUILD.gn                  | 2 +-
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
+index f4bf00d0f20..1c1c3bebe9a 100644
+--- a/abseil-cpp/absl/base/BUILD.gn
++++ b/abseil-cpp/absl/base/BUILD.gn
+@@ -188,6 +188,7 @@ absl_source_set("base") {
+     "//third_party/abseil-cpp/absl/meta:type_traits",
+   ]
+ }
++}
+ 
+ absl_source_set("throw_delegate") {
+   sources = [ "internal/throw_delegate.cc" ]
+@@ -199,6 +200,7 @@ absl_source_set("throw_delegate") {
+   visibility = [ "//third_party/abseil-cpp/absl/*" ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("exception_testing") {
+   testonly = true
+   public = [ "internal/exception_testing.h" ]
+diff --git a/abseil-cpp/absl/base/internal/throw_delegate.cc b/abseil-cpp/absl/base/internal/throw_delegate.cc
+index 337e870cd68..11467e08b41 100644
+--- a/abseil-cpp/absl/base/internal/throw_delegate.cc
++++ b/abseil-cpp/absl/base/internal/throw_delegate.cc
+@@ -26,6 +26,10 @@ namespace absl {
+ ABSL_NAMESPACE_BEGIN
+ namespace base_internal {
+ 
++#ifdef ABSL_HAVE_EXCEPTIONS
++static_assert(false, "Mozilla - ABSL_HAVE_EXCEPTIONS has been turned on");
++#endif
++
+ // NOTE: The exception types, like `std::logic_error`, do not exist on all
+ // platforms. (For example, the Android NDK does not have them.)
+ // Therefore, their use must be guarded by `#ifdef` or equivalent.
+diff --git a/abseil-cpp/absl/types/BUILD.gn b/abseil-cpp/absl/types/BUILD.gn
+index 790e592bcca..63520eca451 100644
+--- a/abseil-cpp/absl/types/BUILD.gn
++++ b/abseil-cpp/absl/types/BUILD.gn
+@@ -39,7 +39,7 @@ absl_source_set("span") {
+   public_deps = [
+     "//third_party/abseil-cpp/absl/algorithm",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+-#       "//third_party/abseil-cpp/absl/base:throw_delegate",
++    "//third_party/abseil-cpp/absl/base:throw_delegate",
+     "//third_party/abseil-cpp/absl/meta:type_traits",
+   ]
+ }

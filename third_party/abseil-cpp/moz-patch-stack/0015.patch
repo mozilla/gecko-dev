@@ -1,0 +1,23 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - add filtering for new build directory location in
+ third_party/abseil-cpp/absl.gni r=ng
+
+Differential Revision: https://phabricator.services.mozilla.com/D224546
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c4cbc65577ab4012dc243185d5d87c83e29b7446
+---
+ abseil-cpp/absl.gni | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
+index aaf842c47c0..29d283dd536 100644
+--- a/abseil-cpp/absl.gni
++++ b/abseil-cpp/absl.gni
+@@ -96,6 +96,7 @@ template("absl_source_set") {
+       modified_deps = []
+       foreach (dep, deps) {
+         newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++        newdep = string_replace(newdep, "//build", "//chromium/build")
+         modified_deps += [ newdep ]
+       }
+       deps = []

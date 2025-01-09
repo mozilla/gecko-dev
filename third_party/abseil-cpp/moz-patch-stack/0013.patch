@@ -1,0 +1,80 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - absl.gni - filter dep paths from
+ '//third_party/abseil-cpp/' to '//' r=ng
+
+Differential Revision: https://phabricator.services.mozilla.com/D224080
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/afc78fbdb5666ffa9c87da7427cc7249220f4908
+---
+ abseil-cpp/absl.gni | 52 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
+index 02989eca222..a76d26c3e60 100644
+--- a/abseil-cpp/absl.gni
++++ b/abseil-cpp/absl.gni
+@@ -86,6 +86,43 @@ template("absl_source_set") {
+       }
+     }
+     visibility += [ "//abseil-cpp/*" ]
++
++    # Now that abseil-cpp lives under Mozilla's third_party instead
++    # of under libwebrtc's third_party and is built as a stand-alone
++    # library, we need to "re-root" the dependency paths.  We can
++    # modify the dependencies here to avoid modifying most, if not
++    # all, of the BUILD.gn files.
++    if (defined(deps)) {
++      modified_deps = []
++      foreach (dep, deps) {
++        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++        modified_deps += [ newdep ]
++      }
++      deps = []
++      deps = modified_deps
++    }
++
++    # Same for public_deps
++    if (defined(public_deps)) {
++      modified_deps = []
++      foreach (dep, public_deps) {
++        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++        modified_deps += [ newdep ]
++      }
++      public_deps = []
++      public_deps = modified_deps
++    }
++
++    # Same for visibility
++    if (defined(visibility)) {
++      modified_deps = []
++      foreach (dep, visibility) {
++        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++        modified_deps += [ newdep ]
++      }
++      visibility = []
++      visibility = modified_deps
++    }
+   }
+ }
+ 
+@@ -111,5 +148,20 @@ template("absl_test") {
+       "//third_party/googletest:gmock",
+       "//third_party/googletest:gtest",
+     ]
++
++    # Now that abseil-cpp lives under Mozilla's third_party instead
++    # of under libwebrtc's third_party and is built as a stand-alone
++    # library, we need to "re-root" the dependency paths.  We can
++    # modify the dependencies here to avoid modifying most, if not
++    # all, of the BUILD.gn files.
++    if (defined(deps)) {
++      modified_deps = []
++      foreach (dep, deps) {
++        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++        modified_deps += [ newdep ]
++      }
++      deps = []
++      deps = modified_deps
++    }
+   }
+ }

@@ -1,0 +1,49 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 20 Oct 2022 16:14:00 +0000
+Subject: Bug 1795982 - pt5 - turn off -Wcomma warning for
+ third_party/libwebrtc/third_party/abseil-cpp/absl/strings/string_view.h r=ng
+
+abseil-cpp/absl/strings/string_view.h has multiple usages that follow a
+pattern similar to:
+    return ABSL_HARDENING_ASSERT(i < size()), ptr_[i];
+
+This causes Mozilla builds to fail because of -Wcomma warnings.  For
+this file, we'll turn off that warning.
+
+Differential Revision: https://phabricator.services.mozilla.com/D159742
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/da4def20e294cf6b5b4ae9ef38ddeb3c8302fe3c
+---
+ abseil-cpp/absl/strings/string_view.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/abseil-cpp/absl/strings/string_view.h b/abseil-cpp/absl/strings/string_view.h
+index eae11b2ab67..a44e2617235 100644
+--- a/abseil-cpp/absl/strings/string_view.h
++++ b/abseil-cpp/absl/strings/string_view.h
+@@ -66,6 +66,15 @@ ABSL_NAMESPACE_END
+ namespace absl {
+ ABSL_NAMESPACE_BEGIN
+ 
++// Mozilla added - quiets misused comma warnings resulting from
++// frequent use of the pattern:
++//     return ABSL_HARDENING_ASSERT(i < size()), ptr_[i];
++// TODO: https://bugzilla.mozilla.org/show_bug.cgi?id=1796623
++#if defined(__clang__)
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wcomma"
++#endif
++
+ // absl::string_view
+ //
+ // A `string_view` provides a lightweight view into the string data provided by
+@@ -674,6 +683,10 @@ ABSL_NAMESPACE_END
+ 
+ #undef ABSL_INTERNAL_STRING_VIEW_MEMCMP
+ 
++#if defined(__clang__)
++#pragma clang diagnostic pop
++#endif
++
+ #endif  // ABSL_USES_STD_STRING_VIEW
+ 
+ namespace absl {

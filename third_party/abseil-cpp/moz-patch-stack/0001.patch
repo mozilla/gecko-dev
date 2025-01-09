@@ -1,0 +1,646 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 7 Jun 2022 22:34:00 -0500
+Subject: Bug 1772400 - pt2 - Rollup of various patches to
+ third_party/libwebrtc/third_party r?ng!
+
+Several of these patches have been unindented to match the original content
+of the files to make merging easier in the fast-foward work.
+
+127ace4d8887 - Bug 1654112 - Tweak upstream gn files for Firefox build.
+65562b1a98a3 - Bug 1654112 - minimize abseil-cpp build and usage in libwebrtc.
+58f47eacaf10 - Bug 1654112 - deconflate the target and host architectures in libwebrtc build files
+
+Differential Revision: https://phabricator.services.mozilla.com/D148809
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/29bb1b6d7fc465aad44e15837e7b731bc40bc98a
+---
+ abseil-cpp/BUILD.gn                      | 14 ++++++--
+ abseil-cpp/absl.gni                      |  4 +++
+ abseil-cpp/absl/algorithm/BUILD.gn       |  2 ++
+ abseil-cpp/absl/base/BUILD.gn            | 12 +++++++
+ abseil-cpp/absl/container/BUILD.gn       | 14 +++++---
+ abseil-cpp/absl/debugging/BUILD.gn       |  2 ++
+ abseil-cpp/absl/flags/BUILD.gn           | 46 +++++++++++++-----------
+ abseil-cpp/absl/functional/BUILD.gn      |  2 ++
+ abseil-cpp/absl/hash/BUILD.gn            |  2 ++
+ abseil-cpp/absl/memory/BUILD.gn          |  2 ++
+ abseil-cpp/absl/meta/BUILD.gn            |  2 ++
+ abseil-cpp/absl/numeric/BUILD.gn         |  2 +-
+ abseil-cpp/absl/strings/BUILD.gn         | 21 +++++++++++
+ abseil-cpp/absl/synchronization/BUILD.gn |  2 ++
+ abseil-cpp/absl/time/BUILD.gn            |  2 ++
+ abseil-cpp/absl/types/BUILD.gn           |  6 +++-
+ 16 files changed, 106 insertions(+), 29 deletions(-)
+
+diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
+index 185c64d0266..e5446b5e4db 100644
+--- a/abseil-cpp/BUILD.gn
++++ b/abseil-cpp/BUILD.gn
+@@ -26,7 +26,7 @@ component("absl") {
+     public_configs = [ ":absl_component_build" ]
+ 
+     if (is_win && is_clang) {
+-      if (current_cpu == "x64") {
++      if (target_cpu == "x64") {
+         if (is_debug) {
+           sources = [ "symbols_x64_dbg.def" ]
+         } else {
+@@ -37,14 +37,14 @@ component("absl") {
+           }
+         }
+       }
+-      if (current_cpu == "x86") {
++      if (target_cpu == "x86") {
+         if (is_debug) {
+           sources = [ "symbols_x86_dbg.def" ]
+         } else {
+           sources = [ "symbols_x86_rel.def" ]
+         }
+       }
+-      if (current_cpu == "arm64") {
++      if (target_cpu == "arm64") {
+         if (is_debug) {
+           sources = [ "symbols_arm64_dbg.def" ]
+         } else {
+@@ -56,6 +56,11 @@ component("absl") {
+ }
+ 
+ group("absl_component_deps") {
++if (moz_webrtc_build) {
++  public_deps = [
++    "//third_party/abseil-cpp/absl/numeric:bits",
++  ]
++} else {
+   public_deps = [
+     "//third_party/abseil-cpp/absl/algorithm:container",
+     "//third_party/abseil-cpp/absl/base",
+@@ -101,13 +106,16 @@ group("absl_component_deps") {
+     "//third_party/abseil-cpp/absl/types:variant",
+     "//third_party/abseil-cpp/absl/utility",
+   ]
++}
+ 
++if (!moz_webrtc_build) {
+   # The following dependencies currently don't build with NaCl.
+   # TODO(https://crbug.com/1114625): Fix build errors and remove this section.
+   if (is_nacl) {
+     public_deps -=
+         [ "//third_party/abseil-cpp/absl/debugging:failure_signal_handler" ]
+   }
++}
+ 
+   visibility = [ ":absl" ]
+ }
+diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
+index cf8a39eb64e..52f572e0d12 100644
+--- a/abseil-cpp/absl.gni
++++ b/abseil-cpp/absl.gni
+@@ -19,6 +19,10 @@
+ 
+ import("//build_overrides/build.gni")
+ 
++declare_args() {
++  moz_webrtc_build = true
++}
++
+ template("absl_source_set") {
+   source_set(target_name) {
+     forward_variables_from(invoker, "*")
+diff --git a/abseil-cpp/absl/algorithm/BUILD.gn b/abseil-cpp/absl/algorithm/BUILD.gn
+index 7e53c03f096..34437a77bfb 100644
+--- a/abseil-cpp/absl/algorithm/BUILD.gn
++++ b/abseil-cpp/absl/algorithm/BUILD.gn
+@@ -18,6 +18,7 @@ absl_source_set("container") {
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_test("algorithm_test") {
+   sources = [ "algorithm_test.cc" ]
+   deps = [
+@@ -36,3 +37,4 @@ absl_test("container_test") {
+     "//third_party/abseil-cpp/absl/types:span",
+   ]
+ }
++}
+diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
+index b7dc6c9362f..97b6ce2be8a 100644
+--- a/abseil-cpp/absl/base/BUILD.gn
++++ b/abseil-cpp/absl/base/BUILD.gn
+@@ -13,11 +13,13 @@ absl_source_set("atomic_hook") {
+   visibility = [ "//third_party/abseil-cpp/absl/*" ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("errno_saver") {
+   public = [ "internal/errno_saver.h" ]
+   public_deps = [ ":config" ]
+   visibility = [ "//third_party/abseil-cpp/absl/*" ]
+ }
++}
+ 
+ absl_source_set("log_severity") {
+   sources = [ "log_severity.cc" ]
+@@ -50,6 +52,7 @@ absl_source_set("raw_logging_internal") {
+   visibility = [ "//third_party/abseil-cpp/absl/*" ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("spinlock_wait") {
+   sources = [
+     "internal/spinlock_akaros.inc",
+@@ -66,6 +69,7 @@ absl_source_set("spinlock_wait") {
+   ]
+   visibility = [ "//third_party/abseil-cpp/absl/base:*" ]
+ }
++}
+ 
+ absl_source_set("config") {
+   public = [
+@@ -87,6 +91,7 @@ absl_source_set("cycleclock_internal") {
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("dynamic_annotations") {
+   public = [ "dynamic_annotations.h" ]
+ 
+@@ -98,6 +103,7 @@ absl_source_set("dynamic_annotations") {
+     ":core_headers",
+   ]
+ }
++}
+ 
+ absl_source_set("core_headers") {
+   public = [
+@@ -111,6 +117,7 @@ absl_source_set("core_headers") {
+   public_deps = [ ":config" ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("malloc_internal") {
+   sources = [ "internal/low_level_alloc.cc" ]
+   public = [
+@@ -126,6 +133,7 @@ absl_source_set("malloc_internal") {
+     ":raw_logging_internal",
+   ]
+ }
++}
+ 
+ absl_source_set("base_internal") {
+   public = [
+@@ -142,6 +150,7 @@ absl_source_set("base_internal") {
+   visibility = [ "//third_party/abseil-cpp/absl/*" ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("base") {
+   sources = [
+     "internal/cycleclock.cc",
+@@ -295,6 +304,7 @@ absl_test("prefetch_test") {
+   deps = [ ":prefetch" ]
+ }
+ 
++if (false) {
+ absl_test("config_test") {
+   sources = [ "config_test.cc" ]
+   deps = [
+@@ -310,3 +320,5 @@ absl_test("nullability_test") {
+     ":nullability",
+   ]
+ }
++}
++}
+\ No newline at end of file
+diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
+index db77584c1d6..7ae0f55e136 100644
+--- a/abseil-cpp/absl/container/BUILD.gn
++++ b/abseil-cpp/absl/container/BUILD.gn
+@@ -9,6 +9,7 @@ absl_source_set("compressed_tuple") {
+   deps = [ "//third_party/abseil-cpp/absl/utility" ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("fixed_array") {
+   public = [ "fixed_array.h" ]
+   deps = [
+@@ -21,6 +22,7 @@ absl_source_set("fixed_array") {
+     "//third_party/abseil-cpp/absl/memory",
+   ]
+ }
++}
+ 
+ absl_test("fixed_array_test") {
+   sources = [ "fixed_array_test.cc" ]
+@@ -52,12 +54,13 @@ absl_source_set("inlined_vector") {
+     ":inlined_vector_internal",
+     "//third_party/abseil-cpp/absl/algorithm",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+-    "//third_party/abseil-cpp/absl/base:throw_delegate",
++#       "//third_party/abseil-cpp/absl/base:throw_delegate",
+     "//third_party/abseil-cpp/absl/memory",
+     "//third_party/abseil-cpp/absl/meta:type_traits",
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("test_allocator") {
+   testonly = true
+   public = [ "internal/test_allocator.h" ]
+@@ -91,19 +94,21 @@ absl_source_set("test_instance_tracker") {
+   deps = [ "//third_party/abseil-cpp/absl/types:compare" ]
+   visibility = [ "//third_party/abseil-cpp/absl/*" ]
+ }
++}
+ 
+ absl_source_set("flat_hash_map") {
+   public = [ "flat_hash_map.h" ]
+   deps = [
+-    ":container_memory",
+-    ":hash_function_defaults",
+-    ":raw_hash_map",
++#       ":container_memory",
++#       ":hash_function_defaults",
++#       ":raw_hash_map",
+     "//third_party/abseil-cpp/absl/algorithm:container",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+     "//third_party/abseil-cpp/absl/memory",
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("flat_hash_set") {
+   public = [ "flat_hash_set.h" ]
+   deps = [
+@@ -495,3 +500,4 @@ absl_source_set("btree_test_common") {
+ #     "//third_party/abseil-cpp/absl/types:optional",
+ #   ]
+ # }
++}
+diff --git a/abseil-cpp/absl/debugging/BUILD.gn b/abseil-cpp/absl/debugging/BUILD.gn
+index a050d95540c..5d5cac1eacd 100644
+--- a/abseil-cpp/absl/debugging/BUILD.gn
++++ b/abseil-cpp/absl/debugging/BUILD.gn
+@@ -5,6 +5,7 @@
+ import("//build/config/sanitizers/sanitizers.gni")
+ import("//third_party/abseil-cpp/absl.gni")
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("stacktrace") {
+   sources = [
+     "internal/stacktrace_aarch64-inl.inc",
+@@ -154,3 +155,4 @@ absl_source_set("stack_consumption") {
+   ]
+   visibility = [ ":*" ]
+ }
++}
+diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
+index 020842112a7..606df666036 100644
+--- a/abseil-cpp/absl/flags/BUILD.gn
++++ b/abseil-cpp/absl/flags/BUILD.gn
+@@ -4,6 +4,7 @@
+ 
+ import("//third_party/abseil-cpp/absl.gni")
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("path_util") {
+   public = [ "internal/path_util.h" ]
+   deps = [
+@@ -28,6 +29,7 @@ absl_source_set("program_name") {
+     "../log:*",
+   ]
+ }
++}
+ 
+ # Since absl/flags are only used by some test binaries (e.g. in WebRTC),
+ # there is no need to strip flags from mobile platforms binaries.
+@@ -44,16 +46,17 @@ absl_source_set("config") {
+     "usage_config.h",
+   ]
+   deps = [
+-    ":path_util",
+-    ":program_name",
++#       ":path_util",
++#       ":program_name",
+     "//third_party/abseil-cpp/absl/base:config",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+     "//third_party/abseil-cpp/absl/strings",
+     "//third_party/abseil-cpp/absl/strings:string_view",
+-    "//third_party/abseil-cpp/absl/synchronization",
++#       "//third_party/abseil-cpp/absl/synchronization",
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("marshalling") {
+   sources = [ "marshalling.cc" ]
+   public = [ "marshalling.h" ]
+@@ -122,6 +125,7 @@ absl_source_set("reflection") {
+     "//third_party/abseil-cpp/absl/synchronization",
+   ]
+ }
++}
+ 
+ absl_source_set("flag_internal") {
+   sources = [ "internal/flag.cc" ]
+@@ -130,12 +134,12 @@ absl_source_set("flag_internal") {
+     "internal/sequence_lock.h",
+   ]
+   deps = [
+-    ":commandlineflag",
+-    ":commandlineflag_internal",
++#       ":commandlineflag",
++#       ":commandlineflag_internal",
+     ":config",
+-    ":marshalling",
+-    ":reflection",
+-    "//third_party/abseil-cpp/absl/base",
++#       ":marshalling",
++#       ":reflection",
++#       "//third_party/abseil-cpp/absl/base",
+     "//third_party/abseil-cpp/absl/base:config",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+     "//third_party/abseil-cpp/absl/base:dynamic_annotations",
+@@ -143,8 +147,8 @@ absl_source_set("flag_internal") {
+     "//third_party/abseil-cpp/absl/meta:type_traits",
+     "//third_party/abseil-cpp/absl/strings",
+     "//third_party/abseil-cpp/absl/strings:string_view",
+-    "//third_party/abseil-cpp/absl/synchronization",
+-    "//third_party/abseil-cpp/absl/utility",
++#       "//third_party/abseil-cpp/absl/synchronization",
++#       "//third_party/abseil-cpp/absl/utility",
+   ]
+   visibility = [
+     ":*",
+@@ -164,14 +168,15 @@ absl_source_set("flag") {
+   deps = [
+     ":config",
+     ":flag_internal",
+-    ":reflection",
+-    "//third_party/abseil-cpp/absl/base",
++#       ":reflection",
++#       "//third_party/abseil-cpp/absl/base",
+     "//third_party/abseil-cpp/absl/base:config",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+     "//third_party/abseil-cpp/absl/strings:string_view",
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("usage_internal") {
+   sources = [ "internal/usage.cc" ]
+   public = [ "internal/usage.h" ]
+@@ -205,6 +210,7 @@ absl_source_set("usage") {
+     "//third_party/abseil-cpp/absl/synchronization",
+   ]
+ }
++}
+ 
+ absl_source_set("parse") {
+   sources = [ "parse.cc" ]
+@@ -213,22 +219,22 @@ absl_source_set("parse") {
+     "parse.h",
+   ]
+   deps = [
+-    ":commandlineflag",
+-    ":commandlineflag_internal",
++#       ":commandlineflag",
++#       ":commandlineflag_internal",
+     ":config",
+     ":flag",
+     ":flag_internal",
+-    ":private_handle_accessor",
+-    ":program_name",
+-    ":reflection",
+-    ":usage",
+-    ":usage_internal",
++#       ":private_handle_accessor",
++#       ":program_name",
++#       ":reflection",
++#       ":usage",
++#       ":usage_internal",
+     "//third_party/abseil-cpp/absl/algorithm:container",
+     "//third_party/abseil-cpp/absl/base:config",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+     "//third_party/abseil-cpp/absl/strings",
+     "//third_party/abseil-cpp/absl/strings:string_view",
+-    "//third_party/abseil-cpp/absl/synchronization",
++#       "//third_party/abseil-cpp/absl/synchronization",
+   ]
+ }
+ 
+diff --git a/abseil-cpp/absl/functional/BUILD.gn b/abseil-cpp/absl/functional/BUILD.gn
+index 16d348a676d..4a1b5fe35a2 100644
+--- a/abseil-cpp/absl/functional/BUILD.gn
++++ b/abseil-cpp/absl/functional/BUILD.gn
+@@ -42,6 +42,7 @@ absl_source_set("bind_front") {
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("function_ref") {
+   sources = [ "internal/function_ref.h" ]
+   public = [ "function_ref.h" ]
+@@ -81,3 +82,4 @@ absl_test("overload_test") {
+     "//third_party/abseil-cpp/absl/types:variant",
+   ]
+ }
++}
+diff --git a/abseil-cpp/absl/hash/BUILD.gn b/abseil-cpp/absl/hash/BUILD.gn
+index 7331d9fe769..8d99c1df253 100644
+--- a/abseil-cpp/absl/hash/BUILD.gn
++++ b/abseil-cpp/absl/hash/BUILD.gn
+@@ -5,6 +5,7 @@
+ import("//build_overrides/build.gni")
+ import("//third_party/abseil-cpp/absl.gni")
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("hash") {
+   sources = [
+     "internal/hash.cc",
+@@ -124,3 +125,4 @@ absl_test("low_level_hash_test") {
+     "//third_party/abseil-cpp/absl/strings",
+   ]
+ }
++}
+diff --git a/abseil-cpp/absl/memory/BUILD.gn b/abseil-cpp/absl/memory/BUILD.gn
+index 1c1f6f89092..0b7de73ed9f 100644
+--- a/abseil-cpp/absl/memory/BUILD.gn
++++ b/abseil-cpp/absl/memory/BUILD.gn
+@@ -12,6 +12,7 @@ absl_source_set("memory") {
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_test("memory_test") {
+   sources = [ "memory_test.cc" ]
+   deps = [
+@@ -19,3 +20,4 @@ absl_test("memory_test") {
+     "//third_party/abseil-cpp/absl/base:core_headers",
+   ]
+ }
++}
+diff --git a/abseil-cpp/absl/meta/BUILD.gn b/abseil-cpp/absl/meta/BUILD.gn
+index 5e960b7a10b..c4a354a1d4a 100644
+--- a/abseil-cpp/absl/meta/BUILD.gn
++++ b/abseil-cpp/absl/meta/BUILD.gn
+@@ -12,6 +12,7 @@ absl_source_set("type_traits") {
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_test("type_traits_test") {
+   sources = [ "type_traits_test.cc" ]
+   deps = [
+@@ -21,3 +22,4 @@ absl_test("type_traits_test") {
+     "//third_party/abseil-cpp/absl/time",
+   ]
+ }
++}
+diff --git a/abseil-cpp/absl/numeric/BUILD.gn b/abseil-cpp/absl/numeric/BUILD.gn
+index ce74204b18f..90ea6ea9b6e 100644
+--- a/abseil-cpp/absl/numeric/BUILD.gn
++++ b/abseil-cpp/absl/numeric/BUILD.gn
+@@ -23,7 +23,7 @@ absl_source_set("int128") {
+   ]
+   public = [ "int128.h" ]
+   deps = [
+-    ":bits",
++#    ":bits",
+     "//third_party/abseil-cpp/absl/base:config",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+   ]
+diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
+index f92495a055e..0cbb0c3f8d7 100644
+--- a/abseil-cpp/absl/strings/BUILD.gn
++++ b/abseil-cpp/absl/strings/BUILD.gn
+@@ -65,6 +65,7 @@ absl_source_set("strings") {
+     # :string_view.
+     ":string_view",
+   ]
++  if (!moz_webrtc_build) {
+   deps = [
+     ":charset",
+     ":internal",
+@@ -80,6 +81,18 @@ absl_source_set("strings") {
+     "//third_party/abseil-cpp/absl/numeric:bits",
+     "//third_party/abseil-cpp/absl/numeric:int128",
+   ]
++  } else {
++  deps = [
++    ":internal",
++    "//third_party/abseil-cpp/absl/base:config",
++    "//third_party/abseil-cpp/absl/base:core_headers",
++    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
++    "//third_party/abseil-cpp/absl/memory",
++    "//third_party/abseil-cpp/absl/meta:type_traits",
++    "//third_party/abseil-cpp/absl/numeric:bits",
++    "//third_party/abseil-cpp/absl/numeric:int128",
++  ]
++  }
+ }
+ 
+ absl_source_set("internal") {
+@@ -94,6 +107,7 @@ absl_source_set("internal") {
+     "internal/resize_uninitialized.h",
+     "internal/utf8.h",
+   ]
++  if (!moz_webrtc_build) {
+   deps = [
+     "//third_party/abseil-cpp/absl/base:config",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+@@ -101,8 +115,14 @@ absl_source_set("internal") {
+     "//third_party/abseil-cpp/absl/base:raw_logging_internal",
+     "//third_party/abseil-cpp/absl/meta:type_traits",
+   ]
++  } else {
++  deps = [
++    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
++  ]
++  }
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("str_format") {
+   public = [ "str_format.h" ]
+   deps = [ ":str_format_internal" ]
+@@ -629,3 +649,4 @@ absl_test("char_formatting_test") {
+     ":strings",
+   ]
+ }
++}
+diff --git a/abseil-cpp/absl/synchronization/BUILD.gn b/abseil-cpp/absl/synchronization/BUILD.gn
+index c6f1d3ba181..dbb41d8ab13 100644
+--- a/abseil-cpp/absl/synchronization/BUILD.gn
++++ b/abseil-cpp/absl/synchronization/BUILD.gn
+@@ -4,6 +4,7 @@
+ 
+ import("//third_party/abseil-cpp/absl.gni")
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("graphcycles_internal") {
+   sources = [ "internal/graphcycles.cc" ]
+   public = [ "internal/graphcycles.h" ]
+@@ -133,3 +134,4 @@ absl_source_set("per_thread_sem_test_common") {
+ #     "//third_party/abseil-cpp/absl/base:config",
+ #   ]
+ # }
++}
+diff --git a/abseil-cpp/absl/time/BUILD.gn b/abseil-cpp/absl/time/BUILD.gn
+index f7f3db4b719..5157f88d604 100644
+--- a/abseil-cpp/absl/time/BUILD.gn
++++ b/abseil-cpp/absl/time/BUILD.gn
+@@ -4,6 +4,7 @@
+ 
+ import("//third_party/abseil-cpp/absl.gni")
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("time") {
+   sources = [
+     "civil_time.cc",
+@@ -64,3 +65,4 @@ absl_test("time_test") {
+     "//third_party/abseil-cpp/absl/time/internal/cctz:time_zone",
+   ]
+ }
++}
+diff --git a/abseil-cpp/absl/types/BUILD.gn b/abseil-cpp/absl/types/BUILD.gn
+index cfe0cda89d4..790e592bcca 100644
+--- a/abseil-cpp/absl/types/BUILD.gn
++++ b/abseil-cpp/absl/types/BUILD.gn
+@@ -5,6 +5,7 @@
+ import("//build_overrides/build.gni")
+ import("//third_party/abseil-cpp/absl.gni")
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("any") {
+   public = [ "any.h" ]
+   public_deps = [
+@@ -30,6 +31,7 @@ absl_source_set("bad_any_cast_impl") {
+   deps = [ "//third_party/abseil-cpp/absl/base:raw_logging_internal" ]
+   visibility = [ ":*" ]
+ }
++}
+ 
+ absl_source_set("span") {
+   public = [ "span.h" ]
+@@ -37,7 +39,7 @@ absl_source_set("span") {
+   public_deps = [
+     "//third_party/abseil-cpp/absl/algorithm",
+     "//third_party/abseil-cpp/absl/base:core_headers",
+-    "//third_party/abseil-cpp/absl/base:throw_delegate",
++#       "//third_party/abseil-cpp/absl/base:throw_delegate",
+     "//third_party/abseil-cpp/absl/meta:type_traits",
+   ]
+ }
+@@ -83,6 +85,7 @@ absl_source_set("variant") {
+   ]
+ }
+ 
++if (!moz_webrtc_build) {
+ absl_source_set("compare") {
+   public = [ "compare.h" ]
+   public_deps = [
+@@ -113,3 +116,4 @@ absl_test("variant_test") {
+     "//third_party/abseil-cpp/absl/strings:string_view",
+   ]
+ }
++}
