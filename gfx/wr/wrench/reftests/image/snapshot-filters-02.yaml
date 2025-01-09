@@ -1,0 +1,127 @@
+# This test case contains a row of simple snapshotted stacking
+# contexts with filters on them. Their snapshots are rendered
+# as images in a second row. The second row should look identical
+# to the first.
+---
+root:
+  items:
+  - type: stacking-context
+    bounds: [10, 10, 200, 200]
+    filters: Identity
+    snapshot:
+      name: "snap-identity"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [110, 10, 200, 200]
+    filters: color-matrix( 0, 0, 1, 0,
+                           0, 1, 0, 0,
+                           1, 0, 0, 0,
+                           0, 0, 0, 1,
+                           0, 0, 0, 0 )
+    snapshot:
+      name: "snap-color-matrix"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [210, 10, 200, 200]
+    filters: srgb-to-linear
+    snapshot:
+      name: "snap-srgb-to-linear"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [310, 10, 200, 200]
+    filters: linear-to-srgb
+    snapshot:
+      name: "snap-linear-to-srgb"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [410, 10, 200, 200]
+    filters: component-transfer
+    filter-datas:
+      - - - Gamma
+          - Gamma
+          - Gamma
+          - Gamma
+        - - "2"
+          - "5"
+          - "-1"
+        - - "2"
+          - "3"
+          - "0"
+        - - "2"
+          - "1"
+          - "-1.75"
+        - - "2"
+          - "1"
+          - "-1.75"
+    snapshot:
+      name: "snap-component-transfer"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [510, 10, 200, 200]
+    filters: flood(0, 0, 100, 0.5)
+    snapshot:
+      name: "snap-flood"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [10, 110, 2000, 200]
+    items:
+    - image: snapshot(snap-identity)
+      bounds: [-10, -10, 120, 120]
+    - image: snapshot(snap-color-matrix)
+      bounds: [90, -10, 120, 120]
+    - image: snapshot(snap-srgb-to-linear)
+      bounds: [190, -10, 120, 120]
+    - image: snapshot(snap-linear-to-srgb)
+      bounds: [290, -10, 120, 120]
+    - image: snapshot(snap-component-transfer)
+      bounds: [390, -10, 120, 120]
+    - image: snapshot(snap-flood)
+      bounds: [490, -10, 120, 120]

@@ -1,0 +1,180 @@
+---
+root:
+  items:
+  - type: stacking-context
+    bounds: [10, 10, 200, 200]
+    filters: blur(4, 4)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [110, 10, 200, 200]
+    filters: brightness(0.5)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [210, 10, 200, 200]
+    filters: contrast(0.5)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [310, 10, 200, 200]
+    filters: hue-rotate(100)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [410, 10, 200, 200]
+    filters: invert(1.0)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [510, 10, 200, 200]
+    filters: opacity(0.5)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [610, 10, 200, 200]
+    filters: saturate(0.1)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [710, 10, 200, 200]
+    filters: sepia(1.0)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+
+
+  - type: stacking-context
+    bounds: [10, 110, 200, 200]
+    filters: blur(4, 4)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [110, 110, 200, 200]
+    filters: brightness(0.5)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [210, 110, 200, 200]
+    filters: contrast(0.5)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [310, 110, 200, 200]
+    filters: hue-rotate(100)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [410, 110, 200, 200]
+    filters: invert(1.0)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [510, 110, 200, 200]
+    filters: opacity(0.5)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [610, 110, 200, 200]
+    filters: saturate(0.1)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [710, 110, 200, 200]
+    filters: sepia(1.0)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]

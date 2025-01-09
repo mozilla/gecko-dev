@@ -1,0 +1,185 @@
+# This test case contains a row of simple snapshotted stacking
+# contexts with filters on them. Their snapshots are rendered
+# as images in a second row. The second row shoul look identical
+# to the first.
+---
+root:
+  items:
+  - type: stacking-context
+    bounds: [10, 10, 200, 200]
+    filters: Identity
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [110, 10, 200, 200]
+    filters: color-matrix( 0, 0, 1, 0,
+                           0, 1, 0, 0,
+                           1, 0, 0, 0,
+                           0, 0, 0, 1,
+                           0, 0, 0, 0 )
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [210, 10, 200, 200]
+    filters: srgb-to-linear
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [310, 10, 200, 200]
+    filters: linear-to-srgb
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [410, 10, 200, 200]
+    filters: component-transfer
+    filter-datas:
+      - - - Gamma
+          - Gamma
+          - Gamma
+          - Gamma
+        - - "2"
+          - "5"
+          - "-1"
+        - - "2"
+          - "3"
+          - "0"
+        - - "2"
+          - "1"
+          - "-1.75"
+        - - "2"
+          - "1"
+          - "-1.75"
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [510, 10, 200, 200]
+    filters: flood(0, 0, 100, 0.5)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+
+
+  - type: stacking-context
+    bounds: [10, 110, 200, 200]
+    filters: Identity
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [110, 110, 200, 200]
+    filters: color-matrix( 0, 0, 1, 0,
+                           0, 1, 0, 0,
+                           1, 0, 0, 0,
+                           0, 0, 0, 1,
+                           0, 0, 0, 0 )
+    snapshot:
+      name: "snap-color-matrix"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [210, 110, 200, 200]
+    filters: srgb-to-linear
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [310, 110, 200, 200]
+    filters: linear-to-srgb
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [410, 110, 200, 200]
+    filters: component-transfer
+    filter-datas:
+      - - - Gamma
+          - Gamma
+          - Gamma
+          - Gamma
+        - - "2"
+          - "5"
+          - "-1"
+        - - "2"
+          - "3"
+          - "0"
+        - - "2"
+          - "1"
+          - "-1.75"
+        - - "2"
+          - "1"
+          - "-1.75"
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [510, 110, 200, 200]
+    filters: flood(0, 0, 100, 0.5)
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]

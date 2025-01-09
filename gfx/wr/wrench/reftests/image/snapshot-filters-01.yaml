@@ -1,0 +1,138 @@
+# This test case contains a row of simple snapshotted stacking
+# contexts with filters on them. Their snapshots are rendered
+# as images in a second row. The second row should look identical
+# to the first.
+---
+root:
+  items:
+  - type: stacking-context
+    bounds: [10, 10, 200, 200]
+    filters: blur(4, 4)
+    snapshot:
+      name: "snap-blur"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [110, 10, 200, 200]
+    filters: brightness(0.5)
+    snapshot:
+      name: "snap-brightness"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [210, 10, 200, 200]
+    filters: contrast(0.5)
+    snapshot:
+      name: "snap-contrast"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [310, 10, 200, 200]
+    filters: hue-rotate(100)
+    snapshot:
+      name: "snap-hue-rotate"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [410, 10, 200, 200]
+    filters: invert(1.0)
+    snapshot:
+      name: "snap-invert"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [510, 10, 200, 200]
+    filters: opacity(0.5)
+    snapshot:
+      name: "snap-opacity"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [610, 10, 200, 200]
+    filters: saturate(0.1)
+    snapshot:
+      name: "snap-saturate"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [710, 10, 200, 200]
+    filters: sepia(1.0)
+    snapshot:
+      name: "snap-sepia"
+      area: [-10, -10, 120, 120]
+    items:
+      - type: rect
+        bounds: [10, 10, 80, 80]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [5, 5, 40, 40]
+        color: [200, 0, 0]
+
+  - type: stacking-context
+    bounds: [10, 110, 2000, 200]
+    items:
+    - image: snapshot(snap-blur)
+      bounds: [-10, -10, 120, 120]
+    - image: snapshot(snap-brightness)
+      bounds: [90, -10, 120, 120]
+    - image: snapshot(snap-contrast)
+      bounds: [190, -10, 120, 120]
+    - image: snapshot(snap-hue-rotate)
+      bounds: [290, -10, 120, 120]
+    - image: snapshot(snap-invert)
+      bounds: [390, -10, 120, 120]
+    - image: snapshot(snap-opacity)
+      bounds: [490, -10, 120, 120]
+    - image: snapshot(snap-saturate)
+      bounds: [590, -10, 120, 120]
+    - image: snapshot(snap-sepia)
+      bounds: [690, -10, 120, 120]
