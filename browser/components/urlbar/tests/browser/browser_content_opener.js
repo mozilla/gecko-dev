@@ -12,10 +12,13 @@ add_task(async function () {
         content.window.open("", "_BLANK", "toolbar=no,height=300,width=500");
       });
       let newWin = await windowOpenedPromise;
+
       is(
         newWin.gURLBar.value,
-        "about:blank",
-        "Should be displaying about:blank for the opened window."
+        UrlbarTestUtils.trimURL(
+          new URL(gBrowser.contentPrincipal.originNoSuffix).href
+        ),
+        "Should be displaying the parent's origin for the opened window since it has an opener relationship to its parent."
       );
       await BrowserTestUtils.closeWindow(newWin);
     }
