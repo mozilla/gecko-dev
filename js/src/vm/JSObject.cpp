@@ -3415,6 +3415,26 @@ void JSObject::traceChildren(JSTracer* trc) {
   Shape* objShape = shape();
   if (objShape->isNative()) {
     NativeObject* nobj = &as<NativeObject>();
+
+    if (nobj->hasDynamicSlots()) {
+      ObjectSlots* slots = nobj->getSlotsHeader();
+      MOZ_ASSERT(nobj->slots_ == slots->slots());
+      TraceBufferEdge(trc, nobj, &slots, "objectDynamicSlots buffer");
+      if (slots != nobj->getSlotsHeader()) {
+        nobj->slots_ = slots->slots();
+      }
+    }
+
+    if (nobj->hasDynamicElements()) {
+      void* buffer = nobj->getUnshiftedElementsHeader();
+      uint32_t numShifted = nobj->getElementsHeader()->numShiftedElements();
+      TraceBufferEdge(trc, nobj, &buffer, "objectDynamicElements buffer");
+      if (buffer != nobj->getUnshiftedElementsHeader()) {
+        nobj->elements_ =
+            reinterpret_cast<ObjectElements*>(buffer)->elements() + numShifted;
+      }
+    }
+
     const uint32_t nslots = nobj->slotSpan();
     const uint32_t nfixed = nobj->numFixedSlots();
 
@@ -3425,20 +3445,11 @@ void JSObject::traceChildren(JSTracer* trc) {
                  "objectFixedSlots");
     }
 
-    if (nobj->hasDynamicSlots()) {
-      TraceEdgeToBuffer(trc, nobj, nobj->getSlotsHeader(),
-                        "objectDynamicSlots buffer");
-
-      if (nslots > nfixed) {
-        GetObjectSlotNameFunctor func(nobj, SlotsKind::Dynamic);
-        JS::AutoTracingDetails ctx(trc, func);
-        TraceRange(trc, nslots - nfixed, nobj->slots_, "objectDynamicSlots");
-      }
-    }
-
-    if (nobj->hasDynamicElements()) {
-      TraceEdgeToBuffer(trc, nobj, nobj->getUnshiftedElementsHeader(),
-                        "objectDynamicElements allocation");
+    if (nslots > nfixed) {
+      MOZ_ASSERT(nobj->hasDynamicSlots());
+      GetObjectSlotNameFunctor func(nobj, SlotsKind::Dynamic);
+      JS::AutoTracingDetails ctx(trc, func);
+      TraceRange(trc, nslots - nfixed, nobj->slots_, "objectDynamicSlots");
     }
 
     TraceRange(trc, nobj->getDenseInitializedLength(),

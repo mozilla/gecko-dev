@@ -275,19 +275,20 @@ static void RelocateCell(Zone* zone, TenuredCell* src, AllocKind thingKind,
   dst->copyMarkBitsFrom(src);
 
   // Poison the source cell contents except for the forwarding flag and pointer
-  // which will be stored in the first word. We can't do this for native object
-  // with fixed elements because this would overwrite the element flags and
-  // these are needed when updating COW elements referred to by other objects.
+  // which will be stored in the first word. We can't do this for buffer
+  // allocations as these can be used as native object dynamic elements and this
+  // would overwrite the elements flags which are needed when updating the
+  // dynamic elements pointer.
 #ifdef DEBUG
-  JSObject* srcObj = IsObjectAllocKind(thingKind)
-                         ? static_cast<JSObject*>(static_cast<Cell*>(src))
-                         : nullptr;
-  bool doNotPoison =
-      srcObj && ((srcObj->is<NativeObject>() &&
-                  srcObj->as<NativeObject>().hasFixedElements()) ||
-                 (srcObj->is<WasmArrayObject>() &&
-                  srcObj->as<WasmArrayObject>().isDataInline()));
-  if (!doNotPoison) {
+  bool poison = true;
+  if (IsObjectAllocKind(thingKind)) {
+    JSObject* srcObj = static_cast<JSObject*>(static_cast<Cell*>(src));
+    poison = !(srcObj->is<WasmArrayObject>() &&
+               srcObj->as<WasmArrayObject>().isDataInline());
+  } else if (IsBufferAllocKind(thingKind)) {
+    poison = false;
+  }
+  if (poison) {
     AlwaysPoison(reinterpret_cast<uint8_t*>(src) + sizeof(uintptr_t),
                  JS_MOVED_TENURED_PATTERN, thingSize - sizeof(uintptr_t),
                  MemCheckKind::MakeNoAccess);
@@ -900,8 +901,13 @@ void GCRuntime::clearRelocatedArenasWithoutUnlocking(Arena* arenaList,
     //  - if they were allocated since the start of the GC.
     bool allArenasRelocated = ShouldRelocateAllArenas(reason);
     bool updateRetainedSize = !allArenasRelocated && !arena->isNewlyCreated();
-    arena->zone()->gcHeapSize.removeBytes(ArenaSize, updateRetainedSize,
-                                          heapSize);
+    Zone* zone = arena->zone();
+    if (IsBufferAllocKind(arena->getAllocKind())) {
+      size_t usableBytes = ArenaSize - arena->getFirstThingOffset();
+      zone->mallocHeapSize.removeBytes(usableBytes, updateRetainedSize);
+    } else {
+      zone->gcHeapSize.removeBytes(ArenaSize, updateRetainedSize, heapSize);
+    }
 
     // Release the arena but don't return it to the chunk yet.
     arena->release(this, &lock);

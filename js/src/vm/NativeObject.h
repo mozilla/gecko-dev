@@ -1662,13 +1662,6 @@ class NativeObject : public JSObject {
   }
 
   inline bool hasDynamicElements() const {
-    /*
-     * Note: for objects with zero fixed slots this could potentially give
-     * a spurious 'true' result, if the end of this object is exactly
-     * aligned with the end of its arena and dynamic slots are allocated
-     * immediately afterwards. Such cases cannot occur for dense arrays
-     * (which have at least two fixed slots) and can only result in a leak.
-     */
     return !hasEmptyElements() && !hasFixedElements();
   }
 

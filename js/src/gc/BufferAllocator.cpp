@@ -866,7 +866,7 @@ bool BufferAllocator::IsMarkedBlack(void* alloc) {
 }
 
 /* static */
-void BufferAllocator::TraceEdge(JSTracer* trc, Cell* owner, void* buffer,
+void BufferAllocator::TraceEdge(JSTracer* trc, Cell* owner, void** bufferp,
                                 const char* name) {
   // Buffers are conceptually part of the owning cell and are not reported to
   // the tracer.
@@ -874,6 +874,9 @@ void BufferAllocator::TraceEdge(JSTracer* trc, Cell* owner, void* buffer,
   // TODO: This should be unified with the rest of the tracing system.
 
   MOZ_ASSERT(owner);
+  MOZ_ASSERT(bufferp);
+
+  void* buffer = *bufferp;
   MOZ_ASSERT(buffer);
 
   if (js::gc::detail::GetGCAddressChunkBase(buffer)->isNurseryChunk()) {
@@ -887,7 +890,9 @@ void BufferAllocator::TraceEdge(JSTracer* trc, Cell* owner, void* buffer,
   if (IsSmallAlloc(buffer)) {
     auto* cell = GetHeaderFromAlloc<SmallBuffer>(buffer);
     TraceManuallyBarrieredEdge(trc, &cell, name);
-    MOZ_ASSERT(cell->data() == buffer);  // TODO: Compact small buffers.
+    if (cell != GetHeaderFromAlloc<SmallBuffer>(buffer)) {
+      *bufferp = cell->data();
+    }
     return;
   }
 

@@ -8,6 +8,7 @@
 #define js_Tracer_h
 
 #include "gc/Barrier.h"
+#include "gc/BufferAllocator.h"
 #include "gc/TraceKind.h"
 #include "js/HashTable.h"
 #include "js/TracingAPI.h"
@@ -330,8 +331,12 @@ void TraceRootRange(JSTracer* trc, size_t len, T* vec, const char* name) {
 
 // Note that this doesn't trace the contents of the alloc.
 // TODO: Unify this with other TraceEdge methods.
-void TraceEdgeToBuffer(JSTracer* trc, gc::Cell* owner, void* buffer,
-                       const char* name);
+template <typename T>
+void TraceBufferEdge(JSTracer* trc, gc::Cell* owner, T** bufferp,
+                     const char* name) {
+  void** ptrp = reinterpret_cast<void**>(bufferp);
+  gc::BufferAllocator::TraceEdge(trc, owner, ptrp, name);
+}
 
 // As below but with manual barriers.
 template <typename T>

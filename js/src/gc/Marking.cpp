@@ -726,11 +726,6 @@ void js::gc::TraceRangeInternal(JSTracer* trc, size_t len, T* vec,
   }
 }
 
-void js::TraceEdgeToBuffer(JSTracer* trc, Cell* owner, void* buffer,
-                           const char* name) {
-  BufferAllocator::TraceEdge(trc, owner, buffer, name);
-}
-
 /*** GC Marking Interface ***************************************************/
 
 namespace js {

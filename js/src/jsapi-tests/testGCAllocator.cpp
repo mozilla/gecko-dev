@@ -465,9 +465,13 @@ void BufferHolderObject::setBuffer(void* buffer) {
 
 /* static */
 void BufferHolderObject::trace(JSTracer* trc, JSObject* obj) {
-  void* buffer = obj->as<NativeObject>().getFixedSlot(0).toPrivate();
+  NativeObject* holder = &obj->as<NativeObject>();
+  void* buffer = holder->getFixedSlot(0).toPrivate();
   if (buffer) {
-    TraceEdgeToBuffer(trc, obj, buffer, "BufferHolderObject buffer");
+    TraceBufferEdge(trc, obj, &buffer, "BufferHolderObject buffer");
+    if (buffer != holder->getFixedSlot(0).toPrivate()) {
+      holder->setFixedSlot(0, JS::PrivateValue(buffer));
+    }
   }
 }
 
@@ -735,8 +739,9 @@ static void traceAllocs(JSTracer* trc, void* data) {
   auto& holder = *static_cast<Rooted<PlainObject*>*>(data);
   auto* liveAllocs = static_cast<void**>(holder->getFixedSlot(0).toPrivate());
   for (size_t i = 0; i < MaxLiveAllocs; i++) {
-    if (void* alloc = liveAllocs[i]) {
-      TraceEdgeToBuffer(trc, holder, alloc, "test buffer");
+    void** bufferp = &liveAllocs[i];
+    if (*bufferp) {
+      TraceBufferEdge(trc, holder, bufferp, "test buffer");
     }
   }
 }

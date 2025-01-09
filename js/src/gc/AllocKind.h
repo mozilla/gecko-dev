@@ -106,10 +106,10 @@ namespace gc {
 
 #define FOR_EACH_BUFFER_ALLOCKIND(D) \
  /* AllocKind              TraceKind     TypeName               SizedType                  BGFinal Nursery Compact */ \
-  D(BUFFER16,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<16>,  true,   false,  false) \
-  D(BUFFER32,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<32>,  true,   false,  false) \
-  D(BUFFER64,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<64>,  true,   false,  false) \
-  D(BUFFER128,             SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<128>, true,   false,  false)
+  D(BUFFER16,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<16>,  true,   false,  true) \
+  D(BUFFER32,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<32>,  true,   false,  true) \
+  D(BUFFER64,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<64>,  true,   false,  true) \
+  D(BUFFER128,             SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<128>, true,   false,  true)
 // clang-format on
 
 #define FOR_EACH_NONOBJECT_NONBUFFER_ALLOCKIND(D) \
