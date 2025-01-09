@@ -77,7 +77,7 @@ void MigrateCookieLifetimePrefs() {
     // prefs, as it was merged into cookiesAndStorage as part of the effort for
     // the clear data revamp Bug 1853996
     mozilla::Preferences::SetBool(
-        "privacy.clearOnShutdown_v2.historyFormDataAndDownloads", false);
+        "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", false);
     mozilla::Preferences::SetBool("privacy.clearOnShutdown_v2.siteSettings",
                                   false);
   }

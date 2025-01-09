@@ -104,7 +104,7 @@ const SANITIZE_ON_SHUTDOWN_PREFS_ONLY = [
 ];
 
 const SANITIZE_ON_SHUTDOWN_PREFS_ONLY_V2 = [
-  "privacy.clearOnShutdown_v2.historyFormDataAndDownloads",
+  "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads",
   "privacy.clearOnShutdown_v2.siteSettings",
 ];
 
@@ -177,7 +177,7 @@ Preferences.addAll([
   { id: "privacy.clearOnShutdown.offlineApps", type: "bool" },
   { id: "privacy.clearOnShutdown.history", type: "bool" },
   {
-    id: "privacy.clearOnShutdown_v2.historyFormDataAndDownloads",
+    id: "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads",
     type: "bool",
   },
   { id: "privacy.clearOnShutdown.downloads", type: "bool" },

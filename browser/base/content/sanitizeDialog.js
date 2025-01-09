@@ -38,16 +38,16 @@ Preferences.addAll([
   { id: "privacy.cpd.siteSettings", type: "bool" },
   { id: "privacy.sanitize.timeSpan", type: "int" },
   { id: "privacy.clearOnShutdown.history", type: "bool" },
-  { id: "privacy.clearHistory.historyFormDataAndDownloads", type: "bool" },
+  { id: "privacy.clearHistory.browsingHistoryAndDownloads", type: "bool" },
   { id: "privacy.clearHistory.cookiesAndStorage", type: "bool" },
   { id: "privacy.clearHistory.cache", type: "bool" },
   { id: "privacy.clearHistory.siteSettings", type: "bool" },
-  { id: "privacy.clearSiteData.historyFormDataAndDownloads", type: "bool" },
+  { id: "privacy.clearSiteData.browsingHistoryAndDownloads", type: "bool" },
   { id: "privacy.clearSiteData.cookiesAndStorage", type: "bool" },
   { id: "privacy.clearSiteData.cache", type: "bool" },
   { id: "privacy.clearSiteData.siteSettings", type: "bool" },
   {
-    id: "privacy.clearOnShutdown_v2.historyFormDataAndDownloads",
+    id: "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads",
     type: "bool",
   },
   { id: "privacy.clearOnShutdown.formdata", type: "bool" },
@@ -535,7 +535,7 @@ var gSanitizePromptDialog = {
   /**
    * Get all items to clear based on checked boxes
    *
-   * @returns {string[]} array of items ["cache", "historyFormDataAndDownloads"...]
+   * @returns {string[]} array of items ["cache", "browsingHistoryAndDownloads"...]
    */
   getItemsToClear() {
     // the old dialog uses the preferences to decide what to clear
@@ -572,7 +572,7 @@ var gSanitizePromptDialog = {
       Glean.privacySanitize.clear.record({
         context: contextOpenedIn,
         history_form_data_downloads: selectedOptions.includes(
-          "historyFormDataAndDownloads"
+          "browsingHistoryAndDownloads"
         ),
         cookies_and_storage: selectedOptions.includes("cookiesAndStorage"),
         cache: selectedOptions.includes("cache"),

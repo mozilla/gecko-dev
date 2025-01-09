@@ -448,11 +448,11 @@ export var Sanitizer = {
       cookies
     );
 
-    // we set historyFormDataAndDownloads to true if history is enabled for clearing on
+    // we set browsingHistoryAndDownloads to true if history is enabled for clearing on
     // shutdown, regardless of what form data is set to.
     // This is because history clearing behavious takes precedence over formdata clearing.
     Services.prefs.setBoolPref(
-      `privacy.${newContext}.historyFormDataAndDownloads`,
+      `privacy.${newContext}.browsingHistoryAndDownloads`,
       history
     );
 
@@ -831,7 +831,7 @@ export var Sanitizer = {
 
     // Combine History and Form Data clearing for the
     // new clear history dialog box.
-    historyFormDataAndDownloads: {
+    browsingHistoryAndDownloads: {
       async clear(range, { progress }) {
         progress.step = "getAllPrincipals";
         let principals = await gPrincipalsCollector.getAllPrincipals(progress);
@@ -859,62 +859,6 @@ export var Sanitizer = {
           );
         });
         TelemetryStopwatch.finish("FX_SANITIZE_HISTORY", refObj);
-
-        // Clear form data
-        let seenException;
-        refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_FORMDATA", refObj);
-        try {
-          // Clear undo history of all search bars.
-          for (let currentWindow of Services.wm.getEnumerator(
-            "navigator:browser"
-          )) {
-            let currentDocument = currentWindow.document;
-
-            // searchBar may not exist if it's in the customize mode.
-            let searchBar = currentDocument.getElementById("searchbar");
-            if (searchBar) {
-              let input = searchBar.textbox;
-              input.value = "";
-              input.editor?.clearUndoRedo();
-            }
-
-            let tabBrowser = currentWindow.gBrowser;
-            if (!tabBrowser) {
-              // No tab browser? This means that it's too early during startup (typically,
-              // Session Restore hasn't completed yet). Since we don't have find
-              // bars at that stage and since Session Restore will not restore
-              // find bars further down during startup, we have nothing to clear.
-              continue;
-            }
-            for (let tab of tabBrowser.tabs) {
-              if (tabBrowser.isFindBarInitialized(tab)) {
-                tabBrowser.getCachedFindBar(tab).clear();
-              }
-            }
-            // Clear any saved find value
-            tabBrowser._lastFindValue = "";
-          }
-        } catch (ex) {
-          seenException = ex;
-        }
-
-        try {
-          let change = { op: "remove" };
-          if (range) {
-            [change.firstUsedStart, change.firstUsedEnd] = range;
-          }
-          await lazy.FormHistory.update(change).catch(e => {
-            seenException = new Error("Error " + e.result + ": " + e.message);
-          });
-        } catch (ex) {
-          seenException = ex;
-        }
-
-        TelemetryStopwatch.finish("FX_SANITIZE_FORMDATA", refObj);
-        if (seenException) {
-          throw seenException;
-        }
 
         // clear Downloads
         refObj = {};
@@ -1107,9 +1051,9 @@ async function sanitizeOnShutdown(progress) {
       privacy_clearOnShutdown_v2_cookiesAndStorage: Services.prefs.getBoolPref(
         "privacy.clearOnShutdown_v2.cookiesAndStorage"
       ),
-      privacy_clearOnShutdown_v2_historyFormDataAndDownloads:
+      privacy_clearOnShutdown_v2_browsingHistoryAndDownloads:
         Services.prefs.getBoolPref(
-          "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+          "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
         ),
       privacy_clearOnShutdown_v2_cache: Services.prefs.getBoolPref(
         "privacy.clearOnShutdown_v2.cache"

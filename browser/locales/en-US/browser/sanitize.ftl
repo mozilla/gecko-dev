@@ -75,11 +75,7 @@ item-history-and-downloads =
     .label = Browsing & download history
     .accesskey = B
 
-item-history-form-data-downloads =
-    .label = History
-    .accesskey = H
-
-item-history-form-data-downloads-description = Clears site and download history, saved form info, and searches
+item-history-and-downloads-description = Clears search, site and download history
 
 item-cookies =
     .label = Cookies
