@@ -228,6 +228,35 @@ tasks:
             env:
                 GOOGLE_PROJECT: moz-fenix
 
+    fenix-detect-leaks-arm-debug:
+        attributes:
+            build-type: fenix-debug-firebase
+            shipping-product: fenix
+        description: Run Fenix tests with memory leak detection enabled
+        dependencies:
+            signed-apk-debug-apk: signing-apk-fenix-debug
+            signed-apk-android-test: signing-apk-fenix-android-test-debug
+        optimization:
+            skip-unless-backstop: null
+        run:
+            secrets:
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
+                  key: firebaseToken
+                  path: .firebase_token.json
+                  json: true
+            pre-commands:
+                - ["cd", "mobile/android/fenix"]
+            commands:
+                - [wget, {artifact-reference: '<signed-apk-debug-apk/public/build/target.arm64-v8a.apk>'}, '-O', app.apk]
+                - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
+                - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm64-v8a-detect-leaks, app.apk, --apk_test, android-test.apk]
+        treeherder:
+            platform: 'fenix-android-all/opt'
+            symbol: fenix-debug(detect-leaks-arm)
+        worker:
+            env:
+                GOOGLE_PROJECT: moz-fenix
+
     screenshots-arm:
         attributes:
             build-type: fenix-debug-screenshots
