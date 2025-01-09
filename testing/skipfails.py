@@ -403,7 +403,39 @@ class Skipfails(object):
         push = mozci.push.Push(revision, repo)
         return push.tasks
 
-    def get_failures(self, tasks):
+    def get_kind_manifest(self, manifest: str):
+        kind = Kind.UNKNOWN
+        if manifest.endswith(".ini"):
+            self.warning(f"cannot analyze skip-fails on INI manifests: {manifest}")
+            return (None, None)
+        elif manifest.endswith(".list"):
+            kind = Kind.LIST
+        elif manifest.endswith(".toml"):
+            kind = Kind.TOML
+        else:
+            kind = Kind.WPT
+            path, wpt_manifest, _query, _anyjs = self.wpt_paths(manifest)
+            if path is None or wpt_manifest is None:  # not WPT
+                self.warning(
+                    f"cannot analyze skip-fails on unknown manifest type: {manifest}"
+                )
+                return (None, None)
+            manifest = wpt_manifest
+        return (kind, manifest)
+
+    def get_task_config(self, task: TestTask):
+        if task.label is None:
+            self.warning(f"Cannot find task label for task: {task.id}")
+            return None
+        # strip chunk number - this finds failures across different chunks
+        try:
+            parts = task.label.split("-")
+            int(parts[-1])
+            return "-".join(parts[:-1])
+        except ValueError:
+            return task.label
+
+    def get_failures(self, tasks: list[TestTask]):
         """
         find failures and create structure comprised of runs by path:
            result:
@@ -418,8 +450,8 @@ class Skipfails(object):
             * success
         """
 
-        ff = {}
-        manifest_paths = {}
+        failures = {}
+        manifest_paths: Dict[str, Dict[str, list[str]]] = {}
         manifest_ = {
             KIND: Kind.UNKNOWN,
             LL: {},
@@ -443,105 +475,89 @@ class Skipfails(object):
         }
 
         for task in tasks:  # add explicit failures
-            # strip chunk number - this finds failures across different chunks
-            try:
-                parts = task.label.split("-")
-                int(parts[-1])
-                config = "-".join(parts[:-1])
-            except ValueError:
-                config = task.label
+            config = self.get_task_config(task)
+            if config is None:
+                continue
 
             try:
                 if len(task.results) == 0:
                     continue  # ignore aborted tasks
                 failure_types = task.failure_types  # call magic property once
+                if failure_types is None:
+                    continue
                 if self.failure_types is None:
                     self.failure_types = {}
                 self.failure_types[task.id] = failure_types
                 self.vinfo(f"Getting failure_types from task: {task.id}")
-                for manifest in failure_types:
-                    mm = manifest
-                    ll = task.label
-                    kind = Kind.UNKNOWN
-                    if mm.endswith(".ini"):
-                        self.warning(
-                            f"cannot analyze skip-fails on INI manifests: {mm}"
-                        )
+                for raw_manifest in failure_types:
+                    kind, manifest = self.get_kind_manifest(raw_manifest)
+                    if kind is None or manifest is None:
                         continue
-                    elif mm.endswith(".list"):
-                        kind = Kind.LIST
-                    elif mm.endswith(".toml"):
-                        kind = Kind.TOML
-                    else:
-                        kind = Kind.WPT
-                        path, mm, _query, _anyjs = self.wpt_paths(mm)
-                        if path is None:  # not WPT
-                            self.warning(
-                                f"cannot analyze skip-fails on unknown manifest type: {manifest}"
-                            )
-                            continue
+
                     if kind != Kind.WPT:
-                        if mm not in ff:
-                            ff[mm] = deepcopy(manifest_)
-                            ff[mm][KIND] = kind
-                        if ll not in ff[mm][LL]:
-                            ff[mm][LL][ll] = deepcopy(label_)
+                        if manifest not in failures:
+                            failures[manifest] = deepcopy(manifest_)
+                            failures[manifest][KIND] = kind
+                        if task.label not in failures[manifest][LL]:
+                            failures[manifest][LL][task.label] = deepcopy(label_)
 
-                    if mm not in manifest_paths:
-                        manifest_paths[mm] = {}
-                    if config not in manifest_paths[mm]:
-                        manifest_paths[mm][config] = []
+                    if manifest not in manifest_paths:
+                        manifest_paths[manifest] = {}
+                    if config not in manifest_paths[manifest]:
+                        manifest_paths[manifest][config] = []
 
-                    for path_type in failure_types[manifest]:
+                    for path_type in failure_types[raw_manifest]:
                         path, _type = path_type
                         query = None
                         anyjs = None
                         allpaths = []
                         if kind == Kind.WPT:
                             path, mmpath, query, anyjs = self.wpt_paths(path)
-                            if path is None:
+                            if path is None or mmpath is None:
                                 self.warning(
                                     f"non existant failure path: {path_type[0]}"
                                 )
                                 break
                             allpaths = [path]
-                            mm = os.path.dirname(mmpath)
-                            if mm not in manifest_paths:
-                                manifest_paths[mm] = []
-                            if mm not in ff:
-                                ff[mm] = deepcopy(manifest_)
-                                ff[mm][KIND] = kind
-                            if ll not in ff[mm][LL]:
-                                ff[mm][LL][ll] = deepcopy(label_)
+                            manifest = os.path.dirname(mmpath)
+                            if manifest not in manifest_paths:
+                                manifest_paths[manifest] = {}
+                            if manifest not in failures:
+                                failures[manifest] = deepcopy(manifest_)
+                                failures[manifest][KIND] = kind
+                            if task.label not in failures[manifest][LL]:
+                                failures[manifest][LL][task.label] = deepcopy(label_)
                         elif kind == Kind.LIST:
                             words = path.split()
                             if len(words) != 3 or words[1] not in TEST_TYPES:
                                 self.warning(f"reftest type not supported: {path}")
                                 continue
-                            allpaths = self.get_allpaths(task.id, mm, path)
+                            allpaths = self.get_allpaths(task.id, manifest, path)
                         elif kind == Kind.TOML:
-                            if path == mm:
+                            if path == manifest:
                                 path = DEF  # refers to the manifest itself
                             allpaths = [path]
                         for path in allpaths:
-                            if path not in manifest_paths[mm].get(config, []):
-                                manifest_paths[mm][config].append(path)
+                            if path not in manifest_paths[manifest].get(config, []):
+                                manifest_paths[manifest][config].append(path)
                             self.vinfo(
-                                f"Getting failure info in manifest: {mm}, path: {path}"
+                                f"Getting failure info in manifest: {manifest}, path: {path}"
                             )
-                            if path not in ff[mm][LL][ll][PP]:
-                                ff[mm][LL][ll][PP][path] = deepcopy(path_)
-                            if task.id not in ff[mm][LL][ll][PP][path][RUNS]:
-                                ff[mm][LL][ll][PP][path][RUNS][task.id] = deepcopy(run_)
+                            task_path_object = failures[manifest][LL][task.label][PP]
+                            if path not in task_path_object:
+                                task_path_object[path] = deepcopy(path_)
+                            task_path = task_path_object[path]
+                            if task.id not in task_path[RUNS]:
+                                task_path[RUNS][task.id] = deepcopy(run_)
                             else:
                                 continue
-                            ff[mm][LL][ll][PP][path][RUNS][task.id][RR] = False
+                            task_path[RUNS][task.id][RR] = False
                             if query is not None:
-                                ff[mm][LL][ll][PP][path][RUNS][task.id][QUERY] = query
+                                task_path[RUNS][task.id][QUERY] = query
                             if anyjs is not None:
-                                ff[mm][LL][ll][PP][path][RUNS][task.id][ANYJS] = anyjs
-                            ff[mm][LL][ll][PP][path][TOTAL_RUNS] += 1
-                            ff[mm][LL][ll][PP][path][FAILED_RUNS] += 1
+                                task_path[RUNS][task.id][ANYJS] = anyjs
+                            task_path[TOTAL_RUNS] += 1
+                            task_path[FAILED_RUNS] += 1
                             if kind == Kind.LIST:
                                 (
                                     lineno,
@@ -549,96 +565,77 @@ class Skipfails(object):
                                     pixels,
                                     status,
                                 ) = self.get_lineno_difference_pixels_status(
-                                    task.id, mm, path
+                                    task.id, manifest, path
                                 )
                                 if lineno > 0:
-                                    ff[mm][LL][ll][PP][path][LINENO] = lineno
+                                    task_path[LINENO] = lineno
                                 else:
                                     self.vinfo(f"ERROR no lineno for {path}")
                                 if status != FAIL:
-                                    ff[mm][LL][ll][PP][path][RUNS][task.id][
-                                        STATUS
-                                    ] = status
+                                    task_path[RUNS][task.id][STATUS] = status
                                 if status == FAIL and difference == 0 and pixels == 0:
                                     # intermittent, not error
-                                    ff[mm][LL][ll][PP][path][RUNS][task.id][RR] = True
-                                    ff[mm][LL][ll][PP][path][FAILED_RUNS] -= 1
+                                    task_path[RUNS][task.id][RR] = True
+                                    task_path[FAILED_RUNS] -= 1
                                 elif difference > 0:
-                                    ff[mm][LL][ll][PP][path][RUNS][task.id][
-                                        DIFFERENCE
-                                    ] = difference
+                                    task_path[RUNS][task.id][DIFFERENCE] = difference
                                 if pixels > 0:
-                                    ff[mm][LL][ll][PP][path][RUNS][task.id][
-                                        PIXELS
-                                    ] = pixels
+                                    task_path[RUNS][task.id][PIXELS] = pixels
             except AttributeError:
                 pass  # self.warning(f"unknown attribute in task (#1): {ae}")
 
         for task in tasks:  # add results
-            try:
-                parts = task.label.split("-")
-                int(parts[-1])
-                config = "-".join(parts[:-1])
-            except ValueError:
-                config = task.label
+            config = self.get_task_config(task)
+            if config is None:
+                continue
 
             try:
                 if len(task.results) == 0:
                     continue  # ignore aborted tasks
+                if self.failure_types is None:
+                    continue
                 self.vinfo(f"Getting results from task: {task.id}")
                 for result in task.results:
-                    mm = result.group
-                    ll = task.label
-                    kind = Kind.UNKNOWN
-                    if mm.endswith(".ini"):
-                        self.warning(
-                            f"cannot analyze skip-fails on INI manifests: {mm}"
-                        )
+                    kind, manifest = self.get_kind_manifest(result.group)
+                    if kind is None or manifest is None:
                         continue
-                    elif mm.endswith(".list"):
-                        kind = Kind.LIST
-                    elif mm.endswith(".toml"):
-                        kind = Kind.TOML
-                    else:
-                        kind = Kind.WPT
-                        path, mm, _query, _anyjs = self.wpt_paths(mm)
-                        if path is None:  # not WPT
-                            self.warning(
-                                f"cannot analyze skip-fails on unknown manifest type: {result.group}"
-                            )
-                            continue
-                    if mm not in manifest_paths:
+
+                    if manifest not in manifest_paths:
                         continue
-                    if config not in manifest_paths[mm]:
+                    if config not in manifest_paths[manifest]:
                         continue
-                    if mm not in ff:
-                        ff[mm] = deepcopy(manifest_)
-                    if ll not in ff[mm][LL]:
-                        ff[mm][LL][ll] = deepcopy(label_)
-                    if task.id not in ff[mm][LL][ll][DURATIONS]:
+                    if manifest not in failures:
+                        failures[manifest] = deepcopy(manifest_)
+                    task_label_object = failures[manifest][LL]
+                    if task.label not in task_label_object:
+                        task_label_object[task.label] = deepcopy(label_)
+                    task_label = task_label_object[task.label]
+                    if task.id not in task_label[DURATIONS]:
                         # duration may be None !!!
-                        ff[mm][LL][ll][DURATIONS][task.id] = result.duration or 0
-                        if ff[mm][LL][ll][OPT] is None:
-                            ff[mm][LL][ll][OPT] = self.get_opt_for_task(task.id)
-                    for path in manifest_paths[mm][config]:  # all known paths
+                        task_label[DURATIONS][task.id] = result.duration or 0
+                        if task_label[OPT] is None:
+                            task_label[OPT] = self.get_opt_for_task(task.id)
+                    for path in manifest_paths[manifest][config]:  # all known paths
                         # path can be one of any paths that have failed for the manifest/config
                         # ensure the path is in the specific task failure data
                         if path not in [
                             path
                             for path, type in self.failure_types.get(task.id, {}).get(
-                                mm, [("", "")]
+                                manifest, [("", "")]
                             )
                         ]:
                             result.ok = True
 
-                        if path not in ff[mm][LL][ll][PP]:
-                            ff[mm][LL][ll][PP][path] = deepcopy(path_)
-                        if task.id not in ff[mm][LL][ll][PP][path][RUNS]:
-                            ff[mm][LL][ll][PP][path][RUNS][task.id] = deepcopy(run_)
-                            ff[mm][LL][ll][PP][path][RUNS][task.id][RR] = result.ok
-                            ff[mm][LL][ll][PP][path][TOTAL_RUNS] += 1
+                        task_path_object = task_label[PP]
+                        if path not in task_path_object:
+                            task_path_object[path] = deepcopy(path_)
+                        task_path = task_path_object[path]
+                        if task.id not in task_path[RUNS]:
+                            task_path[RUNS][task.id] = deepcopy(run_)
+                            task_path[RUNS][task.id][RR] = result.ok
+                            task_path[TOTAL_RUNS] += 1
                             if not result.ok:
-                                ff[mm][LL][ll][PP][path][FAILED_RUNS] += 1
+                                task_path[FAILED_RUNS] += 1
                             if kind == Kind.LIST:
                                 (
                                     lineno,
@@ -646,16 +643,14 @@ class Skipfails(object):
                                     pixels,
                                     status,
                                 ) = self.get_lineno_difference_pixels_status(
-                                    task.id, mm, path
+                                    task.id, manifest, path
                                 )
                                 if lineno > 0:
-                                    ff[mm][LL][ll][PP][path][LINENO] = lineno
+                                    task_path[LINENO] = lineno
                                 else:
                                     self.vinfo(f"ERROR no lineno for {path}")
                                 if status != FAIL:
-                                    ff[mm][LL][ll][PP][path][RUNS][task.id][
-                                        STATUS
-                                    ] = status
+                                    task_path[RUNS][task.id][STATUS] = status
                                 if (
                                     status == FAIL
                                     and difference == 0
@@ -663,62 +658,58 @@ class Skipfails(object):
                                     and not result.ok
                                 ):
                                     # intermittent, not error
-                                    ff[mm][LL][ll][PP][path][RUNS][task.id][RR] = True
-                                    ff[mm][LL][ll][PP][path][FAILED_RUNS] -= 1
+                                    task_path[RUNS][task.id][RR] = True
+                                    task_path[FAILED_RUNS] -= 1
                                 if difference > 0:
-                                    ff[mm][LL][ll][PP][path][RUNS][task.id][
-                                        DIFFERENCE
-                                    ] = difference
+                                    task_path[RUNS][task.id][DIFFERENCE] = difference
                                 if pixels > 0:
-                                    ff[mm][LL][ll][PP][path][RUNS][task.id][
-                                        PIXELS
-                                    ] = pixels
+                                    task_path[RUNS][task.id][PIXELS] = pixels
             except AttributeError:
                 pass  # self.warning(f"unknown attribute in task (#2): {ae}")
 
-        for mm in ff:  # determine classifications
-            kind = ff[mm][KIND]
-            for label in ff[mm][LL]:
-                ll = label
-                opt = ff[mm][LL][ll][OPT]
+        for manifest in failures:  # determine classifications
+            kind = failures[manifest][KIND]
+            for label in failures[manifest][LL]:
+                task_label = failures[manifest][LL][label]
+                opt = task_label[OPT]
                 durations = []  # summarize durations
-                for task_id in ff[mm][LL][ll][DURATIONS]:
-                    duration = ff[mm][LL][ll][DURATIONS][task_id]
+                first_task_id: str = next(iter(task_label[DURATIONS]))
+                for task_id in task_label[DURATIONS]:
+                    duration = task_label[DURATIONS][task_id]
                     durations.append(duration)
                 if len(durations) > 0:
                     total_duration = sum(durations)
                     median_duration = median(durations)
-                    ff[mm][LL][ll][TOTAL_DURATION] = total_duration
-                    ff[mm][LL][ll][MEDIAN_DURATION] = median_duration
+                    task_label[TOTAL_DURATION] = total_duration
+                    task_label[MEDIAN_DURATION] = median_duration
                     if (opt and median_duration > OPT_THRESHOLD) or (
                         (not opt) and median_duration > DEBUG_THRESHOLD
                     ):
                         if kind == Kind.TOML:
                             paths = [DEF]
                         else:
-                            paths = ff[mm][LL][ll][PP].keys()
+                            paths = task_label[PP].keys()
                         for path in paths:
-                            if path not in ff[mm][LL][ll][PP]:
-                                ff[mm][LL][ll][PP][path] = deepcopy(path_)
-                            if task_id not in ff[mm][LL][ll][PP][path][RUNS]:
-                                ff[mm][LL][ll][PP][path][RUNS][task.id] = deepcopy(run_)
-                                ff[mm][LL][ll][PP][path][RUNS][task.id][RR] = False
-                                ff[mm][LL][ll][PP][path][TOTAL_RUNS] += 1
-                                ff[mm][LL][ll][PP][path][FAILED_RUNS] += 1
-                            ff[mm][LL][ll][PP][path][
-                                CC
-                            ] = Classification.DISABLE_TOO_LONG
+                            task_path_object = task_label[PP]
+                            if path not in task_path_object:
+                                task_path_object[path] = deepcopy(path_)
+                            task_path = task_path_object[path]
+                            if first_task_id not in task_path[RUNS]:
+                                task_path[RUNS][first_task_id] = deepcopy(run_)
+                                task_path[RUNS][first_task_id][RR] = False
+                                task_path[TOTAL_RUNS] += 1
+                                task_path[FAILED_RUNS] += 1
+                            task_path[CC] = Classification.DISABLE_TOO_LONG
                 primary = True  # we have not seen the first failure
-                for path in sort_paths(ff[mm][LL][ll][PP]):
-                    classification = ff[mm][LL][ll][PP][path][CC]
+                for path in sort_paths(task_label[PP]):
+                    task_path = task_label[PP][path]
+                    classification = task_path[CC]
                     if classification == Classification.UNKNOWN:
-                        failed_runs = ff[mm][LL][ll][PP][path][FAILED_RUNS]
-                        total_runs = ff[mm][LL][ll][PP][path][TOTAL_RUNS]
+                        failed_runs = task_path[FAILED_RUNS]
+                        total_runs = task_path[TOTAL_RUNS]
                         status = FAIL  # default status, only one run could be PASS
-                        for task_id in ff[mm][LL][ll][PP][path][RUNS]:
-                            status = ff[mm][LL][ll][PP][path][RUNS][task_id].get(
-                                STATUS, status
-                            )
+                        for first_task_id in task_path[RUNS]:
+                            status = task_path[RUNS][first_task_id].get(STATUS, status)
                         if kind == Kind.LIST:
                             failure_ratio = INTERMITTENT_RATIO_REFTEST
                         else:
@@ -742,11 +733,11 @@ class Skipfails(object):
                                 primary = False
                             else:
                                 classification = Classification.SECONDARY
-                        ff[mm][LL][ll][PP][path][CC] = classification
-                    if classification not in ff[mm][LL][ll][SUM_BY_LABEL]:
-                        ff[mm][LL][ll][SUM_BY_LABEL][classification] = 0
-                    ff[mm][LL][ll][SUM_BY_LABEL][classification] += 1
-        return ff
+                        task_path[CC] = classification
+                    if classification not in task_label[SUM_BY_LABEL]:
+                        task_label[SUM_BY_LABEL][classification] = 0
+                    task_label[SUM_BY_LABEL][classification] += 1
+        return failures
 
     def _get_os_version(self, os, platform):
         """Return the os_version given the label platform string"""
