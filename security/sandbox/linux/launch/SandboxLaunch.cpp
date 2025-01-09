@@ -437,7 +437,7 @@ static void RestoreSignals(const sigset_t* aOldSigs) {
 }
 
 static bool IsSignalIgnored(int aSig) {
-  struct sigaction sa {};
+  struct sigaction sa{};
 
   if (sigaction(aSig, nullptr, &sa) != 0) {
     if (errno != EINVAL) {
