@@ -5783,11 +5783,9 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
     GetEncodedBodySize(&size);
 
     nsAutoCString contentType;
-    mozilla::Maybe<mozilla::net::HttpVersion> httpVersion = Nothing();
     mozilla::Maybe<uint32_t> responseStatus = Nothing();
     if (mResponseHead) {
       mResponseHead->ContentType(contentType);
-      httpVersion = Some(mResponseHead->Version());
       responseStatus = Some(mResponseHead->Status());
     }
 
@@ -5801,9 +5799,10 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         size, mCacheDisposition, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags(), &timings, std::move(mSource), httpVersion,
-        responseStatus, Some(nsDependentCString(contentType.get())), newURI,
-        redirectFlags, channelId);
+        mRequestHead.Version(), mClassOfService.Flags(), &timings,
+        std::move(mSource), responseStatus,
+        Some(nsDependentCString(contentType.get())), newURI, redirectFlags,
+        channelId);
   }
 
   nsresult rv = HttpBaseChannel::SetupReplacementChannel(
@@ -6420,7 +6419,8 @@ nsresult nsHttpChannel::CancelInternal(nsresult status) {
         mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags(), &mTransactionTimings, std::move(mSource));
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource));
   }
 
   // If we don't have mTransactionPump and mCachePump, we need to call
@@ -6769,7 +6769,7 @@ void nsHttpChannel::AsyncOpenFinal(TimeStamp aTimeStamp) {
         mChannelCreationTimestamp, mLastStatusReported, 0, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags());
+        mRequestHead.Version(), mClassOfService.Flags());
   }
 
   // Added due to PauseTask/DelayHttpChannel
@@ -8922,11 +8922,9 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
     GetEncodedBodySize(&size);
 
     nsAutoCString contentType;
-    mozilla::Maybe<mozilla::net::HttpVersion> httpVersion = Nothing();
     mozilla::Maybe<uint32_t> responseStatus = Nothing();
     if (mResponseHead) {
       mResponseHead->ContentType(contentType);
-      httpVersion = Some(mResponseHead->Version());
       responseStatus = Some(mResponseHead->Status());
     }
 
@@ -8935,8 +8933,8 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
         mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags(), &mTransactionTimings, std::move(mSource),
-        httpVersion, responseStatus,
+        mRequestHead.Version(), mClassOfService.Flags(), &mTransactionTimings,
+        std::move(mSource), responseStatus,
         Some(nsDependentCString(contentType.get())));
   }
 

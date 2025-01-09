@@ -110,7 +110,7 @@ nsHttpResponseHead::nsHttpResponseHead(nsHttpResponseHead&& aOther) {
   mInVisitHeaders = false;
 }
 
-HttpVersion nsHttpResponseHead::Version() const {
+HttpVersion nsHttpResponseHead::Version() {
   RecursiveMutexAutoLock monitor(mRecursiveMutex);
   return mVersion;
 }
