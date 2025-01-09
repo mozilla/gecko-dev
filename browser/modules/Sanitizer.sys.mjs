@@ -234,6 +234,7 @@ export var Sanitizer = {
         );
       }
     }
+    await cleanupAfterSanitization(Ci.nsIClearDataService.CLEAR_ALL);
   },
 
   /**
@@ -1161,7 +1162,16 @@ async function sanitizeOnShutdown(progress) {
     );
     progress.sanitizationPrefs.session_permission_exceptions = exceptions;
   }
+
+  await cleanupAfterSanitization(Ci.nsIClearDataService.CLEAR_ALL);
+
   progress.advancement = "done";
+}
+
+async function cleanupAfterSanitization(flags) {
+  await new Promise(resolve =>
+    Services.clearData.cleanupAfterDeletionAtShutdown(flags, resolve)
+  );
 }
 
 // Extracts the principals matching matchUri as root domain.
@@ -1203,9 +1213,6 @@ async function maybeSanitizeSessionPrincipals(progress, principals, flags) {
   progress.step = "promises:" + promises.length;
   if (promises.length) {
     await Promise.all(promises);
-    await new Promise(resolve =>
-      Services.clearData.cleanupAfterDeletionAtShutdown(flags, resolve)
-    );
   }
   progress.step = "promises resolved";
 }

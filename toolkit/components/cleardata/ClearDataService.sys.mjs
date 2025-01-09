@@ -182,7 +182,8 @@ function hasSite(
 //                                      cleaner needs a separate step after
 //                                      deletion. No-op if not implemented.
 //                                      Currently called via
-//                                      Sanitizer.maybeSanitizeSessionPrincipals().
+//                                      Sanitizer.sanitizeOnShutdown() and
+//                                      Sanitizer.onStartup()
 
 const CookieCleaner = {
   deleteByLocalFiles(aOriginAttributes) {
@@ -1061,17 +1062,43 @@ const QuotaCleaner = {
   },
 
   async cleanupAfterDeletionAtShutdown() {
+    const tobeRemoveDirName = "to-be-removed";
+    const storageName = Services.prefs.getStringPref(
+      "dom.quotaManager.storageName"
+    );
+
+    if (!storageName) {
+      throw new Error("storage name must not be empty");
+    }
+
     const toBeRemovedDir = PathUtils.join(
       PathUtils.profileDir,
-      Services.prefs.getStringPref("dom.quotaManager.storageName"),
-      "to-be-removed"
+      storageName,
+      tobeRemoveDirName
     );
 
     if (
       !AppConstants.MOZ_BACKGROUNDTASKS ||
       !Services.prefs.getBoolPref("dom.quotaManager.backgroundTask.enabled")
     ) {
+      // Our behavior in this case differs from our use of the background-task below because
+      // while the background-task will only try to empty the contents of the directory but
+      // leave the directory itself intact, our call here will remove the directory. We
+      // remove the directory here for reasons of implementation simplicity and because
+      // we do not have to worry about the same race that the background task has to worry
+      // about. Specifically, the background task needs to worry about gecko restarting and
+      // racing on QM trying to move directories into the to-be-removed directory. But as long
+      // as we are confident QM has fully processed its I/O thread, we know it should not be
+      // trying to move new files into it because we are in the same process.
+
       await IOUtils.remove(toBeRemovedDir, { recursive: true });
+      return;
+    }
+    // return early if directory does not exist or empty
+    if (
+      !(await IOUtils.getChildren(toBeRemovedDir, { ignoreAbsent: true }))
+        .length
+    ) {
       return;
     }
 
