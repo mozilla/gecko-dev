@@ -68,8 +68,8 @@ class OnboardingFragment : Fragment() {
     private val termsOfServiceEventHandler by lazy {
         DefaultOnboardingTermsOfServiceEventHandler(
             telemetryRecorder = telemetryRecorder,
-            this::launchSandboxCustomTab,
-            this::showPrivacyPreferencesDialog,
+            openLink = this::launchSandboxCustomTab,
+            showManagePrivacyPreferencesDialog = this::showPrivacyPreferencesDialog,
         )
     }
 
@@ -388,13 +388,8 @@ class OnboardingFragment : Fragment() {
         )
     }
 
-    private fun launchSandboxCustomTab(url: String) {
-        val intent = SupportUtils.createSandboxCustomTabIntent(
-            context = requireContext(),
-            url = url,
-        )
-        requireContext().startActivity(intent)
-    }
+    private fun launchSandboxCustomTab(url: String) =
+        SupportUtils.launchSandboxCustomTab(requireContext(), url)
 
     private fun showPrivacyPreferencesDialog() {
         ManagePrivacyPreferencesDialogFragment()

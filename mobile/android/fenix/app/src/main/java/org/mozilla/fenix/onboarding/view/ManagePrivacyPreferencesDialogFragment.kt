@@ -17,6 +17,7 @@ import org.mozilla.fenix.onboarding.store.PrivacyPreferencesMiddleware
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesStore
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesTelemetryMiddleware
 import org.mozilla.fenix.settings.SupportUtils
+import org.mozilla.fenix.settings.SupportUtils.launchSandboxCustomTab
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -51,16 +52,15 @@ class ManagePrivacyPreferencesDialogFragment : DialogFragment() {
                 ManagePrivacyPreferencesDialog(
                     store = store,
                     onDismissRequest = { dismiss() },
-                    onCrashReportingLinkClick = { launchSandboxCustomTab(crashReportingUrl) },
-                    onUsageDataLinkClick = { launchSandboxCustomTab(usageDataUrl) },
+                    onCrashReportingLinkClick = {
+                        launchSandboxCustomTab(requireContext(), crashReportingUrl)
+                    },
+                    onUsageDataLinkClick = {
+                        launchSandboxCustomTab(requireContext(), usageDataUrl)
+                    },
                 )
             }
         }
-    }
-
-    private fun launchSandboxCustomTab(url: String) {
-        val intent = SupportUtils.createSandboxCustomTabIntent(requireContext(), url)
-        requireContext().startActivity(intent)
     }
 
     private fun sumoUrlFor(topic: SupportUtils.SumoTopic) =

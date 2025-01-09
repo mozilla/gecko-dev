@@ -127,9 +127,22 @@ object SupportUtils {
     /**
      * Custom tab that cannot open the content in Firefox directly.
      * This ensures the content is contained to this custom tab only.
+     *
+     * @see launchSandboxCustomTab
      */
     fun createSandboxCustomTabIntent(context: Context, url: String): Intent =
         createCustomTabIntent(context, url).putExtra(EXTRA_IS_SANDBOX_CUSTOM_TAB, true)
+
+    /**
+     * Launches a new sandboxed custom tab Activity.
+     *
+     * @param context The context to launch the Activity from.
+     * @param url The URL to load in the custom tab.
+     */
+    fun launchSandboxCustomTab(context: Context, url: String) {
+        val intent = createSandboxCustomTabIntent(context, url)
+        context.startActivity(intent)
+    }
 
     private fun getEncodedTopicUTF8(topic: String): String {
         try {
