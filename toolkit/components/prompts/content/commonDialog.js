@@ -210,3 +210,6 @@ function commonDialogOnUnload() {
     propBag.setProperty(propName, args[propName]);
   }
 }
+
+document.addEventListener("DOMContentLoaded", commonDialogOnLoad);
+window.addEventListener("unload", commonDialogOnUnload);

@@ -12,7 +12,6 @@
   xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   aria-describedby="infoBody"
   headerparent="dialogGrid"
-  onunload="commonDialogOnUnload();"
 >
   <dialog id="commonDialog" buttonpack="end">
     <linkset>
@@ -34,12 +33,6 @@
     <script src="chrome://global/content/globalOverlay.js" />
     <script src="chrome://global/content/editMenuOverlay.js" />
     <script src="chrome://global/content/customElements.js" />
-    <script>
-      /* eslint-disable no-undef */
-      document.addEventListener("DOMContentLoaded", function () {
-        commonDialogOnLoad();
-      });
-    </script>
 
     <commandset id="selectEditMenuItems">
       <command
