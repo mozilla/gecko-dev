@@ -32,24 +32,33 @@ export class PasswordCard extends MozLitElement {
       usernameLine: ".line-item[linetype='username']",
       passwordLine: "concealed-login-line",
       editBtn: ".edit-button",
+      viewAlertBtn: ".view-alert-button",
     };
   }
 
   #focusableElementsList;
   #focusableElementsMap;
 
-  /**
-   * Returns the first focusable element of the next password card componenet.
-   * If the user is navigating down, then the next focusable element should be the edit button,
-   * and if the user is navigating up, then it should be the origin line.
-   *
-   * @param {string} keyCode - The code associated with a keypress event. Either 'ArrowUp' or 'ArrowDown'.
-   * @returns {HTMLElement | null} The first focusable element of the next password-card.
-   */
-  #getNextFocusableElement(keyCode) {
-    return keyCode === "ArrowDown"
-      ? this.nextElementSibling?.originLine
-      : this.previousElementSibling?.editBtn;
+  #hasAlert() {
+    return (
+      this.origin.breached ||
+      !this.username.value.length ||
+      this.password.vulnerable
+    );
+  }
+
+  #getNextFocusableElement() {
+    return this.nextElementSibling?.originLine;
+  }
+
+  #getPrevFocusableElement() {
+    const prevSibling = this.previousElementSibling;
+    if (!prevSibling) {
+      return null;
+    }
+    return prevSibling.#hasAlert()
+      ? prevSibling.viewAlertBtn
+      : prevSibling.editBtn;
   }
 
   async firstUpdated() {
@@ -88,7 +97,7 @@ export class PasswordCard extends MozLitElement {
       case "ArrowUp":
         e.preventDefault();
         if (this.#focusableElementsMap.get(element) === 0) {
-          this.#getNextFocusableElement(e.code)?.focus();
+          this.#getPrevFocusableElement()?.focus();
         } else {
           focusInternal(DIRECTIONS[e.code]);
         }
@@ -99,7 +108,7 @@ export class PasswordCard extends MozLitElement {
           this.#focusableElementsMap.get(element) ===
           this.#focusableElementsList.length - 1
         ) {
-          this.#getNextFocusableElement(e.code)?.focus();
+          this.#getNextFocusableElement()?.focus();
         } else {
           focusInternal(DIRECTIONS[e.code]);
         }
@@ -225,12 +234,7 @@ export class PasswordCard extends MozLitElement {
   }
 
   renderViewAlertField() {
-    const hasAlert =
-      this.origin.breached ||
-      !this.username.value.length ||
-      this.password.vulnerable;
-
-    if (!hasAlert) {
+    if (!this.#hasAlert()) {
       return "";
     }
 
