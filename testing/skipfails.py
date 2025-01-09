@@ -551,13 +551,15 @@ class Skipfails(object):
                                 task_path[RUNS][task.id] = deepcopy(run_)
                             else:
                                 continue
-                            task_path[RUNS][task.id][RR] = False
+                            result = task.result == "passed"
+                            task_path[RUNS][task.id][RR] = result
                             if query is not None:
                                 task_path[RUNS][task.id][QUERY] = query
                             if anyjs is not None:
                                 task_path[RUNS][task.id][ANYJS] = anyjs
                             task_path[TOTAL_RUNS] += 1
-                            task_path[FAILED_RUNS] += 1
+                            if not result:
+                                task_path[FAILED_RUNS] += 1
                             if kind == Kind.LIST:
                                 (
                                     lineno,
@@ -737,6 +739,7 @@ class Skipfails(object):
                     if classification not in task_label[SUM_BY_LABEL]:
                         task_label[SUM_BY_LABEL][classification] = 0
                     task_label[SUM_BY_LABEL][classification] += 1
+
         return failures
 
     def _get_os_version(self, os, platform):
