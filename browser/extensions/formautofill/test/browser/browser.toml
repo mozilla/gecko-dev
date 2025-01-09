@@ -14,6 +14,8 @@ support-files = [
 ["browser_autocomplete_footer.js"]
 skip-if = ["verify"]
 
+["browser_autocomplete_region.js"]
+
 ["browser_autocomplete_marked_back_forward.js"]
 
 ["browser_autocomplete_marked_detached_tab.js"]

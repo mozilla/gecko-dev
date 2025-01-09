@@ -716,7 +716,6 @@ export class FormAutofillParent extends JSWindowActorParent {
 
       if (
         collectionName == ADDRESSES_COLLECTION_NAME &&
-        record.country &&
         !FormAutofill.isAutofillAddressesAvailableInCountry(record.country)
       ) {
         // Address autofill isn't supported for the record's country so we don't
@@ -888,10 +887,7 @@ export class FormAutofillParent extends JSWindowActorParent {
     }
 
     // Do not save address for regions that we don't support
-    if (
-      FormAutofill._isAutofillAddressesAvailable == "detect" &&
-      !FormAutofill.isAutofillAddressesAvailableInCountry(record.country)
-    ) {
+    if (!FormAutofill.isAutofillAddressesAvailableInCountry(record.country)) {
       lazy.log.debug(
         `Do not show the address capture prompt for unsupported regions - ${record.country}`
       );

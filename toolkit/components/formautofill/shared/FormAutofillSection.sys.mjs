@@ -444,10 +444,7 @@ export class FormAutofillAddressSection extends FormAutofillSection {
     const country = lazy.FormAutofillUtils.identifyCountryCode(
       record.country || record["country-name"]
     );
-    if (
-      country &&
-      !lazy.FormAutofill.isAutofillAddressesAvailableInCountry(country)
-    ) {
+    if (!lazy.FormAutofill.isAutofillAddressesAvailableInCountry(country)) {
       // We don't want to save data in the wrong fields due to not having proper
       // heuristic regexes in countries we don't yet support.
       this.log.warn(
