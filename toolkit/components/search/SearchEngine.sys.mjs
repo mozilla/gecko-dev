@@ -163,7 +163,7 @@ export class QueryParameter {
  *   An updated parameter string.
  */
 function ParamSubstitution(paramValue, searchTerms, queryCharset) {
-  const PARAM_REGEXP = /\{((?:\w+:)?\w+)(\??)\}/g;
+  const PARAM_REGEXP = /\{(\w+)(\??)\}/g;
   return paramValue.replace(PARAM_REGEXP, function (match, name, optional) {
     // {searchTerms} is by far the most common param so handle it first.
     if (name == "searchTerms") {
