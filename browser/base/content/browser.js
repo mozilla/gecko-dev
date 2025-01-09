@@ -3550,6 +3550,53 @@ var XULBrowserWindow = {
     );
   },
 
+  /**
+   * Potentially gets a URI for a MozBrowser to be shown to the user in the
+   * identity panel. For browsers whose content does not have a principal,
+   * this tries the precursor. If this is null, we should not override the
+   * browser's currentURI.
+   * @param {MozBrowser} browser
+   *   The browser that we need a URI to show the user in the
+   *   identity panel.
+   * @return nsIURI of the principal for the browser's content if
+   *   the browser's currentURI should not be used, null otherwise.
+   */
+  _securityURIOverride(browser) {
+    let uri = browser.currentURI;
+    if (!uri) {
+      return null;
+    }
+
+    // If the browser's currentURI is sufficiently good that we
+    // do not require an override, bail out here.
+    // browser.currentURI should be used.
+    let { URI_INHERITS_SECURITY_CONTEXT } = Ci.nsIProtocolHandler;
+    if (
+      !(doGetProtocolFlags(uri) & URI_INHERITS_SECURITY_CONTEXT) &&
+      !(uri.scheme == "about" && uri.filePath == "srcdoc") &&
+      !(uri.scheme == "about" && uri.filePath == "blank")
+    ) {
+      return null;
+    }
+
+    let principal = browser.contentPrincipal;
+
+    if (principal.isNullPrincipal) {
+      principal = principal.precursorPrincipal;
+    }
+
+    if (!principal) {
+      return null;
+    }
+
+    // Can't get the original URI for a PDF viewer principal yet.
+    if (principal.originNoSuffix == "resource://pdf.js") {
+      return null;
+    }
+
+    return principal.URI;
+  },
+
   asyncUpdateUI() {
     BrowserSearch.updateOpenSearchBadge();
   },
@@ -3615,7 +3662,7 @@ var XULBrowserWindow = {
     // Update the identity panel, making sure we use the precursorPrincipal's
     // URI where appropriate, for example about:blank windows.
     let uri = gBrowser.currentURI;
-    let uriOverride = gBrowser.selectedBrowser.currentAboutBlankControllingURI;
+    let uriOverride = this._securityURIOverride(gBrowser.selectedBrowser);
     if (uriOverride) {
       uri = uriOverride;
       aState |= Ci.nsIWebProgressListener.STATE_IDENTITY_ASSOCIATED;

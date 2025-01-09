@@ -497,7 +497,6 @@ export class UrlbarInput {
     if (value === null || (!value && dueToTabSwitch)) {
       uri =
         this.window.gBrowser.selectedBrowser.currentAuthPromptURI ||
-        this.window.gBrowser.selectedBrowser.currentAboutBlankControllingURI ||
         uri ||
         this.#isOpenedPageInBlankTargetLoading ||
         this.window.gBrowser.currentURI;

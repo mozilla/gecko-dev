@@ -509,51 +509,6 @@
       return null;
     }
 
-    /**
-     * Potentially gets the URI for this browser to be shown to the user in the
-     * identity panel and url bar. For browsers whose content does not have a
-     * principal, this tries the precursor. If this is null, we should not
-     * override the browser's currentURI.
-     *
-     * @returns nsIURI of the principal for the browser's content if the
-     *   browser's currentURI should not be used, null otherwise.
-     */
-    get currentAboutBlankControllingURI() {
-      let uri = this.currentURI;
-      if (!uri) {
-        return null;
-      }
-
-      // If the browser's currentURI is sufficiently good that we
-      // do not require an override, bail out here.
-      // browser.currentURI should be used.
-      let { URI_INHERITS_SECURITY_CONTEXT } = Ci.nsIProtocolHandler;
-      if (
-        !(doGetProtocolFlags(uri) & URI_INHERITS_SECURITY_CONTEXT) &&
-        !(uri.scheme == "about" && ["srcdoc", "blank"].includes(uri.filePath))
-      ) {
-        return null;
-      }
-
-      let principal = this.contentPrincipal;
-      if (principal.isNullPrincipal) {
-        principal = principal.precursorPrincipal;
-      }
-      if (!principal || principal.isSystemPrincipal) {
-        return null;
-      }
-      // Can't get the original URI for a PDF viewer principal yet.
-      if (principal.originNoSuffix == "resource://pdf.js") {
-        return null;
-      }
-
-      try {
-        return Services.io.newURI(principal.originNoSuffix);
-      } catch (e) {
-        return null;
-      }
-    }
-
     get documentURI() {
       return this.isRemoteBrowser
         ? this._documentURI
