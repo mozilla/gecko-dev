@@ -1266,7 +1266,7 @@ void CodeGenerator::visitCompareD(LCompareD* comp) {
   ARMRegister output = toWRegister(comp->output());
   Assembler::DoubleCondition cond = JSOpToDoubleCondition(comp->mir()->jsop());
 
-  masm.compareDouble(cond, left, right);
+  masm.compareDouble(left, right);
   masm.cset(output, Assembler::ConditionFromDoubleCondition(cond));
 }
 
@@ -1276,7 +1276,7 @@ void CodeGenerator::visitCompareF(LCompareF* comp) {
   ARMRegister output = toWRegister(comp->output());
   Assembler::DoubleCondition cond = JSOpToDoubleCondition(comp->mir()->jsop());
 
-  masm.compareFloat(cond, left, right);
+  masm.compareFloat(left, right);
   masm.cset(output, Assembler::ConditionFromDoubleCondition(cond));
 }
 
@@ -1288,7 +1288,7 @@ void CodeGenerator::visitCompareDAndBranch(LCompareDAndBranch* comp) {
   Assembler::Condition cond =
       Assembler::ConditionFromDoubleCondition(doubleCond);
 
-  masm.compareDouble(doubleCond, left, right);
+  masm.compareDouble(left, right);
   emitBranch(cond, comp->ifTrue(), comp->ifFalse());
 }
 
@@ -1300,7 +1300,7 @@ void CodeGenerator::visitCompareFAndBranch(LCompareFAndBranch* comp) {
   Assembler::Condition cond =
       Assembler::ConditionFromDoubleCondition(doubleCond);
 
-  masm.compareFloat(doubleCond, left, right);
+  masm.compareFloat(left, right);
   emitBranch(cond, comp->ifTrue(), comp->ifFalse());
 }
 
@@ -2221,12 +2221,10 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
       masm.cmpPtr(lhs, ToRegister(ins->rightExpr()));
     }
   } else if (compTy == MCompare::Compare_Float32) {
-    masm.compareFloat(JSOpToDoubleCondition(ins->jsop()),
-                      ToFloatRegister(ins->leftExpr()),
+    masm.compareFloat(ToFloatRegister(ins->leftExpr()),
                       ToFloatRegister(ins->rightExpr()));
   } else if (compTy == MCompare::Compare_Double) {
-    masm.compareDouble(JSOpToDoubleCondition(ins->jsop()),
-                       ToFloatRegister(ins->leftExpr()),
+    masm.compareDouble(ToFloatRegister(ins->leftExpr()),
                        ToFloatRegister(ins->rightExpr()));
   } else {
     // Ref types not supported yet; v128 is not yet observed to be worth

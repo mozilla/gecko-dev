@@ -1404,7 +1404,7 @@ void MacroAssembler::branchPrivatePtr(Condition cond, const Address& lhs,
 
 void MacroAssembler::branchFloat(DoubleCondition cond, FloatRegister lhs,
                                  FloatRegister rhs, Label* label) {
-  compareFloat(cond, lhs, rhs);
+  compareFloat(lhs, rhs);
   switch (cond) {
     case DoubleNotEqual: {
       Label unordered;
@@ -1455,7 +1455,7 @@ void MacroAssembler::branchTruncateFloat32ToInt32(FloatRegister src,
 
 void MacroAssembler::branchDouble(DoubleCondition cond, FloatRegister lhs,
                                   FloatRegister rhs, Label* label) {
-  compareDouble(cond, lhs, rhs);
+  compareDouble(lhs, rhs);
   switch (cond) {
     case DoubleNotEqual: {
       Label unordered;

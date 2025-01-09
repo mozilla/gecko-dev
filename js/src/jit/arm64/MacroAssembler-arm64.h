@@ -1338,13 +1338,11 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     addPendingJump(loc, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
 
-  void compareDouble(DoubleCondition cond, FloatRegister lhs,
-                     FloatRegister rhs) {
+  void compareDouble(FloatRegister lhs, FloatRegister rhs) {
     Fcmp(ARMFPRegister(lhs, 64), ARMFPRegister(rhs, 64));
   }
 
-  void compareFloat(DoubleCondition cond, FloatRegister lhs,
-                    FloatRegister rhs) {
+  void compareFloat(FloatRegister lhs, FloatRegister rhs) {
     Fcmp(ARMFPRegister(lhs, 32), ARMFPRegister(rhs, 32));
   }
 
