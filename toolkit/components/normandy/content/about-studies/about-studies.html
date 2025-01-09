@@ -8,7 +8,7 @@
     <meta name="color-scheme" content="light dark" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src chrome:; script-src resource:; style-src resource: chrome:; object-src 'none'"
+      content="default-src chrome:; script-src chrome: resource:; style-src resource: chrome:; object-src 'none'"
     />
     <title>about:studies</title>
     <link rel="stylesheet" href="chrome://global/skin/global.css" />
@@ -20,9 +20,9 @@
   </head>
   <body>
     <div id="app"></div>
-    <script src="resource://normandy-vendor/React.js"></script>
-    <script src="resource://normandy-vendor/ReactDOM.js"></script>
-    <script src="resource://normandy-vendor/PropTypes.js"></script>
+    <script src="chrome://global/content/vendor/react.js"></script>
+    <script src="chrome://global/content/vendor/react-dom.js"></script>
+    <script src="chrome://global/content/vendor/prop-types.js"></script>
     <script src="resource://normandy-vendor/classnames.js"></script>
     <script src="resource://normandy-content/about-studies/about-studies.js"></script>
   </body>
