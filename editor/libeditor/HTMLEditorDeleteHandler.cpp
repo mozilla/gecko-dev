@@ -7627,6 +7627,7 @@ nsresult HTMLEditor::MoveChildrenBetween(
       }
     }
     if (NS_WARN_IF(
+            newContainer->IsInComposedDoc() &&
             !EditorUtils::IsEditableContent(*newContainer, EditorType::HTML))) {
       return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
     }
