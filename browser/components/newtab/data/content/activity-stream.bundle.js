@@ -102,6 +102,9 @@ for (const type of [
   "ABOUT_SPONSORED_TOP_SITES",
   "ADDONS_INFO_REQUEST",
   "ADDONS_INFO_RESPONSE",
+  "ADS_FEED_UPDATE",
+  "ADS_INIT",
+  "ADS_UPDATE_DATA",
   "ARCHIVE_FROM_POCKET",
   "BLOCK_SECTION",
   "BLOCK_URL",
@@ -6649,6 +6652,11 @@ const INITIAL_STATE = {
     isForStartupCache: false,
     customizeMenuVisible: false,
   },
+  Ads: {
+    initialized: false,
+    lastUpdated: null,
+    topsites: {},
+  },
   TopSites: {
     // Have we received real data from history yet?
     initialized: false,
@@ -7603,9 +7611,27 @@ function Weather(prevState = INITIAL_STATE.Weather, action) {
   }
 }
 
+function Ads(prevState = INITIAL_STATE.Ads, action) {
+  switch (action.type) {
+    case actionTypes.ADS_INIT:
+      return {
+        ...prevState,
+        initialized: true,
+      };
+    case actionTypes.ADS_UPDATE_DATA:
+      return {
+        ...prevState,
+        topsites: action.data,
+      };
+    default:
+      return prevState;
+  }
+}
+
 const reducers = {
   TopSites,
   App,
+  Ads,
   Prefs,
   Dialog,
   Sections,

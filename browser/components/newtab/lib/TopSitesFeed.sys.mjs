@@ -97,6 +97,9 @@ const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
 const PREF_UNIFIED_ADS_PLACEMENTS = "discoverystream.placements.tiles";
 const PREF_UNIFIED_ADS_COUNTS = "discoverystream.placements.tiles.counts";
 const PREF_UNIFIED_ADS_BLOCKED_LIST = "unifiedAds.blockedAds";
+const PREF_UNIFIED_ADS_ADSFEED_ENABLED = "unifiedAds.adsFeed.enabled";
+const PREF_UNIFIED_ADS_ADSFEED_TILES_ENABLED =
+  "unifiedAds.adsFeed.tiles.enabled";
 
 // Search experiment stuff
 const FILTER_DEFAULT_SEARCH_PREF = "improvesearch.noDefaultSearchTile";
@@ -506,101 +509,126 @@ export class ContileIntegration {
     }
 
     let response;
+    let body;
+
     const state = this._topSitesFeed.store.getState();
 
     const unifiedAdsTilesEnabled =
       state.Prefs.values[PREF_UNIFIED_ADS_TILES_ENABLED];
 
-    const serviceName = unifiedAdsTilesEnabled ? "MARS" : "Contile";
+    const adsFeedEnabled = state.Prefs.values[PREF_UNIFIED_ADS_ADSFEED_ENABLED];
+
+    const adsFeedTilesEnabled =
+      state.Prefs.values[PREF_UNIFIED_ADS_ADSFEED_TILES_ENABLED];
+
+    const debugServiceName = unifiedAdsTilesEnabled ? "MARS" : "Contile";
 
     try {
-      // Fetch tiles via MARS unified ads service
-      if (unifiedAdsTilesEnabled) {
-        const headers = new Headers();
-        headers.append("content-type", "application/json");
+      // Fetch Data via TopSitesFeed.sys.mjs
+      if (!adsFeedEnabled || !adsFeedTilesEnabled) {
+        // Fetch tiles via UAPI service directly from TopSitesFeed.sys.mjs
+        if (unifiedAdsTilesEnabled) {
+          const headers = new Headers();
+          headers.append("content-type", "application/json");
 
-        const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
+          const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
 
-        let blockedSponsors =
-          this._topSitesFeed.store.getState().Prefs.values[
-            PREF_UNIFIED_ADS_BLOCKED_LIST
-          ];
+          let blockedSponsors =
+            this._topSitesFeed.store.getState().Prefs.values[
+              PREF_UNIFIED_ADS_BLOCKED_LIST
+            ];
 
-        // Overwrite URL to Unified Ads endpoint
-        const fetchUrl = `${endpointBaseUrl}v1/ads`;
+          // Overwrite URL to Unified Ads endpoint
+          const fetchUrl = `${endpointBaseUrl}v1/ads`;
 
-        const placementsArray = state.Prefs.values[
-          PREF_UNIFIED_ADS_PLACEMENTS
-        ]?.split(`,`)
-          .map(s => s.trim())
-          .filter(item => item);
-        const countsArray = state.Prefs.values[PREF_UNIFIED_ADS_COUNTS]?.split(
-          `,`
-        )
-          .map(s => s.trim())
-          .filter(item => item)
-          .map(item => parseInt(item, 10));
+          const placementsArray = state.Prefs.values[
+            PREF_UNIFIED_ADS_PLACEMENTS
+          ]?.split(`,`)
+            .map(s => s.trim())
+            .filter(item => item);
+          const countsArray = state.Prefs.values[
+            PREF_UNIFIED_ADS_COUNTS
+          ]?.split(`,`)
+            .map(s => s.trim())
+            .filter(item => item)
+            .map(item => parseInt(item, 10));
 
-        response = await this._topSitesFeed.fetch(fetchUrl, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            context_id: lazy.contextId,
-            placements: placementsArray.map((placement, index) => ({
-              placement,
-              count: countsArray[index],
-            })),
-            blocks: blockedSponsors.split(","),
-          }),
-        });
-      } else {
-        // (Default) Fetch tiles via Contile service
-        const fetchUrl = Services.prefs.getStringPref(CONTILE_ENDPOINT_PREF);
+          response = await this._topSitesFeed.fetch(fetchUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              context_id: lazy.contextId,
+              placements: placementsArray.map((placement, index) => ({
+                placement,
+                count: countsArray[index],
+              })),
+              blocks: blockedSponsors.split(","),
+            }),
+          });
+        } else {
+          // (Default) Fetch tiles via Contile service from TopSitesFeed.sys.mjs
+          const fetchUrl = Services.prefs.getStringPref(CONTILE_ENDPOINT_PREF);
 
-        let options = {
-          credentials: "omit",
-        };
+          let options = {
+            credentials: "omit",
+          };
 
-        response = await this._topSitesFeed.fetch(fetchUrl, options);
-      }
+          response = await this._topSitesFeed.fetch(fetchUrl, options);
+        }
 
-      if (!response.ok) {
-        lazy.log.warn(
-          `${serviceName} endpoint returned unexpected status: ${response.status}`
-        );
-        if (response.status === 304 || response.status >= 500) {
-          return await this._loadTilesFromCache();
+        // Catch Response Error
+        if (response && !response.ok) {
+          lazy.log.warn(
+            `${debugServiceName} endpoint returned unexpected status: ${response.status}`
+          );
+          if (response.status === 304 || response.status >= 500) {
+            return await this._loadTilesFromCache();
+          }
+        }
+
+        // Set Cache Prefs
+        const lastFetch = Math.round(Date.now() / 1000);
+        Services.prefs.setIntPref(CONTILE_CACHE_LAST_FETCH_PREF, lastFetch);
+        this._topSitesFeed._telemetryUtility.setSponsoredTilesConfigured();
+
+        // Contile returns 204 indicating there is no content at the moment.
+        // If this happens, it will clear `this._sites` reset the cached tiles
+        // to an empty array.
+        if (response && response.status === 204) {
+          this._topSitesFeed._telemetryUtility.clearTilesForProvider(
+            SPONSORED_TILE_PARTNER_AMP
+          );
+          if (this._sites.length) {
+            this._sites = [];
+            await this.cache.set("contile", this._sites);
+            return true;
+          }
+          return false;
         }
       }
 
-      const lastFetch = Math.round(Date.now() / 1000);
-      Services.prefs.setIntPref(CONTILE_CACHE_LAST_FETCH_PREF, lastFetch);
-      this._topSitesFeed._telemetryUtility.setSponsoredTilesConfigured();
-
-      // Contile returns 204 indicating there is no content at the moment.
-      // If this happens, it will clear `this._sites` reset the cached tiles
-      // to an empty array.
-      if (response.status === 204) {
-        this._topSitesFeed._telemetryUtility.clearTilesForProvider(
-          SPONSORED_TILE_PARTNER_AMP
-        );
-        if (this._sites.length) {
-          this._sites = [];
-          await this.cache.set("contile", this._sites);
-          return true;
-        }
-        return false;
+      // Default behavior when ads fetched via TopSitesFeed
+      if (response && response.status === 200) {
+        body = await response.json();
       }
-      let body = await response.json();
 
+      // If using UAPI, normalize the data
       if (unifiedAdsTilesEnabled) {
-        // Converts response into normalized tiles[] array
-        body = this._normalizeTileData(body);
+        if (adsFeedEnabled && adsFeedTilesEnabled) {
+          // IMPORTANT: Ignore all previous fetch logic and get ads data from AdsFeed
+          const { tiles } = state.Ads.topsites;
+          body = { tiles };
+        } else {
+          // Converts UAPI response into normalized tiles[] array
+          body = this._normalizeTileData(body);
+        }
       }
 
+      // Logic below runs the same regardless of ad source
       if (body?.sov) {
         this._sov = JSON.parse(atob(body.sov));
       }
+
       if (body?.tiles && Array.isArray(body.tiles)) {
         const useAdditionalTiles = lazy.NimbusFeatures.newtab.getVariable(
           NIMBUS_VARIABLE_ADDITIONAL_TILES
@@ -625,7 +653,7 @@ export class ContileIntegration {
           tiles
         );
         if (tiles.length > maxNumFromContile) {
-          lazy.log.info(`Remove unused links from ${serviceName}`);
+          lazy.log.info(`Remove unused links from ${debugServiceName}`);
           tiles.length = maxNumFromContile;
           this._topSitesFeed._telemetryUtility.determineFilteredTilesAndSetToOversold(
             tiles
@@ -654,7 +682,7 @@ export class ContileIntegration {
       }
     } catch (error) {
       lazy.log.warn(
-        `Failed to fetch data from ${serviceName} server: ${error.message}`
+        `Failed to fetch data from ${debugServiceName} server: ${error.message}`
       );
       return await this._loadTilesFromCache();
     }
@@ -2073,6 +2101,10 @@ export class TopSitesFeed {
               this.unpinAllSearchShortcuts();
             }
             this.refresh({ broadcast: true });
+            break;
+          case PREF_UNIFIED_ADS_ADSFEED_ENABLED:
+            this._contile.refresh();
+            break;
         }
         break;
       case at.UPDATE_SECTION_PREFS:
@@ -2099,6 +2131,9 @@ export class TopSitesFeed {
         break;
       case at.UPDATE_PINNED_SEARCH_SHORTCUTS:
         this.updatePinnedSearchShortcuts(action.data);
+        break;
+      case at.ADS_UPDATE_DATA:
+        this._contile.refresh();
         break;
       case at.DISCOVERY_STREAM_SPOCS_UPDATE:
         // Refresh to update sponsored topsites.

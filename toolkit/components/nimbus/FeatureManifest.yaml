@@ -822,6 +822,21 @@ newtabUnifiedAds:
       setPref:
         branch: user
         pref: browser.newtabpage.activity-stream.unifiedAds.tiles.enabled
+    unifiedAdsFeedEnabled:
+      type: boolean
+      description: >-
+          Enable AdsFeed to manage all ads request/serving logic
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.unifiedAds.adsFeed.enabled
+    unifiedAdsFeedTilesEnabled:
+      type: boolean
+      description: >-
+          Enable AdsFeed to query MARS server to fetch/serve top sites tiles
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.unifiedAds.adsFeed.tiles.enabled
+
 
 newtabSpocsCache:
   description: The about:newtab sponsored content cache.
