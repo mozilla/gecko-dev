@@ -1040,16 +1040,24 @@ reinitialize_stream(cubeb_stream * stm)
                        state == stream_state::STARTING ||
                        state == stream_state::DRAINING;
     int err = aaudio_stream_stop_locked(stm, lock);
-    // get total number of written frames before destroying the stream.
-    uint64_t total_frames = stm->pos_estimate.initial_position() +
-                            WRAP(AAudioStream_getFramesWritten)(stm->ostream);
-    // error ignored.
+    // Error ignored.
+
+    // Get total number of written frames before destroying the stream.
+    uint64_t total_frames = stm->pos_estimate.initial_position();
+    if (stm->ostream) {
+      // For output-only and duplex, use the output stream.
+      total_frames += WRAP(AAudioStream_getFramesWritten)(stm->ostream);
+    } else if (stm->istream) {
+      // Input-only, we can only use the input stream.
+      total_frames += WRAP(AAudioStream_getFramesWritten)(stm->istream);
+    }
+
     aaudio_stream_destroy_locked(stm, lock);
     err = aaudio_stream_init_impl(stm, lock);
 
     assert(stm->in_use.load());
 
-    // set the new initial position.
+    // Set the new initial position.
     stm->pos_estimate.reinit(total_frames);
 
     if (err != CUBEB_OK) {
