@@ -4922,6 +4922,8 @@ AttachDecision SetPropIRGenerator::tryAttachSetDenseElement(
 
 static bool CanAttachAddElement(NativeObject* obj, bool isInit,
                                 AllowIndexedReceiver allowIndexedReceiver) {
+  MOZ_ASSERT(!obj->is<TypedArrayObject>());
+
   // Make sure the receiver doesn't have any indexed properties and that such
   // properties can't appear without a shape change.
   if (allowIndexedReceiver == AllowIndexedReceiver::No && obj->isIndexed()) {
@@ -4949,6 +4951,12 @@ static bool CanAttachAddElement(NativeObject* obj, bool isInit,
     }
 
     if (!proto->is<NativeObject>()) {
+      return false;
+    }
+
+    // We shouldn't add an element if the index is OOB for a typed array on the
+    // prototype chain.
+    if (proto->is<TypedArrayObject>()) {
       return false;
     }
 
