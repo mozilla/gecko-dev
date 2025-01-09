@@ -1119,7 +1119,8 @@ addAccessibleTask(
       "AXHeading",
       "Is first heading child"
     );
-  }
+  },
+  { contentDocBodyAttrs: { role: "application" } }
 );
 
 /**
