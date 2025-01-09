@@ -2549,6 +2549,26 @@ void nsFocusManager::ActivateRemoteFrameIfNeeded(Element& aElement,
   }
 }
 
+void nsFocusManager::FixUpFocusBeforeFrameLoaderChange(Element& aElement,
+                                                       BrowsingContext* aBc) {
+  // If focus is out of process we don't need to do anything.
+  if (!mFocusedWindow || !aBc) {
+    return;
+  }
+  auto* docShell = aBc->GetDocShell();
+  if (!docShell) {
+    return;
+  }
+  if (!IsSameOrAncestor(docShell->GetWindow(), mFocusedWindow)) {
+    // The window about to go away is not focused.
+    return;
+  }
+  LOGFOCUS(("About to swap frame loaders on focused in-process window %p",
+            mFocusedWindow.get()));
+  mFocusedWindow = nullptr;
+  mFocusedElement = &aElement;
+}
+
 void nsFocusManager::FixUpFocusAfterFrameLoaderChange(Element& aElement) {
   MOZ_ASSERT(mFocusedElement == &aElement);
   MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
