@@ -38,10 +38,11 @@ export class MLAutofill {
 
     try {
       MLAutofill.engine = await lazy.createEngine(config);
-      await lazy.MLEngineParent.getInferenceOptions(
+      const options = await lazy.MLEngineParent.getInferenceOptions(
         config.featureId,
         config.taskName
       );
+      MLAutofill.modelRevision = options.modelRevision;
     } catch (e) {
       console.error("There was an error initializeing ML engine: ", e.message);
       MLAutofill.engine = null;
