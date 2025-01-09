@@ -55,7 +55,7 @@ fi
 
 hg revert -q \
    --include "third_party/libwebrtc/**moz.build" \
-   --include "third_party/libwebrtc/README.mozilla" \
+   --include "third_party/libwebrtc/README.mozilla.last-vendor" \
    third_party/libwebrtc
 
 ERROR_HELP=$"
