@@ -96,5 +96,5 @@ object FeatureFlags {
     /**
      * Enables native WebCompat Reporter.
      */
-    val webCompatReporter = Config.channel.isDebug
+    val webCompatReporter = Config.channel.isNightlyOrDebug
 }
