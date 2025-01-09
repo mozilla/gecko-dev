@@ -213,9 +213,14 @@ MessageProcessedResult ImageDecoder::ProcessConfigureMessage(
   //
   // 2. If supported is false, run the Close ImageDecoder algorithm with a
   // NotSupportedError DOMException and return "processed".
+  //
+  // Note that DecoderType::ICON is mostly an internal type that we use for
+  // system icons and shouldn't be exposed for general use on the web. This is
+  // not to be confused with DecoderType::ICO which is for .ico files.
   NS_ConvertUTF16toUTF8 mimeType(mType);
   image::DecoderType type = image::ImageUtils::GetDecoderType(mimeType);
-  if (NS_WARN_IF(type == image::DecoderType::UNKNOWN)) {
+  if (NS_WARN_IF(type == image::DecoderType::UNKNOWN) ||
+      NS_WARN_IF(type == image::DecoderType::ICON)) {
     MOZ_LOG(gWebCodecsLog, LogLevel::Error,
             ("ImageDecoder %p Initialize -- unsupported mime type '%s'", this,
              mimeType.get()));

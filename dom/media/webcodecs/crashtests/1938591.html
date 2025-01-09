@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script id="worker1" type="javascript/worker">
+      self.onmessage = async function (e) {
+        const buffer = new Uint8ClampedArray(54486)
+        let seed = 4264621169
+        for (let e = 0; e < 2048; e++) {
+          const l = 1e4 * Math.sin(seed++)
+          buffer[e] = l - Math.floor(l)
+        }
+
+        new ImageDecoder({
+          'type': 'image/icon',
+          'data': buffer,
+        })
+      }
+    </script>
+    <script>
+      window.addEventListener('load', async () => {
+        const blob = new Blob([document.querySelector('#worker1').textContent], { type: "text/javascript" })
+        const worker = new Worker(window.URL.createObjectURL(blob))
+        worker.postMessage([], [])
+      })
+    </script>
+</head>
+</html>
