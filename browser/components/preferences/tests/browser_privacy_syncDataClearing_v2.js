@@ -49,7 +49,7 @@ add_task(async function test_syncWithoutCustomPrefs() {
   );
   ok(
     !Services.prefs.getBoolPref(
-      "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+      "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
     ),
     "History cleaning pref is not set"
   );
@@ -85,7 +85,7 @@ add_task(async function test_syncWithoutCustomPrefs() {
   );
   ok(
     !Services.prefs.getBoolPref(
-      "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+      "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
     ),
     "History cleaning pref is not set"
   );
@@ -96,7 +96,7 @@ add_task(async function test_syncWithoutCustomPrefs() {
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
   Services.prefs.clearUserPref(
-    "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+    "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
   );
   Services.prefs.clearUserPref("privacy.clearOnShutdown_v2.siteSettings");
   Services.prefs.clearUserPref("privacy.clearOnShutdown_v2.cache");
@@ -112,7 +112,7 @@ add_task(async function test_syncWithoutCustomPrefs() {
 add_task(async function test_syncWithCustomPrefs() {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["privacy.clearOnShutdown_v2.historyFormDataAndDownloads", true],
+      ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", true],
       ["privacy.clearOnShutdown.history", false],
       ["privacy.clearOnShutdown_v2.siteSettings", true],
       ["privacy.sanitize.sanitizeOnShutdown", true],
@@ -137,7 +137,7 @@ add_task(async function test_syncWithCustomPrefs() {
   );
   ok(
     Services.prefs.getBoolPref(
-      "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+      "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
     ),
     "History cleaning pref is still set"
   );
@@ -178,7 +178,7 @@ add_task(async function test_syncWithCustomPrefs() {
   );
   ok(
     Services.prefs.getBoolPref(
-      "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+      "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
     ),
     "History cleaning pref is still set"
   );
@@ -268,7 +268,7 @@ add_task(async function test_initialState() {
       ["privacy.clearOnShutdown_v2.cookiesAndStorage", false],
       ["privacy.clearOnShutdown_v2.cache", false],
       ["privacy.sanitize.sanitizeOnShutdown", true],
-      ["privacy.clearOnShutdown_v2.historyFormDataAndDownloads", true],
+      ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", true],
     ],
   });
 

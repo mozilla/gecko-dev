@@ -18,7 +18,7 @@ add_task(async function testMigrationForDeleteOnClose() {
       ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
       ["privacy.sanitize.sanitizeOnShutdown", false],
       ["privacy.clearOnShutdown_v2.cookiesAndStorage", true],
-      ["privacy.clearOnShutdown_v2.historyFormDataAndDownloads", true],
+      ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", true],
       ["privacy.clearOnShutdown_v2.siteSettings", false],
       ["privacy.clearOnShutdown_v2.cache", false],
     ],
@@ -52,7 +52,7 @@ add_task(async function testMigrationForDeleteOnClose() {
   dh.onload = function () {
     is(
       Services.prefs.getBoolPref(
-        "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+        "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
       ),
       false,
       "History pref should flip to false"
@@ -85,7 +85,7 @@ add_task(async function testOldPrefRemoval() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.clearOnShutdown.history", true],
-      ["privacy.clearOnShutdown_v2.historyFormDataAndDownloads", false],
+      ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", false],
       ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
       ["privacy.sanitize.cpd.hasMigratedToNewPrefs2", false],
     ],
@@ -134,7 +134,7 @@ add_task(async function testOldPrefRemoval() {
 
   ok(
     Services.prefs.getBoolPref(
-      "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+      "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
     ),
     "History should be flipped to true after migrating"
   );
@@ -196,7 +196,7 @@ add_task(async function testHistoryAndFormData_historyTrue() {
     set: [
       ["privacy.clearOnShutdown.history", true],
       ["privacy.clearOnShutdown.formdata", false],
-      ["privacy.clearOnShutdown_v2.historyFormDataAndDownloads", false],
+      ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", false],
       ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
     ],
   });
@@ -205,9 +205,9 @@ add_task(async function testHistoryAndFormData_historyTrue() {
 
   ok(
     Services.prefs.getBoolPref(
-      "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+      "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
     ),
-    "historyFormDataAndDownloads should be set to true"
+    "browsingHistoryAndDownloads should be set to true"
   );
   ok(
     Services.prefs.getBoolPref("privacy.clearOnShutdown.history"),
@@ -231,7 +231,7 @@ add_task(async function testHistoryAndFormData_historyFalse() {
     set: [
       ["privacy.clearOnShutdown.history", false],
       ["privacy.clearOnShutdown.formdata", true],
-      ["privacy.clearOnShutdown_v2.historyFormDataAndDownloads", true],
+      ["privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", true],
       ["privacy.sanitize.clearOnShutdown.hasMigratedToNewPrefs2", false],
     ],
   });
@@ -240,9 +240,9 @@ add_task(async function testHistoryAndFormData_historyFalse() {
 
   ok(
     !Services.prefs.getBoolPref(
-      "privacy.clearOnShutdown_v2.historyFormDataAndDownloads"
+      "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads"
     ),
-    "historyFormDataAndDownloads should be set to true"
+    "browsingHistoryAndDownloads should be set to true"
   );
   ok(
     !Services.prefs.getBoolPref("privacy.clearOnShutdown.history"),

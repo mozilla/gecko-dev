@@ -49,9 +49,10 @@ add_task(async function test_execute() {
     true
   );
   Services.prefs.setBoolPref(
-    Sanitizer.PREF_SHUTDOWN_BRANCH + "historyFormDataAndDownloads",
+    Sanitizer.PREF_SHUTDOWN_BRANCH + "browsingHistoryAndDownloads",
     true
   );
+  Services.prefs.setBoolPref(Sanitizer.PREF_SHUTDOWN_BRANCH + "formdata", true);
   Services.prefs.setBoolPref(
     Sanitizer.PREF_SHUTDOWN_BRANCH + "cookiesAndStorage",
     true

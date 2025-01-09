@@ -4,13 +4,9 @@
 // Tests that sanitizing history will clear storage access permissions
 // for sites without cookies or site data.
 add_task(async function sanitizeStorageAccessPermissions() {
-  let categories = ["history", "historyFormDataAndDownloads"];
+  let categories = ["history", "browsingHistoryAndDownloads"];
 
   for (let pref of categories) {
-    await new Promise(resolve => {
-      Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, resolve);
-    });
-
     await SiteDataTestUtils.addToIndexedDB("https://sub.example.org");
     await SiteDataTestUtils.addToCookies({ origin: "https://example.com" });
 
@@ -132,5 +128,9 @@ add_task(async function sanitizeStorageAccessPermissions() {
       ),
       Services.perms.UNKNOWN_ACTION
     );
+
+    await new Promise(resolve => {
+      Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, resolve);
+    });
   }
 });

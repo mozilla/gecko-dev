@@ -189,27 +189,29 @@ function visitTimeForMinutesAgo(aMinutesAgo) {
  * as sent in the parameters
  *
  * @param {Object} context the dialog is opened in, timespan to select,
- *  if historyFormDataAndDownloads, cookiesAndStorage, cache or siteSettings
+ *  if browsingHistoryAndDownloads, cookiesAndStorage, cache or siteSettings
  *  are checked
  */
 async function performActionsOnDialog({
   context = "browser",
   timespan = Sanitizer.TIMESPAN_HOUR,
-  historyFormDataAndDownloads = true,
+  browsingHistoryAndDownloads = true,
   cookiesAndStorage = true,
   cache = false,
   siteSettings = false,
+  formData = false,
 }) {
   let dh = new ClearHistoryDialogHelper({ mode: context });
   dh.onload = function () {
     this.selectDuration(timespan);
     this.checkPrefCheckbox(
-      "historyFormDataAndDownloads",
-      historyFormDataAndDownloads
+      "browsingHistoryAndDownloads",
+      browsingHistoryAndDownloads
     );
     this.checkPrefCheckbox("cookiesAndStorage", cookiesAndStorage);
     this.checkPrefCheckbox("cache", cache);
     this.checkPrefCheckbox("siteSettings", siteSettings);
+    this.checkPrefCheckbox("formdata", formData);
     this.acceptDialog();
   };
   dh.open();
@@ -248,7 +250,7 @@ add_task(async function test_cancel() {
   let dh = new ClearHistoryDialogHelper();
   dh.onload = function () {
     this.selectDuration(Sanitizer.TIMESPAN_HOUR);
-    this.checkPrefCheckbox("historyFormDataAndDownloads", false);
+    this.checkPrefCheckbox("browsingHistoryAndDownloads", false);
     this.cancelDialog();
   };
   dh.onunload = async function () {
@@ -354,7 +356,7 @@ add_task(async function test_everything() {
         "with a predefined timespan"
     );
     this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
-    this.checkPrefCheckbox("historyFormDataAndDownloads", true);
+    this.checkPrefCheckbox("browsingHistoryAndDownloads", true);
     this.acceptDialog();
   };
   dh.onunload = async function () {
@@ -401,7 +403,7 @@ add_task(async function test_everything_warning() {
         "with clearing everything"
     );
     this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
-    this.checkPrefCheckbox("historyFormDataAndDownloads", true);
+    this.checkPrefCheckbox("browsingHistoryAndDownloads", true);
     this.acceptDialog();
   };
   dh.onunload = async function () {
@@ -514,7 +516,7 @@ add_task(async function test_history_downloads_checked() {
   let dh = new ClearHistoryDialogHelper();
   dh.onload = function () {
     this.selectDuration(Sanitizer.TIMESPAN_HOUR);
-    this.checkPrefCheckbox("historyFormDataAndDownloads", true);
+    this.checkPrefCheckbox("browsingHistoryAndDownloads", true);
     this.acceptDialog();
   };
   dh.onunload = async function () {
@@ -566,14 +568,15 @@ add_task(async function test_cannot_clear_history() {
   let dh = new ClearHistoryDialogHelper();
   dh.onload = function () {
     var cb = this.win.document.querySelectorAll(
-      "checkbox[id='historyFormDataAndDownloads']"
+      "checkbox[id='browsingHistoryAndDownloads']"
     );
     ok(
       cb.length == 1 && !cb[0].disabled,
       "There is history, checkbox to clear history should be enabled."
     );
 
-    this.checkAllCheckboxes();
+    this.checkPrefCheckbox("formdata", true);
+    this.checkPrefCheckbox("browsingHistoryAndDownloads", true);
     this.acceptDialog();
   };
   dh.onunload = async function () {
@@ -588,12 +591,12 @@ add_task(async function test_cannot_clear_history() {
   await dh.promiseClosed;
 });
 
-add_task(async function test_no_formdata_history_to_clear() {
+add_task(async function test_no_history_to_clear() {
   let promiseSanitized = promiseSanitizationComplete();
   let dh = new ClearHistoryDialogHelper();
   dh.onload = function () {
     var cb = this.win.document.querySelectorAll(
-      "checkbox[id='historyFormDataAndDownloads']"
+      "checkbox[id='browsingHistoryAndDownloads']"
     );
     ok(
       cb.length == 1 && !cb[0].disabled && cb[0].checked,
@@ -615,10 +618,8 @@ add_task(async function test_form_entries() {
 
   let dh = new ClearHistoryDialogHelper();
   dh.onload = function () {
-    var cb = this.win.document.querySelectorAll(
-      "checkbox[id='historyFormDataAndDownloads']"
-    );
-    is(cb.length, 1, "There is only one checkbox for history and form data");
+    var cb = this.win.document.querySelectorAll("checkbox[id='formdata']");
+    is(cb.length, 1, "There is only one checkbox for form data");
     ok(!cb[0].disabled, "The checkbox is enabled");
     ok(cb[0].checked, "The checkbox is checked");
 
@@ -642,7 +643,7 @@ add_task(async function test_clear_on_shutdown() {
   let dh = new ClearHistoryDialogHelper({ mode: "clearOnShutdown" });
   dh.onload = async function () {
     this.uncheckAllCheckboxes();
-    this.checkPrefCheckbox("historyFormDataAndDownloads", false);
+    this.checkPrefCheckbox("browsingHistoryAndDownloads", false);
     this.checkPrefCheckbox("cookiesAndStorage", true);
     this.acceptDialog();
   };
@@ -661,7 +662,7 @@ add_task(async function test_clear_on_shutdown() {
   }
 
   boolPrefIs(
-    "clearOnShutdown_v2.historyFormDataAndDownloads",
+    "clearOnShutdown_v2.browsingHistoryAndDownloads",
     false,
     "clearOnShutdown_v2 history should be false"
   );
@@ -711,14 +712,14 @@ add_task(async function test_clear_on_shutdown() {
   dh = new ClearHistoryDialogHelper({ mode: "clearOnShutdown" });
   dh.onload = async function () {
     this.uncheckAllCheckboxes();
-    this.checkPrefCheckbox("historyFormDataAndDownloads", true);
+    this.checkPrefCheckbox("browsingHistoryAndDownloads", true);
     this.acceptDialog();
   };
   dh.open();
   await dh.promiseClosed;
 
   boolPrefIs(
-    "clearOnShutdown_v2.historyFormDataAndDownloads",
+    "clearOnShutdown_v2.browsingHistoryAndDownloads",
     true,
     "clearOnShutdown_v2 history should be true"
   );
@@ -872,10 +873,11 @@ add_task(async function testClearingOptionsTelemetry() {
 
   await performActionsOnDialog({
     context: "clearSiteData",
-    historyFormDataAndDownloads: true,
+    browsingHistoryAndDownloads: true,
     cookiesAndStorage: false,
     cache: true,
     siteSettings: true,
+    formData: false,
   });
 
   let telemetryObject = Glean.privacySanitize.clear.testGetValue();
@@ -911,7 +913,8 @@ add_task(async function testClearHistoryCheckboxStatesAfterMigration() {
   let dh = new ClearHistoryDialogHelper({ mode: "clearHistory" });
   dh.onload = function () {
     this.validateCheckbox("cookiesAndStorage", true);
-    this.validateCheckbox("historyFormDataAndDownloads", false);
+    this.validateCheckbox("browsingHistoryAndDownloads", false);
+    this.validateCheckbox("formdata", false);
     this.validateCheckbox("cache", true);
     this.validateCheckbox("siteSettings", false);
 
