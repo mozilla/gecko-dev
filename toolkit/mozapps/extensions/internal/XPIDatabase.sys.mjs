@@ -839,15 +839,19 @@ export class AddonInternal {
   permissions() {
     let permissions = 0;
 
+    let settings = Services.policies?.getExtensionSettings(this.id) || {};
     // The permission to "toggle the private browsing access" is locked down
     // when the extension has opted out or it gets the permission automatically
-    // on every extension startup (as system, privileged and builtin addons).
+    // on every extension startup (as system, privileged and builtin addons) or
+    // when private browsing access as been set and locke dthrough enterprise
+    // policy settings.
     if (
       this.type === "extension" &&
       this.incognito !== "not_allowed" &&
       this.signedState !== lazy.AddonManager.SIGNEDSTATE_PRIVILEGED &&
       this.signedState !== lazy.AddonManager.SIGNEDSTATE_SYSTEM &&
-      !this.location.isBuiltin
+      !this.location.isBuiltin &&
+      !("private_browsing" in settings)
     ) {
       // NOTE: This permission is computed even for addons not in the database because
       // it is being used in the first dialog part of the install flow, when the addon
