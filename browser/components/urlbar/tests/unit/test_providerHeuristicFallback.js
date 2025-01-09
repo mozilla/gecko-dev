@@ -353,6 +353,26 @@ add_task(async function () {
     ],
   });
 
+  info("Forced search through search mode, keyword.enabled = false");
+  query = "bacon";
+  context = createContext(query, {
+    isPrivate: false,
+    searchMode: {
+      engineName: SUGGESTIONS_ENGINE_NAME,
+      isGeneralPurposeEngine: false,
+    },
+  });
+  await check_results({
+    context,
+    matches: [
+      makeSearchResult(context, {
+        engineName: SUGGESTIONS_ENGINE_NAME,
+        heuristic: true,
+        query: "bacon",
+      }),
+    ],
+  });
+
   info("Non-search restriction token and invalid URL, keyword.enabled = false");
   query = "bacon *";
   context = createContext(query, { isPrivate: false });
