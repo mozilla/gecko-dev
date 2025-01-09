@@ -17,7 +17,6 @@ import sys
 from time import localtime
 
 import mozpack.path as mozpath
-from MozZipFile import ZipFile
 
 from mozbuild.action.buildlist import addEntriesToListFile
 from mozbuild.preprocessor import Preprocessor
@@ -403,6 +402,8 @@ class JarMaker(object):
             # jar
             jarfilepath = jarfile + ".jar"
             os.makedirs(os.path.dirname(jarfilepath), exist_ok=True)
+            from MozZipFile import ZipFile
+
             jf = ZipFile(jarfilepath, "a", lock=True)
             outHelper = self.OutputHelper_jar(jf)
         else:
