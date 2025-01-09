@@ -1884,8 +1884,15 @@ BigInt* BigInt::mul(JSContext* cx, HandleBigInt x, HandleBigInt y) {
   }
   result->initializeDigitsToZero();
 
-  for (size_t i = 0; i < x->digitLength(); i++) {
-    multiplyAccumulate(y, x->digit(i), result, i);
+  // Reorder operands to minimize calls to multiplyAccumulate.
+  BigInt* left = x;
+  BigInt* right = y;
+  if (left->digitLength() < right->digitLength()) {
+    std::swap(left, right);
+  }
+
+  for (size_t i = 0; i < right->digitLength(); i++) {
+    multiplyAccumulate(left, right->digit(i), result, i);
   }
 
   return destructivelyTrimHighZeroDigits(cx, result);
