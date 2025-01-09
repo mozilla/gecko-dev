@@ -63,34 +63,32 @@ fun PocketSection(
         )
 
         if (!state.showContentRecommendations) {
-            Column(modifier = Modifier.padding(horizontal = horizontalPadding)) {
-                Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(24.dp))
 
-                HomeSectionHeader(
-                    headerText = stringResource(R.string.pocket_stories_categories_header),
-                )
+            HomeSectionHeader(
+                headerText = stringResource(R.string.pocket_stories_categories_header),
+            )
 
-                Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-                if (state.categories.isNotEmpty()) {
-                    PocketStoriesCategories(
-                        categories = state.categories,
-                        selections = state.categoriesSelections,
-                        modifier = Modifier.fillMaxWidth(),
-                        categoryColors = state.categoryColors,
-                        onCategoryClick = interactor::onCategoryClicked,
-                    )
-                }
-
-                Spacer(Modifier.height(24.dp))
-
-                PoweredByPocketHeader(
-                    onLearnMoreClicked = interactor::onLearnMoreClicked,
+            if (state.categories.isNotEmpty()) {
+                PocketStoriesCategories(
+                    categories = state.categories,
+                    selections = state.categoriesSelections,
                     modifier = Modifier.fillMaxWidth(),
-                    textColor = state.textColor,
-                    linkTextColor = state.linkTextColor,
+                    categoryColors = state.categoryColors,
+                    onCategoryClick = interactor::onCategoryClicked,
                 )
             }
+
+            Spacer(Modifier.height(24.dp))
+
+            PoweredByPocketHeader(
+                onLearnMoreClicked = interactor::onLearnMoreClicked,
+                modifier = Modifier.fillMaxWidth(),
+                textColor = state.textColor,
+                linkTextColor = state.linkTextColor,
+            )
         }
     }
 }

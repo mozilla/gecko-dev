@@ -23,7 +23,6 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
@@ -39,7 +38,6 @@ class DefaultPrivateBrowsingControllerTest {
     private val appStore: AppStore = mockk(relaxed = true)
     private val navController: NavController = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
-    private val browsingModeManager: BrowsingModeManager = mockk(relaxed = true)
 
     private lateinit var store: BrowserStore
     private lateinit var controller: DefaultPrivateBrowsingController
@@ -51,7 +49,6 @@ class DefaultPrivateBrowsingControllerTest {
             activity = activity,
             appStore = appStore,
             navController = navController,
-            browsingModeManager = browsingModeManager,
         )
 
         every { appStore.state } returns AppState()
@@ -91,7 +88,6 @@ class DefaultPrivateBrowsingControllerTest {
         controller.handlePrivateModeButtonClicked(newMode)
 
         verify {
-            browsingModeManager.mode = newMode
             settings.incrementNumTimesPrivateModeOpened()
             AppAction.ModeChange(newMode)
         }
@@ -119,7 +115,6 @@ class DefaultPrivateBrowsingControllerTest {
         controller.handlePrivateModeButtonClicked(newMode)
 
         verify {
-            browsingModeManager.mode = newMode
             settings.incrementNumTimesPrivateModeOpened()
             AppAction.ModeChange(newMode)
             navController.navigate(
@@ -153,8 +148,6 @@ class DefaultPrivateBrowsingControllerTest {
             settings.incrementNumTimesPrivateModeOpened()
         }
         verify {
-            browsingModeManager.mode = newMode
-
             appStore.dispatch(
                 AppAction.ModeChange(newMode),
             )

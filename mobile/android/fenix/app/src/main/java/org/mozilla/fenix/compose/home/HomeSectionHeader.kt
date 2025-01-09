@@ -34,21 +34,18 @@ import org.mozilla.fenix.wallpapers.Wallpaper
  * Homepage header.
  *
  * @param headerText The header string.
- * @param modifier Modifier to apply.
  * @param description The content description for the "Show all" button.
  * @param onShowAllClick Invoked when "Show all" button is clicked.
  */
 @Composable
 fun HomeSectionHeader(
     headerText: String,
-    modifier: Modifier = Modifier,
     description: String = "",
     onShowAllClick: (() -> Unit)? = null,
 ) {
     if (inComposePreview) {
         HomeSectionHeaderContent(
             headerText = headerText,
-            modifier = modifier,
             description = description,
             onShowAllClick = onShowAllClick,
         )
@@ -63,7 +60,6 @@ fun HomeSectionHeader(
 
         HomeSectionHeaderContent(
             headerText = headerText,
-            modifier = modifier,
             textColor = wallpaperAdaptedTextColor ?: FirefoxTheme.colors.textPrimary,
             description = description,
             showAllTextColor = if (isWallpaperDefault) {
@@ -80,7 +76,6 @@ fun HomeSectionHeader(
  * Homepage header content.
  *
  * @param headerText The header string.
- * @param modifier Modifier to apply.
  * @param textColor [Color] to apply to the text.
  * @param description The content description for the "Show all" button.
  * @param showAllTextColor [Color] for the "Show all" button.
@@ -89,14 +84,13 @@ fun HomeSectionHeader(
 @Composable
 private fun HomeSectionHeaderContent(
     headerText: String,
-    modifier: Modifier = Modifier,
     textColor: Color = FirefoxTheme.colors.textPrimary,
     description: String = "",
     showAllTextColor: Color = FirefoxTheme.colors.textAccent,
     onShowAllClick: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().then(modifier),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

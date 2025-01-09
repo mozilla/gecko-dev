@@ -31,5 +31,7 @@ class PrivateBrowsingButtonView(
     override fun onClick(v: View) {
         val invertedMode = BrowsingMode.fromBoolean(!browsingModeManager.mode.isPrivate)
         onClick(invertedMode)
+
+        browsingModeManager.mode = invertedMode
     }
 }
