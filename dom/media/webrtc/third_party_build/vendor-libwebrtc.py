@@ -231,7 +231,7 @@ def fetch(target, url):
             file=sys.stderr,
         )
         sys.exit(1)
-    with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla.last-vendor"), "a") as f:
+    with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla.last-vendor"), "w") as f:
         # write the the command line used
         f.write(f"# ./mach python {' '.join(sys.argv[0:])}\n")
         f.write(
@@ -251,7 +251,7 @@ def fetch_local(target, path, commit):
         )
         sys.exit(1)
 
-    with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla.last-vendor"), "a") as f:
+    with open(os.path.join(LIBWEBRTC_DIR, "README.mozilla.last-vendor"), "w") as f:
         # write the the command line used
         f.write(f"# ./mach python {' '.join(sys.argv[0:])}\n")
         f.write(
