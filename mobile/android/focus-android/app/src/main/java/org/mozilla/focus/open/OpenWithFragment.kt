@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import mozilla.components.support.ktx.android.content.doesDeviceHaveHinge
 import mozilla.components.support.utils.ext.getParcelableArrayCompat
 import mozilla.components.support.utils.ext.getParcelableCompat
 import org.mozilla.focus.GleanMetrics.OpenWith.ListItemTappedExtra
@@ -97,7 +98,7 @@ class OpenWithFragment : AppCompatDialogFragment(), OnAppSelectedListener {
         }
 
         override fun show() {
-            if (context.isTablet()) {
+            if (context.isTablet() && !context.doesDeviceHaveHinge()) {
                 val peekHeight =
                     context.resources.getDimensionPixelSize(R.dimen.tablet_bottom_sheet_peekheight)
                 val bsBehaviour = BottomSheetBehavior.from(
