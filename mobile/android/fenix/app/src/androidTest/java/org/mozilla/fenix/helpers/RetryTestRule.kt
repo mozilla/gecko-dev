@@ -9,6 +9,7 @@ import androidx.test.espresso.IdlingResourceTimeoutException
 import androidx.test.espresso.NoMatchingViewException
 import androidx.test.uiautomator.UiObjectNotFoundException
 import junit.framework.AssertionFailedError
+import leakcanary.NoLeakAssertionFailedError
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
@@ -33,6 +34,12 @@ class RetryTestRule(private val retryCount: Int = 5) : TestRule {
                     Log.i(TAG, "RetryTestRule: Started try #$i.")
                     base.evaluate()
                     break
+                } catch (t: NoLeakAssertionFailedError) {
+                    Log.i(TAG, "RetryTestRule: NoLeakAssertionFailedError caught, not retrying")
+                    unregisterAllIdlingResources()
+                    appContext.components.useCases.tabsUseCases.removeAllTabs()
+                    exitMenu()
+                    throw t
                 } catch (t: AssertionError) {
                     Log.i(TAG, "RetryTestRule: AssertionError caught, retrying the UI test")
                     unregisterAllIdlingResources()

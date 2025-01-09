@@ -733,6 +733,7 @@ dependencies {
     androidTestImplementation ComponentsDependencies.androidx_test_runner
     androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
     androidTestUtil ComponentsDependencies.androidx_test_orchestrator
+    androidTestImplementation ComponentsDependencies.testing_leakcanary
 
     androidTestImplementation ComponentsDependencies.androidx_benchmark_junit4
     androidTestImplementation ComponentsDependencies.androidx_compose_ui_test
