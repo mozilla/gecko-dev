@@ -1607,7 +1607,7 @@
 
 - name: browser.navigation.requireUserInteraction
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # Indicates if about:newtab shows content (enabled) or just blank.
