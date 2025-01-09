@@ -762,8 +762,8 @@ export const FormAutofillHeuristics = {
           fathomLabel: inferInfo.fathomLabel,
           fathomConfidence: inferInfo.fathomConfidence,
           isVisible,
-          mlHeaderInput: closestHeaders[idx],
-          mlButtonInput: closestButtons[idx],
+          mlHeaderInput: closestHeaders?.[idx] ?? null,
+          mlButtonInput: closestButtons?.[idx] ?? null,
         })
       );
     }
