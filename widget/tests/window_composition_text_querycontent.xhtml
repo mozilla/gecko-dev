@@ -11016,6 +11016,30 @@ function runPaddingLineBreakTest() {
     "<p><br></p>",
     "Undo should restore the padding <br> for the empty paragraph with canceling the composition"
   );
+
+  contenteditable.innerHTML = "<p>abc <br></p>";
+  selection.collapse(contenteditable.querySelector("p").firstChild, "abc ".length);
+  synthesizeCompositionChange({
+    composition: {string: "d", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  is(
+    contenteditable.innerHTML,
+    "<p>abc d</p>",
+    `The padding <br> should be deleted when the composition string, "d", is inserted`
+  );
+  synthesizeComposition({ type: "compositioncommit", data: "" });
+  is(
+    contenteditable.innerHTML,
+    "<p>abc <br></p>",
+    "A padding <br> should be inserted if the composition string becomes empty and the previous character is a collapsible ASCII white-space"
+  );
+  synthesizeKey("z", {accelKey: true});
+  is(
+    contenteditable.innerHTML,
+    "<p>abc <br></p>",
+    "Undo should not delete the padding <br>"
+  );
+
   contenteditable.innerHTML = "";
 }
 
