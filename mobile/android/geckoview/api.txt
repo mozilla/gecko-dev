@@ -859,6 +859,7 @@ package org.mozilla.geckoview {
     method public int getAllowInsecureConnections();
     method @NonNull public String[] getArguments();
     method public boolean getAutomaticFontSizeAdjustment();
+    method @NonNull public int getCertificateTransparencyMode();
     method @Nullable public String getConfigFilePath();
     method public boolean getConsoleOutputEnabled();
     method @NonNull public ContentBlocking.Settings getContentBlocking();
@@ -911,6 +912,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings setAboutConfigEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setAllowInsecureConnections(int);
     method @NonNull public GeckoRuntimeSettings setAutomaticFontSizeAdjustment(boolean);
+    method @NonNull public GeckoRuntimeSettings setCertificateTransparencyMode(int);
     method @NonNull public GeckoRuntimeSettings setConsoleOutputEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setCookieBehaviorOptInPartitioning(boolean);
     method @NonNull public GeckoRuntimeSettings setCookieBehaviorOptInPartitioningPBM(boolean);

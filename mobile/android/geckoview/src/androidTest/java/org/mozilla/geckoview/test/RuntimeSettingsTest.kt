@@ -647,6 +647,34 @@ class RuntimeSettingsTest : BaseSessionTest() {
     }
 
     @Test
+    fun certificateTransparencyMode() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        assertThat(
+            "Certificate Transparency mode should default to 0",
+            geckoRuntimeSettings.certificateTransparencyMode,
+            equalTo(0),
+        )
+
+        geckoRuntimeSettings.setCertificateTransparencyMode(2)
+
+        assertThat(
+            "Certificate Transparency mode should be set to 2",
+            geckoRuntimeSettings.certificateTransparencyMode,
+            equalTo(2),
+        )
+
+        val preference =
+            (sessionRule.getPrefs("security.pki.certificate_transparency.mode").get(0)) as Int
+
+        assertThat(
+            "Certificate Transparency mode pref should be set to 2",
+            preference,
+            equalTo(2),
+        )
+    }
+
+    @Test
     fun parallelMarkingEnabling() {
         val geckoRuntimeSettings = sessionRule.runtime.settings
 

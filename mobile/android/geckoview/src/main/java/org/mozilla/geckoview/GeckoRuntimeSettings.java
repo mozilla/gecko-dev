@@ -681,6 +681,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new Pref<Boolean>("network.cookie.cookieBehavior.optInPartitioning", false);
   /* package */ final Pref<Boolean> mCookieBehaviorOptInPartitioningPBM =
       new Pref<Boolean>("network.cookie.cookieBehavior.optInPartitioning.pbmode", false);
+  /* package */ final Pref<Integer> mCertificateTransparencyMode =
+      new Pref<Integer>("security.pki.certificate_transparency.mode", 0);
 
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
@@ -1026,6 +1028,28 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public boolean getFetchPriorityEnabled() {
     return mFetchPriorityEnabled.get();
+  }
+
+  /**
+   * Set the pref to control security.pki.certificate_transparency.mode.
+   *
+   * @param mode What to set the certificate transparency mode to. 0 disables certificate
+   *     transparency entirely. 1 enables certificate transparency, but only collects telemetry. 2
+   *     enforces certificate transparency.
+   * @return This GeckoRuntimeSettings instance
+   */
+  public @NonNull GeckoRuntimeSettings setCertificateTransparencyMode(final int mode) {
+    mCertificateTransparencyMode.commit(mode);
+    return this;
+  }
+
+  /**
+   * Get the value of security.pki.certificate_transparency.mode.
+   *
+   * @return What certificate transparency mode has been set.
+   */
+  public @NonNull int getCertificateTransparencyMode() {
+    return mCertificateTransparencyMode.get();
   }
 
   /**

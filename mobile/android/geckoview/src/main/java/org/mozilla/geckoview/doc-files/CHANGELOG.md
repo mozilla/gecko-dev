@@ -12,6 +12,12 @@ exclude: true
 # GeckoView API Changelog.
 
 ⚠️  breaking change and deprecation notices
+
+## v136
+- Added support for controlling `security.pki.certificate_transparency.mode` via [`GeckoRuntimeSettings.setCertificateTransparencyMode`][136.1]
+
+[136.1]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setCertificateTransparencyMode
+
 ## v134
 - ⚠️ [`WebExtensionController.PromptDelegate.onInstallPrompt`][133.5] is removed see https://bugzilla.mozilla.org/show_bug.cgi?id=1919374 for more details.
 - Added support for controlling `javascript.options.mem.gc_parallel_marking` via [`GeckoRuntimeSettings.setParallelMarkingEnabled`][134.1]
@@ -1650,4 +1656,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 10698f170c29b8740cbc90a7eaabb75f0150cbd0
+[api-version]: c788c1f495510877da5f40f7e81942b07653d2cc

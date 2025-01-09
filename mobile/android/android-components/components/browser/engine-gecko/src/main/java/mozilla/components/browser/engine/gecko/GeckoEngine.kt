@@ -1385,6 +1385,10 @@ class GeckoEngine(
         override var cookieBehaviorOptInPartitioningPBM: Boolean
             get() = runtime.settings.cookieBehaviorOptInPartitioningPBM
             set(value) { runtime.settings.setCookieBehaviorOptInPartitioningPBM(value) }
+
+        override var certificateTransparencyMode: Int
+            get() = runtime.settings.certificateTransparencyMode
+            set(value) { runtime.settings.setCertificateTransparencyMode(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1421,6 +1425,7 @@ class GeckoEngine(
             this.parallelMarkingEnabled = it.parallelMarkingEnabled
             this.cookieBehaviorOptInPartitioning = it.cookieBehaviorOptInPartitioning
             this.cookieBehaviorOptInPartitioningPBM = it.cookieBehaviorOptInPartitioningPBM
+            this.certificateTransparencyMode = it.certificateTransparencyMode
         }
     }
 
