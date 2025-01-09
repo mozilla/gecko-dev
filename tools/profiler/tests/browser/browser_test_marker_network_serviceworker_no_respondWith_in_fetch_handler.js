@@ -232,7 +232,6 @@ add_task(async function test_network_markers_service_worker_use() {
         status: "STATUS_REDIRECT",
         URI: expectedFile,
         RedirectURI: expectedFile,
-        httpVersion: "http/1.1",
         classOfService: "Unset",
         requestMethod: "GET",
         contentType: null,
