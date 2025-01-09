@@ -20,7 +20,7 @@ diff -U8 b/test/test_duplex.cpp b/test/test_duplex.cpp
  #define STREAM_FORMAT CUBEB_SAMPLE_FLOAT32LE
  #define INPUT_CHANNELS 1
  #define INPUT_LAYOUT CUBEB_LAYOUT_MONO
-@@ -199,16 +201,21 @@
+@@ -196,16 +198,21 @@ TEST(cubeb, duplex_collection_change)
  
    duplex_collection_change_impl(ctx);
    r = cubeb_register_device_collection_changed(
@@ -42,7 +42,7 @@ diff -U8 b/test/test_duplex.cpp b/test/test_duplex.cpp
  
    r = common_init(&ctx, "Cubeb duplex example with collection change");
    ASSERT_EQ(r, CUBEB_OK) << "Error initializing cubeb library";
-@@ -216,17 +223,19 @@
+@@ -213,19 +220,27 @@ TEST(cubeb, duplex_collection_change_no_
    /* This test needs an available input device, skip it if this host does not
     * have one. */
    if (!can_run_audio_input_test(ctx)) {
@@ -52,14 +52,22 @@ diff -U8 b/test/test_duplex.cpp b/test/test_duplex.cpp
  
    std::unique_ptr<cubeb, decltype(&cubeb_destroy)> cleanup_cubeb_at_exit(
 -      ctx, [](cubeb * p) noexcept { EXPECT_DEATH(cubeb_destroy(p), ""); });
-+      ctx, [](cubeb* p) noexcept {
-+        EXPECT_DEATH(CauseDeath(p), "");
-+      });
++      ctx, [](cubeb * p) noexcept { EXPECT_DEATH(CauseDeath(p), ""); });
  
    duplex_collection_change_impl(ctx);
++
++#  if defined(XP_MACOSX) && !defined(MOZ_DEBUG)
++  // For some reason this test hangs on macOS in non-debug builds when the child
++  // process (death test fork) crashes and the crash reporter is enabled in the
++  // parent process. There is not much left to do that can cause a crash in the
++  // parent process anyway, so disable the crash reporter where needed to pass.
++  mozilla::gtest::DisableCrashReporter();
++#  endif
  }
  #endif
  
  long
  data_cb_input(cubeb_stream * stream, void * user, const void * inputbuffer,
                void * outputbuffer, long nframes)
+ {
+   if (stream == NULL || inputbuffer == NULL || outputbuffer != NULL) {
