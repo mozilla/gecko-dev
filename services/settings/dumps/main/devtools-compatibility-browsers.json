@@ -1,69 +1,6 @@
 {
   "data": [
     {
-      "name": "Safari on iOS",
-      "schema": 1734739506624,
-      "status": "beta",
-      "version": "18.3",
-      "browserid": "safari_ios",
-      "id": "de3f3644-4697-48e2-983f-ecd7e0c4ed85",
-      "last_modified": 1735832995468
-    },
-    {
-      "name": "Node.js",
-      "schema": 1734480302872,
-      "status": "esr",
-      "version": "22.3.0",
-      "browserid": "nodejs",
-      "id": "5ba3aee3-2875-4a2c-938c-0f1f43e28488",
-      "last_modified": 1735832995466
-    },
-    {
-      "name": "WebView on iOS",
-      "schema": 1734739506691,
-      "status": "beta",
-      "version": "18.3",
-      "browserid": "webview_ios",
-      "id": "7a4fb6dc-3392-4860-892d-4d2b1c41c247",
-      "last_modified": 1735832995463
-    },
-    {
-      "name": "Safari",
-      "schema": 1734686347176,
-      "status": "beta",
-      "version": "18.3",
-      "browserid": "safari",
-      "id": "2b38a5bf-5dec-4c58-af33-8a2f90fa2e2f",
-      "last_modified": 1735832995461
-    },
-    {
-      "name": "Safari",
-      "schema": 1734134703079,
-      "status": "current",
-      "version": "18.2",
-      "browserid": "safari",
-      "id": "bd0eb1f4-01c0-4304-ab79-cd0c856f03fd",
-      "last_modified": 1735832995458
-    },
-    {
-      "name": "WebView on iOS",
-      "schema": 1734134703426,
-      "status": "current",
-      "version": "18.2",
-      "browserid": "webview_ios",
-      "id": "99af4b05-47ec-4672-bf4b-b4c61cb512ac",
-      "last_modified": 1735832995456
-    },
-    {
-      "name": "Safari on iOS",
-      "schema": 1734134703226,
-      "status": "current",
-      "version": "18.2",
-      "browserid": "safari_ios",
-      "id": "ce989d45-2e04-4586-8c19-3f9c9a7044be",
-      "last_modified": 1735832995454
-    },
-    {
       "name": "Opera",
       "schema": 1733875503058,
       "status": "beta",
@@ -217,6 +154,15 @@
       "last_modified": 1732521556529
     },
     {
+      "name": "Node.js",
+      "schema": 1731456303695,
+      "status": "esr",
+      "version": "22.1.0",
+      "browserid": "nodejs",
+      "id": "794a1083-92ac-4ee3-b15c-5bc7beb9a7b8",
+      "last_modified": 1731478588321
+    },
+    {
       "name": "WebView Android",
       "schema": 1731110704606,
       "status": "planned",
@@ -334,6 +280,60 @@
       "last_modified": 1731397547390
     },
     {
+      "name": "Safari",
+      "schema": 1730505903981,
+      "status": "beta",
+      "version": "18.2",
+      "browserid": "safari",
+      "id": "bd0eb1f4-01c0-4304-ab79-cd0c856f03fd",
+      "last_modified": 1730702567944
+    },
+    {
+      "name": "WebView on iOS",
+      "schema": 1730505904117,
+      "status": "beta",
+      "version": "18.2",
+      "browserid": "webview_ios",
+      "id": "99af4b05-47ec-4672-bf4b-b4c61cb512ac",
+      "last_modified": 1730702567938
+    },
+    {
+      "name": "Safari on iOS",
+      "schema": 1730505904050,
+      "status": "beta",
+      "version": "18.2",
+      "browserid": "safari_ios",
+      "id": "ce989d45-2e04-4586-8c19-3f9c9a7044be",
+      "last_modified": 1730702567935
+    },
+    {
+      "name": "WebView on iOS",
+      "schema": 1730246703689,
+      "status": "current",
+      "version": "18.1",
+      "browserid": "webview_ios",
+      "id": "2e88c38e-7e5a-4bdb-aa45-ba1ea53ef703",
+      "last_modified": 1730271665254
+    },
+    {
+      "name": "Safari on iOS",
+      "schema": 1730246703522,
+      "status": "current",
+      "version": "18.1",
+      "browserid": "safari_ios",
+      "id": "fc59a34e-de34-4e49-9324-cfe2d194f598",
+      "last_modified": 1730271665251
+    },
+    {
+      "name": "Safari",
+      "schema": 1730246703349,
+      "status": "current",
+      "version": "18.1",
+      "browserid": "safari",
+      "id": "4a0dd8db-3fc0-4c2c-84a0-e407f716f77f",
+      "last_modified": 1730271665249
+    },
+    {
       "name": "Firefox for Android",
       "schema": 1723593904156,
       "status": "esr",
@@ -370,5 +370,5 @@
       "last_modified": 1665656484764
     }
   ],
-  "timestamp": 1735832995468
+  "timestamp": 1733896859512
 }
