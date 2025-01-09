@@ -362,7 +362,9 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
       bool isCommonAncestor =
           IsInAnySelection() && mStart.Container() == mEnd.Container();
       if (isCommonAncestor) {
-        UnregisterClosestCommonInclusiveAncestor(mStart.Container(), false);
+        MOZ_DIAGNOSTIC_ASSERT(mStart.Container() ==
+                              mRegisteredClosestCommonInclusiveAncestor);
+        UnregisterClosestCommonInclusiveAncestor();
         RegisterClosestCommonInclusiveAncestor(newStart.Container());
       }
       if (mStart.Container()
@@ -414,8 +416,10 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
       bool isCommonAncestor =
           IsInAnySelection() && mStart.Container() == mEnd.Container();
       if (isCommonAncestor && !newStart.Container()) {
+        MOZ_DIAGNOSTIC_ASSERT(mStart.Container() ==
+                              mRegisteredClosestCommonInclusiveAncestor);
         // The split occurs inside the range.
-        UnregisterClosestCommonInclusiveAncestor(mStart.Container(), false);
+        UnregisterClosestCommonInclusiveAncestor();
         RegisterClosestCommonInclusiveAncestor(
             mStart.Container()->GetParentNode());
         newEnd.Container()
