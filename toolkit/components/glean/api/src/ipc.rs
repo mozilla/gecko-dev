@@ -56,7 +56,10 @@ static PAYLOAD_ACCESS_COUNT: AtomicUsize = AtomicUsize::new(0);
 // 1) Not be greedy
 // 2) Allow time for the dispatch to main thread which will actually perform the flush
 // "Why the -1?" Because fetch_add returns the value before the addition.
-const PAYLOAD_ACCESS_WATERMARK: usize = 100000 - 1;
+// bug 1936851 - Perhaps due to longer and more event extras, or object and text metrics,
+//               we're hitting the size limit before hitting the watermark.
+//               Change the watermark from 100k - 1 to 90k - 1.
+const PAYLOAD_ACCESS_WATERMARK: usize = 90000 - 1;
 
 pub fn with_ipc_payload<F, R>(f: F) -> R
 where
