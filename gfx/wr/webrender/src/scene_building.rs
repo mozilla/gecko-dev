@@ -543,6 +543,12 @@ pub struct SceneBuilder<'a> {
 
     /// Used to build a ClipTree from the clip-chains, clips and state during scene building.
     clip_tree_builder: ClipTreeBuilder,
+
+    /// Some primitives need to nest two stacking contexts instead of one
+    /// (see push_stacking_context). We keep track of the extra stacking context info
+    /// here and set a boolean on the inner stacking context info to remember to
+    /// pop from this stack (see StackingContextInfo::needs_extra_stacking_context)
+    extra_stacking_context_stack: Vec<StackingContextInfo>,
 }
 
 impl<'a> SceneBuilder<'a> {
@@ -602,6 +608,7 @@ impl<'a> SceneBuilder<'a> {
             pipeline_instance_ids: FastHashMap::default(),
             surfaces: mem::take(&mut recycler.surfaces),
             clip_tree_builder: recycler.clip_tree_builder.take().unwrap_or_else(|| ClipTreeBuilder::new()),
+            extra_stacking_context_stack: Vec::new(),
         };
 
         // Reset
@@ -2150,16 +2157,49 @@ impl<'a> SceneBuilder<'a> {
     /// Push a new stacking context. Returns context that must be passed to pop_stacking_context().
     fn push_stacking_context(
         &mut self,
-        composite_ops: CompositeOps,
+        mut composite_ops: CompositeOps,
         transform_style: TransformStyle,
         prim_flags: PrimitiveFlags,
         spatial_node_index: SpatialNodeIndex,
-        clip_chain_id: Option<api::ClipChainId>,
+        mut clip_chain_id: Option<api::ClipChainId>,
         requested_raster_space: RasterSpace,
         flags: StackingContextFlags,
         subregion_offset: LayoutVector2D,
     ) -> StackingContextInfo {
         profile_scope!("push_stacking_context");
+
+        // Filters have to be baked into the snapshot. Most filters are applied
+        // when rendering the picture into its parent, so if the stacking context
+        // needs to be snapshotted, we nest it into an extra stacking context and
+        // capture the outer stacking context into which the filter is drawn.
+        // Note: blur filters don't actually need an extra stacking context
+        // since the blur is baked into a render task instead of being applied
+        // when compositing the picture into its parent. This case is fairly rare
+        // so we pay the cost of the extra render pass for now.
+        let needs_extra_stacking_context = composite_ops.snapshot.is_some()
+            && composite_ops.has_valid_filters();
+
+        if needs_extra_stacking_context {
+            let snapshot = mem::take(&mut composite_ops.snapshot);
+            let mut info = self.push_stacking_context(
+                CompositeOps {
+                    filters: Vec::new(),
+                    filter_datas: Vec::new(),
+                    filter_primitives: Vec::new(),
+                    mix_blend_mode: None,
+                    snapshot,
+                },
+                TransformStyle::Flat,
+                prim_flags,
+                spatial_node_index,
+                clip_chain_id.take(),
+                requested_raster_space,
+                flags,
+                LayoutVector2D::zero(),
+            );
+            info.pop_stacking_context = true;
+            self.extra_stacking_context_stack.push(info);
+        }
 
         let clip_node_id = match clip_chain_id {
             Some(id) => {
@@ -2342,6 +2382,7 @@ impl<'a> SceneBuilder<'a> {
             pop_stacking_context: false,
             pop_containing_block: false,
             set_tile_cache_barrier,
+            needs_extra_stacking_context,
         };
 
         // If this is not 3d, then it establishes an ancestor root for child 3d contexts.
@@ -2699,6 +2740,11 @@ impl<'a> SceneBuilder<'a> {
             self.pending_shadow_items.is_empty(),
             "Found unpopped shadows when popping stacking context!"
         );
+
+        if info.needs_extra_stacking_context {
+            let inner_info = self.extra_stacking_context_stack.pop().unwrap();
+            self.pop_stacking_context(inner_info);
+        }
     }
 
     pub fn push_reference_frame(
@@ -4498,6 +4544,10 @@ struct StackingContextInfo {
     pop_stacking_context: bool,
     /// If true, set a tile cache barrier when popping the stacking context.
     set_tile_cache_barrier: bool,
+    /// If true, this stacking context was nested into two pushes instead of
+    /// one, and requires an extra pop to compensate. The info to pop is stored
+    /// at the top of `extra_stacking_context_stack`.
+    needs_extra_stacking_context: bool,
 }
 
 /// Properties of a stacking context that are maintained
