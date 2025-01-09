@@ -1,0 +1,84 @@
+# Generally, the steps to update the vendored repo are:
+1. Run the section to prepare the repo, with our current patch-stack.
+2. Run the section to vendor the current version of the repo to verify
+   there have been no Mozilla changes since the last vendoring.  If
+   there have been no Mozilla changes, there will be only one modified
+   file (README.mozilla.last-vendor).  If there are other modified
+   files:
+   - Note the commit shas modifying the repo.
+   - Run the section on extracting a Mozilla commit to update the
+     patch-stack.
+   - Run the section to save the patch-stack as a separate commit.
+   - Re-vendor to verify the single changed file.
+3. Rebase the patch stack onto a new git commit from upstream.
+4. Run the section to vendor the new version of the repo.
+5. Run the section to save the newly vendored files.
+6. Run the section to save the patch-stack and amend it with the
+   current commit.
+
+
+# the commands in the following sections should be run in a bash shell
+# from the top of the mozilla repository (i.e. @TOPSRCDIR@)
+# additionally, exporting these variables is required for all sections
+export EXT_REPO_LOCATION=.moz-vendoring
+export REPO_PATH="$EXT_REPO_LOCATION/build"
+export REPO_URL="https://chromium.googlesource.com/chromium/src/build"
+export DEST_PATH="`pwd`/third_party/chromium/build"
+export BASE_COMMIT_FILE="$DEST_PATH/README.mozilla.last-vendor"
+
+
+# prepare build repo
+mkdir -p $EXT_REPO_LOCATION
+git clone $REPO_URL $REPO_PATH
+( cd $REPO_PATH \
+  && git checkout -b mozpatches `tail -1 $BASE_COMMIT_FILE` \
+  && git am $DEST_PATH/moz-patch-stack/* \
+)
+
+
+# vendor build
+./mach python dom/media/webrtc/third_party_build/vendor-libwebrtc.py \
+    --from-local $REPO_PATH \
+    --commit mozpatches build \
+&& (hg revert --include "**/moz.build" &> /dev/null) \
+&& ( cd $REPO_PATH \
+     && echo "# base of lastest vendoring" >> $BASE_COMMIT_FILE \
+     && git rev-parse --short `git merge-base mozpatches main` >> $BASE_COMMIT_FILE \
+   )
+
+
+# to save the newly vendored files
+hg status -nd | xargs hg rm
+hg status -nu | xargs hg add
+( NEW_BASE_SHA=`tail -1 $BASE_COMMIT_FILE` ; \
+  hg commit -m "Bug xxx - vendor chromium/build from $NEW_BASE_SHA" )
+
+
+# to save the patch-stack as a separate commit
+./mach python dom/media/webrtc/third_party_build/save_patch_stack.py \
+  --state-path "" \
+  --repo-path $REPO_PATH \
+  --branch mozpatches \
+  --target-branch-head `tail -1 $BASE_COMMIT_FILE` \
+  --patch-path $DEST_PATH/moz-patch-stack \
+  --skip-startup-sanity \
+  --separate-commit-bug-number 1234
+
+
+# to save the patch-stack and amend it with the current commit
+./mach python dom/media/webrtc/third_party_build/save_patch_stack.py \
+  --state-path "" \
+  --repo-path $REPO_PATH \
+  --branch mozpatches \
+  --target-branch-head `tail -1 $BASE_COMMIT_FILE` \
+  --patch-path $DEST_PATH/moz-patch-stack \
+  --skip-startup-sanity
+
+
+# to extract a Mozilla commit and apply it to the git patch-stack
+./mach python dom/media/webrtc/third_party_build/extract-for-git.py \
+  --target build {commit-sha}
+mv mailbox.patch $REPO_PATH
+( cd $REPO_PATH \
+  && git am mailbox.patch \
+)

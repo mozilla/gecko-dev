@@ -51,6 +51,7 @@ ID
 /.mozconfig*
 /mozconfig*
 /.moz-fast-forward
+/.moz-vendoring
 /old-configure
 /config.cache
 /config.log
