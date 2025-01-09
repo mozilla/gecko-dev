@@ -755,10 +755,10 @@
       background-position: 4px center;
       background-size: var(--urlbarView-favicon-width);
 
-      border-inline: 1px solid var(--urlbarView-separator-color);
-      border-block-end: 1px solid var(--urlbarView-separator-color);
+      border-inline: 1px solid var(--border-color-deemphasized);
+      border-block-end: 1px solid var(--border-color-deemphasized);
       &:not(.urlbarView-userContext) {
-        border-block-start: 1px solid var(--urlbarView-separator-color);
+        border-block-start: 1px solid var(--border-color-deemphasized);
       }
 
       &:-moz-locale-dir(rtl) {
