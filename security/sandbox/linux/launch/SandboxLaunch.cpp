@@ -468,7 +468,7 @@ namespace {
  */
 
 #  if !defined(CHECK_EQ)
-#    define CHECK_EQ(a, b) MOZ_ASSERT((a) == (b))
+#    define CHECK_EQ(a, b) MOZ_RELEASE_ASSERT((a) == (b))
 #  endif
 
 // for sys_gettid()
