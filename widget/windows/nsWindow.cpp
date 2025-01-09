@@ -4144,7 +4144,12 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
 
   switch (aEventMessage) {
     case eMouseDown:
-      CaptureMouse(true);
+      // If the mouse was pressed down in the nonclient region, we do not
+      // capture the mouse. (Doing so would cause Windows to start sending us
+      // client-area mouse messages instead of nonclient-area messages.)
+      if (!bool(aIsNonclient)) {
+        CaptureMouse(true);
+      }
       break;
 
     // eMouseMove and eMouseExitFromWidget are here because we need to make
@@ -5553,6 +5558,19 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
                            MOUSE_INPUT_SOURCE(), nullptr, IsNonclient::Yes);
         DispatchPendingEvents();
         result = true;
+      }
+      break;
+    }
+
+    case WM_NCLBUTTONUP: {
+      if (mCustomNonClient) {
+        result = DispatchMouseEvent(eMouseUp, wParamFromGlobalMouseState(),
+                                    lParamToClient(lParam), false,
+                                    MouseButton::ePrimary, MOUSE_INPUT_SOURCE(),
+                                    nullptr, IsNonclient::Yes);
+        DispatchPendingEvents();
+      } else {
+        result = false;
       }
       break;
     }
