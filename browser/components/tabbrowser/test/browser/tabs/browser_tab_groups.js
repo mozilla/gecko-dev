@@ -17,13 +17,13 @@ function createManyTabs(number) {
 }
 
 async function waitForAndAcceptGroupPanel(actionCallback) {
-  let tabgroupPanel = document.getElementById("tab-group-editor").panel;
-  let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  let editor = document.getElementById("tab-group-editor");
+  let panelShown = BrowserTestUtils.waitForPopupEvent(editor.panel, "shown");
+  let done = BrowserTestUtils.waitForEvent(editor, "TabGroupCreateDone");
   await actionCallback();
   await panelShown;
   EventUtils.synthesizeKey("VK_RETURN");
-  await panelHidden;
+  await done;
 }
 
 add_task(async function test_tabGroupCreateAndAddTab() {

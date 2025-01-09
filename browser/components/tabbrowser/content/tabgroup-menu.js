@@ -262,8 +262,14 @@
     }
 
     on_popuphidden() {
-      if (this.createMode && !this.#keepNewlyCreatedGroup) {
-        this.activeGroup.ungroupTabs();
+      if (this.createMode) {
+        if (this.#keepNewlyCreatedGroup) {
+          this.dispatchEvent(
+            new CustomEvent("TabGroupCreateDone", { bubbles: true })
+          );
+        } else {
+          this.activeGroup.ungroupTabs();
+        }
       }
       this.activeGroup = null;
     }
