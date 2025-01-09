@@ -37,7 +37,7 @@ use windows::Win32::{Foundation, Graphics::Direct3D12};
 use ash::{khr, vk};
 
 #[cfg(target_os = "macos")]
-use objc::{msg_send, sel, sel_impl};
+use objc::{class, msg_send, sel, sel_impl};
 
 // The seemingly redundant u64 suffixes help cbindgen with generating the right C++ code.
 // See https://github.com/mozilla/cbindgen/issues/849.
@@ -242,6 +242,33 @@ pub unsafe extern "C" fn wgpu_server_instance_request_adapter(
     }
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+#[allow(clippy::upper_case_acronyms)]
+#[cfg(target_os = "macos")]
+struct NSOperatingSystemVersion {
+    major: usize,
+    minor: usize,
+    patch: usize,
+}
+
+#[cfg(target_os = "macos")]
+impl NSOperatingSystemVersion {
+    fn at_least(
+        &self,
+        mac_version: (usize, usize),
+        ios_version: (usize, usize),
+        is_mac: bool,
+    ) -> bool {
+        let version = if is_mac { mac_version } else { ios_version };
+
+        self.major
+            .cmp(&version.0)
+            .then_with(|| self.minor.cmp(&version.1))
+            .is_ge()
+    }
+}
+
 #[allow(unreachable_code)]
 #[allow(unused_variables)]
 fn support_use_external_texture_in_swap_chain(
@@ -286,7 +313,19 @@ fn support_use_external_texture_in_swap_chain(
 
     #[cfg(target_os = "macos")]
     {
-        return backend == wgt::Backend::Metal && is_hardware;
+        if backend != wgt::Backend::Metal || !is_hardware {
+            return false;
+        }
+
+        let version: NSOperatingSystemVersion = unsafe {
+            let process_info: *mut objc::runtime::Object =
+                msg_send![class!(NSProcessInfo), processInfo];
+            msg_send![process_info, operatingSystemVersion]
+        };
+
+        let supports_shared_event = version.at_least((10, 14), (12, 0), /* os_is_mac */ true);
+
+        return supports_shared_event;
     }
 
     false
