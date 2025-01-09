@@ -248,6 +248,11 @@ def vendor_and_commit(
         error_help.set_help(
             "An error occurred while committing the vendored changes to Mercurial.\n"
         )
+        # write the base of latest commit sha for use next time
+        with open(os.path.join(target_dir, "README.mozilla.last-vendor"), "a") as f:
+            # write the the command line used
+            f.write("# base of lastest vendoring\n")
+            f.write(f"{github_sha}\n")
         commit_all_changes(github_sha, commit_msg_filename, target_dir)
         error_help.set_help(None)
 

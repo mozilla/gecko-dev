@@ -44,11 +44,11 @@ def restore_patch_stack(
     print("clear no-op-cherry-pick-msg files")
     run_shell(f"rm {state_directory}/*.no-op-cherry-pick-msg || true")
 
-    # lookup latest vendored commit from third_party/libwebrtc/README.moz-ff-commit
+    # lookup latest vendored commit from third_party/libwebrtc/README.mozilla.last-vendor
     print(
-        "lookup latest vendored commit from third_party/libwebrtc/README.moz-ff-commit"
+        "lookup latest vendored commit from third_party/libwebrtc/README.mozilla.last-vendor"
     )
-    file = os.path.abspath("third_party/libwebrtc/README.moz-ff-commit")
+    file = os.path.abspath("third_party/libwebrtc/README.mozilla.last-vendor")
     last_vendored_commit = get_last_line(file)
 
     # checkout the previous vendored commit with proper branch name

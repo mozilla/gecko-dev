@@ -63,7 +63,7 @@ if [ "x$RESUME" = "x" ]; then
   fi
 else
   SKIP_TO=$RESUME
-  hg revert -C third_party/libwebrtc/README.moz-ff-commit &> /dev/null
+  hg revert -C third_party/libwebrtc/README.mozilla.last-vendor &> /dev/null
 fi
 
 find_base_commit
@@ -79,12 +79,6 @@ echo "     MOZ_LIBWEBRTC_BASE: $MOZ_LIBWEBRTC_BASE"
 echo "MOZ_LIBWEBRTC_NEXT_BASE: $MOZ_LIBWEBRTC_NEXT_BASE"
 echo " RESUME: $RESUME"
 echo "SKIP_TO: $SKIP_TO"
-
-echo "-------"
-echo "------- Write new-base to last line of third_party/libwebrtc/README.moz-ff-commit"
-echo "-------"
-echo "# base of lastest vendoring" >> third_party/libwebrtc/README.moz-ff-commit
-echo "$MOZ_LIBWEBRTC_NEXT_BASE" >> third_party/libwebrtc/README.moz-ff-commit
 
 REBASE_HELP=$"
 The rebase operation onto $MOZ_LIBWEBRTC_NEXT_BASE has failed.  Please

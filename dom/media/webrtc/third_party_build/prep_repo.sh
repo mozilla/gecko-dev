@@ -110,7 +110,7 @@ ERROR_HELP=""
 # find the last upstream commit used by the previous update, so we don't
 # accidentally grab release branch commits that were added after we started
 # the previous update.
-LAST_UPSTREAM_COMMIT_SHA=`tail -1 $CURRENT_DIR/third_party/libwebrtc/README.moz-ff-commit`
+LAST_UPSTREAM_COMMIT_SHA=`tail -1 $CURRENT_DIR/third_party/libwebrtc/README.mozilla.last-vendor`
 echo "previous update's last commit: $LAST_UPSTREAM_COMMIT_SHA"
 
 # create a new branch at the common commit and checkout the new branch

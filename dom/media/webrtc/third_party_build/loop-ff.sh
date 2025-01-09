@@ -61,10 +61,10 @@ set -eEuo pipefail
 
 # start a new log with every run of this script
 rm -f $LOOP_OUTPUT_LOG
-# make sure third_party/libwebrtc/README.moz-ff-commit is the committed version
+# make sure third_party/libwebrtc/README.mozilla.last-vendor is the committed version
 # so we properly determine MOZ_LIBWEBRTC_BASE and MOZ_LIBWEBRTC_NEXT_BASE
 # in the loop below
-hg revert -C third_party/libwebrtc/README.moz-ff-commit &> /dev/null
+hg revert -C third_party/libwebrtc/README.mozilla.last-vendor &> /dev/null
 
 # check for a resume situation from fast-forward-libwebrtc.sh
 RESUME_FILE=$STATE_DIR/fast_forward.resume
@@ -162,7 +162,7 @@ echo_log "Moving from moz-libwebrtc commit $MOZ_LIBWEBRTC_BASE to $MOZ_LIBWEBRTC
 bash $SCRIPT_DIR/fast-forward-libwebrtc.sh 2>&1| tee -a $LOOP_OUTPUT_LOG
 
 MOZ_CHANGED=`hg diff -c tip --stat \
-   | egrep -ve "README.moz-ff-commit|README.mozilla|files changed," \
+   | egrep -ve "README.mozilla.last-vendor|README.mozilla|files changed," \
    | wc -l | tr -d " " || true`
 GIT_CHANGED=`./mach python $SCRIPT_DIR/filter_git_changes.py \
    --repo-path $MOZ_LIBWEBRTC_SRC --commit-sha $MOZ_LIBWEBRTC_NEXT_BASE \
