@@ -26,15 +26,6 @@ add_task(async function test_main() {
   // setup (optional): function that takes the top-level fission window and is
   //   run once after the subtest is loaded but before it is started.
   var subtests = [
-    {
-      file: "helper_fission_event_region_override.html",
-      setup(win) {
-        win.document.addEventListener("wheel", e => e.preventDefault(), {
-          once: true,
-          passive: false,
-        });
-      },
-    },
     { file: "helper_fission_initial_displayport.html" },
     // add additional tests here
   ];

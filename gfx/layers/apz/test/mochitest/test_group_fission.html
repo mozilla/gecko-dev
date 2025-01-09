@@ -87,6 +87,10 @@
     if (getPlatform() != "android") {
       subtests.push(
         { // Skip on Android because of missing native wheel event support
+          "file": "helper_fission_event_region_override.html",
+          "prefs": [["apz.test.mac.synth_wheel_input", true]]
+        },
+        {
           "file": "helper_fission_scroll_handoff.html",
           "prefs": prefs
         },
