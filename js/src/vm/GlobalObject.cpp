@@ -203,6 +203,7 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_Collator:
     case JSProto_DateTimeFormat:
     case JSProto_DisplayNames:
+    case JSProto_DurationFormat:
     case JSProto_Locale:
     case JSProto_ListFormat:
     case JSProto_NumberFormat:
@@ -217,12 +218,6 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
       return true;
 #  endif
 
-    case JSProto_DurationFormat:
-#  ifdef NIGHTLY_BUILD
-      return false;
-#  else
-      return true;
-#  endif
 #endif
 
 #ifdef JS_HAS_TEMPORAL_API
