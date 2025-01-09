@@ -1,0 +1,76 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 7 Jun 2022 22:34:00 -0500
+Subject: Bug 1772400 - pt2 - Rollup of various patches to
+ third_party/libwebrtc/third_party r?ng!
+
+Several of these patches have been unindented to match the original content
+of the files to make merging easier in the fast-foward work.
+
+127ace4d8887 - Bug 1654112 - Tweak upstream gn files for Firefox build.
+65562b1a98a3 - Bug 1654112 - minimize abseil-cpp build and usage in libwebrtc.
+58f47eacaf10 - Bug 1654112 - deconflate the target and host architectures in libwebrtc build files
+
+Differential Revision: https://phabricator.services.mozilla.com/D148809
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/29bb1b6d7fc465aad44e15837e7b731bc40bc98a
+---
+ pffft/BUILD.gn   | 15 ++++++++-------
+ rnnoise/BUILD.gn |  2 +-
+ 2 files changed, 9 insertions(+), 8 deletions(-)
+
+diff --git a/pffft/BUILD.gn b/pffft/BUILD.gn
+index 0203735ac90..3535525f130 100644
+--- a/pffft/BUILD.gn
++++ b/pffft/BUILD.gn
+@@ -3,8 +3,8 @@
+ # found in the LICENSE file.
+ 
+ import("//build/config/arm.gni")
+-import("//testing/libfuzzer/fuzzer_test.gni")
+-import("//testing/test.gni")
++#import("//testing/libfuzzer/fuzzer_test.gni")
++#import("//testing/test.gni")
+ 
+ config("common_config") {
+   cflags = [ "-Wno-shadow" ]
+@@ -17,10 +17,10 @@ config("common_config") {
+   }
+ 
+   # PFFFT doesn't support SIMD on some cpus, so build a scalar version.
+-  if ((current_cpu == "arm" && !arm_use_neon) || current_cpu == "mipsel" ||
+-      current_cpu == "mips64el" || current_cpu == "ppc64" ||
+-      current_cpu == "riscv64" || current_cpu == "s390x" ||
+-      current_cpu == "loong64") {
++  if ((target_cpu == "arm" && !arm_use_neon) || target_cpu == "mipsel" ||
++      target_cpu == "mips64el" || target_cpu == "ppc64" ||
++      target_cpu == "riscv64" || target_cpu == "s390x" ||
++      target_cpu == "loong64") {
+     defines = [ "PFFFT_SIMD_DISABLE" ]
+   }
+ }
+@@ -34,7 +34,7 @@ static_library("pffft") {
+ }
+ 
+ # Fuzzing.
+-
++if (false) {
+ group("fuzzers") {
+   testonly = true
+   deps = [
+@@ -111,3 +111,4 @@ test("pffft_unittest") {
+     "//testing/gtest:gtest_main",
+   ]
+ }
++}
+diff --git a/rnnoise/BUILD.gn b/rnnoise/BUILD.gn
+index ffa502ed768..27178e73e36 100644
+--- a/rnnoise/BUILD.gn
++++ b/rnnoise/BUILD.gn
+@@ -2,7 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-import("//testing/test.gni")
++#import("//testing/test.gni")
+ 
+ group("rnnoise") {
+   deps = [ ":rnn_vad" ]

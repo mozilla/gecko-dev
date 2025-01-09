@@ -1,0 +1,62 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 29 Oct 2024 18:20:00 +0000
+Subject: Bug 1925119 - correct crc32c's BUILD.gn for Mozilla's build
+ environment. r=bwc,webrtc-reviewers,ng
+
+Differential Revision: https://phabricator.services.mozilla.com/D225891
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f81f744645859e77cf10e165598f899c59a31652
+---
+ crc32c/BUILD.gn | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/crc32c/BUILD.gn b/crc32c/BUILD.gn
+index d2a79338adf..ecc4d507156 100644
+--- a/crc32c/BUILD.gn
++++ b/crc32c/BUILD.gn
+@@ -2,7 +2,8 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-import("//build/config/features.gni")
++import("//chromium/build/config/features.gni")
++import("//libwebrtc/webrtc.gni")
+ import("//testing/test.gni")
+ 
+ # Only applied to CRC32C source and tests. (not exported)
+@@ -27,6 +28,12 @@ config("crc32c_config") {
+       "HAVE_MM_PREFETCH=1",
+       "HAVE_SSE42=1",
+     ]
++    # To enable HAVE_SSE42 we need to build libwebrtc with -msse4.2
++    # rather than -msse2.  See Bug 1927652 for making the sse4.2 build
++    # change.  See Bug 1927655 for removing this build modification.
++    if (build_with_mozilla) {
++      defines += [ "HAVE_SSE42=0" ]
++    }
+   } else {
+     defines += [
+       "HAVE_MM_PREFETCH=0",
+@@ -39,7 +46,9 @@ config("crc32c_config") {
+     defines += [ "HAVE_BUILTIN_PREFETCH=0" ]
+   }
+ 
+-  if (current_cpu == "arm64") {
++  # See Bug 1927660 for re-enabling the ARM64 specific code that uses
++  # ExtendArm64 rather than ExtendPortable.
++  if (!build_with_mozilla && current_cpu == "arm64") {
+     defines += [ "HAVE_ARM64_CRC32C=1" ]
+   } else {
+     defines += [ "HAVE_ARM64_CRC32C=0" ]
+@@ -144,6 +153,7 @@ source_set("crc32c_internal_headers") {
+   ]
+ }
+ 
++if (!build_with_mozilla) {
+ test("crc32c_tests") {
+   sources = [
+     "src/src/crc32c_arm64_unittest.cc",
+@@ -178,3 +188,4 @@ test("crc32c_benchmark") {
+     "//third_party/google_benchmark",
+   ]
+ }
++}

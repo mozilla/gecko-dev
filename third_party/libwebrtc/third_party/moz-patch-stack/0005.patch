@@ -1,0 +1,31 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - point to new build directory location in
+ third_party/libwebrtc r=ng,webrtc-reviewers
+
+Ran:
+ack -l "\"//build/config" third_party/libwebrtc | xargs sed -i.bak -E 's/\"\/\/build\/config/\"\/\/chromium\/build\/config/'
+ack -l "\"//build/dot" third_party/libwebrtc | xargs sed -i.bak -E 's/\"\/\/build\/dot/\"\/\/chromium\/build\/dot/'
+ack -l "\"//build/mac" third_party/libwebrtc | xargs sed -i.bak -E 's/\"\/\/build\/mac/\"\/\/chromium\/build\/mac/'
+find third_party -name "*.bak" | xargs rm
+hg revert third_party/libwebrtc/moz-patch-stack
+
+Differential Revision: https://phabricator.services.mozilla.com/D224543
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a342f5eca8622c8b918d6119f74aff96cc8cf582
+---
+ pffft/BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pffft/BUILD.gn b/pffft/BUILD.gn
+index c3c770447b5..0856f5bef58 100644
+--- a/pffft/BUILD.gn
++++ b/pffft/BUILD.gn
+@@ -2,7 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-import("//build/config/arm.gni")
++import("//chromium/build/config/arm.gni")
+ import("//testing/libfuzzer/fuzzer_test.gni")
+ import("//testing/test.gni")
+ 

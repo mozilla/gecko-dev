@@ -1,0 +1,46 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 5 Oct 2023 14:21:00 +0000
+Subject: Bug 1857037 - pt2 - cleanup libwebrtc/third_party BUILD.gn changes.
+ r=ng,webrtc-reviewers
+
+Many of these files are now in unmodified form.  These changes produce
+no changes when running:
+./mach python python/mozbuild/mozbuild/gn_processor.py dom/media/webrtc/third_party_build/gn-configs/webrtc.json
+
+Depends on D190104
+
+Differential Revision: https://phabricator.services.mozilla.com/D190105
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/34c8904c816a49ad3885fc37fc617618635c3044
+---
+ pffft/BUILD.gn   | 4 ++--
+ rnnoise/BUILD.gn | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/pffft/BUILD.gn b/pffft/BUILD.gn
+index 3535525f130..c3c770447b5 100644
+--- a/pffft/BUILD.gn
++++ b/pffft/BUILD.gn
+@@ -3,8 +3,8 @@
+ # found in the LICENSE file.
+ 
+ import("//build/config/arm.gni")
+-#import("//testing/libfuzzer/fuzzer_test.gni")
+-#import("//testing/test.gni")
++import("//testing/libfuzzer/fuzzer_test.gni")
++import("//testing/test.gni")
+ 
+ config("common_config") {
+   cflags = [ "-Wno-shadow" ]
+diff --git a/rnnoise/BUILD.gn b/rnnoise/BUILD.gn
+index 27178e73e36..ffa502ed768 100644
+--- a/rnnoise/BUILD.gn
++++ b/rnnoise/BUILD.gn
+@@ -2,7 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-#import("//testing/test.gni")
++import("//testing/test.gni")
+ 
+ group("rnnoise") {
+   deps = [ ":rnn_vad" ]
