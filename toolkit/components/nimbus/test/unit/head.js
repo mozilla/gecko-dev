@@ -11,7 +11,10 @@ ChromeUtils.defineESModuleGetters(this, {
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   ExperimentTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
+  RegionTestUtils: "resource://testing-common/RegionTestUtils.sys.mjs",
 });
+
+RegionTestUtils.setNetworkRegion("US");
 
 // Sinon does not support Set or Map in spy.calledWith()
 function onFinalizeCalled(spyOrCallArgs, ...expectedArgs) {

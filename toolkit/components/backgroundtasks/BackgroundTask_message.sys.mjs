@@ -119,6 +119,11 @@ async function handleCommandLine(commandLine) {
     Services.prefs.setCharPref("toolkit.backgroundtasks.loglevel", "debug");
   }
 
+  Services.prefs.setCharPref(
+    "browser.region.network.url",
+    `data:application/json,{"country_code": "US"}`
+  );
+
   // Always make alert service display message when showing an alert.
   // Optionally suppress actually showing OS-level alerts.
   let origAlertsService = lazy.ToastNotification.AlertsService;

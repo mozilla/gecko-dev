@@ -24,8 +24,10 @@ nimbus_targeting_environment:
   targeting_context_value:
     bugs: &targeting_context_bugs
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1928107
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937207
     data_reviews: &targeting_context_data_reviews
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1928107
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937207
     notification_emails: &targeting_context_notification_emails
       - beth@mozilla.com
       - project-nimbus@mozilla.com
@@ -111,9 +113,11 @@ nimbus_targeting_environment:
       - "isFirstStartup"
       - "isFxAEnabled"
       - "isMSIX"
+      - "locale"
       - "memoryMB"
       - "os"
       - "profileAgeCreated"
+      - "region"
       - "totalBookmarksCount"
       - "userMonthlyActivity"
       - "userPrefersReducedMotion"
@@ -250,6 +254,7 @@ nimbus_targeting_context:
       - interaction
     type: quantity
     unit: addresses
+
   arch_bits:
     no_lint:
       - UNIT_IN_NAME # metric name must match the targeting context attribute
@@ -501,6 +506,17 @@ nimbus_targeting_context:
       - technical
     type: boolean
 
+  locale:
+    bugs: *targeting_context_bugs
+    data_reviews: *targeting_context_data_reviews
+    expires: *targeting_context_expiry
+    notification_emails: *targeting_context_notification_emails
+    send_in_pings: *targeting_context_pings
+    description: What is the active locale of the browser?
+    data_sensitivity:
+      - technical
+    type: string
+
   memory_mb:
     bugs: *targeting_context_bugs
     data_reviews: *targeting_context_data_reviews
@@ -548,6 +564,17 @@ nimbus_targeting_context:
       - technical
     type: quantity
     unit: seconds since UNIX epoch
+
+  region:
+    bugs: *targeting_context_bugs
+    data_reviews: *targeting_context_data_reviews
+    expires: *targeting_context_expiry
+    notification_emails: *targeting_context_notification_emails
+    send_in_pings: *targeting_context_pings
+    description: What region is the browser located in?
+    data_sensitivity:
+      - technical
+    type: string
 
   total_bookmarks_count:
     bugs: *targeting_context_bugs
