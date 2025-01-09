@@ -21,6 +21,7 @@ import android.content.Intent.EXTRA_TEXT
 import android.content.Intent.FLAG_ACTIVITY_NEW_DOCUMENT
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+import android.content.pm.PackageManager
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.hardware.camera2.CameraManager
 import android.net.Uri
@@ -387,6 +388,13 @@ fun Context.isEdgeToEdgeDisabled(): Boolean =
     SDK_INT < VERSION_CODES.VANILLA_ICE_CREAM ||
         applicationInfo.targetSdkVersion < VERSION_CODES.VANILLA_ICE_CREAM ||
         isEdgeToEdgeOptOutEnabled()
+
+/**
+ * Check if the device has a hinge sensor.
+ */
+fun Context.doesDeviceHaveHinge(): Boolean =
+    SDK_INT >= VERSION_CODES.R &&
+        packageManager.hasSystemFeature(PackageManager.FEATURE_SENSOR_HINGE_ANGLE)
 
 /**
  * Applies the provided night mode in two ways:
