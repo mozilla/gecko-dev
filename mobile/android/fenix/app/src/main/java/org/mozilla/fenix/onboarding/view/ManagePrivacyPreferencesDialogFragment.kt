@@ -16,15 +16,13 @@ import org.mozilla.fenix.onboarding.store.DefaultPrivacyPreferencesRepository
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesMiddleware
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesStore
 import org.mozilla.fenix.onboarding.store.PrivacyPreferencesTelemetryMiddleware
+import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * Dialog fragment for managing privacy preferences.
  */
-class ManagePrivacyPreferencesDialogFragment(
-    private val onCrashReportingLinkClick: () -> Unit,
-    private val onUsageDataLinkClick: () -> Unit,
-) : DialogFragment() {
+class ManagePrivacyPreferencesDialogFragment : DialogFragment() {
 
     private val store by lazyStore {
         PrivacyPreferencesStore(
@@ -40,6 +38,9 @@ class ManagePrivacyPreferencesDialogFragment(
         )
     }
 
+    private val crashReportingUrl by lazy { sumoUrlFor(SupportUtils.SumoTopic.CRASH_REPORTS) }
+    private val usageDataUrl by lazy { sumoUrlFor(SupportUtils.SumoTopic.TECHNICAL_AND_INTERACTION_DATA) }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -50,12 +51,20 @@ class ManagePrivacyPreferencesDialogFragment(
                 ManagePrivacyPreferencesDialog(
                     store = store,
                     onDismissRequest = { dismiss() },
-                    onCrashReportingLinkClick = onCrashReportingLinkClick,
-                    onUsageDataLinkClick = onUsageDataLinkClick,
+                    onCrashReportingLinkClick = { launchSandboxCustomTab(crashReportingUrl) },
+                    onUsageDataLinkClick = { launchSandboxCustomTab(usageDataUrl) },
                 )
             }
         }
     }
+
+    private fun launchSandboxCustomTab(url: String) {
+        val intent = SupportUtils.createSandboxCustomTabIntent(requireContext(), url)
+        requireContext().startActivity(intent)
+    }
+
+    private fun sumoUrlFor(topic: SupportUtils.SumoTopic) =
+        SupportUtils.getSumoURLForTopic(requireContext(), topic)
 
     /**
      * Companion object for [ManagePrivacyPreferencesDialogFragment].

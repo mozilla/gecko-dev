@@ -68,6 +68,8 @@ object SupportUtils {
         MANAGE_OPTIONAL_EXTENSION_PERMISSIONS("manage-optional-permissions-android-extensions"),
         EXTENSION_PERMISSIONS("extension-permissions"),
         FIND_INSTALL_ADDONS("add-ons-firefox-android"),
+        CRASH_REPORTS("mobile-crash-reports"),
+        TECHNICAL_AND_INTERACTION_DATA("mobile-technical-and-interaction-data"),
     }
 
     enum class MozillaPage(internal val path: String) {

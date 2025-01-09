@@ -397,9 +397,7 @@ class OnboardingFragment : Fragment() {
     }
 
     private fun showPrivacyPreferencesDialog() {
-        ManagePrivacyPreferencesDialogFragment(
-            onCrashReportingLinkClick = {},
-            onUsageDataLinkClick = {},
-        ).show(parentFragmentManager, ManagePrivacyPreferencesDialogFragment.TAG)
+        ManagePrivacyPreferencesDialogFragment()
+            .show(parentFragmentManager, ManagePrivacyPreferencesDialogFragment.TAG)
     }
 }
