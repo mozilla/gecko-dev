@@ -123,6 +123,12 @@ item-site-prefs =
     .label = Site settings
     .accesskey = i
 
+item-formdata-prefs =
+    .label = Saved form info
+    .accesskey = o
+
+item-formdata-description = Clears things like names, emails, and other items you enter in forms
+
 item-site-prefs-description = Resets your permissions and site preferences to original settings
 
 data-section-label = Data
