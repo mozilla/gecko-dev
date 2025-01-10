@@ -313,7 +313,6 @@ add_task(async function test_network_markers_service_worker_use() {
       const commonDataProperties = {
         type: "Network",
         URI: expectedFile,
-        httpVersion: "http/1.1",
         classOfService: "Unset",
         requestMethod: "GET",
         contentType: Expect.stringMatches(/^(text\/html|image\/svg\+xml)$/),
@@ -337,7 +336,6 @@ add_task(async function test_network_markers_service_worker_use() {
         Assert.objectContainsOnly(parentRedirectMarker.data, {
           ...commonDataProperties,
           status: "STATUS_REDIRECT",
-          httpVersion: "http/1.1",
           classOfService: "UrgentStart",
           contentType: null,
           cache: "Unresolved",
@@ -352,18 +350,19 @@ add_task(async function test_network_markers_service_worker_use() {
           status: "STATUS_STOP",
           responseStatus: 200,
           classOfService: "UrgentStart",
+          httpVersion: "http/1.1",
         });
 
         Assert.objectContainsOnly(contentMarker.data, {
           ...commonDataProperties,
           responseStatus: 200,
           status: "STATUS_STOP",
+          httpVersion: "http/1.1",
         });
       } else {
         Assert.objectContainsOnly(parentRedirectMarker.data, {
           ...commonDataProperties,
           status: "STATUS_REDIRECT",
-          httpVersion: "http/1.1",
           contentType: null,
           cache: "Unresolved",
           innerWindowID: Expect.number(),
@@ -383,6 +382,7 @@ add_task(async function test_network_markers_service_worker_use() {
             innerWindowID: Expect.number(),
             status: "STATUS_STOP",
             responseStatus: 200,
+            httpVersion: "http/1.1",
           }
         );
 
@@ -391,6 +391,7 @@ add_task(async function test_network_markers_service_worker_use() {
           innerWindowID: Expect.number(),
           status: "STATUS_STOP",
           responseStatus: 200,
+          httpVersion: "http/1.1",
         });
       }
     }
