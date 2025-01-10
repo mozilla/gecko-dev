@@ -149,11 +149,11 @@ var PointerlockFsWarning = {
     this._timeoutShow.cancel();
     // Reset state of the warning box
     this._state = "hidden";
+    this._doHide();
     // Reset state of the text so we don't persist or retranslate it.
     this._element
       .querySelector(".pointerlockfswarning-domain-text")
       .removeAttribute("data-l10n-id");
-    this._element.hidden = true;
     // Remove all event listeners
     this._element.removeEventListener("transitionend", this);
     this._element.removeEventListener("transitioncancel", this);
@@ -186,6 +186,14 @@ var PointerlockFsWarning = {
     }
     return "hiding";
   },
+
+  _doHide() {
+    try {
+      this._element.hidePopover();
+    } catch (e) {}
+    this._element.hidden = true;
+  },
+
   set _state(newState) {
     let currentState = this._state;
     if (currentState == newState) {
@@ -195,24 +203,12 @@ var PointerlockFsWarning = {
       this._lastState = currentState;
       this._element.removeAttribute(currentState);
     }
+    if (currentState == "hidden") {
+      this._element.showPopover();
+    }
+    // hidden is dealt with on transitionend or close(), see _doHide().
     if (newState != "hidden") {
-      if (currentState != "hidden") {
-        this._element.setAttribute(newState, "");
-      } else {
-        // When the previous state is hidden, the display was none,
-        // thus no box was constructed. We need to wait for the new
-        // display value taking effect first, otherwise, there won't
-        // be any transition. Since requestAnimationFrame callback is
-        // generally triggered before any style flush and layout, we
-        // should wait for the second animation frame.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (this._element) {
-              this._element.setAttribute(newState, "");
-            }
-          });
-        });
-      }
+      this._element.setAttribute(newState, "");
     }
   },
 
@@ -253,7 +249,7 @@ var PointerlockFsWarning = {
       case "transitionend":
       case "transitioncancel": {
         if (this._state == "hiding") {
-          this._element.hidden = true;
+          this._doHide();
         }
         if (this._state == "onscreen") {
           window.dispatchEvent(new CustomEvent("FullscreenWarningOnScreen"));

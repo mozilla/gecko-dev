@@ -146,13 +146,12 @@ add_task(async () => {
       // 1. Tab bar (#TabsToolbar)
       // 2. Navigation bar (#nav-bar)
       // 3. Content area (#tabbrowser-tabpanels)
-      // 4. Some fullscreen pointer grabber (#fullscreen-and-pointerlock-wrapper)
-      // 5. Accessibility announcements dialog (#a11y-announcement)
-      let baseRootChildCount = 5;
+      // 4. Accessibility announcements dialog (#a11y-announcement)
+      let baseRootChildCount = 4;
       is(
         rootChildCount(),
         baseRootChildCount,
-        "Root with no popups has 5 children"
+        `Root with no popups has ${baseRootChildCount} children`
       );
 
       // Open a context menu

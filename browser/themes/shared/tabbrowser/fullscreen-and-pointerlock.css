@@ -21,53 +21,49 @@
   z-index: 2147483647;
 }
 
-#fullscreen-and-pointerlock-wrapper {
-  position: fixed;
-  z-index: 2147483647 !important;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  pointer-events: none;
-}
-
 .pointerlockfswarning {
+  will-change: translate;
+  transition: translate 300ms ease-in;
+  translate: 0 -100px;
+
+  pointer-events: none;
   position: fixed;
-  visibility: visible;
-  transition: transform 300ms ease-in;
-  /* To center the warning box horizontally,
-     we use left: 50% with translateX(-50%). */
   top: 0;
-  left: 50%;
-  transform: translate(-50%, -100%);
+  bottom: auto;
+
   box-sizing: border-box;
   width: max-content;
   max-width: 95%;
-  pointer-events: none;
-  align-items: center;
-  background: rgba(45, 62, 72, 0.9);
-  border: 2px solid currentColor;
-  box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.5);
-  border-radius: 8px;
-  color: #fafafa;
-  padding: 24px 16px;
+
   font: message-box;
 
-  &:not([hidden]) {
+  align-items: center;
+  background-color: rgba(45, 62, 72, 0.9);
+  color: #fafafa;
+  box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  border: 2px solid currentColor;
+  padding: 24px 16px;
+
+  @starting-style {
+    translate: 0 -100px;
+  }
+
+  &:popover-open {
     display: flex;
-    will-change: transform;
   }
 
   &[onscreen] {
-    transform: translate(-50%, 50px);
+    translate: 0 50px;
   }
 
   &[ontop] {
     /* Use -10px to hide the border and border-radius on the top */
-    transform: translate(-50%, -10px);
+    translate: 0 -10px;
   }
 
   :root[macOSNativeFullscreen] &[ontop] {
-    transform: translate(-50%, 80px);
+    translate: 0 80px;
   }
 
   &:is([data-identity="verifiedDomain"], [data-identity="unknownIdentity"])::before {
