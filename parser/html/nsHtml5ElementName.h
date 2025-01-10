@@ -237,6 +237,7 @@ class nsHtml5ElementName {
   static nsHtml5ElementName* ELT_DESC;
   static nsHtml5ElementName* ELT_DD;
   static nsHtml5ElementName* ELT_BGSOUND;
+  static nsHtml5ElementName* ELT_DISCARD;
   static nsHtml5ElementName* ELT_EMBED;
   static nsHtml5ElementName* ELT_FEBLEND;
   static nsHtml5ElementName* ELT_FEFLOOD;

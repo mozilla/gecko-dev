@@ -326,6 +326,7 @@ const nsStaticAtom* const kElementsSVG[] = {
     nsGkAtoms::cursor,               // cursor
     nsGkAtoms::defs,                 // defs
     nsGkAtoms::desc,                 // desc
+    nsGkAtoms::discard,              // discard
     nsGkAtoms::ellipse,              // ellipse
     nsGkAtoms::elevation,            // elevation
     nsGkAtoms::erode,                // erode

@@ -16529,6 +16529,12 @@
   value: false
   mirror: always
 
+# This enables discard processing
+- name: svg.discard.enabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Tweak which elements are allowed in <svg:use> subtrees, and in which
 # circumstances. See RemoveForbiddenNodes in SVGUseElement.cpp for the spec
 # text.

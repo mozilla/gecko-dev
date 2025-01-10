@@ -58,6 +58,8 @@ class SVGAnimationElement : public SVGAnimationElementBase, public SVGTests {
   mozilla::SMILTimedElement& TimedElement();
   mozilla::SMILTimeContainer* GetTimeContainer();
   virtual SMILAnimationFunction& AnimationFunction() = 0;
+  virtual bool SupportsXLinkHref() const { return true; }
+  virtual void AddDiscards(nsTObserverArray<RefPtr<Element>>&) {}
 
   bool IsEventAttributeNameInternal(nsAtom* aName) override;
 

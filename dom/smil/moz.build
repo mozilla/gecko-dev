@@ -15,6 +15,7 @@ EXPORTS.mozilla += [
     "SMILAttr.h",
     "SMILCompositorTable.h",
     "SMILCSSValueType.h",
+    "SMILDiscardAnimationFunction.h",
     "SMILInstanceTime.h",
     "SMILInterval.h",
     "SMILKeySpline.h",
