@@ -159,3 +159,28 @@ pub struct StructFromGeneric<E> {
 #[derive(Error, Debug)]
 #[error(transparent)]
 pub struct StructTransparentGeneric<E>(pub E);
+
+// Regression test for https://github.com/dtolnay/thiserror/issues/345
+#[test]
+fn test_no_bound_on_named_fmt() {
+    #[derive(Error, Debug)]
+    #[error("{thing}", thing = "...")]
+    struct Error<T> {
+        thing: T,
+    }
+
+    let error = Error { thing: DebugOnly };
+    assert_eq!(error.to_string(), "...");
+}
+
+#[test]
+fn test_multiple_bound() {
+    #[derive(Error, Debug)]
+    #[error("0x{thing:x} 0x{thing:X}")]
+    pub struct Error<T> {
+        thing: T,
+    }
+
+    let error = Error { thing: 0xFFi32 };
+    assert_eq!(error.to_string(), "0xff 0xFF");
+}

@@ -176,7 +176,7 @@ hashbrown = { path = "build/rust/hashbrown" }
 # Patch `socket2` 0.4 to 0.5
 socket2 = { path = "build/rust/socket2" }
 
-# Downgrade `thiserror` 2 to 1.
+# Patch `thiserror` 1 to 2.
 thiserror = { path = "build/rust/thiserror" }
 
 # The following overrides point to dummy projects, as a temporary measure until this is resolved:
