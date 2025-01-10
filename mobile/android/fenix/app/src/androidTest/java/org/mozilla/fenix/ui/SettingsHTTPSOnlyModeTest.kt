@@ -21,7 +21,9 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
 
 class SettingsHTTPSOnlyModeTest : TestSetup() {
     private val httpPageUrl = "http://example.com/"
+    private val secondHttpPageUrl = "http://permission.site/"
     private val httpsPageUrl = "https://example.com/"
+    private val secondHttpsPageUrl = "https://permission.site/"
     private val insecureHttpPage = "http.badssl.com"
 
     // "HTTPs not supported" error page contents:
@@ -155,10 +157,11 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
         }.goToHomescreen {
         }.togglePrivateBrowsingMode()
         navigationToolbar {
-        }.enterURLAndEnterToBrowser(httpPageUrl.toUri()) {
-            verifyPageContent("Example Domain")
+        }.enterURLAndEnterToBrowser(secondHttpPageUrl.toUri()) {
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPageContent("Notifications")
         }.openNavigationToolbar {
-            verifyUrl(httpsPageUrl)
+            verifyUrl(secondHttpsPageUrl)
         }.enterURLAndEnterToBrowser(insecureHttpPage.toUri()) {
             verifyPageContent(httpsOnlyErrorTitle)
             verifyPageContent(httpsOnlyErrorMessage)
@@ -170,7 +173,7 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
             if (itemContainingText(httpsOnlyBackButton).waitForExists(waitingTimeShort)) {
                 clickPageObject(itemContainingText(httpsOnlyBackButton))
             }
-            verifyPageContent("Example Domain")
+            verifyPageContent("Notifications")
         }
     }
 
