@@ -95,15 +95,16 @@ using JSAccumulateTelemetryDataCallback = void (*)(JSMetric, uint32_t);
 extern JS_PUBLIC_API void JS_SetAccumulateTelemetryCallback(
     JSContext* cx, JSAccumulateTelemetryDataCallback callback);
 
-#define FOR_EACH_JS_USE_COUNTER(_)                       \
-  _(ASMJS, AsmJS)                                        \
-  _(WASM, Wasm)                                          \
-  _(WASM_LEGACY_EXCEPTIONS, WasmLegacyExceptions)        \
-  _(ISHTMLDDA_FUSE, IsHTMLDDAFuse)                       \
-  _(OPTIMIZE_GET_ITERATOR_FUSE, OptimizeGetIteratorFuse) \
-  _(THENABLE_USE, ThenableUse)                           \
-  _(THENABLE_USE_PROTO, ThenableUseProto)                \
-  _(THENABLE_USE_STANDARD_PROTO, ThenableUseStandardProto)
+#define FOR_EACH_JS_USE_COUNTER(_)                         \
+  _(ASMJS, AsmJS)                                          \
+  _(WASM, Wasm)                                            \
+  _(WASM_LEGACY_EXCEPTIONS, WasmLegacyExceptions)          \
+  _(ISHTMLDDA_FUSE, IsHTMLDDAFuse)                         \
+  _(OPTIMIZE_GET_ITERATOR_FUSE, OptimizeGetIteratorFuse)   \
+  _(THENABLE_USE, ThenableUse)                             \
+  _(THENABLE_USE_PROTO, ThenableUseProto)                  \
+  _(THENABLE_USE_STANDARD_PROTO, ThenableUseStandardProto) \
+  _(LEGACY_LANG_SUBTAG, LegacyLangSubtag)
 
 /*
  * Use counter names passed to the accumulate use counter callback.
