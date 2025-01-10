@@ -1488,15 +1488,60 @@ class ThreadActor extends Actor {
   }
 
   addAllSources() {
-    // Compare the sources we find with the source URLs which have been loaded
-    // in debuggee realms. Count the number of sources associated with each
-    // URL so that we can detect if an HTML file has had some inline sources
-    // collected but not all.
+    // This method aims at instantiating Source Actors for all already existing
+    // sources (via `_addSource()`).
+    // This is called on each new target instantiation:
+    //   * when a new document or debugging context is instantiated. This
+    //     method should be a no-op as there should be no pre-existing sources.
+    //   * when devtools open. This time there might be pre-existing sources.
+    //
+    // We are using Debugger API `findSources()` for instantating source actors
+    // of all still-active sources. But we want to also "resurrect" sources
+    // which ran before DevTools were opened and were garbaged collected.
+    // `findSources()` won't return them.
+    // Debugger API `findSourceURLs()` will return the source URLs of all the
+    // sources, GC-ed and still active ones.
+    //
+    // We are using `urlMap` to identify the GC-ed sources.
+    //
+    // We have two special edgecases:
+    //
+    // # HTML sources and inline <script> tags
+    //
+    // HTML sources will be specific to a given URL, but may relate to multiple
+    // inline <script> tag. Each script will be related to a given Debugger API
+    // source and a given DevTools Source Actor.
+    // We collect all active sources in `urlMap`'s `sources` array so that we
+    // only resurrect the GC-ed inline <script> and not the one which are still
+    // active.
+    //
+    // # asm.js / wasm
+    //
+    // DevTools toggles Debugger API `allowUnobservedAsmJS` and
+    // `allowUnobservedWasm` to false on opening. This changes how asm.js and
+    // Wasm sources are compiled. But only to sources created after DevTools
+    // are opened. This typically requires to reload the page.
+    //
+    // Before DevTools are opened, the asm.js functions are compiled into wasm
+    // instances, and they are visible as "wasm" sources in `findSources()`.
+    // The wasm instance doesn't keep the top-level normal JS script and the
+    // corresponding JS source alive. If only the "wasm" source is found for
+    // certain URL, the source needs to be re-compiled.
+    //
+    // Here, we should be careful to re-compile these sources the way they were
+    // compiled before DevTools opening. Otherwise the re-compilation will
+    // create Debugger.Script instances backed by normal JS functions for those
+    // asm.js functions, which results in an inconsistency between what's
+    // running in the debuggee and what's shown in DevTools.
+    //
+    // We are using `urlMap`'s `hasWasm` to flag them and instruct
+    // `resurrectSource()` to re-compile the sources as if DevTools was off and
+    // without debugging ability.
     const urlMap = {};
     for (const url of this.dbg.findSourceURLs()) {
       if (url !== "self-hosted") {
         if (!urlMap[url]) {
-          urlMap[url] = { count: 0, sources: [] };
+          urlMap[url] = { count: 0, sources: [], hasWasm: false };
         }
         urlMap[url].count++;
       }
@@ -1506,6 +1551,13 @@ class ThreadActor extends Actor {
 
     for (const source of sources) {
       this._addSource(source);
+
+      if (source.introductionType === "wasm") {
+        const origURL = source.url.replace(/^wasm:/, "");
+        if (urlMap[origURL]) {
+          urlMap[origURL].hasWasm = true;
+        }
+      }
 
       // The following check should match the filtering done by `findSourceURLs`:
       // https://searchfox.org/mozilla-central/rev/ac7a567f036e1954542763f4722fbfce041fb752/js/src/debugger/Debugger.cpp#2406-2409
@@ -1524,7 +1576,7 @@ class ThreadActor extends Actor {
     // Resurrect any URLs for which not all sources are accounted for.
     for (const [url, data] of Object.entries(urlMap)) {
       if (data.count > 0) {
-        this._resurrectSource(url, data.sources);
+        this._resurrectSource(url, data.sources, data.hasWasm);
       }
     }
   }
@@ -2151,8 +2203,11 @@ class ThreadActor extends Actor {
    * @param existingInlineSources The inline sources for the URL the debugger knows about
    *                              already, and that we shouldn't re-create (only used when
    *                              url content type is text/html).
+   * @param forceEnableAsmJS A boolean to force enable the asm.js feature.
+   *                         See the comment inside addAllSources for more
+   *                         details.
    */
-  async _resurrectSource(url, existingInlineSources) {
+  async _resurrectSource(url, existingInlineSources, forceEnableAsmJS) {
     let { content, contentType, sourceMapURL } =
       await this.sourcesManager.urlContents(
         url,
@@ -2242,6 +2297,7 @@ class ThreadActor extends Actor {
               startLine,
               startColumn,
               isScriptElement: true,
+              forceEnableAsmJS,
             })
           );
         } catch (e) {
@@ -2267,6 +2323,7 @@ class ThreadActor extends Actor {
           url,
           startLine: 1,
           sourceMapURL,
+          forceEnableAsmJS,
         })
       );
     } catch (e) {
