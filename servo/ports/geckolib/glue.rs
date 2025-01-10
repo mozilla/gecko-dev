@@ -158,6 +158,7 @@ use style::values::specified::gecko::IntersectionObserverRootMargin;
 use style::values::specified::source_size_list::SourceSizeList;
 use style::values::specified::{AbsoluteLength, NoCalcLength};
 use style::values::{specified, AtomIdent, CustomIdent, KeyframesName};
+use style::values::specified::svg_path::PathCommand;
 use style_traits::{CssWriter, ParseError, ParsingMode, ToCss};
 use thin_vec::ThinVec as nsTArray;
 use to_shmem::SharedMemoryBuilder;
@@ -5709,6 +5710,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetPathValue(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_CreatePathDataFromCommands(
+    path_commands: &mut nsTArray<PathCommand>,
+    dest: &mut specified::SVGPathData) {
+    let path = specified::SVGPathData(style_traits::arc_slice::ArcSlice::from_iter(path_commands.drain(..)));
+    *dest = path;
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_SVGPathData_Add(
     dest: &mut specified::SVGPathData,
     to_add: &specified::SVGPathData,
@@ -5728,6 +5737,12 @@ pub extern "C" fn Servo_SVGPathData_Parse(input: &nsACString, dest: &mut specifi
     let (path, ret) = specified::SVGPathData::parse_bytes(input.as_ref());
     *dest = path;
     ret
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_SVGPathData_NormalizeAndReduce(input: &specified::SVGPathData, dest: &mut specified::SVGPathData) {
+  let path = input.normalize(true);
+  *dest = path;
 }
 
 #[no_mangle]

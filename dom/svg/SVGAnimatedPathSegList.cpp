@@ -12,6 +12,7 @@
 #include "mozilla/SMILValue.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/SVGElement.h"
+#include "mozilla/dom/SVGPathSegment.h"
 
 using namespace mozilla::dom;
 
@@ -24,6 +25,24 @@ nsresult SVGAnimatedPathSegList::SetBaseValueString(const nsAString& aValue) {
   // SVGElement::ParseAttribute under Element::SetAttr,
   // which takes care of notifying.
   return mBaseVal.SetValueFromString(NS_ConvertUTF16toUTF8(aValue));
+}
+
+void SVGAnimatedPathSegList::SetBaseValueFromPathSegments(
+    const Sequence<OwningNonNull<SVGPathSegment>>& aValues) {
+  AutoTArray<StylePathCommand, 10> pathData;
+  if (!aValues.IsEmpty() && aValues[0].ref().IsMove()) {
+    for (const auto& seg : aValues) {
+      if (!seg.ref().IsValid()) {
+        break;
+      }
+      pathData.AppendElement(seg.ref().ToStylePathCommand());
+    }
+  }
+  if (pathData.IsEmpty()) {
+    mBaseVal.Clear();
+    return;
+  }
+  Servo_CreatePathDataFromCommands(&pathData, &mBaseVal.RawData());
 }
 
 void SVGAnimatedPathSegList::ClearBaseValue() {

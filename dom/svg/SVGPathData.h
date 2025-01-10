@@ -26,6 +26,10 @@ namespace mozilla {
 
 struct SVGMark;
 enum class StyleStrokeLinecap : uint8_t;
+namespace dom {
+class SVGPathElement;
+class SVGPathSegment;
+}  // namespace dom
 
 class SVGPathData {
   friend class SVGAnimatedPathSegList;
@@ -65,6 +69,10 @@ class SVGPathData {
   bool IsEmpty() const { return AsSpan().IsEmpty(); }
 
   const StyleSVGPathData& RawData() const { return mData; }
+
+  static already_AddRefed<dom::SVGPathSegment> GetPathSegmentAtLength(
+      dom::SVGPathElement* aPathElement, Span<const StylePathCommand> aPath,
+      float aDistance);
 
   void GetMarkerPositioningData(float aZoom, nsTArray<SVGMark>* aMarks) const;
 

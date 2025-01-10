@@ -20,7 +20,7 @@ var gSVG = document.getElementById("svg");
 var gTests = [];
 
 // Array of all path segment types.
-var gTypes = "zMmLlCcQqAaHhVvSsTt".split("");
+var gTypes = "ZMmLlCcQqAaHhVvSsTt".split("");
 
 // Property names on the SVGPathSeg objects for the given segment type, in the
 // order that they would appear in a path data string.
@@ -51,7 +51,7 @@ var gPrefixes = [
   [3, "M50,50 H100 v50"],
   [2, "M50,50 A10,10,10,0,0,100,100"],
   [2, "M50,50 a10,10,10,0,0,50,50"],
-  [4, "M50,50 l50,50 z m50,50"],
+  [4, "M50,50 l50,50 Z m50,50"],
 
   // These leave the quadratic implied control point at 125,125.
   [2, "M50,50 Q75,75,100,100"],
@@ -129,53 +129,29 @@ var gPrefixes = [
 var gSuffixes = {
   // Same path segment type, no conversion required.
   MM: [[10, 20], [30, 40], [20, 30], [30, 50]],
-  mm: [[10, 20], [30, 40], [20, 30], [30, 50]],
   LL: [[10, 20], [30, 40], [20, 30], [30, 50]],
-  ll: [[10, 20], [30, 40], [20, 30], [30, 50]],
   CC: [[10, 20, 30, 40, 50, 60], [70, 80, 90, 100, 110, 120],
        [40, 50, 60, 70, 80, 90], [50, 70, 90, 110, 130, 150]],
-  cc: [[10, 20, 30, 40, 50, 60], [70, 80, 90, 100, 110, 120],
-       [40, 50, 60, 70, 80, 90], [50, 70, 90, 110, 130, 150]],
   QQ: [[10, 20, 30, 40], [50, 60, 70, 80], [30, 40, 50, 60], [40, 60, 80, 100]],
-  qq: [[10, 20, 30, 40], [50, 60, 70, 80], [30, 40, 50, 60], [40, 60, 80, 100]],
   AA: [[10, 20, 30, 0, 0, 40, 50], [60, 70, 80, 0, 0, 90, 100],
        [35, 45, 55, 0, 0, 65, 75], [45, 65, 85, 0, 0, 105, 125]],
-  aa: [[10, 20, 30, 0, 0, 40, 50], [60, 70, 80, 0, 0, 90, 100],
-       [35, 45, 55, 0, 0, 65, 75], [45, 65, 85, 0, 0, 105, 125]],
   HH: [[10], [20], [15], [25]],
-  hh: [[10], [20], [15], [25]],
   VV: [[10], [20], [15], [25]],
-  vv: [[10], [20], [15], [25]],
   SS: [[10, 20, 30, 40], [50, 60, 70, 80], [30, 40, 50, 60], [40, 60, 80, 100]],
-  ss: [[10, 20, 30, 40], [50, 60, 70, 80], [30, 40, 50, 60], [40, 60, 80, 100]],
   TT: [[10, 20], [30, 40], [20, 30], [30, 50]],
-  tt: [[10, 20], [30, 40], [20, 30], [30, 50]],
 
   // Relative <-> absolute conversion.
-  Mm: [[10, 20], [30, 40], [-30, -20], [-120, -100]],
   mM: [[10, 20], [30, 40], [70, 80], [180, 200]],
-  Ll: [[10, 20], [30, 40], [-30, -20], [-120, -100]],
   lL: [[10, 20], [30, 40], [70, 80], [180, 200]],
-  Cc: [[10, 20, 30, 40, 50, 60], [70, 80, 90, 100, 110, 120],
-       [-10, 0, 10, 20, 30, 40], [-100, -80, -60, -40, -20, 0]],
   cC: [[10, 20, 30, 40, 50, 60], [70, 80, 90, 100, 110, 120],
        [90, 100, 110, 120, 130, 140], [200, 220, 240, 260, 280, 300]],
-  Qq: [[10, 20, 30, 40], [50, 60, 70, 80],
-       [-20, -10, 0, 10], [-110, -90, -70, -50]],
   qQ: [[10, 20, 30, 40], [50, 60, 70, 80],
        [80, 90, 100, 110], [190, 210, 230, 250]],
-  Aa: [[10, 20, 30, 0, 0, 40, 50], [60, 70, 80, 0, 0, 90, 100],
-       [35, 45, 55, 0, 0, 15, 25], [45, 65, 85, 0, 0, -45, -25]],
   aA: [[10, 20, 30, 0, 0, 40, 50], [60, 70, 80, 0, 0, 90, 100],
        [35, 45, 55, 0, 0, 115, 125], [45, 65, 85, 0, 0, 255, 275]],
-  Hh: [[10], [20], [-35], [-125]],
   hH: [[10], [20], [65], [175]],
-  Vv: [[10], [20], [-35], [-125]],
   vV: [[10], [20], [65], [175]],
-  Tt: [[10, 20], [30, 40], [-30, -20], [-120, -100]],
   tT: [[10, 20], [30, 40], [70, 80], [180, 200]],
-  Ss: [[10, 20, 30, 40], [50, 60, 70, 80],
-       [-20, -10, 0, 10], [-110, -90, -70, -50]],
   sS: [[10, 20, 30, 40], [50, 60, 70, 80],
        [80, 90, 100, 110], [190, 210, 230, 250]],
 };
@@ -279,17 +255,6 @@ function run() {
       }
     }
 
-    // Test that differences in arc flag parameters cause the
-    // interpolation/addition not to occur.
-    addTest(1, "M100,100",
-            "A", [10, 20, 30, 0, 0, 40, 50],
-            "a", [60, 70, 80, 0, 1, 90, 100],
-            "a", [60, 70, 80, 0, 1, 90, 100], additive);
-    addTest(1, "M100,100",
-            "A", [10, 20, 30, 0, 0, 40, 50],
-            "a", [60, 70, 80, 1, 0, 90, 100],
-            "a", [60, 70, 80, 1, 0, 90, 100], additive);
-
     // Test all pairs of segment types that cannot be interpolated between.
     for (let fromType of gTypes) {
       let fromArguments = generatePathSegmentArguments(fromType, 0);
@@ -308,21 +273,20 @@ function run() {
 
   // Inspect the results of each subtest.
   for (let test of gTests) {
-    let list = test.element.animatedPathSegList;
-    is(list.numberOfItems, test.prefixLength + 1,
+    let list = test.element.getPathData();
+    is(list.length, test.prefixLength + 1,
        "Length of animatedPathSegList for interpolation " +
          (test.usesAddition ? "with addition " : "") +
          " from " + test.from + " to " + test.to);
 
-    let seg = list.getItem(list.numberOfItems - 1);
-    let propertyNames = argumentNames(test.expectedType);
+    let seg = list.at(-1);
 
     let actual = [];
     for (let i = 0; i < test.expected.length; i++) {
-      actual.push(+seg[propertyNames[i]]);
+      actual.push(seg.values[i]);
     }
 
-    is(seg.pathSegTypeAsLetter + actual, test.expectedType + test.expected,
+    is(seg.type + actual, test.expectedType + test.expected,
        "Path segment for interpolation " +
          (test.usesAddition ? "with addition " : "") +
          " from " + test.from + " to " + test.to);

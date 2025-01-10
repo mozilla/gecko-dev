@@ -34,7 +34,7 @@ load 413174-1.svg
 load 414188-1.svg
 load 427325-1.svg
 load 428228-1.svg
-load 428841-1.svg
+pref(dom.svg.pathSegment.enabled,true) load 428841-1.svg
 load 436418-mpathRoot-1.svg
 load 448244-1.svg
 load 466576-1.xhtml
@@ -43,7 +43,7 @@ load 535691-1.svg
 load 539167-1.svg
 load 573316-1.svg
 load 579356-1.svg
-load 579356-2.svg
+pref(dom.svg.pathSegment.enabled,true) load 579356-2.svg
 load 595608-1.svg
 load 601251-1.html
 load 601406-1.svg

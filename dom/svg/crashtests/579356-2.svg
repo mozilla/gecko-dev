@@ -8,6 +8,6 @@
            0,0 0,0 0,0 0,0 0,0" stroke="black" id="p"/>
   <script>
     var path = document.getElementById("p");
-    var segNum = path.getPathSegAtLength(1200);
+    var segment = path.getPathSegmentAtLength(1200);
   </script>
 </svg>

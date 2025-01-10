@@ -13,6 +13,7 @@ use crate::values::CSSFloat;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use std::iter::{Cloned, Peekable};
+use std::ops;
 use std::slice;
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -57,12 +58,14 @@ impl SVGPathData {
 
     /// Create a normalized copy of this path by converting each relative
     /// command to an absolute command.
-    pub fn normalize(&self) -> Self {
+    pub fn normalize(&self, reduce: bool) -> Self {
         let mut state = PathTraversalState {
             subpath_start: CoordPair::new(0.0, 0.0),
             pos: CoordPair::new(0.0, 0.0),
+            last_command: PathCommand::Close,
+            last_control: CoordPair::new(0.0, 0.0),
         };
-        let iter = self.0.iter().map(|seg| seg.normalize(&mut state));
+        let iter = self.0.iter().map(|seg| seg.normalize(&mut state, reduce));
         SVGPathData(crate::ArcSlice::from_iter(iter))
     }
 
@@ -162,8 +165,8 @@ impl Animate for SVGPathData {
         // FIXME(emilio): This allocates three copies of the path, that's not
         // great! Specially, once we're normalized once, we don't need to
         // re-normalize again.
-        let left = self.normalize();
-        let right = other.normalize();
+        let left = self.normalize(false);
+        let right = other.normalize(false);
 
         let items: Vec<_> = lists::by_computed_value::animate(&left.0, &right.0, procedure)?;
         Ok(SVGPathData(crate::ArcSlice::from_iter(items.into_iter())))
@@ -175,8 +178,8 @@ impl ComputeSquaredDistance for SVGPathData {
         if self.0.len() != other.0.len() {
             return Err(());
         }
-        let left = self.normalize();
-        let right = other.normalize();
+        let left = self.normalize(false);
+        let right = other.normalize(false);
         lists::by_computed_value::squared_distance(&left.0, &right.0)
     }
 }
@@ -194,6 +197,8 @@ pub type PathCommand = GenericShapeCommand<CSSFloat, CSSFloat>;
 struct PathTraversalState {
     subpath_start: CoordPair,
     pos: CoordPair,
+    last_command: PathCommand,
+    last_control: CoordPair,
 }
 
 impl PathCommand {
@@ -201,11 +206,16 @@ impl PathCommand {
     /// for relative commands an equivalent absolute command will be returned.
     ///
     /// See discussion: https://github.com/w3c/svgwg/issues/321
-    fn normalize(&self, state: &mut PathTraversalState) -> Self {
+    /// If reduce is true then the path will be restricted to
+    /// "M", "L", "C", "A" and "Z" commands.
+    fn normalize(&self, state: &mut PathTraversalState, reduce: bool) -> Self {
         use crate::values::generics::basic_shape::GenericShapeCommand::*;
         match *self {
             Close => {
                 state.pos = state.subpath_start;
+                if reduce {
+                    state.last_command = *self;
+                }
                 Close
             },
             Move { by_to, mut point } => {
@@ -214,6 +224,9 @@ impl PathCommand {
                 }
                 state.pos = point;
                 state.subpath_start = point;
+                if reduce {
+                    state.last_command = *self;
+                }
                 Move {
                     by_to: ByTo::To,
                     point,
@@ -224,6 +237,9 @@ impl PathCommand {
                     point += state.pos;
                 }
                 state.pos = point;
+                if reduce {
+                    state.last_command = *self;
+                }
                 Line {
                     by_to: ByTo::To,
                     point,
@@ -234,14 +250,24 @@ impl PathCommand {
                     x += state.pos.x;
                 }
                 state.pos.x = x;
-                HLine { by_to: ByTo::To, x }
+                if reduce {
+                    state.last_command = *self;
+                    PathCommand::Line { by_to: ByTo::To, point: state.pos }
+                } else {
+                    HLine { by_to: ByTo::To, x }
+                }
             },
             VLine { by_to, mut y } => {
                 if !by_to.is_abs() {
                     y += state.pos.y;
                 }
                 state.pos.y = y;
-                VLine { by_to: ByTo::To, y }
+                if reduce {
+                    state.last_command = *self;
+                    PathCommand::Line { by_to: ByTo::To, point: state.pos }
+                } else {
+                    VLine { by_to: ByTo::To, y }
+                }
             },
             CubicCurve {
                 by_to,
@@ -255,6 +281,10 @@ impl PathCommand {
                     control2 += state.pos;
                 }
                 state.pos = point;
+                if reduce {
+                    state.last_command = *self;
+                    state.last_control = control2;
+                }
                 CubicCurve {
                     by_to: ByTo::To,
                     point,
@@ -271,11 +301,25 @@ impl PathCommand {
                     point += state.pos;
                     control1 += state.pos;
                 }
-                state.pos = point;
-                QuadCurve {
-                    by_to: ByTo::To,
-                    point,
-                    control1,
+                if reduce {
+                    let c1 = state.pos + 2. * (control1 - state.pos) / 3.;
+                    let control2 = point + 2. * (control1 - point) / 3.;
+                    state.pos = point;
+                    state.last_command = *self;
+                    state.last_control = control1;
+                    CubicCurve {
+                        by_to: ByTo::To,
+                        point,
+                        control1: c1,
+                        control2,
+                    }
+                } else {
+                    state.pos = point;
+                    QuadCurve {
+                        by_to: ByTo::To,
+                        point,
+                        control1,
+                    }
                 }
             },
             SmoothCubic {
@@ -287,21 +331,57 @@ impl PathCommand {
                     point += state.pos;
                     control2 += state.pos;
                 }
-                state.pos = point;
-                SmoothCubic {
-                    by_to: ByTo::To,
-                    point,
-                    control2,
+                if reduce {
+                    let control1 = match state.last_command {
+                         PathCommand::CubicCurve { by_to: _, point: _, control1: _, control2: _ } | PathCommand::SmoothCubic { by_to: _, point: _, control2: _ } =>
+                           state.pos + state.pos - state.last_control,
+                         _ => state.pos
+                    };
+                    state.pos = point;
+                    state.last_control = control2;
+                    state.last_command = *self;
+                    CubicCurve {
+                        by_to: ByTo::To,
+                        point,
+                        control1,
+                        control2,
+                    }
+                } else {
+                    state.pos = point;
+                    SmoothCubic {
+                        by_to: ByTo::To,
+                        point,
+                        control2,
+                    }
                 }
             },
             SmoothQuad { by_to, mut point } => {
                 if !by_to.is_abs() {
                     point += state.pos;
                 }
-                state.pos = point;
-                SmoothQuad {
-                    by_to: ByTo::To,
-                    point,
+                if reduce {
+                    let control = match state.last_command {
+                         PathCommand::QuadCurve { by_to: _, point: _, control1: _ } | PathCommand::SmoothQuad { by_to: _, point: _ } =>
+                           state.pos + state.pos - state.last_control,
+                         _ => state.pos
+                    };
+                    let control1 = state.pos + 2. * (control - state.pos) / 3.;
+                    let control2 = point + 2. * (control - point) / 3.;
+                    state.pos = point;
+                    state.last_command = *self;
+                    state.last_control = control;
+                    CubicCurve {
+                        by_to: ByTo::To,
+                        point,
+                        control1,
+                        control2,
+                    }
+                } else {
+                    state.pos = point;
+                    SmoothQuad {
+                        by_to: ByTo::To,
+                        point,
+                    }
                 }
             },
             Arc {
@@ -316,13 +396,34 @@ impl PathCommand {
                     point += state.pos;
                 }
                 state.pos = point;
-                Arc {
-                    by_to: ByTo::To,
-                    point,
-                    radii,
-                    arc_sweep,
-                    arc_size,
-                    rotate,
+                if reduce {
+                    state.last_command = *self;
+                    if radii.x == 0. && radii.y == 0. {
+                        CubicCurve {
+                            by_to: ByTo::To,
+                            point: state.pos,
+                            control1: point,
+                            control2: point,
+                        }
+                    } else {
+                        Arc {
+                            by_to: ByTo::To,
+                            point,
+                            radii,
+                            arc_sweep,
+                            arc_size,
+                            rotate,
+                        }
+                    }
+                } else {
+                    Arc {
+                        by_to: ByTo::To,
+                        point,
+                        radii,
+                        arc_sweep,
+                        arc_size,
+                        rotate,
+                    }
                 }
             },
         }
@@ -423,6 +524,58 @@ impl PathCommand {
 
 /// The path coord type.
 pub type CoordPair = CoordinatePair<CSSFloat>;
+
+impl ops::Add<CoordPair> for CoordPair {
+    type Output = CoordPair;
+
+    fn add(self, rhs: CoordPair) -> CoordPair {
+      Self {
+        x: self.x + rhs.x,
+        y: self.y + rhs.y,
+      }
+    }
+}
+
+impl ops::Sub<CoordPair> for CoordPair {
+    type Output = CoordPair;
+
+    fn sub(self, rhs: CoordPair) -> CoordPair {
+      Self {
+        x: self.x - rhs.x,
+        y: self.y - rhs.y,
+      }
+    }
+}
+
+impl ops::Mul<CSSFloat> for CoordPair {
+    type Output = CoordPair;
+
+    fn mul(self, f: CSSFloat) -> CoordPair {
+        Self {
+            x: self.x * f,
+            y: self.y * f,
+        }
+    }
+}
+
+impl ops::Mul<CoordPair> for CSSFloat {
+    type Output = CoordPair;
+
+    fn mul(self, rhs: CoordPair) -> CoordPair {
+      rhs * self
+    }
+}
+
+impl ops::Div<CSSFloat> for CoordPair {
+    type Output = CoordPair;
+
+    fn div(self, f: CSSFloat) -> CoordPair {
+        Self {
+            x: self.x / f,
+            y: self.y / f,
+        }
+    }
+}
 
 /// SVG Path parser.
 struct PathParser<'a> {

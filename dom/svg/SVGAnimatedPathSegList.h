@@ -20,6 +20,7 @@ class SMILValue;
 namespace dom {
 class SVGAnimationElement;
 class SVGElement;
+class SVGPathSegment;
 }  // namespace dom
 
 /**
@@ -58,6 +59,9 @@ class SVGAnimatedPathSegList final {
   const SVGPathData& GetBaseValue() const { return mBaseVal; }
 
   nsresult SetBaseValueString(const nsAString& aValue);
+
+  void SetBaseValueFromPathSegments(
+      const dom::Sequence<OwningNonNull<dom::SVGPathSegment>>& aValues);
 
   void ClearBaseValue();
 

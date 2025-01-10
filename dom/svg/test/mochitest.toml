@@ -1,4 +1,7 @@
 [DEFAULT]
+prefs = [
+  "dom.svg.pathSegment.enabled=true",
+]
 support-files = [
   "MutationEventChecker.js",
   "a_href_destination.svg",
@@ -86,6 +89,7 @@ support-files = [
 
 ["test_getElementById.xhtml"]
 
+["test_getPathSegmentAtLength_with_d_property.html"]
 
 ["test_getSubStringLength.xhtml"]
 
@@ -117,7 +121,6 @@ skip-if = ["true"] # disabled-for-intermittent-failures--bug-701060
 ["test_pairParsing.html"]
 
 ["test_pathAnimInterpolation.xhtml"]
-skip-if = ["true"] # We need to polyfill the SVG DOM for path data
 
 ["test_pointAtLength.xhtml"]
 

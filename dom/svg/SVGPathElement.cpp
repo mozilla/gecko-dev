@@ -11,22 +11,50 @@
 #include "SVGGeometryProperty.h"
 #include "gfx2DGlue.h"
 #include "gfxPlatform.h"
+#include "mozAutoDocUpdate.h"
 #include "nsGkAtoms.h"
 #include "nsIFrame.h"
 #include "nsStyleConsts.h"
 #include "nsStyleStruct.h"
 #include "nsWindowSizes.h"
 #include "mozilla/dom/SVGPathElementBinding.h"
+#include "mozilla/dom/SVGPathSegment.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
-#include "SVGPathSegUtils.h"
 #include "mozilla/SVGContentUtils.h"
+#include "SVGArcConverter.h"
+#include "SVGPathSegUtils.h"
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(Path)
 
 using namespace mozilla::gfx;
 
 namespace mozilla::dom {
+
+//----------------------------------------------------------------------
+// Helper class: AutoChangePathSegListNotifier
+// Stack-based helper class to pair calls to WillChangePathSegList and
+// DidChangePathSegList.
+class MOZ_RAII AutoChangePathSegListNotifier : public mozAutoDocUpdate {
+ public:
+  explicit AutoChangePathSegListNotifier(SVGPathElement* aSVGPathElement)
+      : mozAutoDocUpdate(aSVGPathElement->GetComposedDoc(), true),
+        mSVGElement(aSVGPathElement) {
+    MOZ_ASSERT(mSVGElement, "Expecting non-null value");
+    mEmptyOrOldValue = mSVGElement->WillChangePathSegList(*this);
+  }
+
+  ~AutoChangePathSegListNotifier() {
+    mSVGElement->DidChangePathSegList(mEmptyOrOldValue, *this);
+    if (mSVGElement->GetAnimPathSegList()->IsAnimating()) {
+      mSVGElement->AnimationNeedsResample();
+    }
+  }
+
+ private:
+  SVGPathElement* const mSVGElement;
+  nsAttrValue mEmptyOrOldValue;
+};
 
 JSObject* SVGPathElement::WrapNode(JSContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
@@ -53,6 +81,106 @@ void SVGPathElement::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
 // nsINode methods
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGPathElement)
+
+already_AddRefed<SVGPathSegment> SVGPathElement::GetPathSegmentAtLength(
+    float aDistance) {
+  FlushIfNeeded();
+  RefPtr<SVGPathSegment> segment;
+  if (SVGGeometryProperty::DoForComputedStyle(
+          this, [&](const ComputedStyle* s) {
+            const auto& d = s->StyleSVGReset()->mD;
+            if (d.IsPath()) {
+              segment = SVGPathData::GetPathSegmentAtLength(
+                  this, d.AsPath()._0.AsSpan(), aDistance);
+            }
+          })) {
+    return segment.forget();
+  }
+  return SVGPathData::GetPathSegmentAtLength(this, mD.GetAnimValue().AsSpan(),
+                                             aDistance);
+}
+
+static void CreatePathSegments(SVGPathElement* aPathElement,
+                               const StyleSVGPathData& aPathData,
+                               nsTArray<RefPtr<SVGPathSegment>>& aValues,
+                               bool aNormalize) {
+  if (aNormalize) {
+    StyleSVGPathData normalizedPathData;
+    Servo_SVGPathData_NormalizeAndReduce(&aPathData, &normalizedPathData);
+    Point pathStart(0.0, 0.0);
+    Point segStart(0.0, 0.0);
+    Point segEnd(0.0, 0.0);
+    for (const auto& cmd : normalizedPathData._0.AsSpan()) {
+      switch (cmd.tag) {
+        case StylePathCommand::Tag::Close:
+          segEnd = pathStart;
+          aValues.AppendElement(new SVGPathSegment(aPathElement, cmd));
+          break;
+        case StylePathCommand::Tag::Move:
+          pathStart = segEnd = cmd.move.point.ToGfxPoint();
+          aValues.AppendElement(new SVGPathSegment(aPathElement, cmd));
+          break;
+        case StylePathCommand::Tag::Line:
+          segEnd = cmd.line.point.ToGfxPoint();
+          aValues.AppendElement(new SVGPathSegment(aPathElement, cmd));
+          break;
+        case StylePathCommand::Tag::CubicCurve:
+          segEnd = cmd.cubic_curve.point.ToGfxPoint();
+          aValues.AppendElement(new SVGPathSegment(aPathElement, cmd));
+          break;
+        case StylePathCommand::Tag::Arc: {
+          const auto& arc = cmd.arc;
+          segEnd = arc.point.ToGfxPoint();
+          SVGArcConverter converter(segStart, arc.point.ToGfxPoint(),
+                                    arc.radii.ToGfxPoint(), arc.rotate,
+                                    arc.arc_size == StyleArcSize::Large,
+                                    arc.arc_sweep == StyleArcSweep::Cw);
+          Point cp1, cp2;
+          while (converter.GetNextSegment(&cp1, &cp2, &segEnd)) {
+            auto curve = StylePathCommand::CubicCurve(
+                StyleByTo::To,
+                StyleCoordinatePair<StyleCSSFloat>{segEnd.x, segEnd.y},
+                StyleCoordinatePair<StyleCSSFloat>{cp1.x, cp1.y},
+                StyleCoordinatePair<StyleCSSFloat>{cp2.x, cp2.y});
+            aValues.AppendElement(new SVGPathSegment(aPathElement, curve));
+          }
+          break;
+        }
+        default:
+          MOZ_ASSERT_UNREACHABLE("Unexpected path command");
+          break;
+      }
+      segStart = segEnd;
+    }
+    return;
+  }
+  for (const auto& cmd : aPathData._0.AsSpan()) {
+    aValues.AppendElement(new SVGPathSegment(aPathElement, cmd));
+  }
+}
+
+void SVGPathElement::GetPathData(const SVGPathDataSettings& aOptions,
+                                 nsTArray<RefPtr<SVGPathSegment>>& aValues) {
+  FlushIfNeeded();
+  if (SVGGeometryProperty::DoForComputedStyle(
+          this, [&](const ComputedStyle* s) {
+            const auto& d = s->StyleSVGReset()->mD;
+            if (d.IsPath()) {
+              CreatePathSegments(this, d.AsPath(), aValues,
+                                 aOptions.mNormalize);
+            }
+          })) {
+    return;
+  }
+  CreatePathSegments(this, mD.GetAnimValue().RawData(), aValues,
+                     aOptions.mNormalize);
+}
+
+void SVGPathElement::SetPathData(
+    const Sequence<OwningNonNull<SVGPathSegment>>& aValues) {
+  AutoChangePathSegListNotifier notifier(this);
+  mD.SetBaseValueFromPathSegments(aValues);
+}
 
 //----------------------------------------------------------------------
 // SVGElement methods
