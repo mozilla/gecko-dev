@@ -260,10 +260,7 @@ nsresult CookieService::Init() {
   os->AddObserver(this, "profile-before-change", true);
   os->AddObserver(this, "profile-do-change", true);
   os->AddObserver(this, "last-pb-context-exited", true);
-
-  RunOnShutdown([self = RefPtr{this}] {
-    self->mThirdPartyCookieBlockingExceptions.Shutdown();
-  });
+  os->AddObserver(this, "browser-delayed-startup-finished", true);
 
   return NS_OK;
 }
@@ -331,6 +328,12 @@ CookieService::Observe(nsISupports* /*aSubject*/, const char* aTopic,
     // ready for us if and when we switch back to it.
     InitCookieStorages();
 
+  } else if (!strcmp(aTopic, "browser-delayed-startup-finished")) {
+    mThirdPartyCookieBlockingExceptions.Initialize();
+
+    RunOnShutdown([self = RefPtr{this}] {
+      self->mThirdPartyCookieBlockingExceptions.Shutdown();
+    });
   } else if (!strcmp(aTopic, "last-pb-context-exited")) {
     // Flush all the cookies stored by private browsing contexts
     OriginAttributesPattern pattern;
@@ -1744,12 +1747,15 @@ void CookieService::Update3PCBExceptionInfo(nsIChannel* aChannel) {
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   RefPtr<CookieService> csSingleton = CookieService::GetSingleton();
 
-  // If the channel is a top-level loading, we start initiating the exception
-  // list service.
+  // Bail out if the channel is a top-level loading. The exception is only
+  // applicable to third-party loading.
   if (loadInfo->GetExternalContentPolicyType() ==
       ExtContentPolicy::TYPE_DOCUMENT) {
-    Unused
-        << csSingleton->mThirdPartyCookieBlockingExceptions.EnsureInitialized();
+    return;
+  }
+
+  // Bail out earlier if the 3PCB exception service is not initialized.
+  if (!csSingleton->mThirdPartyCookieBlockingExceptions.IsInitialized()) {
     return;
   }
 
@@ -1759,29 +1765,11 @@ void CookieService::Update3PCBExceptionInfo(nsIChannel* aChannel) {
     return;
   }
 
-  // Suspend the channel here. We will resume it after we check the exception
-  // list.
-  aChannel->Suspend();
+  bool isInExceptionList =
+      csSingleton->mThirdPartyCookieBlockingExceptions.CheckExceptionForChannel(
+          aChannel);
 
-  // It would be better to do this check with other checks that also suspend
-  // the channel, such as the URLClassifier.
-  csSingleton->mThirdPartyCookieBlockingExceptions.EnsureInitialized()->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [channel = nsCOMPtr{aChannel}, csSingleton, loadInfo](
-          const GenericNonExclusivePromise::ResolveOrRejectValue& aValue) {
-        // We check the 3PCB exception list here. We will check both the
-        // wildcard exception and the specific exception. If any of them is in
-        // the exception list, we will set the channel's isOn3PCBExceptionList
-        // to true.
-        bool isInExceptionList =
-            csSingleton->mThirdPartyCookieBlockingExceptions
-                .CheckExceptionForChannel(channel);
-
-        Unused << loadInfo->SetIsOn3PCBExceptionList(isInExceptionList);
-
-        channel->Resume();
-        return NS_OK;
-      });
+  Unused << loadInfo->SetIsOn3PCBExceptionList(isInExceptionList);
 }
 
 NS_IMETHODIMP

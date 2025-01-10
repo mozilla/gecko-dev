@@ -10,50 +10,51 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/WindowGlobalParent.h"
+#include "mozilla/ErrorNames.h"
+#include "mozilla/Logging.h"
 
 #include "nsIChannel.h"
 
 namespace mozilla {
 namespace net {
 
-RefPtr<GenericNonExclusivePromise>
-ThirdPartyCookieBlockingExceptions::EnsureInitialized() {
-  if (mInitPromise) {
-    return mInitPromise;
+LazyLogModule g3PCBExceptionLog("3pcbexception");
+
+void ThirdPartyCookieBlockingExceptions::Initialize() {
+  if (mIsInitialized) {
+    return;
   }
 
   // Get the remote third-party cookie blocking exception list service instance.
   nsresult rv;
   m3PCBExceptionService = do_GetService(
       NS_NSITHIRDPARTYCOOKIEBLOCKINGEXCEPTIONLISTSERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv,
-                    GenericNonExclusivePromise::CreateAndReject(rv, __func__));
+  NS_ENSURE_SUCCESS_VOID(rv);
 
   RefPtr<mozilla::dom::Promise> initPromise;
   rv = m3PCBExceptionService->Init(getter_AddRefs(initPromise));
-  NS_ENSURE_SUCCESS(rv,
-                    GenericNonExclusivePromise::CreateAndReject(rv, __func__));
+  NS_ENSURE_SUCCESS_VOID(rv);
 
   // Bail out earlier if we don't have a init promise.
   if (!initPromise) {
-    return GenericNonExclusivePromise::CreateAndReject(rv, __func__);
+    MOZ_LOG(g3PCBExceptionLog, LogLevel::Error,
+            ("Failed to initialize 3PCB exception service: no init promise"));
+    return;
   }
-
-  mInitPromise = new GenericNonExclusivePromise::Private(__func__);
 
   initPromise->AddCallbacksWithCycleCollectedArgs(
       [&self = *this](JSContext*, JS::Handle<JS::Value>,
-                      mozilla::ErrorResult&) {
-        self.mInitPromise->Resolve(true, __func__);
-      },
-      [&self = *this](JSContext*, JS::Handle<JS::Value>,
-                      mozilla::ErrorResult& error) {
+                      mozilla::ErrorResult&) { self.mIsInitialized = true; },
+      [](JSContext*, JS::Handle<JS::Value>, mozilla::ErrorResult& error) {
         nsresult rv = error.StealNSResult();
-        self.mInitPromise->Reject(rv, __func__);
-        return;
-      });
 
-  return mInitPromise;
+        nsAutoCString name;
+        GetErrorName(rv, name);
+
+        MOZ_LOG(
+            g3PCBExceptionLog, LogLevel::Error,
+            ("Failed to initialize 3PCB exception service: %s", name.get()));
+      });
 }
 
 void ThirdPartyCookieBlockingExceptions::Shutdown() {
@@ -62,11 +63,7 @@ void ThirdPartyCookieBlockingExceptions::Shutdown() {
     m3PCBExceptionService = nullptr;
   }
 
-  // Reject the init promise during the shutdown.
-  if (mInitPromise) {
-    mInitPromise->Reject(NS_ERROR_ABORT, __func__);
-    mInitPromise = nullptr;
-  }
+  mIsInitialized = false;
 }
 
 void ThirdPartyCookieBlockingExceptions::Insert(const nsACString& aException) {
@@ -99,6 +96,10 @@ bool ThirdPartyCookieBlockingExceptions::CheckExceptionForURIs(
   NS_ENSURE_TRUE(aFirstPartyURI, false);
   NS_ENSURE_TRUE(aThirdPartyURI, false);
 
+  if (!mIsInitialized) {
+    return false;
+  }
+
   RefPtr<nsEffectiveTLDService> eTLDService =
       nsEffectiveTLDService::GetInstance();
   NS_ENSURE_TRUE(eTLDService, false);
@@ -124,6 +125,10 @@ bool ThirdPartyCookieBlockingExceptions::CheckExceptionForChannel(
     nsIChannel* aChannel) {
   MOZ_ASSERT(XRE_IsParentProcess());
   NS_ENSURE_TRUE(aChannel, false);
+
+  if (!mIsInitialized) {
+    return false;
+  }
 
   RefPtr<nsEffectiveTLDService> eTLDService =
       nsEffectiveTLDService::GetInstance();
