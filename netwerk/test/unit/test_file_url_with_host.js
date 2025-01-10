@@ -11,19 +11,26 @@ function setupChannel(uri) {
   return chan;
 }
 
-function run_test() {
+add_task(async function test() {
   setupChannel("file:///path");
   Assert.ok(
     true,
     "Should be able to create channel from file URL without hostname"
   );
 
-  // once we allow file URLs to have a hostname (bug 1507354) this will fail
-  // at which point we should wrap the channel setup in a try-block
-  // and assert in the catch
   setupChannel("file://example.com/path");
   Assert.ok(
     true,
     "Should be able to create channel from file URL with hostname"
   );
-}
+
+  await Assert.rejects(
+    fetch("file:///path"),
+    /TypeError: NetworkError when attempting to fetch resource./
+  );
+
+  await Assert.rejects(
+    fetch("file://example.com/path"),
+    /TypeError: NetworkError when attempting to fetch resource./
+  );
+});
