@@ -78,10 +78,10 @@ object Locales {
         ) {
             val langCode = localeCode.substring(0, index)
             val countryCode = localeCode.substring(index + 1)
-            return Locale(langCode, countryCode)
+            return Locale.Builder().setLanguage(langCode).setRegion(countryCode).build()
         }
 
-        return Locale(localeCode)
+        return Locale.forLanguageTag(localeCode)
     }
 
     /**

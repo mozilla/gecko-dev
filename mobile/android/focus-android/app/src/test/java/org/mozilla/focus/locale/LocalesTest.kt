@@ -18,28 +18,28 @@ class LocalesTest {
 
     @Test
     fun testHebrewIsrael() {
-        val locale = Locale("iw", "IL")
+        val locale = Locale.Builder().setLanguage("iw").setRegion("IL").build()
         assertEquals("he", getLanguage(locale))
         assertEquals("he-IL", getLanguageTag(locale))
     }
 
     @Test
     fun testIndonesianIndonesia() {
-        val locale = Locale("in", "ID")
+        val locale = Locale.Builder().setLanguage("in").setRegion("ID").build()
         assertEquals("id", getLanguage(locale))
         assertEquals("id-ID", getLanguageTag(locale))
     }
 
     @Test
     fun testYiddishUnitedStates() {
-        val locale = Locale("ji", "US")
+        val locale = Locale.Builder().setLanguage("ji").setRegion("US").build()
         assertEquals("yi", getLanguage(locale))
         assertEquals("yi-US", getLanguageTag(locale))
     }
 
     @Test
     fun testEmptyCountry() {
-        val locale = Locale("en")
+        val locale = Locale.forLanguageTag("en")
         assertEquals("en", getLanguage(locale))
         assertEquals("en", getLanguageTag(locale))
     }
