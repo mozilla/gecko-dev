@@ -58,6 +58,7 @@ add_task(async function test_network_markers_early_cancel() {
       type: "Network",
       status: "STATUS_CANCEL",
       URI: url,
+      httpVersion: "http/1.1",
       classOfService: "UrgentStart",
       requestMethod: "GET",
       contentType: null,

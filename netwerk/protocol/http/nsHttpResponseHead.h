@@ -52,7 +52,7 @@ class nsHttpResponseHead {
   }
   void AssertMutexOwned() const { mRecursiveMutex.AssertCurrentThreadIn(); }
 
-  HttpVersion Version() const;
+  HttpVersion Version();
   uint16_t Status() const;
   void StatusText(nsACString& aStatusText);
   int64_t ContentLength();

@@ -29,11 +29,10 @@ void profiler_add_network_marker(
     uint64_t aChannelId, NetworkLoadType aType, mozilla::TimeStamp aStart,
     mozilla::TimeStamp aEnd, int64_t aCount,
     mozilla::net::CacheDisposition aCacheDisposition, uint64_t aInnerWindowID,
-    bool aIsPrivateBrowsing, unsigned long aClassOfServiceFlag,
+    bool aIsPrivateBrowsing, mozilla::net::HttpVersion aHttpVersion,
+    unsigned long aClassOfServiceFlag,
     const mozilla::net::TimingStruct* aTimings = nullptr,
     mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource = nullptr,
-    const mozilla::Maybe<mozilla::net::HttpVersion> aHttpVersion =
-        mozilla::Nothing(),
     const mozilla::Maybe<uint32_t> aResponseStatus = mozilla::Nothing(),
     const mozilla::Maybe<nsDependentCString>& aContentType = mozilla::Nothing(),
     nsIURI* aRedirectURI = nullptr, uint32_t aRedirectFlags = 0,

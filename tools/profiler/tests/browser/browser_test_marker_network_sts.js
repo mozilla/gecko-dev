@@ -75,6 +75,7 @@ add_task(async function test_network_markers_redirect_to_https() {
         status: "STATUS_REDIRECT",
         URI: url,
         RedirectURI: targetUrl,
+        httpVersion: "http/1.1",
         classOfService: "UrgentStart",
         requestMethod: "GET",
         contentType: null,
