@@ -4511,6 +4511,9 @@ static inline bool IsTraceable(VirtualRegister& reg) {
 bool BacktrackingAllocator::populateSafepoints() {
   JitSpew(JitSpew_RegAlloc, "Populating Safepoints");
 
+  // The virtual registers and safepoints are both ordered by position. To avoid
+  // quadratic behavior in findFirstSafepoint, we use firstSafepoint as cursor
+  // to start the search at the safepoint returned by the previous call.
   size_t firstSafepoint = 0;
 
   MOZ_ASSERT(!vregs[0u].def());
@@ -4527,18 +4530,24 @@ bool BacktrackingAllocator::populateSafepoints() {
       break;
     }
 
+    // The ranges are sorted by start position, so we can use the same
+    // findFirstSafepoint optimization here.
+    size_t firstSafepointForRange = firstSafepoint;
+
     for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
       LiveRange* range = *iter;
 
-      for (size_t j = firstSafepoint; j < graph.numSafepoints(); j++) {
+      firstSafepointForRange =
+          findFirstSafepoint(range->from(), firstSafepointForRange);
+
+      for (size_t j = firstSafepointForRange; j < graph.numSafepoints(); j++) {
         LInstruction* ins = graph.getSafepoint(j);
 
-        if (!range->covers(inputOf(ins))) {
-          if (inputOf(ins) >= range->to()) {
-            break;
-          }
-          continue;
+        if (inputOf(ins) >= range->to()) {
+          break;
         }
+
+        MOZ_ASSERT(range->covers(inputOf(ins)));
 
         // Include temps but not instruction outputs. Also make sure
         // MUST_REUSE_INPUT is not used with gcthings or nunboxes, or
