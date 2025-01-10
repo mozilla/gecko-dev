@@ -1688,7 +1688,7 @@ void nsWindow::Show(bool aState) {
           // layer. Remember not to set the SWP_NOZORDER
           // flag as that might allow the taskbar to overlap
           // the popup.
-          flags |= SWP_NOACTIVATE;
+          flags |= SWP_NOACTIVATE | SWP_NOOWNERZORDER;
           HWND owner = ::GetWindow(mWnd, GW_OWNER);
           if (owner) {
             // PopupLevel::Top popups should be above all else.  All other
@@ -1696,8 +1696,9 @@ void nsWindow::Show(bool aState) {
             // changing the owner's z-level relative to other windows.
             if (mPopupLevel != PopupLevel::Top) {
               ::SetWindowPos(mWnd, owner, 0, 0, 0, 0, flags);
-              ::SetWindowPos(owner, mWnd, 0, 0, 0, 0,
-                             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+              ::SetWindowPos(
+                  owner, mWnd, 0, 0, 0, 0,
+                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
             } else {
               ::SetWindowPos(mWnd, HWND_TOP, 0, 0, 0, 0, flags);
             }
