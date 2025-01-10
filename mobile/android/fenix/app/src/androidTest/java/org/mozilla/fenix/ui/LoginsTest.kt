@@ -313,8 +313,11 @@ class LoginsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(loginPage.toUri()) {
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             setPageObjectText(itemWithResId("username"), "mozilla")
+            waitForAppWindowToBeUpdated()
             setPageObjectText(itemWithResId("password"), "firefox")
+            waitForAppWindowToBeUpdated()
             clickPageObject(itemWithResId("submit"))
             verifySaveLoginPromptIsDisplayed()
             clickPageObject(itemWithText("Save"))
