@@ -1,4 +1,4 @@
-error: expected one of: string literal, `transparent`, `fmt`
+error: expected string literal or `transparent`
   --> tests/ui/concat-display.rs:8:17
    |
 8  |         #[error(concat!("invalid ", $what))]

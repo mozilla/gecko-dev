@@ -22,21 +22,6 @@ enum EnumPathBuf {
     Read(PathBuf),
 }
 
-#[derive(Error, Debug)]
-#[error("{tail}")]
-pub struct UnsizedError {
-    pub head: i32,
-    pub tail: str,
-}
-
-#[derive(Error, Debug)]
-pub enum BothError {
-    #[error("display:{0} debug:{0:?}")]
-    DisplayDebug(PathBuf),
-    #[error("debug:{0:?} display:{0}")]
-    DebugDisplay(PathBuf),
-}
-
 fn assert<T: Display>(expected: &str, value: T) {
     assert_eq!(expected, value.to_string());
 }

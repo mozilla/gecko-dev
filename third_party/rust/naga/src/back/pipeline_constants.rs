@@ -213,7 +213,7 @@ fn process_pending(
     adjusted_global_expressions: &HandleVec<Expression, Handle<Expression>>,
 ) -> Result<(), PipelineConstantError> {
     for (handle, ty) in module.types.clone().iter() {
-        if let TypeInner::Array {
+        if let crate::TypeInner::Array {
             base,
             size: crate::ArraySize::Pending(size),
             stride,
@@ -253,7 +253,7 @@ fn process_pending(
                 handle,
                 crate::Type {
                     name: None,
-                    inner: TypeInner::Array {
+                    inner: crate::TypeInner::Array {
                         base,
                         size: crate::ArraySize::Constant(value),
                         stride,

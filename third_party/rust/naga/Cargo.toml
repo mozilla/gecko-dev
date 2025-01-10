@@ -27,7 +27,7 @@ autobins = false
 autoexamples = false
 autotests = false
 autobenches = false
-description = "Shader translator and validator. Part of the wgpu project"
+description = "Shader translation infrastructure"
 readme = "README.md"
 keywords = [
     "shader",
@@ -82,10 +82,10 @@ version = "0.2.1"
 optional = true
 
 [dependencies.rustc-hash]
-version = "1"
+version = "1.1.0"
 
 [dependencies.serde]
-version = "1.0.217"
+version = "1.0.215"
 features = ["derive"]
 optional = true
 
@@ -97,7 +97,7 @@ optional = true
 version = "1.4.1"
 
 [dependencies.thiserror]
-version = "2"
+version = "1.0.69"
 
 [dependencies.unicode-xid]
 version = "0.2.6"
@@ -114,7 +114,7 @@ version = "0.11"
 path = "./hlsl-snapshots"
 
 [dev-dependencies.itertools]
-version = "0.13.0"
+version = "0.10.5"
 
 [dev-dependencies.rspirv]
 version = "0.11"
@@ -130,11 +130,11 @@ version = "0.3"
 features = ["deserialize"]
 
 [dev-dependencies.strum]
-version = "0.26.0"
+version = "0.25.0"
 features = ["derive"]
 
 [build-dependencies.cfg_aliases]
-version = "0.2.1"
+version = "0.1"
 
 [features]
 arbitrary = [

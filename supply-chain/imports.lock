@@ -668,23 +668,9 @@ user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
-[[publisher.thiserror]]
-version = "2.0.9"
-when = "2024-12-21"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
 [[publisher.thiserror-impl]]
 version = "1.0.69"
 when = "2024-11-10"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.thiserror-impl]]
-version = "2.0.9"
-when = "2024-12-21"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"

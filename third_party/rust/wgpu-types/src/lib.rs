@@ -559,6 +559,7 @@ bitflags::bitflags! {
         /// - `buffer myBuffer { ... } buffer_array[10]` (GLSL)
         ///
         /// Supported platforms:
+        /// - DX12
         /// - Vulkan
         ///
         /// This is a native only feature.
@@ -627,10 +628,6 @@ bitflags::bitflags! {
         /// This is a native only feature.
         const UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING = 1 << 31;
         /// Allows the user to create bind groups containing arrays with less bindings than the BindGroupLayout.
-        ///
-        /// Supported platforms:
-        /// - Vulkan
-        /// - DX12
         ///
         /// This is a native only feature.
         const PARTIALLY_BOUND_BINDING_ARRAY = 1 << 32;
@@ -942,16 +939,6 @@ bitflags::bitflags! {
         /// [VK_GOOGLE_display_timing]: https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_GOOGLE_display_timing.html
         /// [`Surface::as_hal()`]: https://docs.rs/wgpu/latest/wgpu/struct.Surface.html#method.as_hal
         const VULKAN_GOOGLE_DISPLAY_TIMING = 1 << 62;
-
-        /// Allows using the [VK_KHR_external_memory_win32] Vulkan extension.
-        ///
-        /// Supported platforms:
-        /// - Vulkan (with [VK_KHR_external_memory_win32])
-        ///
-        /// This is a native only feature.
-        ///
-        /// [VK_KHR_external_memory_win32]: https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_external_memory_win32.html
-        const VULKAN_EXTERNAL_MEMORY_WIN32 = 1 << 63;
     }
 }
 
@@ -2382,15 +2369,15 @@ bitflags::bitflags! {
         const MULTISAMPLE_RESOLVE = 1 << 5;
         /// When used as a STORAGE texture, then a texture with this format can be bound with
         /// [`StorageTextureAccess::ReadOnly`].
-        const STORAGE_READ_ONLY = 1 << 6;
+        const STORAGE_READ_ONLY = 1 << 8;
         /// When used as a STORAGE texture, then a texture with this format can be bound with
         /// [`StorageTextureAccess::WriteOnly`].
-        const STORAGE_WRITE_ONLY = 1 << 7;
+        const STORAGE_WRITE_ONLY = 1 << 6;
         /// When used as a STORAGE texture, then a texture with this format can be bound with
         /// [`StorageTextureAccess::ReadWrite`].
-        const STORAGE_READ_WRITE = 1 << 8;
+        const STORAGE_READ_WRITE = 1 << 9;
         /// If not present, the texture can't be blended into the render target.
-        const BLENDABLE = 1 << 9;
+        const BLENDABLE = 1 << 7;
     }
 }
 
@@ -4882,95 +4869,6 @@ impl PartialEq for DepthBiasState {
 
 impl Eq for DepthBiasState {}
 
-/// Operation to perform to the output attachment at the start of a render pass.
-///
-/// Corresponds to [WebGPU `GPULoadOp`](https://gpuweb.github.io/gpuweb/#enumdef-gpuloadop),
-/// plus the corresponding clearValue.
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
-pub enum LoadOp<V> {
-    /// Loads the specified value for this attachment into the render pass.
-    ///
-    /// On some GPU hardware (primarily mobile), "clear" is significantly cheaper
-    /// because it avoids loading data from main memory into tile-local memory.
-    ///
-    /// On other GPU hardware, there isn’t a significant difference.
-    ///
-    /// As a result, it is recommended to use "clear" rather than "load" in cases
-    /// where the initial value doesn’t matter
-    /// (e.g. the render target will be cleared using a skybox).
-    Clear(V) = 0,
-    /// Loads the existing value for this attachment into the render pass.
-    Load = 1,
-}
-
-impl<V> LoadOp<V> {
-    /// Returns true if variants are same (ignoring clear value)
-    pub fn eq_variant<T>(&self, other: LoadOp<T>) -> bool {
-        matches!(
-            (self, other),
-            (LoadOp::Clear(_), LoadOp::Clear(_)) | (LoadOp::Load, LoadOp::Load)
-        )
-    }
-}
-
-impl<V: Default> Default for LoadOp<V> {
-    fn default() -> Self {
-        Self::Clear(Default::default())
-    }
-}
-
-/// Operation to perform to the output attachment at the end of a render pass.
-///
-/// Corresponds to [WebGPU `GPUStoreOp`](https://gpuweb.github.io/gpuweb/#enumdef-gpustoreop).
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
-pub enum StoreOp {
-    /// Stores the resulting value of the render pass for this attachment.
-    #[default]
-    Store = 0,
-    /// Discards the resulting value of the render pass for this attachment.
-    ///
-    /// The attachment will be treated as uninitialized afterwards.
-    /// (If only either Depth or Stencil texture-aspects is set to `Discard`,
-    /// the respective other texture-aspect will be preserved.)
-    ///
-    /// This can be significantly faster on tile-based render hardware.
-    ///
-    /// Prefer this if the attachment is not read by subsequent passes.
-    Discard = 1,
-}
-
-/// Pair of load and store operations for an attachment aspect.
-///
-/// This type is unique to the Rust API of `wgpu`. In the WebGPU specification,
-/// separate `loadOp` and `storeOp` fields are used instead.
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Operations<V> {
-    /// How data should be read through this attachment.
-    pub load: LoadOp<V>,
-    /// Whether data will be written to through this attachment.
-    ///
-    /// Note that resolve textures (if specified) are always written to,
-    /// regardless of this setting.
-    pub store: StoreOp,
-}
-
-impl<V: Default> Default for Operations<V> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            load: LoadOp::<V>::default(),
-            store: StoreOp::default(),
-        }
-    }
-}
-
 /// Describes the depth/stencil state in a render pipeline.
 ///
 /// Corresponds to [WebGPU `GPUDepthStencilState`](
@@ -5265,98 +5163,77 @@ pub struct VertexAttribute {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum VertexFormat {
-    /// One unsigned byte (u8). `u32` in shaders.
-    Uint8 = 0,
     /// Two unsigned bytes (u8). `vec2<u32>` in shaders.
-    Uint8x2 = 1,
+    Uint8x2 = 0,
     /// Four unsigned bytes (u8). `vec4<u32>` in shaders.
-    Uint8x4 = 2,
-    /// One signed byte (i8). `i32` in shaders.
-    Sint8 = 3,
+    Uint8x4 = 1,
     /// Two signed bytes (i8). `vec2<i32>` in shaders.
-    Sint8x2 = 4,
+    Sint8x2 = 2,
     /// Four signed bytes (i8). `vec4<i32>` in shaders.
-    Sint8x4 = 5,
-    /// One unsigned byte (u8). [0, 255] converted to float [0, 1] `f32` in shaders.
-    Unorm8 = 6,
+    Sint8x4 = 3,
     /// Two unsigned bytes (u8). [0, 255] converted to float [0, 1] `vec2<f32>` in shaders.
-    Unorm8x2 = 7,
+    Unorm8x2 = 4,
     /// Four unsigned bytes (u8). [0, 255] converted to float [0, 1] `vec4<f32>` in shaders.
-    Unorm8x4 = 8,
-    /// One signed byte (i8). [-127, 127] converted to float [-1, 1] `f32` in shaders.
-    Snorm8 = 9,
+    Unorm8x4 = 5,
     /// Two signed bytes (i8). [-127, 127] converted to float [-1, 1] `vec2<f32>` in shaders.
-    Snorm8x2 = 10,
+    Snorm8x2 = 6,
     /// Four signed bytes (i8). [-127, 127] converted to float [-1, 1] `vec4<f32>` in shaders.
-    Snorm8x4 = 11,
-    /// One unsigned short (u16). `u32` in shaders.
-    Uint16 = 12,
+    Snorm8x4 = 7,
     /// Two unsigned shorts (u16). `vec2<u32>` in shaders.
-    Uint16x2 = 13,
+    Uint16x2 = 8,
     /// Four unsigned shorts (u16). `vec4<u32>` in shaders.
-    Uint16x4 = 14,
-    /// One signed short (u16). `i32` in shaders.
-    Sint16 = 15,
+    Uint16x4 = 9,
     /// Two signed shorts (i16). `vec2<i32>` in shaders.
-    Sint16x2 = 16,
+    Sint16x2 = 10,
     /// Four signed shorts (i16). `vec4<i32>` in shaders.
-    Sint16x4 = 17,
-    /// One unsigned short (u16). [0, 65535] converted to float [0, 1] `f32` in shaders.
-    Unorm16 = 18,
+    Sint16x4 = 11,
     /// Two unsigned shorts (u16). [0, 65535] converted to float [0, 1] `vec2<f32>` in shaders.
-    Unorm16x2 = 19,
+    Unorm16x2 = 12,
     /// Four unsigned shorts (u16). [0, 65535] converted to float [0, 1] `vec4<f32>` in shaders.
-    Unorm16x4 = 20,
-    /// One signed short (i16). [-32767, 32767] converted to float [-1, 1] `f32` in shaders.
-    Snorm16 = 21,
+    Unorm16x4 = 13,
     /// Two signed shorts (i16). [-32767, 32767] converted to float [-1, 1] `vec2<f32>` in shaders.
-    Snorm16x2 = 22,
+    Snorm16x2 = 14,
     /// Four signed shorts (i16). [-32767, 32767] converted to float [-1, 1] `vec4<f32>` in shaders.
-    Snorm16x4 = 23,
-    /// One half-precision float (no Rust equiv). `f32` in shaders.
-    Float16 = 24,
+    Snorm16x4 = 15,
     /// Two half-precision floats (no Rust equiv). `vec2<f32>` in shaders.
-    Float16x2 = 25,
+    Float16x2 = 16,
     /// Four half-precision floats (no Rust equiv). `vec4<f32>` in shaders.
-    Float16x4 = 26,
+    Float16x4 = 17,
     /// One single-precision float (f32). `f32` in shaders.
-    Float32 = 27,
+    Float32 = 18,
     /// Two single-precision floats (f32). `vec2<f32>` in shaders.
-    Float32x2 = 28,
+    Float32x2 = 19,
     /// Three single-precision floats (f32). `vec3<f32>` in shaders.
-    Float32x3 = 29,
+    Float32x3 = 20,
     /// Four single-precision floats (f32). `vec4<f32>` in shaders.
-    Float32x4 = 30,
+    Float32x4 = 21,
     /// One unsigned int (u32). `u32` in shaders.
-    Uint32 = 31,
+    Uint32 = 22,
     /// Two unsigned ints (u32). `vec2<u32>` in shaders.
-    Uint32x2 = 32,
+    Uint32x2 = 23,
     /// Three unsigned ints (u32). `vec3<u32>` in shaders.
-    Uint32x3 = 33,
+    Uint32x3 = 24,
     /// Four unsigned ints (u32). `vec4<u32>` in shaders.
-    Uint32x4 = 34,
+    Uint32x4 = 25,
     /// One signed int (i32). `i32` in shaders.
-    Sint32 = 35,
+    Sint32 = 26,
     /// Two signed ints (i32). `vec2<i32>` in shaders.
-    Sint32x2 = 36,
+    Sint32x2 = 27,
     /// Three signed ints (i32). `vec3<i32>` in shaders.
-    Sint32x3 = 37,
+    Sint32x3 = 28,
     /// Four signed ints (i32). `vec4<i32>` in shaders.
-    Sint32x4 = 38,
+    Sint32x4 = 29,
     /// One double-precision float (f64). `f32` in shaders. Requires [`Features::VERTEX_ATTRIBUTE_64BIT`].
-    Float64 = 39,
+    Float64 = 30,
     /// Two double-precision floats (f64). `vec2<f32>` in shaders. Requires [`Features::VERTEX_ATTRIBUTE_64BIT`].
-    Float64x2 = 40,
+    Float64x2 = 31,
     /// Three double-precision floats (f64). `vec3<f32>` in shaders. Requires [`Features::VERTEX_ATTRIBUTE_64BIT`].
-    Float64x3 = 41,
+    Float64x3 = 32,
     /// Four double-precision floats (f64). `vec4<f32>` in shaders. Requires [`Features::VERTEX_ATTRIBUTE_64BIT`].
-    Float64x4 = 42,
+    Float64x4 = 33,
     /// Three unsigned 10-bit integers and one 2-bit integer, packed into a 32-bit integer (u32). [0, 1024] converted to float [0, 1] `vec4<f32>` in shaders.
     #[cfg_attr(feature = "serde", serde(rename = "unorm10-10-10-2"))]
-    Unorm10_10_10_2 = 43,
-    /// Four unsigned 8-bit integers, packed into a 32-bit integer (u32). [0, 255] converted to float [0, 1] `vec4<f32>` in shaders.
-    #[cfg_attr(feature = "serde", serde(rename = "unorm8x4-bgra"))]
-    Unorm8x4Bgra = 44,
+    Unorm10_10_10_2 = 34,
 }
 
 impl VertexFormat {
@@ -5364,16 +5241,7 @@ impl VertexFormat {
     #[must_use]
     pub const fn size(&self) -> u64 {
         match self {
-            Self::Uint8 | Self::Sint8 | Self::Unorm8 | Self::Snorm8 => 1,
-            Self::Uint8x2
-            | Self::Sint8x2
-            | Self::Unorm8x2
-            | Self::Snorm8x2
-            | Self::Uint16
-            | Self::Sint16
-            | Self::Unorm16
-            | Self::Snorm16
-            | Self::Float16 => 2,
+            Self::Uint8x2 | Self::Sint8x2 | Self::Unorm8x2 | Self::Snorm8x2 => 2,
             Self::Uint8x4
             | Self::Sint8x4
             | Self::Unorm8x4
@@ -5386,8 +5254,7 @@ impl VertexFormat {
             | Self::Float32
             | Self::Uint32
             | Self::Sint32
-            | Self::Unorm10_10_10_2
-            | Self::Unorm8x4Bgra => 4,
+            | Self::Unorm10_10_10_2 => 4,
             Self::Uint16x4
             | Self::Sint16x4
             | Self::Unorm16x4
@@ -6201,9 +6068,6 @@ pub struct TextureViewDescriptor<L> {
     /// The dimension of the texture view. For 1D textures, this must be `D1`. For 2D textures it must be one of
     /// `D2`, `D2Array`, `Cube`, and `CubeArray`. For 3D textures it must be `D3`
     pub dimension: Option<TextureViewDimension>,
-    /// The allowed usage(s) for the texture view. Must be a subset of the usage flags of the texture.
-    /// If not provided, defaults to the full set of usage flags of the texture.
-    pub usage: Option<TextureUsages>,
     /// Aspect of the texture. Color textures must be [`TextureAspect::All`].
     pub aspect: TextureAspect,
     /// Base mip level.
@@ -7584,73 +7448,50 @@ impl DispatchIndirectArgs {
 }
 
 /// Describes how shader bound checks should be performed.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ShaderRuntimeChecks {
-    /// Enforce bounds checks in shaders, even if the underlying driver doesn't
-    /// support doing so natively.
-    ///
-    /// When this is `true`, `wgpu` promises that shaders can only read or
-    /// write the accessible region of a bindgroup's buffer bindings. If
-    /// the underlying graphics platform cannot implement these bounds checks
-    /// itself, `wgpu` will inject bounds checks before presenting the
-    /// shader to the platform.
-    ///
-    /// When this is `false`, `wgpu` only enforces such bounds checks if the
-    /// underlying platform provides a way to do so itself. `wgpu` does not
-    /// itself add any bounds checks to generated shader code.
-    ///
-    /// Note that `wgpu` users may try to initialize only those portions of
-    /// buffers that they anticipate might be read from. Passing `false` here
-    /// may allow shaders to see wider regions of the buffers than expected,
-    /// making such deferred initialization visible to the application.
-    pub bounds_checks: bool,
-    ///
-    /// If false, the caller MUST ensure that all passed shaders do not contain any infinite loops.
-    ///
-    /// If it does, backend compilers MAY treat such a loop as unreachable code and draw
-    /// conclusions about other safety-critical code paths. This option SHOULD NOT be disabled
-    /// when running untrusted code.
-    pub force_loop_bounding: bool,
+pub struct ShaderBoundChecks {
+    runtime_checks: bool,
 }
 
-impl ShaderRuntimeChecks {
-    /// Creates a new configuration where the shader is fully checked.
+impl ShaderBoundChecks {
+    /// Creates a new configuration where the shader is bound checked.
     #[must_use]
-    pub fn checked() -> Self {
-        unsafe { Self::all(true) }
-    }
-
-    /// Creates a new configuration where none of the checks are performed.
-    ///
-    /// # Safety
-    ///
-    /// See the documentation for the `set_*` methods for the safety requirements
-    /// of each sub-configuration.
-    #[must_use]
-    pub fn unchecked() -> Self {
-        unsafe { Self::all(false) }
-    }
-
-    /// Creates a new configuration where all checks are enabled or disabled. To safely
-    /// create a configuration with all checks enabled, use [`ShaderRuntimeChecks::checked`].
-    ///
-    /// # Safety
-    ///
-    /// See the documentation for the `set_*` methods for the safety requirements
-    /// of each sub-configuration.
-    #[must_use]
-    pub unsafe fn all(all_checks: bool) -> Self {
-        Self {
-            bounds_checks: all_checks,
-            force_loop_bounding: all_checks,
+    pub fn new() -> Self {
+        ShaderBoundChecks {
+            runtime_checks: true,
         }
     }
+
+    /// Creates a new configuration where the shader isn't bound checked.
+    ///
+    /// # Safety
+    ///
+    /// The caller MUST ensure that all shaders built with this configuration
+    /// don't perform any out of bounds reads or writes.
+    ///
+    /// Note that `wgpu_core`, in particular, initializes only those portions of
+    /// buffers that it expects might be read, and it does not expect contents
+    /// outside the ranges bound in bindgroups to be accessible, so using this
+    /// configuration with ill-behaved shaders could expose uninitialized GPU
+    /// memory contents to the application.
+    #[must_use]
+    pub unsafe fn unchecked() -> Self {
+        ShaderBoundChecks {
+            runtime_checks: false,
+        }
+    }
+
+    /// Query whether runtime bound checks are enabled in this configuration
+    #[must_use]
+    pub fn runtime_checks(&self) -> bool {
+        self.runtime_checks
+    }
 }
 
-impl Default for ShaderRuntimeChecks {
+impl Default for ShaderBoundChecks {
     fn default() -> Self {
-        Self::checked()
+        Self::new()
     }
 }
 

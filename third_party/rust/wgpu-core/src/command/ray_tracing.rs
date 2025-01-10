@@ -290,8 +290,8 @@ impl Global {
         let scratch_buffer_barrier = hal::BufferBarrier::<dyn hal::DynBuffer> {
             buffer: scratch_buffer.raw(),
             usage: hal::StateTransition {
-                from: BufferUses::ACCELERATION_STRUCTURE_SCRATCH,
-                to: BufferUses::ACCELERATION_STRUCTURE_SCRATCH,
+                from: hal::BufferUses::ACCELERATION_STRUCTURE_SCRATCH,
+                to: hal::BufferUses::ACCELERATION_STRUCTURE_SCRATCH,
             },
         };
 
@@ -322,7 +322,7 @@ impl Global {
         let blas_present = !blas_storage.is_empty();
         let tlas_present = !tlas_storage.is_empty();
 
-        let cmd_buf_raw = cmd_buf_data.encoder.open()?;
+        let cmd_buf_raw = cmd_buf_data.encoder.open(device)?;
 
         let mut descriptors = Vec::new();
 
@@ -674,7 +674,7 @@ impl Global {
         let blas_present = !blas_storage.is_empty();
         let tlas_present = !tlas_storage.is_empty();
 
-        let cmd_buf_raw = cmd_buf_data.encoder.open()?;
+        let cmd_buf_raw = cmd_buf_data.encoder.open(device)?;
 
         let mut descriptors = Vec::new();
 

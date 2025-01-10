@@ -186,7 +186,7 @@ impl ParsingContext<'_> {
         // Consume any leading comma, e.g. this is valid: `float, a=1;`
         if self
             .peek(frontend)
-            .is_some_and(|t| t.value == TokenValue::Comma)
+            .map_or(false, |t| t.value == TokenValue::Comma)
         {
             self.next(frontend);
         }

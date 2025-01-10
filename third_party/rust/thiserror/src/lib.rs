@@ -67,7 +67,7 @@
 //!   #
 //!   #[derive(Error, Debug)]
 //!   pub enum Error {
-//!       #[error("invalid rdo_lookahead_frames {0} (expected < {max})", max = i32::MAX)]
+//!       #[error("invalid rdo_lookahead_frames {0} (expected < {})", i32::MAX)]
 //!       InvalidLookahead(u32),
 //!   }
 //!   ```
@@ -258,8 +258,7 @@
 //!
 //!   [`anyhow`]: https://github.com/dtolnay/anyhow
 
-#![no_std]
-#![doc(html_root_url = "https://docs.rs/thiserror/2.0.9")]
+#![doc(html_root_url = "https://docs.rs/thiserror/1.0.69")]
 #![allow(
     clippy::module_name_repetitions,
     clippy::needless_lifetimes,
@@ -271,16 +270,10 @@
 #[cfg(all(thiserror_nightly_testing, not(error_generic_member_access)))]
 compile_error!("Build script probe failed to compile.");
 
-#[cfg(feature = "std")]
-extern crate std;
-#[cfg(feature = "std")]
-extern crate std as core;
-
 mod aserror;
 mod display;
 #[cfg(error_generic_member_access)]
 mod provide;
-mod var;
 
 pub use thiserror_impl::*;
 
@@ -294,11 +287,4 @@ pub mod __private {
     #[cfg(error_generic_member_access)]
     #[doc(hidden)]
     pub use crate::provide::ThiserrorProvide;
-    #[doc(hidden)]
-    pub use crate::var::Var;
-    #[doc(hidden)]
-    pub use core::error::Error;
-    #[cfg(all(feature = "std", not(thiserror_no_backtrace_type)))]
-    #[doc(hidden)]
-    pub use std::backtrace::Backtrace;
 }

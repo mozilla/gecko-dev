@@ -82,17 +82,9 @@ impl ModuleMap {
             } => adjust(base),
             Ti::Array {
                 ref mut base,
-                ref mut size,
+                size: _,
                 stride: _,
-            } => {
-                adjust(base);
-                if let crate::ArraySize::Pending(crate::PendingArraySize::Expression(
-                    ref mut size_expr,
-                )) = *size
-                {
-                    self.global_expressions.adjust(size_expr);
-                }
-            }
+            } => adjust(base),
             Ti::Struct {
                 ref mut members,
                 span: _,

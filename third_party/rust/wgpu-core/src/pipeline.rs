@@ -41,7 +41,7 @@ pub enum ShaderModuleSource<'a> {
 pub struct ShaderModuleDescriptor<'a> {
     pub label: Label<'a>,
     #[cfg_attr(feature = "serde", serde(default))]
-    pub runtime_checks: wgt::ShaderRuntimeChecks,
+    pub shader_bound_checks: wgt::ShaderBoundChecks,
 }
 
 #[derive(Debug)]
@@ -475,12 +475,6 @@ pub enum CreateRenderPipelineError {
     TooManyVertexAttributes { given: u32, limit: u32 },
     #[error("Vertex buffer {index} stride {given} exceeds the limit {limit}")]
     VertexStrideTooLarge { index: u32, given: u32, limit: u32 },
-    #[error("Vertex attribute at location {location} stride {given} exceeds the limit {limit}")]
-    VertexAttributeStrideTooLarge {
-        location: wgt::ShaderLocation,
-        given: u32,
-        limit: u32,
-    },
     #[error("Vertex buffer {index} stride {stride} does not respect `VERTEX_STRIDE_ALIGNMENT`")]
     UnalignedVertexStride {
         index: u32,

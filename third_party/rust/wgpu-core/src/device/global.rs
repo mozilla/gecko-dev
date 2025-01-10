@@ -331,6 +331,8 @@ impl Global {
             return (id, None);
         };
 
+        log::error!("Device::create_texture error: {error}");
+
         let id = fid.assign(Fallible::Invalid(Arc::new(desc.label.to_string())));
         (id, Some(error))
     }
@@ -373,6 +375,8 @@ impl Global {
 
             return (id, None);
         };
+
+        log::error!("Device::create_texture error: {error}");
 
         let id = fid.assign(Fallible::Invalid(Arc::new(desc.label.to_string())));
         (id, Some(error))
@@ -483,6 +487,7 @@ impl Global {
             return (id, None);
         };
 
+        log::error!("Texture::create_view({texture_id:?}) error: {error}");
         let id = fid.assign(Fallible::Invalid(Arc::new(desc.label.to_string())));
         (id, Some(error))
     }
@@ -937,6 +942,8 @@ impl Global {
             return (id, None);
         };
 
+        log::error!("Device::create_shader_module error: {error}");
+
         let id = fid.assign(Fallible::Invalid(Arc::new(desc.label.to_string())));
         (id, Some(error))
     }
@@ -985,6 +992,8 @@ impl Global {
             api_log!("Device::create_shader_module_spirv -> {id:?}");
             return (id, None);
         };
+
+        log::error!("Device::create_shader_module_spirv error: {error}");
 
         let id = fid.assign(Fallible::Invalid(Arc::new(desc.label.to_string())));
         (id, Some(error))
@@ -1365,6 +1374,8 @@ impl Global {
                 bgl_guard.insert(bgl_id, Fallible::Invalid(Arc::new(String::new())));
             }
         }
+
+        log::error!("Device::create_render_pipeline error: {error}");
 
         (id, Some(error))
     }
@@ -2163,6 +2174,7 @@ impl Global {
                 if let Some(callback) = operation.callback.take() {
                     callback(Err(err.clone()));
                 }
+                log::error!("Buffer::map_async error: {err}");
                 Err(err)
             }
         }

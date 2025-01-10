@@ -140,7 +140,7 @@ impl Frontend {
                 )?
             }
             TypeInner::Vector { size, scalar } => {
-                if vector_size != Some(size) {
+                if vector_size.map_or(true, |s| s != size) {
                     value = ctx.vector_resize(size, value, expr_meta)?;
                 }
 

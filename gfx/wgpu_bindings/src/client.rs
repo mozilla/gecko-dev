@@ -21,10 +21,6 @@ use nsstring::{nsACString, nsString};
 
 use std::{borrow::Cow, ptr};
 
-use self::render_pass::RenderPassDepthStencilAttachment;
-
-pub mod render_pass;
-
 // we can't call `from_raw_parts` unconditionally because the caller
 // may not even have a valid pointer (e.g. NULL) if the `length` is zero.
 fn make_slice<'a, T>(pointer: *const T, length: usize) -> &'a [T] {
@@ -553,7 +549,6 @@ pub extern "C" fn wgpu_client_create_texture_view(
             base_array_layer: desc.base_array_layer,
             array_layer_count: desc.array_layer_count.map(|ptr| *ptr),
         },
-        usage: None,
     };
 
     let action = TextureAction::CreateView(id, wgpu_desc);
@@ -831,7 +826,7 @@ pub struct RenderPassDescriptor<'a> {
     pub label: Option<&'a nsACString>,
     pub color_attachments: *const wgc::command::RenderPassColorAttachment,
     pub color_attachments_length: usize,
-    pub depth_stencil_attachment: Option<&'a RenderPassDepthStencilAttachment>,
+    pub depth_stencil_attachment: *const wgc::command::RenderPassDepthStencilAttachment,
     pub timestamp_writes: Option<&'a PassTimestampWrites<'a>>,
     pub occlusion_query_set: Option<wgc::id::QuerySetId>,
 }
@@ -872,7 +867,6 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_render_pass(
         .iter()
         .map(|format| Some(format.clone()))
         .collect();
-    let depth_stencil_attachment = depth_stencil_attachment.cloned().map(|dsa| dsa.to_wgpu());
     let pass = crate::command::RecordedRenderPass::new(&wgc::command::RenderPassDescriptor {
         label,
         color_attachments: Cow::Owned(color_attachments),

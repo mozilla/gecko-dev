@@ -726,7 +726,7 @@ unsafe impl Sync for BindGroup {}
 #[derive(Debug)]
 pub struct ShaderModule {
     naga: crate::NagaShader,
-    bounds_checks: wgt::ShaderRuntimeChecks,
+    runtime_checks: bool,
 }
 
 impl crate::DynShaderModule for ShaderModule {}

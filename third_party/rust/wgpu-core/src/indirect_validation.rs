@@ -123,7 +123,7 @@ impl IndirectValidation {
         });
         let hal_desc = hal::ShaderModuleDescriptor {
             label: None,
-            runtime_checks: wgt::ShaderRuntimeChecks::unchecked(),
+            runtime_checks: false,
         };
         let module =
             unsafe { device.create_shader_module(&hal_desc, hal_shader) }.map_err(|error| {
@@ -180,7 +180,7 @@ impl IndirectValidation {
 
         let pipeline_layout_desc = hal::PipelineLayoutDescriptor {
             label: None,
-            flags: hal::PipelineLayoutFlags::empty(),
+            flags: hal::PipelineLayoutFlags::FIRST_VERTEX_INSTANCE,
             bind_group_layouts: &[
                 dst_bind_group_layout.as_ref(),
                 src_bind_group_layout.as_ref(),

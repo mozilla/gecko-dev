@@ -21,7 +21,7 @@ autobins = false
 autoexamples = false
 autotests = false
 autobenches = false
-description = "Common types and utilities for wgpu, the cross-platform, safe, pure-rust graphics API"
+description = "WebGPU types"
 homepage = "https://wgpu.rs/"
 readme = false
 keywords = ["graphics"]
@@ -59,7 +59,7 @@ version = "1"
 features = ["derive"]
 
 [dev-dependencies.serde_json]
-version = "1.0.134"
+version = "1.0.133"
 
 [features]
 counters = []
@@ -81,8 +81,3 @@ features = [
     "OffscreenCanvas",
     "VideoFrame",
 ]
-
-[lints.rust.unexpected_cfgs]
-level = "warn"
-priority = 0
-check-cfg = ["cfg(web_sys_unstable_apis)"]

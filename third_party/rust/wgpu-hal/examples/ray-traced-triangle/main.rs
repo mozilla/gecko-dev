@@ -371,7 +371,7 @@ impl<A: hal::Api> Example<A> {
         };
         let shader_desc = hal::ShaderModuleDescriptor {
             label: None,
-            runtime_checks: wgt::ShaderRuntimeChecks::checked(),
+            runtime_checks: false,
         };
         let shader_module = unsafe {
             device

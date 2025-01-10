@@ -155,6 +155,9 @@ bindgen = { path = "third_party/rust/bindgen" }
 # Patch nix 0.26 to 0.29
 nix = { path = "build/rust/nix" }
 
+# Patch cfg_aliases 0.1 to 0.2
+cfg_aliases = { path = "build/rust/cfg_aliases" }
+
 # Patch indexmap 2.0 to 1.0
 indexmap = { path = "build/rust/indexmap" }
 
@@ -175,9 +178,6 @@ hashbrown = { path = "build/rust/hashbrown" }
 
 # Patch `socket2` 0.4 to 0.5
 socket2 = { path = "build/rust/socket2" }
-
-# Patch `thiserror` 1 to 2.
-thiserror = { path = "build/rust/thiserror" }
 
 # The following overrides point to dummy projects, as a temporary measure until this is resolved:
 # https://github.com/rust-lang/cargo/issues/6179

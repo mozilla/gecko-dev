@@ -1086,39 +1086,6 @@ impl Device {
                         .saturating_sub(desc.range.base_array_layer),
                 });
 
-        let resolved_usage = {
-            let usage = desc.usage.unwrap_or(wgt::TextureUsages::empty());
-            if usage.is_empty() {
-                texture.desc.usage
-            } else if texture.desc.usage.contains(usage) {
-                usage
-            } else {
-                return Err(resource::CreateTextureViewError::InvalidTextureViewUsage {
-                    view: usage,
-                    texture: texture.desc.usage,
-                });
-            }
-        };
-
-        let allowed_format_usages = self
-            .describe_format_features(resolved_format)?
-            .allowed_usages;
-        if resolved_usage.contains(wgt::TextureUsages::RENDER_ATTACHMENT)
-            && !allowed_format_usages.contains(wgt::TextureUsages::RENDER_ATTACHMENT)
-        {
-            return Err(
-                resource::CreateTextureViewError::TextureViewFormatNotRenderable(resolved_format),
-            );
-        }
-
-        if resolved_usage.contains(wgt::TextureUsages::STORAGE_BINDING)
-            && !allowed_format_usages.contains(wgt::TextureUsages::STORAGE_BINDING)
-        {
-            return Err(
-                resource::CreateTextureViewError::TextureViewFormatNotStorage(resolved_format),
-            );
-        }
-
         // validate TextureViewDescriptor
 
         let aspects = hal::FormatAspects::new(texture.desc.format, desc.range.aspect);
@@ -1240,8 +1207,12 @@ impl Device {
 
         // https://gpuweb.github.io/gpuweb/#abstract-opdef-renderable-texture-view
         let render_extent = 'error: {
-            if !resolved_usage.contains(wgt::TextureUsages::RENDER_ATTACHMENT) {
-                break 'error Err(TextureViewNotRenderableReason::Usage(resolved_usage));
+            if !texture
+                .desc
+                .usage
+                .contains(wgt::TextureUsages::RENDER_ATTACHMENT)
+            {
+                break 'error Err(TextureViewNotRenderableReason::Usage(texture.desc.usage));
             }
 
             if !(resolved_dimension == TextureViewDimension::D2
@@ -1338,7 +1309,6 @@ impl Device {
                 texture_format: texture.desc.format,
                 format: resolved_format,
                 dimension: resolved_dimension,
-                usage: resolved_usage,
                 range: resolved_range,
             },
             format_features: texture.format_features,
@@ -1569,7 +1539,7 @@ impl Device {
         });
         let hal_desc = hal::ShaderModuleDescriptor {
             label: desc.label.to_hal(self.instance_flags),
-            runtime_checks: desc.runtime_checks,
+            runtime_checks: desc.shader_bound_checks.runtime_checks(),
         };
         let raw = match unsafe { self.raw().create_shader_module(&hal_desc, hal_shader) } {
             Ok(raw) => raw,
@@ -1609,7 +1579,7 @@ impl Device {
         self.require_features(wgt::Features::SPIRV_SHADER_PASSTHROUGH)?;
         let hal_desc = hal::ShaderModuleDescriptor {
             label: desc.label.to_hal(self.instance_flags),
-            runtime_checks: desc.runtime_checks,
+            runtime_checks: desc.shader_bound_checks.runtime_checks(),
         };
         let hal_shader = hal::ShaderInput::SpirV(source);
         let raw = match unsafe { self.raw().create_shader_module(&hal_desc, hal_shader) } {
@@ -2120,7 +2090,7 @@ impl Device {
     {
         view.same_device(self)?;
 
-        let internal_use = self.texture_use_parameters(
+        let (pub_usage, internal_use) = self.texture_use_parameters(
             binding,
             decl,
             view,
@@ -2130,6 +2100,7 @@ impl Device {
         used.views.insert_single(view.clone(), internal_use);
 
         let texture = &view.parent;
+        texture.check_usage(pub_usage)?;
 
         used_texture_ranges.push(TextureInitTrackerAction {
             texture: texture.clone(),
@@ -2428,7 +2399,7 @@ impl Device {
         decl: &wgt::BindGroupLayoutEntry,
         view: &TextureView,
         expected: &'static str,
-    ) -> Result<hal::TextureUses, binding_model::CreateBindGroupError> {
+    ) -> Result<(wgt::TextureUsages, hal::TextureUses), binding_model::CreateBindGroupError> {
         use crate::binding_model::CreateBindGroupError as Error;
         if view
             .desc
@@ -2487,8 +2458,10 @@ impl Device {
                         view_dimension: view.desc.dimension,
                     });
                 }
-                view.check_usage(wgt::TextureUsages::TEXTURE_BINDING)?;
-                Ok(hal::TextureUses::RESOURCE)
+                Ok((
+                    wgt::TextureUsages::TEXTURE_BINDING,
+                    hal::TextureUses::RESOURCE,
+                ))
             }
             wgt::BindingType::StorageTexture {
                 access,
@@ -2551,8 +2524,7 @@ impl Device {
                         hal::TextureUses::STORAGE_READ_WRITE
                     }
                 };
-                view.check_usage(wgt::TextureUsages::STORAGE_BINDING)?;
-                Ok(internal_use)
+                Ok((wgt::TextureUsages::STORAGE_BINDING, internal_use))
             }
             _ => Err(Error::WrongBindingType {
                 binding,
@@ -2640,17 +2612,10 @@ impl Device {
             .map(|bgl| bgl.raw())
             .collect::<ArrayVec<_, { hal::MAX_BIND_GROUPS }>>();
 
-        let additional_flags = if cfg!(feature = "indirect-validation") {
-            hal::PipelineLayoutFlags::INDIRECT_BUILTIN_UPDATE
-        } else {
-            hal::PipelineLayoutFlags::empty()
-        };
-
         let hal_desc = hal::PipelineLayoutDescriptor {
             label: desc.label.to_hal(self.instance_flags),
             flags: hal::PipelineLayoutFlags::FIRST_VERTEX_INSTANCE
-                | hal::PipelineLayoutFlags::NUM_WORK_GROUPS
-                | additional_flags,
+                | hal::PipelineLayoutFlags::NUM_WORK_GROUPS,
             bind_group_layouts: &raw_bind_group_layouts,
             push_constant_ranges: desc.push_constant_ranges.as_ref(),
         };
@@ -2675,11 +2640,11 @@ impl Device {
 
     pub(crate) fn derive_pipeline_layout(
         self: &Arc<Self>,
-        mut derived_group_layouts: Box<ArrayVec<bgl::EntryMap, { hal::MAX_BIND_GROUPS }>>,
+        mut derived_group_layouts: ArrayVec<bgl::EntryMap, { hal::MAX_BIND_GROUPS }>,
     ) -> Result<Arc<binding_model::PipelineLayout>, pipeline::ImplicitLayoutError> {
         while derived_group_layouts
             .last()
-            .is_some_and(|map| map.is_empty())
+            .map_or(false, |map| map.is_empty())
         {
             derived_group_layouts.pop();
         }
@@ -2901,8 +2866,18 @@ impl Device {
         let mut shader_expects_dual_source_blending = false;
         let mut pipeline_expects_dual_source_blending = false;
         for (i, vb_state) in desc.vertex.buffers.iter().enumerate() {
-            // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpuvertexbufferlayout
-
+            let mut last_stride = 0;
+            for attribute in vb_state.attributes.iter() {
+                last_stride = last_stride.max(attribute.offset + attribute.format.size());
+            }
+            vertex_steps.push(pipeline::VertexStep {
+                stride: vb_state.array_stride,
+                last_stride,
+                mode: vb_state.step_mode,
+            });
+            if vb_state.attributes.is_empty() {
+                continue;
+            }
             if vb_state.array_stride > self.limits.max_vertex_buffer_array_stride as u64 {
                 return Err(pipeline::CreateRenderPipelineError::VertexStrideTooLarge {
                     index: i as u32,
@@ -2915,54 +2890,6 @@ impl Device {
                     index: i as u32,
                     stride: vb_state.array_stride,
                 });
-            }
-
-            let max_stride = if vb_state.array_stride == 0 {
-                self.limits.max_vertex_buffer_array_stride as u64
-            } else {
-                vb_state.array_stride
-            };
-            let mut last_stride = 0;
-            for attribute in vb_state.attributes.iter() {
-                let attribute_stride = attribute.offset + attribute.format.size();
-                if attribute_stride > max_stride {
-                    return Err(
-                        pipeline::CreateRenderPipelineError::VertexAttributeStrideTooLarge {
-                            location: attribute.shader_location,
-                            given: attribute_stride as u32,
-                            limit: max_stride as u32,
-                        },
-                    );
-                }
-
-                let required_offset_alignment = attribute.format.size().min(4);
-                if attribute.offset % required_offset_alignment != 0 {
-                    return Err(
-                        pipeline::CreateRenderPipelineError::InvalidVertexAttributeOffset {
-                            location: attribute.shader_location,
-                            offset: attribute.offset,
-                        },
-                    );
-                }
-
-                if attribute.shader_location >= self.limits.max_vertex_attributes {
-                    return Err(
-                        pipeline::CreateRenderPipelineError::TooManyVertexAttributes {
-                            given: attribute.shader_location,
-                            limit: self.limits.max_vertex_attributes,
-                        },
-                    );
-                }
-
-                last_stride = last_stride.max(attribute_stride);
-            }
-            vertex_steps.push(pipeline::VertexStep {
-                stride: vb_state.array_stride,
-                last_stride,
-                mode: vb_state.step_mode,
-            });
-            if vb_state.attributes.is_empty() {
-                continue;
             }
             vertex_buffers.push(hal::VertexBufferLayout {
                 array_stride: vb_state.array_stride,
@@ -3710,12 +3637,12 @@ impl Device {
         // During these iterations, we discard all errors. We don't care!
         let trackers = self.trackers.lock();
         for buffer in trackers.buffers.used_resources() {
-            if let Some(buffer) = Weak::upgrade(buffer) {
+            if let Some(buffer) = Weak::upgrade(&buffer) {
                 let _ = buffer.destroy();
             }
         }
         for texture in trackers.textures.used_resources() {
-            if let Some(texture) = Weak::upgrade(texture) {
+            if let Some(texture) = Weak::upgrade(&texture) {
                 let _ = texture.destroy();
             }
         }

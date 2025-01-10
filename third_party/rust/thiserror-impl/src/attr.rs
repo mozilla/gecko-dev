@@ -1,20 +1,19 @@
 use proc_macro2::{Delimiter, Group, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
-use quote::{format_ident, quote, quote_spanned, ToTokens};
+use quote::{format_ident, quote, ToTokens};
 use std::collections::BTreeSet as Set;
 use syn::parse::discouraged::Speculative;
 use syn::parse::{End, ParseStream};
 use syn::{
-    braced, bracketed, parenthesized, token, Attribute, Error, ExprPath, Ident, Index, LitFloat,
-    LitInt, LitStr, Meta, Result, Token,
+    braced, bracketed, parenthesized, token, Attribute, Error, Ident, Index, LitFloat, LitInt,
+    LitStr, Meta, Result, Token,
 };
 
 pub struct Attrs<'a> {
     pub display: Option<Display<'a>>,
-    pub source: Option<Source<'a>>,
+    pub source: Option<&'a Attribute>,
     pub backtrace: Option<&'a Attribute>,
-    pub from: Option<From<'a>>,
+    pub from: Option<&'a Attribute>,
     pub transparent: Option<Transparent<'a>>,
-    pub fmt: Option<Fmt<'a>>,
 }
 
 #[derive(Clone)]
@@ -24,33 +23,13 @@ pub struct Display<'a> {
     pub args: TokenStream,
     pub requires_fmt_machinery: bool,
     pub has_bonus_display: bool,
-    pub infinite_recursive: bool,
     pub implied_bounds: Set<(usize, Trait)>,
-    pub bindings: Vec<(Ident, TokenStream)>,
-}
-
-#[derive(Copy, Clone)]
-pub struct Source<'a> {
-    pub original: &'a Attribute,
-    pub span: Span,
-}
-
-#[derive(Copy, Clone)]
-pub struct From<'a> {
-    pub original: &'a Attribute,
-    pub span: Span,
 }
 
 #[derive(Copy, Clone)]
 pub struct Transparent<'a> {
     pub original: &'a Attribute,
     pub span: Span,
-}
-
-#[derive(Clone)]
-pub struct Fmt<'a> {
-    pub original: &'a Attribute,
-    pub path: ExprPath,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -73,7 +52,6 @@ pub fn get(input: &[Attribute]) -> Result<Attrs> {
         backtrace: None,
         from: None,
         transparent: None,
-        fmt: None,
     };
 
     for attr in input {
@@ -84,13 +62,7 @@ pub fn get(input: &[Attribute]) -> Result<Attrs> {
             if attrs.source.is_some() {
                 return Err(Error::new_spanned(attr, "duplicate #[source] attribute"));
             }
-            let span = (attr.pound_token.span)
-                .join(attr.bracket_token.span.join())
-                .unwrap_or(attr.path().get_ident().unwrap().span());
-            attrs.source = Some(Source {
-                original: attr,
-                span,
-            });
+            attrs.source = Some(attr);
         } else if attr.path().is_ident("backtrace") {
             attr.meta.require_path_only()?;
             if attrs.backtrace.is_some() {
@@ -108,13 +80,7 @@ pub fn get(input: &[Attribute]) -> Result<Attrs> {
             if attrs.from.is_some() {
                 return Err(Error::new_spanned(attr, "duplicate #[from] attribute"));
             }
-            let span = (attr.pound_token.span)
-                .join(attr.bracket_token.span.join())
-                .unwrap_or(attr.path().get_ident().unwrap().span());
-            attrs.from = Some(From {
-                original: attr,
-                span,
-            });
+            attrs.from = Some(attr);
         }
     }
 
@@ -122,17 +88,14 @@ pub fn get(input: &[Attribute]) -> Result<Attrs> {
 }
 
 fn parse_error_attribute<'a>(attrs: &mut Attrs<'a>, attr: &'a Attribute) -> Result<()> {
-    mod kw {
-        syn::custom_keyword!(transparent);
-        syn::custom_keyword!(fmt);
-    }
+    syn::custom_keyword!(transparent);
 
     attr.parse_args_with(|input: ParseStream| {
         let lookahead = input.lookahead1();
         let fmt = if lookahead.peek(LitStr) {
             input.parse::<LitStr>()?
-        } else if lookahead.peek(kw::transparent) {
-            let kw: kw::transparent = input.parse()?;
+        } else if lookahead.peek(transparent) {
+            let kw: transparent = input.parse()?;
             if attrs.transparent.is_some() {
                 return Err(Error::new_spanned(
                     attr,
@@ -142,21 +105,6 @@ fn parse_error_attribute<'a>(attrs: &mut Attrs<'a>, attr: &'a Attribute) -> Resu
             attrs.transparent = Some(Transparent {
                 original: attr,
                 span: kw.span,
-            });
-            return Ok(());
-        } else if lookahead.peek(kw::fmt) {
-            input.parse::<kw::fmt>()?;
-            input.parse::<Token![=]>()?;
-            let path: ExprPath = input.parse()?;
-            if attrs.fmt.is_some() {
-                return Err(Error::new_spanned(
-                    attr,
-                    "duplicate #[error(fmt = ...)] attribute",
-                ));
-            }
-            attrs.fmt = Some(Fmt {
-                original: attr,
-                path,
             });
             return Ok(());
         } else {
@@ -178,9 +126,7 @@ fn parse_error_attribute<'a>(attrs: &mut Attrs<'a>, attr: &'a Attribute) -> Resu
             args,
             requires_fmt_machinery,
             has_bonus_display: false,
-            infinite_recursive: false,
             implied_bounds: Set::new(),
-            bindings: Vec::new(),
         };
         if attrs.display.is_some() {
             return Err(Error::new_spanned(
@@ -301,39 +247,19 @@ fn parse_token_expr(input: ParseStream, mut begin_expr: bool) -> Result<TokenStr
 
 impl ToTokens for Display<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        if self.infinite_recursive {
-            let span = self.fmt.span();
-            tokens.extend(quote_spanned! {span=>
-                #[warn(unconditional_recursion)]
-                fn _fmt() { _fmt() }
-            });
-        }
-
         let fmt = &self.fmt;
         let args = &self.args;
 
         // Currently `write!(f, "text")` produces less efficient code than
         // `f.write_str("text")`. We recognize the case when the format string
         // has no braces and no interpolated values, and generate simpler code.
-        let write = if self.requires_fmt_machinery {
+        tokens.extend(if self.requires_fmt_machinery {
             quote! {
                 ::core::write!(__formatter, #fmt #args)
             }
         } else {
             quote! {
                 __formatter.write_str(#fmt)
-            }
-        };
-
-        tokens.extend(if self.bindings.is_empty() {
-            write
-        } else {
-            let locals = self.bindings.iter().map(|(local, _value)| local);
-            let values = self.bindings.iter().map(|(_local, value)| value);
-            quote! {
-                match (#(#values,)*) {
-                    (#(#locals,)*) => #write
-                }
             }
         });
     }

@@ -54,13 +54,8 @@ pub enum ExpressionError {
         rhs_expr: Handle<crate::Expression>,
         rhs_type: crate::TypeInner,
     },
-    #[error("Expected selection argument types to match, but reject value of type {reject:?} does not match accept value of value {accept:?}")]
-    SelectValuesTypeMismatch {
-        accept: crate::TypeInner,
-        reject: crate::TypeInner,
-    },
-    #[error("Expected selection condition to be a boolean value, got {actual:?}")]
-    SelectConditionNotABool { actual: crate::TypeInner },
+    #[error("Selecting is not possible")]
+    InvalidSelectTypes,
     #[error("Relational argument {0:?} is not a boolean vector")]
     InvalidBooleanVector(Handle<crate::Expression>),
     #[error("Relational argument {0:?} is not a float")]
@@ -906,8 +901,7 @@ impl super::Validator {
             } => {
                 let accept_inner = &resolver[accept];
                 let reject_inner = &resolver[reject];
-                let condition_ty = &resolver[condition];
-                let condition_good = match *condition_ty {
+                let condition_good = match resolver[condition] {
                     Ti::Scalar(Sc {
                         kind: Sk::Bool,
                         width: _,
@@ -934,16 +928,8 @@ impl super::Validator {
                     },
                     _ => false,
                 };
-                if accept_inner != reject_inner {
-                    return Err(ExpressionError::SelectValuesTypeMismatch {
-                        accept: accept_inner.clone(),
-                        reject: reject_inner.clone(),
-                    });
-                }
-                if !condition_good {
-                    return Err(ExpressionError::SelectConditionNotABool {
-                        actual: condition_ty.clone(),
-                    });
+                if !condition_good || accept_inner != reject_inner {
+                    return Err(ExpressionError::InvalidSelectTypes);
                 }
                 ShaderStages::all()
             }
