@@ -41,23 +41,19 @@ class FasterMakeBackend(MakeBackend, PartialBackend):
         self._generated_files_map = {}
         self._generated_files = []
 
-    def _add_preprocess(self, obj, path, dest, target=None, **kwargs):
-        if target is None:
-            target = mozpath.basename(path)
-        # This matches what PP_TARGETS do in config/rules.
-        if target.endswith(".in"):
-            target = target[:-3]
-        if target.endswith(".css"):
+    def _add_preprocess(self, obj, src, dest, f, **kwargs):
+        basename = FinalTargetPreprocessedFiles.get_obj_basename(f)
+        if basename.endswith(".css"):
             kwargs["marker"] = "%"
         depfile = mozpath.join(
             self.environment.topobjdir,
             "faster",
             ".deps",
-            mozpath.join(obj.install_target, dest, target).replace("/", "_"),
+            mozpath.join(obj.install_target, dest, basename).replace("/", "_"),
         )
         self._install_manifests[obj.install_target].add_preprocess(
-            mozpath.join(obj.srcdir, path),
-            mozpath.join(dest, target),
+            mozpath.join(obj.srcdir, src),
+            mozpath.join(dest, basename),
             depfile,
             **kwargs,
         )
@@ -99,9 +95,7 @@ class FasterMakeBackend(MakeBackend, PartialBackend):
                         src = f.full_path
 
                     if isinstance(obj, FinalTargetPreprocessedFiles):
-                        self._add_preprocess(
-                            obj, src, path, target=f.target_basename, defines=defines
-                        )
+                        self._add_preprocess(obj, src, path, f, defines=defines)
                     elif "*" in f:
 
                         def _prefix(s):
