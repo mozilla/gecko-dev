@@ -546,8 +546,8 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
                 TAG,
                 "clickTranslateButton: Clicked the Translate button from the new main menu design.",
             )
-            TranslationsRobot().interact()
-            return TranslationsRobot.Transition()
+            TranslationsRobot(composeTestRule).interact()
+            return TranslationsRobot.Transition(composeTestRule)
         }
 
         fun clickTranslatedToButton(language: String, interact: TranslationsRobot.() -> Unit): TranslationsRobot.Transition {
@@ -561,8 +561,8 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
                 TAG,
                 "clickTranslateButton: Clicked the Translate button from the new main menu design.",
             )
-            TranslationsRobot().interact()
-            return TranslationsRobot.Transition()
+            TranslationsRobot(composeTestRule).interact()
+            return TranslationsRobot.Transition(composeTestRule)
         }
 
         fun clickShareButton(interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {

@@ -615,13 +615,13 @@ class MainMenuTestCompose : TestSetup() {
             expandMainMenu()
             openToolsMenu()
         }.clickTranslateButton {
-            verifyTranslationSheetIsDisplayed(composeTestRule, isDisplayed = true)
-        }.clickTranslateButton(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+        }.clickTranslateButton {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             openToolsMenu()
         }.clickTranslatedToButton("English") {
-            verifyTranslationSheetIsDisplayed(composeTestRule, isDisplayed = true)
-        }.clickShowOriginalButton(composeTestRule) {
+            verifyTranslationSheetIsDisplayed(isDisplayed = true)
+        }.clickShowOriginalButton {
             verifyPageContent(testPage.content)
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             openToolsMenu()

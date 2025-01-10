@@ -9,6 +9,7 @@ package org.mozilla.fenix.ui.robots
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.espresso.Espresso.onView
@@ -205,6 +206,14 @@ class NavigationToolbarRobot {
             itemWithDescription("More options"),
             itemWithResId("$packageName:id/counter_box"),
         )
+    }
+
+    fun verifyTranslationButton(isPageTranslated: Boolean, originalLanguage: String = "", translatedLanguage: String = "") {
+        if (isPageTranslated) {
+            assertUIObjectExists(itemWithDescription("Page translated from $originalLanguage to $translatedLanguage."))
+        } else {
+            assertUIObjectExists(itemWithDescription(getStringResource(R.string.browser_toolbar_translate)))
+        }
     }
 
     class Transition {
@@ -479,6 +488,15 @@ class NavigationToolbarRobot {
 
             SearchRobot().interact()
             return SearchRobot.Transition()
+        }
+
+        fun clickTranslateButton(composeTestRule: ComposeTestRule, interact: TranslationsRobot.() -> Unit): TranslationsRobot.Transition {
+            Log.i(TAG, "clickTranslateButton: Trying to click the translate button")
+            itemWithDescription(getStringResource(R.string.browser_toolbar_translate)).click()
+            Log.i(TAG, "clickTranslateButton: Clicked the translate button")
+
+            TranslationsRobot(composeTestRule).interact()
+            return TranslationsRobot.Transition(composeTestRule)
         }
     }
 }

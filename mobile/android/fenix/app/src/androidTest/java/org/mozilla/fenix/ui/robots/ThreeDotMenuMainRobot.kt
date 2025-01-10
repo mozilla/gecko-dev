@@ -729,6 +729,15 @@ class ThreeDotMenuMainRobot {
             BrowserRobot().interact()
             return BrowserRobot.Transition()
         }
+
+        fun clickTranslateButton(composeTestRule: ComposeTestRule, interact: TranslationsRobot.() -> Unit): TranslationsRobot.Transition {
+            Log.i(TAG, "clickTranslateButton: Trying to click the \"Translate page\" button")
+            translateButton().click()
+            Log.i(TAG, "clickTranslateButton: Clicked the \"Translate page\" button")
+
+            TranslationsRobot(composeTestRule).interact()
+            return TranslationsRobot.Transition(composeTestRule)
+        }
     }
 }
 private fun threeDotMenuRecyclerView() =
