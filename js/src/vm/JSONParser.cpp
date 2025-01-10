@@ -1129,8 +1129,7 @@ inline bool JSONReviveHandler<CharT>::finishObjectMember(
   }
   parseRecord->setValue(value);
   Rooted<JS::PropertyKey> key(context(), (*properties)->back().id);
-  Rooted<ParseRecordObject::EntryMap*> parseRecordBack(context(),
-                                                       parseRecordStack.back());
+  Rooted<ParseRecordEntry*> parseRecordBack(context(), parseRecordStack.back());
   return finishMemberParseRecord(key, parseRecordBack);
 }
 
@@ -1141,8 +1140,7 @@ inline bool JSONReviveHandler<CharT>::finishObject(
   if (!Base::finishObject(stack, vp, properties)) {
     return false;
   }
-  Rooted<ParseRecordObject::EntryMap*> parseRecordBack(context(),
-                                                       parseRecordStack.back());
+  Rooted<ParseRecordEntry*> parseRecordBack(context(), parseRecordStack.back());
   if (!finishCompoundParseRecord(vp, parseRecordBack)) {
     return false;
   }
@@ -1177,8 +1175,7 @@ inline bool JSONReviveHandler<CharT>::arrayElement(
   // way to get more than IntMax elements
   MOZ_ASSERT(index <= js::PropertyKey::IntMax);
   Rooted<JS::PropertyKey> key(context(), js::PropertyKey::Int(int32_t(index)));
-  Rooted<ParseRecordObject::EntryMap*> parseRecordBack(context(),
-                                                       parseRecordStack.back());
+  Rooted<ParseRecordEntry*> parseRecordBack(context(), parseRecordStack.back());
   return finishMemberParseRecord(key, parseRecordBack);
 }
 
@@ -1189,8 +1186,7 @@ inline bool JSONReviveHandler<CharT>::finishArray(
   if (!Base::finishArray(stack, vp, elements)) {
     return false;
   }
-  Rooted<ParseRecordObject::EntryMap*> parseRecordBack(context(),
-                                                       parseRecordStack.back());
+  Rooted<ParseRecordEntry*> parseRecordBack(context(), parseRecordStack.back());
   if (!finishCompoundParseRecord(vp, parseRecordBack)) {
     return false;
   }
@@ -1201,8 +1197,7 @@ inline bool JSONReviveHandler<CharT>::finishArray(
 
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::finishMemberParseRecord(
-    Handle<JS::PropertyKey> key,
-    Handle<ParseRecordObject::EntryMap*> parseEntry) {
+    Handle<JS::PropertyKey> key, Handle<ParseRecordEntry*> parseEntry) {
   parseRecord->setKey(context(), key.get());
   Rooted<Value> pro(context(), ObjectValue(*parseRecord));
   parseRecord = nullptr;
@@ -1211,7 +1206,7 @@ inline bool JSONReviveHandler<CharT>::finishMemberParseRecord(
 
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::finishCompoundParseRecord(
-    const Value& value, Handle<ParseRecordObject::EntryMap*> parseEntry) {
+    const Value& value, Handle<ParseRecordEntry*> parseEntry) {
   parseRecord = ParseRecordObject::create(context(), value);
   if (!parseRecord) {
     return false;
