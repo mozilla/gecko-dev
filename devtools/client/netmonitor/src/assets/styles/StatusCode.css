@@ -20,6 +20,7 @@
   :root[forced-colors-active] &[data-code] {
     border: 1px solid currentColor;
     background: transparent;
+    color: CanvasText;
   }
 }
 

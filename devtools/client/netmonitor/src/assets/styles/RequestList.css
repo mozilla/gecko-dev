@@ -376,6 +376,10 @@
   outline: 1px solid currentColor;
 }
 
+:root[forced-colors-active] .request-list-item.selected .status-code {
+  color: var(--theme-selection-color);
+}
+
 .request-list-item.selected .status-code-blocked,
 .request-list-item.selected .requests-security-state-icon,
 .request-list-item.selected .tracking-resource {
