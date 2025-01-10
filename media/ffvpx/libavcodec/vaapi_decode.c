@@ -39,12 +39,24 @@ int ff_vaapi_decode_make_param_buffer(AVCodecContext *avctx,
 {
     VAAPIDecodeContext *ctx = avctx->internal->hwaccel_priv_data;
     VAStatus vas;
-    VABufferID buffer;
 
-    av_assert0(pic->nb_param_buffers + 1 <= MAX_PARAM_BUFFERS);
+    av_assert0(pic->nb_param_buffers <= pic->nb_param_buffers_allocated);
+    if (pic->nb_param_buffers == pic->nb_param_buffers_allocated) {
+        VABufferID *tmp =
+            av_realloc_array(pic->param_buffers,
+                             pic->nb_param_buffers_allocated + 16,
+                             sizeof(*pic->param_buffers));
+        if (!tmp)
+            return AVERROR(ENOMEM);
+
+        pic->param_buffers = tmp;
+        pic->nb_param_buffers_allocated += 16;
+    }
+    av_assert0(pic->nb_param_buffers + 1 <= pic->nb_param_buffers_allocated);
 
     vas = vaCreateBuffer(ctx->hwctx->display, ctx->va_context,
-                         type, size, 1, (void*)data, &buffer);
+                         type, size, 1, (void*)data,
+                         &pic->param_buffers[pic->nb_param_buffers]);
     if (vas != VA_STATUS_SUCCESS) {
         av_log(avctx, AV_LOG_ERROR, "Failed to create parameter "
                "buffer (type %d): %d (%s).\n",
@@ -52,13 +64,13 @@ int ff_vaapi_decode_make_param_buffer(AVCodecContext *avctx,
         return AVERROR(EIO);
     }
 
-    pic->param_buffers[pic->nb_param_buffers++] = buffer;
-
     av_log(avctx, AV_LOG_DEBUG, "Param buffer (type %d, %zu bytes) "
-           "is %#x.\n", type, size, buffer);
+           "is %#x.\n", type, size, pic->param_buffers[pic->nb_param_buffers]);
+
+    ++pic->nb_param_buffers;
+
     return 0;
 }
-
 
 int ff_vaapi_decode_make_slice_buffer(AVCodecContext *avctx,
                                       VAAPIDecodePicture *pic,
@@ -72,18 +84,19 @@ int ff_vaapi_decode_make_slice_buffer(AVCodecContext *avctx,
     VAStatus vas;
     int index;
 
-    av_assert0(pic->nb_slices <= pic->slices_allocated);
-    if (pic->nb_slices == pic->slices_allocated) {
-        pic->slice_buffers =
+    av_assert0(pic->nb_slices <= pic->nb_slice_buffers_allocated);
+    if (pic->nb_slices == pic->nb_slice_buffers_allocated) {
+        VABufferID *tmp =
             av_realloc_array(pic->slice_buffers,
-                             pic->slices_allocated ? pic->slices_allocated * 2 : 64,
+                             pic->nb_slice_buffers_allocated ? pic->nb_slice_buffers_allocated * 2 : 64,
                              2 * sizeof(*pic->slice_buffers));
-        if (!pic->slice_buffers)
+        if (!tmp)
             return AVERROR(ENOMEM);
 
-        pic->slices_allocated = pic->slices_allocated ? pic->slices_allocated * 2 : 64;
+        pic->slice_buffers = tmp;
+        pic->nb_slice_buffers_allocated = pic->nb_slice_buffers_allocated ? pic->nb_slice_buffers_allocated * 2 : 64;
     }
-    av_assert0(pic->nb_slices + 1 <= pic->slices_allocated);
+    av_assert0(pic->nb_slices + 1 <= pic->nb_slice_buffers_allocated);
 
     index = 2 * pic->nb_slices;
 
@@ -157,6 +170,11 @@ int ff_vaapi_decode_issue(AVCodecContext *avctx,
     VAStatus vas;
     int err;
 
+    if (pic->nb_slices <= 0) {
+        err = AVERROR(EINVAL);
+        goto fail;
+    }
+
     av_log(avctx, AV_LOG_DEBUG, "Decode to surface %#x.\n",
            pic->output_surface);
 
@@ -216,9 +234,11 @@ fail:
     ff_vaapi_decode_destroy_buffers(avctx, pic);
 fail_at_end:
 exit:
-    pic->nb_param_buffers = 0;
-    pic->nb_slices        = 0;
-    pic->slices_allocated = 0;
+    pic->nb_param_buffers           = 0;
+    pic->nb_param_buffers_allocated = 0;
+    av_freep(&pic->param_buffers);
+    pic->nb_slices                  = 0;
+    pic->nb_slice_buffers_allocated = 0;
     av_freep(&pic->slice_buffers);
 
     return err;
@@ -229,9 +249,11 @@ int ff_vaapi_decode_cancel(AVCodecContext *avctx,
 {
     ff_vaapi_decode_destroy_buffers(avctx, pic);
 
-    pic->nb_param_buffers = 0;
-    pic->nb_slices        = 0;
-    pic->slices_allocated = 0;
+    pic->nb_param_buffers           = 0;
+    pic->nb_param_buffers_allocated = 0;
+    av_freep(&pic->param_buffers);
+    pic->nb_slices                  = 0;
+    pic->nb_slice_buffers_allocated = 0;
     av_freep(&pic->slice_buffers);
 
     return 0;
@@ -442,6 +464,9 @@ static const struct {
     MAP(AV1,         AV1_MAIN,        AV1Profile0),
     MAP(AV1,         AV1_HIGH,        AV1Profile1),
 #endif
+#if VA_CHECK_VERSION(1, 22, 0)
+    MAP(H266,        VVC_MAIN_10,     VVCMain10),
+#endif
 
 #undef MAP
 };
@@ -600,22 +625,27 @@ static int vaapi_decode_make_config(AVCodecContext *avctx,
         if (err < 0)
             goto fail;
 
-        frames->initial_pool_size = 1;
-        // Add per-codec number of surfaces used for storing reference frames.
-        switch (avctx->codec_id) {
-        case AV_CODEC_ID_H264:
-        case AV_CODEC_ID_HEVC:
-        case AV_CODEC_ID_AV1:
-            frames->initial_pool_size += 16;
-            break;
-        case AV_CODEC_ID_VP9:
-            frames->initial_pool_size += 8;
-            break;
-        case AV_CODEC_ID_VP8:
-            frames->initial_pool_size += 3;
-            break;
-        default:
-            frames->initial_pool_size += 2;
+        if (CONFIG_VAAPI_1)
+            frames->initial_pool_size = 0;
+        else {
+            frames->initial_pool_size = 1;
+            // Add per-codec number of surfaces used for storing reference frames.
+            switch (avctx->codec_id) {
+            case AV_CODEC_ID_H264:
+            case AV_CODEC_ID_H266:
+            case AV_CODEC_ID_HEVC:
+            case AV_CODEC_ID_AV1:
+                frames->initial_pool_size += 16;
+                break;
+            case AV_CODEC_ID_VP9:
+                frames->initial_pool_size += 8;
+                break;
+            case AV_CODEC_ID_VP8:
+                frames->initial_pool_size += 3;
+                break;
+            default:
+                frames->initial_pool_size += 2;
+            }
         }
     }
 

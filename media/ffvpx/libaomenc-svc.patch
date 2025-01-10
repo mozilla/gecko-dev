@@ -1,13 +1,8 @@
 diff --git a/media/ffvpx/libavcodec/libaomenc.c b/media/ffvpx/libavcodec/libaomenc.c
-index d660afab4ecc2..b09a31bb8631f 100644
+index 0f7571ee7a1ba..a116989b1f4bc 100644
 --- a/media/ffvpx/libavcodec/libaomenc.c
 +++ b/media/ffvpx/libavcodec/libaomenc.c
-@@ -25,16 +25,17 @@
-
- #include <limits.h>
-
- #define AOM_DISABLE_CTRL_TYPECHECKS 1
- #include <aom/aom_encoder.h>
+@@ -30,6 +30,7 @@
  #include <aom/aomcx.h>
 
  #include "libavutil/avassert.h"
@@ -15,17 +10,7 @@ index d660afab4ecc2..b09a31bb8631f 100644
  #include "libavutil/base64.h"
  #include "libavutil/common.h"
  #include "libavutil/cpu.h"
- #include "libavutil/imgutils.h"
- #include "libavutil/mathematics.h"
- #include "libavutil/mem.h"
- #include "libavutil/opt.h"
- #include "libavutil/pixdesc.h"
-@@ -130,16 +131,17 @@ typedef struct AOMEncoderContext {
-     int enable_masked_comp;
-     int enable_obmc;
-     int enable_onesided_comp;
-     int enable_reduced_reference_set;
-     int enable_smooth_interintra;
+@@ -137,6 +138,7 @@ typedef struct AOMEncoderContext {
      int enable_diff_wtd_comp;
      int enable_dist_wtd_comp;
      int enable_dual_filter;
@@ -33,17 +18,7 @@ index d660afab4ecc2..b09a31bb8631f 100644
      AVDictionary *aom_params;
  } AOMContext;
 
- static const char *const ctlidstr[] = {
-     [AOME_SET_CPUUSED]          = "AOME_SET_CPUUSED",
-     [AOME_SET_CQ_LEVEL]         = "AOME_SET_CQ_LEVEL",
-     [AOME_SET_ENABLEAUTOALTREF] = "AOME_SET_ENABLEAUTOALTREF",
-     [AOME_SET_ARNR_MAXFRAMES]   = "AOME_SET_ARNR_MAXFRAMES",
-@@ -210,16 +212,17 @@ static const char *const ctlidstr[] = {
- #endif
- #ifdef AOM_CTRL_AV1E_GET_SEQ_LEVEL_IDX
-     [AV1E_GET_SEQ_LEVEL_IDX]            = "AV1E_GET_SEQ_LEVEL_IDX",
- #endif
- #ifdef AOM_CTRL_AV1E_GET_TARGET_SEQ_LEVEL_IDX
+@@ -201,6 +203,7 @@ static const char *const ctlidstr[] = {
      [AV1E_GET_TARGET_SEQ_LEVEL_IDX]     = "AV1E_GET_TARGET_SEQ_LEVEL_IDX",
  #endif
      [AV1_GET_NEW_FRAME_IMAGE]           = "AV1_GET_NEW_FRAME_IMAGE",
@@ -51,17 +26,7 @@ index d660afab4ecc2..b09a31bb8631f 100644
  };
 
  static av_cold void log_encoder_error(AVCodecContext *avctx, const char *desc)
- {
-     AOMContext *ctx    = avctx->priv_data;
-     const char *error  = aom_codec_error(&ctx->encoder);
-     const char *detail = aom_codec_error_detail(&ctx->encoder);
-
-@@ -391,16 +394,41 @@ static av_cold int codecctl_imgp(AVCodecContext *avctx,
-                  ctlidstr[id]);
-         log_encoder_error(avctx, buf);
-         return AVERROR(EINVAL);
-     }
-
+@@ -382,6 +385,31 @@ static av_cold int codecctl_imgp(AVCodecContext *avctx,
      return 0;
  }
 
@@ -93,17 +58,7 @@ index d660afab4ecc2..b09a31bb8631f 100644
  static av_cold int aom_free(AVCodecContext *avctx)
  {
      AOMContext *ctx = avctx->priv_data;
-
- #if defined(AOM_CTRL_AV1E_GET_NUM_OPERATING_POINTS) && \
-     defined(AOM_CTRL_AV1E_GET_SEQ_LEVEL_IDX) && \
-     defined(AOM_CTRL_AV1E_GET_TARGET_SEQ_LEVEL_IDX)
-     if (ctx->encoder.iface && !(avctx->flags & AV_CODEC_FLAG_PASS1)) {
-@@ -680,16 +708,28 @@ static int choose_tiling(AVCodecContext *avctx,
-         enccfg->tile_heights[i] = tile_size +
-             (i < rounding / 2 ||
-              i > ctx->tile_rows - 1 - (rounding + 1) / 2);
-     }
-
+@@ -428,6 +456,18 @@ static av_cold int aom_free(AVCodecContext *avctx)
      return 0;
  }
 
@@ -119,22 +74,12 @@ index d660afab4ecc2..b09a31bb8631f 100644
 +    }
 +}
 +
- static av_cold int aom_init(AVCodecContext *avctx,
-                             const struct aom_codec_iface *iface)
- {
-     AOMContext *ctx = avctx->priv_data;
-     const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(avctx->pix_fmt);
-     struct aom_codec_enc_cfg enccfg = { 0 };
- #ifdef AOM_FRAME_IS_INTRAONLY
-     aom_codec_flags_t flags =
-@@ -993,16 +1033,51 @@ static av_cold int aom_init(AVCodecContext *avctx,
-     if (ctx->row_mt >= 0)
-         codecctl_int(avctx, AV1E_SET_ROW_MT, ctx->row_mt);
- #endif
- #ifdef AOM_CTRL_AV1E_SET_ENABLE_INTRABC
+ static int set_pix_fmt(AVCodecContext *avctx, aom_codec_caps_t codec_caps,
+                        struct aom_codec_enc_cfg *enccfg, aom_codec_flags_t *flags,
+                        aom_img_fmt_t *img_fmt)
+@@ -968,6 +1008,41 @@ static av_cold int aom_init(AVCodecContext *avctx,
      if (ctx->enable_intrabc >= 0)
          codecctl_int(avctx, AV1E_SET_ENABLE_INTRABC, ctx->enable_intrabc);
- #endif
 
 +    if (enccfg.rc_end_usage == AOM_CBR) {
 +        aom_svc_params_t svc_params = {};
@@ -173,42 +118,8 @@ index d660afab4ecc2..b09a31bb8631f 100644
 +
  #if AOM_ENCODER_ABI_VERSION >= 23
      {
-         AVDictionaryEntry *en = NULL;
-
-         while ((en = av_dict_get(ctx->aom_params, "", en, AV_DICT_IGNORE_SUFFIX))) {
-             int ret = aom_codec_set_option(&ctx->encoder, en->key, en->value);
-             if (ret != AOM_CODEC_OK) {
-                 log_encoder_error(avctx, en->key);
-@@ -1525,16 +1600,17 @@ static const AVOption options[] = {
-     { "enable-diff-wtd-comp",         "Enable difference-weighted compound",               OFFSET(enable_diff_wtd_comp),         AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
-     { "enable-dist-wtd-comp",         "Enable distance-weighted compound",                 OFFSET(enable_dist_wtd_comp),         AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
-     { "enable-onesided-comp",         "Enable one sided compound",                         OFFSET(enable_onesided_comp),         AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
-     { "enable-interinter-wedge",      "Enable interinter wedge compound",                  OFFSET(enable_interinter_wedge),      AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
-     { "enable-interintra-wedge",      "Enable interintra wedge compound",                  OFFSET(enable_interintra_wedge),      AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
-     { "enable-masked-comp",           "Enable masked compound",                            OFFSET(enable_masked_comp),           AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
-     { "enable-interintra-comp",       "Enable interintra compound",                        OFFSET(enable_interintra_comp),       AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
-     { "enable-smooth-interintra",     "Enable smooth interintra mode",                     OFFSET(enable_smooth_interintra),     AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
-+    { "svc-parameters", "SVC configuration using a :-separated list of key=value parameters (only applied in CBR mode)", OFFSET(svc_parameters), AV_OPT_TYPE_DICT, { 0 }, 0, 0, VE},
- #if AOM_ENCODER_ABI_VERSION >= 23
-     { "aom-params",                   "Set libaom options using a :-separated list of key=value pairs", OFFSET(aom_params), AV_OPT_TYPE_DICT, { 0 }, 0, 0, VE },
- #endif
-     { NULL },
- };
-
- static const FFCodecDefault defaults[] = {
-     { "b",                 "0" },
---
-2.34.1
-
-diff --git a/media/ffvpx/libavcodec/libaomenc.c b/media/ffvpx/libavcodec/libaomenc.c
---- a/media/ffvpx/libavcodec/libaomenc.c
-+++ b/media/ffvpx/libavcodec/libaomenc.c
-@@ -1391,16 +1391,35 @@ FF_ENABLE_DEPRECATION_WARNINGS
-             break;
-         case AVCOL_RANGE_JPEG:
-             rawimg->range = AOM_CR_FULL_RANGE;
-             break;
-         }
+         const AVDictionaryEntry *en = NULL;
+@@ -1310,6 +1385,25 @@ FF_ENABLE_DEPRECATION_WARNINGS
  
          if (frame->pict_type == AV_PICTURE_TYPE_I)
              flags |= AOM_EFLAG_FORCE_KF;
@@ -234,8 +145,11 @@ diff --git a/media/ffvpx/libavcodec/libaomenc.c b/media/ffvpx/libavcodec/libaome
      }
  
      res = aom_codec_encode(&ctx->encoder, rawimg, timestamp, duration, flags);
-     if (res != AOM_CODEC_OK) {
-         log_encoder_error(avctx, "Error encoding frame");
-         return AVERROR_INVALIDDATA;
-     }
-     coded_size = queue_frames(avctx, pkt);
+@@ -1538,6 +1632,7 @@ static const AVOption options[] = {
+     { "enable-masked-comp",           "Enable masked compound",                            OFFSET(enable_masked_comp),           AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
+     { "enable-interintra-comp",       "Enable interintra compound",                        OFFSET(enable_interintra_comp),       AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
+     { "enable-smooth-interintra",     "Enable smooth interintra mode",                     OFFSET(enable_smooth_interintra),     AV_OPT_TYPE_BOOL, {.i64 = -1}, -1, 1, VE},
++    { "svc-parameters", "SVC configuration using a :-separated list of key=value parameters (only applied in CBR mode)", OFFSET(svc_parameters), AV_OPT_TYPE_DICT, { 0 }, 0, 0, VE},
+ #if AOM_ENCODER_ABI_VERSION >= 23
+     { "aom-params",                   "Set libaom options using a :-separated list of key=value pairs", OFFSET(aom_params), AV_OPT_TYPE_DICT, { 0 }, 0, 0, VE },
+ #endif

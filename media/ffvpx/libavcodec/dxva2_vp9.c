@@ -79,7 +79,7 @@ int ff_dxva2_vp9_fill_picture_parameters(const AVCodecContext *avctx, AVDXVACont
     pp->Reserved8Bits = 0;
 
     for (i = 0; i < 8; i++) {
-        if (h->refs[i].f->buf[0]) {
+        if (h->refs[i].f) {
             fill_picture_entry(&pp->ref_frame_map[i], ff_dxva2_get_surface_index(avctx, ctx, h->refs[i].f, 0), 0);
             pp->ref_frame_coded_width[i]  = h->refs[i].f->width;
             pp->ref_frame_coded_height[i] = h->refs[i].f->height;
@@ -89,7 +89,7 @@ int ff_dxva2_vp9_fill_picture_parameters(const AVCodecContext *avctx, AVDXVACont
 
     for (i = 0; i < 3; i++) {
         uint8_t refidx = h->h.refidx[i];
-        if (h->refs[refidx].f->buf[0])
+        if (h->refs[refidx].f)
             fill_picture_entry(&pp->frame_refs[i], ff_dxva2_get_surface_index(avctx, ctx, h->refs[refidx].f, 0), 0);
         else
             pp->frame_refs[i].bPicEntry = 0xFF;
@@ -172,7 +172,7 @@ static int commit_bitstream_and_slice_buffer(AVCodecContext *avctx,
     const VP9SharedContext *h = avctx->priv_data;
     AVDXVAContext *ctx = DXVA_CONTEXT(avctx);
     struct vp9_dxva2_picture_context *ctx_pic = h->frames[CUR_FRAME].hwaccel_picture_private;
-    void     *dxva_data_ptr;
+    void     *dxva_data_ptr = NULL;
     uint8_t  *dxva_data;
     unsigned dxva_size;
     unsigned padding;
@@ -200,7 +200,7 @@ static int commit_bitstream_and_slice_buffer(AVCodecContext *avctx,
 
     dxva_data = dxva_data_ptr;
 
-    if (ctx_pic->slice.SliceBytesInBuffer > dxva_size) {
+    if (!dxva_data || ctx_pic->slice.SliceBytesInBuffer > dxva_size) {
         av_log(avctx, AV_LOG_ERROR, "Failed to build bitstream");
         return -1;
     }

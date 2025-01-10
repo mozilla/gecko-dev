@@ -6,16 +6,27 @@
 
 /* Stubs for dovi_rpu.{c,h} */
 
+enum {
+    FF_DOVI_WRAP_T35        = 1 << 1, ///< wrap inside T.35+EMDF
+};
+
 typedef struct AVCtx AVContext;
+
+typedef struct AVDOVIDecoderConfigurationRecord {
+    uint8_t dv_profile;
+} AVDOVIDecoderConfigurationRecord;
 
 typedef struct DOVICtx {
   int dv_profile;
   void* logctx;
   int operating_point;
+  AVDOVIDecoderConfigurationRecord cfg;
+  #define FF_DOVI_AUTOMATIC -1
+    int enable;
 } DOVIContext;
 
-typedef struct AVDOVICConfRecord {
-} AVDOVIDecoderConfigurationRecord;
+typedef struct AVDOVIMetadata {
+} AVDOVIMetadata;
 
 static void ff_dovi_ctx_unref(DOVIContext* ctx) {}
 static void ff_dovi_update_cfg(DOVIContext* ctx,
@@ -24,6 +35,16 @@ static int ff_dovi_rpu_parse(DOVIContext* ctx, uint8_t* buf, size_t len,
                              int err_recognition) {
   return 0;
 }
+
 static int ff_dovi_attach_side_data(DOVIContext* ctx, AVFrame* frame) {
+  return 0;
+}
+
+static int ff_dovi_configure(DOVIContext *s, AVCodecContext *avctx) {
+  return 0;
+}
+
+static int ff_dovi_rpu_generate(DOVIContext *s, const AVDOVIMetadata *metadata,
+                                int flags, uint8_t **out_rpu, int *out_size) {
   return 0;
 }

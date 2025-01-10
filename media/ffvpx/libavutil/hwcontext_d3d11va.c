@@ -36,6 +36,7 @@
 #include "hwcontext_d3d11va.h"
 #include "hwcontext_internal.h"
 #include "imgutils.h"
+#include "mem.h"
 #include "pixdesc.h"
 #include "pixfmt.h"
 #include "thread.h"
@@ -101,6 +102,10 @@ static const struct {
     { DXGI_FORMAT_Y210,         AV_PIX_FMT_Y210 },
     { DXGI_FORMAT_Y410,         AV_PIX_FMT_XV30 },
     { DXGI_FORMAT_P016,         AV_PIX_FMT_P012 },
+    { DXGI_FORMAT_Y216,         AV_PIX_FMT_Y216 },
+    { DXGI_FORMAT_Y416,         AV_PIX_FMT_XV48 },
+    // There is no 12bit pixel format defined in DXGI_FORMAT*, use 16bit to compatible
+    // with 12 bit AV_PIX_FMT* formats.
     { DXGI_FORMAT_Y216,         AV_PIX_FMT_Y212 },
     { DXGI_FORMAT_Y416,         AV_PIX_FMT_XV36 },
     // Special opaque formats. The pix_fmt is merely a place holder, as the
@@ -247,9 +252,8 @@ static AVBufferRef *d3d11va_pool_alloc(void *opaque, size_t size)
     AVD3D11VAFramesContext *hwctx = &s->p;
     D3D11_TEXTURE2D_DESC  texDesc;
 
-    if (!hwctx->texture) {
+    if (!hwctx->texture)
         return d3d11va_alloc_single(ctx);
-    }
 
     ID3D11Texture2D_GetDesc(hwctx->texture, &texDesc);
 

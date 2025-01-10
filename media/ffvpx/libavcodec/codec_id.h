@@ -206,7 +206,9 @@ enum AVCodecID {
     AV_CODEC_ID_BMV_VIDEO,
     AV_CODEC_ID_VBLE,
     AV_CODEC_ID_DXTORY,
+#if FF_API_V408_CODECID
     AV_CODEC_ID_V410,
+#endif
     AV_CODEC_ID_XWD,
     AV_CODEC_ID_CDXL,
     AV_CODEC_ID_XBM,
@@ -254,8 +256,10 @@ enum AVCodecID {
     AV_CODEC_ID_012V,
     AV_CODEC_ID_AVUI,
     AV_CODEC_ID_TARGA_Y216,
+#if FF_API_V408_CODECID
     AV_CODEC_ID_V308,
     AV_CODEC_ID_V408,
+#endif
     AV_CODEC_ID_YUV4,
     AV_CODEC_ID_AVRN,
     AV_CODEC_ID_CPIA,
@@ -322,6 +326,9 @@ enum AVCodecID {
     AV_CODEC_ID_RTV1,
     AV_CODEC_ID_VMIX,
     AV_CODEC_ID_LEAD,
+    AV_CODEC_ID_DNXUC,
+    AV_CODEC_ID_RV60,
+    AV_CODEC_ID_JPEGXL_ANIM,
 
     /* various PCM "codecs" */
     AV_CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs
@@ -416,6 +423,7 @@ enum AVCodecID {
     AV_CODEC_ID_ADPCM_IMA_MOFLEX,
     AV_CODEC_ID_ADPCM_IMA_ACORN,
     AV_CODEC_ID_ADPCM_XMD,
+    AV_CODEC_ID_ADPCM_IMA_XBOX,
 
     /* AMR */
     AV_CODEC_ID_AMR_NB = 0x12000,
@@ -589,6 +597,7 @@ enum AVCodecID {
     AV_CODEC_ID_TIMED_ID3,
     AV_CODEC_ID_BIN_DATA,
     AV_CODEC_ID_SMPTE_2038,
+    AV_CODEC_ID_LCEVC,
 
 
     AV_CODEC_ID_PROBE = 0x19000, ///< codec_id is not known (like AV_CODEC_ID_NONE) but lavf should attempt to identify it

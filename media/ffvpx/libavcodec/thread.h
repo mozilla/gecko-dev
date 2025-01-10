@@ -20,7 +20,7 @@
 
 /**
  * @file
- * Multithreading support functions
+ * Multithreading API for decoders
  * @author Alexander Strange <astrange@ithinksw.com>
  */
 
@@ -30,27 +30,6 @@
 #include "libavutil/buffer.h"
 
 #include "avcodec.h"
-
-/**
- * Wait for decoding threads to finish and reset internal state.
- * Called by avcodec_flush_buffers().
- *
- * @param avctx The context.
- */
-void ff_thread_flush(AVCodecContext *avctx);
-
-/**
- * Submit a new frame to a decoding thread.
- * Returns the next available frame in picture. *got_picture_ptr
- * will be 0 if none is available.
- * The return value on success is the size of the consumed packet for
- * compatibility with FFCodec.decode. This means the decoder
- * has to consume the full packet.
- *
- * Parameters are the same as FFCodec.decode.
- */
-int ff_thread_decode_frame(AVCodecContext *avctx, AVFrame *picture,
-                           int *got_picture_ptr, AVPacket *avpkt);
 
 int ff_thread_can_start_frame(AVCodecContext *avctx);
 
@@ -74,14 +53,38 @@ void ff_thread_finish_setup(AVCodecContext *avctx);
  */
 int ff_thread_get_buffer(AVCodecContext *avctx, AVFrame *f, int flags);
 
-int ff_thread_init(AVCodecContext *s);
 int ff_slice_thread_execute_with_mainfunc(AVCodecContext *avctx,
         int (*action_func2)(AVCodecContext *c, void *arg, int jobnr, int threadnr),
         int (*main_func)(AVCodecContext *c), void *arg, int *ret, int job_count);
-void ff_thread_free(AVCodecContext *s);
-int ff_slice_thread_allocz_entries(AVCodecContext *avctx, int count);
-int ff_slice_thread_init_progress(AVCodecContext *avctx);
-void ff_thread_report_progress2(AVCodecContext *avctx, int field, int thread, int n);
-void ff_thread_await_progress2(AVCodecContext *avctx,  int field, int thread, int shift);
+
+enum ThreadingStatus {
+    FF_THREAD_IS_COPY,
+    FF_THREAD_IS_FIRST_THREAD,
+    FF_THREAD_NO_FRAME_THREADING,
+};
+
+/**
+ * Allows to synchronize objects whose lifetime is the whole decoding
+ * process among all frame threads.
+ *
+ * When called from a non-copy thread, do nothing.
+ * When called from another thread, place a new RefStruct reference
+ * at the given offset in the calling thread's private data from
+ * the RefStruct reference in the private data of the first decoding thread.
+ * The first thread must have a valid RefStruct reference at the given
+ * offset in its private data; the calling thread must not have
+ * a reference at this offset in its private data (must be NULL).
+ *
+ * @param avctx  an AVCodecContext
+ * @param offset offset of the RefStruct reference in avctx's private data
+ *
+ * @retval FF_THREAD_IS_COPY if frame-threading is in use and the
+ *         calling thread is a copy; in this case, the RefStruct reference
+ *         will be set.
+ * @retval FF_THREAD_IS_MAIN_THREAD if frame-threading is in use
+ *         and the calling thread is the main thread.
+ * @retval FF_THREAD_NO_FRAME_THREADING if frame-threading is not in use.
+ */
+enum ThreadingStatus ff_thread_sync_ref(AVCodecContext *avctx, size_t offset);
 
 #endif /* AVCODEC_THREAD_H */

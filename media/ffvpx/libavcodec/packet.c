@@ -23,6 +23,7 @@
 
 #include "libavutil/avassert.h"
 #include "libavutil/avutil.h"
+#include "libavutil/container_fifo.h"
 #include "libavutil/intreadwrite.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/mem.h"
@@ -305,6 +306,8 @@ const char *av_packet_side_data_name(enum AVPacketSideDataType type)
     case AV_PKT_DATA_IAMF_MIX_GAIN_PARAM:        return "IAMF Mix Gain Parameter Data";
     case AV_PKT_DATA_IAMF_DEMIXING_INFO_PARAM:   return "IAMF Demixing Info Parameter Data";
     case AV_PKT_DATA_IAMF_RECON_GAIN_INFO_PARAM: return "IAMF Recon Gain Info Parameter Data";
+    case AV_PKT_DATA_FRAME_CROPPING:             return "Frame Cropping";
+    case AV_PKT_DATA_LCEVC:                      return "LCEVC NAL data";
     }
     return NULL;
 }
@@ -749,4 +752,36 @@ void av_packet_side_data_free(AVPacketSideData **psd, int *pnb_sd)
 
     av_freep(psd);
     *pnb_sd = 0;
+}
+
+static void *container_packet_alloc(void *opaque)
+{
+    return av_packet_alloc();
+}
+
+static void container_packet_reset(void *opaque, void *obj)
+{
+    av_packet_unref(obj);
+}
+
+static void container_packet_free(void *opaque, void *obj)
+{
+    AVPacket *pkt = obj;
+    av_packet_free(&pkt);
+}
+
+static int container_packet_transfer(void *opaque, void *dst, void *src, unsigned flags)
+{
+    if (flags & AV_CONTAINER_FIFO_FLAG_REF)
+        return av_packet_ref(dst, src);
+
+    av_packet_move_ref(dst, src);
+    return 0;
+}
+
+AVContainerFifo *av_container_fifo_alloc_avpacket(unsigned flags)
+{
+    return av_container_fifo_alloc(NULL, container_packet_alloc,
+                                   container_packet_reset, container_packet_free,
+                                   container_packet_transfer, 0);
 }

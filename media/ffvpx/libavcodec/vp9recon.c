@@ -22,9 +22,10 @@
  */
 
 #include "libavutil/avassert.h"
+#include "libavutil/frame.h"
 #include "libavutil/mem_internal.h"
 
-#include "threadframe.h"
+#include "progressframe.h"
 #include "videodsp.h"
 #include "vp9data.h"
 #include "vp9dec.h"
@@ -298,7 +299,7 @@ void ff_vp9_intra_recon_16bpp(VP9TileData *td, ptrdiff_t y_off, ptrdiff_t uv_off
 static av_always_inline void mc_luma_unscaled(VP9TileData *td, const vp9_mc_func (*mc)[2],
                                               uint8_t *dst, ptrdiff_t dst_stride,
                                               const uint8_t *ref, ptrdiff_t ref_stride,
-                                              const ThreadFrame *ref_frame,
+                                              const ProgressFrame *ref_frame,
                                               ptrdiff_t y, ptrdiff_t x, const VP9mv *mv,
                                               int bw, int bh, int w, int h, int bytesperpixel)
 {
@@ -314,7 +315,7 @@ static av_always_inline void mc_luma_unscaled(VP9TileData *td, const vp9_mc_func
     // we use +7 because the last 7 pixels of each sbrow can be changed in
     // the longest loopfilter of the next sbrow
     th = (y + bh + 4 * !!my + 7) >> 6;
-    ff_thread_await_progress(ref_frame, FFMAX(th, 0), 0);
+    ff_progress_frame_await(ref_frame, FFMAX(th, 0));
     // The arm/aarch64 _hv filters read one more row than what actually is
     // needed, so switch to emulated edge one pixel sooner vertically
     // (!!my * 5) than horizontally (!!mx * 4).
@@ -322,7 +323,7 @@ static av_always_inline void mc_luma_unscaled(VP9TileData *td, const vp9_mc_func
     // needed, so switch to emulated edge if that would read beyond the bottom
     // right block.
     if (x < !!mx * 3 || y < !!my * 3 ||
-        ((x + !!mx * 5 > w - bw) && (y + !!my * 5 + 1 > h - bh)) ||
+        ((ARCH_AARCH64 || ARCH_ARM) && (x + !!mx * 5 > w - bw) && (y + !!my * 5 + 1 > h - bh)) ||
         x + !!mx * 4 > w - bw || y + !!my * 5 > h - bh) {
         s->vdsp.emulated_edge_mc(td->edge_emu_buffer,
                                  ref - !!my * 3 * ref_stride - !!mx * 3 * bytesperpixel,
@@ -340,7 +341,7 @@ static av_always_inline void mc_chroma_unscaled(VP9TileData *td, const vp9_mc_fu
                                                 ptrdiff_t dst_stride,
                                                 const uint8_t *ref_u, ptrdiff_t src_stride_u,
                                                 const uint8_t *ref_v, ptrdiff_t src_stride_v,
-                                                const ThreadFrame *ref_frame,
+                                                const ProgressFrame *ref_frame,
                                                 ptrdiff_t y, ptrdiff_t x, const VP9mv *mv,
                                                 int bw, int bh, int w, int h, int bytesperpixel)
 {
@@ -357,7 +358,7 @@ static av_always_inline void mc_chroma_unscaled(VP9TileData *td, const vp9_mc_fu
     // we use +7 because the last 7 pixels of each sbrow can be changed in
     // the longest loopfilter of the next sbrow
     th = (y + bh + 4 * !!my + 7) >> (6 - s->ss_v);
-    ff_thread_await_progress(ref_frame, FFMAX(th, 0), 0);
+    ff_progress_frame_await(ref_frame, FFMAX(th, 0));
     // The arm/aarch64 _hv filters read one more row than what actually is
     // needed, so switch to emulated edge one pixel sooner vertically
     // (!!my * 5) than horizontally (!!mx * 4).
@@ -365,7 +366,7 @@ static av_always_inline void mc_chroma_unscaled(VP9TileData *td, const vp9_mc_fu
     // needed, so switch to emulated edge if that would read beyond the bottom
     // right block.
     if (x < !!mx * 3 || y < !!my * 3 ||
-        ((x + !!mx * 5 > w - bw) && (y + !!my * 5 + 1 > h - bh)) ||
+        ((ARCH_AARCH64 || ARCH_ARM) && (x + !!mx * 5 > w - bw) && (y + !!my * 5 + 1 > h - bh)) ||
         x + !!mx * 4 > w - bw || y + !!my * 5 > h - bh) {
         s->vdsp.emulated_edge_mc(td->edge_emu_buffer,
                                  ref_u - !!my * 3 * src_stride_u - !!mx * 3 * bytesperpixel,
@@ -415,7 +416,7 @@ static av_always_inline void mc_luma_scaled(VP9TileData *td, vp9_scaled_mc_func 
                                             const vp9_mc_func (*mc)[2],
                                             uint8_t *dst, ptrdiff_t dst_stride,
                                             const uint8_t *ref, ptrdiff_t ref_stride,
-                                            const ThreadFrame *ref_frame,
+                                            const ProgressFrame *ref_frame,
                                             ptrdiff_t y, ptrdiff_t x, const VP9mv *in_mv,
                                             int px, int py, int pw, int ph,
                                             int bw, int bh, int w, int h, int bytesperpixel,
@@ -452,7 +453,7 @@ static av_always_inline void mc_luma_scaled(VP9TileData *td, vp9_scaled_mc_func 
     // we use +7 because the last 7 pixels of each sbrow can be changed in
     // the longest loopfilter of the next sbrow
     th = (y + refbh_m1 + 4 + 7) >> 6;
-    ff_thread_await_progress(ref_frame, FFMAX(th, 0), 0);
+    ff_progress_frame_await(ref_frame, FFMAX(th, 0));
     // The arm/aarch64 _hv filters read one more row than what actually is
     // needed, so switch to emulated edge one pixel sooner vertically
     // (y + 5 >= h - refbh_m1) than horizontally (x + 4 >= w - refbw_m1).
@@ -475,7 +476,7 @@ static av_always_inline void mc_chroma_scaled(VP9TileData *td, vp9_scaled_mc_fun
                                               ptrdiff_t dst_stride,
                                               const uint8_t *ref_u, ptrdiff_t src_stride_u,
                                               const uint8_t *ref_v, ptrdiff_t src_stride_v,
-                                              const ThreadFrame *ref_frame,
+                                              const ProgressFrame *ref_frame,
                                               ptrdiff_t y, ptrdiff_t x, const VP9mv *in_mv,
                                               int px, int py, int pw, int ph,
                                               int bw, int bh, int w, int h, int bytesperpixel,
@@ -522,7 +523,7 @@ static av_always_inline void mc_chroma_scaled(VP9TileData *td, vp9_scaled_mc_fun
     // we use +7 because the last 7 pixels of each sbrow can be changed in
     // the longest loopfilter of the next sbrow
     th = (y + refbh_m1 + 4 + 7) >> (6 - s->ss_v);
-    ff_thread_await_progress(ref_frame, FFMAX(th, 0), 0);
+    ff_progress_frame_await(ref_frame, FFMAX(th, 0));
     // The arm/aarch64 _hv filters read one more row than what actually is
     // needed, so switch to emulated edge one pixel sooner vertically
     // (y + 5 >= h - refbh_m1) than horizontally (x + 4 >= w - refbw_m1).

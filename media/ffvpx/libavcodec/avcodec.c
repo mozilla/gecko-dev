@@ -28,6 +28,7 @@
 #include "libavutil/avstring.h"
 #include "libavutil/bprint.h"
 #include "libavutil/channel_layout.h"
+#include "libavutil/common.h"
 #include "libavutil/emms.h"
 #include "libavutil/fifo.h"
 #include "libavutil/imgutils.h"
@@ -44,7 +45,7 @@
 #include "frame_thread_encoder.h"
 #include "hwconfig.h"
 #include "internal.h"
-#include "refstruct.h"
+#include "libavutil/refstruct.h"
 #include "thread.h"
 
 /**
@@ -144,6 +145,7 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
     int ret = 0;
     AVCodecInternal *avci;
     const FFCodec *codec2;
+    const AVDictionaryEntry *e;
 
     if (avcodec_is_open(avctx))
         return 0;
@@ -174,6 +176,20 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
     if (avctx->extradata_size < 0 || avctx->extradata_size >= FF_MAX_EXTRADATA_SIZE)
         return AVERROR(EINVAL);
 
+    // set the whitelist from provided options dict,
+    // so we can check it immediately
+    e = options ? av_dict_get(*options, "codec_whitelist", NULL, 0) : NULL;
+    if (e) {
+        ret = av_opt_set(avctx, e->key, e->value, 0);
+        if (ret < 0)
+            return ret;
+    }
+
+    if (avctx->codec_whitelist && av_match_list(codec->name, avctx->codec_whitelist, ',') <= 0) {
+        av_log(avctx, AV_LOG_ERROR, "Codec (%s) not on whitelist \'%s\'\n", codec->name, avctx->codec_whitelist);
+        return AVERROR(EINVAL);
+    }
+
     avci = av_codec_is_decoder(codec) ?
         ff_decode_internal_alloc()    :
         ff_encode_internal_alloc();
@@ -202,19 +218,13 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
                 av_opt_set_defaults(avctx->priv_data);
             }
         }
-        if (codec->priv_class && (ret = av_opt_set_dict(avctx->priv_data, options)) < 0)
-            goto free_and_end;
     } else {
         avctx->priv_data = NULL;
     }
-    if ((ret = av_opt_set_dict(avctx, options)) < 0)
-        goto free_and_end;
 
-    if (avctx->codec_whitelist && av_match_list(codec->name, avctx->codec_whitelist, ',') <= 0) {
-        av_log(avctx, AV_LOG_ERROR, "Codec (%s) not on whitelist \'%s\'\n", codec->name, avctx->codec_whitelist);
-        ret = AVERROR(EINVAL);
+    ret = av_opt_set_dict2(avctx, options, AV_OPT_SEARCH_CHILDREN);
+    if (ret < 0)
         goto free_and_end;
-    }
 
     // only call ff_set_dimensions() for non H.264/VP6F/DXV codecs so as not to overwrite previously setup dimensions
     if (!(avctx->coded_width && avctx->coded_height && avctx->width && avctx->height &&
@@ -381,10 +391,13 @@ void avcodec_flush_buffers(AVCodecContext *avctx)
 
     avci->draining      = 0;
     avci->draining_done = 0;
-    av_frame_unref(avci->buffer_frame);
-    av_packet_unref(avci->buffer_pkt);
+    if (avci->buffer_frame)
+        av_frame_unref(avci->buffer_frame);
+    if (avci->buffer_pkt)
+        av_packet_unref(avci->buffer_pkt);
 
-    if (HAVE_THREADS && avctx->active_thread_type & FF_THREAD_FRAME)
+    if (HAVE_THREADS && avctx->active_thread_type & FF_THREAD_FRAME &&
+        !avci->is_frame_mt)
         ff_thread_flush(avctx);
     else if (ffcodec(avctx->codec)->flush)
         ffcodec(avctx->codec)->flush(avctx);
@@ -440,7 +453,10 @@ av_cold void ff_codec_close(AVCodecContext *avctx)
         av_frame_free(&avci->in_frame);
         av_frame_free(&avci->recon_frame);
 
-        ff_refstruct_unref(&avci->pool);
+        av_refstruct_unref(&avci->pool);
+        av_refstruct_pool_uninit(&avci->progress_frame_pool);
+        if (av_codec_is_decoder(avctx->codec))
+            ff_decode_internal_uninit(avctx);
 
         ff_hwaccel_uninit(avctx);
 
@@ -461,6 +477,8 @@ av_cold void ff_codec_close(AVCodecContext *avctx)
         av_freep(&avctx->coded_side_data[i].data);
     av_freep(&avctx->coded_side_data);
     avctx->nb_coded_side_data = 0;
+    av_frame_side_data_free(&avctx->decoded_side_data,
+                            &avctx->nb_decoded_side_data);
 
     av_buffer_unref(&avctx->hw_frames_ctx);
     av_buffer_unref(&avctx->hw_device_ctx);
@@ -629,12 +647,16 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
         if (encode) {
             av_bprintf(&bprint, ", q=%d-%d", enc->qmin, enc->qmax);
         } else {
+#if FF_API_CODEC_PROPS
+FF_DISABLE_DEPRECATION_WARNINGS
             if (enc->properties & FF_CODEC_PROPERTY_CLOSED_CAPTIONS)
                 av_bprintf(&bprint, ", Closed Captions");
             if (enc->properties & FF_CODEC_PROPERTY_FILM_GRAIN)
                 av_bprintf(&bprint, ", Film Grain");
             if (enc->properties & FF_CODEC_PROPERTY_LOSSLESS)
                 av_bprintf(&bprint, ", lossless");
+FF_ENABLE_DEPRECATION_WARNINGS
+#endif
         }
         break;
     case AVMEDIA_TYPE_AUDIO:
@@ -699,4 +721,97 @@ int attribute_align_arg avcodec_receive_frame(AVCodecContext *avctx, AVFrame *fr
     if (av_codec_is_decoder(avctx->codec))
         return ff_decode_receive_frame(avctx, frame);
     return ff_encode_receive_frame(avctx, frame);
+}
+
+#define WRAP_CONFIG(allowed_type, field, field_type, terminator)            \
+    do {                                                                    \
+        static const field_type end = terminator;                           \
+        if (codec->type != (allowed_type))                                  \
+            return AVERROR(EINVAL);                                         \
+        *out_configs = (field);                                             \
+        if (out_num_configs) {                                              \
+            for (int i = 0;; i++) {                                         \
+                if (!(field) || !memcmp(&(field)[i], &end, sizeof(end))) {  \
+                    *out_num_configs = i;                                   \
+                    break;                                                  \
+                }                                                           \
+            }                                                               \
+        }                                                                   \
+        return 0;                                                           \
+    } while (0)
+
+static const enum AVColorRange color_range_jpeg[] = {
+    AVCOL_RANGE_JPEG, AVCOL_RANGE_UNSPECIFIED
+};
+
+static const enum AVColorRange color_range_mpeg[] = {
+    AVCOL_RANGE_MPEG, AVCOL_RANGE_UNSPECIFIED
+};
+
+static const enum AVColorRange color_range_all[] = {
+    AVCOL_RANGE_MPEG, AVCOL_RANGE_JPEG, AVCOL_RANGE_UNSPECIFIED
+};
+
+static const enum AVColorRange *color_range_table[] = {
+    [AVCOL_RANGE_MPEG] = color_range_mpeg,
+    [AVCOL_RANGE_JPEG] = color_range_jpeg,
+    [AVCOL_RANGE_MPEG | AVCOL_RANGE_JPEG] = color_range_all,
+};
+
+int ff_default_get_supported_config(const AVCodecContext *avctx,
+                                    const AVCodec *codec,
+                                    enum AVCodecConfig config,
+                                    unsigned flags,
+                                    const void **out_configs,
+                                    int *out_num_configs)
+{
+    switch (config) {
+FF_DISABLE_DEPRECATION_WARNINGS
+    case AV_CODEC_CONFIG_PIX_FORMAT:
+        WRAP_CONFIG(AVMEDIA_TYPE_VIDEO, codec->pix_fmts, enum AVPixelFormat, AV_PIX_FMT_NONE);
+    case AV_CODEC_CONFIG_FRAME_RATE:
+        WRAP_CONFIG(AVMEDIA_TYPE_VIDEO, codec->supported_framerates, AVRational, {0});
+    case AV_CODEC_CONFIG_SAMPLE_RATE:
+        WRAP_CONFIG(AVMEDIA_TYPE_AUDIO, codec->supported_samplerates, int, 0);
+    case AV_CODEC_CONFIG_SAMPLE_FORMAT:
+        WRAP_CONFIG(AVMEDIA_TYPE_AUDIO, codec->sample_fmts, enum AVSampleFormat, AV_SAMPLE_FMT_NONE);
+    case AV_CODEC_CONFIG_CHANNEL_LAYOUT:
+        WRAP_CONFIG(AVMEDIA_TYPE_AUDIO, codec->ch_layouts, AVChannelLayout, {0});
+FF_ENABLE_DEPRECATION_WARNINGS
+
+    case AV_CODEC_CONFIG_COLOR_RANGE:
+        if (codec->type != AVMEDIA_TYPE_VIDEO)
+            return AVERROR(EINVAL);
+        *out_configs = color_range_table[ffcodec(codec)->color_ranges];
+        if (out_num_configs)
+            *out_num_configs = av_popcount(ffcodec(codec)->color_ranges);
+        return 0;
+
+    case AV_CODEC_CONFIG_COLOR_SPACE:
+        *out_configs = NULL;
+        if (out_num_configs)
+            *out_num_configs = 0;
+        return 0;
+    default:
+        return AVERROR(EINVAL);
+    }
+}
+
+int avcodec_get_supported_config(const AVCodecContext *avctx, const AVCodec *codec,
+                                 enum AVCodecConfig config, unsigned flags,
+                                 const void **out, int *out_num)
+{
+    const FFCodec *codec2;
+    int dummy_num = 0;
+    if (!codec)
+        codec = avctx->codec;
+    if (!out_num)
+        out_num = &dummy_num;
+
+    codec2 = ffcodec(codec);
+    if (codec2->get_supported_config) {
+        return codec2->get_supported_config(avctx, codec, config, flags, out, out_num);
+    } else {
+        return ff_default_get_supported_config(avctx, codec, config, flags, out, out_num);
+    }
 }

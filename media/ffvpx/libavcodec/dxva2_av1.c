@@ -23,6 +23,7 @@
 #include "config_components.h"
 
 #include "libavutil/avassert.h"
+#include "libavutil/mem.h"
 #include "libavutil/pixdesc.h"
 
 #include "dxva2_internal.h"
@@ -100,7 +101,7 @@ int ff_dxva2_av1_fill_picture_parameters(const AVCodecContext *avctx, AVDXVACont
     pp->coding.dual_filter                  = seq->enable_dual_filter;
     pp->coding.jnt_comp                     = seq->enable_jnt_comp;
     pp->coding.screen_content_tools         = frame_header->allow_screen_content_tools;
-    pp->coding.integer_mv                   = frame_header->force_integer_mv || !(frame_header->frame_type & 1);
+    pp->coding.integer_mv                   = h->cur_frame.force_integer_mv;
     pp->coding.cdef                         = seq->enable_cdef;
     pp->coding.restoration                  = seq->enable_restoration;
     pp->coding.film_grain                   = seq->film_grain_params_present && !(avctx->export_side_data & AV_CODEC_EXPORT_DATA_FILM_GRAIN);
@@ -137,9 +138,9 @@ int ff_dxva2_av1_fill_picture_parameters(const AVCodecContext *avctx, AVDXVACont
         int8_t ref_idx = frame_header->ref_frame_idx[i];
         AVFrame *ref_frame = h->ref[ref_idx].f;
 
-        pp->frame_refs[i].width  = ref_frame->width;
-        pp->frame_refs[i].height = ref_frame->height;
-        pp->frame_refs[i].Index  = ref_frame->buf[0] ? ref_idx : 0xFF;
+        pp->frame_refs[i].width  = ref_frame ? ref_frame->width  : 0;
+        pp->frame_refs[i].height = ref_frame ? ref_frame->height : 0;
+        pp->frame_refs[i].Index  = ref_frame ? ref_idx : 0xFF;
 
         /* Global Motion */
         pp->frame_refs[i].wminvalid = h->cur_frame.gm_invalid[AV1_REF_FRAME_LAST + i];
@@ -150,7 +151,7 @@ int ff_dxva2_av1_fill_picture_parameters(const AVCodecContext *avctx, AVDXVACont
     }
     for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
         AVFrame *ref_frame = h->ref[i].f;
-        if (ref_frame->buf[0])
+        if (ref_frame)
             pp->RefFrameMapTextureIndex[i] = ff_dxva2_get_surface_index(avctx, ctx, ref_frame, 0);
     }
 
@@ -353,7 +354,7 @@ static int commit_bitstream_and_slice_buffer(AVCodecContext *avctx,
     const AV1DecContext *h = avctx->priv_data;
     AVDXVAContext *ctx = DXVA_CONTEXT(avctx);
     struct av1_dxva2_picture_context *ctx_pic = h->cur_frame.hwaccel_picture_private;
-    void     *dxva_data_ptr;
+    void     *dxva_data_ptr = NULL;
     uint8_t  *dxva_data;
     unsigned dxva_size;
     unsigned padding;
@@ -381,7 +382,7 @@ static int commit_bitstream_and_slice_buffer(AVCodecContext *avctx,
 
     dxva_data = dxva_data_ptr;
 
-    if (ctx_pic->bitstream_size > dxva_size) {
+    if (!dxva_data || ctx_pic->bitstream_size > dxva_size) {
         av_log(avctx, AV_LOG_ERROR, "Bitstream size exceeds hardware buffer");
         return -1;
     }

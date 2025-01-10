@@ -28,7 +28,6 @@
 #ifndef AVCODEC_MPEGVIDEO_H
 #define AVCODEC_MPEGVIDEO_H
 
-#include "avcodec.h"
 #include "blockdsp.h"
 #include "error_resilience.h"
 #include "fdctdsp.h"
@@ -44,7 +43,6 @@
 #include "pixblockdsp.h"
 #include "put_bits.h"
 #include "ratecontrol.h"
-#include "mpegutils.h"
 #include "qpeldsp.h"
 #include "videodsp.h"
 
@@ -60,6 +58,14 @@ typedef struct ScanTable {
     uint8_t permutated[64];
     uint8_t raster_end[64];
 } ScanTable;
+
+enum OutputFormat {
+    FMT_MPEG1,
+    FMT_H261,
+    FMT_H263,
+    FMT_MJPEG,
+    FMT_SPEEDHQ,
+};
 
 /**
  * MpegEncContext.
@@ -122,9 +128,11 @@ typedef struct MpegEncContext {
     int mb_num;                ///< number of MBs of a picture
     ptrdiff_t linesize;        ///< line size, in bytes, may be different from width
     ptrdiff_t uvlinesize;      ///< line size, for chroma in bytes, may be different from width
-    Picture *picture;          ///< main picture buffer
-    Picture **input_picture;   ///< next pictures on display order for encoding
-    Picture **reordered_input_picture; ///< pointer to the next pictures in coded order for encoding
+    struct AVRefStructPool *picture_pool; ///< Pool for MPVPictures
+    MPVPicture **input_picture;///< next pictures on display order for encoding
+    MPVPicture **reordered_input_picture; ///< pointer to the next pictures in coded order for encoding
+
+    BufferPoolContext buffer_pools;
 
     int64_t user_specified_pts; ///< last non-zero pts from AVFrame which was passed into avcodec_send_frame()
     /**
@@ -148,29 +156,26 @@ typedef struct MpegEncContext {
      * copy of the previous picture structure.
      * note, linesize & data, might not match the previous picture (for field pictures)
      */
-    Picture last_picture;
+    MPVWorkPicture last_pic;
 
     /**
      * copy of the next picture structure.
      * note, linesize & data, might not match the next picture (for field pictures)
      */
-    Picture next_picture;
+    MPVWorkPicture next_pic;
 
     /**
      * Reference to the source picture for encoding.
      * note, linesize & data, might not match the source picture (for field pictures)
      */
-    AVFrame *new_picture;
+    AVFrame *new_pic;
 
     /**
      * copy of the current picture structure.
      * note, linesize & data, might not match the current picture (for field pictures)
      */
-    Picture current_picture;    ///< buffer to store the decompressed current picture
+    MPVWorkPicture cur_pic;
 
-    Picture *last_picture_ptr;     ///< pointer to the previous picture.
-    Picture *next_picture_ptr;     ///< pointer to the next picture (for bidir pred)
-    Picture *current_picture_ptr;  ///< pointer to the current picture
     int skipped_last_frame;
     int last_dc[3];                ///< last DC values for MPEG-1
     int16_t *dc_val_base;
@@ -215,7 +220,6 @@ typedef struct MpegEncContext {
     H264ChromaContext h264chroma;
     HpelDSPContext hdsp;
     IDCTDSPContext idsp;
-    MECmpContext mecc;
     MpegvideoEncDSPContext mpvencdsp;
     PixblockDSPContext pdsp;
     QpelDSPContext qdsp;
@@ -248,7 +252,7 @@ typedef struct MpegEncContext {
     uint8_t *mb_mean;           ///< Table for MB luminance
     int64_t mb_var_sum;         ///< sum of MB variance for current frame
     int64_t mc_mb_var_sum;      ///< motion compensated MB variance for current frame
-    uint64_t encoding_error[MPEGVIDEO_MAX_PLANES];
+    uint64_t encoding_error[MPV_MAX_PLANES];
 
     int motion_est;                      ///< ME algorithm
     int me_penalty_compensation;
@@ -283,7 +287,7 @@ typedef struct MpegEncContext {
     int mb_x, mb_y;
     int mb_skip_run;
     int mb_intra;
-    uint16_t *mb_type;  ///< Table for candidate MB types for encoding (defines in mpegutils.h)
+    uint16_t *mb_type;  ///< Table for candidate MB types for encoding (defines in mpegvideoenc.h)
 
     int block_index[6]; ///< index to current MB in block based arrays with edges
     int block_wrap[6];
@@ -339,7 +343,6 @@ typedef struct MpegEncContext {
     int i_tex_bits;
     int p_tex_bits;
     int i_count;
-    int skip_count;
     int misc_bits; ///< cbp, mb_type
     int last_bits; ///< temp var used for calculating the above vars
 
@@ -381,7 +384,6 @@ typedef struct MpegEncContext {
     uint16_t pp_field_time;
     uint16_t pb_field_time;         ///< like above, just for interlaced
     int mcsel;
-    int quant_precision;
     int quarter_sample;              ///< 1->qpel, 0->half pel ME/MC
     int data_partitioning;           ///< data partitioning flag from header
     int partitioned_frame;           ///< is current frame partitioned
@@ -414,7 +416,15 @@ typedef struct MpegEncContext {
     int slice_height;      ///< in macroblocks
     int first_slice_line;  ///< used in MPEG-4 too to handle resync markers
     int flipflop_rounding;
-    int msmpeg4_version;   ///< 0=not msmpeg4, 1=mp41, 2=mp42, 3=mp43/divx3 4=wmv1/7 5=wmv2/8
+    enum {
+        MSMP4_UNUSED,
+        MSMP4_V1,
+        MSMP4_V2,
+        MSMP4_V3,
+        MSMP4_WMV1,
+        MSMP4_WMV2,
+        MSMP4_VC1,        ///< for VC1 (image), WMV3 (image) and MSS2.
+    } msmpeg4_version;
     int per_mb_rl_table;
     int esc3_level_length;
     int esc3_run_length;
@@ -462,7 +472,6 @@ typedef struct MpegEncContext {
     int rtp_payload_size;
 
     uint8_t *ptr_lastgob;
-    int16_t (*pblocks[12])[64];
 
     int16_t (*block)[64]; ///< points to one of the following blocks
     int16_t (*blocks)[12][64]; // for HQ mode we need to keep the best block
@@ -490,11 +499,16 @@ typedef struct MpegEncContext {
     void (*dct_unquantize_inter)(struct MpegEncContext *s, // unquantizer to use (MPEG-4 can use both)
                            int16_t *block/*align 16*/, int n, int qscale);
     int (*dct_quantize)(struct MpegEncContext *s, int16_t *block/*align 16*/, int n, int qscale, int *overflow);
-    int (*fast_dct_quantize)(struct MpegEncContext *s, int16_t *block/*align 16*/, int n, int qscale, int *overflow);
     void (*denoise_dct)(struct MpegEncContext *s, int16_t *block);
 
     int mpv_flags;      ///< flags set by private options
     int quantizer_noise_shaping;
+
+    me_cmp_func ildct_cmp[2]; ///< 0 = intra, 1 = non-intra
+    me_cmp_func n_sse_cmp[2]; ///< either SSE or NSSE cmp func
+    me_cmp_func sad_cmp[2];
+    me_cmp_func sse_cmp[2];
+    int (*sum_abs_dctelem)(const int16_t *block);
 
     /**
      * ratecontrol qmin qmax limiting method
@@ -532,6 +546,7 @@ typedef struct MpegEncContext {
     int frame_skip_factor;
     int frame_skip_exp;
     int frame_skip_cmp;
+    me_cmp_func frame_skip_cmp_fn;
 
     int scenechange_threshold;
     int noise_reduction;
@@ -588,8 +603,8 @@ void ff_mpv_motion(MpegEncContext *s,
                    uint8_t *dest_y, uint8_t *dest_cb,
                    uint8_t *dest_cr, int dir,
                    uint8_t *const *ref_picture,
-                   op_pixels_func (*pix_op)[4],
-                   qpel_mc_func (*qpix_op)[16]);
+                   const op_pixels_func (*pix_op)[4],
+                   const qpel_mc_func (*qpix_op)[16]);
 
 static inline void ff_update_block_index(MpegEncContext *s, int bits_per_raw_sample,
                                          int lowres, int chroma_x_shift)

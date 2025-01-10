@@ -681,6 +681,8 @@ av_cold void ff_vp78dsp_init(VP8DSPContext *dsp)
     ff_vp78dsp_init_arm(dsp);
 #elif ARCH_PPC
     ff_vp78dsp_init_ppc(dsp);
+#elif ARCH_RISCV
+    ff_vp78dsp_init_riscv(dsp);
 #elif ARCH_X86
     ff_vp78dsp_init_x86(dsp);
 #endif
@@ -710,6 +712,10 @@ av_cold void ff_vp7dsp_init(VP8DSPContext *dsp)
 
     dsp->vp8_v_loop_filter_simple = vp7_v_loop_filter_simple_c;
     dsp->vp8_h_loop_filter_simple = vp7_h_loop_filter_simple_c;
+
+#if ARCH_RISCV
+    ff_vp7dsp_init_riscv(dsp);
+#endif
 }
 #endif /* CONFIG_VP7_DECODER */
 

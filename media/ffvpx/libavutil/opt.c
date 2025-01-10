@@ -58,25 +58,29 @@ const AVOption *av_opt_next(const void *obj, const AVOption *last)
     return NULL;
 }
 
-static const size_t opt_elem_size[] = {
-    [AV_OPT_TYPE_FLAGS]         = sizeof(unsigned),
-    [AV_OPT_TYPE_INT]           = sizeof(int),
-    [AV_OPT_TYPE_INT64]         = sizeof(int64_t),
-    [AV_OPT_TYPE_UINT64]        = sizeof(uint64_t),
-    [AV_OPT_TYPE_DOUBLE]        = sizeof(double),
-    [AV_OPT_TYPE_FLOAT]         = sizeof(float),
-    [AV_OPT_TYPE_STRING]        = sizeof(char *),
-    [AV_OPT_TYPE_RATIONAL]      = sizeof(AVRational),
-    [AV_OPT_TYPE_BINARY]        = sizeof(uint8_t *),
-    [AV_OPT_TYPE_DICT]          = sizeof(AVDictionary *),
-    [AV_OPT_TYPE_IMAGE_SIZE]    = sizeof(int[2]),
-    [AV_OPT_TYPE_VIDEO_RATE]    = sizeof(AVRational),
-    [AV_OPT_TYPE_PIXEL_FMT]     = sizeof(int),
-    [AV_OPT_TYPE_SAMPLE_FMT]    = sizeof(int),
-    [AV_OPT_TYPE_DURATION]      = sizeof(int64_t),
-    [AV_OPT_TYPE_COLOR]         = sizeof(uint8_t[4]),
-    [AV_OPT_TYPE_CHLAYOUT]      = sizeof(AVChannelLayout),
-    [AV_OPT_TYPE_BOOL]          = sizeof(int),
+static const struct {
+    size_t      size;
+    const char *name;
+} opt_type_desc[] = {
+    [AV_OPT_TYPE_FLAGS]         = { sizeof(unsigned),       "<flags>" },
+    [AV_OPT_TYPE_INT]           = { sizeof(int),            "<int>" },
+    [AV_OPT_TYPE_INT64]         = { sizeof(int64_t),        "<int64>" },
+    [AV_OPT_TYPE_UINT]          = { sizeof(unsigned),       "<unsigned>" },
+    [AV_OPT_TYPE_UINT64]        = { sizeof(uint64_t),       "<uint64>" },
+    [AV_OPT_TYPE_DOUBLE]        = { sizeof(double),         "<double>" },
+    [AV_OPT_TYPE_FLOAT]         = { sizeof(float),          "<float>" },
+    [AV_OPT_TYPE_STRING]        = { sizeof(char *),         "<string>" },
+    [AV_OPT_TYPE_RATIONAL]      = { sizeof(AVRational),     "<rational>" },
+    [AV_OPT_TYPE_BINARY]        = { sizeof(uint8_t *),      "<binary>" },
+    [AV_OPT_TYPE_DICT]          = { sizeof(AVDictionary *), "<dictionary>" },
+    [AV_OPT_TYPE_IMAGE_SIZE]    = { sizeof(int[2]),         "<image_size>" },
+    [AV_OPT_TYPE_VIDEO_RATE]    = { sizeof(AVRational),     "<video_rate>" },
+    [AV_OPT_TYPE_PIXEL_FMT]     = { sizeof(int),            "<pix_fmt>" },
+    [AV_OPT_TYPE_SAMPLE_FMT]    = { sizeof(int),            "<sample_fmt>" },
+    [AV_OPT_TYPE_DURATION]      = { sizeof(int64_t),        "<duration>" },
+    [AV_OPT_TYPE_COLOR]         = { sizeof(uint8_t[4]),     "<color>" },
+    [AV_OPT_TYPE_CHLAYOUT]      = { sizeof(AVChannelLayout),"<channel_layout>" },
+    [AV_OPT_TYPE_BOOL]          = { sizeof(int),            "<boolean>" },
 };
 
 // option is plain old data
@@ -97,6 +101,7 @@ static int opt_is_pod(enum AVOptionType type)
     case AV_OPT_TYPE_DURATION:
     case AV_OPT_TYPE_COLOR:
     case AV_OPT_TYPE_BOOL:
+    case AV_OPT_TYPE_UINT:
         return 1;
     }
     return 0;
@@ -112,7 +117,7 @@ static uint8_t opt_array_sep(const AVOption *o)
 static void *opt_array_pelem(const AVOption *o, void *array, unsigned idx)
 {
     av_assert1(o->type & AV_OPT_TYPE_FLAG_ARRAY);
-    return (uint8_t *)array + idx * opt_elem_size[TYPE_BASE(o->type)];
+    return (uint8_t *)array + idx * opt_type_desc[TYPE_BASE(o->type)].size;
 }
 
 static unsigned *opt_array_pcount(const void *parray)
@@ -120,9 +125,9 @@ static unsigned *opt_array_pcount(const void *parray)
     return (unsigned *)((const void * const *)parray + 1);
 }
 
-static void opt_free_elem(const AVOption *o, void *ptr)
+static void opt_free_elem(enum AVOptionType type, void *ptr)
 {
-    switch (TYPE_BASE(o->type)) {
+    switch (TYPE_BASE(type)) {
     case AV_OPT_TYPE_STRING:
     case AV_OPT_TYPE_BINARY:
         av_freep(ptr);
@@ -144,15 +149,99 @@ static void opt_free_elem(const AVOption *o, void *ptr)
 static void opt_free_array(const AVOption *o, void *parray, unsigned *count)
 {
     for (unsigned i = 0; i < *count; i++)
-        opt_free_elem(o, opt_array_pelem(o, *(void **)parray, i));
+        opt_free_elem(o->type, opt_array_pelem(o, *(void **)parray, i));
 
     av_freep(parray);
     *count = 0;
 }
 
+/**
+ * Perform common setup for option-setting functions.
+ *
+ * @param require_type when non-0, require the option to be of this type
+ * @param ptgt         target object is written here
+ * @param po           the option is written here
+ * @param pdst         pointer to option value is written here
+ */
+static int opt_set_init(void *obj, const char *name, int search_flags,
+                        int require_type,
+                        void **ptgt, const AVOption **po, void **pdst)
+{
+    const AVOption *o;
+    void *tgt;
+
+    o = av_opt_find2(obj, name, NULL, 0, search_flags, &tgt);
+    if (!o || !tgt)
+        return AVERROR_OPTION_NOT_FOUND;
+
+    if (o->flags & AV_OPT_FLAG_READONLY)
+        return AVERROR(EINVAL);
+
+    if (require_type && (o->type != require_type)) {
+        av_log(obj, AV_LOG_ERROR,
+               "Tried to set option '%s' of type %s from value of type %s, "
+               "this is not supported\n", o->name, opt_type_desc[o->type].name,
+               opt_type_desc[require_type].name);
+        return AVERROR(EINVAL);
+    }
+
+    if (!(o->flags & AV_OPT_FLAG_RUNTIME_PARAM)) {
+        unsigned *state_flags = NULL;
+        const AVClass *class;
+
+        // try state flags first from the target (child), then from its parent
+        class = *(const AVClass**)tgt;
+        if (
+#if LIBAVUTIL_VERSION_MAJOR < 60
+            class->version >= AV_VERSION_INT(59, 41, 100) &&
+#endif
+            class->state_flags_offset)
+            state_flags = (unsigned*)((uint8_t*)tgt + class->state_flags_offset);
+
+        if (!state_flags && obj != tgt) {
+            class = *(const AVClass**)obj;
+            if (
+#if LIBAVUTIL_VERSION_MAJOR < 60
+                class->version >= AV_VERSION_INT(59, 41, 100) &&
+#endif
+                class->state_flags_offset)
+                state_flags = (unsigned*)((uint8_t*)obj + class->state_flags_offset);
+        }
+
+        if (state_flags && (*state_flags & AV_CLASS_STATE_INITIALIZED)) {
+            av_log(obj, AV_LOG_ERROR, "Option '%s' is not a runtime option and "
+                   "so cannot be set after the object has been initialized\n",
+                   o->name);
+#if LIBAVUTIL_VERSION_MAJOR >= 60
+            return AVERROR(EINVAL);
+#endif
+        }
+    }
+
+    if (o->flags & AV_OPT_FLAG_DEPRECATED)
+        av_log(obj, AV_LOG_WARNING, "The \"%s\" option is deprecated: %s\n", name, o->help);
+
+    if (po)
+        *po   = o;
+    if (ptgt)
+        *ptgt = tgt;
+    if (pdst)
+        *pdst = ((uint8_t *)tgt) + o->offset;
+
+    return 0;
+}
+
+static AVRational double_to_rational(double d)
+{
+     AVRational r = av_d2q(d, 1 << 24);
+     if ((!r.num || !r.den) && d)
+         r = av_d2q(d, INT_MAX);
+     return r;
+}
+
 static int read_number(const AVOption *o, const void *dst, double *num, int *den, int64_t *intnum)
 {
-    switch (o->type) {
+    switch (TYPE_BASE(o->type)) {
     case AV_OPT_TYPE_FLAGS:
         *intnum = *(unsigned int*)dst;
         return 0;
@@ -165,6 +254,9 @@ static int read_number(const AVOption *o, const void *dst, double *num, int *den
     case AV_OPT_TYPE_BOOL:
     case AV_OPT_TYPE_INT:
         *intnum = *(int *)dst;
+        return 0;
+    case AV_OPT_TYPE_UINT:
+        *intnum = *(unsigned int *)dst;
         return 0;
     case AV_OPT_TYPE_DURATION:
     case AV_OPT_TYPE_INT64:
@@ -219,6 +311,7 @@ static int write_number(void *obj, const AVOption *o, void *dst, double num, int
     case AV_OPT_TYPE_BOOL:
     case AV_OPT_TYPE_FLAGS:
     case AV_OPT_TYPE_INT:
+    case AV_OPT_TYPE_UINT:
         *(int *)dst = llrint(num / den) * intnum;
         break;
     case AV_OPT_TYPE_DURATION:
@@ -254,7 +347,7 @@ static int write_number(void *obj, const AVOption *o, void *dst, double num, int
         if ((int) num == num)
             *(AVRational *)dst = (AVRational) { num *intnum, den };
         else
-            *(AVRational *)dst = av_d2q(num * intnum / den, 1 << 24);
+            *(AVRational *)dst = double_to_rational(num * intnum / den);
         break;
     default:
         return AVERROR(EINVAL);
@@ -319,6 +412,7 @@ static int set_string(void *obj, const AVOption *o, const char *val, uint8_t **d
                               opt->type == AV_OPT_TYPE_UINT64 || \
                               opt->type == AV_OPT_TYPE_CONST || \
                               opt->type == AV_OPT_TYPE_FLAGS || \
+                              opt->type == AV_OPT_TYPE_UINT  || \
                               opt->type == AV_OPT_TYPE_INT)     \
                              ? opt->default_val.i64             \
                              : opt->default_val.dbl)
@@ -605,6 +699,7 @@ static int opt_set_elem(void *obj, void *target_obj, const AVOption *o,
         return set_string_binary(obj, o, val, dst);
     case AV_OPT_TYPE_FLAGS:
     case AV_OPT_TYPE_INT:
+    case AV_OPT_TYPE_UINT:
     case AV_OPT_TYPE_INT64:
     case AV_OPT_TYPE_UINT64:
     case AV_OPT_TYPE_FLOAT:
@@ -662,7 +757,7 @@ static int opt_set_array(void *obj, void *target_obj, const AVOption *o,
                          const char *val, void *dst)
 {
     const AVOptionArrayDef *arr = o->default_val.arr;
-    const size_t      elem_size = opt_elem_size[TYPE_BASE(o->type)];
+    const size_t      elem_size = opt_type_desc[TYPE_BASE(o->type)].size;
     const uint8_t           sep = opt_array_sep(o);
     uint8_t                *str = NULL;
 
@@ -740,17 +835,12 @@ fail:
 int av_opt_set(void *obj, const char *name, const char *val, int search_flags)
 {
     void *dst, *target_obj;
-    const AVOption *o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
-    if (!o || !target_obj)
-        return AVERROR_OPTION_NOT_FOUND;
+    const AVOption *o;
+    int ret;
 
-    if (o->flags & AV_OPT_FLAG_READONLY)
-        return AVERROR(EINVAL);
-
-    if (o->flags & AV_OPT_FLAG_DEPRECATED)
-        av_log(obj, AV_LOG_WARNING, "The \"%s\" option is deprecated: %s\n", name, o->help);
-
-    dst = ((uint8_t *)target_obj) + o->offset;
+    ret = opt_set_init(obj, name, search_flags, 0, &target_obj, &o, &dst);
+    if (ret < 0)
+        return ret;
 
     return ((o->type & AV_OPT_TYPE_FLAG_ARRAY) ?
             opt_set_array : opt_set_elem)(obj, target_obj, o, val, dst);
@@ -767,61 +857,57 @@ int av_opt_eval_ ## name(void *obj, const AVOption *o,                  \
 
 OPT_EVAL_NUMBER(flags,  AV_OPT_TYPE_FLAGS,    int)
 OPT_EVAL_NUMBER(int,    AV_OPT_TYPE_INT,      int)
+OPT_EVAL_NUMBER(uint,   AV_OPT_TYPE_UINT,     unsigned)
 OPT_EVAL_NUMBER(int64,  AV_OPT_TYPE_INT64,    int64_t)
 OPT_EVAL_NUMBER(float,  AV_OPT_TYPE_FLOAT,    float)
 OPT_EVAL_NUMBER(double, AV_OPT_TYPE_DOUBLE,   double)
 OPT_EVAL_NUMBER(q,      AV_OPT_TYPE_RATIONAL, AVRational)
 
 static int set_number(void *obj, const char *name, double num, int den, int64_t intnum,
-                      int search_flags)
+                      int search_flags, int require_type)
 {
-    void *dst, *target_obj;
-    const AVOption *o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
+    void *dst;
+    const AVOption *o;
+    int ret;
 
-    if (!o || !target_obj)
-        return AVERROR_OPTION_NOT_FOUND;
+    ret = opt_set_init(obj, name, search_flags, require_type, NULL, &o, &dst);
+    if (ret < 0)
+        return ret;
 
-    if ((o->flags & AV_OPT_FLAG_READONLY) || (o->type & AV_OPT_TYPE_FLAG_ARRAY))
-        return AVERROR(EINVAL);
-
-    dst = ((uint8_t *)target_obj) + o->offset;
     return write_number(obj, o, dst, num, den, intnum);
 }
 
 int av_opt_set_int(void *obj, const char *name, int64_t val, int search_flags)
 {
-    return set_number(obj, name, 1, 1, val, search_flags);
+    return set_number(obj, name, 1, 1, val, search_flags, 0);
 }
 
 int av_opt_set_double(void *obj, const char *name, double val, int search_flags)
 {
-    return set_number(obj, name, val, 1, 1, search_flags);
+    return set_number(obj, name, val, 1, 1, search_flags, 0);
 }
 
 int av_opt_set_q(void *obj, const char *name, AVRational val, int search_flags)
 {
-    return set_number(obj, name, val.num, val.den, 1, search_flags);
+    return set_number(obj, name, val.num, val.den, 1, search_flags, 0);
 }
 
 int av_opt_set_bin(void *obj, const char *name, const uint8_t *val, int len, int search_flags)
 {
-    void *target_obj;
-    const AVOption *o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
     uint8_t *ptr;
     uint8_t **dst;
     int *lendst;
+    int ret;
 
-    if (!o || !target_obj)
-        return AVERROR_OPTION_NOT_FOUND;
-
-    if (o->type != AV_OPT_TYPE_BINARY || o->flags & AV_OPT_FLAG_READONLY)
-        return AVERROR(EINVAL);
+    ret = opt_set_init(obj, name, search_flags, AV_OPT_TYPE_BINARY,
+                       NULL, NULL, (void**)&dst);
+    if (ret < 0)
+        return ret;
 
     ptr = len ? av_malloc(len) : NULL;
     if (len && !ptr)
         return AVERROR(ENOMEM);
 
-    dst    = (uint8_t **)(((uint8_t *)target_obj) + o->offset);
     lendst = (int *)(dst + 1);
 
     av_free(*dst);
@@ -835,59 +921,42 @@ int av_opt_set_bin(void *obj, const char *name, const uint8_t *val, int len, int
 
 int av_opt_set_image_size(void *obj, const char *name, int w, int h, int search_flags)
 {
-    void *target_obj;
-    const AVOption *o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
+    const AVOption *o;
+    int *dst;
+    int ret;
 
-    if (!o || !target_obj)
-        return AVERROR_OPTION_NOT_FOUND;
-    if (o->type != AV_OPT_TYPE_IMAGE_SIZE) {
-        av_log(obj, AV_LOG_ERROR,
-               "The value set by option '%s' is not an image size.\n", o->name);
-        return AVERROR(EINVAL);
-    }
+    ret = opt_set_init(obj, name, search_flags, AV_OPT_TYPE_IMAGE_SIZE,
+                       NULL, &o, (void**)&dst);
+    if (ret < 0)
+        return ret;
+
     if (w<0 || h<0) {
         av_log(obj, AV_LOG_ERROR,
                "Invalid negative size value %dx%d for size '%s'\n", w, h, o->name);
         return AVERROR(EINVAL);
     }
-    *(int *)(((uint8_t *)target_obj)             + o->offset) = w;
-    *(int *)(((uint8_t *)target_obj+sizeof(int)) + o->offset) = h;
+
+    dst[0] = w;
+    dst[1] = h;
+
     return 0;
 }
 
 int av_opt_set_video_rate(void *obj, const char *name, AVRational val, int search_flags)
 {
-    void *target_obj;
-    const AVOption *o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
-
-    if (!o || !target_obj)
-        return AVERROR_OPTION_NOT_FOUND;
-    if (o->type != AV_OPT_TYPE_VIDEO_RATE) {
-        av_log(obj, AV_LOG_ERROR,
-               "The value set by option '%s' is not a video rate.\n",
-               o->name);
-        return AVERROR(EINVAL);
-    }
-    if (val.num <= 0 || val.den <= 0)
-        return AVERROR(EINVAL);
-    return set_number(obj, name, val.num, val.den, 1, search_flags);
+    return set_number(obj, name, val.num, val.den, 1, search_flags, AV_OPT_TYPE_VIDEO_RATE);
 }
 
 static int set_format(void *obj, const char *name, int fmt, int search_flags,
                       enum AVOptionType type, const char *desc, int nb_fmts)
 {
-    void *target_obj;
-    const AVOption *o = av_opt_find2(obj, name, NULL, 0,
-                                     search_flags, &target_obj);
-    int min, max;
+    const AVOption *o;
+    int *dst;
+    int min, max, ret;
 
-    if (!o || !target_obj)
-        return AVERROR_OPTION_NOT_FOUND;
-    if (o->type != type) {
-        av_log(obj, AV_LOG_ERROR,
-               "The value set by option '%s' is not a %s format", name, desc);
-        return AVERROR(EINVAL);
-    }
+    ret = opt_set_init(obj, name, search_flags, type, NULL, &o, (void**)&dst);
+    if (ret < 0)
+        return ret;
 
     min = FFMAX(o->min, -1);
     max = FFMIN(o->max, nb_fmts-1);
@@ -898,7 +967,7 @@ static int set_format(void *obj, const char *name, int fmt, int search_flags,
                fmt, name, desc, min, max);
         return AVERROR(ERANGE);
     }
-    *(int *)(((uint8_t *)target_obj) + o->offset) = fmt;
+    *dst = fmt;
     return 0;
 }
 
@@ -915,34 +984,30 @@ int av_opt_set_sample_fmt(void *obj, const char *name, enum AVSampleFormat fmt, 
 int av_opt_set_dict_val(void *obj, const char *name, const AVDictionary *val,
                         int search_flags)
 {
-    void *target_obj;
     AVDictionary **dst;
-    const AVOption *o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
+    int ret;
 
-    if (!o || !target_obj)
-        return AVERROR_OPTION_NOT_FOUND;
-    if (o->flags & AV_OPT_FLAG_READONLY)
-        return AVERROR(EINVAL);
+    ret = opt_set_init(obj, name, search_flags, AV_OPT_TYPE_DICT, NULL, NULL,
+                       (void**)&dst);
+    if (ret < 0)
+        return ret;
 
-    dst = (AVDictionary **)(((uint8_t *)target_obj) + o->offset);
     av_dict_free(dst);
-    av_dict_copy(dst, val, 0);
 
-    return 0;
+    return av_dict_copy(dst, val, 0);
 }
 
 int av_opt_set_chlayout(void *obj, const char *name,
                         const AVChannelLayout *channel_layout,
                         int search_flags)
 {
-    void *target_obj;
-    const AVOption *o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
     AVChannelLayout *dst;
+    int ret;
 
-    if (!o || !target_obj)
-        return AVERROR_OPTION_NOT_FOUND;
-
-    dst = (AVChannelLayout*)((uint8_t*)target_obj + o->offset);
+    ret = opt_set_init(obj, name, search_flags, AV_OPT_TYPE_CHLAYOUT, NULL, NULL,
+                       (void**)&dst);
+    if (ret < 0)
+        return ret;
 
     return av_channel_layout_copy(dst, channel_layout);
 }
@@ -983,7 +1048,7 @@ static void format_duration(char *buf, size_t size, int64_t d)
 }
 
 static int opt_get_elem(const AVOption *o, uint8_t **pbuf, size_t buf_len,
-                        void *dst, int search_flags)
+                        const void *dst, int search_flags)
 {
     int ret;
 
@@ -996,6 +1061,9 @@ static int opt_get_elem(const AVOption *o, uint8_t **pbuf, size_t buf_len,
         break;
     case AV_OPT_TYPE_INT:
         ret = snprintf(*pbuf, buf_len, "%d", *(int *)dst);
+        break;
+    case AV_OPT_TYPE_UINT:
+        ret = snprintf(*pbuf, buf_len, "%u", *(unsigned *)dst);
         break;
     case AV_OPT_TYPE_INT64:
         ret = snprintf(*pbuf, buf_len, "%"PRId64, *(int64_t *)dst);
@@ -1241,7 +1309,7 @@ int av_opt_get_q(void *obj, const char *name, int search_flags, AVRational *out_
     if (num == 1.0 && (int)intnum == intnum)
         *out_val = (AVRational){intnum, den};
     else
-        *out_val = av_d2q(num*intnum/den, 1<<24);
+        *out_val = double_to_rational(num*intnum/den);
     return 0;
 }
 
@@ -1265,18 +1333,7 @@ int av_opt_get_image_size(void *obj, const char *name, int search_flags, int *w_
 
 int av_opt_get_video_rate(void *obj, const char *name, int search_flags, AVRational *out_val)
 {
-    int64_t intnum = 1;
-    double     num = 1;
-    int   ret, den = 1;
-
-    if ((ret = get_number(obj, name, &num, &den, &intnum, search_flags)) < 0)
-        return ret;
-
-    if (num == 1.0 && (int)intnum == intnum)
-        *out_val = (AVRational) { intnum, den };
-    else
-        *out_val = av_d2q(num * intnum / den, 1 << 24);
-    return 0;
+    return av_opt_get_q(obj, name, search_flags, out_val);
 }
 
 static int get_format(void *obj, const char *name, int search_flags, int *out_fmt,
@@ -1335,9 +1392,8 @@ int av_opt_get_dict_val(void *obj, const char *name, int search_flags, AVDiction
         return AVERROR(EINVAL);
 
     src = *(AVDictionary **)(((uint8_t *)target_obj) + o->offset);
-    av_dict_copy(out_val, src, 0);
 
-    return 0;
+    return av_dict_copy(out_val, src, 0);
 }
 
 int av_opt_flag_is_set(void *obj, const char *field_name, const char *flag_name)
@@ -1440,35 +1496,15 @@ static char *get_opt_flags_string(void *obj, const char *unit, int64_t value)
 static void log_type(void *av_log_obj, const AVOption *o,
                      enum AVOptionType parent_type)
 {
-    const char *desc[] = {
-        [AV_OPT_TYPE_FLAGS]         = "<flags>",
-        [AV_OPT_TYPE_INT]           = "<int>",
-        [AV_OPT_TYPE_INT64]         = "<int64>",
-        [AV_OPT_TYPE_UINT64]        = "<uint64>",
-        [AV_OPT_TYPE_DOUBLE]        = "<double>",
-        [AV_OPT_TYPE_FLOAT]         = "<float>",
-        [AV_OPT_TYPE_STRING]        = "<string>",
-        [AV_OPT_TYPE_RATIONAL]      = "<rational>",
-        [AV_OPT_TYPE_BINARY]        = "<binary>",
-        [AV_OPT_TYPE_DICT]          = "<dictionary>",
-        [AV_OPT_TYPE_IMAGE_SIZE]    = "<image_size>",
-        [AV_OPT_TYPE_VIDEO_RATE]    = "<video_rate>",
-        [AV_OPT_TYPE_PIXEL_FMT]     = "<pix_fmt>",
-        [AV_OPT_TYPE_SAMPLE_FMT]    = "<sample_fmt>",
-        [AV_OPT_TYPE_DURATION]      = "<duration>",
-        [AV_OPT_TYPE_COLOR]         = "<color>",
-        [AV_OPT_TYPE_CHLAYOUT]      = "<channel_layout>",
-        [AV_OPT_TYPE_BOOL]          = "<boolean>",
-    };
     const enum AVOptionType type = TYPE_BASE(o->type);
 
     if (o->type == AV_OPT_TYPE_CONST && TYPE_BASE(parent_type) == AV_OPT_TYPE_INT)
         av_log(av_log_obj, AV_LOG_INFO, "%-12"PRId64" ", o->default_val.i64);
-    else if (type < FF_ARRAY_ELEMS(desc) && desc[type]) {
+    else if (type < FF_ARRAY_ELEMS(opt_type_desc) && opt_type_desc[type].name) {
         if (o->type & AV_OPT_TYPE_FLAG_ARRAY)
-            av_log(av_log_obj, AV_LOG_INFO, "[%-10s]", desc[type]);
+            av_log(av_log_obj, AV_LOG_INFO, "[%-10s]", opt_type_desc[type].name);
         else
-            av_log(av_log_obj, AV_LOG_INFO, "%-12s ", desc[type]);
+            av_log(av_log_obj, AV_LOG_INFO, "%-12s ", opt_type_desc[type].name);
     }
     else
         av_log(av_log_obj, AV_LOG_INFO, "%-12s ", "");
@@ -1515,6 +1551,7 @@ static void log_default(void *obj, void *av_log_obj, const AVOption *opt)
         av_log(av_log_obj, AV_LOG_INFO, "%s", buf);
         break;
     }
+    case AV_OPT_TYPE_UINT:
     case AV_OPT_TYPE_INT:
     case AV_OPT_TYPE_UINT64:
     case AV_OPT_TYPE_INT64: {
@@ -1600,6 +1637,7 @@ static void opt_list(void *obj, void *av_log_obj, const char *unit,
         if (av_opt_query_ranges(&r, obj, opt->name, AV_OPT_SEARCH_FAKE_OBJ) >= 0) {
             switch (opt->type) {
             case AV_OPT_TYPE_INT:
+            case AV_OPT_TYPE_UINT:
             case AV_OPT_TYPE_INT64:
             case AV_OPT_TYPE_UINT64:
             case AV_OPT_TYPE_DOUBLE:
@@ -1676,6 +1714,7 @@ void av_opt_set_defaults2(void *s, int mask, int flags)
             case AV_OPT_TYPE_BOOL:
             case AV_OPT_TYPE_FLAGS:
             case AV_OPT_TYPE_INT:
+            case AV_OPT_TYPE_UINT:
             case AV_OPT_TYPE_INT64:
             case AV_OPT_TYPE_UINT64:
             case AV_OPT_TYPE_DURATION:
@@ -1916,7 +1955,7 @@ void av_opt_free(void *obj)
         if (o->type & AV_OPT_TYPE_FLAG_ARRAY)
             opt_free_array(o, pitem, opt_array_pcount(pitem));
         else
-            opt_free_elem(o, pitem);
+            opt_free_elem(o->type, pitem);
     }
 }
 
@@ -2015,6 +2054,7 @@ const AVClass *av_opt_child_class_iterate(const AVClass *parent, void **iter)
     return NULL;
 }
 
+#if FF_API_OPT_PTR
 void *av_opt_ptr(const AVClass *class, void *obj, const char *name)
 {
     const AVOption *opt= av_opt_find2(&class, name, NULL, 0, AV_OPT_SEARCH_FAKE_OBJ, NULL);
@@ -2024,6 +2064,7 @@ void *av_opt_ptr(const AVClass *class, void *obj, const char *name)
         return NULL;
     return (uint8_t*)obj + opt->offset;
 }
+#endif
 
 static int opt_copy_elem(void *logctx, enum AVOptionType type,
                          void *dst, const void *src)
@@ -2063,7 +2104,7 @@ static int opt_copy_elem(void *logctx, enum AVOptionType type,
         if (dst != src)
             return av_channel_layout_copy(dst, src);
     } else if (opt_is_pod(type)) {
-        size_t size = opt_elem_size[type];
+        size_t size = opt_type_desc[type].size;
         memcpy(dst, src, size);
     } else {
         av_log(logctx, AV_LOG_ERROR, "Unhandled option type: %d\n", type);
@@ -2087,7 +2128,7 @@ static int opt_copy_array(void *logctx, const AVOption *o,
 
     opt_free_array(o, pdst, opt_array_pcount(pdst));
 
-    dst = av_calloc(nb_elems, opt_elem_size[TYPE_BASE(o->type)]);
+    dst = av_calloc(nb_elems, opt_type_desc[TYPE_BASE(o->type)].size);
     if (!dst)
         return AVERROR(ENOMEM);
 
@@ -2130,6 +2171,299 @@ int av_opt_copy(void *dst, const void *src)
         if (err < 0)
             ret = err;
     }
+    return ret;
+}
+
+int av_opt_get_array_size(void *obj, const char *name, int search_flags,
+                          unsigned int *out_val)
+{
+    void *target_obj, *parray;
+    const AVOption *o;
+
+    o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
+    if (!o || !target_obj)
+        return AVERROR_OPTION_NOT_FOUND;
+    if (!(o->type & AV_OPT_TYPE_FLAG_ARRAY))
+        return AVERROR(EINVAL);
+
+    parray = (uint8_t *)target_obj + o->offset;
+    *out_val = *opt_array_pcount(parray);
+
+    return 0;
+}
+
+int av_opt_get_array(void *obj, const char *name, int search_flags,
+                     unsigned int start_elem, unsigned int nb_elems,
+                     enum AVOptionType out_type, void *out_val)
+{
+    const size_t elem_size_out = opt_type_desc[TYPE_BASE(out_type)].size;
+
+    const AVOption *o;
+    void *target_obj;
+
+    const void *parray;
+    unsigned array_size;
+
+    int ret;
+
+    o = av_opt_find2(obj, name, NULL, 0, search_flags, &target_obj);
+    if (!o || !target_obj)
+        return AVERROR_OPTION_NOT_FOUND;
+    if (!(o->type & AV_OPT_TYPE_FLAG_ARRAY) ||
+        (out_type & AV_OPT_TYPE_FLAG_ARRAY))
+        return AVERROR(EINVAL);
+
+    parray     = (uint8_t *)target_obj + o->offset;
+    array_size = *opt_array_pcount(parray);
+
+    if (start_elem >= array_size ||
+        array_size - start_elem < nb_elems)
+        return AVERROR(EINVAL);
+
+    for (unsigned i = 0; i < nb_elems; i++) {
+        const void *src = opt_array_pelem(o, *(void**)parray, start_elem + i);
+        void       *dst = (uint8_t*)out_val + i * elem_size_out;
+
+        if (out_type == TYPE_BASE(o->type)) {
+            ret = opt_copy_elem(obj, out_type, dst, src);
+            if (ret < 0)
+                goto fail;
+        } else if (out_type == AV_OPT_TYPE_STRING) {
+            uint8_t buf[128], *out = buf;
+
+            ret = opt_get_elem(o, &out, sizeof(buf), src, search_flags);
+            if (ret < 0)
+                goto fail;
+
+            if (out == buf) {
+                out = av_strdup(buf);
+                if (!out) {
+                    ret = AVERROR(ENOMEM);
+                    goto fail;
+                }
+            }
+
+            *(uint8_t**)dst = out;
+        } else if (out_type == AV_OPT_TYPE_INT64    ||
+                   out_type == AV_OPT_TYPE_DOUBLE   ||
+                   out_type == AV_OPT_TYPE_RATIONAL) {
+            double     num = 1.0;
+            int        den = 1;
+            int64_t intnum = 1;
+
+            ret = read_number(o, src, &num, &den, &intnum);
+            if (ret < 0)
+                goto fail;
+
+            switch (out_type) {
+            case AV_OPT_TYPE_INT64:
+                *(int64_t*)dst = (num == den) ?  intnum : num * intnum / den;
+                break;
+            case AV_OPT_TYPE_DOUBLE:
+                *(double*)dst = num * intnum / den;
+                break;
+            case AV_OPT_TYPE_RATIONAL:
+                *(AVRational*)dst = (num == 1.0 && (int)intnum == intnum) ?
+                                    (AVRational){ intnum, den }           :
+                                    double_to_rational(num * intnum / den);
+                break;
+            default: av_assert0(0);
+            }
+        } else
+            return AVERROR(ENOSYS);
+    }
+
+    return 0;
+fail:
+    for (unsigned i = 0; i < nb_elems; i++)
+        opt_free_elem(out_type, (uint8_t*)out_val + i * elem_size_out);
+    return ret;
+}
+
+int av_opt_set_array(void *obj, const char *name, int search_flags,
+                     unsigned int start_elem, unsigned int nb_elems,
+                     enum AVOptionType val_type, const void *val)
+{
+    const size_t elem_size_val = opt_type_desc[TYPE_BASE(val_type)].size;
+
+    const AVOption *o;
+    const AVOptionArrayDef *arr;
+    void *target_obj;
+
+    void *parray;
+    void *new_elems;
+    unsigned *array_size, new_size;
+    size_t elem_size;
+
+    int ret = 0;
+
+    ret = opt_set_init(obj, name, search_flags, 0, &target_obj, &o, &parray);
+    if (ret < 0)
+        return ret;
+
+    if (!(o->type & AV_OPT_TYPE_FLAG_ARRAY) ||
+        (val_type & AV_OPT_TYPE_FLAG_ARRAY))
+        return AVERROR(EINVAL);
+
+    arr        = o->default_val.arr;
+    array_size = opt_array_pcount(parray);
+    elem_size  = opt_type_desc[TYPE_BASE(o->type)].size;
+
+    if (start_elem > *array_size)
+        return AVERROR(EINVAL);
+
+    // compute new array size
+    if (!val) {
+        if (*array_size - start_elem < nb_elems)
+            return AVERROR(EINVAL);
+
+        new_size = *array_size - nb_elems;
+    } else if (search_flags & AV_OPT_ARRAY_REPLACE) {
+        if (start_elem >= UINT_MAX - nb_elems)
+            return AVERROR(EINVAL);
+
+        new_size = FFMAX(*array_size, start_elem + nb_elems);
+    } else {
+        if (nb_elems >= UINT_MAX - *array_size)
+            return AVERROR(EINVAL);
+
+        new_size = *array_size + nb_elems;
+    }
+
+    if (arr &&
+        ((arr->size_max && new_size > arr->size_max) ||
+         (arr->size_min && new_size < arr->size_min)))
+        return AVERROR(EINVAL);
+
+    // desired operation is shrinking the array
+    if (!val) {
+        void *array = *(void**)parray;
+
+        for (unsigned i = 0; i < nb_elems; i++) {
+            opt_free_elem(o->type,
+                          opt_array_pelem(o, array, start_elem + i));
+        }
+
+        if (new_size > 0) {
+            memmove(opt_array_pelem(o, array, start_elem),
+                    opt_array_pelem(o, array, start_elem + nb_elems),
+                    elem_size * (*array_size - start_elem - nb_elems));
+
+            array = av_realloc_array(array, new_size, elem_size);
+            if (!array)
+                return AVERROR(ENOMEM);
+
+            *(void**)parray = array;
+        } else
+            av_freep(parray);
+
+        *array_size = new_size;
+
+        return 0;
+    }
+
+    // otherwise, desired operation is insert/replace;
+    // first, store new elements in a separate array to simplify
+    // rollback on failure
+    new_elems = av_calloc(nb_elems, elem_size);
+    if (!new_elems)
+        return AVERROR(ENOMEM);
+
+    // convert/validate each new element
+    for (unsigned i = 0; i < nb_elems; i++) {
+        void       *dst = opt_array_pelem(o, new_elems, i);
+        const void *src = (uint8_t*)val + i * elem_size_val;
+
+        double     num = 1.0;
+        int        den = 1;
+        int64_t intnum = 1;
+
+        if (val_type == TYPE_BASE(o->type)) {
+            int err;
+
+            ret = opt_copy_elem(obj, val_type, dst, src);
+            if (ret < 0)
+                goto fail;
+
+            // validate the range for numeric options
+            err = read_number(o, dst, &num, &den, &intnum);
+            if (err >= 0 && TYPE_BASE(o->type) != AV_OPT_TYPE_FLAGS &&
+                (!den || o->max * den < num * intnum || o->min * den > num * intnum)) {
+                num = den ? num * intnum / den : (num && intnum ? INFINITY : NAN);
+                av_log(obj, AV_LOG_ERROR, "Cannot set array element %u for "
+                       "parameter '%s': value %f out of range [%g - %g]\n",
+                       start_elem + i, o->name, num, o->min, o->max);
+                ret = AVERROR(ERANGE);
+                goto fail;
+            }
+        } else if (val_type == AV_OPT_TYPE_STRING) {
+            ret = opt_set_elem(obj, target_obj, o, *(const char **)src, dst);
+            if (ret < 0)
+                goto fail;
+        } else if (val_type == AV_OPT_TYPE_INT ||
+              val_type == AV_OPT_TYPE_INT64    ||
+              val_type == AV_OPT_TYPE_FLOAT    ||
+              val_type == AV_OPT_TYPE_DOUBLE   ||
+              val_type == AV_OPT_TYPE_RATIONAL) {
+
+            switch (val_type) {
+            case AV_OPT_TYPE_INT:       intnum = *(int*)src;                break;
+            case AV_OPT_TYPE_INT64:     intnum = *(int64_t*)src;            break;
+            case AV_OPT_TYPE_FLOAT:     num    = *(float*)src;              break;
+            case AV_OPT_TYPE_DOUBLE:    num    = *(double*)src;             break;
+            case AV_OPT_TYPE_RATIONAL:  intnum = ((AVRational*)src)->num;
+                                        den    = ((AVRational*)src)->den;   break;
+            default: av_assert0(0);
+            }
+
+            ret = write_number(obj, o, dst, num, den, intnum);
+            if (ret < 0)
+                goto fail;
+        } else {
+            ret = AVERROR(ENOSYS);
+            goto fail;
+        }
+    }
+
+    // commit new elements to the array
+    if (start_elem == 0 && nb_elems == new_size) {
+        // replacing the existing array entirely
+        opt_free_array(o, parray, array_size);
+        *(void**)parray = new_elems;
+        *array_size     = nb_elems;
+
+        new_elems = NULL;
+        nb_elems  = 0;
+    } else {
+        void *array = av_realloc_array(*(void**)parray, new_size, elem_size);
+        if (!array) {
+            ret = AVERROR(ENOMEM);
+            goto fail;
+        }
+
+        if (search_flags & AV_OPT_ARRAY_REPLACE) {
+            // free the elements being overwritten
+            for (unsigned i = start_elem; i < FFMIN(start_elem + nb_elems, *array_size); i++)
+                opt_free_elem(o->type, opt_array_pelem(o, array, i));
+        } else {
+            // shift existing elements to the end
+            memmove(opt_array_pelem(o, array, start_elem + nb_elems),
+                    opt_array_pelem(o, array, start_elem),
+                    elem_size * (*array_size - start_elem));
+        }
+
+        memcpy((uint8_t*)array + elem_size * start_elem, new_elems, elem_size * nb_elems);
+
+        av_freep(&new_elems);
+        nb_elems = 0;
+
+        *(void**)parray = array;
+        *array_size     = new_size;
+    }
+
+fail:
+    opt_free_array(o, &new_elems, &nb_elems);
+
     return ret;
 }
 
@@ -2177,6 +2511,7 @@ int av_opt_query_ranges_default(AVOptionRanges **ranges_arg, void *obj, const ch
     switch (field->type) {
     case AV_OPT_TYPE_BOOL:
     case AV_OPT_TYPE_INT:
+    case AV_OPT_TYPE_UINT:
     case AV_OPT_TYPE_INT64:
     case AV_OPT_TYPE_UINT64:
     case AV_OPT_TYPE_PIXEL_FMT:
@@ -2281,6 +2616,7 @@ int av_opt_is_set_to_default(void *obj, const AVOption *o)
     case AV_OPT_TYPE_PIXEL_FMT:
     case AV_OPT_TYPE_SAMPLE_FMT:
     case AV_OPT_TYPE_INT:
+    case AV_OPT_TYPE_UINT:
     case AV_OPT_TYPE_DURATION:
     case AV_OPT_TYPE_INT64:
     case AV_OPT_TYPE_UINT64:
@@ -2292,7 +2628,9 @@ int av_opt_is_set_to_default(void *obj, const AVOption *o)
             if ((ret = av_channel_layout_from_string(&ch_layout, o->default_val.str)) < 0)
                 return ret;
         }
-        return !av_channel_layout_compare((AVChannelLayout *)dst, &ch_layout);
+        ret = !av_channel_layout_compare((AVChannelLayout *)dst, &ch_layout);
+        av_channel_layout_uninit(&ch_layout);
+        return ret;
     }
     case AV_OPT_TYPE_STRING:
         str = *(char **)dst;
@@ -2386,14 +2724,54 @@ int av_opt_is_set_to_default_by_name(void *obj, const char *name, int search_fla
     return av_opt_is_set_to_default(target, o);
 }
 
+static int opt_serialize(void *obj, int opt_flags, int flags, int *cnt,
+                         AVBPrint *bprint, const char key_val_sep, const char pairs_sep)
+{
+    const AVOption *o = NULL;
+    void *child = NULL;
+    uint8_t *buf;
+    int ret;
+    const char special_chars[] = {pairs_sep, key_val_sep, '\0'};
+
+    if (flags & AV_OPT_SERIALIZE_SEARCH_CHILDREN)
+        while (child = av_opt_child_next(obj, child)) {
+            ret = opt_serialize(child, opt_flags, flags, cnt, bprint,
+                                key_val_sep, pairs_sep);
+            if (ret < 0)
+                return ret;
+        }
+
+    while (o = av_opt_next(obj, o)) {
+        if (o->type == AV_OPT_TYPE_CONST)
+            continue;
+        if ((flags & AV_OPT_SERIALIZE_OPT_FLAGS_EXACT) && o->flags != opt_flags)
+            continue;
+        else if (((o->flags & opt_flags) != opt_flags))
+            continue;
+        if (flags & AV_OPT_SERIALIZE_SKIP_DEFAULTS && av_opt_is_set_to_default(obj, o) > 0)
+            continue;
+        if ((ret = av_opt_get(obj, o->name, 0, &buf)) < 0) {
+            av_bprint_finalize(bprint, NULL);
+            return ret;
+        }
+        if (buf) {
+            if ((*cnt)++)
+                av_bprint_append_data(bprint, &pairs_sep, 1);
+            av_bprint_escape(bprint, o->name, special_chars, AV_ESCAPE_MODE_BACKSLASH, 0);
+            av_bprint_append_data(bprint, &key_val_sep, 1);
+            av_bprint_escape(bprint, buf, special_chars, AV_ESCAPE_MODE_BACKSLASH, 0);
+            av_freep(&buf);
+        }
+    }
+
+    return 0;
+}
+
 int av_opt_serialize(void *obj, int opt_flags, int flags, char **buffer,
                      const char key_val_sep, const char pairs_sep)
 {
-    const AVOption *o = NULL;
-    uint8_t *buf;
     AVBPrint bprint;
     int ret, cnt = 0;
-    const char special_chars[] = {pairs_sep, key_val_sep, '\0'};
 
     if (pairs_sep == '\0' || key_val_sep == '\0' || pairs_sep == key_val_sep ||
         pairs_sep == '\\' || key_val_sep == '\\') {
@@ -2407,28 +2785,11 @@ int av_opt_serialize(void *obj, int opt_flags, int flags, char **buffer,
     *buffer = NULL;
     av_bprint_init(&bprint, 64, AV_BPRINT_SIZE_UNLIMITED);
 
-    while (o = av_opt_next(obj, o)) {
-        if (o->type == AV_OPT_TYPE_CONST)
-            continue;
-        if ((flags & AV_OPT_SERIALIZE_OPT_FLAGS_EXACT) && o->flags != opt_flags)
-            continue;
-        else if (((o->flags & opt_flags) != opt_flags))
-            continue;
-        if (flags & AV_OPT_SERIALIZE_SKIP_DEFAULTS && av_opt_is_set_to_default(obj, o) > 0)
-            continue;
-        if ((ret = av_opt_get(obj, o->name, 0, &buf)) < 0) {
-            av_bprint_finalize(&bprint, NULL);
-            return ret;
-        }
-        if (buf) {
-            if (cnt++)
-                av_bprint_append_data(&bprint, &pairs_sep, 1);
-            av_bprint_escape(&bprint, o->name, special_chars, AV_ESCAPE_MODE_BACKSLASH, 0);
-            av_bprint_append_data(&bprint, &key_val_sep, 1);
-            av_bprint_escape(&bprint, buf, special_chars, AV_ESCAPE_MODE_BACKSLASH, 0);
-            av_freep(&buf);
-        }
-    }
+    ret = opt_serialize(obj, opt_flags, flags, &cnt, &bprint,
+                        key_val_sep, pairs_sep);
+    if (ret < 0)
+        return ret;
+
     ret = av_bprint_finalize(&bprint, buffer);
     if (ret < 0)
         return ret;

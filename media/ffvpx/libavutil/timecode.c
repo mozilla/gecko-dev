@@ -61,8 +61,8 @@ uint32_t av_timecode_get_smpte_from_framenum(const AVTimecode *tc, int framenum)
         framenum = av_timecode_adjust_ntsc_framenum2(framenum, tc->fps);
     ff = framenum % fps;
     ss = framenum / fps      % 60;
-    mm = framenum / (fps*60) % 60;
-    hh = framenum / (fps*3600) % 24;
+    mm = framenum / (fps*60LL) % 60;
+    hh = framenum / (fps*3600LL) % 24;
     return av_timecode_get_smpte(tc->rate, drop, hh, mm, ss, ff);
 }
 
@@ -100,11 +100,12 @@ uint32_t av_timecode_get_smpte(AVRational rate, int drop, int hh, int mm, int ss
     return tc;
 }
 
-char *av_timecode_make_string(const AVTimecode *tc, char *buf, int framenum)
+char *av_timecode_make_string(const AVTimecode *tc, char *buf, int framenum_arg)
 {
     int fps = tc->fps;
     int drop = tc->flags & AV_TIMECODE_FLAG_DROPFRAME;
     int hh, mm, ss, ff, ff_len, neg = 0;
+    int64_t framenum = framenum_arg;
 
     framenum += tc->start;
     if (drop)

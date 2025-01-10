@@ -49,6 +49,10 @@
 #include <unistd.h>
 #endif
 
+#if HAVE_GETAUXVAL || HAVE_ELF_AUX_INFO
+#include <sys/auxv.h>
+#endif
+
 static atomic_int cpu_flags = -1;
 static atomic_int cpu_count = -1;
 
@@ -64,6 +68,8 @@ static int get_cpu_flags(void)
     return ff_get_cpu_flags_ppc();
 #elif ARCH_RISCV
     return ff_get_cpu_flags_riscv();
+#elif ARCH_WASM
+    return ff_get_cpu_flags_wasm();
 #elif ARCH_X86
     return ff_get_cpu_flags_x86();
 #elif ARCH_LOONGARCH
@@ -116,6 +122,8 @@ int av_parse_cpu_caps(unsigned *flags, const char *s)
         { "flags"   , NULL, 0, AV_OPT_TYPE_FLAGS, { .i64 = 0 }, INT64_MIN, INT64_MAX, .unit = "flags" },
 #if   ARCH_PPC
         { "altivec" , NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_ALTIVEC  },    .unit = "flags" },
+        { "vsx"     , NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_VSX      },    .unit = "flags" },
+        { "power8"  , NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_POWER8   },    .unit = "flags" },
 #elif ARCH_X86
         { "mmx"     , NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_MMX      },    .unit = "flags" },
         { "mmx2"    , NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_MMX2     },    .unit = "flags" },
@@ -176,6 +184,8 @@ int av_parse_cpu_caps(unsigned *flags, const char *s)
         { "vfp",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_VFP      },    .unit = "flags" },
         { "dotprod",  NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_DOTPROD  },    .unit = "flags" },
         { "i8mm",     NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_I8MM     },    .unit = "flags" },
+        { "sve",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_SVE      },    .unit = "flags" },
+        { "sve2",     NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_SVE2     },    .unit = "flags" },
 #elif ARCH_MIPS
         { "mmi",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_MMI      },    .unit = "flags" },
         { "msa",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_MSA      },    .unit = "flags" },
@@ -184,14 +194,16 @@ int av_parse_cpu_caps(unsigned *flags, const char *s)
         { "lasx",     NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_LASX     },    .unit = "flags" },
 #elif ARCH_RISCV
         { "rvi",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVI      },    .unit = "flags" },
-        { "rvf",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVF      },    .unit = "flags" },
-        { "rvd",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVD      },    .unit = "flags" },
+        { "rvb",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVB      },    .unit = "flags" },
         { "zve32x",   NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVV_I32  },    .unit = "flags" },
         { "zve32f",   NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVV_F32  },    .unit = "flags" },
         { "zve64x",   NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVV_I64  },    .unit = "flags" },
         { "zve64d",   NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVV_F64  },    .unit = "flags" },
-        { "zba",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVB_ADDR },    .unit = "flags" },
         { "zbb",      NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RVB_BASIC },   .unit = "flags" },
+        { "zvbb",     NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RV_ZVBB },   .unit = "flags" },
+        { "misaligned", NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_RV_MISALIGNED },   .unit = "flags" },
+#elif ARCH_WASM
+        { "simd128",  NULL, 0, AV_OPT_TYPE_CONST, { .i64 = AV_CPU_FLAG_SIMD128  },    .unit = "flags" },
 #endif
         { NULL },
     };
@@ -275,6 +287,8 @@ size_t av_cpu_max_align(void)
     return ff_get_cpu_max_align_arm();
 #elif ARCH_PPC
     return ff_get_cpu_max_align_ppc();
+#elif ARCH_WASM
+    return ff_get_cpu_max_align_wasm();
 #elif ARCH_X86
     return ff_get_cpu_max_align_x86();
 #elif ARCH_LOONGARCH
@@ -282,4 +296,21 @@ size_t av_cpu_max_align(void)
 #endif
 
     return 8;
+}
+
+unsigned long ff_getauxval(unsigned long type)
+{
+#if HAVE_GETAUXVAL
+    return getauxval(type);
+#elif HAVE_ELF_AUX_INFO
+    unsigned long aux = 0;
+    int ret = elf_aux_info(type, &aux, sizeof(aux));
+    if (ret != 0) {
+        errno = ret;
+    }
+    return aux;
+#else
+    errno = ENOSYS;
+    return 0;
+#endif
 }

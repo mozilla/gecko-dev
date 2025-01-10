@@ -75,6 +75,12 @@ static const struct channel_name channel_names[] = {
     [AV_CHAN_BOTTOM_FRONT_CENTER  ] = { "BFC",       "bottom front center"   },
     [AV_CHAN_BOTTOM_FRONT_LEFT    ] = { "BFL",       "bottom front left"     },
     [AV_CHAN_BOTTOM_FRONT_RIGHT   ] = { "BFR",       "bottom front right"    },
+    [AV_CHAN_SIDE_SURROUND_LEFT   ] = { "SSL",       "side surround left"    },
+    [AV_CHAN_SIDE_SURROUND_RIGHT  ] = { "SSR",       "side surround right"   },
+    [AV_CHAN_TOP_SURROUND_LEFT    ] = { "TTL",       "top surround left"     },
+    [AV_CHAN_TOP_SURROUND_RIGHT   ] = { "TTR",       "top surround right"    },
+    [AV_CHAN_BINAURAL_LEFT        ] = { "BIL",       "binaural left"         },
+    [AV_CHAN_BINAURAL_RIGHT       ] = { "BIR",       "binaural right"        },
 };
 
 void av_channel_name_bprint(AVBPrint *bp, enum AVChannel channel_id)
@@ -207,7 +213,8 @@ static const struct channel_layout_name channel_layout_map[] = {
     { "7.1",            AV_CHANNEL_LAYOUT_7POINT1             },
     { "7.1(wide)",      AV_CHANNEL_LAYOUT_7POINT1_WIDE_BACK   },
     { "7.1(wide-side)", AV_CHANNEL_LAYOUT_7POINT1_WIDE        },
-    { "5.1.2",          AV_CHANNEL_LAYOUT_5POINT1POINT2_BACK  },
+    { "5.1.2",          AV_CHANNEL_LAYOUT_5POINT1POINT2       },
+    { "5.1.2(back)",    AV_CHANNEL_LAYOUT_5POINT1POINT2_BACK  },
     { "octagonal",      AV_CHANNEL_LAYOUT_OCTAGONAL           },
     { "cube",           AV_CHANNEL_LAYOUT_CUBE                },
     { "5.1.4",          AV_CHANNEL_LAYOUT_5POINT1POINT4_BACK  },
@@ -215,7 +222,9 @@ static const struct channel_layout_name channel_layout_map[] = {
     { "7.1.4",          AV_CHANNEL_LAYOUT_7POINT1POINT4_BACK  },
     { "7.2.3",          AV_CHANNEL_LAYOUT_7POINT2POINT3       },
     { "9.1.4",          AV_CHANNEL_LAYOUT_9POINT1POINT4_BACK  },
+    { "9.1.6",          AV_CHANNEL_LAYOUT_9POINT1POINT6       },
     { "hexadecagonal",  AV_CHANNEL_LAYOUT_HEXADECAGONAL       },
+    { "binaural",       AV_CHANNEL_LAYOUT_BINAURAL            },
     { "downmix",        AV_CHANNEL_LAYOUT_STEREO_DOWNMIX,     },
     { "22.2",           AV_CHANNEL_LAYOUT_22POINT2,           },
 };
@@ -473,14 +482,13 @@ static int has_channel_names(const AVChannelLayout *channel_layout)
     return 0;
 }
 
-/**
- * If the layout is n-th order standard-order ambisonic, with optional
- * extra non-diegetic channels at the end, return the order.
- * Return a negative error code otherwise.
- */
-static int ambisonic_order(const AVChannelLayout *channel_layout)
+int av_channel_layout_ambisonic_order(const AVChannelLayout *channel_layout)
 {
     int i, highest_ambi, order;
+
+    if (channel_layout->order != AV_CHANNEL_ORDER_AMBISONIC &&
+        channel_layout->order != AV_CHANNEL_ORDER_CUSTOM)
+        return AVERROR(EINVAL);
 
     highest_ambi = -1;
     if (channel_layout->order == AV_CHANNEL_ORDER_AMBISONIC)
@@ -536,7 +544,7 @@ static enum AVChannelOrder canonical_order(AVChannelLayout *channel_layout)
     if (masked_description(channel_layout, 0) > 0)
         return AV_CHANNEL_ORDER_NATIVE;
 
-    order = ambisonic_order(channel_layout);
+    order = av_channel_layout_ambisonic_order(channel_layout);
     if (order >= 0 && masked_description(channel_layout, (order + 1) * (order + 1)) >= 0)
         return AV_CHANNEL_ORDER_AMBISONIC;
 
@@ -551,7 +559,7 @@ static enum AVChannelOrder canonical_order(AVChannelLayout *channel_layout)
 static int try_describe_ambisonic(AVBPrint *bp, const AVChannelLayout *channel_layout)
 {
     int nb_ambi_channels;
-    int order = ambisonic_order(channel_layout);
+    int order = av_channel_layout_ambisonic_order(channel_layout);
     if (order < 0)
         return order;
 
@@ -945,7 +953,7 @@ int av_channel_layout_retype(AVChannelLayout *channel_layout, enum AVChannelOrde
         if (channel_layout->order == AV_CHANNEL_ORDER_CUSTOM) {
             int64_t mask;
             int nb_channels = channel_layout->nb_channels;
-            int order = ambisonic_order(channel_layout);
+            int order = av_channel_layout_ambisonic_order(channel_layout);
             if (order < 0)
                 return AVERROR(ENOSYS);
             mask = masked_description(channel_layout, (order + 1) * (order + 1));
