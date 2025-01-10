@@ -21,9 +21,11 @@ aom_codec_peek_stream_info
 aom_codec_set_option
 aom_codec_version
 aom_codec_version_str
+aom_img_add_metadata
 aom_img_free
 aom_img_plane_height
 aom_img_plane_width
+aom_img_remove_metadata
 aom_img_wrap
 #if defined(X86_WIN64)
 aom_winx64_fstcw

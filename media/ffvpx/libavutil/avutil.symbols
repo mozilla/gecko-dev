@@ -50,6 +50,8 @@ av_color_space_name
 av_color_transfer_name
 av_compare_mod
 av_compare_ts
+av_container_fifo_alloc
+av_content_light_metadata_alloc
 av_content_light_metadata_create_side_data
 av_cpu_count
 av_crc
@@ -119,7 +121,10 @@ av_frame_new_side_data_from_buf
 av_frame_ref
 av_frame_remove_side_data
 av_frame_replace
+av_frame_side_data_add
+av_frame_side_data_clone
 av_frame_side_data_name
+av_frame_side_data_remove
 av_frame_unref
 av_free
 av_freep
@@ -178,6 +183,7 @@ av_log_set_flags
 av_log_set_level
 av_mallocz
 av_malloc
+av_mastering_display_metadata_alloc_size
 av_mastering_display_metadata_create_side_data
 av_match_list
 av_match_name
@@ -252,6 +258,14 @@ av_realloc_f
 av_reallocp
 av_reallocp_array
 av_reduce
+av_refstruct_alloc_ext_c
+av_refstruct_exclusive
+av_refstruct_pool_alloc
+av_refstruct_pool_alloc_ext_c
+av_refstruct_pool_get
+av_refstruct_ref
+av_refstruct_replace
+av_refstruct_unref
 av_rescale
 av_rescale_delta
 av_rescale_q

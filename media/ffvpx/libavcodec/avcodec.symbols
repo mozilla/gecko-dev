@@ -57,5 +57,10 @@ avcodec_send_packet
 avcodec_string
 avcodec_version
 avsubtitle_free
+ff_get_buffer
 ff_mpa_freq_tab
 ff_mpa_bitrate_tab
+ff_thread_progress_await
+ff_thread_progress_destroy
+ff_thread_progress_init
+ff_thread_progress_report
