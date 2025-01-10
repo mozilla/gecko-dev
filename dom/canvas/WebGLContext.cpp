@@ -516,7 +516,7 @@ void WebGLContext::Resize(uvec2 requestedSize) {
   mResetLayer = true;  // New size means new Layer.
 }
 
-UniquePtr<webgl::FormatUsageAuthority> WebGLContext::CreateFormatUsage(
+std::unique_ptr<webgl::FormatUsageAuthority> WebGLContext::CreateFormatUsage(
     gl::GLContext* gl) const {
   return webgl::FormatUsageAuthority::CreateForWebGL1(gl);
 }

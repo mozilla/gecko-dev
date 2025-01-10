@@ -11,7 +11,6 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_webgl.h"
-#include "mozilla/UniquePtrExtensions.h"
 #include "nsPrintfCString.h"
 #include "WebGLBuffer.h"
 #include "WebGLContextUtils.h"
@@ -1059,7 +1058,7 @@ void WebGLContext::DrawElementsInstanced(const GLenum mode,
   {
     ScopedDrawCallWrapper wrapper(*this);
     {
-      UniquePtr<gl::GLContext::LocalErrorScope> errorScope;
+      std::unique_ptr<gl::GLContext::LocalErrorScope> errorScope;
       if (MOZ_UNLIKELY(gl->IsANGLE() &&
                        gl->mDebugFlags &
                            gl::GLContext::DebugFlagAbortOnError)) {

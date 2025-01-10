@@ -28,7 +28,6 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_webgl.h"
-#include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
 #include "nsICanvasRenderingContextInternal.h"
 #include "nsTArray.h"
@@ -861,10 +860,11 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   void TexStorage(GLenum texTarget, uint32_t levels, GLenum sizedFormat,
                   uvec3 size) const;
 
-  UniquePtr<webgl::TexUnpackBlob> ToTexUnpackBytes(
+  std::unique_ptr<webgl::TexUnpackBlob> ToTexUnpackBytes(
       const WebGLTexImageData& imageData);
 
-  UniquePtr<webgl::TexUnpackBytes> ToTexUnpackBytes(WebGLTexPboOffset& aPbo);
+  std::unique_ptr<webgl::TexUnpackBytes> ToTexUnpackBytes(
+      WebGLTexPboOffset& aPbo);
 
   ////////////////////////////////////
   // WebGLTextureUpload.cpp
@@ -1366,9 +1366,9 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   }
 
  public:
-  UniquePtr<webgl::FormatUsageAuthority> mFormatUsage;
+  std::unique_ptr<webgl::FormatUsageAuthority> mFormatUsage;
 
-  virtual UniquePtr<webgl::FormatUsageAuthority> CreateFormatUsage(
+  virtual std::unique_ptr<webgl::FormatUsageAuthority> CreateFormatUsage(
       gl::GLContext* gl) const;
 
   const decltype(mBound2DTextures)* TexListForElemType(GLenum elemType) const;

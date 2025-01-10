@@ -51,10 +51,11 @@ LockedOutstandingContexts::~LockedOutstandingContexts() {
 // -
 
 /*static*/
-UniquePtr<HostWebGLContext> HostWebGLContext::Create(
+std::unique_ptr<HostWebGLContext> HostWebGLContext::Create(
     const OwnerData& ownerData, const webgl::InitContextDesc& desc,
     webgl::InitContextResult* const out) {
-  auto host = WrapUnique(new HostWebGLContext(ownerData));
+  auto host =
+      std::unique_ptr<HostWebGLContext>(new HostWebGLContext(ownerData));
   auto webgl = WebGLContext::Create(host.get(), desc, out);
   if (!webgl) return nullptr;
   return host;

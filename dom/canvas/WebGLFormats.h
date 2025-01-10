@@ -7,9 +7,9 @@
 #define WEBGL_FORMATS_H_
 
 #include <map>
+#include <memory>
 #include <set>
 
-#include "mozilla/UniquePtr.h"
 #include "WebGLTypes.h"
 
 namespace mozilla::webgl {
@@ -404,8 +404,10 @@ class FormatUsageAuthority {
   std::set<GLenum> mValidTexUnpackTypes;
 
  public:
-  static UniquePtr<FormatUsageAuthority> CreateForWebGL1(gl::GLContext* gl);
-  static UniquePtr<FormatUsageAuthority> CreateForWebGL2(gl::GLContext* gl);
+  static std::unique_ptr<FormatUsageAuthority> CreateForWebGL1(
+      gl::GLContext* gl);
+  static std::unique_ptr<FormatUsageAuthority> CreateForWebGL2(
+      gl::GLContext* gl);
 
  private:
   FormatUsageAuthority() = default;

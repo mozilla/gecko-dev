@@ -255,7 +255,7 @@ enum class WebGLExtensionID : uint8_t {
 };
 
 class UniqueBuffer final {
-  // Like UniquePtr<>, but for void* and malloc/calloc/free.
+  // Like unique_ptr<>, but for void* and malloc/calloc/free.
   void* mBuffer = nullptr;
 
  public:

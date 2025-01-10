@@ -45,7 +45,6 @@
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/StaticPrefs_webgl.h"
 
 namespace mozilla {

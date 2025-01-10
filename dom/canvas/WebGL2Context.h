@@ -139,7 +139,7 @@ class WebGL2Context final : public WebGLContext {
                            GLuint uniformBlockBinding);
 
  private:
-  virtual UniquePtr<webgl::FormatUsageAuthority> CreateFormatUsage(
+  virtual std::unique_ptr<webgl::FormatUsageAuthority> CreateFormatUsage(
       gl::GLContext* gl) const override;
 
   virtual bool IsTexParamValid(GLenum pname) const override;

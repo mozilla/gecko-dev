@@ -10,7 +10,6 @@
 #include "mozilla/GfxMessageUtils.h"
 #include "ClientWebGLContext.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/UniquePtr.h"
 #include "GLContext.h"
 #include "WebGLContext.h"
 #include "WebGL2Context.h"
@@ -18,6 +17,7 @@
 #include "WebGLTypes.h"
 #include "WebGLCommandQueue.h"
 
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -73,9 +73,9 @@ class HostWebGLContext final : public SupportsWeakPtr {
     dom::WebGLParent* outOfProcess = nullptr;
   };
 
-  static UniquePtr<HostWebGLContext> Create(const OwnerData&,
-                                            const webgl::InitContextDesc&,
-                                            webgl::InitContextResult* out);
+  static std::unique_ptr<HostWebGLContext> Create(
+      const OwnerData&, const webgl::InitContextDesc&,
+      webgl::InitContextResult* out);
 
  private:
   explicit HostWebGLContext(const OwnerData&);

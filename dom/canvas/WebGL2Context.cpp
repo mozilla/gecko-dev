@@ -17,7 +17,7 @@
 
 namespace mozilla {
 
-UniquePtr<webgl::FormatUsageAuthority> WebGL2Context::CreateFormatUsage(
+std::unique_ptr<webgl::FormatUsageAuthority> WebGL2Context::CreateFormatUsage(
     gl::GLContext* gl) const {
   return webgl::FormatUsageAuthority::CreateForWebGL2(gl);
 }
