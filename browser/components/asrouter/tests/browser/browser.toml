@@ -19,9 +19,9 @@ https_first_disabled = true
 
 ["browser_asrouter_group_userprefs.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x84_64' && asan && swgl", # Bug 1775852
-  "os == 'linux' && os_version == '18.04' && processor == 'x84_64' && debug && swgl", # Bug 1775852
-  "os == 'linux' && os_version == '18.04' && processor == 'x84_64' && opt && swgl && socketprocess_networking", # Bug 1775852
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan && swgl", # Bug 1775852
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && swgl", # Bug 1775852
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && swgl && socketprocess_networking", # Bug 1775852
 ]
 
 ["browser_asrouter_infobar.js"]

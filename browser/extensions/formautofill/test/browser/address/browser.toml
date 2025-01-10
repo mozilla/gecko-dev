@@ -57,7 +57,7 @@ skip-if = [
 
 ["browser_address_telemetry.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x84_64' && opt", # Bug 1809709
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1809709
   "win11_2009 && debug", # Bug 1809709
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1809709
 ]

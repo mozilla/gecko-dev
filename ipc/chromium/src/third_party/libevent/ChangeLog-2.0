@@ -577,7 +577,7 @@ BUGFIXES
  o Make definition of WIN32_LEAN_AND_MEAN in event.h conditional (3920172 Gilad Benjamini)
  o Correctly detect failure to delete bufferevent read-timeout event (da6e7cd)
  o Set close-on-exec bit for filedescriptors created by dns subsystem (d0b8843)
- o Fix kqueue correctness test on x84_64 (6123d12)
+ o Fix kqueue correctness test on x86_64 (6123d12)
  o Detect events with no ev_base; warn instead of crashing (f1074b7)
  o Fix an issue with forking and signal socketpairs in select/poll backends (d61b2f3)
  o Stop using global arrays to implement the EVUTIL_ctype functions (1fdec20)
