@@ -44,8 +44,8 @@
 #include "vm/ErrorReporting.h"   // ReportCompileErrorLatin1, ErrorMetadata
 #include "vm/JSAtomUtils.h"      // AtomizeChars
 #include "vm/JSContext.h"        // JSContext
-#include "vm/PlainObject.h"      // NewPlainObjectWithMaybeDuplicateKeys
-#include "vm/Realm.h"            // JS::Realm
+#include "vm/PlainObject.h"  // NewPlainObjectWithMaybeDuplicateKeys, NewPlainObjectWithProto
+#include "vm/Realm.h"  // JS::Realm
 #include "vm/StringType.h"  // JSString, JSAtom, JSLinearString, NewStringCopyN, NameToId
 
 #include "vm/JSAtomUtils-inl.h"  // AtomToId
@@ -1109,7 +1109,7 @@ template class js::JSONParser<char16_t>;
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::objectOpen(Vector<StackEntry, 10>& stack,
                                                  PropertyVector** properties) {
-  ParseRecordEntry* newParseEntry = NewPlainObject(context());
+  ParseRecordEntry* newParseEntry = NewPlainObjectWithProto(context(), nullptr);
   if (!newParseEntry) {
     return false;
   }
@@ -1154,7 +1154,7 @@ inline bool JSONReviveHandler<CharT>::finishObject(
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::arrayOpen(Vector<StackEntry, 10>& stack,
                                                 ElementVector** elements) {
-  ParseRecordEntry* newParseEntry = NewPlainObject(context());
+  ParseRecordEntry* newParseEntry = NewPlainObjectWithProto(context(), nullptr);
   if (!newParseEntry) {
     return false;
   }
