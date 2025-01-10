@@ -79,13 +79,16 @@ SimpleTest.waitForFocus(async () => {
           requestAnimationFrame(() => requestAnimationFrame(resolve));
         });
         const middleOfText = collapseAt > 0 && collapseAt < "XYZ".length;
+        const expectSplit = middleOfText && whiteSpace == "normal";
         const firstLineLength = insertingText.indexOf("\n");
-        const rightTextLength = middleOfText
-          // First, the `Text` is split.  At this time, the right half is removed from the
-          // `Text` and then, added it with new `Text`.  Therefore, there is non-zero removed
+        const rightTextLength = expectSplit
+          // First, the `Text` is split if the linefeed is not preformatted.
+          // At this time, the right half is removed from the `Text` and then,
+          // added it with new `Text`.  Therefore, there is non-zero removed
           // length.
           ? "XYZ".length - collapseAt
-          // However, if collapsed at start or end of a `Text`, we don't split the `Text`.
+          // However, if the linefeeds are preformatted or
+          // collapsed at start or end of a `Text`, we don't split the `Text`.
           : 0;
         is(
           stringifyTextChanges(textChanges),
@@ -106,16 +109,19 @@ SimpleTest.waitForFocus(async () => {
           requestAnimationFrame(() => requestAnimationFrame(resolve));
         });
         // Finally, removing the inserted `Text` nodes and <br> elements causes joining the
-        // `Text` nodes around the inserted text.  Therefore, the offset is always 0.  Removed
-        // length is the inserted text length and right text length at first split.  Then, added
-        // text length is the right text length.
-        const joinText = middleOfText || (firstLineLength > 0 && collapseAt == "XYZ".length);
-        const removeDataFromText = collapseAt == "XYZ".length && firstLineLength > 0;
+        // `Text` nodes around the inserted text.  So, if the new text is just inserted, the
+        // text change data is same as above.  On the other hand, if we did split, the offset
+        // is always 0, the removed length is the inserted text length and right text length
+        // at first split.  Then, added text length is the right text length.
+        const joinText = expectSplit &&
+          (middleOfText || (firstLineLength > 0 && collapseAt == "XYZ".length));
+        const removeDataFromText =
+          expectSplit && collapseAt == "XYZ".length && firstLineLength > 0;
         is(
           stringifyTextChanges(textChanges),
           stringifyTextChanges([
             {
-              offset: collapseAt == "XYZ".length ? collapseAt : 0,
+              offset: !joinText || collapseAt == "XYZ".length ? collapseAt : 0,
               removedLength: insertingText.length + (joinText && !removeDataFromText ? "XYZ".length : 0),
               addedLength: joinText && !removeDataFromText ? "XYZ".length : 0,
             },
