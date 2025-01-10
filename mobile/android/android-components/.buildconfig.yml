@@ -1152,6 +1152,16 @@ projects:
     - ui-colors
     - ui-icons
     - ui-tabcounter
+  feature-screendetection:
+    description: Feature implementation connecting an engine implementation with the
+      search module.
+    path: components/feature/screendetection
+    publish: true
+    upstream_dependencies:
+      - support-test
+      - support-test-fakes
+      - support-test-libstate
+      - tooling-lint
   feature-serviceworker:
     description: Feature that adds support for service workers when using GeckoEngine.
     path: components/feature/serviceworker

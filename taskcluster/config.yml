@@ -243,6 +243,7 @@ treeherder:
         'feature-search': 'feature-search'
         'feature-serviceworker': 'feature-serviceworker'
         'feature-session': 'feature-session'
+        'feature-screendetection': 'feature-screendetection'
         'feature-share': 'feature-share'
         'feature-sitepermissions': 'feature-sitepermissions'
         'feature-syncedtabs': 'feature-syncedtabs'

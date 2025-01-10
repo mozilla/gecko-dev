@@ -51,6 +51,7 @@ dependencies {
 
     implementation project(':support-ktx')
     implementation project(':support-base')
+    implementation project(':feature-screendetection')
 
     implementation ComponentsDependencies.kotlin_coroutines
 
