@@ -564,8 +564,6 @@ void nsWindow::OnDestroy(void) {
   // Remove association between this object and its parent and siblings.
   nsBaseWidget::Destroy();
 
-  RemoveAllChildren();
-
   NotifyWindowDestroyed();
 }
 

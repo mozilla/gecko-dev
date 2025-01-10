@@ -772,6 +772,8 @@ void nsWindow::Destroy() {
 
   [mNativeView widgetDestroyed];
 
+  nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
+
   nsBaseWidget::Destroy();
 
   // ReportDestroyEvent();
