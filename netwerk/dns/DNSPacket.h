@@ -77,11 +77,12 @@ class DNSPacket {
                              const nsACString& aOriginHost);
   void SetNativePacket(bool aNative) { mNativePacket = aNative; }
 
- protected:
-  nsresult PassQName(unsigned int& index, const unsigned char* aBuffer);
   static nsresult GetQname(nsACString& aQname, unsigned int& aIndex,
                            const unsigned char* aBuffer,
                            unsigned int aBodySize);
+
+ protected:
+  nsresult PassQName(unsigned int& index, const unsigned char* aBuffer);
   static nsresult ParseSvcParam(unsigned int svcbIndex, uint16_t key,
                                 SvcFieldValue& field, uint16_t length,
                                 const unsigned char* aBuffer);
