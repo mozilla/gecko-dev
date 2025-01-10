@@ -7840,6 +7840,7 @@ var SessionStoreInternal = {
     );
     this.forgetClosedTabGroup(source, tabGroupId);
 
+    group.select();
     return group;
   },
 
@@ -7895,6 +7896,7 @@ var SessionStoreInternal = {
     );
     this.forgetSavedTabGroup(tabGroupId);
 
+    group.select();
     return group;
   },
 

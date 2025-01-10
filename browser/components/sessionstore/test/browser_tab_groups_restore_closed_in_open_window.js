@@ -70,7 +70,11 @@ add_task(async function test_restoreClosedTabGroupFromSameWindow() {
     1,
     "there should be 1 tab group restored"
   );
-
+  Assert.equal(
+    win.gBrowser.selectedTab,
+    restoredTabGroup.tabs[0],
+    "first tab of the group is selected"
+  );
   Assert.equal(
     restoredTabGroup.tabs.length,
     2,
