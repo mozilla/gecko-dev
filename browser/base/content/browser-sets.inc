@@ -390,10 +390,6 @@
          data-l10n-id="window-minimize-shortcut"
          modifiers="accel"
          internal="true"/>
-    <key id="key_openHelpMac"
-         data-l10n-id="help-shortcut"
-         modifiers="accel"
-         internal="true"/>
     <!-- These are used to build the Application menu -->
     <key id="key_preferencesCmdMac"
          data-l10n-id="preferences-shortcut"

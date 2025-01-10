@@ -422,11 +422,7 @@
                 <menuitem id="menu_openHelp"
                           data-l10n-id="menu-get-help"
                           appmenu-data-l10n-id="appmenu-get-help"
-#ifdef XP_MACOSX
-                          key="key_openHelpMac"/>
-#else
                           />
-#endif
                 <menuitem id="help_reportBrokenSite"
                           command="cmd_reportBrokenSite"
                           data-l10n-id="menu-report-broken-site"
