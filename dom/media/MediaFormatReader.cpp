@@ -2439,7 +2439,8 @@ void MediaFormatReader::Update(TrackType aTrack) {
           mimeType.get());
       decoder.RejectPromise(decoder.mError.ref(), __func__);
       return;
-    } else if (decoder.HasCompletedDrain()) {
+    } else if (decoder.HasCompletedDrain() ||
+               decoder.HasInternalSeekWaiting()) {
       if (decoder.mDemuxEOS) {
         LOG("Rejecting %s promise: EOS", TrackTypeToStr(aTrack));
         if (aTrack == TrackInfo::kVideoTrack) {
