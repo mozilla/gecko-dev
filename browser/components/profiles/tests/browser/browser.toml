@@ -17,6 +17,8 @@ head = "../unit/head.js head.js"
 
 ["browser_edit_profile_test.js"]
 
+["browser_empty_name_beforeunload_test.js"]
+
 ["browser_menubar_profiles.js"]
 head = "../unit/head.js head.js"
 
