@@ -199,6 +199,16 @@ class CommonBackend(BuildBackend):
                 self._handle_generated_sources(objdir_files)
             return False
 
+        elif isinstance(obj, FinalTargetPreprocessedFiles):
+            for path, files in obj.files.walk():
+                for f in files:
+                    basename = FinalTargetPreprocessedFiles.get_obj_basename(f)
+                    relpath = mozpath.join(obj.install_target, path, basename)
+                    self._handle_generated_sources(
+                        [ObjDirPath(obj._context, "!/" + relpath).full_path]
+                    )
+            return False
+
         else:
             return False
 
