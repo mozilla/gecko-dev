@@ -1032,6 +1032,10 @@ class WorkerPrivate final
     return mLoadInfo.mOverriddenFingerprintingSettings;
   }
 
+  bool IsOn3PCBExceptionList() const {
+    return mLoadInfo.mIsOn3PCBExceptionList;
+  }
+
   RemoteWorkerChild* GetRemoteWorkerController();
 
   void SetRemoteWorkerController(RemoteWorkerChild* aController);

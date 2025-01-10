@@ -277,6 +277,7 @@ RefPtr<FetchServicePromises> FetchService::FetchInstance::Fetch() {
     mFetchDriver->SetAssociatedBrowsingContextID(
         args.mAssociatedBrowsingContextID);
     mFetchDriver->SetIsThirdPartyContext(Some(args.mIsThirdPartyContext));
+    mFetchDriver->SetIsOn3PCBExceptionList(args.mIsOn3PCBExceptionList);
   }
 
   if (mArgsType == FetchArgsType::MainThreadFetch) {
