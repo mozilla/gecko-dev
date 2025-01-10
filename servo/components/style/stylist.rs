@@ -3046,17 +3046,15 @@ impl CascadeData {
                     (ScopeTarget::Implicit(r.element(context.current_host.clone())), r.matches_shadow_host())
                 },
                 StylistImplicitScopeRoot::Cached(index) => {
-                    use crate::dom::TShadowRoot;
                     let host = context
                         .current_host
                         .expect("Cached implicit scope for light DOM implicit scope");
-                    let shadow_root = E::unopaque(host)
-                        .shadow_root()
-                        .expect("Shadow host without root?");
-                    match shadow_root.implicit_scope_for_sheet(index) {
+                    match E::implicit_scope_for_sheet_in_shadow_root(host, index) {
                         None => return ScopeRootCandidates::empty(is_trivial),
-                        Some(root) =>
-                            (ScopeTarget::Implicit(root.element(context.current_host.clone())), root.matches_shadow_host()),
+                        Some(root) => (
+                            ScopeTarget::Implicit(root.element(context.current_host.clone())),
+                            root.matches_shadow_host(),
+                        ),
                     }
                 },
             }

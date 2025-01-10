@@ -396,9 +396,6 @@ pub trait TElement:
     /// syntax.
     type TraversalChildrenIterator: Iterator<Item = Self::ConcreteNode>;
 
-    /// Convert an opaque element back into the element.
-    fn unopaque(opaque: OpaqueElement) -> Self;
-
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;
 
@@ -916,6 +913,14 @@ pub trait TElement:
 
     /// Returns the search direction for relative selector invalidation, if it is on the search path.
     fn relative_selector_search_direction(&self) -> ElementSelectorFlags;
+
+    /// Returns the implicit scope root for given sheet index and host.
+    fn implicit_scope_for_sheet_in_shadow_root(
+        _opaque_host: OpaqueElement,
+        _sheet_index: usize,
+    ) -> Option<ImplicitScopeRoot> {
+        None
+    }
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

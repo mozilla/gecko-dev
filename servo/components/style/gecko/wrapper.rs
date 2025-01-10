@@ -1015,10 +1015,25 @@ impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type TraversalChildrenIterator = GeckoChildrenIterator<'le>;
 
-    fn unopaque(opaque: OpaqueElement) -> Self {
-        unsafe {
-            Self(opaque.as_const_ptr::<RawGeckoElement>().as_ref().unwrap())
-        }
+    fn implicit_scope_for_sheet_in_shadow_root(
+        opaque_host: OpaqueElement,
+        sheet_index: usize,
+    ) -> Option<ImplicitScopeRoot> {
+        // As long as this "unopaqued" element does not escape this function, we're not leaking
+        // potentially-mutable elements from opaque elements.
+        let e = unsafe {
+            Self(
+                opaque_host
+                    .as_const_ptr::<RawGeckoElement>()
+                    .as_ref()
+                    .unwrap(),
+            )
+        };
+        let shadow_root = match e.shadow_root() {
+            None => return None,
+            Some(r) => r,
+        };
+        shadow_root.implicit_scope_for_sheet(sheet_index)
     }
 
     fn inheritance_parent(&self) -> Option<Self> {
