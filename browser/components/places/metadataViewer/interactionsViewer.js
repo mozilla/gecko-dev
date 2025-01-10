@@ -111,7 +111,7 @@ class TableViewer {
       numColumns * 2
     }):nth-child(${numColumns * 2}n+${numColumns * 2})\n
 {
-  background: var(--in-content-box-background-odd);
+  background: var(--table-row-background-color-alternate);
 }`;
     existingStyle.innerText = styleText;
 
