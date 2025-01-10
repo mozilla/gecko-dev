@@ -1,0 +1,18 @@
+---
+node-package-names:
+    description: Lint for node package name issues
+    include: ['.']
+    exclude:
+        # New files must only be added to this list if the packages are
+        # published under the Mozilla org on npmjs.com.
+        # If they are not to be published, they should not have name and version
+        # properties.
+        # If they are third party packages. then they should be listed in
+        # ThirdPartyPaths.txt.
+        - toolkit/components/normandy/actions/schemas/package.json
+        - tools/lint/eslint/eslint-plugin-mozilla/package.json
+    extensions: ['json']
+    support-files:
+        - 'tools/lint/node-package-names/**'
+    type: external
+    payload: node-package-names:lint

@@ -242,6 +242,17 @@ lintpref:
             - 'mobile/android/locales/en-US/mobile-l10n.js'
             - 'tools/lint/lintpref.yml'
 
+node-package-names:
+    description: Lint for node package name issues
+    treeherder:
+        symbol: misc(npn)
+    run:
+        mach: lint -v -l node-package-names -f treeherder -f json:/builds/worker/mozlint.json .
+    when:
+        files-changed:
+            - '**/package.json'
+            - 'tools/lint/node-package-names.yml'
+
 mingw-cap:
     description: lint for MinGW Capitalization issues
     treeherder:
