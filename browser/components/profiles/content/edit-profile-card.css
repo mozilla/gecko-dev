@@ -4,13 +4,6 @@
 
 @import url("chrome://browser/content/profiles/profiles-pages.css");
 
-#edit-profile-card {
-  display: flex;
-  gap: var(--space-xxlarge);
-  margin: var(--space-xxlarge);
-  padding: var(--space-xxlarge);
-}
-
 #profile-content {
   display: flex;
   flex-direction: column;
@@ -31,7 +24,8 @@
 }
 
 #profile-name {
-  width: fit-content;
+  width: min(400px, 100%);
+  margin: 0;
 
   &:invalid {
     border-color: var(--outline-color-error);
