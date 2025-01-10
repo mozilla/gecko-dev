@@ -218,6 +218,7 @@ class NotificationRobot {
                 } else {
                     if (SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         Log.i(TAG, "swipeDownloadNotification: $notificationItem notification can't be dismissed: $shouldDismissNotification")
+                        assertUIObjectExists(itemContainingText(appName), exists = false)
                         assertUIObjectExists(itemContainingText(notificationItem))
                     } else {
                         Log.i(TAG, "swipeDownloadNotification: $appName notification can't be dismissed: $shouldDismissNotification")
