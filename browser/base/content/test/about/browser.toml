@@ -15,12 +15,6 @@ support-files = [
 
 ["browser_aboutCertError_clockSkew.js"]
 
-["browser_aboutCertError_corp.js"]
-support-files = [
-  "sandbox_corp_iframe.sjs",
-  "sandbox_corp_popup.html",
-]
-
 ["browser_aboutCertError_exception.js"]
 
 ["browser_aboutCertError_mitm.js"]
