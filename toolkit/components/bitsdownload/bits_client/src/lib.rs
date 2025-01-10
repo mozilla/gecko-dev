@@ -46,7 +46,13 @@ pub enum PipeError {
     #[error("Should have written {0} bytes, wrote {1}")]
     WriteCount(usize, u32),
     #[error("Windows API error")]
-    Api(#[from] HResult),
+    Api(HResult),
+}
+
+impl From<HResult> for PipeError {
+    fn from(value: HResult) -> Self {
+        Self::Api(value)
+    }
 }
 
 pub use PipeError as Error;

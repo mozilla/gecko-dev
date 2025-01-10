@@ -24,13 +24,37 @@ enum MyError {
     #[error("{0}")]
     Msg(String),
     #[error("HResult")]
-    HResult(#[from] comedy::HResult),
+    HResult(comedy::HResult),
     #[error("Win32Error")]
-    Win32Error(#[from] comedy::Win32Error),
+    Win32Error(comedy::Win32Error),
     #[error("PipeError")]
-    PipeError(#[from] PipeError),
+    PipeError(PipeError),
     #[error("HResultMessage")]
-    HResultMessage(#[from] HResultMessage),
+    HResultMessage(HResultMessage),
+}
+
+impl From<comedy::HResult> for MyError {
+    fn from(v: comedy::HResult) -> Self {
+        Self::HResult(v)
+    }
+}
+
+impl From<comedy::Win32Error> for MyError {
+    fn from(v: comedy::Win32Error) -> Self {
+        Self::Win32Error(v)
+    }
+}
+
+impl From<PipeError> for MyError {
+    fn from(v: PipeError) -> Self {
+        Self::PipeError(v)
+    }
+}
+
+impl From<HResultMessage> for MyError {
+    fn from(v: HResultMessage) -> Self {
+        Self::HResultMessage(v)
+    }
 }
 
 macro_rules! bail {
