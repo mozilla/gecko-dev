@@ -1239,6 +1239,7 @@ class nsCycleCollector : public nsIMemoryReporter {
   bool IsIncrementalGCInProgress();
   void FinishAnyIncrementalGCInProgress();
   bool ShouldMergeZones(ccIsManual aIsManual);
+  void MaybeInitLogger(bool aIsShutdown, bool aForGC);
 
   void BeginCollection(CCReason aReason, ccIsManual aIsManual,
                        nsICycleCollectorListener* aManualListener);
@@ -3763,6 +3764,25 @@ bool nsCycleCollector::ShouldMergeZones(ccIsManual aIsManual) {
   }
 }
 
+void nsCycleCollector::MaybeInitLogger(bool aIsShutdown, bool aForGC) {
+  if (mLogger) {
+    return;
+  }
+
+  if (!mParams.LogThisCC(mShutdownCount)) {
+    return;
+  }
+
+  if (aForGC && !mParams.LogThisGC()) {
+    return;
+  }
+
+  mLogger = new nsCycleCollectorLogger(mParams.LogThisGC());
+  if (mParams.AllTracesThisCC(aIsShutdown)) {
+    mLogger->SetAllTraces();
+  }
+}
+
 void nsCycleCollector::BeginCollection(
     CCReason aReason, ccIsManual aIsManual,
     nsICycleCollectorListener* aManualListener) {
@@ -3789,14 +3809,7 @@ void nsCycleCollector::BeginCollection(
   if (aManualListener) {
     aManualListener->AsLogger(getter_AddRefs(mLogger));
   }
-
   aManualListener = nullptr;
-  if (!mLogger && mParams.LogThisCC(mShutdownCount)) {
-    mLogger = new nsCycleCollectorLogger(mParams.LogThisGC());
-    if (mParams.AllTracesThisCC(isShutdown)) {
-      mLogger->SetAllTraces();
-    }
-  }
 
   CycleCollectorResults ignoredResults;
   mozilla::CycleCollectorStats* stats = sCollectorData.get()->mStats.get();
@@ -3817,6 +3830,8 @@ void nsCycleCollector::BeginCollection(
   FinishAnyIncrementalGCInProgress();
   timeLog.Checkpoint("Pre-FixGrayBits finish IGC");
 
+  MaybeInitLogger(isShutdown, /* aForGC = */ true);
+
   FixGrayBits(isShutdown, timeLog);
   if (mCCJSRuntime) {
     mCCJSRuntime->CheckGrayBits();
@@ -3825,6 +3840,7 @@ void nsCycleCollector::BeginCollection(
   FreeSnowWhite(true);
   timeLog.Checkpoint("BeginCollection FreeSnowWhite");
 
+  MaybeInitLogger(isShutdown, /* aForGC = */ false);
   if (mLogger && NS_FAILED(mLogger->Begin())) {
     mLogger = nullptr;
   }
