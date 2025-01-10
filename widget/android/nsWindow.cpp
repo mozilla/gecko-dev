@@ -2252,8 +2252,6 @@ void nsWindow::Destroy() {
   // Stuff below may release the last ref to this
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
 
-  RemoveAllChildren();
-
   // Ensure the compositor has been shutdown before this nsWindow is potentially
   // deleted
   nsBaseWidget::DestroyCompositor();
