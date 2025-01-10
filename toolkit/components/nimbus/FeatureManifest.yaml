@@ -1307,6 +1307,13 @@ pocketNewtab:
         pref: browser.newtabpage.activity-stream.newtabWallpapers.highlightCtaText
       description: >-
         Changes the wallpaper feature highlight cta
+    currentWallpaper:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabWallpapers.wallpaper
+      description:  >-
+        Changes the currently selected wallpaper
     weatherLocationSearch:
       type: boolean
       setPref:

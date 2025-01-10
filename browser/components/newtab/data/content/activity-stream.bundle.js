@@ -12800,12 +12800,23 @@ class BaseContent extends (external_React_default()).PureComponent {
     const prefs = this.props.Prefs.values;
     const wallpaperLight = prefs["newtabWallpapers.wallpaper-light"];
     const wallpaperDark = prefs["newtabWallpapers.wallpaper-dark"];
+    // selected wallpaper is used for v2 of wallpapers
+    const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
     const {
       wallpaperList
     } = this.props.Wallpapers;
     if (wallpaperList) {
-      let lightWallpaper = wallpaperList.find(wp => wp.title === wallpaperLight) || "";
-      let darkWallpaper = wallpaperList.find(wp => wp.title === wallpaperDark) || "";
+      let lightWallpaper;
+      let darkWallpaper;
+      if (selectedWallpaper) {
+        // if selectedWallpaper exists - we override what light and dark prefs are to match that
+        const wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);
+        lightWallpaper = wallpaper;
+        darkWallpaper = wallpaper;
+      } else {
+        lightWallpaper = wallpaperList.find(wp => wp.title === wallpaperLight) || "";
+        darkWallpaper = wallpaperList.find(wp => wp.title === wallpaperDark) || "";
+      }
 
       // solid-color-picker-#00d100
       const regexRGB = /#([a-fA-F0-9]{6})/;
