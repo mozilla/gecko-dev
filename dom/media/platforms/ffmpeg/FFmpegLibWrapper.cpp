@@ -60,7 +60,7 @@ FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
   }
 
   enum {
-    AV_FUNC_AVUTIL_MASK = 1 << 8,
+    AV_FUNC_AVUTIL_MASK = 1 << 15,
     AV_FUNC_53 = 1 << 0,
     AV_FUNC_54 = 1 << 1,
     AV_FUNC_55 = 1 << 2,
@@ -69,7 +69,7 @@ FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
     AV_FUNC_58 = 1 << 5,
     AV_FUNC_59 = 1 << 6,
     AV_FUNC_60 = 1 << 7,
-    AV_FUNC_61 = 1 << 7,
+    AV_FUNC_61 = 1 << 8,
     AV_FUNC_AVUTIL_53 = AV_FUNC_53 | AV_FUNC_AVUTIL_MASK,
     AV_FUNC_AVUTIL_54 = AV_FUNC_54 | AV_FUNC_AVUTIL_MASK,
     AV_FUNC_AVUTIL_55 = AV_FUNC_55 | AV_FUNC_AVUTIL_MASK,
