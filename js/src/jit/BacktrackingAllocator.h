@@ -897,8 +897,9 @@ class BacktrackingAllocator : protected RegisterAllocator {
       const VirtualRegister& reg, const ControlFlowEdgeVector& edges);
   [[nodiscard]] AVOID_INLINE_FOR_DEBUGGING bool
   createMoveGroupsFromLiveRangeTransitions();
-  size_t findFirstNonCallSafepoint(CodePosition from);
-  void addLiveRegistersForRange(VirtualRegister& reg, LiveRange* range);
+  size_t findFirstNonCallSafepoint(CodePosition pos, size_t startFrom);
+  void addLiveRegistersForRange(VirtualRegister& reg, LiveRange* range,
+                                size_t* firstNonCallSafepoint);
   [[nodiscard]] AVOID_INLINE_FOR_DEBUGGING bool installAllocationsInLIR();
   size_t findFirstSafepoint(CodePosition pos, size_t startFrom);
   [[nodiscard]] AVOID_INLINE_FOR_DEBUGGING bool populateSafepoints();
