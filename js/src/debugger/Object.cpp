@@ -1278,49 +1278,50 @@ bool DebuggerObject::CallData::createSource() {
 
   bool forceEnableAsmJS = ToBoolean(v);
 
-  JS::CompileOptions compileOptions(cx);
-  compileOptions.lineno = startLine;
-  compileOptions.column = JS::ColumnNumberOneOrigin(startColumn);
-  if (forceEnableAsmJS) {
-    compileOptions.setAsmJSOption(JS::AsmJSOption::Enabled);
-  }
-
-  if (!JS::StringHasLatin1Chars(url)) {
-    JS_ReportErrorASCII(cx, "URL must be a narrow string");
-    return false;
-  }
-
-  UniqueChars urlChars = JS_EncodeStringToUTF8(cx, url);
-  if (!urlChars) {
-    return false;
-  }
-  compileOptions.setFile(urlChars.get());
-
-  Vector<char16_t> sourceMapURLChars(cx);
-  if (sourceMapURL) {
-    if (!CopyStringToVector(cx, sourceMapURL, sourceMapURLChars)) {
-      return false;
-    }
-    compileOptions.setSourceMapURL(sourceMapURLChars.begin());
-  }
-
-  if (isScriptElement) {
-    // The introduction type must be a statically allocated string.
-    compileOptions.setIntroductionType("inlineScript");
-  }
-
-  AutoStableStringChars linearChars(cx);
-  if (!linearChars.initTwoByte(cx, text)) {
-    return false;
-  }
-  JS::SourceText<char16_t> srcBuf;
-  if (!srcBuf.initMaybeBorrowed(cx, linearChars)) {
-    return false;
-  }
-
   RootedScript script(cx);
   {
     AutoRealm ar(cx, referent);
+
+    JS::CompileOptions compileOptions(cx);
+    compileOptions.lineno = startLine;
+    compileOptions.column = JS::ColumnNumberOneOrigin(startColumn);
+    if (forceEnableAsmJS) {
+      compileOptions.setAsmJSOption(JS::AsmJSOption::Enabled);
+    }
+
+    if (!JS::StringHasLatin1Chars(url)) {
+      JS_ReportErrorASCII(cx, "URL must be a narrow string");
+      return false;
+    }
+
+    UniqueChars urlChars = JS_EncodeStringToUTF8(cx, url);
+    if (!urlChars) {
+      return false;
+    }
+    compileOptions.setFile(urlChars.get());
+
+    Vector<char16_t> sourceMapURLChars(cx);
+    if (sourceMapURL) {
+      if (!CopyStringToVector(cx, sourceMapURL, sourceMapURLChars)) {
+        return false;
+      }
+      compileOptions.setSourceMapURL(sourceMapURLChars.begin());
+    }
+
+    if (isScriptElement) {
+      // The introduction type must be a statically allocated string.
+      compileOptions.setIntroductionType("inlineScript");
+    }
+
+    AutoStableStringChars linearChars(cx);
+    if (!linearChars.initTwoByte(cx, text)) {
+      return false;
+    }
+    JS::SourceText<char16_t> srcBuf;
+    if (!srcBuf.initMaybeBorrowed(cx, linearChars)) {
+      return false;
+    }
+
     script = JS::Compile(cx, compileOptions, srcBuf);
     if (!script) {
       return false;
