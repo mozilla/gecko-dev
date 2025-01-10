@@ -118,7 +118,8 @@ class ProviderHeuristicFallback extends UrlbarProvider {
 
     if (
       lazy.UrlbarPrefs.get("keyword.enabled") ||
-      queryContext.restrictSource == UrlbarUtils.RESULT_SOURCE.SEARCH
+      queryContext.restrictSource == UrlbarUtils.RESULT_SOURCE.SEARCH ||
+      queryContext.searchMode
     ) {
       result = await this._engineSearchResult(queryContext);
       if (instance != this.queryInstance) {
