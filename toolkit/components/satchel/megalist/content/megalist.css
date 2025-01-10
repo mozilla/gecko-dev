@@ -378,3 +378,28 @@ login-form {
     }
   }
 }
+
+/* panel item styles */
+panel-item[action="import-from-browser"]::part(button){
+  background-image: url("chrome://browser/skin/import.svg");
+}
+
+panel-item[action="import-from-file"]::part(button){
+  background-image: url("chrome://browser/skin/import.svg");
+}
+
+panel-item[action="export-logins"]::part(button){
+  background-image: url("chrome://browser/skin/save.svg");
+}
+
+panel-item[action="remove-all-logins"]::part(button){
+  background-image: url("chrome://global/skin/icons/delete.svg");
+}
+
+panel-item[action="open-preferences"]::part(button){
+  background-image: url("chrome://global/skin/icons/settings.svg");
+}
+
+panel-item[action="open-help"]::part(button){
+  background-image: url("chrome://global/skin/icons/help.svg");
+}
