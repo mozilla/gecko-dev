@@ -408,10 +408,11 @@ class MOZ_STACK_CLASS JSONReviveHandler : public JSONFullParseHandler<CharT> {
   void trace(JSTracer* trc);
 
  private:
-  inline bool finishMemberParseRecord(Handle<JS::PropertyKey> key,
-                                      Handle<ParseRecordObject::EntryMap*> parseEntry);
-  inline bool finishCompoundParseRecord(const Value& value,
-                                        Handle<ParseRecordObject::EntryMap*> parseEntry);
+  inline bool finishMemberParseRecord(
+      Handle<JS::PropertyKey> key,
+      Handle<ParseRecordObject::EntryMap*> parseEntry);
+  inline bool finishCompoundParseRecord(
+      const Value& value, Handle<ParseRecordObject::EntryMap*> parseEntry);
   inline bool finishPrimitiveParseRecord(const Value& value, SourceT source);
 
   GCVector<ParseRecordObject::EntryMap*, 10> parseRecordStack;
