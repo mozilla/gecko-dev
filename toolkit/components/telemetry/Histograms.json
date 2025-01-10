@@ -14277,6 +14277,7 @@
       "OTHER",
       "FILTERED_FETCH",
       "BLOCKED_FETCH",
+      "JSON",
       "SCRIPT",
       "IMAGE",
       "STYLESHEET",
