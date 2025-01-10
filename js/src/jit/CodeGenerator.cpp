@@ -6902,6 +6902,9 @@ void CodeGenerator::emitRestoreStackPointerFromFP() {
   int32_t offset = -int32_t(frameSize());
   masm.computeEffectiveAddress(Address(FramePointer, offset),
                                masm.getStackPointer());
+#if JS_CODEGEN_ARM64
+  masm.syncStackPtr();
+#endif
 }
 
 void CodeGenerator::emitPushArguments(Register argcreg, Register scratch,
