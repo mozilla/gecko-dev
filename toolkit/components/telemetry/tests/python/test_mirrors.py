@@ -72,7 +72,7 @@ def ensure_compatible_event(metric, probe):
 
 # Histograms are compatible with metrics if they are
 #  * keyed if the metric is labeled_*
-#  * of a suitable `kind` (e.g. "linear" or "exponential")
+#  * of a suitable `kind` (e.g. "linear", "exponential", or "enumerated")
 def ensure_compatible_histogram(metric, probe):
     if metric.type == "counter":
         assert (
@@ -102,6 +102,7 @@ def ensure_compatible_histogram(metric, probe):
     assert probe.kind() in [
         "linear",
         "exponential",
+        "enumerated",
     ], f"Histogram {probe.name()}'s kind is not mirror-compatible."
     assert (
         hasattr(metric, "labeled") and metric.labeled
