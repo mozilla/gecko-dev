@@ -2203,6 +2203,7 @@
 # Prefs starting with "datareporting."
 #---------------------------------------------------------------------------
 
+# Do note that the toggle on Fenix and Focus does NOT reflect to this pref.
 - name: datareporting.healthreport.uploadEnabled
   type: RelaxedAtomicBool
   value: false
