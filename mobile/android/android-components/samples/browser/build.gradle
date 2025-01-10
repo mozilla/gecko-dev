@@ -142,6 +142,7 @@ dependencies {
     implementation project(':support-ktx')
     implementation project(':support-webextensions')
     implementation project(':support-rustlog')
+    implementation project(':feature-screendetection')
 
     geckoImplementation project(':browser-engine-gecko')
 

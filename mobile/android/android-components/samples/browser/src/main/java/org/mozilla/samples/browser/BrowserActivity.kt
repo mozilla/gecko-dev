@@ -7,6 +7,7 @@ package org.mozilla.samples.browser
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.AttributeSet
 import android.view.View
@@ -15,6 +16,7 @@ import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.contextmenu.ext.DefaultSelectionActionDelegate
 import mozilla.components.feature.intent.ext.getSessionId
+import mozilla.components.feature.screendetection.ScreenDetectionFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.locale.LocaleAwareAppCompatActivity
 import mozilla.components.support.utils.SafeIntent
@@ -49,6 +51,11 @@ open class BrowserActivity : LocaleAwareAppCompatActivity(), ComponentCallbacks2
         }
 
         lifecycle.addObserver(webExtensionPopupObserver)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val screenDetectionFeature = ScreenDetectionFeature(this)
+            lifecycle.addObserver(screenDetectionFeature)
+        }
+
         components.historyStorage.registerStorageMaintenanceWorker()
         components.notificationsDelegate.bindToActivity(this)
     }
