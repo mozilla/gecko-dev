@@ -188,6 +188,11 @@ bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
       goto fail;
     }
 
+    // A custom section name must be valid UTF-8
+    if (!IsUtf8(AsChars(mozilla::Span(cur_, secRange.nameLength)))) {
+      goto fail;
+    }
+
     secRange.nameOffset = currentOffset();
     secRange.payloadOffset = secRange.nameOffset + secRange.nameLength;
 

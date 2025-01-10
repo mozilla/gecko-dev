@@ -149,6 +149,9 @@ var tooBigNameSection = {
 };
 wasmEval(moduleWithSections([tooBigNameSection]));
 
+// Custom sections must have valid UTF-8 names
+assertErrorMessage(() => wasmEval(toU8([0,97,115,109,1,0,0,0,0,3,2,254,255,])), CompileError, /failed to start custom section/);
+
 // Skip custom sections before any expected section
 var customDefSec = customSection("wee", 42, 13);
 var declSec = declSection([0]);
