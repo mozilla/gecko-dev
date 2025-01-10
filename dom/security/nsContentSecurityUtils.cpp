@@ -333,9 +333,17 @@ FilenameTypeAndDetails nsContentSecurityUtils::FilenameToFilenameType(
 
   // resource:// and chrome://
   if (StringBeginsWith(fileName, "chrome://"_ns)) {
+    if (StringBeginsWith(fileName, "chrome://userscripts/"_ns) ||
+        StringBeginsWith(fileName, "chrome://userchromejs/"_ns) ||
+        StringBeginsWith(fileName, "chrome://tabmix"_ns)) {
+      return FilenameTypeAndDetails(kSuspectedUserChromeJS, Nothing());
+    }
     return FilenameTypeAndDetails(kChromeURI, Some(nsCString(fileName)));
   }
   if (StringBeginsWith(fileName, "resource://"_ns)) {
+    if (StringBeginsWith(fileName, "resource://usl-ucjs/"_ns)) {
+      return FilenameTypeAndDetails(kSuspectedUserChromeJS, Nothing());
+    }
     return FilenameTypeAndDetails(kResourceURI, Some(nsCString(fileName)));
   }
 

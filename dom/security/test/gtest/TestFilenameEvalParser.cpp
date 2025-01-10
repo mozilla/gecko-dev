@@ -159,6 +159,38 @@ TEST(FilenameEvalParser, UserChromeJS)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
   }
+  {
+    constexpr auto str =
+        "chrome://tabmix-resource/content/bootstrap/Overlays.jsm"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+  }
+  {
+    constexpr auto str = "chrome://tabmixplus/content/utils.js"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+  }
+  {
+    constexpr auto str =
+        "chrome://userscripts/content/Geckium_toolbarButtonCreator.uc.js"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+  }
+  {
+    constexpr auto str = "chrome://userchromejs/content/boot.sys.mjs"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+  }
+  {
+    constexpr auto str = "resource://usl-ucjs/UserScriptLoaderParent.jsm"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+  }
 }
 
 TEST(FilenameEvalParser, SingleFile)
