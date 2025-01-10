@@ -532,8 +532,6 @@ struct PrivateCapabilities {
     robust_image_access2: bool,
     zero_initialize_workgroup_memory: bool,
     image_format_list: bool,
-    #[cfg(windows)]
-    external_memory_win32: bool,
 }
 
 bitflags::bitflags!(
@@ -974,7 +972,7 @@ pub enum ShaderModule {
     Raw(vk::ShaderModule),
     Intermediate {
         naga_shader: crate::NagaShader,
-        runtime_checks: bool,
+        runtime_checks: wgt::ShaderRuntimeChecks,
     },
 }
 

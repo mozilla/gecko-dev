@@ -1513,10 +1513,15 @@ bitflags!(
     /// Pipeline layout creation flags.
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct PipelineLayoutFlags: u32 {
-        /// Include support for `first_vertex` / `first_instance` drawing.
+        /// D3D12: Add support for `first_vertex` and `first_instance` builtins
+        /// via push constants for direct execution.
         const FIRST_VERTEX_INSTANCE = 1 << 0;
-        /// Include support for num work groups builtin.
+        /// D3D12: Add support for `num_workgroups` builtins via push constants
+        /// for direct execution.
         const NUM_WORK_GROUPS = 1 << 1;
+        /// D3D12: Add support for the builtins that the other flags enable for
+        /// indirect execution.
+        const INDIRECT_BUILTIN_UPDATE = 1 << 2;
     }
 );
 
@@ -1541,37 +1546,37 @@ bitflags!(
         const SAMPLED_MINMAX = 1 << 2;
 
         /// Format can be used as storage with read-only access.
-        const STORAGE_READ_ONLY = 1 << 16;
+        const STORAGE_READ_ONLY = 1 << 3;
         /// Format can be used as storage with write-only access.
-        const STORAGE_WRITE_ONLY = 1 << 3;
+        const STORAGE_WRITE_ONLY = 1 << 4;
         /// Format can be used as storage with both read and write access.
-        const STORAGE_READ_WRITE = 1 << 4;
+        const STORAGE_READ_WRITE = 1 << 5;
         /// Format can be used as storage with atomics.
-        const STORAGE_ATOMIC = 1 << 5;
+        const STORAGE_ATOMIC = 1 << 6;
 
         /// Format can be used as color and input attachment.
-        const COLOR_ATTACHMENT = 1 << 6;
+        const COLOR_ATTACHMENT = 1 << 7;
         /// Format can be used as color (with blending) and input attachment.
-        const COLOR_ATTACHMENT_BLEND = 1 << 7;
+        const COLOR_ATTACHMENT_BLEND = 1 << 8;
         /// Format can be used as depth-stencil and input attachment.
-        const DEPTH_STENCIL_ATTACHMENT = 1 << 8;
+        const DEPTH_STENCIL_ATTACHMENT = 1 << 9;
 
         /// Format can be multisampled by x2.
-        const MULTISAMPLE_X2   = 1 << 9;
+        const MULTISAMPLE_X2   = 1 << 10;
         /// Format can be multisampled by x4.
-        const MULTISAMPLE_X4   = 1 << 10;
+        const MULTISAMPLE_X4   = 1 << 11;
         /// Format can be multisampled by x8.
-        const MULTISAMPLE_X8   = 1 << 11;
+        const MULTISAMPLE_X8   = 1 << 12;
         /// Format can be multisampled by x16.
-        const MULTISAMPLE_X16  = 1 << 12;
+        const MULTISAMPLE_X16  = 1 << 13;
 
         /// Format can be used for render pass resolve targets.
-        const MULTISAMPLE_RESOLVE = 1 << 13;
+        const MULTISAMPLE_RESOLVE = 1 << 14;
 
         /// Format can be copied from.
-        const COPY_SRC = 1 << 14;
+        const COPY_SRC = 1 << 15;
         /// Format can be copied to.
-        const COPY_DST = 1 << 15;
+        const COPY_DST = 1 << 16;
     }
 );
 
@@ -2101,26 +2106,12 @@ pub enum ShaderInput<'a> {
 pub struct ShaderModuleDescriptor<'a> {
     pub label: Label<'a>,
 
-    /// Enforce bounds checks in shaders, even if the underlying driver doesn't
-    /// support doing so natively.
+    /// # Safety
     ///
-    /// When this is `true`, `wgpu_hal` promises that shaders can only read or
-    /// write the [accessible region][ar] of a bindgroup's buffer bindings. If
-    /// the underlying graphics platform cannot implement these bounds checks
-    /// itself, `wgpu_hal` will inject bounds checks before presenting the
-    /// shader to the platform.
+    /// See the documentation for each flag in [`ShaderRuntimeChecks`][src].
     ///
-    /// When this is `false`, `wgpu_hal` only enforces such bounds checks if the
-    /// underlying platform provides a way to do so itself. `wgpu_hal` does not
-    /// itself add any bounds checks to generated shader code.
-    ///
-    /// Note that `wgpu_hal` users may try to initialize only those portions of
-    /// buffers that they anticipate might be read from. Passing `false` here
-    /// may allow shaders to see wider regions of the buffers than expected,
-    /// making such deferred initialization visible to the application.
-    ///
-    /// [ar]: struct.BufferBinding.html#accessible-region
-    pub runtime_checks: bool,
+    /// [src]: wgt::ShaderRuntimeChecks
+    pub runtime_checks: wgt::ShaderRuntimeChecks,
 }
 
 #[derive(Debug, Clone)]

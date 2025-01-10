@@ -786,7 +786,7 @@ impl super::Device {
 
     /// # Safety
     ///
-    /// - Vulkan 1.1+ (or VK_KHR_external_memory)
+    /// - Vulkan (with VK_KHR_external_memory_win32)
     /// - The `d3d11_shared_handle` must be valid and respecting `desc`
     /// - `VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT` flag is used because we need to hold a reference to the handle
     #[cfg(windows)]
@@ -795,8 +795,12 @@ impl super::Device {
         d3d11_shared_handle: windows::Win32::Foundation::HANDLE,
         desc: &crate::TextureDescriptor,
     ) -> Result<super::Texture, crate::DeviceError> {
-        if !self.shared.private_caps.external_memory_win32 {
-            log::error!("VK_KHR_external_memory extension is required");
+        if !self
+            .shared
+            .features
+            .contains(wgt::Features::VULKAN_EXTERNAL_MEMORY_WIN32)
+        {
+            log::error!("Vulkan driver does not support VK_KHR_external_memory_win32");
             return Err(crate::DeviceError::ResourceCreationFailed);
         }
 
@@ -897,14 +901,14 @@ impl super::Device {
                     entry_point: stage.entry_point.to_string(),
                     shader_stage: naga_stage,
                 };
-                let needs_temp_options = !runtime_checks
+                let needs_temp_options = !runtime_checks.bounds_checks
                     || !binding_map.is_empty()
                     || naga_shader.debug_source.is_some()
                     || !stage.zero_initialize_workgroup_memory;
                 let mut temp_options;
                 let options = if needs_temp_options {
                     temp_options = self.naga_options.clone();
-                    if !runtime_checks {
+                    if !runtime_checks.bounds_checks {
                         temp_options.bounds_check_policies = naga::proc::BoundsCheckPolicies {
                             index: naga::proc::BoundsCheckPolicy::Unchecked,
                             buffer: naga::proc::BoundsCheckPolicy::Unchecked,
@@ -1813,7 +1817,7 @@ impl crate::Device for super::Device {
                             file_name: d.file_name.as_ref().as_ref(),
                             language: naga::back::spv::SourceLanguage::WGSL,
                         });
-                if !desc.runtime_checks {
+                if !desc.runtime_checks.bounds_checks {
                     naga_options.bounds_check_policies = naga::proc::BoundsCheckPolicies {
                         index: naga::proc::BoundsCheckPolicy::Unchecked,
                         buffer: naga::proc::BoundsCheckPolicy::Unchecked,
@@ -2347,6 +2351,7 @@ impl crate::Device for super::Device {
                 for triangles in in_geometries {
                     let mut triangle_data =
                         vk::AccelerationStructureGeometryTrianglesDataKHR::default()
+                            .index_type(vk::IndexType::NONE_KHR)
                             .vertex_format(conv::map_vertex_format(triangles.vertex_format))
                             .max_vertex(triangles.vertex_count)
                             .vertex_stride(triangles.vertex_stride);

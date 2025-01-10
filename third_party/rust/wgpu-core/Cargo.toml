@@ -21,7 +21,7 @@ autobins = false
 autoexamples = false
 autotests = false
 autobenches = false
-description = "WebGPU core logic on wgpu-hal"
+description = "Core implementation logic of wgpu, the cross-platform, safe, pure-rust graphics API"
 homepage = "https://wgpu.rs/"
 readme = false
 keywords = ["graphics"]
@@ -58,7 +58,7 @@ version = "0.8"
 version = "2.6"
 
 [dependencies.bytemuck]
-version = "1.20"
+version = "1.21"
 optional = true
 
 [dependencies.document-features]
@@ -99,7 +99,7 @@ version = "0.8"
 optional = true
 
 [dependencies.rustc-hash]
-version = "1.1.0"
+version = "1"
 
 [dependencies.serde]
 version = "1"
@@ -110,7 +110,7 @@ optional = true
 version = "1"
 
 [dependencies.thiserror]
-version = "1.0.69"
+version = "2"
 
 [dependencies.wgt]
 version = "23.0.0"
@@ -118,7 +118,7 @@ path = "../wgpu-types"
 package = "wgpu-types"
 
 [build-dependencies.cfg_aliases]
-version = "0.1"
+version = "0.2.1"
 
 [features]
 api_log_info = []
@@ -160,3 +160,8 @@ trace = [
 ]
 vulkan = ["hal/vulkan"]
 wgsl = ["naga/wgsl-in"]
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = ["cfg(wgpu_validate_locks)"]

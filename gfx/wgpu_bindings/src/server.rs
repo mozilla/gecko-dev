@@ -703,7 +703,7 @@ pub extern "C" fn wgpu_server_device_create_shader_module(
 
     let desc = wgc::pipeline::ShaderModuleDescriptor {
         label,
-        shader_bound_checks: wgt::ShaderBoundChecks::new(),
+        runtime_checks: Default::default(),
     };
 
     let (_, error) = global.device_create_shader_module(self_id, &desc, source, Some(module_id));
