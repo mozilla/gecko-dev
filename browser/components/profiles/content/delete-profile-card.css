@@ -11,7 +11,7 @@
   padding: var(--space-xxlarge);
   margin-inline-end: calc(2 * var(--space-xxlarge));
   margin-block-end: var(--space-large);
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--in-content-box-info-background);
   border-radius: var(--border-radius-medium);
 }
 
