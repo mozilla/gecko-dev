@@ -28,6 +28,7 @@ import "chrome://browser/content/shopping/recommended-ad.mjs";
 // top of the sidebar to show the header box shadow.
 const HEADER_SCROLL_PIXEL_OFFSET = 8;
 
+const HEADER_NOT_TEXT_WRAPPED_HEIGHT = 32;
 const SIDEBAR_CLOSED_COUNT_PREF =
   "browser.shopping.experience2023.sidebarClosedCount";
 const SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF =
@@ -50,6 +51,7 @@ export class ShoppingContainer extends MozLitElement {
     adsEnabledByUser: { type: Boolean },
     isAnalysisInProgress: { type: Boolean },
     analysisProgress: { type: Number },
+    showHeaderShadow: { type: Boolean, state: true },
     isOverflow: { type: Boolean },
     autoOpenEnabled: { type: Boolean },
     autoOpenEnabledByUser: { type: Boolean },
@@ -58,6 +60,7 @@ export class ShoppingContainer extends MozLitElement {
     isSupportedSite: { type: Boolean },
     supportedDomains: { type: Object },
     formattedDomainList: { type: Object, state: true },
+    isHeaderOverflow: { type: Boolean, state: true },
   };
 
   static get queries() {
@@ -78,6 +81,7 @@ export class ShoppingContainer extends MozLitElement {
       emptyStateTextEl: "#shopping-empty-state-text",
       emptyStateSupportedListEl: "#shopping-empty-list-of-supported-domains",
       containerContentEl: "#content",
+      header: "#shopping-header",
     };
   }
 
@@ -111,6 +115,17 @@ export class ShoppingContainer extends MozLitElement {
     );
   }
 
+  disconnectedCallback() {
+    this.headerResizeObserver?.disconnect();
+  }
+
+  firstUpdated() {
+    this.headerResizeObserver = new ResizeObserver(([entry]) =>
+      this.maybeSetIsHeaderOverflow(entry)
+    );
+    this.headerResizeObserver.observe(this.header);
+  }
+
   updated(changedProperties) {
     if (changedProperties.has("supportedDomains")) {
       let oldVal = changedProperties.get("supportedDomains");
@@ -128,6 +143,7 @@ export class ShoppingContainer extends MozLitElement {
         this.formattedDomainList = null;
       }
     }
+    // TODO:
     if (this.focusCloseButton) {
       this.closeButtonEl.focus();
     }
@@ -211,8 +227,7 @@ export class ShoppingContainer extends MozLitElement {
         this.adsEnabledByUser = event.detail?.adsEnabledByUser;
         break;
       case "scroll":
-        let scrollYPosition = window.scrollY;
-        this.isOverflow = scrollYPosition > HEADER_SCROLL_PIXEL_OFFSET;
+        this.showHeaderShadow = window.scrollY > HEADER_SCROLL_PIXEL_OFFSET;
         break;
       case "UpdateRecommendations":
         this._updateRecommendations(event.detail);
@@ -229,6 +244,13 @@ export class ShoppingContainer extends MozLitElement {
       case "HideKeepClosedMessage":
         this.showingKeepClosedMessage = false;
         break;
+    }
+  }
+
+  maybeSetIsHeaderOverflow(entry) {
+    let isOverflow = entry.contentRect.height > HEADER_NOT_TEXT_WRAPPED_HEIGHT;
+    if (this.isHeaderOverflow != isOverflow) {
+      this.isHeaderOverflow = isOverflow;
     }
   }
 
@@ -498,10 +520,8 @@ export class ShoppingContainer extends MozLitElement {
   }
 
   headerTemplate() {
-    return html`<div
-      id="header-wrapper"
-      class=${this.isOverflow ? "shopping-header-overflow" : ""}
-    >
+    const headerWrapperClasses = `${this.showHeaderShadow ? "header-wrapper-shadow" : ""} ${this.isHeaderOverflow ? "header-wrapper-overflow" : ""}`;
+    return html`<div id="header-wrapper" class=${headerWrapperClasses}>
       <header id="shopping-header" data-l10n-id="shopping-a11y-header">
         <h1
           id="shopping-header-title"

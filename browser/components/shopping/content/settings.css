@@ -12,12 +12,13 @@
   margin-top: 12px;
 
   .shopping-settings-toggle-option-wrapper {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     row-gap: var(--shopping-settings-between-label-and-control-option-gap);
   }
 
   #shopping-settings-opt-out-section {
-    display: grid;
+    display: flex;
     justify-content: center;
 
     #shopping-settings-opt-out-button {
@@ -27,8 +28,14 @@
   }
 
   #shopping-settings-toggles-section {
-    display: grid;
-    row-gap: 8px;
+    row-gap: var(--space-small);
+    overflow: auto;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  #shopping-ads-learn-more-link {
+    font-size: var(--font-size-small);
   }
 
   /* When `browser.shopping.experience2023.autoOpen` is true. */
@@ -37,7 +44,8 @@
     row-gap: var(--shopping-settings-between-options-gap);
 
     #shopping-settings-toggles-section {
-      display: grid;
+      display: flex;
+      flex-direction: column;
       row-gap: var(--shopping-settings-between-options-gap);
     }
 
