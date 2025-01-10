@@ -9,6 +9,7 @@ XPCSHELL_TESTS_MANIFESTS += ["unit/xpcshell.toml"]
 BROWSER_CHROME_MANIFESTS += [
     "browser/browser.toml",
     "browser/datetime/browser.toml",
+    "widgets/browser.toml",
 ]
 
 MOCHITEST_CHROME_MANIFESTS += [
