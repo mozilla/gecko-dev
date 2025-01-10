@@ -311,4 +311,7 @@ interface nsICookieManager : nsISupports
    */
   void removeThirdPartyCookieBlockingExceptions(
     in Array<nsIThirdPartyCookieExceptionEntry> aExceptions);
+
+  // Test getter to inspect remote exception list state.
+  Array<ACString> testGet3PCBExceptions();
 };

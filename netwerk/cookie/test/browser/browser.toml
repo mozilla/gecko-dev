@@ -6,12 +6,18 @@ support-files = [
   "head.js"
 ]
 
+["browser_3pcb_expection.js"]
+support-files = ["setFetchCookie.sjs"]
+
 ["browser_broadcastChannel.js"]
 
 ["browser_chips_partition_cap_child.js"]
 
 ["browser_cookie_chips.js"]
 support-files = ["chips.sjs"]
+
+["browser_cookie_empty_name_value.js"]
+support-files = ["cookie_empty_name_value.sjs"]
 
 ["browser_cookie_insecure_overwrites_secure.js"]
 
@@ -33,9 +39,6 @@ support-files = ["cookies.sjs", "serviceWorker.js"]
 
 ["browser_oversize.js"]
 support-files = ["oversize.sjs"]
-
-["browser_cookie_empty_name_value.js"]
-support-files = ["cookie_empty_name_value.sjs"]
 
 ["browser_partitionedConsole.js"]
 support-files = ["partitioned.sjs"]
