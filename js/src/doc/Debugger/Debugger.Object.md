@@ -602,6 +602,12 @@ exception.  The `options` object can have the following properties:
   * `isScriptElement`: Optional boolean which will set the source's
     `introductionType` to `"inlineScript"` if specified.  Otherwise, the
     source's `introductionType` will be `undefined`.
+  * `forceEnableAsmJS`: Optional boolean to force enable the asm.js feature.
+    Unless specified, asm.js is disabled by default in the debuggee global.
+    This option can be used when the createSource is used for recompiling the
+    top-level script, where the script contains asm.js functions and the asm.js
+    was enabled at the first compilation, and the consumer doesn't want the
+    asm.js functions being compiled as regular JS functions.
 
 ### `asEnvironment()`
 If the referent is a global object, return the [`Debugger.Environment`][environment]
