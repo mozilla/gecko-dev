@@ -5279,8 +5279,14 @@ mozilla::ipc::IPCResult ContentParent::CommonCreateWindow(
              aOpenLocation == nsIBrowserDOMWindow::OPEN_PRINT_BROWSER);
 
   if (NS_WARN_IF(!browserDOMWin)) {
+#ifdef MOZ_GECKOVIEW
+    // This might be print preview, but GeckoView doesn't support yet.
+    aResult = NS_ERROR_FAILURE;
+    return IPC_OK();
+#else
     // Opening in the same window or headless requires an nsIBrowserDOMWindow.
     aOpenLocation = nsIBrowserDOMWindow::OPEN_NEWWINDOW;
+#endif
   }
 
   if (aOpenLocation == nsIBrowserDOMWindow::OPEN_NEWTAB ||
