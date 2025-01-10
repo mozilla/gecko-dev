@@ -120,16 +120,13 @@ details  {
     &:hover {
       background-color: var(--button-background-color-hover);
     }
+
+    &:focus-visible {
+      outline: var(--card-focus-outline);
+    }
+
     @media (prefers-contrast) {
       outline: var(--button-border-color) solid var(--border-width);
-
-      &:hover {
-        outline-color: var(--button-border-color-hover);
-      }
-
-      &:active {
-        outline-color: var(--button-border-color-active);
-      }
     }
 
     @media (forced-colors) {
@@ -162,9 +159,5 @@ details  {
         padding-block-start: 0;
       }
     }
-  }
-
-  &:focus-visible {
-    outline: var(--card-focus-outline);
   }
 }
