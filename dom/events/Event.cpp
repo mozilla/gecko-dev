@@ -29,6 +29,7 @@
 #include "mozilla/ViewportUtils.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/ScrollContainerFrame.h"
@@ -218,6 +219,40 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Event)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExplicitOriginalTarget)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(Event)
+  if (tmp->HasKnownLiveWrapper()) {
+    if (WidgetEvent* event = tmp->mEvent) {
+      auto mark = [](EventTarget* aTarget) {
+        if (!aTarget) {
+          return;
+        }
+        if (nsINode* node = aTarget->GetAsNode()) {
+          FragmentOrElement::MarkNodeChildren(node);
+          if (node->HasKnownLiveWrapper()) {
+            // Use CanSkip to possibly mark more nodes to be certainly alive.
+            FragmentOrElement::CanSkip(node, true);
+          }
+        }
+      };
+
+      mark(event->mTarget);
+      mark(event->mCurrentTarget);
+      mark(event->mOriginalTarget);
+      mark(event->mRelatedTarget);
+      mark(event->mOriginalRelatedTarget);
+    }
+    return true;
+  }
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(Event)
+  return tmp->HasKnownLiveWrapperAndDoesNotNeedTracing(tmp);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(Event)
+  return tmp->HasKnownLiveWrapper();
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 void Event::LastRelease() {
   nsISupports* supports = nullptr;
