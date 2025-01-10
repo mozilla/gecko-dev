@@ -3414,7 +3414,7 @@ who = [
     "Erich Gubler <erichdongubler@gmail.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.0 -> 23.0.0@git:5543961a71cc8e5399b696fae3f6aae82c019717"
+delta = "23.0.0 -> 23.0.0@git:15a77b525c6dc76b39b8bd191d0ddfe21ddbcef6"
 importable = false
 
 [[audits.net2]]
@@ -5564,7 +5564,7 @@ who = [
     "Erich Gubler <erichdongubler@gmail.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.1 -> 23.0.1@git:5543961a71cc8e5399b696fae3f6aae82c019717"
+delta = "23.0.1 -> 23.0.1@git:15a77b525c6dc76b39b8bd191d0ddfe21ddbcef6"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -5647,7 +5647,7 @@ who = [
     "Erich Gubler <erichdongubler@gmail.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.1 -> 23.0.1@git:5543961a71cc8e5399b696fae3f6aae82c019717"
+delta = "23.0.1 -> 23.0.1@git:15a77b525c6dc76b39b8bd191d0ddfe21ddbcef6"
 importable = false
 
 [[audits.wgpu-types]]
@@ -5725,7 +5725,7 @@ who = [
     "Erich Gubler <erichdongubler@gmail.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "23.0.0 -> 23.0.0@git:5543961a71cc8e5399b696fae3f6aae82c019717"
+delta = "23.0.0 -> 23.0.0@git:15a77b525c6dc76b39b8bd191d0ddfe21ddbcef6"
 importable = false
 
 [[audits.whatsys]]

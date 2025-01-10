@@ -1,0 +1,11 @@
+[package]
+name = "thiserror"
+version = "2.999.999"
+edition = "2018"
+license = "MPL-2.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.thiserror]
+version = "1"
