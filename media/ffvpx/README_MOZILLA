@@ -3,9 +3,9 @@
 This directory contains files used in gecko builds from FFmpeg
 (http://ffmpeg.org). The current files are from FFmpeg as of
 revision
-d9d56953
+252fc2e047297697dea78e63aa908377b47c2136
 git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
-git checkout d9d56953
+git checkout 252fc2e047297697dea78e63aa908377b47c2136
 
 All source files match their path from the library's source archive.
 
@@ -21,11 +21,13 @@ The ffmpeg project recommends to use ffmpeg's tip, not a particular release.
 
 ## Source files
 
-This library only use a small part of `ffmpeg`. To update the source tree, run:
+This library only uses a small part of `ffmpeg`. To update the source tree run:
 
-> rsync -av --existing ffmpeg-upstream ffmpeg-mozilla-dir
+> rsync -av --existing ffmpeg-upstream/* ffmpeg-mozilla-dir
 
-Compilation will reveal if any files are missing.
+If the new version of ffmpeg requires source files we don't already package,
+they will not be copied over by this rsync command and will have to be added
+manually.
 
 Then, make sure the files:
 
@@ -36,60 +38,48 @@ Then, make sure the files:
 include conditional compilation directives, by probably reverting them (or
 reverting and adjusting them if new codecs are added).
 
-Revert and adjust libavcodec `dovi_rpu.h` so that it contains just the necessary
-stubs to compile.
+Revert and adjust libavcodec `dovi_rpu.h` and `lcevcdec.h` so that they contain
+just the necessary stubs to compile. We do this to avoid patent and other
+restrictions. When ffmpeg is being upgraded, be on the lookout for other files
+that may need to be stubbed out as well.
 
 ## Add headers for a new major ffmpeg version
 
+For historical reasons, we package ffmpeg according to the libavcodec version.
+Check `libavcodec/version_major.h`. The version number defined by
+`LIBAVCODEC_VERSION_MAJOR` is the version number we will be using.
+
 If a new major version of ffmpeg is being imported in the tree, it's necessary
-to vendor the new ffmpeg headers in `dom/media/platforms/ffmpeg/ffmpegxx` where
-xx is the new ffmpeg major version number, and to modify the dynamic linker
-wrapper in
-`dom/media/platforms/dom/media/platforms/ffmpeg/{FFmpegLibWrapper.cpp,FFmpegRungtimeLinker.cpp}` with the new version and the new API in this new version.
+to manually copy the new ffmpeg headers into
+`dom/media/platforms/ffmpeg/ffmpegxx` where xx is the new ffmpeg major version
+number. Copy only the header files necessary to compile.
 
-## `config.h` generation
+Then, modify the dynamic linker wrapper in
+`dom/media/platforms/dom/media/platforms/ffmpeg/{FFmpegLibWrapper.cpp,FFmpegRungtimeLinker.cpp}`
+with the new version and the new API in this new version.
 
-Configuration files are generated as follow using the configure script (here
-for Linux desktop):
+## `config.{h,asm}` generation
 
-> ./configure --disable-all --enable-avcodec --enable-decoder=vp8,vp9,mp3,flac,av1 \
-              --enable-parser=vp8,vp9 --disable-static --enable-shared \
-              --disable-autodetect --disable-iconv --enable-libdav1d --disable-linux-perf
+Each platform needs its own `config.h` file and some need a `config.asm` file as
+well. For example, x86_64 Linux uses `config_unix64.h` and `config_unix64.asm`.
+Ideally, the existing configuration files should be usable without any changes.
+If changes are needed, it is preferable to update these files by hand.
+If this is not possible and the files need to be regenerated entirely,
+the `configure` script in the ffmpeg source directory can be used.
+ The arguments used to create them can be found in the
+`FFMPEG_CONFIGURATION` define in the existing header files.
+
+For example, create `config.h` and `config.asm` for x86_64 Linux desktop by
+running `./configure` with the arguments from `config_unix64.h`.
+
+Then, copy the generated `config.h` and `config.asm` files over `config_unix64.h` and `config_unix64.asm`.
 
 For Linux Desktop, there are a number of overrides in `config_common.h` for
 VAAPI. We can't put them in `config_components.h` because this breaks the build.
 
 `config_components.h` is common to all platforms, and then a specific config
-file is included, based on the platform and architecture. This needs to be
-regenerated on all OSes. macOS is similar to Linux Desktop. For other OSes,
-instructions below:
-
-# Linux 32-bits from a Linux 64-bits host:
-
-To produce `config_unix32.h` on a 64-bits machine, add to the configure command
-above: `--disable-asm --disable-x86asm --cc='clang -m32'`
-
-Those files shouldn't be Linux-specific, and are included in e.g. various BSDs,
-hence the `--disable-linux-perf` above.
-
-# macOS, x86 and aarch64
-
-Similar to Linux Desktop in all aspects.
-
-# Android
-
-config_android32.h: Only mp3 and flac are enabled on this platform. Assuming
-the standard toolchain location for a Firefox Developer, substitute with the
-ndk version in use when updating:
-
-> ./configure --disable-all --enable-avcodec --enable-decoder=mp3,flac \
-              --disable-static --enable-shared --disable-autodetect \
-              --enable-small --target-os=linux --arch=arm --enable-cross-compile \
-              --cc=$HOME/.mozbuild/android-ndk-r20/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi16-clang
-
-config_android64.h, config_androidx86_64.h: substitute with aarch64 and the right compiler.
-
-For config_androidx86_64.h, enable vp8 and vp9.
+file is included, based on the platform and architecture.
+macOS and Android are similar to Linux Desktop. Windows needs a bit more setup.
 
 # Windows
 
@@ -102,15 +92,12 @@ with the thread flavor Gecko prefers on Windows (win32, not pthreads).
 - Check that compiling a small C program with cl.exe works
 - Install msys2 from https://www.msys2.org/
 - From the Visual Studio Developer Command Prompt, run the following:
-    > C:\msys64\msys_shell.cmd -mysy -use-full-path
+    > C:\msys64\msys2_shell.cmd -msys2 -use-full-path
 - This pops up a new shell window, with a 32-bits build environment
-- Check that compiling a small C program with `cl.exe` works
-- Run ffmpeg's ./configure with the options needed:
-
-> ./configure --disable-all --enable-avcodec
-              --enable-decoder=vp8,vp9,mp3,flac --enable-parser=vp8,vp9
-              --disable-static --enable-shared --disable-autodetect
-              --enable-w32threads --toolchain=msvc
+- Check that compiling a small C program with `cl.exe` works. You may need
+  to install additional packages by running `pacman`, such as:
+  `pacman -S nasm`, `pacman -S pkgconf`, `pacman -S diffutils`.
+- Run ffmpeg's ./configure with the options needed from `config_win32.h`.
 
 - Copy `config.h` and `config.asm` as `config_win32.h` and `config_win32.asm`
   in this directory
@@ -122,26 +109,13 @@ with the thread flavor Gecko prefers on Windows (win32, not pthreads).
 - This pops up a new shell window, now with a 64-bits build
   environment
 - Check that compiling a small C program with `cl.exe` works
-- Run ffmpeg's `./configure` with the options needed:
-
-> ./configure --disable-all --enable-avcodec --enable-decoder=vp8,vp9,mp3,flac
-              --enable-parser=vp8,vp9 --disable-static --enable-shared
-              --disable-autodetect --enable-w32threads --toolchain=msvc
-
+- Run ffmpeg's `./configure` with the options needed from `config_win64.h`.
 - Copy `config.h` and `config.asm` as `config_win64.h` and `config_win64.asm`.
 
-config_aarch64_win64.h: You will need to install cpp (either using msys or
-wsl), then:
+For `config_aarch64_win64.h`: You will need to install cpp (either using msys or
+wsl), then run `configure` with the arguments from `config_aarch64_win64.h`.
 
-> ./configure --disable-all --enable-avcodec --enable-decoder=vp8,vp9,mp3,flac \
-              --enable-parser=vp8,vp9 --disable-static --enable-shared \
-              --disable-autodetect  --toolchain=msvc --enable-cross-compile \
-              --target-os=win32 --arch=arm64
-
-
-# Finally
-
-Run the following command on all config* file:
+Once all of the config files have been generated, run the following command:
 
 > sed -i -E '/HAVE_(MALLOC_H|ARC4RANDOM|LOCALTIME_R|MEMALIGN|POSIX_MEMALIGN)/d' config.*
 
@@ -150,7 +124,7 @@ to avoid redefined macros.
 # Build, fix errors
 
 Missing files need to be added, and the patch to rename `time.h` to `fftime.h`
-might need to be reaplied or extended to other files including `time.h`. The
+might need to be reapplied or extended to other files including `time.h`. The
 issue being that it's included instead of the system header, causing all sorts
 of issues.
 
@@ -159,11 +133,11 @@ and link errors.
 
 There are going to be a lot of changes in terms of symbols exported. Adjust
 `libavutil/avutil.symbols` and `libavcodec/avcodec.symbols` by removing and
-adding symbols until the build passes.
+adding symbols until the build passes. You may also need to modify
+`/config/external/gkcodecs/gkcodecs.symbols`.
 
 Finally, apply the patches:
 - no-unicode-stdio.patch to avoid passing the infity symbol in unicode to an
   stdio.h function, that causes bug 1879740 issue on Windows.
 - opusenc-dtx.patch to allow enabling DTX in the opus encoder.
 - libaomenc-svc.patch to allow configuring SVC in the libaom encoder.
-- 1881185.patch to fix an ARM VP9 decoding crash
