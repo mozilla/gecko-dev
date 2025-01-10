@@ -21,6 +21,7 @@ export class LoginForm extends MozLitElement {
     onSaveClick: { type: Function },
     onDeleteClick: { type: Function },
     onClose: { type: Function },
+    onOriginClick: { type: Function },
     originValue: { type: String },
     usernameValue: { type: String },
     passwordValue: { type: String },
@@ -179,6 +180,7 @@ export class LoginForm extends MozLitElement {
                 ?readonly=${this.type === "edit"}
                 value=${this.originValue}
                 @input=${e => this.onInput(e)}
+                .onOriginClick=${this.onOriginClick}
               >
               </login-origin-field>
               <origin-warning arrowdirection="down"></origin-warning>

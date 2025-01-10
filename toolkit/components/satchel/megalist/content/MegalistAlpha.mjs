@@ -467,6 +467,12 @@ export class MegalistAlpha extends MozLitElement {
             };
             this.#sendCommand("DeleteLogin", { value: login });
           }}
+          .onOriginClick=${e => {
+            e.preventDefault();
+            this.#sendCommand("OpenLink", {
+              value: this.selectedRecord.origin.href,
+            });
+          }}
         >
         </login-form>`;
       case VIEW_MODES.ALERTS:

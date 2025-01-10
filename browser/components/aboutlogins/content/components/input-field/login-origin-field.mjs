@@ -11,6 +11,7 @@ class LoginOriginField extends MozLitElement {
     name: { type: String },
     readonly: { type: Boolean, reflect: true },
     required: { type: Boolean, reflect: true },
+    onOriginClick: { type: Function },
   };
 
   static queries = {
@@ -50,6 +51,7 @@ class LoginOriginField extends MozLitElement {
         rel="noreferrer"
         name="origin"
         href=${this.value}
+        @click=${this.onOriginClick}
       >
         ${this.value}
       </a>
