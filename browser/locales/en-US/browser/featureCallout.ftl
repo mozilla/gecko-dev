@@ -62,15 +62,6 @@ fx-view-discoverability-subtitle = Find and reopen it quickly here. We keep a hi
 fx-view-discoverability-primary-button-label = Open { -firefoxview-brand-name }
 fx-view-discoverability-secondary-button-label = Dismiss
 
-## Split Dismiss Button Labels
-
-# Blocks the message from showing again
-split-dismiss-button-dont-show-option-label = Don’t show this recommendation again
-# Dismisses message and reduces frequency of message
-split-dismiss-button-show-fewer-option-label = Show fewer recommendations
-# Opens about:preferences#general-cfrfeatures
-split-dismiss-button-manage-settings-option-label = Manage settings
-
 ## Sidebar Strings
 
 sidebar-button-callout-title = Show tab titles in the sidebar
@@ -108,3 +99,18 @@ sidebar-genai-survey-satisfaction-question = How satisfied are you with having a
 sidebar-genai-survey-productive-question =
     To what extent do you agree or disagree with this statement:<br/>
     “The AI chatbot in the sidebar helps me be more productive”?
+
+## Split Dismiss Button Labels
+
+# Blocks the message from showing again
+split-dismiss-button-dont-show-option =
+    .label = Don’t show this recommendation again
+# Dismisses message and reduces frequency of message
+split-dismiss-button-show-fewer-option =
+    .label = Show fewer recommendations
+# Opens about:preferences#general-cfrfeatures
+split-dismiss-button-manage-settings-option =
+    .label = Manage settings
+# Attached to the chevron in the split dismiss submenu button
+split-dismiss-button-chevron =
+    .aria-label = More options

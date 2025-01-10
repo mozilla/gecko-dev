@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { Localized } from "./MSLocalized";
 
 export const SubmenuButton = props => {
@@ -75,6 +75,7 @@ function addMenuitems(items, popup) {
 
 const SubmenuButtonInner = ({ content, handleAction }) => {
   const ref = useRef(null);
+  const [isSubmenuExpanded, setIsSubmenuExpanded] = useState(false);
   const isPrimary = content.submenu_button?.style === "primary";
   const onCommand = useCallback(
     event => {
@@ -121,11 +122,13 @@ const SubmenuButtonInner = ({ content, handleAction }) => {
       menupopup.addEventListener("popupshowing", event => {
         if (event.target === menupopup && event.target.anchorNode) {
           event.target.anchorNode.toggleAttribute("open", true);
+          setIsSubmenuExpanded(true);
         }
       });
       menupopup.addEventListener("popuphiding", event => {
         if (event.target === menupopup && event.target.anchorNode) {
           event.target.anchorNode.toggleAttribute("open", false);
+          setIsSubmenuExpanded(false);
         }
       });
       menupopup.listenersRegistered = true;
@@ -143,6 +146,8 @@ const SubmenuButtonInner = ({ content, handleAction }) => {
         value="submenu_button"
         onClick={onClick}
         ref={ref}
+        aria-haspopup="menu"
+        aria-expanded={isSubmenuExpanded}
       />
     </Localized>
   );
