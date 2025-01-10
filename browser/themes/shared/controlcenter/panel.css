@@ -299,13 +299,11 @@
 
 #protections-popup-not-blocking-section-why:hover,
 #protections-popup-show-report-stack:hover > .protections-popup-footer-button {
-  color: var(--button-text-color-ghost-hover);
-  background-color: var(--button-background-color-ghost-hover);
+  background-color: var(--panel-item-hover-bgcolor);
 }
 
 #protections-popup-show-report-stack:hover:active > .protections-popup-footer-button {
-  color: var(--button-text-color-ghost-active);
-  background-color: var(--button-background-color-ghost-active);
+  background-color: var(--panel-item-active-bgcolor);
 }
 
 /* This subview could get filled with a lot of trackers, set a maximum size
@@ -404,7 +402,7 @@
   border-radius: 2px;
 
   &:hover {
-    outline: 4px solid var(--button-background-color-ghost-hover);
+    outline: 4px solid var(--panel-item-hover-bgcolor);
   }
 }
 
@@ -514,12 +512,10 @@
   }
 
   &:hover {
-    color: var(--button-text-color-hover);
     background-color: var(--button-background-color-hover);
   }
 
   &:hover:active {
-    color: var(--button-text-color-active);
     background-color: var(--button-background-color-active)
   }
 }

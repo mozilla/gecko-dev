@@ -53,8 +53,7 @@
     border-radius: 4px;
     margin: 0;
     padding: 0;
-    color: var(--button-text-color-ghost);
-    background-color: var(--button-background-color-ghost);
+    background-color: transparent;
     background-repeat: no-repeat;
     background-position: center;
     -moz-context-properties: fill;
@@ -62,12 +61,10 @@
     margin-inline-start: auto;
 
     &:hover {
-      color: var(--button-text-color-ghost-hover);
-      background-color: var(--button-background-color-ghost-hover);
+      background-color: var(--panel-item-hover-bgcolor);
 
       &:active {
-        color: var(--button-text-color-ghost-active);
-        background-color: var(--button-background-color-ghost-active);
+        background-color: var(--panel-item-active-bgcolor);
       }
     }
 

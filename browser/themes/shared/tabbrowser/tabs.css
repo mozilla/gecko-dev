@@ -1490,17 +1490,13 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 
   > toolbarbutton {
     margin: 0;
-    color: var(--button-text-color-ghost);
-    background-color: var(--button-background-color-ghost);
 
     &:hover {
-      color: var(--button-text-color-ghost-hover);
-      background-color: var(--button-background-color-ghost-hover);
+      background-color: var(--panel-item-hover-bgcolor);
     }
 
     &:hover:active {
-      color: var(--button-text-color-ghost-active);
-      background-color: var(--button-background-color-ghost-active);
+      background-color: var(--panel-item-active-bgcolor);
     }
 
     &.all-tabs-container-indicator {
