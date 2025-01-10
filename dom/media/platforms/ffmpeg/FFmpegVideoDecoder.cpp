@@ -851,7 +851,7 @@ int FFmpegVideoDecoder<LIBAV_VER>::GetVideoBuffer(
 
   CheckedInt32 dataSize = mLib->av_image_get_buffer_size(
       aCodecContext->pix_fmt, aCodecContext->coded_width,
-      aCodecContext->coded_height, 16);
+      aCodecContext->coded_height, 32);
   if (!dataSize.isValid()) {
     FFMPEG_LOG("Data size overflow!");
     return AVERROR(EINVAL);
