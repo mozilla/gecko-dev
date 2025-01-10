@@ -97,9 +97,9 @@ class ChromeMapBackend(CommonBackend):
         for path, files in obj.files.walk():
             for f in files:
                 dest = mozpath.join(obj.install_target, path, f.target_basename)
+                if dest.endswith(".in"):
+                    dest = dest[:-3]
                 obj_path = mozpath.join(self.environment.topobjdir, dest)
-                if obj_path.endswith(".in"):
-                    obj_path = obj_path[:-3]
                 if isinstance(obj, FinalTargetPreprocessedFiles):
                     assert os.path.exists(obj_path), "%s should exist" % obj_path
                     pp_info = generate_pp_info(obj_path, obj.topsrcdir)
