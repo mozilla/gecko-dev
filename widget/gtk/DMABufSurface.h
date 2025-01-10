@@ -120,9 +120,7 @@ class DMABufSurface {
   virtual DMABufSurfaceRGBA* GetAsDMABufSurfaceRGBA() { return nullptr; }
   virtual DMABufSurfaceYUV* GetAsDMABufSurfaceYUV() { return nullptr; }
   virtual already_AddRefed<mozilla::gfx::DataSourceSurface>
-  GetAsSourceSurface() {
-    return nullptr;
-  }
+  GetAsSourceSurface();
 
   virtual nsresult BuildSurfaceDescriptorBuffer(
       mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
@@ -213,6 +211,10 @@ class DMABufSurface {
   bool OpenFileDescriptors(const mozilla::MutexAutoLock& aProofOfLock);
   void CloseFileDescriptors(const mozilla::MutexAutoLock& aProofOfLock,
                             bool aForceClose = false);
+
+  nsresult ReadIntoBuffer(uint8_t* aData, int32_t aStride,
+                          const mozilla::gfx::IntSize& aSize,
+                          mozilla::gfx::SurfaceFormat aFormat);
 
   virtual ~DMABufSurface();
 
@@ -359,8 +361,6 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   bool Serialize(mozilla::layers::SurfaceDescriptor& aOutDescriptor) override;
 
   DMABufSurfaceYUV* GetAsDMABufSurfaceYUV() override { return this; };
-  already_AddRefed<mozilla::gfx::DataSourceSurface> GetAsSourceSurface()
-      override;
 
   nsresult BuildSurfaceDescriptorBuffer(
       mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
@@ -440,10 +440,6 @@ class DMABufSurfaceYUV final : public DMABufSurface {
 
   bool CreateEGLImage(mozilla::gl::GLContext* aGLContext, int aPlane);
   void ReleaseEGLImages(mozilla::gl::GLContext* aGLContext);
-
-  nsresult ReadIntoBuffer(uint8_t* aData, int32_t aStride,
-                          const mozilla::gfx::IntSize& aSize,
-                          mozilla::gfx::SurfaceFormat aFormat);
 
   int mWidth[DMABUF_BUFFER_PLANES];
   int mHeight[DMABUF_BUFFER_PLANES];

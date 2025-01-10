@@ -404,6 +404,88 @@ void DMABufSurface::CloseFileDescriptors(const MutexAutoLock& aProofOfLock,
   }
 }
 
+nsresult DMABufSurface::ReadIntoBuffer(uint8_t* aData, int32_t aStride,
+                                       const gfx::IntSize& aSize,
+                                       gfx::SurfaceFormat aFormat) {
+  LOGDMABUF(("DMABufSurface::ReadIntoBuffer UID %d", mUID));
+
+  // We're empty, nothing to copy
+  if (!GetTextureCount()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  MOZ_ASSERT(aSize.width == GetWidth());
+  MOZ_ASSERT(aSize.height == GetHeight());
+
+  StaticMutexAutoLock lock(sSnapshotContextMutex);
+  RefPtr<GLContext> context = ClaimSnapshotGLContext();
+  auto releaseTextures = mozilla::MakeScopeExit([&] {
+    ReleaseTextures();
+    ReturnSnapshotGLContext(context);
+  });
+
+  for (int i = 0; i < GetTextureCount(); i++) {
+    if (!GetTexture(i) && !CreateTexture(context, i)) {
+      LOGDMABUF(("ReadIntoBuffer: Failed to create DMABuf textures."));
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  ScopedTexture scopedTex(context);
+  ScopedBindTexture boundTex(context, scopedTex.Texture());
+
+  context->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, aSize.width,
+                       aSize.height, 0, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
+                       nullptr);
+
+  ScopedFramebufferForTexture autoFBForTex(context, scopedTex.Texture());
+  if (!autoFBForTex.IsComplete()) {
+    LOGDMABUF(("ReadIntoBuffer: ScopedFramebufferForTexture failed."));
+    return NS_ERROR_FAILURE;
+  }
+
+  const gl::OriginPos destOrigin = gl::OriginPos::BottomLeft;
+  {
+    const ScopedBindFramebuffer bindFB(context, autoFBForTex.FB());
+    if (!context->BlitHelper()->Blit(this, aSize, destOrigin)) {
+      LOGDMABUF(("ReadIntoBuffer: Blit failed."));
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  ScopedBindFramebuffer bind(context, autoFBForTex.FB());
+  ReadPixelsIntoBuffer(context, aData, aStride, aSize, aFormat);
+  return NS_OK;
+}
+
+already_AddRefed<gfx::DataSourceSurface> DMABufSurface::GetAsSourceSurface() {
+  LOGDMABUF(("DMABufSurface::GetAsSourceSurface UID %d", mUID));
+
+  gfx::IntSize size(GetWidth(), GetHeight());
+  const auto format = gfx::SurfaceFormat::B8G8R8A8;
+  RefPtr<gfx::DataSourceSurface> source =
+      gfx::Factory::CreateDataSourceSurface(size, format);
+  if (NS_WARN_IF(!source)) {
+    LOGDMABUF(("GetAsSourceSurface: CreateDataSourceSurface failed."));
+    return nullptr;
+  }
+
+  gfx::DataSourceSurface::ScopedMap map(source,
+                                        gfx::DataSourceSurface::READ_WRITE);
+  if (NS_WARN_IF(!map.IsMapped())) {
+    LOGDMABUF(("GetAsSourceSurface: Mapping surface failed."));
+    return nullptr;
+  }
+
+  if (NS_WARN_IF(NS_FAILED(
+          ReadIntoBuffer(map.GetData(), map.GetStride(), size, format)))) {
+    LOGDMABUF(("GetAsSourceSurface: Reading into buffer failed."));
+    return nullptr;
+  }
+
+  return source.forget();
+}
+
 #ifdef MOZ_WAYLAND
 void DMABufSurface::ReleaseWlBuffer() {
   if (mWlBuffer) {
@@ -1725,89 +1807,6 @@ void DMABufSurfaceYUV::ReleaseSurface() {
   LOGDMABUF(("DMABufSurfaceYUV::ReleaseSurface() UID %d", mUID));
   ReleaseTextures();
   ReleaseDMABuf();
-}
-
-nsresult DMABufSurfaceYUV::ReadIntoBuffer(uint8_t* aData, int32_t aStride,
-                                          const gfx::IntSize& aSize,
-                                          gfx::SurfaceFormat aFormat) {
-  LOGDMABUF(("DMABufSurfaceYUV::ReadIntoBuffer UID %d", mUID));
-
-  // We're empty, nothing to copy
-  if (!GetTextureCount()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  MOZ_ASSERT(aSize.width == GetWidth());
-  MOZ_ASSERT(aSize.height == GetHeight());
-
-  StaticMutexAutoLock lock(sSnapshotContextMutex);
-  RefPtr<GLContext> context = ClaimSnapshotGLContext();
-  auto releaseTextures = mozilla::MakeScopeExit([&] {
-    ReleaseTextures();
-    ReturnSnapshotGLContext(context);
-  });
-
-  for (int i = 0; i < GetTextureCount(); i++) {
-    if (!GetTexture(i) && !CreateTexture(context, i)) {
-      LOGDMABUF(("ReadIntoBuffer: Failed to create DMABuf textures."));
-      return NS_ERROR_FAILURE;
-    }
-  }
-
-  ScopedTexture scopedTex(context);
-  ScopedBindTexture boundTex(context, scopedTex.Texture());
-
-  context->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, aSize.width,
-                       aSize.height, 0, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
-                       nullptr);
-
-  ScopedFramebufferForTexture autoFBForTex(context, scopedTex.Texture());
-  if (!autoFBForTex.IsComplete()) {
-    LOGDMABUF(("ReadIntoBuffer: ScopedFramebufferForTexture failed."));
-    return NS_ERROR_FAILURE;
-  }
-
-  const gl::OriginPos destOrigin = gl::OriginPos::BottomLeft;
-  {
-    const ScopedBindFramebuffer bindFB(context, autoFBForTex.FB());
-    if (!context->BlitHelper()->Blit(this, aSize, destOrigin)) {
-      LOGDMABUF(("ReadIntoBuffer: Blit failed."));
-      return NS_ERROR_FAILURE;
-    }
-  }
-
-  ScopedBindFramebuffer bind(context, autoFBForTex.FB());
-  ReadPixelsIntoBuffer(context, aData, aStride, aSize, aFormat);
-  return NS_OK;
-}
-
-already_AddRefed<gfx::DataSourceSurface>
-DMABufSurfaceYUV::GetAsSourceSurface() {
-  LOGDMABUF(("DMABufSurfaceYUV::GetAsSourceSurface UID %d", mUID));
-
-  gfx::IntSize size(GetWidth(), GetHeight());
-  const auto format = gfx::SurfaceFormat::B8G8R8A8;
-  RefPtr<gfx::DataSourceSurface> source =
-      gfx::Factory::CreateDataSourceSurface(size, format);
-  if (NS_WARN_IF(!source)) {
-    LOGDMABUF(("GetAsSourceSurface: CreateDataSourceSurface failed."));
-    return nullptr;
-  }
-
-  gfx::DataSourceSurface::ScopedMap map(source,
-                                        gfx::DataSourceSurface::READ_WRITE);
-  if (NS_WARN_IF(!map.IsMapped())) {
-    LOGDMABUF(("GetAsSourceSurface: Mapping surface failed."));
-    return nullptr;
-  }
-
-  if (NS_WARN_IF(NS_FAILED(
-          ReadIntoBuffer(map.GetData(), map.GetStride(), size, format)))) {
-    LOGDMABUF(("GetAsSourceSurface: Reading into buffer failed."));
-    return nullptr;
-  }
-
-  return source.forget();
 }
 
 nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBuffer(
