@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import {
-  classMap,
   html,
   ifDefined,
   when,
@@ -145,10 +144,8 @@ export class SyncedTabsTabRow extends FxviewTabRowBase {
       () =>
         html`<moz-button
           type="icon ghost"
-          class=${classMap({
-            "fxview-tab-row-button": true,
-            [this.secondaryActionClass]: this.secondaryActionClass,
-          })}
+          class="fxview-tab-row-button"
+          iconSrc=${this.getIconSrc(this.secondaryActionClass)}
           ?disabled=${this.closeRequested}
           id="fxview-tab-row-secondary-button"
           data-l10n-id=${this.secondaryL10nId}
