@@ -858,7 +858,7 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
                          CookieStatus aStatus, nsCString& aCookieHeader,
                          const nsACString& aDateHeader, bool aFromHttp,
                          bool aIsForeignAndNotAddon, bool aPartitionedOnly,
-                         bool aIsInPrivateBrowsing) {
+                         bool aIsInPrivateBrowsing, bool aOn3pcbException) {
   MOZ_ASSERT(!mContainsCookie);
 
   // init expiryTime such that session cookies won't prematurely expire
@@ -1005,6 +1005,19 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
     return;
   }
 
+  // If the cookie is on the 3pcd exception list, we apply partitioned
+  // attribute to the cookie.
+  if (aOn3pcbException) {
+    // We send a warning if the cookie doesn't have the partitioned attribute
+    // in the foreign context.
+    if (aPartitionedOnly && !mCookieData.isPartitioned() &&
+        aIsForeignAndNotAddon) {
+      mWarnings.mForeignNoPartitionedWarning = true;
+    }
+
+    mCookieData.isPartitioned() = true;
+  }
+
   // If the cookie does not have the partitioned attribute,
   // but is foreign we should give the developer a message.
   // If CHIPS isn't required yet, we will warn the console
@@ -1020,6 +1033,7 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
       RejectCookie(RejectedForeignNoPartitionedError);
       return;
     }
+
     mWarnings.mForeignNoPartitionedWarning = true;
   }
 
