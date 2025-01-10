@@ -430,8 +430,7 @@ async function refreshPage() {
   const ml_enable = Services.prefs.getBoolPref("browser.ml.enable");
   const gpu_enabled =
     Services.prefs.getBoolPref("dom.webgpu.enabled") &&
-    Services.prefs.getBoolPref("dom.webgpu.workers.enabled") &&
-    Services.prefs.getBoolPref("gfx.webgpu.force-enabled");
+    Services.prefs.getBoolPref("dom.webgpu.workers.enabled");
 
   const content = document.getElementById("content");
   const warning = document.getElementById("warning");
@@ -449,7 +448,7 @@ async function refreshPage() {
         "browser.ml.enable is set to False ! Toggle it to activate local inference.";
     } else if (!gpu_enabled) {
       text =
-        "WebGPU is not enabled, set dom.webgpu.enabled, dom.webgpu.workers.enabled and gfx.webgpu.force-enabled to true.";
+        "WebGPU is not enabled, set dom.webgpu.enabled and dom.webgpu.workers.enabled to true.";
     }
 
     warning.setAttribute("message", text);
