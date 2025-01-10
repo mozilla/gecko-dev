@@ -1272,9 +1272,18 @@ bool DebuggerObject::CallData::createSource() {
 
   bool isScriptElement = ToBoolean(v);
 
+  if (!JS_GetProperty(cx, options, "forceEnableAsmJS", &v)) {
+    return false;
+  }
+
+  bool forceEnableAsmJS = ToBoolean(v);
+
   JS::CompileOptions compileOptions(cx);
   compileOptions.lineno = startLine;
   compileOptions.column = JS::ColumnNumberOneOrigin(startColumn);
+  if (forceEnableAsmJS) {
+    compileOptions.setAsmJSOption(JS::AsmJSOption::Enabled);
+  }
 
   if (!JS::StringHasLatin1Chars(url)) {
     JS_ReportErrorASCII(cx, "URL must be a narrow string");
