@@ -9,6 +9,11 @@
   xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 >
   <head>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src chrome:; img-src *;"
+    />
+
     <script src="chrome://browser/content/syncedtabs/sidebar.js" />
     <script src="chrome://browser/content/utilityOverlay.js" />
     <script src="chrome://browser/content/contentTheme.js" />
