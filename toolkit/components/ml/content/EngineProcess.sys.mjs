@@ -201,6 +201,10 @@ export const LogLevel = {
  */
 export class PipelineOptions {
   /**
+   * External model data file list.
+   */
+  useExternalDataFormat = false;
+  /**
    * The identifier for the engine to be used by the pipeline.
    *
    * @type {?string}
@@ -492,6 +496,7 @@ export class PipelineOptions {
       "dtype",
       "numThreads",
       "executionPriority",
+      "useExternalDataFormat",
     ];
 
     if (options instanceof PipelineOptions) {
@@ -584,6 +589,7 @@ export class PipelineOptions {
       dtype: this.dtype,
       numThreads: this.numThreads,
       executionPriority: this.executionPriority,
+      useExternalDataFormat: this.useExternalDataFormat,
     };
   }
 

@@ -635,6 +635,7 @@ add_task(async function test_ml_engine_get_status() {
     "default-engine": {
       status: "IDLING",
       options: {
+        useExternalDataFormat: false,
         engineId: "default-engine",
         featureId: null,
         taskName: "moz-echo",

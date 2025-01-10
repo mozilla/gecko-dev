@@ -1201,7 +1201,7 @@ export class ModelHub {
     const versionRegex = /^[A-Za-z0-9-.]+$/;
 
     // Matches filenames with subdirectories, starting with alphanumeric or underscore,
-    // and optionally ending with a dot followed by a 2-4 letter extension.
+    // and optionally ending with a dot followed by a 2-9 letter extension.
     //
     //                 ^                                    $   Start and end of string
     //                  (?:\/)?                                  Optional leading slash (for absolute paths or root directory)
@@ -1211,9 +1211,9 @@ export class ModelHub {
     //                                              \/              Directory separator
     //                                                [A-Za-z0-9-_]+ Directory or file name
     //                                                             )* Zero or more times
-    //                                                                 (?:[.][A-Za-z]{2,4})?   Optional non-capturing group for file extension
+    //                                                                 (?:[.][A-Za-z_]{2,9})?   Optional non-capturing group for file extension
     const fileRegex =
-      /^(?:\/)?(?!\/)[A-Za-z0-9-_]+(?:\/[A-Za-z0-9-_]+)*(?:[.][A-Za-z]{2,4})?$/;
+      /^(?:\/)?(?!\/)[A-Za-z0-9-_]+(?:\/[A-Za-z0-9-_]+)*(?:[.][A-Za-z_]{2,9})?$/;
 
     if (!modelRegex.test(model)) {
       return new Error("Invalid model name.");

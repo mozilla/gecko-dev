@@ -33,6 +33,17 @@ Notice that for the encoder-decoder models with two files, you may need to renam
 to `decoder_model_merged_quantized.onnx`, and make similar changes to the fp16, q4 versions.
 You do not need to rename the encoder models.
 
+By default, the conversion script above generates a single file containing both the ONNX model architecture and its weights.
+
+To split the model architecture and weights into separate files, you can use the script provided at:
+`convert_to_external_data.py <https://searchfox.org/mozilla-central/source/toolkit/components/ml/tools/convert_to_external_data.py>`_.
+
+This process, known as using the external data format, provides additional speed and memory benefits for your model.
+
+For large models, this step is essential, as ONNX files have a 2GB size limit.
+Without splitting the model into multiple files, it would be impossible to run models that exceed or are close to the 2GB limit.
+Using the external data format ensures compatibility and allows such models to run successfully.
+
 
 Lifecycle
 :::::::::

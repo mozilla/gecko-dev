@@ -66,16 +66,16 @@ distilbart-cnn-12-6:
     description: Distilbart-cnn-12-6 text summarization model
     fetch:
         type: git
-        repo: https://huggingface.co/Xenova/distilbart-cnn-12-6
-        revision: 90818435f864622768d27f97fede11a3727c3316
-        path-prefix: "onnx-models/Xenova/distilbart-cnn-12-6/main/"
+        repo: https://huggingface.co/Mozilla/distilbart-cnn-12-6
+        revision: 7e89ed86d5904288460b5ebb3ebebd9992588701
+        path-prefix: "onnx-models/Mozilla/distilbart-cnn-12-6/main/"
         artifact-name: distilbart-cnn-12-6.tar.zst
 
 qwen2.5-0.5-instruct:
     description: Qwen text summarization model
     fetch:
         type: git
-        repo: https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct
-        revision: cc5cc01a65cc3ff17bdb73a7de33d879f62599b0
-        path-prefix: "onnx-models/onnx-community/Qwen2.5-0.5B-Instruct/main/"
+        repo: https://huggingface.co/Mozilla/Qwen2.5-0.5B-Instruct
+        revision: fd3f0e7171371df20d5eefc7851cf96706c391de
+        path-prefix: "onnx-models/Mozilla/Qwen2.5-0.5B-Instruct/main/"
         artifact-name: qwen2_5-0_5_instruct.tar.zst

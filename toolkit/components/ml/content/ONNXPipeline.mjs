@@ -364,6 +364,7 @@ export class Pipeline {
             revision: config.modelRevision,
             device,
             dtype,
+            use_external_data_format: config.useExternalDataFormat,
           }
         );
       }
@@ -391,7 +392,12 @@ export class Pipeline {
         this.#genericPipelineFunction = transformers.pipeline(
           config.taskName,
           config.modelId,
-          { revision: config.modelRevision, device, dtype }
+          {
+            revision: config.modelRevision,
+            device,
+            dtype,
+            use_external_data_format: config.useExternalDataFormat,
+          }
         );
       } else {
         this.#genericPipelineFunction = async () => {};
@@ -448,6 +454,7 @@ export class Pipeline {
         modelRevision: options.modelRevision || "default",
         dtype: options.dtype || "fp16",
         device: options.device || "wasm",
+        useExternalDataFormat: options.useExternalDataFormat ?? false,
       };
     } else {
       // Loading the config defaults for the task

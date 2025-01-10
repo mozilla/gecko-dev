@@ -22,14 +22,18 @@ let testData = [];
 
 const distilBartModel = {
   taskName: "summarization",
-  modelId: "Xenova/distilbart-cnn-12-6",
+  modelId: "Mozilla/distilbart-cnn-12-6",
   dtype: "q8",
+  // To keep history, we reuse xenova in the perf name
+  perfModelId: "Xenova/distilbart-cnn-12-6",
 };
 
 const qwenModel = {
   taskName: "text-generation",
-  modelId: "onnx-community/Qwen2.5-0.5B-Instruct",
+  modelId: "Mozilla/Qwen2.5-0.5B-Instruct",
   dtype: "q8",
+  // To keep history, we reuse onnx-community in the perf name
+  perfModelId: "onnx-community/Qwen2.5-0.5B-Instruct",
 };
 
 const articles = [
@@ -44,7 +48,7 @@ let numEngines = 0;
 for (const model of [distilBartModel, qwenModel]) {
   for (const article of articles) {
     // Replace all non-alphabnumeric or dash or underscore by underscore
-    const perfName = `${model.modelId.replace(/\//g, "-")}_${article.type}`;
+    const perfName = `${model.perfModelId.replace(/\//g, "-")}_${article.type}`;
 
     const engineId = `engine-${numEngines}`;
 
@@ -117,6 +121,7 @@ async function run_summarizer_with_perf({
     modelId,
     modelRevision: "main",
     dtype,
+    useExternalDataFormat: true,
   });
 
   if (taskName === "text-generation") {
