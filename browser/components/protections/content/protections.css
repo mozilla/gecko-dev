@@ -355,7 +355,7 @@ a.hidden,
 #private-window-message {
   border: 1px solid var(--in-content-border-color);
   grid-area: 1 / 2 / 1 / 7;
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--in-content-box-info-background);
   padding: 13px 45px;
   font-size: 13px;
   margin-bottom: 25px;
@@ -561,7 +561,7 @@ label:hover {
   display: none;
   padding: 22px 20px 20px;
   border-block-start: 1px solid var(--tab-highlight);
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--in-content-box-info-background);
   font-size: 0.8em;
   line-height: 1.75;
 }
