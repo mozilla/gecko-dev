@@ -468,10 +468,6 @@ export class ExtensionShortcuts {
   buildKey(doc, name, shortcut) {
     let keyElement = this.buildKeyFromShortcut(doc, name, shortcut);
 
-    // We need to have the attribute "oncommand" for the "command" listener to fire,
-    // and it is currently ignored when set to the empty string.
-    keyElement.setAttribute("oncommand", "//");
-
     /* eslint-disable mozilla/balanced-listeners */
     // We remove all references to the key elements when the extension is shutdown,
     // therefore the listeners for these elements will be garbage collected.
