@@ -306,6 +306,10 @@ class MockCall : public webrtc::Call {
     mEncoderInfo = aInfo;
   }
 
+  void EnableSendCongestionControlFeedbackAccordingToRfc8888() override {}
+  int FeedbackAccordingToRfc8888Count() override { return 0; }
+
+
   std::vector<webrtc::VideoStream> CreateEncoderStreams(int width, int height) {
     mVideoSendEncoderConfig->video_stream_factory->SetEncoderInfo(mEncoderInfo);
     return mVideoSendEncoderConfig->video_stream_factory->CreateEncoderStreams(
