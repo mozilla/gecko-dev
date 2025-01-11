@@ -733,19 +733,19 @@ FragmentOrElement::~FragmentOrElement() {
   }
 }
 
-static nsINode* FindChromeAccessOnlySubtreeOwner(nsINode* aNode) {
-  if (!aNode->ChromeOnlyAccess()) {
+static nsINode* FindChromeAccessOnlySubtreeOwnerForEvents(nsINode* aNode) {
+  if (!aNode->ChromeOnlyAccessForEvents()) {
     return aNode;
   }
   return const_cast<nsIContent*>(aNode->GetChromeOnlyAccessSubtreeRootParent());
 }
 
-nsINode* FindChromeAccessOnlySubtreeOwner(EventTarget* aTarget) {
+nsINode* FindChromeAccessOnlySubtreeOwnerForEvents(EventTarget* aTarget) {
   nsINode* node = nsINode::FromEventTargetOrNull(aTarget);
   if (!node) {
     return nullptr;
   }
-  return FindChromeAccessOnlySubtreeOwner(node);
+  return FindChromeAccessOnlySubtreeOwnerForEvents(node);
 }
 
 void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
@@ -782,20 +782,20 @@ void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
       if (isAnonForEvents || aVisitor.mRelatedTargetIsInAnon ||
           (aVisitor.mEvent->mOriginalTarget == this &&
            (aVisitor.mRelatedTargetIsInAnon =
-                relatedTarget->ChromeOnlyAccess()))) {
-        nsINode* anonOwner = FindChromeAccessOnlySubtreeOwner(this);
+                relatedTarget->ChromeOnlyAccessForEvents()))) {
+        nsINode* anonOwner = FindChromeAccessOnlySubtreeOwnerForEvents(this);
         if (anonOwner) {
           nsINode* anonOwnerRelated =
-              FindChromeAccessOnlySubtreeOwner(relatedTarget);
+              FindChromeAccessOnlySubtreeOwnerForEvents(relatedTarget);
           if (anonOwnerRelated) {
             // Note, anonOwnerRelated may still be inside some other
             // native anonymous subtree. The case where anonOwner is still
             // inside native anonymous subtree will be handled when event
             // propagates up in the DOM tree.
             while (anonOwner != anonOwnerRelated &&
-                   anonOwnerRelated->ChromeOnlyAccess()) {
+                   anonOwnerRelated->ChromeOnlyAccessForEvents()) {
               anonOwnerRelated =
-                  FindChromeAccessOnlySubtreeOwner(anonOwnerRelated);
+                  FindChromeAccessOnlySubtreeOwnerForEvents(anonOwnerRelated);
             }
             if (anonOwner == anonOwnerRelated) {
 #ifdef DEBUG_smaug
@@ -853,7 +853,7 @@ void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
     // all the events are allowed even in the native anonymous content..
     nsIContent* t =
         nsIContent::FromEventTargetOrNull(aVisitor.mEvent->mOriginalTarget);
-    NS_ASSERTION(!t || !t->ChromeOnlyAccess() ||
+    NS_ASSERTION(!t || !t->ChromeOnlyAccessForEvents() ||
                      aVisitor.mEvent->mClass != eMutationEventClass ||
                      aVisitor.mDOMEvent,
                  "Mutation event dispatched in native anonymous content!?!");
@@ -875,7 +875,7 @@ void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   }
 
   if (!aVisitor.mEvent->mFlags.mComposedInNativeAnonymousContent &&
-      IsRootOfNativeAnonymousSubtree() && OwnerDoc()->GetWindow()) {
+      isAnonForEvents && OwnerDoc()->GetWindow()) {
     aVisitor.SetParentTarget(OwnerDoc()->GetWindow()->GetParentTarget(), true);
   } else if (parent) {
     aVisitor.SetParentTarget(parent, false);
@@ -889,7 +889,8 @@ void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
     aVisitor.SetParentTarget(GetComposedDoc(), false);
   }
 
-  if (!ChromeOnlyAccess() && !aVisitor.mRelatedTargetRetargetedInCurrentScope) {
+  if (!ChromeOnlyAccessForEvents() &&
+      !aVisitor.mRelatedTargetRetargetedInCurrentScope) {
     // We don't support Shadow DOM in native anonymous content yet.
     aVisitor.mRelatedTargetRetargetedInCurrentScope = true;
     if (aVisitor.mEvent->mOriginalRelatedTarget) {
@@ -903,16 +904,17 @@ void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
       // anonymous content, but we need to deal with non-native anonymous
       // content there.
       bool initialTarget = this == aVisitor.mEvent->mOriginalTarget;
-      nsCOMPtr<nsINode> originalTargetAsNode;
+      nsINode* originalTargetAsNode = nullptr;
       // Use of mOriginalTargetIsInAnon is an optimization here.
       if (!initialTarget && aVisitor.mOriginalTargetIsInAnon) {
-        originalTargetAsNode =
-            FindChromeAccessOnlySubtreeOwner(aVisitor.mEvent->mOriginalTarget);
+        originalTargetAsNode = FindChromeAccessOnlySubtreeOwnerForEvents(
+            aVisitor.mEvent->mOriginalTarget);
         initialTarget = originalTargetAsNode == this;
       }
       if (initialTarget) {
-        nsINode* relatedTargetAsNode = FindChromeAccessOnlySubtreeOwner(
-            aVisitor.mEvent->mOriginalRelatedTarget);
+        nsINode* relatedTargetAsNode =
+            FindChromeAccessOnlySubtreeOwnerForEvents(
+                aVisitor.mEvent->mOriginalRelatedTarget);
         if (!originalTargetAsNode) {
           originalTargetAsNode =
               nsINode::FromEventTargetOrNull(aVisitor.mEvent->mOriginalTarget);
@@ -941,52 +943,49 @@ void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
           //  relatedTarget, and false."
           aVisitor.mRetargetedRelatedTarget = retargetedRelatedTarget;
         }
-      } else {
-        nsCOMPtr<nsINode> relatedTargetAsNode =
-            FindChromeAccessOnlySubtreeOwner(
-                aVisitor.mEvent->mOriginalRelatedTarget);
-        if (relatedTargetAsNode) {
-          // Step 11.3.
-          // "Let relatedTarget be the result of retargeting event's
-          // relatedTarget against parent if event's relatedTarget is non-null,
-          // and null otherwise.".
-          nsINode* retargetedRelatedTarget =
-              nsContentUtils::Retarget(relatedTargetAsNode, this);
-          nsCOMPtr<nsINode> targetInKnownToBeHandledScope =
-              FindChromeAccessOnlySubtreeOwner(
-                  aVisitor.mTargetInKnownToBeHandledScope);
-          // If aVisitor.mTargetInKnownToBeHandledScope wasn't nsINode,
-          // targetInKnownToBeHandledScope will be null. This may happen when
-          // dispatching event to Window object in a content page and
-          // propagating the event to a chrome Element.
-          if (targetInKnownToBeHandledScope &&
-              IsShadowIncludingInclusiveDescendantOf(
-                  targetInKnownToBeHandledScope->SubtreeRoot())) {
-            // Part of step 11.4.
-            // "If target's root is a shadow-including inclusive ancestor of
-            //  parent, then"
-            // "...Append to an event path with event, parent, null,
-            // relatedTarget, "   and slot-in-closed-tree."
-            aVisitor.mRetargetedRelatedTarget = retargetedRelatedTarget;
-          } else if (this == retargetedRelatedTarget) {
-            // Step 11.5
-            // "Otherwise, if parent and relatedTarget are identical, then set
-            //  parent to null."
-            aVisitor.IgnoreCurrentTargetBecauseOfShadowDOMRetargeting();
-            // Old code relies on mTarget to point to the first element which
-            // was not added to the event target chain because of mCanHandle
-            // being false, but in Shadow DOM case mTarget really should
-            // point to a node in Shadow DOM.
-            aVisitor.mEvent->mTarget = aVisitor.mTargetInKnownToBeHandledScope;
-            return;
-          } else if (targetInKnownToBeHandledScope) {
-            // Note, if targetInKnownToBeHandledScope is null,
-            // mTargetInKnownToBeHandledScope could be Window object in content
-            // page and we're in chrome document in the same process.
+      } else if (nsINode* relatedTargetAsNode =
+                     FindChromeAccessOnlySubtreeOwnerForEvents(
+                         aVisitor.mEvent->mOriginalRelatedTarget)) {
+        // Step 11.3.
+        // "Let relatedTarget be the result of retargeting event's
+        // relatedTarget against parent if event's relatedTarget is non-null,
+        // and null otherwise.".
+        nsINode* retargetedRelatedTarget =
+            nsContentUtils::Retarget(relatedTargetAsNode, this);
+        nsINode* targetInKnownToBeHandledScope =
+            FindChromeAccessOnlySubtreeOwnerForEvents(
+                aVisitor.mTargetInKnownToBeHandledScope);
+        // If aVisitor.mTargetInKnownToBeHandledScope wasn't nsINode,
+        // targetInKnownToBeHandledScope will be null. This may happen when
+        // dispatching event to Window object in a content page and
+        // propagating the event to a chrome Element.
+        if (targetInKnownToBeHandledScope &&
+            IsShadowIncludingInclusiveDescendantOf(
+                targetInKnownToBeHandledScope->SubtreeRoot())) {
+          // Part of step 11.4.
+          // "If target's root is a shadow-including inclusive ancestor of
+          //  parent, then"
+          // "...Append to an event path with event, parent, null,
+          // relatedTarget, "   and slot-in-closed-tree."
+          aVisitor.mRetargetedRelatedTarget = retargetedRelatedTarget;
+        } else if (this == retargetedRelatedTarget) {
+          // Step 11.5
+          // "Otherwise, if parent and relatedTarget are identical, then set
+          //  parent to null."
+          aVisitor.IgnoreCurrentTargetBecauseOfShadowDOMRetargeting();
+          // Old code relies on mTarget to point to the first element which
+          // was not added to the event target chain because of mCanHandle
+          // being false, but in Shadow DOM case mTarget really should
+          // point to a node in Shadow DOM.
+          aVisitor.mEvent->mTarget = aVisitor.mTargetInKnownToBeHandledScope;
+          return;
+        } else if (targetInKnownToBeHandledScope) {
+          // Note, if targetInKnownToBeHandledScope is null,
+          // mTargetInKnownToBeHandledScope could be Window object in content
+          // page and we're in chrome document in the same process.
 
-            // Step 11.6
-            aVisitor.mRetargetedRelatedTarget = retargetedRelatedTarget;
-          }
+          // Step 11.6
+          aVisitor.mRetargetedRelatedTarget = retargetedRelatedTarget;
         }
       }
     }

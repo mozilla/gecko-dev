@@ -975,8 +975,8 @@ nsresult EventDispatcher::Dispatch(EventTarget* aTarget,
 
   nsCOMPtr<nsIContent> content =
       nsIContent::FromEventTargetOrNull(aEvent->mOriginalTarget);
-  bool isInAnon = content && content->IsInNativeAnonymousSubtree();
 
+  const bool isInAnon = content && content->ChromeOnlyAccessForEvents();
   aEvent->mFlags.mIsBeingDispatched = true;
 
   Maybe<uint32_t> activationTargetItemIndex;

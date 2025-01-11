@@ -1606,6 +1606,12 @@ class nsINode : public mozilla::dom::EventTarget {
   // Only nsIContent can fulfill this condition.
   bool ChromeOnlyAccess() const { return IsInNativeAnonymousSubtree(); }
 
+  // Whether we're chrome-only for event targeting. UA widgets can use regular
+  // shadow DOM retargeting for these.
+  bool ChromeOnlyAccessForEvents() const {
+    return ChromeOnlyAccess() && !HasBeenInUAWidget();
+  }
+
   const nsIContent* GetChromeOnlyAccessSubtreeRootParent() const {
     return GetClosestNativeAnonymousSubtreeRootParentOrHost();
   }
