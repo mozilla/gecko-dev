@@ -2632,8 +2632,7 @@ void MediaFormatReader::Update(TrackType aTrack) {
     return;
   }
 
-  if ((decoder.IsWaitingForData() &&
-       (!decoder.mTimeThreshold || decoder.mTimeThreshold.ref().mWaiting)) ||
+  if ((decoder.IsWaitingForData() && !decoder.mTimeThreshold) ||
       (decoder.IsWaitingForKey())) {
     // Nothing more we can do at present.
     LOGV("Still waiting for data or key. data(%d)/key(%d)",
