@@ -50,6 +50,10 @@
   --tab-outline-offset: -1px;
   --tab-selected-outline-color: transparent;
   --tab-hover-outline-color: transparent;
+  --tab-attention-dot-position-x: calc(50% + 11px);
+  &:-moz-locale-dir(rtl) {
+    --tab-attention-dot-position-x: calc(50% - 11px);
+  }
   @media (prefers-contrast) {
     --tab-selected-outline-color: currentColor;
     --tab-hover-outline-color: currentColor;
@@ -231,6 +235,7 @@
 }
 
 .tab-content {
+  position: relative;
   padding: 0 var(--tab-inline-padding);
 
   &:not([pinned]) {
@@ -494,6 +499,10 @@
   position: relative;
   padding: 2px;
 
+  #tabbrowser-tabs[orient=vertical] & {
+    top: 7px;
+  }
+
   &[crashed] {
     list-style-image: url("chrome://browser/skin/tabbrowser/crashed.svg");
   }
@@ -600,6 +609,7 @@
   margin-inline-end: calc(var(--tab-inline-padding) / -2);
   width: 24px;
   height: 24px;
+  box-sizing: border-box;
   padding: var(--tab-close-button-padding);
   border-radius: var(--tab-border-radius);
   list-style-image: url(chrome://global/skin/icons/close-12.svg);
@@ -725,7 +735,8 @@
   background-repeat: no-repeat;
 
   #tabbrowser-tabs[orient="vertical"] & {
-    background-position-y: bottom 4px;
+    background-position-y: 6px;
+    background-position-x: var(--tab-attention-dot-position-x);
   }
 }
 
@@ -1284,7 +1295,8 @@
 
   &:not([expanded]) {
     .tabbrowser-tab {
-      padding: 0;
+      padding-inline: 0;
+      padding-block: 2px;
 
       &[pinned] {
         width: var(--tab-collapsed-width);
@@ -1295,9 +1307,44 @@
       width: var(--tab-collapsed-background-width);
     }
 
-    .tab-label-container,
-    .tab-close-button {
+    .tab-label-container {
       display: none;
+    }
+
+    .tab-close-button {
+      opacity: 0;
+      width: 16px;
+      height: 16px;
+      padding: 4px;
+      margin: 0;
+      fill: var(--tab-selected-textcolor);
+      /* We want to make this look like the selected tab, but fully opaque. For that,
+       * we build a stack of `--lwt-accent-color` (guaranteed opaque), then
+       * `--toolbox-bgcolor`, then `--tab-selected-bgcolor`.
+       *
+       * We rely on at least one of `--toolbox-bgcolor` / `--tab-selected-bgcolor`
+       * being opaque on the system themes, so even though `--lwt-accent-color` is
+       * not set there, it ends up working out because we never see it through.
+       */
+      background-color: var(--lwt-accent-color);
+      background-image: linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor));
+      color-scheme: var(--tab-selected-color-scheme);
+      outline-color: var(--tab-selected-outline-color);
+      box-shadow: var(--tab-selected-shadow);
+      border-radius: var(--border-radius-circle);
+      display: block;
+      position: absolute;
+      inset: auto;
+      top: -1px;
+      inset-inline-start: 2px;
+
+      .browser-toolbox-background:-moz-window-inactive & {
+        background-image: linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor-inactive));
+      }
+
+      .tabbrowser-tab:is([selected], :hover) & {
+        opacity: 1;
+      }
     }
   }
 

@@ -22,6 +22,8 @@ prefs = [
 
 ["browser_resize_sidebar.js"]
 
+["browser_sidebar_collapsed_close_tab_button.js"]
+
 ["browser_sidebar_context_menu.js"]
 
 ["browser_sidebar_macmenu.js"]
