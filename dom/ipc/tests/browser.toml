@@ -68,6 +68,7 @@ skip-if = [
 ["browser_isactiveintab.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1890386
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1890386
   "win11_2009 && opt", # Bug 1890386
 ]
 
