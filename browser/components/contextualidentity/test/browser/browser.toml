@@ -53,6 +53,9 @@ https_first_disabled = true
 
 ["browser_reopenIn.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1783491
+]
 
 ["browser_restore_getCookiesWithOriginAttributes.js"]
 
