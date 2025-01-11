@@ -545,6 +545,8 @@ bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
       nsContentUtils::IsEventAttributeName(
           aAttributeName, EventNameType_All & ~EventNameType_XUL)) {
     aTrustedType = TrustedType::TrustedScript;
+    aSink.AssignLiteral(u"Element ");
+    aSink.Append(*aAttributeName);
     return true;
   }
   if (aElementNamespaceID == kNameSpaceID_XHTML) {
