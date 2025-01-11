@@ -1839,7 +1839,8 @@ void MediaFormatReader::NotifyError(TrackType aTrack,
                                     const MediaResult& aError) {
   MOZ_ASSERT(OnTaskQueue());
   NS_WARNING(aError.Description().get());
-  LOGV("%s Decoding error", TrackTypeToStr(aTrack));
+  LOG("%s Decoding error: %s", TrackTypeToStr(aTrack),
+      aError.Description().get());
   auto& decoder = GetDecoderData(aTrack);
   decoder.mError = decoder.HasFatalError() ? decoder.mError : Some(aError);
 
@@ -1848,6 +1849,7 @@ void MediaFormatReader::NotifyError(TrackType aTrack,
 
 void MediaFormatReader::NotifyWaitingForData(TrackType aTrack) {
   MOZ_ASSERT(OnTaskQueue());
+  LOGV("%s", TrackTypeToStr(aTrack));
   auto& decoder = GetDecoderData(aTrack);
   decoder.mWaitingForDataStartTime = Some(TimeStamp::Now());
   if (decoder.mTimeThreshold) {
@@ -1911,6 +1913,7 @@ bool MediaFormatReader::UpdateReceivedNewData(TrackType aTrack) {
   auto& decoder = GetDecoderData(aTrack);
 
   if (!decoder.mReceivedNewData) {
+    LOGV("!decoder.mReceivedNewData");
     return false;
   }
 
@@ -1919,6 +1922,7 @@ bool MediaFormatReader::UpdateReceivedNewData(TrackType aTrack) {
   // This is in order to ensure that we will retry once they complete as we may
   // now have new data that could potentially allow those operations to
   // successfully complete if tried again.
+  LOGV("%s", TrackTypeToStr(aTrack));
   if (decoder.mSeekRequest.Exists()) {
     // Nothing more to do until this operation complete.
     return true;
@@ -1930,12 +1934,14 @@ bool MediaFormatReader::UpdateReceivedNewData(TrackType aTrack) {
   }
 
   if (decoder.mDemuxRequest.Exists()) {
+    LOGV("decoder.mDemuxRequest.Exists()");
     // We may have pending operations to process, so we want to continue
     // after UpdateReceivedNewData returns.
     return false;
   }
 
   if (decoder.HasPendingDrain()) {
+    LOGV("decoder.HasPendingDrain()");
     // We do not want to clear mWaitingForDataStartTime or mDemuxEOS while
     // a drain is in progress in order to properly complete the operation.
     return false;
@@ -1952,6 +1958,7 @@ bool MediaFormatReader::UpdateReceivedNewData(TrackType aTrack) {
   decoder.mWaitingForDataStartTime.reset();
 
   if (decoder.HasFatalError()) {
+    LOGV("decoder.HasFatalError()");
     return false;
   }
 

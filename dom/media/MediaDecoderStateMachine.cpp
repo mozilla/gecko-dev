@@ -4055,6 +4055,7 @@ void MediaDecoderStateMachine::WaitForData(MediaData::Type aType) {
   MOZ_ASSERT(OnTaskQueue());
   MOZ_ASSERT(aType == MediaData::Type::AUDIO_DATA ||
              aType == MediaData::Type::VIDEO_DATA);
+  LOG("%s: %s", __func__, MediaData::EnumValueToString(aType));
   RefPtr<MediaDecoderStateMachine> self = this;
   if (aType == MediaData::Type::AUDIO_DATA) {
     mReader->WaitForData(MediaData::Type::AUDIO_DATA)
@@ -4080,19 +4081,21 @@ void MediaDecoderStateMachine::WaitForData(MediaData::Type aType) {
     mReader->WaitForData(MediaData::Type::VIDEO_DATA)
         ->Then(
             OwnerThread(), __func__,
-            [self](MediaData::Type aType) {
+            [self, this](MediaData::Type aType) {
               AUTO_PROFILER_LABEL(
                   "MediaDecoderStateMachine::WaitForData:VideoResolved",
                   MEDIA_PLAYBACK);
               self->mVideoWaitRequest.Complete();
               MOZ_ASSERT(aType == MediaData::Type::VIDEO_DATA);
+              LOG("WaitForData::VideoResolved");
               self->mStateObj->HandleVideoWaited(aType);
             },
-            [self](const WaitForDataRejectValue& aRejection) {
+            [self, this](const WaitForDataRejectValue& aRejection) {
               AUTO_PROFILER_LABEL(
                   "MediaDecoderStateMachine::WaitForData:VideoRejected",
                   MEDIA_PLAYBACK);
               self->mVideoWaitRequest.Complete();
+              LOG("WaitForData::VideoRejected");
               self->DecodeError(NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA);
             })
         ->Track(mVideoWaitRequest);
