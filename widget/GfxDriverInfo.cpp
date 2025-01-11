@@ -358,6 +358,19 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
     case DeviceFamily::IntelMobileHDGraphics:
       APPEND_DEVICE(0x0046); /* IntelMobileHDGraphics */
       break;
+    case DeviceFamily::IntelMeteorLake:
+      APPEND_DEVICE(0x7d40);
+      APPEND_DEVICE(0x7d45);
+      APPEND_DEVICE(0x7d55);
+      APPEND_DEVICE(0x7d60);
+      APPEND_DEVICE(0x7dd5);
+      break;
+    case DeviceFamily::IntelArrowlake:
+      APPEND_DEVICE(0x7D41);
+      APPEND_DEVICE(0x7D51);
+      APPEND_DEVICE(0x7D67);
+      APPEND_DEVICE(0x7DD1);
+      break;
     case DeviceFamily::IntelGen12:
       // Rocket Lake
       APPEND_DEVICE(0x4C8C);  // rkl_gt05
@@ -742,6 +755,8 @@ const nsAString& GfxDriverInfo::GetDeviceVendor(DeviceFamily id) {
     case DeviceFamily::IntelKabyLake:
     case DeviceFamily::IntelHD520:
     case DeviceFamily::IntelMobileHDGraphics:
+    case DeviceFamily::IntelMeteorLake:
+    case DeviceFamily::IntelArrowlake:
     case DeviceFamily::IntelGen12:
     case DeviceFamily::IntelWebRenderBlocked:
     case DeviceFamily::Bug1116812:

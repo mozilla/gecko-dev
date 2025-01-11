@@ -1806,6 +1806,18 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_COMPARISON_IGNORED,
         V(0, 0, 0, 0), "FEATURE_FAILURE_BUG_1896823");
 
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows, DeviceFamily::IntelMeteorLake,
+        nsIGfxInfo::FEATURE_REUSE_DECODER_DEVICE,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_GREATER_THAN,
+        V(32, 0, 101, 5972), "FEATURE_FAILURE_BUG_1933755");
+
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows, DeviceFamily::IntelArrowlake,
+        nsIGfxInfo::FEATURE_REUSE_DECODER_DEVICE,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_GREATER_THAN,
+        V(32, 0, 101, 5972), "FEATURE_FAILURE_BUG_1933755");
+
     ////////////////////////////////////
     // FEATURE_OVERLAY_VP_AUTO_HDR
 
