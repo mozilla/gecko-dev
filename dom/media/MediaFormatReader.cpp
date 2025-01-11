@@ -1980,11 +1980,11 @@ bool MediaFormatReader::UpdateReceivedNewData(TrackType aTrack) {
       LOG("Attempting Internal Seek");
       InternalSeek(aTrack, decoder.mTimeThreshold.ref());
     }
-    if (decoder.HasWaitingPromise() && !decoder.IsWaitingForKey() &&
-        !decoder.IsWaitingForData()) {
+    if (decoder.HasWaitingPromise() && !decoder.IsWaitingForKey()) {
       MOZ_ASSERT(!decoder.HasPromise());
       LOG("We have new data. Resolving WaitingPromise");
       decoder.mWaitingPromise.Resolve(decoder.mType, __func__);
+      MOZ_ASSERT(!decoder.IsWaitingForData());
     }
     return true;
   }
