@@ -62,6 +62,7 @@ run-if = ["crashreporter"]
 ["browser_async_remove_tab.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1787024
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1787024
   "win11_2009", # Bug 1787024
 ]
 
@@ -235,6 +236,7 @@ skip-if = ["true"] # Bug 1646894
 ["browser_restoreLastClosedTabOrWindowOrSession.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1838996
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && asan", # Bug 1838996
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1838996
 ]
 
