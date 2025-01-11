@@ -151,6 +151,8 @@ enum class DeviceFamily : uint8_t {
   IntelKabyLake,
   IntelHD520,
   IntelMobileHDGraphics,
+  IntelMeteorLake,
+  IntelArrowlake,
   IntelGen12,
   NvidiaBlockD3D9Layers,
   RadeonX1000,
