@@ -4,9 +4,12 @@
 
 package org.mozilla.fenix.onboarding.store
 
+import android.content.Context
+import androidx.appcompat.app.AppCompatDelegate
 import mozilla.components.lib.state.Action
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
+import mozilla.components.support.ktx.android.content.setApplicationNightMode
 import org.mozilla.fenix.onboarding.view.OnboardingAddOn
 import org.mozilla.fenix.onboarding.view.ThemeOptionType
 import org.mozilla.fenix.onboarding.view.ToolbarOptionType
@@ -96,6 +99,7 @@ private fun reducer(
 ): OnboardingState =
     when (action) {
         is OnboardingAction.Init -> OnboardingState(addOns = action.addons)
+
         is OnboardingAction.OnboardingAddOnsAction.UpdateStatus -> {
             val mutableAddonsList = state.addOns.toMutableList()
             val index = mutableAddonsList.indexOfFirst { it.id == action.addOnId }
@@ -106,7 +110,7 @@ private fun reducer(
                     OnboardingAddonStatus.INSTALLED, OnboardingAddonStatus.NOT_INSTALLED -> false
                     OnboardingAddonStatus.INSTALLING -> true
                 }
-                OnboardingState(
+                state.copy(
                     addOns = mutableAddonsList,
                     addOnInstallationInProcess = installing,
                 )
@@ -119,7 +123,30 @@ private fun reducer(
             toolbarOptionSelected = action.selected,
         )
 
-        is OnboardingAction.OnboardingThemeAction.UpdateSelected -> state.copy(
-            themeOptionSelected = action.selected,
-        )
+        is OnboardingAction.OnboardingThemeAction.UpdateSelected -> {
+            state.copy(themeOptionSelected = action.selected)
+        }
     }
+
+/**
+ * Applies the selected theme to the application if different to the current theme.
+ *
+ * This function uses [AppCompatDelegate] to change the application's theme
+ * based on the user's selection. It supports the following themes:
+ *
+ * - Dark Theme: Forces the application into dark mode.
+ * - Light Theme: Forces the application into light mode.
+ * - System Theme: Adapts to the device's current system theme.
+ *
+ * @param selectedTheme The [ThemeOptionType] selected by the user.
+ * This determines which theme to apply.
+ */
+fun Context.applyThemeIfRequired(selectedTheme: ThemeOptionType) {
+    setApplicationNightMode(
+        when (selectedTheme) {
+            ThemeOptionType.THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+            ThemeOptionType.THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+            ThemeOptionType.THEME_SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        },
+    )
+}
