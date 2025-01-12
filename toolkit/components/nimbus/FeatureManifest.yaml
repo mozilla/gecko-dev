@@ -214,6 +214,11 @@ urlbar:
     the event is recorded once per app session when the user first encounters
     the UI of the experiment in which they're enrolled.
   variables:
+    actionsOnboardingTimesToShow:
+      type: int
+      fallbackPref: browser.urlbar.quickactions.timesToShowOnboardingLabel
+      description: >-
+        The number of times a user should be shown the actions onboarding label.
     addonsFeatureGate:
       type: boolean
       fallbackPref: browser.urlbar.addons.featureGate

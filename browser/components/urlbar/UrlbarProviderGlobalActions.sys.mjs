@@ -25,6 +25,10 @@ const SCOTCH_BONNET_PREF = "scotchBonnet.enableOverride";
 const ACTIONS_PREF = "secondaryActions.featureGate";
 const QUICK_ACTIONS_PREF = "suggest.quickactions";
 
+// Prefs relating to the onboarding label shown to new users.
+const TIMES_TO_SHOW_PREF = "quickactions.timesToShowOnboardingLabel";
+const TIMES_SHOWN_PREF = "quickactions.timesShownOnboardingLabel";
+
 ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
@@ -86,6 +90,10 @@ class ProviderGlobalActions extends UrlbarProvider {
       return;
     }
 
+    let showOnboardingLabel =
+      lazy.UrlbarPrefs.get(TIMES_TO_SHOW_PREF) >
+      lazy.UrlbarPrefs.get(TIMES_SHOWN_PREF);
+
     let results = [...this.#actions.keys()];
 
     let query = results.includes("matched-contextual-search")
@@ -97,6 +105,7 @@ class ProviderGlobalActions extends UrlbarProvider {
       dynamicType: DYNAMIC_TYPE_NAME,
       inputLength: queryContext.searchString.length,
       input: query,
+      showOnboardingLabel,
       query,
     };
 
@@ -129,57 +138,73 @@ class ProviderGlobalActions extends UrlbarProvider {
   }
 
   onSearchSessionEnd(queryContext, controller, details) {
+    let showOnboardingLabel = queryContext.results?.find(
+      r => r.providerName == this.name
+    )?.payload.showOnboardingLabel;
+    if (showOnboardingLabel) {
+      lazy.UrlbarPrefs.set(
+        TIMES_SHOWN_PREF,
+        lazy.UrlbarPrefs.get(TIMES_SHOWN_PREF) + 1
+      );
+    }
     for (let provider of globalActionsProviders) {
       provider.onSearchSessionEnd?.(queryContext, controller, details);
     }
   }
 
   getViewTemplate(result) {
-    return {
-      children: [
-        {
-          name: "buttons",
-          tag: "div",
-          children: result.payload.results.map((key, i) => {
-            let action = this.#actions.get(key);
-            let style;
-            if (action.dataset?.style) {
-              style = "";
-              for (let [prop, val] of Object.entries(action.dataset.style)) {
-                style += `${prop}: ${val};`;
-              }
-            }
-            return {
-              name: `button-${i}`,
-              tag: "span",
-              classList: ["urlbarView-action-btn"],
-              attributes: {
-                style,
-                inputLength: result.payload.inputLength,
-                "data-action": key,
-                role: "button",
-              },
-              children: [
-                {
-                  tag: "img",
-                  attributes: {
-                    src: action.icon || DEFAULT_ICON,
-                  },
-                },
-                {
-                  name: `label-${i}`,
-                  tag: "span",
-                },
-              ],
-            };
-          }),
+    let children = result.payload.results.map((key, i) => {
+      let action = this.#actions.get(key);
+      let style;
+      if (action.dataset?.style) {
+        style = "";
+        for (let [prop, val] of Object.entries(action.dataset.style)) {
+          style += `${prop}: ${val};`;
+        }
+      }
+      return {
+        name: `button-${i}`,
+        tag: "span",
+        classList: ["urlbarView-action-btn"],
+        attributes: {
+          style,
+          inputLength: result.payload.inputLength,
+          "data-action": key,
+          role: "button",
         },
-      ],
-    };
+        children: [
+          {
+            tag: "img",
+            attributes: {
+              src: action.icon || DEFAULT_ICON,
+            },
+          },
+          {
+            name: `label-${i}`,
+            tag: "span",
+          },
+        ],
+      };
+    });
+
+    if (result.payload.showOnboardingLabel) {
+      children.unshift({
+        name: "press-tab-label",
+        tag: "span",
+        classList: ["urlbarView-press-tab-label"],
+      });
+    }
+
+    return { children };
   }
 
   getViewUpdate(result) {
     let viewUpdate = {};
+    if (result.payload.showOnboardingLabel) {
+      viewUpdate["press-tab-label"] = {
+        l10n: { id: "press-tab-label", cacheable: true },
+      };
+    }
     result.payload.results.forEach((key, i) => {
       let action = this.#actions.get(key);
       viewUpdate[`label-${i}`] = {

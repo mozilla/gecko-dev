@@ -40,6 +40,9 @@ const assertAccessibilityWhenSelected = name => {
 const hasQuickActions = win =>
   !!win.document.querySelector(".urlbarView-action-btn");
 
+const onboardingLabelShown = win =>
+  !!win.document.querySelector(".urlbarView-press-tab-label");
+
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -320,4 +323,44 @@ add_task(async function test_searchMode() {
 
   BrowserTestUtils.removeTab(tab);
   BrowserTestUtils.removeTab(viewSourceTab);
+});
+
+let showAction = async testFun => {
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "testact",
+  });
+  await assertAction("testaction");
+  await testFun();
+  await UrlbarTestUtils.promisePopupClose(window, () => {
+    // We need to fully blur the urlbar for `onSearchSessionEnd`
+    // to trigger.
+    EventUtils.synthesizeKey("KEY_Escape");
+    EventUtils.synthesizeKey("KEY_Escape");
+    EventUtils.synthesizeKey("KEY_Escape");
+  });
+};
+
+add_task(async function test_label_shown() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.urlbar.quickactions.timesShownOnboardingLabel", 0],
+      ["browser.urlbar.quickactions.timesToShowOnboardingLabel", 3],
+    ],
+  });
+  await showAction(() => {
+    Assert.ok(onboardingLabelShown(window), "Onboarding label is shown once");
+  });
+  await showAction(() => {
+    Assert.ok(onboardingLabelShown(window), "Onboarding label is shown twice");
+  });
+  await showAction(() => {
+    Assert.ok(
+      onboardingLabelShown(window),
+      "Onboarding label is shown third time"
+    );
+  });
+  await showAction(() => {
+    Assert.ok(!onboardingLabelShown(window), "Onboarding label is not shown");
+  });
 });

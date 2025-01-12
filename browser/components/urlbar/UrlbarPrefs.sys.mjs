@@ -213,6 +213,12 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // mode or the QuickActions search mode.
   ["quickactions.enabled", true],
 
+  // The number of times we should show the actions onboarding label.
+  ["quickactions.timesToShowOnboardingLabel", 0],
+
+  // The number of times we have shown the actions onboarding label.
+  ["quickactions.timesShownOnboardingLabel", 0],
+
   // Whether we will match QuickActions within a phrase and not only a prefix.
   ["quickactions.matchInPhrase", true],
 
