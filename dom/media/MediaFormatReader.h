@@ -611,10 +611,7 @@ class MediaFormatReader final
     }
 
     bool HasInternalSeekPending() const {
-      return mTimeThreshold.isSome() && !mTimeThreshold->mHasSeeked;
-    }
-    bool HasInternalSeekWaiting() const {
-      return mTimeThreshold.isSome() && mTimeThreshold->mWaiting;
+      return mTimeThreshold && !mTimeThreshold.ref().mHasSeeked;
     }
 
     // Return the current TrackInfo in the stream. If the stream content never
