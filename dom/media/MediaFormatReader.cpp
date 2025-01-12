@@ -2477,10 +2477,8 @@ void MediaFormatReader::Update(TrackType aTrack) {
       // Now that draining has completed, we check if we have received
       // new data again as the result may now be different from the earlier
       // run.
-      if (UpdateReceivedNewData(aTrack) || decoder.HasInternalSeekPending()) {
-        LOGV("%s: Nothing more to do", decoder.HasInternalSeekWaiting()
-                                           ? "Waiting during internal seek"
-                                           : "Completed drain");
+      if (UpdateReceivedNewData(aTrack) || decoder.mSeekRequest.Exists()) {
+        LOGV("Nothing more to do");
         return;
       }
     } else if (decoder.mDemuxEOS && !decoder.HasPendingDrain() &&
