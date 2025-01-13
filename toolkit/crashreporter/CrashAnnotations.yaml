@@ -904,6 +904,16 @@ TestUnicode:
     Annotation used in tests.
   type: string
 
+TestBoolean:
+  description: >
+    Annotation used in tests.
+  type: boolean
+
+TestInteger:
+  description: >
+    Annotation used in tests.
+  type: u32
+
 TextureUsage:
   description: >
     Amount of memory in bytes consumed by textures.

@@ -78,14 +78,19 @@ interface nsICrashReporter : nsISupports
    * @param key
    *        Name of a known crash annotation constant.
    * @param data
-   *        Data to be added.
+   *        Data to be added. This can be a string, a 32-bit integer or a
+   *        boolean. The type must match the type of the annotation as
+   *        specified in CrashAnnotations.yaml.
    *
    * @throw NS_ERROR_NOT_INITIALIZED if crash reporting not initialized
-   * @throw NS_ERROR_INVALID_ARG if key contains an invalid value or data
-   *                             contains invalid characters.  Invalid
-   *                             character for data is '\0'.
+   * @throw NS_ERROR_INVALID_ARG if key contains an invalid value, data is a
+   *                             string and contains invalid characters, or
+   *                             data does not match the annotation type
+   * @throw NS_ERROR_OUT_OF_MEMORY if there was insufficient memory to
+   *                               convert a JavaScript string to UTF-8
    */
-  void annotateCrashReport(in AUTF8String key, in AUTF8String data);
+  [implicit_jscontext]
+  void annotateCrashReport(in AUTF8String key, in jsval data);
 
   /**
    * Remove a crash report annotation.
