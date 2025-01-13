@@ -93,7 +93,7 @@ Var ArchToInstall
 ; the stub installer
 ;!define STUB_DEBUG
 
-!define StubURLVersion "v9"
+!define StubURLVersion "v10"
 
 ; Successful install exit code
 !define ERR_SUCCESS 0
