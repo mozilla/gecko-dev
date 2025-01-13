@@ -118,15 +118,15 @@ class SessionNotificationService : Service() {
     private fun buildNotification(): Notification {
         val eraseIntent = createEraseIntent()
         val contentTitle = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            getString(R.string.notification_erase_title_android_14)
+            applicationContext.getString(R.string.notification_erase_title_android_14)
         } else {
             getString(R.string.app_name)
         }
 
         val contentText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            getString(R.string.notification_erase_text_android_14_1)
+            applicationContext.getString(R.string.notification_erase_text_android_14_1)
         } else {
-            getString(R.string.notification_erase_text)
+            applicationContext.getString(R.string.notification_erase_text)
         }
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
@@ -142,14 +142,14 @@ class SessionNotificationService : Service() {
             .addAction(
                 NotificationCompat.Action(
                     R.drawable.ic_notification,
-                    getString(R.string.notification_action_open),
+                    applicationContext.getString(R.string.notification_action_open),
                     createOpenActionIntent(),
                 ),
             )
             .addAction(
                 NotificationCompat.Action(
                     R.drawable.mozac_ic_delete_24,
-                    getString(R.string.notification_action_erase_and_open),
+                    applicationContext.getString(R.string.notification_action_erase_and_open),
                     createOpenAndEraseActionIntent(),
                 ),
             )
@@ -197,8 +197,8 @@ class SessionNotificationService : Service() {
             return
         }
 
-        val notificationChannelName = getString(R.string.notification_browsing_session_channel_name)
-        val notificationChannelDescription = getString(
+        val notificationChannelName = applicationContext.getString(R.string.notification_browsing_session_channel_name)
+        val notificationChannelDescription = applicationContext.getString(
             R.string.notification_browsing_session_channel_description,
             getString(R.string.app_name),
         )
