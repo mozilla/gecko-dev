@@ -112,6 +112,16 @@ group("absl_component_deps") {
     "//third_party/abseil-cpp/absl/types:variant",
     "//third_party/abseil-cpp/absl/utility",
   ]
+
+  # Dependencies that preferably shouldn't be public in chromium.
+  public_deps += [
+    # public in abseil, but deprecated in chromium, yet used.
+    "//third_party/abseil-cpp/absl/base:dynamic_annotations",
+
+    # base/logging.cc uses this non-public absl dependency while there no better
+    # alternative to inject abort hook. See notes in `base/logging.cc`.
+    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
+  ]
   } else {
   public_deps = [
     "//abseil-cpp/absl/algorithm:container",
@@ -129,16 +139,6 @@ group("absl_component_deps") {
     "//abseil-cpp/absl/utility",
   ]
   }
-
-  # Dependencies that preferably shouldn't be public in chromium.
-  public_deps += [
-    # public in abseil, but deprecated in chromium, yet used.
-    "//third_party/abseil-cpp/absl/base:dynamic_annotations",
-
-    # base/logging.cc uses this non-public absl dependency while there no better
-    # alternative to inject abort hook. See notes in `base/logging.cc`.
-    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
-  ]
 
   if (is_component_build) {
     public_deps += [ ":absl_full_deps" ]

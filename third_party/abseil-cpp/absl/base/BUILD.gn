@@ -61,7 +61,7 @@ absl_source_set("raw_logging_internal") {
     "//third_party/abseil-cpp/absl/*",
   ]
   if (moz_webrtc_build) {
-    public_deps -= [ ":errno_saver" ]
+    deps -= [ ":errno_saver" ]
   }
 }
 
