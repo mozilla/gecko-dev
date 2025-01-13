@@ -78,10 +78,6 @@ fun ToolbarTabCounterButton(
             .testTag(NavBarTestTags.tabCounterButton),
         update = { tabCounter ->
             tabCounter.setCount(tabCount)
-            tabCounter.contentDescription = tabCounter.context.getString(
-                R.string.mozac_tab_counter_open_tab_tray,
-                tabCount.toString(),
-            )
             tabCounter.layoutDirection = if (isRtl) {
                 View.TEXT_DIRECTION_RTL
             } else {

@@ -75,8 +75,8 @@ class TabCounter @JvmOverloads constructor(
     }
 
     private fun updateContentDescription(count: Int) {
-        counterRoot.contentDescription = context.getString(
-            R.string.mozac_open_tab_counter_tab_tray,
+        contentDescription = context.getString(
+            R.string.mozac_tab_counter_open_tab_tray,
             count.toString(),
         )
     }
