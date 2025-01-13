@@ -120,7 +120,10 @@ fail-if = ["os == 'linux'"]
 
 ["generated/test_2_conformance2__extensions__webgl-multi-draw-instanced-base-vertex-base-instance.html"]
 # instid_prog: Expected [0,0,0,0], was [0,1,1,1]. desc: {"name":"drawArraysInstanced","base_vert":0,"vert_count":1,"base_inst":0,"inst_count":1,"first_vert":1}
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__programs__gl-get-frag-data-location.html"]
 # gl.getFragDataLocation(programEs2, 'gl_FragColor') should be -1. Was 0.
@@ -178,6 +181,7 @@ fail-if = [
   "os == 'android'",
   "os == 'linux'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 # Assertion failure: [GFX1]: void mozilla::gl::GLContext::fFramebufferTexture2D(GLenum, GLenum, GLenum, GLuint, GLint): Generated unexpected GL_INVALID_VALUE error
@@ -187,13 +191,15 @@ skip-if = ["os == 'linux' && debug"]
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1725075
 fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
 ]
 
 ["generated/test_2_conformance__glsl__bugs__vector-matrix-constructor-scalarization.html"]
 # Ditto
 fail-if = [
-  "os == 'android' && !debug",
+  "os == 'android' && opt",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
 ]
 
 ["generated/test_2_conformance2__glsl3__switch-case.html"]
@@ -496,6 +502,7 @@ fail-if = ["true"]
 ["generated/test_2_conformance2__textures__misc__tex-base-level-bug.html"]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]  # macosx1014 due to 1563418
 
@@ -509,7 +516,10 @@ fail-if = ["true"]
 ["generated/test_2_conformance__rendering__bind-framebuffer-flush-bug.html"]
 
 ["generated/test_2_conformance2__glsl3__matrix-row-major-dynamic-indexing.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ########################################################################
 # Complicated
@@ -527,6 +537,7 @@ skip-if = [
 # should be 0,0,0,255
 fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && !swgl",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug && !swgl",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug && !swgl",
 ]
 
@@ -695,91 +706,178 @@ skip-if = [
 fail-if = ["os == 'win'"]
 
 ["generated/test_2_conformance2__textures__misc__tex-srgb-mipmap.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r11f_g11f_b10f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r11f_g11f_b10f-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r11f_g11f_b10f-rgb-unsigned_int_10f_11f_11f_rev.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rg16f-rg-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rg16f-rg-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rg32f-rg-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rg8-rg-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rg8ui-rg_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb16f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb16f-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb32f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb565-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb565-rgb-unsigned_short_5_6_5.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb5_a1-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb5_a1-rgba-unsigned_short_5_5_5_1.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb8-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb8ui-rgb_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb9_e5-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgb9_e5-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgba16f-rgba-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgba16f-rgba-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgba32f-rgba-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgba4-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgba4-rgba-unsigned_short_4_4_4_4.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgba8-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-rgba8ui-rgba_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-srgb8-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-srgb8_alpha8-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__misc__copy-texture-image-same-texture.html"]
 skip-if = [
@@ -823,6 +921,7 @@ skip-if = [
 # [unexpected fragment shader compile status] (expected: true) Declaring both gl_FragColor and gl_FragData invariant should succeed.
 fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 
@@ -858,6 +957,7 @@ skip-if = [
 fail-if = [
   "os == 'android'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 
@@ -1372,12 +1472,16 @@ skip-if = [
 
 ["generated/test_2_conformance2__textures__misc__tex-unpack-params-imagedata.html"]
 # areArraysEqual(actual, expected) should be true. Was false.
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__offscreencanvas__offscreencanvas-sync.html"]
 # Timeout
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
 ]
 
@@ -1386,9 +1490,13 @@ skip-if = [
 ####################
 # failure on OSX
 ["generated/test_2_conformance2__textures__misc__tex-unpack-params.html"]
-skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug",
+]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 
@@ -1398,209 +1506,410 @@ fail-if = [
 fail-if = [
   "os == 'linux'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r11f_g11f_b10f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r11f_g11f_b10f-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r11f_g11f_b10f-rgb-unsigned_int_10f_11f_11f_rev.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r16f-red-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r16f-red-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r32f-red-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r8-red-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r8ui-red_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rg16f-rg-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rg16f-rg-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rg32f-rg-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rg8-rg-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rg8ui-rg_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb16f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb16f-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb32f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb565-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb565-rgb-unsigned_short_5_6_5.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb5_a1-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb5_a1-rgba-unsigned_short_5_5_5_1.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb8-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb8ui-rgb_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb9_e5-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgb9_e5-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgba16f-rgba-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgba16f-rgba-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgba32f-rgba-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgba4-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgba4-rgba-unsigned_short_4_4_4_4.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgba8-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-rgba8ui-rgba_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-srgb8-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-srgb8_alpha8-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-r11f_g11f_b10f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-r11f_g11f_b10f-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-r11f_g11f_b10f-rgb-unsigned_int_10f_11f_11f_rev.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-r16f-red-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-r16f-red-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-r32f-red-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-r8-red-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-r8ui-red_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rg16f-rg-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rg16f-rg-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rg32f-rg-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rg8-rg-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rg8ui-rg_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb16f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb16f-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb32f-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb565-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb565-rgb-unsigned_short_5_6_5.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb5_a1-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb5_a1-rgba-unsigned_short_5_5_5_1.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb8-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb8ui-rgb_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb9_e5-rgb-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
+
 ["generated/test_2_conformance2__textures__image__tex-3d-rgb9_e5-rgb-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgba16f-rgba-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgba16f-rgba-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgba32f-rgba-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgba4-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgba4-rgba-unsigned_short_4_4_4_4.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgba8-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-rgba8ui-rgba_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-srgb8-rgb-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__image__tex-3d-srgb8_alpha8-rgba-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__misc__tex-mipmap-levels.html"]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win11_2009",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
@@ -1613,25 +1922,46 @@ fail-if = [
 ]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r16f-red-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r16f-red-half_float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r32f-red-float.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r8-red-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__textures__video__tex-3d-r8ui-red_integer-unsigned_byte.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__glsl3__vector-dynamic-indexing-swizzled-lvalue.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 
 ["generated/test_2_conformance2__rendering__framebuffer-texture-level1.html"]
-fail-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"]
+fail-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+]
 skip-if = ["os == 'linux'"]
 # Crash in `swrast_dri.so!st_finalize_texture`
 
@@ -1731,6 +2061,7 @@ skip-if = [
 ["generated/test_2_conformance__glsl__misc__fragcolor-fragdata-invariant.html"]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ] # [unexpected fragment shader compile status] (expected: true) Declaring both gl_FragColor and gl_FragData invariant should succeed.
 
@@ -1885,6 +2216,7 @@ fail-if = ["os == 'win'"]
 skip-if = ["os == 'android'"] #Bug 1658801
 fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'linux'",
 ]

@@ -730,10 +730,11 @@ tags = "capturestream"
 
 ["test_bug1113600.html"]
 skip-if = [
-  "win10_2009 && debug", # Bug 1713410
-  "win11_2009 && debug", # Bug 1713410
   "apple_catalina", # Bug 1198168
   "apple_silicon", # Bug 1198168
+  "win10_2009 && debug", # Bug 1713410
+  "win11_2009 && debug", # Bug 1713410
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug && socketprocess_e10s", # Bug 1713410
 ]
 
 ["test_bug1120222.html"]
