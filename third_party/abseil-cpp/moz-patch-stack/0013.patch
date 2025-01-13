@@ -30,7 +30,7 @@ index 648423a128f..bd6c38b3762 100644
  secondary_source = "//abseil-cpp/"
  
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 628ea75f543..18c3c8f402f 100644
+index d5c7ec8bbe9..9b5ab4e02b1 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -6,10 +6,10 @@
@@ -49,7 +49,7 @@ index 628ea75f543..18c3c8f402f 100644
  import("//third_party/abseil-cpp/absl.gni")
  
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 0879d48e708..4d4fe83baab 100644
+index 9e2eca02a10..9c1b807b4b4 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -30,10 +30,10 @@ template("absl_source_set") {

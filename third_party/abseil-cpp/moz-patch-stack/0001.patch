@@ -32,7 +32,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/29bb1b6d7fc465aad
  16 files changed, 102 insertions(+), 28 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 102cabfe024..c6afc7e7c3d 100644
+index 7dc29908efc..f60c748e7cf 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -26,7 +26,7 @@ component("absl") {
@@ -73,11 +73,15 @@ index 102cabfe024..c6afc7e7c3d 100644
    public_deps = [
      "//third_party/abseil-cpp/absl/algorithm:container",
      "//third_party/abseil-cpp/absl/base",
-@@ -103,13 +108,16 @@ group("absl_component_deps") {
+@@ -103,17 +108,20 @@ group("absl_component_deps") {
      "//third_party/abseil-cpp/absl/types:variant",
      "//third_party/abseil-cpp/absl/utility",
    ]
 +}
+ 
+   if (is_component_build) {
+     public_deps += [ ":absl_full_deps" ]
+   }
  
 +if (!moz_webrtc_build) {
    # The following dependencies currently don't build with NaCl.
@@ -91,7 +95,7 @@ index 102cabfe024..c6afc7e7c3d 100644
    visibility = [ ":absl" ]
  }
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index b31cb284d6c..c97b6d3ae4a 100644
+index 3a5a65c2839..372dff39d4e 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -21,6 +21,7 @@ import("//build_overrides/build.gni")

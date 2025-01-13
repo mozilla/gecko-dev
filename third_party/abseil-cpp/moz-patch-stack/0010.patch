@@ -31,7 +31,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/34c8904c816a49ad3
  16 files changed, 33 insertions(+), 101 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index c6afc7e7c3d..d4a7ddd9b91 100644
+index f60c748e7cf..cca35353874 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -56,11 +56,6 @@ component("absl") {
@@ -46,11 +46,15 @@ index c6afc7e7c3d..d4a7ddd9b91 100644
    public_deps = [
      "//third_party/abseil-cpp/absl/algorithm:container",
      "//third_party/abseil-cpp/absl/base",
-@@ -108,16 +103,13 @@ if (moz_webrtc_build) {
+@@ -108,20 +103,17 @@ if (moz_webrtc_build) {
      "//third_party/abseil-cpp/absl/types:variant",
      "//third_party/abseil-cpp/absl/utility",
    ]
 -}
+ 
+   if (is_component_build) {
+     public_deps += [ ":absl_full_deps" ]
+   }
  
 -if (!moz_webrtc_build) {
    # The following dependencies currently don't build with NaCl.
