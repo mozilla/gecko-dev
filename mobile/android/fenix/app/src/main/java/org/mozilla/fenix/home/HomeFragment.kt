@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -143,6 +144,7 @@ import org.mozilla.fenix.ext.tabClosedUndoMessage
 import org.mozilla.fenix.ext.updateMicrosurveyPromptForConfigurationChange
 import org.mozilla.fenix.home.bookmarks.BookmarksFeature
 import org.mozilla.fenix.home.bookmarks.controller.DefaultBookmarksController
+import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.controller.DefaultPocketStoriesController
 import org.mozilla.fenix.home.privatebrowsing.controller.DefaultPrivateBrowsingController
@@ -276,6 +278,10 @@ class HomeFragment : Fragment() {
     private val searchSelectorBinding = ViewBoundFeatureWrapper<SearchSelectorBinding>()
     private val searchSelectorMenuBinding = ViewBoundFeatureWrapper<SearchSelectorMenuBinding>()
     private val homeScreenPopupManager = ViewBoundFeatureWrapper<HomeScreenPopupManager>()
+
+    // This limits feature recommendations (CFR and wallpaper onboarding dialog) so only one will
+    // show at a time.
+    private var featureRecommended = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // DO NOT ADD ANYTHING ABOVE THIS getProfilerTime CALL!
@@ -1272,9 +1278,32 @@ class HomeFragment : Fragment() {
                             StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
                         },
                     )
+
+                    LaunchedEffect(Unit) {
+                        onFirstHomepageFrameDrawn()
+                    }
                 }
             }
         }
+    }
+
+    private fun onFirstHomepageFrameDrawn() {
+        with(requireContext().components.settings) {
+            if (!featureRecommended && !showHomeOnboardingDialog && showWallpaperOnboardingDialog(featureRecommended)) {
+                featureRecommended = sessionControlInteractor.showWallpapersOnboardingDialog(
+                    requireContext().components.appStore.state.wallpaperState,
+                )
+            }
+        }
+
+        // We want some parts of the home screen UI to be rendered first if they are
+        // the most prominent parts of the visible part of the screen.
+        // For this reason, we wait for the home screen recycler view to finish it's
+        // layout and post an update for when it's best for non-visible parts of the
+        // home screen to render itself.
+        requireContext().components.appStore.dispatch(
+            AppAction.UpdateFirstFrameDrawn(true),
+        )
     }
 
     private fun initTabStrip() {

@@ -23,6 +23,7 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.shouldShowRecentSyncedTabs
 import org.mozilla.fenix.ext.shouldShowRecentTabs
 import org.mozilla.fenix.home.bookmarks.Bookmark
+import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.onboarding.HomeCFRPresenter
@@ -232,15 +233,3 @@ class SessionControlView(
         sessionControlAdapter.submitList(state.toAdapterList(view.context.settings()))
     }
 }
-
-private const val MIN_NUMBER_OF_APP_LAUNCHES = 3
-
-/**
- * Try to show the wallpaper onboarding dialog on the third opening of the app.
- *
- * Note: We use 'at least three' instead of exactly 'three' in case the app is opened in such a
- * way that the other conditions are not met.
- */
-@VisibleForTesting
-internal fun Settings.showWallpaperOnboardingDialog(featureRecommended: Boolean) =
-    numberOfAppLaunches >= MIN_NUMBER_OF_APP_LAUNCHES && showWallpaperOnboarding && !featureRecommended

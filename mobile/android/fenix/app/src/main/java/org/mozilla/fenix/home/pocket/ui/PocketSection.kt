@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
@@ -42,6 +43,14 @@ fun PocketSection(
     interactor: PocketStoriesInteractor,
     horizontalPadding: Dp = dimensionResource(R.dimen.home_item_horizontal_margin),
 ) {
+    LaunchedEffect(state.stories) {
+        // We should report back when a certain story is actually being displayed.
+        // Cannot do it reliably so for now we'll just mass report everything as being displayed.
+        state.stories.let {
+            interactor.onStoriesShown(storiesShown = it)
+        }
+    }
+
     Column(modifier = Modifier.padding(top = 72.dp)) {
         // Simple wrapper to add horizontal padding to just the header while the stories have none.
         Box(modifier = Modifier.padding(horizontal = horizontalPadding)) {

@@ -153,7 +153,7 @@ internal sealed class HomepageState {
                         showRecentSyncedTab = shouldShowRecentSyncedTabs(),
                         showRecentlyVisited = settings.historyMetadataUIFeature && recentHistory.isNotEmpty(),
                         showPocketStories = settings.showPocketRecommendationsFeature &&
-                            recommendationState.pocketStories.isNotEmpty(),
+                            recommendationState.pocketStories.isNotEmpty() && firstFrameDrawn,
                         topSiteColors = TopSiteColors.colors(wallpaperState = wallpaperState),
                         cardBackgroundColor = wallpaperState.cardBackgroundColor,
                         buttonBackgroundColor = wallpaperState.buttonBackgroundColor,
