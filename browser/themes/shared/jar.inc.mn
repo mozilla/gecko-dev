@@ -238,6 +238,7 @@
   skin/classic/browser/tabbrowser/tab-audio-playing-small.svg  (../shared/tabbrowser/tab-audio-playing-small.svg)
   skin/classic/browser/tabbrowser/tab-audio-muted-small.svg    (../shared/tabbrowser/tab-audio-muted-small.svg)
   skin/classic/browser/tabbrowser/tab-audio-blocked-small.svg  (../shared/tabbrowser/tab-audio-blocked-small.svg)
+  skin/classic/browser/tabbrowser/tab-audio-blocked-circle-12.svg (../shared/tabbrowser/tab-audio-blocked-circle-12.svg)
   skin/classic/browser/tabbrowser/tab-drag-indicator.svg       (../shared/tabbrowser/tab-drag-indicator.svg)
   skin/classic/browser/tabbrowser/tab-group-chicklet.svg       (../shared/tabbrowser/tab-group-chicklet.svg)
   skin/classic/browser/tabbrowser/tab-groups.svg               (../shared/tabbrowser/tab-groups.svg)

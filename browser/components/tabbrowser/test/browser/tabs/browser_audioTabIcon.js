@@ -184,7 +184,7 @@ async function test_muting_using_menu(tab, expectMuted) {
 }
 
 async function test_playing_icon_on_tab(tab, browser, isPinned) {
-  let icon = isPinned ? tab.overlayIcon : tab.overlayIcon;
+  let icon = isPinned ? tab.overlayIcon : tab.audioButton;
   let isActiveTab = tab === gBrowser.selectedTab;
 
   await play(tab);
@@ -376,7 +376,7 @@ async function test_swapped_browser_while_playing(oldTab, newBrowser) {
     "Expected the correct soundplaying attribute on the new tab"
   );
 
-  await test_tooltip(newTab.overlayIcon, "Unmute tab", true, newTab);
+  await test_tooltip(newTab.audioButton, "Unmute tab", true, newTab);
 }
 
 async function test_swapped_browser_while_not_playing(oldTab, newBrowser) {
@@ -449,14 +449,14 @@ async function test_swapped_browser_while_not_playing(oldTab, newBrowser) {
     "Expected the correct soundplaying attribute on the new tab"
   );
 
-  await test_tooltip(newTab.overlayIcon, "Unmute tab", true, newTab);
+  await test_tooltip(newTab.audioButton, "Unmute tab", true, newTab);
 }
 
 async function test_browser_swapping(tab) {
   // First, test swapping with a playing but muted tab.
   await play(tab);
 
-  await test_mute_tab(tab, tab.overlayIcon, true);
+  await test_mute_tab(tab, tab.audioButton, true);
 
   await BrowserTestUtils.withNewTab(
     {
@@ -574,11 +574,6 @@ async function test_mute_keybinding() {
     let mutedPromise = get_wait_for_mute_promise(tab, true);
     EventUtils.synthesizeKey("m", { ctrlKey: true });
     await mutedPromise;
-    is(
-      tab.hasAttribute("indicator-replaces-favicon"),
-      !tab.pinned,
-      "Mute indicator should replace the favicon on hover if the tab isn't pinned"
-    );
     mutedPromise = get_wait_for_mute_promise(tab, false);
     EventUtils.synthesizeKey("m", { ctrlKey: true });
     await mutedPromise;
