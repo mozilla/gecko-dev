@@ -57,3 +57,11 @@
   #define CONFIG_AV1_D3D11VA_HWACCEL 0
   #define CONFIG_AV1_D3D11VA2_HWACCEL 0
 #endif
+
+/**
+ * BSD / Solaris
+ **/
+#if defined(XP_OPENBSD) || defined(XP_NETBSD) || defined(XP_FREEBSD) || defined(XP_SOLARIS)
+  #undef HAVE_GETAUXVAL
+  #define HAVE_GETAUXVAL 0
+#endif
