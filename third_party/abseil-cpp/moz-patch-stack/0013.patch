@@ -30,7 +30,7 @@ index 648423a128f..bd6c38b3762 100644
  secondary_source = "//abseil-cpp/"
  
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 08d85c70f5a..becf3c61d36 100644
+index 4572694dd0f..4aea1ec36f4 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -6,10 +6,10 @@

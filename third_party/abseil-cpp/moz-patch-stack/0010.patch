@@ -31,7 +31,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/34c8904c816a49ad3
  16 files changed, 34 insertions(+), 102 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 12d9e9430a3..d4d2a346da9 100644
+index 8ad6012e969..d7109046113 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -56,11 +56,6 @@ component("absl") {
@@ -223,7 +223,7 @@ index e8b215a22d5..3d3fa882689 100644
  }
 -}
 diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index 9748fb2c55c..efbf70c9004 100644
+index 8e2673c867d..1dbc973c052 100644
 --- a/abseil-cpp/absl/container/BUILD.gn
 +++ b/abseil-cpp/absl/container/BUILD.gn
 @@ -9,7 +9,6 @@ absl_source_set("compressed_tuple") {
@@ -257,7 +257,7 @@ index 9748fb2c55c..efbf70c9004 100644
  absl_source_set("test_allocator") {
    testonly = true
    public = [ "internal/test_allocator.h" ]
-@@ -94,21 +91,19 @@ absl_source_set("test_instance_tracker") {
+@@ -94,14 +91,13 @@ absl_source_set("test_instance_tracker") {
    deps = [ "//third_party/abseil-cpp/absl/types:compare" ]
    visibility = [ "//third_party/abseil-cpp/absl/*" ]
  }
@@ -275,6 +275,7 @@ index 9748fb2c55c..efbf70c9004 100644
      "//third_party/abseil-cpp/absl/algorithm:container",
      "//third_party/abseil-cpp/absl/base:core_headers",
      "//third_party/abseil-cpp/absl/memory",
+@@ -123,7 +119,6 @@ absl_test("flat_hash_map_test") {
    ]
  }
  
@@ -282,7 +283,7 @@ index 9748fb2c55c..efbf70c9004 100644
  absl_source_set("flat_hash_set") {
    public = [ "flat_hash_set.h" ]
    deps = [
-@@ -523,4 +518,3 @@ absl_source_set("btree_test_common") {
+@@ -549,4 +544,3 @@ absl_source_set("btree_test_common") {
  #     "//third_party/abseil-cpp/absl/types:optional",
  #   ]
  # }
@@ -305,7 +306,7 @@ index a635939cd7f..0f7a1f3e6b0 100644
  }
 -}
 diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
-index a5acba50239..020842112a7 100644
+index 59f9f9938fb..b4734de5529 100644
 --- a/abseil-cpp/absl/flags/BUILD.gn
 +++ b/abseil-cpp/absl/flags/BUILD.gn
 @@ -4,7 +4,6 @@
@@ -345,7 +346,7 @@ index a5acba50239..020842112a7 100644
  absl_source_set("marshalling") {
    sources = [ "marshalling.cc" ]
    public = [ "marshalling.h" ]
-@@ -125,7 +122,6 @@ absl_source_set("reflection") {
+@@ -126,7 +123,6 @@ absl_source_set("reflection") {
      "//third_party/abseil-cpp/absl/synchronization",
    ]
  }
@@ -353,7 +354,7 @@ index a5acba50239..020842112a7 100644
  
  absl_source_set("flag_internal") {
    sources = [ "internal/flag.cc" ]
-@@ -134,21 +130,21 @@ absl_source_set("flag_internal") {
+@@ -135,21 +131,21 @@ absl_source_set("flag_internal") {
      "internal/sequence_lock.h",
    ]
    deps = [
@@ -383,7 +384,7 @@ index a5acba50239..020842112a7 100644
    ]
    visibility = [
      ":*",
-@@ -168,15 +164,14 @@ absl_source_set("flag") {
+@@ -169,15 +165,14 @@ absl_source_set("flag") {
    deps = [
      ":config",
      ":flag_internal",
@@ -401,7 +402,7 @@ index a5acba50239..020842112a7 100644
  absl_source_set("usage_internal") {
    sources = [ "internal/usage.cc" ]
    public = [ "internal/usage.h" ]
-@@ -210,7 +205,6 @@ absl_source_set("usage") {
+@@ -211,7 +206,6 @@ absl_source_set("usage") {
      "//third_party/abseil-cpp/absl/synchronization",
    ]
  }
@@ -409,7 +410,7 @@ index a5acba50239..020842112a7 100644
  
  absl_source_set("parse") {
    sources = [ "parse.cc" ]
-@@ -219,26 +213,25 @@ absl_source_set("parse") {
+@@ -220,26 +214,25 @@ absl_source_set("parse") {
      "parse.h",
    ]
    deps = [
@@ -444,7 +445,7 @@ index a5acba50239..020842112a7 100644
  absl_test("flag_test") {
    sources = [
      "flag_test.cc",
-@@ -258,4 +251,3 @@ absl_test("flag_test") {
+@@ -259,4 +252,3 @@ absl_test("flag_test") {
      "//third_party/abseil-cpp/absl/time",
    ]
  }

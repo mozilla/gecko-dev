@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e93f7131a1ffbf2f7
  1 file changed, 1 insertion(+)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index becf3c61d36..424727d3130 100644
+index 4aea1ec36f4..1611cbadffe 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -113,6 +113,7 @@ group("absl_component_deps") {
