@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/afc78fbdb5666ffa9
  1 file changed, 52 insertions(+)
 
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index de7c9fc0795..ab7e164f857 100644
+index 59034f1f11a..e109315408d 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -89,6 +89,43 @@ template("absl_source_set") {

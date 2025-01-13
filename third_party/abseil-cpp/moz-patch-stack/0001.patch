@@ -91,7 +91,7 @@ index 7a748020516..12d9e9430a3 100644
    visibility = [ ":absl" ]
  }
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 3a0d97b4ce0..78803c43b86 100644
+index 7cefc2420b0..a54478d8451 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -19,6 +19,10 @@

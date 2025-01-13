@@ -49,7 +49,7 @@ index 08d85c70f5a..becf3c61d36 100644
  import("//third_party/abseil-cpp/absl.gni")
  
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index ab7e164f857..e898d3a6eee 100644
+index e109315408d..e67a0f93c4d 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -26,10 +26,10 @@ declare_args() {
@@ -69,7 +69,7 @@ index ab7e164f857..e898d3a6eee 100644
 @@ -37,8 +37,8 @@ template("absl_source_set") {
      if (is_component_build) {
        defines = [ "ABSL_BUILD_DLL" ]
-       if (!is_win) {
+       if (!is_win && (current_os != "aix")) {
 -        configs -= [ "//build/config/gcc:symbol_visibility_hidden" ]
 -        configs += [ "//build/config/gcc:symbol_visibility_default" ]
 +        configs -= [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]

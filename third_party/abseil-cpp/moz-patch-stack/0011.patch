@@ -67,7 +67,7 @@ index d4d2a346da9..08d85c70f5a 100644
    # The following dependencies currently don't build with NaCl.
    # TODO(https://crbug.com/1114625): Fix build errors and remove this section.
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 78803c43b86..de7c9fc0795 100644
+index a54478d8451..59034f1f11a 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -30,8 +30,8 @@ template("absl_source_set") {
