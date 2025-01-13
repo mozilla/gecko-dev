@@ -176,7 +176,7 @@ function assertEditorPopupItems(editor, expectedPopupItems) {
   popupListItems.forEach((li, i) => {
     const expected = expectedPopupItems[i];
     const value =
-      li.querySelector(".initial-value").textContent +
+      (li.querySelector(".initial-value")?.textContent ?? "") +
       li.querySelector(".autocomplete-value").textContent;
     is(value, expected.label, `Popup item #${i} as expected label`);
 

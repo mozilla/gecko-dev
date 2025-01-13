@@ -74,20 +74,22 @@ function createSpan(doc) {
  *        - {String} key, the key to send
  *        - {String} completion, the expected value of the auto-completion
  *        - {Number} index, the index of the selected suggestion in the popup
- *        - {Number} total, the total number of suggestions in the popup
+ *        - {Number|Array} items, the number of suggestions in the popup, or, alternatively
+ *                         an array of the items label
  *        - {String} postLabel, the expected post label for the selected suggestion
  *        - {Boolean} colorSwatch, if there is a swatch of color expected to be visible
  * @param {InplaceEditor} editor
  *        The InplaceEditor instance being tested
  */
 async function testCompletion(
-  [key, completion, index, total, postLabel, colorSwatch],
+  [key, completion, index, items, postLabel, colorSwatch],
   editor
 ) {
   info("Pressing key " + key);
   info("Expecting " + completion);
 
   let onVisibilityChange = null;
+  const total = Array.isArray(items) ? items.length : items;
   const open = total > 0;
   if (editor.popup.isOpen != open) {
     onVisibilityChange = editor.popup.once(
@@ -158,7 +160,23 @@ async function testCompletion(
     ok(!(editor.popup && editor.popup.isOpen), "Popup is closed");
   } else {
     ok(editor.popup.isOpen, "Popup is open");
-    is(editor.popup.getItems().length, total, "Number of suggestions match");
+    const popupItems = editor.popup.getItems();
+    if (Array.isArray(items)) {
+      Assert.deepEqual(
+        popupItems.map(item => item.label),
+        items,
+        "Suggestions match"
+      );
+    } else {
+      is(
+        popupItems.length,
+        total,
+        "Number of suggestions match" +
+          (popupItems.length !== total
+            ? ` - got ${JSON.stringify(popupItems.map(item => item.label))}`
+            : "")
+      );
+    }
     is(editor.popup.selectedIndex, index, "Expected item is selected");
   }
 }

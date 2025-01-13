@@ -29,6 +29,13 @@ const {
   findMostRelevantCssPropertyIndex,
 } = require("resource://devtools/client/shared/suggestion-picker.js");
 
+loader.lazyRequireGetter(
+  this,
+  "InspectorCSSParserWrapper",
+  "resource://devtools/shared/css/lexer.js",
+  true
+);
+
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const CONTENT_TYPES = {
   PLAIN_TEXT: 0,
@@ -1616,33 +1623,106 @@ class InplaceEditor extends EventEmitter {
       if (this.contentType == CONTENT_TYPES.CSS_PROPERTY) {
         list = this.#getCSSVariableNames().concat(this.#getCSSPropertyList());
       } else if (this.contentType == CONTENT_TYPES.CSS_VALUE) {
-        // Get the last query to be completed before the caret.
-        const match = /([^\s,.\/]+$)/.exec(query);
-        if (match) {
-          startCheckQuery = match[0];
-        } else {
-          startCheckQuery = "";
+        // Build the context for the autocomplete
+        // TODO: We may want to parse the whole input, or at least, until we get into
+        // an empty state (e.g. if cursor is in a function, we might check what's after
+        // the cursor to build good autocomplete).
+        const lexer = new InspectorCSSParserWrapper(query);
+        const functionStack = [];
+        let token;
+        // The last parsed token that isn't a whitespace or a comment
+        let lastMeaningfulToken;
+        let foundImportant = false;
+        let importantState = "";
+
+        let queryStartIndex = 0;
+        while ((token = lexer.nextToken())) {
+          const currentFunction = functionStack.at(-1);
+          if (
+            token.tokenType !== "WhiteSpace" &&
+            token.tokenType !== "Comment"
+          ) {
+            lastMeaningfulToken = token;
+            if (currentFunction) {
+              currentFunction.tokens.push(token);
+            }
+          }
+          if (
+            token.tokenType === "Function" ||
+            token.tokenType === "ParenthesisBlock"
+          ) {
+            functionStack.push({ fnToken: token, tokens: [] });
+          } else if (token.tokenType === "CloseParenthesis") {
+            functionStack.pop();
+          }
+
+          if (
+            token.tokenType === "WhiteSpace" ||
+            token.tokenType === "Comma" ||
+            token.tokenType === "Function" ||
+            (token.tokenType === "Comment" &&
+              // The parser already returns a comment token for non-closed comment, like "/*".
+              // But we only want to start the completion after the comment is closed
+              // Make sure we have a closed comment,i.e. at least `/**/`
+              token.text.length >= 4 &&
+              token.text.endsWith("*/"))
+          ) {
+            queryStartIndex = token.endOffset;
+          }
+
+          // Checking for the presence of !important (once is enough)
+          if (!foundImportant) {
+            // !important is composed of 2 tokens, `!` is a Delim, and `important` is an Ident.
+            // Here we have a potential start
+            if (token.tokenType === "Delim" && token.text === "!") {
+              importantState = "!";
+            } else if (importantState === "!") {
+              // If we saw the "!" char, then we need to have an "important" Ident
+              if (token.tokenType === "Ident" && token.text === "important") {
+                foundImportant = true;
+                break;
+              } else {
+                // otherwise, we can reset the state.
+                importantState = "";
+              }
+            }
+          }
         }
 
-        // Check if the query to be completed is a CSS variable.
-        const varMatch = /^var\(([^\s]+$)/.exec(startCheckQuery);
+        startCheckQuery = query.substring(queryStartIndex);
 
-        if (varMatch && varMatch.length == 2) {
-          startCheckQuery = varMatch[1];
-          list = this.#getCSSVariableNames();
-          postLabelValues = list.map(varName =>
-            this.#getCSSVariableValue(varName)
-          );
+        const lastFunctionEntry = functionStack.at(-1);
+        const functionValues = lastFunctionEntry
+          ? this.#getAutocompleteDataForFunction(lastFunctionEntry)
+          : null;
+
+        // Don't autocomplete after !important
+        if (foundImportant) {
+          list = [];
+          postLabelValues = [];
+        } else if (functionValues) {
+          list = functionValues.list;
+          postLabelValues = functionValues.postLabelValues;
         } else {
-          list = [
-            "!important",
-            ...this.#getCSSValuesForPropertyName(this.property.name),
-          ];
-        }
-
-        if (query == "") {
-          // Do not suggest '!important' without any manually typed character.
-          list.splice(0, 1);
+          list = this.#getCSSValuesForPropertyName(this.property.name);
+          // Only show !important if:
+          if (
+            // we're not in a function
+            !functionStack.length &&
+            // and there is no non-whitespace items after the cursor
+            !input.value.slice(input.selectionStart).trim() &&
+            // and the last meaningful token wasn't a delimiter or a comma
+            lastMeaningfulToken &&
+            (lastMeaningfulToken.tokenType !== "Delim" ||
+              lastMeaningfulToken.text !== "/") &&
+            lastMeaningfulToken.tokenType !== "Comma" &&
+            // and the input value doesn't start with ! ("!important" is parsed as a
+            // Delim, "!", and then an indent, "important", so we can't just check the
+            // last token)
+            !input.value.trim().startsWith("!")
+          ) {
+            list.unshift("!important");
+          }
         }
       } else if (
         this.contentType == CONTENT_TYPES.CSS_MIXED &&
@@ -1779,13 +1859,61 @@ class InplaceEditor extends EventEmitter {
   }
 
   /**
+   * Returns the autocomplete data for the passed function.
+   *
+   * @param {Object} functionStackEntry
+   * @param {InspectorCSSToken} functionStackEntry.fnToken: The token for the
+   *        function call
+   * @returns {Object|null} Return null if there's nothing specific to display for the function.
+   *          Otherwise, return an object of the following shape:
+   *            - {Array<String>} list: The list of autocomplete items
+   *            - {Array<String>} postLabelValue: The list of autocomplete items
+   *              post labels (e.g. for variable names, their values).
+   */
+  #getAutocompleteDataForFunction(functionStackEntry) {
+    const functionName = functionStackEntry?.fnToken?.value;
+    if (!functionName) {
+      return null;
+    }
+
+    let list = [];
+    let postLabelValues = [];
+
+    if (functionName === "var") {
+      // We only want to return variables for the first parameters of var(), not for its
+      // fallback. If we get more than one tokens, and given we don't get comments or
+      // whitespace, this means we're in the fallback value already.
+      if (functionStackEntry.tokens.length > 1) {
+        // In such case we'll use the default behavior
+        return null;
+      }
+      list = this.#getCSSVariableNames();
+      postLabelValues = list.map(varName => this.#getCSSVariableValue(varName));
+    } else if (functionName.includes("gradient")) {
+      // For gradient functions we want to display named colors and color functions,
+      // but only if the user didn't already entered a color token after the last comma.
+      list = this.#getCSSValuesForPropertyName("color");
+    }
+
+    // TODO: Handle other functions, e.g. color functions to autocomplete on relative
+    // color format (Bug 1898273), `color()` to suggest color space (Bug 1898277),
+    // `anchor()` to display existing anchor names (Bug 1903278)
+
+    return { list, postLabelValues };
+  }
+
+  /**
    * Automatically add closing parenthesis and skip closing parenthesis when needed.
    */
   #autocloseParenthesis() {
     // Split the current value at the cursor index to rebuild the string.
+    const { selectionStart, selectionEnd } = this.input;
+
     const parts = this.#splitStringAt(
       this.input.value,
-      this.input.selectionStart
+      // Use selectionEnd, so when an autocomplete item was inserted, we put the closing
+      // parenthesis after the suggestion
+      selectionEnd
     );
 
     // Lookup the character following the caret to know if the string should be modified.
@@ -1802,6 +1930,9 @@ class InplaceEditor extends EventEmitter {
     if (this.#pressedKey == ")" && nextChar == ")") {
       this.#updateValue(parts[0] + parts[1].substring(1));
     }
+
+    // set original selection range
+    this.input.setSelectionRange(selectionStart, selectionEnd);
 
     this.#pressedKey = null;
   }
