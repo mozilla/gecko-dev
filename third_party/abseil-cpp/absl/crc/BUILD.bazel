@@ -19,7 +19,14 @@ load(
     "ABSL_TEST_COPTS",
 )
 
-package(default_visibility = ["//visibility:private"])
+package(
+    default_visibility = ["//visibility:private"],
+    features = [
+        "header_modules",
+        "layering_check",
+        "parse_headers",
+    ],
+)
 
 licenses(["notice"])
 
@@ -104,6 +111,7 @@ cc_test(
         ":crc32c",
         "//absl/strings",
         "//absl/strings:str_format",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -146,6 +154,7 @@ cc_test(
         "//absl/random",
         "//absl/random:distributions",
         "//absl/strings",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -158,6 +167,7 @@ cc_test(
     visibility = ["//visibility:private"],
     deps = [
         ":non_temporal_memcpy",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -186,6 +196,7 @@ cc_test(
     deps = [
         ":crc32c",
         ":crc_cord_state",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )

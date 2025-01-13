@@ -409,19 +409,15 @@ struct StringTable
   using Base::Base;
 };
 
-struct IntTable
-    : raw_hash_set<IntPolicy, container_internal::hash_default_hash<int64_t>,
-                   std::equal_to<int64_t>, std::allocator<int64_t>> {
-  using Base = typename IntTable::raw_hash_set;
+template <typename T>
+struct ValueTable : raw_hash_set<ValuePolicy<T>, hash_default_hash<T>,
+                                 std::equal_to<T>, std::allocator<T>> {
+  using Base = typename ValueTable::raw_hash_set;
   using Base::Base;
 };
 
-struct Uint8Table
-    : raw_hash_set<Uint8Policy, container_internal::hash_default_hash<uint8_t>,
-                   std::equal_to<uint8_t>, std::allocator<uint8_t>> {
-  using Base = typename Uint8Table::raw_hash_set;
-  using Base::Base;
-};
+using IntTable = ValueTable<int64_t>;
+using Uint8Table = ValueTable<uint8_t>;
 
 template <typename T>
 struct CustomAlloc : std::allocator<T> {
@@ -436,14 +432,14 @@ struct CustomAlloc : std::allocator<T> {
 };
 
 struct CustomAllocIntTable
-    : raw_hash_set<IntPolicy, container_internal::hash_default_hash<int64_t>,
+    : raw_hash_set<IntPolicy, hash_default_hash<int64_t>,
                    std::equal_to<int64_t>, CustomAlloc<int64_t>> {
   using Base = typename CustomAllocIntTable::raw_hash_set;
   using Base::Base;
 };
 
 struct MinimumAlignmentUint8Table
-    : raw_hash_set<Uint8Policy, container_internal::hash_default_hash<uint8_t>,
+    : raw_hash_set<Uint8Policy, hash_default_hash<uint8_t>,
                    std::equal_to<uint8_t>, MinimumAlignmentAlloc<uint8_t>> {
   using Base = typename MinimumAlignmentUint8Table::raw_hash_set;
   using Base::Base;
@@ -1602,7 +1598,7 @@ TEST(Table, CopyConstructWithAlloc) {
 }
 
 struct ExplicitAllocIntTable
-    : raw_hash_set<IntPolicy, container_internal::hash_default_hash<int64_t>,
+    : raw_hash_set<IntPolicy, hash_default_hash<int64_t>,
                    std::equal_to<int64_t>, Alloc<int64_t>> {
   ExplicitAllocIntTable() = default;
 };
@@ -1678,6 +1674,14 @@ TEST(Table, MoveAssign) {
   u = std::move(t);
   EXPECT_EQ(1, u.size());
   EXPECT_THAT(*u.find("a"), Pair("a", "b"));
+}
+
+TEST(Table, MoveSelfAssign) {
+  StringTable t;
+  t.emplace("a", "b");
+  EXPECT_EQ(1, t.size());
+  t = std::move(*&t);
+  // As long as we don't crash, it's fine.
 }
 
 TEST(Table, Equality) {
@@ -1858,11 +1862,9 @@ TEST(Table, HeterogeneousLookupOverloads) {
   EXPECT_FALSE((VerifyResultOf<CallPrefetch, NonTransparentTable>()));
   EXPECT_FALSE((VerifyResultOf<CallCount, NonTransparentTable>()));
 
-  using TransparentTable = raw_hash_set<
-      StringPolicy,
-      absl::container_internal::hash_default_hash<absl::string_view>,
-      absl::container_internal::hash_default_eq<absl::string_view>,
-      std::allocator<int>>;
+  using TransparentTable =
+      raw_hash_set<StringPolicy, hash_default_hash<absl::string_view>,
+                   hash_default_eq<absl::string_view>, std::allocator<int>>;
 
   EXPECT_TRUE((VerifyResultOf<CallFind, TransparentTable>()));
   EXPECT_TRUE((VerifyResultOf<CallErase, TransparentTable>()));
@@ -2364,6 +2366,26 @@ TEST(Iterator, InvalidUseWithReserveCrashesWithSanitizers) {
 #endif
 }
 
+TEST(Iterator, InvalidUseWithMoveCrashesWithSanitizers) {
+  if (!SwisstableGenerationsEnabled()) GTEST_SKIP() << "Generations disabled.";
+  if (kMsvc) GTEST_SKIP() << "MSVC doesn't support | in regexp.";
+
+  IntTable t1, t2;
+  t1.insert(1);
+  auto it = t1.begin();
+  // ptr will become invalidated on rehash.
+  const int64_t* ptr = &*it;
+  (void)ptr;
+
+  t2 = std::move(t1);
+  EXPECT_DEATH_IF_SUPPORTED(*it, kInvalidIteratorDeathMessage);
+  EXPECT_DEATH_IF_SUPPORTED(void(it == t2.begin()),
+                            kInvalidIteratorDeathMessage);
+#ifdef ABSL_HAVE_ADDRESS_SANITIZER
+  EXPECT_DEATH_IF_SUPPORTED(std::cout << *ptr, "heap-use-after-free");
+#endif
+}
+
 TEST(Table, ReservedGrowthUpdatesWhenTableDoesntGrow) {
   IntTable t;
   for (int i = 0; i < 8; ++i) t.insert(i);
@@ -2463,6 +2485,12 @@ TEST(Iterator, InvalidComparisonDifferentTables) {
   EXPECT_DEATH_IF_SUPPORTED(void(t1.begin() == t2.begin()),
                             "Invalid iterator comparison.*non-end");
 }
+
+template <typename Alloc>
+using RawHashSetAlloc = raw_hash_set<IntPolicy, hash_default_hash<int64_t>,
+                                     std::equal_to<int64_t>, Alloc>;
+
+TEST(Table, AllocatorPropagation) { TestAllocPropagation<RawHashSetAlloc>(); }
 
 }  // namespace
 }  // namespace container_internal

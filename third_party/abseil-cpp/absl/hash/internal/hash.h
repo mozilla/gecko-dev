@@ -409,9 +409,23 @@ AbslHashValue(H hash_state, LongDouble value) {
   return H::combine(std::move(hash_state), category);
 }
 
+// Without this overload, an array decays to a pointer and we hash that, which
+// is not likely to be what the caller intended.
+template <typename H, typename T, size_t N>
+H AbslHashValue(H hash_state, T (&)[N]) {
+  static_assert(
+      sizeof(T) == -1,
+      "Hashing C arrays is not allowed. For string literals, wrap the literal "
+      "in absl::string_view(). To hash the array contents, use "
+      "absl::MakeSpan() or make the array an std::array. To hash the array "
+      "address, use &array[0].");
+  return hash_state;
+}
+
 // AbslHashValue() for hashing pointers
 template <typename H, typename T>
-H AbslHashValue(H hash_state, T* ptr) {
+std::enable_if_t<std::is_pointer<T>::value, H> AbslHashValue(H hash_state,
+                                                             T ptr) {
   auto v = reinterpret_cast<uintptr_t>(ptr);
   // Due to alignment, pointers tend to have low bits as zero, and the next few
   // bits follow a pattern since they are also multiples of some base value.
@@ -818,7 +832,7 @@ AbslHashValue(H hash_state, const absl::variant<T...>& v) {
 template <typename H, size_t N>
 H AbslHashValue(H hash_state, const std::bitset<N>& set) {
   typename H::AbslInternalPiecewiseCombiner combiner;
-  for (int i = 0; i < N; i++) {
+  for (size_t i = 0; i < N; i++) {
     unsigned char c = static_cast<unsigned char>(set[i]);
     hash_state = combiner.add_buffer(std::move(hash_state), &c, sizeof(c));
   }

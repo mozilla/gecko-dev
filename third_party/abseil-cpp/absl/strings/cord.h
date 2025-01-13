@@ -361,7 +361,7 @@ class Cord {
 
   // Cord::empty()
   //
-  // Determines whether the given Cord is empty, returning `true` is so.
+  // Determines whether the given Cord is empty, returning `true` if so.
   bool empty() const;
 
   // Cord::EstimatedMemoryUsage()
@@ -763,6 +763,14 @@ class Cord {
   // Supports absl::Cord as a sink object for absl::Format().
   friend void AbslFormatFlush(absl::Cord* cord, absl::string_view part) {
     cord->Append(part);
+  }
+
+  // Support automatic stringification with absl::StrCat and absl::StrFormat.
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const absl::Cord& cord) {
+    for (absl::string_view chunk : cord.Chunks()) {
+      sink.Append(chunk);
+    }
   }
 
   // Cord::SetExpectedChecksum()

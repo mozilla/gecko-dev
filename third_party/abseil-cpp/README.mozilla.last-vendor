@@ -1,4 +1,4 @@
 # ./mach python dom/media/webrtc/third_party_build/vendor-libwebrtc.py --from-local .moz-vendoring/abseil-cpp --commit mozpatches abseil-cpp
-abseil-cpp updated from .moz-vendoring/abseil-cpp commit mozpatches on 2024-12-11T19:48:52.121572.
+abseil-cpp updated from .moz-vendoring/abseil-cpp commit mozpatches on 2025-01-09T16:39:49.171444+00:00.
 # base of lastest vendoring
-31edcc46d68
+77af65e7681

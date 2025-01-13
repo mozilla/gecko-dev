@@ -21,7 +21,14 @@ load(
     "ABSL_TEST_COPTS",
 )
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_visibility = ["//visibility:public"],
+    features = [
+        "header_modules",
+        "layering_check",
+        "parse_headers",
+    ],
+)
 
 licenses(["notice"])
 
@@ -60,6 +67,14 @@ cc_library(
         ":config",
         ":core_headers",
     ],
+)
+
+cc_library(
+    name = "no_destructor",
+    hdrs = ["no_destructor.h"],
+    copts = ABSL_DEFAULT_COPTS,
+    linkopts = ABSL_DEFAULT_LINKOPTS,
+    deps = [":config"],
 )
 
 cc_library(
@@ -298,6 +313,7 @@ cc_test(
         ":atomic_hook",
         ":atomic_hook_test_helper",
         ":core_headers",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -313,6 +329,7 @@ cc_test(
     deps = [
         ":base",
         ":core_headers",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -340,6 +357,7 @@ cc_test(
     deps = [
         ":config",
         ":throw_delegate",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -353,6 +371,7 @@ cc_test(
     deps = [
         ":errno_saver",
         ":strerror",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -376,7 +395,9 @@ cc_library(
     name = "pretty_function",
     hdrs = ["internal/pretty_function.h"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    visibility = ["//absl:__subpackages__"],
+    visibility = [
+        "//absl:__subpackages__",
+    ],
 )
 
 cc_library(
@@ -405,6 +426,7 @@ cc_test(
     deps = [
         ":exception_safety_testing",
         "//absl/memory",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -422,6 +444,7 @@ cc_test(
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":base_internal",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -436,6 +459,7 @@ cc_test(
         ":base_internal",
         "//absl/memory",
         "//absl/strings",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -474,6 +498,7 @@ cc_test(
         ":config",
         ":core_headers",
         "//absl/synchronization",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -531,6 +556,7 @@ cc_test(
     deps = [
         ":config",
         ":endian",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -543,6 +569,7 @@ cc_test(
     deps = [
         ":config",
         "//absl/synchronization:thread_pool",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -556,7 +583,37 @@ cc_test(
         ":base",
         ":core_headers",
         "//absl/synchronization",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "no_destructor_test",
+    srcs = ["no_destructor_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    linkopts = ABSL_DEFAULT_LINKOPTS,
+    deps = [
+        ":config",
+        ":no_destructor",
+        ":raw_logging_internal",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "no_destructor_benchmark",
+    testonly = 1,
+    srcs = ["no_destructor_benchmark.cc"],
+    copts = ABSL_TEST_COPTS,
+    linkopts = ABSL_DEFAULT_LINKOPTS,
+    tags = ["benchmark"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":no_destructor",
+        ":raw_logging_internal",
+        "@com_github_google_benchmark//:benchmark_main",
     ],
 )
 
@@ -566,6 +623,7 @@ cc_test(
     deps = [
         ":core_headers",
         ":nullability",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -578,6 +636,7 @@ cc_test(
     deps = [
         ":raw_logging_internal",
         "//absl/strings",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -591,6 +650,7 @@ cc_test(
     deps = [
         ":base",
         "//absl/synchronization",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -624,6 +684,7 @@ cc_test(
         ":base",
         ":core_headers",
         "//absl/synchronization",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -639,6 +700,7 @@ cc_test(
         ":base",
         "//absl/synchronization",
         "@com_github_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
     ],
 )
 
@@ -665,6 +727,7 @@ cc_test(
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":scoped_set_env",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -680,6 +743,7 @@ cc_test(
         "//absl/flags:flag_internal",
         "//absl/flags:marshalling",
         "//absl/strings",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -709,6 +773,7 @@ cc_test(
     deps = [
         ":strerror",
         "//absl/strings",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -748,6 +813,7 @@ cc_test(
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":fast_type_id",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -775,6 +841,7 @@ cc_test(
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":prefetch",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -789,6 +856,7 @@ cc_test(
     deps = [
         ":core_headers",
         "//absl/strings",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -802,6 +870,7 @@ cc_test(
     deps = [
         ":core_headers",
         "//absl/types:optional",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -287,8 +287,8 @@ using FormatSpec = str_format_internal::FormatSpecTemplate<
 // Example:
 //
 //   // Verified at compile time.
-//   absl::ParsedFormat<'s', 'd'> formatString("Welcome to %s, Number %d!");
-//   absl::StrFormat(formatString, "TheVillage", 6);
+//   absl::ParsedFormat<'s', 'd'> format_string("Welcome to %s, Number %d!");
+//   absl::StrFormat(format_string, "TheVillage", 6);
 //
 //   // Verified at runtime.
 //   auto format_runtime = absl::ParsedFormat<'d'>::New(format_string);
@@ -381,7 +381,7 @@ std::string& StrAppendFormat(std::string* dst,
 //
 // Writes to an output stream given a format string and zero or more arguments,
 // generally in a manner that is more efficient than streaming the result of
-// `absl:: StrFormat()`. The returned object must be streamed before the full
+// `absl::StrFormat()`. The returned object must be streamed before the full
 // expression ends.
 //
 // Example:

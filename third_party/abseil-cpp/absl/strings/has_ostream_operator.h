@@ -1,4 +1,4 @@
-// Copyright 2022 The Abseil Authors
+// Copyright 2023 The Abseil Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,33 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ABSL_STRINGS_INTERNAL_HAS_ABSL_STRINGIFY_H_
-#define ABSL_STRINGS_INTERNAL_HAS_ABSL_STRINGIFY_H_
-#include <string>
+#ifndef ABSL_STRINGS_HAS_OSTREAM_OPERATOR_H_
+#define ABSL_STRINGS_HAS_OSTREAM_OPERATOR_H_
+
+#include <ostream>
 #include <type_traits>
 #include <utility>
 
-#include "absl/base/attributes.h"
-#include "absl/strings/has_absl_stringify.h"
+#include "absl/base/config.h"
 
 namespace absl {
 ABSL_NAMESPACE_BEGIN
 
-namespace strings_internal {
+// Detects if type `T` supports streaming to `std::ostream`s with `operator<<`.
 
 template <typename T, typename = void>
-struct ABSL_DEPRECATED("Use absl::HasAbslStringify") HasAbslStringify
-    : std::false_type {};
+struct HasOstreamOperator : std::false_type {};
 
 template <typename T>
-struct ABSL_DEPRECATED("Use absl::HasAbslStringify") HasAbslStringify<
-    T, std::enable_if_t<std::is_void<decltype(AbslStringify(
-           std::declval<strings_internal::UnimplementedSink&>(),
-           std::declval<const T&>()))>::value>> : std::true_type {};
-
-}  // namespace strings_internal
+struct HasOstreamOperator<
+    T, std::enable_if_t<std::is_same<
+           std::ostream&, decltype(std::declval<std::ostream&>()
+                                   << std::declval<const T&>())>::value>>
+    : std::true_type {};
 
 ABSL_NAMESPACE_END
 }  // namespace absl
 
-#endif  // ABSL_STRINGS_INTERNAL_HAS_ABSL_STRINGIFY_H_
+#endif  // ABSL_STRINGS_HAS_OSTREAM_OPERATOR_H_

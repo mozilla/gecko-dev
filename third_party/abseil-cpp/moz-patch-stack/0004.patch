@@ -18,10 +18,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3e09f1c91f790a6db
  3 files changed, 7 insertions(+), 1 deletion(-)
 
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index f4bf00d0f20..1c1c3bebe9a 100644
+index 6207fdac29d..f1649d51d75 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
-@@ -188,6 +188,7 @@ absl_source_set("base") {
+@@ -193,6 +193,7 @@ absl_source_set("base") {
      "//third_party/abseil-cpp/absl/meta:type_traits",
    ]
  }
@@ -29,7 +29,7 @@ index f4bf00d0f20..1c1c3bebe9a 100644
  
  absl_source_set("throw_delegate") {
    sources = [ "internal/throw_delegate.cc" ]
-@@ -199,6 +200,7 @@ absl_source_set("throw_delegate") {
+@@ -204,6 +205,7 @@ absl_source_set("throw_delegate") {
    visibility = [ "//third_party/abseil-cpp/absl/*" ]
  }
  

@@ -15,7 +15,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60c4a7790fc539ad8
  4 files changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index 7ae0f55e136..3e0f6f46ac9 100644
+index aaec2de3dd2..9748fb2c55c 100644
 --- a/abseil-cpp/absl/container/BUILD.gn
 +++ b/abseil-cpp/absl/container/BUILD.gn
 @@ -22,7 +22,6 @@ absl_source_set("fixed_array") {
@@ -73,7 +73,7 @@ index 90ea6ea9b6e..8aedd90aca9 100644
  absl_source_set("representation") {
    public = [ "internal/representation.h" ]
 diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index 37e706a9328..1fa2cedef31 100644
+index 77f1c3e7587..9bd33d0fbbc 100644
 --- a/abseil-cpp/absl/strings/BUILD.gn
 +++ b/abseil-cpp/absl/strings/BUILD.gn
 @@ -14,6 +14,12 @@ absl_source_set("string_view") {
@@ -89,7 +89,7 @@ index 37e706a9328..1fa2cedef31 100644
  }
  
  absl_source_set("strings") {
-@@ -93,6 +99,7 @@ absl_source_set("strings") {
+@@ -92,6 +98,7 @@ absl_source_set("strings") {
        "substitute.cc",
      ]
      deps -= [

@@ -9,10 +9,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/88b3cc6bbece7c53d
  1 file changed, 18 insertions(+), 12 deletions(-)
 
 diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index 0cbb0c3f8d7..37e706a9328 100644
+index 08de0c31d7d..77f1c3e7587 100644
 --- a/abseil-cpp/absl/strings/BUILD.gn
 +++ b/abseil-cpp/absl/strings/BUILD.gn
-@@ -65,7 +65,6 @@ absl_source_set("strings") {
+@@ -64,7 +64,6 @@ absl_source_set("strings") {
      # :string_view.
      ":string_view",
    ]
@@ -20,7 +20,7 @@ index 0cbb0c3f8d7..37e706a9328 100644
    deps = [
      ":charset",
      ":internal",
-@@ -81,17 +80,24 @@ absl_source_set("strings") {
+@@ -80,17 +79,24 @@ absl_source_set("strings") {
      "//third_party/abseil-cpp/absl/numeric:bits",
      "//third_party/abseil-cpp/absl/numeric:int128",
    ]

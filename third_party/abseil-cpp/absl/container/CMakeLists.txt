@@ -677,7 +677,9 @@ absl_cc_library(
   COPTS
     ${ABSL_DEFAULT_COPTS}
   DEPS
+    absl::config
     absl::container_memory
+    absl::core_headers
     absl::raw_hash_set
     absl::throw_delegate
   PUBLIC
@@ -777,6 +779,7 @@ absl_cc_library(
   DEPS
     absl::config
     absl::core_headers
+    absl::debugging_internal
     absl::meta
     absl::strings
     absl::span

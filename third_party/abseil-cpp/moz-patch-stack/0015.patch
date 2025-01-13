@@ -1,23 +1,56 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 10 Oct 2024 13:42:00 +0000
-Subject: Bug 1921707 - add filtering for new build directory location in
- third_party/abseil-cpp/absl.gni r=ng
+Date: Fri, 22 Nov 2024 22:30:00 +0000
+Subject: Bug 1932975 - cherry-pick abseil-cpp 69195d5bd to help with libwebrtc
+ update. r=dbaker
 
-Differential Revision: https://phabricator.services.mozilla.com/D224546
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c4cbc65577ab4012dc243185d5d87c83e29b7446
+Differential Revision: https://phabricator.services.mozilla.com/D229997
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/de843acc40cc3e872265a8c3fffc9cb3285ccb3b
 ---
- abseil-cpp/absl.gni | 1 +
- 1 file changed, 1 insertion(+)
+ abseil-cpp/absl/base/nullability.h | 29 ++++++++++++++++++++++++++---
+ 1 file changed, 26 insertions(+), 3 deletions(-)
 
-diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index aaf842c47c0..29d283dd536 100644
---- a/abseil-cpp/absl.gni
-+++ b/abseil-cpp/absl.gni
-@@ -96,6 +96,7 @@ template("absl_source_set") {
-       modified_deps = []
-       foreach (dep, deps) {
-         newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-+        newdep = string_replace(newdep, "//build", "//chromium/build")
-         modified_deps += [ newdep ]
-       }
-       deps = []
+diff --git a/abseil-cpp/absl/base/nullability.h b/abseil-cpp/absl/base/nullability.h
+index 6f49b6f535b..5cc71640ad3 100644
+--- a/abseil-cpp/absl/base/nullability.h
++++ b/abseil-cpp/absl/base/nullability.h
+@@ -128,9 +128,17 @@
+ //
+ // By default, nullability annotations are applicable to raw and smart
+ // pointers. User-defined types can indicate compatibility with nullability
+-// annotations by providing an `absl_nullability_compatible` nested type. The
+-// actual definition of this inner type is not relevant as it is used merely as
+-// a marker. It is common to use a using declaration of
++// annotations by adding the ABSL_NULLABILITY_COMPATIBLE attribute.
++//
++// // Example:
++// struct ABSL_NULLABILITY_COMPATIBLE MyPtr {
++//   ...
++// };
++//
++// Note: For the time being, nullability-compatible classes should additionally
++// be marked with an `absl_nullability_compatible` nested type (this will soon
++// be deprecated). The actual definition of this inner type is not relevant as
++// it is used merely as a marker. It is common to use a using declaration of
+ // `absl_nullability_compatible` set to void.
+ //
+ // // Example:
+@@ -221,4 +229,19 @@ using NullabilityUnknown = nullability_internal::NullabilityUnknownImpl<T>;
+ 
+ }  // namespace absl
+ 
++// ABSL_NULLABILITY_COMPATIBLE
++//
++// Indicates that a class is compatible with nullability annotations.
++//
++// For example:
++//
++// struct ABSL_NULLABILITY_COMPATIBLE MyPtr {
++//   ...
++// };
++#if ABSL_HAVE_FEATURE(nullability_on_classes)
++#define ABSL_NULLABILITY_COMPATIBLE _Nullable
++#else
++#define ABSL_NULLABILITY_COMPATIBLE
++#endif
++
+ #endif  // ABSL_BASE_NULLABILITY_H_
