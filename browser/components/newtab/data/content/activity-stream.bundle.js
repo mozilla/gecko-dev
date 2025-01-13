@@ -12917,6 +12917,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       className: outerClassName,
       onClick: this.closeCustomizationMenu
     }, /*#__PURE__*/external_React_default().createElement("main", {
+      className: "newtab-main",
       style: this.state.fixedNavStyle
     }, prefs.showSearch && /*#__PURE__*/external_React_default().createElement("div", {
       className: "non-collapsible-section"
