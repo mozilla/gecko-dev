@@ -28,9 +28,11 @@
       await testHelpers.setupInputTests({ templateFn });
     });
 
-    // Verify the radio group label.
-    add_task(async function testRadioGroupLabel() {
+    // Verify the radio group has label, description, and support link.
+    add_task(async function testRadioGroupDescriptors() {
       const TEST_LABEL = "Testing...";
+      const TEST_DESCRIPTION = "Testing description..";
+      const TEST_SUPPORT_PAGE = "Testing support page..";
       let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
 
@@ -40,12 +42,44 @@
         "Radio group label text is set."
       );
       radioGroup.label = TEST_LABEL;
+      radioGroup.description = TEST_DESCRIPTION;
+      radioGroup.supportPage = TEST_SUPPORT_PAGE;
       await radioGroup.updateComplete;
       is(
         radioGroup.fieldset.label,
         TEST_LABEL,
         "Radio group label text is updated."
       );
+      is(
+        radioGroup.fieldset.description,
+        TEST_DESCRIPTION,
+        "Radio group description text is set."
+      );
+      is(
+        radioGroup.fieldset.supportPage,
+        TEST_SUPPORT_PAGE,
+        "Radio group support page is set."
+      );
+
+      // Verify that slotted support link's placement renders as expected
+      ok(!radioGroup.shadowRoot.querySelector("slot[name='support-link']"), "There is no support link slot");
+
+      radioGroup.supportPage = null;
+
+      let slottedSupportLink = document.createElement("div");
+      slottedSupportLink.slot = "support-link";
+      slottedSupportLink.innerText = "slotted element";
+      radioGroup.appendChild(slottedSupportLink);
+
+      await radioGroup.updateComplete;
+      ok(!radioGroup.getAttribute("support-page"), "There should not be a support-page attribute");
+
+      let slotEl = radioGroup.shadowRoot.querySelector("slot[name='support-link']");
+      ok(slotEl, "Slotted support link should exist");
+      is(slotEl.getAttribute("name"), "support-link", "Slot has the correct name");
+      let fieldsetSlotEl = radioGroup.fieldset.shadowRoot.querySelector("slot[name='support-link']");
+      is(fieldsetSlotEl.assignedNodes()[0], slotEl, "Slot is slotted");
+      is(slotEl.assignedNodes()[0], slottedSupportLink, "Slot has support link");
     });
 
     // Verify that each radio button is given the name of the radio group.

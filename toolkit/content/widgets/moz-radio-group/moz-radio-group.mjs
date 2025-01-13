@@ -40,12 +40,15 @@ const NAVIGATION_DIRECTIONS = {
  * @tagname moz-radio-group
  * @property {boolean} disabled - Whether or not the fieldset is disabled.
  * @property {string} label - Label for the group of moz-radio elements.
+ * @property {string} description - Description for the group of moz-radio elements.
+ * @property {string} supportPage - Support page for the group of moz-radio elements.
  * @property {string} name
  *  Input name of the radio group. Propagates to moz-radio children.
  * @property {string} value
  *  Selected value for the group. Changing the value updates the checked
  *  state of moz-radio children and vice versa.
  * @slot default - The radio group's content, intended for moz-radio elements.
+ * @slot support-link - The radio group's support link intended for moz-radio elements.
  */
 export class MozRadioGroup extends MozLitElement {
   #radioButtons = [];
@@ -53,6 +56,8 @@ export class MozRadioGroup extends MozLitElement {
 
   static properties = {
     disabled: { type: Boolean, reflect: true },
+    description: { type: String, fluent: true },
+    supportPage: { type: String, attribute: "support-page" },
     label: { type: String, fluent: true },
     name: { type: String },
   };
@@ -201,11 +206,16 @@ export class MozRadioGroup extends MozLitElement {
     return html`
       <moz-fieldset
         part="fieldset"
+        description=${ifDefined(this.description)}
+        support-page=${ifDefined(this.supportPage)}
         role="radiogroup"
         ?disabled=${this.disabled}
         label=${this.label}
-        exportparts="inputs"
+        exportparts="inputs, support-link"
       >
+        ${!this.supportPage
+          ? html`<slot slot="support-link" name="support-link"></slot>`
+          : ""}
         <slot
           @slotchange=${this.syncStateToRadioButtons}
           @change=${this.handleChange}
