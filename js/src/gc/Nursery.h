@@ -216,23 +216,29 @@ class Nursery {
 
   // Handle an external buffer when a cell is promoted. Updates the pointer to
   // the (possibly moved) buffer and returns whether it was moved.
+  // bytesUsed can be less than bytesCapacity if not all bytes need to be copied
+  // when the buffer is moved.
   enum WasBufferMoved : bool { BufferNotMoved = false, BufferMoved = true };
   WasBufferMoved maybeMoveRawBufferOnPromotion(void** bufferp, gc::Cell* owner,
-                                               size_t nbytes, MemoryUse use,
-                                               arena_id_t arena);
+                                               size_t bytesUsed,
+                                               size_t bytesCapacity,
+                                               MemoryUse use, arena_id_t arena);
   template <typename T>
   WasBufferMoved maybeMoveBufferOnPromotion(T** bufferp, gc::Cell* owner,
-                                            size_t nbytes, MemoryUse use,
+                                            size_t bytesUsed,
+                                            size_t bytesCapacity, MemoryUse use,
                                             arena_id_t arena) {
     return maybeMoveRawBufferOnPromotion(reinterpret_cast<void**>(bufferp),
-                                         owner, nbytes, use, arena);
+                                         owner, bytesUsed, bytesCapacity, use,
+                                         arena);
   }
   template <typename T>
   WasBufferMoved maybeMoveNurseryOrMallocBufferOnPromotion(T** bufferp,
                                                            gc::Cell* owner,
                                                            size_t nbytes,
                                                            MemoryUse use) {
-    return maybeMoveBufferOnPromotion(bufferp, owner, nbytes, use, MallocArena);
+    return maybeMoveBufferOnPromotion(bufferp, owner, nbytes, nbytes, use,
+                                      MallocArena);
   }
 
   WasBufferMoved maybeMoveRawBufferOnPromotion(void** bufferp, gc::Cell* owner,

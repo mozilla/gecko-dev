@@ -304,12 +304,17 @@ inline size_t JSLinearString::maybeMallocCharsOnPromotion(
     chars = reinterpret_cast<const void**>(&d.s.u2.nonInlineCharsLatin1);
   }
 
-  size_t nbytes = length() * sizeof(CharT);
-  if (nursery->maybeMoveBufferOnPromotion(const_cast<void**>(chars), this,
-                                          nbytes, js::MemoryUse::StringContents,
-                                          js::StringBufferArena) ==
-      js::Nursery::BufferMoved) {
-    return nbytes;
+  size_t bytesUsed = length() * sizeof(CharT);
+  size_t bytesCapacity =
+      isExtensible() ? (asExtensible().capacity() * sizeof(CharT)) : bytesUsed;
+  MOZ_ASSERT(bytesUsed <= bytesCapacity);
+
+  if (nursery->maybeMoveBufferOnPromotion(
+          const_cast<void**>(chars), this, bytesUsed, bytesCapacity,
+          js::MemoryUse::StringContents,
+          js::StringBufferArena) == js::Nursery::BufferMoved) {
+    MOZ_ASSERT(allocSize() == bytesCapacity);
+    return bytesCapacity;
   }
 
   return 0;

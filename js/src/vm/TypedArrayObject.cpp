@@ -273,7 +273,7 @@ size_t FixedLengthTypedArrayObject::objectMoved(JSObject* obj, JSObject* old) {
   nbytes = RoundUp(nbytes, sizeof(Value));
 
   Nursery::WasBufferMoved result = nursery.maybeMoveBufferOnPromotion(
-      &buf, newObj, nbytes, MemoryUse::TypedArrayElements,
+      &buf, newObj, nbytes, nbytes, MemoryUse::TypedArrayElements,
       ArrayBufferContentsArena);
   if (result == Nursery::BufferMoved) {
     newObj->setReservedSlot(DATA_SLOT, PrivateValue(buf));
