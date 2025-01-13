@@ -239,6 +239,7 @@ const UPDATE_PROPS = [
   "proxyStatusText",
   "fromCache",
   "fromServiceWorker",
+  "securityFlags",
 ];
 
 const PANELS = {

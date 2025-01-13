@@ -94,6 +94,7 @@ function sendHTTPCustomRequest(request) {
       url: request.url,
       method: request.method,
       httpVersion: request.httpVersion,
+      securityFlags: request.securityFlags,
     };
 
     if (request.requestHeaders) {

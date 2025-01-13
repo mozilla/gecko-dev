@@ -228,6 +228,7 @@ class NetworkEventActor extends Actor {
       referrerPolicy: lazy.NetworkUtils.getReferrerPolicy(channel),
       stacktraceResourceId,
       startedDateTime: new Date(timeStamp).toISOString(),
+      securityFlags: channel.loadInfo.securityFlags,
       timeStamp,
       timings: {},
       url,

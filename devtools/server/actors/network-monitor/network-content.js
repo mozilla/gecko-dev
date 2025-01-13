@@ -60,7 +60,7 @@ class NetworkContentActor extends Actor {
    */
   async sendHTTPRequest(request) {
     return new Promise(resolve => {
-      const { url, method, headers, body, cause } = request;
+      const { url, method, headers, body, cause, securityFlags } = request;
       // Set the loadingNode and loadGroup to the target document - otherwise the
       // request won't show up in the opened netmonitor.
       const doc = this.targetActor.window.document;
@@ -70,6 +70,7 @@ class NetworkContentActor extends Actor {
         uri: channelURI,
         loadingNode: doc,
         securityFlags:
+          securityFlags ||
           Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT,
         contentPolicyType:
           lazy.NetworkUtils.stringToCauseType(cause.type) ||
