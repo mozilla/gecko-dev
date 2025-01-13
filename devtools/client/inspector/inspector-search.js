@@ -147,54 +147,52 @@ InspectorSearch.prototype = {
  *        The input element to which the panel will be attached and from where
  *        search input will be taken.
  */
-function SelectorAutocompleter(inspector, inputNode) {
-  this.inspector = inspector;
-  this.searchBox = inputNode;
-  this.panelDoc = this.searchBox.ownerDocument;
+class SelectorAutocompleter extends EventEmitter {
+  constructor(inspector, inputNode) {
+    super();
 
-  this.showSuggestions = this.showSuggestions.bind(this);
-  this._onSearchKeypress = this._onSearchKeypress.bind(this);
-  this._onSearchPopupClick = this._onSearchPopupClick.bind(this);
-  this._onMarkupMutation = this._onMarkupMutation.bind(this);
+    this.inspector = inspector;
+    this.searchBox = inputNode;
+    this.panelDoc = this.searchBox.ownerDocument;
 
-  // Options for the AutocompletePopup.
-  const options = {
-    listId: "searchbox-panel-listbox",
-    autoSelect: true,
-    position: "top",
-    onClick: this._onSearchPopupClick,
-  };
+    this.showSuggestions = this.showSuggestions.bind(this);
+    this._onSearchKeypress = this._onSearchKeypress.bind(this);
+    this._onSearchPopupClick = this._onSearchPopupClick.bind(this);
+    this._onMarkupMutation = this._onMarkupMutation.bind(this);
 
-  // The popup will be attached to the toolbox document.
-  this.searchPopup = new AutocompletePopup(inspector._toolbox.doc, options);
+    // Options for the AutocompletePopup.
+    const options = {
+      listId: "searchbox-panel-listbox",
+      autoSelect: true,
+      position: "top",
+      onClick: this._onSearchPopupClick,
+    };
 
-  this.searchBox.addEventListener("input", this.showSuggestions, true);
-  this.searchBox.addEventListener("keypress", this._onSearchKeypress, true);
-  this.inspector.on("markupmutation", this._onMarkupMutation);
+    // The popup will be attached to the toolbox document.
+    this.searchPopup = new AutocompletePopup(inspector._toolbox.doc, options);
 
-  EventEmitter.decorate(this);
-}
-
-exports.SelectorAutocompleter = SelectorAutocompleter;
-
-SelectorAutocompleter.prototype = {
-  get walker() {
-    return this.inspector.walker;
-  },
+    this.searchBox.addEventListener("input", this.showSuggestions, true);
+    this.searchBox.addEventListener("keypress", this._onSearchKeypress, true);
+    this.inspector.on("markupmutation", this._onMarkupMutation);
+  }
 
   // The possible states of the query.
-  States: {
+  States = {
     CLASS: "class",
     ID: "id",
     TAG: "tag",
     ATTRIBUTE: "attribute",
-  },
+  };
 
   // The current state of the query.
-  _state: null,
+  _state = null;
 
   // The query corresponding to last state computation.
-  _lastStateCheckAt: null,
+  _lastStateCheckAt = null;
+
+  get walker() {
+    return this.inspector.walker;
+  }
 
   /**
    * Computes the state of the query. State refers to whether the query
@@ -299,7 +297,7 @@ SelectorAutocompleter.prototype = {
       }
     }
     return this._state;
-  },
+  }
 
   /**
    * Removes event listeners and cleans up references.
@@ -316,7 +314,7 @@ SelectorAutocompleter.prototype = {
     this.searchPopup = null;
     this.searchBox = null;
     this.panelDoc = null;
-  },
+  }
 
   /**
    * Handles keypresses inside the input box.
@@ -370,7 +368,7 @@ SelectorAutocompleter.prototype = {
     event.preventDefault();
     event.stopPropagation();
     this.emitForTests("processing-done");
-  },
+  }
 
   /**
    * Handles click events from the autocomplete popup.
@@ -384,7 +382,7 @@ SelectorAutocompleter.prototype = {
 
     event.preventDefault();
     event.stopPropagation();
-  },
+  }
 
   /**
    * Reset previous search results on markup-mutations to make sure we search
@@ -393,7 +391,7 @@ SelectorAutocompleter.prototype = {
   _onMarkupMutation() {
     this._searchResults = null;
     this._lastSearched = null;
-  },
+  }
 
   /**
    * Populates the suggestions list and show the suggestion popup.
@@ -457,7 +455,7 @@ SelectorAutocompleter.prototype = {
     }
 
     return this.hidePopup();
-  },
+  }
 
   /**
    * Hide the suggestion popup if necessary.
@@ -466,7 +464,7 @@ SelectorAutocompleter.prototype = {
     const onPopupClosed = this.searchPopup.once("popup-closed");
     this.searchPopup.hidePopup();
     return onPopupClosed;
-  },
+  }
 
   /**
    * Suggests classes,ids and tags based on the user input as user types in the
@@ -531,5 +529,7 @@ SelectorAutocompleter.prototype = {
     // the autoSelect item has been selected.
     await this._showPopup(suggestions, state);
     this.emitForTests("processing-done", { query: originalQuery });
-  },
-};
+  }
+}
+
+exports.SelectorAutocompleter = SelectorAutocompleter;
