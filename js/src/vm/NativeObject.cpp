@@ -786,10 +786,6 @@ bool NativeObject::tryUnshiftDenseElements(uint32_t count) {
 //   * minimize the number of unused elements beyond an array's length, and
 //   * provide at least ELEMENT_CAPACITY_MIN elements no matter what (so adding
 //     the first several elements to small arrays only needs one allocation).
-//
-// Note: the structure and behavior of this method follow along with
-// UnboxedArrayObject::chooseCapacityIndex. Changes to the allocation strategy
-// in one should generally be matched by the other.
 /* static */
 bool NativeObject::goodElementsAllocationAmount(JSContext* cx,
                                                 uint32_t reqCapacity,
