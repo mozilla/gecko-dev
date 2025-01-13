@@ -85,13 +85,13 @@ export default class TabHoverPreviewPanel {
       return {
         position: "topleft topright",
         x: 0,
-        y: 4,
+        y: 0,
       };
     }
     return {
       position: "topright topleft",
       x: 0,
-      y: 4,
+      y: 0,
     };
   }
 
