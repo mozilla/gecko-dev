@@ -385,6 +385,35 @@ def check_unknown_ping(
                 yield nit
 
 
+def check_name_too_similar(
+    check_name: str,
+    check_type: CheckType,
+    all_pings: Dict[str, pings.Ping],
+    all_metrics: Dict[str, metrics.Metric],
+    parser_config: Dict[str, Any],
+) -> NitGenerator:
+    """
+    Check that all metrics identifiers are suitably distinct.
+    Require that at least n-1 of the similarly-named metrics must be no_lint'd to dismiss the lint.
+
+    Current similarity test: the fully-qualified identifier differs solely in punctuation.
+    e.g. formautofill.credit_cards and formautofill.creditcards
+    """
+    seen_metrics: Dict[str, metrics.Metric] = dict()
+
+    for _, metric in all_metrics.items():
+        if check_name in metric.no_lint:
+            continue
+
+        no_punc = metric.identifier().replace("_", "").replace(".", "")
+        if no_punc in seen_metrics:
+            msg = f"Metric `{metric.identifier()}`'s name is too similar to existing metric `{seen_metrics[no_punc].identifier()}`"
+            nit = GlinterNit(check_name, metric.identifier(), msg, check_type)
+            yield nit
+
+        seen_metrics[no_punc] = metric
+
+
 # The checks that operate on an entire category of metrics:
 #    {NAME: (function, is_error)}
 CATEGORY_CHECKS: Dict[
@@ -437,6 +466,7 @@ ALL_OBJECT_CHECKS: Dict[
     ],
 ] = {
     "UNKNOWN_PING_REFERENCED": (check_unknown_ping, CheckType.error),
+    "NAME_TOO_SIMILAR": (check_name_too_similar, CheckType.error),
 }
 
 

@@ -442,7 +442,6 @@ definitions:
           Required when `type`_ is `custom_distribution`.
         type: number
         minimum: 1
-        maximum: 100
 
       histogram_type:
         title: Histogram type

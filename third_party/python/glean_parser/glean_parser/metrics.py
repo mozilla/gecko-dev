@@ -509,6 +509,20 @@ class Object(Metric):
         if None:
             raise ValueError("`structure` needed for object metric.")
 
+        # Different from `ALLOWED_TYPES`:
+        # We _require_ the root type to be an object or array.
+        allowed_types = ["object", "array"]
+        if "type" not in structure:
+            raise ValueError(
+                f"missing `type` in object structure. Allowed: {allowed_types}"
+            )
+        if structure["type"] not in allowed_types:
+            raise ValueError(
+                "invalid `type` in object structure. found: {}, allowed: {}".format(
+                    structure["type"], allowed_types
+                )
+            )
+
         structure = Object._validate_substructure(structure)
         return structure
 
