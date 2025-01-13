@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.7.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.1)" variant="all" version="8.7.1">
+<issues format="6" by="lint 8.8.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.8.0)" variant="all" version="8.8.0">
 
     <issue
         id="CommitTransaction"
@@ -8,7 +8,7 @@
         errorLine2="             ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/focus/navigation/MainActivityNavigation.kt"
-            line="250"
+            line="254"
             column="14"/>
     </issue>
 
@@ -74,7 +74,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="64"
+            line="66"
             column="9"/>
     </issue>
 
@@ -536,7 +536,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="107"
+            line="109"
             column="13"/>
     </issue>
 
@@ -547,7 +547,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="132"
+            line="134"
             column="13"/>
     </issue>
 
@@ -653,28 +653,6 @@
     <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toqueu o esborreu aquesta notificació per a esborrar de manera segura l\&apos;historial de navegació.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ca/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Picchichjate o spazzate sta nutificazione per squassà di manera sicura a vostra cronolugia di navigazione.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-co/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tapio neu gau\&apos;r hysbysiad hwn i ddileu eich hanes pori yn ddiogel.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -701,17 +679,6 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-dsb/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tap or clear this notification to securely erase your browsing history.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-en-rCA/strings.xml"
             line="87"
             column="13"/>
     </issue>
@@ -862,28 +829,6 @@
     <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Trykk eller fjern dette varselet for å slette nettleserhistorikken din på en sikker måte.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-nb-rNO/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tocatz aquesta notificacion o suprimissètz-la per escafar l’istoric de navegacion d’una manièra segura.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-oc/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toque ou remova esta notificação para limpar com segurança o histórico de navegação.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -906,43 +851,10 @@
     <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Që të fshihet në mënyrë të siguruar historiku juaj i shfletimit, prekeni, ose spastrojeni këtë njoftim.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-sq/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toél atawa beresihan iber ieu pikeun mupus jujutan langlangan anjeun kalayan aman.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-su/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tryck på eller rensa den här aviseringen för att säkert radera din webbhistorik.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-sv-rSE/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Барои ба таври бехатар пок кардани таърихи тамошо, лутфан, ба ин огоҳнома зер кунед ё онро тоза намоед.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-tg/strings.xml"
             line="87"
             column="13"/>
     </issue>
@@ -983,28 +895,6 @@
     <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Nhấn hoặc xóa thông báo này để xóa lịch sử duyệt web của bạn một cách an toàn.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-vi/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>点按或清除此通知，即可安全清除浏览历史。&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-zh-rCN/strings.xml"
-            line="87"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>點擊或滑掉這則通知，即可安全地清除您的瀏覽紀錄。&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -1020,17 +910,6 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-ar/strings.xml"
-            line="88"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tuŝetu aŭ viŝu tiun ĉi sciigon por sekure viŝi vian retuman historion.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-eo/strings.xml"
             line="88"
             column="13"/>
     </issue>
@@ -1082,17 +961,6 @@
     <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>יש להקיש או לנקות התרעה זו כדי למחוק בצורה מאובטחת את היסטוריית הגלישה שלך.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-iw/strings.xml"
-            line="88"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Шолу журналын қауіпсіз түрде өшіру үшін осы хабарландыруды шертіңіз немесе тазартыңыз.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -1126,43 +994,10 @@
     <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>ਤੁਹਾਡੇ ਬਰਾਊਜ਼ ਕਰਨ ਦੇ ਅਤੀਤ ਨੂੰ ਸੁਰੱਖਿਅਤ ਢੰਗ ਨਾਲ ਮਿਟਾਉਣ ਲਈ ਇਸ ਨੋਟੀਫਿਕੇਸ਼ਨ ਨੂੰ ਛੂਹੋ ਜਾਂ ਸਾਫ਼ ਕਰੋ।&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pa-rIN/strings.xml"
-            line="88"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Chachapa\&apos; on chachupu\&apos; we ub\&apos;ixikil are chi man k\&apos;o ta uk\&apos;axk\&apos;olil chi rij uyujik ucholajil b\&apos;anoj.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-quc/strings.xml"
-            line="88"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Ťuknutím alebo vymazaním tohto upozornenia bezpečne vymažete svoju históriu prehliadania.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-sk/strings.xml"
-            line="88"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Гизү тарихыгызны хәвефсез рәвештә бетерү өчен бу искәртүгә басыгыз яки аны чистартыгыз.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-tt/strings.xml"
             line="88"
             column="13"/>
     </issue>
@@ -1181,32 +1016,10 @@
     <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>የአሰሳ ታሪክዎን ደህንነቱ በተጠበቀ መልኩ ለማጥፋት ይህን ማሳወቂያ መታ ያድርጉ ወይም ያጽዱ።&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-am/strings.xml"
-            line="89"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tryk på eller ryd denne meddelelse for at slette din browser-historik på en sikker måde.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-da/strings.xml"
-            line="89"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Πατήστε ή εκκαθαρίστε αυτήν την ειδοποίηση για να διαγράψετε με ασφάλεια το ιστορικό περιήγησής σας.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-el/strings.xml"
             line="89"
             column="13"/>
     </issue>
@@ -1236,33 +1049,11 @@
     <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Націсніце або ачысціце гэта апавяшчэнне, каб надзейна сцерці гісторыю аглядання.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-be/strings.xml"
-            line="90"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Kana moj sojsa unq’a vaa’ ni alon see uva’ pajlat kuxh la sojsa unq’a vee’ chukeltu ve’te’.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-ixl/strings.xml"
             line="90"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tocje o scancele cheste notifiche par eliminâ in mût sigûr la tô cronologjie di navigazion.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-fur/strings.xml"
-            line="91"
             column="13"/>
     </issue>
 
@@ -1285,6 +1076,897 @@
         <location
             file="src/main/res/values-is/strings.xml"
             line="92"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Փակել&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hy-rAM/strings.xml"
+            line="387"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>बंद करियै&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-anp/strings.xml"
+            line="438"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>關閉&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rHK/strings.xml"
+            line="447"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>بند کریں&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ur/strings.xml"
+            line="462"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Close&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rGB/strings.xml"
+            line="492"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Chiuji&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-scn/strings.xml"
+            line="492"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Siere&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fur/strings.xml"
+            line="495"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>بستن&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fa/strings.xml"
+            line="500"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Loka&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-is/strings.xml"
+            line="500"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>වසන්න&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-si/strings.xml"
+            line="500"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Tôp&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ace/strings.xml"
+            line="501"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Пӯшидан&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tg/strings.xml"
+            line="501"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Mikani&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tsz/strings.xml"
+            line="501"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Закрыць&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-be/strings.xml"
+            line="502"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Shiktzakwa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ppl/strings.xml"
+            line="505"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>بند کرو&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-skr/strings.xml"
+            line="505"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>סגירה&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-iw/strings.xml"
+            line="506"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Zatvori&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hr/strings.xml"
+            line="513"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>ਬੰਦ ਕਰੋ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pa-rIN/strings.xml"
+            line="514"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Titz\&apos;apïx&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cak/strings.xml"
+            line="515"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Nārán&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-trs/strings.xml"
+            line="515"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Zatvori&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-bs/strings.xml"
+            line="516"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Tutup&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-in/strings.xml"
+            line="516"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Tanca&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ca/strings.xml"
+            line="517"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Tampar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-oc/strings.xml"
+            line="517"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>K\&apos;aal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-yua/strings.xml"
+            line="517"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>ዝጋ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-am/strings.xml"
+            line="518"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Zavřít&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cs/strings.xml"
+            line="518"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Cerrar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rMX/strings.xml"
+            line="518"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>닫기&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ko/strings.xml"
+            line="518"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Затвори&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sr/strings.xml"
+            line="518"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Tutup&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-su/strings.xml"
+            line="518"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>أغلق&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ar/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Chjode&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-co/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Cerrar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rES/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Itxi&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eu/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Pechar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-gl/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>閉じる&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>დახურვა&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ka/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Жабу&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kk/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Lukk&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Zamknij&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pl/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Mbylle&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sq/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Ябу&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tt/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Đóng&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-vi/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>关闭&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="519"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Затваряне&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-bg/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Schließen&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Zacyniś&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-dsb/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Close&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rCA/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Fermi&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eo/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Cerrar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rAR/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Cerrar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rCL/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Sulje&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fi/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Slute&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fy-rNL/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Začinić&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hsb/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Bezárás&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hu/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Clauder&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ia/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Degea&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kw/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>ປິດ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-lo/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Fechar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Chatz‘apij&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-quc/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Zapri&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sl/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Stäng&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sv-rSE/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Kapat&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tr/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Закрити&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-uk/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>關閉&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="520"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Cau&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cy/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Κλείσιμο&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-el/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Fermer&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Chiudi&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Nakasɨ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-meh/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Kasi&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-mix/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Sluiten&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Zavrieť&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sk/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>ปิด&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-th/strings.xml"
+            line="521"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Luk&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-da/strings.xml"
+            line="522"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Jupa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ixl/strings.xml"
+            line="522"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot; moz:removedIn=&quot;133&quot; tools:ignore=&quot;UnusedResources&quot;>Lat att&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nn-rNO/strings.xml"
+            line="522"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Закрыть&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ru/strings.xml"
+            line="522"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;onboarding_close_button_content_description&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;onboarding_close_button_content_description&quot;>Mdel&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kab/strings.xml"
+            line="523"
             column="13"/>
     </issue>
 
@@ -1324,28 +2006,6 @@
     <issue
         id="ExtraTranslation"
         message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Daûr a jentrâ in modalitât plen schermi&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-fur/strings.xml"
-            line="907"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>עברת למצב מסך מלא&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-iw/strings.xml"
-            line="908"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Fara í fullan skjá&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -1357,44 +2017,11 @@
     <issue
         id="ExtraTranslation"
         message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Уваход у поўнаэкранны рэжым&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-be/strings.xml"
-            line="917"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Ба реҷаи экрани пурра ворид шуда истодааст&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-tg/strings.xml"
-            line="918"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Hiàj nanunj da\&apos; huā ngè riña aga\&apos;a&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-trs/strings.xml"
             line="923"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Esteu en mode de pantalla completa&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ca/strings.xml"
-            line="924"
             column="13"/>
     </issue>
 
@@ -1417,50 +2044,6 @@
         <location
             file="src/main/res/values-skr/strings.xml"
             line="925"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>ወደ ሙሉ ማያ ገጽ ሁነታ በመግባት ላይ&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-am/strings.xml"
-            line="926"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>სრულ ეკრანზე გაშლა&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ka/strings.xml"
-            line="926"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Mòde plen ecran actiu&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-oc/strings.xml"
-            line="926"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Улазим у режим целог екрана&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-sr/strings.xml"
-            line="926"
             column="13"/>
     </issue>
 
@@ -1500,17 +2083,6 @@
     <issue
         id="ExtraTranslation"
         message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Тулы экран режимына күчү&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-tt/strings.xml"
-            line="928"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>전체 화면 모드로 들어가기&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -1537,17 +2109,6 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-mix/strings.xml"
-            line="929"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Asup ka mode layar pinuh&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-su/strings.xml"
             line="929"
             column="13"/>
     </issue>
@@ -1610,28 +2171,6 @@
     <issue
         id="ExtraTranslation"
         message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>ਪੂਰੀ ਸਕਰੀਨ ਢੰਗ ਵਿੱਚ ਜਾ ਰਿਹਾ ਹੈ&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pa-rIN/strings.xml"
-            line="931"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Plenekrana reĝimo aktiva&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-eo/strings.xml"
-            line="932"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Pasando a modo de pantalla completa&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -1654,43 +2193,10 @@
     <issue
         id="ExtraTranslation"
         message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Starter fullskjermmodus&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-nb-rNO/strings.xml"
-            line="932"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Đã vào chế độ toàn màn hình&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-vi/strings.xml"
-            line="932"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Vollbildmodus wird gestartet&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/strings.xml"
-            line="933"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Entering full screen mode&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-en-rCA/strings.xml"
             line="933"
             column="13"/>
     </issue>
@@ -1907,17 +2413,6 @@
     <issue
         id="ExtraTranslation"
         message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Modu di screnu sanu attivatu&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-co/strings.xml"
-            line="937"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>La eel kaajayil chitu’&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -1934,28 +2429,6 @@
         <location
             file="src/main/res/values-kab/strings.xml"
             line="937"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Po hyhet në mënyrën “Sa krejt ekrani”&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-sq/strings.xml"
-            line="939"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>进入全屏模式&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-zh-rCN/strings.xml"
-            line="939"
             column="13"/>
     </issue>
 
@@ -1983,12 +2456,1321 @@
 
     <issue
         id="ExtraTranslation"
-        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
-        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Είσοδος σε λειτουργία πλήρους οθόνης&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු අභිනය භාවිතා කරන්න&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-si/strings.xml"
+            line="1079"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු බොත්තම ඔබන්න&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-si/strings.xml"
+            line="1081"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot;>Za napuštanje cjeloekranskog prikaza povuci prstom s vrha ekrana i koristi pokret za natrag&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hr/strings.xml"
+            line="1081"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Par jessi de modalitât plen schermi, strissine di parsore e dopre il mot indaûr&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fur/strings.xml"
+            line="1082"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot;>Za napuštanje cjeloekranskog prikaza povuci prstom s vrha ekrana i pritisni „Natrag”&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hr/strings.xml"
+            line="1083"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Par jessi de modalitât plen schermi, strissine di parsore e frache indaûr&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fur/strings.xml"
+            line="1084"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і выкарыстайце жэст &amp;quot;Назад&amp;quot;.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-be/strings.xml"
+            line="1088"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і націсніце назад&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-be/strings.xml"
+            line="1090"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>للخروج من وضع ملء الشاشة، اسحب من الأعلى واستخدم إيماء الرجوع&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ar/strings.xml"
+            line="1095"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>To exit fullscreen, drag from top and use back gesture&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rGB/strings.xml"
+            line="1096"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>للخروج من وضع ملء الشاشة، اسحب من الأعلى واضغط زر الحذف&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ar/strings.xml"
+            line="1097"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Til að hætta í fylltum skjá, skaltu draga niður að ofan og nota bakbendingu&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-is/strings.xml"
+            line="1097"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>To exit fullscreen, drag from top and press back&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rGB/strings.xml"
+            line="1098"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>ከሙሉ እይታ ለመውጣት ከላይ ይጎትቱ እና ወደኋላ የእጅ ምልክትን ይጠቀሙ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-am/strings.xml"
+            line="1098"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Til að hætta í fylltum skjá, skaltu draga niður að ofan og ýta á til-baka hnappinn&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-is/strings.xml"
+            line="1099"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>ከሙሉ እይታ ለመውጣት ከላይ ይጎትቱ እና ወደኋላ ተመለስን ይጠቀሙ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-am/strings.xml"
+            line="1100"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Per a sortir de la pantalla completa, arrossegueu des de dalt i feu el gest d\&apos;enrere&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ca/strings.xml"
+            line="1101"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para saír da pantalla completa, arrastra desde arriba e usa o xesto de retroceso&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-gl/strings.xml"
+            line="1101"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Per a sortir de la pantalla completa, arrossegueu des de dalt i premeu el botó d\&apos;enrere&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ca/strings.xml"
+            line="1103"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para saír da pantalla completa, arrastra dende arriba e preme a tecla de retroceso&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-gl/strings.xml"
+            line="1103"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Da biste izašli iz načina rada preko cijelog ekrana, ​​povucite ekran s vrha prema dole i upotrijebite pokret nazad&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-bs/strings.xml"
+            line="1104"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Тулы экраннан чыгу өчен, экранны өстән тартып, &amp;quot;кире кайту&amp;quot; ишарәсен кулланыгыз&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tt/strings.xml"
+            line="1105"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Da biste izašli iz načina rada preko cijelog ekrana, ​​povucite ekran s vrha prema dole i pritisnite nazad&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-bs/strings.xml"
+            line="1106"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Тулы экраннан чыгу өчен, экранны өстән тартып, &amp;quot;кире кайту&amp;quot; төймәсенә басыгыз&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tt/strings.xml"
+            line="1107"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot;>Saa kuvi kenenu pantalla ka\&apos;nu, staka nee íchi sikɨ jee kuaxín tecla xinoo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-meh/strings.xml"
+            line="1108"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>За да излезете от цял екран, плъзнете отгоре и използвайте жеста за връщане назад&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-bg/strings.xml"
+            line="1109"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot;>Saa kuvi kenenu pantalla ka\&apos;nu, staka nee íchi sikɨ jee kuaxín tecla xinoo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-meh/strings.xml"
+            line="1110"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Utia\&apos;al u jóok\&apos;ol pantalla completa, jíilankilo\&apos;ob tak ka\&apos;anal yéetel meyaj gesto paachil&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-yua/strings.xml"
+            line="1110"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>За да излезете от цял екран, плъзнете отгоре и докоснете назад&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-bg/strings.xml"
+            line="1111"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Utia\&apos;al u jóok\&apos;ol ti\&apos; pantalla completa, jíilankilo\&apos;ob tak ka\&apos;anal ka pulse tak paachil&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-yua/strings.xml"
+            line="1112"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک اشارہ ورتو&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-skr/strings.xml"
+            line="1113"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک دباؤ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-skr/strings.xml"
+            line="1115"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pro ukončení režimu celé obrazovky přetáhněte prst shora a použijte gesto Zpět&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cs/strings.xml"
+            line="1115"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pro ukončení režimu celé obrazovky přetáhněte prst seshora a stiskněte zpět&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cs/strings.xml"
+            line="1117"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Aq’al uva’ la el axh pajlat kuxh tu kaajayil vi vatze’, eq’o kutzan stiib’a as a’ la jiti kat ti iqul&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ixl/strings.xml"
+            line="1117"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pikeun kaluar tina layar pinuh, séréd ti luhur jeung maké géstur balik&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-su/strings.xml"
+            line="1117"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Aq’al uva’ la el axh tu kaajayil vi vatze’, jiti ku’tzan stiib’a as la laa u tecla uve’ ni q’aavisan ti’ iqul&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ixl/strings.xml"
+            line="1119"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pikeun kaluar tina layar pinuh, séréd ti luhur jeung ketok balik deui&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-su/strings.xml"
+            line="1119"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>For å avslutte fullskjerm, dra fra toppen, og så til venstre&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="1119"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>To exit fullscreen, drag from top and use back gesture&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rCA/strings.xml"
+            line="1120"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Por eliri el la plenekrana reĝimo, trenu el supre kaj uzu la geston por ili malantaŭen&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eo/strings.xml"
+            line="1120"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>ਪੂਰੀ ਸਕਰੀਨ ਤੋਂ ਬਾਹਰ ਆਉਣ ਲਈ, ਉੱਤੇ ਤੋਂ ਖਿੱਚੋ ਅਤੇ ਪਿੱਛੇ ਜਾਣ ਵਾਲੇ ਸੰਕੇਤ ਨੂੰ ਵਰਤੋਂ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pa-rIN/strings.xml"
+            line="1120"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Да изађете из режима преко целог екрана, превуците одозго и користите покрет за назад&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sr/strings.xml"
+            line="1120"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>For å avslutte fullskjerm, dra fra toppen, og trykk tilbake-knappen&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="1121"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Aby wyłączyć tryb pełnoekranowy, przeciągnij od góry i użyj gestu Wstecz&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pl/strings.xml"
+            line="1121"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>To exit fullscreen, drag from top and press back&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rCA/strings.xml"
+            line="1122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Por eliri el la plenekrana reiĝmon, trenu el supre kaj premu la butonon &amp;quot;reen&amp;quot;&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eo/strings.xml"
+            line="1122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>ਪੂਰੀ ਸਕਰੀਨ ਤੋਂ ਬਾਹਰ ਆਉਣ ਲਈ, ਉੱਤੇ ਤੋਂ ਖਿੱਚੋ ਅਤੇ ਪਿੱਛੇ ਨੂੰ ਦਬਾਓ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pa-rIN/strings.xml"
+            line="1122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Да изађете из режима преко целог екрана, превуците одозго и притисните назад&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sr/strings.xml"
+            line="1122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>全画面表示を終了するには、上からドラッグし、戻るジェスチャーをしてください&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="1122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và sử dụng cử chỉ quay lại&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-vi/strings.xml"
+            line="1122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Aby wyłączyć tryb pełnoekranowy, przeciągnij od góry i naciśnij Wstecz&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pl/strings.xml"
+            line="1123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para salir de la pantalla completa, arrastra desde arriba y usa el gesto de retroceso&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rCL/strings.xml"
+            line="1123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para salir de la pantalla completa, arrastra desde la parte superior y usa el gesto de retroceso&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rES/strings.xml"
+            line="1123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pantaila osotik irteteko, arrastatu goitik eta erabili atzerako keinua&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eu/strings.xml"
+            line="1123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Толық экраннан шығу үшін, экранды жоғарыдан тартып, артқа оралу ым қимылын қолданыңыз&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kk/strings.xml"
+            line="1123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>전체 화면을 종료하려면 위에서 드래그하고 뒤로 동작을 사용하세요.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ko/strings.xml"
+            line="1123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>全画面表示を終了するには、上からドラッグし、[戻る] を押してください&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="1124"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và nhấn quay lại&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-vi/strings.xml"
+            line="1124"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para sailr de la pantalla completa, arrastra desde la parte superior y el gesto hacía atrás&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rMX/strings.xml"
+            line="1124"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pro exir del plen schermo, trahe ab le culmine e usa le gesto retro&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ia/strings.xml"
+            line="1124"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para salir de la pantalla completa, arrastra desde arriba y presiona la tecla de retroceso&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rCL/strings.xml"
+            line="1125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para salir de la pantalla completa, arrastra desde la parte superior y presiona la tecla de retroceso&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rES/strings.xml"
+            line="1125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pantaila osotik irteteko, arrastatu goitik eta sakatu atzera&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eu/strings.xml"
+            line="1125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Толық экраннан шығу үшін, экранды жоғарыдан тартып, артқа оралуды басыңыз&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kk/strings.xml"
+            line="1125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>전체 화면을 종료하려면 위에서 드래그한 후 뒤로를 누르세요.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ko/strings.xml"
+            line="1125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Poistu koko näytöstä vetämällä ylhäältä ja käyttämällä Takaisin-elettä&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fi/strings.xml"
+            line="1125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Zo byšće połnu wobrazowku wopušćił, ćehńće wot horjeka dele a wužiwajće gestu wróćo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hsb/strings.xml"
+            line="1125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>หากต้องการออกจากการแสดงเต็มจอ ให้ลากจากด้านบนแล้วใช้ท่าทางย้อนกลับ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-th/strings.xml"
+            line="1125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para salir de la pantalla completa, arrastra desde arriba y presiona la tecla de retroceso&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rMX/strings.xml"
+            line="1126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pro exir del plen schermo, trahe ab le culmine e pulsa retro&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ia/strings.xml"
+            line="1126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Um den Vollbildmodus zu beenden, ziehen Sie von oben und verwenden Sie die Zurück-Geste&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="1126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Aby połnu wobrazowku spušćił, śěgniśo wót górjejka dołoj a wužywajśo gestu slědk&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-dsb/strings.xml"
+            line="1126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pour quitter le mode plein écran, balayez depuis le haut et utilisez le geste de retour&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="1126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Щоб вийти з повноекранного режиму, потягніть зверху вниз і скористайтеся жестом &amp;quot;Назад&amp;quot;&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-uk/strings.xml"
+            line="1126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Poistu koko näytöstä vetämällä ylhäältä ja painamalla takaisin&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fi/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Zo byšće połnu wobrazowku wopušćił, ćehńće wot horjeka dele a tłóčće na Wróćo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hsb/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>หากต้องการออกจากการแสดงเต็มจอ ให้ลากจากด้านบนแล้วกดย้อนกลับ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-th/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Per esce di u screnu sanu, trascinà da l’altu è impiegà un gestu versu in daretu&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-co/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para salir de pantalla completa, arrastrá desde arriba y usá el gesto hacia atrás&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rAR/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Sleep fan de boppekant ôf en brûk it tebek-gebear om it folslein skerm ôf te sluten&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fy-rNL/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>A teljes képernyőből való kilépéshez húzza le felülről, és használja a Vissza gesztust&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hu/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>ຫາກຕ້ອງການອອກຈາກການສະແດງເຕັມຈໍ, ໃຫ້ລາກຈາກດ້ານເທິງແລ້ວໃຊ້ທ່າທາງກັບຄືນ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-lo/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Sleep vanaf de bovenkant en gebruik het terug-gebaar om het volledig scherm af te sluiten&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Ak chcete ukončiť režim Na celú obrazovku, potiahnite zhora a použite gesto späť&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sk/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>För att avsluta helskärm, dra från toppen och använd bakåtgest&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sv-rSE/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>要離開全螢幕模式，從畫面頂端拖曳，並使用「返回」的手勢&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="1127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Um den Vollbildmodus zu beenden, ziehen Sie von oben und drücken Sie auf „Zurück“&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Aby połnu wobrazowku spušćił, śěgniśo wót górjejka dołoj a tłocćo Slědk&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-dsb/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Pour quitter le mode plein écran, balayez depuis le haut et appuyez sur le bouton retour&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Щоб вийти з повноекранного режиму, потягніть зверху вниз і натисніть &amp;quot;Назад&amp;quot;&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-uk/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>I adael y sgrin lawn, llusgwch o\&apos;r brig a defnyddiwch ystum nôl&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cy/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>For at afslutte fuldskærm skal du trække fra toppen og derefter stryge fingeren mod venstre&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-da/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Per uscire dalla modalità schermo intero, trascina dall’alto e usa il gesto indietro&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para sair do modo de tela inteira, arraste a partir do alto e use o gesto de voltar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Чтобы выйти из полноэкранного режима, потяните экран сверху и используйте жест назад&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ru/strings.xml"
+            line="1128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Per esce di u screnu sanu, trascinà da l’altu è appughjà nant’à « Precedente »&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-co/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para salir de pantalla completa, arrastrá desde arriba y presioná atrás&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rAR/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Sleep fan de boppekant ôf en druk op tebek om it folslein skerm ôf te sluten&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fy-rNL/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>A teljes képernyőből való kilépéshez húzza le felülről, és nyomja meg a Vissza gombot&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hu/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>ຫາກຕ້ອງການອອກຈາກການສະແດງເຕັມຈໍ, ໃຫ້ລາກຈາກດ້ານເທິງ ແລະ ກົດກັບຄືນ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-lo/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Sleep vanaf de bovenkant en druk op terug om het volledig scherm af te sluiten&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Ak chcete ukončiť režim Na celú obrazovku, potiahnite zhora a stlačte tlačidlo späť&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sk/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>För att avsluta helskärm, dra från toppen och tryck bakåt&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sv-rSE/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>要離開全螢幕模式，從畫面頂端拖曳，然後點擊「返回」&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>i wakken ad teffɣeḍ seg ugdil aččura, zuɣer seg usawen syen seqdec asilif n tuɣalin&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kab/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Za izhod iz celozaslonskega načina povlecite z vrha in uporabite potezo za pomik nazaj&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sl/strings.xml"
+            line="1129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>I adael y sgrin lawn, llusgwch o\&apos;r brig a phwyso nôl&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cy/strings.xml"
+            line="1130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>For at afslutte fuldskærm skal du trække fra toppen og trykke på tilbage-knappen&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-da/strings.xml"
+            line="1130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Per uscire dalla modalità schermo intero, trascina dall’alto e premi indietro&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="1130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Para sair do modo de tela inteira, arraste a partir do alto e toque em voltar&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="1130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Чтобы выйти из полноэкранного режима, потяните экран сверху и нажмите назад&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ru/strings.xml"
+            line="1130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Για έξοδο από την πλήρη οθόνη, σύρετε από το πάνω μέρος και χρησιμοποιήστε τη χειρονομία επιστροφής&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-el/strings.xml"
-            line="942"
+            line="1130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>For å avslute fullskjerm, drag frå toppen, og så til venstre&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nn-rNO/strings.xml"
+            line="1130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>i wakken ad teffɣeḍ seg ugdil aččura, zuɣer seg usawen syen sit ɣef uɣal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kab/strings.xml"
+            line="1131"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Za izhod iz celozaslonskega načina povlecite z vrha in pritisnite Nazaj&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sl/strings.xml"
+            line="1131"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Για έξοδο από την πλήρη οθόνη, σύρετε από το πάνω μέρος και πατήστε το κουμπί επιστροφής&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-el/strings.xml"
+            line="1132"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>For å avslutte fullskjerm, drag frå toppen, og trykk på tilbake-knappen&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nn-rNO/strings.xml"
+            line="1132"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_gesture&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_gesture&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Tam ekrandan çıkmak için ekranı yukarıdan çekip geri dönme hareketini kullanın&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tr/strings.xml"
+            line="1133"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;exit_fullscreen_with_back_button&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;exit_fullscreen_with_back_button&quot; moz:removedIn=&quot;132&quot; tools:ignore=&quot;UnusedResources&quot;>Tam ekrandan çıkmak için ekranı yukarıdan çekip geri düğmesine basın&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tr/strings.xml"
+            line="1135"
             column="13"/>
     </issue>
 
@@ -1999,7 +3781,7 @@
         errorLine2="                             ~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="58"
+            line="60"
             column="30"/>
     </issue>
 
@@ -3183,7 +4965,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="72"
+            line="73"
             column="13"/>
     </issue>
 
@@ -3194,7 +4976,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="76"
+            line="77"
             column="13"/>
     </issue>
 
@@ -3634,7 +5416,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="545"
+            line="542"
             column="13"/>
     </issue>
 
@@ -3645,7 +5427,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="550"
+            line="547"
             column="13"/>
     </issue>
 
@@ -3656,7 +5438,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="555"
+            line="552"
             column="13"/>
     </issue>
 
@@ -3667,7 +5449,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="613"
+            line="610"
             column="13"/>
     </issue>
 
@@ -3678,7 +5460,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="614"
+            line="611"
             column="13"/>
     </issue>
 
@@ -3689,7 +5471,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="615"
+            line="612"
             column="13"/>
     </issue>
 
@@ -3700,7 +5482,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="619"
+            line="616"
             column="13"/>
     </issue>
 
@@ -3711,7 +5493,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="620"
+            line="617"
             column="13"/>
     </issue>
 
@@ -3722,7 +5504,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="622"
+            line="619"
             column="13"/>
     </issue>
 
@@ -3733,7 +5515,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="625"
+            line="622"
             column="13"/>
     </issue>
 
@@ -3744,7 +5526,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="632"
+            line="629"
             column="13"/>
     </issue>
 
@@ -3755,7 +5537,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="636"
+            line="633"
             column="13"/>
     </issue>
 
@@ -3766,7 +5548,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="639"
+            line="636"
             column="13"/>
     </issue>
 
@@ -3777,7 +5559,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="642"
+            line="639"
             column="13"/>
     </issue>
 
@@ -3788,7 +5570,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="644"
+            line="641"
             column="13"/>
     </issue>
 
@@ -3799,7 +5581,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="646"
+            line="643"
             column="13"/>
     </issue>
 
@@ -3810,7 +5592,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="649"
+            line="646"
             column="13"/>
     </issue>
 
@@ -3821,7 +5603,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="830"
+            line="827"
             column="13"/>
     </issue>
 
@@ -3832,7 +5614,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="837"
+            line="834"
             column="13"/>
     </issue>
 
@@ -3843,7 +5625,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="841"
+            line="838"
             column="13"/>
     </issue>
 
@@ -3854,7 +5636,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="866"
+            line="863"
             column="13"/>
     </issue>
 
@@ -3865,7 +5647,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="871"
+            line="868"
             column="13"/>
     </issue>
 
@@ -3876,7 +5658,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="876"
+            line="873"
             column="13"/>
     </issue>
 
@@ -3887,7 +5669,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="882"
+            line="879"
             column="13"/>
     </issue>
 
@@ -3898,7 +5680,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="888"
+            line="885"
             column="13"/>
     </issue>
 
@@ -3909,7 +5691,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="893"
+            line="890"
             column="13"/>
     </issue>
 
@@ -3920,7 +5702,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="896"
+            line="893"
             column="13"/>
     </issue>
 
@@ -3931,7 +5713,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="899"
+            line="896"
             column="13"/>
     </issue>
 
@@ -3942,7 +5724,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="902"
+            line="899"
             column="13"/>
     </issue>
 
@@ -3953,7 +5735,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="926"
+            line="923"
             column="13"/>
     </issue>
 
@@ -3964,7 +5746,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="929"
+            line="926"
             column="13"/>
     </issue>
 
@@ -3975,7 +5757,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1004"
+            line="1001"
             column="13"/>
     </issue>
 
@@ -3986,7 +5768,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1007"
+            line="1004"
             column="13"/>
     </issue>
 
@@ -3997,7 +5779,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1013"
+            line="1010"
             column="13"/>
     </issue>
 
@@ -4008,7 +5790,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1028"
+            line="1025"
             column="13"/>
     </issue>
 
@@ -4342,17 +6124,6 @@
             file="src/main/res/layout/preference_manual_add_search_engine.xml"
             line="46"
             column="9"/>
-    </issue>
-
-    <issue
-        id="IgnoreWithoutReason"
-        message="Test is ignored without giving any explanation"
-        errorLine1="    @Ignore"
-        errorLine2="    ~~~~~~~">
-        <location
-            file="src/androidTest/java/org/mozilla/focus/screenshots/FirstRunScreenshots.kt"
-            line="30"
-            column="5"/>
     </issue>
 
 </issues>
