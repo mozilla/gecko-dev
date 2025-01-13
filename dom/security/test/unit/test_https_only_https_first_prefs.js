@@ -328,6 +328,19 @@ function setUpChannel() {
   chan.QueryInterface(Ci.nsIHttpChannel);
   chan.requestMethod = "GET";
   chan.setRequestHeader("Authorization", "Basic user:pass", false);
+
+  let loadGroup = Cc["@mozilla.org/network/load-group;1"].createInstance(
+    Ci.nsILoadGroup
+  );
+  if (curTest.pbm) {
+    loadGroup.notificationCallbacks = Cu.createPrivateLoadContext();
+    chan.loadGroup = loadGroup;
+    chan.notificationCallbacks = Cu.createPrivateLoadContext();
+  } else {
+    loadGroup.notificationCallbacks = Cu.createLoadContext();
+    chan.loadGroup = loadGroup;
+    chan.notificationCallbacks = Cu.createLoadContext();
+  }
   return chan;
 }
 
