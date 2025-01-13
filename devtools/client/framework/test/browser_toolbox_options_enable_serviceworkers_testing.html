@@ -68,9 +68,9 @@
             }
           }
         `])));
+        worker.addEventListener("message", ev => resolve(ev.data), { once: true });
         // (A blob worker can't use relative URLs)
         worker.postMessage(new URL("serviceworker.js", location.href).toString());
-        worker.addEventListener("message", ev => resolve(ev.data), { once: true });
         return promise;
       }
 
@@ -88,16 +88,19 @@
       async function workerOpenAndDeleteCache() {
         const { promise, resolve } = Promise.withResolvers();
         const worker = new Worker(URL.createObjectURL(new Blob([`
-          try {
-            const cacheName = "devtools-enable-sw";
-            await caches.open(cacheName);
-            const success = await caches.delete(cacheName);
-            postMessage({ success });
-          } catch (err) {
-            postMessage({ success: err.message });
+          onmessage = async (ev) => {
+            try {
+              const cacheName = "devtools-enable-sw";
+              await caches.open(cacheName);
+              const success = await caches.delete(cacheName);
+              postMessage({ success });
+            } catch (err) {
+              postMessage({ success: err.message });
+            }
           }
-        `], { type: "application/javascript" })), { type: "module" });
+        `])));
         worker.addEventListener("message", ev => resolve(ev.data), { once: true });
+        worker.postMessage("start");
         return promise;
       }
 
