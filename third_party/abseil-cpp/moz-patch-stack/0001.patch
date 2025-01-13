@@ -32,7 +32,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/29bb1b6d7fc465aad
  16 files changed, 102 insertions(+), 28 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 9efb5d859e7..4eebff0b568 100644
+index 9cd65d2f117..d27ae3ee3f5 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -26,7 +26,7 @@ component("absl") {
@@ -97,7 +97,7 @@ index 9efb5d859e7..4eebff0b568 100644
    visibility = [ ":absl" ]
  }
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 9d04bf42f1c..a9a60bf7ddb 100644
+index d0833315101..93ea12cd7a5 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -21,6 +21,7 @@ import("//build_overrides/build.gni")
@@ -126,7 +126,7 @@ index 195eab23cca..be0f3d1c08f 100644
  }
 +}
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index 8f3e866c1bc..d097f19b9d2 100644
+index 0a7a1b475f6..579a6a3769b 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
 @@ -13,11 +13,13 @@ absl_source_set("atomic_hook") {
@@ -207,14 +207,14 @@ index 8f3e866c1bc..d097f19b9d2 100644
  absl_test("config_test") {
    sources = [ "config_test.cc" ]
    deps = [
-@@ -387,3 +397,5 @@ absl_test("nullability_test") {
-     ":nullability",
-   ]
+@@ -392,3 +402,5 @@ absl_test("nullability_default_nonnull_test") {
+   sources = [ "nullability_default_nonnull_test.cc" ]
+   deps = [ ":nullability" ]
  }
 +}
 +}
 diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index e3cc2fc2f3c..eea7c93368e 100644
+index 278ffdd29da..67061df748a 100644
 --- a/abseil-cpp/absl/container/BUILD.gn
 +++ b/abseil-cpp/absl/container/BUILD.gn
 @@ -9,6 +9,7 @@ absl_source_set("compressed_tuple") {
@@ -274,7 +274,7 @@ index e3cc2fc2f3c..eea7c93368e 100644
  absl_source_set("flat_hash_set") {
    public = [ "flat_hash_set.h" ]
    deps = [
-@@ -620,3 +625,4 @@ absl_source_set("btree_test_common") {
+@@ -621,3 +626,4 @@ absl_source_set("btree_test_common") {
  #     "//third_party/abseil-cpp/absl/types:optional",
  #   ]
  # }

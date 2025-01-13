@@ -31,7 +31,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/34c8904c816a49ad3
  16 files changed, 33 insertions(+), 101 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 4eebff0b568..8ed267438d3 100644
+index d27ae3ee3f5..a999fa1cd21 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -56,11 +56,6 @@ component("absl") {
@@ -87,7 +87,7 @@ index be0f3d1c08f..195eab23cca 100644
  }
 -}
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index bf3d7a2fd1d..de99dd146b0 100644
+index 2f98fa33236..038796e8ff1 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
 @@ -13,13 +13,11 @@ absl_source_set("atomic_hook") {
@@ -207,9 +207,9 @@ index bf3d7a2fd1d..de99dd146b0 100644
  absl_test("config_test") {
    sources = [ "config_test.cc" ]
    deps = [
-@@ -399,5 +393,3 @@ absl_test("nullability_test") {
-     ":nullability",
-   ]
+@@ -404,5 +398,3 @@ absl_test("nullability_default_nonnull_test") {
+   sources = [ "nullability_default_nonnull_test.cc" ]
+   deps = [ ":nullability" ]
  }
 -}
 -}
@@ -231,7 +231,7 @@ index e8b215a22d5..3d3fa882689 100644
  }
 -}
 diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index e56b9fa25d0..e3cc2fc2f3c 100644
+index 88ddf7fa400..278ffdd29da 100644
 --- a/abseil-cpp/absl/container/BUILD.gn
 +++ b/abseil-cpp/absl/container/BUILD.gn
 @@ -9,7 +9,6 @@ absl_source_set("compressed_tuple") {
@@ -291,7 +291,7 @@ index e56b9fa25d0..e3cc2fc2f3c 100644
  absl_source_set("flat_hash_set") {
    public = [ "flat_hash_set.h" ]
    deps = [
-@@ -625,4 +620,3 @@ absl_source_set("btree_test_common") {
+@@ -626,4 +621,3 @@ absl_source_set("btree_test_common") {
  #     "//third_party/abseil-cpp/absl/types:optional",
  #   ]
  # }

@@ -30,7 +30,7 @@ index 648423a128f..bd6c38b3762 100644
  secondary_source = "//abseil-cpp/"
  
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index ea54e47e69f..e4e95660075 100644
+index 146dbb4c445..69353f35194 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -6,10 +6,10 @@
@@ -49,7 +49,7 @@ index ea54e47e69f..e4e95660075 100644
  import("//third_party/abseil-cpp/absl.gni")
  
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 9de3d1c9653..ed50a0f6e65 100644
+index e230d0a5cc0..f7b547f0fc8 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -30,10 +30,10 @@ template("absl_source_set") {
@@ -77,7 +77,7 @@ index 9de3d1c9653..ed50a0f6e65 100644
          }
        }
  
-@@ -143,9 +143,9 @@ template("absl_test") {
+@@ -135,9 +135,9 @@ template("absl_test") {
      } else {
        forward_variables_from(invoker, "*")
        testonly = true
@@ -90,7 +90,7 @@ index 9de3d1c9653..ed50a0f6e65 100644
          "//abseil-cpp:absl_define_config",
          "//abseil-cpp:absl_test_config",
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index de99dd146b0..6a76b401fc1 100644
+index 038796e8ff1..f3db373886f 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
 @@ -235,9 +235,9 @@ absl_source_set("pretty_function") {

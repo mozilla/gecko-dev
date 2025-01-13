@@ -18,7 +18,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3e09f1c91f790a6db
  3 files changed, 7 insertions(+), 1 deletion(-)
 
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index 0e56d2d8f83..bf3d7a2fd1d 100644
+index f41d641676f..2f98fa33236 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
 @@ -204,6 +204,7 @@ absl_source_set("base") {

@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bc1fac9d6d2d5d1a4
  2 files changed, 11 insertions(+), 11 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 12493e2c5c8..4bd71f0f573 100644
+index fabe5c6ff42..509010d3a45 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -112,6 +112,16 @@ group("absl_component_deps") {
@@ -48,7 +48,7 @@ index 12493e2c5c8..4bd71f0f573 100644
      public_deps += [ ":absl_full_deps" ]
    }
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index 6a76b401fc1..bae62c3a141 100644
+index f3db373886f..7b53d6b583e 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
 @@ -61,7 +61,7 @@ absl_source_set("raw_logging_internal") {
