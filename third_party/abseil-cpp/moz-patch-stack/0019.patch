@@ -1,0 +1,21 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 9 Jan 2025 11:30:00 -0600
+Subject: Bug 1938156 - third_party/abseil-cpp f861194b402 needs str_cat.cc
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/404a88a1f723c1b6432c7b3f4e4f2be71ff0bc69
+---
+ abseil-cpp/absl/strings/BUILD.gn | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
+index 6cf0ee095ea..910fbb79092 100644
+--- a/abseil-cpp/absl/strings/BUILD.gn
++++ b/abseil-cpp/absl/strings/BUILD.gn
+@@ -89,7 +89,6 @@ absl_source_set("strings") {
+     # Removed for unreachable sources.  See Bug 1820869.
+     sources -= [
+       "escaping.cc",
+-      "str_cat.cc",
+       "str_replace.cc",
+       "substitute.cc",
+     ]

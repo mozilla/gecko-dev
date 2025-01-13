@@ -89,7 +89,6 @@ absl_source_set("strings") {
     # Removed for unreachable sources.  See Bug 1820869.
     sources -= [
       "escaping.cc",
-      "str_cat.cc",
       "str_replace.cc",
       "substitute.cc",
     ]
