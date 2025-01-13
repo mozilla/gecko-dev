@@ -473,9 +473,14 @@ class SelectorAutocompleter extends EventEmitter {
     }
 
     if (state === this.States.TAG) {
-      // gets the tag that is being completed. For ex. 'div.foo > s' returns
-      // 's', 'di' returns 'di' and likewise.
-      firstPart = (query.match(/[\s>+]?([a-zA-Z]*)$/) || ["", query])[1];
+      // gets the tag that is being completed. For ex:
+      // - 'di' returns 'di'
+      // - 'div.foo s' returns 's'
+      // - 'div.foo > s' returns 's'
+      // - 'div.foo + s' returns 's'
+      // - 'div.foo x-el_1' returns 'x-el_1'
+      const matches = query.match(/[\s>+]?(?<tag>[a-zA-Z0-9_-]*)$/);
+      firstPart = matches.groups.tag;
       query = query.slice(0, query.length - firstPart.length);
     } else if (state === this.States.CLASS) {
       // gets the class that is being completed. For ex. '.foo.b' returns 'b'

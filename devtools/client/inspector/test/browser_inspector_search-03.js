@@ -7,222 +7,296 @@
 
 const TEST_URL = URL_ROOT + "doc_inspector_search.html";
 
-// An array of (key, suggestions) pairs where key is a key to press and
-// suggestions is an array of suggestions that should be shown in the popup.
-// Suggestion is an object with label of the entry and optional count
-// (defaults to 1)
-var TEST_DATA = [
+// See head.js `checkMarkupSearchSuggestions` function
+const TEST_DATA = [
   {
     key: "d",
-    suggestions: [{ label: "div" }, { label: "#d1" }, { label: "#d2" }],
+    value: "d",
+    suggestions: ["div", "#d1", "#d2"],
   },
   {
     key: "i",
-    suggestions: [{ label: "div" }],
+    value: "di",
+    suggestions: ["div"],
   },
   {
     key: "v",
+    value: "div",
     suggestions: [],
   },
   {
     key: ".",
-    suggestions: [{ label: "div.c1" }],
+    value: "div.",
+    suggestions: ["div.c1"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "div",
     suggestions: [],
   },
   {
     key: "#",
-    suggestions: [{ label: "div#d1" }, { label: "div#d2" }],
+    value: "div#",
+    suggestions: ["div#d1", "div#d2"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "div",
     suggestions: [],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: "div" }],
+    value: "di",
+    suggestions: ["div"],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: "div" }, { label: "#d1" }, { label: "#d2" }],
+    value: "d",
+    suggestions: ["div", "#d1", "#d2"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "",
     suggestions: [],
   },
   {
     key: ".",
-    suggestions: [{ label: ".c1" }, { label: ".c2" }],
+    value: ".",
+    suggestions: [".c1", ".c2"],
   },
   {
     key: "c",
-    suggestions: [{ label: ".c1" }, { label: ".c2" }],
+    value: ".c",
+    suggestions: [".c1", ".c2"],
   },
   {
     key: "2",
+    value: ".c2",
     suggestions: [],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: ".c1" }, { label: ".c2" }],
+    value: ".c",
+    suggestions: [".c1", ".c2"],
   },
   {
     key: "1",
+    value: ".c1",
     suggestions: [],
   },
   {
     key: "#",
-    suggestions: [{ label: "#d2" }, { label: "#p1" }, { label: "#s2" }],
+    value: ".c1#",
+    suggestions: ["#d2", "#p1", "#s2"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: ".c1",
     suggestions: [],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: ".c1" }, { label: ".c2" }],
+    value: ".c",
+    suggestions: [".c1", ".c2"],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: ".c1" }, { label: ".c2" }],
+    value: ".",
+    suggestions: [".c1", ".c2"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "",
     suggestions: [],
   },
   {
     key: "#",
+    value: "#",
     suggestions: [
-      { label: "#b1" },
-      { label: "#d1" },
-      { label: "#d2" },
-      { label: "#p1" },
-      { label: "#p2" },
-      { label: "#p3" },
-      { label: "#root" },
-      { label: "#s1" },
-      { label: "#s2" },
+      "#b1",
+      "#d1",
+      "#d2",
+      "#p1",
+      "#p2",
+      "#p3",
+      "#root",
+      "#s1",
+      "#s2",
     ],
   },
   {
     key: "p",
-    suggestions: [{ label: "#p1" }, { label: "#p2" }, { label: "#p3" }],
+    value: "#p",
+    suggestions: ["#p1", "#p2", "#p3"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "#",
     suggestions: [
-      { label: "#b1" },
-      { label: "#d1" },
-      { label: "#d2" },
-      { label: "#p1" },
-      { label: "#p2" },
-      { label: "#p3" },
-      { label: "#root" },
-      { label: "#s1" },
-      { label: "#s2" },
+      "#b1",
+      "#d1",
+      "#d2",
+      "#p1",
+      "#p2",
+      "#p3",
+      "#root",
+      "#s1",
+      "#s2",
     ],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "",
     suggestions: [],
   },
   {
     key: "p",
-    suggestions: [
-      { label: "p" },
-      { label: "#p1" },
-      { label: "#p2" },
-      { label: "#p3" },
-    ],
+    value: "p",
+    suggestions: ["p", "#p1", "#p2", "#p3"],
   },
   {
     key: "[",
+    value: "p[",
     suggestions: [],
   },
   {
     key: "i",
+    value: "p[i",
     suggestions: [],
   },
   {
     key: "d",
+    value: "p[id",
     suggestions: [],
   },
   {
     key: "*",
+    value: "p[id*",
     suggestions: [],
   },
   {
     key: "=",
+    value: "p[id*=",
     suggestions: [],
   },
   {
     key: "p",
+    value: "p[id*=p",
     suggestions: [],
   },
   {
     key: "]",
+    value: "p[id*=p]",
     suggestions: [],
   },
   {
     key: ".",
-    suggestions: [{ label: "p[id*=p].c1" }, { label: "p[id*=p].c2" }],
+    value: "p[id*=p].",
+    suggestions: ["p[id*=p].c1", "p[id*=p].c2"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "p[id*=p]",
     suggestions: [],
   },
   {
     key: "#",
-    suggestions: [
-      { label: "p[id*=p]#p1" },
-      { label: "p[id*=p]#p2" },
-      { label: "p[id*=p]#p3" },
-    ],
+    value: "p[id*=p]#",
+    suggestions: ["p[id*=p]#p1", "p[id*=p]#p2", "p[id*=p]#p3"],
   },
 ];
 
 add_task(async function () {
   const { inspector } = await openInspectorForURL(TEST_URL);
-  const searchBox = inspector.searchBox;
-  const popup = inspector.searchSuggestions.searchPopup;
-
-  await focusSearchBoxUsingShortcut(inspector.panelWin);
-
-  for (const { key, suggestions } of TEST_DATA) {
-    info("Pressing " + key + " to get " + formatSuggestions(suggestions));
-
-    const command = once(searchBox, "input");
-    const onSearchProcessingDone =
-      inspector.searchSuggestions.once("processing-done");
-    EventUtils.synthesizeKey(key, {}, inspector.panelWin);
-    await command;
-
-    info("Waiting for search query to complete");
-    await onSearchProcessingDone;
-
-    info(
-      "Query completed. Performing checks for input '" + searchBox.value + "'"
-    );
-    const actualSuggestions = popup.getItems();
-
-    is(
-      popup.isOpen ? actualSuggestions.length : 0,
-      suggestions.length,
-      "There are expected number of suggestions."
-    );
-
-    for (let i = 0; i < suggestions.length; i++) {
-      is(
-        actualSuggestions[i].label,
-        suggestions[i].label,
-        "The suggestion at " + i + "th index is correct."
-      );
-    }
-  }
+  await checkMarkupSearchSuggestions(inspector, TEST_DATA);
 });
 
-function formatSuggestions(suggestions) {
-  return "[" + suggestions.map(s => "'" + s.label + "'").join(", ") + "]";
-}
+add_task(async function () {
+  const { inspector } =
+    await openInspectorForURL(`data:text/html,<meta charset=utf8>
+    <main>
+      <div class="testA_alpha"></div>
+      <div class="test1_numeric"></div>
+      <div class="test-_dash"></div>
+      <div class="test__underscore"></div>
+      <test-foo></test-element>
+      <test-bar></test-element>
+    </main>`);
+
+  const testSuggestions = [
+    "test-bar",
+    "test-foo",
+    ".test__underscore",
+    ".test-_dash",
+    ".test1_numeric",
+    ".testA_alpha",
+  ];
+
+  await checkMarkupSearchSuggestions(inspector, [
+    {
+      key: "t",
+      value: "t",
+      suggestions: testSuggestions,
+    },
+    {
+      key: "e",
+      value: "te",
+      suggestions: testSuggestions,
+    },
+    {
+      key: "s",
+      value: "tes",
+      suggestions: testSuggestions,
+    },
+    {
+      key: "t",
+      value: "test",
+      suggestions: testSuggestions,
+    },
+    {
+      key: "-",
+      value: "test-",
+      suggestions: ["test-bar", "test-foo", ".test-_dash"],
+    },
+    {
+      key: "f",
+      value: "test-f",
+      suggestions: ["test-foo"],
+    },
+    {
+      key: "VK_BACK_SPACE",
+      value: "test-",
+      suggestions: ["test-bar", "test-foo", ".test-_dash"],
+    },
+    {
+      key: "VK_BACK_SPACE",
+      value: "test",
+      suggestions: testSuggestions,
+    },
+    {
+      key: "_",
+      value: "test_",
+      suggestions: [".test__underscore"],
+    },
+    {
+      key: "VK_BACK_SPACE",
+      value: "test",
+      suggestions: testSuggestions,
+    },
+    {
+      key: "1",
+      value: "test1",
+      suggestions: [".test1_numeric"],
+    },
+    {
+      key: "VK_BACK_SPACE",
+      value: "test",
+      suggestions: testSuggestions,
+    },
+    {
+      key: "A",
+      value: "testA",
+      suggestions: [".testA_alpha"],
+    },
+  ]);
+});

@@ -1660,3 +1660,54 @@ async function getAreaRect({ getElementAttribute }) {
 
   return coords;
 }
+
+/**
+ * Follow a sequence of keys to be pressed in the markup view search input and check
+ * that the input value and the suggestions are the expected ones.
+ *
+ * @param {Inspector} inspector
+ * @param {Array} expected: This is the array describing the sequence.
+ *        Each item hasthe following shape:
+ *        - key {String}: The keyboard key that is pressed
+ *        - value {String}: The expected input value after the key was pressed
+ *        - suggestions {Array<String>}: An array of the labels in the autocomplete popup.
+ *                                       Pass an empty array if the popup should be hidden.
+ */
+async function checkMarkupSearchSuggestions(inspector, expected) {
+  const searchBox = inspector.searchBox;
+  const popup = inspector.searchSuggestions.searchPopup;
+
+  await focusSearchBoxUsingShortcut(inspector.panelWin);
+
+  for (const { key, suggestions, value } of expected) {
+    info("Pressing " + key + " to get " + JSON.stringify(suggestions));
+
+    const command = once(searchBox, "input");
+    const onSearchProcessingDone =
+      inspector.searchSuggestions.once("processing-done");
+    EventUtils.synthesizeKey(key, {}, inspector.panelWin);
+    await command;
+
+    is(searchBox.value, value, "search input has expected value");
+
+    info("Waiting for search query to complete");
+    await onSearchProcessingDone;
+
+    info(
+      "Query completed. Performing checks for input '" +
+        searchBox.value +
+        "' - key pressed: " +
+        key
+    );
+
+    if (suggestions.length === 0) {
+      ok(!popup.isOpen, `There is no suggestion for "${searchBox.value}"`);
+    } else {
+      Assert.deepEqual(
+        popup.getItems().map(item => item.label),
+        suggestions,
+        `Suggestions are correct for "${searchBox.value}"`
+      );
+    }
+  }
+}
