@@ -402,18 +402,18 @@ if __name__ == "__main__":
         resume_state = ""
         update_resume_state("resume7", resume_state_filename)
         error_help = (
-            "Reverting change to 'third_party/libwebrtc/README.mozilla'\n"
+            "Reverting change to 'third_party/libwebrtc/README.mozilla.last-vendor'\n"
             "has failed.  The cherry-pick commit should not modify\n"
             "'third_party/libwebrtc/README.mozilla'.  If necessary\n"
             "manually revert changes to 'third_party/libwebrtc/README.mozilla'\n"
-            f"and re-run {script_name}\n"
+            f"in the cherry-pick commit and re-run {script_name}\n"
             "to complete the cherry-pick processing."
         )
         # The normal vendoring process updates README.mozilla with info
         # on what commit was vendored and the command line used to do
         # the vendoring.  Since we're only reusing the vendoring script
         # here, we don't want to update the README.mozilla file.
-        cmd = "hg revert -r tip^ third_party/libwebrtc/README.mozilla"
+        cmd = "hg revert -r tip^ third_party/libwebrtc/README.mozilla.last-vendor"
         run_hg(cmd)
         cmd = "hg amend"
         run_hg(cmd)
