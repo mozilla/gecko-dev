@@ -8,6 +8,7 @@ DIRS += [
     "content",
 ]
 
+MARIONETTE_MANIFESTS += ["test/marionette/manifest.toml"]
 BROWSER_CHROME_MANIFESTS += ["test/browser.toml", "test/browserSidebarRevamp.toml"]
 XPCSHELL_TESTS_MANIFESTS += ["test/unit/xpcshell.toml"]
 
