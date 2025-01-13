@@ -9,6 +9,7 @@
 
 #include "mozilla/BaseProfilerMarkers.h"
 #include "mozilla/ProfilerLabels.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "nsString.h"
 #include "ETWTools.h"
 
@@ -32,6 +33,57 @@ class FlowMarker : public BaseMarkerType<FlowMarker> {
       "{marker.name} (flow={marker.data.flow})";
 
   static constexpr MS::ETWMarkerGroup Group = MS::ETWMarkerGroup::Generic;
+
+  static void StreamJSONMarkerData(
+      mozilla::baseprofiler::SpliceableJSONWriter& aWriter, Flow aFlow) {
+    aWriter.FlowProperty("flow", aFlow);
+  }
+};
+
+class FlowStackMarker : public BaseMarkerType<FlowStackMarker> {
+ public:
+  static constexpr const char* Name = "FlowStackMarker";
+  static constexpr const char* Description = "";
+
+  using MS = MarkerSchema;
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"flow", MS::InputType::Uint64, "Flow", MS::Format::Flow,
+       MS::PayloadFlags::Searchable}};
+
+  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
+                                               MS::Location::MarkerTable};
+  static constexpr const char* AllLabels =
+      "{marker.name} (flow={marker.data.flow})";
+
+  static constexpr MS::ETWMarkerGroup Group = MS::ETWMarkerGroup::Generic;
+
+  static constexpr bool IsStackBased = true;
+
+  static void StreamJSONMarkerData(
+      mozilla::baseprofiler::SpliceableJSONWriter& aWriter, Flow aFlow) {
+    aWriter.FlowProperty("flow", aFlow);
+  }
+};
+
+class TerminatingFlowStackMarker
+    : public BaseMarkerType<TerminatingFlowStackMarker> {
+ public:
+  static constexpr const char* Name = "TerminatingFlowStackMarker";
+  static constexpr const char* Description = "";
+
+  using MS = MarkerSchema;
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"flow", MS::InputType::Uint64, "Flow", MS::Format::TerminatingFlow,
+       MS::PayloadFlags::Searchable}};
+
+  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
+                                               MS::Location::MarkerTable};
+  static constexpr const char* AllLabels =
+      "{marker.name} (flow={marker.data.flow})";
+
+  static constexpr MS::ETWMarkerGroup Group = MS::ETWMarkerGroup::Generic;
+
+  static constexpr bool IsStackBased = true;
 
   static void StreamJSONMarkerData(
       mozilla::baseprofiler::SpliceableJSONWriter& aWriter, Flow aFlow) {
@@ -120,6 +172,73 @@ class TerminatingFlowTextMarker
     aWriter.FlowProperty("terminatingFlow", aFlow);
   }
 };
+
+class MOZ_RAII AutoProfilerFlowMarker {
+ public:
+  AutoProfilerFlowMarker(const char* aMarkerName,
+                         const mozilla::MarkerCategory& aCategory, Flow aFlow)
+      : mMarkerName(aMarkerName), mCategory(aCategory), mFlow(aFlow) {
+    MOZ_ASSERT(mOptions.Timing().EndTime().IsNull(),
+               "AutoProfilerTextMarker options shouldn't have an end time");
+    if (profiler_is_active_and_unpaused() &&
+        mOptions.Timing().StartTime().IsNull()) {
+      mOptions.Set(mozilla::MarkerTiming::InstantNow());
+    }
+  }
+
+  ~AutoProfilerFlowMarker() {
+    if (profiler_is_active_and_unpaused()) {
+      mOptions.TimingRef().SetIntervalEnd();
+      profiler_add_marker(
+          mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
+          mCategory, std::move(mOptions), FlowStackMarker{}, mFlow);
+    }
+  }
+
+ public:
+  const char* mMarkerName;
+  mozilla::MarkerCategory mCategory;
+  mozilla::MarkerOptions mOptions;
+  Flow mFlow;
+};
+
+class MOZ_RAII AutoProfilerTerminatingFlowMarker {
+ public:
+  AutoProfilerTerminatingFlowMarker(const char* aMarkerName,
+                                    const mozilla::MarkerCategory& aCategory,
+                                    Flow aFlow)
+      : mMarkerName(aMarkerName), mCategory(aCategory), mFlow(aFlow) {
+    MOZ_ASSERT(mOptions.Timing().EndTime().IsNull(),
+               "AutoProfilerTextMarker options shouldn't have an end time");
+    if (profiler_is_active_and_unpaused() &&
+        mOptions.Timing().StartTime().IsNull()) {
+      mOptions.Set(mozilla::MarkerTiming::InstantNow());
+    }
+  }
+
+  ~AutoProfilerTerminatingFlowMarker() {
+    if (profiler_is_active_and_unpaused()) {
+      mOptions.TimingRef().SetIntervalEnd();
+      profiler_add_marker(
+          mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
+          mCategory, std::move(mOptions), TerminatingFlowStackMarker{}, mFlow);
+    }
+  }
+
+ public:
+  const char* mMarkerName;
+  mozilla::MarkerCategory mCategory;
+  mozilla::MarkerOptions mOptions;
+  Flow mFlow;
+};
+
+#define AUTO_PROFILER_FLOW_MARKER(markerName, categoryName, flow) \
+  AutoProfilerFlowMarker PROFILER_RAII(                           \
+      markerName, ::mozilla::baseprofiler::category::categoryName, flow)
+
+#define AUTO_PROFILER_TERMINATING_FLOW_MARKER(markerName, categoryName, flow) \
+  AutoProfilerTerminatingFlowMarker PROFILER_RAII(                            \
+      markerName, ::mozilla::baseprofiler::category::categoryName, flow)
 
 }  // namespace mozilla
 #endif  // FlowMarkers_h
