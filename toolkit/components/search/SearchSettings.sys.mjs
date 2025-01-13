@@ -256,11 +256,16 @@ export class SearchSettings {
             sizeObj = JSON.parse(sizeStr);
           } catch {}
           if (
+            typeof sizeObj === "object" &&
             "width" in sizeObj &&
             parseInt(sizeObj.width) > 0 &&
             sizeObj.width == sizeObj.height
           ) {
             engine._iconMapObj[sizeObj.width] = icon;
+          } else if (typeof sizeObj === "number") {
+            // This happens if the user copies a version 11+ search config to
+            // an old install, which gets updated eventually; see bug 1940533.
+            engine._iconMapObj[sizeObj] = icon;
           }
         }
       }

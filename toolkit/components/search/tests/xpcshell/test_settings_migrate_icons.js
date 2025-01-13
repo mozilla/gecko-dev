@@ -28,6 +28,8 @@ const SEARCH_SETTINGS = {
         '{"width":42,"height":41}': "data:image/png;base64,ico42",
         "{}": "data:image/png;base64,ico0",
         "invalid json": "data:image/png;base64,ico0",
+        // Going back and forth should work.
+        64: "data:image/png;base64,ico64",
       },
       _metaData: {
         loadPathHash: "OixanEC3I3fSEnZY/YeX1YndC9qdzkqotEEKsodghLY=",
@@ -81,7 +83,7 @@ add_task(async function test_icon_migration() {
 
   Assert.equal(
     Object.keys(engine.wrappedJSObject._iconMapObj).length,
-    2,
+    3,
     "Only valid _iconMapObj keys got converted."
   );
   Assert.ok(
@@ -94,5 +96,6 @@ add_task(async function test_icon_migration() {
   Assert.ok((await engine.getIconURL()).includes("ico16"));
   Assert.ok((await engine.getIconURL(16)).includes("ico16"));
   Assert.ok((await engine.getIconURL(32)).includes("ico32"));
+  Assert.ok((await engine.getIconURL(64)).includes("ico64"));
   Assert.ok((await engine.getIconURL(74)).includes("ico74"));
 });
