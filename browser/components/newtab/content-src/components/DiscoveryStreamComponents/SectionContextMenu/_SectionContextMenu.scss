@@ -1,0 +1,12 @@
+.section-context-menu {
+  position: relative;
+
+  .context-menu {
+    /* Fix the context menu width */
+    width: calc(4 * var(--size-item-large));
+
+    /* Position the context menu on top of the card grid, below the menu button. */
+    top: calc( 2.5 * var(--size-item-small));
+    inset-inline-start: calc(-6.25 * var(--size-item-small));
+  }
+}
