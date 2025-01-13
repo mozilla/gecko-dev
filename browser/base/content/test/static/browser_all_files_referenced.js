@@ -128,6 +128,9 @@ var allowlist = [
   // security/manager/pki/resources/content/device_manager.js
   { file: "chrome://pippki/content/load_device.xhtml" },
 
+  // Intentionally unreferenced, see bug 1941134
+  { file: "resource://gre/res/designmode.css" },
+
   // The l10n build system can't package string files only for some platforms.
   // See bug 1339424 for why this is hard to fix.
   {
