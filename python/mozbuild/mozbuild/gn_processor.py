@@ -575,6 +575,16 @@ def write_mozbuild(
                     mb.write('    CXXFLAGS += CONFIG["MOZ_LIBVPX_CFLAGS"]\n')
             except KeyError:
                 pass
+            try:
+                if (
+                    relsrcdir
+                    in write_mozbuild_variables["INCLUDE_SYSTEM_DAV1D_HANDLING"]
+                ):
+                    mb.write('if CONFIG["MOZ_SYSTEM_AV1"]:\n')
+                    mb.write('    CXXFLAGS += CONFIG["MOZ_SYSTEM_DAV1D_CFLAGS"]\n')
+                    mb.write('    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]\n')
+            except KeyError:
+                pass
 
             all_args = [args for args, _ in configs]
 
