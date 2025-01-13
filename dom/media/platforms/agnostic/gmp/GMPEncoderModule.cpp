@@ -40,18 +40,28 @@ bool GMPEncoderModule::Supports(const EncoderConfig& aConfig) const {
   if (!CanLikelyEncode(aConfig)) {
     return false;
   }
-  if (aConfig.mScalabilityMode != ScalabilityMode::None) {
+  if (aConfig.mCodec != CodecType::H264) {
     return false;
   }
   if (aConfig.mHardwarePreference == HardwarePreference::RequireHardware) {
     return false;
   }
-  if (aConfig.mCodecSpecific && aConfig.mCodecSpecific->is<H264Specific>() &&
-      aConfig.mCodecSpecific->as<H264Specific>().mFormat !=
-          H264BitStreamFormat::ANNEXB) {
+  if (aConfig.mCodecSpecific && aConfig.mCodecSpecific->is<H264Specific>()) {
+    const auto& codecSpecific = aConfig.mCodecSpecific->as<H264Specific>();
+    if (codecSpecific.mFormat != H264BitStreamFormat::ANNEXB) {
+      return false;
+    }
+    if (codecSpecific.mProfile != H264_PROFILE_UNKNOWN &&
+        codecSpecific.mProfile != H264_PROFILE_BASE &&
+        !HaveGMPFor("encode-video"_ns, {"moz-h264-advanced"_ns})) {
+      return false;
+    }
+  }
+  if (aConfig.mScalabilityMode != ScalabilityMode::None &&
+      !HaveGMPFor("encode-video"_ns, {"moz-h264-temporal-svc"_ns})) {
     return false;
   }
-  return SupportsCodec(aConfig.mCodec);
+  return HaveGMPFor("encode-video"_ns, {"h264"_ns});
 }
 
 bool GMPEncoderModule::SupportsCodec(CodecType aCodecType) const {

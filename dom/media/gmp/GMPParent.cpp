@@ -13,6 +13,7 @@
 #include "GMPTimerParent.h"
 #include "MediaResult.h"
 #include "mozIGeckoMediaPluginService.h"
+#include "mozilla/Casting.h"
 #include "mozilla/dom/KeySystemNames.h"
 #include "mozilla/dom/WidevineCDMManifestBinding.h"
 #include "mozilla/FOGIPC.h"
@@ -971,6 +972,38 @@ static void ApplyOleaut32(nsCString& aLibs) {
 }
 #endif
 
+static constexpr uint64_t MakeVersion(uint16_t aA, uint16_t aB, uint16_t aC,
+                                      uint16_t aD) {
+  return (static_cast<uint64_t>(aA) << 48) | (static_cast<uint64_t>(aB) << 32) |
+         (static_cast<uint64_t>(aC) << 16) | aD;
+}
+
+static nsresult ParseVersion(const nsACString& aVersion,
+                             uint64_t* aParsedVersion) {
+  MOZ_ASSERT(aParsedVersion);
+
+  uint64_t version = 0;
+  uint32_t fragmentCount = 0;
+  nsresult rv = NS_OK;
+
+  for (const auto& fragment : aVersion.Split('.')) {
+    ++fragmentCount;
+    if (NS_WARN_IF(fragmentCount >= 5)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    uint32_t fragmentInt = fragment.ToUnsignedInteger(&rv, /* aRadix */ 10);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    version = (version << 16) | SaturatingCast<uint16_t>(fragmentInt);
+  }
+
+  *aParsedVersion = version << (4 - fragmentCount) * 16;
+  return NS_OK;
+}
+
 RefPtr<GenericPromise> GMPParent::ReadGMPInfoFile(nsIFile* aFile) {
   MOZ_ASSERT(IsOnGMPEventTarget());
   GMPInfoFileParser parser;
@@ -992,6 +1025,25 @@ RefPtr<GenericPromise> GMPParent::ReadGMPInfoFile(nsIFile* aFile) {
 #endif
 
   UpdatePluginType();
+
+  // We check the version for OpenH264 because we may need to add additional API
+  // tags to indicate we support more advanced modes for newer versions of the
+  // plugin.
+  bool addMozSupportsH264Advanced = false;
+  bool addMozSupportsH264TemporalSVC = false;
+  if (mPluginType == GMPPluginType::OpenH264) {
+    uint64_t parsedVersion = 0;
+    nsresult rv = ParseVersion(mVersion, &parsedVersion);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return GenericPromise::CreateAndReject(rv, __func__);
+    }
+
+    // Earlier versions only supported decoding/encoding constrained baseline.
+    addMozSupportsH264Advanced = parsedVersion >= MakeVersion(2, 3, 2, 0);
+
+    // Earlier versions did not expose the encoded SVC temporal layer ID.
+    addMozSupportsH264TemporalSVC = parsedVersion > MakeVersion(2, 5, 0, 0);
+  }
 
 #ifdef XP_LINUX
   // The glibc workaround (see above) isn't needed for clearkey
@@ -1036,6 +1088,17 @@ RefPtr<GenericPromise> GMPParent::ReadGMPInfoFile(nsIFile* aFile) {
         for (nsCString tag : tagTokens) {
           cap.mAPITags.AppendElement(tag);
         }
+      }
+    }
+
+    if (mPluginType == GMPPluginType::OpenH264) {
+      if (addMozSupportsH264Advanced &&
+          !cap.mAPITags.Contains("moz-h264-advanced"_ns)) {
+        cap.mAPITags.AppendElement("moz-h264-advanced"_ns);
+      }
+      if (addMozSupportsH264TemporalSVC &&
+          !cap.mAPITags.Contains("moz-h264-temporal-svc"_ns)) {
+        cap.mAPITags.AppendElement("moz-h264-temporal-svc"_ns);
       }
     }
 
