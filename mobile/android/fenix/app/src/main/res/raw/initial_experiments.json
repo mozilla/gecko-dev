@@ -87,7 +87,7 @@
       "channel": "release",
       "userFacingName": "Promote Add Ons in Onboarding - Release",
       "userFacingDescription": "Test Promoting Add Ons in Onboarding v2",
-      "isEnrollmentPaused": false,
+      "isEnrollmentPaused": true,
       "isRollout": false,
       "bucketConfig": {
         "randomizationUnit": "nimbus_id",
