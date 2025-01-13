@@ -10,14 +10,14 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c4cbc65577ab4012d
  1 file changed, 1 insertion(+)
 
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 3caf426cd06..0bef4c03161 100644
+index 4d4fe83baab..acde7387634 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
-@@ -99,6 +99,7 @@ template("absl_source_set") {
-       modified_deps = []
-       foreach (dep, deps) {
-         newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-+        newdep = string_replace(newdep, "//build", "//chromium/build")
-         modified_deps += [ newdep ]
-       }
-       deps = []
+@@ -103,6 +103,7 @@ template("absl_source_set") {
+         modified_deps = []
+         foreach (dep, deps) {
+           newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
++          newdep = string_replace(newdep, "//build", "//chromium/build")
+           modified_deps += [ newdep ]
+         }
+         deps = []

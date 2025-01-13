@@ -20,138 +20,147 @@
 import("//build_overrides/build.gni")
 
 declare_args() {
+  absl_build_tests = build_with_chromium
   moz_webrtc_build = true
 }
 
 template("absl_source_set") {
   source_set(target_name) {
-    forward_variables_from(invoker, "*")
-    configs -= [ "//chromium/build/config/compiler:chromium_code" ]
-    configs += [
-      "//chromium/build/config/compiler:no_chromium_code",
-      "//chromium/build/config/compiler:prevent_unsafe_narrowing",
-      "//abseil-cpp:absl_default_cflags_cc",
-      "//abseil-cpp:absl_define_config",
-    ]
+    if (defined(invoker.testonly) && invoker.testonly && !absl_build_tests) {
+      not_needed(invoker, "*")
+    } else {
+      forward_variables_from(invoker, "*")
+      configs -= [ "//chromium/build/config/compiler:chromium_code" ]
+      configs += [
+        "//chromium/build/config/compiler:no_chromium_code",
+        "//chromium/build/config/compiler:prevent_unsafe_narrowing",
+        "//abseil-cpp:absl_default_cflags_cc",
+        "//abseil-cpp:absl_define_config",
+      ]
 
-    if (is_component_build) {
-      defines = [ "ABSL_BUILD_DLL" ]
-      if (!is_win && (current_os != "aix")) {
-        configs -= [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
-        configs += [ "//chromium/build/config/gcc:symbol_visibility_default" ]
+      if (is_component_build) {
+        defines = [ "ABSL_BUILD_DLL" ]
+        if (!is_win && current_os != "aix") {
+          configs -= [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
+          configs += [ "//chromium/build/config/gcc:symbol_visibility_default" ]
+        }
       }
-    }
 
-    if (!defined(public_configs)) {
-      public_configs = []
-    }
-    public_configs += [ "//abseil-cpp:absl_include_config" ]
-
-    if (!defined(visibility)) {
-      # Within Chromium builds, restrict direct visibility of Abseil sources, so
-      # users must depend on //third_party/abseil-cpp:absl. This prevents use of
-      # banned targets like absl/types:any. A few targets require exceptions.
-      # TODO(crbug.com/1096380): Consider replacing build_with_chromium with
-      # is_component_build for a narrower, more accurate condition.
-      if (build_with_chromium) {
-        visibility = [
-          # Abseil itself.
-          "//third_party/abseil-cpp/*",
-
-          # GTest.  It unconditionally #includes any.h if pretty-print support
-          # for absl types is enabled.
-          "//third_party/googletest/*",
-
-          # Centipede, a fuzz test runner
-          "//third_party/fuzztest/*",
-
-          # WebRTC binary to run PSNR and SSIM video quality analysis. It
-          # statically links absl and it is used by "browser_tests" when
-          # is_component_build=false but it cannot depend on the absl
-          # component because it uses absl/flags.
-          "//third_party/webrtc/rtc_tools:frame_analyzer",
-
-          # WebRTC binaries used by //:chromium_builder_asan. They both
-          # statically link absl (because they depend on absl/flags) and are
-          # used by Chromium only when is_component_build=false.
-          "//third_party/webrtc/rtc_tools:rtp_generator",
-          "//third_party/webrtc/rtc_tools:video_replay",
-
-          # Not used by Chromium directly.
-          "//chromecast/internal/*",
-          "//libassistant/*",
-
-          # Not built into Chrome.
-          "//components/optimization_guide/internal/*",
-        ]
-      } else {
-        visibility = [ "*" ]
+      if (!defined(public_configs)) {
+        public_configs = []
       }
-    }
-    visibility += [ "//abseil-cpp/*" ]
+      public_configs += [ "//abseil-cpp:absl_include_config" ]
 
-    # Now that abseil-cpp lives under Mozilla's third_party instead
-    # of under libwebrtc's third_party and is built as a stand-alone
-    # library, we need to "re-root" the dependency paths.  We can
-    # modify the dependencies here to avoid modifying most, if not
-    # all, of the BUILD.gn files.
-    if (defined(deps)) {
-      modified_deps = []
-      foreach (dep, deps) {
-        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-        newdep = string_replace(newdep, "//build", "//chromium/build")
-        modified_deps += [ newdep ]
-      }
-      deps = []
-      deps = modified_deps
-    }
+      if (!defined(visibility)) {
+        # Within Chromium builds, restrict direct visibility of Abseil sources, so
+        # users must depend on //third_party/abseil-cpp:absl. This prevents use of
+        # banned targets like absl/types:any. A few targets require exceptions.
+        # TODO(crbug.com/1096380): Consider replacing build_with_chromium with
+        # is_component_build for a narrower, more accurate condition.
+        if (build_with_chromium) {
+          visibility = [
+            # Abseil itself.
+            "//third_party/abseil-cpp/*",
 
-    # Same for public_deps
-    if (defined(public_deps)) {
-      modified_deps = []
-      foreach (dep, public_deps) {
-        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-        modified_deps += [ newdep ]
-      }
-      public_deps = []
-      public_deps = modified_deps
-    }
+            # GTest.  It unconditionally #includes any.h if pretty-print support
+            # for absl types is enabled.
+            "//third_party/googletest/*",
 
-    # Same for visibility
-    if (defined(visibility)) {
-      modified_deps = []
-      foreach (dep, visibility) {
-        newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
-        modified_deps += [ newdep ]
+            # Centipede, a fuzz test runner
+            "//third_party/fuzztest/*",
+
+            # WebRTC binary to run PSNR and SSIM video quality analysis. It
+            # statically links absl and it is used by "browser_tests" when
+            # is_component_build=false but it cannot depend on the absl
+            # component because it uses absl/flags.
+            "//third_party/webrtc/rtc_tools:frame_analyzer",
+
+            # WebRTC binaries used by //:chromium_builder_asan. They both
+            # statically link absl (because they depend on absl/flags) and are
+            # used by Chromium only when is_component_build=false.
+            "//third_party/webrtc/rtc_tools:rtp_generator",
+            "//third_party/webrtc/rtc_tools:video_replay",
+
+            # Not used by Chromium directly.
+            "//chromecast/internal/*",
+            "//libassistant/*",
+
+            # Not built into Chrome.
+            "//components/optimization_guide/internal/*",
+          ]
+        } else {
+          visibility = [ "*" ]
+        }
       }
-      visibility = []
-      visibility = modified_deps
+      visibility += [ "//abseil-cpp/*" ]
+
+      # Now that abseil-cpp lives under Mozilla's third_party instead
+      # of under libwebrtc's third_party and is built as a stand-alone
+      # library, we need to "re-root" the dependency paths.  We can
+      # modify the dependencies here to avoid modifying most, if not
+      # all, of the BUILD.gn files.
+      if (defined(deps)) {
+        modified_deps = []
+        foreach (dep, deps) {
+          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
+          newdep = string_replace(newdep, "//build", "//chromium/build")
+          modified_deps += [ newdep ]
+        }
+        deps = []
+        deps = modified_deps
+      }
+
+      # Same for public_deps
+      if (defined(public_deps)) {
+        modified_deps = []
+        foreach (dep, public_deps) {
+          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
+          modified_deps += [ newdep ]
+        }
+        public_deps = []
+        public_deps = modified_deps
+      }
+
+      # Same for visibility
+      if (defined(visibility)) {
+        modified_deps = []
+        foreach (dep, visibility) {
+          newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
+          modified_deps += [ newdep ]
+        }
+        visibility = []
+        visibility = modified_deps
+      }
     }
   }
 }
 
 template("absl_test") {
   source_set(target_name) {
-    forward_variables_from(invoker, "*")
-    testonly = true
-    configs -= [ "//chromium/build/config/compiler:chromium_code" ]
-    configs += [
-      "//chromium/build/config/compiler:no_chromium_code",
-      "//abseil-cpp:absl_default_cflags_cc",
-      "//abseil-cpp:absl_define_config",
-      "//abseil-cpp:absl_test_config",
-    ]
+    if (!absl_build_tests) {
+      not_needed(invoker, "*")
+    } else {
+      forward_variables_from(invoker, "*")
+      testonly = true
+      configs -= [ "//chromium/build/config/compiler:chromium_code" ]
+      configs += [
+        "//chromium/build/config/compiler:no_chromium_code",
+        "//abseil-cpp:absl_default_cflags_cc",
+        "//abseil-cpp:absl_define_config",
+        "//abseil-cpp:absl_test_config",
+      ]
 
-    if (!defined(public_configs)) {
-      public_configs = []
+      if (!defined(public_configs)) {
+        public_configs = []
+      }
+      public_configs += [ "//abseil-cpp:absl_include_config" ]
+
+      visibility = [ "//third_party/abseil-cpp/:*" ]
+      deps += [
+        "//third_party/googletest:gmock",
+        "//third_party/googletest:gtest",
+      ]
     }
-    public_configs += [ "//abseil-cpp:absl_include_config" ]
-
-    visibility = [ "//third_party/abseil-cpp/:*" ]
-    deps += [
-      "//third_party/googletest:gmock",
-      "//third_party/googletest:gtest",
-    ]
 
     # Now that abseil-cpp lives under Mozilla's third_party instead
     # of under libwebrtc's third_party and is built as a stand-alone

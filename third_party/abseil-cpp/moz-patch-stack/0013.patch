@@ -30,7 +30,7 @@ index 648423a128f..bd6c38b3762 100644
  secondary_source = "//abseil-cpp/"
  
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 83b75ad53e0..02ed6264f98 100644
+index 628ea75f543..18c3c8f402f 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -6,10 +6,10 @@
@@ -49,46 +49,46 @@ index 83b75ad53e0..02ed6264f98 100644
  import("//third_party/abseil-cpp/absl.gni")
  
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 49556d7eb61..3caf426cd06 100644
+index 0879d48e708..4d4fe83baab 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
-@@ -26,10 +26,10 @@ declare_args() {
- template("absl_source_set") {
-   source_set(target_name) {
-     forward_variables_from(invoker, "*")
--    configs -= [ "//build/config/compiler:chromium_code" ]
-+    configs -= [ "//chromium/build/config/compiler:chromium_code" ]
-     configs += [
--      "//build/config/compiler:no_chromium_code",
--      "//build/config/compiler:prevent_unsafe_narrowing",
-+      "//chromium/build/config/compiler:no_chromium_code",
-+      "//chromium/build/config/compiler:prevent_unsafe_narrowing",
-       "//abseil-cpp:absl_default_cflags_cc",
-       "//abseil-cpp:absl_define_config",
-     ]
-@@ -37,8 +37,8 @@ template("absl_source_set") {
-     if (is_component_build) {
-       defines = [ "ABSL_BUILD_DLL" ]
-       if (!is_win && (current_os != "aix")) {
--        configs -= [ "//build/config/gcc:symbol_visibility_hidden" ]
--        configs += [ "//build/config/gcc:symbol_visibility_default" ]
-+        configs -= [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
-+        configs += [ "//chromium/build/config/gcc:symbol_visibility_default" ]
+@@ -30,10 +30,10 @@ template("absl_source_set") {
+       not_needed(invoker, "*")
+     } else {
+       forward_variables_from(invoker, "*")
+-      configs -= [ "//build/config/compiler:chromium_code" ]
++      configs -= [ "//chromium/build/config/compiler:chromium_code" ]
+       configs += [
+-        "//build/config/compiler:no_chromium_code",
+-        "//build/config/compiler:prevent_unsafe_narrowing",
++        "//chromium/build/config/compiler:no_chromium_code",
++        "//chromium/build/config/compiler:prevent_unsafe_narrowing",
+         "//abseil-cpp:absl_default_cflags_cc",
+         "//abseil-cpp:absl_define_config",
+       ]
+@@ -41,8 +41,8 @@ template("absl_source_set") {
+       if (is_component_build) {
+         defines = [ "ABSL_BUILD_DLL" ]
+         if (!is_win && current_os != "aix") {
+-          configs -= [ "//build/config/gcc:symbol_visibility_hidden" ]
+-          configs += [ "//build/config/gcc:symbol_visibility_default" ]
++          configs -= [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
++          configs += [ "//chromium/build/config/gcc:symbol_visibility_default" ]
+         }
        }
-     }
  
-@@ -133,9 +133,9 @@ template("absl_test") {
-   source_set(target_name) {
-     forward_variables_from(invoker, "*")
-     testonly = true
--    configs -= [ "//build/config/compiler:chromium_code" ]
-+    configs -= [ "//chromium/build/config/compiler:chromium_code" ]
-     configs += [
--      "//build/config/compiler:no_chromium_code",
-+      "//chromium/build/config/compiler:no_chromium_code",
-       "//abseil-cpp:absl_default_cflags_cc",
-       "//abseil-cpp:absl_define_config",
-       "//abseil-cpp:absl_test_config",
+@@ -141,9 +141,9 @@ template("absl_test") {
+     } else {
+       forward_variables_from(invoker, "*")
+       testonly = true
+-      configs -= [ "//build/config/compiler:chromium_code" ]
++      configs -= [ "//chromium/build/config/compiler:chromium_code" ]
+       configs += [
+-        "//build/config/compiler:no_chromium_code",
++        "//chromium/build/config/compiler:no_chromium_code",
+         "//abseil-cpp:absl_default_cflags_cc",
+         "//abseil-cpp:absl_define_config",
+         "//abseil-cpp:absl_test_config",
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
 index 7206b756da5..f5a539f9c46 100644
 --- a/abseil-cpp/absl/base/BUILD.gn

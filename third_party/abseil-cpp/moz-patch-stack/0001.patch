@@ -14,7 +14,7 @@ Differential Revision: https://phabricator.services.mozilla.com/D148809
 Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/29bb1b6d7fc465aad44e15837e7b731bc40bc98a
 ---
  abseil-cpp/BUILD.gn                      | 14 ++++++--
- abseil-cpp/absl.gni                      |  4 +++
+ abseil-cpp/absl.gni                      |  1 +
  abseil-cpp/absl/algorithm/BUILD.gn       |  2 ++
  abseil-cpp/absl/base/BUILD.gn            | 12 +++++++
  abseil-cpp/absl/container/BUILD.gn       | 14 +++++---
@@ -29,10 +29,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/29bb1b6d7fc465aad
  abseil-cpp/absl/synchronization/BUILD.gn |  2 ++
  abseil-cpp/absl/time/BUILD.gn            |  2 ++
  abseil-cpp/absl/types/BUILD.gn           |  6 +++-
- 16 files changed, 105 insertions(+), 28 deletions(-)
+ 16 files changed, 102 insertions(+), 28 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 9d316b94047..8bba650eaa0 100644
+index 102cabfe024..c6afc7e7c3d 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -26,7 +26,7 @@ component("absl") {
@@ -91,20 +91,17 @@ index 9d316b94047..8bba650eaa0 100644
    visibility = [ ":absl" ]
  }
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 91d41115b21..f2a0a1c5383 100644
+index b31cb284d6c..c97b6d3ae4a 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
-@@ -19,6 +19,10 @@
+@@ -21,6 +21,7 @@ import("//build_overrides/build.gni")
  
- import("//build_overrides/build.gni")
- 
-+declare_args() {
+ declare_args() {
+   absl_build_tests = build_with_chromium
 +  moz_webrtc_build = true
-+}
-+
+ }
+ 
  template("absl_source_set") {
-   source_set(target_name) {
-     forward_variables_from(invoker, "*")
 diff --git a/abseil-cpp/absl/algorithm/BUILD.gn b/abseil-cpp/absl/algorithm/BUILD.gn
 index ae662dc84d0..fe9a632ed63 100644
 --- a/abseil-cpp/absl/algorithm/BUILD.gn

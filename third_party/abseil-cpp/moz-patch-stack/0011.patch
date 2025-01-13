@@ -32,7 +32,7 @@ index 00000000000..648423a128f
 +}
 +
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index f99c9218d52..83b75ad53e0 100644
+index d4a7ddd9b91..628ea75f543 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -56,6 +56,7 @@ component("absl") {
@@ -67,57 +67,57 @@ index f99c9218d52..83b75ad53e0 100644
    # The following dependencies currently don't build with NaCl.
    # TODO(https://crbug.com/1114625): Fix build errors and remove this section.
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index f2a0a1c5383..8420c47f684 100644
+index c97b6d3ae4a..9c55672bf51 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
-@@ -30,8 +30,8 @@ template("absl_source_set") {
-     configs += [
-       "//build/config/compiler:no_chromium_code",
-       "//build/config/compiler:prevent_unsafe_narrowing",
--      "//third_party/abseil-cpp:absl_default_cflags_cc",
--      "//third_party/abseil-cpp:absl_define_config",
-+      "//abseil-cpp:absl_default_cflags_cc",
-+      "//abseil-cpp:absl_define_config",
-     ]
+@@ -34,8 +34,8 @@ template("absl_source_set") {
+       configs += [
+         "//build/config/compiler:no_chromium_code",
+         "//build/config/compiler:prevent_unsafe_narrowing",
+-        "//third_party/abseil-cpp:absl_default_cflags_cc",
+-        "//third_party/abseil-cpp:absl_define_config",
++        "//abseil-cpp:absl_default_cflags_cc",
++        "//abseil-cpp:absl_define_config",
+       ]
  
-     if (is_component_build) {
-@@ -45,7 +45,7 @@ template("absl_source_set") {
-     if (!defined(public_configs)) {
-       public_configs = []
-     }
--    public_configs += [ "//third_party/abseil-cpp:absl_include_config" ]
-+    public_configs += [ "//abseil-cpp:absl_include_config" ]
+       if (is_component_build) {
+@@ -49,7 +49,7 @@ template("absl_source_set") {
+       if (!defined(public_configs)) {
+         public_configs = []
+       }
+-      public_configs += [ "//third_party/abseil-cpp:absl_include_config" ]
++      public_configs += [ "//abseil-cpp:absl_include_config" ]
  
-     if (!defined(visibility)) {
-       # Within Chromium builds, restrict direct visibility of Abseil sources, so
-@@ -88,6 +88,7 @@ template("absl_source_set") {
-         visibility = [ "*" ]
+       if (!defined(visibility)) {
+         # Within Chromium builds, restrict direct visibility of Abseil sources, so
+@@ -93,6 +93,7 @@ template("absl_source_set") {
+         }
        }
      }
 +    visibility += [ "//abseil-cpp/*" ]
    }
  }
  
-@@ -98,15 +99,15 @@ template("absl_test") {
-     configs -= [ "//build/config/compiler:chromium_code" ]
-     configs += [
-       "//build/config/compiler:no_chromium_code",
--      "//third_party/abseil-cpp:absl_default_cflags_cc",
--      "//third_party/abseil-cpp:absl_define_config",
--      "//third_party/abseil-cpp:absl_test_config",
-+      "//abseil-cpp:absl_default_cflags_cc",
-+      "//abseil-cpp:absl_define_config",
-+      "//abseil-cpp:absl_test_config",
-     ]
+@@ -106,15 +107,15 @@ template("absl_test") {
+       configs -= [ "//build/config/compiler:chromium_code" ]
+       configs += [
+         "//build/config/compiler:no_chromium_code",
+-        "//third_party/abseil-cpp:absl_default_cflags_cc",
+-        "//third_party/abseil-cpp:absl_define_config",
+-        "//third_party/abseil-cpp:absl_test_config",
++        "//abseil-cpp:absl_default_cflags_cc",
++        "//abseil-cpp:absl_define_config",
++        "//abseil-cpp:absl_test_config",
+       ]
  
-     if (!defined(public_configs)) {
-       public_configs = []
-     }
--    public_configs += [ "//third_party/abseil-cpp:absl_include_config" ]
-+    public_configs += [ "//abseil-cpp:absl_include_config" ]
+       if (!defined(public_configs)) {
+         public_configs = []
+       }
+-      public_configs += [ "//third_party/abseil-cpp:absl_include_config" ]
++      public_configs += [ "//abseil-cpp:absl_include_config" ]
  
-     visibility = [ "//third_party/abseil-cpp/:*" ]
-     deps += [
+       visibility = [ "//third_party/abseil-cpp/:*" ]
+       deps += [
 diff --git a/abseil-cpp/absl/random/internal/BUILD.gn b/abseil-cpp/absl/random/internal/BUILD.gn
 index 54754f7757e..d776161bb4f 100644
 --- a/abseil-cpp/absl/random/internal/BUILD.gn
