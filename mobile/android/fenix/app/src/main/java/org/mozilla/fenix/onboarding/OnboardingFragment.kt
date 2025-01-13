@@ -233,13 +233,6 @@ class OnboardingFragment : Fragment() {
                     onboardingStore.state.toolbarOptionSelected.id,
                 )
             },
-            onSkipCustomizeToolbarClick = {
-                telemetryRecorder.onSkipToolbarPlacementClick(
-                    pagesToDisplay.telemetrySequenceId(),
-                    pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.TOOLBAR_PLACEMENT),
-                )
-            },
-
             onCustomizeThemeClick = {
                 telemetryRecorder.onSelectThemeClick(
                     onboardingStore.state.themeOptionSelected.id,

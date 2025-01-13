@@ -203,7 +203,6 @@ internal fun mapToOnboardingPageState(
     onAddFirefoxWidgetSkipClick: () -> Unit,
     onAddOnsButtonClick: () -> Unit,
     onCustomizeToolbarButtonClick: () -> Unit,
-    onCustomizeToolbarSkipClick: () -> Unit,
     onCustomizeThemeClick: () -> Unit,
     onCustomizeThemeSkip: () -> Unit,
     onTermsOfServiceButtonClick: () -> Unit,
@@ -241,7 +240,7 @@ internal fun mapToOnboardingPageState(
     OnboardingPageUiData.Type.TOOLBAR_PLACEMENT -> createOnboardingPageState(
         onboardingPageUiData = onboardingPageUiData,
         onPositiveButtonClick = onCustomizeToolbarButtonClick,
-        onNegativeButtonClick = onCustomizeToolbarSkipClick,
+        onNegativeButtonClick = {}, // No negative button option for toolbar placement.
     )
 
     OnboardingPageUiData.Type.THEME_SELECTION -> createOnboardingPageState(

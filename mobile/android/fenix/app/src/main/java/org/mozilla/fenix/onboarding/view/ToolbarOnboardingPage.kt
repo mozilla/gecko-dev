@@ -41,7 +41,6 @@ import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.PrimaryButton
-import org.mozilla.fenix.compose.button.SecondaryButton
 import org.mozilla.fenix.onboarding.store.OnboardingStore
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -113,30 +112,13 @@ fun ToolbarOnboardingPage(
                     }
                 }
             }
-
-            Column {
-                PrimaryButton(
-                    text = primaryButton.text,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { testTag = title + "onboarding_card.positive_button" },
-                    onClick = primaryButton.onClick,
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                pageState.secondaryButton?.let {
-                    SecondaryButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics {
-                                testTag = pageState.title + "onboarding_card.negative_button"
-                            },
-                        text = it.text,
-                        onClick = it.onClick,
-                    )
-                }
-            }
+            PrimaryButton(
+                text = primaryButton.text,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { testTag = title + "onboarding_card.positive_button" },
+                onClick = primaryButton.onClick,
+            )
         }
     }
 
@@ -254,12 +236,6 @@ private fun OnboardingPagePreview() {
                 primaryButton = Action(
                     text = stringResource(
                         id = R.string.onboarding_save_and_start_button,
-                    ),
-                    onClick = {},
-                ),
-                secondaryButton = Action(
-                    text = stringResource(
-                        id = R.string.onboarding_customize_toolbar_not_now_button,
                     ),
                     onClick = {},
                 ),
