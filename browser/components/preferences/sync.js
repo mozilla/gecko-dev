@@ -120,6 +120,12 @@ var gSyncPane = {
     // Notify observers that the UI is now ready
     Services.obs.notifyObservers(window, "sync-pane-loaded");
 
+    this._maybeShowSyncAction();
+  },
+
+  // Check if the user is coming from a call to action
+  // and show them the correct additional panel
+  _maybeShowSyncAction() {
     if (
       location.hash == "#sync" &&
       UIState.get().status == UIState.STATUS_SIGNED_IN
@@ -313,6 +319,13 @@ var gSyncPane = {
                 console.error("Failed to enable sync", err);
               });
           }
+          // When the modal closes we want to remove any query params
+          // so it doesn't open on subsequent visits (and will reload)
+          const browser = window.docShell.chromeEventHandler;
+          browser.loadURI(Services.io.newURI("about:preferences#sync"), {
+            triggeringPrincipal:
+              Services.scriptSecurityManager.getSystemPrincipal(),
+          });
         },
       },
       params /* aParams */

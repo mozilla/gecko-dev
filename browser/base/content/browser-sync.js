@@ -1146,12 +1146,17 @@ var gSync = {
   },
 
   _shouldShowSyncOffIndicator() {
-    const newSyncSetupEnabled =
-      NimbusFeatures.syncSetupFlow.getVariable("enabled");
-    if (newSyncSetupEnabled) {
-      NimbusFeatures.syncSetupFlow.recordExposureEvent();
+    // We only ever want to show the user the dot once, once they've clicked into the panel
+    // we do not show them the dot anymore
+    if (
+      Services.prefs.getBoolPref(
+        "identity.fxaccounts.toolbar.syncSetup.panelAccessed",
+        false
+      )
+    ) {
+      return false;
     }
-    return newSyncSetupEnabled;
+    return NimbusFeatures.syncSetupFlow.getVariable("enabled");
   },
 
   updateFxAPanel(state = {}) {
