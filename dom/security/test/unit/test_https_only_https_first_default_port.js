@@ -24,22 +24,14 @@ const TESTS = [
     expectedPort: -1, // -1 == default
   },
   {
-    description: "Test 3 - Explicit Custom Port without upgrading",
-    url: "http://test1.example.com:8888",
-    expectedScheme: "http",
-    expectedPort: 8888,
-    upgradeCustomPort: false,
-  },
-  {
-    description: "Test 4 - Explicit Custom Port with upgrading",
+    description: "Test 3 - Explicit Custom Port (scheme: http, port: 8888)",
     url: "http://test1.example.com:8888",
     expectedScheme: "https",
     expectedPort: 8888,
-    upgradeCustomPort: true,
   },
   {
     description:
-      "Test 5 - Explicit Default Port for https (scheme: https, port: 443)",
+      "Test 4 - Explicit Default Port for https (scheme: https, port: 443)",
     url: "https://test1.example.com:443",
     expectedScheme: "https",
     expectedPort: -1, // -1 == default
@@ -95,17 +87,7 @@ function run_next_test() {
   curTest = TESTS.shift();
   if (!curTest) {
     httpserver.stop(do_test_finished);
-    Services.prefs.clearUserPref("dom.security.https_first_for_custom_ports");
     return;
-  }
-
-  if (typeof curTest.upgradeCustomPort === "boolean") {
-    Services.prefs.setBoolPref(
-      "dom.security.https_first_for_custom_ports",
-      curTest.upgradeCustomPort
-    );
-  } else {
-    Services.prefs.clearUserPref("dom.security.https_first_for_custom_ports");
   }
 
   channel = setUpChannel();
