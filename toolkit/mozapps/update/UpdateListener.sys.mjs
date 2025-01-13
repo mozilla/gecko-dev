@@ -389,7 +389,7 @@ export var UpdateListener = {
       case "applied-service":
       case "pending-service":
       case "pending-elevate":
-      case "success":
+      case "success": {
         this.clearCallbacks();
 
         let initialBadgeWaitTimeMs = this.badgeWaitTime * 1000;
@@ -415,10 +415,7 @@ export var UpdateListener = {
           this.showRestartNotification(update, true);
         } else if (badgeWaitTimeMs < doorhangerWaitTimeMs) {
           this.addTimeout(badgeWaitTimeMs, () => {
-            // Skip the badge if we're waiting for another instance.
-            if (!lazy.AppUpdateService.isOtherInstanceHandlingUpdates) {
-              this.showRestartNotification(update, true);
-            }
+            this.showRestartNotification(update, true);
 
             if (!this.restartDoorhangerShown) {
               // doorhangerWaitTimeMs is relative to when we initially received
@@ -436,6 +433,7 @@ export var UpdateListener = {
           });
         }
         break;
+      }
     }
   },
 
