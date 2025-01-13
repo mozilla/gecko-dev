@@ -512,6 +512,7 @@ class HomeFragment : Fragment() {
                 activity = activity,
                 appStore = components.appStore,
                 navController = findNavController(),
+                browsingModeManager = browsingModeManager,
             ),
             searchSelectorController = DefaultSearchSelectorController(
                 activity = activity,
@@ -536,8 +537,10 @@ class HomeFragment : Fragment() {
         }
 
         if (requireContext().settings().enableComposeHomepage) {
-            initHomepage()
+            initComposeHomepage()
         } else {
+            binding.homepageView.isVisible = false
+            binding.sessionControlRecyclerView.isVisible = true
             sessionControlView = SessionControlView(
                 containerView = binding.sessionControlRecyclerView,
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -1243,8 +1246,10 @@ class HomeFragment : Fragment() {
         )
     }
 
-    private fun initHomepage() {
+    private fun initComposeHomepage() {
+        binding.sessionControlRecyclerView.isVisible = false
         binding.homepageView.isVisible = true
+        binding.homeAppBarContent.isVisible = false
 
         binding.homepageView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)

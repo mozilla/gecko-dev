@@ -48,7 +48,6 @@ class PrivateBrowsingButtonViewTest {
         view.onClick(button)
 
         assertEquals(BrowsingMode.Private, mode)
-        verify { browsingModeManager.mode = BrowsingMode.Private }
     }
 
     @Test
@@ -60,6 +59,5 @@ class PrivateBrowsingButtonViewTest {
         view.onClick(button)
 
         assertEquals(BrowsingMode.Normal, mode)
-        verify { browsingModeManager.mode = BrowsingMode.Normal }
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.feature.top.sites.TopSite
+import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.components
@@ -99,6 +100,12 @@ internal sealed class HomepageState {
         val showCustomizeHome: Boolean
             get() = showTopSites || showRecentTabs || showBookmarks || showRecentlyVisited || showPocketStories
     }
+
+    val browsingMode: BrowsingMode
+        get() = when (this) {
+            is Normal -> BrowsingMode.Normal
+            is Private -> BrowsingMode.Private
+        }
 
     companion object {
 

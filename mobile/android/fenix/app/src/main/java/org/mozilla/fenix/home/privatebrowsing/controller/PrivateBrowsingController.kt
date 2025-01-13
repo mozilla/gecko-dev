@@ -10,6 +10,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.ext.settings
@@ -38,6 +39,7 @@ class DefaultPrivateBrowsingController(
     private val activity: HomeActivity,
     private val appStore: AppStore,
     private val navController: NavController,
+    private val browsingModeManager: BrowsingModeManager,
 ) : PrivateBrowsingController {
 
     override fun handleLearnMoreClicked() {
@@ -52,6 +54,8 @@ class DefaultPrivateBrowsingController(
     }
 
     override fun handlePrivateModeButtonClicked(newMode: BrowsingMode) {
+        browsingModeManager.mode = newMode
+
         if (newMode == BrowsingMode.Private) {
             activity.settings().incrementNumTimesPrivateModeOpened()
         }
