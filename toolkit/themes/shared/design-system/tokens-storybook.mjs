@@ -707,6 +707,8 @@ export const storybookTables = {
       },
       name: "--icon-color-critical",
     },
+    { value: "currentColor", name: "--button-icon-fill" },
+    { value: "var(--button-icon-fill)", name: "--button-icon-stroke" },
   ],
   "icon-size": [
     { value: "var(--size-item-small)", name: "--icon-size-default" },
@@ -999,6 +1001,8 @@ export const variableLookupTable = {
   "button-font-size": "var(--font-size-root)",
   "button-font-size-small": "var(--font-size-small)",
   "button-font-weight": "var(--font-weight-bold)",
+  "button-icon-fill": "currentColor",
+  "button-icon-stroke": "var(--button-icon-fill)",
   "button-min-height": "var(--size-item-large)",
   "button-min-height-small": "var(--size-item-medium)",
   "button-opacity-disabled": { default: 0.5, forcedColors: 1 },

@@ -64,6 +64,8 @@
     --button-font-size: var(--font-size-root);
     --button-font-size-small: var(--font-size-small);
     --button-font-weight: var(--font-weight-bold);
+    --button-icon-fill: currentColor;
+    --button-icon-stroke: var(--button-icon-fill);
     --button-min-height: var(--size-item-large);
     --button-min-height-small: var(--size-item-medium);
     --button-opacity-disabled: 0.5;

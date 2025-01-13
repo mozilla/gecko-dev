@@ -375,6 +375,14 @@
         "value": "{font.weight.bold}"
       }
     },
+    "icon": {
+      "fill": {
+        "value": "currentColor"
+      },
+      "stroke": {
+        "value": "{button.icon.fill}"
+      }
+    },
     "min": {
       "height": {
         "@base": {

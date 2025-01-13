@@ -6,8 +6,6 @@
   display: inline-block;
   height: fit-content;
   width: fit-content;
-  --button-icon-fill: currentColor;
-  --button-icon-stroke: var(--button-icon-fill);
 }
 
 button {

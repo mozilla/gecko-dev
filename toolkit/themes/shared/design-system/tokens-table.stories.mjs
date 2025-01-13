@@ -334,7 +334,8 @@ class TokensTable extends LitElement {
   }
 
   iconTemplate(_, value, tokenName) {
-    let property = tokenName.includes("color") ? "background-color" : "height";
+    const pattern = /color|fill|stroke/;
+    let property = pattern.test(tokenName) ? "background-color" : "height";
     return html`
       <div
         class="icon-preview"
