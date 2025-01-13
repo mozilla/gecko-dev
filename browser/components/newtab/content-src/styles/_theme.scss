@@ -135,6 +135,16 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
   :root {
     --newtab-text-secondary-color: var(--newtab-text-primary-color);
     --newtab-text-topic-label-color: #CB9EFF;
-    --newtab-text-secondary-text: #FFF;
+
+    color-scheme: light;
+    --newtab-text-secondary-text: #000;
+
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --newtab-text-secondary-text: #FFF;
+    }
   }
 }

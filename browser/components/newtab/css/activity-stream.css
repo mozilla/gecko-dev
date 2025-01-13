@@ -108,6 +108,13 @@ input {
   :root {
     --newtab-text-secondary-color: var(--newtab-text-primary-color);
     --newtab-text-topic-label-color: #CB9EFF;
+    color-scheme: light;
+    --newtab-text-secondary-text: #000;
+  }
+}
+@media (prefers-contrast) and (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
     --newtab-text-secondary-text: #FFF;
   }
 }
