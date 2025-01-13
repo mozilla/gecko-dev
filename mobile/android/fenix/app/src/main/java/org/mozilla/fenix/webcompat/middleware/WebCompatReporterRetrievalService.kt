@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.webcompat.retrievalservice
+package org.mozilla.fenix.webcompat.middleware
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -10,7 +10,6 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.base.log.logger.Logger
-import org.mozilla.fenix.webcompat.store.WebCompatInfoDeserializer
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 

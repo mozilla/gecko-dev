@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.webcompat.store
+package org.mozilla.fenix.webcompat.middleware
 
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Webcompatreporting
+import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
+import org.mozilla.fenix.webcompat.store.WebCompatReporterState
 
 /**
  * A [Middleware] for recording telemetry based on [WebCompatReporterAction]s that are dispatch to the

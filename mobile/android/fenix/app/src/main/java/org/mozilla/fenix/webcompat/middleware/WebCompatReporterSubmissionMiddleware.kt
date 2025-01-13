@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.webcompat.store
+package org.mozilla.fenix.webcompat.middleware
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -19,8 +19,8 @@ import org.mozilla.fenix.GleanMetrics.BrokenSiteReportTabInfoFrameworks
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.webcompat.retrievalservice.WebCompatInfoDto
-import org.mozilla.fenix.webcompat.retrievalservice.WebCompatReporterRetrievalService
+import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
+import org.mozilla.fenix.webcompat.store.WebCompatReporterState
 
 /**
  * [Middleware] that reacts to submission related [WebCompatReporterAction]s.

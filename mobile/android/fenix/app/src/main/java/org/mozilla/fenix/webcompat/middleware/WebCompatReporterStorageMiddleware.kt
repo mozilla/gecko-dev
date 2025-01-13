@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.webcompat.store
+package org.mozilla.fenix.webcompat.middleware
 
 import androidx.annotation.VisibleForTesting
 import mozilla.components.lib.state.Middleware
@@ -11,7 +11,9 @@ import mozilla.components.lib.state.Store
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.WebCompatAction
 import org.mozilla.fenix.components.appstate.webcompat.WebCompatState
+import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
 import org.mozilla.fenix.webcompat.store.WebCompatReporterAction.WebCompatReporterStorageAction
+import org.mozilla.fenix.webcompat.store.WebCompatReporterState
 
 /**
  * [Middleware] for handling side effects related to [WebCompatReporterStorageAction]s.

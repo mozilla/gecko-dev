@@ -10,12 +10,12 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.webcompat.WebCompatState
-import org.mozilla.fenix.webcompat.retrievalservice.DefaultWebCompatReporterRetrievalService
-import org.mozilla.fenix.webcompat.store.WebCompatInfoDeserializer
-import org.mozilla.fenix.webcompat.store.WebCompatReporterNavigationMiddleware
-import org.mozilla.fenix.webcompat.store.WebCompatReporterStorageMiddleware
-import org.mozilla.fenix.webcompat.store.WebCompatReporterSubmissionMiddleware
-import org.mozilla.fenix.webcompat.store.WebCompatReporterTelemetryMiddleware
+import org.mozilla.fenix.webcompat.middleware.DefaultWebCompatReporterRetrievalService
+import org.mozilla.fenix.webcompat.middleware.WebCompatInfoDeserializer
+import org.mozilla.fenix.webcompat.middleware.WebCompatReporterNavigationMiddleware
+import org.mozilla.fenix.webcompat.middleware.WebCompatReporterStorageMiddleware
+import org.mozilla.fenix.webcompat.middleware.WebCompatReporterSubmissionMiddleware
+import org.mozilla.fenix.webcompat.middleware.WebCompatReporterTelemetryMiddleware
 
 /**
  * Provides middleware for the WebCompat Reporter store.
