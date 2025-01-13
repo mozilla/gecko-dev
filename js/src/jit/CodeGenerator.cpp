@@ -977,7 +977,6 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
     case CacheKind::NewArray:
     case CacheKind::NewObject:
     case CacheKind::Lambda:
-    case CacheKind::GetImport:
       MOZ_CRASH("Unsupported IC");
   }
   MOZ_CRASH();

@@ -377,8 +377,6 @@ class MOZ_STATIC_CLASS OpToFallbackKindTable {
     setKind(JSOp::CloseIter, BaselineICFallbackKind::CloseIter);
     setKind(JSOp::OptimizeGetIterator,
             BaselineICFallbackKind::OptimizeGetIterator);
-
-    setKind(JSOp::GetImport, BaselineICFallbackKind::GetImport);
   }
 };
 
@@ -2675,36 +2673,6 @@ bool FallbackICCodeCompiler::emit_OptimizeGetIterator() {
   using Fn = bool (*)(JSContext*, BaselineFrame*, ICFallbackStub*, HandleValue,
                       MutableHandleValue);
   return tailCallVM<Fn, DoOptimizeGetIteratorFallback>(masm);
-}
-
-//
-// GetImport_Fallback
-//
-
-bool DoGetImportFallback(JSContext* cx, BaselineFrame* frame,
-                         ICFallbackStub* stub, MutableHandleValue res) {
-  stub->incrementEnteredCount();
-  MaybeNotifyWarp(frame->outerScript(), stub);
-  FallbackICSpew(cx, stub, "GetImport");
-
-  RootedObject envChain(cx, frame->environmentChain());
-  RootedScript script(cx, frame->script());
-  jsbytecode* pc = StubOffsetToPc(stub, script);
-
-  TryAttachStub<GetImportIRGenerator>("GetImport", cx, frame, stub);
-
-  return GetImportOperation(cx, envChain, script, pc, res);
-}
-
-bool FallbackICCodeCompiler::emit_GetImport() {
-  EmitRestoreTailCallReg(masm);
-
-  masm.push(ICStubReg);
-  pushStubPayload(masm, R0.scratchReg());
-
-  using Fn =
-      bool (*)(JSContext*, BaselineFrame*, ICFallbackStub*, MutableHandleValue);
-  return tailCallVM<Fn, DoGetImportFallback>(masm);
 }
 
 bool JitRuntime::generateBaselineICFallbackCode(JSContext* cx) {

@@ -1017,17 +1017,6 @@ class MOZ_RAII CloseIterIRGenerator : public IRGenerator {
   AttachDecision tryAttachScriptedReturn();
 };
 
-class MOZ_RAII GetImportIRGenerator : public IRGenerator {
-  void trackAttached(const char* name /* must be a C string literal */);
-
- public:
-  GetImportIRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc,
-                       ICState state);
-
-  AttachDecision tryAttachStub();
-  AttachDecision tryAttachInitialized();
-};
-
 // Retrieve Xray JIT info set by the embedder.
 extern JS::XrayJitInfo* GetXrayJitInfo();
 
