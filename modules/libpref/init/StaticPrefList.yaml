@@ -3455,6 +3455,13 @@
 #endif
   mirror: always
 
+# Origin trial state for MLS
+# 0: normal, 1: always-enabled, 2: always-disabled
+- name: dom.origin-trials.mls.state
+  type: RelaxedAtomicInt32
+  value: 0
+  mirror: always
+
 # User pref to control whether Private Attribution
 # information should be collected / submitted.
 - name: dom.private-attribution.submission.enabled
@@ -16426,12 +16433,6 @@
 - name: security.tls13.aes_256_gcm_sha384
   type: RelaxedAtomicBool
   value: true
-  mirror: always
-
-# MLS
-- name: security.mls.enabled
-  type: RelaxedAtomicBool
-  value: false
   mirror: always
 
 #---------------------------------------------------------------------------

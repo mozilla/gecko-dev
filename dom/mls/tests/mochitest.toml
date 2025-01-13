@@ -4,7 +4,7 @@ support-files = [
 ]
 scheme = "https"
 prefs = [
- "security.mls.enabled=true",
+ "dom.origin-trials.mls.state=1",
 ]
 
 ["test_derive_exporter.html"]

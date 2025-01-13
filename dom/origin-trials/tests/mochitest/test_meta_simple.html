@@ -5,6 +5,8 @@
 <meta http-equiv="origin-trial" content="Az+DK2Kczk8Xz1cAlD+TkvPZmuM2uJZ2CFefbp2hLuCU9FbUqxWTyQ2tEYr50r0syKELcOZLAPaABw8aYTLHn5YAAABUeyJvcmlnaW4iOiJodHRwczovL2V4YW1wbGUuY29tIiwiZmVhdHVyZSI6IkNvZXBDcmVkZW50aWFsbGVzcyIsImV4cGlyeSI6MzI1MDM2ODAwMDB9">
 <!-- Created with: mktoken --origin 'https://example.com' --feature PrivateAttributionV2 --expiry 'Wed, 01 Jan 3000 01:00:00 +0100' --sign test-keys/test-ecdsa.pkcs8 -->
 <meta http-equiv="origin-trial" content="Ax1USl5NTmQRWQW2m99jLU943OkF5N0pgD0Z5jYrQuQJkZM1NC11UWYl+oNYOawNRf8CDGiZeOhzpPsYKsPdjLYAAABWeyJvcmlnaW4iOiJodHRwczovL2V4YW1wbGUuY29tIiwiZmVhdHVyZSI6IlByaXZhdGVBdHRyaWJ1dGlvblYyIiwiZXhwaXJ5IjozMjUwMzY4MDAwMH0=">
+<!-- Created with: mktoken --origin 'https://example.com' --feature MLS --expiry 'Wed, 01 Jan 3000 01:00:00 +0100' --sign test-keys/test-ecdsa.pkcs8 -->
+<meta http-equiv="origin-trial" content="A8GItsA8E2wgGlYYCQpxg6Y05RnYooVHXCxHnkXMrn4DpXz5HKN/f2yM6apsX7eyb5DvjtA5EHH+foAnQBc5aQ4AAABFeyJvcmlnaW4iOiJodHRwczovL2V4YW1wbGUuY29tIiwiZmVhdHVyZSI6Ik1MUyIsImV4cGlyeSI6MzI1MDM2ODAwMDB9">
 <script src="/tests/SimpleTest/SimpleTest.js"></script>
 <script src="common.js"></script>
 <script>
@@ -12,6 +14,7 @@
   add_task(function() {
     ok(!!SpecialPowers.DOMWindowUtils.isCoepCredentialless(), "CoepCredentialless trial works.");
     ok(navigator.privateAttribution, "PrivateAttribution trial works.");
-    ok('PrivateAttribution' in window, "PrivateAttribution trial works.");
+    ok("PrivateAttribution" in window, "PrivateAttribution trial works.");
+    ok("MLS" in window, "MLS trial works.");
   });
 </script>

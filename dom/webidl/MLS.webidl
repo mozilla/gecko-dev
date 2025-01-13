@@ -75,9 +75,9 @@ typedef (MLSBytes or Uint8Array) MLSBytesOrUint8Array;
 typedef (Uint8Array or UTF8String) Uint8ArrayOrUTF8String;
 typedef (MLSBytes or Uint8Array or UTF8String) MLSBytesOrUint8ArrayOrUTF8String;
 
-[Pref="security.mls.enabled",
-  SecureContext,
-  Exposed=(Window,Worker)]
+[Trial="MLS",
+ SecureContext,
+ Exposed=(Window,Worker)]
 interface MLS {
   [Throws]
   constructor();
@@ -100,9 +100,9 @@ interface MLS {
   Promise<MLSGroupId> getGroupIdFromMessage(MLSBytesOrUint8Array message);
 };
 
-[Pref="security.mls.enabled",
-  SecureContext,
-  Exposed=(Window,Worker)]
+[Trial="MLS",
+ SecureContext,
+ Exposed=(Window,Worker)]
 interface MLSGroupView {
   [Throws]
   readonly attribute Uint8Array groupId;
