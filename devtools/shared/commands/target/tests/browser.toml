@@ -19,6 +19,9 @@ support-files = [
 ["browser_target_command_bfcache.js"]
 
 ["browser_target_command_browser_workers.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1767778
+]
 
 ["browser_target_command_content_scripts.js"]
 
