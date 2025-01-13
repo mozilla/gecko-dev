@@ -4096,7 +4096,7 @@
 # If true, HTTPS-First will upgrade non-default ports
 - name: dom.security.https_first_for_custom_ports
   type: RelaxedAtomicBool
-  value: true
+  value: false
   mirror: always
 
 # If true, top-level requests in Private Browsing Mode will get

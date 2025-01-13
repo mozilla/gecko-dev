@@ -8,9 +8,7 @@ head = ""
 ["test_deserialization_format_before_100.js"]
 
 ["test_https_only_https_first_default_port.js"]
-skip-if = ["debug"] # assertions in loadinfo; loadinfo is just not xpcshell test friendly
 
 ["test_https_only_https_first_prefs.js"]
-skip-if = ["debug"] # assertions in loadinfo; loadinfo is just not xpcshell test friendly
 
 ["test_isOriginPotentiallyTrustworthy.js"]
