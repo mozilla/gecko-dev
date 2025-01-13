@@ -5011,6 +5011,17 @@ export var CustomizableUI = {
     return [...gPlacements.get(aArea)];
   },
   /**
+   * Get an array of all the widget IDs in the default placements for an area.
+   * Modifying the array will not affect CustomizableUI.
+   *
+   * @param aArea the ID of the area whose default placements you want to obtain.
+   * @return an array containing the widget IDs that are in the default placements for that area.
+   *
+   */
+  getDefaultPlacementsForArea(aArea) {
+    return [...gAreas.get(aArea).get("defaultPlacements")];
+  },
+  /**
    * Get an array of widget wrappers for all the widgets in an area. This is
    * the same as calling getWidgetIdsInArea and .map() ing the result through
    * CustomizableUI.getWidget. Careful: this means that if there are IDs in there

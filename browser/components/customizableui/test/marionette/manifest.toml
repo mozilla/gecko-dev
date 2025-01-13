@@ -1,0 +1,4 @@
+[DEFAULT]
+tags = "local"
+
+["test_assert_no_toolbar_changes.py"]
