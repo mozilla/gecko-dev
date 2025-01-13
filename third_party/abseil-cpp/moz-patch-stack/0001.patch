@@ -214,7 +214,7 @@ index 0a7a1b475f6..579a6a3769b 100644
 +}
 +}
 diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index 278ffdd29da..67061df748a 100644
+index 2f845377cf1..75fcdb27f78 100644
 --- a/abseil-cpp/absl/container/BUILD.gn
 +++ b/abseil-cpp/absl/container/BUILD.gn
 @@ -9,6 +9,7 @@ absl_source_set("compressed_tuple") {
@@ -274,7 +274,7 @@ index 278ffdd29da..67061df748a 100644
  absl_source_set("flat_hash_set") {
    public = [ "flat_hash_set.h" ]
    deps = [
-@@ -621,3 +626,4 @@ absl_source_set("btree_test_common") {
+@@ -623,3 +628,4 @@ absl_source_set("btree_test_common") {
  #     "//third_party/abseil-cpp/absl/types:optional",
  #   ]
  # }

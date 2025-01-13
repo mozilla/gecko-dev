@@ -702,10 +702,8 @@ struct GroupSse2Impl {
   // Returns a bitmask representing the positions of slots that match hash.
   BitMask<uint16_t, kWidth> Match(h2_t hash) const {
     auto match = _mm_set1_epi8(static_cast<char>(hash));
-    BitMask<uint16_t, kWidth> result = BitMask<uint16_t, kWidth>(0);
-    result = BitMask<uint16_t, kWidth>(
+    return BitMask<uint16_t, kWidth>(
         static_cast<uint16_t>(_mm_movemask_epi8(_mm_cmpeq_epi8(match, ctrl))));
-    return result;
   }
 
   // Returns a bitmask representing the positions of empty slots.
@@ -1247,6 +1245,10 @@ constexpr size_t SooCapacity() { return 1; }
 struct soo_tag_t {};
 // Sentinel type to indicate SOO CommonFields construction with full size.
 struct full_soo_tag_t {};
+// Sentinel type to indicate non-SOO CommonFields construction.
+struct non_soo_tag_t {};
+// Sentinel value to indicate an uninitialized CommonFields for use in swapping.
+struct uninitialized_tag_t {};
 
 // Suppress erroneous uninitialized memory errors on GCC. For example, GCC
 // thinks that the call to slot_array() in find_or_prepare_insert() is reading
@@ -1328,10 +1330,13 @@ union HeapOrSoo {
 // of this state to helper functions as a single argument.
 class CommonFields : public CommonFieldsGenerationInfo {
  public:
-  CommonFields() : capacity_(0), size_(0), heap_or_soo_(EmptyGroup()) {}
   explicit CommonFields(soo_tag_t) : capacity_(SooCapacity()), size_(0) {}
   explicit CommonFields(full_soo_tag_t)
       : capacity_(SooCapacity()), size_(size_t{1} << HasInfozShift()) {}
+  explicit CommonFields(non_soo_tag_t)
+      : capacity_(0), size_(0), heap_or_soo_(EmptyGroup()) {}
+  // For use in swapping.
+  explicit CommonFields(uninitialized_tag_t) {}
 
   // Not copyable
   CommonFields(const CommonFields&) = delete;
@@ -1343,7 +1348,8 @@ class CommonFields : public CommonFieldsGenerationInfo {
 
   template <bool kSooEnabled>
   static CommonFields CreateDefault() {
-    return kSooEnabled ? CommonFields{soo_tag_t{}} : CommonFields{};
+    return kSooEnabled ? CommonFields{soo_tag_t{}}
+                       : CommonFields{non_soo_tag_t{}};
   }
 
   // The inline data for SOO is written on top of control_/slots_.
@@ -1733,7 +1739,7 @@ inline void AssertSameContainer(const ctrl_t* ctrl_a, const ctrl_t* ctrl_b,
             "hashtable.");
     fail_if(true, "Comparing non-end() iterators from different hashtables.");
   } else {
-    ABSL_HARDENING_ASSERT(
+    ABSL_HARDENING_ASSERT_SLOW(
         AreItersFromSameContainer(ctrl_a, ctrl_b, slot_a, slot_b) &&
         "Invalid iterator comparison. The iterators may be from different "
         "containers or the container might have rehashed or moved. Consider "
@@ -2750,6 +2756,7 @@ class raw_hash_set {
   raw_hash_set(const raw_hash_set& that, const allocator_type& a)
       : raw_hash_set(GrowthToLowerboundCapacity(that.size()), that.hash_ref(),
                      that.eq_ref(), a) {
+    that.AssertNotDebugCapacity();
     const size_t size = that.size();
     if (size == 0) {
       return;
@@ -2820,7 +2827,6 @@ class raw_hash_set {
       :  // Hash, equality and allocator are copied instead of moved because
          // `that` must be left valid. If Hash is std::function<Key>, moving it
          // would create a nullptr functor that cannot be called.
-         // TODO(b/296061262): move instead of copying hash/eq/alloc.
          // Note: we avoid using exchange for better generated code.
         settings_(PolicyTraits::transfer_uses_memcpy() || !that.is_full_soo()
                       ? std::move(that.common())
@@ -2845,6 +2851,7 @@ class raw_hash_set {
   }
 
   raw_hash_set& operator=(const raw_hash_set& that) {
+    that.AssertNotDebugCapacity();
     if (ABSL_PREDICT_FALSE(this == &that)) return *this;
     constexpr bool propagate_alloc =
         AllocTraits::propagate_on_container_copy_assignment::value;
@@ -2886,6 +2893,7 @@ class raw_hash_set {
     return it;
   }
   iterator end() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    AssertNotDebugCapacity();
     return iterator(common().generation_ptr());
   }
 
@@ -2893,7 +2901,7 @@ class raw_hash_set {
     return const_cast<raw_hash_set*>(this)->begin();
   }
   const_iterator end() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return iterator(common().generation_ptr());
+    return const_cast<raw_hash_set*>(this)->end();
   }
   const_iterator cbegin() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return begin();
@@ -2901,7 +2909,10 @@ class raw_hash_set {
   const_iterator cend() const ABSL_ATTRIBUTE_LIFETIME_BOUND { return end(); }
 
   bool empty() const { return !size(); }
-  size_t size() const { return common().size(); }
+  size_t size() const {
+    AssertNotDebugCapacity();
+    return common().size();
+  }
   size_t capacity() const {
     const size_t cap = common().capacity();
     // Compiler complains when using functions in ASSUME so use local variable.
@@ -3213,6 +3224,8 @@ class raw_hash_set {
   // If the element already exists in `this`, it is left unmodified in `src`.
   template <typename H, typename E>
   void merge(raw_hash_set<Policy, H, E, Alloc>& src) {  // NOLINT
+    AssertNotDebugCapacity();
+    src.AssertNotDebugCapacity();
     assert(this != &src);
     // Returns whether insertion took place.
     const auto insert_slot = [this](slot_type* src_slot) {
@@ -3263,6 +3276,8 @@ class raw_hash_set {
       IsNoThrowSwappable<hasher>() && IsNoThrowSwappable<key_equal>() &&
       IsNoThrowSwappable<allocator_type>(
           typename AllocTraits::propagate_on_container_swap{})) {
+    AssertNotDebugCapacity();
+    that.AssertNotDebugCapacity();
     using std::swap;
     swap_common(that);
     swap(hash_ref(), that.hash_ref());
@@ -3351,7 +3366,7 @@ class raw_hash_set {
   // specific benchmarks indicating its importance.
   template <class K = key_type>
   void prefetch(const key_arg<K>& key) const {
-    if (SooEnabled() ? is_soo() : capacity() == 0) return;
+    if (capacity() == DefaultCapacity()) return;
     (void)key;
     // Avoid probing if we won't be able to prefetch the addresses received.
 #ifdef ABSL_HAVE_PREFETCH
@@ -3767,7 +3782,7 @@ class raw_hash_set {
       swap(common(), that.common());
       return;
     }
-    CommonFields tmp = CommonFields::CreateDefault<SooEnabled()>();
+    CommonFields tmp = CommonFields(uninitialized_tag_t{});
     const bool that_is_full_soo = that.is_full_soo();
     move_common(that_is_full_soo, that.alloc_ref(), tmp,
                 std::move(that.common()));
@@ -3801,7 +3816,6 @@ class raw_hash_set {
     destructor_impl();
     move_common(that.is_full_soo(), that.alloc_ref(), common(),
                 std::move(that.common()));
-    // TODO(b/296061262): move instead of copying hash/eq/alloc.
     hash_ref() = that.hash_ref();
     eq_ref() = that.eq_ref();
     CopyAlloc(alloc_ref(), that.alloc_ref(),
@@ -3840,7 +3854,6 @@ class raw_hash_set {
     // We can't take over that's memory so we need to move each element.
     // While moving elements, this should have that's hash/eq so copy hash/eq
     // before moving elements.
-    // TODO(b/296061262): move instead of copying hash/eq.
     hash_ref() = that.hash_ref();
     eq_ref() = that.eq_ref();
     return move_elements_allocs_unequal(std::move(that));
@@ -3906,6 +3919,10 @@ class raw_hash_set {
 
   // Asserts that the capacity is not a sentinel invalid value.
   void AssertNotDebugCapacity() const {
+    if (ABSL_PREDICT_TRUE(capacity() <
+                          InvalidCapacity::kAboveMaxValidCapacity)) {
+      return;
+    }
     assert(capacity() != InvalidCapacity::kReentrance &&
            "Reentrant container access during element construction/destruction "
            "is not allowed.");
