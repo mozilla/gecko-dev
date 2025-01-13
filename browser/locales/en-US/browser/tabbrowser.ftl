@@ -67,16 +67,6 @@ tabbrowser-unblock-tab-audio-tooltip =
            *[other] Play { $tabCount } tabs
         }
 
-## Tooltips for tab audio control
-
-tabbrowser-unmute-tab-audio-aria-label =
-    .aria-label = Unmute tab
-tabbrowser-mute-tab-audio-aria-label =
-    .aria-label = Mute tab
-# Used to unblock a tab with audio from autoplaying
-tabbrowser-unblock-tab-audio-aria-label =
-    .aria-label = Play tab
-
 ## Confirmation dialog when closing a window with more than one tab open,
 ## or when quitting when only one window is open.
 

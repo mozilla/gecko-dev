@@ -39,7 +39,7 @@ add_task(async function muteTabs_usingButton() {
   }
 
   // Mute tab0 which is not multiselected, thus other tabs muted state should not be affected
-  let tab0MuteAudioBtn = tab0.audioButton;
+  let tab0MuteAudioBtn = tab0.overlayIcon;
   await test_mute_tab(tab0, tab0MuteAudioBtn, true);
 
   ok(muted(tab0), "Tab0 is muted");
@@ -72,7 +72,7 @@ add_task(async function muteTabs_usingButton() {
   //  b) unmuted tabs (tab1, tab3) will become muted.
   //  b) media-blocked tabs (tab2) will remain media-blocked.
   // However tab4 (unmuted) which is not multiselected should not be affected.
-  let tab1MuteAudioBtn = tab1.audioButton;
+  let tab1MuteAudioBtn = tab1.overlayIcon;
   await test_mute_tab(tab1, tab1MuteAudioBtn, true);
 
   // Check mute state
@@ -130,7 +130,7 @@ add_task(async function unmuteTabs_usingButton() {
   //  b) unmuted tabs (tab0) will remain unmuted.
   //  c) media-blocked tabs (tab1, tab2) will remain blocked.
   // However tab4 (muted) which is not multiselected should not be affected.
-  let tab3MuteAudioBtn = tab3.audioButton;
+  let tab3MuteAudioBtn = tab3.overlayIcon;
   await test_mute_tab(tab3, tab3MuteAudioBtn, false);
 
   ok(!muted(tab0), "Tab0 is not muted");
@@ -243,7 +243,7 @@ add_task(async function playTabs_usingButton() {
   //  b) unmuted tabs (tab3) will remain unmuted.
   //  c) media-blocked tabs (tab1, tab2) will become unblocked.
   // However tab4 (muted) which is not multiselected should not be affected.
-  let tab2MuteAudioBtn = tab2.audioButton;
+  let tab2MuteAudioBtn = tab2.overlayIcon;
   await test_mute_tab(tab2, tab2MuteAudioBtn, false);
 
   ok(muted(tab0), "Tab0 is muted");
