@@ -221,7 +221,7 @@ bool RTCPSender::Sending() const {
   return sending_;
 }
 
-void RTCPSender::SetSendingStatus(const FeedbackState& /* feedback_state */,
+void RTCPSender::SetSendingStatus(const FeedbackState& feedback_state,
                                   bool sending) {
   bool sendRTCPBye = false;
   {

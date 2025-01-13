@@ -1,0 +1,23 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 13 Jan 2025 08:14:00 -0600
+Subject: Bug 1234 - (fix-69cc695699) uncomment an arg that upstream thinks is
+ unused
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/73f9e0e64eb65e9f2579b0f3eb34b88e2b5e5d74
+---
+ modules/rtp_rtcp/source/rtcp_sender.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
+index 5b27aa5f7c..b78f3ad816 100644
+--- a/modules/rtp_rtcp/source/rtcp_sender.cc
++++ b/modules/rtp_rtcp/source/rtcp_sender.cc
+@@ -221,7 +221,7 @@ bool RTCPSender::Sending() const {
+   return sending_;
+ }
+ 
+-void RTCPSender::SetSendingStatus(const FeedbackState& /* feedback_state */,
++void RTCPSender::SetSendingStatus(const FeedbackState& feedback_state,
+                                   bool sending) {
+   bool sendRTCPBye = false;
+   {
