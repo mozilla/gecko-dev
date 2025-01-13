@@ -48,6 +48,24 @@ function validateAutomaticallyAddedHeaderVal(chan) {
   Assert.notEqual(valueFromRequest, "");
   Assert.notEqual(valueFromResponse, "");
   Assert.equal(valueFromRequest, valueFromResponse);
+
+  // Further validation on the value (just focusing on valueFromRequest,
+  // since at this point we know that valueFromResponse is equal to it):
+  // * We expect the value to be formatted as a nonempy double-quoted string,
+  // (i.e. length must be at least 3), as part of the "sf-string" syntax:
+  Assert.greaterOrEqual(valueFromRequest.length, 3);
+  Assert.ok(valueFromRequest.startsWith('"'));
+  Assert.ok(valueFromRequest.endsWith('"'));
+
+  // * Inside the double-quotes, we expect the value to be formatted as an
+  // unsigned integer. The spec doesn't require this, but that's the
+  // representation we use for now, so let's be sure we don't inadvertently
+  // stray from that format (except as a deliberate choice, which would
+  // involve an update to this test's expectations).
+  let quotedPortion = valueFromRequest.slice(1, -1);
+  let parsedInteger = Number.parseInt(quotedPortion);
+  Assert.ok(!Number.isNaN(parsedInteger));
+  Assert.greaterOrEqual(parsedInteger, 0);
 }
 
 add_setup(async () => {
