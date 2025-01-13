@@ -337,12 +337,12 @@ class alignas(uintptr_t) JitScript final
   // first time the Baseline JIT compiles this script.
   mozilla::Maybe<HeapPtr<EnvironmentObject*>> templateEnv_;
 
+  // The size of this allocation.
+  Offset endOffset_ = 0;
+
   // Analysis data computed lazily the first time this script is compiled or
   // inlined by WarpBuilder.
   mozilla::Maybe<bool> usesEnvironmentChain_;
-
-  // The size of this allocation.
-  Offset endOffset_ = 0;
 
   struct Flags {
     // True if this script entered Ion via OSR at a loop header.
