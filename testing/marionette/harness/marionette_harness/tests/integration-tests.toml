@@ -14,8 +14,6 @@
 
 ["include:../../../../../browser/components/backup/tests/marionette/manifest.toml"]
 
-["include:../../../../../browser/components/customizableui/test/marionette/manifest.toml"]
-
 ["include:../../../../../browser/components/migration/tests/marionette/manifest.toml"]
 
 ["include:../../../../../browser/components/places/tests/marionette/manifest.toml"]
