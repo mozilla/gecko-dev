@@ -605,15 +605,17 @@ browser.ui:
       for how widget ids and positions are determined.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913362
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1940641
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1913362
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1940641
     data_sensitivity:
       - interaction
     notification_emails:
       - shong@mozilla.com
       - dtownsend@mozilla.com
       - chutten@mozilla.com
-    expires: 137
+    expires: never
     structure:
       type: array
       items:
