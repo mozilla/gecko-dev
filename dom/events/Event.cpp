@@ -222,25 +222,27 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(Event)
   if (tmp->HasKnownLiveWrapper()) {
-    if (WidgetEvent* event = tmp->mEvent) {
-      auto mark = [](EventTarget* aTarget) {
-        if (!aTarget) {
-          return;
-        }
-        if (nsINode* node = aTarget->GetAsNode()) {
-          FragmentOrElement::MarkNodeChildren(node);
-          if (node->HasKnownLiveWrapper()) {
-            // Use CanSkip to possibly mark more nodes to be certainly alive.
-            FragmentOrElement::CanSkip(node, true);
+    if (tmp->mEventIsInternal) {
+      if (WidgetEvent* event = tmp->mEvent) {
+        auto mark = [](EventTarget* aTarget) {
+          if (!aTarget) {
+            return;
           }
-        }
-      };
+          if (nsINode* node = aTarget->GetAsNode()) {
+            FragmentOrElement::MarkNodeChildren(node);
+            if (node->HasKnownLiveWrapper()) {
+              // Use CanSkip to possibly mark more nodes to be certainly alive.
+              FragmentOrElement::CanSkip(node, true);
+            }
+          }
+        };
 
-      mark(event->mTarget);
-      mark(event->mCurrentTarget);
-      mark(event->mOriginalTarget);
-      mark(event->mRelatedTarget);
-      mark(event->mOriginalRelatedTarget);
+        mark(event->mTarget);
+        mark(event->mCurrentTarget);
+        mark(event->mOriginalTarget);
+        mark(event->mRelatedTarget);
+        mark(event->mOriginalRelatedTarget);
+      }
     }
     return true;
   }
