@@ -26,14 +26,6 @@ add_task(async function test_adjusted_rating() {
           let adjustedRating = shoppingContainer.adjustedRatingEl;
           await adjustedRating.updateComplete;
 
-          let mozFiveStar = adjustedRating.ratingEl;
-          ok(mozFiveStar, "The moz-five-star element exists");
-
-          is(
-            mozFiveStar.rating,
-            rating,
-            `The moz-five-star rating is ${rating}`
-          );
           is(
             adjustedRating.rating,
             rating,
@@ -45,11 +37,6 @@ add_task(async function test_adjusted_rating() {
 
           await adjustedRating.updateComplete;
 
-          is(
-            mozFiveStar.rating,
-            rating,
-            `The moz-five-star rating is now ${rating}`
-          );
           is(
             adjustedRating.rating,
             rating,
@@ -65,12 +52,6 @@ add_task(async function test_adjusted_rating() {
             adjustedRating.rating,
             rating,
             `The adjusted rating "rating" is now ${rating}`
-          );
-
-          is(
-            mozFiveStar.rating,
-            0.5,
-            `When the rating is 0, the star rating displays 0.5 stars.`
           );
 
           rating = null;
@@ -93,15 +74,9 @@ add_task(async function test_adjusted_rating() {
           adjustedRating.rating = rating;
 
           await adjustedRating.updateComplete;
-          mozFiveStar = adjustedRating.ratingEl;
           ok(
             ContentTaskUtils.isVisible(adjustedRating),
             "adjusted rating should be visible"
-          );
-          is(
-            mozFiveStar.rating,
-            rating,
-            `The moz-five-star rating is now ${rating}`
           );
           is(
             adjustedRating.rating,

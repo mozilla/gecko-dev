@@ -157,6 +157,7 @@ class ShoppingSettings extends MozLitElement {
         href="chrome://browser/content/shopping/shopping-page.css"
       />
       <shopping-card
+        id="shopping-settings-label"
         data-l10n-id="shopping-settings-label"
         data-l10n-attrs="label"
         type="accordion"

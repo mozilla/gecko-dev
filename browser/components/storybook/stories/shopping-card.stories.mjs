@@ -26,10 +26,8 @@ const Template = ({ l10nId, rating, content, type }) => html`
       type=${ifDefined(type)}
       data-l10n-id=${ifDefined(l10nId)}
       data-l10n-attrs="label"
+      rating=${rating}
     >
-      <div slot="rating">
-        ${rating ? html`<moz-five-star rating="${rating}" />` : ""}
-      </div>
       <div slot="content">${ifDefined(content)}</div>
     </shopping-card>
   </main>

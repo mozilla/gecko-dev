@@ -5,6 +5,8 @@
 
 import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-card.mjs";
 
 const MIN_SHOW_MORE_HEIGHT = 200;
 /**
@@ -21,52 +23,19 @@ class ShoppingCard extends MozLitElement {
   static properties = {
     label: { type: String },
     type: { type: String },
+    rating: { type: String },
     _isExpanded: { type: Boolean },
   };
 
   static get queries() {
     return {
-      detailsEl: "#shopping-details",
       contentEl: "#content",
     };
   }
 
-  labelTemplate() {
-    if (this.label) {
-      if (this.type === "accordion") {
-        return html`
-          <div id="label-wrapper">
-            <h2 id="header">${this.label}</h2>
-            <button
-              tabindex="-1"
-              class="icon chevron-icon ghost-button"
-              aria-labelledby="header"
-              @click=${this.handleChevronButtonClick}
-            ></button>
-          </div>
-        `;
-      }
-      return html`
-        <div id="label-wrapper">
-          <h2 id="header">${this.label}</h2>
-          <slot name="rating"></slot>
-        </div>
-      `;
-    }
-    return "";
-  }
-
   cardTemplate() {
-    if (this.type === "accordion") {
+    if (this.type === "show-more") {
       return html`
-        <details id="shopping-details" @toggle=${this.onCardToggle}>
-          <summary>${this.labelTemplate()}</summary>
-          <div id="content"><slot name="content"></slot></div>
-        </details>
-      `;
-    } else if (this.type === "show-more") {
-      return html`
-        ${this.labelTemplate()}
         <article
           id="content"
           class="show-more"
@@ -76,28 +45,40 @@ class ShoppingCard extends MozLitElement {
           <slot name="content"></slot>
 
           <footer>
-            <button
+            <moz-button
+              size="small"
               aria-controls="content"
-              class="small-button shopping-button"
               data-l10n-id="shopping-show-more-button"
               @click=${this.handleShowMoreButtonClick}
-            ></button>
+            ></moz-button>
           </footer>
         </article>
       `;
     }
     return html`
-      ${this.labelTemplate()}
       <div id="content" aria-describedby="content">
+        ${this.headingTemplate()}
         <slot name="content"></slot>
       </div>
     `;
   }
 
-  onCardToggle() {
-    const action = this.detailsEl.open ? "expanded" : "collapsed";
-    let l10nId = this.getAttribute("data-l10n-id");
-    switch (l10nId) {
+  headingTemplate() {
+    if (this.rating) {
+      return html`<div id="label-wrapper">
+        <span id="heading">${this.label}</span>
+        <moz-five-star
+          rating="${this.rating === 0 ? 0.5 : this.rating}"
+        </moz-five-star>
+      </div>`;
+    }
+    return "";
+  }
+
+  onCardToggle(e) {
+    const action = e.newState == "open" ? "expanded" : "collapsed";
+    let cardId = this.getAttribute("id");
+    switch (cardId) {
       case "shopping-settings-label":
         Glean.shopping.surfaceSettingsExpandClicked.record({ action });
         break;
@@ -137,10 +118,6 @@ class ShoppingCard extends MozLitElement {
     this._isExpanded = true;
     this.toggleAttribute("showMoreButtonDisabled", true);
     this.contentEl.attributes.expanded.value = true;
-  }
-
-  handleChevronButtonClick() {
-    this.detailsEl.open = !this.detailsEl.open;
   }
 
   firstUpdated() {
@@ -187,17 +164,16 @@ class ShoppingCard extends MozLitElement {
         rel="stylesheet"
         href="chrome://browser/content/shopping/shopping-card.css"
       />
-      <link
-        rel="stylesheet"
-        href="chrome://browser/content/shopping/shopping-page.css"
-      />
-      <article
+      <moz-card
         class="shopping-card"
-        aria-labelledby="header"
-        aria-label=${ifDefined(this.label)}
+        type=${this.type}
+        heading=${ifDefined(
+          this.label && !this.rating ? this.label : undefined
+        )}
+        @toggle=${this.onCardToggle}
       >
         ${this.cardTemplate()}
-      </article>
+      </moz-card>
     `;
   }
 }

@@ -136,6 +136,7 @@ class AnalysisExplainer extends MozLitElement {
         href="chrome://browser/content/shopping/analysis-explainer.css"
       />
       <shopping-card
+        id="shopping-analysis-explainer-label"
         data-l10n-id="shopping-analysis-explainer-label"
         data-l10n-attrs="label"
         type="accordion"

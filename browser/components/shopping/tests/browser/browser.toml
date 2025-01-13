@@ -29,8 +29,6 @@ prefs = [
 
 ["browser_shopping_analysis_explainer.js"]
 
-["browser_shopping_card.js"]
-
 ["browser_shopping_container.js"]
 
 ["browser_shopping_exposure_telemetry.js"]

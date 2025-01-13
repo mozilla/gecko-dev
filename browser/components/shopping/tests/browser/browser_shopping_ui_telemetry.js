@@ -568,7 +568,9 @@ function clickShowMoreButton(browser, data) {
 
     let highlights = shoppingContainer.highlightsEl;
     let card = highlights.shadowRoot.querySelector("shopping-card");
-    let button = card.shadowRoot.querySelector("article footer button");
+    let button = await ContentTaskUtils.waitForCondition(
+      () => card.shadowRoot.querySelector("moz-button").buttonEl
+    );
 
     button.click();
   });

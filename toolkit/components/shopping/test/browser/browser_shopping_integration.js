@@ -150,7 +150,9 @@ add_task(async function test_button_visible_when_opted_out() {
         let shoppingSettings = shoppingContainer.settingsEl;
         await shoppingSettings.updateComplete;
 
-        shoppingSettings.shoppingCardEl.detailsEl.open = true;
+        shoppingSettings.shoppingCardEl.shadowRoot.querySelector(
+          "moz-card"
+        ).expanded = true;
         let optOutButton = shoppingSettings.optOutButtonEl;
         optOutButton.click();
       });
