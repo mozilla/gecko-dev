@@ -104,10 +104,15 @@ add_task(async function test_picked_settings() {
 });
 
 async function testSearchEngine(label, telemetry, expected) {
-  info(`Test search engine for ${{ label, telemetry, expected }}`);
+  info(
+    `Test search engine for ${JSON.stringify({ label, telemetry, expected })}`
+  );
   let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
 
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  await BrowserTestUtils.waitForCondition(() =>
+    popup.querySelector(`toolbarbutton[label=${label}]`)
+  );
   popup.querySelector(`toolbarbutton[label=${label}]`).click();
   await popupHidden;
   Assert.equal(
