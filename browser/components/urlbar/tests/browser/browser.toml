@@ -466,9 +466,6 @@ support-files = ["has-a-link.html"]
 ["browser_searchModeSwitcher_opensearchInstall.js"]
 
 ["browser_searchModeSwitcher_telemetry.js"]
-skip-if = [
-  "os == 'mac' && os_version == '11.20' && opt", # Bug 1938244
-]
 
 ["browser_searchMode_alias_replacement.js"]
 support-files = [
