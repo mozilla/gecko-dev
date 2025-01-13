@@ -63,6 +63,17 @@ fun BrowserState.findCustomTab(tabId: String): CustomTabSessionState? {
 }
 
 /**
+ * Finds and returns the custom tab with the given [EngineSession]. Returns null if no matching tab could be
+ * found.
+ *
+ * @param engineSession The engineSession of the custom tab to search for.
+ * @return The [CustomTabSessionState] with the provided [EngineSession] or null if it could not be found.
+ */
+fun BrowserState.findCustomTab(engineSession: EngineSession): CustomTabSessionState? {
+    return customTabs.firstOrNull { it.engineState.engineSession == engineSession }
+}
+
+/**
  * Finds and returns the normal (non-private) tab with the given id. Returns null if no
  * matching tab could be found.
  *
@@ -78,6 +89,17 @@ fun BrowserState.findNormalTab(tabId: String): TabSessionState? {
  */
 fun BrowserState.findTabOrCustomTab(tabId: String): SessionState? {
     return findTab(tabId) ?: findCustomTab(tabId)
+}
+
+/**
+ * Finds and returns the [TabSessionState] or [CustomTabSessionState] given [EngineSession].
+ * Returns null if no matching tab could be found.
+ *
+ * @param engineSession The engineSession of the custom tab to search for.
+ * @return The [SessionState] with the provided [EngineSession] or null if it could not be found.
+ */
+fun BrowserState.findTabOrCustomTab(engineSession: EngineSession): SessionState? {
+    return findTab(engineSession) ?: findCustomTab(engineSession)
 }
 
 /**

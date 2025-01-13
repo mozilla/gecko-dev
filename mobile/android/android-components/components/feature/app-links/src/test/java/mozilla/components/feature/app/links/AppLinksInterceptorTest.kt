@@ -1148,4 +1148,69 @@ class AppLinksInterceptorTest {
         doReturn(null).`when`(componentName).packageName
         assertFalse(appLinksInterceptor.isAuthentication(tabSessionState, appIntent))
     }
+
+    @Test
+    fun `WHEN intent source is actionView or customTab THEN isAuthentication returns true`() {
+        appLinksInterceptor = spy(
+            AppLinksInterceptor(
+                context = mockContext,
+                store = store,
+                interceptLinkClicks = true,
+                launchInApp = { true },
+                useCases = mockUseCases,
+                shouldPrompt = { true },
+            ),
+        )
+
+        val appIntent: Intent = mock()
+        val componentName: ComponentName = mock()
+        whenever(appIntent.component).thenReturn(componentName)
+        whenever(componentName.packageName).thenReturn("com.zxing.app")
+        appLinksInterceptor.updateFragmentManger(mockFragmentManager)
+
+        val tabSessionState = TabSessionState(
+            id = "tab1",
+            content = ContentState(
+                url = "https://mozilla.org",
+                private = false,
+                isProductUrl = false,
+            ),
+            source = SessionState.Source.External.CustomTab(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
+        )
+
+        assertTrue(appLinksInterceptor.isAuthentication(tabSessionState, appIntent))
+
+        val tabSessionState2 = TabSessionState(
+            id = "tab1",
+            content = ContentState(
+                url = "https://mozilla.org",
+                private = false,
+                isProductUrl = false,
+            ),
+            source = SessionState.Source.External.ActionView(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
+        )
+        assertTrue(appLinksInterceptor.isAuthentication(tabSessionState2, appIntent))
+
+        val tabSessionState3 = TabSessionState(
+            id = "tab1",
+            content = ContentState(
+                url = "https://mozilla.org",
+                private = false,
+                isProductUrl = false,
+            ),
+            source = SessionState.Source.External.ActionSend(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
+        )
+        assertFalse(appLinksInterceptor.isAuthentication(tabSessionState3, appIntent))
+
+        val tabSessionState4 = TabSessionState(
+            id = "tab1",
+            content = ContentState(
+                url = "https://mozilla.org",
+                private = false,
+                isProductUrl = false,
+            ),
+            source = SessionState.Source.External.ActionSearch(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
+        )
+        assertFalse(appLinksInterceptor.isAuthentication(tabSessionState4, appIntent))
+    }
 }

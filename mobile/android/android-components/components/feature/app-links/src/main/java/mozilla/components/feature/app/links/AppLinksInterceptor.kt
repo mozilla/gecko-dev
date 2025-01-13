@@ -11,7 +11,7 @@ import android.net.Uri
 import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
 import androidx.fragment.app.FragmentManager
-import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
@@ -110,7 +110,7 @@ class AppLinksInterceptor(
         val uriScheme = encodedUri.scheme
         val engineSupportsScheme = engineSupportedSchemes.contains(uriScheme)
         val isAllowedRedirect = (isRedirect && !isSubframeRequest)
-        val tabSessionState = store?.state?.findTab(engineSession)
+        val tabSessionState = store?.state?.findTabOrCustomTab(engineSession)
 
         val doNotIntercept = when {
             uriScheme == null -> true
