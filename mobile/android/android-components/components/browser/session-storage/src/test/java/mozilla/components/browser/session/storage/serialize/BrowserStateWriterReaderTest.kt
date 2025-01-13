@@ -388,6 +388,59 @@ class BrowserStateWriterReaderTest {
 
         assertEquals("", restoredTab.state.searchTerm)
     }
+
+    @Test
+    fun `Read and write tab with desktopMode value`() {
+        val engineState = createFakeEngineState()
+        val engine = createFakeEngine(engineState)
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            title = "Mozilla",
+            contextId = "work",
+            desktopMode = true,
+        )
+
+        val writer = BrowserStateWriter()
+        val reader = BrowserStateReader()
+
+        val file = AtomicFile(
+            File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString()),
+        )
+
+        assertTrue(writer.writeTab(tab, file))
+
+        val restoredTab = reader.readTab(engine, file)
+        assertNotNull(restoredTab)
+
+        assertEquals(true, restoredTab?.state?.desktopMode)
+    }
+
+    @Test
+    fun `Read and write tab without desktopMode value`() {
+        val engineState = createFakeEngineState()
+        val engine = createFakeEngine(engineState)
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            title = "Mozilla",
+            contextId = "work",
+        )
+
+        val writer = BrowserStateWriter()
+        val reader = BrowserStateReader()
+
+        val file = AtomicFile(
+            File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString()),
+        )
+
+        assertTrue(writer.writeTab(tab, file))
+
+        val restoredTab = reader.readTab(engine, file)
+        assertNotNull(restoredTab)
+
+        assertEquals(false, restoredTab?.state?.desktopMode)
+    }
 }
 
 private fun createFakeEngineState(): EngineSessionState {

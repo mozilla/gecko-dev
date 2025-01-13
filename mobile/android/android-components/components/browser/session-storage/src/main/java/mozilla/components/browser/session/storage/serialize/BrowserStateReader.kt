@@ -190,6 +190,8 @@ private fun JsonReader.tabSession(): RecoverableTab {
     var externalSourcePackageId: String? = null
     var externalSourceCategory: Int? = null
 
+    var desktopMode: Boolean? = null
+
     beginObject()
 
     while (hasNext()) {
@@ -215,6 +217,7 @@ private fun JsonReader.tabSession(): RecoverableTab {
             Keys.SESSION_EXTERNAL_SOURCE_PACKAGE_ID -> externalSourcePackageId = nextStringOrNull()
             Keys.SESSION_EXTERNAL_SOURCE_PACKAGE_CATEGORY -> externalSourceCategory = nextIntOrNull()
             Keys.SESSION_DEPRECATED_SOURCE_KEY -> nextString()
+            Keys.SESSION_DESKTOP_MODE -> desktopMode = nextBoolean()
             else -> throw IllegalArgumentException("Unknown session key: $name")
         }
     }
@@ -253,6 +256,7 @@ private fun JsonReader.tabSession(): RecoverableTab {
                 mediaSessionActive = mediaSessionActive ?: false,
             ),
             source = SessionState.Source.restore(sourceId, externalSourcePackageId, externalSourceCategory),
+            desktopMode = desktopMode ?: false,
         ),
     )
 }

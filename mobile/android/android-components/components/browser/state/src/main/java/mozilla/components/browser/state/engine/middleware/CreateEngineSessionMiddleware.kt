@@ -115,7 +115,12 @@ private fun createEngineSession(
     tab: SessionState,
     includeParent: Boolean,
 ): EngineSession {
-    val engineSession = engine.createSession(tab.content.private, tab.contextId)
+    val engineSession = engine.createSession(tab.content.private, tab.contextId).apply {
+        // The engineSession's desktopMode needs to be updated based on the tab's desktopMode value,
+        // because the tab's desktopMode value can be different from the Browser-wide desktopMode
+        // settings, which is stored in defaultSettings and used to create the EngineSession.
+        toggleDesktopMode(enable = tab.content.desktopMode, reload = false)
+    }
     logger.debug("Created engine session for tab ${tab.id}")
 
     val engineSessionState = tab.engineState.engineSessionState

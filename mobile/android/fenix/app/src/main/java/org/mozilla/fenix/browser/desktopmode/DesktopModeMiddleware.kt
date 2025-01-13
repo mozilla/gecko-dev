@@ -7,12 +7,10 @@ package org.mozilla.fenix.browser.desktopmode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.DefaultDesktopModeAction
 import mozilla.components.browser.state.action.InitAction
 import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.concept.engine.Engine
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 
@@ -21,14 +19,12 @@ import mozilla.components.lib.state.MiddlewareContext
  *
  * @param scope [CoroutineScope] used for writing settings changes to disk.
  * @param repository [DesktopModeRepository] used to interact with the desktop mode preference.
- * @param engine [Engine] used to clear any relevant browsing data after a desktop mode preference update.
  * @param desktopModeFeatureFlag [DefaultDesktopModeFeatureFlag] used to determine if the desktop mode
  * feature is enabled.
  */
 class DesktopModeMiddleware(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     private val repository: DesktopModeRepository,
-    private val engine: Engine,
     private val desktopModeFeatureFlag: DefaultDesktopModeFeatureFlag = DefaultDesktopModeFeatureFlagImpl(),
 ) : Middleware<BrowserState, BrowserAction> {
 
@@ -59,13 +55,7 @@ class DesktopModeMiddleware(
                     val updatedDesktopMode = context.state.desktopMode
                     val preferenceWriteSucceeded = repository.setDesktopBrowsingEnabled(updatedDesktopMode)
 
-                    if (preferenceWriteSucceeded) {
-                        withContext(Dispatchers.Main) {
-                            // Clears the [SpeculativeEngineSession] to ensure any new, but not yet
-                            // loaded, tabs stay in-sync with the updated desktop mode preference.
-                            engine.clearSpeculativeSession()
-                        }
-                    } else {
+                    if (!preferenceWriteSucceeded) {
                         // If the preference write fails, revert the state change.
                         context.store.dispatch(
                             DefaultDesktopModeAction.DesktopModeUpdated(

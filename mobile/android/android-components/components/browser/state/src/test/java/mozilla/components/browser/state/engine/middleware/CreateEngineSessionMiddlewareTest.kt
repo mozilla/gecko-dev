@@ -28,6 +28,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -209,5 +210,51 @@ class CreateEngineSessionMiddlewareTest {
         verify(engine, times(1)).createSession(false)
         assertEquals(engineSession, store.state.findCustomTab(customTab.id)?.engineState?.engineSession)
         assertEquals(followupAction.title, store.state.findCustomTab(customTab.id)?.content?.title)
+    }
+
+    @Test
+    fun `set desktop mode on based on tab's property once engine session is created`() = runTestOnMain {
+        val engine: Engine = mock()
+        val engineSession: EngineSession = mock()
+        whenever(engine.createSession(anyBoolean(), any())).thenReturn(engineSession)
+
+        val middleware = CreateEngineSessionMiddleware(engine, scope)
+        val tabs = listOf(
+            createTab("https://www.mozilla.org", id = "1", desktopMode = true),
+            createTab("https://www.mozilla.com", id = "2", desktopMode = false),
+        )
+        val store = BrowserStore(
+            initialState = BrowserState(tabs = tabs),
+            middleware = listOf(middleware),
+        )
+        assertNull(store.state.findTab(tabs[0].id)?.engineState?.engineSession)
+
+        store.dispatch(EngineAction.CreateEngineSessionAction(tabs[0].id)).joinBlocking()
+        store.waitUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
+        verify(engineSession).toggleDesktopMode(eq(true), eq(false))
+    }
+
+    @Test
+    fun `set desktop mode off based on tab's property once engine session is created`() = runTestOnMain {
+        val engine: Engine = mock()
+        val engineSession: EngineSession = mock()
+        whenever(engine.createSession(anyBoolean(), any())).thenReturn(engineSession)
+
+        val middleware = CreateEngineSessionMiddleware(engine, scope)
+        val tabs = listOf(
+            createTab("https://www.mozilla.org", id = "1", desktopMode = true),
+            createTab("https://www.mozilla.com", id = "2", desktopMode = false),
+        )
+        val store = BrowserStore(
+            initialState = BrowserState(tabs = tabs),
+            middleware = listOf(middleware),
+        )
+        assertNull(store.state.findTab(tabs[0].id)?.engineState?.engineSession)
+
+        store.dispatch(EngineAction.CreateEngineSessionAction(tabs[1].id)).joinBlocking()
+        store.waitUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
+        verify(engineSession).toggleDesktopMode(eq(false), eq(false))
     }
 }

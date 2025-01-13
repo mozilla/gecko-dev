@@ -30,7 +30,6 @@ import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -206,45 +205,16 @@ class DesktopModeMiddlewareTest {
         }
     }
 
-    @Test
-    fun `WHEN the user toggles-on desktop mode THEN the side effect is invoked`() = runTestOnMain {
-        var sideEffectInvoked = false
-        val middleware = createMiddleware(
-            scope = this,
-            clearSpeculativeSession = {
-                sideEffectInvoked = true
-            },
-        )
-        val store = BrowserStore(
-            initialState = BrowserState(),
-            middleware = listOf(middleware),
-        )
-
-        advanceUntilIdle()
-        store.waitUntilIdle()
-        store.dispatch(DefaultDesktopModeAction.ToggleDesktopMode).joinBlocking()
-        advanceUntilIdle()
-        store.waitUntilIdle()
-
-        launch {
-            assertTrue(sideEffectInvoked)
-        }
-    }
-
     private fun createMiddleware(
         scope: CoroutineScope,
         getDesktopBrowsingEnabled: () -> Boolean = { false },
         updateDesktopBrowsingEnabled: (Boolean) -> Boolean = { true },
         isDesktopModeFeatureEnabled: Boolean = true,
-        clearSpeculativeSession: () -> Unit = {},
     ) = DesktopModeMiddleware(
         scope = scope,
         repository = createRepository(
             getDesktopBrowsingEnabled = getDesktopBrowsingEnabled,
             updateDesktopBrowsingEnabled = updateDesktopBrowsingEnabled,
-        ),
-        engine = createEngine(
-            clearSpeculativeSession = clearSpeculativeSession,
         ),
         desktopModeFeatureFlag = object : DefaultDesktopModeFeatureFlag {
             override fun isDesktopModeEnabled(): Boolean = isDesktopModeFeatureEnabled

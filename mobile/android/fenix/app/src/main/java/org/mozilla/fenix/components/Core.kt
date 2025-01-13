@@ -348,7 +348,6 @@ class Core(
                     repository = DefaultDesktopModeRepository(
                         context = context,
                     ),
-                    engine = engine,
                 ),
             )
 

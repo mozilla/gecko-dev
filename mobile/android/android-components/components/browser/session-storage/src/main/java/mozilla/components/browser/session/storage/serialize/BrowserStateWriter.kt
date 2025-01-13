@@ -142,6 +142,9 @@ private fun JsonWriter.tab(
             }
         }
 
+        name(Keys.SESSION_DESKTOP_MODE)
+        value(tab.content.desktopMode)
+
         endObject()
     }
 

@@ -52,6 +52,7 @@ data class TabState(
     val source: Source = Source.Internal.None,
     val index: Int = -1,
     val hasFormData: Boolean = false,
+    val desktopMode: Boolean = false,
 )
 
 /**
@@ -87,6 +88,7 @@ fun TabSessionState.toRecoverableTab(index: Int = -1): RecoverableTab {
             source = source,
             index = index,
             hasFormData = content.hasFormData,
+            desktopMode = content.desktopMode,
         ),
     )
 }
@@ -111,6 +113,7 @@ fun RecoverableTab.toTabSessionState() = createTab(
     source = state.source,
     restored = true,
     hasFormData = state.hasFormData,
+    desktopMode = state.desktopMode,
 )
 
 /**
