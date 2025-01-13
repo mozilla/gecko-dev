@@ -13,10 +13,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bc4484a59d929629a
  3 files changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index f8518fdd1be..e4d006405e1 100644
+index d097f19b9d2..0e56d2d8f83 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
-@@ -51,7 +51,7 @@ absl_source_set("raw_logging_internal") {
+@@ -55,7 +55,7 @@ absl_source_set("raw_logging_internal") {
      ":atomic_hook",
      ":config",
      ":core_headers",
@@ -24,9 +24,9 @@ index f8518fdd1be..e4d006405e1 100644
 +#    ":errno_saver",
      ":log_severity",
    ]
-   visibility = [ "//third_party/abseil-cpp/absl/*" ]
+   visibility = [
 diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
-index b6a8a043576..b1131286713 100644
+index 40b853feb41..ef2e50934a7 100644
 --- a/abseil-cpp/absl/flags/BUILD.gn
 +++ b/abseil-cpp/absl/flags/BUILD.gn
 @@ -143,7 +143,7 @@ absl_source_set("flag_internal") {

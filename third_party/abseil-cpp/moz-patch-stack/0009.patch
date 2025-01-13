@@ -15,7 +15,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60c4a7790fc539ad8
  4 files changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index 89d88129589..d16c359a58a 100644
+index eea7c93368e..e56b9fa25d0 100644
 --- a/abseil-cpp/absl/container/BUILD.gn
 +++ b/abseil-cpp/absl/container/BUILD.gn
 @@ -22,7 +22,6 @@ absl_source_set("fixed_array") {
@@ -35,7 +35,7 @@ index 89d88129589..d16c359a58a 100644
  absl_source_set("inlined_vector_internal") {
    public = [ "internal/inlined_vector.h" ]
 diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
-index b1131286713..7a86a12a624 100644
+index ef2e50934a7..20e1adbc18c 100644
 --- a/abseil-cpp/absl/flags/BUILD.gn
 +++ b/abseil-cpp/absl/flags/BUILD.gn
 @@ -235,6 +235,7 @@ absl_source_set("parse") {
@@ -46,17 +46,17 @@ index b1131286713..7a86a12a624 100644
  absl_test("flag_test") {
    sources = [
      "flag_test.cc",
-@@ -256,3 +257,4 @@ absl_test("flag_test") {
+@@ -257,3 +258,4 @@ absl_test("flag_test") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
 +}
 \ No newline at end of file
 diff --git a/abseil-cpp/absl/numeric/BUILD.gn b/abseil-cpp/absl/numeric/BUILD.gn
-index 90ea6ea9b6e..8aedd90aca9 100644
+index 19f2bb06c0f..cbf24393e00 100644
 --- a/abseil-cpp/absl/numeric/BUILD.gn
 +++ b/abseil-cpp/absl/numeric/BUILD.gn
-@@ -29,6 +29,7 @@ absl_source_set("int128") {
+@@ -30,6 +30,7 @@ absl_source_set("int128") {
    ]
  }
  
@@ -64,8 +64,8 @@ index 90ea6ea9b6e..8aedd90aca9 100644
  absl_test("int128_test") {
    sources = [
      "int128_stream_test.cc",
-@@ -42,6 +43,7 @@ absl_test("int128_test") {
-     "//third_party/abseil-cpp/absl/strings",
+@@ -44,6 +45,7 @@ absl_test("int128_test") {
+     "//third_party/abseil-cpp/absl/types:compare",
    ]
  }
 +}
@@ -73,7 +73,7 @@ index 90ea6ea9b6e..8aedd90aca9 100644
  absl_source_set("representation") {
    public = [ "internal/representation.h" ]
 diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index 741013fc72c..05e3d92d69e 100644
+index 3ee08c882a3..59d86ac18e3 100644
 --- a/abseil-cpp/absl/strings/BUILD.gn
 +++ b/abseil-cpp/absl/strings/BUILD.gn
 @@ -15,6 +15,12 @@ absl_source_set("string_view") {
@@ -89,7 +89,7 @@ index 741013fc72c..05e3d92d69e 100644
  }
  
  absl_source_set("strings") {
-@@ -95,6 +101,7 @@ absl_source_set("strings") {
+@@ -94,6 +100,7 @@ absl_source_set("strings") {
        "substitute.cc",
      ]
      deps -= [

@@ -32,7 +32,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/29bb1b6d7fc465aad
  16 files changed, 102 insertions(+), 28 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 7dc29908efc..f60c748e7cf 100644
+index 9efb5d859e7..4eebff0b568 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -26,7 +26,7 @@ component("absl") {
@@ -71,15 +71,17 @@ index 7dc29908efc..f60c748e7cf 100644
 +  ]
 +} else {
    public_deps = [
+     "//third_party/abseil-cpp/absl/algorithm",
      "//third_party/abseil-cpp/absl/algorithm:container",
-     "//third_party/abseil-cpp/absl/base",
-@@ -103,17 +108,20 @@ group("absl_component_deps") {
+@@ -111,6 +116,7 @@ group("absl_component_deps") {
      "//third_party/abseil-cpp/absl/types:variant",
      "//third_party/abseil-cpp/absl/utility",
    ]
 +}
  
-   if (is_component_build) {
+   # Dependencies that preferably shouldn't be public in chromium.
+   public_deps += [
+@@ -126,12 +132,14 @@ group("absl_component_deps") {
      public_deps += [ ":absl_full_deps" ]
    }
  
@@ -95,7 +97,7 @@ index 7dc29908efc..f60c748e7cf 100644
    visibility = [ ":absl" ]
  }
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 3a5a65c2839..372dff39d4e 100644
+index 9d04bf42f1c..a9a60bf7ddb 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -21,6 +21,7 @@ import("//build_overrides/build.gni")
@@ -107,10 +109,10 @@ index 3a5a65c2839..372dff39d4e 100644
  
  template("absl_source_set") {
 diff --git a/abseil-cpp/absl/algorithm/BUILD.gn b/abseil-cpp/absl/algorithm/BUILD.gn
-index ae662dc84d0..fe9a632ed63 100644
+index 195eab23cca..be0f3d1c08f 100644
 --- a/abseil-cpp/absl/algorithm/BUILD.gn
 +++ b/abseil-cpp/absl/algorithm/BUILD.gn
-@@ -19,6 +19,7 @@ absl_source_set("container") {
+@@ -20,6 +20,7 @@ absl_source_set("container") {
    ]
  }
  
@@ -118,13 +120,13 @@ index ae662dc84d0..fe9a632ed63 100644
  absl_test("algorithm_test") {
    sources = [ "algorithm_test.cc" ]
    deps = [
-@@ -37,3 +38,4 @@ absl_test("container_test") {
+@@ -39,3 +40,4 @@ absl_test("container_test") {
      "//third_party/abseil-cpp/absl/types:span",
    ]
  }
 +}
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index a3a7a5a3f7e..f8518fdd1be 100644
+index 8f3e866c1bc..d097f19b9d2 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
 @@ -13,11 +13,13 @@ absl_source_set("atomic_hook") {
@@ -134,22 +136,22 @@ index a3a7a5a3f7e..f8518fdd1be 100644
 +if (!moz_webrtc_build) {
  absl_source_set("errno_saver") {
    public = [ "internal/errno_saver.h" ]
-   public_deps = [ ":config" ]
+   deps = [ ":config" ]
    visibility = [ "//third_party/abseil-cpp/absl/*" ]
  }
 +}
  
  absl_source_set("log_severity") {
    sources = [ "log_severity.cc" ]
-@@ -55,6 +57,7 @@ absl_source_set("raw_logging_internal") {
-   visibility = [ "//third_party/abseil-cpp/absl/*" ]
+@@ -62,6 +64,7 @@ absl_source_set("raw_logging_internal") {
+   ]
  }
  
 +if (!moz_webrtc_build) {
  absl_source_set("spinlock_wait") {
    sources = [
      "internal/spinlock_akaros.inc",
-@@ -71,6 +74,7 @@ absl_source_set("spinlock_wait") {
+@@ -78,6 +81,7 @@ absl_source_set("spinlock_wait") {
    ]
    visibility = [ "//third_party/abseil-cpp/absl/base:*" ]
  }
@@ -157,7 +159,7 @@ index a3a7a5a3f7e..f8518fdd1be 100644
  
  absl_source_set("config") {
    public = [
-@@ -92,6 +96,7 @@ absl_source_set("cycleclock_internal") {
+@@ -99,6 +103,7 @@ absl_source_set("cycleclock_internal") {
    ]
  }
  
@@ -165,7 +167,7 @@ index a3a7a5a3f7e..f8518fdd1be 100644
  absl_source_set("dynamic_annotations") {
    public = [ "dynamic_annotations.h" ]
  
-@@ -103,6 +108,7 @@ absl_source_set("dynamic_annotations") {
+@@ -113,6 +118,7 @@ absl_source_set("dynamic_annotations") {
      ":core_headers",
    ]
  }
@@ -173,15 +175,15 @@ index a3a7a5a3f7e..f8518fdd1be 100644
  
  absl_source_set("core_headers") {
    public = [
-@@ -116,6 +122,7 @@ absl_source_set("core_headers") {
-   public_deps = [ ":config" ]
+@@ -126,6 +132,7 @@ absl_source_set("core_headers") {
+   deps = [ ":config" ]
  }
  
 +if (!moz_webrtc_build) {
  absl_source_set("malloc_internal") {
    sources = [ "internal/low_level_alloc.cc" ]
    public = [
-@@ -131,6 +138,7 @@ absl_source_set("malloc_internal") {
+@@ -141,6 +148,7 @@ absl_source_set("malloc_internal") {
      ":raw_logging_internal",
    ]
  }
@@ -189,7 +191,7 @@ index a3a7a5a3f7e..f8518fdd1be 100644
  
  absl_source_set("base_internal") {
    public = [
-@@ -147,6 +155,7 @@ absl_source_set("base_internal") {
+@@ -157,6 +165,7 @@ absl_source_set("base_internal") {
    visibility = [ "//third_party/abseil-cpp/absl/*" ]
  }
  
@@ -197,23 +199,22 @@ index a3a7a5a3f7e..f8518fdd1be 100644
  absl_source_set("base") {
    sources = [
      "internal/cycleclock.cc",
-@@ -300,6 +309,7 @@ absl_test("prefetch_test") {
-   deps = [ ":prefetch" ]
+@@ -363,6 +372,7 @@ absl_test("tracing_internal_strong_test") {
+   ]
  }
  
 +if (false) {
  absl_test("config_test") {
    sources = [ "config_test.cc" ]
    deps = [
-@@ -324,3 +334,5 @@ absl_test("nullability_test") {
+@@ -387,3 +397,5 @@ absl_test("nullability_test") {
      ":nullability",
    ]
  }
 +}
 +}
-\ No newline at end of file
 diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index 1d2a348d5b9..89d88129589 100644
+index e3cc2fc2f3c..eea7c93368e 100644
 --- a/abseil-cpp/absl/container/BUILD.gn
 +++ b/abseil-cpp/absl/container/BUILD.gn
 @@ -9,6 +9,7 @@ absl_source_set("compressed_tuple") {
@@ -232,7 +233,7 @@ index 1d2a348d5b9..89d88129589 100644
  
  absl_test("fixed_array_test") {
    sources = [ "fixed_array_test.cc" ]
-@@ -53,12 +55,13 @@ absl_source_set("inlined_vector") {
+@@ -54,12 +56,13 @@ absl_source_set("inlined_vector") {
      ":inlined_vector_internal",
      "//third_party/abseil-cpp/absl/algorithm",
      "//third_party/abseil-cpp/absl/base:core_headers",
@@ -247,7 +248,7 @@ index 1d2a348d5b9..89d88129589 100644
  absl_source_set("test_allocator") {
    testonly = true
    public = [ "internal/test_allocator.h" ]
-@@ -92,13 +95,14 @@ absl_source_set("test_instance_tracker") {
+@@ -93,13 +96,14 @@ absl_source_set("test_instance_tracker") {
    deps = [ "//third_party/abseil-cpp/absl/types:compare" ]
    visibility = [ "//third_party/abseil-cpp/absl/*" ]
  }
@@ -257,15 +258,15 @@ index 1d2a348d5b9..89d88129589 100644
    public = [ "flat_hash_map.h" ]
    deps = [
 -    ":container_memory",
--    ":hash_function_defaults",
+-    ":hash_container_defaults",
 -    ":raw_hash_map",
 +#       ":container_memory",
-+#       ":hash_function_defaults",
++#       ":hash_container_defaults",
 +#       ":raw_hash_map",
      "//third_party/abseil-cpp/absl/algorithm:container",
      "//third_party/abseil-cpp/absl/base:core_headers",
-     "//third_party/abseil-cpp/absl/memory",
-@@ -121,6 +125,7 @@ absl_test("flat_hash_map_test") {
+     "//third_party/abseil-cpp/absl/meta:type_traits",
+@@ -124,6 +128,7 @@ absl_test("flat_hash_map_test") {
    ]
  }
  
@@ -273,13 +274,13 @@ index 1d2a348d5b9..89d88129589 100644
  absl_source_set("flat_hash_set") {
    public = [ "flat_hash_set.h" ]
    deps = [
-@@ -571,3 +576,4 @@ absl_source_set("btree_test_common") {
+@@ -620,3 +625,4 @@ absl_source_set("btree_test_common") {
  #     "//third_party/abseil-cpp/absl/types:optional",
  #   ]
  # }
 +}
 diff --git a/abseil-cpp/absl/debugging/BUILD.gn b/abseil-cpp/absl/debugging/BUILD.gn
-index 0f7a1f3e6b0..a635939cd7f 100644
+index 1d7f14442f2..a7ba7a40caf 100644
 --- a/abseil-cpp/absl/debugging/BUILD.gn
 +++ b/abseil-cpp/absl/debugging/BUILD.gn
 @@ -5,6 +5,7 @@
@@ -290,13 +291,13 @@ index 0f7a1f3e6b0..a635939cd7f 100644
  absl_source_set("stacktrace") {
    sources = [
      "internal/stacktrace_aarch64-inl.inc",
-@@ -157,3 +158,4 @@ absl_source_set("stack_consumption") {
+@@ -241,3 +242,4 @@ absl_source_set("stack_consumption") {
    ]
    visibility = [ ":*" ]
  }
 +}
 diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
-index 660f600fb87..b6a8a043576 100644
+index 34a104bbfb2..40b853feb41 100644
 --- a/abseil-cpp/absl/flags/BUILD.gn
 +++ b/abseil-cpp/absl/flags/BUILD.gn
 @@ -4,6 +4,7 @@
@@ -497,7 +498,7 @@ index 5e960b7a10b..c4a354a1d4a 100644
  }
 +}
 diff --git a/abseil-cpp/absl/numeric/BUILD.gn b/abseil-cpp/absl/numeric/BUILD.gn
-index ce74204b18f..90ea6ea9b6e 100644
+index ef02c976101..19f2bb06c0f 100644
 --- a/abseil-cpp/absl/numeric/BUILD.gn
 +++ b/abseil-cpp/absl/numeric/BUILD.gn
 @@ -23,7 +23,7 @@ absl_source_set("int128") {
@@ -508,12 +509,12 @@ index ce74204b18f..90ea6ea9b6e 100644
 +#    ":bits",
      "//third_party/abseil-cpp/absl/base:config",
      "//third_party/abseil-cpp/absl/base:core_headers",
-   ]
+     "//third_party/abseil-cpp/absl/types:compare",
 diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index fb3dd66c540..2e89f39b8f9 100644
+index 01eacf20534..66679591b28 100644
 --- a/abseil-cpp/absl/strings/BUILD.gn
 +++ b/abseil-cpp/absl/strings/BUILD.gn
-@@ -66,6 +66,7 @@ absl_source_set("strings") {
+@@ -65,6 +65,7 @@ absl_source_set("strings") {
      # :string_view.
      ":string_view",
    ]
@@ -521,7 +522,7 @@ index fb3dd66c540..2e89f39b8f9 100644
    deps = [
      ":charset",
      ":internal",
-@@ -82,6 +83,18 @@ absl_source_set("strings") {
+@@ -81,6 +82,18 @@ absl_source_set("strings") {
      "//third_party/abseil-cpp/absl/numeric:bits",
      "//third_party/abseil-cpp/absl/numeric:int128",
    ]
@@ -540,7 +541,7 @@ index fb3dd66c540..2e89f39b8f9 100644
  }
  
  absl_source_set("internal") {
-@@ -96,6 +109,7 @@ absl_source_set("internal") {
+@@ -95,6 +108,7 @@ absl_source_set("internal") {
      "internal/resize_uninitialized.h",
      "internal/utf8.h",
    ]
@@ -548,7 +549,7 @@ index fb3dd66c540..2e89f39b8f9 100644
    deps = [
      "//third_party/abseil-cpp/absl/base:config",
      "//third_party/abseil-cpp/absl/base:core_headers",
-@@ -103,8 +117,14 @@ absl_source_set("internal") {
+@@ -102,8 +116,14 @@ absl_source_set("internal") {
      "//third_party/abseil-cpp/absl/base:raw_logging_internal",
      "//third_party/abseil-cpp/absl/meta:type_traits",
    ]
@@ -563,13 +564,13 @@ index fb3dd66c540..2e89f39b8f9 100644
  absl_source_set("str_format") {
    public = [ "str_format.h" ]
    deps = [
-@@ -735,3 +755,4 @@ absl_test("char_formatting_test") {
+@@ -738,3 +758,4 @@ absl_test("char_formatting_test") {
      ":strings",
    ]
  }
 +}
 diff --git a/abseil-cpp/absl/synchronization/BUILD.gn b/abseil-cpp/absl/synchronization/BUILD.gn
-index c6f1d3ba181..dbb41d8ab13 100644
+index adee51696c4..997d4c6e12f 100644
 --- a/abseil-cpp/absl/synchronization/BUILD.gn
 +++ b/abseil-cpp/absl/synchronization/BUILD.gn
 @@ -4,6 +4,7 @@
@@ -580,8 +581,8 @@ index c6f1d3ba181..dbb41d8ab13 100644
  absl_source_set("graphcycles_internal") {
    sources = [ "internal/graphcycles.cc" ]
    public = [ "internal/graphcycles.h" ]
-@@ -133,3 +134,4 @@ absl_source_set("per_thread_sem_test_common") {
- #     "//third_party/abseil-cpp/absl/base:config",
+@@ -212,3 +213,4 @@ absl_test("waiter_test") {
+ #     "//third_party/abseil-cpp/absl/log:check",
  #   ]
  # }
 +}
@@ -603,7 +604,7 @@ index f7f3db4b719..5157f88d604 100644
  }
 +}
 diff --git a/abseil-cpp/absl/types/BUILD.gn b/abseil-cpp/absl/types/BUILD.gn
-index 8b9bd94f6dd..2b25e79ea8c 100644
+index 50c3bfa3605..a1abf3a5c89 100644
 --- a/abseil-cpp/absl/types/BUILD.gn
 +++ b/abseil-cpp/absl/types/BUILD.gn
 @@ -5,6 +5,7 @@
@@ -613,16 +614,16 @@ index 8b9bd94f6dd..2b25e79ea8c 100644
 +if (!moz_webrtc_build) {
  absl_source_set("any") {
    public = [ "any.h" ]
-   public_deps = [
-@@ -30,6 +31,7 @@ absl_source_set("bad_any_cast_impl") {
-   deps = [ "//third_party/abseil-cpp/absl/base:raw_logging_internal" ]
+   deps = [
+@@ -34,6 +35,7 @@ absl_source_set("bad_any_cast_impl") {
+   ]
    visibility = [ ":*" ]
  }
 +}
  
  absl_source_set("span") {
    public = [ "span.h" ]
-@@ -38,7 +40,7 @@ absl_source_set("span") {
+@@ -42,7 +44,7 @@ absl_source_set("span") {
      "//third_party/abseil-cpp/absl/algorithm",
      "//third_party/abseil-cpp/absl/base:core_headers",
      "//third_party/abseil-cpp/absl/base:nullability",
@@ -631,15 +632,15 @@ index 8b9bd94f6dd..2b25e79ea8c 100644
      "//third_party/abseil-cpp/absl/meta:type_traits",
    ]
  }
-@@ -85,6 +87,7 @@ absl_source_set("variant") {
+@@ -108,6 +110,7 @@ absl_source_set("variant") {
    ]
  }
  
 +if (!moz_webrtc_build) {
  absl_source_set("compare") {
    public = [ "compare.h" ]
-   public_deps = [
-@@ -116,3 +119,4 @@ absl_test("variant_test") {
+   deps = [
+@@ -139,3 +142,4 @@ absl_test("variant_test") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }

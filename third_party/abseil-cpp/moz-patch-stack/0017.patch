@@ -1,23 +1,21 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 5 Dec 2024 23:03:00 +0000
-Subject: Bug 1935461 - enable building abseil-cpp strings:str_format for
- libwebrtc commit 75a106672e. r=dbaker
+Date: Thu, 9 Jan 2025 11:30:00 -0600
+Subject: Bug 1938156 - third_party/abseil-cpp f861194b402 needs str_cat.cc
 
-Differential Revision: https://phabricator.services.mozilla.com/D231285
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e93f7131a1ffbf2f7e4cf989a61288c603871683
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/404a88a1f723c1b6432c7b3f4e4f2be71ff0bc69
 ---
- abseil-cpp/BUILD.gn | 1 +
- 1 file changed, 1 insertion(+)
+ abseil-cpp/absl/strings/BUILD.gn | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 9b5ab4e02b1..769598f571c 100644
---- a/abseil-cpp/BUILD.gn
-+++ b/abseil-cpp/BUILD.gn
-@@ -113,6 +113,7 @@ group("absl_component_deps") {
-     "//abseil-cpp/absl/functional:any_invocable",
-     "//abseil-cpp/absl/functional:bind_front",
-     "//abseil-cpp/absl/strings",
-+    "//abseil-cpp/absl/strings:str_format",
-     "//abseil-cpp/absl/strings:string_view",
-     "//abseil-cpp/absl/types:optional",
-     "//abseil-cpp/absl/types:span",
+diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
+index 62e8e585190..6c67dec385b 100644
+--- a/abseil-cpp/absl/strings/BUILD.gn
++++ b/abseil-cpp/absl/strings/BUILD.gn
+@@ -88,7 +88,6 @@ absl_source_set("strings") {
+     # Removed for unreachable sources.  See Bug 1820869.
+     sources -= [
+       "escaping.cc",
+-      "str_cat.cc",
+       "str_replace.cc",
+       "substitute.cc",
+     ]

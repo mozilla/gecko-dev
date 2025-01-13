@@ -1,56 +1,27 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 22 Nov 2024 22:30:00 +0000
-Subject: Bug 1932975 - cherry-pick abseil-cpp 69195d5bd to help with libwebrtc
- update. r=dbaker
+Date: Fri, 22 Nov 2024 20:19:00 +0000
+Subject: Bug 1932928 - enable building more absl/strings files for libwebrtc
+ commit cf796a2d2c. r=dbaker
 
-Differential Revision: https://phabricator.services.mozilla.com/D229997
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/de843acc40cc3e872265a8c3fffc9cb3285ccb3b
+Differential Revision: https://phabricator.services.mozilla.com/D229961
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f874c6bfdf0305139f589a0d53d1593ba01b0020
 ---
- abseil-cpp/absl/base/nullability.h | 29 ++++++++++++++++++++++++++---
- 1 file changed, 26 insertions(+), 3 deletions(-)
+ abseil-cpp/absl/strings/BUILD.gn | 4 ----
+ 1 file changed, 4 deletions(-)
 
-diff --git a/abseil-cpp/absl/base/nullability.h b/abseil-cpp/absl/base/nullability.h
-index 6f49b6f535b..5cc71640ad3 100644
---- a/abseil-cpp/absl/base/nullability.h
-+++ b/abseil-cpp/absl/base/nullability.h
-@@ -128,9 +128,17 @@
- //
- // By default, nullability annotations are applicable to raw and smart
- // pointers. User-defined types can indicate compatibility with nullability
--// annotations by providing an `absl_nullability_compatible` nested type. The
--// actual definition of this inner type is not relevant as it is used merely as
--// a marker. It is common to use a using declaration of
-+// annotations by adding the ABSL_NULLABILITY_COMPATIBLE attribute.
-+//
-+// // Example:
-+// struct ABSL_NULLABILITY_COMPATIBLE MyPtr {
-+//   ...
-+// };
-+//
-+// Note: For the time being, nullability-compatible classes should additionally
-+// be marked with an `absl_nullability_compatible` nested type (this will soon
-+// be deprecated). The actual definition of this inner type is not relevant as
-+// it is used merely as a marker. It is common to use a using declaration of
- // `absl_nullability_compatible` set to void.
- //
- // // Example:
-@@ -221,4 +229,19 @@ using NullabilityUnknown = nullability_internal::NullabilityUnknownImpl<T>;
- 
- }  // namespace absl
- 
-+// ABSL_NULLABILITY_COMPATIBLE
-+//
-+// Indicates that a class is compatible with nullability annotations.
-+//
-+// For example:
-+//
-+// struct ABSL_NULLABILITY_COMPATIBLE MyPtr {
-+//   ...
-+// };
-+#if ABSL_HAVE_FEATURE(nullability_on_classes)
-+#define ABSL_NULLABILITY_COMPATIBLE _Nullable
-+#else
-+#define ABSL_NULLABILITY_COMPATIBLE
-+#endif
-+
- #endif  // ABSL_BASE_NULLABILITY_H_
+diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
+index b7763b6c504..62e8e585190 100644
+--- a/abseil-cpp/absl/strings/BUILD.gn
++++ b/abseil-cpp/absl/strings/BUILD.gn
+@@ -87,11 +87,7 @@ absl_source_set("strings") {
+   if (moz_webrtc_build) {
+     # Removed for unreachable sources.  See Bug 1820869.
+     sources -= [
+-      "charconv.cc",
+       "escaping.cc",
+-      "internal/charconv_bigint.cc",
+-      "internal/charconv_parse.cc",
+-      "numbers.cc",
+       "str_cat.cc",
+       "str_replace.cc",
+       "substitute.cc",

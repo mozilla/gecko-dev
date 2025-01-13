@@ -27,6 +27,7 @@
 
 #include "absl/base/attributes.h"
 #include "absl/base/config.h"
+#include "absl/base/internal/identity.h"
 #include "absl/base/macros.h"
 #include "absl/container/internal/compressed_tuple.h"
 #include "absl/memory/memory.h"
@@ -82,16 +83,6 @@ using IsMoveAssignOk = std::is_move_assignable<ValueType<A>>;
 template <typename A>
 using IsSwapOk = absl::type_traits_internal::IsSwappable<ValueType<A>>;
 
-template <typename T>
-struct TypeIdentity {
-  using type = T;
-};
-
-// Used for function arguments in template functions to prevent ADL by forcing
-// callers to explicitly specify the template parameter.
-template <typename T>
-using NoTypeDeduction = typename TypeIdentity<T>::type;
-
 template <typename A, bool IsTriviallyDestructible =
                           absl::is_trivially_destructible<ValueType<A>>::value>
 struct DestroyAdapter;
@@ -139,7 +130,7 @@ struct MallocAdapter {
 };
 
 template <typename A, typename ValueAdapter>
-void ConstructElements(NoTypeDeduction<A>& allocator,
+void ConstructElements(absl::internal::type_identity_t<A>& allocator,
                        Pointer<A> construct_first, ValueAdapter& values,
                        SizeType<A> construct_size) {
   for (SizeType<A> i = 0; i < construct_size; ++i) {
@@ -893,16 +884,30 @@ auto Storage<T, N, A>::Erase(ConstIterator<A> from,
       std::distance(ConstIterator<A>(storage_view.data), from));
   SizeType<A> erase_end_index = erase_index + erase_size;
 
-  IteratorValueAdapter<A, MoveIterator<A>> move_values(
-      MoveIterator<A>(storage_view.data + erase_end_index));
+  // Fast path: if the value type is trivially relocatable and we know
+  // the allocator doesn't do anything fancy, then we know it is legal for us to
+  // simply destroy the elements in the "erasure window" (which cannot throw)
+  // and then memcpy downward to close the window.
+  if (absl::is_trivially_relocatable<ValueType<A>>::value &&
+      std::is_nothrow_destructible<ValueType<A>>::value &&
+      std::is_same<A, std::allocator<ValueType<A>>>::value) {
+    DestroyAdapter<A>::DestroyElements(
+        GetAllocator(), storage_view.data + erase_index, erase_size);
+    std::memmove(
+        reinterpret_cast<char*>(storage_view.data + erase_index),
+        reinterpret_cast<const char*>(storage_view.data + erase_end_index),
+        (storage_view.size - erase_end_index) * sizeof(ValueType<A>));
+  } else {
+    IteratorValueAdapter<A, MoveIterator<A>> move_values(
+        MoveIterator<A>(storage_view.data + erase_end_index));
 
-  AssignElements<A>(storage_view.data + erase_index, move_values,
-                    storage_view.size - erase_end_index);
+    AssignElements<A>(storage_view.data + erase_index, move_values,
+                      storage_view.size - erase_end_index);
 
-  DestroyAdapter<A>::DestroyElements(
-      GetAllocator(), storage_view.data + (storage_view.size - erase_size),
-      erase_size);
-
+    DestroyAdapter<A>::DestroyElements(
+        GetAllocator(), storage_view.data + (storage_view.size - erase_size),
+        erase_size);
+  }
   SubtractSize(erase_size);
   return Iterator<A>(storage_view.data + erase_index);
 }

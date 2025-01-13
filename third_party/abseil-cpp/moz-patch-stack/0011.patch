@@ -32,7 +32,7 @@ index 00000000000..648423a128f
 +}
 +
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index cca35353874..d5c7ec8bbe9 100644
+index 8ed267438d3..ea54e47e69f 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -56,6 +56,7 @@ component("absl") {
@@ -41,9 +41,9 @@ index cca35353874..d5c7ec8bbe9 100644
  group("absl_component_deps") {
 +  if (false) {
    public_deps = [
+     "//third_party/abseil-cpp/absl/algorithm",
      "//third_party/abseil-cpp/absl/algorithm:container",
-     "//third_party/abseil-cpp/absl/base",
-@@ -103,6 +104,22 @@ group("absl_component_deps") {
+@@ -111,6 +112,22 @@ group("absl_component_deps") {
      "//third_party/abseil-cpp/absl/types:variant",
      "//third_party/abseil-cpp/absl/utility",
    ]
@@ -64,10 +64,10 @@ index cca35353874..d5c7ec8bbe9 100644
 +  ]
 +  }
  
-   if (is_component_build) {
-     public_deps += [ ":absl_full_deps" ]
+   # Dependencies that preferably shouldn't be public in chromium.
+   public_deps += [
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index 372dff39d4e..3d7102d543b 100644
+index a9a60bf7ddb..517e72c0149 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -34,8 +34,8 @@ template("absl_source_set") {
@@ -92,7 +92,7 @@ index 372dff39d4e..3d7102d543b 100644
        ]
  
        if (!defined(visibility)) {
-@@ -93,6 +93,7 @@ template("absl_source_set") {
+@@ -95,6 +95,7 @@ template("absl_source_set") {
          }
        }
      }
@@ -100,7 +100,7 @@ index 372dff39d4e..3d7102d543b 100644
    }
  }
  
-@@ -106,17 +107,17 @@ template("absl_test") {
+@@ -108,17 +109,17 @@ template("absl_test") {
        configs -= [ "//build/config/compiler:chromium_code" ]
        configs += [
          "//build/config/compiler:no_chromium_code",
@@ -124,11 +124,11 @@ index 372dff39d4e..3d7102d543b 100644
  
        visibility = [ "//third_party/abseil-cpp/:*" ]
 diff --git a/abseil-cpp/absl/random/internal/BUILD.gn b/abseil-cpp/absl/random/internal/BUILD.gn
-index 54754f7757e..d776161bb4f 100644
+index 21d28b97adb..3655030b726 100644
 --- a/abseil-cpp/absl/random/internal/BUILD.gn
 +++ b/abseil-cpp/absl/random/internal/BUILD.gn
 @@ -242,6 +242,7 @@ absl_source_set("randen_hwaes_impl") {
-   visibility = ["//third_party/abseil-cpp/absl/random/*"]
+   visibility = [ "//third_party/abseil-cpp/absl/random/*" ]
  }
  
 +if (false) {
@@ -137,7 +137,7 @@ index 54754f7757e..d776161bb4f 100644
    deps = [
 @@ -250,6 +251,7 @@ executable("gaussian_distribution_gentables") {
    ]
-   visibility = ["//third_party/abseil-cpp/absl/random/*"]
+   visibility = [ "//third_party/abseil-cpp/absl/random/*" ]
  }
 +}
  

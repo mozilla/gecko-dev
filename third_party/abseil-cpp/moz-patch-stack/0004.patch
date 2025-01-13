@@ -18,18 +18,18 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3e09f1c91f790a6db
  3 files changed, 7 insertions(+), 1 deletion(-)
 
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index e4d006405e1..28b9659eb0d 100644
+index 0e56d2d8f83..bf3d7a2fd1d 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
-@@ -194,6 +194,7 @@ absl_source_set("base") {
+@@ -204,6 +204,7 @@ absl_source_set("base") {
      "//third_party/abseil-cpp/absl/meta:type_traits",
    ]
  }
 +}
  
- absl_source_set("throw_delegate") {
-   sources = [ "internal/throw_delegate.cc" ]
-@@ -205,6 +206,7 @@ absl_source_set("throw_delegate") {
+ # This should be an executable() more than a test.
+ # It cannot be enabled because it defines its own main() function.
+@@ -225,6 +226,7 @@ absl_source_set("throw_delegate") {
    visibility = [ "//third_party/abseil-cpp/absl/*" ]
  }
  
@@ -53,10 +53,10 @@ index 337e870cd68..11467e08b41 100644
  // platforms. (For example, the Android NDK does not have them.)
  // Therefore, their use must be guarded by `#ifdef` or equivalent.
 diff --git a/abseil-cpp/absl/types/BUILD.gn b/abseil-cpp/absl/types/BUILD.gn
-index 2b25e79ea8c..90e272f9a41 100644
+index a1abf3a5c89..07775909fd3 100644
 --- a/abseil-cpp/absl/types/BUILD.gn
 +++ b/abseil-cpp/absl/types/BUILD.gn
-@@ -40,7 +40,7 @@ absl_source_set("span") {
+@@ -44,7 +44,7 @@ absl_source_set("span") {
      "//third_party/abseil-cpp/absl/algorithm",
      "//third_party/abseil-cpp/absl/base:core_headers",
      "//third_party/abseil-cpp/absl/base:nullability",

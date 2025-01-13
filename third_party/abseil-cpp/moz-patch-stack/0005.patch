@@ -17,7 +17,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/da4def20e294cf6b5
  1 file changed, 13 insertions(+)
 
 diff --git a/abseil-cpp/absl/strings/string_view.h b/abseil-cpp/absl/strings/string_view.h
-index b393c6fc63a..793ca54b3f9 100644
+index ff7600144a7..a278c311b38 100644
 --- a/abseil-cpp/absl/strings/string_view.h
 +++ b/abseil-cpp/absl/strings/string_view.h
 @@ -67,6 +67,15 @@ ABSL_NAMESPACE_END
@@ -36,7 +36,7 @@ index b393c6fc63a..793ca54b3f9 100644
  // absl::string_view
  //
  // A `string_view` provides a lightweight view into the string data provided by
-@@ -739,6 +748,10 @@ ABSL_NAMESPACE_END
+@@ -740,6 +749,10 @@ ABSL_NAMESPACE_END
  
  #undef ABSL_INTERNAL_STRING_VIEW_MEMCMP
  

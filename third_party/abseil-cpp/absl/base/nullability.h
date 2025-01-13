@@ -158,14 +158,16 @@
 #ifndef ABSL_BASE_NULLABILITY_H_
 #define ABSL_BASE_NULLABILITY_H_
 
+#include "absl/base/config.h"
 #include "absl/base/internal/nullability_impl.h"
 
 namespace absl {
+ABSL_NAMESPACE_BEGIN
 
 // absl::Nonnull
 //
 // The indicated pointer is never null. It is the responsibility of the provider
-// of this pointer across an API boundary to ensure that the pointer is never be
+// of this pointer across an API boundary to ensure that the pointer is never
 // set to null. Consumers of this pointer across an API boundary may safely
 // dereference the pointer.
 //
@@ -206,9 +208,9 @@ using Nullable = nullability_internal::NullableImpl<T>;
 // migrated into one of the above two nullability states: `Nonnull<T>` or
 //  `Nullable<T>`.
 //
-// NOTE: Because this annotation is the global default state, pointers without
-// any annotation are assumed to have "unknown" semantics. This assumption is
-// designed to minimize churn and reduce clutter within the codebase.
+// NOTE: Because this annotation is the global default state, unannotated
+// pointers are assumed to have "unknown" semantics. This assumption is designed
+// to minimize churn and reduce clutter within the codebase.
 //
 // Example:
 //
@@ -227,6 +229,7 @@ using Nullable = nullability_internal::NullableImpl<T>;
 template <typename T>
 using NullabilityUnknown = nullability_internal::NullabilityUnknownImpl<T>;
 
+ABSL_NAMESPACE_END
 }  // namespace absl
 
 // ABSL_NULLABILITY_COMPATIBLE

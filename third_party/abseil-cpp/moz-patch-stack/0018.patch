@@ -1,21 +1,30 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 9 Jan 2025 11:30:00 -0600
-Subject: Bug 1938156 - third_party/abseil-cpp f861194b402 needs str_cat.cc
+Date: Thu, 9 Jan 2025 13:53:00 -0600
+Subject: Bug 1938156 - third_party/abseil-cpp ba05f98ec72 added a group we
+ don't need.
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/404a88a1f723c1b6432c7b3f4e4f2be71ff0bc69
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/928c6aa703b29d46632c4333b0c8b643fc08c60f
 ---
- abseil-cpp/absl/strings/BUILD.gn | 1 -
- 1 file changed, 1 deletion(-)
+ abseil-cpp/BUILD.gn | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index 836dd266bfe..4d548f5e223 100644
---- a/abseil-cpp/absl/strings/BUILD.gn
-+++ b/abseil-cpp/absl/strings/BUILD.gn
-@@ -89,7 +89,6 @@ absl_source_set("strings") {
-     # Removed for unreachable sources.  See Bug 1820869.
-     sources -= [
-       "escaping.cc",
--      "str_cat.cc",
-       "str_replace.cc",
-       "substitute.cc",
-     ]
+diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
+index 909e7cbff89..12493e2c5c8 100644
+--- a/abseil-cpp/BUILD.gn
++++ b/abseil-cpp/BUILD.gn
+@@ -186,6 +186,7 @@ source_set("absl_full") {
+ }
+ 
+ group("absl_full_deps") {
++  if (!moz_webrtc_build) {
+   public_deps = [
+     # Banned because each flag registration generates a static initializer, and
+     # the flag registration mechanism is problematic in component builds.
+@@ -212,6 +213,7 @@ group("absl_full_deps") {
+   ]
+ 
+   public_configs = [ "//third_party/abseil-cpp/absl/flags:absl_flags_config" ]
++  }
+ }
+ 
+ config("absl_include_config") {

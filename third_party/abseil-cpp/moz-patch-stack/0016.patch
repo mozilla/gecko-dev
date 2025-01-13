@@ -1,27 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 22 Nov 2024 20:19:00 +0000
-Subject: Bug 1932928 - enable building more absl/strings files for libwebrtc
- commit cf796a2d2c. r=dbaker
+Date: Thu, 5 Dec 2024 23:03:00 +0000
+Subject: Bug 1935461 - enable building abseil-cpp strings:str_format for
+ libwebrtc commit 75a106672e. r=dbaker
 
-Differential Revision: https://phabricator.services.mozilla.com/D229961
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f874c6bfdf0305139f589a0d53d1593ba01b0020
+Differential Revision: https://phabricator.services.mozilla.com/D231285
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e93f7131a1ffbf2f7e4cf989a61288c603871683
 ---
- abseil-cpp/absl/strings/BUILD.gn | 4 ----
- 1 file changed, 4 deletions(-)
+ abseil-cpp/BUILD.gn | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index d2393aa3242..836dd266bfe 100644
---- a/abseil-cpp/absl/strings/BUILD.gn
-+++ b/abseil-cpp/absl/strings/BUILD.gn
-@@ -88,11 +88,7 @@ absl_source_set("strings") {
-   if (moz_webrtc_build) {
-     # Removed for unreachable sources.  See Bug 1820869.
-     sources -= [
--      "charconv.cc",
-       "escaping.cc",
--      "internal/charconv_bigint.cc",
--      "internal/charconv_parse.cc",
--      "numbers.cc",
-       "str_cat.cc",
-       "str_replace.cc",
-       "substitute.cc",
+diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
+index e4e95660075..909e7cbff89 100644
+--- a/abseil-cpp/BUILD.gn
++++ b/abseil-cpp/BUILD.gn
+@@ -121,6 +121,7 @@ group("absl_component_deps") {
+     "//abseil-cpp/absl/functional:any_invocable",
+     "//abseil-cpp/absl/functional:bind_front",
+     "//abseil-cpp/absl/strings",
++    "//abseil-cpp/absl/strings:str_format",
+     "//abseil-cpp/absl/strings:string_view",
+     "//abseil-cpp/absl/types:optional",
+     "//abseil-cpp/absl/types:span",

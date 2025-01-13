@@ -12,7 +12,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d976369464663a914
  1 file changed, 1 insertion(+), 3 deletions(-)
 
 diff --git a/abseil-cpp/absl/functional/internal/any_invocable.h b/abseil-cpp/absl/functional/internal/any_invocable.h
-index bcfda0bd5e0..82e986f6b87 100644
+index a81c5d6f0d6..366d94c4fe1 100644
 --- a/abseil-cpp/absl/functional/internal/any_invocable.h
 +++ b/abseil-cpp/absl/functional/internal/any_invocable.h
 @@ -205,9 +205,7 @@ union TypeErasedState {
