@@ -34,7 +34,6 @@ import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationChange
 import org.mozilla.fenix.databinding.TabPreviewBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.ThemeManager
@@ -156,10 +155,8 @@ class TabPreview @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
 
-        val store = context.components.core.store
-        store.state.selectedTab?.let {
-            val count = store.state.getNormalOrPrivateTabs(it.content.private).size
-            binding.tabButton.setCount(count)
+        currentOpenedTabsCount?.let {
+            binding.tabButton.setCount(it)
         }
 
         binding.previewThumbnail.translationY = if (context.settings().toolbarPosition == ToolbarPosition.TOP) {
@@ -201,6 +198,12 @@ class TabPreview @JvmOverloads constructor(
         binding.fakeNewTabButton.isVisible = isLargeWindow
         binding.fakeTabCounter.isVisible = isLargeWindow
         binding.fakeMenuButton.isVisible = isLargeWindow
+
+        if (isLargeWindow) {
+            currentOpenedTabsCount?.let {
+                binding.fakeTabCounter.setCount(it)
+            }
+        }
     }
 
     /**
@@ -216,4 +219,12 @@ class TabPreview @JvmOverloads constructor(
             )
         }
     }
+
+    private val currentOpenedTabsCount: Int?
+        get() {
+            val store = context.components.core.store
+            return store.state.selectedTab?.let {
+                store.state.getNormalOrPrivateTabs(it.content.private).size
+            }
+        }
 }
