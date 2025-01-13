@@ -106,11 +106,6 @@ class SelectableProfileServiceClass {
     "browser.profiles.enabled",
     "toolkit.profiles.storeID",
   ];
-  // Preferences that need to be set in newly created profiles.
-  static profileInitialPrefs = [
-    "browser.profiles.enabled",
-    "toolkit.profiles.storeID",
-  ];
 
   constructor() {
     this.themeObserver = this.themeObserver.bind(this);
@@ -965,22 +960,9 @@ class SelectableProfileServiceClass {
       );
     }
 
-    for (let prefName of SelectableProfileServiceClass.profileInitialPrefs) {
-      let value;
-      switch (Services.prefs.getPrefType(prefName)) {
-        case Ci.nsIPrefBranch.PREF_STRING:
-          value = `"${Services.prefs.getCharPref(prefName)}"`;
-          break;
-        case Ci.nsIPrefBranch.PREF_BOOL:
-          value = Services.prefs.getBoolPref(prefName);
-          break;
-        case Ci.nsIPrefBranch.PREF_INT:
-          value = Services.prefs.getIntPref(prefName);
-          break;
-      }
-
-      prefsJs.push(`user_pref("${prefName}", ${value});`);
-    }
+    // Preferences that must be set in newly created profiles.
+    prefsJs.push(`user_pref("browser.profiles.enabled", true);`);
+    prefsJs.push(`user_pref("toolkit.profiles.storeID", "${this.storeID}");`);
 
     await IOUtils.writeUTF8(prefsJsFilePath, prefsJs.join(LINEBREAK));
   }
@@ -1089,12 +1071,20 @@ class SelectableProfileServiceClass {
    * will be added to the datastore along with the newly created profile.
    *
    * Launches the new SelectableProfile in a new instance after creating it.
+   *
+   * @param {boolean} [launchProfile=true] Whether or not this should launch
+   * the newly created profile.
+   *
+   * @returns {SelectableProfile} The profile just created.
    */
-  async createNewProfile() {
+  async createNewProfile(launchProfile = true) {
     await this.maybeSetupDataStore();
 
     let profile = await this.#createProfile();
-    this.launchInstance(profile, "about:newprofile");
+    if (launchProfile) {
+      this.launchInstance(profile, "about:newprofile");
+    }
+    return profile;
   }
 
   /**

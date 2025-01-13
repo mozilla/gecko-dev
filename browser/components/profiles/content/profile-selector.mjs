@@ -134,8 +134,9 @@ export class ProfileSelector extends MozLitElement {
         break;
       }
       case "CreateProfile": {
-        await this.selectableProfileService.createNewProfile();
-        this.profiles = await this.selectableProfileService.getAllProfiles();
+        let profile =
+          await this.selectableProfileService.createNewProfile(false);
+        await this.launchProfile(profile, "about:newprofile");
         break;
       }
       case "DeleteProfile": {
