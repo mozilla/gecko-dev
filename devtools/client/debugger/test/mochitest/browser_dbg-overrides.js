@@ -52,6 +52,11 @@ add_task(async function () {
     noExpand: false,
   });
 
+  let overrides = [
+    ...findAllElementsWithSelector(dbg, ".has-network-override"),
+  ];
+  is(overrides.length, 0, "No override is displayed in the debugger");
+
   info("Load and assert the content of the test.js script");
   await selectSourceFromSourceTree(
     dbg,
@@ -108,6 +113,23 @@ add_task(async function () {
 
   await resume(dbg);
   await onReloaded;
+
+  info("Check that an override icon is displayed in the source tree");
+  overrides = [...findAllElementsWithSelector(dbg, ".has-network-override")];
+  is(overrides.length, 1, "One override should be displayed in the debugger");
+
+  const otherDebugger = await initDebuggerWithAbsoluteURL(
+    BASE_URL + "index.html",
+    "test.js"
+  );
+  await waitForSourcesInSourceTree(otherDebugger, ["test.js"], {
+    noExpand: false,
+  });
+  overrides = [
+    ...findAllElementsWithSelector(otherDebugger, ".has-network-override"),
+  ];
+  is(overrides.length, 0, "No override is displayed in the other debugger");
+  await closeToolboxAndTab(otherDebugger.toolbox);
 
   info("Remove override and test");
   const removed = waitForDispatch(dbg.toolbox.store, "REMOVE_NETWORK_OVERRIDE");
