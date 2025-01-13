@@ -391,16 +391,16 @@ class SelectorAutocompleter extends EventEmitter {
     const items = [];
 
     for (let [value, , state] of list) {
-      if (query.match(/[\s>+]$/)) {
-        // for cases like 'div ' or 'div >' or 'div+'
+      if (query.match(/[\s>+~]$/)) {
+        // for cases like 'div ', 'div >', 'div+' or 'div~'
         value = query + value;
-      } else if (query.match(/[\s>+][\.#a-zA-Z][^\s>+\.#\[]*$/)) {
+      } else if (query.match(/[\s>+~][\.#a-zA-Z][^\s>+~\.#\[]*$/)) {
         // for cases like 'div #a' or 'div .a' or 'div > d' and likewise
-        const lastPart = query.match(/[\s>+][\.#a-zA-Z][^\s>+\.#\[]*$/)[0];
+        const lastPart = query.match(/[\s>+~][\.#a-zA-Z][^\s>+~\.#\[]*$/)[0];
         value = query.slice(0, -1 * lastPart.length + 1) + value;
-      } else if (query.match(/[a-zA-Z][#\.][^#\.\s+>]*$/)) {
+      } else if (query.match(/[a-zA-Z][#\.][^#\.\s+>~]*$/)) {
         // for cases like 'div.class' or '#foo.bar' and likewise
-        const lastPart = query.match(/[a-zA-Z][#\.][^#\.\s+>]*$/)[0];
+        const lastPart = query.match(/[a-zA-Z][#\.][^#\.\s+>~]*$/)[0];
         value = query.slice(0, -1 * lastPart.length + 1) + value;
       } else if (query.match(/[a-zA-Z]*\[[^\]]*\][^\]]*/)) {
         // for cases like '[foo].bar' and likewise
@@ -478,8 +478,9 @@ class SelectorAutocompleter extends EventEmitter {
       // - 'div.foo s' returns 's'
       // - 'div.foo > s' returns 's'
       // - 'div.foo + s' returns 's'
+      // - 'div.foo ~ s' returns 's'
       // - 'div.foo x-el_1' returns 'x-el_1'
-      const matches = query.match(/[\s>+]?(?<tag>[a-zA-Z0-9_-]*)$/);
+      const matches = query.match(/[\s>+~]?(?<tag>[a-zA-Z0-9_-]*)$/);
       firstPart = matches.groups.tag;
       query = query.slice(0, query.length - firstPart.length);
     } else if (state === this.States.CLASS) {

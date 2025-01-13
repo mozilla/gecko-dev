@@ -7,149 +7,136 @@
 
 const TEST_URL = URL_ROOT + "doc_inspector_search-suggestions.html";
 
-// An array of (key, suggestions) pairs where key is a key to press and
-// suggestions is an array of suggestions that should be shown in the popup.
-// Suggestion is an object with label of the entry and optional count
-// (defaults to 1)
+// See head.js `checkMarkupSearchSuggestions` function
 const TEST_DATA = [
   {
     key: "d",
-    suggestions: [{ label: "div" }, { label: "#d1" }, { label: "#d2" }],
+    value: "d",
+    suggestions: ["div", "#d1", "#d2"],
   },
   {
     key: "i",
-    suggestions: [{ label: "div" }],
+    value: "di",
+    suggestions: ["div"],
   },
   {
     key: "v",
+    value: "div",
     suggestions: [],
   },
   {
     key: " ",
-    suggestions: [{ label: "div div" }, { label: "div span" }],
+    value: "div ",
+    suggestions: ["div div", "div span"],
   },
   {
     key: ">",
-    suggestions: [{ label: "div >div" }, { label: "div >span" }],
+    value: "div >",
+    suggestions: ["div >div", "div >span"],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: "div div" }, { label: "div span" }],
+    value: "div ",
+    suggestions: ["div div", "div span"],
   },
   {
     key: "+",
-    suggestions: [{ label: "div +span" }],
+    value: "div +",
+    suggestions: ["div +span"],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: "div div" }, { label: "div span" }],
+    value: "div ",
+    suggestions: ["div div", "div span"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "div",
     suggestions: [],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: "div" }],
+    value: "di",
+    suggestions: ["div"],
   },
   {
     key: "VK_BACK_SPACE",
-    suggestions: [{ label: "div" }, { label: "#d1" }, { label: "#d2" }],
+    value: "d",
+    suggestions: ["div", "#d1", "#d2"],
   },
   {
     key: "VK_BACK_SPACE",
+    value: "",
     suggestions: [],
   },
   {
     key: "p",
-    suggestions: [
-      { label: "p" },
-      { label: "#p1" },
-      { label: "#p2" },
-      { label: "#p3" },
-    ],
+    value: "p",
+    suggestions: ["p", "#p1", "#p2", "#p3"],
   },
   {
     key: " ",
-    suggestions: [{ label: "p strong" }],
+    value: "p ",
+    suggestions: ["p strong"],
   },
   {
     key: "+",
-    suggestions: [{ label: "p +button" }, { label: "p +p" }],
+    value: "p +",
+    suggestions: ["p +button", "p +footer", "p +p"],
   },
   {
     key: "b",
-    suggestions: [{ label: "p +button" }],
+    value: "p +b",
+    suggestions: ["p +button"],
   },
   {
     key: "u",
-    suggestions: [{ label: "p +button" }],
+    value: "p +bu",
+    suggestions: ["p +button"],
   },
   {
     key: "t",
-    suggestions: [{ label: "p +button" }],
+    value: "p +but",
+    suggestions: ["p +button"],
   },
   {
     key: "t",
-    suggestions: [{ label: "p +button" }],
+    value: "p +butt",
+    suggestions: ["p +button"],
   },
   {
     key: "o",
-    suggestions: [{ label: "p +button" }],
+    value: "p +butto",
+    suggestions: ["p +button"],
   },
   {
     key: "n",
+    value: "p +button",
     suggestions: [],
   },
   {
     key: "+",
-    suggestions: [{ label: "p +button+p" }],
+    value: "p +button+",
+    suggestions: ["p +button+p"],
+  },
+  {
+    key: "VK_BACK_SPACE",
+    value: "p +button",
+    suggestions: [],
+  },
+  {
+    key: "~",
+    value: "p +button~",
+    suggestions: ["p +button~footer", "p +button~p"],
+  },
+  {
+    key: "f",
+    value: "p +button~f",
+    suggestions: ["p +button~footer"],
   },
 ];
 
 add_task(async function () {
   const { inspector } = await openInspectorForURL(TEST_URL);
-  const searchBox = inspector.searchBox;
-  const popup = inspector.searchSuggestions.searchPopup;
-
-  await focusSearchBoxUsingShortcut(inspector.panelWin);
-
-  for (const { key, suggestions } of TEST_DATA) {
-    info("Pressing " + key + " to get " + formatSuggestions(suggestions));
-
-    const command = once(searchBox, "input");
-    const onSearchProcessingDone =
-      inspector.searchSuggestions.once("processing-done");
-    EventUtils.synthesizeKey(key, {}, inspector.panelWin);
-    await command;
-
-    info("Waiting for search query to complete");
-    await onSearchProcessingDone;
-
-    info(
-      "Query completed. Performing checks for input '" +
-        searchBox.value +
-        "' - key pressed: " +
-        key
-    );
-    const actualSuggestions = popup.getItems();
-
-    is(
-      popup.isOpen ? actualSuggestions.length : 0,
-      suggestions.length,
-      "There are expected number of suggestions."
-    );
-
-    for (let i = 0; i < suggestions.length; i++) {
-      is(
-        actualSuggestions[i].label,
-        suggestions[i].label,
-        "The suggestion at " + i + "th index is correct."
-      );
-    }
-  }
+  await checkMarkupSearchSuggestions(inspector, TEST_DATA);
 });
-
-function formatSuggestions(suggestions) {
-  return "[" + suggestions.map(s => "'" + s.label + "'").join(", ") + "]";
-}
