@@ -156,24 +156,20 @@ class SelectorAutocompleter extends EventEmitter {
     this.panelDoc = this.searchBox.ownerDocument;
 
     this.showSuggestions = this.showSuggestions.bind(this);
-    this._onSearchKeypress = this._onSearchKeypress.bind(this);
-    this._onSearchPopupClick = this._onSearchPopupClick.bind(this);
-    this._onMarkupMutation = this._onMarkupMutation.bind(this);
 
     // Options for the AutocompletePopup.
     const options = {
       listId: "searchbox-panel-listbox",
       autoSelect: true,
       position: "top",
-      onClick: this._onSearchPopupClick,
+      onClick: this.#onSearchPopupClick,
     };
 
     // The popup will be attached to the toolbox document.
     this.searchPopup = new AutocompletePopup(inspector._toolbox.doc, options);
 
     this.searchBox.addEventListener("input", this.showSuggestions, true);
-    this.searchBox.addEventListener("keypress", this._onSearchKeypress, true);
-    this.inspector.on("markupmutation", this._onMarkupMutation);
+    this.searchBox.addEventListener("keypress", this.#onSearchKeypress, true);
   }
 
   // The possible states of the query.
@@ -185,10 +181,10 @@ class SelectorAutocompleter extends EventEmitter {
   };
 
   // The current state of the query.
-  _state = null;
+  #state = null;
 
   // The query corresponding to last state computation.
-  _lastStateCheckAt = null;
+  #lastStateCheckAt = null;
 
   get walker() {
     return this.inspector.walker;
@@ -211,13 +207,13 @@ class SelectorAutocompleter extends EventEmitter {
     }
 
     const query = this.searchBox.value;
-    if (this._lastStateCheckAt == query) {
+    if (this.#lastStateCheckAt == query) {
       // If query is the same, return early.
-      return this._state;
+      return this.#state;
     }
-    this._lastStateCheckAt = query;
+    this.#lastStateCheckAt = query;
 
-    this._state = null;
+    this.#state = null;
     let subQuery = "";
     // Now we iterate over the query and decide the state character by
     // character.
@@ -231,20 +227,20 @@ class SelectorAutocompleter extends EventEmitter {
       // Calculate the state.
       subQuery = query.slice(0, i);
       let [secondLastChar, lastChar] = subQuery.slice(-2);
-      switch (this._state) {
+      switch (this.#state) {
         case null:
           // This will happen only in the first iteration of the for loop.
           lastChar = secondLastChar;
 
         case this.States.TAG: // eslint-disable-line
           if (lastChar === ".") {
-            this._state = this.States.CLASS;
+            this.#state = this.States.CLASS;
           } else if (lastChar === "#") {
-            this._state = this.States.ID;
+            this.#state = this.States.ID;
           } else if (lastChar === "[") {
-            this._state = this.States.ATTRIBUTE;
+            this.#state = this.States.ATTRIBUTE;
           } else {
-            this._state = this.States.TAG;
+            this.#state = this.States.TAG;
           }
           break;
 
@@ -253,13 +249,13 @@ class SelectorAutocompleter extends EventEmitter {
             // Checks whether the subQuery has atleast one [a-zA-Z] after the
             // '.'.
             if (lastChar === " " || lastChar === ">") {
-              this._state = this.States.TAG;
+              this.#state = this.States.TAG;
             } else if (lastChar === "#") {
-              this._state = this.States.ID;
+              this.#state = this.States.ID;
             } else if (lastChar === "[") {
-              this._state = this.States.ATTRIBUTE;
+              this.#state = this.States.ATTRIBUTE;
             } else {
-              this._state = this.States.CLASS;
+              this.#state = this.States.CLASS;
             }
           }
           break;
@@ -269,13 +265,13 @@ class SelectorAutocompleter extends EventEmitter {
             // Checks whether the subQuery has atleast one [a-zA-Z] after the
             // '#'.
             if (lastChar === " " || lastChar === ">") {
-              this._state = this.States.TAG;
+              this.#state = this.States.TAG;
             } else if (lastChar === ".") {
-              this._state = this.States.CLASS;
+              this.#state = this.States.CLASS;
             } else if (lastChar === "[") {
-              this._state = this.States.ATTRIBUTE;
+              this.#state = this.States.ATTRIBUTE;
             } else {
-              this._state = this.States.ID;
+              this.#state = this.States.ID;
             }
           }
           break;
@@ -284,19 +280,19 @@ class SelectorAutocompleter extends EventEmitter {
           if (subQuery.match(/[\[][^\]]+[\]]/) !== null) {
             // Checks whether the subQuery has at least one ']' after the '['.
             if (lastChar === " " || lastChar === ">") {
-              this._state = this.States.TAG;
+              this.#state = this.States.TAG;
             } else if (lastChar === ".") {
-              this._state = this.States.CLASS;
+              this.#state = this.States.CLASS;
             } else if (lastChar === "#") {
-              this._state = this.States.ID;
+              this.#state = this.States.ID;
             } else {
-              this._state = this.States.ATTRIBUTE;
+              this.#state = this.States.ATTRIBUTE;
             }
           }
           break;
       }
     }
-    return this._state;
+    return this.#state;
   }
 
   /**
@@ -306,10 +302,9 @@ class SelectorAutocompleter extends EventEmitter {
     this.searchBox.removeEventListener("input", this.showSuggestions, true);
     this.searchBox.removeEventListener(
       "keypress",
-      this._onSearchKeypress,
+      this.#onSearchKeypress,
       true
     );
-    this.inspector.off("markupmutation", this._onMarkupMutation);
     this.searchPopup.destroy();
     this.searchPopup = null;
     this.searchBox = null;
@@ -319,7 +314,7 @@ class SelectorAutocompleter extends EventEmitter {
   /**
    * Handles keypresses inside the input box.
    */
-  _onSearchKeypress(event) {
+  #onSearchKeypress = event => {
     const popup = this.searchPopup;
     switch (event.keyCode) {
       case KeyCodes.DOM_VK_RETURN:
@@ -368,12 +363,12 @@ class SelectorAutocompleter extends EventEmitter {
     event.preventDefault();
     event.stopPropagation();
     this.emitForTests("processing-done");
-  }
+  };
 
   /**
    * Handles click events from the autocomplete popup.
    */
-  _onSearchPopupClick(event) {
+  #onSearchPopupClick = event => {
     const selectedItem = this.searchPopup.selectedItem;
     if (selectedItem) {
       this.searchBox.value = selectedItem.label;
@@ -382,16 +377,7 @@ class SelectorAutocompleter extends EventEmitter {
 
     event.preventDefault();
     event.stopPropagation();
-  }
-
-  /**
-   * Reset previous search results on markup-mutations to make sure we search
-   * again after nodes have been added/removed/changed.
-   */
-  _onMarkupMutation() {
-    this._searchResults = null;
-    this._lastSearched = null;
-  }
+  };
 
   /**
    * Populates the suggestions list and show the suggestion popup.
@@ -399,7 +385,7 @@ class SelectorAutocompleter extends EventEmitter {
    * @return {Promise} promise that will resolve when the autocomplete popup is fully
    * displayed or hidden.
    */
-  _showPopup(list, popupState) {
+  #showPopup(list, popupState) {
     let total = 0;
     const query = this.searchBox.value;
     const items = [];
@@ -527,7 +513,7 @@ class SelectorAutocompleter extends EventEmitter {
 
     // Wait for the autocomplete-popup to fire its popup-opened event, to make sure
     // the autoSelect item has been selected.
-    await this._showPopup(suggestions, state);
+    await this.#showPopup(suggestions, state);
     this.emitForTests("processing-done", { query: originalQuery });
   }
 }
