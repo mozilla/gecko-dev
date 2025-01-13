@@ -5,6 +5,7 @@
 .datetimebox {
   display: flex;
   line-height: normal;
+  white-space: nowrap;
   /* TODO: Enable selection once bug 1455893 is fixed */
   user-select: none;
 }
@@ -20,7 +21,6 @@
 
 .datetime-input-edit-wrapper {
   overflow: hidden;
-  white-space: nowrap;
   flex-grow: 1;
 }
 
