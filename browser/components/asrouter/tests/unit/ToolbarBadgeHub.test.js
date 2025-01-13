@@ -1,5 +1,5 @@
 import { _ToolbarBadgeHub } from "modules/ToolbarBadgeHub.sys.mjs";
-import { GlobalOverrider } from "test/unit/utils";
+import { GlobalOverrider } from "tests/unit/utils";
 import { OnboardingMessageProvider } from "modules/OnboardingMessageProvider.sys.mjs";
 
 describe("ToolbarBadgeHub", () => {

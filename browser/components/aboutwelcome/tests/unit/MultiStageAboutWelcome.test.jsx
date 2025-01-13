@@ -1,4 +1,4 @@
-import { GlobalOverrider } from "newtab/test/unit/utils";
+import { GlobalOverrider } from "asrouter/tests/unit/utils";
 import {
   MultiStageAboutWelcome,
   SecondaryCTA,

@@ -15,7 +15,6 @@ const PATHS = {
 
   // The base directory of all source files (used for path resolution in webpack importing)
   moduleResolveDirectory: __dirname,
-  newtabResolveDirectory: "../newtab",
 
   // a RegEx matching all Cu.import statements of local files
   resourcePathRegEx: /^resource:\/\/activity-stream\//,
@@ -112,14 +111,7 @@ module.exports = function (config) {
       // This resolve config allows us to import with paths relative to the root directory
       resolve: {
         extensions: [".mjs", ".js", ".jsx"],
-        modules: [
-          PATHS.moduleResolveDirectory,
-          "node_modules",
-          PATHS.newtabResolveDirectory,
-        ],
-        alias: {
-          newtab: path.join(__dirname, "../newtab"),
-        },
+        modules: [PATHS.moduleResolveDirectory, "node_modules"],
       },
       plugins: [
         // The ResourceUriPlugin handles translating resource URIs in import

@@ -1,4 +1,4 @@
-import { GlobalOverrider } from "test/unit/utils";
+import { GlobalOverrider } from "tests/unit/utils";
 import { PanelTestProvider } from "modules/PanelTestProvider.sys.mjs";
 import { _MomentsPageHub } from "modules/MomentsPageHub.sys.mjs";
 const HOMEPAGE_OVERRIDE_PREF = "browser.startup.homepage_override.once";

@@ -3,7 +3,7 @@ import {
   toBinary,
 } from "content-src/components/ASRouterAdmin/ASRouterAdmin";
 import { ASRouterUtils } from "content-src/asrouter-utils";
-import { GlobalOverrider } from "test/unit/utils";
+import { GlobalOverrider } from "tests/unit/utils";
 import React from "react";
 import { mount } from "enzyme";
 

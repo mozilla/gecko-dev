@@ -5,7 +5,7 @@ import {
   ActionChecklistItem,
   ActionChecklistProgressBar,
 } from "content-src/components/ActionChecklist";
-import { GlobalOverrider } from "newtab/test/unit/utils";
+import { GlobalOverrider } from "asrouter/tests/unit/utils";
 
 describe("Action Checklist component", () => {
   let globals;

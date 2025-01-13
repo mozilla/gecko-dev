@@ -5,7 +5,7 @@ import {
 } from "modules/ASRouterTargeting.sys.mjs";
 import { OnboardingMessageProvider } from "modules/OnboardingMessageProvider.sys.mjs";
 import { ASRouterPreferences } from "modules/ASRouterPreferences.sys.mjs";
-import { GlobalOverrider } from "test/unit/utils";
+import { GlobalOverrider } from "tests/unit/utils";
 
 // Note that tests for the ASRouterTargeting environment can be found in
 // test/functional/mochitest/browser_asrouter_targeting.js

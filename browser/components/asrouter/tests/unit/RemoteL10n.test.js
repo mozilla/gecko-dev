@@ -1,5 +1,5 @@
 import { RemoteL10n, _RemoteL10n } from "modules/RemoteL10n.sys.mjs";
-import { GlobalOverrider } from "test/unit/utils";
+import { GlobalOverrider } from "tests/unit/utils";
 
 describe("RemoteL10n", () => {
   let sandbox;

@@ -1,11 +1,10 @@
 import {
-  EventEmitter,
   FakePrefs,
   FakensIPrefService,
   GlobalOverrider,
   FakeConsoleAPI,
   FakeLogger,
-} from "newtab/test/unit/utils";
+} from "tests/unit/utils";
 import Adapter from "enzyme-adapter-react-16";
 import chaiJsonSchema from "chai-json-schema";
 import enzyme from "enzyme";
@@ -506,7 +505,6 @@ const TEST_GLOBAL = {
       return {};
     },
   },
-  EventEmitter,
   ShellService: {
     doesAppNeedPin: () => false,
     isDefaultBrowser: () => true,

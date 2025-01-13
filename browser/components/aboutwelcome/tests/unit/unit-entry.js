@@ -1,11 +1,9 @@
 import {
-  EventEmitter,
-  FakePrefs,
   FakensIPrefService,
   GlobalOverrider,
   FakeConsoleAPI,
   FakeLogger,
-} from "newtab/test/unit/utils";
+} from "asrouter/tests/unit/utils";
 import Adapter from "enzyme-adapter-react-16";
 import enzyme from "enzyme";
 
@@ -182,7 +180,6 @@ const TEST_GLOBAL = {
     },
     isSuccessCode: () => true,
   },
-  ConsoleAPI: FakeConsoleAPI,
   // NB: These are functions/constructors
   // eslint-disable-next-line object-shorthand
   ContentSearchUIController: function () {},
@@ -366,7 +363,6 @@ const TEST_GLOBAL = {
       removeListener() {},
     },
   },
-  Preferences: FakePrefs,
   PrivateBrowsingUtils: {
     isBrowserPrivate: () => false,
     isWindowPrivate: () => false,
@@ -497,7 +493,6 @@ const TEST_GLOBAL = {
       return {};
     },
   },
-  EventEmitter,
   ShellService: {
     doesAppNeedPin: () => false,
     isDefaultBrowser: () => true,
