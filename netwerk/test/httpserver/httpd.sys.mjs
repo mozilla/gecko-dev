@@ -3990,7 +3990,7 @@ Response.prototype = {
   //
   // see nsIHttpResponse.setHeader
   //
-  setHeader(name, value, merge) {
+  setHeader(name, value, merge = false) {
     if (!this._headers || this._finished || this._powerSeized) {
       throw Components.Exception("", Cr.NS_ERROR_NOT_AVAILABLE);
     }

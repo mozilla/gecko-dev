@@ -548,7 +548,7 @@ interface nsIHttpResponse : nsISupports
    *   Proxy-Authenticate headers, which will treat each such merged header as
    *   an additional instance of the header, for real-world compatibility
    *   reasons); when false, replaces any existing header of the given name (if
-   *   any exists) with a new header with the specified value
+   *   any exists) with a new header with the specified value, defaults to false
    * @throws NS_ERROR_INVALID_ARG
    *   if name or value is not a valid header component
    * @throws NS_ERROR_NOT_AVAILABLE
@@ -556,7 +556,7 @@ interface nsIHttpResponse : nsISupports
    *   written to this response's body, or if seizePower() has been called on
    *   this
    */
-  void setHeader(in string name, in string value, in boolean merge);
+  void setHeader(in string name, in string value, [optional] in boolean merge);
 
   /**
    * This is used for testing our header handling, so header will be sent out
