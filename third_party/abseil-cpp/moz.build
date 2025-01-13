@@ -38,6 +38,7 @@ DIRS += [
     "/third_party/abseil-cpp/absl/strings/strings_gn",
     "/third_party/abseil-cpp/absl/types/bad_optional_access_gn",
     "/third_party/abseil-cpp/absl/types/bad_variant_access_gn",
+    "/third_party/abseil-cpp/absl/types/compare_gn",
     "/third_party/abseil-cpp/absl/types/optional_gn",
     "/third_party/abseil-cpp/absl/types/span_gn",
     "/third_party/abseil-cpp/absl/types/variant_gn",
