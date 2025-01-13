@@ -111,6 +111,7 @@ size_t js::jit::NumInputsForCacheKind(CacheKind kind) {
     case CacheKind::NewObject:
     case CacheKind::Lambda:
     case CacheKind::LazyConstant:
+    case CacheKind::GetImport:
       return 0;
     case CacheKind::GetProp:
     case CacheKind::TypeOf:
@@ -15553,6 +15554,47 @@ void OptimizeGetIteratorIRGenerator::trackAttached(const char* name) {
     sp.valueProperty("val", val_);
   }
 #endif
+}
+
+GetImportIRGenerator::GetImportIRGenerator(JSContext* cx, HandleScript script,
+                                           jsbytecode* pc, ICState state)
+    : IRGenerator(cx, script, pc, CacheKind::GetImport, state) {}
+
+void GetImportIRGenerator::trackAttached(const char* name) {
+#ifdef JS_CACHEIR_SPEW
+  const CacheIRSpewer::Guard& sp = CacheIRSpewer::Guard(*this, name);
+#endif
+}
+
+AttachDecision GetImportIRGenerator::tryAttachInitialized() {
+  ModuleEnvironmentObject* env = GetModuleEnvironmentForScript(script_);
+  MOZ_ASSERT(env);
+
+  jsid id = NameToId(script_->getName(pc_));
+  ModuleEnvironmentObject* holderEnv;
+  Maybe<PropertyInfo> prop;
+  MOZ_ALWAYS_TRUE(env->lookupImport(id, &holderEnv, &prop));
+
+  // Imports are initialized by this point except in rare circumstances.
+  if (holderEnv->getSlot(prop->slot()).isMagic(JS_UNINITIALIZED_LEXICAL)) {
+    return AttachDecision::NoAction;
+  }
+
+  ObjOperandId holderEnvId = writer.loadObject(holderEnv);
+  EmitLoadSlotResult(writer, holderEnvId, holderEnv, *prop);
+  writer.returnFromIC();
+
+  trackAttached("GetImport.Initialized");
+  return AttachDecision::Attach;
+}
+
+AttachDecision GetImportIRGenerator::tryAttachStub() {
+  AutoAssertNoPendingException aanpe(cx_);
+
+  TRY_ATTACH(tryAttachInitialized());
+
+  trackAttached(IRGenerator::NotAttached);
+  return AttachDecision::NoAction;
 }
 
 #ifdef JS_SIMULATOR

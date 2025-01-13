@@ -2043,6 +2043,7 @@ bool BaselineCacheIRCompiler::init(CacheKind kind) {
     case CacheKind::NewObject:
     case CacheKind::Lambda:
     case CacheKind::LazyConstant:
+    case CacheKind::GetImport:
       MOZ_ASSERT(numInputs == 0);
       outputUnchecked_.emplace(R0);
       break;

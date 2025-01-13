@@ -3807,79 +3807,11 @@ bool BaselineCodeGen<Handler>::emit_DelName() {
   return true;
 }
 
-template <>
-bool BaselineCompilerCodeGen::emit_GetImport() {
-  if (handler.compilingOffThread()) {
-    frame.syncStack(0);
-    masm.loadPtr(frame.addressOfEnvironmentChain(), R0.scratchReg());
-
-    prepareVMCall();
-
-    pushBytecodePCArg();
-    pushScriptArg();
-    pushArg(R0.scratchReg());
-
-    using Fn = bool (*)(JSContext*, HandleObject, HandleScript, jsbytecode*,
-                        MutableHandleValue);
-    if (!callVM<Fn, GetImportOperation>()) {
-      return false;
-    }
-
-    frame.push(R0);
-    return true;
-  }
-
-  JSScript* script = handler.script();
-  ModuleEnvironmentObject* env = GetModuleEnvironmentForScript(script);
-  MOZ_ASSERT(env);
-
-  jsid id = NameToId(script->getName(handler.pc()));
-  ModuleEnvironmentObject* targetEnv;
-  Maybe<PropertyInfo> prop;
-  MOZ_ALWAYS_TRUE(env->lookupImport(id, &targetEnv, &prop));
-
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_GetImport() {
   frame.syncStack(0);
 
-  uint32_t slot = prop->slot();
-  Register scratch = R0.scratchReg();
-  masm.movePtr(ImmGCPtr(targetEnv), scratch);
-  if (slot < targetEnv->numFixedSlots()) {
-    masm.loadValue(Address(scratch, NativeObject::getFixedSlotOffset(slot)),
-                   R0);
-  } else {
-    masm.loadPtr(Address(scratch, NativeObject::offsetOfSlots()), scratch);
-    masm.loadValue(
-        Address(scratch, (slot - targetEnv->numFixedSlots()) * sizeof(Value)),
-        R0);
-  }
-
-  // Imports are initialized by this point except in rare circumstances, so
-  // don't emit a check unless we have to.
-  if (targetEnv->getSlot(slot).isMagic(JS_UNINITIALIZED_LEXICAL)) {
-    if (!emitUninitializedLexicalCheck(R0)) {
-      return false;
-    }
-  }
-
-  frame.push(R0);
-  return true;
-}
-
-template <>
-bool BaselineInterpreterCodeGen::emit_GetImport() {
-  frame.syncStack(0);
-
-  masm.loadPtr(frame.addressOfEnvironmentChain(), R0.scratchReg());
-
-  prepareVMCall();
-
-  pushBytecodePCArg();
-  pushScriptArg();
-  pushArg(R0.scratchReg());
-
-  using Fn = bool (*)(JSContext*, HandleObject, HandleScript, jsbytecode*,
-                      MutableHandleValue);
-  if (!callVM<Fn, GetImportOperation>()) {
+  if (!emitNextIC()) {
     return false;
   }
 

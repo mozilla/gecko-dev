@@ -5720,6 +5720,13 @@ DEFINE_IC(GetElemSuper, 3, {
   }
 });
 
+DEFINE_IC(GetImport, 0, {
+  PUSH_FALLBACK_IC_FRAME();
+  if (!DoGetImportFallback(cx, ctx.frame, fallback, &ctx.state.res)) {
+    goto error;
+  }
+});
+
 DEFINE_IC(NewArray, 0, {
   PUSH_FALLBACK_IC_FRAME();
   if (!DoNewArrayFallback(cx, ctx.frame, fallback, &ctx.state.res)) {
@@ -8720,19 +8727,10 @@ PBIResult PortableBaselineInterpret(
       }
 
       CASE(GetImport) {
-        {
-          ReservedRooted<JSObject*> obj0(&state.obj0,
-                                         frame->environmentChain());
-          ReservedRooted<Value> value0(&state.value0);
-          ReservedRooted<JSScript*> script0(&state.script0, frame->script());
-          {
-            PUSH_EXIT_FRAME();
-            if (!GetImportOperation(cx, obj0, script0, pc, &value0)) {
-              GOTO_ERROR();
-            }
-          }
-          VIRTPUSH(StackVal(value0));
-        }
+        IC_ZERO_ARG(0);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC_AND_PUSH(GetImport, false);
         END_OP(GetImport);
       }
 

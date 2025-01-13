@@ -159,6 +159,7 @@ namespace jit {
   _(DoConcatStringObject, js::jit::DoConcatStringObject)                       \
   _(DoGetElemFallback, js::jit::DoGetElemFallback, 2)                          \
   _(DoGetElemSuperFallback, js::jit::DoGetElemSuperFallback, 3)                \
+  _(DoGetImportFallback, js::jit::DoGetImportFallback)                         \
   _(DoGetIteratorFallback, js::jit::DoGetIteratorFallback, 1)                  \
   _(DoGetNameFallback, js::jit::DoGetNameFallback)                             \
   _(DoGetPropFallback, js::jit::DoGetPropFallback, 1)                          \
