@@ -246,7 +246,7 @@ export var UrlbarUtils = {
       {
         source: UrlbarUtils.RESULT_SOURCE.TABS,
         restrict: lazy.UrlbarTokenizer.RESTRICT.OPENPAGE,
-        icon: "chrome://browser/skin/tab.svg",
+        icon: "chrome://browser/skin/tabs.svg",
         pref: "shortcuts.tabs",
         telemetryLabel: "tabs",
         uiLabel: "urlbar-searchmode-tabs",
