@@ -225,6 +225,8 @@ export const SpecialMessageActions = {
       "sidebar.verticalTabs",
       "sidebar.revamp",
       "sidebar.visibility",
+      "browser.crashReports.unsubmittedCheck.autoSubmit2",
+      "datareporting.healthreport.uploadEnabled",
     ];
 
     if (
