@@ -159,6 +159,7 @@ source_set("absl_full") {
 }
 
 group("absl_full_deps") {
+  if (!moz_webrtc_build) {
   public_deps = [
     # Banned because each flag registration generates a static initializer, and
     # the flag registration mechanism is problematic in component builds.
@@ -185,6 +186,7 @@ group("absl_full_deps") {
   ]
 
   public_configs = [ "//third_party/abseil-cpp/absl/flags:absl_flags_config" ]
+  }
 }
 
 config("absl_include_config") {
