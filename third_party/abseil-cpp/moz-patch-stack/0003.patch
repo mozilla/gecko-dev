@@ -26,7 +26,7 @@ index f8518fdd1be..e4d006405e1 100644
    ]
    visibility = [ "//third_party/abseil-cpp/absl/*" ]
 diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
-index c1d3927167d..7185cc9831f 100644
+index b6a8a043576..b1131286713 100644
 --- a/abseil-cpp/absl/flags/BUILD.gn
 +++ b/abseil-cpp/absl/flags/BUILD.gn
 @@ -143,7 +143,7 @@ absl_source_set("flag_internal") {

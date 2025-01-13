@@ -18,7 +18,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/34c8904c816a49ad3
  abseil-cpp/absl/cleanup/BUILD.gn         |  2 -
  abseil-cpp/absl/container/BUILD.gn       | 14 ++-----
  abseil-cpp/absl/debugging/BUILD.gn       |  2 -
- abseil-cpp/absl/flags/BUILD.gn           | 50 ++++++++++--------------
+ abseil-cpp/absl/flags/BUILD.gn           | 48 ++++++++++--------------
  abseil-cpp/absl/functional/BUILD.gn      |  4 --
  abseil-cpp/absl/hash/BUILD.gn            |  2 -
  abseil-cpp/absl/memory/BUILD.gn          |  2 -
@@ -28,10 +28,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/34c8904c816a49ad3
  abseil-cpp/absl/synchronization/BUILD.gn |  2 -
  abseil-cpp/absl/time/BUILD.gn            |  2 -
  abseil-cpp/absl/types/BUILD.gn           |  4 --
- 16 files changed, 34 insertions(+), 102 deletions(-)
+ 16 files changed, 33 insertions(+), 101 deletions(-)
 
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 03cb499e934..0a85dd98e00 100644
+index 8bba650eaa0..f99c9218d52 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -56,11 +56,6 @@ component("absl") {
@@ -223,7 +223,7 @@ index e8b215a22d5..3d3fa882689 100644
  }
 -}
 diff --git a/abseil-cpp/absl/container/BUILD.gn b/abseil-cpp/absl/container/BUILD.gn
-index ffef152fb07..ed70c1dbe10 100644
+index d16c359a58a..1d2a348d5b9 100644
 --- a/abseil-cpp/absl/container/BUILD.gn
 +++ b/abseil-cpp/absl/container/BUILD.gn
 @@ -9,7 +9,6 @@ absl_source_set("compressed_tuple") {
@@ -275,7 +275,7 @@ index ffef152fb07..ed70c1dbe10 100644
      "//third_party/abseil-cpp/absl/algorithm:container",
      "//third_party/abseil-cpp/absl/base:core_headers",
      "//third_party/abseil-cpp/absl/memory",
-@@ -124,7 +120,6 @@ absl_test("flat_hash_map_test") {
+@@ -125,7 +121,6 @@ absl_test("flat_hash_map_test") {
    ]
  }
  
@@ -283,7 +283,7 @@ index ffef152fb07..ed70c1dbe10 100644
  absl_source_set("flat_hash_set") {
    public = [ "flat_hash_set.h" ]
    deps = [
-@@ -556,4 +551,3 @@ absl_source_set("btree_test_common") {
+@@ -576,4 +571,3 @@ absl_source_set("btree_test_common") {
  #     "//third_party/abseil-cpp/absl/types:optional",
  #   ]
  # }
@@ -306,7 +306,7 @@ index a635939cd7f..0f7a1f3e6b0 100644
  }
 -}
 diff --git a/abseil-cpp/absl/flags/BUILD.gn b/abseil-cpp/absl/flags/BUILD.gn
-index 837feb51b60..d890092a899 100644
+index 7a86a12a624..660f600fb87 100644
 --- a/abseil-cpp/absl/flags/BUILD.gn
 +++ b/abseil-cpp/absl/flags/BUILD.gn
 @@ -4,7 +4,6 @@
@@ -384,14 +384,12 @@ index 837feb51b60..d890092a899 100644
    ]
    visibility = [
      ":*",
-@@ -165,15 +161,14 @@ absl_source_set("flag") {
-   deps = [
+@@ -166,14 +162,13 @@ absl_source_set("flag") {
+     ":commandlineflag",
      ":config",
      ":flag_internal",
 -#       ":reflection",
--#       "//third_party/abseil-cpp/absl/base",
 +    ":reflection",
-+    "//third_party/abseil-cpp/absl/base",
      "//third_party/abseil-cpp/absl/base:config",
      "//third_party/abseil-cpp/absl/base:core_headers",
      "//third_party/abseil-cpp/absl/strings:string_view",
@@ -445,8 +443,8 @@ index 837feb51b60..d890092a899 100644
  absl_test("flag_test") {
    sources = [
      "flag_test.cc",
-@@ -255,4 +248,3 @@ absl_test("flag_test") {
-     "//third_party/abseil-cpp/absl/time",
+@@ -257,4 +250,3 @@ absl_test("flag_test") {
+     "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
 -}
@@ -563,7 +561,7 @@ index 8aedd90aca9..ce74204b18f 100644
  absl_source_set("representation") {
    public = [ "internal/representation.h" ]
 diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index ede4e5b5df3..fd14d467afc 100644
+index 05e3d92d69e..d2393aa3242 100644
 --- a/abseil-cpp/absl/strings/BUILD.gn
 +++ b/abseil-cpp/absl/strings/BUILD.gn
 @@ -16,10 +16,7 @@ absl_source_set("string_view") {
@@ -609,7 +607,7 @@ index ede4e5b5df3..fd14d467afc 100644
  absl_source_set("str_format") {
    public = [ "str_format.h" ]
    deps = [
-@@ -767,4 +756,3 @@ absl_test("char_formatting_test") {
+@@ -768,4 +757,3 @@ absl_test("char_formatting_test") {
      ":strings",
    ]
  }

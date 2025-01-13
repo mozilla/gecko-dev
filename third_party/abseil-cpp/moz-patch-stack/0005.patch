@@ -17,7 +17,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/da4def20e294cf6b5
  1 file changed, 13 insertions(+)
 
 diff --git a/abseil-cpp/absl/strings/string_view.h b/abseil-cpp/absl/strings/string_view.h
-index 04ca0a38ae7..cf4f0ba2e89 100644
+index b393c6fc63a..793ca54b3f9 100644
 --- a/abseil-cpp/absl/strings/string_view.h
 +++ b/abseil-cpp/absl/strings/string_view.h
 @@ -67,6 +67,15 @@ ABSL_NAMESPACE_END
