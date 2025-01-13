@@ -10,6 +10,7 @@ from textwrap import dedent
 
 import mozunit
 from buildconfig import topsrcdir
+from packaging.specifiers import SpecifierSet
 
 from mach.requirements import MachEnvRequirements
 from mach.site import PythonVirtualenv
@@ -69,7 +70,7 @@ def _requirement_definition_to_pip_format(site_name, cache, is_mach_or_build_env
                     '"pth:".'
                 )
 
-    return "\n".join(lines)
+    return "\n".join(lines), requirements.requires_python
 
 
 class PackageCache:
@@ -117,10 +118,20 @@ class PackageCache:
 
 
 def test_sites_compatible(tmpdir: str):
+    python_version_for_check = "3.8"
+    assert sys.version.startswith(python_version_for_check), (
+        f"This is a test for mach's minimum supported version of Python {python_version_for_check},"
+        f"but executing Python is {sys.version}. If this failure occurs in automation, it may mean"
+        f"the worker's Python was upgraded and/or mach's minimum supported Python version changed."
+        f"This test may need to be updated."
+    )
+
     command_site_names = _resolve_command_site_names()
     work_dir = Path(tmpdir)
     cache = PackageCache(work_dir)
-    mach_requirements = _requirement_definition_to_pip_format("mach", cache, True)
+    mach_requirements, mach_requires_python = _requirement_definition_to_pip_format(
+        "mach", cache, True
+    )
 
     # Create virtualenv to try to install all dependencies into.
     virtualenv = PythonVirtualenv(str(work_dir / "env"))
@@ -148,9 +159,19 @@ def test_sites_compatible(tmpdir: str):
 
     for name in command_site_names:
         print(f'Checking compatibility of "{name}" site')
-        command_requirements = _requirement_definition_to_pip_format(
-            name, cache, name == "build"
+        command_requirements, command_requires_python = (
+            _requirement_definition_to_pip_format(name, cache, name == "build")
         )
+
+        command_specifier = SpecifierSet(command_requires_python)
+
+        if not command_specifier.contains(python_version_for_check):
+            print(
+                f"Skipping the '{name}' site as its requirements ({command_requires_python}) "
+                f"do not include {python_version_for_check}."
+            )
+            continue
+
         with open(work_dir / "requirements.txt", "w") as requirements_txt:
             requirements_txt.write(mach_requirements)
             requirements_txt.write("\n")

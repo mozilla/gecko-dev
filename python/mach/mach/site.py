@@ -22,6 +22,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Optional
 
+from packaging.specifiers import SpecifierSet
+
 from mach.requirements import (
     MachEnvRequirements,
     UnexpectedFlexibleRequirementException,
@@ -295,6 +297,7 @@ class MachSiteManager:
         """
 
         requirements = resolve_requirements(topsrcdir, "mach")
+
         # Mach needs to operate in environments in which no pip packages are installed
         # yet, and the system isn't guaranteed to have the packages we need. For example,
         # "./mach bootstrap" can't have any dependencies.
@@ -1102,16 +1105,21 @@ class ExternalPythonSite:
 
 @functools.lru_cache(maxsize=None)
 def resolve_requirements(topsrcdir, site_name):
-    thunderbird_dir = os.path.join(topsrcdir, "comm")
-    is_thunderbird = os.path.exists(thunderbird_dir) and bool(
-        os.listdir(thunderbird_dir)
-    )
-    prefixes = [topsrcdir]
+    thunderbird_dir = Path(topsrcdir, "comm")
+    is_thunderbird = thunderbird_dir.exists() and any(thunderbird_dir.iterdir())
+    prefixes = [Path(topsrcdir)]
     if is_thunderbird:
-        prefixes[0:0] = [thunderbird_dir]
-    manifest_suffix = os.path.join("python", "sites", f"{site_name}.txt")
-    manifest_paths = (os.path.join(prefix, manifest_suffix) for prefix in prefixes)
-    manifest_path = next((f for f in manifest_paths if os.path.exists(f)), None)
+        prefixes.insert(0, thunderbird_dir)
+
+    manifest_suffix = Path("python", "sites", f"{site_name}.txt")
+    manifest_path = next(
+        (
+            prefix / manifest_suffix
+            for prefix in prefixes
+            if (prefix / manifest_suffix).exists()
+        ),
+        None,
+    )
 
     if manifest_path is None:
         raise Exception(
@@ -1121,7 +1129,7 @@ def resolve_requirements(topsrcdir, site_name):
         )
 
     try:
-        return MachEnvRequirements.from_requirements_definition(
+        requirements = MachEnvRequirements.from_requirements_definition(
             topsrcdir,
             is_thunderbird,
             site_name not in PIP_NETWORK_INSTALL_RESTRICTED_VIRTUALENVS,
@@ -1134,6 +1142,25 @@ def resolve_requirements(topsrcdir, site_name):
             f"Only the {PIP_NETWORK_INSTALL_RESTRICTED_VIRTUALENVS} sites are "
             "allowed to have unpinned packages."
         )
+
+    current_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+    specifier = SpecifierSet(requirements.requires_python)
+    if current_version not in specifier:
+        site_name = manifest_path.stem
+        print(
+            f"The current Python version ({current_version}) does not meet the required "
+            f"version specification ({requirements.requires_python}) for the '{site_name}' site "
+            f"({manifest_path}).\n\n"
+            f"You will need to switch to a compatible Python version to run this command.\n\n"
+            f"To manage multiple versions of Python, we recommend a tool called 'uv': "
+            f"https://docs.astral.sh/uv/guides/install-python/"
+        )
+
+        exit(1)
+
+    return requirements
 
 
 def _resolve_installed_packages(python_executable):

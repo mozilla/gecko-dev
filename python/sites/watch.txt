@@ -1,1 +1,2 @@
+requires-python:>=3.8
 pypi:pywatchman==2.0

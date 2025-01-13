@@ -36,6 +36,9 @@ class MachEnvRequirements:
     specifies the action. The remaining fields are arguments to that
     action. The following actions are supported:
 
+    requires-python -- Specifies the minimum and/or maximum Python
+        versions supported by this site.
+
     pth -- Adds the path given as argument to "mach.pth" under
         the virtualenv's site packages directory.
 
@@ -54,6 +57,7 @@ class MachEnvRequirements:
     """
 
     def __init__(self):
+        self.requires_python = ""
         self.requirements_paths = []
         self.pth_requirements = []
         self.pypi_requirements = []
@@ -100,7 +104,18 @@ def _parse_mach_env_requirements(
             return
 
         action, params = line.rstrip().split(":", maxsplit=1)
-        if action == "pth":
+        if action == "requires-python":
+            if requirements_output.requires_python == "":
+                requirements_output.requires_python = params
+            else:
+                raise Exception(
+                    f"'requires-python' is already set to "
+                    f"'{requirements_output.requires_python}'. "
+                    f"Attempted to set it again to '{params}'. "
+                    f"Please ensure the file '{root_requirements_path}' "
+                    f"contains only one 'requires-python' entry."
+                )
+        elif action == "pth":
             path = topsrcdir / params
             if not path.exists():
                 # In sparse checkouts, not all paths will be populated.

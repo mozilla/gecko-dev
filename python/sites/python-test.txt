@@ -1,3 +1,4 @@
+requires-python:>=3.8
 pypi:pytest==7.0.1
 pypi:pytest-mock==3.12.0
 pypi:Flask==2.1.3

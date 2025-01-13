@@ -1,3 +1,4 @@
+requires-python:>=3.8
 pth:testing/webcompat
 pypi:pytest==4.6.6
 pypi:selenium==3.141.0
