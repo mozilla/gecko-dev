@@ -5840,8 +5840,11 @@ nsresult nsContentUtils::SetNodeTextContent(nsIContent* aContent,
       NS_ENSURE_SUCCESS(rv, rv);
 
       // All the following nodes, if they exist, must be deleted.
-      while (nsIContent* nextChild = child->GetNextSibling()) {
-        aContent->RemoveChildNode(nextChild, true);
+      while (nsIContent* lastChild = aContent->GetLastChild()) {
+        if (lastChild == child) {
+          break;
+        }
+        aContent->RemoveChildNode(lastChild, true);
       }
     }
 
