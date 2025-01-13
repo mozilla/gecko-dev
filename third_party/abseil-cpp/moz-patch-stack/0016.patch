@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f874c6bfdf0305139
  1 file changed, 4 deletions(-)
 
 diff --git a/abseil-cpp/absl/strings/BUILD.gn b/abseil-cpp/absl/strings/BUILD.gn
-index b4504fb2446..6ac1ff8ff7d 100644
+index cc935852f46..7647a5c1a15 100644
 --- a/abseil-cpp/absl/strings/BUILD.gn
 +++ b/abseil-cpp/absl/strings/BUILD.gn
-@@ -85,11 +85,7 @@ absl_source_set("strings") {
+@@ -87,11 +87,7 @@ absl_source_set("strings") {
    if (moz_webrtc_build) {
      # Removed for unreachable sources.  See Bug 1820869.
      sources -= [

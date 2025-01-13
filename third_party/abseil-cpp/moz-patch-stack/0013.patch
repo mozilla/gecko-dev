@@ -30,7 +30,7 @@ index 648423a128f..bd6c38b3762 100644
  secondary_source = "//abseil-cpp/"
  
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index 4572694dd0f..4aea1ec36f4 100644
+index cfd3aa745c3..1474a539c8f 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -6,10 +6,10 @@
@@ -49,7 +49,7 @@ index 4572694dd0f..4aea1ec36f4 100644
  import("//third_party/abseil-cpp/absl.gni")
  
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index e109315408d..e67a0f93c4d 100644
+index 49556d7eb61..3caf426cd06 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -26,10 +26,10 @@ declare_args() {
@@ -90,10 +90,10 @@ index e109315408d..e67a0f93c4d 100644
        "//abseil-cpp:absl_define_config",
        "//abseil-cpp:absl_test_config",
 diff --git a/abseil-cpp/absl/base/BUILD.gn b/abseil-cpp/absl/base/BUILD.gn
-index fef9a558146..1713282f268 100644
+index 7206b756da5..f5a539f9c46 100644
 --- a/abseil-cpp/absl/base/BUILD.gn
 +++ b/abseil-cpp/absl/base/BUILD.gn
-@@ -214,9 +214,9 @@ absl_source_set("pretty_function") {
+@@ -215,9 +215,9 @@ absl_source_set("pretty_function") {
  # just remove it.
  # source_set("exception_safety_testing") {
  #   testonly = true

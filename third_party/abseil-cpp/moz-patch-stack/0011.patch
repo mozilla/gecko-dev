@@ -32,7 +32,7 @@ index 00000000000..648423a128f
 +}
 +
 diff --git a/abseil-cpp/BUILD.gn b/abseil-cpp/BUILD.gn
-index d7109046113..4572694dd0f 100644
+index 0a85dd98e00..cfd3aa745c3 100644
 --- a/abseil-cpp/BUILD.gn
 +++ b/abseil-cpp/BUILD.gn
 @@ -56,6 +56,7 @@ component("absl") {
@@ -67,7 +67,7 @@ index d7109046113..4572694dd0f 100644
    # The following dependencies currently don't build with NaCl.
    # TODO(https://crbug.com/1114625): Fix build errors and remove this section.
 diff --git a/abseil-cpp/absl.gni b/abseil-cpp/absl.gni
-index a54478d8451..59034f1f11a 100644
+index f2a0a1c5383..8420c47f684 100644
 --- a/abseil-cpp/absl.gni
 +++ b/abseil-cpp/absl.gni
 @@ -30,8 +30,8 @@ template("absl_source_set") {
