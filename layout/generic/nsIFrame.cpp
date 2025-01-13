@@ -6899,8 +6899,8 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
   const auto& styleISize = aSizeOverrides.mStyleISize
                                ? *aSizeOverrides.mStyleISize
                                : stylePos->ISize(aWM);
-  const auto& styleBSize = aSizeOverrides.mStyleISize
-                               ? *aSizeOverrides.mStyleISize
+  const auto& styleBSize = aSizeOverrides.mStyleBSize
+                               ? *aSizeOverrides.mStyleBSize
                                : stylePos->BSize(aWM);
   const auto iStartOffsetIsAuto =
       stylePos->GetInset(LogicalSide::IStart, aWM).IsAuto();
@@ -6958,7 +6958,8 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
   const auto bShouldStretch =
       shouldStretch(blockAlignSelf, this, bStartOffsetIsAuto, bEndOffsetIsAuto);
   const auto iSizeIsAuto = styleISize.IsAuto();
-  const auto bSizeIsAuto = styleBSize.IsAuto();
+  const auto bSizeIsAuto =
+      nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM));
   if (bSizeIsAuto && bShouldStretch) {
     result.BSize(aWM) = nsLayoutUtils::ComputeStretchContentBoxBSize(
         aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM));
