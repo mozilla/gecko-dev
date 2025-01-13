@@ -269,8 +269,6 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
   // Initialize font lists; return true on success, false if something fails.
   bool InitFontList();
 
-  void FontListChanged();
-
   /**
    * Gathers (from a platform's underlying font system) the information needed
    * to initialize a fontlist::Family with its Face members.
@@ -894,10 +892,10 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
   bool LoadFontInfo() override;
   void CleanupLoader() override;
 
-  void ForceGlobalReflowLocked(
-      gfxPlatform::NeedsReframe aNeedsReframe,
-      gfxPlatform::BroadcastToChildren aBroadcastToChildren =
-          gfxPlatform::BroadcastToChildren::Yes) MOZ_REQUIRES(mLock);
+  void ForceGlobalReflow(gfxPlatform::GlobalReflowFlags aFlags);
+
+  void ForceGlobalReflowLocked(gfxPlatform::GlobalReflowFlags aFlags)
+      MOZ_REQUIRES(mLock);
 
   // read the loader initialization prefs, and start it
   void GetPrefsAndStartLoader();
