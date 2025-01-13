@@ -32,34 +32,18 @@ class BookmarkNodeViewHolder(
     private val interactor: BookmarkViewInteractor,
 ) : RecyclerView.ViewHolder(containerView) {
 
-    var item: BookmarkNode? = null
-    private val menu: BookmarkItemMenu
+    private val menu = BookmarkItemMenu(containerView.context)
 
-    init {
-        menu = BookmarkItemMenu(containerView.context) { menuItem ->
-            val item = this.item ?: return@BookmarkItemMenu
-            when (menuItem) {
-                BookmarkItemMenu.Item.Edit -> interactor.onEditPressed(item)
-                BookmarkItemMenu.Item.Copy -> interactor.onCopyPressed(item)
-                BookmarkItemMenu.Item.Share -> interactor.onSharePressed(item)
-                BookmarkItemMenu.Item.OpenInNewTab -> interactor.onOpenInNormalTab(item)
-                BookmarkItemMenu.Item.OpenInPrivateTab -> interactor.onOpenInPrivateTab(item)
-                BookmarkItemMenu.Item.OpenAllInNewTabs -> interactor.onOpenAllInNewTabs(item)
-                BookmarkItemMenu.Item.OpenAllInPrivateTabs -> interactor.onOpenAllInPrivateTabs(item)
-                BookmarkItemMenu.Item.Delete -> interactor.onDelete(setOf(item))
-            }
-        }
-
-        containerView.attachMenu(menu.menuController)
-    }
-
+    /**
+     * Binds the view holder to the item
+     */
     fun bind(
         item: BookmarkNode,
         mode: BookmarkFragmentState.Mode,
         payload: BookmarkPayload,
     ) {
-        this.item = item
-
+        bindMenuItem(item)
+        containerView.attachMenu(menu.menuController)
         containerView.urlView.isVisible = item.type == BookmarkNodeType.ITEM
         containerView.setSelectionInteractor(item, mode, interactor)
 
@@ -95,6 +79,28 @@ class BookmarkNodeViewHolder(
 
         if (payload.iconChanged) {
             updateIcon(item)
+        }
+    }
+
+    /**
+     * Unbinds the view holder
+     */
+    fun unbind() {
+        menu.onItemTapped = null
+    }
+
+    private fun bindMenuItem(item: BookmarkNode) {
+        menu.onItemTapped = { menuItem ->
+            when (menuItem) {
+                BookmarkItemMenu.Item.Edit -> interactor.onEditPressed(item)
+                BookmarkItemMenu.Item.Copy -> interactor.onCopyPressed(item)
+                BookmarkItemMenu.Item.Share -> interactor.onSharePressed(item)
+                BookmarkItemMenu.Item.OpenInNewTab -> interactor.onOpenInNormalTab(item)
+                BookmarkItemMenu.Item.OpenInPrivateTab -> interactor.onOpenInPrivateTab(item)
+                BookmarkItemMenu.Item.OpenAllInNewTabs -> interactor.onOpenAllInNewTabs(item)
+                BookmarkItemMenu.Item.OpenAllInPrivateTabs -> interactor.onOpenAllInPrivateTabs(item)
+                BookmarkItemMenu.Item.Delete -> interactor.onDelete(setOf(item))
+            }
         }
     }
 

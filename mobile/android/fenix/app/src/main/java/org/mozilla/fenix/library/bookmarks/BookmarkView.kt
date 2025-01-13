@@ -186,6 +186,13 @@ class BookmarkView(
         binding.swipeRefresh.isRefreshing = state.mode is BookmarkFragmentState.Mode.Syncing
     }
 
+    /**
+     * Handles destruction of the view
+     */
+    fun onDestroy() {
+        binding.bookmarkList.adapter = null
+    }
+
     override fun onBackPressed(): Boolean {
         return when (mode) {
             is BookmarkFragmentState.Mode.Selecting -> {

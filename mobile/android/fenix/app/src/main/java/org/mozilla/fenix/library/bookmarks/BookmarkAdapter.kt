@@ -130,6 +130,10 @@ class BookmarkAdapter(private val emptyView: View, private val interactor: Bookm
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         (holder as? BookmarkNodeViewHolder)?.bind(tree[position], mode, BookmarkPayload())
     }
+
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        (holder as? BookmarkNodeViewHolder)?.unbind()
+    }
 }
 
 /**
