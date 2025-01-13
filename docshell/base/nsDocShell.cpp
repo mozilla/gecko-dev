@@ -8030,6 +8030,7 @@ nsresult nsDocShell::CheckLoadingPermissions() {
 
   // Check if the caller is from the same origin as this docshell,
   // or any of its ancestors.
+  nsIPrincipal* subjectPrincipal = nsContentUtils::SubjectPrincipal();
   for (RefPtr<BrowsingContext> bc = mBrowsingContext; bc;
        bc = bc->GetParent()) {
     // If the BrowsingContext is not in process, then it
@@ -8048,7 +8049,11 @@ nsresult nsDocShell::CheckLoadingPermissions() {
       return NS_ERROR_UNEXPECTED;
     }
 
-    if (nsContentUtils::SubjectPrincipal()->Subsumes(p)) {
+    // file: URIs are considered the same domain for the purpose of frame
+    // navigation by clicking a targeted link, regardless of script
+    // accessibility (bug 1934807).
+    if (subjectPrincipal->Subsumes(p) ||
+        (subjectPrincipal->SchemeIs("file") && p->SchemeIs("file"))) {
       // Same origin, permit load
       return NS_OK;
     }
