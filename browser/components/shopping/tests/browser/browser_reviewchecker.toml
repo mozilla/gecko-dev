@@ -29,6 +29,8 @@ prefs = [
 
 ["browser_reviewchecker_empty_states.js"]
 
+["browser_reviewchecker_manager.js"]
+
 ["browser_reviewchecker_onboarding.js"]
 
 ["browser_reviewchecker_private_mode.js"]

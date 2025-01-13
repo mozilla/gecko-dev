@@ -6,7 +6,7 @@
             MOCK_UNGRADED_PRODUCT_RESPONSE, MOCK_NOT_ENOUGH_REVIEWS_PRODUCT_RESPONSE,
             MOCK_ANALYZED_PRODUCT_RESPONSE, MOCK_UNAVAILABLE_PRODUCT_RESPONSE,
             MOCK_UNAVAILABLE_PRODUCT_REPORTED_RESPONSE, MOCK_PAGE_NOT_SUPPORTED_RESPONSE,
-            MOCK_RECOMMENDED_ADS_RESPONSE, verifyAnalysisDetailsVisible,
+            MOCK_RECOMMENDED_ADS_RESPONSE, SUPPORTED_SITE_URL, verifyAnalysisDetailsVisible,
             verifyAnalysisDetailsHidden, verifyFooterHidden, getAnalysisDetails,
             getSettingsDetails, withReviewCheckerSidebar, reviewCheckerSidebarUpdated
             reviewCheckerSidebarAdsUpdated, verifyReviewCheckerSidebarProductInfo */
@@ -149,6 +149,8 @@ const MOCK_RECOMMENDED_ADS_RESPONSE = [
     image_blob: new Blob(new Uint8Array(), { type: "image/jpeg" }),
   },
 ];
+
+const SUPPORTED_SITE_URL = "https://example.com";
 
 function verifyAnalysisDetailsVisible(shoppingContainer) {
   ok(

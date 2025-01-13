@@ -6,7 +6,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   isSupportedSiteURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  ShoppingUtils: "resource:///modules/ShoppingUtils.sys.mjs",
 });
 
 const ABOUT_SHOPPING_SIDEBAR = "about:shoppingsidebar";
@@ -24,6 +23,7 @@ const ABOUT_SHOPPING_SIDEBAR = "about:shoppingsidebar";
  */
 export class ReviewCheckerParent extends JSWindowActorParent {
   static SHOPPING_OPTED_IN_PREF = "browser.shopping.experience2023.optedIn";
+  static CLOSE_SIDEBAR = "CloseReviewCheckerSidebar";
 
   actorCreated() {
     this.topBrowserWindow = this.browsingContext.topChromeWindow;
@@ -31,10 +31,13 @@ export class ReviewCheckerParent extends JSWindowActorParent {
   }
 
   didDestroy() {
-    if (this.topBrowserWindow) {
-      this.topBrowserWindow.gBrowser.removeProgressListener(this);
-      this.topBrowserWindow = undefined;
+    if (!this.topBrowserWindow) {
+      return;
     }
+
+    this.topBrowserWindow.gBrowser.removeProgressListener(this);
+
+    this.topBrowserWindow = undefined;
   }
 
   updateCurrentURL(uri, flags, isSupportedSite) {
@@ -50,8 +53,7 @@ export class ReviewCheckerParent extends JSWindowActorParent {
   }
 
   getCurrentURL() {
-    let window = this.browsingContext.topChromeWindow;
-    let { selectedBrowser } = window.gBrowser;
+    let { selectedBrowser } = this.topBrowserWindow.gBrowser;
     let uri = selectedBrowser.currentURI;
     // about:shoppingsidebar is only used for testing with fake data.
     if (!uri || uri.spec == ABOUT_SHOPPING_SIDEBAR) {
@@ -98,8 +100,6 @@ export class ReviewCheckerParent extends JSWindowActorParent {
       return;
     }
 
-    lazy.ShoppingUtils.onLocationChange(aLocationURI, aFlags);
-
     this.updateCurrentURL(
       aLocationURI,
       aFlags,
@@ -108,11 +108,10 @@ export class ReviewCheckerParent extends JSWindowActorParent {
   }
 
   closeSidebarPanel() {
-    let window = this.browsingContext.topChromeWindow;
-    let { SidebarController } = window;
-
-    if (SidebarController?.isOpen) {
-      SidebarController.hide();
-    }
+    let closeEvent = new CustomEvent(ReviewCheckerParent.CLOSE_SIDEBAR, {
+      bubbles: true,
+      composed: true,
+    });
+    this.topBrowserWindow.dispatchEvent(closeEvent);
   }
 }

@@ -310,7 +310,7 @@ class ShoppingSidebarManagerClass {
    */
   onLocationChange(aBrowser, aLocationURI, aFlags) {
     let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(aBrowser.ownerGlobal);
-    if (isPBM) {
+    if (isPBM || !this.enabled) {
       return;
     }
 

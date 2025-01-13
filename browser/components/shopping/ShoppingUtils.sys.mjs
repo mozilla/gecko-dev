@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+import { ReviewCheckerManager } from "resource:///modules/ReviewCheckerManager.sys.mjs";
 
 const lazy = {};
 
@@ -11,6 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   isProductURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
+  EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
 });
 
 const OPTED_IN_PREF = "browser.shopping.experience2023.optedIn";
@@ -30,12 +32,17 @@ const SIDEBAR_CLOSED_COUNT_PREF =
 const CFR_FEATURES_PREF =
   "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features";
 
+const INTEGRATED_SIDEBAR_PREF =
+  "browser.shopping.experience2023.integratedSidebar";
+
 export const ShoppingUtils = {
   initialized: false,
   registered: false,
   handledAutoActivate: false,
   nimbusEnabled: false,
   nimbusControl: false,
+  everyWindowCallbackId: `shoppingutils-${Services.uuid.generateUUID()}`,
+  managers: new WeakMap(),
 
   _updateNimbusVariables() {
     this.nimbusEnabled =
@@ -64,6 +71,9 @@ export const ShoppingUtils = {
     }
     this.onNimbusUpdate = this.onNimbusUpdate.bind(this);
     this.onActiveUpdate = this.onActiveUpdate.bind(this);
+    this.onIntegratedSidebarUpdate = this.onIntegratedSidebarUpdate.bind(this);
+    this._addManagerForWindow = this._addManagerForWindow.bind(this);
+    this._removeManagerForWindow = this._removeManagerForWindow.bind(this);
 
     if (!this.registered) {
       // Note (bug 1855545): we must set `this.registered` before calling
@@ -85,12 +95,21 @@ export const ShoppingUtils = {
     this.recordUserAdsPreference();
     this.recordUserAutoOpenPreference();
 
-    if (this._isAutoOpenEligible()) {
+    if (this.isAutoOpenEligible()) {
       Services.prefs.setBoolPref(ACTIVE_PREF, true);
     }
     Services.prefs.addObserver(ACTIVE_PREF, this.onActiveUpdate);
 
+    Services.prefs.addObserver(
+      INTEGRATED_SIDEBAR_PREF,
+      this.onIntegratedSidebarUpdate
+    );
+
     Services.prefs.setIntPref(SIDEBAR_CLOSED_COUNT_PREF, 0);
+
+    if (ShoppingUtils.integratedSidebar) {
+      this._addReviewCheckerManagers();
+    }
 
     this.initialized = true;
   },
@@ -107,6 +126,15 @@ export const ShoppingUtils = {
     // prefs for onboarding.
 
     Services.prefs.removeObserver(ACTIVE_PREF, this.onActiveUpdate);
+
+    Services.prefs.removeObserver(
+      INTEGRATED_SIDEBAR_PREF,
+      this.onIntegratedSidebarUpdate
+    );
+
+    if (this.managers.size) {
+      this._removeReviewCheckerManagers();
+    }
 
     this.initialized = false;
   },
@@ -148,8 +176,8 @@ export const ShoppingUtils = {
       // On initial visit to a product page, even from another domain, both a page
       // load and a pushState will be triggered by Walmart, so this will
       // capture only a single displayed event.
-      (!isWalmart && (isNewDocument || isReload || isSessionRestore)) ||
-      (isWalmart && isSameDocument)
+      (!isWalmart && !!(isNewDocument || isReload || isSessionRestore)) ||
+      (isWalmart && !!isSameDocument)
     );
   },
 
@@ -176,6 +204,14 @@ export const ShoppingUtils = {
     );
   },
 
+  onIntegratedSidebarUpdate(_pref, _prev, current) {
+    if (current && !this.managers.size) {
+      this._addReviewCheckerManagers();
+    } else if (this.managers.size) {
+      this._removeReviewCheckerManagers();
+    }
+  },
+
   /**
    * If the user has not opted in, automatically set the sidebar to `active` if:
    * 1. The sidebar has not already been automatically set to `active` twice.
@@ -184,6 +220,7 @@ export const ShoppingUtils = {
    * 3. This method has not already been called (handledAutoActivate is false)
    */
   handleAutoActivateOnProduct() {
+    let shouldAutoActivate = false;
     if (!this.handledAutoActivate && !this.optedIn && this.cfrFeatures) {
       let autoActivateCount = Services.prefs.getIntPref(
         AUTO_ACTIVATE_COUNT_PREF,
@@ -205,6 +242,7 @@ export const ShoppingUtils = {
       // Set active to true if we haven't done so recently nor more than twice.
       else if (autoActivateCount < 2) {
         Services.prefs.setBoolPref(ACTIVE_PREF, true);
+        shouldAutoActivate = true;
         Services.prefs.setIntPref(
           AUTO_ACTIVATE_COUNT_PREF,
           autoActivateCount + 1
@@ -213,6 +251,7 @@ export const ShoppingUtils = {
       }
     }
     this.handledAutoActivate = true;
+    return shouldAutoActivate;
   },
 
   /**
@@ -242,7 +281,7 @@ export const ShoppingUtils = {
     }
   },
 
-  _isAutoOpenEligible() {
+  isAutoOpenEligible() {
     return (
       this.optedIn === 1 && this.autoOpenEnabled && this.autoOpenUserEnabled
     );
@@ -259,13 +298,41 @@ export const ShoppingUtils = {
     }
 
     if (
-      this._isAutoOpenEligible() &&
+      !ShoppingUtils.integratedSidebar &&
+      this.isAutoOpenEligible() &&
       this.resetActiveOnNextProductPage &&
       isProductPageNavigation
     ) {
       this.resetActiveOnNextProductPage = false;
       Services.prefs.setBoolPref(ACTIVE_PREF, true);
     }
+  },
+
+  _addManagerForWindow(window) {
+    let manager = new ReviewCheckerManager(window);
+    this.managers.set(window, manager);
+  },
+
+  _removeManagerForWindow(window) {
+    let manager = this.managers.get(window);
+    if (manager) {
+      manager.uninit();
+      this.managers.delete(manager);
+    }
+  },
+
+  _addReviewCheckerManagers() {
+    lazy.EveryWindow.registerCallback(
+      this.everyWindowCallbackId,
+      this._addManagerForWindow,
+      this._removeManagerForWindow
+    );
+  },
+
+  _removeReviewCheckerManagers() {
+    lazy.EveryWindow.unregisterCallback(this.everyWindowCallbackId);
+    // Clear incase we missed unregistering any managers.
+    this.managers.clear();
   },
 };
 
@@ -305,4 +372,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   AUTO_OPEN_USER_ENABLED_PREF,
   false,
   ShoppingUtils.recordUserAutoOpenPreference
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  ShoppingUtils,
+  "integratedSidebar",
+  INTEGRATED_SIDEBAR_PREF,
+  false
 );
