@@ -605,14 +605,8 @@ pref("browser.urlbar.showSearchSuggestionsFirst", true);
 pref("browser.urlbar.maxCharsForSearchSuggestions", 100);
 
 pref("browser.urlbar.trimURLs", true);
-
-#ifdef NIGHTLY_BUILD
-pref("browser.urlbar.trimHttps", true);
-pref("browser.urlbar.untrimOnUserInteraction.featureGate", true);
-#else
 pref("browser.urlbar.trimHttps", false);
 pref("browser.urlbar.untrimOnUserInteraction.featureGate", false);
-#endif
 
 // If changed to true, copying the entire URL from the location bar will put the
 // human readable (percent-decoded) URL on the clipboard.
