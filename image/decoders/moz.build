@@ -36,6 +36,9 @@ if CONFIG["MOZ_AV1"]:
         "nsAVIFDecoder.cpp",
     ]
 
+    if CONFIG["MOZ_SYSTEM_AV1"]:
+        CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]
+
 if CONFIG["MOZ_JXL"]:
     UNIFIED_SOURCES += [
         "nsJXLDecoder.cpp",

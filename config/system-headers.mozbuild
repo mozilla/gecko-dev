@@ -1307,6 +1307,11 @@ if CONFIG["MOZ_ENABLE_LIBPROXY"]:
         "proxy.h",
     ]
 
+if CONFIG["MOZ_SYSTEM_AV1"]:
+    system_headers += [
+        "dav1d/dav1d.h",
+    ]
+
 if CONFIG["MOZ_SYSTEM_ICU"]:
     system_headers += [
         "unicode/calendar.h",

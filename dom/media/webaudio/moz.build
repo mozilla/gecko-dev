@@ -145,6 +145,9 @@ if CONFIG["INTEL_ARCHITECTURE"]:
             CONFIG["SSE4_2_FLAGS"] + CONFIG["FMA_FLAGS"]
         )
 
+if CONFIG["MOZ_SYSTEM_AV1"]:
+    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]
+
 include("/ipc/chromium/chromium-config.mozbuild")
 
 FINAL_LIBRARY = "xul"

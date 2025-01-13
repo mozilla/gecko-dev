@@ -28,6 +28,9 @@ LOCAL_INCLUDES += [
     "/media/libyuv/libyuv/include",
 ]
 
+if CONFIG["MOZ_SYSTEM_AV1"]:
+    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]
+
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     LOCAL_INCLUDES += [
         "/gfx/thebes",

@@ -39,7 +39,7 @@ if CONFIG["MOZ_VORBIS"]:
 if not CONFIG["MOZ_SYSTEM_LIBVPX"]:
     external_dirs += ["media/libvpx"]
 
-if CONFIG["MOZ_AV1"]:
+if not CONFIG["MOZ_SYSTEM_AV1"]:
     external_dirs += ["media/libaom"]
     external_dirs += ["media/libdav1d"]
 

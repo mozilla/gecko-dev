@@ -22,6 +22,9 @@ UNIFIED_SOURCES += [
 
 CXXFLAGS += CONFIG["MOZ_LIBVPX_CFLAGS"]
 
+if CONFIG["MOZ_SYSTEM_AV1"]:
+    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]
+
 FINAL_LIBRARY = "xul"
 
 # Add libFuzzer configuration directives

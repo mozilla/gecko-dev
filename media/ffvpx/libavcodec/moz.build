@@ -119,10 +119,16 @@ if not CONFIG['MOZ_FFVPX_AUDIOONLY']:
         'vp9recon.c',
         'vpx_rac.c',
     ]
-    USE_LIBS += [
-        'dav1d',
-        'media_libdav1d_asm',
-    ]
+
+    if CONFIG["MOZ_SYSTEM_AV1"]:
+        CFLAGS += CONFIG['MOZ_SYSTEM_LIBDAV1D_CFLAGS']
+        OS_LIBS += CONFIG['MOZ_SYSTEM_LIBDAV1D_LIBS']
+    else:
+        USE_LIBS += [
+            'dav1d',
+            'media_libdav1d_asm',
+        ]
+
     if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
         LOCAL_INCLUDES += ['/media/mozva']
         SOURCES += [

@@ -38,6 +38,9 @@ if CONFIG["MOZ_ENABLE_VAAPI"] or CONFIG["MOZ_ENABLE_V4L2"]:
     USE_LIBS += ["mozva"]
     DEFINES["MOZ_USE_HWDECODE"] = 1
 
+if CONFIG["MOZ_SYSTEM_AV1"]:
+    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]
+
 include("/ipc/chromium/chromium-config.mozbuild")
 
 LOCAL_INCLUDES += [

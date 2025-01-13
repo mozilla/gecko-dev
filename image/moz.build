@@ -139,5 +139,8 @@ LOCAL_INCLUDES += [
 
 LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
 
+if CONFIG["MOZ_SYSTEM_AV1"]:
+    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]
+
 # Add libFuzzer configuration directives
 include("/tools/fuzzing/libfuzzer-config.mozbuild")

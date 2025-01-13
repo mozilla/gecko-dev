@@ -36,6 +36,9 @@ UNIFIED_SOURCES += [
 
 FINAL_LIBRARY = "xul"
 
+if CONFIG["MOZ_SYSTEM_AV1"]:
+    CXXFLAGS += CONFIG["MOZ_SYSTEM_LIBAOM_CFLAGS"]
+
 # Suppress warnings for now.
 CXXFLAGS += [
     "-Wno-sign-compare",
