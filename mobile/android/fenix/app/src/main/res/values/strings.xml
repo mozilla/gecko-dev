@@ -596,7 +596,7 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">Image of the bottom toolbar</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">Image of the top toolbar</string>
     <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_not_now_button">Not now</string>
+    <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Not now</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Pick a theme</string>

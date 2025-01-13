@@ -283,22 +283,6 @@ class OnboardingTelemetryRecorder {
     }
 
     /**
-     * Records skip toolbar placement click event.
-     * @param sequenceId The identifier of the onboarding sequence shown to the user.
-     * @param sequencePosition The sequence position of the page for which the impression occurred.
-     */
-    fun onSkipToolbarPlacementClick(sequenceId: String, sequencePosition: String) {
-        Onboarding.skipToolbarPlacement.record(
-            Onboarding.SkipToolbarPlacementExtra(
-                action = ACTION_CLICK,
-                elementType = ET_PRIMARY_BUTTON,
-                sequenceId = sequenceId,
-                sequencePosition = sequencePosition,
-            ),
-        )
-    }
-
-    /**
      * Records select theme click event.
      * @param themeOption The selected theme option ("dark", "light", or "system").
      * @param sequenceId The identifier of the onboarding sequence shown to the user.
