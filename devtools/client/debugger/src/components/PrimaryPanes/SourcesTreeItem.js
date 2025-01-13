@@ -117,7 +117,10 @@ class SourceTreeItemContents extends Component {
           if (icon === "extension") {
             return sourceTypes[source.displayURL.fileExtension] || "javascript";
           }
-          return icon + (this.props.isSourceOverridden ? " override" : "");
+          return (
+            icon +
+            (this.props.isSourceOverridden ? " has-network-override" : "")
+          );
         },
       });
     }

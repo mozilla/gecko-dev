@@ -73,7 +73,7 @@
   -moz-context-properties: fill;
 }
 
-.img.override::after {
+.img.has-network-override::after {
   content: "";
   display: block;
   height: 5px;
@@ -84,7 +84,7 @@
   translate: 12px 10px;
 }
 
-.node.focused .img.override::after {
+.node.focused .img.has-network-override::after {
   outline-color: var(--theme-selection-background);
 }
 
