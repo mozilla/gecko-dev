@@ -26,6 +26,8 @@ class RadioGroupContainer final {
                        nsCycleCollectionTraversalCallback& cb);
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
+  using VisitCallback = std::function<bool(HTMLInputElement*)>;
+  void WalkRadioGroup(const nsAString& aName, const VisitCallback& aCallback);
   nsresult WalkRadioGroup(const nsAString& aName, nsIRadioVisitor* aVisitor);
   void SetCurrentRadioButton(const nsAString& aName, HTMLInputElement* aRadio);
   HTMLInputElement* GetCurrentRadioButton(const nsAString& aName);

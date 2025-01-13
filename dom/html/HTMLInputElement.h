@@ -995,10 +995,17 @@ class HTMLInputElement final : public TextControlElement,
   nsresult VisitGroup(nsIRadioVisitor* aVisitor);
 
   /**
+   * Visit the group of radio buttons this radio belongs to
+   * @param aCallback the callback function to visit the node
+   */
+  void VisitGroup(const RadioGroupContainer::VisitCallback& aCallback);
+
+  /**
    * Do all the work that |SetChecked| does (radio button handling, etc.), but
    * take an |aNotify| parameter.
    */
-  void DoSetChecked(bool aValue, bool aNotify, bool aSetValueChanged);
+  void DoSetChecked(bool aValue, bool aNotify, bool aSetValueChanged,
+                    bool aUpdateOtherElement = true);
 
   /**
    * Do all the work that |SetCheckedChanged| does (radio button handling,
@@ -1013,7 +1020,7 @@ class HTMLInputElement final : public TextControlElement,
    */
   void SetCheckedInternal(bool aValue, bool aNotify);
 
-  void RadioSetChecked(bool aNotify);
+  void RadioSetChecked(bool aNotify, bool aUpdateOtherElement);
   void SetCheckedChanged(bool aCheckedChanged);
 
   /**
