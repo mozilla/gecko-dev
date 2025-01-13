@@ -137,19 +137,22 @@ TEST(FilenameEvalParser, UserChromeJS)
     constexpr auto str = "firegestures/content/browser.uc.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_TRUE(ret.second.isNothing());
   }
   {
     constexpr auto str = "firegestures/content/browser.uc.js?"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_TRUE(ret.second.isNothing());
   }
   {
     constexpr auto str = "firegestures/content/browser.uc.js?243244224"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_TRUE(ret.second.isNothing());
   }
   {
     constexpr auto str =
@@ -157,39 +160,66 @@ TEST(FilenameEvalParser, UserChromeJS)
         "addbookmarkherewithmiddleclick.uc.js?1558444389291"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_TRUE(ret.second.isNothing());
   }
   {
     constexpr auto str =
         "chrome://tabmix-resource/content/bootstrap/Overlays.jsm"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_EQ(ret.second.value(), str);
   }
   {
     constexpr auto str = "chrome://tabmixplus/content/utils.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_EQ(ret.second.value(), str);
+  }
+  {
+    constexpr auto str = "chrome://searchwp/content/searchbox.js"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_EQ(ret.second.value(), str);
   }
   {
     constexpr auto str =
         "chrome://userscripts/content/Geckium_toolbarButtonCreator.uc.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_EQ(ret.second.value(), str);
   }
   {
     constexpr auto str = "chrome://userchromejs/content/boot.sys.mjs"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_EQ(ret.second.value(), str);
   }
   {
     constexpr auto str = "resource://usl-ucjs/UserScriptLoaderParent.jsm"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
-    ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_EQ(ret.second.value(), str);
+  }
+  {
+    constexpr auto str = "resource://cpmanager-legacy/CPManager.jsm"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_EQ(ret.second.value(), str);
+  }
+  {
+    constexpr auto str = "resource://sfm-ucjs/SaveFolderModokiParent.mjs"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_EQ(ret.first, kSuspectedUserChromeJS);
+    ASSERT_EQ(ret.second.value(), str);
   }
 }
 

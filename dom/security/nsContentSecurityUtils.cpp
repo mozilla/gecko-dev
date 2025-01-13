@@ -332,17 +332,23 @@ FilenameTypeAndDetails nsContentSecurityUtils::FilenameToFilenameType(
   }
 
   // resource:// and chrome://
+  // These don't contain any user (profile) paths.
   if (StringBeginsWith(fileName, "chrome://"_ns)) {
     if (StringBeginsWith(fileName, "chrome://userscripts/"_ns) ||
         StringBeginsWith(fileName, "chrome://userchromejs/"_ns) ||
-        StringBeginsWith(fileName, "chrome://tabmix"_ns)) {
-      return FilenameTypeAndDetails(kSuspectedUserChromeJS, Nothing());
+        StringBeginsWith(fileName, "chrome://tabmix"_ns) ||
+        StringBeginsWith(fileName, "chrome://searchwp/"_ns)) {
+      return FilenameTypeAndDetails(kSuspectedUserChromeJS,
+                                    Some(nsCString(fileName)));
     }
     return FilenameTypeAndDetails(kChromeURI, Some(nsCString(fileName)));
   }
   if (StringBeginsWith(fileName, "resource://"_ns)) {
-    if (StringBeginsWith(fileName, "resource://usl-ucjs/"_ns)) {
-      return FilenameTypeAndDetails(kSuspectedUserChromeJS, Nothing());
+    if (StringBeginsWith(fileName, "resource://usl-ucjs/"_ns) ||
+        StringBeginsWith(fileName, "resource://sfm-ucjs/"_ns) ||
+        StringBeginsWith(fileName, "resource://cpmanager-legacy/"_ns)) {
+      return FilenameTypeAndDetails(kSuspectedUserChromeJS,
+                                    Some(nsCString(fileName)));
     }
     return FilenameTypeAndDetails(kResourceURI, Some(nsCString(fileName)));
   }
