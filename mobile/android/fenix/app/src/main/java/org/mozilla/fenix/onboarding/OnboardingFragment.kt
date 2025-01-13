@@ -325,8 +325,7 @@ class OnboardingFragment : Fragment() {
         requireContext().settings().shouldShowSearchBarCFR = FxNimbus.features.encourageSearchCfr.value().enabled
     }
 
-    // Marked as internal since it is used in unit tests
-    internal fun isNotDefaultBrowser(context: Context) =
+    private fun isNotDefaultBrowser(context: Context) =
         !BrowsersCache.all(context.applicationContext).isDefaultBrowser
 
     private fun canShowNotificationPage(context: Context) =
