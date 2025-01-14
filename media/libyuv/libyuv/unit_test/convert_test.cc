@@ -326,18 +326,18 @@ TESTAPLANARTOP(Android420, NV21, 2, 1, 0, 2, 2, I420, 2, 2)
 #undef TESTAPLANARTOPI
 
 // wrapper to keep API the same
-int I400ToNV21(const uint8_t* src_y,
-               int src_stride_y,
-               const uint8_t* /* src_u */,
-               int /* src_stride_u */,
-               const uint8_t* /* src_v */,
-               int /* src_stride_v */,
-               uint8_t* dst_y,
-               int dst_stride_y,
-               uint8_t* dst_vu,
-               int dst_stride_vu,
-               int width,
-               int height) {
+static int I400ToNV21(const uint8_t* src_y,
+                      int src_stride_y,
+                      const uint8_t* /* src_u */,
+                      int /* src_stride_u */,
+                      const uint8_t* /* src_v */,
+                      int /* src_stride_v */,
+                      uint8_t* dst_y,
+                      int dst_stride_y,
+                      uint8_t* dst_vu,
+                      int dst_stride_vu,
+                      int width,
+                      int height) {
   return I400ToNV21(src_y, src_stride_y, dst_y, dst_stride_y, dst_vu,
                     dst_stride_vu, width, height);
 }
@@ -452,6 +452,7 @@ TESTPLANARTOBP(I422, uint8_t, 1, 2, 1, NV21, uint8_t, 1, 2, 2, 8)
 TESTPLANARTOBP(I444, uint8_t, 1, 1, 1, NV12, uint8_t, 1, 2, 2, 8)
 TESTPLANARTOBP(I444, uint8_t, 1, 1, 1, NV21, uint8_t, 1, 2, 2, 8)
 TESTPLANARTOBP(I400, uint8_t, 1, 2, 2, NV21, uint8_t, 1, 2, 2, 8)
+TESTPLANARTOBP(I010, uint16_t, 2, 2, 2, NV12, uint8_t, 1, 2, 2, 8)
 TESTPLANARTOBP(I010, uint16_t, 2, 2, 2, P010, uint16_t, 2, 2, 2, 10)
 TESTPLANARTOBP(I210, uint16_t, 2, 2, 1, P210, uint16_t, 2, 2, 1, 10)
 TESTPLANARTOBP(I012, uint16_t, 2, 2, 2, P012, uint16_t, 2, 2, 2, 12)
@@ -592,6 +593,7 @@ TESTBPTOBP(P016, uint16_t, 2, 2, 2, P416, uint16_t, 2, 1, 1, 12, 1, 1)
 TESTBPTOBP(P216, uint16_t, 2, 2, 1, P416, uint16_t, 2, 1, 1, 12, 1, 1)
 TESTBPTOBP(MM21, uint8_t, 1, 2, 2, NV12, uint8_t, 1, 2, 2, 8, 16, 32)
 TESTBPTOBP(MT2T, uint8_t, 10 / 8, 2, 2, P010, uint16_t, 2, 2, 2, 10, 16, 32)
+TESTBPTOBP(P010, uint16_t, 2, 2, 2, NV12, uint8_t, 1, 2, 2, 8, 1, 1)
 
 #define TESTATOPLANARI(FMT_A, BPP_A, YALIGN, FMT_PLANAR, SUBSAMP_X, SUBSAMP_Y, \
                        W1280, N, NEG, OFF)                                     \

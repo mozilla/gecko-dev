@@ -128,11 +128,6 @@ TEST_F(LibYUVScaleTest, TestScaleRowDown2Box_Odd_SSSE3) {
 }
 #endif  // HAS_SCALEROWDOWN2_SSSE3
 
-extern "C" void ScaleRowDown2Box_16_NEON(const uint16_t* src_ptr,
-                                         ptrdiff_t src_stride,
-                                         uint16_t* dst,
-                                         int dst_width);
-
 TEST_F(LibYUVScaleTest, TestScaleRowDown2Box_16) {
   SIMD_ALIGNED(uint16_t orig_pixels[2560 * 2]);
   SIMD_ALIGNED(uint16_t dst_pixels_c[1280]);

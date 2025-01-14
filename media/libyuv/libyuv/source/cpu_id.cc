@@ -256,6 +256,9 @@ LIBYUV_API SAFEBUFFERS int AArch64CpuCaps() {
     features |= kCpuHasNeonDotProd;
     if (have_feature("hw.optional.arm.FEAT_I8MM")) {
       features |= kCpuHasNeonI8MM;
+      if (have_feature("hw.optional.arm.FEAT_SME2")) {
+        features |= kCpuHasSME;
+      }
     }
   }
   // No SVE feature detection available here at time of writing.
@@ -406,17 +409,20 @@ static SAFEBUFFERS int GetCpuFlags(void) {
   int cpu_info1[4] = {0, 0, 0, 0};
   int cpu_info7[4] = {0, 0, 0, 0};
   int cpu_einfo7[4] = {0, 0, 0, 0};
+  int cpu_amdinfo21[4] = {0, 0, 0, 0};
   CpuId(0, 0, cpu_info0);
   CpuId(1, 0, cpu_info1);
   if (cpu_info0[0] >= 7) {
     CpuId(7, 0, cpu_info7);
     CpuId(7, 1, cpu_einfo7);
+    CpuId(0x80000021, 0, cpu_amdinfo21);
   }
   cpu_info = kCpuHasX86 | ((cpu_info1[3] & 0x04000000) ? kCpuHasSSE2 : 0) |
              ((cpu_info1[2] & 0x00000200) ? kCpuHasSSSE3 : 0) |
              ((cpu_info1[2] & 0x00080000) ? kCpuHasSSE41 : 0) |
              ((cpu_info1[2] & 0x00100000) ? kCpuHasSSE42 : 0) |
-             ((cpu_info7[1] & 0x00000200) ? kCpuHasERMS : 0);
+             ((cpu_info7[1] & 0x00000200) ? kCpuHasERMS : 0) |
+             ((cpu_info7[3] & 0x00000010) ? kCpuHasFSMR : 0);
 
   // AVX requires OS saves YMM registers.
   if (((cpu_info1[2] & 0x1c000000) == 0x1c000000) &&  // AVX and OSXSave
@@ -427,16 +433,18 @@ static SAFEBUFFERS int GetCpuFlags(void) {
                 ((cpu_einfo7[0] & 0x00000010) ? kCpuHasAVXVNNI : 0) |
                 ((cpu_einfo7[3] & 0x00000010) ? kCpuHasAVXVNNIINT8 : 0);
 
+    cpu_info |= ((cpu_amdinfo21[0] & 0x00008000) ? kCpuHasERMS : 0);
+
     // Detect AVX512bw
     if ((GetXCR0() & 0xe0) == 0xe0) {
-      cpu_info |= (cpu_info7[1] & 0x40000000) ? kCpuHasAVX512BW : 0;
-      cpu_info |= (cpu_info7[1] & 0x80000000) ? kCpuHasAVX512VL : 0;
-      cpu_info |= (cpu_info7[2] & 0x00000002) ? kCpuHasAVX512VBMI : 0;
-      cpu_info |= (cpu_info7[2] & 0x00000040) ? kCpuHasAVX512VBMI2 : 0;
-      cpu_info |= (cpu_info7[2] & 0x00000800) ? kCpuHasAVX512VNNI : 0;
-      cpu_info |= (cpu_info7[2] & 0x00001000) ? kCpuHasAVX512VBITALG : 0;
-      cpu_info |= (cpu_einfo7[3] & 0x00080000) ? kCpuHasAVX10 : 0;
-      cpu_info |= (cpu_info7[3] & 0x02000000) ? kCpuHasAMXINT8 : 0;
+      cpu_info |= ((cpu_info7[1] & 0x40000000) ? kCpuHasAVX512BW : 0) |
+                  ((cpu_info7[1] & 0x80000000) ? kCpuHasAVX512VL : 0) |
+                  ((cpu_info7[2] & 0x00000002) ? kCpuHasAVX512VBMI : 0) |
+                  ((cpu_info7[2] & 0x00000040) ? kCpuHasAVX512VBMI2 : 0) |
+                  ((cpu_info7[2] & 0x00000800) ? kCpuHasAVX512VNNI : 0) |
+                  ((cpu_info7[2] & 0x00001000) ? kCpuHasAVX512VBITALG : 0) |
+                  ((cpu_einfo7[3] & 0x00080000) ? kCpuHasAVX10 : 0) |
+                  ((cpu_info7[3] & 0x02000000) ? kCpuHasAMXINT8 : 0);
     }
   }
 #endif
@@ -448,8 +456,8 @@ static SAFEBUFFERS int GetCpuFlags(void) {
   cpu_info = LoongarchCpuCaps();
   cpu_info |= kCpuHasLOONGARCH;
 #endif
-#if defined(__arm__) || defined(__aarch64__)
-#if defined(__aarch64__) && defined(__linux__)
+#if defined(__aarch64__)
+#if defined(__linux__)
   // getauxval is supported since Android SDK version 18, minimum at time of
   // writing is 21, so should be safe to always use this. If getauxval is
   // somehow disabled then getauxval returns 0, which will leave Neon enabled
@@ -457,14 +465,22 @@ static SAFEBUFFERS int GetCpuFlags(void) {
   unsigned long hwcap = getauxval(AT_HWCAP);
   unsigned long hwcap2 = getauxval(AT_HWCAP2);
   cpu_info = AArch64CpuCaps(hwcap, hwcap2);
-#elif defined(__aarch64__)
-  cpu_info = AArch64CpuCaps();
 #else
+  cpu_info = AArch64CpuCaps();
+#endif
+  cpu_info |= kCpuHasARM;
+#endif  // __aarch64__
+#if defined(__arm__)
   // gcc -mfpu=neon defines __ARM_NEON__
   // __ARM_NEON__ generates code that requires Neon.  NaCL also requires Neon.
   // For Linux, /proc/cpuinfo can be tested but without that assume Neon.
   // Linux arm parse text file for neon detect.
+#if defined(__linux__)
   cpu_info = ArmCpuCaps("/proc/cpuinfo");
+#elif defined(__ARM_NEON__)
+  cpu_info = kCpuHasNEON;
+#else
+  cpu_info = 0;
 #endif
   cpu_info |= kCpuHasARM;
 #endif  // __arm__

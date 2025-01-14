@@ -74,6 +74,13 @@ static void ScalePlaneDown2(int src_width,
     }
   }
 #endif
+#if defined(HAS_SCALEROWDOWN2_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    ScaleRowDown2 = filtering == kFilterNone     ? ScaleRowDown2_SME
+                    : filtering == kFilterLinear ? ScaleRowDown2Linear_SME
+                                                 : ScaleRowDown2Box_SME;
+  }
+#endif
 #if defined(HAS_SCALEROWDOWN2_SSSE3)
   if (TestCpuFlag(kCpuHasSSSE3)) {
     ScaleRowDown2 =
@@ -181,8 +188,16 @@ static void ScalePlaneDown2_16(int src_width,
 
 #if defined(HAS_SCALEROWDOWN2_16_NEON)
   if (TestCpuFlag(kCpuHasNEON) && IS_ALIGNED(dst_width, 16)) {
-    ScaleRowDown2 =
-        filtering ? ScaleRowDown2Box_16_NEON : ScaleRowDown2_16_NEON;
+    ScaleRowDown2 = filtering == kFilterNone     ? ScaleRowDown2_16_NEON
+                    : filtering == kFilterLinear ? ScaleRowDown2Linear_16_NEON
+                                                 : ScaleRowDown2Box_16_NEON;
+  }
+#endif
+#if defined(HAS_SCALEROWDOWN2_16_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    ScaleRowDown2 = filtering == kFilterNone     ? ScaleRowDown2_16_SME
+                    : filtering == kFilterLinear ? ScaleRowDown2Linear_16_SME
+                                                 : ScaleRowDown2Box_16_SME;
   }
 #endif
 #if defined(HAS_SCALEROWDOWN2_16_SSE2)
@@ -279,7 +294,7 @@ static void ScalePlaneDown4(int src_width,
   if (TestCpuFlag(kCpuHasNEON)) {
     ScaleRowDown4 =
         filtering ? ScaleRowDown4Box_Any_NEON : ScaleRowDown4_Any_NEON;
-    if (IS_ALIGNED(dst_width, 8)) {
+    if (IS_ALIGNED(dst_width, 16)) {
       ScaleRowDown4 = filtering ? ScaleRowDown4Box_NEON : ScaleRowDown4_NEON;
     }
   }
@@ -407,14 +422,11 @@ static void ScalePlaneDown34(int src_width,
   }
 #if defined(HAS_SCALEROWDOWN34_NEON)
   if (TestCpuFlag(kCpuHasNEON)) {
-    if (!filtering) {
-      ScaleRowDown34_0 = ScaleRowDown34_Any_NEON;
-      ScaleRowDown34_1 = ScaleRowDown34_Any_NEON;
-    } else {
-      ScaleRowDown34_0 = ScaleRowDown34_0_Box_Any_NEON;
-      ScaleRowDown34_1 = ScaleRowDown34_1_Box_Any_NEON;
-    }
+#if defined(__aarch64__)
+    if (dst_width % 48 == 0) {
+#else
     if (dst_width % 24 == 0) {
+#endif
       if (!filtering) {
         ScaleRowDown34_0 = ScaleRowDown34_NEON;
         ScaleRowDown34_1 = ScaleRowDown34_NEON;
@@ -422,18 +434,19 @@ static void ScalePlaneDown34(int src_width,
         ScaleRowDown34_0 = ScaleRowDown34_0_Box_NEON;
         ScaleRowDown34_1 = ScaleRowDown34_1_Box_NEON;
       }
+    } else {
+      if (!filtering) {
+        ScaleRowDown34_0 = ScaleRowDown34_Any_NEON;
+        ScaleRowDown34_1 = ScaleRowDown34_Any_NEON;
+      } else {
+        ScaleRowDown34_0 = ScaleRowDown34_0_Box_Any_NEON;
+        ScaleRowDown34_1 = ScaleRowDown34_1_Box_Any_NEON;
+      }
     }
   }
 #endif
 #if defined(HAS_SCALEROWDOWN34_MSA)
   if (TestCpuFlag(kCpuHasMSA)) {
-    if (!filtering) {
-      ScaleRowDown34_0 = ScaleRowDown34_Any_MSA;
-      ScaleRowDown34_1 = ScaleRowDown34_Any_MSA;
-    } else {
-      ScaleRowDown34_0 = ScaleRowDown34_0_Box_Any_MSA;
-      ScaleRowDown34_1 = ScaleRowDown34_1_Box_Any_MSA;
-    }
     if (dst_width % 48 == 0) {
       if (!filtering) {
         ScaleRowDown34_0 = ScaleRowDown34_MSA;
@@ -442,18 +455,19 @@ static void ScalePlaneDown34(int src_width,
         ScaleRowDown34_0 = ScaleRowDown34_0_Box_MSA;
         ScaleRowDown34_1 = ScaleRowDown34_1_Box_MSA;
       }
+    } else {
+      if (!filtering) {
+        ScaleRowDown34_0 = ScaleRowDown34_Any_MSA;
+        ScaleRowDown34_1 = ScaleRowDown34_Any_MSA;
+      } else {
+        ScaleRowDown34_0 = ScaleRowDown34_0_Box_Any_MSA;
+        ScaleRowDown34_1 = ScaleRowDown34_1_Box_Any_MSA;
+      }
     }
   }
 #endif
 #if defined(HAS_SCALEROWDOWN34_LSX)
   if (TestCpuFlag(kCpuHasLSX)) {
-    if (!filtering) {
-      ScaleRowDown34_0 = ScaleRowDown34_Any_LSX;
-      ScaleRowDown34_1 = ScaleRowDown34_Any_LSX;
-    } else {
-      ScaleRowDown34_0 = ScaleRowDown34_0_Box_Any_LSX;
-      ScaleRowDown34_1 = ScaleRowDown34_1_Box_Any_LSX;
-    }
     if (dst_width % 48 == 0) {
       if (!filtering) {
         ScaleRowDown34_0 = ScaleRowDown34_LSX;
@@ -462,18 +476,19 @@ static void ScalePlaneDown34(int src_width,
         ScaleRowDown34_0 = ScaleRowDown34_0_Box_LSX;
         ScaleRowDown34_1 = ScaleRowDown34_1_Box_LSX;
       }
+    } else {
+      if (!filtering) {
+        ScaleRowDown34_0 = ScaleRowDown34_Any_LSX;
+        ScaleRowDown34_1 = ScaleRowDown34_Any_LSX;
+      } else {
+        ScaleRowDown34_0 = ScaleRowDown34_0_Box_Any_LSX;
+        ScaleRowDown34_1 = ScaleRowDown34_1_Box_Any_LSX;
+      }
     }
   }
 #endif
 #if defined(HAS_SCALEROWDOWN34_SSSE3)
   if (TestCpuFlag(kCpuHasSSSE3)) {
-    if (!filtering) {
-      ScaleRowDown34_0 = ScaleRowDown34_Any_SSSE3;
-      ScaleRowDown34_1 = ScaleRowDown34_Any_SSSE3;
-    } else {
-      ScaleRowDown34_0 = ScaleRowDown34_0_Box_Any_SSSE3;
-      ScaleRowDown34_1 = ScaleRowDown34_1_Box_Any_SSSE3;
-    }
     if (dst_width % 24 == 0) {
       if (!filtering) {
         ScaleRowDown34_0 = ScaleRowDown34_SSSE3;
@@ -481,6 +496,14 @@ static void ScalePlaneDown34(int src_width,
       } else {
         ScaleRowDown34_0 = ScaleRowDown34_0_Box_SSSE3;
         ScaleRowDown34_1 = ScaleRowDown34_1_Box_SSSE3;
+      }
+    } else {
+      if (!filtering) {
+        ScaleRowDown34_0 = ScaleRowDown34_Any_SSSE3;
+        ScaleRowDown34_1 = ScaleRowDown34_Any_SSSE3;
+      } else {
+        ScaleRowDown34_0 = ScaleRowDown34_0_Box_Any_SSSE3;
+        ScaleRowDown34_1 = ScaleRowDown34_1_Box_Any_SSSE3;
       }
     }
   }
@@ -1150,6 +1173,11 @@ static int ScalePlaneBilinearDown(int src_width,
     }
   }
 #endif
+#if defined(HAS_INTERPOLATEROW_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    InterpolateRow = InterpolateRow_SME;
+  }
+#endif
 #if defined(HAS_INTERPOLATEROW_MSA)
   if (TestCpuFlag(kCpuHasMSA)) {
     InterpolateRow = InterpolateRow_Any_MSA;
@@ -1289,6 +1317,11 @@ static int ScalePlaneBilinearDown_16(int src_width,
     }
   }
 #endif
+#if defined(HAS_INTERPOLATEROW_16_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    InterpolateRow = InterpolateRow_16_SME;
+  }
+#endif
 
 #if defined(HAS_SCALEFILTERCOLS_16_SSSE3)
   if (TestCpuFlag(kCpuHasSSSE3) && src_width < 32768) {
@@ -1368,6 +1401,11 @@ static int ScalePlaneBilinearUp(int src_width,
     if (IS_ALIGNED(dst_width, 16)) {
       InterpolateRow = InterpolateRow_NEON;
     }
+  }
+#endif
+#if defined(HAS_INTERPOLATEROW_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    InterpolateRow = InterpolateRow_SME;
   }
 #endif
 #if defined(HAS_INTERPOLATEROW_RVV)
@@ -1870,6 +1908,11 @@ static int ScalePlaneBilinearUp_16(int src_width,
     }
   }
 #endif
+#if defined(HAS_INTERPOLATEROW_16_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    InterpolateRow = InterpolateRow_16_SME;
+  }
+#endif
 
   if (filtering && src_width >= 32768) {
     ScaleFilterCols = ScaleFilterCols64_16_C;
@@ -2293,9 +2336,9 @@ int I420Scale(const uint8_t* src_y,
   int dst_halfheight = SUBSAMPLE(dst_height, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2338,9 +2381,9 @@ int I420Scale_16(const uint16_t* src_y,
   int dst_halfheight = SUBSAMPLE(dst_height, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2383,9 +2426,9 @@ int I420Scale_12(const uint16_t* src_y,
   int dst_halfheight = SUBSAMPLE(dst_height, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2427,9 +2470,9 @@ int I444Scale(const uint8_t* src_y,
               enum FilterMode filtering) {
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2468,9 +2511,9 @@ int I444Scale_16(const uint16_t* src_y,
                  enum FilterMode filtering) {
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2509,9 +2552,9 @@ int I444Scale_12(const uint16_t* src_y,
                  enum FilterMode filtering) {
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2555,9 +2598,9 @@ int I422Scale(const uint8_t* src_y,
   int dst_halfwidth = SUBSAMPLE(dst_width, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2598,9 +2641,9 @@ int I422Scale_16(const uint16_t* src_y,
   int dst_halfwidth = SUBSAMPLE(dst_width, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2641,9 +2684,9 @@ int I422Scale_12(const uint16_t* src_y,
   int dst_halfwidth = SUBSAMPLE(dst_width, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
-      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
-      dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 ||
+      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
+      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2698,6 +2741,38 @@ int NV12Scale(const uint8_t* src_y,
   }
   r = UVScale(src_uv, src_stride_uv, src_halfwidth, src_halfheight, dst_uv,
               dst_stride_uv, dst_halfwidth, dst_halfheight, filtering);
+  return r;
+}
+
+LIBYUV_API
+int NV24Scale(const uint8_t* src_y,
+              int src_stride_y,
+              const uint8_t* src_uv,
+              int src_stride_uv,
+              int src_width,
+              int src_height,
+              uint8_t* dst_y,
+              int dst_stride_y,
+              uint8_t* dst_uv,
+              int dst_stride_uv,
+              int dst_width,
+              int dst_height,
+              enum FilterMode filtering) {
+  int r;
+
+  if (!src_y || !src_uv || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_uv ||
+      dst_width <= 0 || dst_height <= 0) {
+    return -1;
+  }
+
+  r = ScalePlane(src_y, src_stride_y, src_width, src_height, dst_y,
+                 dst_stride_y, dst_width, dst_height, filtering);
+  if (r != 0) {
+    return r;
+  }
+  r = UVScale(src_uv, src_stride_uv, src_width, src_height, dst_uv,
+              dst_stride_uv, dst_width, dst_height, filtering);
   return r;
 }
 

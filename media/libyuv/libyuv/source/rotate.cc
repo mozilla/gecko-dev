@@ -31,6 +31,10 @@ void TransposePlane(const uint8_t* src,
                     int width,
                     int height) {
   int i = height;
+#if defined(HAS_TRANSPOSEWXH_SME)
+  void (*TransposeWxH)(const uint8_t* src, int src_stride, uint8_t* dst,
+                       int dst_stride, int width, int height) = NULL;
+#endif
 #if defined(HAS_TRANSPOSEWX16_MSA) || defined(HAS_TRANSPOSEWX16_LSX) || \
     defined(HAS_TRANSPOSEWX16_NEON)
   void (*TransposeWx16)(const uint8_t* src, int src_stride, uint8_t* dst,
@@ -54,6 +58,11 @@ void TransposePlane(const uint8_t* src,
     if (IS_ALIGNED(width, 16)) {
       TransposeWx16 = TransposeWx16_NEON;
     }
+  }
+#endif
+#if defined(HAS_TRANSPOSEWXH_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    TransposeWxH = TransposeWxH_SME;
   }
 #endif
 #if defined(HAS_TRANSPOSEWX8_SSSE3)
@@ -89,6 +98,12 @@ void TransposePlane(const uint8_t* src,
   }
 #endif
 
+#if defined(HAS_TRANSPOSEWXH_SME)
+  if (TransposeWxH) {
+    TransposeWxH(src, src_stride, dst, dst_stride, width, height);
+    return;
+  }
+#endif
 #if defined(HAS_TRANSPOSEWX16_MSA) || defined(HAS_TRANSPOSEWX16_LSX) || \
     defined(HAS_TRANSPOSEWX16_NEON)
   // Work across the source in 16x16 tiles
@@ -219,6 +234,11 @@ void RotatePlane180(const uint8_t* src,
     CopyRow = IS_ALIGNED(width, 64) ? CopyRow_AVX : CopyRow_Any_AVX;
   }
 #endif
+#if defined(HAS_COPYROW_AVX512BW)
+  if (TestCpuFlag(kCpuHasAVX512BW)) {
+    CopyRow = IS_ALIGNED(width, 128) ? CopyRow_AVX512BW : CopyRow_Any_AVX512BW;
+  }
+#endif
 #if defined(HAS_COPYROW_ERMS)
   if (TestCpuFlag(kCpuHasERMS)) {
     CopyRow = CopyRow_ERMS;
@@ -227,6 +247,11 @@ void RotatePlane180(const uint8_t* src,
 #if defined(HAS_COPYROW_NEON)
   if (TestCpuFlag(kCpuHasNEON)) {
     CopyRow = IS_ALIGNED(width, 32) ? CopyRow_NEON : CopyRow_Any_NEON;
+  }
+#endif
+#if defined(HAS_COPYROW_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    CopyRow = CopyRow_SME;
   }
 #endif
 #if defined(HAS_COPYROW_RVV)
@@ -258,6 +283,11 @@ void SplitTransposeUV(const uint8_t* src,
                       int width,
                       int height) {
   int i = height;
+#if defined(HAS_TRANSPOSEUVWXH_SME)
+  void (*TransposeUVWxH)(const uint8_t* src, int src_stride, uint8_t* dst_a,
+                         int dst_stride_a, uint8_t* dst_b, int dst_stride_b,
+                         int width, int height) = TransposeUVWxH_C;
+#endif
 #if defined(HAS_TRANSPOSEUVWX16_MSA)
   void (*TransposeUVWx16)(const uint8_t* src, int src_stride, uint8_t* dst_a,
                           int dst_stride_a, uint8_t* dst_b, int dst_stride_b,
@@ -295,6 +325,11 @@ void SplitTransposeUV(const uint8_t* src,
     }
   }
 #endif
+#if defined(HAS_TRANSPOSEUVWXH_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    TransposeUVWxH = TransposeUVWxH_SME;
+  }
+#endif
 #if defined(HAS_TRANSPOSEUVWX8_SSE2)
   if (TestCpuFlag(kCpuHasSSE2)) {
     TransposeUVWx8 = TransposeUVWx8_Any_SSE2;
@@ -305,6 +340,13 @@ void SplitTransposeUV(const uint8_t* src,
 #endif
 #endif /* defined(HAS_TRANSPOSEUVWX16_MSA) */
 
+#if defined(HAS_TRANSPOSEUVWXH_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    TransposeUVWxH(src, src_stride, dst_a, dst_stride_a, dst_b, dst_stride_b,
+                   width, i);
+    return;
+  }
+#endif
 #if defined(HAS_TRANSPOSEUVWX16_MSA)
   // Work through the source in 8x8 tiles.
   while (i >= 16) {

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "../unit_test/unit_test.h"
 #include "libyuv/basic_types.h"
 #include "libyuv/compare.h"
 #include "libyuv/convert.h"
@@ -19,7 +20,6 @@
 #include "libyuv/convert_from.h"
 #include "libyuv/convert_from_argb.h"
 #include "libyuv/cpu_id.h"
-#include "../unit_test/unit_test.h"
 #include "libyuv/planar_functions.h"
 #include "libyuv/rotate.h"
 #include "libyuv/video_common.h"

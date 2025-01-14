@@ -29,7 +29,7 @@ uint32_t HammingDistance_SSE42(const uint8_t* src_a,
                                int count) {
   uint64_t diff;
 
-      asm volatile (
+  asm volatile(
       "xor         %3,%3                         \n"
       "xor         %%r8,%%r8                     \n"
       "xor         %%r9,%%r9                     \n"
@@ -77,7 +77,7 @@ uint32_t HammingDistance_SSE42(const uint8_t* src_a,
                                int count) {
   uint32_t diff = 0u;
 
-  asm volatile (
+  asm volatile(
       // Process 16 bytes per loop.
       LABELALIGN
       "1:                                        \n"
@@ -121,7 +121,7 @@ uint32_t HammingDistance_SSSE3(const uint8_t* src_a,
                                int count) {
   uint32_t diff;
 
-  asm volatile (
+  asm volatile(
       "movdqa      %4,%%xmm2                     \n"
       "movdqa      %5,%%xmm3                     \n"
       "pxor        %%xmm0,%%xmm0                 \n"
@@ -180,7 +180,7 @@ uint32_t HammingDistance_AVX2(const uint8_t* src_a,
                               int count) {
   uint32_t diff;
 
-      asm volatile (
+  asm volatile(
       "vbroadcastf128 %4,%%ymm2                  \n"
       "vbroadcastf128 %5,%%ymm3                  \n"
       "vpxor       %%ymm0,%%ymm0,%%ymm0          \n"
@@ -234,7 +234,7 @@ uint32_t SumSquareError_SSE2(const uint8_t* src_a,
                              const uint8_t* src_b,
                              int count) {
   uint32_t sse;
-      asm volatile (
+  asm volatile(
       "pxor        %%xmm0,%%xmm0                 \n"
       "pxor        %%xmm5,%%xmm5                 \n"
 
@@ -300,7 +300,7 @@ static const uvec32 kHashMul3 = {
 
 uint32_t HashDjb2_SSE41(const uint8_t* src, int count, uint32_t seed) {
   uint32_t hash;
-      asm volatile (
+  asm volatile(
       "movd        %2,%%xmm0                     \n"
       "pxor        %%xmm7,%%xmm7                 \n"
       "movdqa      %4,%%xmm6                     \n"

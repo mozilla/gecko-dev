@@ -2,22 +2,24 @@
 # Originally created for "roxlu build system" to compile libyuv on windows
 # Run with -DTEST=ON to build unit tests
 
-PROJECT ( YUV C CXX )	# "C" is required even for C++ projects
-CMAKE_MINIMUM_REQUIRED( VERSION 2.8.12 )
-OPTION( UNIT_TEST "Built unit tests" OFF )
+include(CheckCSourceCompiles)
 
-SET ( ly_base_dir	${PROJECT_SOURCE_DIR} )
-SET ( ly_src_dir	${ly_base_dir}/source )
-SET ( ly_inc_dir	${ly_base_dir}/include )
-SET ( ly_tst_dir	${ly_base_dir}/unit_test )
-SET ( ly_lib_name	yuv )
-SET ( ly_lib_static	${ly_lib_name} )
-SET ( ly_lib_shared	${ly_lib_name}_shared )
+project ( YUV C CXX )	# "C" is required even for C++ projects
+cmake_minimum_required( VERSION 2.8.12 )
+option( UNIT_TEST "Built unit tests" OFF )
+
+set ( ly_base_dir	${PROJECT_SOURCE_DIR} )
+set ( ly_src_dir	${ly_base_dir}/source )
+set ( ly_inc_dir	${ly_base_dir}/include )
+set ( ly_tst_dir	${ly_base_dir}/unit_test )
+set ( ly_lib_name	yuv )
+set ( ly_lib_static	${ly_lib_name} )
+set ( ly_lib_shared	${ly_lib_name}_shared )
 
 # We cannot use GLOB here since we want to be able to separate out files that
 # need particular flags to enable architecture extensions like AArch64's SVE.
 # TODO: More of these files could be separated out for different architectures.
-SET ( ly_common_source_files
+set ( ly_common_source_files
   ${ly_src_dir}/compare.cc
   ${ly_src_dir}/compare_common.cc
   ${ly_src_dir}/compare_gcc.cc
@@ -63,84 +65,136 @@ SET ( ly_common_source_files
   ${ly_src_dir}/scale_win.cc
   ${ly_src_dir}/video_common.cc)
 
-FILE ( GLOB_RECURSE	ly_unittest_sources ${ly_tst_dir}/*.cc )
-LIST ( SORT			ly_unittest_sources )
+file ( GLOB_RECURSE	ly_unittest_sources ${ly_tst_dir}/*.cc )
+list ( SORT			ly_unittest_sources )
 
-INCLUDE_DIRECTORIES( BEFORE ${ly_inc_dir} )
+include_directories( BEFORE ${ly_inc_dir} )
 
 if(MSVC)
-  ADD_DEFINITIONS ( -D_CRT_SECURE_NO_WARNINGS )
+  add_definitions ( -D_CRT_SECURE_NO_WARNINGS )
 endif()
 
 # Need to set PIC to allow creating shared libraries from object file libraries.
-SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Build the set of objects that do not need to be compiled with flags to enable
 # particular architecture features.
-ADD_LIBRARY( ${ly_lib_name}_common_objects OBJECT ${ly_common_source_files} )
-SET(ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_common_objects>)
+add_library( ${ly_lib_name}_common_objects OBJECT ${ly_common_source_files} )
+set(ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_common_objects>)
+
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" SYSPROC)
+set(LOONGARCH64_ALIASES loongarch64)
+list(FIND LOONGARCH64_ALIASES "${SYSPROC}" LOONGARCH64MATCH)
+
+if(LOONGARCH64MATCH GREATER "-1")
+  set(LOONGARCH64 1)
+endif()
 
 if(NOT MSVC)
-  STRING(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" arch_lowercase)
+  string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" arch_lowercase)
 
   if(arch_lowercase MATCHES "^arm" AND NOT arch_lowercase STREQUAL "arm64")
     # Enable Arm Neon kernels.
-    ADD_DEFINITIONS(-DLIBYUV_NEON=1)
-    ADD_LIBRARY(${ly_lib_name}_neon OBJECT
+    add_definitions(-DLIBYUV_NEON=1)
+    add_library(${ly_lib_name}_neon OBJECT
       ${ly_src_dir}/compare_neon.cc
       ${ly_src_dir}/rotate_neon.cc
       ${ly_src_dir}/row_neon.cc
       ${ly_src_dir}/scale_neon.cc)
-    TARGET_COMPILE_OPTIONS(${ly_lib_name}_neon PRIVATE -mfpu=neon)
-    LIST(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_neon>)
+    target_compile_options(${ly_lib_name}_neon PRIVATE -mfpu=neon)
+    list(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_neon>)
   endif()
 
   if(arch_lowercase STREQUAL "aarch64" OR arch_lowercase STREQUAL "arm64")
     # Enable AArch64 Neon dot-product and i8mm kernels.
-    ADD_LIBRARY(${ly_lib_name}_neon64 OBJECT
+    add_library(${ly_lib_name}_neon64 OBJECT
       ${ly_src_dir}/compare_neon64.cc
       ${ly_src_dir}/rotate_neon64.cc
       ${ly_src_dir}/row_neon64.cc
       ${ly_src_dir}/scale_neon64.cc)
-    TARGET_COMPILE_OPTIONS(${ly_lib_name}_neon64 PRIVATE -march=armv8-a+dotprod+i8mm)
-    LIST(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_neon64>)
+    target_compile_options(${ly_lib_name}_neon64 PRIVATE -march=armv8-a+dotprod+i8mm)
+    list(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_neon64>)
 
     # Enable AArch64 SVE kernels.
-    ADD_LIBRARY(${ly_lib_name}_sve OBJECT
+    add_library(${ly_lib_name}_sve OBJECT
       ${ly_src_dir}/row_sve.cc)
-    TARGET_COMPILE_OPTIONS(${ly_lib_name}_sve PRIVATE -march=armv9-a+sve2)
-    LIST(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_sve>)
+    target_compile_options(${ly_lib_name}_sve PRIVATE -march=armv9-a+sve2)
+    list(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_sve>)
 
-    # Enable AArch64 SME kernels.
-    ADD_LIBRARY(${ly_lib_name}_sme OBJECT
-      ${ly_src_dir}/rotate_sme.cc)
-    TARGET_COMPILE_OPTIONS(${ly_lib_name}_sme PRIVATE -march=armv9-a+sme)
-    LIST(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_sme>)
+    set(OLD_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
+    set(OLD_CMAKE_TRY_COMPILE_TARGET_TYPE ${CMAKE_TRY_COMPILE_TARGET_TYPE})
+    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -march=armv9-a+sme")
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+    # Check whether the compiler can compile SME functions; this fails
+    # with Clang for Windows.
+    check_c_source_compiles("
+__arm_locally_streaming void func(void) { }
+int main(void) { return 0; }
+    " CAN_COMPILE_SME)
+    set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAGS})
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE ${OLD_CMAKE_TRY_COMPILE_TARGET_TYPE})
+
+    if (CAN_COMPILE_SME)
+      # Enable AArch64 SME kernels.
+      add_library(${ly_lib_name}_sme OBJECT
+        ${ly_src_dir}/rotate_sme.cc
+        ${ly_src_dir}/row_sme.cc
+        ${ly_src_dir}/scale_sme.cc)
+      target_compile_options(${ly_lib_name}_sme PRIVATE -march=armv9-a+sme)
+      list(APPEND ly_lib_parts $<TARGET_OBJECTS:${ly_lib_name}_sme>)
+    else()
+      add_definitions(-DLIBYUV_DISABLE_SME)
+    endif()
+  endif()
+endif()
+
+if(LOONGARCH64)
+  include(CheckCXXSourceCompiles)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-narrowing")
+  check_cxx_source_compiles("
+    int main(int argc, char **argv) {
+      __asm__ volatile (
+         \"vadd.w $vr0, $vr1, $vr1\"
+      );
+    return 0; }" SUPPORTS_LSX)
+
+  check_cxx_source_compiles("
+    int main(int argc, char **argv) {
+      __asm__ volatile (
+         \"xvadd.w $xr0, $xr1, $xr1\"
+      );
+    return 0; }" SUPPORTS_LASX)
+
+  if(SUPPORTS_LSX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mlsx")
+  endif()
+  if(SUPPORTS_LASX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mlasx")
   endif()
 endif()
 
 # this creates the static library (.a)
-ADD_LIBRARY( ${ly_lib_static} STATIC ${ly_lib_parts})
+add_library( ${ly_lib_static} STATIC ${ly_lib_parts})
 
 # this creates the shared library (.so)
-ADD_LIBRARY( ${ly_lib_shared} SHARED ${ly_lib_parts})
-SET_TARGET_PROPERTIES( ${ly_lib_shared} PROPERTIES OUTPUT_NAME "${ly_lib_name}" )
-SET_TARGET_PROPERTIES( ${ly_lib_shared} PROPERTIES PREFIX "lib" )
+add_library( ${ly_lib_shared} SHARED ${ly_lib_parts})
+set_target_properties( ${ly_lib_shared} PROPERTIES OUTPUT_NAME "${ly_lib_name}" )
+set_target_properties( ${ly_lib_shared} PROPERTIES PREFIX "lib" )
 if(WIN32)
-  SET_TARGET_PROPERTIES( ${ly_lib_shared} PROPERTIES IMPORT_PREFIX "lib" )
+  set_target_properties( ${ly_lib_shared} PROPERTIES IMPORT_PREFIX "lib" )
 endif()
 
 # this creates the cpuid tool
-ADD_EXECUTABLE      ( cpuid ${ly_base_dir}/util/cpuid.c )
-TARGET_LINK_LIBRARIES  ( cpuid ${ly_lib_static} )
+add_executable      ( cpuid ${ly_base_dir}/util/cpuid.c )
+target_link_libraries  ( cpuid ${ly_lib_static} )
 
 # this creates the conversion tool
-ADD_EXECUTABLE			( yuvconvert ${ly_base_dir}/util/yuvconvert.cc )
-TARGET_LINK_LIBRARIES	( yuvconvert ${ly_lib_static} )
+add_executable			( yuvconvert ${ly_base_dir}/util/yuvconvert.cc )
+target_link_libraries	( yuvconvert ${ly_lib_static} )
 
 # this creates the yuvconstants tool
-ADD_EXECUTABLE      ( yuvconstants ${ly_base_dir}/util/yuvconstants.c )
-TARGET_LINK_LIBRARIES  ( yuvconstants ${ly_lib_static} )
+add_executable      ( yuvconstants ${ly_base_dir}/util/yuvconstants.c )
+target_link_libraries  ( yuvconstants ${ly_lib_static} )
 
 find_package ( JPEG )
 if (JPEG_FOUND)
@@ -192,11 +246,11 @@ endif()
 
 
 # install the conversion tool, .so, .a, and all the header files
-INSTALL ( PROGRAMS ${CMAKE_BINARY_DIR}/yuvconvert			DESTINATION bin )
-INSTALL ( TARGETS ${ly_lib_static}						DESTINATION lib )
-INSTALL ( TARGETS ${ly_lib_shared} LIBRARY				DESTINATION lib RUNTIME DESTINATION bin )
-INSTALL ( DIRECTORY ${PROJECT_SOURCE_DIR}/include/		DESTINATION include )
+install ( TARGETS yuvconvert DESTINATION bin )
+install ( TARGETS ${ly_lib_static}						DESTINATION lib )
+install ( TARGETS ${ly_lib_shared} LIBRARY DESTINATION lib RUNTIME DESTINATION bin ARCHIVE DESTINATION lib )
+install ( DIRECTORY ${PROJECT_SOURCE_DIR}/include/		DESTINATION include )
 
 # create the .deb and .rpm packages using cpack
-INCLUDE ( CM_linux_packages.cmake )
+include ( CM_linux_packages.cmake )
 

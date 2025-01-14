@@ -1053,10 +1053,12 @@ TEST_SCALETO(Scale, 569, 480)
 TEST_SCALETO(Scale, 640, 360)
 #ifndef DISABLE_SLOW_TESTS
 TEST_SCALETO(Scale, 256, 144) /* 128x72 * 2 */
+TEST_SCALETO(Scale, 264, 216)
 TEST_SCALETO(Scale, 320, 240)
 TEST_SCALETO(Scale, 1280, 720)
 TEST_SCALETO(Scale, 1920, 1080)
-#endif  // DISABLE_SLOW_TESTS
+TEST_SCALETO(Scale, 1080, 1920)  // for rotated phones
+#endif                           // DISABLE_SLOW_TESTS
 #undef TEST_SCALETO1
 #undef TEST_SCALETO
 

@@ -21,12 +21,6 @@ RECLIENT_CQ = {
 # Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
 lucicfg.enable_experiment("crbug.com/1182002")
 
-luci.builder.defaults.experiments.set(
-    {
-        "luci.recipes.use_python3": 100,
-    },
-)
-
 lucicfg.config(
     lint_checks = ["default"],
     config_dir = ".",
@@ -175,6 +169,9 @@ luci.cq_group(
 
 luci.bucket(
     name = "ci",
+    constraints = luci.bucket_constraints(
+        pools = ["luci.flex.ci"],
+    ),
 )
 luci.bucket(
     name = "try",
@@ -184,6 +181,12 @@ luci.bucket(
             "service-account-cq",
         ]),
     ],
+    constraints = luci.bucket_constraints(
+        pools = ["luci.flex.try"],
+        service_accounts = [
+            "libyuv-try-builder@chops-service-accounts.iam.gserviceaccount.com",
+        ],
+    ),
 )
 luci.bucket(
     name = "cron",
@@ -329,7 +332,8 @@ try_builder("linux_asan", "linux")
 try_builder("linux_gcc", "linux", experiment_percentage = 100)
 try_builder("linux_msan", "linux")
 try_builder("linux_rel", "linux")
-try_builder("linux_tsan2", "linux")
+# TODO(b/384912633): make this not experimental.
+try_builder("linux_tsan2", "linux", experiment_percentage = 100)
 try_builder("linux_ubsan", "linux")
 try_builder("linux_ubsan_vptr", "linux")
 try_builder("mac", "mac")

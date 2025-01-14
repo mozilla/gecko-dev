@@ -766,6 +766,10 @@ int ARGBPolynomial(const uint8_t* src_argb,
 
 // Convert plane of 16 bit shorts to half floats.
 // Source values are multiplied by scale before storing as half float.
+//
+// Note: Unlike other libyuv functions that operate on uint16_t buffers, the
+// src_stride_y and dst_stride_y parameters of HalfFloatPlane() are in bytes,
+// not in units of uint16_t.
 LIBYUV_API
 int HalfFloatPlane(const uint16_t* src_y,
                    int src_stride_y,

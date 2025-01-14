@@ -47,7 +47,7 @@ extern "C" {
 // register) is set to round-to-nearest-up mode(0).
 #define YUVTORGB_SETUP(yuvconst, ub, vr, ug, vg, yg, bb, bg, br) \
   {                                                              \
-    asm volatile ("csrwi vxrm, 0");                               \
+    asm volatile("csrwi vxrm, 0");                               \
     ub = yuvconst->kUVCoeff[0];                                  \
     vr = yuvconst->kUVCoeff[1];                                  \
     ug = yuvconst->kUVCoeff[2];                                  \
@@ -1238,7 +1238,7 @@ void I400ToARGBRow_RVV(const uint8_t* src_y,
   vuint16m4_t v_yg = __riscv_vmv_v_x_u16m4(yuvconstants->kRGBCoeffBias[0], vl);
   // To match behavior on other platforms, vxrm (fixed-point rounding mode
   // register) sets to round-to-nearest-up mode(0).
-  asm volatile ("csrwi vxrm, 0");
+  asm volatile("csrwi vxrm, 0");
   if (is_yb_positive) {
     v_yb = __riscv_vmv_v_x_u16m4(yuvconstants->kRGBCoeffBias[4] - 32, vl);
   } else {
@@ -1632,7 +1632,7 @@ void InterpolateRow_RVV(uint8_t* dst_ptr,
   }
   // To match behavior on other platforms, vxrm (fixed-point rounding mode
   // register) is set to round-to-nearest-up(0).
-  asm volatile ("csrwi vxrm, 0");
+  asm volatile("csrwi vxrm, 0");
   // Blend 50 / 50.
   if (y1_fraction == 128) {
     do {
@@ -2079,10 +2079,10 @@ static const struct RgbConstants kRawI601Constants = {{66, 129, 25, 0},
 // ARGB expects first 3 values to contain RGB and 4th value is ignored
 #ifdef HAS_ARGBTOYMATRIXROW_RVV
 #ifdef LIBYUV_RVV_HAS_TUPLE_TYPE
-void ARGBToYMatrixRow_RVV(const uint8_t* src_argb,
-                          uint8_t* dst_y,
-                          int width,
-                          const struct RgbConstants* rgbconstants) {
+static void ARGBToYMatrixRow_RVV(const uint8_t* src_argb,
+                                 uint8_t* dst_y,
+                                 int width,
+                                 const struct RgbConstants* rgbconstants) {
   assert(width != 0);
   size_t w = (size_t)width;
   vuint8m2_t v_by, v_gy, v_ry;  // vectors are to store RGBToY constant
@@ -2112,10 +2112,10 @@ void ARGBToYMatrixRow_RVV(const uint8_t* src_argb,
   } while (w > 0);
 }
 #else
-void ARGBToYMatrixRow_RVV(const uint8_t* src_argb,
-                          uint8_t* dst_y,
-                          int width,
-                          const struct RgbConstants* rgbconstants) {
+static void ARGBToYMatrixRow_RVV(const uint8_t* src_argb,
+                                 uint8_t* dst_y,
+                                 int width,
+                                 const struct RgbConstants* rgbconstants) {
   assert(width != 0);
   size_t w = (size_t)width;
   vuint8m2_t v_by, v_gy, v_ry;  // vectors are to store RGBToY constant
@@ -2171,10 +2171,10 @@ void ABGRToYJRow_RVV(const uint8_t* src_abgr, uint8_t* dst_yj, int width) {
 // RGBA expects first value to be A and ignored, then 3 values to contain RGB.
 #ifdef HAS_RGBATOYMATRIXROW_RVV
 #ifdef LIBYUV_RVV_HAS_TUPLE_TYPE
-void RGBAToYMatrixRow_RVV(const uint8_t* src_rgba,
-                          uint8_t* dst_y,
-                          int width,
-                          const struct RgbConstants* rgbconstants) {
+static void RGBAToYMatrixRow_RVV(const uint8_t* src_rgba,
+                                 uint8_t* dst_y,
+                                 int width,
+                                 const struct RgbConstants* rgbconstants) {
   assert(width != 0);
   size_t w = (size_t)width;
   vuint8m2_t v_by, v_gy, v_ry;  // vectors are to store RGBToY constant
@@ -2204,10 +2204,10 @@ void RGBAToYMatrixRow_RVV(const uint8_t* src_rgba,
   } while (w > 0);
 }
 #else
-void RGBAToYMatrixRow_RVV(const uint8_t* src_rgba,
-                          uint8_t* dst_y,
-                          int width,
-                          const struct RgbConstants* rgbconstants) {
+static void RGBAToYMatrixRow_RVV(const uint8_t* src_rgba,
+                                 uint8_t* dst_y,
+                                 int width,
+                                 const struct RgbConstants* rgbconstants) {
   assert(width != 0);
   size_t w = (size_t)width;
   vuint8m2_t v_by, v_gy, v_ry;  // vectors are to store RGBToY constant
@@ -2256,10 +2256,10 @@ void BGRAToYRow_RVV(const uint8_t* src_bgra, uint8_t* dst_y, int width) {
 
 #ifdef HAS_RGBTOYMATRIXROW_RVV
 #ifdef LIBYUV_RVV_HAS_TUPLE_TYPE
-void RGBToYMatrixRow_RVV(const uint8_t* src_rgb,
-                         uint8_t* dst_y,
-                         int width,
-                         const struct RgbConstants* rgbconstants) {
+static void RGBToYMatrixRow_RVV(const uint8_t* src_rgb,
+                                uint8_t* dst_y,
+                                int width,
+                                const struct RgbConstants* rgbconstants) {
   assert(width != 0);
   size_t w = (size_t)width;
   vuint8m2_t v_by, v_gy, v_ry;  // vectors are to store RGBToY constant
@@ -2289,10 +2289,10 @@ void RGBToYMatrixRow_RVV(const uint8_t* src_rgb,
   } while (w > 0);
 }
 #else
-void RGBToYMatrixRow_RVV(const uint8_t* src_rgb,
-                         uint8_t* dst_y,
-                         int width,
-                         const struct RgbConstants* rgbconstants) {
+static void RGBToYMatrixRow_RVV(const uint8_t* src_rgb,
+                                uint8_t* dst_y,
+                                int width,
+                                const struct RgbConstants* rgbconstants) {
   assert(width != 0);
   size_t w = (size_t)width;
   vuint8m2_t v_by, v_gy, v_ry;  // vectors are to store RGBToY constant

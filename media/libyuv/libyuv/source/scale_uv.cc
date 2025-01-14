@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "libyuv/scale.h"
+#include "libyuv/scale_uv.h"
 
 #include <assert.h>
 #include <string.h>
@@ -104,14 +104,6 @@ static void ScaleUVDown2(int src_width,
     }
   }
 #endif
-#if defined(HAS_SCALEUVROWDOWN2BOX_NEON)
-  if (TestCpuFlag(kCpuHasNEON) && filtering) {
-    ScaleUVRowDown2 = ScaleUVRowDown2Box_Any_NEON;
-    if (IS_ALIGNED(dst_width, 8)) {
-      ScaleUVRowDown2 = ScaleUVRowDown2Box_NEON;
-    }
-  }
-#endif
 #if defined(HAS_SCALEUVROWDOWN2_NEON)
   if (TestCpuFlag(kCpuHasNEON)) {
     ScaleUVRowDown2 =
@@ -126,6 +118,13 @@ static void ScaleUVDown2(int src_width,
               : (filtering == kFilterLinear ? ScaleUVRowDown2Linear_NEON
                                             : ScaleUVRowDown2Box_NEON);
     }
+  }
+#endif
+#if defined(HAS_SCALEUVROWDOWN2_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    ScaleUVRowDown2 = filtering == kFilterNone     ? ScaleUVRowDown2_SME
+                      : filtering == kFilterLinear ? ScaleUVRowDown2Linear_SME
+                                                   : ScaleUVRowDown2Box_SME;
   }
 #endif
 #if defined(HAS_SCALEUVROWDOWN2_RVV)
@@ -242,6 +241,11 @@ static int ScaleUVDown4Box(int src_width,
     }
   }
 #endif
+#if defined(HAS_SCALEUVROWDOWN2BOX_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    ScaleUVRowDown2 = ScaleUVRowDown2Box_SME;
+  }
+#endif
 #if defined(HAS_SCALEUVROWDOWN2BOX_RVV)
   if (TestCpuFlag(kCpuHasRVV)) {
     ScaleUVRowDown2 = ScaleUVRowDown2Box_RVV;
@@ -329,14 +333,14 @@ static void ScaleUVDownEven(int src_width,
 #endif
 #if defined(HAS_SCALEUVROWDOWNEVEN_RVV) || defined(HAS_SCALEUVROWDOWN4_RVV)
   if (TestCpuFlag(kCpuHasRVV) && !filtering) {
-    #if defined(HAS_SCALEUVROWDOWNEVEN_RVV)
-      ScaleUVRowDownEven = ScaleUVRowDownEven_RVV;
-    #endif
-    #if defined(HAS_SCALEUVROWDOWN4_RVV)
-      if (col_step == 4) {
-        ScaleUVRowDownEven = ScaleUVRowDown4_RVV;
-      }
-    #endif
+#if defined(HAS_SCALEUVROWDOWNEVEN_RVV)
+    ScaleUVRowDownEven = ScaleUVRowDownEven_RVV;
+#endif
+#if defined(HAS_SCALEUVROWDOWN4_RVV)
+    if (col_step == 4) {
+      ScaleUVRowDownEven = ScaleUVRowDown4_RVV;
+    }
+#endif
   }
 #endif
 
@@ -408,6 +412,11 @@ static int ScaleUVBilinearDown(int src_width,
     if (IS_ALIGNED(clip_src_width, 16)) {
       InterpolateRow = InterpolateRow_NEON;
     }
+  }
+#endif
+#if defined(HAS_INTERPOLATEROW_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    InterpolateRow = InterpolateRow_SME;
   }
 #endif
 #if defined(HAS_INTERPOLATEROW_MSA)
@@ -529,6 +538,11 @@ static int ScaleUVBilinearUp(int src_width,
     if (IS_ALIGNED(dst_width, 8)) {
       InterpolateRow = InterpolateRow_NEON;
     }
+  }
+#endif
+#if defined(HAS_INTERPOLATEROW_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    InterpolateRow = InterpolateRow_SME;
   }
 #endif
 #if defined(HAS_INTERPOLATEROW_MSA)
@@ -686,6 +700,7 @@ static void ScaleUVLinearUp2(int src_width,
   int dy;
 
   // This function can only scale up by 2 times horizontally.
+  (void)src_width;
   assert(src_width == ((dst_width + 1) / 2));
 
 #ifdef HAS_SCALEUVROWUP2_LINEAR_SSSE3
@@ -744,6 +759,7 @@ static void ScaleUVBilinearUp2(int src_width,
   int x;
 
   // This function can only scale up by 2 times.
+  (void)src_width;
   assert(src_width == ((dst_width + 1) / 2));
   assert(src_height == ((dst_height + 1) / 2));
 
@@ -805,6 +821,7 @@ static void ScaleUVLinearUp2_16(int src_width,
   int dy;
 
   // This function can only scale up by 2 times horizontally.
+  (void)src_width;
   assert(src_width == ((dst_width + 1) / 2));
 
 #ifdef HAS_SCALEUVROWUP2_LINEAR_16_SSE41
@@ -857,6 +874,7 @@ static void ScaleUVBilinearUp2_16(int src_width,
   int x;
 
   // This function can only scale up by 2 times.
+  (void)src_width;
   assert(src_width == ((dst_width + 1) / 2));
   assert(src_height == ((dst_height + 1) / 2));
 
@@ -1051,7 +1069,7 @@ static int ScaleUV(const uint8_t* src,
       // Optimized even scale down. ie 2, 4, 6, 8, 10x.
       if (!(dx & 0x10000) && !(dy & 0x10000)) {
 #if HAS_SCALEUVDOWN2
-        if (dx == 0x20000) {
+        if (dx == 0x20000 && dy == 0x20000) {
           // Optimized 1/2 downsample.
           ScaleUVDown2(src_width, src_height, clip_width, clip_height,
                        src_stride, dst_stride, src, dst, x, dx, y, dy,
@@ -1060,7 +1078,7 @@ static int ScaleUV(const uint8_t* src,
         }
 #endif
 #if HAS_SCALEUVDOWN4BOX
-        if (dx == 0x40000 && filtering == kFilterBox) {
+        if (dx == 0x40000 && dy == 0x40000 && filtering == kFilterBox) {
           // Optimized 1/4 box downsample.
           return ScaleUVDown4Box(src_width, src_height, clip_width, clip_height,
                                  src_stride, dst_stride, src, dst, x, dx, y,

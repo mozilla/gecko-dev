@@ -12,6 +12,13 @@ vars = {
   'ninja_version': 'version:2@1.11.1.chromium.6',
   # reclient CIPD package version
   'reclient_version': 're_client_version:0.110.0.43ec6b1-gomaip',
+  # Fetch configuration files required for the 'use_remoteexec' gn arg
+  'download_remoteexec_cfg': False,
+  # RBE instance to use for running remote builds
+  'rbe_instance': Str('projects/rbe-webrtc-developer/instances/default_instance'),
+  # RBE project to download rewrapper config files for. Only needed if
+  # different from the project used in 'rbe_instance'
+  'rewrapper_cfg_project': Str(''),
 
   # Keep the Chromium default of generating location tags.
   'generate_location_tags': True,
@@ -2560,6 +2567,22 @@ hooks = [
       '--out',
       'src/testing/location_tags.json',
     ],
+  },
+  # Download remote exec cfg files
+  {
+    'name': 'fetch_reclient_cfgs',
+    'pattern': '.',
+    'condition': 'download_remoteexec_cfg',
+    'action': ['python3',
+               'src/buildtools/reclient_cfgs/fetch_reclient_cfgs.py',
+               '--rbe_instance',
+               Var('rbe_instance'),
+               '--reproxy_cfg_template',
+               'reproxy.cfg.template',
+               '--rewrapper_cfg_project',
+               Var('rewrapper_cfg_project'),
+               '--quiet',
+               ],
   },
 ]
 

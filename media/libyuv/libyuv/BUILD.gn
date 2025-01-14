@@ -88,6 +88,10 @@ group("libyuv") {
     deps += [ ":libyuv_sve" ]
   }
 
+  if (libyuv_use_sme) {
+    deps += [ ":libyuv_sme" ]
+  }
+
   if (libyuv_use_msa) {
     deps += [ ":libyuv_msa" ]
   }
@@ -243,9 +247,7 @@ if (libyuv_use_neon) {
 
 if (libyuv_use_sve) {
   static_library("libyuv_sve") {
-    sources = [
-      "source/row_sve.cc",
-    ]
+    sources = [ "source/row_sve.cc" ]
 
     deps = [ ":libyuv_internal" ]
 
@@ -260,6 +262,8 @@ if (libyuv_use_sme) {
   static_library("libyuv_sme") {
     sources = [
       "source/rotate_sme.cc",
+      "source/row_sme.cc",
+      "source/scale_sme.cc",
     ]
 
     deps = [ ":libyuv_internal" ]
@@ -391,6 +395,8 @@ if (libyuv_include_tests) {
 
     if (is_linux || is_chromeos) {
       cflags = [ "-fexceptions" ]
+      # For enabling ASLR.
+      ldflags = [ "-pie" ]
     }
     if (is_ios) {
       configs -= [ "//build/config/compiler:default_symbols" ]
