@@ -3113,9 +3113,9 @@ static bool TypedArray_toReversed(JSContext* cx, const CallArgs& args) {
     TypedArrayCopyElements(tarray, result, length);
 
     switch (result->type()) {
-#define TYPED_ARRAY_TOREVERSED(_, NativeType, Name)              \
-  case Scalar::Name:                                             \
-    TypedArrayReverse<UnsharedOps, NativeType>(result, length);  \
+#define TYPED_ARRAY_TOREVERSED(_, NativeType, Name)             \
+  case Scalar::Name:                                            \
+    TypedArrayReverse<UnsharedOps, NativeType>(result, length); \
     break;
       JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_TOREVERSED)
 #undef TYPED_ARRAY_TOREVERSED
