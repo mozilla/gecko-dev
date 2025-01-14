@@ -101,12 +101,19 @@ class OnboardingFragment : Fragment() {
         LocalBroadcastManager.getInstance(context)
             .registerReceiver(pinAppWidgetReceiver, filter)
 
+        // We want the prompt to be displayed once per onboarding opening.
+        // In case the host got recreated, we don't reset the flag.
+        if (savedInstanceState == null) {
+            requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding = false
+        }
+
         if (isNotDefaultBrowser(context) &&
             activity?.isDefaultBrowserPromptSupported() == true &&
             !requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding
         ) {
             requireComponents.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
                 promptToSetAsDefaultBrowser()
+                requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding = true
             }
         }
 
@@ -124,8 +131,6 @@ class OnboardingFragment : Fragment() {
                 ScreenContent()
             }
         }
-
-        requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding = false
     }
 
     override fun onResume() {

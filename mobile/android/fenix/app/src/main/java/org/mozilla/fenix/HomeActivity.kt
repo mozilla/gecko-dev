@@ -740,8 +740,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         )
 
         super.recreate()
-
-        this@HomeActivity.settings().promptToSetAsDefaultBrowserDisplayedInOnboarding = true
     }
 
     /**
