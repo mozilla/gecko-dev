@@ -268,6 +268,9 @@ class CreateLineBreakResult final : public CaretPoint {
                         EditorDOMPoint&& aCaretPoint)
       : CaretPoint(std::move(aCaretPoint)),
         mLineBreak(Some(std::move(aLineBreak))) {}
+  explicit CreateLineBreakResult(CreateElementResult&& aCreateElementResult)
+      : CaretPoint(aCreateElementResult.UnwrapCaretPoint()),
+        mLineBreak(Some(aCreateElementResult.UnwrapNewNode())) {}
 
   [[nodiscard]] static CreateLineBreakResult NotHandled() {
     return CreateLineBreakResult();

@@ -976,47 +976,28 @@ nsresult HTMLEditor::MaybeCreatePaddingBRElementForEmptyEditor() {
       !ignoredError.Failed(),
       "HTMLEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
 
-  // Create a br.
-  RefPtr<HTMLBRElement> newBRElement =
-      HTMLBRElement::FromNodeOrNull(RefPtr{CreateHTMLContent(nsGkAtoms::br)});
-  if (NS_WARN_IF(Destroyed())) {
-    return NS_ERROR_EDITOR_DESTROYED;
+  Result<CreateElementResult, nsresult> insertPaddingBRElementResultOrError =
+      InsertBRElement(WithTransaction::Yes,
+                      BRElementType::PaddingForEmptyEditor,
+                      EditorDOMPoint(bodyOrDocumentElement, 0u));
+  if (MOZ_UNLIKELY(insertPaddingBRElementResultOrError.isErr())) {
+    NS_WARNING(
+        "EditorBase::InsertBRElement(WithTransaction::Yes, "
+        "BRElementType::PaddingForEmptyEditor) failed");
+    return insertPaddingBRElementResultOrError.propagateErr();
   }
-  if (NS_WARN_IF(!newBRElement)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  mPaddingBRElementForEmptyEditor = newBRElement;
-
-  // Give it a special attribute.
-  nsresult rv =
-      UpdateBRElementType(*newBRElement, BRElementType::PaddingForEmptyEditor);
+  CreateElementResult insertPaddingBRElementResult =
+      insertPaddingBRElementResultOrError.unwrap();
+  mPaddingBRElementForEmptyEditor =
+      HTMLBRElement::FromNode(insertPaddingBRElementResult.GetNewNode());
+  nsresult rv = insertPaddingBRElementResult.SuggestCaretPointTo(
+      *this, {SuggestCaret::AndIgnoreTrivialError});
   if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::UpdateBRElementType() failed");
+    NS_WARNING("CaretPoint::SuggestCaretPointTo() failed");
     return rv;
   }
-
-  // Put the node in the document.
-  Result<CreateElementResult, nsresult> insertBRElementResult =
-      InsertNodeWithTransaction<Element>(
-          *newBRElement, EditorDOMPoint(bodyOrDocumentElement, 0u));
-  if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
-    NS_WARNING("EditorBase::InsertNodeWithTransaction() failed");
-    return insertBRElementResult.unwrapErr();
-  }
-
-  // Set selection.
-  insertBRElementResult.inspect().IgnoreCaretPointSuggestion();
-  rv = CollapseSelectionToStartOf(*bodyOrDocumentElement);
-  if (MOZ_UNLIKELY(rv == NS_ERROR_EDITOR_DESTROYED)) {
-    NS_WARNING(
-        "EditorBase::CollapseSelectionToStartOf() caused destroying the "
-        "editor");
-    return NS_ERROR_EDITOR_DESTROYED;
-  }
-  NS_WARNING_ASSERTION(
-      NS_SUCCEEDED(rv),
-      "EditorBase::CollapseSelectionToStartOf() failed, but ignored");
+  NS_WARNING_ASSERTION(rv != NS_SUCCESS_EDITOR_BUT_IGNORED_TRIVIAL_ERROR,
+                       "CaretPoint::SuggestCaretPointTo() failed, but ignored");
   return NS_OK;
 }
 
@@ -11276,13 +11257,16 @@ HTMLEditor::InsertPaddingBRElementIfNeeded(
   // TODO: Insert padding <br> for the last empty line if the point is
   // immediately after a block boundary.  However, we should not use the flag
   // anymore because we should use linefeed in preformatted text.
-  Result<CreateLineBreakResult, nsresult> insertPaddingBRResultOrError =
-      InsertLineBreak(WithTransaction::Yes, LineBreakType::BRElement,
+  Result<CreateElementResult, nsresult> insertPaddingBRResultOrError =
+      InsertBRElement(WithTransaction::Yes, BRElementType::Normal,
                       pointToInsertPaddingBR);
-  NS_WARNING_ASSERTION(insertPaddingBRResultOrError.isOk(),
-                       "HTMLEditor::InsertLineBreak(WithTransaction::Yes, "
-                       "LineBreakType::BRElement) failed");
-  return insertPaddingBRResultOrError;
+  if (MOZ_UNLIKELY(insertPaddingBRResultOrError.isErr())) {
+    NS_WARNING(
+        "EditorBase::InsertBRElement(WithTransaction::Yes, "
+        "BRElementType::Normal) failed");
+    return insertPaddingBRResultOrError.propagateErr();
+  }
+  return CreateLineBreakResult(insertPaddingBRResultOrError.unwrap());
 }
 
 Result<EditorDOMPoint, nsresult> HTMLEditor::RemoveAlignFromDescendants(

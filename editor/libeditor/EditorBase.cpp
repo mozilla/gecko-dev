@@ -2507,23 +2507,13 @@ EditorBase::InsertPaddingBRElementForEmptyLastLineWithTransaction(
     pointToInsert = maybePointToInsert.unwrap();
   }
 
-  RefPtr<HTMLBRElement> newBRElement =
-      HTMLBRElement::FromNodeOrNull(RefPtr{CreateHTMLContent(nsGkAtoms::br)});
-  if (NS_WARN_IF(!newBRElement)) {
-    return Err(NS_ERROR_FAILURE);
-  }
-  nsresult rv = UpdateBRElementType(*newBRElement,
-                                    BRElementType::PaddingForEmptyLastLine);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::UpdateBRElementType() failed");
-    return Err(rv);
-  }
-
-  Result<CreateElementResult, nsresult> insertBRElementResult =
-      InsertNodeWithTransaction<Element>(*newBRElement, pointToInsert);
-  NS_WARNING_ASSERTION(insertBRElementResult.isOk(),
-                       "EditorBase::InsertNodeWithTransaction() failed");
-  return insertBRElementResult;
+  Result<CreateElementResult, nsresult> insertBRElementResultOrError =
+      InsertBRElement(WithTransaction::Yes,
+                      BRElementType::PaddingForEmptyLastLine, pointToInsert);
+  NS_WARNING_ASSERTION(insertBRElementResultOrError.isOk(),
+                       "EditorBase::InsertBRElement(WithTransaction::Yes, "
+                       "BRElementType::PaddingForEmptyLastLine) failed");
+  return insertBRElementResultOrError;
 }
 
 nsresult EditorBase::UpdateBRElementType(HTMLBRElement& aBRElement,
@@ -2586,6 +2576,65 @@ nsresult EditorBase::UpdateBRElementType(HTMLBRElement& aBRElement,
   }
   result.inspect().IgnoreCaretPointSuggestion();
   return NS_OK;
+}
+
+Result<CreateElementResult, nsresult> EditorBase::InsertBRElement(
+    WithTransaction aWithTransaction, BRElementType aBRElementType,
+    const EditorDOMPoint& aPointToInsert) {
+  MOZ_ASSERT(aPointToInsert.IsSetAndValid());
+
+  const RefPtr<HTMLBRElement> newBRElement =
+      HTMLBRElement::FromNodeOrNull(RefPtr{CreateHTMLContent(nsGkAtoms::br)});
+  if (MOZ_UNLIKELY(!newBRElement)) {
+    NS_WARNING("EditorBase::CreateHTMLContent() failed");
+    return Err(NS_ERROR_FAILURE);
+  }
+  nsresult rv = MarkElementDirty(*newBRElement);
+  if (MOZ_UNLIKELY(rv == NS_ERROR_EDITOR_DESTROYED)) {
+    NS_WARNING("EditorBase::MarkElementDirty() caused destroying the editor");
+    return Err(NS_ERROR_EDITOR_DESTROYED);
+  }
+  if (aBRElementType != BRElementType::Normal) {
+    nsresult rv = UpdateBRElementType(*newBRElement, aBRElementType);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("EditorBase::UpdateBRElementType() failed");
+      return Err(rv);
+    }
+  }
+  if (aWithTransaction == WithTransaction::Yes) {
+    Result<CreateElementResult, nsresult> insertBRElementResultOrError =
+        InsertNodeWithTransaction<Element>(*newBRElement, aPointToInsert);
+    if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
+      NS_WARNING("EditorBase::InsertNodeWithTransaction() failed");
+      return insertBRElementResultOrError.propagateErr();
+    }
+    CreateElementResult insertBRElementResult =
+        insertBRElementResultOrError.unwrap();
+    insertBRElementResult.IgnoreCaretPointSuggestion();
+  } else {
+    Unused << aPointToInsert.Offset();
+    RefPtr<InsertNodeTransaction> transaction =
+        InsertNodeTransaction::Create(*this, *newBRElement, aPointToInsert);
+    nsresult rv = transaction->DoTransaction();
+    if (NS_WARN_IF(Destroyed())) {
+      return Err(NS_ERROR_EDITOR_DESTROYED);
+    }
+    if (NS_FAILED(rv)) {
+      NS_WARNING("InsertNodeTransaction::DoTransaction() failed");
+      return Err(rv);
+    }
+    RangeUpdaterRef().SelAdjInsertNode(EditorRawDOMPoint(
+        aPointToInsert.GetContainer(), aPointToInsert.Offset()));
+  }
+  if (NS_WARN_IF(newBRElement->GetParentNode() !=
+                 aPointToInsert.GetContainer())) {
+    return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+  }
+  return CreateElementResult(
+      newBRElement,
+      EditorDOMPoint(newBRElement, aBRElementType == BRElementType::Normal
+                                       ? InterlinePosition::StartOfNextLine
+                                       : InterlinePosition::EndOfLine));
 }
 
 NS_IMETHODIMP EditorBase::DeleteNode(nsINode* aNode, bool aPreserveSelection,

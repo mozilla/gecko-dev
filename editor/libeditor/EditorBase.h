@@ -1823,6 +1823,14 @@ class EditorBase : public nsIEditor,
   UpdateBRElementType(dom::HTMLBRElement& aBRElement, BRElementType aNewType);
 
   /**
+   * Create and insert a line break to aPointToInsert.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CreateElementResult, nsresult>
+  InsertBRElement(WithTransaction aWithTransaction,
+                  BRElementType aBRElementType,
+                  const EditorDOMPoint& aPointToInsert);
+
+  /**
    * CloneAttributesWithTransaction() clones all attributes from
    * aSourceElement to aDestElement after removing all attributes in
    * aDestElement.

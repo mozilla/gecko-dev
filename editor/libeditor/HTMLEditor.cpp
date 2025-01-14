@@ -4434,22 +4434,21 @@ Result<CreateLineBreakResult, nsresult> HTMLEditor::InsertLineBreak(
       -> Result<EditorLineBreak, nsresult> {
     if (aLineBreakType == LineBreakType::BRElement) {
       Result<CreateElementResult, nsresult> insertBRElementResultOrError =
-          CreateAndInsertElement(aWithTransaction, *nsGkAtoms::br,
-                                 pointToInsert);
+          InsertBRElement(aWithTransaction, BRElementType::Normal,
+                          pointToInsert);
       if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
         NS_WARNING(
-            nsPrintfCString("HTMLEditor::CreateAndInsertElement(%s) failed",
-                            ToString(aWithTransaction).c_str())
+            nsPrintfCString(
+                "EditorBase::InsertBRElement(%s, BRElementType::Normal) failed",
+                ToString(aWithTransaction).c_str())
                 .get());
         return insertBRElementResultOrError.propagateErr();
       }
-      insertBRElementResultOrError.inspect().IgnoreCaretPointSuggestion();
-      const auto* brElement = HTMLBRElement::FromNode(
-          insertBRElementResultOrError.unwrap().GetNewNode());
-      if (NS_WARN_IF(!brElement)) {
-        return Err(NS_ERROR_FAILURE);
-      }
-      return EditorLineBreak(*brElement);
+      CreateElementResult insertBRElementResult =
+          insertBRElementResultOrError.unwrap();
+      MOZ_ASSERT(insertBRElementResult.Handled());
+      insertBRElementResult.IgnoreCaretPointSuggestion();
+      return EditorLineBreak(insertBRElementResult.UnwrapNewNode());
     }
     MOZ_ASSERT(aLineBreakType == LineBreakType::Linefeed);
     RefPtr<Text> newTextNode = CreateTextNode(u"\n"_ns);
