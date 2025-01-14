@@ -24,6 +24,17 @@ const TEST_CASES = [
   { width: 500, height: 350 },
 ];
 
+const DEFAULT_URL = TEST_PATH + "file_dummy.html";
+
+const TEST_EXTENSION_DATA = {
+  manifest: {
+    name: "Test Extension",
+  },
+  files: {
+    "test.html": "Test",
+  },
+};
+
 function getPlatform() {
   const { OS } = Services.appinfo;
   if (OS == "WINNT") {
@@ -32,6 +43,10 @@ function getPlatform() {
     return "mac";
   }
   return "linux";
+}
+
+async function waitForLetterboxing() {
+  await TestUtils.topicObserved("test:letterboxing:update-margin-finish");
 }
 
 function handleOSFuzziness(aContent, aTarget) {
@@ -78,18 +93,13 @@ function checkForDefaultSetting(
   );
 }
 
-async function test_dynamical_window_rounding(aWindow, aCheckFunc) {
+async function test_dynamical_window_rounding(aWindow, aURL, aCheckFunc) {
   // We need to wait for the updating the margins for the newly opened tab, or
   // it will affect the following tests.
-  let promiseForTheFirstRounding = TestUtils.topicObserved(
-    "test:letterboxing:update-margin-finish"
-  );
+  let promiseForTheFirstRounding = waitForLetterboxing();
 
-  info("Open a content tab for testing.");
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    aWindow.gBrowser,
-    TEST_PATH + "file_dummy.html"
-  );
+  info(`Open a content tab on ${aURL} for testing.`);
+  let tab = await BrowserTestUtils.openNewForegroundTab(aWindow.gBrowser, aURL);
 
   info("Wait until the margins are applied for the opened tab.");
   await promiseForTheFirstRounding;
@@ -107,9 +117,7 @@ async function test_dynamical_window_rounding(aWindow, aCheckFunc) {
   for (let { width, height } of TEST_CASES) {
     let caseString = "Case " + width + "x" + height + ": ";
     // Create a promise for waiting for the margin update.
-    let promiseRounding = TestUtils.topicObserved(
-      "test:letterboxing:update-margin-finish"
-    );
+    let promiseRounding = waitForLetterboxing();
 
     let { containerWidth, containerHeight } = getContainerSize(tab);
 
@@ -209,7 +217,7 @@ async function test_dynamical_window_rounding(aWindow, aCheckFunc) {
   BrowserTestUtils.removeTab(tab);
 }
 
-async function test_customize_width_and_height(aWindow) {
+async function test_customize_width_and_height(aWindow, aURL) {
   const test_dimensions = `120x80, 200x143, 335x255, 600x312, 742x447, 813x558,
                            990x672, 1200x733, 1470x858`;
 
@@ -274,31 +282,76 @@ async function test_customize_width_and_height(aWindow) {
     );
   };
 
-  await test_dynamical_window_rounding(aWindow, checkDimension);
+  await test_dynamical_window_rounding(aWindow, aURL, checkDimension);
 
   await SpecialPowers.popPrefEnv();
 }
 
-async function test_no_rounding_for_chrome(aWindow) {
-  // First, resize the window to a size which is not rounded.
-  await new Promise(resolve => {
-    aWindow.onresize = () => resolve();
-    aWindow.resizeTo(700, 450);
-  });
+async function test_no_rounding(aWindow, aTab, aDetail) {
+  // Make sure we are ready, first.
+  await aWindow.promiseDocumentFlushed(() => {});
+  // Check that inner and outer have the same size.
+  let stack = aTab.linkedBrowser.closest(".browserStack");
+  let outer = stack.getBoundingClientRect();
+  let inner = aTab.linkedBrowser.getBoundingClientRect();
+  is(
+    outer.width,
+    inner.width,
+    `Outer and inner widths are the same for an exempt tab (${aDetail}).`
+  );
+  is(
+    outer.height,
+    inner.height,
+    `Outer and inner heights are the same for an exempt tab (${aDetail}).`
+  );
+}
 
-  // open a chrome privilege tab, like about:config.
+async function test_no_rounding_for(aWindow, aURL) {
+  const resize = (width, height) => {
+    let { promise, resolve } = Promise.withResolvers();
+    aWindow.onresize = () => resolve();
+    aWindow.resizeTo(width, height);
+    return promise;
+  };
+  // First, resize the window to a size which is not rounded by default.
+  await resize(750, 450);
+  let tab = await BrowserTestUtils.openNewForegroundTab(aWindow.gBrowser, aURL);
+  await test_no_rounding(aWindow, tab, aURL);
+  // Resize the window to another size, so that the next call to this test will
+  // need to resize. Trying to figure out whether we needed to resize led to
+  // strange test timeouts.
+  await resize(800, 500);
+  BrowserTestUtils.removeTab(tab);
+}
+
+async function test_no_rounding_fullscreen(aWindow) {
   let tab = await BrowserTestUtils.openNewForegroundTab(
     aWindow.gBrowser,
-    "about:config"
+    DEFAULT_URL
   );
-
-  // Check that the browser element should not have a margin.
-  is(
-    tab.linkedBrowser.style.margin,
-    "",
-    "There is no margin around chrome tab."
+  let { promise: focusPromise, resolve } = Promise.withResolvers();
+  SimpleTest.waitForFocus(resolve, tab.linkedBrowser.ownerGlobal);
+  await focusPromise;
+  let fullscreenPromise = BrowserTestUtils.waitForContentEvent(
+    tab.linkedBrowser,
+    "fullscreenchange"
   );
-
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    await content.document.body.requestFullscreen();
+  });
+  await fullscreenPromise;
+  await test_no_rounding(aWindow, tab, "fullscreen");
+  fullscreenPromise = BrowserTestUtils.waitForContentEvent(
+    tab.linkedBrowser,
+    "fullscreenchange"
+  );
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    await content.document.exitFullscreen();
+  });
+  // Sometimes exiting from fullscreen on Windows take a lot of time, and it
+  // interferes with the creation of the second window, making the test
+  // timeout.
+  await fullscreenPromise;
   BrowserTestUtils.removeTab(tab);
 }
 
@@ -315,9 +368,7 @@ async function test_findbar(aWindow) {
     TEST_PATH + "file_dummy.html"
   );
 
-  let promiseRounding = TestUtils.topicObserved(
-    "test:letterboxing:update-margin-finish"
-  );
+  let promiseRounding = waitForLetterboxing();
 
   let findBarOpenPromise = BrowserTestUtils.waitForEvent(
     aWindow,
@@ -329,9 +380,7 @@ async function test_findbar(aWindow) {
 
   ok(true, "Margin updated when findbar opened");
 
-  promiseRounding = TestUtils.topicObserved(
-    "test:letterboxing:update-margin-finish"
-  );
+  promiseRounding = waitForLetterboxing();
 
   let findBarClosePromise = BrowserTestUtils.waitForEvent(
     aWindow,
@@ -361,14 +410,42 @@ add_task(async function do_tests() {
   let originalOuterHeight = window.outerHeight;
 
   info("Run test for the default window rounding.");
-  await test_dynamical_window_rounding(window, checkForDefaultSetting);
+  await test_dynamical_window_rounding(
+    window,
+    DEFAULT_URL,
+    checkForDefaultSetting
+  );
+  await test_dynamical_window_rounding(
+    window,
+    "about:blank",
+    checkForDefaultSetting
+  );
 
   info("Run test for the window rounding with customized dimensions.");
-  await test_customize_width_and_height(window);
+  await test_customize_width_and_height(window, DEFAULT_URL);
+  await test_customize_width_and_height(window, "about:blank");
 
   info("Run test for no margin around tab with the chrome privilege.");
-  await test_no_rounding_for_chrome(window);
+  await test_no_rounding_for(window, "about:config");
 
+  info("Run test for no margin around pdf.js.");
+  await test_no_rounding_for(window, TEST_PATH + "file_pdf.pdf");
+
+  info("Run test for no margin around view-source: tab.");
+  await test_no_rounding_for(window, `view-source:${DEFAULT_URL}`);
+
+  info("Run test for no margin around extension tabs.");
+  let extension = ExtensionTestUtils.loadExtension(TEST_EXTENSION_DATA);
+  await extension.startup();
+  await test_no_rounding_for(
+    window,
+    `moz-extension://${extension.uuid}/test.html`
+  );
+
+  info("Run test for no margin on fullscreen");
+  await test_no_rounding_fullscreen(window);
+
+  info("Run test for no findbar size leaks");
   await test_findbar(window);
 
   // Restore the original window size.
@@ -376,22 +453,47 @@ add_task(async function do_tests() {
   window.outerHeight = originalOuterHeight;
 
   // Testing that whether the dynamical rounding works for new windows.
+  info("Opening a new window for repeating the tests there.");
   let win = await BrowserTestUtils.openNewBrowserWindow();
 
   info("Run test for the default window rounding in new window.");
-  await test_dynamical_window_rounding(win, checkForDefaultSetting);
+  await test_dynamical_window_rounding(
+    win,
+    DEFAULT_URL,
+    checkForDefaultSetting
+  );
+  await test_dynamical_window_rounding(
+    win,
+    "about:blank",
+    checkForDefaultSetting
+  );
 
   info(
     "Run test for the window rounding with customized dimensions in new window."
   );
-  await test_customize_width_and_height(win);
+  await test_customize_width_and_height(win, DEFAULT_URL);
+  await test_customize_width_and_height(win, "about:blank");
 
   info(
     "Run test for no margin around tab with the chrome privilege in new window."
   );
-  await test_no_rounding_for_chrome(win);
+  await test_no_rounding_for(win, "about:config");
+
+  info("Run test for no margin around pdf.js in new window.");
+  await test_no_rounding_for(win, TEST_PATH + "file_pdf.pdf");
+
+  info("Run test for no margin around view-source: tab in new window.");
+  await test_no_rounding_for(win, `view-source:${DEFAULT_URL}`);
+
+  info("Run test for no margin around extension tabs in new window.");
+  await test_no_rounding_for(
+    win,
+    `moz-extension://${extension.uuid}/test.html`
+  );
 
   await test_findbar(win);
 
   await BrowserTestUtils.closeWindow(win);
+
+  await extension.unload();
 });
