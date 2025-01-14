@@ -333,7 +333,7 @@ class MenuDialogMiddleware(
     private fun installAddon(
         store: Store<MenuState, MenuAction>,
         addon: Addon,
-    ) = scope.launch {
+    ) = scope.launch(Dispatchers.Main) {
         if (addon.isInstalled()) {
             return@launch
         }
