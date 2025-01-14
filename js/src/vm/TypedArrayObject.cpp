@@ -16,6 +16,7 @@
 #include "mozilla/TextUtils.h"
 
 #include <algorithm>
+#include <charconv>
 #include <iterator>
 #include <limits>
 #include <numeric>
@@ -2027,6 +2028,171 @@ bool TypedArrayObject::copyWithin(JSContext* cx, unsigned argc, Value* vp) {
                               TypedArrayObject::copyWithin_impl>(cx, args);
 }
 
+template <typename ExternalType, typename NativeType>
+static bool TypedArrayJoinKernel(JSContext* cx,
+                                 Handle<TypedArrayObject*> tarray, size_t len,
+                                 Handle<JSLinearString*> sep,
+                                 JSStringBuilder& sb) {
+  // Steps 7-8.
+  for (size_t k = 0; k < len; k++) {
+    if (!CheckForInterrupt(cx)) {
+      return false;
+    }
+
+    // Step 8.a.
+    if (k > 0 && sep->length() > 0 && !sb.append(sep)) {
+      return false;
+    }
+
+    // Step 8.b-c.
+    auto element = TypedArrayObjectTemplate<NativeType>::getIndex(tarray, k);
+    if constexpr (std::numeric_limits<NativeType>::is_integer) {
+      // Plus one to include the largest number and plus one for the sign.
+      constexpr size_t MaximumLength =
+          std::numeric_limits<NativeType>::digits10 + 1 +
+          std::numeric_limits<NativeType>::is_signed;
+
+      char str[MaximumLength] = {};
+      auto result = std::to_chars(str, std::end(str),
+                                  static_cast<ExternalType>(element), 10);
+      MOZ_ASSERT(result.ec == std::errc());
+
+      size_t strlen = result.ptr - str;
+      if (!sb.append(str, strlen)) {
+        return false;
+      }
+    } else {
+      ToCStringBuf cbuf;
+      size_t strlen;
+      char* str = NumberToCString(&cbuf, static_cast<double>(element), &strlen);
+      if (!sb.append(str, strlen)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * %TypedArray%.prototype.join ( separator )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_join(JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
+
+  // Steps 1-3.
+  Rooted<TypedArrayObject*> tarray(
+      cx, &args.thisv().toObject().as<TypedArrayObject>());
+
+  auto arrayLength = tarray->length();
+  if (!arrayLength) {
+    ReportOutOfBounds(cx, tarray);
+    return false;
+  }
+  size_t len = *arrayLength;
+
+  // Steps 4-5.
+  Rooted<JSLinearString*> sep(cx);
+  if (args.hasDefined(0)) {
+    JSString* s = ToString<CanGC>(cx, args[0]);
+    if (!s) {
+      return false;
+    }
+
+    sep = s->ensureLinear(cx);
+    if (!sep) {
+      return false;
+    }
+  } else {
+    sep = cx->names().comma_;
+  }
+
+  // Steps 6-9 (When the length is zero, directly return the empty string).
+  if (len == 0) {
+    args.rval().setString(cx->emptyString());
+    return true;
+  }
+
+  // Step 6.
+  JSStringBuilder sb(cx);
+  if (sep->hasTwoByteChars() && !sb.ensureTwoByteChars()) {
+    return false;
+  }
+
+  // Reacquire the length because side-effects may have detached or resized the
+  // array buffer.
+  size_t actualLength = std::min(len, tarray->length().valueOr(0));
+
+  // The string representation of each element has at least one character.
+  auto res = mozilla::CheckedInt<uint32_t>(actualLength);
+
+  // The separator will be added |length - 1| times, reserve space for that so
+  // that we don't have to unnecessarily grow the buffer.
+  size_t seplen = sep->length();
+  if (seplen > 0) {
+    if (len > UINT32_MAX) {
+      ReportAllocationOverflow(cx);
+      return false;
+    }
+    res += mozilla::CheckedInt<uint32_t>(seplen) * (uint32_t(len) - 1);
+  }
+  if (!res.isValid()) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
+  if (!sb.reserve(res.value())) {
+    return false;
+  }
+
+  switch (tarray->type()) {
+#define TYPED_ARRAY_JOIN(ExternalType, NativeType, Name) \
+  case Scalar::Name:                                     \
+    if (!TypedArrayJoinKernel<ExternalType, NativeType>( \
+            cx, tarray, actualLength, sep, sb)) {        \
+      return false;                                      \
+    }                                                    \
+    break;
+    JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_JOIN)
+#undef TYPED_ARRAY_JOIN
+    default:
+      MOZ_CRASH("Unsupported TypedArray type");
+  }
+
+  for (size_t k = actualLength; k < len; k++) {
+    if (!CheckForInterrupt(cx)) {
+      return false;
+    }
+
+    // Step 8.a.
+    if (k > 0 && !sb.append(sep)) {
+      return false;
+    }
+
+    // Steps 8.b-c. (Not applicable)
+  }
+
+  // Step 9.
+  JSString* str = sb.finishString();
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
+}
+
+/**
+ * %TypedArray%.prototype.join ( separator )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_join(JSContext* cx, unsigned argc, Value* vp) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype", "join");
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsTypedArrayObject, TypedArray_join>(cx, args);
+}
+
 // Byte vector with large enough inline storage to allow constructing small
 // typed arrays without extra heap allocations.
 using ByteVector =
@@ -3127,8 +3293,8 @@ static bool uint8array_toHex(JSContext* cx, unsigned argc, Value* vp) {
     JS_SELF_HOSTED_FN("findLastIndex", "TypedArrayFindLastIndex", 1, 0),
     JS_SELF_HOSTED_FN("forEach", "TypedArrayForEach", 1, 0),
     JS_SELF_HOSTED_FN("indexOf", "TypedArrayIndexOf", 2, 0),
-    JS_SELF_HOSTED_FN("join", "TypedArrayJoin", 1, 0),
     JS_SELF_HOSTED_FN("lastIndexOf", "TypedArrayLastIndexOf", 1, 0),
+    JS_FN("join", TypedArray_join, 1, 0),
     JS_SELF_HOSTED_FN("map", "TypedArrayMap", 1, 0),
     JS_SELF_HOSTED_FN("reduce", "TypedArrayReduce", 1, 0),
     JS_SELF_HOSTED_FN("reduceRight", "TypedArrayReduceRight", 1, 0),
