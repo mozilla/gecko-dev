@@ -1698,12 +1698,12 @@ static void ReportClassStats(const ClassInfo& classInfo, const nsACString& path,
   }
 
   if (classInfo.objectsMallocHeapSlots > 0) {
-    REPORT_BYTES(path + "objects/malloc-heap/slots"_ns, KIND_HEAP,
+    REPORT_BYTES(path + "objects/gc-buffers/slots"_ns, KIND_NONHEAP,
                  classInfo.objectsMallocHeapSlots, "Non-fixed object slots.");
   }
 
   if (classInfo.objectsMallocHeapElementsNormal > 0) {
-    REPORT_BYTES(path + "objects/malloc-heap/elements/normal"_ns, KIND_HEAP,
+    REPORT_BYTES(path + "objects/gc-buffers/elements/normal"_ns, KIND_NONHEAP,
                  classInfo.objectsMallocHeapElementsNormal,
                  "Normal (non-wasm) indexed elements.");
   }
