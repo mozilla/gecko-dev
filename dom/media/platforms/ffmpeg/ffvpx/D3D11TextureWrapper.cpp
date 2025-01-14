@@ -25,8 +25,12 @@ namespace mozilla {
 D3D11TextureWrapper::D3D11TextureWrapper(AVFrame* aAVFrame,
                                          FFmpegLibWrapper* aLib,
                                          ID3D11Texture2D* aTexture,
-                                         unsigned int aArrayIdx)
-    : mLib(aLib), mTexture(aTexture), mArrayIdx(aArrayIdx) {
+                                         unsigned int aArrayIdx,
+                                         std::function<void()>&& aReleaseMethod)
+    : mLib(aLib),
+      mTexture(aTexture),
+      mArrayIdx(aArrayIdx),
+      mReleaseMethod(std::move(aReleaseMethod)) {
   MOZ_ASSERT(XRE_IsGPUProcess());
   MOZ_ASSERT(gfx::gfxVars::HwDecodedVideoZeroCopy());
   MOZ_ASSERT(mLib);
@@ -43,6 +47,7 @@ D3D11TextureWrapper::~D3D11TextureWrapper() {
   MOZ_ASSERT(mHWAVBuffer);
   mLib->av_buffer_unref(&mHWAVBuffer);
   mLib = nullptr;
+  mReleaseMethod();
   LOG("Unlocked D3D11 texture %p on index %u", mTexture, mArrayIdx);
 }
 

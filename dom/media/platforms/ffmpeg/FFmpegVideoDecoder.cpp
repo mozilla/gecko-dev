@@ -2131,10 +2131,17 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
   UINT index = (uintptr_t)mFrame->data[1];
 
   if (CanUseZeroCopyVideoFrame()) {
-    FFMPEGV_LOG("CreateImageD3D11, zero copy, index=%u", index);
+    mNumOfHWTexturesInUse++;
+    FFMPEGV_LOG("CreateImageD3D11, zero copy, index=%u (texInUse=%u)", index,
+                mNumOfHWTexturesInUse.load());
     hr = mDXVA2Manager->WrapTextureWithImage(
-        new D3D11TextureWrapper(mFrame, mLib, texture, index), pictureRegion,
-        getter_AddRefs(image));
+        new D3D11TextureWrapper(
+            mFrame, mLib, texture, index,
+            [self = RefPtr<FFmpegVideoDecoder>(this), this]() {
+              MOZ_ASSERT(mNumOfHWTexturesInUse > 0);
+              mNumOfHWTexturesInUse--;
+            }),
+        pictureRegion, getter_AddRefs(image));
   } else {
     FFMPEGV_LOG("CreateImageD3D11, copy output to a shared texture");
     hr = mDXVA2Manager->CopyToImage(texture, index, pictureRegion,
@@ -2161,11 +2168,16 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
 }
 
 bool FFmpegVideoDecoder<LIBAV_VER>::CanUseZeroCopyVideoFrame() const {
+  // When zero-copy is available, we use a hybrid approach that combines
+  // zero-copy and texture copying. This prevents scenarios where all
+  // zero-copy frames remain unreleased, which could block ffmpeg from
+  // allocating new textures for subsequent frames. Zero-copy should only be
+  // used when there is sufficient space available in the texture pool.
   return gfx::gfxVars::HwDecodedVideoZeroCopy() && mImageAllocator &&
          mImageAllocator->UsingHardwareWebRender() && mDXVA2Manager &&
-         mDXVA2Manager->SupportsZeroCopyNV12Texture();
+         mDXVA2Manager->SupportsZeroCopyNV12Texture() &&
+         mNumOfHWTexturesInUse <= EXTRA_HW_FRAMES / 2;
 }
-
 #endif
 
 }  // namespace mozilla

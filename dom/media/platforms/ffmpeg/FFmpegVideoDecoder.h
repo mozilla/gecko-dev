@@ -7,6 +7,8 @@
 #ifndef __FFmpegVideoDecoder_h__
 #define __FFmpegVideoDecoder_h__
 
+#include <atomic>
+
 #include "ImageContainer.h"
 #include "FFmpegDataDecoder.h"
 #include "FFmpegLibWrapper.h"
@@ -160,6 +162,8 @@ class FFmpegVideoDecoder<LIBAV_VER>
   AVBufferRef* mD3D11VADeviceContext = nullptr;
   RefPtr<ID3D11Device> mDevice;
   UniquePtr<DXVA2Manager> mDXVA2Manager;
+  // Number of HW Textures are already in use by Gecko
+  std::atomic<uint8_t> mNumOfHWTexturesInUse{0};
 #endif
 
 #if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)

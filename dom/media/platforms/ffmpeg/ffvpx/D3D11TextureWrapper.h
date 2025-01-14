@@ -7,6 +7,8 @@
 #ifndef __D3D11TextureWrapper_h__
 #define __D3D11TextureWrapper_h__
 
+#include <functional>
+
 #include "mozilla/UniquePtr.h"
 
 struct AVFrame;
@@ -25,7 +27,8 @@ struct FFmpegLibWrapper;
 class D3D11TextureWrapper final {
  public:
   D3D11TextureWrapper(AVFrame* aAVFrame, FFmpegLibWrapper* aLib,
-                      ID3D11Texture2D* aTexture, unsigned int aArrayIdx);
+                      ID3D11Texture2D* aTexture, unsigned int aArrayIdx,
+                      std::function<void()>&& aReleaseMethod);
   D3D11TextureWrapper(D3D11TextureWrapper&& aWrapper) = delete;
   D3D11TextureWrapper(const D3D11TextureWrapper&& aWrapper) = delete;
 
@@ -39,6 +42,7 @@ class D3D11TextureWrapper final {
   ID3D11Texture2D* mTexture;
   AVBufferRef* mHWAVBuffer;
   const unsigned int mArrayIdx;
+  const std::function<void()> mReleaseMethod;
 };
 
 }  // namespace mozilla
