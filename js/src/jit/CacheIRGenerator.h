@@ -614,6 +614,8 @@ class MOZ_RAII InlinableNativeIRGenerator {
 
   ObjOperandId emitLoadArgsArray();
 
+  ValOperandId loadBoundArgument(ObjOperandId calleeId, size_t argIndex);
+
   ValOperandId loadThis(ObjOperandId calleeId);
 
   ValOperandId loadArgument(ObjOperandId calleeId, ArgumentKind kind);
