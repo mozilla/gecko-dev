@@ -2016,13 +2016,12 @@ static bool TypedArray_copyWithin(JSContext* cx, const CallArgs& args) {
   }
 #endif
 
-  SharedMem<uint8_t*> data = tarray->dataPointerEither().cast<uint8_t*>();
   if (tarray->isSharedMemory()) {
-    jit::AtomicOperations::memmoveSafeWhenRacy(data + byteDest, data + byteSrc,
-                                               byteSize);
+    auto data = SharedOps::extract(tarray).cast<uint8_t*>();
+    SharedOps::memmove(data + byteDest, data + byteSrc, byteSize);
   } else {
-    memmove(data.unwrapUnshared() + byteDest, data.unwrapUnshared() + byteSrc,
-            byteSize);
+    auto data = UnsharedOps::extract(tarray).cast<uint8_t*>();
+    UnsharedOps::memmove(data + byteDest, data + byteSrc, byteSize);
   }
 
   args.rval().setObject(*tarray);
