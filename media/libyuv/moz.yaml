@@ -55,5 +55,4 @@ vendoring:
     - 01_make_mjpeg_printfs_optional.patch
     - 02_update_gyp.patch
     - 03_add_neon64_and_sve_gyp_targets.patch
-    - 04_add_missing_volatile.patch
-    - 05_fix_loongarch64_link_failed.patch
+    - 04_fix_loongarch64_link_failed.patch
