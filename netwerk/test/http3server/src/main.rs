@@ -16,8 +16,7 @@ use neqo_http3::{
 };
 use neqo_transport::server::ConnectionRef;
 use neqo_transport::{
-    ConnectionEvent, ConnectionParameters, Output, RandomConnectionIdGenerator, StreamId,
-    StreamType,
+    ConnectionEvent, ConnectionParameters, Output, RandomConnectionIdGenerator, StreamType,
 };
 use std::env;
 
@@ -673,12 +672,9 @@ struct Http3ProxyServer {
     server: Http3Server,
     responses: HashMap<Http3OrWebTransportStream, Vec<u8>>,
     server_port: i32,
-    request_header: HashMap<StreamId, Vec<Header>>,
-    request_body: HashMap<StreamId, Vec<u8>>,
+    requests: HashMap<Http3OrWebTransportStream, (Vec<Header>, Vec<u8>)>,
     #[cfg(not(target_os = "android"))]
-    stream_map: HashMap<StreamId, Http3OrWebTransportStream>,
-    #[cfg(not(target_os = "android"))]
-    response_to_send: HashMap<StreamId, Receiver<(Vec<Header>, Vec<u8>)>>,
+    response_to_send: HashMap<Http3OrWebTransportStream, Receiver<(Vec<Header>, Vec<u8>)>>,
 }
 
 impl ::std::fmt::Display for Http3ProxyServer {
@@ -693,10 +689,7 @@ impl Http3ProxyServer {
             server,
             responses: HashMap::new(),
             server_port,
-            request_header: HashMap::new(),
-            request_body: HashMap::new(),
-            #[cfg(not(target_os = "android"))]
-            stream_map: HashMap::new(),
+            requests: HashMap::new(),
             #[cfg(not(target_os = "android"))]
             response_to_send: HashMap::new(),
         }
@@ -840,9 +833,7 @@ impl Http3ProxyServer {
                 }
             }
         });
-
-        self.response_to_send.insert(stream.stream_id(), receiver);
-        self.stream_map.insert(stream.stream_id(), stream);
+        self.response_to_send.insert(stream, receiver);
     }
 
     #[cfg(target_os = "android")]
@@ -861,15 +852,14 @@ impl Http3ProxyServer {
         self.response_to_send
             .retain(|id, receiver| match receiver.try_recv() {
                 Ok((headers, body)) => {
-                    data_to_send.insert(*id, (headers.clone(), body.clone()));
+                    data_to_send.insert(id.clone(), (headers.clone(), body.clone()));
                     false
                 }
                 Err(TryRecvError::Empty) => true,
                 Err(TryRecvError::Disconnected) => false,
             });
-        while let Some(id) = data_to_send.keys().next().cloned() {
-            let stream = self.stream_map.remove(&id).unwrap();
-            let (header, data) = data_to_send.remove(&id).unwrap();
+        while let Some(stream) = data_to_send.keys().next().cloned() {
+            let (header, data) = data_to_send.remove(&stream).unwrap();
             qtrace!("response headers: {:?}", header);
             match stream.send_headers(&header) {
                 Ok(()) => {
@@ -925,10 +915,7 @@ impl HttpServer for Http3ProxyServer {
                                     if let Some(length_str) = content_length {
                                         if let Ok(len) = length_str.value().parse::<u32>() {
                                             if len > 0 {
-                                                self.request_header
-                                                    .insert(stream.stream_id(), headers);
-                                                self.request_body
-                                                    .insert(stream.stream_id(), Vec::new());
+                                                self.requests.insert(stream, (headers, Vec::new()));
                                             } else {
                                                 self.fetch(stream, &headers, b"".to_vec());
                                             }
@@ -973,13 +960,12 @@ impl HttpServer for Http3ProxyServer {
                     mut data,
                     fin,
                 } => {
-                    if let Some(d) = self.request_body.get_mut(&stream.stream_id()) {
-                        d.append(&mut data);
+                    if let Some((_, body)) = self.requests.get_mut(&stream) {
+                        body.append(&mut data);
                     }
                     if fin {
-                        if let Some(d) = self.request_body.remove(&stream.stream_id()) {
-                            let headers = self.request_header.remove(&stream.stream_id()).unwrap();
-                            self.fetch(stream, &headers, d);
+                        if let Some((headers, body)) = self.requests.remove(&stream) {
+                            self.fetch(stream, &headers, body);
                         }
                     }
                 }
