@@ -19896,9 +19896,7 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(
   }
 
   nsCOMPtr<Document> doc;
-  aError =
-      NS_NewHTMLDocument(getter_AddRefs(doc), aGlobal.GetSubjectPrincipal(),
-                         aGlobal.GetSubjectPrincipal());
+  aError = NS_NewHTMLDocument(getter_AddRefs(doc), nullptr, nullptr);
   if (aError.Failed()) {
     return nullptr;
   }
