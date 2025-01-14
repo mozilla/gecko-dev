@@ -48,6 +48,8 @@ support-files = [
   "audio.wav^headers^",
   "av1.mp4",
   "av1.mp4^headers^",
+  "av1-yuv420p.mp4",
+  "av1-yuv420p.mp4^headers^",
   "background_video.js",
   "badtags.ogg",
   "badtags.ogg^headers^",
