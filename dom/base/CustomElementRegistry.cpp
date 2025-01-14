@@ -479,7 +479,13 @@ CustomElementRegistry::RunCustomElementCreationCallback::Run() {
 
   RefPtr<CustomElementDefinition> definition =
       mRegistry->mCustomDefinitions.Get(mAtom);
-  MOZ_ASSERT(definition, "Callback should define the definition of type.");
+  if (!definition) {
+    // Callback should set the definition of the type.
+    MOZ_DIAGNOSTIC_ASSERT(false,
+                          "Callback should set the definition of the type.");
+    return NS_ERROR_FAILURE;
+  }
+
   MOZ_ASSERT(!mRegistry->mElementCreationCallbacks.GetWeak(mAtom),
              "Callback should be removed.");
 
