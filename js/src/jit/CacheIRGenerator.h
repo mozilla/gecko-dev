@@ -616,11 +616,13 @@ class MOZ_RAII InlinableNativeIRGenerator {
 
   ValOperandId loadThis(ObjOperandId calleeId);
 
-  ValOperandId loadArgument(ObjOperandId calleeId, ArgumentKind kind,
-                            CallFlags flags = CallFlags(CallFlags::Standard));
+  ValOperandId loadArgument(ObjOperandId calleeId, ArgumentKind kind);
 
   ValOperandId loadArgumentIntrinsic(ArgumentKind kind) {
-    return writer.loadArgumentFixedSlot(kind, argc_);
+    // Intrinsics can't be called through bound functions
+    MOZ_ASSERT(target_->isIntrinsic());
+    MOZ_ASSERT(flags_.getArgFormat() == CallFlags::Standard);
+    return writer.loadArgumentFixedSlot(kind, argc_, flags_);
   }
 
   bool hasBoundArguments() const;

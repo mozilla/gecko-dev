@@ -70,7 +70,7 @@ function testStringCharCodeAtWithBoundArgs() {
 testStringCharCodeAtWithBoundArgs();
 
 function testMathRandomWithNoArgs() {
-  // We don't yet support calling bound fun_call with no additional stack args.
+  // Bound fun_call called with no additional stack args.
   var MathRandom = Function.prototype.call.bind(Math.random);
 
   for (var i = 0; i < 100; ++i) {
