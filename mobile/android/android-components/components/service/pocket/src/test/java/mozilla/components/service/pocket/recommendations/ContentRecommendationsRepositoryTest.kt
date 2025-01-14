@@ -58,11 +58,12 @@ class ContentRecommendationsRepositoryTest {
     }
 
     @Test
-    fun `GIVEN a list of new content recommendations WHEN content recommendations are updated THEN persist the new list content recommendations in storage`() = runTest {
-        val recommendations = PocketTestResources.contentRecommendationResponseItems
-        val recommendationEntities = recommendations.map { it.toContentRecommendationEntity() }
+    fun `GIVEN a content recommendations response WHEN content recommendations are updated THEN persist the provided content recommendations in storage`() = runTest {
+        val response = PocketTestResources.contentRecommendationsResponse
+        val recommendationEntities =
+            response.data.map { it.toContentRecommendationEntity(response.recommendedAt) }
 
-        repository.updateContentRecommendations(recommendations)
+        repository.updateContentRecommendations(response)
 
         verify(dao).cleanAndUpdateContentRecommendations(recommendationEntities)
     }

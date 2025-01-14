@@ -182,6 +182,7 @@ internal object PocketTestResources {
     )
 
     val contentRecommendationEntity = ContentRecommendationEntity(
+        corpusItemId = "1111",
         scheduledCorpusItemId = "2222",
         url = "https://getpocket.com/",
         title = "Pocket",
@@ -192,10 +193,12 @@ internal object PocketTestResources {
         imageUrl = "https://img-getpocket.cdn.mozilla.net/",
         tileId = 1,
         receivedRank = 2,
+        recommendedAt = 1L,
         impressions = 1,
     )
 
     val contentRecommendation = ContentRecommendation(
+        corpusItemId = "1111",
         scheduledCorpusItemId = "2222",
         url = "https://getpocket.com/",
         title = "Pocket",
@@ -206,10 +209,12 @@ internal object PocketTestResources {
         imageUrl = "https://img-getpocket.cdn.mozilla.net/",
         tileId = 1,
         receivedRank = 2,
+        recommendedAt = 1L,
         impressions = 1,
     )
 
     val contentRecommendationResponseItem1 = ContentRecommendationResponseItem(
+        corpusItemId = "1",
         scheduledCorpusItemId = "1111",
         url = "https://getpocket.com/1",
         title = "Pocket1",
@@ -222,6 +227,7 @@ internal object PocketTestResources {
         receivedRank = 1,
     )
     private val contentRecommendationResponseItem2 = ContentRecommendationResponseItem(
+        corpusItemId = "2",
         scheduledCorpusItemId = "2222",
         url = "https://getpocket.com/2",
         title = "Pocket2",
@@ -234,6 +240,7 @@ internal object PocketTestResources {
         receivedRank = 2,
     )
     private val contentRecommendationResponseItem3 = ContentRecommendationResponseItem(
+        corpusItemId = "3",
         scheduledCorpusItemId = "3333",
         url = "https://getpocket.com/3",
         title = "Pocket3",
@@ -246,6 +253,7 @@ internal object PocketTestResources {
         receivedRank = 3,
     )
     private val contentRecommendationResponseItem4 = ContentRecommendationResponseItem(
+        corpusItemId = "4",
         scheduledCorpusItemId = "4444",
         url = "https://getpocket.com/4",
         title = "Pocket4",
@@ -258,7 +266,7 @@ internal object PocketTestResources {
         receivedRank = 4,
     )
 
-    val contentRecommendationResponseItems = listOf(
+    private val contentRecommendationResponseItems = listOf(
         contentRecommendationResponseItem1,
         contentRecommendationResponseItem2,
         contentRecommendationResponseItem3,

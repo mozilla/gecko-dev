@@ -27,6 +27,7 @@ internal data class ContentRecommendationsResponse(
  * This should follow the items schema in
  * https://merino.services.mozilla.com/docs#/default/curated_content_api_v1_curated_recommendations_post.
  *
+ * @property corpusItemId A content identifier that corresponds uniquely to the URL.
  * @property scheduledCorpusItemId The ID of the scheduled corpus item for this recommendation.
  * @property url The url of the recommendation.
  * @property title The title of the recommendation.
@@ -41,6 +42,7 @@ internal data class ContentRecommendationsResponse(
  */
 @Serializable
 internal data class ContentRecommendationResponseItem(
+    val corpusItemId: String,
     val scheduledCorpusItemId: String,
     val url: String,
     val title: String,

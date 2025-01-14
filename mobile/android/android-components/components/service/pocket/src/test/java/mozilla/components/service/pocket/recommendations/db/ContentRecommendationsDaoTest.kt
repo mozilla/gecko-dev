@@ -59,7 +59,7 @@ class ContentRecommendationsDaoTest {
     fun `WHEN a content recommendation is deleted THEN content recommendation is removed from the database`() = runTest {
         val recommendation1 = PocketTestResources.contentRecommendationEntity
         val recommendation2 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 2,
+            corpusItemId = recommendation1.corpusItemId + 2,
         )
 
         dao.insert(recommendations = listOf(recommendation1, recommendation2))
@@ -74,7 +74,7 @@ class ContentRecommendationsDaoTest {
     fun `WHEN a content recommendation is updated and fetched THEN the updated recommendation is returned`() = runTest {
         val recommendation1 = PocketTestResources.contentRecommendationEntity
         val recommendation2 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 2,
+            corpusItemId = recommendation1.corpusItemId + 2,
         )
 
         dao.insert(recommendations = listOf(recommendation1, recommendation2))
@@ -94,15 +94,15 @@ class ContentRecommendationsDaoTest {
     fun `WHEN content recommendations impressions are updated THEN content recommendations impressions are updated in the database`() = runTest {
         val recommendation1 = PocketTestResources.contentRecommendationEntity
         val recommendation2 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 2,
+            corpusItemId = recommendation1.corpusItemId + 2,
             impressions = recommendation1.impressions * 2,
         )
         val recommendation3 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 3,
+            corpusItemId = recommendation1.corpusItemId + 3,
             impressions = recommendation1.impressions * 3,
         )
         val recommendation4 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 4,
+            corpusItemId = recommendation1.corpusItemId + 4,
             impressions = recommendation1.impressions * 4,
         )
 
@@ -116,11 +116,11 @@ class ContentRecommendationsDaoTest {
         )
 
         val updatedRecommendationImpression1 = ContentRecommendationImpression(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId,
+            corpusItemId = recommendation1.corpusItemId,
             impressions = 10,
         )
         val updatedRecommendationImpression3 = ContentRecommendationImpression(
-            scheduledCorpusItemId = recommendation3.scheduledCorpusItemId,
+            corpusItemId = recommendation3.corpusItemId,
             impressions = 11,
         )
 
@@ -148,15 +148,15 @@ class ContentRecommendationsDaoTest {
     fun `GIVEN an updated content recommendation impression is provided that is not in the storage WHEN content recommendations impressions are updated THEN no update occurs`() = runTest {
         val recommendation1 = PocketTestResources.contentRecommendationEntity
         val recommendation2 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 2,
+            corpusItemId = recommendation1.corpusItemId + 2,
             impressions = recommendation1.impressions * 2,
         )
         val recommendation3 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 3,
+            corpusItemId = recommendation1.corpusItemId + 3,
             impressions = recommendation1.impressions * 3,
         )
         val recommendation4 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 4,
+            corpusItemId = recommendation1.corpusItemId + 4,
             impressions = recommendation1.impressions * 4,
         )
 
@@ -170,7 +170,7 @@ class ContentRecommendationsDaoTest {
         )
 
         val updatedRecommendationImpression1 = ContentRecommendationImpression(
-            scheduledCorpusItemId = "scheduledCorpusItemId",
+            corpusItemId = "corpusItemId",
             impressions = 10,
         )
 
@@ -197,10 +197,10 @@ class ContentRecommendationsDaoTest {
 
         val recommendation1 = PocketTestResources.contentRecommendationEntity
         val recommendation2 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 2,
+            corpusItemId = recommendation1.corpusItemId + 2,
         )
         val recommendation3 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 3,
+            corpusItemId = recommendation1.corpusItemId + 3,
         )
 
         dao.insert(recommendations = listOf(recommendation1, recommendation2))
@@ -219,10 +219,10 @@ class ContentRecommendationsDaoTest {
 
         val recommendation1 = PocketTestResources.contentRecommendationEntity
         val recommendation2 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 2,
+            corpusItemId = recommendation1.corpusItemId + 2,
         )
         val recommendation3 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 3,
+            corpusItemId = recommendation1.corpusItemId + 3,
         )
 
         dao.insert(recommendations = listOf(recommendation1, recommendation2, recommendation3))
@@ -249,16 +249,16 @@ class ContentRecommendationsDaoTest {
 
         val recommendation1 = PocketTestResources.contentRecommendationEntity
         val recommendation2 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 2,
+            corpusItemId = recommendation1.corpusItemId + 2,
         )
         val recommendation3 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 3,
+            corpusItemId = recommendation1.corpusItemId + 3,
         )
         val recommendation4 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 4,
+            corpusItemId = recommendation1.corpusItemId + 4,
         )
         val recommendation5 = PocketTestResources.contentRecommendationEntity.copy(
-            scheduledCorpusItemId = recommendation1.scheduledCorpusItemId + 5,
+            corpusItemId = recommendation1.corpusItemId + 5,
         )
 
         dao.insert(recommendations = listOf(recommendation1, recommendation2, recommendation3))

@@ -21,6 +21,7 @@ sealed class PocketStory {
     /**
      * A curated content recommendation.
      *
+     * @property corpusItemId A content identifier that corresponds uniquely to the URL.
      * @property scheduledCorpusItemId The ID of the scheduled corpus item for this recommendation.
      * @property url The url of the recommendation.
      * @property title The title of the recommendation.
@@ -32,9 +33,11 @@ sealed class PocketStory {
      * @property tileId The tile ID of the recommendation.
      * @property receivedRank The original position/sort order of this item. This is provided to
      * include in telemetry payloads.
+     * @property recommendedAt A timestamp indicating when the content recommendation was recommended.
      * @property impressions The number of impressions (times shown) of the recommendation.
      */
     data class ContentRecommendation(
+        val corpusItemId: String,
         val scheduledCorpusItemId: String,
         override val url: String,
         override val title: String,
@@ -45,6 +48,7 @@ sealed class PocketStory {
         val imageUrl: String,
         val tileId: Long,
         val receivedRank: Int,
+        val recommendedAt: Long,
         val impressions: Long,
     ) : PocketStory()
 

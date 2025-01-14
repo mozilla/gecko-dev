@@ -118,6 +118,7 @@ class MappersKtTest {
 
         val result = recommendation.toContentRecommendation()
 
+        assertSame(recommendation.corpusItemId, result.corpusItemId)
         assertSame(recommendation.scheduledCorpusItemId, result.scheduledCorpusItemId)
         assertSame(recommendation.url, result.url)
         assertSame(recommendation.title, result.title)
@@ -128,15 +129,17 @@ class MappersKtTest {
         assertSame(recommendation.imageUrl, result.imageUrl)
         assertEquals(recommendation.tileId, result.tileId)
         assertEquals(recommendation.receivedRank, result.receivedRank)
+        assertEquals(recommendation.recommendedAt, result.recommendedAt)
         assertEquals(recommendation.impressions, result.impressions)
     }
 
     @Test
     fun `GIVEN a ContentRecommendationItem WHEN it is converted to the database object type THEN a one to one mapping is made`() {
         val recommendation = PocketTestResources.contentRecommendationResponseItem1
+        val recommendedAt = 100L
+        val result = recommendation.toContentRecommendationEntity(recommendedAt = recommendedAt)
 
-        val result = recommendation.toContentRecommendationEntity()
-
+        assertSame(recommendation.corpusItemId, result.corpusItemId)
         assertSame(recommendation.scheduledCorpusItemId, result.scheduledCorpusItemId)
         assertSame(recommendation.url, result.url)
         assertSame(recommendation.title, result.title)
@@ -147,16 +150,17 @@ class MappersKtTest {
         assertSame(recommendation.imageUrl, result.imageUrl)
         assertEquals(recommendation.tileId, result.tileId)
         assertEquals(recommendation.receivedRank, result.receivedRank)
+        assertEquals(recommendedAt, result.recommendedAt)
         assertEquals(DEFAULT_TIMES_SHOWN, result.impressions)
     }
 
     @Test
-    fun `GIVEN a ContentRecommendation WHEN it is an object type containing the times shown THEN only the scheduledCorpusItemId and timesShown properties are mapped`() {
+    fun `GIVEN a ContentRecommendation WHEN it is an object type containing the times shown THEN only the corpusItemId and impressions properties are mapped`() {
         val recommendation = PocketTestResources.contentRecommendation
 
         val result = recommendation.toImpressions()
 
-        assertSame(recommendation.scheduledCorpusItemId, result.scheduledCorpusItemId)
+        assertSame(recommendation.corpusItemId, result.corpusItemId)
         assertEquals(recommendation.impressions, result.impressions)
     }
 }

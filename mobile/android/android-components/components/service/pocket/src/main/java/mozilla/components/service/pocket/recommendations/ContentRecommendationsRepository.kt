@@ -10,7 +10,7 @@ import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.ext.toContentRecommendation
 import mozilla.components.service.pocket.ext.toContentRecommendationEntity
 import mozilla.components.service.pocket.ext.toImpressions
-import mozilla.components.service.pocket.recommendations.api.ContentRecommendationResponseItem
+import mozilla.components.service.pocket.recommendations.api.ContentRecommendationsResponse
 import mozilla.components.service.pocket.recommendations.db.ContentRecommendationsDatabase
 
 /**
@@ -50,14 +50,14 @@ internal class ContentRecommendationsRepository(context: Context) {
     }
 
     /**
-     * Adds the provided list of [ContentRecommendationResponseItem]s to storage updating and
+     * Adds the provided [ContentRecommendationsResponse] to storage updating and
      * replacing the content recommendations in storage.
      *
-     * @param items The new list of [ContentRecommendationResponseItem]s to store in storage.
+     * @param response The new [ContentRecommendationsResponse] to store in storage.
      */
-    suspend fun updateContentRecommendations(items: List<ContentRecommendationResponseItem>) {
+    suspend fun updateContentRecommendations(response: ContentRecommendationsResponse) {
         contentRecommendationsDao.cleanAndUpdateContentRecommendations(
-            items.map { it.toContentRecommendationEntity() },
+            response.data.map { it.toContentRecommendationEntity(response.recommendedAt) },
         )
     }
 }

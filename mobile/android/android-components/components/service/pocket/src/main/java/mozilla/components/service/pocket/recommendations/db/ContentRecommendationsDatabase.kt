@@ -8,6 +8,9 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import mozilla.components.service.pocket.recommendations.db.ContentRecommendationsDatabase.Companion.CONTENT_RECOMMENDATIONS_TABLE
 
 /**
  * Internal database for storing content recommendations.
@@ -16,7 +19,7 @@ import androidx.room.RoomDatabase
     entities = [
         ContentRecommendationEntity::class,
     ],
-    version = 1,
+    version = 2,
 )
 internal abstract class ContentRecommendationsDatabase : RoomDatabase() {
     abstract fun contentRecommendationsDao(): ContentRecommendationsDao
@@ -36,9 +39,41 @@ internal abstract class ContentRecommendationsDatabase : RoomDatabase() {
                 context,
                 ContentRecommendationsDatabase::class.java,
                 DATABASE_NAME,
+            ).addMigrations(
+                Migrations.migration_1_2,
             ).build().also {
                 instance = it
             }
+        }
+    }
+}
+
+internal object Migrations {
+    val migration_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Drop the old table.
+            db.execSQL("DROP TABLE $CONTENT_RECOMMENDATIONS_TABLE")
+
+            // Create the version 2 table.
+            db.execSQL(
+                """
+                    CREATE TABLE IF NOT EXISTS `$CONTENT_RECOMMENDATIONS_TABLE` (
+                    `corpusItemId` TEXT NOT NULL,
+                    `scheduledCorpusItemId` TEXT NOT NULL,
+                    `url` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `excerpt` TEXT NOT NULL,
+                    `topic` TEXT,
+                    `publisher` TEXT NOT NULL,
+                    `isTimeSensitive` INTEGER NOT NULL,
+                    `imageUrl` TEXT NOT NULL,
+                    `tileId` INTEGER NOT NULL,
+                    `receivedRank` INTEGER NOT NULL,
+                    `recommendedAt` INTEGER NOT NULL,
+                    `impressions` INTEGER NOT NULL,
+                    PRIMARY KEY(`corpusItemId`))
+                """,
+            )
         }
     }
 }

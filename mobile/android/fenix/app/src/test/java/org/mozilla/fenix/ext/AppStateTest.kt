@@ -768,6 +768,7 @@ private fun getFakeContentRecommendations(
         for (index in 0 until limit) {
             add(
                 ContentRecommendation(
+                    corpusItemId = "corpusItemId$index",
                     scheduledCorpusItemId = "scheduledCorpusItemId$index",
                     url = "https://story$index.com",
                     title = "Recommendation - This is a ${"very ".repeat(index)} long title",
@@ -778,6 +779,7 @@ private fun getFakeContentRecommendations(
                     imageUrl = "",
                     tileId = index.toLong(),
                     receivedRank = index,
+                    recommendedAt = index.toLong(),
                     impressions = index.toLong(),
                 ),
             )

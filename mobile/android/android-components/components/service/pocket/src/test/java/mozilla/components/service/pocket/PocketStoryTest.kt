@@ -103,6 +103,7 @@ class PocketStoryTest {
     @Test
     fun `GIVEN a ContentRecommendation WHEN the title and url are accessed from parent THEN it returns the previously set value`() {
         val recommendation = ContentRecommendation(
+            corpusItemId = "0",
             scheduledCorpusItemId = "1",
             url = "testUrl",
             title = "",
@@ -113,6 +114,7 @@ class PocketStoryTest {
             imageUrl = "",
             tileId = 1,
             receivedRank = 33,
+            recommendedAt = 0,
             impressions = 0,
         )
 

@@ -531,6 +531,7 @@ class AppStoreTest {
     @Test
     fun `WHEN content recommendations are shown THEN update the impressions of recommendations`() = runTest {
         val recommendation1 = ContentRecommendation(
+            corpusItemId = "0",
             scheduledCorpusItemId = "1",
             url = "testUrl",
             title = "",
@@ -541,6 +542,7 @@ class AppStoreTest {
             imageUrl = "",
             tileId = 1,
             receivedRank = 33,
+            recommendedAt = 1L,
             impressions = 0,
         )
         val recommendation2 = recommendation1.copy(scheduledCorpusItemId = "2")

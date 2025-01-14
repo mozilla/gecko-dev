@@ -107,6 +107,7 @@ internal fun SpocEntity.toPocketSponsoredStory(
  */
 internal fun ContentRecommendationEntity.toContentRecommendation() =
     ContentRecommendation(
+        corpusItemId = corpusItemId,
         scheduledCorpusItemId = scheduledCorpusItemId,
         url = url,
         title = title,
@@ -117,14 +118,18 @@ internal fun ContentRecommendationEntity.toContentRecommendation() =
         imageUrl = imageUrl,
         tileId = tileId,
         receivedRank = receivedRank,
+        recommendedAt = recommendedAt,
         impressions = impressions,
     )
 
 /**
  * Maps the content recommendation response item to the object type that is persisted locally.
+ *
+ * @param recommendedAt A timestamp indicating when the content recommendations was recommended.
  */
-internal fun ContentRecommendationResponseItem.toContentRecommendationEntity() =
+internal fun ContentRecommendationResponseItem.toContentRecommendationEntity(recommendedAt: Long) =
     ContentRecommendationEntity(
+        corpusItemId = corpusItemId,
         scheduledCorpusItemId = scheduledCorpusItemId,
         url = url,
         title = title,
@@ -135,6 +140,7 @@ internal fun ContentRecommendationResponseItem.toContentRecommendationEntity() =
         imageUrl = imageUrl,
         tileId = tileId,
         receivedRank = receivedRank,
+        recommendedAt = recommendedAt,
         impressions = DEFAULT_TIMES_SHOWN,
     )
 
@@ -144,6 +150,6 @@ internal fun ContentRecommendationResponseItem.toContentRecommendationEntity() =
  */
 internal fun ContentRecommendation.toImpressions() =
     ContentRecommendationImpression(
-        scheduledCorpusItemId = scheduledCorpusItemId,
+        corpusItemId = corpusItemId,
         impressions = impressions,
     )

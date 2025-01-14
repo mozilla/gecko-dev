@@ -44,19 +44,19 @@ internal interface ContentRecommendationsDao {
     @Transaction
     suspend fun cleanAndUpdateContentRecommendations(recommendations: List<ContentRecommendationEntity>) {
         val oldRecommendations = getContentRecommendations()
-        val oldScheduledCorpusItemIds = oldRecommendations.map { it.scheduledCorpusItemId }
-        val newScheduledCorpusItemIds = recommendations.map { it.scheduledCorpusItemId }
+        val oldCorpusItemIds = oldRecommendations.map { it.corpusItemId }
+        val newCorpusItemIds = recommendations.map { it.corpusItemId }
 
         val existingRecommendationsToDelete =
-            oldRecommendations.filterNot { newScheduledCorpusItemIds.contains(it.scheduledCorpusItemId) }
+            oldRecommendations.filterNot { newCorpusItemIds.contains(it.corpusItemId) }
         delete(existingRecommendationsToDelete)
 
         val existingRecommendationsToUpdate =
-            recommendations.filter { oldScheduledCorpusItemIds.contains(it.scheduledCorpusItemId) }
+            recommendations.filter { oldCorpusItemIds.contains(it.corpusItemId) }
         update(existingRecommendationsToUpdate)
 
         val newRecommendationsToInsert =
-            recommendations.filterNot { oldScheduledCorpusItemIds.contains(it.scheduledCorpusItemId) }
+            recommendations.filterNot { oldCorpusItemIds.contains(it.corpusItemId) }
         insert(newRecommendationsToInsert)
     }
 }

@@ -612,6 +612,7 @@ internal fun getFakePocketStories(limit: Int = 1): List<PocketStory> {
             when {
                 (index % 3 == 0) -> add(
                     ContentRecommendation(
+                        corpusItemId = "corpusItemId$index",
                         scheduledCorpusItemId = "scheduledCorpusItemId$index",
                         url = "https://story$index.com",
                         title = "Recommendation - This is a ${"very ".repeat(index)} long title",
@@ -622,6 +623,7 @@ internal fun getFakePocketStories(limit: Int = 1): List<PocketStory> {
                         imageUrl = "",
                         tileId = index.toLong(),
                         receivedRank = index,
+                        recommendedAt = index.toLong(),
                         impressions = index.toLong(),
                     ),
                 )

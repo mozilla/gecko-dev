@@ -75,6 +75,7 @@ class PocketUpdatesMiddlewareTest {
             timesShown = 3,
         )
         val recommendation = ContentRecommendation(
+            corpusItemId = "0",
             scheduledCorpusItemId = "1",
             url = "testUrl",
             title = "",
@@ -85,6 +86,7 @@ class PocketUpdatesMiddlewareTest {
             imageUrl = "",
             tileId = 1,
             receivedRank = 33,
+            recommendedAt = 1L,
             impressions = 0,
         )
         val stories = listOf(story, recommendation)

@@ -69,7 +69,7 @@ class ContentRecommendationsUseCasesTest {
 
         assertTrue(result)
         verify(endPoint).getContentRecommendations()
-        verify(repository).updateContentRecommendations((response as PocketResponse.Success).data.data)
+        verify(repository).updateContentRecommendations((response as PocketResponse.Success).data)
     }
 
     @Test

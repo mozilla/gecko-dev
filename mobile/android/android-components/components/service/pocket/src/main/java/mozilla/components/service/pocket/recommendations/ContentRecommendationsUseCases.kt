@@ -94,7 +94,7 @@ internal class ContentRecommendationsUseCases(
             }
 
             getContentRecommendationsRepository(context)
-                .updateContentRecommendations(response.data.data)
+                .updateContentRecommendations(response.data)
 
             return true
         }

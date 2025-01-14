@@ -2,6 +2,7 @@
   "recommendedAt": 0,
   "data": [
     {
+      "corpusItemId": "1",
       "scheduledCorpusItemId": "1111",
       "url": "https://getpocket.com/1",
       "title": "Pocket1",
@@ -14,6 +15,7 @@
       "receivedRank": 1
     },
     {
+      "corpusItemId": "2",
       "scheduledCorpusItemId": "2222",
       "url": "https://getpocket.com/2",
       "title": "Pocket2",
@@ -26,6 +28,7 @@
       "receivedRank": 2
     },
     {
+      "corpusItemId": "3",
       "scheduledCorpusItemId": "3333",
       "url": "https://getpocket.com/3",
       "title": "Pocket3",
@@ -38,6 +41,7 @@
       "receivedRank": 3
     },
     {
+      "corpusItemId": "4",
       "scheduledCorpusItemId": "4444",
       "url": "https://getpocket.com/4",
       "title": "Pocket4",

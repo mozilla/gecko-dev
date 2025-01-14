@@ -10,22 +10,25 @@ import androidx.room.PrimaryKey
 /**
  * Internal entity represent a content recommendation.
  *
+ * @property corpusItemId A content identifier that corresponds uniquely to the URL.
  * @property scheduledCorpusItemId The ID of the scheduled corpus item for this recommendation.
  * @property url The url of the recommendation.
  * @property title The title of the recommendation.
  * @property excerpt An excerpt of the recommendation.
- * @property topic The topic of interest under which similar recommnedations are grouped.
+ * @property topic The topic of interest under which similar recommendations are grouped.
  * @property publisher The publisher of the recommendation.
  * @property isTimeSensitive Whether or not the recommendation is time sensitive.
  * @property imageUrl The image URL of the recommendation.
  * @property tileId The tile ID of the recommendation.
  * @property receivedRank The original position/sort order of this item. This is provided to
  * include in telemetry payloads.
+ * @property recommendedAt A timestamp indicating when the content recommendation was recommended.
  * @property impressions The number of impressions (times shown) of the recommendation.
  */
 @Entity(tableName = ContentRecommendationsDatabase.CONTENT_RECOMMENDATIONS_TABLE)
 internal data class ContentRecommendationEntity(
     @PrimaryKey
+    val corpusItemId: String,
     val scheduledCorpusItemId: String,
     val url: String,
     val title: String,
@@ -36,6 +39,7 @@ internal data class ContentRecommendationEntity(
     val imageUrl: String,
     val tileId: Long,
     val receivedRank: Int,
+    val recommendedAt: Long,
     val impressions: Long,
 )
 
@@ -43,10 +47,10 @@ internal data class ContentRecommendationEntity(
  * A [ContentRecommendationEntity] containing only the [impressions] metadata for allowing quick
  * updates.
  *
- * @property scheduledCorpusItemId The ID of the scheduled corpus item for this recommendation.
+ * @property corpusItemId A content identifier that corresponds uniquely to the URL.
  * @property impressions The number of impressions (times shown) of the recommendation.
  */
 internal data class ContentRecommendationImpression(
-    val scheduledCorpusItemId: String,
+    val corpusItemId: String,
     val impressions: Long,
 )
