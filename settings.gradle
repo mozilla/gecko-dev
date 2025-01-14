@@ -1,3 +1,6 @@
+import org.gradle.tooling.events.FinishEvent
+import org.gradle.tooling.events.OperationCompletionListener
+
 pluginManagement {
     if (!gradle.root.hasProperty("mozconfig")){
         apply from: file('mobile/android/gradle/mozconfig.gradle')
@@ -81,3 +84,48 @@ if (hasProperty("androidFormatLintTest")) {
 
 project(':messaging_example').projectDir = new File('mobile/android/examples/messaging_example/app')
 project(':port_messaging_example').projectDir = new File('mobile/android/examples/port_messaging_example/app')
+
+// Print BUILDSTATUS lines for build profile markers.
+//
+// Listeners configured here are "more" global: they get events for (isolated)
+// projects that use `includeBuild`.
+//
+// In addition, build events listeners implemented as build services are
+// "configuration cache friendly"; task actions (`doFirst`, `doLast`, etc) are
+// not.
+
+def now() {
+    Instant now = Instant.now();
+    return now.getEpochSecond() + now.getNano() / 1_000_000_000L;
+}
+
+abstract class BuildStatusListener implements BuildService<BuildStatusListener.Params>, OperationCompletionListener {
+    interface Params extends BuildServiceParameters {
+    }
+
+    void onFinish(FinishEvent event) {
+        def operationResult = event.result
+        println("BUILDSTATUS ${operationResult.startTime / 1000.0} START_gradle-task ${event.descriptor.name}")
+        println("BUILDSTATUS ${operationResult.endTime / 1000.0} END_gradle-task ${event.descriptor.name}")
+    }
+}
+
+def shouldPrintBuildStatus = System.getenv("MACH") && !System.getenv("NO_BUILDSTATUS_MESSAGES")
+
+if (shouldPrintBuildStatus) {
+    gradle.services.get(BuildEventsListenerRegistry).onTaskCompletion(
+            gradle.sharedServices.registerIfAbsent("buildStatus", BuildStatusListener.class) {}
+    )
+
+    gradle.addProjectEvaluationListener(new ProjectEvaluationListener() {
+        @Override
+        void beforeEvaluate(Project p) {
+            println("BUILDSTATUS ${now()} START_gradle:evaluate-project ${p.name}")
+        }
+
+        @Override
+        void afterEvaluate(Project p, ProjectState projectState) {
+            println("BUILDSTATUS ${now()} END_gradle:evaluate-project ${p.name}")
+        }
+    })
+}

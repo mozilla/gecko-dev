@@ -32,10 +32,13 @@ def android(verb, *args):
     env = dict(os.environ)
     should_print_status = env.get("MACH") and not env.get("NO_BUILDSTATUS_MESSAGES")
     if should_print_status:
-        print("BUILDSTATUS " + str(time.time()) + " START_Gradle " + verb)
+        print("BUILDSTATUS " + str(time.time()) + " START_GradleAcquireLock " + verb)
     import buildconfig
 
     with gradle_lock(buildconfig.topobjdir):
+        if should_print_status:
+            print("BUILDSTATUS " + str(time.time()) + " END_GradleAcquireLock " + verb)
+
         cmd = [
             sys.executable,
             mozpath.join(buildconfig.topsrcdir, "mach"),
@@ -48,6 +51,10 @@ def android(verb, *args):
             env["GRADLE_INVOKED_WITHIN_MACH_BUILD"] = "1"
         if env.get("LD_LIBRARY_PATH"):
             del env["LD_LIBRARY_PATH"]
+
+        if should_print_status:
+            print("BUILDSTATUS " + str(time.time()) + " START_Gradle " + verb)
+
         subprocess.check_call(cmd, env=env)
 
     if should_print_status:
