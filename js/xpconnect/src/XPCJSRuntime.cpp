@@ -2724,6 +2724,12 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
     case JSUseCounter::LEGACY_LANG_SUBTAG:
       SetUseCounter(obj, eUseCounter_custom_JS_legacy_lang_subtag);
       return;
+    case JSUseCounter::IC_STUB_TOO_LARGE:
+      SetUseCounter(obj, eUseCounter_custom_JS_ic_stub_too_large);
+      return;
+    case JSUseCounter::IC_STUB_OOM:
+      SetUseCounter(obj, eUseCounter_custom_JS_ic_stub_oom);
+      return;
     case JSUseCounter::COUNT:
       break;
   }

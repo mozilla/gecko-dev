@@ -1904,7 +1904,17 @@ void IonIC::attachCacheIRStub(JSContext* cx, const CacheIRWriter& writer,
 
   // Do nothing if the IR generator failed or triggered a GC that invalidated
   // the script.
-  if (writer.failed() || ionScript->invalidated()) {
+  if (writer.tooLarge()) {
+    cx->runtime()->setUseCounter(cx->global(), JSUseCounter::IC_STUB_TOO_LARGE);
+    return;
+  }
+  if (writer.oom()) {
+    cx->runtime()->setUseCounter(cx->global(), JSUseCounter::IC_STUB_OOM);
+    return;
+  }
+  MOZ_ASSERT(!writer.failed());
+
+  if (ionScript->invalidated()) {
     return;
   }
 

@@ -2683,9 +2683,11 @@ ICAttachResult js::jit::AttachBaselineCacheIRStub(
   JS::AutoCheckCannotGC nogc;
 
   if (writer.tooLarge()) {
+    cx->runtime()->setUseCounter(cx->global(), JSUseCounter::IC_STUB_TOO_LARGE);
     return ICAttachResult::TooLarge;
   }
   if (writer.oom()) {
+    cx->runtime()->setUseCounter(cx->global(), JSUseCounter::IC_STUB_OOM);
     return ICAttachResult::OOM;
   }
   MOZ_ASSERT(!writer.failed());
