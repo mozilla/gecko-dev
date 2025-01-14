@@ -1325,9 +1325,15 @@
        * We rely on at least one of `--toolbox-bgcolor` / `--tab-selected-bgcolor`
        * being opaque on the system themes, so even though `--lwt-accent-color` is
        * not set there, it ends up working out because we never see it through.
+       *
+       * We also apply one extra color on top (--close-button-extra-background)
+       * for hover / active feedback.
        */
+      --close-button-extra-background: transparent;
       background-color: var(--lwt-accent-color);
-      background-image: linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor));
+      background-image: linear-gradient(var(--close-button-extra-background)),
+                        linear-gradient(var(--tab-selected-bgcolor)),
+                        linear-gradient(var(--toolbox-bgcolor));
       color-scheme: var(--tab-selected-color-scheme);
       outline-color: var(--tab-selected-outline-color);
       box-shadow: var(--tab-selected-shadow);
@@ -1338,8 +1344,18 @@
       top: -1px;
       inset-inline-start: 2px;
 
-      .browser-toolbox-background:-moz-window-inactive & {
-        background-image: linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor-inactive));
+      &:-moz-window-inactive {
+        background-image: linear-gradient(var(--close-button-extra-background)),
+                          linear-gradient(var(--tab-selected-bgcolor)),
+                          linear-gradient(var(--toolbox-bgcolor-inactive));
+      }
+
+      &:hover {
+        --close-button-extra-background: var(--button-background-color-ghost-hover);
+      }
+
+      &:hover:active {
+        --close-button-extra-background: var(--button-background-color-ghost-active);
       }
 
       .tabbrowser-tab:is([selected], :hover) & {
