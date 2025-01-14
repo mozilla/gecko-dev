@@ -403,12 +403,6 @@ nsresult Http3Session::ProcessInput(nsIUDPSocket* socket) {
   LOG(("Http3Session::ProcessInput writer=%p [this=%p state=%d]",
        mUdpConn.get(), this, mState));
 
-  PRIntervalTime now = PR_IntervalNow();
-  if (!mLastReadTime) {
-    mLastReadTime = now;
-  } else {
-    mLastReadTime = now;
-  }
   if (mUseNSPRForIO) {
     while (true) {
       nsTArray<uint8_t> data;

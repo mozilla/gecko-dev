@@ -349,7 +349,6 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   int64_t mTotalBytesRead = 0;     // total data read
   int64_t mTotalBytesWritten = 0;  // total data read
   PRIntervalTime mLastWriteTime = 0;
-  PRIntervalTime mLastReadTime = 0;
   nsCString mServer;
 
   // Records whether we sent an ECH Extension and whether it was a GREASE Xtn
