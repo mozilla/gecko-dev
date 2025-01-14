@@ -18,12 +18,12 @@ add_task(async function test_create_error() {
       // No callback, lastError not checked. Should be logged.
       {
         message:
-          /Unchecked lastError value: Error: Could not find any MenuItem with id: noCb/,
+          /Unchecked lastError value: Error: Cannot find menu item with id noCb/,
       },
       // Callback exists, lastError not checked. Should be logged.
       {
         message:
-          /Unchecked lastError value: Error: Could not find any MenuItem with id: cbIgnoreError/,
+          /Unchecked lastError value: Error: Cannot find menu item with id cbIgnoreError/,
       },
     ]);
   });
@@ -93,7 +93,7 @@ add_task(async function test_update_error() {
 
     await browser.test.assertRejects(
       browser.menus.update(id, { parentId: "bogus" }),
-      "Could not find any MenuItem with id: bogus",
+      "Cannot find menu item with id bogus",
       "menus.update with invalid parentMenuId should fail"
     );
 
@@ -101,6 +101,32 @@ add_task(async function test_update_error() {
       browser.menus.update(id, { parentId: id }),
       "MenuItem cannot be an ancestor (or self) of its new parent.",
       "menus.update cannot assign itself as the parent of a menu."
+    );
+
+    await browser.test.assertRejects(
+      browser.menus.update("1234", { checked: true }),
+      "Cannot find menu item with id 1234",
+      "menus.update with invalid menuItemId should fail"
+    );
+
+    browser.test.sendMessage("done");
+  }
+
+  const extension = ExtensionTestUtils.loadExtension({
+    manifest: { permissions: ["menus"] },
+    background,
+  });
+  await extension.startup();
+  await extension.awaitMessage("done");
+  await extension.unload();
+});
+
+add_task(async function test_remove_error() {
+  async function background() {
+    await browser.test.assertRejects(
+      browser.menus.remove("1234"),
+      "Cannot find menu item with id 1234",
+      "menus.remove with invalid menuItemId should fail"
     );
 
     browser.test.sendMessage("done");
