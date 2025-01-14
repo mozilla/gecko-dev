@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,25 +36,22 @@ import org.mozilla.fenix.compose.ext.toLocaleString
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
 import org.mozilla.fenix.theme.FirefoxTheme
 
+private const val MAX_SINGLE_DIGIT = 9
 private const val MAX_VISIBLE_TABS = 99
 private const val ONE_DIGIT_SIZE_RATIO = 0.5f
 private const val TWO_DIGITS_SIZE_RATIO = 0.4f
-private const val MIN_SINGLE_DIGIT = 0
-private const val MAX_SINGLE_DIGIT = 9
-private const val TWO_DIGIT_THRESHOLD = 10
 
 /**
  * UI for displaying the number of opened tabs.
-*
-* This composable uses LocalContentColor, provided by CompositionLocalProvider,
-* to set the color of its icons and text.
-*
-* @param tabCount the number to be displayed inside the counter.
-* @param showPrivacyBadge if true, show the privacy badge.
-* @param textColor the color of the text inside of tab counter.
-* @param iconColor the border color of the tab counter.
-*/
-
+ *
+ * This composable uses LocalContentColor, provided by CompositionLocalProvider,
+ * to set the color of its icons and text.
+ *
+ * @param tabCount the number to be displayed inside the counter.
+ * @param showPrivacyBadge if true, show the privacy badge.
+ * @param textColor the color of the text inside of tab counter.
+ * @param iconColor the border color of the tab counter.
+ */
 @Composable
 fun TabCounter(
     tabCount: Int,
@@ -58,24 +59,31 @@ fun TabCounter(
     textColor: Color = FirefoxTheme.colors.textPrimary,
     iconColor: Color = FirefoxTheme.colors.iconPrimary,
 ) {
-    val formattedTabCount = tabCount.toLocaleString()
-    val normalTabCountText: String
-    val tabCountTextRatio: Float
-
-    when (tabCount) {
-        in MIN_SINGLE_DIGIT..MAX_SINGLE_DIGIT -> {
-            normalTabCountText = formattedTabCount
-            tabCountTextRatio = ONE_DIGIT_SIZE_RATIO
+    val formattedTabCount = remember(tabCount) { tabCount.toLocaleString() }
+    val normalTabCountText by remember(tabCount) {
+        derivedStateOf {
+            // Showing more than 99 tabs will be done through a different drawable / background
+            // so we don't need to show any text.
+            when (tabCount > MAX_VISIBLE_TABS) {
+                true -> ""
+                false -> formattedTabCount
+            }
         }
-
-        in TWO_DIGIT_THRESHOLD..MAX_VISIBLE_TABS -> {
-            normalTabCountText = formattedTabCount
-            tabCountTextRatio = TWO_DIGITS_SIZE_RATIO
+    }
+    val tabCountTextRatio by remember(tabCount) {
+        derivedStateOf {
+            when (tabCount > MAX_SINGLE_DIGIT) {
+                true -> TWO_DIGITS_SIZE_RATIO
+                false -> ONE_DIGIT_SIZE_RATIO
+            }
         }
-
-        else -> {
-            normalTabCountText = ""
-            tabCountTextRatio = ONE_DIGIT_SIZE_RATIO
+    }
+    val counterBoxBackground by remember(tabCount) {
+        derivedStateOf {
+            when (tabCount > MAX_VISIBLE_TABS) {
+                true -> R.drawable.mozac_ui_infinite_tabcounter_box
+                false -> R.drawable.mozac_ui_tabcounter_box
+            }
         }
     }
 
@@ -84,14 +92,12 @@ fun TabCounter(
         formattedTabCount,
     )
 
-    val counterBoxBackground = when (tabCount > MAX_VISIBLE_TABS) {
-        true -> R.drawable.mozac_ui_infinite_tabcounter_box
-        false -> R.drawable.mozac_ui_tabcounter_box
-    }
     val counterBoxWidthDp =
         dimensionResource(id = mozilla.components.ui.tabcounter.R.dimen.mozac_tab_counter_box_width_height)
     val counterBoxWidthPx = LocalDensity.current.run { counterBoxWidthDp.roundToPx() }
-    val counterTabsTextSize = (tabCountTextRatio * counterBoxWidthPx).toInt()
+    val counterTabsTextSize by remember(tabCountTextRatio) {
+        mutableIntStateOf((tabCountTextRatio * counterBoxWidthPx).toInt())
+    }
 
     Box(
         modifier = Modifier
@@ -108,14 +114,16 @@ fun TabCounter(
             tint = iconColor,
         )
 
-        Text(
-            text = normalTabCountText,
-            modifier = Modifier.clearAndSetSemantics {},
-            color = textColor,
-            fontSize = with(LocalDensity.current) { counterTabsTextSize.toDp().toSp() },
-            fontWeight = FontWeight.W700,
-            textAlign = TextAlign.Center,
-        )
+        if (tabCount <= MAX_VISIBLE_TABS) {
+            Text(
+                text = normalTabCountText,
+                modifier = Modifier.clearAndSetSemantics {},
+                color = textColor,
+                fontSize = with(LocalDensity.current) { counterTabsTextSize.toDp().toSp() },
+                fontWeight = FontWeight.W700,
+                textAlign = TextAlign.Center,
+            )
+        }
 
         if (showPrivacyBadge) {
             Image(
