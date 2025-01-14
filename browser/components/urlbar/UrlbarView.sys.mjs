@@ -2743,7 +2743,7 @@ export class UrlbarView {
     if (item) {
       if (!item.id) {
         // Assign an id to dynamic actions as required by aria-activedescendant.
-        item.id = item.id = getUniqueId("aria-activedescendant-target-");
+        item.id = getUniqueId("aria-activedescendant-target-");
       }
       this.input.inputField.setAttribute("aria-activedescendant", item.id);
     } else {
