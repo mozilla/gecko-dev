@@ -17,7 +17,7 @@
   align-items: center;
   margin: 0;
   padding: 6px 10px;
-  background-color: var(--in-content-button-background);
+  background-color: var(--button-background-color);
 }
 
 .toggle-group-input {
@@ -26,8 +26,8 @@
 }
 
 .toggle-group-label-iconic::before {
-  width: var(--size-item-small);
-  height: var(--size-item-small);
+  width: var(--icon-size-default);
+  height: var(--icon-size-default);
   margin-inline-end: 5px;
   -moz-context-properties: fill;
   fill: currentColor;
@@ -48,32 +48,32 @@
 }
 
 .toggle-group-input:enabled + .toggle-group-label:hover {
-  background-color: var(--in-content-button-background-hover);
-  color: var(--in-content-button-text-color-hover);
+  background-color: var(--button-background-color-hover);
+  color: var(--button-text-color-hover);
 }
 
 .toggle-group-input:enabled + .toggle-group-label:hover:active {
-  background-color: var(--in-content-button-background-active);
-  color: var(--in-content-button-text-color-active);
+  background-color: var(--button-background-color-active);
+  color: var(--button-text-color-active);
 }
 
 .toggle-group-input:focus-visible + .toggle-group-label {
-  outline: var(--in-content-focus-outline);
-  outline-offset: var(--in-content-focus-outline-offset);
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-outline-offset);
   z-index: 1;
 }
 
 .toggle-group-input:checked + .toggle-group-label {
-  background-color: var(--in-content-primary-button-background);
-  color: var(--in-content-primary-button-text-color);
+  background-color: var(--button-background-color-primary);
+  color: var(--button-text-color-primary);
 }
 
 .toggle-group-input:enabled:checked + .toggle-group-label:hover {
-  background-color: var(--in-content-primary-button-background-hover);
-  color: var(--in-content-primary-button-text-color-hover);
+  background-color: var(--button-background-color-primary-hover);
+  color: var(--button-text-color-primary-hover);
 }
 
 .toggle-group-input:enabled:checked + .toggle-group-label:hover:active {
-  background-color: var(--in-content-primary-button-background-active);
-  color: var(--in-content-primary-button-text-color-active);
+  background-color: var(--button-background-color-primary-active);
+  color: var(--button-text-color-primary-active);
 }
