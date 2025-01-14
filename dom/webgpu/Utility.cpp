@@ -534,6 +534,9 @@ ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat) {
     case dom::GPUVertexFormat::Unorm10_10_10_2:
       result = ffi::WGPUVertexFormat_Unorm10_10_10_2;
       break;
+    case dom::GPUVertexFormat::Unorm8x4_bgra:
+      result = ffi::WGPUVertexFormat_Unorm8x4Bgra;
+      break;
   }
 
   // Clang will check for us that the switch above is exhaustive,
