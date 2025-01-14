@@ -3143,6 +3143,130 @@ static bool TypedArray_toReversed(JSContext* cx, unsigned argc, Value* vp) {
                                                                          args);
 }
 
+template <typename Ops, typename NativeType>
+static void TypedArraySetElement(TypedArrayObject* tarray, size_t index,
+                                 const Value& value) {
+  MOZ_RELEASE_ASSERT(index < tarray->length().valueOr(0));
+
+  NativeType val = ConvertToNativeType<NativeType>(value);
+
+  SharedMem<NativeType*> data =
+      Ops::extract(tarray).template cast<NativeType*>();
+  Ops::store(data + index, val);
+}
+
+/**
+ * %TypedArray%.prototype.with ( index, value )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_with(JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
+
+  // Steps 1-3.
+  Rooted<TypedArrayObject*> tarray(
+      cx, &args.thisv().toObject().as<TypedArrayObject>());
+
+  auto arrayLength = tarray->length();
+  if (!arrayLength) {
+    ReportOutOfBounds(cx, tarray);
+    return false;
+  }
+  size_t len = *arrayLength;
+
+  // Step 4.
+  double relativeIndex;
+  if (!ToInteger(cx, args.get(0), &relativeIndex)) {
+    return false;
+  }
+
+  // Steps 5-6.
+  double actualIndex;
+  if (relativeIndex >= 0) {
+    actualIndex = relativeIndex;
+  } else {
+    actualIndex = double(len) + relativeIndex;
+  }
+
+  // Steps 7-8.
+  Rooted<Value> value(cx);
+  if (!tarray->convertValue(cx, args.get(1), &value)) {
+    return false;
+  }
+
+  // Reacquire the length because side-effects may have detached or resized
+  // the array buffer.
+  size_t currentLength = tarray->length().valueOr(0);
+
+  // Step 9. (Inlined IsValidIntegerIndex)
+  if (actualIndex < 0 || actualIndex >= double(currentLength)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
+    return false;
+  }
+  MOZ_ASSERT(currentLength > 0);
+
+  // Step 10.
+  Rooted<TypedArrayObject*> result(cx,
+                                   TypedArrayCreateSameType(cx, tarray, len));
+  if (!result) {
+    return false;
+  }
+
+  // Steps 11-12.
+  if (len > 0) {
+    // Start with copying all elements from |tarray|.
+    TypedArrayCopyElements(tarray, result, std::min(len, currentLength));
+
+    // Set the replacement value.
+    if (actualIndex < double(len)) {
+      switch (result->type()) {
+#define TYPED_ARRAY_SET_ELEMENT(_, NativeType, Name)                           \
+  case Scalar::Name:                                                           \
+    TypedArraySetElement<UnsharedOps, NativeType>(result, size_t(actualIndex), \
+                                                  value);                      \
+    break;
+        JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_SET_ELEMENT)
+#undef TYPED_ARRAY_SET_ELEMENT
+        default:
+          MOZ_CRASH("Unsupported TypedArray type");
+      }
+    }
+
+    // Fill the remaining elements with `undefined`.
+    if (currentLength < len) {
+      if (!result->convertValue(cx, UndefinedHandleValue, &value)) {
+        return false;
+      }
+
+      switch (result->type()) {
+#define TYPED_ARRAY_FILL(_, NativeType, Name)                            \
+  case Scalar::Name:                                                     \
+    TypedArrayFill<NativeType>(result, value.get(), currentLength, len); \
+    break;
+        JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_FILL)
+#undef TYPED_ARRAY_FILL
+        default:
+          MOZ_CRASH("Unsupported TypedArray type");
+      }
+    }
+  }
+
+  // Step 13.
+  args.rval().setObject(*result);
+  return true;
+}
+
+/**
+ * %TypedArray%.prototype.with ( index, value )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_with(JSContext* cx, unsigned argc, Value* vp) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype", "with");
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsTypedArrayObject, TypedArray_with>(cx, args);
+}
+
 // Byte vector with large enough inline storage to allow constructing small
 // typed arrays without extra heap allocations.
 using ByteVector =
@@ -4262,7 +4386,7 @@ static bool uint8array_toHex(JSContext* cx, unsigned argc, Value* vp) {
     JS_SELF_HOSTED_FN("at", "TypedArrayAt", 1, 0),
     JS_FN("toReversed", TypedArray_toReversed, 0, 0),
     JS_SELF_HOSTED_FN("toSorted", "TypedArrayToSorted", 1, 0),
-    JS_SELF_HOSTED_FN("with", "TypedArrayWith", 2, 0),
+    JS_FN("with", TypedArray_with, 2, 0),
     JS_FS_END,
 };
 
