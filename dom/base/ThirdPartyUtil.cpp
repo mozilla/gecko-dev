@@ -16,6 +16,7 @@
 #include "mozilla/ContentBlockingNotifier.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MacroForEach.h"
+#include "mozilla/NullPrincipal.h"
 #include "mozilla/Components.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/StorageAccess.h"
@@ -437,6 +438,12 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI, nsACString& aBaseDomain) {
     }
   } else {
     rv = mTLDService->GetBaseDomain(aHostURI, 0, aBaseDomain);
+  }
+
+  // If the URI is a null principal, we get the UUID portion instead of the base
+  // domain because a null principal uri doesn't have a base domain.
+  if (aHostURI->SchemeIs(NS_NULLPRINCIPAL_SCHEME)) {
+    rv = aHostURI->GetFilePath(aBaseDomain);
   }
 
   // Get the base domain. this will fail if the host contains a leading dot,
