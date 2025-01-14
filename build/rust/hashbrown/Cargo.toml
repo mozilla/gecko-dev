@@ -7,9 +7,7 @@ edition = "2021"
 path = "lib.rs"
 
 [features]
-# N.B., not using `hashbrown/default` because it includes `hashbrown/allocator-api2`, which we want
-# to avoid.
-default = ["ahash", "inline-more"]
+default = ["hashbrown/default"]
 ahash = ["hashbrown/ahash"]
 inline-more = ["hashbrown/inline-more"]
 raw = ["hashbrown/raw"]

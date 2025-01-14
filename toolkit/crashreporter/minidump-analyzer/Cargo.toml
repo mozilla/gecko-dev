@@ -17,7 +17,6 @@ lazy_static = "1.4.0"
 log = "0.4"
 minidump = "0.22"
 minidump-unwind = { version = "0.22", features = ["debuginfo-unwind"] }
-mozilla-central-workspace-hack = { version = "0.1", features = ["minidump-analyzer"], optional = true }
 serde_json = "1"
 
 [dependencies.windows-sys]
