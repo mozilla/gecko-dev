@@ -571,12 +571,16 @@ fn parse_modern_alpha<'i, 't>(
 }
 
 impl ColorComponent<NumberOrPercentageComponent> {
-    /// Return true if the value contained inside is/can resolve to a percentage.
+    /// Return true if the value contained inside is/can resolve to a number.
     /// Also returns false if the node is invalid somehow.
     fn could_be_number(&self) -> bool {
         match self {
             Self::None | Self::AlphaOmitted => true,
             Self::Value(value) => matches!(value, NumberOrPercentageComponent::Number { .. }),
+            Self::ChannelKeyword(_) => {
+                // Channel keywords always resolve to numbers.
+                true
+            },
             Self::Calc(node) => {
                 if let Ok(unit) = node.unit() {
                     unit.is_empty()
@@ -593,6 +597,10 @@ impl ColorComponent<NumberOrPercentageComponent> {
         match self {
             Self::None | Self::AlphaOmitted => true,
             Self::Value(value) => matches!(value, NumberOrPercentageComponent::Percentage { .. }),
+            Self::ChannelKeyword(_) => {
+                // Channel keywords always resolve to numbers.
+                false
+            },
             Self::Calc(node) => {
                 if let Ok(unit) = node.unit() {
                     unit == CalcUnits::PERCENTAGE
