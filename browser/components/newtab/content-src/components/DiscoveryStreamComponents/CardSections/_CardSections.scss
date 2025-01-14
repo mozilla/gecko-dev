@@ -389,6 +389,8 @@
   }
 
   .section-context-wrapper {
+    @include wallpaper-contrast-fix;
+
     display: flex;
     justify-content: space-between;
     align-items: center;
