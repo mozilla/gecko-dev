@@ -6368,13 +6368,14 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
   switch (flags_.getArgFormat()) {
     case CallFlags::Standard:
     case CallFlags::Spread:
-      calleeValId =
-          writer.loadArgumentFixedSlot(ArgumentKind::Callee, argc_, flags_);
+      calleeValId = writer.loadArgumentFixedSlot(ArgumentKind::Callee,
+                                                 stackArgc(), flags_);
       break;
     case CallFlags::FunCall:
     case CallFlags::FunApplyArray:
     case CallFlags::FunApplyNullUndefined:
-      calleeValId = writer.loadArgumentFixedSlot(ArgumentKind::Callee, argc_);
+      calleeValId =
+          writer.loadArgumentFixedSlot(ArgumentKind::Callee, stackArgc());
       break;
     case CallFlags::Unknown:
     case CallFlags::FunApplyArgsObj:
@@ -6427,7 +6428,7 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
           calleeObjId, BoundFunctionObject::offsetOfBoundThisSlot());
     } else {
       funCallOrApply = &callee()->as<JSFunction>();
-      thisValId = writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
+      thisValId = writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc());
     }
     MOZ_ASSERT(funCallOrApply->native() == fun_call ||
                funCallOrApply->native() == fun_apply);
@@ -6481,8 +6482,8 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
     MOZ_ASSERT(flags_.getArgFormat() == CallFlags::Standard);
     MOZ_ASSERT(&newTarget_.toObject() == callee());
 
-    ValOperandId newTargetValId =
-        writer.loadArgumentFixedSlot(ArgumentKind::NewTarget, argc_, flags_);
+    ValOperandId newTargetValId = writer.loadArgumentFixedSlot(
+        ArgumentKind::NewTarget, stackArgc(), flags_);
     ObjOperandId newTargetObjId = writer.guardToObject(newTargetValId);
 
     if (isCalleeBoundFunction()) {
@@ -6507,7 +6508,7 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
       argValId = loadBoundArgument(calleeObjId, argIndex);
     } else {
       auto argKind = ArgumentKindForArgIndex(argIndex - numBoundArgs);
-      argValId = writer.loadArgumentFixedSlot(argKind, argc_);
+      argValId = writer.loadArgumentFixedSlot(argKind, stackArgc());
     }
 
     writer.guardIsNullOrUndefined(argValId);
@@ -6554,7 +6555,8 @@ ValOperandId InlinableNativeIRGenerator::loadThis(ObjOperandId calleeId) {
         return writer.loadFixedSlot(
             calleeId, BoundFunctionObject::offsetOfBoundThisSlot());
       }
-      return writer.loadArgumentFixedSlot(ArgumentKind::This, argc_, flags_);
+      return writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc(),
+                                          flags_);
     case CallFlags::FunCall:
     case CallFlags::FunApplyNullUndefined:
       // Load |this| from bound this.
@@ -6598,16 +6600,16 @@ ValOperandId InlinableNativeIRGenerator::loadThis(ObjOperandId calleeId) {
       //
       // When no arguments are passed, i.e. |argc==0|, we have to replace
       // |ArgumentKind::Arg0| with the undefined value.
-      if (argc_ == 0) {
+      if (stackArgc() == 0) {
         return writer.loadUndefined();
       }
-      return writer.loadArgumentFixedSlot(ArgumentKind::This, argc_ - 1);
+      return writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc() - 1);
     case CallFlags::FunApplyArray:
     case CallFlags::FunApplyArgsObj:
-      MOZ_ASSERT(argc_ > 0);
+      MOZ_ASSERT(stackArgc() > 0);
       MOZ_ASSERT(!isCalleeBoundFunction());
       MOZ_ASSERT(!isTargetBoundFunction());
-      return writer.loadArgumentFixedSlot(ArgumentKind::This, argc_ - 1);
+      return writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc() - 1);
     case CallFlags::Unknown:
       break;
   }
@@ -6649,14 +6651,14 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
 
   switch (flags_.getArgFormat()) {
     case CallFlags::Standard:
-      return writer.loadArgumentFixedSlot(kind, argc_, flags_);
+      return writer.loadArgumentFixedSlot(kind, stackArgc(), flags_);
     case CallFlags::FunCall:
       if (thisFromBoundArgs) {
-        return writer.loadArgumentFixedSlot(kind, argc_);
+        return writer.loadArgumentFixedSlot(kind, stackArgc());
       }
-      MOZ_ASSERT(argc_ > 1);
-      // See |loadThis| for why we subtract |argc_ - 1| here.
-      return writer.loadArgumentFixedSlot(kind, argc_ - 1);
+      MOZ_ASSERT(stackArgc() > 1);
+      // See |loadThis| for why we subtract |argc - 1| here.
+      return writer.loadArgumentFixedSlot(kind, stackArgc() - 1);
     case CallFlags::Spread:
     case CallFlags::FunApplyArray:
     case CallFlags::FunApplyArgsObj:
@@ -11000,7 +11002,7 @@ AttachDecision CallIRGenerator::tryAttachFunCall(HandleFunction callee) {
 
     // Check for specific native-function optimizations.
     InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                         args, argc_, targetFlags);
+                                         args, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11868,7 +11870,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachFunctionBind() {
   if (hasBoundArguments()) {
     return AttachDecision::NoAction;
   }
-  MOZ_ASSERT(argc_ == args_.length(), "argc_ matches number of arguments");
+  MOZ_ASSERT(stackArgc() == args_.length(), "argc matches number of arguments");
 
   // Only optimize if the number of arguments is small. This ensures we don't
   // compile a lot of different stubs (because we bake in argc) and that we
@@ -11975,7 +11977,7 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
 
     // Check for specific native-function optimizations.
     InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                         args, argc_, targetFlags);
+                                         args, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11988,7 +11990,7 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
 
     // Check for specific native-function optimizations.
     InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                         args, argc_, targetFlags);
+                                         args, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -12190,7 +12192,7 @@ AttachDecision CallIRGenerator::tryAttachInlinableNative(HandleFunction callee,
              flags.getArgFormat() == CallFlags::Spread);
 
   InlinableNativeIRGenerator nativeGen(*this, callee, newTarget_, thisval_,
-                                       args_, argc_, flags);
+                                       args_, flags);
   return nativeGen.tryAttachStub();
 }
 
@@ -13251,7 +13253,7 @@ AttachDecision CallIRGenerator::tryAttachBoundNative(
 
   // Check for specific native-function optimizations.
   InlinableNativeIRGenerator nativeGen(*this, target, newTarget_, thisValue,
-                                       args, argc_, flags);
+                                       args, flags);
   return nativeGen.tryAttachStub();
 }
 
@@ -13356,7 +13358,7 @@ AttachDecision CallIRGenerator::tryAttachBoundFunCall(
 
   // Check for specific native-function optimizations.
   InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                       args, argc_, targetFlags);
+                                       args, targetFlags);
   return nativeGen.tryAttachStub();
 }
 
@@ -13444,7 +13446,7 @@ AttachDecision CallIRGenerator::tryAttachBoundFunApply(
 
   // Check for specific native-function optimizations.
   InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                       args, argc_, targetFlags);
+                                       args, targetFlags);
   return nativeGen.tryAttachStub();
 }
 
@@ -13528,7 +13530,7 @@ AttachDecision CallIRGenerator::tryAttachFunCallBound(
 
   // Check for specific native-function optimizations.
   InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                       args, argc_, targetFlags);
+                                       args, targetFlags);
   return nativeGen.tryAttachStub();
 }
 
@@ -13614,7 +13616,7 @@ AttachDecision CallIRGenerator::tryAttachFunApplyBound(
 
   // Check for specific native-function optimizations.
   InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                       args, argc_, targetFlags);
+                                       args, targetFlags);
   return nativeGen.tryAttachStub();
 }
 

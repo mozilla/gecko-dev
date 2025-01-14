@@ -595,7 +595,6 @@ class MOZ_RAII InlinableNativeIRGenerator {
   HandleValue newTarget_;
   HandleValue thisval_;
   HandleValueArray args_;
-  uint32_t argc_;
   CallFlags flags_;
 
   HandleScript script() const { return generator_.script_; }
@@ -603,6 +602,7 @@ class MOZ_RAII InlinableNativeIRGenerator {
   bool isFirstStub() const { return generator_.isFirstStub_; }
   bool ignoresResult() const { return generator_.op_ == JSOp::CallIgnoresRv; }
   JSOp op() const { return generator_.op_; }
+  uint32_t stackArgc() const { return generator_.argc_; }
 
   bool isCalleeBoundFunction() const;
   BoundFunctionObject* boundCallee() const;
@@ -628,7 +628,7 @@ class MOZ_RAII InlinableNativeIRGenerator {
     // Intrinsics can't be called through bound functions
     MOZ_ASSERT(target_->isIntrinsic());
     MOZ_ASSERT(flags_.getArgFormat() == CallFlags::Standard);
-    return writer.loadArgumentFixedSlot(kind, argc_, flags_);
+    return writer.loadArgumentFixedSlot(kind, stackArgc(), flags_);
   }
 
   bool hasBoundArguments() const;
@@ -814,8 +814,7 @@ class MOZ_RAII InlinableNativeIRGenerator {
  public:
   InlinableNativeIRGenerator(CallIRGenerator& generator, HandleFunction target,
                              HandleValue newTarget, HandleValue thisValue,
-                             HandleValueArray args, uint32_t argc,
-                             CallFlags flags)
+                             HandleValueArray args, CallFlags flags)
       : generator_(generator),
         writer(generator.writer),
         cx_(generator.cx_),
@@ -823,7 +822,6 @@ class MOZ_RAII InlinableNativeIRGenerator {
         newTarget_(newTarget),
         thisval_(thisValue),
         args_(args),
-        argc_(argc),
         flags_(flags) {}
 
   AttachDecision tryAttachStub();
