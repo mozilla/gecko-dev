@@ -6972,7 +6972,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachUnsafeGetReservedSlot(
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard that the first argument is an object.
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(arg0Id);
 
   // BytecodeEmitter::assertSelfHostedUnsafeGetReservedSlot ensures that the
@@ -7020,14 +7020,14 @@ AttachDecision InlinableNativeIRGenerator::tryAttachUnsafeSetReservedSlot() {
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard that the first argument is an object.
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(arg0Id);
 
   // BytecodeEmitter::assertSelfHostedUnsafeSetReservedSlot ensures that the
   // slot argument is constant. (At least for direct calls)
 
   // Get the value to set.
-  ValOperandId valId = writer.loadArgumentFixedSlot(ArgumentKind::Arg2, argc_);
+  ValOperandId valId = loadArgumentIntrinsic(ArgumentKind::Arg2);
 
   // Set the fixed slot and return undefined.
   writer.storeFixedSlotUndefinedResult(objId, offset, valId);
@@ -7053,7 +7053,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsSuspendedGenerator() {
   //  1: ThisValue
   //  0: Arg <-- Top of stack.
   // We only care about the argument.
-  ValOperandId valId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId valId = loadArgumentIntrinsic(ArgumentKind::Arg0);
 
   // Check whether the argument is a suspended generator.
   // We don't need guards, because IsSuspendedGenerator returns
@@ -7081,7 +7081,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachToObject() {
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard that the argument is an object.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(argId);
 
   // Return the object.
@@ -7110,7 +7110,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachToInteger() {
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard that the argument is an int32.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   Int32OperandId int32Id = writer.guardToInt32(argId);
 
   // Return the int32.
@@ -7136,7 +7136,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachToLength() {
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // ToLength(int32) is equivalent to max(int32, 0).
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   Int32OperandId int32ArgId = writer.guardToInt32(argId);
   Int32OperandId zeroId = writer.loadInt32Constant(0);
   bool isMax = true;
@@ -7158,7 +7158,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsObject() {
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Type check the argument and return result.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   writer.isObjectResult(argId);
   writer.returnFromIC();
 
@@ -7177,7 +7177,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsPackedArray() {
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Check if the argument is packed and return result.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objArgId = writer.guardToObject(argId);
   writer.isPackedArrayResult(objArgId);
   writer.returnFromIC();
@@ -7196,7 +7196,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsCallable() {
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Check if the argument is callable and return result.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   writer.isCallableResult(argId);
   writer.returnFromIC();
 
@@ -7219,7 +7219,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsConstructor() {
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard that the argument is an object.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(argId);
 
   // Check if the argument is a constructor and return result.
@@ -7245,7 +7245,7 @@ InlinableNativeIRGenerator::tryAttachIsCrossRealmArrayConstructor() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(argId);
   writer.guardIsNotProxy(objId);
   writer.isCrossRealmArrayConstructorResult(objId);
@@ -7273,7 +7273,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGuardToClass(
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard that the argument is an object.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(argId);
 
   // Guard that the object has the correct class.
@@ -7305,7 +7305,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGuardToClass(
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard that the argument is an object.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(argId);
 
   // Guard that the object has the correct class.
@@ -7342,7 +7342,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGuardToEitherClass(
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard that the argument is an object.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(argId);
 
   // Guard that the object has the correct class.
@@ -7384,7 +7384,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachHasClass(
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Perform the Class check.
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(argId);
 
   if (isPossiblyWrapped) {
@@ -7487,12 +7487,12 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIntrinsicRegExpBuiltinExec(
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId regExpId = writer.guardToObject(arg0Id);
   writer.guardShape(regExpId, re->shape());
   EmitGuardLastIndexIsNonNegativeInt32(writer, regExpId);
 
-  ValOperandId arg1Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId arg1Id = loadArgumentIntrinsic(ArgumentKind::Arg1);
   StringOperandId inputId = writer.guardToString(arg1Id);
 
   if (native == InlinableNative::IntrinsicRegExpBuiltinExecForTest) {
@@ -7559,7 +7559,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIntrinsicRegExpExec(
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId regExpId = writer.guardToObject(arg0Id);
   writer.guardShape(regExpId, re->shape());
   EmitGuardLastIndexIsNonNegativeInt32(writer, regExpId);
@@ -7572,7 +7572,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIntrinsicRegExpExec(
   writer.guardDynamicSlotValue(regExpProtoId, offset,
                                ObjectValue(*execFunction));
 
-  ValOperandId arg1Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId arg1Id = loadArgumentIntrinsic(ArgumentKind::Arg1);
   StringOperandId inputId = writer.guardToString(arg1Id);
 
   if (native == InlinableNative::IntrinsicRegExpExecForTest) {
@@ -7610,13 +7610,13 @@ AttachDecision InlinableNativeIRGenerator::tryAttachRegExpMatcherSearcher(
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
   // Guard argument types.
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId reId = writer.guardToObject(arg0Id);
 
-  ValOperandId arg1Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId arg1Id = loadArgumentIntrinsic(ArgumentKind::Arg1);
   StringOperandId inputId = writer.guardToString(arg1Id);
 
-  ValOperandId arg2Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg2, argc_);
+  ValOperandId arg2Id = loadArgumentIntrinsic(ArgumentKind::Arg2);
   Int32OperandId lastIndexId = writer.guardToInt32(arg2Id);
 
   switch (native) {
@@ -7668,10 +7668,10 @@ AttachDecision InlinableNativeIRGenerator::tryAttachRegExpHasCaptureGroups() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(arg0Id);
 
-  ValOperandId arg1Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId arg1Id = loadArgumentIntrinsic(ArgumentKind::Arg1);
   StringOperandId inputId = writer.guardToString(arg1Id);
 
   writer.regExpHasCaptureGroupsResult(objId, inputId);
@@ -7692,7 +7692,7 @@ InlinableNativeIRGenerator::tryAttachRegExpPrototypeOptimizable() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId protoId = writer.guardToObject(arg0Id);
 
   writer.regExpPrototypeOptimizableResult(protoId);
@@ -7714,10 +7714,10 @@ InlinableNativeIRGenerator::tryAttachRegExpInstanceOptimizable() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId regexpId = writer.guardToObject(arg0Id);
 
-  ValOperandId arg1Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId arg1Id = loadArgumentIntrinsic(ArgumentKind::Arg1);
   ObjOperandId protoId = writer.guardToObject(arg1Id);
 
   writer.regExpInstanceOptimizableResult(regexpId, protoId);
@@ -7737,7 +7737,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGetFirstDollarIndex() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   StringOperandId strId = writer.guardToString(arg0Id);
 
   writer.getFirstDollarIndexResult(strId);
@@ -7759,13 +7759,13 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSubstringKernel() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   StringOperandId strId = writer.guardToString(arg0Id);
 
-  ValOperandId arg1Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId arg1Id = loadArgumentIntrinsic(ArgumentKind::Arg1);
   Int32OperandId beginId = writer.guardToInt32(arg1Id);
 
-  ValOperandId arg2Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg2, argc_);
+  ValOperandId arg2Id = loadArgumentIntrinsic(ArgumentKind::Arg2);
   Int32OperandId lengthId = writer.guardToInt32(arg2Id);
 
   writer.callSubstringKernelResult(strId, beginId, lengthId);
@@ -7794,7 +7794,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectHasPrototype() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objId = writer.guardToObject(arg0Id);
 
   writer.guardProto(objId, proto);
@@ -7905,13 +7905,13 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringReplaceString() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   StringOperandId strId = writer.guardToString(arg0Id);
 
-  ValOperandId arg1Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId arg1Id = loadArgumentIntrinsic(ArgumentKind::Arg1);
   StringOperandId patternId = writer.guardToString(arg1Id);
 
-  ValOperandId arg2Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg2, argc_);
+  ValOperandId arg2Id = loadArgumentIntrinsic(ArgumentKind::Arg2);
   StringOperandId replacementId = writer.guardToString(arg2Id);
 
   writer.stringReplaceStringResult(strId, patternId, replacementId);
@@ -7932,10 +7932,10 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringSplitString() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId arg0Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
   StringOperandId strId = writer.guardToString(arg0Id);
 
-  ValOperandId arg1Id = writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId arg1Id = loadArgumentIntrinsic(ArgumentKind::Arg1);
   StringOperandId separatorId = writer.guardToString(arg1Id);
 
   writer.stringSplitStringResult(strId, separatorId);
@@ -10834,7 +10834,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsTypedArray(
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objArgId = writer.guardToObject(argId);
   writer.isTypedArrayResult(objArgId, isPossiblyWrapped);
   writer.returnFromIC();
@@ -10854,7 +10854,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsTypedArrayConstructor() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objArgId = writer.guardToObject(argId);
   writer.isTypedArrayConstructorResult(objArgId);
   writer.returnFromIC();
@@ -10876,7 +10876,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayByteOffset() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objArgId = writer.guardToObject(argId);
 
   EmitGuardTypedArray(writer, tarr, objArgId);
@@ -10914,7 +10914,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayElementSize() {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objArgId = writer.guardToObject(argId);
   writer.typedArrayElementSizeResult(objArgId);
   writer.returnFromIC();
@@ -10956,7 +10956,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayLength(
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objArgId = writer.guardToObject(argId);
 
   if (isPossiblyWrapped) {
@@ -11009,7 +11009,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayBufferByteLength(
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId argId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objArgId = writer.guardToObject(argId);
 
   if (isPossiblyWrapped) {
@@ -11060,11 +11060,10 @@ InlinableNativeIRGenerator::tryAttachGetNextMapSetEntryForIterator(bool isMap) {
 
   // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
 
-  ValOperandId iterId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  ValOperandId iterId = loadArgumentIntrinsic(ArgumentKind::Arg0);
   ObjOperandId objIterId = writer.guardToObject(iterId);
 
-  ValOperandId resultArrId =
-      writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+  ValOperandId resultArrId = loadArgumentIntrinsic(ArgumentKind::Arg1);
   ObjOperandId objResultArrId = writer.guardToObject(resultArrId);
 
   writer.getNextMapSetEntryForIteratorResult(objIterId, objResultArrId, isMap);
