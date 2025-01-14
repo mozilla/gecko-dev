@@ -31,6 +31,7 @@ You also need to set some options to get full diagnostics:
    "rust-analyzer.server.extraEnv": {
      "CARGO_TARGET_DIR": "/path/to/objdir"
    },
+   "rust-analyzer.vfs.extraIncludes": ["/path/to/objdir", "/optional/path/to/windows_rs_dir"],
    "rust-analyzer.check.overrideCommand": [ "/path/to/mach", "--log-no-times", "cargo", "check", "--all-crates", "--message-format-json" ],
    "rust-analyzer.cargo.buildScripts.overrideCommand": [ "/path/to/mach", "--log-no-times", "cargo", "check", "--all-crates", "--message-format-json" ],
 
