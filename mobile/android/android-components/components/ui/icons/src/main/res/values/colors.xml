@@ -3,12 +3,12 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <color name="mozac_ui_icons_fill">#FFFFFF</color>
 
     <!-- Star icon fill colors for mozac_ic_star_one_half_fill_20 -->
-    <color name="mozac_ic_star_filled">#000000</color>
-    <color name="mozac_ic_star_unfilled">#FFFFFF</color>
+    <color name="mozac_ic_star_filled" tools:ignore="UnusedResources">#000000</color>
+    <color name="mozac_ic_star_unfilled" tools:ignore="UnusedResources">#FFFFFF</color>
 
     <!-- Private Mode mask icon circle fill colors for mozac_ic_private_mode_circle_fill_stroke_20 -->
     <color name="mozac_ui_private_mode_circle_fill">#000000</color>

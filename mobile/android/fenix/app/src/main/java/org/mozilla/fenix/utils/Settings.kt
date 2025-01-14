@@ -1751,22 +1751,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if the review quality check feature is enabled by the user.
-     */
-    var isReviewQualityCheckEnabled by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_is_review_quality_check_enabled),
-        default = false,
-    )
-
-    /**
-     * Indicates if the review quality check product recommendations option is enabled by the user.
-     */
-    var isReviewQualityCheckProductRecommendationsEnabled by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_is_review_quality_check_product_recommendations_enabled),
-        default = false,
-    )
-
-    /**
      * Indicates if the navigation bar CFR should be displayed to the user.
      */
     var shouldShowNavigationBarCFR by booleanPreference(
@@ -1796,14 +1780,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var shouldShowMenuCFR by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_menu_cfr),
         default = true,
-    )
-
-    /**
-     * Time in milliseconds since the user first opted in the review quality check feature.
-     */
-    var reviewQualityCheckOptInTimeInMillis by longPreference(
-        appContext.getPreferenceKey(R.string.pref_key_should_show_review_quality_opt_in_time),
-        default = 0L,
     )
 
     /**

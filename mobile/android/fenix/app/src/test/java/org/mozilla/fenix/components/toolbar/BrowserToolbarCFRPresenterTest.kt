@@ -66,7 +66,6 @@ class BrowserToolbarCFRPresenterTest {
         val privateTab = createTab(url = "", private = true)
         val browserStore = createBrowserStore(tab = privateTab, selectedTabId = privateTab.id)
         val settings: Settings = mockk(relaxed = true) {
-            every { reviewQualityCheckOptInTimeInMillis } returns System.currentTimeMillis()
             every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns true
             every { shouldUseCookieBannerPrivateMode } returns true
@@ -143,7 +142,6 @@ class BrowserToolbarCFRPresenterTest {
             every { isTabStripEnabled() } returns false
         }
         val settings: Settings = mockk(relaxed = true) {
-            every { reviewQualityCheckOptInTimeInMillis } returns System.currentTimeMillis()
             every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns false
             every { shouldUseCookieBannerPrivateMode } returns false
@@ -174,7 +172,6 @@ class BrowserToolbarCFRPresenterTest {
             every { isTabStripEnabled() } returns true
         }
         val settings: Settings = mockk(relaxed = true) {
-            every { reviewQualityCheckOptInTimeInMillis } returns System.currentTimeMillis()
             every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns false
             every { shouldUseCookieBannerPrivateMode } returns false
@@ -205,7 +202,6 @@ class BrowserToolbarCFRPresenterTest {
             every { isTabStripEnabled() } returns false
         }
         val settings: Settings = mockk(relaxed = true) {
-            every { reviewQualityCheckOptInTimeInMillis } returns System.currentTimeMillis()
             every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns false
             every { shouldUseCookieBannerPrivateMode } returns false

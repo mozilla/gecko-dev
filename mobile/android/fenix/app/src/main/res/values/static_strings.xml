@@ -26,8 +26,6 @@
     <string name="app_services_abbreviation" translatable="false">AS</string>
     <!-- Name for the Pocket product -->
     <string name="pocket_product_name" translatable="false">Pocket</string>
-    <!-- Name for the Fakespot product -->
-    <string name="shopping_product_name" translatable="false">Fakespot</string>
 
     <!-- App preference label for keeping the debug menu (secret settings, secret debug info, nimbus experiments, etc.) permanently revealed -->
     <string name="preferences_persistent_debug_menu" translatable="false">Keep Debug Menu revealed</string>
@@ -146,10 +144,6 @@
     <string name="profiler_io_error">Something went wrong contacting the Profiler server.</string>
 
     <string name="profiler_uploaded_url_to_clipboard">URL copied to clipboard successfully</string>
-
-    <string name="review_quality_check_retailer_name_amazon">Amazon</string>
-    <string name="review_quality_check_retailer_name_bestbuy">Best Buy</string>
-    <string name="review_quality_check_retailer_name_walmart">Walmart</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The description of the reset CFR section in CFR Tools -->

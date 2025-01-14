@@ -39,12 +39,10 @@ object CustomAttributeProvider : JexlAttributeProvider {
     fun getCustomTargetingAttributes(context: Context): JSONObject {
         val settings = context.settings()
         val isFirstRun = settings.isFirstNimbusRun
-        val isReviewCheckerEnabled = settings.isReviewQualityCheckEnabled
         return JSONObject(
             mapOf(
                 // By convention, we should use snake case.
                 "is_first_run" to isFirstRun,
-                "is_review_checker_enabled" to isReviewCheckerEnabled,
                 "install_referrer_response_utm_source" to settings.utmSource,
                 "install_referrer_response_utm_medium" to settings.utmMedium,
                 "install_referrer_response_utm_campaign" to settings.utmCampaign,

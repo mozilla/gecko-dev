@@ -52,7 +52,6 @@ import org.mozilla.fenix.settings.search.SearchEngineFragmentDirections
 import org.mozilla.fenix.settings.studies.StudiesFragmentDirections
 import org.mozilla.fenix.settings.wallpaper.WallpaperSettingsFragmentDirections
 import org.mozilla.fenix.share.AddNewDeviceFragmentDirections
-import org.mozilla.fenix.shopping.ReviewQualityCheckFragmentDirections
 import org.mozilla.fenix.tabstray.TabsTrayFragmentDirections
 import org.mozilla.fenix.trackingprotection.TrackingProtectionPanelDialogFragmentDirections
 import org.mozilla.fenix.translations.TranslationsDialogFragmentDirections
@@ -321,8 +320,6 @@ private fun getHomeNavDirections(
     BrowserDirection.FromRecentlyClosed -> RecentlyClosedFragmentDirections.actionGlobalBrowser()
 
     BrowserDirection.FromStudiesFragment -> StudiesFragmentDirections.actionGlobalBrowser()
-
-    BrowserDirection.FromReviewQualityCheck -> ReviewQualityCheckFragmentDirections.actionGlobalBrowser()
 
     BrowserDirection.FromAddonsManagementFragment -> AddonsManagementFragmentDirections.actionGlobalBrowser()
 
