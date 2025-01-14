@@ -491,6 +491,34 @@ void MediaFormatReader::DecoderFactory::DoInitDecoder(Data& aData) {
               ownerData.mProcessName = ownerData.mDecoder->GetProcessName();
               ownerData.mCodecName = ownerData.mDecoder->GetCodecName();
             }
+            nsCString needsConversion;
+            switch (ownerData.mDecoder->NeedsConversion()) {
+              case MediaDataDecoder::ConversionRequired::kNeedNone:
+                needsConversion = "false";
+                break;
+              case MediaDataDecoder::ConversionRequired::kNeedAVCC:
+                needsConversion = "AVCC";
+                break;
+              case MediaDataDecoder::ConversionRequired::kNeedAnnexB:
+                needsConversion = "AnnexB";
+                break;
+              default:
+                needsConversion = "Unknown";
+            }
+            nsCString dummy;
+            MOZ_LOG_FMT(sFormatDecoderLog, mozilla::LogLevel::Debug,
+                        "Decoder init finished for "
+                        "{} codec: \"{}\", "
+                        "description: \"{}\", "
+                        "process: \"{}\", "
+                        "hw: \"{}\", "
+                        "needs conversion: \"{}\"",
+                        (aTrack == TrackInfo::kVideoTrack) ? "video" : "audio",
+                        ownerData.mDecoder->GetCodecName(),
+                        ownerData.mDecoder->GetDescriptionName(),
+                        ownerData.mDecoder->GetProcessName(),
+                        ownerData.mDecoder->IsHardwareAccelerated(dummy),
+                        needsConversion);
           },
           [this, &aData, &ownerData](const MediaResult& aError) {
             AUTO_PROFILER_LABEL("DecoderFactory::DoInitDecoder:Rejected",
