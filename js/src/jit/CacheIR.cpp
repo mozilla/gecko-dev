@@ -4169,8 +4169,7 @@ AttachDecision HasPropIRGenerator::tryAttachTypedArray(HandleObject obj,
     return AttachDecision::NoAction;
   }
 
-  int64_t index;
-  if (!ValueIsInt64Index(idVal_, &index)) {
+  if (!idVal_.isNumber()) {
     return AttachDecision::NoAction;
   }
 
