@@ -6374,8 +6374,8 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
     case CallFlags::FunCall:
     case CallFlags::FunApplyArray:
     case CallFlags::FunApplyNullUndefined:
-      calleeValId =
-          writer.loadArgumentFixedSlot(ArgumentKind::Callee, stackArgc());
+      calleeValId = writer.loadArgumentFixedSlot(
+          ArgumentKind::Callee, stackArgc(), CallFlags(CallFlags::Standard));
       break;
     case CallFlags::Unknown:
     case CallFlags::FunApplyArgsObj:
@@ -6428,7 +6428,8 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
           calleeObjId, BoundFunctionObject::offsetOfBoundThisSlot());
     } else {
       funCallOrApply = &callee()->as<JSFunction>();
-      thisValId = writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc());
+      thisValId = writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc(),
+                                               CallFlags(CallFlags::Standard));
     }
     MOZ_ASSERT(funCallOrApply->native() == fun_call ||
                funCallOrApply->native() == fun_apply);
@@ -6508,7 +6509,8 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
       argValId = loadBoundArgument(calleeObjId, argIndex);
     } else {
       auto argKind = ArgumentKindForArgIndex(argIndex - numBoundArgs);
-      argValId = writer.loadArgumentFixedSlot(argKind, stackArgc());
+      argValId = writer.loadArgumentFixedSlot(argKind, stackArgc(),
+                                              CallFlags(CallFlags::Standard));
     }
 
     writer.guardIsNullOrUndefined(argValId);
@@ -6603,13 +6605,15 @@ ValOperandId InlinableNativeIRGenerator::loadThis(ObjOperandId calleeId) {
       if (stackArgc() == 0) {
         return writer.loadUndefined();
       }
-      return writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc() - 1);
+      return writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc() - 1,
+                                          CallFlags(CallFlags::Standard));
     case CallFlags::FunApplyArray:
     case CallFlags::FunApplyArgsObj:
       MOZ_ASSERT(stackArgc() > 0);
       MOZ_ASSERT(!isCalleeBoundFunction());
       MOZ_ASSERT(!isTargetBoundFunction());
-      return writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc() - 1);
+      return writer.loadArgumentFixedSlot(ArgumentKind::This, stackArgc() - 1,
+                                          CallFlags(CallFlags::Standard));
     case CallFlags::Unknown:
       break;
   }
@@ -6654,11 +6658,13 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
       return writer.loadArgumentFixedSlot(kind, stackArgc(), flags_);
     case CallFlags::FunCall:
       if (thisFromBoundArgs) {
-        return writer.loadArgumentFixedSlot(kind, stackArgc());
+        return writer.loadArgumentFixedSlot(kind, stackArgc(),
+                                            CallFlags(CallFlags::Standard));
       }
       MOZ_ASSERT(stackArgc() > 1);
       // See |loadThis| for why we subtract |argc - 1| here.
-      return writer.loadArgumentFixedSlot(kind, stackArgc() - 1);
+      return writer.loadArgumentFixedSlot(kind, stackArgc() - 1,
+                                          CallFlags(CallFlags::Standard));
     case CallFlags::Spread:
     case CallFlags::FunApplyArray:
     case CallFlags::FunApplyArgsObj:
@@ -6705,15 +6711,18 @@ ObjOperandId CallIRGenerator::emitFunCallOrApplyGuard(Int32OperandId argcId) {
   JSFunction* callee = &callee_.toObject().as<JSFunction>();
   MOZ_ASSERT(callee->native() == fun_call || callee->native() == fun_apply);
 
+  // |GetIndexOfArgument| doesn't yet support FunCall/FunApply.
+  CallFlags flags(CallFlags::Standard);
+
   // Guard that callee is the |fun_call| or |fun_apply| native function.
   ValOperandId calleeValId =
-      writer.loadArgumentDynamicSlot(ArgumentKind::Callee, argcId);
+      writer.loadArgumentDynamicSlot(ArgumentKind::Callee, argcId, flags);
   ObjOperandId calleeObjId = writer.guardToObject(calleeValId);
   writer.guardSpecificFunction(calleeObjId, callee);
 
   // Guard that |this| is an object.
   ValOperandId thisValId =
-      writer.loadArgumentDynamicSlot(ArgumentKind::This, argcId);
+      writer.loadArgumentDynamicSlot(ArgumentKind::This, argcId, flags);
   return writer.guardToObject(thisValId);
 }
 
@@ -6733,8 +6742,11 @@ Maybe<ObjOperandId> CallIRGenerator::emitFunApplyArgsGuard(
     CallFlags::ArgFormat format) {
   MOZ_ASSERT(argc_ == 2);
 
+  // |GetIndexOfArgument| doesn't yet support FunCall/FunApply.
+  CallFlags flags(CallFlags::Standard);
+
   ValOperandId argValId =
-      writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+      writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_, flags);
 
   if (format == CallFlags::FunApplyArgsObj) {
     ObjOperandId argObjId = writer.guardToObject(argValId);

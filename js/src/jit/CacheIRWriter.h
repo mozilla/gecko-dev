@@ -494,9 +494,8 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
     guardFunctionScript_(fun, expected, nargsAndFlags);
   }
 
-  ValOperandId loadArgumentFixedSlot(
-      ArgumentKind kind, uint32_t argc,
-      CallFlags flags = CallFlags(CallFlags::Standard)) {
+  ValOperandId loadArgumentFixedSlot(ArgumentKind kind, uint32_t argc,
+                                     CallFlags flags) {
     bool addArgc;
     int32_t slotIndex = GetIndexOfArgument(kind, flags, &addArgc);
     if (addArgc) {
@@ -507,9 +506,8 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
     return loadArgumentFixedSlot_(slotIndex);
   }
 
-  ValOperandId loadArgumentDynamicSlot(
-      ArgumentKind kind, Int32OperandId argcId,
-      CallFlags flags = CallFlags(CallFlags::Standard)) {
+  ValOperandId loadArgumentDynamicSlot(ArgumentKind kind, Int32OperandId argcId,
+                                       CallFlags flags) {
     bool addArgc;
     int32_t slotIndex = GetIndexOfArgument(kind, flags, &addArgc);
     if (addArgc) {
