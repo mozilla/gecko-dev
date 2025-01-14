@@ -478,14 +478,11 @@ add_task(async function notRelevant() {
     matches: [result],
   });
 
-  info("Triggering the 'Not relevant' command");
-  QuickSuggest.getFeature("YelpSuggestions").handleCommand(
-    {
-      controller: { removeResult() {} },
-    },
+  triggerCommand({
     result,
-    "not_relevant"
-  );
+    command: "not_relevant",
+    feature: QuickSuggest.getFeature("YelpSuggestions"),
+  });
   await QuickSuggest.blockedSuggestions._test_readyPromise;
 
   Assert.ok(

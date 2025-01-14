@@ -1,26 +1,31 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/**
- * This file tests that Glean handles empty request IDs properly.
- */
+// This tests the following aspects of the `quick-suggest` ping:
+//
+// * `requestId` should be non-null in the ping when the ping is related to a
+//   suggestion served from Merino
+// * `undefined` and empty-string values should be recorded in the ping as
+//   `null`
 
 "use strict";
 
 const MERINO_RESULT = {
+  // undefined
+  impression_url: undefined,
+  // empty string
+  advertiser: "",
+
   block_id: 1,
   url: "https://example.com/sponsored",
   title: "Sponsored suggestion",
   keywords: ["sponsored"],
   click_url: "https://example.com/click",
-  impression_url: "https://example.com/impression",
-  advertiser: "testadvertiser",
   iab_category: "22 - Shopping",
   provider: "adm",
   is_sponsored: true,
 };
 
-const suggestion_type = "sponsored";
 const index = 1;
 const position = index + 1;
 
@@ -31,15 +36,11 @@ add_setup(async function () {
   await setUpTelemetryTest({
     merinoSuggestions: [MERINO_RESULT],
   });
-  MerinoTestUtils.server.response.body.request_id = "";
 });
 
-// sponsored
-add_task(async function sponsored() {
-  let match_type = "firefox-suggest";
+add_task(async function () {
+  let matchType = "firefox-suggest";
   let source = "merino";
-
-  let improve_suggest_experience_checked = true;
 
   await doTelemetryTest({
     index,
@@ -47,52 +48,52 @@ add_task(async function sponsored() {
     // impression-only
     impressionOnly: {
       ping: {
-        type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-        payload: {
-          source,
-          match_type,
-          position,
-          suggested_index: -1,
-          suggested_index_relative_to_group: true,
-          improve_suggest_experience_checked,
-          is_clicked: false,
-          block_id: MERINO_RESULT.block_id,
-          advertiser: MERINO_RESULT.advertiser,
-          request_id: "",
-        },
+        pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+        matchType,
+        advertiser: MERINO_RESULT.advertiser,
+        blockId: MERINO_RESULT.block_id.toString(),
+        improveSuggestExperience: true,
+        position,
+        suggestedIndex: "-1",
+        suggestedIndexRelativeToGroup: true,
+        requestId: MerinoTestUtils.server.response.body.request_id,
+        source,
+        contextId: "",
+        isClicked: false,
+        reportingUrl: MERINO_RESULT.impression_url,
       },
     },
     // click
     click: {
       pings: [
         {
-          type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-          payload: {
-            source,
-            match_type,
-            position,
-            suggested_index: -1,
-            suggested_index_relative_to_group: true,
-            improve_suggest_experience_checked,
-            is_clicked: true,
-            block_id: MERINO_RESULT.block_id,
-            advertiser: MERINO_RESULT.advertiser,
-            request_id: "",
-          },
+          pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+          matchType,
+          advertiser: MERINO_RESULT.advertiser,
+          blockId: MERINO_RESULT.block_id.toString(),
+          improveSuggestExperience: true,
+          position,
+          suggestedIndex: "-1",
+          suggestedIndexRelativeToGroup: true,
+          requestId: MerinoTestUtils.server.response.body.request_id,
+          source,
+          contextId: "",
+          isClicked: true,
+          reportingUrl: MERINO_RESULT.impression_url,
         },
         {
-          type: CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION,
-          payload: {
-            source,
-            match_type,
-            position,
-            suggested_index: -1,
-            suggested_index_relative_to_group: true,
-            improve_suggest_experience_checked,
-            block_id: MERINO_RESULT.block_id,
-            advertiser: MERINO_RESULT.advertiser,
-            request_id: "",
-          },
+          pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION,
+          matchType,
+          advertiser: MERINO_RESULT.advertiser,
+          blockId: MERINO_RESULT.block_id.toString(),
+          improveSuggestExperience: true,
+          position,
+          suggestedIndex: "-1",
+          suggestedIndexRelativeToGroup: true,
+          requestId: MerinoTestUtils.server.response.body.request_id,
+          source,
+          contextId: "",
+          reportingUrl: MERINO_RESULT.click_url,
         },
       ],
     },
@@ -102,34 +103,33 @@ add_task(async function sponsored() {
         command: "dismiss",
         pings: [
           {
-            type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-            payload: {
-              source,
-              match_type,
-              position,
-              suggested_index: -1,
-              suggested_index_relative_to_group: true,
-              improve_suggest_experience_checked,
-              is_clicked: false,
-              block_id: MERINO_RESULT.block_id,
-              advertiser: MERINO_RESULT.advertiser,
-              request_id: "",
-            },
+            pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+            matchType,
+            advertiser: MERINO_RESULT.advertiser,
+            blockId: MERINO_RESULT.block_id.toString(),
+            improveSuggestExperience: true,
+            position,
+            suggestedIndex: "-1",
+            suggestedIndexRelativeToGroup: true,
+            requestId: MerinoTestUtils.server.response.body.request_id,
+            source,
+            contextId: "",
+            isClicked: false,
+            reportingUrl: MERINO_RESULT.impression_url,
           },
           {
-            type: CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK,
-            payload: {
-              source,
-              match_type,
-              position,
-              suggested_index: -1,
-              suggested_index_relative_to_group: true,
-              improve_suggest_experience_checked,
-              block_id: MERINO_RESULT.block_id,
-              advertiser: MERINO_RESULT.advertiser,
-              iab_category: MERINO_RESULT.iab_category,
-              request_id: "",
-            },
+            pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK,
+            matchType,
+            advertiser: MERINO_RESULT.advertiser,
+            blockId: MERINO_RESULT.block_id.toString(),
+            improveSuggestExperience: true,
+            position,
+            suggestedIndex: "-1",
+            suggestedIndexRelativeToGroup: true,
+            requestId: MerinoTestUtils.server.response.body.request_id,
+            source,
+            contextId: "",
+            iabCategory: MERINO_RESULT.iab_category,
           },
         ],
       },
@@ -138,19 +138,19 @@ add_task(async function sponsored() {
         command: "manage",
         pings: [
           {
-            type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-            payload: {
-              source,
-              match_type,
-              position,
-              suggested_index: -1,
-              suggested_index_relative_to_group: true,
-              improve_suggest_experience_checked,
-              is_clicked: false,
-              block_id: MERINO_RESULT.block_id,
-              advertiser: MERINO_RESULT.advertiser,
-              request_id: "",
-            },
+            pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+            matchType,
+            advertiser: MERINO_RESULT.advertiser,
+            blockId: MERINO_RESULT.block_id.toString(),
+            improveSuggestExperience: true,
+            position,
+            suggestedIndex: "-1",
+            suggestedIndexRelativeToGroup: true,
+            requestId: MerinoTestUtils.server.response.body.request_id,
+            source,
+            contextId: "",
+            isClicked: false,
+            reportingUrl: MERINO_RESULT.impression_url,
           },
         ],
       },

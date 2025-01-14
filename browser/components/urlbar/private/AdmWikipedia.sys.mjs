@@ -7,10 +7,23 @@ import { SuggestProvider } from "resource:///modules/urlbar/private/SuggestFeatu
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  CONTEXTUAL_SERVICES_PING_TYPES:
+    "resource:///modules/PartnerLinkAttribution.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
+});
+
+// `contextId` is a unique identifier used by Contextual Services
+const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
+ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
+  let _contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF, null);
+  if (!_contextId) {
+    _contextId = String(Services.uuid.generateUUID());
+    Services.prefs.setStringPref(CONTEXT_ID_PREF, _contextId);
+  }
+  return _contextId;
 });
 
 const NONSPONSORED_IAB_CATEGORIES = new Set(["5 - Education"]);
@@ -162,5 +175,107 @@ export class AdmWikipedia extends SuggestProvider {
     }
 
     return result;
+  }
+
+  onImpression(state, queryContext, controller, featureResults, details) {
+    // For the purpose of the `quick-suggest` impression ping, "impression"
+    // means that one of these suggestions was visible at the time of an
+    // engagement regardless of the engagement type or engagement result, so
+    // submit the ping if `state` is "engagement".
+    if (state == "engagement") {
+      for (let result of featureResults) {
+        this.#submitQuickSuggestImpressionPing({
+          result,
+          queryContext,
+          details,
+        });
+      }
+    }
+  }
+
+  onEngagement(queryContext, controller, details, _searchString) {
+    let { result } = details;
+
+    // Handle commands. These suggestions support the Dismissal and Manage
+    // commands. Dismissal is the only one we need to handle here. `UrlbarInput`
+    // handles Manage.
+    if (details.selType == "dismiss") {
+      lazy.QuickSuggest.blockedSuggestions.add(result.payload.originalUrl);
+      controller.removeResult(result);
+    }
+
+    // A `quick-suggest` impression ping must always be submitted on engagement
+    // regardless of engagement type. Normally we do that in `onImpression()`,
+    // but that's not called when the session remains ongoing, so in that case,
+    // submit the impression ping now.
+    if (details.isSessionOngoing) {
+      this.#submitQuickSuggestImpressionPing({ queryContext, result, details });
+    }
+
+    // Submit the `quick-suggest` engagement ping.
+    let pingData;
+    switch (details.selType) {
+      case "quicksuggest":
+        pingData = {
+          pingType: lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION,
+          reportingUrl: result.payload.sponsoredClickUrl,
+        };
+        break;
+      case "dismiss":
+        pingData = {
+          pingType: lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK,
+          iabCategory: result.payload.sponsoredIabCategory,
+        };
+        break;
+    }
+    if (pingData) {
+      this.#submitQuickSuggestPing({ queryContext, result, ...pingData });
+    }
+  }
+
+  #submitQuickSuggestPing({ queryContext, result, pingType, ...pingData }) {
+    if (queryContext.isPrivate) {
+      return;
+    }
+
+    let allPingData = {
+      pingType,
+      ...pingData,
+      matchType: result.isBestMatch ? "best-match" : "firefox-suggest",
+      // Always use lowercase to make the reporting consistent.
+      advertiser: result.payload.sponsoredAdvertiser.toLocaleLowerCase(),
+      blockId: result.payload.sponsoredBlockId,
+      improveSuggestExperience: lazy.UrlbarPrefs.get(
+        "quicksuggest.dataCollection.enabled"
+      ),
+      // `position` is 1-based, unlike `rowIndex`, which is zero-based.
+      position: result.rowIndex + 1,
+      suggestedIndex: result.suggestedIndex.toString(),
+      suggestedIndexRelativeToGroup: !!result.isSuggestedIndexRelativeToGroup,
+      requestId: result.payload.requestId,
+      source: result.payload.source,
+      contextId: lazy.contextId,
+    };
+
+    for (let [gleanKey, value] of Object.entries(allPingData)) {
+      let glean = Glean.quickSuggest[gleanKey];
+      if (value !== undefined && value !== "") {
+        glean.set(value);
+      }
+    }
+    GleanPings.quickSuggest.submit();
+  }
+
+  #submitQuickSuggestImpressionPing({ queryContext, result, details }) {
+    this.#submitQuickSuggestPing({
+      result,
+      queryContext,
+      pingType: lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+      isClicked:
+        // `selType` == "quicksuggest" if the result itself was clicked. It will
+        // be a command name if a command was clicked, e.g., "dismiss".
+        result == details.result && details.selType == "quicksuggest",
+      reportingUrl: result.payload.sponsoredImpressionUrl,
+    });
   }
 }

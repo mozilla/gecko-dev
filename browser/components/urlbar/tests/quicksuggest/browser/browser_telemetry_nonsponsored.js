@@ -17,7 +17,6 @@ const REMOTE_SETTINGS_RESULT = {
   icon: "1234",
 };
 
-const suggestion_type = "nonsponsored";
 const index = 1;
 const position = index + 1;
 
@@ -36,19 +35,18 @@ add_setup(async function () {
 });
 
 add_task(async function nonsponsored() {
-  let match_type = "firefox-suggest";
+  let matchType = "firefox-suggest";
   let advertiser = REMOTE_SETTINGS_RESULT.advertiser.toLowerCase();
-  let reporting_url = undefined;
   let source = "rust";
 
-  // Make sure `improve_suggest_experience_checked` is recorded correctly
-  // depending on the value of the related pref.
-  for (let improve_suggest_experience_checked of [false, true]) {
+  // Make sure `improveSuggestExperience` is recorded correctly depending on the
+  // value of the related pref.
+  for (let improveSuggestExperience of [false, true]) {
     await SpecialPowers.pushPrefEnv({
       set: [
         [
           "browser.urlbar.quicksuggest.dataCollection.enabled",
-          improve_suggest_experience_checked,
+          improveSuggestExperience,
         ],
       ],
     });
@@ -58,49 +56,52 @@ add_task(async function nonsponsored() {
       // impression-only
       impressionOnly: {
         ping: {
-          type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-          payload: {
-            source,
-            match_type,
-            position,
-            advertiser,
-            reporting_url,
-            suggested_index: -1,
-            suggested_index_relative_to_group: true,
-            improve_suggest_experience_checked,
-            is_clicked: false,
-          },
+          pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+          matchType,
+          advertiser,
+          blockId: undefined,
+          improveSuggestExperience,
+          position,
+          suggestedIndex: "-1",
+          suggestedIndexRelativeToGroup: true,
+          requestId: undefined,
+          source,
+          contextId: "",
+          isClicked: false,
+          reportingUrl: undefined,
         },
       },
       // click
       click: {
         pings: [
           {
-            type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-            payload: {
-              source,
-              match_type,
-              position,
-              advertiser,
-              reporting_url,
-              suggested_index: -1,
-              suggested_index_relative_to_group: true,
-              improve_suggest_experience_checked,
-              is_clicked: true,
-            },
+            pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+            matchType,
+            advertiser,
+            blockId: undefined,
+            improveSuggestExperience,
+            position,
+            suggestedIndex: "-1",
+            suggestedIndexRelativeToGroup: true,
+            requestId: undefined,
+            source,
+            contextId: "",
+            isClicked: true,
+            reportingUrl: undefined,
           },
           {
-            type: CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION,
-            payload: {
-              source,
-              match_type,
-              position,
-              advertiser,
-              reporting_url,
-              suggested_index: -1,
-              suggested_index_relative_to_group: true,
-              improve_suggest_experience_checked,
-            },
+            pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION,
+            matchType,
+            advertiser,
+            blockId: undefined,
+            improveSuggestExperience,
+            position,
+            suggestedIndex: "-1",
+            suggestedIndexRelativeToGroup: true,
+            requestId: undefined,
+            source,
+            contextId: "",
+            reportingUrl: undefined,
           },
         ],
       },
@@ -110,31 +111,33 @@ add_task(async function nonsponsored() {
           command: "dismiss",
           pings: [
             {
-              type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-              payload: {
-                source,
-                match_type,
-                position,
-                advertiser,
-                reporting_url,
-                suggested_index: -1,
-                suggested_index_relative_to_group: true,
-                improve_suggest_experience_checked,
-                is_clicked: false,
-              },
+              pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+              matchType,
+              advertiser,
+              blockId: undefined,
+              improveSuggestExperience,
+              position,
+              suggestedIndex: "-1",
+              suggestedIndexRelativeToGroup: true,
+              requestId: undefined,
+              source,
+              contextId: "",
+              isClicked: false,
+              reportingUrl: undefined,
             },
             {
-              type: CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK,
-              payload: {
-                source,
-                match_type,
-                position,
-                advertiser,
-                suggested_index: -1,
-                suggested_index_relative_to_group: true,
-                improve_suggest_experience_checked,
-                iab_category: REMOTE_SETTINGS_RESULT.iab_category,
-              },
+              pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK,
+              matchType,
+              advertiser,
+              blockId: undefined,
+              improveSuggestExperience,
+              position,
+              suggestedIndex: "-1",
+              suggestedIndexRelativeToGroup: true,
+              requestId: undefined,
+              source,
+              contextId: "",
+              iabCategory: REMOTE_SETTINGS_RESULT.iab_category,
             },
           ],
         },
@@ -143,18 +146,19 @@ add_task(async function nonsponsored() {
           command: "manage",
           pings: [
             {
-              type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-              payload: {
-                source,
-                match_type,
-                position,
-                advertiser,
-                reporting_url,
-                suggested_index: -1,
-                suggested_index_relative_to_group: true,
-                improve_suggest_experience_checked,
-                is_clicked: false,
-              },
+              pingType: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
+              matchType,
+              advertiser,
+              blockId: undefined,
+              improveSuggestExperience,
+              position,
+              suggestedIndex: "-1",
+              suggestedIndexRelativeToGroup: true,
+              requestId: undefined,
+              source,
+              contextId: "",
+              isClicked: false,
+              reportingUrl: undefined,
             },
           ],
         },

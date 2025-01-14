@@ -393,7 +393,8 @@ class ProvidersManager {
         state,
         queryContext,
         controller,
-        visibleResultsByProviderName
+        visibleResultsByProviderName,
+        state == "engagement" && details.result ? details : null
       );
     }
 
@@ -439,7 +440,8 @@ class ProvidersManager {
     state,
     queryContext,
     controller,
-    visibleResultsByProviderName
+    visibleResultsByProviderName,
+    details
   ) {
     for (const provider of impressionProviders) {
       const providerVisibleResults =
@@ -451,7 +453,8 @@ class ProvidersManager {
           state,
           queryContext,
           controller,
-          providerVisibleResults
+          providerVisibleResults,
+          details
         );
       }
     }

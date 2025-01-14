@@ -530,3 +530,36 @@ async function doRustProvidersTests({ searchString, tests }) {
     await QuickSuggestTestUtils.forceSync();
   }
 }
+
+/**
+ * Simulates performing a command for a feature by calling its `onEngagement()`.
+ *
+ * @param {object} options
+ *   Options object.
+ * @param {SuggestFeature} options.feature
+ *   The feature whose command will be triggered.
+ * @param {string} options.command
+ *   The name of the command to trigger.
+ * @param {UrlbarResult} options.result
+ *   The result that the command will act on.
+ * @param {string} options.searchString
+ *   The search string to pass to `onEngagement()`.
+ */
+function triggerCommand({ feature, command, result, searchString = "" }) {
+  info(`Calling ${feature.name}.onEngagement() to trigger command: ${command}`);
+  feature.onEngagement(
+    // query context
+    {},
+    // controller
+    {
+      removeResult() {},
+      view: {
+        acknowledgeFeedback() {},
+        invalidateResultMenuCommands() {},
+      },
+    },
+    // details
+    { result, selType: command },
+    searchString
+  );
+}

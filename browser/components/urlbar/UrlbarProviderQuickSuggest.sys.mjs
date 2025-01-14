@@ -12,8 +12,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ContentRelevancyManager:
     "resource://gre/modules/ContentRelevancyManager.sys.mjs",
-  CONTEXTUAL_SERVICES_PING_TYPES:
-    "resource:///modules/PartnerLinkAttribution.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -21,17 +19,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/UrlbarProviderSearchSuggestions.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
-});
-
-// `contextId` is a unique identifier used by Contextual Services
-const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
-ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
-  let _contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF, null);
-  if (!_contextId) {
-    _contextId = String(Services.uuid.generateUUID());
-    Services.prefs.setStringPref(CONTEXT_ID_PREF, _contextId);
-  }
-  return _contextId;
 });
 
 // Used for suggestions that don't otherwise have a score.
@@ -249,46 +236,47 @@ class ProviderQuickSuggest extends UrlbarProvider {
     return suggestions;
   }
 
-  onImpression(state, queryContext, controller, providerVisibleResults) {
-    // Legacy Suggest telemetry should be recorded when a Suggest result is
-    // visible at the end of an engagement on any result.
-    this.#sessionResult =
-      state == "engagement" ? providerVisibleResults[0].result : null;
+  onImpression(state, queryContext, controller, resultsAndIndexes, details) {
+    // Build a map from each feature to its results in `resultsAndIndexes`.
+    let resultsByFeature = resultsAndIndexes.reduce((memo, { result }) => {
+      let feature = this.#getFeatureByResult(result);
+      if (feature) {
+        let featureResults = memo.get(feature);
+        if (!featureResults) {
+          featureResults = [];
+          memo.set(feature, featureResults);
+        }
+        featureResults.push(result);
+      }
+      return memo;
+    }, new Map());
+
+    // Notify each feature with its results.
+    for (let [feature, featureResults] of resultsByFeature) {
+      feature.onImpression(
+        state,
+        queryContext,
+        controller,
+        featureResults,
+        details
+      );
+    }
   }
 
   onEngagement(queryContext, controller, details) {
-    if (details.isSessionOngoing) {
-      // When the session remains ongoing -- e.g., a result is dismissed --
-      // tests expect legacy telemetry to be recorded immediately on engagement,
-      // not deferred until the session ends, so record it now.
-      this.#recordEngagement(queryContext, details.result, details);
-    }
-
     let feature = this.#getFeatureByResult(details.result);
-    if (feature?.handleCommand) {
-      feature.handleCommand(
-        controller.view,
-        details.result,
-        details.selType,
-        this._trimmedSearchString
-      );
-    } else if (details.selType == "dismiss") {
-      // Handle dismissals.
-      this.#dismissResult(controller, details.result);
-    }
-
-    feature?.onEngagement?.(queryContext, controller, details);
+    feature?.onEngagement(
+      queryContext,
+      controller,
+      details,
+      this._trimmedSearchString
+    );
   }
 
   onSearchSessionEnd(queryContext, controller, details) {
     for (let backend of lazy.QuickSuggest.enabledBackends) {
       backend.onSearchSessionEnd(queryContext, controller, details);
     }
-
-    // Record legacy Suggest telemetry.
-    this.#recordEngagement(queryContext, this.#sessionResult, details);
-
-    this.#sessionResult = null;
   }
 
   /**
@@ -476,149 +464,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
     );
   }
 
-  #dismissResult(controller, result) {
-    if (!result.payload.isBlockable) {
-      this.logger.info("Dismissals disabled, ignoring dismissal");
-      return;
-    }
-
-    this.logger.info("Dismissing result", result);
-    lazy.QuickSuggest.blockedSuggestions.add(
-      // adM results have `originalUrl`, which contains timestamp templates.
-      result.payload.originalUrl ?? result.payload.url
-    );
-    controller.removeResult(result);
-  }
-
-  /**
-   * Records engagement telemetry. This should be called only at the end of an
-   * engagement when a quick suggest result is present or when a quick suggest
-   * result is dismissed.
-   *
-   * @param {UrlbarQueryContext} queryContext
-   *   The query context.
-   * @param {UrlbarResult} result
-   *   The quick suggest result that was present (and possibly picked) at the
-   *   end of the engagement or that was dismissed. Null if no quick suggest
-   *   result was present.
-   * @param {object} details
-   *   The `details` object that was passed to `onEngagement()` or
-   *   `onSearchSessionEnd()`.
-   */
-  #recordEngagement(queryContext, result, details) {
-    let resultSelType = "";
-    let resultClicked = false;
-    if (result && details.result == result) {
-      resultSelType = details.selType;
-      resultClicked =
-        details.element?.tagName != "menuitem" &&
-        !details.element?.classList.contains("urlbarView-button") &&
-        details.selType != "dismiss";
-    }
-
-    if (result) {
-      // Update impression stats.
-      lazy.QuickSuggest.impressionCaps.updateStats(
-        result.payload.isSponsored ? "sponsored" : "nonsponsored"
-      );
-
-      // Record engagement pings.
-      if (!queryContext.isPrivate) {
-        this.#recordEngagementPings({ result, resultSelType, resultClicked });
-      }
-    }
-  }
-
-  /**
-   * Helper for engagement telemetry that records custom contextual services
-   * pings.
-   *
-   * @param {object} options
-   *   Options object
-   * @param {UrlbarResult} options.result
-   *   The quick suggest result related to the engagement. Must not be null.
-   * @param {string} options.resultSelType
-   *   If an element in the result's row was clicked, this should be its
-   *   `selType`. Otherwise it should be an empty string.
-   * @param {boolean} options.resultClicked
-   *   True if the main part of the result's row was clicked; false if a button
-   *   like help or dismiss was clicked or if no part of the row was clicked.
-   */
-  #recordEngagementPings({ result, resultSelType, resultClicked }) {
-    if (
-      result.payload.telemetryType != "adm_sponsored" &&
-      result.payload.telemetryType != "adm_nonsponsored"
-    ) {
-      return;
-    }
-
-    // Contextual services ping paylod
-    let payload = {
-      match_type: result.isBestMatch ? "best-match" : "firefox-suggest",
-      // Always use lowercase to make the reporting consistent
-      advertiser: result.payload.sponsoredAdvertiser.toLocaleLowerCase(),
-      block_id: result.payload.sponsoredBlockId,
-      improve_suggest_experience_checked: lazy.UrlbarPrefs.get(
-        "quicksuggest.dataCollection.enabled"
-      ),
-      // Quick suggest telemetry indexes are 1-based but `rowIndex` is 0-based
-      position: result.rowIndex + 1,
-      suggested_index: result.suggestedIndex,
-      suggested_index_relative_to_group:
-        !!result.isSuggestedIndexRelativeToGroup,
-      request_id: result.payload.requestId,
-      source: result.payload.source,
-    };
-
-    // Glean ping key -> value
-    let defaultValuesByGleanKey = {
-      matchType: payload.match_type,
-      advertiser: payload.advertiser,
-      blockId: payload.block_id,
-      improveSuggestExperience: payload.improve_suggest_experience_checked,
-      position: payload.position,
-      suggestedIndex: payload.suggested_index.toString(),
-      suggestedIndexRelativeToGroup: payload.suggested_index_relative_to_group,
-      requestId: payload.request_id,
-      source: payload.source,
-      contextId: lazy.contextId,
-    };
-
-    let sendGleanPing = valuesByGleanKey => {
-      valuesByGleanKey = { ...defaultValuesByGleanKey, ...valuesByGleanKey };
-      for (let [gleanKey, value] of Object.entries(valuesByGleanKey)) {
-        let glean = Glean.quickSuggest[gleanKey];
-        if (value !== undefined && value !== "") {
-          glean.set(value);
-        }
-      }
-      GleanPings.quickSuggest.submit();
-    };
-
-    // impression
-    sendGleanPing({
-      pingType: lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
-      isClicked: resultClicked,
-      reportingUrl: result.payload.sponsoredImpressionUrl,
-    });
-
-    // click
-    if (resultClicked) {
-      sendGleanPing({
-        pingType: lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION,
-        reportingUrl: result.payload.sponsoredClickUrl,
-      });
-    }
-
-    // dismiss
-    if (resultSelType == "dismiss") {
-      sendGleanPing({
-        pingType: lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK,
-        iabCategory: result.payload.sponsoredIabCategory,
-      });
-    }
-  }
-
   /**
    * Cancels the current query.
    */
@@ -755,10 +600,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
   async _test_applyRanking(suggestion) {
     await this.#applyRanking(suggestion);
   }
-
-  // The result from this provider that was visible at the end of the current
-  // search session, if the session ended in an engagement.
-  #sessionResult;
 }
 
 export var UrlbarProviderQuickSuggest = new ProviderQuickSuggest();

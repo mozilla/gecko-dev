@@ -444,8 +444,9 @@ export class WeatherSuggestions extends SuggestProvider {
     return commands;
   }
 
-  handleCommand(view, result, selType, searchString) {
-    switch (selType) {
+  onEngagement(queryContext, controller, details, searchString) {
+    let { result } = details;
+    switch (details.selType) {
       case RESULT_MENU_COMMAND.MANAGE:
         // "manage" is handled by UrlbarInput, no need to do anything here.
         break;
@@ -458,20 +459,20 @@ export class WeatherSuggestions extends SuggestProvider {
         result.acknowledgeDismissalL10n = {
           id: "firefox-suggest-dismissal-acknowledgment-all",
         };
-        view.controller.removeResult(result);
+        controller.removeResult(result);
         break;
       case RESULT_MENU_COMMAND.INACCURATE_LOCATION:
         // Currently the only way we record this feedback is in the Glean
         // engagement event. As with all commands, it will be recorded with an
         // `engagement_type` value that is the command's name, in this case
         // `inaccurate_location`.
-        view.acknowledgeFeedback(result);
+        controller.view.acknowledgeFeedback(result);
         break;
       case RESULT_MENU_COMMAND.SHOW_LESS_FREQUENTLY:
-        view.acknowledgeFeedback(result);
+        controller.view.acknowledgeFeedback(result);
         this.incrementShowLessFrequentlyCount();
         if (!this.canShowLessFrequently) {
-          view.invalidateResultMenuCommands();
+          controller.view.invalidateResultMenuCommands();
         }
         lazy.UrlbarPrefs.set(
           "weather.minKeywordLength",

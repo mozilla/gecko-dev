@@ -330,14 +330,11 @@ add_task(async function uppercase() {
 add_task(async function notRelevant() {
   let result = makeExpectedResult({ searchString: LOW_KEYWORD });
 
-  info("Triggering the 'Not relevant' command");
-  QuickSuggest.getFeature("PocketSuggestions").handleCommand(
-    {
-      controller: { removeResult() {} },
-    },
+  triggerCommand({
     result,
-    "not_relevant"
-  );
+    command: "not_relevant",
+    feature: QuickSuggest.getFeature("PocketSuggestions"),
+  });
   await QuickSuggest.blockedSuggestions._test_readyPromise;
 
   Assert.ok(
@@ -395,14 +392,11 @@ add_task(async function notRelevant() {
 add_task(async function notInterested() {
   let result = makeExpectedResult({ searchString: LOW_KEYWORD });
 
-  info("Triggering the 'Not interested' command");
-  QuickSuggest.getFeature("PocketSuggestions").handleCommand(
-    {
-      controller: { removeResult() {} },
-    },
+  triggerCommand({
     result,
-    "not_interested"
-  );
+    command: "not_interested",
+    feature: QuickSuggest.getFeature("PocketSuggestions"),
+  });
 
   Assert.ok(
     !UrlbarPrefs.get("suggest.pocket"),

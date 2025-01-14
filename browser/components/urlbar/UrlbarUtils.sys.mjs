@@ -2585,8 +2585,12 @@ export class UrlbarProvider {
    *    - `index`: The position of the visible result within the original list
    *               visible results.
    *    - `result`: The visible result itself
+   * @param {object|null} _details
+   *    If the impression is due to an engagement, this will be the `details`
+   *    object that's also passed to `onEngagement()`. Otherwise it will be
+   *    null. See `onEngagement()` documentation for info.
    *
-   * onImpression(_state, _queryContext, _controller, _providerVisibleResults)
+   * onImpression(_state, _queryContext, _controller, _providerVisibleResults, _details)
    * {}
    */
 

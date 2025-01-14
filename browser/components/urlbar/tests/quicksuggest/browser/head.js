@@ -246,7 +246,7 @@ async function doImpressionOnlyTest({
   info("Starting impression-only test");
 
   let expectedPings = expected.ping ? [expected.ping] : [];
-  let gleanPingCount = watchGleanPings(expectedPings);
+  let gleanPingCount = watchQuickSuggestPings(expectedPings);
 
   info("Showing suggestion");
   await showSuggestion();
@@ -351,7 +351,7 @@ async function doClickTest({
   info("Starting click test");
 
   let expectedPings = expected.pings ?? [];
-  let gleanPingCount = watchGleanPings(expectedPings);
+  let gleanPingCount = watchQuickSuggestPings(expectedPings);
 
   info("Showing suggestion");
   await showSuggestion();
@@ -420,7 +420,7 @@ async function doCommandTest({
   info("Starting command test: " + JSON.stringify({ commandOrArray }));
 
   let expectedPings = expected.pings ?? [];
-  let gleanPingCount = watchGleanPings(expectedPings);
+  let gleanPingCount = watchQuickSuggestPings(expectedPings);
 
   info("Showing suggestion");
   await showSuggestion();
@@ -559,12 +559,12 @@ async function validateSuggestionRow(index, suggestion, providerName) {
   return row;
 }
 
-function watchGleanPings(pings) {
+function watchQuickSuggestPings(pings) {
   let countObject = { value: 0 };
 
   let checkPing = (ping, next) => {
     countObject.value++;
-    _assertGleanPing(ping);
+    assertQuickSuggestPing(ping);
     if (next) {
       GleanPings.quickSuggest.testBeforeNextSubmit(next);
     }
@@ -585,42 +585,73 @@ function watchGleanPings(pings) {
   return countObject;
 }
 
-function _assertGleanPing(ping) {
-  Assert.equal(Glean.quickSuggest.pingType.testGetValue(), ping.type);
-  const keymap = {
-    // present in all pings
-    source: Glean.quickSuggest.source,
-    match_type: Glean.quickSuggest.matchType,
-    position: Glean.quickSuggest.position,
-    suggested_index: Glean.quickSuggest.suggestedIndex,
-    suggested_index_relative_to_group:
-      Glean.quickSuggest.suggestedIndexRelativeToGroup,
-    improve_suggest_experience_checked:
-      Glean.quickSuggest.improveSuggestExperience,
-    block_id: Glean.quickSuggest.blockId,
-    advertiser: Glean.quickSuggest.advertiser,
-    request_id: Glean.quickSuggest.requestId,
-    context_id: Glean.quickSuggest.contextId,
-    // impression and click pings
-    reporting_url: Glean.quickSuggest.reportingUrl,
-    // impression ping
-    is_clicked: Glean.quickSuggest.isClicked,
-    // block/dismiss ping
-    iab_category: Glean.quickSuggest.iabCategory,
+function assertQuickSuggestPing(expectedPing) {
+  let expectedKeys = [
+    "pingType",
+    "matchType",
+    "advertiser",
+    "blockId",
+    "improveSuggestExperience",
+    "position",
+    "suggestedIndex",
+    "suggestedIndexRelativeToGroup",
+    "requestId",
+    "source",
+    "contextId",
+  ];
+
+  Assert.ok(
+    expectedPing.pingType,
+    "Sanity check: The expected ping should have a 'pingType'"
+  );
+  switch (expectedPing.pingType) {
+    case CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION:
+      expectedKeys.push("isClicked", "reportingUrl");
+      break;
+    case CONTEXTUAL_SERVICES_PING_TYPES.QS_SELECTION:
+      expectedKeys.push("reportingUrl");
+      break;
+    case CONTEXTUAL_SERVICES_PING_TYPES.QS_BLOCK:
+      expectedKeys.push("iabCategory");
+      break;
+  }
+
+  let expectedValueOverrides = {
+    // `contextId` should always be the value in this pref, a UUID, but without
+    // the leading and trailing braces.
+    contextId: Services.prefs
+      .getCharPref("browser.contextual-services.contextId")
+      .substring(1, 37),
   };
-  for (let [key, value] of Object.entries(ping.payload)) {
-    Assert.ok(key in keymap, `A Glean metric exists for field ${key}`);
 
-    // Merino results may contain empty strings, but Glean will represent these
-    // as nulls.
-    if (value === "") {
-      value = null;
-    }
-
-    Assert.equal(
-      keymap[key].testGetValue(),
-      value ?? null,
-      `Glean metric field ${key} should be the expected value`
+  for (let key of expectedKeys) {
+    Assert.ok(
+      expectedPing.hasOwnProperty(key),
+      "Sanity check: The expected ping should have key: " + key
     );
+    Assert.ok(
+      key in Glean.quickSuggest,
+      "The actual ping should have key: " + key
+    );
+
+    let expectedValue = expectedValueOverrides.hasOwnProperty(key)
+      ? expectedValueOverrides[key]
+      : expectedPing[key];
+
+    if (expectedValue === undefined || expectedValue === "") {
+      // The value is specifically not set in this case, which ends up recording
+      // a null value in the actual ping.
+      Assert.strictEqual(
+        Glean.quickSuggest[key].testGetValue(),
+        null,
+        "The actual ping should have a null value for key: " + key
+      );
+    } else {
+      Assert.strictEqual(
+        Glean.quickSuggest[key].testGetValue(),
+        expectedValue,
+        "The actual ping should have the correct value for key: " + key
+      );
+    }
   }
 }

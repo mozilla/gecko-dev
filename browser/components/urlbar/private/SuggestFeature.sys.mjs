@@ -287,6 +287,43 @@ export class SuggestProvider extends SuggestFeature {
     return null;
   }
 
+  /**
+   * The subclass may override this method as necessary. It's analogous to
+   * `UrlbarProvider.onImpression()` and will be called when one or more of the
+   * feature's results were visible at the end of a urlbar session.
+   *
+   * @param {string} state
+   *   The user-interaction state. See `UrlbarProvider.onImpression()`.
+   * @param {UrlbarQueryContext} queryContext
+   *   The urlbar session's query context.
+   * @param {UrlbarController} controller
+   *   The controller.
+   * @param {Array} featureResults
+   *   The feature's results that were visible at the end of the session. This
+   *   will always be non-empty and will only contain results from the feature.
+   * @param {object|null} details
+   *   Details about the engagement. See `UrlbarProvider.onImpression()`.
+   */
+  onImpression(state, queryContext, controller, featureResults, details) {}
+
+  /**
+   * The subclass may override this method as necessary. It's analogous to
+   * `UrlbarProvider.onEngagement()` and will be called when the user engages
+   * with a result from the feature.
+   *
+   * @param {UrlbarQueryContext} queryContext
+   *   The urlbar session's query context.
+   * @param {UrlbarController} controller
+   *   The controller.
+   * @param {object|null} details
+   *   See `UrlbarProvider.onEngagement()`.
+   * @param {string} searchString
+   *   The actual search string used to fetch Suggest results. It might be
+   *   slightly different from `queryContext.searchString`. e.g., it might be
+   *   trimmed differently.
+   */
+  onEngagement(queryContext, controller, details, searchString) {}
+
   // Methods not designed for overriding below
 
   /**

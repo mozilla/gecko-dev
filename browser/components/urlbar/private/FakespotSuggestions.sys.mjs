@@ -253,8 +253,9 @@ export class FakespotSuggestions extends SuggestProvider {
     return commands;
   }
 
-  handleCommand(view, result, selType, searchString) {
-    switch (selType) {
+  onEngagement(queryContext, controller, details, searchString) {
+    let { result } = details;
+    switch (details.selType) {
       case RESULT_MENU_COMMAND.HELP:
       case RESULT_MENU_COMMAND.MANAGE:
         // "help" and "manage" are handled by UrlbarInput, no need to do
@@ -267,20 +268,20 @@ export class FakespotSuggestions extends SuggestProvider {
         result.acknowledgeDismissalL10n = {
           id: "firefox-suggest-dismissal-acknowledgment-one-fakespot",
         };
-        view.controller.removeResult(result);
+        controller.removeResult(result);
         break;
       case RESULT_MENU_COMMAND.NOT_INTERESTED:
         lazy.UrlbarPrefs.set("suggest.fakespot", false);
         result.acknowledgeDismissalL10n = {
           id: "firefox-suggest-dismissal-acknowledgment-all-fakespot",
         };
-        view.controller.removeResult(result);
+        controller.removeResult(result);
         break;
       case RESULT_MENU_COMMAND.SHOW_LESS_FREQUENTLY:
-        view.acknowledgeFeedback(result);
+        controller.view.acknowledgeFeedback(result);
         this.incrementShowLessFrequentlyCount();
         if (!this.canShowLessFrequently) {
-          view.invalidateResultMenuCommands();
+          controller.view.invalidateResultMenuCommands();
         }
         lazy.UrlbarPrefs.set(
           "fakespot.minKeywordLength",
@@ -288,6 +289,12 @@ export class FakespotSuggestions extends SuggestProvider {
         );
         break;
     }
+
+    Glean.urlbar.fakespotEngagement.record({
+      grade: result.payload.fakespotGrade,
+      rating: String(result.payload.rating),
+      provider: result.payload.fakespotProvider,
+    });
   }
 
   incrementShowLessFrequentlyCount() {
@@ -297,15 +304,6 @@ export class FakespotSuggestions extends SuggestProvider {
         this.showLessFrequentlyCount + 1
       );
     }
-  }
-
-  onEngagement(queryContext, controller, details) {
-    let { result } = details;
-    Glean.urlbar.fakespotEngagement.record({
-      grade: result.payload.fakespotGrade,
-      rating: String(result.payload.rating),
-      provider: result.payload.fakespotProvider,
-    });
   }
 
   get #minKeywordLength() {

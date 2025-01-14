@@ -605,15 +605,12 @@ async function doShowLessFrequentlyTest({
       "feature.showLessFrequentlyCount before"
     );
 
-    feature.handleCommand(
-      {
-        acknowledgeFeedback: () => {},
-        invalidateResultMenuCommands: () => {},
-      },
-      expectedResult,
-      "show_less_frequently",
-      input
-    );
+    triggerCommand({
+      feature,
+      result: expectedResult,
+      command: "show_less_frequently",
+      searchString: input,
+    });
 
     Assert.equal(
       UrlbarPrefs.get("weather.minKeywordLength"),
