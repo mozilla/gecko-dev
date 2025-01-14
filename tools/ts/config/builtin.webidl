@@ -4,6 +4,7 @@
 // Builtin types that TypeScript-DOM-lib-generator needs to know about.
 [LegacyNoInterfaceObject,Exposed=*] interface BufferSource {};
 [LegacyNoInterfaceObject,Exposed=*] interface CSSPageDescriptors {};
+[LegacyNoInterfaceObject,Exposed=*] interface CSSPositionTryDescriptors {};
 [LegacyNoInterfaceObject,Exposed=*] interface DOMApplication {};
 [LegacyNoInterfaceObject,Exposed=*] interface EventListenerOrEventListenerObject {};
 [LegacyNoInterfaceObject,Exposed=*] interface EventHandler {};
