@@ -8704,6 +8704,7 @@ var TabContextMenu = {
     group.addTabs(
       this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab]
     );
+    group.ownerGlobal.focus();
   },
 
   ungroupTabs() {

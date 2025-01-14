@@ -1068,10 +1068,18 @@ add_task(
       skipAnimation: true,
     });
     let group = otherWindow.gBrowser.addTabGroup([otherTab]);
-
     let tab = await addTab("about:blank", {
       skipAnimation: true,
     });
+
+    let windowActivated = BrowserTestUtils.waitForEvent(window, "activate");
+    window.focus();
+    await windowActivated;
+    Assert.equal(
+      BrowserWindowTracker.getTopWindow(),
+      window,
+      "current window is active before moving group to another window"
+    );
 
     let tabGrouped = BrowserTestUtils.waitForEvent(otherWindow, "TabGrouped");
     await withTabMenu(tab, async (_, moveTabToGroupItem) => {
@@ -1079,6 +1087,11 @@ add_task(
     });
     await tabGrouped;
     Assert.equal(group.tabs.length, 2, "group has 2 tabs");
+    Assert.equal(
+      BrowserWindowTracker.getTopWindow(),
+      otherWindow,
+      "moving group activates target window"
+    );
 
     await BrowserTestUtils.closeWindow(otherWindow);
   }
