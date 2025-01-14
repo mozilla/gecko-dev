@@ -19,7 +19,6 @@ import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.core.view.updatePadding
 import mozilla.components.support.utils.DrawableUtils
 import mozilla.components.ui.tabcounter.databinding.MozacUiTabcounterLayoutBinding
 import java.text.NumberFormat
@@ -36,6 +35,7 @@ class TabCounter @JvmOverloads constructor(
     private var counterText: TextView
     private var counterRoot: FrameLayout
     private var counterMask: ImageView
+    private var counterColor: ColorStateList? = null
 
     init {
         binding = MozacUiTabcounterLayoutBinding.inflate(LayoutInflater.from(context), this)
@@ -47,7 +47,7 @@ class TabCounter @JvmOverloads constructor(
         setCount(INTERNAL_COUNT)
 
         context.obtainStyledAttributes(attrs, R.styleable.TabCounter, defStyle, 0).apply {
-            val counterColor = getColorStateList(
+            counterColor = getColorStateList(
                 R.styleable.TabCounter_tabCounterTintColor,
             ) ?: ContextCompat.getColorStateList(context, R.color.mozac_ui_tabcounter_default_tint)
 
@@ -109,10 +109,36 @@ class TabCounter @JvmOverloads constructor(
     }
 
     fun setCount(count: Int) {
-        updateContentDescription(count)
-        adjustTextSize(count)
-        counterText.text = formatCountForDisplay(count)
         INTERNAL_COUNT = count
+        updateContentDescription(count)
+        setBackgroundDrawable(count)
+        setCounterText(count)
+    }
+
+    private fun setBackgroundDrawable(count: Int) {
+        val drawableRes = when (count > MAX_VISIBLE_TABS) {
+            true -> R.drawable.mozac_ui_infinite_tabcounter_box
+            false -> R.drawable.mozac_ui_tabcounter_box
+        }
+
+        val currentCounterColor = counterColor
+        val backgroundDrawable = when (currentCounterColor != null) {
+            true -> DrawableUtils.loadAndTintDrawable(context, drawableRes, currentCounterColor)
+            false -> ContextCompat.getDrawable(context, drawableRes)
+        }
+
+        backgroundDrawable?.let { counterBox.background = it }
+    }
+
+    private fun setCounterText(count: Int) {
+        when (count > MAX_VISIBLE_TABS) {
+            true -> counterText.isVisible = false
+            false -> {
+                counterText.isVisible = true
+                adjustTextSize(count)
+                counterText.text = NumberFormat.getInstance().format(count.toLong())
+            }
+        }
     }
 
     private fun createAnimatorSet(): AnimatorSet {
@@ -250,15 +276,6 @@ class TabCounter @JvmOverloads constructor(
         animatorSet.play(moveDown).before(moveUp)
     }
 
-    private fun formatCountForDisplay(count: Int): String {
-        return if (count > MAX_VISIBLE_TABS) {
-            counterText.updatePadding(bottom = INFINITE_CHAR_PADDING_BOTTOM)
-            SO_MANY_TABS_OPEN
-        } else {
-            NumberFormat.getInstance().format(count.toLong())
-        }
-    }
-
     private fun adjustTextSize(newCount: Int) {
         val newRatio = if (newCount in TWO_DIGITS_TAB_COUNT_THRESHOLD..MAX_VISIBLE_TABS) {
             TWO_DIGITS_SIZE_RATIO
@@ -278,8 +295,6 @@ class TabCounter @JvmOverloads constructor(
         var INTERNAL_COUNT = 0
 
         const val MAX_VISIBLE_TABS = 99
-        const val SO_MANY_TABS_OPEN = "∞"
-        const val INFINITE_CHAR_PADDING_BOTTOM = 6
 
         const val ONE_DIGIT_SIZE_RATIO = 0.5f
         const val TWO_DIGITS_SIZE_RATIO = 0.4f
