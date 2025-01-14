@@ -2368,6 +2368,15 @@
     obj: ObjId
     result: ObjId
 
+- name: LoadBoundFunctionArgument
+  shared: true
+  transpile: true
+  cost_estimate: 2
+  args:
+    obj: ObjId
+    index: UInt32Imm
+    result: ValId
+
 - name: GuardBoundFunctionIsConstructor
   shared: true
   transpile: true

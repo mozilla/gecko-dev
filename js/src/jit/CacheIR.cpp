@@ -6355,15 +6355,14 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard() {
 
   ObjOperandId targetId = calleeObjId;
   if (isCalleeBoundFunction()) {
-    MOZ_ASSERT(callee_->as<BoundFunctionObject>().numBoundArgs() == 0);
-
     // Ensure the callee is a bound function.
     writer.guardClass(calleeObjId, GuardClassKind::BoundFunction);
 
-    // Ensure numBoundArgs is zero.
+    // Ensure numBoundArgs matches.
+    size_t numBoundArgs = callee_->as<BoundFunctionObject>().numBoundArgs();
     Int32OperandId numBoundArgsId =
         writer.loadBoundFunctionNumArgs(calleeObjId);
-    writer.guardSpecificInt32(numBoundArgsId, 0);
+    writer.guardSpecificInt32(numBoundArgsId, numBoundArgs);
 
     // Load the bound function target.
     targetId = writer.loadBoundFunctionTarget(calleeObjId);
@@ -6414,6 +6413,29 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
                                                       ArgumentKind kind,
                                                       CallFlags flags) {
   MOZ_ASSERT(kind >= ArgumentKind::Arg0);
+
+  if (isCalleeBoundFunction()) {
+    MOZ_ASSERT(flags.getArgFormat() == CallFlags::Standard);
+
+    size_t numBoundArgs = callee_->as<BoundFunctionObject>().numBoundArgs();
+    size_t argIndex = uint8_t(kind) - uint8_t(ArgumentKind::Arg0);
+
+    // Load from bound args.
+    if (argIndex < numBoundArgs) {
+      if (numBoundArgs <= BoundFunctionObject::MaxInlineBoundArgs) {
+        constexpr size_t inlineArgsOffset =
+            BoundFunctionObject::offsetOfFirstInlineBoundArg();
+
+        size_t argSlot = inlineArgsOffset + argIndex * sizeof(Value);
+        return writer.loadFixedSlot(calleeId, argSlot);
+      }
+      return writer.loadBoundFunctionArgument(calleeId, argIndex);
+    }
+
+    // Load from stack arguments.
+    kind = ArgumentKindForArgIndex(argIndex - numBoundArgs);
+  }
+
   return writer.loadArgumentFixedSlot(kind, argc_, flags);
 }
 
@@ -12991,8 +13013,16 @@ AttachDecision CallIRGenerator::tryAttachBoundNative(
     return AttachDecision::NoAction;
   }
 
-  // We currently only support a bound |this| argument.
-  if (calleeObj->numBoundArgs() != 0) {
+  // Limit the number of bound arguments to prevent us from compiling many
+  // different stubs (we bake in numBoundArgs and it's usually very small).
+  static constexpr size_t MaxBoundArgs = 10;
+  size_t numBoundArgs = calleeObj->numBoundArgs();
+  if (numBoundArgs > MaxBoundArgs) {
+    return AttachDecision::NoAction;
+  }
+
+  // Ensure we don't exceed JIT_ARGS_LENGTH_MAX.
+  if (numBoundArgs + argc_ > JIT_ARGS_LENGTH_MAX) {
     return AttachDecision::NoAction;
   }
 
@@ -13015,12 +13045,32 @@ AttachDecision CallIRGenerator::tryAttachBoundNative(
     return AttachDecision::NoAction;
   }
 
+  // Spread calls are only supported when we don't have to insert bound args.
+  if (isSpread && numBoundArgs != 0) {
+    return AttachDecision::NoAction;
+  }
+
   // Use the bound |this| value.
   Rooted<Value> thisValue(cx_, calleeObj->getBoundThis());
 
+  // Concatenate the bound arguments and the stack arguments.
+  JS::RootedVector<Value> concatenatedArgs(cx_);
+  if (numBoundArgs != 0) {
+    if (!concatenatedArgs.reserve(numBoundArgs + args_.length())) {
+      cx_->recoverFromOutOfMemory();
+      return AttachDecision::NoAction;
+    }
+
+    for (size_t i = 0; i < numBoundArgs; i++) {
+      concatenatedArgs.infallibleAppend(calleeObj->getBoundArg(i));
+    }
+    concatenatedArgs.infallibleAppend(args_.begin(), args_.length());
+  }
+  auto args = numBoundArgs != 0 ? concatenatedArgs : args_;
+
   // Check for specific native-function optimizations.
   InlinableNativeIRGenerator nativeGen(*this, calleeObj, target, newTarget_,
-                                       thisValue, args_, argc_, flags);
+                                       thisValue, args, argc_, flags);
   return nativeGen.tryAttachStub();
 }
 

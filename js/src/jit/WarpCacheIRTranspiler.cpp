@@ -1957,6 +1957,25 @@ bool WarpCacheIRTranspiler::emitLoadBoundFunctionTarget(ObjOperandId objId,
   return defineOperand(resultId, target);
 }
 
+bool WarpCacheIRTranspiler::emitLoadBoundFunctionArgument(
+    ObjOperandId objId, uint32_t index, ValOperandId resultId) {
+  MDefinition* obj = getOperand(objId);
+
+  auto* boundArgs = MLoadFixedSlotAndUnbox::New(
+      alloc(), obj, BoundFunctionObject::firstInlineBoundArgSlot(),
+      MUnbox::Mode::Infallible, MIRType::Object);
+  add(boundArgs);
+
+  auto* elements = MElements::New(alloc(), boundArgs);
+  add(elements);
+
+  auto argIndex = constant(Int32Value(index));
+  auto* load = MLoadElement::New(alloc(), elements, argIndex);
+  add(load);
+
+  return defineOperand(resultId, load);
+}
+
 bool WarpCacheIRTranspiler::emitGuardBoundFunctionIsConstructor(
     ObjOperandId objId) {
   MDefinition* obj = getOperand(objId);

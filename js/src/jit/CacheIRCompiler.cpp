@@ -4376,6 +4376,24 @@ bool CacheIRCompiler::emitLoadBoundFunctionTarget(ObjOperandId objId,
   return true;
 }
 
+bool CacheIRCompiler::emitLoadBoundFunctionArgument(ObjOperandId objId,
+                                                    uint32_t index,
+                                                    ValOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register obj = allocator.useRegister(masm, objId);
+  ValueOperand output = allocator.defineValueRegister(masm, resultId);
+  AutoScratchRegister scratch(allocator, masm);
+
+  constexpr size_t inlineArgsOffset =
+      BoundFunctionObject::offsetOfFirstInlineBoundArg();
+
+  masm.unboxObject(Address(obj, inlineArgsOffset), scratch);
+  masm.loadPtr(Address(scratch, NativeObject::offsetOfElements()), scratch);
+  masm.loadValue(Address(scratch, index * sizeof(Value)), output);
+  return true;
+}
+
 bool CacheIRCompiler::emitGuardBoundFunctionIsConstructor(ObjOperandId objId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
