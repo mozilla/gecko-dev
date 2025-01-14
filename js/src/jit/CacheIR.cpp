@@ -6510,7 +6510,7 @@ Maybe<ObjOperandId> CallIRGenerator::emitFunApplyArgsGuard(
 
 AttachDecision InlinableNativeIRGenerator::tryAttachArrayPush() {
   // Only optimize on obj.push(val);
-  if (argc_ != 1 || !thisval_.isObject()) {
+  if (args_.length() != 1 || !thisval_.isObject()) {
     return AttachDecision::NoAction;
   }
 
@@ -6577,7 +6577,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayPush() {
 AttachDecision InlinableNativeIRGenerator::tryAttachArrayPopShift(
     InlinableNative native) {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -6626,7 +6626,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayPopShift(
 
 AttachDecision InlinableNativeIRGenerator::tryAttachArrayJoin() {
   // Only handle argc <= 1.
-  if (argc_ > 1) {
+  if (args_.length() > 1) {
     return AttachDecision::NoAction;
   }
 
@@ -6636,7 +6636,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayJoin() {
   }
 
   // The separator argument must be a string, if present.
-  if (argc_ > 0 && !args_[0].isString()) {
+  if (args_.length() > 0 && !args_[0].isString()) {
     return AttachDecision::NoAction;
   }
 
@@ -6655,7 +6655,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayJoin() {
                            GuardClassKind::Array);
 
   StringOperandId sepId;
-  if (argc_ == 1) {
+  if (args_.length() == 1) {
     // If argcount is 1, guard that the argument is a string.
     ValOperandId argValId = loadArgument(calleeId, ArgumentKind::Arg0);
     sepId = writer.guardToString(argValId);
@@ -6674,7 +6674,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayJoin() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachArraySlice() {
   // Only handle argc <= 2.
-  if (argc_ > 2) {
+  if (args_.length() > 2) {
     return AttachDecision::NoAction;
   }
 
@@ -6707,10 +6707,10 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArraySlice() {
   }
 
   // Arguments for the sliced region must be integers.
-  if (argc_ > 0 && !args_[0].isInt32()) {
+  if (args_.length() > 0 && !args_[0].isInt32()) {
     return AttachDecision::NoAction;
   }
-  if (argc_ > 1 && !args_[1].isInt32()) {
+  if (args_.length() > 1 && !args_[1].isInt32()) {
     return AttachDecision::NoAction;
   }
 
@@ -6749,7 +6749,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArraySlice() {
   }
 
   Int32OperandId int32BeginId;
-  if (argc_ > 0) {
+  if (args_.length() > 0) {
     ValOperandId beginId = loadArgument(calleeId, ArgumentKind::Arg0);
     int32BeginId = writer.guardToInt32(beginId);
   } else {
@@ -6757,7 +6757,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArraySlice() {
   }
 
   Int32OperandId int32EndId;
-  if (argc_ > 1) {
+  if (args_.length() > 1) {
     ValOperandId endId = loadArgument(calleeId, ArgumentKind::Arg1);
     int32EndId = writer.guardToInt32(endId);
   } else if (isPackedArray) {
@@ -6779,7 +6779,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArraySlice() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachArrayIsArray() {
   // Need a single argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -6806,14 +6806,14 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewGet(
   }
 
   // Expected arguments: offset (number), optional littleEndian (boolean).
-  if (argc_ < 1 || argc_ > 2) {
+  if (args_.length() < 1 || args_.length() > 2) {
     return AttachDecision::NoAction;
   }
   int64_t offsetInt64;
   if (!ValueIsInt64Index(args_[0], &offsetInt64)) {
     return AttachDecision::NoAction;
   }
-  if (argc_ > 1 && !args_[1].isBoolean()) {
+  if (args_.length() > 1 && !args_[1].isBoolean()) {
     return AttachDecision::NoAction;
   }
 
@@ -6830,7 +6830,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewGet(
   // double, to allow better codegen in Warp while avoiding bailout loops.
   bool forceDoubleForUint32 = false;
   if (type == Scalar::Uint32) {
-    bool isLittleEndian = argc_ > 1 && args_[1].toBoolean();
+    bool isLittleEndian = args_.length() > 1 && args_[1].toBoolean();
     uint32_t res = dv->read<uint32_t>(offsetInt64, byteLength, isLittleEndian);
     forceDoubleForUint32 = res >= INT32_MAX;
   }
@@ -6859,7 +6859,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewGet(
       guardToIntPtrIndex(args_[0], offsetId, /* supportOOB = */ false);
 
   BooleanOperandId boolLittleEndianId;
-  if (argc_ > 1) {
+  if (args_.length() > 1) {
     ValOperandId littleEndianId = loadArgument(calleeId, ArgumentKind::Arg1);
     boolLittleEndianId = writer.guardToBoolean(littleEndianId);
   } else {
@@ -6884,7 +6884,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewSet(
   }
 
   // Expected arguments: offset (number), value, optional littleEndian (boolean)
-  if (argc_ < 2 || argc_ > 3) {
+  if (args_.length() < 2 || args_.length() > 3) {
     return AttachDecision::NoAction;
   }
   int64_t offsetInt64;
@@ -6894,7 +6894,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewSet(
   if (!ValueCanConvertToNumeric(type, args_[1])) {
     return AttachDecision::NoAction;
   }
-  if (argc_ > 2 && !args_[2].isBoolean()) {
+  if (args_.length() > 2 && !args_[2].isBoolean()) {
     return AttachDecision::NoAction;
   }
 
@@ -6935,7 +6935,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewSet(
   OperandId numericValueId = emitNumericGuard(valueId, args_[1], type);
 
   BooleanOperandId boolLittleEndianId;
-  if (argc_ > 2) {
+  if (args_.length() > 2) {
     ValOperandId littleEndianId = loadArgument(calleeId, ArgumentKind::Arg2);
     boolLittleEndianId = writer.guardToBoolean(littleEndianId);
   } else {
@@ -6955,7 +6955,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewSet(
 AttachDecision InlinableNativeIRGenerator::tryAttachUnsafeGetReservedSlot(
     InlinableNative native) {
   // Self-hosted code calls this with (object, int32) arguments.
-  MOZ_ASSERT(argc_ == 2);
+  MOZ_ASSERT(args_.length() == 2);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[1].isInt32());
   MOZ_ASSERT(args_[1].toInt32() >= 0);
@@ -7003,7 +7003,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachUnsafeGetReservedSlot(
 
 AttachDecision InlinableNativeIRGenerator::tryAttachUnsafeSetReservedSlot() {
   // Self-hosted code calls this with (object, int32, value) arguments.
-  MOZ_ASSERT(argc_ == 3);
+  MOZ_ASSERT(args_.length() == 3);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[1].isInt32());
   MOZ_ASSERT(args_[1].toInt32() >= 0);
@@ -7044,7 +7044,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsSuspendedGenerator() {
   // self-hosted code, so it's safe to assume we have a single
   // argument and the callee is our intrinsic.
 
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
 
   initializeInputOperand();
 
@@ -7067,7 +7067,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsSuspendedGenerator() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachToObject() {
   // Self-hosted code calls this with a single argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
 
   // Need a single object argument.
   // TODO(Warp): Support all or more conversions to object.
@@ -7094,7 +7094,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachToObject() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachToInteger() {
   // Self-hosted code calls this with a single argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
 
   // Need a single int32 argument.
   // TODO(Warp): Support all or more conversions to integer.
@@ -7123,7 +7123,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachToInteger() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachToLength() {
   // Self-hosted code calls this with a single argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
 
   // Need a single int32 argument.
   if (!args_[0].isInt32()) {
@@ -7150,7 +7150,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachToLength() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachIsObject() {
   // Self-hosted code calls this with a single argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
 
   // Initialize the input operand.
   initializeInputOperand();
@@ -7168,7 +7168,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsObject() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachIsPackedArray() {
   // Self-hosted code calls this with a single object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Initialize the input operand.
@@ -7188,7 +7188,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsPackedArray() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachIsCallable() {
   // Self-hosted code calls this with a single argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
 
   // Initialize the input operand.
   initializeInputOperand();
@@ -7206,7 +7206,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsCallable() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachIsConstructor() {
   // Self-hosted code calls this with a single argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
 
   // Need a single object argument.
   if (!args_[0].isObject()) {
@@ -7233,7 +7233,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsConstructor() {
 AttachDecision
 InlinableNativeIRGenerator::tryAttachIsCrossRealmArrayConstructor() {
   // Self-hosted code calls this with an object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   if (args_[0].toObject().is<ProxyObject>()) {
@@ -7258,7 +7258,7 @@ InlinableNativeIRGenerator::tryAttachIsCrossRealmArrayConstructor() {
 AttachDecision InlinableNativeIRGenerator::tryAttachGuardToClass(
     InlinableNative native) {
   // Self-hosted code calls this with an object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Class must match.
@@ -7290,7 +7290,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGuardToClass(
 AttachDecision InlinableNativeIRGenerator::tryAttachGuardToClass(
     GuardClassKind kind) {
   // Self-hosted code calls this with an object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Class must match.
@@ -7325,7 +7325,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGuardToEitherClass(
              "prefer tryAttachGuardToClass for the same class case");
 
   // Self-hosted code calls this with an object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Class must match.
@@ -7370,7 +7370,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGuardToSharedArrayBuffer() {
 AttachDecision InlinableNativeIRGenerator::tryAttachHasClass(
     const JSClass* clasp, bool isPossiblyWrapped) {
   // Self-hosted code calls this with an object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Only optimize when the object isn't a proxy.
@@ -7468,7 +7468,7 @@ static void EmitGuardLastIndexIsNonNegativeInt32(CacheIRWriter& writer,
 AttachDecision InlinableNativeIRGenerator::tryAttachIntrinsicRegExpBuiltinExec(
     InlinableNative native) {
   // Self-hosted code calls this with (regexp, string) arguments.
-  MOZ_ASSERT(argc_ == 2);
+  MOZ_ASSERT(args_.length() == 2);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[1].isString());
 
@@ -7509,7 +7509,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIntrinsicRegExpBuiltinExec(
 AttachDecision InlinableNativeIRGenerator::tryAttachIntrinsicRegExpExec(
     InlinableNative native) {
   // Self-hosted code calls this with (object, string) arguments.
-  MOZ_ASSERT(argc_ == 2);
+  MOZ_ASSERT(args_.length() == 2);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[1].isString());
 
@@ -7589,7 +7589,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIntrinsicRegExpExec(
 AttachDecision InlinableNativeIRGenerator::tryAttachRegExpMatcherSearcher(
     InlinableNative native) {
   // Self-hosted code calls this with (object, string, number) arguments.
-  MOZ_ASSERT(argc_ == 3);
+  MOZ_ASSERT(args_.length() == 3);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[1].isString());
   MOZ_ASSERT(args_[2].isNumber());
@@ -7642,7 +7642,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachRegExpMatcherSearcher(
 AttachDecision InlinableNativeIRGenerator::tryAttachRegExpSearcherLastLimit() {
   // Self-hosted code calls this with a string argument that's only used for an
   // assertion.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isString());
 
   // Initialize the input operand.
@@ -7659,7 +7659,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachRegExpSearcherLastLimit() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachRegExpHasCaptureGroups() {
   // Self-hosted code calls this with object and string arguments.
-  MOZ_ASSERT(argc_ == 2);
+  MOZ_ASSERT(args_.length() == 2);
   MOZ_ASSERT(args_[0].toObject().is<RegExpObject>());
   MOZ_ASSERT(args_[1].isString());
 
@@ -7684,7 +7684,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachRegExpHasCaptureGroups() {
 AttachDecision
 InlinableNativeIRGenerator::tryAttachRegExpPrototypeOptimizable() {
   // Self-hosted code calls this with a single object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Initialize the input operand.
@@ -7705,7 +7705,7 @@ InlinableNativeIRGenerator::tryAttachRegExpPrototypeOptimizable() {
 AttachDecision
 InlinableNativeIRGenerator::tryAttachRegExpInstanceOptimizable() {
   // Self-hosted code calls this with two object arguments.
-  MOZ_ASSERT(argc_ == 2);
+  MOZ_ASSERT(args_.length() == 2);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[1].isObject());
 
@@ -7729,7 +7729,7 @@ InlinableNativeIRGenerator::tryAttachRegExpInstanceOptimizable() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachGetFirstDollarIndex() {
   // Self-hosted code calls this with a single string argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isString());
 
   // Initialize the input operand.
@@ -7749,7 +7749,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGetFirstDollarIndex() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachSubstringKernel() {
   // Self-hosted code calls this with (string, int32, int32) arguments.
-  MOZ_ASSERT(argc_ == 3);
+  MOZ_ASSERT(args_.length() == 3);
   MOZ_ASSERT(args_[0].isString());
   MOZ_ASSERT(args_[1].isInt32());
   MOZ_ASSERT(args_[2].isInt32());
@@ -7777,7 +7777,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSubstringKernel() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachObjectHasPrototype() {
   // Self-hosted code calls this with (object, object) arguments.
-  MOZ_ASSERT(argc_ == 2);
+  MOZ_ASSERT(args_.length() == 2);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[1].isObject());
 
@@ -7811,7 +7811,7 @@ static bool CanConvertToString(const Value& v) {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachString() {
   // Need a single argument that is or can be converted to a string.
-  if (argc_ != 1 || !CanConvertToString(args_[0])) {
+  if (args_.length() != 1 || !CanConvertToString(args_[0])) {
     return AttachDecision::NoAction;
   }
 
@@ -7835,7 +7835,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachString() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringConstructor() {
   // Need a single argument that is or can be converted to a string.
-  if (argc_ != 1 || !CanConvertToString(args_[0])) {
+  if (args_.length() != 1 || !CanConvertToString(args_[0])) {
     return AttachDecision::NoAction;
   }
 
@@ -7866,7 +7866,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringConstructor() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringToStringValueOf() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -7895,7 +7895,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringToStringValueOf() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringReplaceString() {
   // Self-hosted code calls this with (string, string, string) arguments.
-  MOZ_ASSERT(argc_ == 3);
+  MOZ_ASSERT(args_.length() == 3);
   MOZ_ASSERT(args_[0].isString());
   MOZ_ASSERT(args_[1].isString());
   MOZ_ASSERT(args_[2].isString());
@@ -7923,7 +7923,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringReplaceString() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringSplitString() {
   // Self-hosted code calls this with (string, string) arguments.
-  MOZ_ASSERT(argc_ == 2);
+  MOZ_ASSERT(args_.length() == 2);
   MOZ_ASSERT(args_[0].isString());
   MOZ_ASSERT(args_[1].isString());
 
@@ -7948,7 +7948,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringSplitString() {
 AttachDecision InlinableNativeIRGenerator::tryAttachStringChar(
     StringChar kind) {
   // Need one argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -8052,7 +8052,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringAt() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringFromCharCode() {
   // Need one number argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8083,7 +8083,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringFromCharCode() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringFromCodePoint() {
   // Need one int32 argument.
-  if (argc_ != 1 || !args_[0].isInt32()) {
+  if (args_.length() != 1 || !args_[0].isInt32()) {
     return AttachDecision::NoAction;
   }
 
@@ -8113,7 +8113,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringFromCodePoint() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringIncludes() {
   // Need one string argument.
-  if (argc_ != 1 || !args_[0].isString()) {
+  if (args_.length() != 1 || !args_[0].isString()) {
     return AttachDecision::NoAction;
   }
 
@@ -8145,7 +8145,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringIncludes() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringIndexOf() {
   // Need one string argument.
-  if (argc_ != 1 || !args_[0].isString()) {
+  if (args_.length() != 1 || !args_[0].isString()) {
     return AttachDecision::NoAction;
   }
 
@@ -8177,7 +8177,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringIndexOf() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringLastIndexOf() {
   // Need one string argument.
-  if (argc_ != 1 || !args_[0].isString()) {
+  if (args_.length() != 1 || !args_[0].isString()) {
     return AttachDecision::NoAction;
   }
 
@@ -8209,7 +8209,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringLastIndexOf() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringStartsWith() {
   // Need one string argument.
-  if (argc_ != 1 || !args_[0].isString()) {
+  if (args_.length() != 1 || !args_[0].isString()) {
     return AttachDecision::NoAction;
   }
 
@@ -8241,7 +8241,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringStartsWith() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringEndsWith() {
   // Need one string argument.
-  if (argc_ != 1 || !args_[0].isString()) {
+  if (args_.length() != 1 || !args_[0].isString()) {
     return AttachDecision::NoAction;
   }
 
@@ -8273,7 +8273,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringEndsWith() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringToLowerCase() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -8302,7 +8302,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringToLowerCase() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringToUpperCase() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -8331,7 +8331,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringToUpperCase() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringTrim() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -8359,7 +8359,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringTrim() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringTrimStart() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -8387,7 +8387,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringTrimStart() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringTrimEnd() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -8415,7 +8415,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringTrimEnd() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathRandom() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -8440,7 +8440,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathRandom() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathAbs() {
   // Need one argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -8473,7 +8473,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathAbs() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathClz32() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8502,7 +8502,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathClz32() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathSign() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8540,7 +8540,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathSign() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathImul() {
   // Need two (number) arguments.
-  if (argc_ != 2 || !args_[0].isNumber() || !args_[1].isNumber()) {
+  if (args_.length() != 2 || !args_[0].isNumber() || !args_[1].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8573,7 +8573,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathImul() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathFloor() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8616,7 +8616,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathFloor() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathCeil() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8659,7 +8659,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathCeil() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathTrunc() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8701,7 +8701,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathTrunc() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathRound() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8744,7 +8744,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathRound() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathSqrt() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8765,7 +8765,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathSqrt() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathFRound() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8786,7 +8786,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathFRound() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathF16Round() {
   // Need one (number) argument.
-  if (argc_ != 1 || !args_[0].isNumber()) {
+  if (args_.length() != 1 || !args_[0].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8835,7 +8835,7 @@ static bool CanAttachInt32Pow(const Value& baseVal, const Value& powerVal) {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathPow() {
   // Need two number arguments.
-  if (argc_ != 2 || !args_[0].isNumber() || !args_[1].isNumber()) {
+  if (args_.length() != 2 || !args_[0].isNumber() || !args_[1].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8867,11 +8867,11 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathPow() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathHypot() {
   // Only optimize if there are 2-4 arguments.
-  if (argc_ < 2 || argc_ > 4) {
+  if (args_.length() < 2 || args_.length() > 4) {
     return AttachDecision::NoAction;
   }
 
-  for (size_t i = 0; i < argc_; i++) {
+  for (size_t i = 0; i < args_.length(); i++) {
     if (!args_[i].isNumber()) {
       return AttachDecision::NoAction;
     }
@@ -8894,7 +8894,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathHypot() {
   NumberOperandId thirdNumId;
   NumberOperandId fourthNumId;
 
-  switch (argc_) {
+  switch (args_.length()) {
     case 2:
       writer.mathHypot2NumberResult(firstNumId, secondNumId);
       break;
@@ -8923,7 +8923,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathHypot() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathATan2() {
   // Requires two numbers as arguments.
-  if (argc_ != 2 || !args_[0].isNumber() || !args_[1].isNumber()) {
+  if (args_.length() != 2 || !args_[0].isNumber() || !args_[1].isNumber()) {
     return AttachDecision::NoAction;
   }
 
@@ -8948,13 +8948,13 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathATan2() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachMathMinMax(bool isMax) {
   // For now only optimize if there are 1-4 arguments.
-  if (argc_ < 1 || argc_ > 4) {
+  if (args_.length() < 1 || args_.length() > 4) {
     return AttachDecision::NoAction;
   }
 
   // Ensure all arguments are numbers.
   bool allInt32 = true;
-  for (size_t i = 0; i < argc_; i++) {
+  for (size_t i = 0; i < args_.length(); i++) {
     if (!args_[i].isNumber()) {
       return AttachDecision::NoAction;
     }
@@ -8972,7 +8972,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathMinMax(bool isMax) {
   if (allInt32) {
     ValOperandId valId = loadArgument(calleeId, ArgumentKind::Arg0);
     Int32OperandId resId = writer.guardToInt32(valId);
-    for (size_t i = 1; i < argc_; i++) {
+    for (size_t i = 1; i < args_.length(); i++) {
       ValOperandId argId = loadArgument(calleeId, ArgumentKindForArgIndex(i));
       Int32OperandId argInt32Id = writer.guardToInt32(argId);
       resId = writer.int32MinMax(isMax, resId, argInt32Id);
@@ -8981,7 +8981,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathMinMax(bool isMax) {
   } else {
     ValOperandId valId = loadArgument(calleeId, ArgumentKind::Arg0);
     NumberOperandId resId = writer.guardIsNumber(valId);
-    for (size_t i = 1; i < argc_; i++) {
+    for (size_t i = 1; i < args_.length(); i++) {
       ValOperandId argId = loadArgument(calleeId, ArgumentKindForArgIndex(i));
       NumberOperandId argNumId = writer.guardIsNumber(argId);
       resId = writer.numberMinMax(isMax, resId, argNumId);
@@ -9036,7 +9036,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSpreadMathMinMax(
 AttachDecision InlinableNativeIRGenerator::tryAttachMathFunction(
     UnaryMathFunction fun) {
   // Need one argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -9078,7 +9078,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathFunction(
 
 AttachDecision InlinableNativeIRGenerator::tryAttachNumber() {
   // Expect a single string argument.
-  if (argc_ != 1 || !args_[0].isString()) {
+  if (args_.length() != 1 || !args_[0].isString()) {
     return AttachDecision::NoAction;
   }
 
@@ -9115,7 +9115,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumber() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachNumberParseInt() {
   // Expected arguments: input (string or number), optional radix (int32).
-  if (argc_ < 1 || argc_ > 2) {
+  if (args_.length() < 1 || args_.length() > 2) {
     return AttachDecision::NoAction;
   }
   if (!args_[0].isString() && !args_[0].isNumber()) {
@@ -9133,7 +9133,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumberParseInt() {
       return AttachDecision::NoAction;
     }
   }
-  if (argc_ > 1 && !args_[1].isInt32(10)) {
+  if (args_.length() > 1 && !args_[1].isInt32(10)) {
     return AttachDecision::NoAction;
   }
 
@@ -9156,7 +9156,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumberParseInt() {
     StringOperandId strId = writer.guardToString(inputId);
 
     Int32OperandId intRadixId;
-    if (argc_ > 1) {
+    if (args_.length() > 1) {
       intRadixId = guardRadix();
     } else {
       intRadixId = writer.loadInt32Constant(0);
@@ -9165,7 +9165,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumberParseInt() {
     writer.numberParseIntResult(strId, intRadixId);
   } else if (args_[0].isInt32()) {
     Int32OperandId intId = writer.guardToInt32(inputId);
-    if (argc_ > 1) {
+    if (args_.length() > 1) {
       guardRadix();
     }
     writer.loadInt32Result(intId);
@@ -9173,7 +9173,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumberParseInt() {
     MOZ_ASSERT(args_[0].isDouble());
 
     NumberOperandId numId = writer.guardIsNumber(inputId);
-    if (argc_ > 1) {
+    if (args_.length() > 1) {
       guardRadix();
     }
     writer.doubleParseIntResult(numId);
@@ -9216,10 +9216,10 @@ StringOperandId IRGenerator::emitToStringGuard(ValOperandId id,
 
 AttachDecision InlinableNativeIRGenerator::tryAttachNumberToString() {
   // Expecting no arguments or a single int32 argument.
-  if (argc_ > 1) {
+  if (args_.length() > 1) {
     return AttachDecision::NoAction;
   }
-  if (argc_ == 1 && !args_[0].isInt32()) {
+  if (args_.length() == 1 && !args_[0].isInt32()) {
     return AttachDecision::NoAction;
   }
 
@@ -9230,7 +9230,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumberToString() {
 
   // No arguments means base 10.
   int32_t base = 10;
-  if (argc_ > 0) {
+  if (args_.length() > 0) {
     base = args_[0].toInt32();
     if (base < 2 || base > 36) {
       return AttachDecision::NoAction;
@@ -9255,7 +9255,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumberToString() {
   // Guard on number and convert to string.
   if (base == 10) {
     // If an explicit base was passed, guard its value.
-    if (argc_ > 0) {
+    if (args_.length() > 0) {
       // Guard the `base` argument is an int32.
       ValOperandId baseId = loadArgument(calleeId, ArgumentKind::Arg0);
       Int32OperandId intBaseId = writer.guardToInt32(baseId);
@@ -9269,7 +9269,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumberToString() {
     // Return the string.
     writer.loadStringResult(strId);
   } else {
-    MOZ_ASSERT(argc_ > 0);
+    MOZ_ASSERT(args_.length() > 0);
 
     // Guard the |this| value is an int32.
     Int32OperandId thisIntId = writer.guardToInt32(thisValId);
@@ -9290,7 +9290,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNumberToString() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachReflectGetPrototypeOf() {
   // Need one argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -9359,7 +9359,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsCompareExchange() {
   }
 
   // Need four arguments.
-  if (argc_ != 4) {
+  if (args_.length() != 4) {
     return AttachDecision::NoAction;
   }
 
@@ -9425,7 +9425,7 @@ bool InlinableNativeIRGenerator::canAttachAtomicsReadWriteModify() {
   }
 
   // Need three arguments.
-  if (argc_ != 3) {
+  if (args_.length() != 3) {
     return false;
   }
 
@@ -9601,7 +9601,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsLoad() {
   }
 
   // Need two arguments.
-  if (argc_ != 2) {
+  if (args_.length() != 2) {
     return AttachDecision::NoAction;
   }
 
@@ -9647,7 +9647,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsStore() {
   }
 
   // Need three arguments.
-  if (argc_ != 3) {
+  if (args_.length() != 3) {
     return AttachDecision::NoAction;
   }
 
@@ -9719,7 +9719,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsStore() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsIsLockFree() {
   // Need one argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -9746,7 +9746,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsIsLockFree() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsPause() {
   // We don't yet support inlining when the iteration count argument is present.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -9765,7 +9765,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsPause() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachBoolean() {
   // Need zero or one argument.
-  if (argc_ > 1) {
+  if (args_.length() > 1) {
     return AttachDecision::NoAction;
   }
 
@@ -9775,7 +9775,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachBoolean() {
   // Guard callee is the 'Boolean' native function.
   ObjOperandId calleeId = emitNativeCalleeGuard();
 
-  if (argc_ == 0) {
+  if (args_.length() == 0) {
     writer.loadBooleanResult(false);
   } else {
     ValOperandId valId = loadArgument(calleeId, ArgumentKind::Arg0);
@@ -9791,7 +9791,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachBoolean() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachBailout() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -9811,7 +9811,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachBailout() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachAssertFloat32() {
   // Expecting two arguments.
-  if (argc_ != 2) {
+  if (args_.length() != 2) {
     return AttachDecision::NoAction;
   }
 
@@ -9836,7 +9836,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAssertFloat32() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachAssertRecoveredOnBailout() {
   // Expecting two arguments.
-  if (argc_ != 2) {
+  if (args_.length() != 2) {
     return AttachDecision::NoAction;
   }
 
@@ -9861,7 +9861,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAssertRecoveredOnBailout() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachObjectIs() {
   // Need two arguments.
-  if (argc_ != 2) {
+  if (args_.length() != 2) {
     return AttachDecision::NoAction;
   }
 
@@ -9967,7 +9967,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectIsPrototypeOf() {
   }
 
   // Need a single argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -9992,7 +9992,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectIsPrototypeOf() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachObjectKeys() {
   // Only handle argc <= 1.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -10039,7 +10039,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectKeys() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachObjectToString() {
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -10072,7 +10072,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectToString() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachBigInt() {
   // Need a single argument (Int32).
-  if (argc_ != 1 || !args_[0].isInt32()) {
+  if (args_.length() != 1 || !args_[0].isInt32()) {
     return AttachDecision::NoAction;
   }
 
@@ -10097,7 +10097,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachBigInt() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachBigIntAsIntN() {
   // Need two arguments (Int32, BigInt).
-  if (argc_ != 2 || !args_[0].isInt32() || !args_[1].isBigInt()) {
+  if (args_.length() != 2 || !args_[0].isInt32() || !args_[1].isBigInt()) {
     return AttachDecision::NoAction;
   }
 
@@ -10131,7 +10131,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachBigIntAsIntN() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachBigIntAsUintN() {
   // Need two arguments (Int32, BigInt).
-  if (argc_ != 2 || !args_[0].isInt32() || !args_[1].isBigInt()) {
+  if (args_.length() != 2 || !args_[0].isInt32() || !args_[1].isBigInt()) {
     return AttachDecision::NoAction;
   }
 
@@ -10170,7 +10170,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSetHas() {
   }
 
   // Need a single argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -10256,7 +10256,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSetDelete() {
   }
 
   // Need a single argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -10286,7 +10286,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSetAdd() {
   }
 
   // Need one argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -10316,7 +10316,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSetSize() {
   }
 
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -10345,7 +10345,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapHas() {
   }
 
   // Need a single argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -10431,7 +10431,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapGet() {
   }
 
   // Need a single argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -10517,7 +10517,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapDelete() {
   }
 
   // Need a single argument.
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
@@ -10553,7 +10553,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapSet() {
   }
 
   // Need two arguments.
-  if (argc_ != 2) {
+  if (args_.length() != 2) {
     return AttachDecision::NoAction;
   }
 
@@ -10586,11 +10586,11 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDateGetTime(
 
   if (native == InlinableNative::DateGetTime) {
     // Expecting no arguments.
-    if (argc_ != 0) {
+    if (args_.length() != 0) {
       return AttachDecision::NoAction;
     }
   } else {
-    MOZ_ASSERT(argc_ == 1 && args_[0].isInt32());
+    MOZ_ASSERT(args_.length() == 1 && args_[0].isInt32());
   }
 
   // Initialize the input operand.
@@ -10628,7 +10628,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDateGet(
   }
 
   // Expecting no arguments.
-  if (argc_ != 0) {
+  if (args_.length() != 0) {
     return AttachDecision::NoAction;
   }
 
@@ -10826,7 +10826,7 @@ AttachDecision CallIRGenerator::tryAttachFunCall(HandleFunction callee) {
 AttachDecision InlinableNativeIRGenerator::tryAttachIsTypedArray(
     bool isPossiblyWrapped) {
   // Self-hosted code calls this with a single object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Initialize the input operand.
@@ -10846,7 +10846,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsTypedArray(
 
 AttachDecision InlinableNativeIRGenerator::tryAttachIsTypedArrayConstructor() {
   // Self-hosted code calls this with a single object argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Initialize the input operand.
@@ -10865,7 +10865,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsTypedArrayConstructor() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayByteOffset() {
   // Self-hosted code calls this with a single TypedArrayObject argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[0].toObject().is<TypedArrayObject>());
 
@@ -10905,7 +10905,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayByteOffset() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayElementSize() {
   // Self-hosted code calls this with a single TypedArrayObject argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
   MOZ_ASSERT(args_[0].toObject().is<TypedArrayObject>());
 
@@ -10927,7 +10927,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayLength(
     bool isPossiblyWrapped, bool allowOutOfBounds) {
   // Self-hosted code calls this with a single, possibly wrapped,
   // TypedArrayObject argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Only optimize when the object isn't a wrapper.
@@ -10992,7 +10992,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayBufferByteLength(
     bool isPossiblyWrapped) {
   // Self-hosted code calls this with a single, possibly wrapped,
   // ArrayBufferObject argument.
-  MOZ_ASSERT(argc_ == 1);
+  MOZ_ASSERT(args_.length() == 1);
   MOZ_ASSERT(args_[0].isObject());
 
   // Only optimize when the object isn't a wrapper.
@@ -11029,7 +11029,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayBufferByteLength(
 
 AttachDecision InlinableNativeIRGenerator::tryAttachIsConstructing() {
   // Self-hosted code calls this with no arguments in function scripts.
-  MOZ_ASSERT(argc_ == 0);
+  MOZ_ASSERT(args_.length() == 0);
   MOZ_ASSERT(script()->isFunction());
 
   // Initialize the input operand.
@@ -11047,7 +11047,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachIsConstructing() {
 AttachDecision
 InlinableNativeIRGenerator::tryAttachGetNextMapSetEntryForIterator(bool isMap) {
   // Self-hosted code calls this with two objects.
-  MOZ_ASSERT(argc_ == 2);
+  MOZ_ASSERT(args_.length() == 2);
   if (isMap) {
     MOZ_ASSERT(args_[0].toObject().is<MapIteratorObject>());
   } else {
@@ -11076,7 +11076,7 @@ InlinableNativeIRGenerator::tryAttachGetNextMapSetEntryForIterator(bool isMap) {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachNewArrayIterator() {
   // Self-hosted code calls this without any arguments
-  MOZ_ASSERT(argc_ == 0);
+  MOZ_ASSERT(args_.length() == 0);
 
   JSObject* templateObj = NewArrayIteratorTemplate(cx_);
   if (!templateObj) {
@@ -11098,7 +11098,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNewArrayIterator() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachNewStringIterator() {
   // Self-hosted code calls this without any arguments
-  MOZ_ASSERT(argc_ == 0);
+  MOZ_ASSERT(args_.length() == 0);
 
   JSObject* templateObj = NewStringIteratorTemplate(cx_);
   if (!templateObj) {
@@ -11120,7 +11120,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNewStringIterator() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachNewRegExpStringIterator() {
   // Self-hosted code calls this without any arguments
-  MOZ_ASSERT(argc_ == 0);
+  MOZ_ASSERT(args_.length() == 0);
 
   JSObject* templateObj = NewRegExpStringIteratorTemplate(cx_);
   if (!templateObj) {
@@ -11143,7 +11143,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachNewRegExpStringIterator() {
 AttachDecision
 InlinableNativeIRGenerator::tryAttachArrayIteratorPrototypeOptimizable() {
   // Self-hosted code calls this without any arguments
-  MOZ_ASSERT(argc_ == 0);
+  MOZ_ASSERT(args_.length() == 0);
 
   if (!isFirstStub()) {
     // Attach only once to prevent slowdowns for polymorphic calls.
@@ -11180,7 +11180,7 @@ InlinableNativeIRGenerator::tryAttachArrayIteratorPrototypeOptimizable() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachObjectCreate() {
   // Need a single object-or-null argument.
-  if (argc_ != 1 || !args_[0].isObjectOrNull()) {
+  if (args_.length() != 1 || !args_[0].isObjectOrNull()) {
     return AttachDecision::NoAction;
   }
 
@@ -11221,16 +11221,16 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectCreate() {
 AttachDecision InlinableNativeIRGenerator::tryAttachObjectConstructor() {
   // Expecting no arguments or a single object argument.
   // TODO(Warp): Support all or more conversions to object.
-  if (argc_ > 1) {
+  if (args_.length() > 1) {
     return AttachDecision::NoAction;
   }
-  if (argc_ == 1 && !args_[0].isObject()) {
+  if (args_.length() == 1 && !args_[0].isObject()) {
     return AttachDecision::NoAction;
   }
 
   gc::AllocSite* site = nullptr;
   PlainObject* templateObj = nullptr;
-  if (argc_ == 0) {
+  if (args_.length() == 0) {
     // Stub doesn't support metadata builder
     if (cx_->realm()->hasAllocationMetadataBuilder()) {
       return AttachDecision::NoAction;
@@ -11256,7 +11256,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectConstructor() {
   // function.
   ObjOperandId calleeId = emitNativeCalleeGuard();
 
-  if (argc_ == 0) {
+  if (args_.length() == 0) {
     uint32_t numFixedSlots = templateObj->numUsedFixedSlots();
     uint32_t numDynamicSlots = templateObj->numDynamicSlots();
     gc::AllocKind allocKind = templateObj->allocKindForTenure();
@@ -11291,14 +11291,14 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectConstructor() {
 AttachDecision InlinableNativeIRGenerator::tryAttachArrayConstructor() {
   // Only optimize the |Array()| and |Array(n)| cases (with or without |new|)
   // for now. Note that self-hosted code calls this without |new| via std_Array.
-  if (argc_ > 1) {
+  if (args_.length() > 1) {
     return AttachDecision::NoAction;
   }
-  if (argc_ == 1 && !args_[0].isInt32()) {
+  if (args_.length() == 1 && !args_[0].isInt32()) {
     return AttachDecision::NoAction;
   }
 
-  int32_t length = (argc_ == 1) ? args_[0].toInt32() : 0;
+  int32_t length = (args_.length() == 1) ? args_[0].toInt32() : 0;
   if (length < 0 || uint32_t(length) > ArrayObject::EagerAllocationMaxLength) {
     return AttachDecision::NoAction;
   }
@@ -11328,7 +11328,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayConstructor() {
   ObjOperandId calleeId = emitNativeCalleeGuard();
 
   Int32OperandId lengthId;
-  if (argc_ == 1) {
+  if (args_.length() == 1) {
     // Use standard call flags when this is an inline Function.prototype.call(),
     // because GetIndexOfArgument() doesn't yet support |CallFlags::FunCall|.
     CallFlags flags = flags_;
@@ -11339,7 +11339,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayConstructor() {
     ValOperandId arg0Id = loadArgument(calleeId, ArgumentKind::Arg0, flags);
     lengthId = writer.guardToInt32(arg0Id);
   } else {
-    MOZ_ASSERT(argc_ == 0);
+    MOZ_ASSERT(args_.length() == 0);
     lengthId = writer.loadInt32Constant(0);
   }
 
@@ -11353,7 +11353,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayConstructor() {
 AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayConstructor() {
   MOZ_ASSERT(flags_.isConstructing());
 
-  if (argc_ == 0 || argc_ > 3) {
+  if (args_.length() == 0 || args_.length() > 3) {
     return AttachDecision::NoAction;
   }
 
@@ -11421,13 +11421,13 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayConstructor() {
         writer.guardClass(objId, GuardClassKind::GrowableSharedArrayBuffer);
       }
       ValOperandId byteOffsetId;
-      if (argc_ > 1) {
+      if (args_.length() > 1) {
         byteOffsetId = loadArgument(calleeId, ArgumentKind::Arg1, flags_);
       } else {
         byteOffsetId = writer.loadUndefined();
       }
       ValOperandId lengthId;
-      if (argc_ > 2) {
+      if (args_.length() > 2) {
         lengthId = loadArgument(calleeId, ArgumentKind::Arg2, flags_);
       } else {
         lengthId = writer.loadUndefined();
@@ -11455,7 +11455,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapSetConstructor(
   MOZ_ASSERT(flags_.isConstructing());
 
   // Must have either no arguments or a single (iterable) argument.
-  if (argc_ > 1) {
+  if (args_.length() > 1) {
     return AttachDecision::NoAction;
   }
 
@@ -11481,7 +11481,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapSetConstructor(
   // Guard callee and newTarget are this Map/Set constructor function.
   ObjOperandId calleeId = emitNativeCalleeGuard();
 
-  if (argc_ == 1) {
+  if (args_.length() == 1) {
     ValOperandId iterableId = loadArgument(calleeId, ArgumentKind::Arg0,
                                            flags_);
     if (native == InlinableNative::MapConstructor) {
@@ -11533,7 +11533,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSpecializedFunctionBind(
   if (target->staticPrototype() != &cx_->global()->getFunctionPrototype()) {
     return AttachDecision::NoAction;
   }
-  size_t numBoundArgs = argc_ > 0 ? argc_ - 1 : 0;
+  size_t numBoundArgs = args_.length() > 0 ? args_.length() - 1 : 0;
   if (numBoundArgs > BoundFunctionObject::MaxInlineBoundArgs) {
     return AttachDecision::NoAction;
   }
@@ -11632,7 +11632,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSpecializedFunctionBind(
                                bound->getNameForInitialShape());
   }
 
-  writer.specializedBindFunctionResult(targetId, argc_, templateObj);
+  writer.specializedBindFunctionResult(targetId, args_.length(), templateObj);
   writer.returnFromIC();
 
   trackAttached("SpecializedFunctionBind");
@@ -11660,12 +11660,13 @@ AttachDecision InlinableNativeIRGenerator::tryAttachFunctionBind() {
   if (hasBoundArguments()) {
     return AttachDecision::NoAction;
   }
+  MOZ_ASSERT(argc_ == args_.length(), "argc_ matches number of arguments");
 
   // Only optimize if the number of arguments is small. This ensures we don't
   // compile a lot of different stubs (because we bake in argc) and that we
   // don't get anywhere near ARGS_LENGTH_MAX.
   static constexpr size_t MaxArguments = 6;
-  if (argc_ > MaxArguments) {
+  if (args_.length() > MaxArguments) {
     return AttachDecision::NoAction;
   }
 
@@ -11692,7 +11693,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachFunctionBind() {
     writer.guardClass(targetId, GuardClassKind::BoundFunction);
   }
 
-  writer.bindFunctionResult(targetId, argc_, templateObj);
+  writer.bindFunctionResult(targetId, args_.length(), templateObj);
   writer.returnFromIC();
 
   trackAttached("FunctionBind");
@@ -11990,7 +11991,7 @@ AttachDecision CallIRGenerator::tryAttachInlinableNative(HandleFunction callee,
 
 #ifdef FUZZING_JS_FUZZILLI
 AttachDecision InlinableNativeIRGenerator::tryAttachFuzzilliHash() {
-  if (argc_ != 1) {
+  if (args_.length() != 1) {
     return AttachDecision::NoAction;
   }
 
