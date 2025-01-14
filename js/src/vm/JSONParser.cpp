@@ -1211,7 +1211,8 @@ inline bool JSONReviveHandler<CharT>::finishCompoundParseRecord(
   if (!parseRecord) {
     return false;
   }
-  return parseRecord->setEntries(context(), parseEntry);
+  parseRecord->setEntries(context(), parseEntry);
+  return true;
 }
 
 template <typename CharT>

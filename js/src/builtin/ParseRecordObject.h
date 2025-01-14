@@ -50,10 +50,11 @@ class ParseRecordObject : public NativeObject {
   bool hasValue() const { return !getValue().isUndefined(); }
 
   // For objects and arrays, the records for the members and elements
-  // (respectively). If there are none, or for JSON primitives, return null.
-  bool getEntries(JSContext* cx, MutableHandle<EntryMap*> entries);
+  // (respectively). If there are none, or for JSON primitives, the entries
+  // parameter is unmodified.
+  void getEntries(JSContext* cx, MutableHandle<EntryMap*> entries);
 
-  bool setEntries(JSContext* cx, Handle<EntryMap*> entries);
+  void setEntries(JSContext* cx, Handle<EntryMap*> entries);
 };
 
 }  // namespace js

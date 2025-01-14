@@ -1794,9 +1794,7 @@ static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
             return false;
           }
         }
-        if (!parseRecord->getEntries(cx, &entries)) {
-          return false;
-        }
+        parseRecord->getEntries(cx, &entries);
       }
     }
     if (!context) {
