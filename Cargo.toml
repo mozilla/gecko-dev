@@ -57,6 +57,9 @@ exclude = [
 # This is required for 'third_party/rust/wgpu-hal'
 resolver = "2"
 
+[workspace.package]
+rust-version = "1.76.0"
+
 [workspace.dependencies]
 # Shared across multiple UniFFI consumers.
 uniffi = "0.28.2"

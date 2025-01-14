@@ -2,3 +2,4 @@
 subsuite = "mozbuild"
 
 ["test_mozconfig.py"]
+["test_msrv.py"]
