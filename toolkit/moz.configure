@@ -2687,7 +2687,11 @@ set_config("NASM_ASFLAGS", nasm_asflags)
 with only_when(compile_environment & target_is_windows):
     set_config("MOZ_ANGLE_RENDERER", True)
 
-    option("--enable-dxcompiler", help="{Enable|Disable} DXC for WebGPU on Windows")
+    option(
+        "--enable-dxcompiler",
+        default=milestone.is_nightly,
+        help="{Enable|Disable} DXC for WebGPU on Windows",
+    )
 
     @depends("--enable-dxcompiler", target, valid_windows_sdk_dir)
     @checking("for dxcompiler.dll and dxil.dll")
