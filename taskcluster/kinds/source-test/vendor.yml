@@ -34,7 +34,7 @@ rust:
     fetches:
         toolchain:
             - linux64-cargo-vet
-            - linux64-rust-1.83
+            - linux64-rust
     when:
         files-changed:
             - 'Cargo.lock'
