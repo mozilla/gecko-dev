@@ -79,7 +79,9 @@ typedef int VAStatus;
 #  define VA_STATUS_SUCCESS 0x00000000
 #endif
 // Use some extra HW frames for potential rendering lags.
-#define EXTRA_HW_FRAMES 6
+// AV1 and VP9 can have maximum 8 frames for reference frames, so 1 base + 8
+// references.
+#define EXTRA_HW_FRAMES 9
 
 #if LIBAVCODEC_VERSION_MAJOR >= 57 && LIBAVUTIL_VERSION_MAJOR >= 56
 #  define CUSTOMIZED_BUFFER_ALLOCATION 1
