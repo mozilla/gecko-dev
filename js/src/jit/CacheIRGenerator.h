@@ -570,6 +570,7 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
   AttachDecision tryAttachCallHook(HandleObject calleeObj);
   AttachDecision tryAttachBoundFunction(Handle<BoundFunctionObject*> calleeObj);
   AttachDecision tryAttachBoundNative(Handle<BoundFunctionObject*> calleeObj);
+  AttachDecision tryAttachBoundFunCall(Handle<BoundFunctionObject*> calleeObj);
 
   void trackAttached(const char* name /* must be a C string literal */);
 

@@ -6330,25 +6330,26 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
   // native from a different realm.
   MOZ_ASSERT(target_->isNativeWithoutJitEntry());
 
-  ObjOperandId calleeObjId;
-  if (flags_.getArgFormat() == CallFlags::Standard) {
-    ValOperandId calleeValId =
-        writer.loadArgumentFixedSlot(ArgumentKind::Callee, argc_, flags_);
-    calleeObjId = writer.guardToObject(calleeValId);
-  } else if (flags_.getArgFormat() == CallFlags::Spread) {
-    ValOperandId calleeValId =
-        writer.loadArgumentFixedSlot(ArgumentKind::Callee, argc_, flags_);
-    calleeObjId = writer.guardToObject(calleeValId);
-  } else if (flags_.getArgFormat() == CallFlags::FunCall) {
-    MOZ_ASSERT(!isCalleeBoundFunction(), "unexpected bound function");
-
-    calleeObjId = generator_.emitFunCallOrApplyGuard(argcId);
-  } else {
-    MOZ_ASSERT(flags_.getArgFormat() == CallFlags::FunApplyArray);
-    MOZ_ASSERT(!isCalleeBoundFunction(), "unexpected bound function");
-
-    calleeObjId = generator_.emitFunApplyGuard(argcId);
+  ValOperandId calleeValId;
+  switch (flags_.getArgFormat()) {
+    case CallFlags::Standard:
+    case CallFlags::Spread:
+      calleeValId =
+          writer.loadArgumentFixedSlot(ArgumentKind::Callee, argc_, flags_);
+      break;
+    case CallFlags::FunCall:
+    case CallFlags::FunApplyArray:
+      calleeValId =
+          writer.loadArgumentDynamicSlot(ArgumentKind::Callee, argcId);
+      break;
+    case CallFlags::Unknown:
+    case CallFlags::FunApplyArgsObj:
+    case CallFlags::FunApplyNullUndefined:
+      MOZ_CRASH("Unsupported arg format");
   }
+
+  // Guard that |callee| is an object.
+  ObjOperandId calleeObjId = writer.guardToObject(calleeValId);
 
   ObjOperandId targetId = calleeObjId;
   if (isCalleeBoundFunction()) {
@@ -6363,6 +6364,32 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
 
     // Load the bound function target.
     targetId = writer.loadBoundFunctionTarget(calleeObjId);
+  }
+
+  if (flags_.getArgFormat() == CallFlags::FunCall ||
+      flags_.getArgFormat() == CallFlags::FunApplyArray) {
+    JSFunction* funCallOrApply;
+    ValOperandId thisValId;
+    if (isCalleeBoundFunction()) {
+      MOZ_ASSERT(flags_.getArgFormat() != CallFlags::FunApplyArray,
+                 "unexpected bound function");
+
+      funCallOrApply =
+          &callee_->as<BoundFunctionObject>().getTarget()->as<JSFunction>();
+      thisValId = writer.loadFixedSlot(
+          calleeObjId, BoundFunctionObject::offsetOfBoundThisSlot());
+    } else {
+      funCallOrApply = &generator_.callee_.toObject().as<JSFunction>();
+      thisValId = writer.loadArgumentDynamicSlot(ArgumentKind::This, argcId);
+    }
+    MOZ_ASSERT(funCallOrApply->native() == fun_call ||
+               funCallOrApply->native() == fun_apply);
+
+    // Guard that |target| is the |fun_call| or |fun_apply| native function.
+    writer.guardSpecificFunction(targetId, funCallOrApply);
+
+    // Guard that |this| is an object.
+    targetId = writer.guardToObject(thisValId);
   }
 
   writer.guardSpecificFunction(targetId, target_);
@@ -6398,7 +6425,7 @@ ObjOperandId InlinableNativeIRGenerator::emitLoadArgsArray() {
 }
 
 ValOperandId InlinableNativeIRGenerator::loadThis(ObjOperandId calleeId) {
-  if (isCalleeBoundFunction()) {
+  if (isCalleeBoundFunction() && flags_.getArgFormat() != CallFlags::FunCall) {
     MOZ_ASSERT(callee_->is<BoundFunctionObject>());
     return writer.loadFixedSlot(calleeId,
                                 BoundFunctionObject::offsetOfBoundThisSlot());
@@ -6412,7 +6439,10 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
   MOZ_ASSERT(kind >= ArgumentKind::Arg0);
 
   if (isCalleeBoundFunction()) {
-    MOZ_ASSERT(flags.getArgFormat() == CallFlags::Standard);
+    MOZ_ASSERT(flags.getArgFormat() == CallFlags::Standard ||
+               flags.getArgFormat() == CallFlags::FunCall);
+    MOZ_ASSERT_IF(flags.getArgFormat() == CallFlags::FunCall,
+                  !hasBoundArguments());
 
     size_t numBoundArgs = callee_->as<BoundFunctionObject>().numBoundArgs();
     size_t argIndex = uint8_t(kind) - uint8_t(ArgumentKind::Arg0);
@@ -13069,6 +13099,75 @@ AttachDecision CallIRGenerator::tryAttachBoundNative(
   return nativeGen.tryAttachStub();
 }
 
+AttachDecision CallIRGenerator::tryAttachBoundFunCall(
+    Handle<BoundFunctionObject*> calleeObj) {
+  // Only optimize fun_call for simple calls.
+  if (op_ != JSOp::Call && op_ != JSOp::CallContent &&
+      op_ != JSOp::CallIgnoresRv) {
+    return AttachDecision::NoAction;
+  }
+
+  // The target must be a native JSFunction to fun_call.
+  JSObject* boundTarget = calleeObj->getTarget();
+  if (!boundTarget->is<JSFunction>()) {
+    return AttachDecision::NoAction;
+  }
+  auto* boundTargetFn = &boundTarget->as<JSFunction>();
+
+  bool isScripted = boundTargetFn->hasJitEntry();
+  MOZ_ASSERT_IF(!isScripted, boundTargetFn->isNativeWithoutJitEntry());
+
+  if (isScripted || boundTargetFn->native() != fun_call) {
+    return AttachDecision::NoAction;
+  }
+
+  // Don't try to optimize when we're already megamorphic.
+  if (mode_ != ICState::Mode::Specialized) {
+    return AttachDecision::NoAction;
+  }
+
+  // Additional bound arguments aren't yet supported.
+  if (calleeObj->numBoundArgs() != 0) {
+    return AttachDecision::NoAction;
+  }
+
+  JSFunction* boundThis;
+  if (!IsFunctionObject(calleeObj->getBoundThis(), &boundThis)) {
+    return AttachDecision::NoAction;
+  }
+
+  bool boundThisIsScripted = boundThis->hasJitEntry();
+  MOZ_ASSERT_IF(!boundThisIsScripted, boundThis->isNativeWithoutJitEntry());
+
+  if (boundThisIsScripted) {
+    return AttachDecision::NoAction;
+  }
+
+  // We need at least one argument to reuse the current stack layout. See also
+  // tryAttachFunCall().
+
+  if (argc_ == 0) {
+    return AttachDecision::NoAction;
+  }
+
+  CallFlags targetFlags(CallFlags::FunCall);
+  if (cx_->realm() == boundThis->realm()) {
+    targetFlags.setIsSameRealm();
+  }
+
+  Rooted<JSFunction*> target(cx_, boundThis);
+  HandleValue newTarget = NullHandleValue;
+  HandleValue thisValue = args_[0];
+  HandleValueArray args =
+      HandleValueArray::subarray(args_, 1, args_.length() - 1);
+  uint32_t argc = argc_ - 1;
+
+  // Check for specific native-function optimizations.
+  InlinableNativeIRGenerator nativeGen(*this, calleeObj, target, newTarget,
+                                       thisValue, args, argc, targetFlags);
+  return nativeGen.tryAttachStub();
+}
+
 AttachDecision CallIRGenerator::tryAttachStub() {
   AutoAssertNoPendingException aanpe(cx_);
 
@@ -13103,6 +13202,7 @@ AttachDecision CallIRGenerator::tryAttachStub() {
 
     TRY_ATTACH(tryAttachBoundFunction(boundCalleeObj));
     TRY_ATTACH(tryAttachBoundNative(boundCalleeObj));
+    TRY_ATTACH(tryAttachBoundFunCall(boundCalleeObj));
   }
   if (!calleeObj->is<JSFunction>()) {
     return tryAttachCallHook(calleeObj);
