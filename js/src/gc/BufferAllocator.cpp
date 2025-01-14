@@ -31,7 +31,6 @@ static constexpr size_t MinMediumAllocSize =
     1 << BufferAllocator::MinMediumAllocShift;
 static constexpr size_t MaxMediumAllocSize =
     1 << BufferAllocator::MaxMediumAllocShift;
-static constexpr size_t MinLargeAllocSize = MaxMediumAllocSize + PageSize;
 
 #ifdef DEBUG
 // Magic check values used debug builds.
@@ -523,13 +522,16 @@ bool BufferAllocator::isEmpty() const {
 }
 
 /* static */
-bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
-  return mozilla::RoundUpPow2(bytes + sizeof(SmallBuffer)) < MinMediumAllocSize;
+bool BufferAllocator::IsLargeAllocSize(size_t bytes) {
+  return RoundUp(bytes + sizeof(MediumBuffer), PageSize) > MaxMediumAllocSize;
 }
 
 /* static */
-bool BufferAllocator::IsLargeAllocSize(size_t bytes) {
-  return RoundUp(bytes + sizeof(MediumBuffer), PageSize) >= MinLargeAllocSize;
+bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
+  // Check for large alloc size first otherwise this may overflow.
+  MOZ_ASSERT(!IsLargeAllocSize(bytes));
+
+  return mozilla::RoundUpPow2(bytes + sizeof(SmallBuffer)) < MinMediumAllocSize;
 }
 
 /* static */
@@ -584,15 +586,15 @@ size_t BufferAllocator::GetGoodPower2ElementCount(size_t requiredElements,
 void* BufferAllocator::alloc(size_t bytes, bool nurseryOwned) {
   MOZ_ASSERT_IF(zone->isGCMarkingOrSweeping(), majorState == State::Marking);
 
+  if (IsLargeAllocSize(bytes)) {
+    return allocLarge(bytes, nurseryOwned, false);
+  }
+
   if (IsSmallAllocSize(bytes)) {
     return allocSmall(bytes, nurseryOwned);
   }
 
-  if (!IsLargeAllocSize(bytes)) {
-    return allocMedium(bytes, nurseryOwned, false);
-  }
-
-  return allocLarge(bytes, nurseryOwned, false);
+  return allocMedium(bytes, nurseryOwned, false);
 }
 
 void* BufferAllocator::allocInGC(size_t bytes, bool nurseryOwned) {
@@ -602,10 +604,10 @@ void* BufferAllocator::allocInGC(size_t bytes, bool nurseryOwned) {
   MOZ_ASSERT_IF(zone->isGCMarkingOrSweeping(), majorState == State::Marking);
 
   void* result;
-  if (IsSmallAllocSize(bytes)) {
-    result = allocSmallInGC(bytes, nurseryOwned);
-  } else if (IsLargeAllocSize(bytes)) {
+  if (IsLargeAllocSize(bytes)) {
     result = allocLarge(bytes, nurseryOwned, true);
+  } else if (IsSmallAllocSize(bytes)) {
+    result = allocSmallInGC(bytes, nurseryOwned);
   } else {
     result = allocMedium(bytes, nurseryOwned, true);
   }
@@ -1508,6 +1510,7 @@ AllocKind BufferAllocator::AllocKindForSmallAlloc(size_t bytes) {
 
   size_t totalBytes = bytes + sizeof(SmallBuffer);
   MOZ_ASSERT(totalBytes < MinMediumAllocSize);
+  MOZ_ASSERT(totalBytes >= bytes);
 
   size_t logBytes = mozilla::CeilingLog2(totalBytes);
   MOZ_ASSERT(totalBytes <= (size_t(1) << logBytes));
@@ -1533,6 +1536,8 @@ bool BufferAllocator::IsSmallAlloc(void* alloc) {
 void* BufferAllocator::allocMedium(size_t bytes, bool nurseryOwned, bool inGC) {
   // Get size class from |bytes|.
   size_t totalBytes = mozilla::RoundUpPow2(bytes + sizeof(MediumBuffer));
+  MOZ_ASSERT(totalBytes >= bytes);
+
   size_t sizeClass = SizeClassForAlloc(totalBytes);
   MOZ_ASSERT(SizeClassBytes(sizeClass) ==
              GetGoodAllocSize(bytes) + sizeof(MediumBuffer));
@@ -2207,7 +2212,7 @@ BufferAllocator::FreeRegion* BufferAllocator::findPrecedingFreeRegion(
 /* static */
 size_t BufferAllocator::SizeClassForAlloc(size_t bytes) {
   MOZ_ASSERT(bytes >= MinMediumAllocSize);
-  MOZ_ASSERT(bytes < MinLargeAllocSize);
+  MOZ_ASSERT(bytes <= MaxMediumAllocSize);
 
   size_t log2Size = mozilla::CeilingLog2(bytes);
   MOZ_ASSERT((size_t(1) << log2Size) >= bytes);
@@ -2247,7 +2252,8 @@ bool BufferAllocator::IsMediumAlloc(void* alloc) {
 
 void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
   size_t totalBytes = RoundUp(bytes + sizeof(LargeBuffer), PageSize);
-  MOZ_ASSERT(totalBytes >= MinLargeAllocSize);
+  MOZ_ASSERT(totalBytes > MaxMediumAllocSize);
+  MOZ_ASSERT(totalBytes >= bytes);
 
   // Large allocations are aligned to the chunk size, even if they are smaller
   // than a chunk. This allows us to tell large from small allocations by
