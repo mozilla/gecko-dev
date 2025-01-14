@@ -1796,8 +1796,7 @@ static bool SetTypedArrayFromArrayLike(JSContext* cx,
 // 23.2.3.24 %TypedArray%.prototype.set ( source [ , offset ] )
 // 23.2.3.24.1 SetTypedArrayFromTypedArray ( target, targetOffset, source )
 // 23.2.3.24.2 SetTypedArrayFromArrayLike ( target, targetOffset, source )
-/* static */
-bool TypedArrayObject::set_impl(JSContext* cx, const CallArgs& args) {
+static bool TypedArray_set(JSContext* cx, const CallArgs& args) {
   MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
 
   // Steps 1-3 (Validation performed as part of CallNonGenericMethod).
@@ -1865,17 +1864,14 @@ bool TypedArrayObject::set_impl(JSContext* cx, const CallArgs& args) {
   return true;
 }
 
-/* static */
-bool TypedArrayObject::set(JSContext* cx, unsigned argc, Value* vp) {
+static bool TypedArray_set(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsTypedArrayObject, TypedArrayObject::set_impl>(
-      cx, args);
+  return CallNonGenericMethod<IsTypedArrayObject, TypedArray_set>(cx, args);
 }
 
 // ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
 // 22.2.3.5 %TypedArray%.prototype.copyWithin ( target, start [ , end ] )
-/* static */
-bool TypedArrayObject::copyWithin_impl(JSContext* cx, const CallArgs& args) {
+static bool TypedArray_copyWithin(JSContext* cx, const CallArgs& args) {
   MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
 
   // Steps 1-2.
@@ -2021,13 +2017,12 @@ bool TypedArrayObject::copyWithin_impl(JSContext* cx, const CallArgs& args) {
   return true;
 }
 
-/* static */
-bool TypedArrayObject::copyWithin(JSContext* cx, unsigned argc, Value* vp) {
+static bool TypedArray_copyWithin(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype",
                                         "copyWithin");
   CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsTypedArrayObject,
-                              TypedArrayObject::copyWithin_impl>(cx, args);
+  return CallNonGenericMethod<IsTypedArrayObject, TypedArray_copyWithin>(cx,
+                                                                         args);
 }
 
 template <typename ExternalType, typename NativeType>
@@ -2994,6 +2989,82 @@ static bool TypedArray_fill(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype", "fill");
   CallArgs args = CallArgsFromVp(argc, vp);
   return CallNonGenericMethod<IsTypedArrayObject, TypedArray_fill>(cx, args);
+}
+
+template <typename Ops, typename NativeType>
+static void TypedArrayReverse(TypedArrayObject* tarray, size_t len) {
+  MOZ_RELEASE_ASSERT(len > 0);
+  MOZ_RELEASE_ASSERT(len <= tarray->length().valueOr(0));
+
+  SharedMem<NativeType*> lower =
+      Ops::extract(tarray).template cast<NativeType*>();
+  SharedMem<NativeType*> upper = lower + (len - 1);
+  for (; lower < upper; lower++, upper--) {
+    NativeType lowerValue = Ops::load(lower);
+    NativeType upperValue = Ops::load(upper);
+
+    Ops::store(lower, upperValue);
+    Ops::store(upper, lowerValue);
+  }
+}
+
+template <typename NativeType>
+static void TypedArrayReverse(TypedArrayObject* tarray, size_t len) {
+  if (tarray->isSharedMemory()) {
+    TypedArrayReverse<SharedOps, NativeType>(tarray, len);
+  } else {
+    TypedArrayReverse<UnsharedOps, NativeType>(tarray, len);
+  }
+}
+
+/**
+ * %TypedArray%.prototype.reverse ( )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_reverse(JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
+
+  // Steps 1-3.
+  Rooted<TypedArrayObject*> tarray(
+      cx, &args.thisv().toObject().as<TypedArrayObject>());
+
+  auto arrayLength = tarray->length();
+  if (!arrayLength) {
+    ReportOutOfBounds(cx, tarray);
+    return false;
+  }
+  size_t len = *arrayLength;
+
+  // Steps 4-6.
+  if (len > 1) {
+    switch (tarray->type()) {
+#define TYPED_ARRAY_REVERSE(_, NativeType, Name) \
+  case Scalar::Name:                             \
+    TypedArrayReverse<NativeType>(tarray, len);  \
+    break;
+      JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_REVERSE)
+#undef TYPED_ARRAY_REVERSE
+      default:
+        MOZ_CRASH("Unsupported TypedArray type");
+    }
+  }
+
+  // Step 7.
+  args.rval().setObject(*tarray);
+  return true;
+}
+
+/**
+ * %TypedArray%.prototype.reverse ( )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_reverse(JSContext* cx, unsigned argc, Value* vp) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype",
+                                        "reverse");
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsTypedArrayObject, TypedArray_reverse>(cx, args);
 }
 
 // Byte vector with large enough inline storage to allow constructing small
@@ -4085,8 +4156,8 @@ static bool uint8array_toHex(JSContext* cx, unsigned argc, Value* vp) {
 
 /* static */ const JSFunctionSpec TypedArrayObject::protoFunctions[] = {
     JS_SELF_HOSTED_FN("subarray", "TypedArraySubarray", 2, 0),
-    JS_FN("set", TypedArrayObject::set, 1, 0),
-    JS_FN("copyWithin", TypedArrayObject::copyWithin, 2, 0),
+    JS_FN("set", TypedArray_set, 1, 0),
+    JS_FN("copyWithin", TypedArray_copyWithin, 2, 0),
     JS_SELF_HOSTED_FN("every", "TypedArrayEvery", 1, 0),
     JS_FN("fill", TypedArray_fill, 1, 0),
     JS_SELF_HOSTED_FN("filter", "TypedArrayFilter", 1, 0),
@@ -4101,7 +4172,7 @@ static bool uint8array_toHex(JSContext* cx, unsigned argc, Value* vp) {
     JS_SELF_HOSTED_FN("map", "TypedArrayMap", 1, 0),
     JS_SELF_HOSTED_FN("reduce", "TypedArrayReduce", 1, 0),
     JS_SELF_HOSTED_FN("reduceRight", "TypedArrayReduceRight", 1, 0),
-    JS_SELF_HOSTED_FN("reverse", "TypedArrayReverse", 0, 0),
+    JS_FN("reverse", TypedArray_reverse, 0, 0),
     JS_SELF_HOSTED_FN("slice", "TypedArraySlice", 2, 0),
     JS_SELF_HOSTED_FN("some", "TypedArraySome", 1, 0),
     JS_TRAMPOLINE_FN("sort", TypedArrayObject::sort, 1, 0, TypedArraySort),
