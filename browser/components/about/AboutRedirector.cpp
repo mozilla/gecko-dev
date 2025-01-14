@@ -8,10 +8,12 @@
 #include "AboutRedirector.h"
 #include "nsNetUtil.h"
 #include "nsIAboutNewTabService.h"
+#include "nsIAppStartup.h"
 #include "nsIChannel.h"
 #include "nsIURI.h"
 #include "nsIProtocolHandler.h"
 #include "nsServiceManagerUtils.h"
+#include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/ContentChild.h"
 
@@ -227,10 +229,20 @@ AboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
     }
   }
 
-  if ((path.EqualsASCII("profilemanager") || path.EqualsASCII("editprofile") ||
-       path.EqualsASCII("deleteprofile") || path.EqualsASCII("newprofile")) &&
+  if ((path.EqualsASCII("editprofile") || path.EqualsASCII("deleteprofile") ||
+       path.EqualsASCII("newprofile")) &&
       !mozilla::Preferences::GetBool(PROFILES_ENABLED_PREF, false)) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  if (path.EqualsASCII("profilemanager") &&
+      !mozilla::Preferences::GetBool(PROFILES_ENABLED_PREF, false)) {
+    bool startingUp;
+    nsCOMPtr<nsIAppStartup> appStartup(
+        mozilla::components::AppStartup::Service());
+    if (NS_FAILED(appStartup->GetStartingUp(&startingUp)) || !startingUp) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
   }
 
   for (auto& redir : kRedirMap) {
