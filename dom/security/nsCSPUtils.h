@@ -197,6 +197,7 @@ class nsCSPHostSrc;
 
 nsCSPHostSrc* CSP_CreateHostSrcFromSelfURI(nsIURI* aSelfURI);
 bool CSP_IsEmptyDirective(const nsAString& aValue, const nsAString& aDir);
+bool CSP_IsInvalidDirectiveValue(mozilla::Span<const char16_t> aValue);
 bool CSP_IsDirective(const nsAString& aValue, CSPDirective aDir);
 bool CSP_IsKeyword(const nsAString& aValue, enum CSPKeyword aKey);
 bool CSP_IsQuotelessKeyword(const nsAString& aKey);

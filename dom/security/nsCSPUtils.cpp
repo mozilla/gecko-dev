@@ -437,6 +437,16 @@ nsCSPHostSrc* CSP_CreateHostSrcFromSelfURI(nsIURI* aSelfURI) {
 bool CSP_IsEmptyDirective(const nsAString& aValue, const nsAString& aDir) {
   return (aDir.Length() == 0 && aValue.Length() == 0);
 }
+
+bool CSP_IsInvalidDirectiveValue(mozilla::Span<const char16_t> aValue) {
+  for (char16_t c : aValue) {
+    if (!(c >= 0x21 && c <= 0x7E)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool CSP_IsDirective(const nsAString& aValue, CSPDirective aDir) {
   return aValue.LowerCaseEqualsASCII(CSP_CSPDirectiveToString(aDir));
 }

@@ -1322,19 +1322,21 @@ nsCSPPolicy* nsCSPParser::policy() {
   for (uint32_t i = 0; i < mTokens.Length(); i++) {
     // https://w3c.github.io/webappsec-csp/#parse-serialized-policy
     // Step 2.2. ..., or if token is not an ASCII string, continue.
+    // https://w3c.github.io/webappsec-csp/#grammardef-directive-value
+    // Also, if token contains characters outside 0x21-0x7E, continue.
     //
     // Note: In the spec the token isn't split by whitespace yet.
-    bool isAscii = true;
+    bool isValid = true;
     for (const auto& token : mTokens[i]) {
-      if (!IsAscii(token)) {
+      if (CSP_IsInvalidDirectiveValue(token)) {
         AutoTArray<nsString, 1> params = {mTokens[i][0], token};
         logWarningErrorToConsole(nsIScriptError::warningFlag,
-                                 "ignoringNonAsciiToken", params);
-        isAscii = false;
+                                 "ignoringInvalidToken", params);
+        isValid = false;
         break;
       }
     }
-    if (!isAscii) {
+    if (!isValid) {
       continue;
     }
 
