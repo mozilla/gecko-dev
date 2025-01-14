@@ -29,6 +29,7 @@
     'mips_msa%': 0,  # Default to msa off.
     'build_neon': 0,
     'build_msa': 0,
+    'build_lsx': 0,
     'conditions': [
        ['(target_arch == "armv7" or target_arch == "armv7s" or \
        (target_arch == "arm" and arm_version >= 7) or target_arch == "arm64")\
@@ -52,7 +53,7 @@
         'optimize': 'max',  # enable O2 and ltcg.
       },
       # Allows libyuv.a redistributable library without external dependencies.
-      'standalone_static_library': 1,
+      # 'standalone_static_library': 1,
       'conditions': [
        # Disable -Wunused-parameter
         ['clang == 1', {
@@ -70,6 +71,9 @@
             '-mfpu=vfpv3-d16',
             # '-mthumb',  # arm32 not thumb
           ],
+          'cflags_mozilla!': [
+            '<@(moz_neon_cflags_block_list)',
+          ],
           'conditions': [
             # Disable LTO in libyuv_neon target due to gcc 4.9 compiler bug.
             ['clang == 0 and use_lto == 1', {
@@ -84,6 +88,9 @@
                 '-mfpu=neon',
                 # '-marm',  # arm32 not thumb
               ],
+              'cflags_mozilla': [
+                '-mfpu=neon',
+              ],
             }],
           ],
         }],
@@ -92,7 +99,24 @@
             'LIBYUV_MSA',
           ],
         }],
-        ['OS != "ios" and libyuv_disable_jpeg != 1', {
+        ['build_lsx == 0', {
+          'conditions': [
+            ['target_arch == "loongarch64"', {
+              'cflags_mozilla': [
+                '-mno-lsx',
+              ],
+            }],
+          ],
+        }],
+        ['build_with_mozilla == 1', {
+          'defines': [
+            'HAVE_JPEG'
+          ],
+          'cflags_mozilla': [
+            '$(MOZ_JPEG_CFLAGS)',
+          ],
+        }],
+        ['OS != "ios" and libyuv_disable_jpeg != 1 and build_with_mozilla != 1', {
           'defines': [
             'HAVE_JPEG'
           ],
@@ -118,6 +142,7 @@
         }],
       ], #conditions
       'defines': [
+        'LIBYUV_DISABLE_SME',
         # Enable the following 3 macros to turn off assembly for specified CPU.
         # 'LIBYUV_DISABLE_X86',
         # 'LIBYUV_DISABLE_NEON',
@@ -146,11 +171,94 @@
               '-Wl,--dynamic-linker,/system/bin/linker',
             ],
           }],
+          ['target_arch == "armv7" or target_arch == "arm64" and moz_have_arm_i8mm_and_dot_prod == 1 and build_with_mozilla == 1', {
+            'dependencies': [
+                 ':libyuv_neon',
+            ],
+          }],
+          ['target_arch == "arm64" and moz_have_arm_sve2 == 1 and build_with_mozilla == 1', {
+            'dependencies': [
+                 ':libyuv_sve',
+            ],
+            'defines' :[
+              'LIBYUV_SVE',
+            ]
+          }],
+          ['target_arch == "arm64" and moz_have_arm_sve2 == 1 and build_with_mozilla == 1', {
+            'dependencies': [
+                 ':libyuv_sve',
+            ],
+            'defines' :[
+              'LIBYUV_SVE',
+            ]
+          }],
         ], #conditions
       },
       'sources': [
         '<@(libyuv_sources)',
       ],
+    },
+    {
+      'target_name': 'libyuv_neon',
+      'type': 'static_library',
+      'variables': {
+        'optimize': 'max',  # enable O2 and ltcg.
+      },
+      'conditions': [
+        ['target_arch == "arm64" and moz_have_arm_i8mm_and_dot_prod == 1 and build_with_mozilla == 1', {
+          'cflags_mozilla': [
+            '-march=armv8.2-a+dotprod+i8mm',
+          ],
+        }],
+        ['build_neon != 0', {
+          'cflags_mozilla!': [
+            '<@(moz_neon_cflags_block_list)',
+          ],
+          'sources': [
+            '<@(libyuv_neon_sources)',
+          ],
+        }],
+     ], #conditions
+      'include_dirs': [
+        'include',
+        '.',
+      ],
+      'direct_dependent_settings': {
+        'include_dirs': [
+          'include',
+          '.',
+        ], #conditions
+      },
+    },
+    {
+      'target_name': 'libyuv_sve',
+      'type': 'static_library',
+      'variables': {
+        'optimize': 'max',  # enable O2 and ltcg.
+      },
+      'conditions': [
+        ['target_arch == "arm64" and moz_have_arm_sve2 == 1 and build_with_mozilla == 1', {
+          'cflags_mozilla!': [
+            '<@(moz_neon_cflags_block_list)',
+          ],
+          'cflags_mozilla': [
+            '-march=armv9-a+dotprod+sve2+i8mm',
+          ],
+          'sources': [
+            '<@(libyuv_sve_sources)',
+          ],
+        }],
+     ], #conditions
+      'include_dirs': [
+        'include',
+        '.',
+      ],
+      'direct_dependent_settings': {
+        'include_dirs': [
+          'include',
+          '.',
+        ], #conditions
+      },
     },
   ], # targets.
 }
