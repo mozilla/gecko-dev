@@ -440,7 +440,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
     if (mir->trapOnError()) {
       Label nonZero;
       masm.ma_b(rhs, rhs, &nonZero, Assembler::NonZero);
-      masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
+      masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
       masm.bind(&nonZero);
     } else if (mir->canTruncateInfinities()) {
       // Truncated division by zero is zero (Infinity|0 == 0)
@@ -465,7 +465,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
     if (mir->trapOnError()) {
       Label ok;
       masm.ma_b(rhs, temp, &ok, Assembler::NotEqual);
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->bytecodeOffset());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, mir->trapSiteDesc());
       masm.bind(&ok);
     } else if (mir->canTruncateOverflow()) {
       // (-INT32_MIN)|0 == INT32_MIN
@@ -596,7 +596,7 @@ void CodeGenerator::visitModI(LModI* ins) {
       if (mir->trapOnError()) {
         Label nonZero;
         masm.ma_b(rhs, rhs, &nonZero, Assembler::NonZero);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->bytecodeOffset());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, mir->trapSiteDesc());
         masm.bind(&nonZero);
       } else {
         Label skip;
@@ -1086,14 +1086,14 @@ void CodeGeneratorMIPSShared::visitOutOfLineBailout(OutOfLineBailout* ool) {
 void CodeGeneratorMIPSShared::visitOutOfLineWasmTruncateCheck(
     OutOfLineWasmTruncateCheck* ool) {
   if (ool->toType() == MIRType::Int32) {
-    masm.outOfLineWasmTruncateToInt32Check(
-        ool->input(), ool->output(), ool->fromType(), ool->flags(),
-        ool->rejoin(), ool->bytecodeOffset());
+    masm.outOfLineWasmTruncateToInt32Check(ool->input(), ool->output(),
+                                           ool->fromType(), ool->flags(),
+                                           ool->rejoin(), ool->trapSiteDesc());
   } else {
     MOZ_ASSERT(ool->toType() == MIRType::Int64);
-    masm.outOfLineWasmTruncateToInt64Check(
-        ool->input(), ool->output64(), ool->fromType(), ool->flags(),
-        ool->rejoin(), ool->bytecodeOffset());
+    masm.outOfLineWasmTruncateToInt64Check(ool->input(), ool->output64(),
+                                           ool->fromType(), ool->flags(),
+                                           ool->rejoin(), ool->trapSiteDesc());
   }
 }
 
@@ -1788,7 +1788,7 @@ void CodeGenerator::visitUDivOrMod(LUDivOrMod* ins) {
       if (ins->trapOnError()) {
         Label nonZero;
         masm.ma_b(rhs, rhs, &nonZero, Assembler::NonZero);
-        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, ins->bytecodeOffset());
+        masm.wasmTrap(wasm::Trap::IntegerDivideByZero, ins->trapSiteDesc());
         masm.bind(&nonZero);
       } else {
         // Infinity|0 == 0
@@ -1875,7 +1875,7 @@ void CodeGenerator::visitWasmAddOffset(LWasmAddOffset* lir) {
   Label ok;
   masm.ma_add32TestCarry(Assembler::CarryClear, out, base, Imm32(mir->offset()),
                          &ok);
-  masm.wasmTrap(wasm::Trap::OutOfBounds, mir->bytecodeOffset());
+  masm.wasmTrap(wasm::Trap::OutOfBounds, mir->trapSiteDesc());
   masm.bind(&ok);
 }
 
@@ -1887,7 +1887,7 @@ void CodeGenerator::visitWasmAddOffset64(LWasmAddOffset64* lir) {
   Label ok;
   masm.ma_addPtrTestCarry(Assembler::CarryClear, out.reg, base.reg,
                           ImmWord(mir->offset()), &ok);
-  masm.wasmTrap(wasm::Trap::OutOfBounds, mir->bytecodeOffset());
+  masm.wasmTrap(wasm::Trap::OutOfBounds, mir->trapSiteDesc());
   masm.bind(&ok);
 }
 

@@ -81,7 +81,7 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   if (lir->canBeDivideByZero()) {
     Label nonZero;
     masm.branchTest64(Assembler::NonZero, rhs, rhs, InvalidReg, &nonZero);
-    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->bytecodeOffset());
+    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->trapSiteDesc());
     masm.bind(&nonZero);
   }
 
@@ -93,7 +93,7 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
     if (lir->mir()->isMod()) {
       masm.xor64(output, output);
     } else {
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, lir->bytecodeOffset());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, lir->trapSiteDesc());
     }
     masm.jump(&done);
     masm.bind(&notOverflow);
@@ -107,9 +107,9 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
 
   MOZ_ASSERT(gen->compilingWasm());
   if (lir->mir()->isMod()) {
-    masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::ModI64);
+    masm.callWithABI(lir->trapSiteDesc(), wasm::SymbolicAddress::ModI64);
   } else {
-    masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::DivI64);
+    masm.callWithABI(lir->trapSiteDesc(), wasm::SymbolicAddress::DivI64);
   }
   MOZ_ASSERT(ReturnReg64 == output);
 
@@ -126,7 +126,7 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   if (lir->canBeDivideByZero()) {
     Label nonZero;
     masm.branchTest64(Assembler::NonZero, rhs, rhs, InvalidReg, &nonZero);
-    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->bytecodeOffset());
+    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->trapSiteDesc());
     masm.bind(&nonZero);
   }
 
@@ -138,9 +138,9 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
 
   MOZ_ASSERT(gen->compilingWasm());
   if (lir->mir()->isMod()) {
-    masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::UModI64);
+    masm.callWithABI(lir->trapSiteDesc(), wasm::SymbolicAddress::UModI64);
   } else {
-    masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::UDivI64);
+    masm.callWithABI(lir->trapSiteDesc(), wasm::SymbolicAddress::UDivI64);
   }
 }
 
@@ -305,10 +305,10 @@ void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
     masm.passABIArg(arg, ABIType::Float64);
 
     if (lir->mir()->isUnsigned()) {
-      masm.callWithABI(mir->bytecodeOffset(),
+      masm.callWithABI(mir->trapSiteDesc(),
                        wasm::SymbolicAddress::TruncateDoubleToUint64);
     } else {
-      masm.callWithABI(mir->bytecodeOffset(),
+      masm.callWithABI(mir->trapSiteDesc(),
                        wasm::SymbolicAddress::TruncateDoubleToInt64);
     }
 
@@ -323,10 +323,10 @@ void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
     masm.setupWasmABICall();
     masm.passABIArg(arg, ABIType::Float64);
     if (lir->mir()->isUnsigned()) {
-      masm.callWithABI(mir->bytecodeOffset(),
+      masm.callWithABI(mir->trapSiteDesc(),
                        wasm::SymbolicAddress::SaturatingTruncateDoubleToUint64);
     } else {
-      masm.callWithABI(mir->bytecodeOffset(),
+      masm.callWithABI(mir->trapSiteDesc(),
                        wasm::SymbolicAddress::SaturatingTruncateDoubleToInt64);
     }
   }
@@ -347,19 +347,19 @@ void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
 
   if (lir->mir()->isUnsigned()) {
     if (toType == MIRType::Double) {
-      masm.callWithABI(mir->bytecodeOffset(),
+      masm.callWithABI(mir->trapSiteDesc(),
                        wasm::SymbolicAddress::Uint64ToDouble, ABIType::Float64);
     } else {
-      masm.callWithABI(mir->bytecodeOffset(),
+      masm.callWithABI(mir->trapSiteDesc(),
                        wasm::SymbolicAddress::Uint64ToFloat32,
                        ABIType::Float32);
     }
   } else {
     if (toType == MIRType::Double) {
-      masm.callWithABI(mir->bytecodeOffset(),
+      masm.callWithABI(mir->trapSiteDesc(),
                        wasm::SymbolicAddress::Int64ToDouble, ABIType::Float64);
     } else {
-      masm.callWithABI(mir->bytecodeOffset(),
+      masm.callWithABI(mir->trapSiteDesc(),
                        wasm::SymbolicAddress::Int64ToFloat32, ABIType::Float32);
     }
   }

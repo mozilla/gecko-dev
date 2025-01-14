@@ -139,7 +139,7 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   if (lir->canBeDivideByZero()) {
     Label nonZero;
     masm.ma_b(rhs, rhs, &nonZero, Assembler::NonZero);
-    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->bytecodeOffset());
+    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->trapSiteDesc());
     masm.bind(&nonZero);
   }
 
@@ -151,7 +151,7 @@ void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
     if (lir->mir()->isMod()) {
       masm.ma_xor(output, output);
     } else {
-      masm.wasmTrap(wasm::Trap::IntegerOverflow, lir->bytecodeOffset());
+      masm.wasmTrap(wasm::Trap::IntegerOverflow, lir->trapSiteDesc());
     }
     masm.jump(&done);
     masm.bind(&notOverflow);
@@ -185,7 +185,7 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   if (lir->canBeDivideByZero()) {
     Label nonZero;
     masm.ma_b(rhs, rhs, &nonZero, Assembler::NonZero);
-    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->bytecodeOffset());
+    masm.wasmTrap(wasm::Trap::IntegerDivideByZero, lir->trapSiteDesc());
     masm.bind(&nonZero);
   }
 
