@@ -190,9 +190,9 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   static constexpr size_t MediumAllocClasses =
       MaxMediumAllocShift - MinMediumAllocShift + 1;
 
- private:
-  class AutoLockAllocator;
+  class AutoLock;
 
+ private:
   using BufferChunkList = SlimLinkedList<BufferChunk>;
 
   struct FreeRegion;
@@ -245,10 +245,6 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   // The zone this allocator is associated with.
   MainThreadOrGCTaskData<JS::Zone*> zone;
-
-  // Mutex used to synchronise data passed back to the main thread by background
-  // sweeping.
-  Mutex lock MOZ_UNANNOTATED;
 
   // Chunks that contain medium buffers. May contain both nursery-owned and
   // tenured-owned buffers.
@@ -351,6 +347,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   // being swept on another thread.
   bool isPointerWithinMediumOrLargeBuffer(void* ptr);
 
+  Mutex& lock() const;
+
   size_t getSizeOfNurseryBuffers();
 
   void addSizeOfExcludingThis(size_t* usedBytesOut, size_t* freeBytesOut,
@@ -366,7 +364,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
 #ifdef DEBUG
   void checkGCStateNotInUse();
-  void checkGCStateNotInUse(const AutoLockAllocator& lock);
+  void checkGCStateNotInUse(const AutoLock& lock);
 #endif
 
  private:

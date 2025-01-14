@@ -497,6 +497,7 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       lock(mutexid::GCLock),
       storeBufferLock(mutexid::StoreBuffer),
       delayedMarkingLock(mutexid::GCDelayedMarkingLock),
+      bufferAllocatorLock(mutexid::BufferAllocator),
       allocTask(this, emptyChunks_.ref()),
       unmarkTask(this),
       markTask(this),

@@ -50,6 +50,7 @@ class AutoCallGCCallbacks;
 class AutoGCSession;
 class AutoHeapSession;
 class AutoTraceSession;
+class BufferAllocator;
 struct FinalizePhase;
 class MarkingValidator;
 struct MovingTracer;
@@ -1428,6 +1429,13 @@ class GCRuntime {
 
   /* Lock used to synchronise access to delayed marking state. */
   Mutex delayedMarkingLock MOZ_UNANNOTATED;
+
+  /*
+   * Lock used by buffer allocators to synchronise data passed back to the main
+   * thread by background sweeping.
+   */
+  Mutex bufferAllocatorLock MOZ_UNANNOTATED;
+  friend class BufferAllocator;
 
   friend class BackgroundSweepTask;
   friend class BackgroundFreeTask;

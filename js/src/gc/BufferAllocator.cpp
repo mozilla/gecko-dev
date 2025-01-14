@@ -164,10 +164,10 @@ class alignas(CellAlignBytes) LargeBuffer
 };
 
 // An RAII guard to lock and unlock BufferAllocator::lock.
-class BufferAllocator::AutoLockAllocator : public LockGuard<Mutex> {
+class BufferAllocator::AutoLock : public LockGuard<Mutex> {
  public:
-  explicit AutoLockAllocator(BufferAllocator* allocator)
-      : LockGuard(allocator->lock) {}
+  explicit AutoLock(BufferAllocator* allocator)
+      : LockGuard(allocator->lock()) {}
 };
 
 // Describes a free region in a buffer chunk. This structure is stored at the
@@ -490,15 +490,14 @@ size_t BufferChunk::findPrevAllocated(uintptr_t offset) const {
 
 BufferAllocator::BufferAllocator(Zone* zone)
     : zone(zone),
-      lock(mutexid::BufferAllocator),
-      sweptMediumMixedChunks(lock),
-      sweptMediumTenuredChunks(lock),
-      sweptMediumNurseryFreeLists(lock),
-      sweptMediumTenuredFreeLists(lock),
-      sweptLargeTenuredAllocs(lock),
+      sweptMediumMixedChunks(lock()),
+      sweptMediumTenuredChunks(lock()),
+      sweptMediumNurseryFreeLists(lock()),
+      sweptMediumTenuredFreeLists(lock()),
+      sweptLargeTenuredAllocs(lock()),
       minorState(State::NotCollecting),
       majorState(State::NotCollecting),
-      minorSweepingFinished(lock) {}
+      minorSweepingFinished(lock()) {}
 
 BufferAllocator::~BufferAllocator() {
 #ifdef DEBUG
@@ -519,6 +518,10 @@ bool BufferAllocator::isEmpty() const {
          mediumTenuredChunks.ref().isEmpty() &&
          largeNurseryAllocs.ref().isEmpty() &&
          largeTenuredAllocs.ref().isEmpty();
+}
+
+Mutex& BufferAllocator::lock() const {
+  return zone->runtimeFromAnyThread()->gc.bufferAllocatorLock;
 }
 
 /* static */
@@ -941,7 +944,7 @@ bool BufferAllocator::MarkTenuredAlloc(void* alloc) {
 template <typename T>
 /* static */
 bool BufferAllocator::listIsEmpty(const MutexData<SlimLinkedList<T>>& list) {
-  AutoLockAllocator lock(this);
+  AutoLock lock(this);
   return list.ref().isEmpty();
 }
 #endif
@@ -970,7 +973,7 @@ bool BufferAllocator::startMinorSweeping(LargeAllocList& largeAllocsToFree) {
 #ifdef DEBUG
   MOZ_ASSERT(minorState == State::Marking);
   {
-    AutoLockAllocator lock(this);
+    AutoLock lock(this);
     MOZ_ASSERT(!minorSweepingFinished);
     MOZ_ASSERT(sweptMediumMixedChunks.ref().isEmpty());
   }
@@ -1031,7 +1034,7 @@ void BufferAllocator::sweepForMinorCollection() {
     FreeLists sweptFreeLists;
     if (sweepChunk(chunk, OwnerKind::Nursery, false, sweptFreeLists)) {
       {
-        AutoLockAllocator lock(this);
+        AutoLock lock(this);
         sweptMediumMixedChunks.ref().pushBack(chunk);
         if (chunk->hasNurseryOwnedAllocsAfterSweep) {
           sweptMediumNurseryFreeLists.ref().append(std::move(sweptFreeLists));
@@ -1047,7 +1050,7 @@ void BufferAllocator::sweepForMinorCollection() {
   }
 
   // Signal to main thread to update minorState.
-  AutoLockAllocator lock(this);
+  AutoLock lock(this);
   MOZ_ASSERT(!minorSweepingFinished);
   minorSweepingFinished = true;
 }
@@ -1119,7 +1122,7 @@ void BufferAllocator::sweepForMajorCollection(bool shouldDecommit) {
     FreeLists sweptFreeLists;
     if (sweepChunk(chunk, OwnerKind::Tenured, shouldDecommit, sweptFreeLists)) {
       {
-        AutoLockAllocator lock(this);
+        AutoLock lock(this);
         sweptMediumTenuredChunks.ref().pushBack(chunk);
         sweptMediumTenuredFreeLists.ref().append(std::move(sweptFreeLists));
       }
@@ -1144,7 +1147,7 @@ void BufferAllocator::sweepForMajorCollection(bool shouldDecommit) {
 
   // It would be possible to add these to the output list as we sweep but
   // there's currently no advantage to that.
-  AutoLockAllocator lock(this);
+  AutoLock lock(this);
   sweptLargeTenuredAllocs.ref() = std::move(sweptList);
 }
 
@@ -1221,7 +1224,7 @@ void BufferAllocator::maybeMergeSweptData() {
 void BufferAllocator::mergeSweptData() {
   MOZ_ASSERT(minorState == State::Sweeping || majorState == State::Sweeping);
 
-  AutoLockAllocator lock(this);
+  AutoLock lock(this);
 
   // Merge swept chunks that previously contained nursery owned allocations. If
   // semispace nursery collection is in use then these chunks may contain both
@@ -1348,11 +1351,11 @@ bool LargeBuffer::isPointerWithinAllocation(void* ptr) const {
 #ifdef DEBUG
 
 void BufferAllocator::checkGCStateNotInUse() {
-  AutoLockAllocator lock(this);  // Some fields are protected by this lock.
+  AutoLock lock(this);  // Some fields are protected by this lock.
   checkGCStateNotInUse(lock);
 }
 
-void BufferAllocator::checkGCStateNotInUse(const AutoLockAllocator& lock) {
+void BufferAllocator::checkGCStateNotInUse(const AutoLock& lock) {
   MOZ_ASSERT(majorState == State::NotCollecting);
   bool isNurserySweeping = minorState == State::Sweeping;
 
