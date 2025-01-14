@@ -32,7 +32,10 @@
       let redirected = new Promise((resolve) => {
         addEventListener("message", resolve, { once: true });
       });
-      win.location = URL.createObjectURL(new Blob([ xml ], { type: "application/xml" }));
+
+      SpecialPowers.spawn(win, [xml], value => {
+        content.location = URL.createObjectURL(new Blob([ value ], { type: "application/xml" }));
+      });
       await redirected;
 
       // At this point the setting of window.location should have redirected us to
