@@ -119,6 +119,7 @@ add_task(async function test_showOnboarding_notOptedIn() {
           () => content.document.querySelector("shopping-container"),
           "shopping-container"
         );
+        await shoppingContainer.wrappedJSObject.updateComplete;
 
         let containerElem =
           shoppingContainer.shadowRoot.getElementById("shopping-container");
@@ -180,10 +181,11 @@ add_task(async function test_hideOnboarding_optedIn() {
       actor.updateCurrentURL(PRODUCT_URI);
 
       await SpecialPowers.spawn(browser, [], async () => {
-        await ContentTaskUtils.waitForCondition(
+        let shoppingContainer = await ContentTaskUtils.waitForCondition(
           () => content.document.querySelector("shopping-container"),
           "shopping-container"
         );
+        await shoppingContainer.wrappedJSObject.updateComplete;
 
         ok(
           content.document.getElementById("multi-stage-message-root").hidden,
@@ -231,6 +233,7 @@ add_task(async function test_hideOnboarding_onClose() {
           () => content.document.querySelector("shopping-container"),
           "shopping-container"
         );
+        await shoppingContainer.wrappedJSObject.updateComplete;
 
         // "Not now" button
         let notNowButton = await ContentTaskUtils.waitForCondition(() =>
@@ -294,6 +297,7 @@ add_task(async function test_hideOnboarding_OptIn_AfterSurveySeen() {
           () => content.document.querySelector("shopping-container"),
           "shopping-container"
         );
+        await shoppingContainer.wrappedJSObject.updateComplete;
 
         ok(
           !content.document.getElementById("multi-stage-message-root").hidden,

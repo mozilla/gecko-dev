@@ -41,13 +41,41 @@ class Onboarding {
         domScript.addEventListener("load", resolve);
       });
     };
+
+    const getDocumentReady = async () => {
+      new Promise(resolve => {
+        this.doc.addEventListener(
+          "readystatechange",
+          function onReadyStateChange() {
+            if (this.doc.readyState != "complete") {
+              return;
+            }
+            this.doc.removeEventListener(
+              "readystatechange",
+              onReadyStateChange
+            );
+            resolve();
+          }
+        );
+      });
+    };
+
+    let reactScript = this.doc.querySelector(`[src="${reactSrc}"]`);
+    let reactDomScript = this.doc.querySelector(`[src="${domSrc}"]`);
+
+    // If either script has already been added but hasn't finished
+    // loading yet, wait for the document's readyState to be complete.
+    if ((reactScript || reactDomScript) && this.doc.readyState != "complete") {
+      await getDocumentReady();
+    }
     // Load React, then React Dom
-    if (!this.doc.querySelector(`[src="${reactSrc}"]`)) {
+    if (!reactScript) {
       await getReactReady();
     }
-    if (!this.doc.querySelector(`[src="${domSrc}"]`)) {
+    if (!reactDomScript) {
       await getDomReady();
     }
+
     // Load the bundle to render the content as configured.
     this.doc.querySelector(`[src="${BUNDLE_SRC}"]`)?.remove();
     let bundleScript = this.doc.createElement("script");
