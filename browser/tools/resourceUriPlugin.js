@@ -6,6 +6,7 @@
 // and translating the uri into a relative filesytem path where the file may be
 // found when running within the Karma / Mocha test framework.
 
+/* eslint-env node */
 const path = require("path");
 
 module.exports = {
@@ -29,6 +30,7 @@ module.exports = {
 
     /**
      * @param {object} options
+     *  Object passed during the instantiation of ResourceUriPlugin
      * @param {ResourceReplacement[]} options.resourcePathRegExes
      *   An array of regex/string tuples to perform replacements on for
      *   imports involving resource:// URIs.
