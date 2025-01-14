@@ -4207,6 +4207,12 @@ class Document : public nsINode,
   // the state was changed.
   bool RecomputeResistFingerprinting();
 
+  // Recompute the partitionKey for this document if needed. This is for
+  // handling the case where the principal of the document is changed during the
+  // loading, e.g. a sandboxed document. We only need to recompute for the
+  // top-level content document.
+  void MaybeRecomputePartitionKey();
+
   void RecordCanvasUsage(CanvasUsage& aUsage);
   void RecordFontFingerprinting();
 

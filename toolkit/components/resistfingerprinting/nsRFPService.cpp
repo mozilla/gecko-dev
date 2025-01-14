@@ -2237,11 +2237,19 @@ Maybe<RFPTarget> nsRFPService::GetOverriddenFingerprintingSettingsForChannel(
   nsAutoString partitionKey;
   cookieJarSettings->GetPartitionKey(partitionKey);
 
+  nsAutoCString topPrincipalOriginNoSuffix;
+  rv = topPrincipal->GetOriginNoSuffix(topPrincipalOriginNoSuffix);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+  nsCOMPtr<nsIURI> topPrincipalURI;
+  rv = NS_NewURI(getter_AddRefs(topPrincipalURI), topPrincipalOriginNoSuffix);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+
   OriginAttributes attrs;
-  attrs.SetPartitionKey(topURI, false);
+  attrs.SetPartitionKey(topPrincipalURI, false);
 
   OriginAttributes attrsForeignByAncestor;
-  attrsForeignByAncestor.SetPartitionKey(topURI, true);
+  attrsForeignByAncestor.SetPartitionKey(topPrincipalURI, true);
 
   // The partitionKey of the channel could haven't been set here if the loading
   // channel is top-level.
