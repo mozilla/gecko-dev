@@ -86,6 +86,7 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
                 createTabGroupSubmenu(
                   closedTabGroupsById.get(groupId),
                   index,
+                  win,
                   doc,
                   fragment
                 );
@@ -93,6 +94,7 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
                 createTabGroupSubpanel(
                   closedTabGroupsById.get(groupId),
                   index,
+                  win,
                   doc,
                   fragment
                 );
@@ -278,11 +280,23 @@ function setTabGroupColorProperties(element, tabGroup) {
  * created submenu of the tab group's tab contents when selected.
  *
  * @param {TabGroupStateData} aTabGroup
+ *        Session store state for the closed tab group.
  * @param {number} aIndex
+ *        The index of the first tab in the tab group, relative to the tab strip.
+ * @param {Window} aSourceWindow
+ *        The source window of the closed tab group.
  * @param {Document} aDocument
+ *        A document object that can be used to create the entry.
  * @param {DocumentFragment} aFragment
+ *        The DOM fragment that the created entry will be in.
  */
-function createTabGroupSubmenu(aTabGroup, aIndex, aDocument, aFragment) {
+function createTabGroupSubmenu(
+  aTabGroup,
+  aIndex,
+  aSourceWindow,
+  aDocument,
+  aFragment
+) {
   let element = aDocument.createXULElement("menu");
   if (aTabGroup.name) {
     element.setAttribute("label", aTabGroup.name);
@@ -316,7 +330,7 @@ function createTabGroupSubmenu(aTabGroup, aIndex, aDocument, aFragment) {
     "tab-context-reopen-tab-group"
   );
   reopenTabGroupItem.addEventListener("command", () => {
-    lazy.SessionStore.undoCloseTabGroup(aDocument.ownerGlobal, aTabGroup.id);
+    lazy.SessionStore.undoCloseTabGroup(aSourceWindow, aTabGroup.id);
   });
   menuPopup.appendChild(reopenTabGroupItem);
 
@@ -329,11 +343,23 @@ function createTabGroupSubmenu(aTabGroup, aIndex, aDocument, aFragment) {
  * created subpanel of the tab group's tab contents when selected.
  *
  * @param {TabGroupStateData} aTabGroup
+ *        Session store state for the closed tab group.
  * @param {number} aIndex
+ *        The index of the first tab in the tab group, relative to the tab strip.
+ * @param {Window} aSourceWindow
+ *        The source window of the closed tab group.
  * @param {Document} aDocument
+ *        A document object that can be used to create the entry.
  * @param {DocumentFragment} aFragment
+ *        The DOM fragment that the created entry will be in.
  */
-function createTabGroupSubpanel(aTabGroup, aIndex, aDocument, aFragment) {
+function createTabGroupSubpanel(
+  aTabGroup,
+  aIndex,
+  aSourceWindow,
+  aDocument,
+  aFragment
+) {
   let element = aDocument.createXULElement("toolbarbutton");
   if (aTabGroup.name) {
     element.setAttribute("label", aTabGroup.name);
@@ -391,7 +417,7 @@ function createTabGroupSubpanel(aTabGroup, aIndex, aDocument, aFragment) {
     "panel-subview-footer-button"
   );
   reopenTabGroupItem.addEventListener("command", () => {
-    lazy.SessionStore.undoCloseTabGroup(aDocument.ownerGlobal, aTabGroup.id);
+    lazy.SessionStore.undoCloseTabGroup(aSourceWindow, aTabGroup.id);
   });
 
   panelview.appendChild(reopenTabGroupItem);
