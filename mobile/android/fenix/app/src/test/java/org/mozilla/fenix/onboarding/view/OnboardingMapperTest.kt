@@ -43,7 +43,6 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeThemeClick = {},
-            onCustomizeThemeSkip = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -82,7 +81,6 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeThemeClick = {},
-            onCustomizeThemeSkip = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -121,7 +119,6 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeThemeClick = {},
-            onCustomizeThemeSkip = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -160,7 +157,6 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeThemeClick = {},
-            onCustomizeThemeSkip = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -231,7 +227,6 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = unitLambda,
             onCustomizeToolbarButtonClick = {},
             onCustomizeThemeClick = {},
-            onCustomizeThemeSkip = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -283,7 +278,6 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = unitLambda,
             onCustomizeThemeClick = {},
-            onCustomizeThemeSkip = {},
             onTermsOfServiceButtonClick = {},
         )
 
@@ -297,7 +291,6 @@ class OnboardingMapperTest {
         val title = "Pick a theme"
         val description = "See the web in the best light."
         val primaryButtonLabel = "Save and continue"
-        val secondaryButtonLabel = "Skip"
 
         // Theming options
         val themeOptionSystem = ThemeOption(
@@ -323,7 +316,6 @@ class OnboardingMapperTest {
             title = title,
             description = description,
             primaryButtonLabel = primaryButtonLabel,
-            secondaryButtonLabel = secondaryButtonLabel,
             themeOptions = themeOptions,
         )
 
@@ -332,7 +324,6 @@ class OnboardingMapperTest {
             title = title,
             description = description,
             primaryButton = Action(primaryButtonLabel, unitLambda),
-            secondaryButton = Action(secondaryButtonLabel, unitLambda),
             themeOptions = themeOptions,
         )
 
@@ -349,7 +340,6 @@ class OnboardingMapperTest {
             onAddOnsButtonClick = {},
             onCustomizeToolbarButtonClick = {},
             onCustomizeThemeClick = unitLambda,
-            onCustomizeThemeSkip = unitLambda,
             onTermsOfServiceButtonClick = {},
         )
 
