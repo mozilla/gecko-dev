@@ -3291,35 +3291,40 @@ void MacroAssembler::roundDoubleToInt32(FloatRegister src, Register dest,
 void MacroAssembler::truncFloat32ToInt32(FloatRegister src, Register dest,
                                          Label* fail) {
   Label notZero;
+  // Perform trunc.w.s
   as_truncws(ScratchFloat32Reg, src);
+  // Bail if NaN, Infinity, or int32 overflow.
   as_cfc1(ScratchRegister, Assembler::FCSR);
-  moveFromFloat32(ScratchFloat32Reg, dest);
   ma_ext(ScratchRegister, ScratchRegister, Assembler::CauseV, 1);
+  branch32(Assembler::NotEqual, ScratchRegister, Imm32(0), fail);
 
+  moveFromFloat32(ScratchFloat32Reg, dest);
   ma_b(dest, Imm32(0), &notZero, Assembler::NotEqual, ShortJump);
   moveFromFloat32(src, ScratchRegister);
   // Check if src is in ]-1; -0] range by checking the sign bit.
   as_slt(ScratchRegister, ScratchRegister, zero);
-  bind(&notZero);
-
   branch32(Assembler::NotEqual, ScratchRegister, Imm32(0), fail);
+  bind(&notZero);
 }
 
 void MacroAssembler::truncDoubleToInt32(FloatRegister src, Register dest,
                                         Label* fail) {
   Label notZero;
+  // Perform trunc.w.d
   as_truncwd(ScratchFloat32Reg, src);
+  // Bail if NaN, Infinity, or int32 overflow.
   as_cfc1(ScratchRegister, Assembler::FCSR);
-  moveFromFloat32(ScratchFloat32Reg, dest);
   ma_ext(ScratchRegister, ScratchRegister, Assembler::CauseV, 1);
+  branch32(Assembler::NotEqual, ScratchRegister, Imm32(0), fail);
 
+  // Skip the negative zero check if nonzero
+  moveFromFloat32(ScratchFloat32Reg, dest);
   ma_b(dest, Imm32(0), &notZero, Assembler::NotEqual, ShortJump);
   moveFromDoubleHi(src, ScratchRegister);
   // Check if src is in ]-1; -0] range by checking the sign bit.
   as_slt(ScratchRegister, ScratchRegister, zero);
-  bind(&notZero);
-
   branch32(Assembler::NotEqual, ScratchRegister, Imm32(0), fail);
+  bind(&notZero);
 }
 
 void MacroAssembler::nearbyIntDouble(RoundingMode mode, FloatRegister src,
