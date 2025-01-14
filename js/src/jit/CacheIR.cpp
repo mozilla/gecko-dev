@@ -6324,6 +6324,15 @@ CallIRGenerator::CallIRGenerator(JSContext* cx, HandleScript script,
       newTarget_(newTarget),
       args_(args) {}
 
+bool InlinableNativeIRGenerator::isCalleeBoundFunction() const {
+  return callee()->is<BoundFunctionObject>();
+}
+
+BoundFunctionObject* InlinableNativeIRGenerator::boundCallee() const {
+  MOZ_ASSERT(isCalleeBoundFunction());
+  return &callee()->as<BoundFunctionObject>();
+}
+
 ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
     Int32OperandId argcId) {
   // Note: we rely on GuardSpecificFunction to also guard against the same
@@ -6356,7 +6365,7 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
     writer.guardClass(calleeObjId, GuardClassKind::BoundFunction);
 
     // Ensure numBoundArgs matches.
-    size_t numBoundArgs = callee_->as<BoundFunctionObject>().numBoundArgs();
+    size_t numBoundArgs = boundCallee()->numBoundArgs();
     Int32OperandId numBoundArgsId =
         writer.loadBoundFunctionNumArgs(calleeObjId);
     writer.guardSpecificInt32(numBoundArgsId, numBoundArgs);
@@ -6374,12 +6383,11 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
       MOZ_ASSERT(flags_.getArgFormat() == CallFlags::FunCall,
                  "unexpected bound function");
 
-      funCallOrApply =
-          &callee_->as<BoundFunctionObject>().getTarget()->as<JSFunction>();
+      funCallOrApply = &boundCallee()->getTarget()->as<JSFunction>();
       thisValId = writer.loadFixedSlot(
           calleeObjId, BoundFunctionObject::offsetOfBoundThisSlot());
     } else {
-      funCallOrApply = &generator_.callee_.toObject().as<JSFunction>();
+      funCallOrApply = &callee()->as<JSFunction>();
       thisValId = writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
     }
     MOZ_ASSERT(funCallOrApply->native() == fun_call ||
@@ -6397,7 +6405,7 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
   // If we're constructing we also need to guard newTarget == callee.
   if (flags_.isConstructing()) {
     MOZ_ASSERT(flags_.getArgFormat() == CallFlags::Standard);
-    MOZ_ASSERT(&newTarget_.toObject() == callee_);
+    MOZ_ASSERT(&newTarget_.toObject() == callee());
 
     ValOperandId newTargetValId =
         writer.loadArgumentFixedSlot(ArgumentKind::NewTarget, argc_, flags_);
@@ -6437,7 +6445,7 @@ ValOperandId InlinableNativeIRGenerator::loadBoundArgument(
     ObjOperandId calleeId, size_t argIndex) {
   MOZ_ASSERT(isCalleeBoundFunction());
 
-  size_t numBoundArgs = callee_->as<BoundFunctionObject>().numBoundArgs();
+  size_t numBoundArgs = boundCallee()->numBoundArgs();
   MOZ_ASSERT(argIndex < numBoundArgs);
 
   if (numBoundArgs <= BoundFunctionObject::MaxInlineBoundArgs) {
@@ -6455,7 +6463,6 @@ ValOperandId InlinableNativeIRGenerator::loadThis(ObjOperandId calleeId) {
     case CallFlags::Standard:
     case CallFlags::Spread:
       if (isCalleeBoundFunction()) {
-        MOZ_ASSERT(callee_->is<BoundFunctionObject>());
         return writer.loadFixedSlot(
             calleeId, BoundFunctionObject::offsetOfBoundThisSlot());
       }
@@ -6517,7 +6524,7 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
              flags_.getArgFormat() == CallFlags::FunCall);
 
   if (hasBoundArguments()) {
-    size_t numBoundArgs = callee_->as<BoundFunctionObject>().numBoundArgs();
+    size_t numBoundArgs = boundCallee()->numBoundArgs();
     size_t argIndex = uint8_t(kind) - uint8_t(ArgumentKind::Arg0);
 
     // Skip over the first bound argument, which stores the |this| value for
@@ -6557,7 +6564,7 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
 
 bool InlinableNativeIRGenerator::hasBoundArguments() const {
   if (isCalleeBoundFunction()) {
-    return callee_->as<BoundFunctionObject>().numBoundArgs() != 0;
+    return boundCallee()->numBoundArgs() != 0;
   }
   return false;
 }
@@ -10884,8 +10891,8 @@ AttachDecision CallIRGenerator::tryAttachFunCall(HandleFunction callee) {
                   : HandleValueArray::empty();
 
     // Check for specific native-function optimizations.
-    InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
-                                         thisValue, args, argc_, targetFlags);
+    InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
+                                         args, argc_, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11859,8 +11866,8 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
         aobj->length(), aobj->getDenseElements());
 
     // Check for specific native-function optimizations.
-    InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
-                                         thisValue, args, argc_, targetFlags);
+    InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
+                                         args, argc_, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11872,8 +11879,8 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
     HandleValueArray args = HandleValueArray::empty();
 
     // Check for specific native-function optimizations.
-    InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
-                                         thisValue, args, argc_, targetFlags);
+    InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
+                                         args, argc_, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -12074,8 +12081,8 @@ AttachDecision CallIRGenerator::tryAttachInlinableNative(HandleFunction callee,
   MOZ_ASSERT(flags.getArgFormat() == CallFlags::Standard ||
              flags.getArgFormat() == CallFlags::Spread);
 
-  InlinableNativeIRGenerator nativeGen(*this, callee, callee, newTarget_,
-                                       thisval_, args_, argc_, flags);
+  InlinableNativeIRGenerator nativeGen(*this, callee, newTarget_, thisval_,
+                                       args_, argc_, flags);
   return nativeGen.tryAttachStub();
 }
 
@@ -12128,7 +12135,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
 
     // newTarget must match the callee. CacheIR for this is emitted in
     // emitNativeCalleeGuard.
-    if (ObjectValue(*callee_) != newTarget_) {
+    if (ObjectValue(*callee()) != newTarget_) {
       return AttachDecision::NoAction;
     }
     switch (native) {
@@ -13135,8 +13142,8 @@ AttachDecision CallIRGenerator::tryAttachBoundNative(
   auto args = numBoundArgs != 0 ? concatenatedArgs : args_;
 
   // Check for specific native-function optimizations.
-  InlinableNativeIRGenerator nativeGen(*this, calleeObj, target, newTarget_,
-                                       thisValue, args, argc_, flags);
+  InlinableNativeIRGenerator nativeGen(*this, target, newTarget_, thisValue,
+                                       args, argc_, flags);
   return nativeGen.tryAttachStub();
 }
 
@@ -13240,8 +13247,8 @@ AttachDecision CallIRGenerator::tryAttachBoundFunCall(
   })();
 
   // Check for specific native-function optimizations.
-  InlinableNativeIRGenerator nativeGen(*this, calleeObj, target, newTarget,
-                                       thisValue, args, argc_, targetFlags);
+  InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
+                                       args, argc_, targetFlags);
   return nativeGen.tryAttachStub();
 }
 
