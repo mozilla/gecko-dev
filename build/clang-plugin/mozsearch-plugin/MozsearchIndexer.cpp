@@ -1410,7 +1410,11 @@ public:
 
         J.attribute("begin",
                     unsigned(localOffsetBits - C.toBits(localOffsetBytes)));
+#if CLANG_VERSION_MAJOR < 20
         J.attribute("width", Field.getBitWidthValue(C));
+#else
+        J.attribute("width", Field.getBitWidthValue());
+#endif
 
         J.objectEnd();
         J.attributeEnd();
