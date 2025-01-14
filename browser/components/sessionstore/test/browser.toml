@@ -274,6 +274,8 @@ run-if = ["fission"]
 
 ["browser_scrollPositionsReaderMode.js"]
 
+["browser_searchModeSwitcher_restore.js"]
+
 ["browser_sessionHistory.js"]
 https_first_disabled = true
 support-files = ["file_sessionHistory_hashchange.html"]
