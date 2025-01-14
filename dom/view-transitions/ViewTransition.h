@@ -7,7 +7,8 @@
 
 #include "nsRect.h"
 #include "nsWrapperCache.h"
-#include "nsTHashMap.h"
+#include "nsAtomHashKeys.h"
+#include "nsClassHashtable.h"
 
 class nsIGlobalObject;
 class nsITimer;
@@ -15,6 +16,10 @@ class nsITimer;
 namespace mozilla {
 
 class ErrorResult;
+
+namespace gfx {
+class DataSourceSurface;
+}
 
 namespace dom {
 
@@ -59,6 +64,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   void PerformPendingOperations();
 
   Element* GetRoot() const { return mViewTransitionRoot; }
+  gfx::DataSourceSurface* GetOldSurface(nsAtom* aName) const;
 
   nsIGlobalObject* GetParentObject() const;
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
@@ -91,7 +97,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   RefPtr<ViewTransitionUpdateCallback> mUpdateCallback;
 
   // https://drafts.csswg.org/css-view-transitions/#viewtransition-named-elements
-  using NamedElements = nsTHashMap<RefPtr<nsAtom>, UniquePtr<CapturedElement>>;
+  using NamedElements = nsClassHashtable<nsAtomHashKey, CapturedElement>;
   NamedElements mNamedElements;
 
   // https://drafts.csswg.org/css-view-transitions/#viewtransition-initial-snapshot-containing-block-size

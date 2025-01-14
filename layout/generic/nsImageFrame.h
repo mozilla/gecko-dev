@@ -196,6 +196,8 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
     ContentPropertyAtIndex,
     // For a list-style-image ::marker.
     ListStyleImage,
+    // For a ::view-transition-old pseudo-element
+    ViewTransitionOld,
   };
 
   // Creates a suitable continuing frame for this frame.
@@ -214,6 +216,8 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
                                                             ComputedStyle*);
   friend nsIFrame* NS_NewImageFrameForListStyleImage(mozilla::PresShell*,
                                                      ComputedStyle*);
+  friend nsIFrame* NS_NewImageFrameForViewTransitionOld(mozilla::PresShell*,
+                                                        ComputedStyle*);
 
   nsImageFrame(ComputedStyle* aStyle, nsPresContext* aPresContext, Kind aKind)
       : nsImageFrame(aStyle, aPresContext, kClassID, aKind) {}
@@ -301,6 +305,8 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   // Whether the image frame should use the mapped aspect ratio from width=""
   // and height="".
   bool ShouldUseMappedAspectRatio() const;
+
+  mozilla::gfx::DataSourceSurface* GetViewTransitionSurface() const;
 
   /**
    * Notification that aRequest will now be the current request.
@@ -392,6 +398,15 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   nsCOMPtr<imgIContainer> mImage;
   nsCOMPtr<imgIContainer> mPrevImage;
 
+  struct ViewTransitionData {
+    // The image key of our snapshot.
+    mozilla::wr::ImageKey mImageKey{{0}, 0};
+    // The owner of the key.
+    RefPtr<mozilla::layers::RenderRootStateManager> mManager;
+
+    bool HasKey() const { return mImageKey != mozilla::wr::ImageKey{{0}, 0}; }
+  } mViewTransitionData;
+
   // The content-box size as if we are not fragmented, cached in the most recent
   // reflow.
   nsSize mComputedSize;
@@ -457,6 +472,11 @@ class nsDisplayImage final : public nsPaintedDisplayItem {
                                const StackingContextHelper&,
                                mozilla::layers::RenderRootStateManager*,
                                nsDisplayListBuilder*) final;
+
+  void MaybeCreateWebRenderCommandsForViewTransition(
+      mozilla::wr::DisplayListBuilder&, mozilla::wr::IpcResourceUpdateQueue&,
+      const StackingContextHelper&, mozilla::layers::RenderRootStateManager*,
+      nsDisplayListBuilder*);
 
   nsImageFrame* Frame() const {
     MOZ_ASSERT(mFrame->IsImageFrame() || mFrame->IsImageControlFrame());

@@ -221,6 +221,7 @@ nsIFrame* NS_NewXULImageFrame(PresShell*, ComputedStyle*);
 nsIFrame* NS_NewImageFrameForContentProperty(PresShell*, ComputedStyle*);
 nsIFrame* NS_NewImageFrameForGeneratedContentIndex(PresShell*, ComputedStyle*);
 nsIFrame* NS_NewImageFrameForListStyleImage(PresShell*, ComputedStyle*);
+nsIFrame* NS_NewImageFrameForViewTransitionOld(PresShell*, ComputedStyle*);
 
 // Returns true if aFrame is an anonymous flex/grid item.
 static inline bool IsAnonymousItem(const nsIFrame* aFrame) {
@@ -3449,18 +3450,24 @@ nsCSSFrameConstructor::FindHTMLData(const Element& aElement,
                    aParentFrame->GetParent()->IsFieldSetFrame(),
                "Unexpected parent for fieldset content anon box");
 
-  if (aElement.IsInNativeAnonymousSubtree() &&
-      aElement.NodeInfo()->NameAtom() == nsGkAtoms::label && aParentFrame) {
-    if (aParentFrame->IsFileControlFrame()) {
-      static constexpr FrameConstructionData sFileLabelData(
-          NS_NewFileControlLabelFrame);
-      return &sFileLabelData;
+  if (aElement.IsInNativeAnonymousSubtree()) {
+    if (aElement.NodeInfo()->NameAtom() == nsGkAtoms::label && aParentFrame) {
+      if (aParentFrame->IsFileControlFrame()) {
+        static constexpr FrameConstructionData sFileLabelData(
+            NS_NewFileControlLabelFrame);
+        return &sFileLabelData;
+      }
+      if (aParentFrame->GetParent() &&
+          aParentFrame->GetParent()->IsComboboxControlFrame()) {
+        static constexpr FrameConstructionData sComboboxLabelData(
+            NS_NewComboboxLabelFrame);
+        return &sComboboxLabelData;
+      }
     }
-    if (aParentFrame->GetParent() &&
-        aParentFrame->GetParent()->IsComboboxControlFrame()) {
-      static constexpr FrameConstructionData sComboboxLabelData(
-          NS_NewComboboxLabelFrame);
-      return &sComboboxLabelData;
+    if (aElement.GetPseudoElementType() == PseudoStyleType::viewTransitionOld) {
+      static constexpr FrameConstructionData sViewTransitionOldData(
+          NS_NewImageFrameForViewTransitionOld);
+      return &sViewTransitionOldData;
     }
   }
 

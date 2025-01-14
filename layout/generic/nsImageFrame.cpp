@@ -28,6 +28,7 @@
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/ResponsiveImageSelector.h"
+#include "mozilla/dom/ViewTransition.h"
 #include "mozilla/dom/LargestContentfulPaint.h"
 #include "mozilla/image/WebRenderImageProvider.h"
 #include "mozilla/layers/RenderRootStateManager.h"
@@ -126,10 +127,10 @@ class nsDisplayGradient final : public nsPaintedDisplayItem {
 
   void Paint(nsDisplayListBuilder*, gfxContext* aCtx) final;
 
-  bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder&,
-                               mozilla::wr::IpcResourceUpdateQueue&,
+  bool CreateWebRenderCommands(wr::DisplayListBuilder&,
+                               wr::IpcResourceUpdateQueue&,
                                const StackingContextHelper&,
-                               mozilla::layers::RenderRootStateManager*,
+                               layers::RenderRootStateManager*,
                                nsDisplayListBuilder*) final;
 
   NS_DISPLAY_DECL_NAME("Gradient", TYPE_GRADIENT)
@@ -157,8 +158,7 @@ void nsDisplayGradient::Paint(nsDisplayListBuilder* aBuilder,
 
 bool nsDisplayGradient::CreateWebRenderCommands(
     wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
-    const StackingContextHelper& aSc,
-    mozilla::layers::RenderRootStateManager* aManager,
+    const StackingContextHelper& aSc, layers::RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
   auto* frame = static_cast<nsImageFrame*>(Frame());
   nsImageRenderer imageRenderer(frame, frame->GetImageFromStyle(),
@@ -399,6 +399,12 @@ nsIFrame* NS_NewImageFrameForListStyleImage(PresShell* aPresShell,
                                        nsImageFrame::Kind::ListStyleImage);
 }
 
+nsIFrame* NS_NewImageFrameForViewTransitionOld(PresShell* aPresShell,
+                                               ComputedStyle* aStyle) {
+  return new (aPresShell) nsImageFrame(aStyle, aPresShell->GetPresContext(),
+                                       nsImageFrame::Kind::ViewTransitionOld);
+}
+
 bool nsImageFrame::ShouldShowBrokenImageIcon() const {
   // NOTE(emilio, https://github.com/w3c/csswg-drafts/issues/2832): WebKit and
   // Blink behave differently here for content: url(..), for now adapt to
@@ -465,6 +471,11 @@ a11y::AccType nsImageFrame::AccessibleType() {
     return a11y::eNoType;
   }
 
+  if (mKind == Kind::ViewTransitionOld) {
+    // View transitions don't show up in the a11y tree.
+    return a11y::eNoType;
+  }
+
   // Don't use GetImageMap() to avoid reentrancy into accessibility.
   if (HasImageMap()) {
     return a11y::eHTMLImageMapType;
@@ -525,6 +536,13 @@ void nsImageFrame::Destroy(DestroyContext& aContext) {
   // If we were displaying an icon, take ourselves off the list
   if (mDisplayingIcon) {
     BrokenImageIcon::RemoveObserver(this);
+  }
+
+  if (mViewTransitionData.HasKey()) {
+    MOZ_ASSERT(mViewTransitionData.mManager);
+    mViewTransitionData.mManager->AddImageKeyForDiscard(
+        mViewTransitionData.mImageKey);
+    mViewTransitionData = {};
   }
 
   nsAtomicContainerFrame::Destroy(aContext);
@@ -612,6 +630,8 @@ static bool SizeIsAvailable(imgIRequest* aRequest) {
 
 const StyleImage* nsImageFrame::GetImageFromStyle() const {
   switch (mKind) {
+    case Kind::ViewTransitionOld:
+      break;
     case Kind::ImageLoadingContent:
       break;
     case Kind::ListStyleImage:
@@ -730,6 +750,8 @@ void nsImageFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
     }
   } else if (mKind == Kind::XULImage) {
     UpdateXULImage();
+  } else if (mKind == Kind::ViewTransitionOld) {
+    // View transitions have a surface directly.
   } else {
     const StyleImage* image = GetImageFromStyle();
     if (image->IsImageRequestType()) {
@@ -859,6 +881,16 @@ IntrinsicSize nsImageFrame::ComputeIntrinsicSize(
     return FinishIntrinsicSize(containAxes, intrinsicSize);
   }
 
+  if (auto* surf = GetViewTransitionSurface()) {
+    IntrinsicSize intrinsicSize;
+    auto devPx = LayoutDeviceIntSize::FromUnknownSize(surf->GetSize());
+    auto size = LayoutDeviceIntSize::ToAppUnits(
+        devPx, PresContext()->AppUnitsPerDevPixel());
+    intrinsicSize.width.emplace(size.width);
+    intrinsicSize.height.emplace(size.height);
+    return FinishIntrinsicSize(containAxes, intrinsicSize);
+  }
+
   if (mKind == nsImageFrame::Kind::ListStyleImage) {
     // Note: images are handled above, this handles gradients etc.
     const nscoord defaultLength = ListImageDefaultLength(*this);
@@ -918,6 +950,20 @@ bool nsImageFrame::UpdateIntrinsicSize() {
   return mIntrinsicSize != oldIntrinsicSize;
 }
 
+gfx::DataSourceSurface* nsImageFrame::GetViewTransitionSurface() const {
+  if (mKind != Kind::ViewTransitionOld) {
+    return nullptr;
+  }
+  auto* vt = PresContext()->Document()->GetActiveViewTransition();
+  if (NS_WARN_IF(!vt)) {
+    return nullptr;
+  }
+  MOZ_ASSERT(GetContent()->AsElement()->HasName());
+  nsAtom* name =
+      GetContent()->AsElement()->GetParsedAttr(nsGkAtoms::name)->GetAtomValue();
+  return vt->GetOldSurface(name);
+}
+
 AspectRatio nsImageFrame::ComputeIntrinsicRatioForImage(
     imgIContainer* aImage, bool aIgnoreContainment) const {
   if (!aIgnoreContainment && GetContainSizeAxes().IsAny()) {
@@ -929,6 +975,11 @@ AspectRatio nsImageFrame::ComputeIntrinsicRatioForImage(
       return fromImage;
     }
   }
+
+  if (auto* surf = GetViewTransitionSurface()) {
+    return AspectRatio::FromSize(surf->GetSize());
+  }
+
   if (ShouldUseMappedAspectRatio()) {
     const StyleAspectRatio& ratio = StylePosition()->mAspectRatio;
     if (ratio.auto_ && ratio.HasRatio()) {
@@ -1815,10 +1866,9 @@ class nsDisplayAltFeedback final : public nsPaintedDisplayItem {
   }
 
   bool CreateWebRenderCommands(
-      mozilla::wr::DisplayListBuilder& aBuilder,
-      mozilla::wr::IpcResourceUpdateQueue& aResources,
+      wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
       const StackingContextHelper& aSc,
-      mozilla::layers::RenderRootStateManager* aManager,
+      layers::RenderRootStateManager* aManager,
       nsDisplayListBuilder* aDisplayListBuilder) final {
     // Always sync decode, because these icons are UI, and since they're not
     // discardable we'll pay the price of sync decoding at most once.
@@ -1983,10 +2033,9 @@ ImgDrawResult nsImageFrame::DisplayAltFeedback(gfxContext& aRenderingContext,
 }
 
 ImgDrawResult nsImageFrame::DisplayAltFeedbackWithoutLayer(
-    nsDisplayItem* aItem, mozilla::wr::DisplayListBuilder& aBuilder,
-    mozilla::wr::IpcResourceUpdateQueue& aResources,
-    const StackingContextHelper& aSc,
-    mozilla::layers::RenderRootStateManager* aManager,
+    nsDisplayItem* aItem, wr::DisplayListBuilder& aBuilder,
+    wr::IpcResourceUpdateQueue& aResources, const StackingContextHelper& aSc,
+    layers::RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder, nsPoint aPt, uint32_t aFlags) {
   // Whether we draw the broken or loading icon.
   bool isLoading = mKind != Kind::ImageLoadingContent ||
@@ -2020,7 +2069,7 @@ ImgDrawResult nsImageFrame::DisplayAltFeedbackWithoutLayer(
   bool textDrawResult = true;
   class AutoSaveRestore {
    public:
-    explicit AutoSaveRestore(mozilla::wr::DisplayListBuilder& aBuilder,
+    explicit AutoSaveRestore(wr::DisplayListBuilder& aBuilder,
                              bool& aTextDrawResult)
         : mBuilder(aBuilder), mTextDrawResult(aTextDrawResult) {
       mBuilder.Save();
@@ -2036,7 +2085,7 @@ ImgDrawResult nsImageFrame::DisplayAltFeedbackWithoutLayer(
     }
 
    private:
-    mozilla::wr::DisplayListBuilder& mBuilder;
+    wr::DisplayListBuilder& mBuilder;
     bool& mTextDrawResult;
   };
 
@@ -2289,19 +2338,54 @@ nsRegion nsDisplayImage::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   return nsRegion();
 }
 
-bool nsDisplayImage::CreateWebRenderCommands(
-    mozilla::wr::DisplayListBuilder& aBuilder,
-    mozilla::wr::IpcResourceUpdateQueue& aResources,
+void nsDisplayImage::MaybeCreateWebRenderCommandsForViewTransition(
+    wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
-  MOZ_ASSERT(mFrame->IsImageFrame() || mFrame->IsImageControlFrame());
+  auto* frame = Frame();
+  MOZ_ASSERT(!frame->mImage);
+  auto* surf = frame->GetViewTransitionSurface();
+  if (NS_WARN_IF(!surf)) {
+    return;
+  }
+  if (!frame->mViewTransitionData.HasKey()) {
+    DataSourceSurface::ScopedMap map(surf, DataSourceSurface::READ);
+    if (NS_WARN_IF(!map.IsMapped())) {
+      return;
+    }
+    auto key = aManager->WrBridge()->GetNextImageKey();
+    auto size = surf->GetSize();
+    auto format = surf->GetFormat();
+    wr::ImageDescriptor desc(size, format);
+    Range<uint8_t> bytes(map.GetData(), map.GetStride() * size.height);
+    if (NS_WARN_IF(!aResources.AddImage(key, desc, bytes))) {
+      return;
+    }
+    // TODO: Discard this image
+    frame->mViewTransitionData.mImageKey = key;
+    frame->mViewTransitionData.mManager = aManager;
+  }
+  const nsRect destAppUnits = GetDestRect();
+  const int32_t factor = mFrame->PresContext()->AppUnitsPerDevPixel();
+  const auto destRect =
+      wr::ToLayoutRect(LayoutDeviceRect::FromAppUnits(destAppUnits, factor));
+  auto rendering = wr::ToImageRendering(frame->UsedImageRendering());
+  aBuilder.PushImage(destRect, destRect, !BackfaceIsHidden(),
+                     /* aForceAntiAliasing = */ false, rendering,
+                     frame->mViewTransitionData.mImageKey);
+}
+
+bool nsDisplayImage::CreateWebRenderCommands(
+    wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
+    const StackingContextHelper& aSc, RenderRootStateManager* aManager,
+    nsDisplayListBuilder* aDisplayListBuilder) {
   auto* frame = Frame();
   auto* image = frame->mImage.get();
   if (!image) {
-    // TODO: View transitions.
+    MaybeCreateWebRenderCommandsForViewTransition(
+        aBuilder, aResources, aSc, aManager, aDisplayListBuilder);
     return true;
   }
-
   if (frame->HasImageMap()) {
     // Image layer doesn't support draw focus ring for image map.
     return false;
@@ -2492,19 +2576,24 @@ void nsImageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
       aBuilder, this, clipFlags);
 
   if (!mComputedSize.IsEmpty()) {
+    const bool isViewTransition = mKind == Kind::ViewTransitionOld;
     const bool imageOK = mKind != Kind::ImageLoadingContent ||
                          ImageOk(mContent->AsElement()->State());
 
     nsCOMPtr<imgIRequest> currentRequest = GetCurrentRequest();
 
-    const bool isImageFromStyle =
-        mKind != Kind::ImageLoadingContent && mKind != Kind::XULImage;
+    const bool isImageFromStyle = mKind != Kind::ImageLoadingContent &&
+                                  mKind != Kind::XULImage && !isViewTransition;
     const bool drawAltFeedback = [&] {
       if (!imageOK) {
         return true;
       }
-      // If we're a gradient, we don't need to draw alt feedback.
       if (isImageFromStyle && !GetImageFromStyle()->IsImageRequestType()) {
+        // If we're a gradient, we don't need to draw alt feedback.
+        return false;
+      }
+      if (isViewTransition) {
+        // Same for view transitions.
         return false;
       }
       // XXX(seth): The SizeIsAvailable check here should not be necessary - the
@@ -2533,7 +2622,7 @@ void nsImageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
         }
       }
     } else {
-      if (mImage) {
+      if (mImage || isViewTransition) {
         aLists.Content()->AppendNewToTop<nsDisplayImage>(aBuilder, this);
       } else if (isImageFromStyle) {
         aLists.Content()->AppendNewToTop<nsDisplayGradient>(aBuilder, this);
