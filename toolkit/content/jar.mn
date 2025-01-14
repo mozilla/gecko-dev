@@ -91,6 +91,8 @@ toolkit.jar:
    content/global/elements/general.js          (widgets/general.js)
    content/global/elements/menu.js             (widgets/menu.js)
    content/global/elements/menupopup.js        (widgets/menupopup.js)
+   content/global/elements/moz-box-button.css    (widgets/moz-box-button/moz-box-button.css)
+   content/global/elements/moz-box-button.mjs    (widgets/moz-box-button/moz-box-button.mjs)
    content/global/elements/moz-button.css    (widgets/moz-button/moz-button.css)
    content/global/elements/moz-button.mjs    (widgets/moz-button/moz-button.mjs)
    content/global/elements/moz-button-group.css    (widgets/moz-button-group/moz-button-group.css)

@@ -1,0 +1,109 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MozBoxButton Tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script type="module" src="chrome://global/content/elements/moz-box-button.mjs"></script>
+  <script>
+    const { TestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/TestUtils.sys.mjs"
+    );
+
+    let html, render, defaultTemplate;
+
+    add_setup(async function setup() {
+      ({ html, render } = await import(
+        "chrome://global/content/vendor/lit.all.mjs"
+      ));
+      defaultTemplate = html`<moz-box-button
+        label="this is a test"
+      ></moz-box-button>`;
+    });
+
+    async function renderTemplate(template = defaultTemplate) {
+      let root = document.getElementById("root");
+      if (!root) {
+        root = document.createElement("div");
+        root.id = "root";
+        document.body.append(root);
+      }
+      render(template, root);
+      return root.firstElementChild;
+    }
+
+    add_task(async function testMozBoxButtonProperties() {
+      let button = await renderTemplate();
+
+      ok(button, "The box button renders.");
+      is(
+        button.type,
+        "subpage",
+        "The button is a subpage navigation button by default."
+      );
+
+      ok(
+        button.navIcon,
+        "The box button has an icon indicating the type of navigation that happens on click."
+      );
+      is(
+        button.navIcon.src,
+        "chrome://global/skin/icons/arrow-right.svg",
+        "The subpage button uses the expected icon."
+      );
+
+      is(button.label, "this is a test", "The box button has the expected label.");
+      is(
+        button.buttonEl.textContent.trim(),
+        "this is a test",
+        "The box button label is rendered."
+      );
+    });
+
+    add_task(async function testMozBoxButtonEvents() {
+      let seenEvents = [];
+
+      let button = await renderTemplate();
+      button.addEventListener("click", e => seenEvents.push(e));
+
+      synthesizeMouseAtCenter(button, {});
+      await TestUtils.waitForTick();
+
+      is(
+        seenEvents.length,
+        1,
+        "MozBoxButton emitted the expected number of events."
+      );
+      is(seenEvents[0].type, "click", "MozBoxButton emitted a click event.");
+    });
+
+    add_task(async function testMozBoxButtonKeyboardFocus() {
+      let focusTemplate = html`
+        <button id="first">Button before</button>
+        <moz-box-button id="box" label="I'm the box button"></moz-box-button>
+        <button id="last">Button after</button>
+      `;
+      let firstButton = await renderTemplate(focusTemplate);
+
+      firstButton.focus();
+      is(document.activeElement, firstButton, "The first button is focused.");
+      synthesizeKey("KEY_Tab", {});
+
+      let mozBoxButton = document.getElementById("box");
+      is(document.activeElement, mozBoxButton, "The MozBoxButton receives focus.");
+
+      synthesizeKey("KEY_Tab", {});
+      let lastButton = document.getElementById("last");
+      is(document.activeElement, lastButton, "Focus moves from the MozBoxButton.");
+    });
+  </script>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+<pre id="test"></pre>
+</body>
+</html>
