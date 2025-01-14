@@ -891,6 +891,9 @@ tags = "openwindow"
 
 ["test_iframe_sandbox_popups_inheritance.html"]
 tags = "openwindow"
+skip-if = [
+  "http3",
+]
 
 ["test_iframe_sandbox_redirect.html"]
 
