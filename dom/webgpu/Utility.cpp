@@ -414,11 +414,17 @@ ffi::WGPUTextureFormat ConvertTextureFormat(
 ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat) {
   ffi::WGPUVertexFormat result = ffi::WGPUVertexFormat_Sentinel;
   switch (aFormat) {
+    case dom::GPUVertexFormat::Uint8:
+      result = ffi::WGPUVertexFormat_Uint8;
+      break;
     case dom::GPUVertexFormat::Uint8x2:
       result = ffi::WGPUVertexFormat_Uint8x2;
       break;
     case dom::GPUVertexFormat::Uint8x4:
       result = ffi::WGPUVertexFormat_Uint8x4;
+      break;
+    case dom::GPUVertexFormat::Sint8:
+      result = ffi::WGPUVertexFormat_Sint8;
       break;
     case dom::GPUVertexFormat::Sint8x2:
       result = ffi::WGPUVertexFormat_Sint8x2;
@@ -426,11 +432,17 @@ ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat) {
     case dom::GPUVertexFormat::Sint8x4:
       result = ffi::WGPUVertexFormat_Sint8x4;
       break;
+    case dom::GPUVertexFormat::Unorm8:
+      result = ffi::WGPUVertexFormat_Unorm8;
+      break;
     case dom::GPUVertexFormat::Unorm8x2:
       result = ffi::WGPUVertexFormat_Unorm8x2;
       break;
     case dom::GPUVertexFormat::Unorm8x4:
       result = ffi::WGPUVertexFormat_Unorm8x4;
+      break;
+    case dom::GPUVertexFormat::Snorm8:
+      result = ffi::WGPUVertexFormat_Snorm8;
       break;
     case dom::GPUVertexFormat::Snorm8x2:
       result = ffi::WGPUVertexFormat_Snorm8x2;
@@ -438,11 +450,17 @@ ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat) {
     case dom::GPUVertexFormat::Snorm8x4:
       result = ffi::WGPUVertexFormat_Snorm8x4;
       break;
+    case dom::GPUVertexFormat::Uint16:
+      result = ffi::WGPUVertexFormat_Uint16;
+      break;
     case dom::GPUVertexFormat::Uint16x2:
       result = ffi::WGPUVertexFormat_Uint16x2;
       break;
     case dom::GPUVertexFormat::Uint16x4:
       result = ffi::WGPUVertexFormat_Uint16x4;
+      break;
+    case dom::GPUVertexFormat::Sint16:
+      result = ffi::WGPUVertexFormat_Sint16;
       break;
     case dom::GPUVertexFormat::Sint16x2:
       result = ffi::WGPUVertexFormat_Sint16x2;
@@ -450,17 +468,26 @@ ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat) {
     case dom::GPUVertexFormat::Sint16x4:
       result = ffi::WGPUVertexFormat_Sint16x4;
       break;
+    case dom::GPUVertexFormat::Unorm16:
+      result = ffi::WGPUVertexFormat_Unorm16;
+      break;
     case dom::GPUVertexFormat::Unorm16x2:
       result = ffi::WGPUVertexFormat_Unorm16x2;
       break;
     case dom::GPUVertexFormat::Unorm16x4:
       result = ffi::WGPUVertexFormat_Unorm16x4;
       break;
+    case dom::GPUVertexFormat::Snorm16:
+      result = ffi::WGPUVertexFormat_Snorm16;
+      break;
     case dom::GPUVertexFormat::Snorm16x2:
       result = ffi::WGPUVertexFormat_Snorm16x2;
       break;
     case dom::GPUVertexFormat::Snorm16x4:
       result = ffi::WGPUVertexFormat_Snorm16x4;
+      break;
+    case dom::GPUVertexFormat::Float16:
+      result = ffi::WGPUVertexFormat_Float16;
       break;
     case dom::GPUVertexFormat::Float16x2:
       result = ffi::WGPUVertexFormat_Float16x2;
