@@ -251,7 +251,6 @@ if __name__ == "__main__":
             os.path.abspath(args.patch_path),
             args.state_path,
             args.tar_name,
-            "https",  # unused in this case
         )
         # reset the resume file
         print("reset resume file")
@@ -276,18 +275,6 @@ if __name__ == "__main__":
             # guidance from verify_vendoring (the next step) is
             # accurate.  If living dangerously is your thing, you can
             # skip this step.
-            #
-            # Note: we're defaulting to fetching using https.
-            # In the most common use case, this is going to be run in
-            # moz-central (not elm) and is only using the repo to figure
-            # out how to do the cherry-pick.  In other words, we'd never
-            # be pushing from the repo fetched here.
-            # If a cherry-pick needs to happen when doing a fast-forward
-            # (from elm), the user would likely have already had the
-            # repo fetched in their preferred protocol and
-            # restore_patch_stack reuses the saved repo (from the
-            # .tar.gz file) and thus preserves the original protocol
-            # choice made when calling prep_repo.sh.
             print("restoring patch stack")
             restore_patch_stack(
                 args.repo_path,
@@ -295,7 +282,6 @@ if __name__ == "__main__":
                 os.path.abspath(args.patch_path),
                 args.state_path,
                 args.tar_name,
-                "https",  # unused if a previous restore has completed
             )
         update_resume_state("resume2", resume_state_filename)
 
