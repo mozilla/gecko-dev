@@ -6327,7 +6327,7 @@ CallIRGenerator::CallIRGenerator(JSContext* cx, HandleScript script,
 void InlinableNativeIRGenerator::emitNativeCalleeGuard() {
   // Note: we rely on GuardSpecificFunction to also guard against the same
   // native from a different realm.
-  MOZ_ASSERT(callee_->isNativeWithoutJitEntry());
+  MOZ_ASSERT(target_->isNativeWithoutJitEntry());
 
   ObjOperandId calleeObjId;
   if (flags_.getArgFormat() == CallFlags::Standard) {
@@ -6340,18 +6340,21 @@ void InlinableNativeIRGenerator::emitNativeCalleeGuard() {
     calleeObjId = writer.guardToObject(calleeValId);
   } else if (flags_.getArgFormat() == CallFlags::FunCall) {
     MOZ_ASSERT(generator_.writer.numOperandIds() > 0, "argcId is initialized");
+    MOZ_ASSERT(!isCalleeBoundFunction(), "unexpected bound function");
 
     Int32OperandId argcId(0);
     calleeObjId = generator_.emitFunCallOrApplyGuard(argcId);
   } else {
     MOZ_ASSERT(flags_.getArgFormat() == CallFlags::FunApplyArray);
     MOZ_ASSERT(generator_.writer.numOperandIds() > 0, "argcId is initialized");
+    MOZ_ASSERT(!isCalleeBoundFunction(), "unexpected bound function");
 
     Int32OperandId argcId(0);
     calleeObjId = generator_.emitFunApplyGuard(argcId);
   }
 
-  writer.guardSpecificFunction(calleeObjId, callee_);
+  ObjOperandId targetId = calleeObjId;
+  writer.guardSpecificFunction(targetId, target_);
 
   // If we're constructing we also need to guard newTarget == callee.
   if (flags_.isConstructing()) {
@@ -6361,7 +6364,7 @@ void InlinableNativeIRGenerator::emitNativeCalleeGuard() {
     ValOperandId newTargetValId =
         writer.loadArgumentFixedSlot(ArgumentKind::NewTarget, argc_, flags_);
     ObjOperandId newTargetObjId = writer.guardToObject(newTargetValId);
-    writer.guardSpecificFunction(newTargetObjId, callee_);
+    writer.guardSpecificFunction(newTargetObjId, target_);
   }
 }
 
@@ -8397,7 +8400,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathRandom() {
     return AttachDecision::NoAction;
   }
 
-  MOZ_ASSERT(cx_->realm() == callee_->realm(),
+  MOZ_ASSERT(cx_->realm() == target_->realm(),
              "Shouldn't inline cross-realm Math.random because per-realm RNG");
 
   // Initialize the input operand.
@@ -9038,7 +9041,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathFunction(
   }
 
   if (math_use_fdlibm_for_sin_cos_tan() ||
-      callee_->realm()->creationOptions().alwaysUseFdlibm()) {
+      target_->realm()->creationOptions().alwaysUseFdlibm()) {
     switch (fun) {
       case UnaryMathFunction::SinNative:
         fun = UnaryMathFunction::SinFdlibm;
@@ -10797,8 +10800,8 @@ AttachDecision CallIRGenerator::tryAttachFunCall(HandleFunction callee) {
         HandleValueArray::subarray(args_, 1, args_.length() - 1);
 
     // Check for specific native-function optimizations.
-    InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                         args, targetFlags);
+    InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
+                                         thisValue, args, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11329,7 +11332,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachArrayConstructor() {
   // object is allocated in that realm. See CanInlineNativeCrossRealm.
   JSObject* templateObj;
   {
-    AutoRealm ar(cx_, callee_);
+    AutoRealm ar(cx_, target_);
     templateObj = NewDenseFullyAllocatedArray(cx_, length, TenuredObject);
     if (!templateObj) {
       cx_->clearPendingException();
@@ -11403,7 +11406,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayConstructor() {
 #endif
 
   RootedObject templateObj(cx_);
-  if (!TypedArrayObject::GetTemplateObjectForNative(cx_, callee_->native(),
+  if (!TypedArrayObject::GetTemplateObjectForNative(cx_, target_->native(),
                                                     args_, &templateObj)) {
     cx_->recoverFromOutOfMemory();
     return AttachDecision::NoAction;
@@ -11790,8 +11793,8 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
         aobj->length(), aobj->getDenseElements());
 
     // Check for specific native-function optimizations.
-    InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                         args, targetFlags);
+    InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
+                                         thisValue, args, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11805,8 +11808,8 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
     HandleValueArray args = HandleValueArray::empty();
 
     // Check for specific native-function optimizations.
-    InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
-                                         args, targetFlags);
+    InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
+                                         thisValue, args, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -12011,8 +12014,8 @@ AttachDecision CallIRGenerator::tryAttachInlinableNative(HandleFunction callee,
     return AttachDecision::NoAction;
   }
 
-  InlinableNativeIRGenerator nativeGen(*this, callee, newTarget_, thisval_,
-                                       args_, flags);
+  InlinableNativeIRGenerator nativeGen(*this, callee, callee, newTarget_,
+                                       thisval_, args_, flags);
   return nativeGen.tryAttachStub();
 }
 
@@ -12042,15 +12045,15 @@ AttachDecision InlinableNativeIRGenerator::tryAttachFuzzilliHash() {
 AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
   MOZ_ASSERT(BytecodeCallOpCanHaveInlinableNative(generator_.op_));
 
-  if (!callee_->hasJitInfo() ||
-      callee_->jitInfo()->type() != JSJitInfo::InlinableNative) {
+  if (!target_->hasJitInfo() ||
+      target_->jitInfo()->type() != JSJitInfo::InlinableNative) {
     return AttachDecision::NoAction;
   }
 
-  InlinableNative native = callee_->jitInfo()->inlinableNative;
+  InlinableNative native = target_->jitInfo()->inlinableNative;
 
   // Not all natives can be inlined cross-realm.
-  if (cx_->realm() != callee_->realm() && !CanInlineNativeCrossRealm(native)) {
+  if (cx_->realm() != target_->realm() && !CanInlineNativeCrossRealm(native)) {
     return AttachDecision::NoAction;
   }
 
