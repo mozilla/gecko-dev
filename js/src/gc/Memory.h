@@ -45,9 +45,13 @@ void* MapAlignedPages(size_t length, size_t alignment,
                       StallAndRetry stallAndRetry = StallAndRetry::No);
 void UnmapPages(void* region, size_t length);
 
-// We can only decommit unused pages if the page size is less than or equal to
-// the hardcoded Arena size for the running process.
+// We only decommit unused pages if the system page size is the same as the
+// hardcoded page size for the build.
 bool DecommitEnabled();
+
+// Disable decommit for testing purposes. This must be called before
+// InitMemorySubsystem.
+void DisableDecommit();
 
 // Tell the OS that the given pages are not in use, so they should not be
 // written to a paging file. This may be a no-op on some platforms.

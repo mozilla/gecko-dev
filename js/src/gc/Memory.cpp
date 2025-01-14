@@ -71,6 +71,12 @@ static size_t numAddressBits = 0;
 /* An estimate of the number of bytes available for virtual memory. */
 static size_t virtualMemoryLimit = size_t(-1);
 
+/* Whether decommit is enabled. */
+static bool decommitEnabled = false;
+
+/* Whether DisableDecommit() has been called. */
+static bool disableDecommitRequested = false;
+
 /*
  * System allocation functions may hand out regions of memory in increasing or
  * decreasing order. This ordering is used as a hint during chunk alignment to
@@ -199,7 +205,14 @@ void* TestMapAlignedPagesLastDitch(size_t length, size_t alignment) {
   return MapAlignedPagesLastDitch(length, alignment, StallAndRetry::No);
 }
 
-bool DecommitEnabled() { return SystemPageSize() == PageSize; }
+bool DecommitEnabled() { return decommitEnabled; }
+
+void DisableDecommit() {
+  MOZ_RELEASE_ASSERT(
+      pageSize == 0,
+      "DisableDecommit should be called before InitMemorySubsystem");
+  disableDecommitRequested = true;
+}
 
 /* Returns the offset from the nearest aligned address at or below |region|. */
 static inline size_t OffsetFromAligned(void* region, size_t alignment) {
@@ -403,6 +416,11 @@ void InitMemorySubsystem() {
     pageSize = size_t(sysconf(_SC_PAGESIZE));
     allocGranularity = pageSize;
 #endif
+
+    // Decommit is supported if the system page size is the size as the
+    // compile time constant and has not been disabled.
+    decommitEnabled = pageSize == PageSize && !disableDecommitRequested;
+
 #ifdef JS_64BIT
 #  ifdef XP_WIN
     minValidAddress = size_t(sysinfo.lpMinimumApplicationAddress);

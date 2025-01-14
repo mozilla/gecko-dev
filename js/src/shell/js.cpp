@@ -12787,6 +12787,8 @@ bool InitOptionParser(OptionParser& op) {
       !op.addIntOption('\0', "available-memory", "SIZE",
                        "Select GC settings based on available memory (MB)",
                        0) ||
+      !op.addBoolOption('\0', "disable-decommit",
+                        "Disable decommitting unsued GC memory") ||
       !op.addStringOption('\0', "arm-hwcap", "[features]",
                           "Specify ARM code generation features, or 'help' to "
                           "list all features.") ||
@@ -13142,6 +13144,10 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
     }
   }
 #endif
+
+  if (op.getBoolOption("disable-decommit")) {
+    gc::DisableDecommit();
+  }
 
   return true;
 }
