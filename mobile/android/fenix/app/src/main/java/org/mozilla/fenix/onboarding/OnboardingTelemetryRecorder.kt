@@ -300,22 +300,6 @@ class OnboardingTelemetryRecorder {
     }
 
     /**
-     * Records skip theme click event.
-     * @param sequenceId The identifier of the onboarding sequence shown to the user.
-     * @param sequencePosition The sequence position of the page for which the impression occurred.
-     */
-    fun onSkipThemeClick(sequenceId: String, sequencePosition: String) {
-        Onboarding.skipTheme.record(
-            Onboarding.SkipThemeExtra(
-                action = ACTION_CLICK,
-                elementType = ET_PRIMARY_BUTTON,
-                sequenceId = sequenceId,
-                sequencePosition = sequencePosition,
-            ),
-        )
-    }
-
-    /**
      * Records privacy policy link text click event.
      * @param sequenceId The identifier of the onboarding sequence shown to the user.
      * @param sequencePosition The sequence position of the page on which the link click event occurred.

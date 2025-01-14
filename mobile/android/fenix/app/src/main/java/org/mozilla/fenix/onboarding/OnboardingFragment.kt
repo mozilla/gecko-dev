@@ -239,13 +239,6 @@ class OnboardingFragment : Fragment() {
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.THEME_SELECTION),
                 )
             },
-
-            onCustomizeThemeSkip = {
-                telemetryRecorder.onSkipThemeClick(
-                    pagesToDisplay.telemetrySequenceId(),
-                    pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.THEME_SELECTION),
-                )
-            },
         )
     }
 
