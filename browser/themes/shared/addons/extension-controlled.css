@@ -25,11 +25,7 @@
     fill: currentColor;
 
     &.alltabs-icon-generic {
-      background-image: url("chrome://browser/content/firefoxview/view-opentabs.svg");
-      height: 20px;
-      width: 20px;
-      /* This icon has a lot of extra space to the sides, reduce that a little. */
-      margin-block: -2px;
+      background-image: url("chrome://browser/skin/tabs.svg");
     }
   }
 }
