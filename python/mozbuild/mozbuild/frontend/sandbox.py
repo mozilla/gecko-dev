@@ -110,6 +110,8 @@ class Sandbox(dict):
             "True": True,
             "sorted": alphabetical_sorted,
             "int": int,
+            "len": len,
+            "range": range,
             "set": set,
             "tuple": tuple,
         }
