@@ -6,9 +6,6 @@
 
 #include "mozilla/dom/MediaError.h"
 
-#include <string>
-#include <unordered_set>
-
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/MediaErrorBinding.h"
 #include "nsContentUtils.h"
@@ -34,13 +31,13 @@ MediaError::MediaError(HTMLMediaElement* aParent, uint16_t aCode,
 void MediaError::GetMessage(nsAString& aResult) const {
   // When fingerprinting resistance is enabled, only messages in this list
   // can be returned to content script.
-  // FIXME: An unordered_set seems overkill for this.
-  static const std::unordered_set<std::string> whitelist = {
-      "404: Not Found"
+  static constexpr nsLiteralCString whitelist[] = {
+      "404: Not Found"_ns
       // TODO
   };
 
-  const bool shouldBlank = whitelist.find(mMessage.get()) == whitelist.end();
+  const bool shouldBlank = std::find(std::begin(whitelist), std::end(whitelist),
+                                     mMessage) == std::end(whitelist);
 
   if (shouldBlank) {
     // Print a warning message to JavaScript console to alert developers of
