@@ -664,6 +664,9 @@ def gen_copy(fun_name, cpp_type, size, unroll, direction):
             if size == 1:
                 insns += fmt_insn("movb OFFSET(%[src]), %[scratch]")
                 insns += fmt_insn("movb %[scratch], OFFSET(%[dst])")
+            elif size == 2:
+                insns += fmt_insn("movw OFFSET(%[src]), %[scratch]")
+                insns += fmt_insn("movw %[scratch], OFFSET(%[dst])")
             elif size == 4:
                 insns += fmt_insn("movl OFFSET(%[src]), %[scratch]")
                 insns += fmt_insn("movl %[scratch], OFFSET(%[dst])")
@@ -675,6 +678,12 @@ def gen_copy(fun_name, cpp_type, size, unroll, direction):
             if size == 1:
                 insns += fmt_insn("ldrb %w[scratch], [%x[src], OFFSET]")
                 insns += fmt_insn("strb %w[scratch], [%x[dst], OFFSET]")
+            elif size == 2:
+                insns += fmt_insn("ldrh %w[scratch], [%x[src], OFFSET]")
+                insns += fmt_insn("strh %w[scratch], [%x[dst], OFFSET]")
+            elif size == 4:
+                insns += fmt_insn("ldr %w[scratch], [%x[src], OFFSET]")
+                insns += fmt_insn("str %w[scratch], [%x[dst], OFFSET]")
             else:
                 assert size == 8
                 insns += fmt_insn("ldr %x[scratch], [%x[src], OFFSET]")
@@ -683,6 +692,9 @@ def gen_copy(fun_name, cpp_type, size, unroll, direction):
             if size == 1:
                 insns += fmt_insn("ldrb %[scratch], [%[src], #OFFSET]")
                 insns += fmt_insn("strb %[scratch], [%[dst], #OFFSET]")
+            elif size == 2:
+                insns += fmt_insn("ldrh %[scratch], [%[src], #OFFSET]")
+                insns += fmt_insn("strh %[scratch], [%[dst], #OFFSET]")
             else:
                 assert size == 4
                 insns += fmt_insn("ldr %[scratch], [%[src], #OFFSET]")
@@ -864,7 +876,9 @@ def generate_atomics_header(c_out):
         contents += gen_copy(
             "AtomicCopyWordUnsynchronized", "uintptr_t", wordsize, 1, "down"
         )
-        contents += gen_copy("AtomicCopyByteUnsynchronized", "uint8_t", 1, 1, "down")
+        contents += gen_copy("AtomicCopy32Unsynchronized", "uint32_t", 4, 1, "down")
+        contents += gen_copy("AtomicCopy16Unsynchronized", "uint16_t", 2, 1, "down")
+        contents += gen_copy("AtomicCopy8Unsynchronized", "uint8_t", 1, 1, "down")
 
         contents += "\n"
         contents += (
