@@ -30,7 +30,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -107,9 +106,8 @@ fun ThemeOnboardingPage(
                 val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
 
                 if (!inComposePreview) {
-                    val context = LocalContext.current
                     LaunchedEffect(onboardingStore.state.themeOptionSelected) {
-                        context.applyThemeIfRequired(onboardingStore.state.themeOptionSelected)
+                        applyThemeIfRequired(onboardingStore.state.themeOptionSelected)
                     }
                 }
 
