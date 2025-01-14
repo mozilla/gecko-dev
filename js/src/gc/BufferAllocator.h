@@ -12,6 +12,7 @@
 #include "mozilla/Array.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BitSet.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/TimeStamp.h"
 
 #include <cstdint>
@@ -21,6 +22,7 @@
 #include "jstypes.h"  // JS_PUBLIC_API
 
 #include "ds/SlimLinkedList.h"
+#include "threading/LockGuard.h"
 #include "threading/Mutex.h"
 #include "threading/ProtectedData.h"
 
@@ -190,7 +192,15 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   static constexpr size_t MediumAllocClasses =
       MaxMediumAllocShift - MinMediumAllocShift + 1;
 
-  class AutoLock;
+  // An RAII guard to lock and unlock the buffer allocator lock.
+  class AutoLock : public LockGuard<Mutex> {
+   public:
+    explicit AutoLock(GCRuntime* gc);
+    explicit AutoLock(BufferAllocator* allocator);
+  };
+
+  // A lock guard that is locked only when needed.
+  using MaybeLock = mozilla::Maybe<AutoLock>;
 
  private:
   using BufferChunkList = SlimLinkedList<BufferChunk>;
@@ -327,19 +337,21 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void* realloc(void* ptr, size_t bytes, bool nurseryOwned);
   void free(void* ptr);
 
-  void startMinorCollection();
+  void startMinorCollection(MaybeLock& lock);
   bool startMinorSweeping(LargeAllocList& largeAllocsToFree);
   void sweepForMinorCollection();
 
   static void FreeLargeAllocs(LargeAllocList& largeAllocsToFree);
 
-  void startMajorCollection();
-  void startMajorSweeping();
+  void startMajorCollection(MaybeLock& lock);
+  void startMajorSweeping(MaybeLock& lock);
   void sweepForMajorCollection(bool shouldDecommit);
-  void finishMajorCollection();
+  void finishMajorCollection(const AutoLock& lock);
 
   void maybeMergeSweptData();
+  void maybeMergeSweptData(MaybeLock& lock);
   void mergeSweptData();
+  void mergeSweptData(const AutoLock& lock);
 
   bool isEmpty() const;
 
@@ -364,6 +376,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
 #ifdef DEBUG
   void checkGCStateNotInUse();
+  void checkGCStateNotInUse(MaybeLock& lock);
   void checkGCStateNotInUse(const AutoLock& lock);
 #endif
 
@@ -455,8 +468,6 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void verifyChunk(BufferChunk* chunk, bool hasNurseryOwnedAllocs);
   void verifyFreeRegion(BufferChunk* chunk, uintptr_t endOffset,
                         size_t expectedSize);
-  template <typename T>
-  bool listIsEmpty(const MutexData<SlimLinkedList<T>>& list);
 #endif
 };
 

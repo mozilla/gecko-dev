@@ -1436,6 +1436,7 @@ class GCRuntime {
    */
   Mutex bufferAllocatorLock MOZ_UNANNOTATED;
   friend class BufferAllocator;
+  friend class AutoLock;
 
   friend class BackgroundSweepTask;
   friend class BackgroundFreeTask;

@@ -3032,35 +3032,38 @@ void GCRuntime::beginMarkPhase(AutoGCSession& session) {
   queueMarkColor.reset();
 #endif
 
-  for (GCZonesIter zone(this); !zone.done(); zone.next()) {
-    // In an incremental GC, clear the arena free lists to ensure that
-    // subsequent allocations refill them and end up marking new cells black.
-    // See arenaAllocatedDuringGC().
-    zone->arenas.clearFreeLists();
+  {
+    BufferAllocator::MaybeLock lock;
+    for (GCZonesIter zone(this); !zone.done(); zone.next()) {
+      // In an incremental GC, clear the arena free lists to ensure that
+      // subsequent allocations refill them and end up marking new cells black.
+      // See arenaAllocatedDuringGC().
+      zone->arenas.clearFreeLists();
 
 #ifdef JS_GC_ZEAL
-    if (hasZealMode(ZealMode::YieldBeforeRootMarking)) {
-      for (auto kind : AllAllocKinds()) {
-        for (ArenaIter arena(zone, kind); !arena.done(); arena.next()) {
-          arena->checkNoMarkedCells();
+      if (hasZealMode(ZealMode::YieldBeforeRootMarking)) {
+        for (auto kind : AllAllocKinds()) {
+          for (ArenaIter arena(zone, kind); !arena.done(); arena.next()) {
+            arena->checkNoMarkedCells();
+          }
         }
       }
-    }
 #endif
 
-    // Incremental marking barriers are enabled at this point.
-    zone->changeGCState(Zone::Prepare, zone->initialMarkingState());
+      // Incremental marking barriers are enabled at this point.
+      zone->changeGCState(Zone::Prepare, zone->initialMarkingState());
 
-    // Merge arenas allocated during the prepare phase, then move all arenas to
-    // the collecting arena lists.
-    zone->arenas.mergeArenasFromCollectingLists();
-    zone->arenas.moveArenasToCollectingLists();
+      // Merge arenas allocated during the prepare phase, then move all arenas
+      // to the collecting arena lists.
+      zone->arenas.mergeArenasFromCollectingLists();
+      zone->arenas.moveArenasToCollectingLists();
 
-    // Prepare sized allocator for major GC.
-    zone->bufferAllocator.startMajorCollection();
+      // Prepare sized allocator for major GC.
+      zone->bufferAllocator.startMajorCollection(lock);
 
-    for (RealmsInZoneIter realm(zone); !realm.done(); realm.next()) {
-      realm->clearAllocatedDuringGC();
+      for (RealmsInZoneIter realm(zone); !realm.done(); realm.next()) {
+        realm->clearAllocatedDuringGC();
+      }
     }
   }
 
@@ -3702,14 +3705,17 @@ GCRuntime::IncrementalResult GCRuntime::resetIncrementalGC(
       // Wait for sweeping of nursery owned sized allocations to finish.
       nursery().joinSweepTask();
 
-      for (GCZonesIter zone(this); !zone.done(); zone.next()) {
-        zone->changeGCState(zone->initialMarkingState(), Zone::NoGC);
-        zone->clearGCSliceThresholds();
-        zone->arenas.unmarkPreMarkedFreeCells();
-        zone->arenas.mergeArenasFromCollectingLists();
+      {
+        BufferAllocator::AutoLock lock(this);
+        for (GCZonesIter zone(this); !zone.done(); zone.next()) {
+          zone->changeGCState(zone->initialMarkingState(), Zone::NoGC);
+          zone->clearGCSliceThresholds();
+          zone->arenas.unmarkPreMarkedFreeCells();
+          zone->arenas.mergeArenasFromCollectingLists();
 
-        // Merge sized alloc data structures back without sweeping them.
-        zone->bufferAllocator.finishMajorCollection();
+          // Merge sized alloc data structures back without sweeping them.
+          zone->bufferAllocator.finishMajorCollection(lock);
+        }
       }
 
       {
@@ -3981,8 +3987,11 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
         break;
       }
 
-      for (GCZonesIter zone(this); !zone.done(); zone.next()) {
-        zone->bufferAllocator.finishMajorCollection();
+      {
+        BufferAllocator::AutoLock lock(this);
+        for (GCZonesIter zone(this); !zone.done(); zone.next()) {
+          zone->bufferAllocator.finishMajorCollection(lock);
+        }
       }
 
       assertBackgroundSweepingFinished();

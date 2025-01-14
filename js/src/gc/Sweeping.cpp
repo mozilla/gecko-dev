@@ -1765,16 +1765,18 @@ IncrementalProgress GCRuntime::endSweepingSweepGroup(JS::GCContext* gcx,
    * zones last if present.
    */
   ZoneList zones;
-  for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
-    if (zone->isAtomsZone()) {
-      zones.append(zone);
-    } else {
-      zones.prepend(zone);
+  {
+    BufferAllocator::MaybeLock lock;
+    for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
+      if (zone->isAtomsZone()) {
+        zones.append(zone);
+      } else {
+        zones.prepend(zone);
+      }
+
+      zone->bufferAllocator.startMajorSweeping(lock);
     }
-
-    zone->bufferAllocator.startMajorSweeping();
   }
-
   queueZonesAndStartBackgroundSweep(std::move(zones));
 
   return Finished;

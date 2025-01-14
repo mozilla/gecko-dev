@@ -9,6 +9,7 @@
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/TimeStamp.h"
@@ -1632,8 +1633,11 @@ js::Nursery::CollectionResult js::Nursery::doCollection(AutoGCSession& session,
   clearMapAndSetNurseryIterators();
 
   sweepTask->join();
-  for (ZonesIter zone(runtime(), WithAtoms); !zone.done(); zone.next()) {
-    zone->bufferAllocator.startMinorCollection();
+  {
+    BufferAllocator::MaybeLock lock;
+    for (ZonesIter zone(runtime(), WithAtoms); !zone.done(); zone.next()) {
+      zone->bufferAllocator.startMinorCollection(lock);
+    }
   }
 
   // Move objects pointed to by roots from the nursery to the major heap.
