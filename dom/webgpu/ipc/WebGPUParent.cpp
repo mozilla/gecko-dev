@@ -1319,6 +1319,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
     ffi::wgpu_server_encoder_finish(mContext.get(), aCommandEncoderId,
                                     &commandDesc, error.ToFFI());
     if (ForwardError(data->mDeviceId, error)) {
+      ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
       return IPC_OK();
     }
   }
@@ -1327,6 +1328,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
     ErrorBuffer error;
     ffi::wgpu_server_queue_submit(mContext.get(), data->mQueueId,
                                   &aCommandEncoderId, 1, error.ToFFI());
+    ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
     if (ForwardError(data->mDeviceId, error)) {
       return IPC_OK();
     }

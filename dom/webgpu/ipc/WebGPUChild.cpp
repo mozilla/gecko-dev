@@ -223,8 +223,11 @@ void WebGPUChild::SwapChainPresent(RawId aTextureId,
                                    const RemoteTextureOwnerId& aOwnerId) {
   // Hack: the function expects `DeviceId`, but it only uses it for `backend()`
   // selection.
+  // The parent side needs to create a command encoder which will be submitted
+  // and dropped right away so we create and release an encoder ID here.
   RawId encoderId = ffi::wgpu_client_make_encoder_id(mClient.get());
   SendSwapChainPresent(aTextureId, encoderId, aRemoteTextureId, aOwnerId);
+  ffi::wgpu_client_free_command_encoder_id(mClient.get(), encoderId);
 }
 
 void WebGPUChild::RegisterDevice(Device* const aDevice) {
