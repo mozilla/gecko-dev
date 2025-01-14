@@ -6,6 +6,11 @@
 
 #include "wasm/WasmSummarizeInsn.h"
 
+// for Loongson extension detection
+#if defined(JS_CODEGEN_MIPS64)
+#  include "jit/mips-shared/Architecture-mips-shared.h"
+#endif
+
 using mozilla::Maybe;
 using mozilla::Nothing;
 using mozilla::Some;
@@ -1460,6 +1465,11 @@ Maybe<TrapMachineInsn> SummarizeTrapInstruction(const uint8_t* insnAddr) {
   // MIPS64R2 instruction encoding document:
   // https://scc.ustc.edu.cn/_upload/article/files/c6/06/45556c084631b2855f0022175eaf/W020100308600769158777.pdf#G254.1001018
 
+  // Loongson GS464 extension:
+  // No official encoding document. Refer to binutils-gdb/opcodes/mips-opc.c and
+  // https://github.com/FlyGoat/loongson-insn/blob/master/loongson-ext.md
+  // instead.
+
   // MacroAssembler::wasmTrapInstruction uses this to create SIGILL.
   // teq zero, zero, 0x6
   if (insn == 0x000001b4) {
@@ -1479,6 +1489,18 @@ Maybe<TrapMachineInsn> SummarizeTrapInstruction(const uint8_t* insnAddr) {
   // |   110  |  LL  | LWC1 | LWC2 |       |  LLD | LDC1 | LDC2 |  LD  |
   // |   111  |  SC  | SWC1 | SWC2 |       |  SCD | SDC1 | SDC2 |  SD  |
   // +--------+------+------+------+-------+------+------+------+------+
+  // Loongson GS464 Encoding of the Opcode and Function Field of memory access
+  // extension instructions.
+  // +--------+-------------------------------------------------------+
+  // |  bits  |                          2..0                         |
+  // +--------+-----+-----+-----+-----+-------+-------+-------+-------+
+  // | 31..26 | 000 | 001 | 010 | 011 |  100  |  101  |  110  |  111  |
+  // +--------+-----+-----+-----+-----+-------+-------+-------+-------+
+  // | 110010 |     |     |     |     |GSLWLC1|GSLWRC1|GSLDLC1|GSLDRC1|
+  // | 111010 |     |     |     |     |GSSWLC1|GSSWRC1|GSSDLC1|GSSDRC1|
+  // | 110110 |GSLBX|GSLHX|GSLWX|GSLDX|       |       |GSLWXC1|GSLDXC1|
+  // | 111110 |GSLBX|GSLHX|GSLWX|GSLDX|       |       |GSSWXC1|GSSDXC1|
+  // +--------+-----+-----+-----+-----+-------+-------+-------+-------+
   if (INSN(31, 29) == 0b010) {
     // MIPS64 COP1X Encoding of Function Field of memory access instructions.
     // +--------+-----------------------------------------------------+
@@ -1575,8 +1597,26 @@ Maybe<TrapMachineInsn> SummarizeTrapInstruction(const uint8_t* insnAddr) {
       case 0b000:
       // lwc1
       case 0b001:
+        return Some(TrapMachineInsn::Load32);
       // lwc2
       case 0b010:
+        if (jit::isLoongson()) {
+          switch (INSN(2, 0)) {
+            // gslsl
+            case 0b100:
+            // gslsr
+            case 0b101:
+              return Some(TrapMachineInsn::Load32);
+            // gsldl
+            case 0b110:
+            // gsldr
+            case 0b111:
+              return Some(TrapMachineInsn::Load64);
+            // invalid
+            default:
+              return Nothing();
+          }
+        }
         return Some(TrapMachineInsn::Load32);
       // pref
       case 0b011:
@@ -1585,8 +1625,33 @@ Maybe<TrapMachineInsn> SummarizeTrapInstruction(const uint8_t* insnAddr) {
       case 0b100:
       // ldc1
       case 0b101:
+        return Some(TrapMachineInsn::Load64);
       // ldc2
       case 0b110:
+        if (jit::isLoongson()) {
+          switch (INSN(2, 0)) {
+            // gslbx
+            case 0b000:
+              return Some(TrapMachineInsn::Load8);
+            // gslhx
+            case 0b001:
+              return Some(TrapMachineInsn::Load16);
+            // gslwx
+            case 0b010:
+            // gslwx (float)
+            case 0b110:
+              return Some(TrapMachineInsn::Load32);
+            // gsldx
+            case 0b011:
+            // gsldx (double)
+            case 0b111:
+              return Some(TrapMachineInsn::Load64);
+            // invalid
+            default:
+              return Nothing();
+          }
+        }
+        return Some(TrapMachineInsn::Load64);
       // ld
       case 0b111:
         return Some(TrapMachineInsn::Load64);
@@ -1597,8 +1662,26 @@ Maybe<TrapMachineInsn> SummarizeTrapInstruction(const uint8_t* insnAddr) {
       case 0b000:
       // swc1
       case 0b001:
+        return Some(TrapMachineInsn::Store32);
       // swc2
       case 0b010:
+        if (jit::isLoongson()) {
+          switch (INSN(2, 0)) {
+            // gsssl
+            case 0b100:
+            // gsssr
+            case 0b101:
+              return Some(TrapMachineInsn::Store32);
+            // gssdl
+            case 0b110:
+            // gssdr
+            case 0b111:
+              return Some(TrapMachineInsn::Store64);
+            // invalid
+            default:
+              return Nothing();
+          }
+        }
         return Some(TrapMachineInsn::Store32);
       // reserved encoding
       case 0b011:
@@ -1607,8 +1690,33 @@ Maybe<TrapMachineInsn> SummarizeTrapInstruction(const uint8_t* insnAddr) {
       case 0b100:
       // sdc1
       case 0b101:
+        return Some(TrapMachineInsn::Store64);
       // sdc2
       case 0b110:
+        if (jit::isLoongson()) {
+          switch (INSN(2, 0)) {
+            // gssbx
+            case 0b000:
+              return Some(TrapMachineInsn::Store8);
+            // gsshx
+            case 0b001:
+              return Some(TrapMachineInsn::Store16);
+            // gsswx
+            case 0b010:
+            // gsswx (float)
+            case 0b110:
+              return Some(TrapMachineInsn::Store32);
+            // gssdx
+            case 0b011:
+            // gssdx (double)
+            case 0b111:
+              return Some(TrapMachineInsn::Store64);
+            // invalid
+            default:
+              return Nothing();
+          }
+        }
+        return Some(TrapMachineInsn::Store64);
       // sd
       case 0b111:
         return Some(TrapMachineInsn::Store64);
