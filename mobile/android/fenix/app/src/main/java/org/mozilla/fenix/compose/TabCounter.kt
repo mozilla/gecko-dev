@@ -33,14 +33,11 @@ import org.mozilla.fenix.tabstray.TabsTrayTestTag
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private const val MAX_VISIBLE_TABS = 99
-private const val SO_MANY_TABS_OPEN = "∞"
-private val NORMAL_TABS_BOTTOM_PADDING = 0.dp
 private const val ONE_DIGIT_SIZE_RATIO = 0.5f
 private const val TWO_DIGITS_SIZE_RATIO = 0.4f
 private const val MIN_SINGLE_DIGIT = 0
 private const val MAX_SINGLE_DIGIT = 9
 private const val TWO_DIGIT_THRESHOLD = 10
-private const val TAB_TEXT_BOTTOM_PADDING_RATIO = 6
 
 /**
  * UI for displaying the number of opened tabs.
@@ -64,25 +61,21 @@ fun TabCounter(
     val formattedTabCount = tabCount.toLocaleString()
     val normalTabCountText: String
     val tabCountTextRatio: Float
-    val needsBottomPaddingForInfiniteTabs: Boolean
 
     when (tabCount) {
         in MIN_SINGLE_DIGIT..MAX_SINGLE_DIGIT -> {
             normalTabCountText = formattedTabCount
             tabCountTextRatio = ONE_DIGIT_SIZE_RATIO
-            needsBottomPaddingForInfiniteTabs = false
         }
 
         in TWO_DIGIT_THRESHOLD..MAX_VISIBLE_TABS -> {
             normalTabCountText = formattedTabCount
             tabCountTextRatio = TWO_DIGITS_SIZE_RATIO
-            needsBottomPaddingForInfiniteTabs = false
         }
 
         else -> {
-            normalTabCountText = SO_MANY_TABS_OPEN
+            normalTabCountText = ""
             tabCountTextRatio = ONE_DIGIT_SIZE_RATIO
-            needsBottomPaddingForInfiniteTabs = true
         }
     }
 
@@ -91,17 +84,14 @@ fun TabCounter(
         formattedTabCount,
     )
 
+    val counterBoxBackground = when (tabCount > MAX_VISIBLE_TABS) {
+        true -> R.drawable.mozac_ui_infinite_tabcounter_box
+        false -> R.drawable.mozac_ui_tabcounter_box
+    }
     val counterBoxWidthDp =
         dimensionResource(id = mozilla.components.ui.tabcounter.R.dimen.mozac_tab_counter_box_width_height)
     val counterBoxWidthPx = LocalDensity.current.run { counterBoxWidthDp.roundToPx() }
     val counterTabsTextSize = (tabCountTextRatio * counterBoxWidthPx).toInt()
-
-    val normalTabsTextModifier = if (needsBottomPaddingForInfiniteTabs) {
-        val bottomPadding = with(LocalDensity.current) { counterTabsTextSize.toDp() / TAB_TEXT_BOTTOM_PADDING_RATIO }
-        Modifier.padding(bottom = bottomPadding)
-    } else {
-        Modifier.padding(bottom = NORMAL_TABS_BOTTOM_PADDING)
-    }
 
     Box(
         modifier = Modifier
@@ -112,7 +102,7 @@ fun TabCounter(
     ) {
         Icon(
             painter = painterResource(
-                id = mozilla.components.ui.tabcounter.R.drawable.mozac_ui_tabcounter_box,
+                id = counterBoxBackground,
             ),
             contentDescription = normalTabsContentDescription,
             tint = iconColor,
@@ -120,7 +110,7 @@ fun TabCounter(
 
         Text(
             text = normalTabCountText,
-            modifier = normalTabsTextModifier.clearAndSetSemantics {},
+            modifier = Modifier.clearAndSetSemantics {},
             color = textColor,
             fontSize = with(LocalDensity.current) { counterTabsTextSize.toDp().toSp() },
             fontWeight = FontWeight.W700,
@@ -149,6 +139,19 @@ private fun TabCounterPreview() {
             modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
         ) {
             TabCounter(tabCount = 55)
+        }
+    }
+}
+
+@LightDarkPreview
+@Preview(locale = "ar")
+@Composable
+private fun InfiniteTabCounterPreview() {
+    FirefoxTheme {
+        Box(
+            modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
+        ) {
+            TabCounter(tabCount = 100)
         }
     }
 }
