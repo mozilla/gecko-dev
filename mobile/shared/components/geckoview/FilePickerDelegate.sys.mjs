@@ -22,6 +22,7 @@ export class FilePickerDelegate {
     ) {
       throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     }
+    this._browsingContext = aBrowsingContext;
     this._prompt = new lazy.GeckoViewPrompter(aBrowsingContext);
     this._msg = {
       type: "file",
@@ -41,11 +42,14 @@ export class FilePickerDelegate {
     this._mimeTypes.push(aFilter);
   }
 
-  show() {
-    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
-  }
-
   open(aFilePickerShownCallback) {
+    if (!this._browsingContext.canOpenModalPicker) {
+      // File pickers are not allowed to open, so we respond to the callback
+      // with returnCancel.
+      aFilePickerShownCallback.done(Ci.nsIFilePicker.returnCancel);
+      return;
+    }
+
     this._msg.mimeTypes = this._mimeTypes;
     this._msg.capture = this._capture;
     this._prompt.asyncShowPrompt(this._msg, result => {
