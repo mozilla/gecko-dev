@@ -397,7 +397,8 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
     // Bug 1930497: If we had a separate phase for finalizing GC things with
     // trivial finalizers, we could run this before it, potentially freeing more
     // memory sooner. This could also happen in parallel with it.
-    zone->bufferAllocator.sweepForMajorCollection(shouldDecommit());
+    bool decommit = shouldDecommit() && DecommitEnabled();
+    zone->bufferAllocator.sweepForMajorCollection(decommit);
 
     // Record time spent sweeping this zone.
     TimeStamp endTime = TimeStamp::Now();
