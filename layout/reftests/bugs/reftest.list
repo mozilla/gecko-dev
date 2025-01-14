@@ -2165,4 +2165,3 @@ fuzzy-if(!useDrawSnapshot&&!swgl,254-255,110-121) fuzzy-if(useDrawSnapshot,18-18
 skip-if(((AddressSanitizer||ThreadSanitizer)&&gtkWidget)||(isDebugBuild&&Android)) fuzzy(0-123,0-1425) == 1878294-1.html 1878294-1-ref.html
 == 1888941-text-transform-emergency-wrap.html 1888941-text-transform-emergency-wrap-ref.html
 == 1936259.html 1936259-ref.html
-== 1941075.html 1941075-ref.html
