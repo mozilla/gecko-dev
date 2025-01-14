@@ -9,6 +9,43 @@ Services.scriptloader.loadSubScript(
 );
 
 /**
+ * Converts milliseconds to seconds.
+ *
+ * @param {number} ms - The duration in milliseconds.
+ * @returns {number} The duration in seconds.
+ */
+function millisecondsToSeconds(ms) {
+  return ms / 1000;
+}
+
+/**
+ * Converts bytes to mebibytes.
+ *
+ * @param {number} bytes - The size in bytes.
+ * @returns {number} The size in mebibytes.
+ */
+function bytesToMebibytes(bytes) {
+  return bytes / (1024 * 1024);
+}
+
+/**
+ * Calculates the median of a list of numbers.
+ *
+ * @param {number[]} numbers - An array of numbers to find the median of.
+ * @returns {number} The median of the provided numbers.
+ */
+function median(numbers) {
+  numbers = numbers.sort((lhs, rhs) => lhs - rhs);
+  const midIndex = Math.floor(numbers.length / 2);
+
+  if (numbers.length & 1) {
+    return numbers[midIndex];
+  }
+
+  return (numbers[midIndex - 1] + numbers[midIndex]) / 2;
+}
+
+/**
  * Opens a new tab in the foreground.
  *
  * @param {string} url
@@ -339,6 +376,366 @@ async function toggleReaderMode() {
 
   click(readerButton, "Clicking the reader-mode button");
   await readyPromise;
+}
+
+/**
+ * A class for benchmarking translation performance and reporting
+ * metrics to our perftest infrastructure.
+ */
+class TranslationsBencher {
+  /**
+   * The metric base name for the engine initialization time.
+   *
+   * @type {string}
+   */
+  static METRIC_ENGINE_INIT_TIME = "engine-init-time";
+
+  /**
+   * The metric base name for words translated per second.
+   *
+   * @type {string}
+   */
+  static METRIC_WORDS_PER_SECOND = "words-per-second";
+
+  /**
+   * The metric base name for tokens translated per second.
+   *
+   * @type {string}
+   */
+  static METRIC_TOKENS_PER_SECOND = "tokens-per-second";
+
+  /**
+   * The metric base name for total memory usage in the inference process.
+   *
+   * @type {string}
+   */
+  static METRIC_TOTAL_MEMORY_USAGE = "total-memory-usage";
+
+  /**
+   * The metric base name for total translation time.
+   *
+   * @type {string}
+   */
+  static METRIC_TOTAL_TRANSLATION_TIME = "total-translation-time";
+
+  /**
+   * Data required to ensure that peftest metrics are validated and calculated correctly for the
+   * given test file. This data can be generated for a test file by running the script located at:
+   *
+   * toolkit/components/translations/tests/scripts/translations-perf-data.py
+   *
+   * @type {Record<string, {pageLanguage: string, tokenCount: number, wordCount: number}>}
+   */
+  static #PAGE_DATA = {
+    [SPANISH_BENCHMARK_PAGE_URL]: {
+      pageLanguage: "es",
+      tokenCount: 10966,
+      wordCount: 6944,
+    },
+  };
+
+  /**
+   * A class that gathers and reports metrics to perftest.
+   */
+  static Journal = class {
+    #metrics = {};
+
+    /**
+     * Pushes a metric value into the journal.
+     *
+     * @param {string} metricName - The metric name.
+     * @param {number} value - The metric value to record.
+     */
+    pushMetric(metricName, value) {
+      if (!this.#metrics[metricName]) {
+        this.#metrics[metricName] = [];
+      }
+      this.#metrics[metricName].push(value);
+    }
+
+    /**
+     * Pushes multiple metric values into the journal.
+     *
+     * @param {Array<[string, number]>} metrics - An array of [metricName, value] pairs.
+     */
+    pushMetrics(metrics) {
+      for (const [metricName, value] of metrics) {
+        this.pushMetric(metricName, value);
+      }
+    }
+
+    /**
+     * Logs the median value of each collected metric to the console.
+     * The log is then picked up by the perftest infrastructure.
+     * The logged data must match the schema defined in the test file.
+     */
+    reportMetrics() {
+      const reportedMetrics = {};
+      for (const [name, values] of Object.entries(this.#metrics)) {
+        reportedMetrics[name] = median(values);
+      }
+      info(`perfMetrics | ${JSON.stringify(reportedMetrics)}`);
+    }
+  };
+
+  /**
+   * Benchmarks the translation process and reports metrics to perftest.
+   *
+   * @param {object} options - The benchmark options.
+   * @param {string} options.page - The URL of the page to test.
+   * @param {number} options.runCount - The number of runs to perform.
+   * @param {string} options.sourceLanguage - The BCP-47 language tag for the source language.
+   * @param {string} options.targetLanguage - The BCP-47 language tag for the target language.
+   *
+   * @returns {Promise<void>} Resolves when benchmarking is complete.
+   */
+  static async benchmarkTranslation({
+    page,
+    runCount,
+    sourceLanguage,
+    targetLanguage,
+  }) {
+    const { wordCount, tokenCount, pageLanguage } =
+      TranslationsBencher.#PAGE_DATA[page] ?? {};
+
+    if (!wordCount || !tokenCount || !pageLanguage) {
+      const testPageName = page.match(/[^\\/]+$/)[0];
+      const testPagePath = page.substring(
+        "https://example.com/browser/".length
+      );
+      const sourceLangName = getIntlDisplayName(sourceLanguage);
+      throw new Error(`
+
+        🚨 Perf test data is not properly defined for ${testPageName} 🚨
+
+        To enable ${testPageName} for Translations perf tests, please follow these steps:
+
+          1) Ensure ${testPageName} has a proper HTML lang attribute in the markup:
+
+               <html lang="${sourceLanguage}">
+
+          2) Download the ${sourceLanguage}-${PIVOT_LANGUAGE}.vocab.spm model from a ${sourceLangName} row on the following site:
+
+               https://gregtatum.github.io/taskcluster-tools/src/models/
+
+          3) Run the following command to extract the perf metadata from ${testPageName}:
+
+               ❯ python3 toolkit/components/translations/tests/scripts/translations-perf-data.py \\
+                 --page_path="${testPagePath}" \\
+                 --model_path="..."
+
+          4) Include the resulting metadata for ${testPageName} in the TranslationsBencher.#PAGE_DATA object.
+      `);
+    }
+
+    if (sourceLanguage !== pageLanguage) {
+      throw new Error(
+        `Perf test source language '${sourceLanguage}' did not match the expected page language '${pageLanguage}'.`
+      );
+    }
+
+    const journal = new TranslationsBencher.Journal();
+
+    for (let runNumber = 0; runNumber < runCount; ++runNumber) {
+      const { tab, cleanup, runInPage } = await loadTestPage({
+        page,
+        endToEndTest: true,
+        languagePairs: [
+          { fromLang: sourceLanguage, toLang: "en" },
+          { fromLang: "en", toLang: targetLanguage },
+        ],
+        prefs: [["browser.translations.logLevel", "Error"]],
+      });
+
+      await TranslationsBencher.#injectTranslationCompleteObserver(runInPage);
+
+      await FullPageTranslationsTestUtils.assertTranslationsButton(
+        { button: true, circleArrows: false, locale: false, icon: true },
+        "The button is available."
+      );
+
+      await FullPageTranslationsTestUtils.openPanel({
+        onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      });
+
+      await FullPageTranslationsTestUtils.changeSelectedFromLanguage({
+        langTag: sourceLanguage,
+      });
+      await FullPageTranslationsTestUtils.changeSelectedToLanguage({
+        langTag: targetLanguage,
+      });
+
+      const engineReadyTimestampPromise =
+        TranslationsBencher.#getEngineReadyTimestampPromise(tab.linkedBrowser);
+      const translationCompleteTimestampPromise =
+        TranslationsBencher.#getTranslationCompleteTimestampPromise(runInPage);
+
+      const translateButtonClickedTime = performance.now();
+      await FullPageTranslationsTestUtils.clickTranslateButton();
+
+      const [engineReadyTime, translationCompleteTime] = await Promise.all([
+        engineReadyTimestampPromise,
+        translationCompleteTimestampPromise,
+      ]);
+
+      const initTimeMilliseconds = engineReadyTime - translateButtonClickedTime;
+      const translationTimeSeconds = millisecondsToSeconds(
+        translationCompleteTime - engineReadyTime
+      );
+      const wordsPerSecond = wordCount / translationTimeSeconds;
+      const tokensPerSecond = tokenCount / translationTimeSeconds;
+
+      const totalMemoryMB =
+        await TranslationsBencher.#getInferenceProcessTotalMemoryUsage();
+
+      const decimalPrecision = 3;
+      journal.pushMetrics([
+        [
+          TranslationsBencher.METRIC_ENGINE_INIT_TIME,
+          Number(initTimeMilliseconds.toFixed(decimalPrecision)),
+        ],
+        [
+          TranslationsBencher.METRIC_WORDS_PER_SECOND,
+          Number(wordsPerSecond.toFixed(decimalPrecision)),
+        ],
+        [
+          TranslationsBencher.METRIC_TOKENS_PER_SECOND,
+          Number(tokensPerSecond.toFixed(decimalPrecision)),
+        ],
+        [
+          TranslationsBencher.METRIC_TOTAL_MEMORY_USAGE,
+          Number(totalMemoryMB.toFixed(decimalPrecision)),
+        ],
+        [
+          TranslationsBencher.METRIC_TOTAL_TRANSLATION_TIME,
+          Number(translationTimeSeconds.toFixed(decimalPrecision)),
+        ],
+      ]);
+
+      await cleanup();
+    }
+
+    journal.reportMetrics();
+  }
+
+  /**
+   * Injects a mutation observer into the test page to detect when translation is complete.
+   *
+   * @param {Function} runInPage - Runs a closure within the content context of the page.
+   * @returns {Promise<void>} Resolves when the observer is injected.
+   */
+  static async #injectTranslationCompleteObserver(runInPage) {
+    await runInPage(TranslationsTest => {
+      const { getLastParagraph } = TranslationsTest.getSelectors();
+      const lastParagraph = getLastParagraph();
+
+      if (!lastParagraph) {
+        throw new Error("Unable to find the last paragraph for observation.");
+      }
+
+      const observer = new content.MutationObserver(
+        (_mutationsList, _observer) => {
+          content.document.dispatchEvent(
+            new CustomEvent("TranslationComplete")
+          );
+        }
+      );
+
+      observer.observe(lastParagraph, {
+        childList: true,
+      });
+    });
+  }
+
+  /**
+   * Returns a Promise that resolves with the timestamp when the Translations engine becomes ready.
+   *
+   * @param {Browser} browser - The browser hosting the translation.
+   * @returns {Promise<number>} The timestamp when the engine is ready.
+   */
+  static async #getEngineReadyTimestampPromise(browser) {
+    const { promise, resolve } = Promise.withResolvers();
+
+    function maybeGetTranslationStartTime(event) {
+      if (
+        event.detail.reason === "isEngineReady" &&
+        event.detail.actor.languageState.isEngineReady
+      ) {
+        browser.removeEventListener(
+          "TranslationsParent:LanguageState",
+          maybeGetTranslationStartTime
+        );
+        resolve(performance.now());
+      }
+    }
+
+    browser.addEventListener(
+      "TranslationsParent:LanguageState",
+      maybeGetTranslationStartTime
+    );
+
+    return promise;
+  }
+
+  /**
+   * Returns a Promise that resolves with the timestamp after the translation is complete.
+   *
+   * @param {Function} runInPage - A helper to run code on the test page.
+   * @returns {Promise<number>} The timestamp when the translation is complete.
+   */
+  static async #getTranslationCompleteTimestampPromise(runInPage) {
+    await runInPage(async () => {
+      const { promise, resolve } = Promise.withResolvers();
+
+      content.document.addEventListener("TranslationComplete", resolve, {
+        once: true,
+      });
+
+      await promise;
+    });
+
+    return performance.now();
+  }
+
+  /**
+   * Returns the total memory used by the inference process in megabytes.
+   *
+   * @returns {Promise<number>} The total memory usage in megabytes.
+   */
+  static async #getInferenceProcessTotalMemoryUsage() {
+    let memoryReporterManager = Cc[
+      "@mozilla.org/memory-reporter-manager;1"
+    ].getService(Ci.nsIMemoryReporterManager);
+
+    let totalBytes = 0;
+
+    const handleReport = (
+      aProcess,
+      aPath,
+      _aKind,
+      _aUnits,
+      aAmount,
+      _aDescription
+    ) => {
+      if (aProcess.startsWith("inference")) {
+        if (aPath.startsWith("explicit")) {
+          totalBytes += aAmount;
+        }
+      }
+    };
+
+    await new Promise(resolve =>
+      memoryReporterManager.getReports(
+        handleReport,
+        null, // handleReportData
+        resolve, // finishReporting
+        null, // finishReportingData
+        false // anonymized
+      )
+    );
+
+    return bytesToMebibytes(totalBytes);
+  }
 }
 
 /**

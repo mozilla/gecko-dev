@@ -543,3 +543,28 @@ ml-perf-autofill:
             --flavor mochitest
             --output $MOZ_FETCHES_DIR/../artifacts
             toolkit/components/ml/tests/browser/browser_ml_autofill_perf.js
+
+tr8ns-perf-es-en:
+    fetches:
+        fetch:
+            - translations.inference
+            - translations.esen.lex
+            - translations.esen.model
+            - translations.esen.vocab
+    description: Run Full-Page Translations with the Spanish-to-English model
+    treeherder:
+        symbol: perftest(linux-tr8ns-perf-es-en)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox-bin
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            browser/components/translations/tests/browser/browser_translations_perf_es_en.js

@@ -29,6 +29,29 @@ perftest_browser_xhtml_dom.js
 **Measures the size of the DOM**
 
 
+browser/components/translations/tests/browser
+---------------------------------------------
+Performance tests for Translations models on Firefox Desktop
+
+browser_translations_perf_es_en.js
+==================================
+
+:owner: Translations Team
+:name: Full-Page Translation (Spanish to English)
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:engine-init-time,unit:ms,shouldAlert:True,lowerIsBetter:True, name:words-per-second,unit:WPS,shouldAlert:True,lowerIsBetter:False, name:tokens-per-second,unit:TPS,shouldAlert:True,lowerIsBetter:False, name:total-memory-usage,unit:MiB,shouldAlert:True,lowerIsBetter:True, name:total-translation-time,unit:s,shouldAlert:True,lowerIsBetter:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Tests the speed of Full Page Translations using the Spanish-to-English model.**
+
+
 dom/media/webcodecs/test/performance
 ------------------------------------
 Performance tests running through Mochitest for WebCodecs

@@ -663,4 +663,25 @@ class ClassificationProvider:
                 "tasks": [],
                 "description": ("A set of tests for testing resource usage on mobile."),
             },
+            "Translations": {
+                "query": {
+                    Suites.PERFTEST.value: ["'perftest 'tr8ns"],
+                },
+                "suites": [Suites.PERFTEST.value],
+                "platform-restrictions": [
+                    Platforms.DESKTOP.value,
+                    Platforms.LINUX.value,
+                    Platforms.MACOSX.value,
+                    Platforms.WINDOWS.value,
+                ],
+                "app-restrictions": {
+                    Suites.PERFTEST.value: [
+                        Apps.FIREFOX.value,
+                    ],
+                },
+                "tasks": [],
+                "description": (
+                    "A set of tests used to test Translations performance in Firefox."
+                ),
+            },
         }

@@ -41,6 +41,11 @@ suites:
         tests:
             Dom-size: ""
 
+    browser/components/translations/tests/browser:
+        description: "Performance tests for Translations models on Firefox Desktop"
+        tests:
+            "Full-Page Translation (Spanish to English)": ""
+
     dom/serviceworkers/test/performance:
         description: "Performance tests running through Mochitest for Service Workers"
         tests:

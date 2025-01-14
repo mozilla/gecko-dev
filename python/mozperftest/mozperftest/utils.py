@@ -296,6 +296,7 @@ def install_requirements_file(
 # this mapping will map paths when running there.
 # The key is the source path, and the value the ci path
 _TRY_MAPPING = {
+    Path("browser"): Path("mochitest", "browser", "browser"),
     Path("netwerk"): Path("xpcshell", "tests", "netwerk"),
     Path("dom"): Path("mochitest", "tests", "dom"),
     Path("toolkit"): Path("mochitest", "browser", "toolkit"),
@@ -332,7 +333,7 @@ def build_test_list(tests):
             for src_path, ci_path in _TRY_MAPPING.items():
                 src_path, ci_path = str(src_path), str(ci_path)  # noqa
                 if test.startswith(src_path):
-                    p_test = Path(test.replace(src_path, ci_path))
+                    p_test = Path(test.replace(src_path, ci_path, 1))
                     break
 
         resolved_test = p_test.resolve()
