@@ -157,12 +157,14 @@ void ExternalTextureD3D11::GetSnapshot(const ipc::Shmem& aDestShmem,
   uint8_t* dst = aDestShmem.get<uint8_t>();
 
   MOZ_ASSERT(stride * aSize.height <= aDestShmem.Size<uint8_t>());
+  MOZ_ASSERT(map.RowPitch >= stride);
 
   for (int y = 0; y < aSize.height; y++) {
     memcpy(dst, src, stride);
     src += map.RowPitch;
     dst += stride;
   }
+  deviceContext->Unmap(cpuTexture, 0);
 }
 
 }  // namespace mozilla::webgpu
