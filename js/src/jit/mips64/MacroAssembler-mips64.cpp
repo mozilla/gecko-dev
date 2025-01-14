@@ -765,7 +765,7 @@ void MacroAssemblerMIPS64::ma_push(Register r) {
     r = ScratchRegister;
   }
 
-  as_daddiu(StackPointer, StackPointer, (int32_t) - sizeof(intptr_t));
+  as_daddiu(StackPointer, StackPointer, (int32_t)-sizeof(intptr_t));
   as_sd(r, StackPointer, 0);
 }
 
@@ -1082,7 +1082,7 @@ void MacroAssemblerMIPS64::ma_pop(FloatRegister f) {
 }
 
 void MacroAssemblerMIPS64::ma_push(FloatRegister f) {
-  as_daddiu(StackPointer, StackPointer, (int32_t) - sizeof(double));
+  as_daddiu(StackPointer, StackPointer, (int32_t)-sizeof(double));
   as_sdc1(f, StackPointer, 0);
 }
 
@@ -2522,12 +2522,12 @@ void MacroAssemblerMIPS64Compat::wasmLoadI64Impl(
   }
 
   asMasm().memoryBarrierBefore(access.sync());
+  FaultingCodeOffset fco = asMasm().ma_load(
+      output.reg, address, static_cast<LoadStoreSize>(8 * byteSize),
+      isSigned ? SignExtend : ZeroExtend);
   asMasm().append(access,
                   wasm::TrapMachineInsnForLoad(Scalar::byteSize(access.type())),
-                  FaultingCodeOffset(currentOffset()));
-  asMasm().ma_load(output.reg, address,
-                   static_cast<LoadStoreSize>(8 * byteSize),
-                   isSigned ? SignExtend : ZeroExtend);
+                  fco);
   asMasm().memoryBarrierAfter(access.sync());
 }
 
@@ -2558,12 +2558,12 @@ void MacroAssemblerMIPS64Compat::wasmStoreI64Impl(
   }
 
   asMasm().memoryBarrierBefore(access.sync());
+  FaultingCodeOffset fco = asMasm().ma_store(
+      value.reg, address, static_cast<LoadStoreSize>(8 * byteSize),
+      isSigned ? SignExtend : ZeroExtend);
   asMasm().append(
       access, wasm::TrapMachineInsnForStore(Scalar::byteSize(access.type())),
-      FaultingCodeOffset(currentOffset()));
-  asMasm().ma_store(value.reg, address,
-                    static_cast<LoadStoreSize>(8 * byteSize),
-                    isSigned ? SignExtend : ZeroExtend);
+      fco);
   asMasm().memoryBarrierAfter(access.sync());
 }
 

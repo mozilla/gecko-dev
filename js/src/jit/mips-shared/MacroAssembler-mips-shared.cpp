@@ -633,8 +633,11 @@ void MacroAssemblerMIPSShared::ma_load_unaligned(
   }
 
   BufferOffset load;
+  unsigned byteSize = access.byteSize();
   switch (size) {
     case SizeHalfWord:
+      // begins with 1-byte load
+      byteSize = 1;
       if (extension == ZeroExtend) {
         load = as_lbu(temp, base, hiOffset);
       } else {
@@ -662,7 +665,7 @@ void MacroAssemblerMIPSShared::ma_load_unaligned(
       MOZ_CRASH("Invalid argument for ma_load");
   }
 
-  append(access, wasm::TrapMachineInsnForLoad(Scalar::byteSize(access.type())),
+  append(access, wasm::TrapMachineInsnForLoad(byteSize),
          FaultingCodeOffset(load.getOffset()));
 }
 
@@ -876,8 +879,11 @@ void MacroAssemblerMIPSShared::ma_store_unaligned(
   }
 
   BufferOffset store;
+  unsigned byteSize = access.byteSize();
   switch (size) {
     case SizeHalfWord:
+      // begins with 1-byte store
+      byteSize = 1;
       ma_ext(temp, data, 8, 8);
       store = as_sb(temp, base, hiOffset);
       as_sb(data, base, lowOffset);
@@ -895,7 +901,7 @@ void MacroAssemblerMIPSShared::ma_store_unaligned(
     default:
       MOZ_CRASH("Invalid argument for ma_store");
   }
-  append(access, wasm::TrapMachineInsnForStore(Scalar::byteSize(access.type())),
+  append(access, wasm::TrapMachineInsnForStore(byteSize),
          FaultingCodeOffset(store.getOffset()));
 }
 
@@ -2134,20 +2140,22 @@ void MacroAssemblerMIPSShared::wasmLoadImpl(
   }
 
   asMasm().memoryBarrierBefore(access.sync());
-  asMasm().append(access,
-                  wasm::TrapMachineInsnForLoad(Scalar::byteSize(access.type())),
-                  FaultingCodeOffset(currentOffset()));
+  FaultingCodeOffset fco;
   if (isFloat) {
     if (byteSize == 4) {
-      asMasm().ma_ls(output.fpu(), address);
+      fco = asMasm().ma_ls(output.fpu(), address);
     } else {
-      asMasm().ma_ld(output.fpu(), address);
+      fco = asMasm().ma_ld(output.fpu(), address);
     }
   } else {
-    asMasm().ma_load(output.gpr(), address,
-                     static_cast<LoadStoreSize>(8 * byteSize),
-                     isSigned ? SignExtend : ZeroExtend);
+    fco = asMasm().ma_load(output.gpr(), address,
+                           static_cast<LoadStoreSize>(8 * byteSize),
+                           isSigned ? SignExtend : ZeroExtend);
   }
+  asMasm().append(access,
+                  wasm::TrapMachineInsnForLoad(Scalar::byteSize(access.type())),
+                  fco);
+
   asMasm().memoryBarrierAfter(access.sync());
 }
 
@@ -2187,20 +2195,21 @@ void MacroAssemblerMIPSShared::wasmStoreImpl(
 
   asMasm().memoryBarrierBefore(access.sync());
   // Only the last emitted instruction is a memory access.
-  asMasm().append(
-      access, wasm::TrapMachineInsnForStore(Scalar::byteSize(access.type())),
-      FaultingCodeOffset(currentOffset()));
+  FaultingCodeOffset fco;
   if (isFloat) {
     if (byteSize == 4) {
-      asMasm().ma_ss(value.fpu(), address);
+      fco = asMasm().ma_ss(value.fpu(), address);
     } else {
-      asMasm().ma_sd(value.fpu(), address);
+      fco = asMasm().ma_sd(value.fpu(), address);
     }
   } else {
-    asMasm().ma_store(value.gpr(), address,
-                      static_cast<LoadStoreSize>(8 * byteSize),
-                      isSigned ? SignExtend : ZeroExtend);
+    fco = asMasm().ma_store(value.gpr(), address,
+                            static_cast<LoadStoreSize>(8 * byteSize),
+                            isSigned ? SignExtend : ZeroExtend);
   }
+  asMasm().append(
+      access, wasm::TrapMachineInsnForStore(Scalar::byteSize(access.type())),
+      fco);
   asMasm().memoryBarrierAfter(access.sync());
 }
 
