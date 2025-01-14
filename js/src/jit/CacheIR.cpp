@@ -6354,6 +6354,21 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard() {
   }
 
   ObjOperandId targetId = calleeObjId;
+  if (isCalleeBoundFunction()) {
+    MOZ_ASSERT(callee_->as<BoundFunctionObject>().numBoundArgs() == 0);
+
+    // Ensure the callee is a bound function.
+    writer.guardClass(calleeObjId, GuardClassKind::BoundFunction);
+
+    // Ensure numBoundArgs is zero.
+    Int32OperandId numBoundArgsId =
+        writer.loadBoundFunctionNumArgs(calleeObjId);
+    writer.guardSpecificInt32(numBoundArgsId, 0);
+
+    // Load the bound function target.
+    targetId = writer.loadBoundFunctionTarget(calleeObjId);
+  }
+
   writer.guardSpecificFunction(targetId, target_);
 
   // If we're constructing we also need to guard newTarget == callee.
@@ -6364,7 +6379,12 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard() {
     ValOperandId newTargetValId =
         writer.loadArgumentFixedSlot(ArgumentKind::NewTarget, argc_, flags_);
     ObjOperandId newTargetObjId = writer.guardToObject(newTargetValId);
-    writer.guardSpecificFunction(newTargetObjId, target_);
+
+    if (isCalleeBoundFunction()) {
+      writer.guardObjectIdentity(newTargetObjId, calleeObjId);
+    } else {
+      writer.guardSpecificFunction(newTargetObjId, target_);
+    }
   }
 
   return calleeObjId;
@@ -6380,6 +6400,11 @@ ObjOperandId InlinableNativeIRGenerator::emitLoadArgsArray() {
 }
 
 ValOperandId InlinableNativeIRGenerator::loadThis(ObjOperandId calleeId) {
+  if (isCalleeBoundFunction()) {
+    MOZ_ASSERT(callee_->is<BoundFunctionObject>());
+    return writer.loadFixedSlot(calleeId,
+                                BoundFunctionObject::offsetOfBoundThisSlot());
+  }
   return writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
 }
 
@@ -12969,6 +12994,55 @@ AttachDecision CallIRGenerator::tryAttachBoundFunction(
   return AttachDecision::Attach;
 }
 
+AttachDecision CallIRGenerator::tryAttachBoundNative(
+    Handle<BoundFunctionObject*> calleeObj) {
+  // The target must be a native JSFunction without a JitEntry.
+  Rooted<JSObject*> boundTarget(cx_, calleeObj->getTarget());
+  if (!boundTarget->is<JSFunction>()) {
+    return AttachDecision::NoAction;
+  }
+  auto target = boundTarget.as<JSFunction>();
+
+  bool isScripted = target->hasJitEntry();
+  MOZ_ASSERT_IF(!isScripted, target->isNativeWithoutJitEntry());
+
+  if (isScripted) {
+    return AttachDecision::NoAction;
+  }
+
+  // We currently only support a bound |this| argument.
+  if (calleeObj->numBoundArgs() != 0) {
+    return AttachDecision::NoAction;
+  }
+
+  // Don't try to optimize when we're already megamorphic.
+  if (mode_ != ICState::Mode::Specialized) {
+    return AttachDecision::NoAction;
+  }
+
+  bool isSpread = IsSpreadPC(pc_);
+  bool isSameRealm = cx_->realm() == target->realm();
+  bool isConstructing = IsConstructPC(pc_);
+  CallFlags flags(isConstructing, isSpread, isSameRealm);
+
+  if (isConstructing && !target->isConstructor()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Verify that spread calls have a reasonable number of arguments.
+  if (isSpread && args_.length() > JIT_ARGS_LENGTH_MAX) {
+    return AttachDecision::NoAction;
+  }
+
+  // Use the bound |this| value.
+  Rooted<Value> thisValue(cx_, calleeObj->getBoundThis());
+
+  // Check for specific native-function optimizations.
+  InlinableNativeIRGenerator nativeGen(*this, calleeObj, target, newTarget_,
+                                       thisValue, args_, flags);
+  return nativeGen.tryAttachStub();
+}
+
 AttachDecision CallIRGenerator::tryAttachStub() {
   AutoAssertNoPendingException aanpe(cx_);
 
@@ -12999,7 +13073,10 @@ AttachDecision CallIRGenerator::tryAttachStub() {
 
   RootedObject calleeObj(cx_, &callee_.toObject());
   if (calleeObj->is<BoundFunctionObject>()) {
-    TRY_ATTACH(tryAttachBoundFunction(calleeObj.as<BoundFunctionObject>()));
+    auto boundCalleeObj = calleeObj.as<BoundFunctionObject>();
+
+    TRY_ATTACH(tryAttachBoundFunction(boundCalleeObj));
+    TRY_ATTACH(tryAttachBoundNative(boundCalleeObj));
   }
   if (!calleeObj->is<JSFunction>()) {
     return tryAttachCallHook(calleeObj);
