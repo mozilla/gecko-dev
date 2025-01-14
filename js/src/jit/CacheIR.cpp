@@ -10774,10 +10774,11 @@ AttachDecision CallIRGenerator::tryAttachFunCall(HandleFunction callee) {
     HandleValue thisValue = args_[0];
     HandleValueArray args =
         HandleValueArray::subarray(args_, 1, args_.length() - 1);
+    uint32_t argc = argc_ - 1;
 
     // Check for specific native-function optimizations.
     InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
-                                         thisValue, args, targetFlags);
+                                         thisValue, args, argc, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11765,10 +11766,11 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
     Rooted<ArrayObject*> aobj(cx_, &args_[1].toObject().as<ArrayObject>());
     HandleValueArray args = HandleValueArray::fromMarkedLocation(
         aobj->length(), aobj->getDenseElements());
+    constexpr uint32_t argc = 1;
 
     // Check for specific native-function optimizations.
     InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
-                                         thisValue, args, targetFlags);
+                                         thisValue, args, argc, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11780,10 +11782,11 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
     HandleValue newTarget = NullHandleValue;
     HandleValue thisValue = args_[0];
     HandleValueArray args = HandleValueArray::empty();
+    constexpr uint32_t argc = 0;
 
     // Check for specific native-function optimizations.
     InlinableNativeIRGenerator nativeGen(*this, target, target, newTarget,
-                                         thisValue, args, targetFlags);
+                                         thisValue, args, argc, targetFlags);
     TRY_ATTACH(nativeGen.tryAttachStub());
   }
 
@@ -11984,7 +11987,7 @@ AttachDecision CallIRGenerator::tryAttachInlinableNative(HandleFunction callee,
              flags.getArgFormat() == CallFlags::Spread);
 
   InlinableNativeIRGenerator nativeGen(*this, callee, callee, newTarget_,
-                                       thisval_, args_, flags);
+                                       thisval_, args_, argc_, flags);
   return nativeGen.tryAttachStub();
 }
 
@@ -13017,7 +13020,7 @@ AttachDecision CallIRGenerator::tryAttachBoundNative(
 
   // Check for specific native-function optimizations.
   InlinableNativeIRGenerator nativeGen(*this, calleeObj, target, newTarget_,
-                                       thisValue, args_, flags);
+                                       thisValue, args_, argc_, flags);
   return nativeGen.tryAttachStub();
 }
 

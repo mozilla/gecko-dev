@@ -811,7 +811,7 @@ class MOZ_RAII InlinableNativeIRGenerator {
   InlinableNativeIRGenerator(CallIRGenerator& generator, HandleObject callee,
                              HandleFunction target, HandleValue newTarget,
                              HandleValue thisValue, HandleValueArray args,
-                             CallFlags flags)
+                             uint32_t argc, CallFlags flags)
       : generator_(generator),
         writer(generator.writer),
         cx_(generator.cx_),
@@ -820,7 +820,7 @@ class MOZ_RAII InlinableNativeIRGenerator {
         newTarget_(newTarget),
         thisval_(thisValue),
         args_(args),
-        argc_(args.length()),
+        argc_(argc),
         flags_(flags) {}
 
   AttachDecision tryAttachStub();
