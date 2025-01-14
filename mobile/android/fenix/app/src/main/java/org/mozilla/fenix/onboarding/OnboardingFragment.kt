@@ -107,16 +107,6 @@ class OnboardingFragment : Fragment() {
             requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding = false
         }
 
-        if (isNotDefaultBrowser(context) &&
-            activity?.isDefaultBrowserPromptSupported() == true &&
-            !requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding
-        ) {
-            requireComponents.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
-                promptToSetAsDefaultBrowser()
-                requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding = true
-            }
-        }
-
         telemetryRecorder.onOnboardingStarted()
     }
 
@@ -223,6 +213,11 @@ class OnboardingFragment : Fragment() {
                     sequenceId = pagesToDisplay.telemetrySequenceId(),
                     pageType = it.type,
                     sequencePosition = pagesToDisplay.sequencePosition(it.type),
+                )
+
+                maybePromptToSetAsDefaultBrowser(
+                    pagesToDisplay = pagesToDisplay,
+                    currentCard = it,
                 )
             },
             onboardingStore = onboardingStore,
@@ -365,6 +360,31 @@ class OnboardingFragment : Fragment() {
                 showAddWidgetPage,
                 jexlConditions,
             ) { condition -> jexlHelper.evalJexlSafe(condition) }
+        }
+    }
+
+    private fun maybePromptToSetAsDefaultBrowser(
+        pagesToDisplay: List<OnboardingPageUiData>,
+        currentCard: OnboardingPageUiData,
+    ) {
+        val shouldWaitForTOSToBeAccepted = pagesToDisplay.find {
+            it.type == OnboardingPageUiData.Type.TERMS_OF_SERVICE
+        }?.let { tosCard ->
+            val tosPosition = pagesToDisplay.indexOfFirst { it.type == tosCard.type }
+            val currentPosition = pagesToDisplay.indexOfFirst { it.type == currentCard.type }
+            tosPosition >= currentPosition
+        } ?: false
+
+        val shouldPromptToSetAsDefaultBrowser = isNotDefaultBrowser(requireContext()) &&
+            activity?.isDefaultBrowserPromptSupported() == true &&
+            !shouldWaitForTOSToBeAccepted &&
+            !requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding
+
+        if (shouldPromptToSetAsDefaultBrowser) {
+            requireComponents.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
+                promptToSetAsDefaultBrowser()
+                requireContext().settings().promptToSetAsDefaultBrowserDisplayedInOnboarding = true
+            }
         }
     }
 
