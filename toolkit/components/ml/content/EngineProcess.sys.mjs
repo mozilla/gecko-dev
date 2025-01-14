@@ -30,28 +30,63 @@ export const DEFAULT_ENGINE_ID = "default-engine";
  * @description Supported tasks with their default model identifiers.
  */
 export const DEFAULT_MODELS = Object.freeze({
-  "test-echo": "test-echo",
-  "text-classification":
-    "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
-  "token-classification": "Xenova/bert-base-multilingual-cased-ner-hrl",
-  "question-answering": "Xenova/distilbert-base-cased-distilled-squad",
-  "fill-mask": "Xenova/bert-base-uncased",
-  summarization: "Xenova/distilbart-cnn-6-6",
-  translation: "Xenova/t5-small",
-  "text2text-generation": "Xenova/flan-t5-small",
-  "text-generation": "Xenova/gpt2",
-  "zero-shot-classification": "Xenova/distilbert-base-uncased-mnli",
-  "image-to-text": "Mozilla/distilvit",
-  "image-classification": "Xenova/vit-base-patch16-224",
-  "image-segmentation": "Xenova/detr-resnet-50-panoptic",
-  "zero-shot-image-classification": "Xenova/clip-vit-base-patch32",
-  "object-detection": "Xenova/detr-resnet-50",
-  "zero-shot-object-detection": "Xenova/owlvit-base-patch32",
-  "document-question-answering": "Xenova/donut-base-finetuned-docvqa",
-  "image-to-image": "Xenova/swin2SR-classical-sr-x2-64",
-  "depth-estimation": "Xenova/dpt-large",
-  "feature-extraction": "Xenova/all-MiniLM-L6-v2",
-  "image-feature-extraction": "Xenova/vit-base-patch16-224-in21k",
+  "test-echo": { modelId: "test-echo", dtype: "q8" },
+  "text-classification": {
+    modelId: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+    dtype: "q8",
+  },
+  "token-classification": {
+    modelId: "Xenova/bert-base-multilingual-cased-ner-hrl",
+    dtype: "q8",
+  },
+  "question-answering": {
+    modelId: "Xenova/distilbert-base-cased-distilled-squad",
+    dtype: "q8",
+  },
+  "fill-mask": { modelId: "Xenova/bert-base-uncased", dtype: "q8" },
+  summarization: { modelId: "Xenova/distilbart-cnn-6-6", dtype: "q8" },
+  translation: { modelId: "Xenova/t5-small", dtype: "q8" },
+  "text2text-generation": { modelId: "Xenova/flan-t5-small", dtype: "q8" },
+  "text-generation": { modelId: "Xenova/gpt2", dtype: "q8" },
+  "zero-shot-classification": {
+    modelId: "Xenova/distilbert-base-uncased-mnli",
+    dtype: "q8",
+  },
+  "image-to-text": { modelId: "Mozilla/distilvit", dtype: "q8" },
+  "image-classification": {
+    modelId: "Xenova/vit-base-patch16-224",
+    dtype: "q8",
+  },
+  "image-segmentation": {
+    modelId: "Xenova/detr-resnet-50-panoptic",
+    dtype: "q8",
+  },
+  "zero-shot-image-classification": {
+    modelId: "Xenova/clip-vit-base-patch32",
+    dtype: "q8",
+  },
+  "object-detection": { modelId: "Xenova/detr-resnet-50", dtype: "q8" },
+  "zero-shot-object-detection": {
+    modelId: "Xenova/owlvit-base-patch32",
+    dtype: "q8",
+  },
+  "document-question-answering": {
+    modelId: "Xenova/donut-base-finetuned-docvqa",
+    dtype: "q8",
+  },
+  "image-to-image": {
+    modelId: "Xenova/swin2SR-classical-sr-x2-64",
+    dtype: "q8",
+  },
+  "depth-estimation": { modelId: "Xenova/dpt-large", dtype: "q8" },
+  "feature-extraction": {
+    modelId: "Xenova/all-MiniLM-L6-v2",
+    dtype: "q8",
+  },
+  "image-feature-extraction": {
+    modelId: "Xenova/vit-base-patch16-224-in21k",
+    dtype: "q8",
+  },
 });
 
 /**
