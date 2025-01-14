@@ -190,23 +190,17 @@ nsColorPicker::~nsColorPicker() {}
 NS_IMPL_ISUPPORTS(nsColorPicker, nsIColorPicker)
 
 NS_IMETHODIMP
-nsColorPicker::Init(mozilla::dom::BrowsingContext* aBrowsingContext,
-                    const nsAString& title, const nsAString& aInitialColor,
-                    const nsTArray<nsString>& aDefaultColors) {
-  MOZ_ASSERT(
-      aBrowsingContext,
-      "Null browsingContext passed to colorpicker, no color picker for you!");
+nsColorPicker::InitNative(const nsTArray<nsString>& aDefaultColors) {
   mParentWidget =
-      aBrowsingContext->Canonical()->GetParentProcessWidgetContaining();
-  mInitialColor = ColorStringToRGB(aInitialColor);
+      mBrowsingContext->Canonical()->GetParentProcessWidgetContaining();
   mDefaultColors.Assign(aDefaultColors);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsColorPicker::Open(nsIColorPickerShownCallback* aCallback) {
-  NS_ENSURE_ARG(aCallback);
-  nsCOMPtr<nsIRunnable> event = new AsyncColorChooser(
-      mInitialColor, mDefaultColors, mParentWidget, aCallback);
+nsColorPicker::OpenNative() {
+  nsCOMPtr<nsIRunnable> event =
+      new AsyncColorChooser(ColorStringToRGB(mInitialColor), mDefaultColors,
+                            mParentWidget, mCallback);
   return NS_DispatchToMainThread(event);
 }

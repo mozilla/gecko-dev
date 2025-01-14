@@ -8,8 +8,8 @@
 
 #include <gtk/gtk.h>
 
+#include "nsBaseColorPicker.h"
 #include "nsCOMPtr.h"
-#include "nsIColorPicker.h"
 #include "nsString.h"
 
 // Enable Gtk3 system color picker.
@@ -17,15 +17,18 @@
 
 class nsIWidget;
 
-class nsColorPicker final : public nsIColorPicker {
+class nsColorPicker final : public nsBaseColorPicker {
  public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSICOLORPICKER
 
   nsColorPicker() = default;
 
  private:
   ~nsColorPicker() = default;
+
+  // nsBaseColorPicker
+  nsresult InitNative(const nsTArray<nsString>& aDefaultColors) override;
+  nsresult OpenNative() override;
 
   static nsString ToHexString(int n);
 
@@ -61,10 +64,7 @@ class nsColorPicker final : public nsIColorPicker {
   void Done(GtkWidget* dialog, gint response_id);
 
   nsCOMPtr<nsIWidget> mParentWidget;
-  nsCOMPtr<nsIColorPickerShownCallback> mCallback;
-  nsString mTitle;
   nsString mColor;
-  nsString mInitialColor;
   nsTArray<nsString> mDefaultColors;
 };
 

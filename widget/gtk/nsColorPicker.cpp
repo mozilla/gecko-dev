@@ -68,22 +68,16 @@ GtkColorSelection* nsColorPicker::WidgetGetColorSelection(GtkWidget* widget) {
 }
 #endif
 
-NS_IMETHODIMP nsColorPicker::Init(
-    mozilla::dom::BrowsingContext* aBrowsingContext, const nsAString& title,
-    const nsAString& initialColor, const nsTArray<nsString>& aDefaultColors) {
-  MOZ_ASSERT(aBrowsingContext, "Null browsingContext passed to color picker!");
-
+NS_IMETHODIMP nsColorPicker::InitNative(
+    const nsTArray<nsString>& aDefaultColors) {
   mParentWidget =
-      aBrowsingContext->Canonical()->GetParentProcessWidgetContaining();
-  mTitle = title;
-  mInitialColor = initialColor;
+      mBrowsingContext->Canonical()->GetParentProcessWidgetContaining();
   mDefaultColors.Assign(aDefaultColors);
 
   return NS_OK;
 }
 
-NS_IMETHODIMP nsColorPicker::Open(
-    nsIColorPickerShownCallback* aColorPickerShownCallback) {
+NS_IMETHODIMP nsColorPicker::OpenNative() {
   // Don't attempt to open a real color-picker in headless mode.
   if (gfxPlatform::IsHeadless()) {
     return NS_ERROR_NOT_AVAILABLE;
