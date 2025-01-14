@@ -11983,11 +11983,6 @@ AttachDecision CallIRGenerator::tryAttachInlinableNative(HandleFunction callee,
   MOZ_ASSERT(flags.getArgFormat() == CallFlags::Standard ||
              flags.getArgFormat() == CallFlags::Spread);
 
-  // Special case functions are only optimized for normal calls.
-  if (!BytecodeCallOpCanHaveInlinableNative(op_)) {
-    return AttachDecision::NoAction;
-  }
-
   InlinableNativeIRGenerator nativeGen(*this, callee, callee, newTarget_,
                                        thisval_, args_, flags);
   return nativeGen.tryAttachStub();
@@ -12017,7 +12012,13 @@ AttachDecision InlinableNativeIRGenerator::tryAttachFuzzilliHash() {
 #endif
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
-  MOZ_ASSERT(BytecodeCallOpCanHaveInlinableNative(generator_.op_));
+  MOZ_ASSERT(generator_.mode_ == ICState::Mode::Specialized);
+  MOZ_ASSERT(target_->isNativeWithoutJitEntry());
+
+  // Special case functions are only optimized for normal calls.
+  if (!BytecodeCallOpCanHaveInlinableNative(op())) {
+    return AttachDecision::NoAction;
+  }
 
   if (!target_->hasJitInfo() ||
       target_->jitInfo()->type() != JSJitInfo::InlinableNative) {
