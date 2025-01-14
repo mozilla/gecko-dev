@@ -5,9 +5,6 @@ const { FxAccounts } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccounts.sys.mjs"
 );
 
-const gBrowserGlue = Cc["@mozilla.org/browser/browserglue;1"].getService(
-  Ci.nsIObserver
-);
 const DEVICES_URL = "https://example.com/devices";
 
 add_setup(async function () {

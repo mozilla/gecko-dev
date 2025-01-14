@@ -67,11 +67,12 @@ function setupMockAlertsService(expectedObj) {
       clickCallback(null, "alertfinished", null);
     },
   };
-  const gBrowserGlue = Cc["@mozilla.org/browser/browserglue;1"].getService(
-    Ci.nsIObserver
+  const { AccountsGlue } = ChromeUtils.importESModule(
+    "resource:///modules/AccountsGlue.sys.mjs"
   );
-  gBrowserGlue.observe(
-    { wrappedJSObject: alertsService },
+  const wrappedService = { wrappedJSObject: alertsService };
+  AccountsGlue.observe(
+    wrappedService,
     "browser-glue-test",
     "mock-alerts-service"
   );
