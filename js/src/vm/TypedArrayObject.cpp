@@ -7,12 +7,14 @@
 #include "vm/TypedArrayObject-inl.h"
 #include "vm/TypedArrayObject.h"
 
+#include "mozilla/Casting.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/Likely.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/SIMD.h"
 #include "mozilla/TextUtils.h"
 
 #include <algorithm>
@@ -2193,6 +2195,254 @@ static bool TypedArray_join(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<IsTypedArrayObject, TypedArray_join>(cx, args);
 }
 
+template <typename Ops, typename NativeType>
+static int64_t TypedArrayIndexOfNaive(TypedArrayObject* tarray, size_t k,
+                                      size_t len, NativeType searchElement) {
+  MOZ_RELEASE_ASSERT(k < len);
+  MOZ_RELEASE_ASSERT(len <= tarray->length().valueOr(0));
+
+  SharedMem<NativeType*> data =
+      Ops::extract(tarray).template cast<NativeType*>();
+  for (size_t i = k; i < len; i++) {
+    NativeType element = Ops::load(data + i);
+    if (element == searchElement) {
+      return int64_t(i);
+    }
+  }
+  return -1;
+}
+
+template <typename NativeType>
+static int64_t TypedArrayIndexOfSIMD(TypedArrayObject* tarray, size_t k,
+                                     size_t len, NativeType searchElement) {
+  MOZ_RELEASE_ASSERT(k < len);
+  MOZ_RELEASE_ASSERT(len <= tarray->length().valueOr(0));
+
+  if constexpr (sizeof(NativeType) == 1) {
+    auto* data = UnsharedOps::extract(tarray).cast<char*>().unwrapUnshared();
+    auto* ptr = mozilla::SIMD::memchr8(
+        data + k, mozilla::BitwiseCast<char>(searchElement), len - k);
+    if (!ptr) {
+      return -1;
+    }
+    return int64_t(ptr - data);
+  } else if constexpr (sizeof(NativeType) == 2) {
+    auto* data =
+        UnsharedOps::extract(tarray).cast<char16_t*>().unwrapUnshared();
+    auto* ptr = mozilla::SIMD::memchr16(
+        data + k, mozilla::BitwiseCast<char16_t>(searchElement), len - k);
+    if (!ptr) {
+      return -1;
+    }
+    return int64_t(ptr - data);
+  } else if constexpr (sizeof(NativeType) == 4) {
+    auto* data =
+        UnsharedOps::extract(tarray).cast<uint32_t*>().unwrapUnshared();
+    auto* ptr = mozilla::SIMD::memchr32(
+        data + k, mozilla::BitwiseCast<uint32_t>(searchElement), len - k);
+    if (!ptr) {
+      return -1;
+    }
+    return int64_t(ptr - data);
+  } else {
+    static_assert(sizeof(NativeType) == 8);
+
+    auto* data =
+        UnsharedOps::extract(tarray).cast<uint64_t*>().unwrapUnshared();
+    auto* ptr = mozilla::SIMD::memchr64(
+        data + k, mozilla::BitwiseCast<uint64_t>(searchElement), len - k);
+    if (!ptr) {
+      return -1;
+    }
+    return int64_t(ptr - data);
+  }
+}
+
+template <typename ExternalType, typename NativeType>
+static typename std::enable_if_t<!std::numeric_limits<NativeType>::is_integer,
+                                 int64_t>
+TypedArrayIndexOf(TypedArrayObject* tarray, size_t k, size_t len,
+                  const Value& searchElement) {
+  if (!searchElement.isNumber()) {
+    return -1;
+  }
+
+  double d = searchElement.toNumber();
+  NativeType e = NativeType(d);
+
+  // Return early if the search element is not representable using |NativeType|
+  // or if it's NaN.
+  if (double(e) != d) {
+    return -1;
+  }
+  MOZ_ASSERT(!std::isnan(d));
+
+  if (tarray->isSharedMemory()) {
+    return TypedArrayIndexOfNaive<SharedOps>(tarray, k, len, e);
+  }
+  if (e == NativeType(0)) {
+    // Can't use bitwise comparison when searching for ±0.
+    return TypedArrayIndexOfNaive<UnsharedOps>(tarray, k, len, e);
+  }
+  return TypedArrayIndexOfSIMD(tarray, k, len, e);
+}
+
+template <typename ExternalType, typename NativeType>
+static typename std::enable_if_t<std::numeric_limits<NativeType>::is_integer &&
+                                     sizeof(NativeType) < 8,
+                                 int64_t>
+TypedArrayIndexOf(TypedArrayObject* tarray, size_t k, size_t len,
+                  const Value& searchElement) {
+  if (!searchElement.isNumber()) {
+    return -1;
+  }
+
+  int32_t d;
+  if (!mozilla::NumberEqualsInt32(searchElement.toNumber(), &d)) {
+    return -1;
+  }
+
+  // Ensure search element is representable using |ExternalType|, which implies
+  // it can be represented using |NativeType|.
+  mozilla::CheckedInt<ExternalType> checked{d};
+  if (!checked.isValid()) {
+    return -1;
+  }
+  NativeType e = static_cast<NativeType>(checked.value());
+
+  if (tarray->isSharedMemory()) {
+    return TypedArrayIndexOfNaive<SharedOps>(tarray, k, len, e);
+  }
+  return TypedArrayIndexOfSIMD(tarray, k, len, e);
+}
+
+template <typename ExternalType, typename NativeType>
+static typename std::enable_if_t<std::is_same_v<NativeType, int64_t>, int64_t>
+TypedArrayIndexOf(TypedArrayObject* tarray, size_t k, size_t len,
+                  const Value& searchElement) {
+  if (!searchElement.isBigInt()) {
+    return -1;
+  }
+
+  int64_t e;
+  if (!BigInt::isInt64(searchElement.toBigInt(), &e)) {
+    return -1;
+  }
+
+  if (tarray->isSharedMemory()) {
+    return TypedArrayIndexOfNaive<SharedOps>(tarray, k, len, e);
+  }
+  return TypedArrayIndexOfSIMD(tarray, k, len, e);
+}
+
+template <typename ExternalType, typename NativeType>
+static typename std::enable_if_t<std::is_same_v<NativeType, uint64_t>, int64_t>
+TypedArrayIndexOf(TypedArrayObject* tarray, size_t k, size_t len,
+                  const Value& searchElement) {
+  if (!searchElement.isBigInt()) {
+    return -1;
+  }
+
+  uint64_t e;
+  if (!BigInt::isUint64(searchElement.toBigInt(), &e)) {
+    return -1;
+  }
+
+  if (tarray->isSharedMemory()) {
+    return TypedArrayIndexOfNaive<SharedOps>(tarray, k, len, e);
+  }
+  return TypedArrayIndexOfSIMD(tarray, k, len, e);
+}
+
+/**
+ * %TypedArray%.prototype.indexOf ( searchElement [ , fromIndex ] )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_indexOf(JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
+
+  // Steps 1-3.
+  Rooted<TypedArrayObject*> tarray(
+      cx, &args.thisv().toObject().as<TypedArrayObject>());
+
+  auto arrayLength = tarray->length();
+  if (!arrayLength) {
+    ReportOutOfBounds(cx, tarray);
+    return false;
+  }
+  size_t len = *arrayLength;
+
+  // Step 4.
+  if (len == 0) {
+    args.rval().setInt32(-1);
+    return true;
+  }
+
+  // Steps 5-10.
+  size_t k = 0;
+  if (args.hasDefined(1)) {
+    // Steps 5-6.
+    double fromIndex;
+    if (!ToInteger(cx, args[1], &fromIndex)) {
+      return false;
+    }
+
+    // Reacquire the length because side-effects may have detached or resized
+    // the array buffer.
+    len = std::min(len, tarray->length().valueOr(0));
+
+    // Return early if the new length is zero.
+    if (len == 0) {
+      args.rval().setInt32(-1);
+      return true;
+    }
+
+    // Steps 7-10.
+    if (fromIndex >= 0) {
+      if (fromIndex >= double(len)) {
+        args.rval().setInt32(-1);
+        return true;
+      }
+      k = size_t(fromIndex);
+    } else {
+      k = size_t(std::max(0.0, fromIndex + double(len)));
+    }
+  }
+  MOZ_ASSERT(k < len);
+
+  // Steps 11-12.
+  int64_t result;
+  switch (tarray->type()) {
+#define TYPED_ARRAY_INDEXOF(ExternalType, NativeType, Name)              \
+  case Scalar::Name:                                                     \
+    result = TypedArrayIndexOf<ExternalType, NativeType>(tarray, k, len, \
+                                                         args.get(0));   \
+    break;
+    JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_INDEXOF)
+#undef TYPED_ARRAY_INDEXOF
+    default:
+      MOZ_CRASH("Unsupported TypedArray type");
+  }
+  MOZ_ASSERT_IF(result >= 0, uint64_t(result) < len);
+  MOZ_ASSERT_IF(result < 0, result == -1);
+
+  args.rval().setNumber(result);
+  return true;
+}
+
+/**
+ * %TypedArray%.prototype.indexOf ( searchElement [ , fromIndex ] )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_indexOf(JSContext* cx, unsigned argc, Value* vp) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype",
+                                        "indexOf");
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsTypedArrayObject, TypedArray_indexOf>(cx, args);
+}
+
 // Byte vector with large enough inline storage to allow constructing small
 // typed arrays without extra heap allocations.
 using ByteVector =
@@ -3292,8 +3542,8 @@ static bool uint8array_toHex(JSContext* cx, unsigned argc, Value* vp) {
     JS_SELF_HOSTED_FN("findLast", "TypedArrayFindLast", 1, 0),
     JS_SELF_HOSTED_FN("findLastIndex", "TypedArrayFindLastIndex", 1, 0),
     JS_SELF_HOSTED_FN("forEach", "TypedArrayForEach", 1, 0),
-    JS_SELF_HOSTED_FN("indexOf", "TypedArrayIndexOf", 2, 0),
     JS_SELF_HOSTED_FN("lastIndexOf", "TypedArrayLastIndexOf", 1, 0),
+    JS_FN("indexOf", TypedArray_indexOf, 1, 0),
     JS_FN("join", TypedArray_join, 1, 0),
     JS_SELF_HOSTED_FN("map", "TypedArrayMap", 1, 0),
     JS_SELF_HOSTED_FN("reduce", "TypedArrayReduce", 1, 0),
