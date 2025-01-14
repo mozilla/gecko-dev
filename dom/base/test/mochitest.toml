@@ -1455,6 +1455,8 @@ tags = "openwindow"
 
 ["test_open_null_features.html"]
 
+["test_parseHTMLUnsafe_from_expanded_principal.html"]
+
 ["test_pasting_svg_image.html"]
 skip-if = ["headless"] # Bug 1669923.
 
