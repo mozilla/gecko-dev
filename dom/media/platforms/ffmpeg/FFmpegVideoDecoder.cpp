@@ -2110,8 +2110,8 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageD3D11(
     return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, msg);
   }
 
-  if (!mFrame->data[0] || !mFrame->data[1]) {
-    nsPrintfCString msg("Frame data and index shouldn't be null!");
+  if (!mFrame->data[0]) {
+    nsPrintfCString msg("Frame data shouldn't be null!");
     FFMPEG_LOG("%s", msg.get());
     return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, msg);
   }
