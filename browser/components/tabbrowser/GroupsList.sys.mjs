@@ -71,7 +71,7 @@ export class GroupsPanel {
       });
     let savedGroups = this.win.SessionStore.savedGroups;
 
-    if (savedGroups.length + otherWindowGroups.length > 0) {
+    if (savedGroups.length || otherWindowGroups.length) {
       let header = this.doc.createElement("h2");
       header.setAttribute("class", "subview-subheader");
       this.doc.l10n.setAttributes(header, "tab-group-menu-header");
@@ -86,7 +86,7 @@ export class GroupsPanel {
       fragment.appendChild(row);
     }
     for (let groupData of savedGroups) {
-      let row = this.#createRow(groupData);
+      let row = this.#createRow(groupData, { isOpen: false });
       let button = row.querySelector("toolbarbutton");
       button.dataset.command = "allTabsGroupView_restoreGroup";
       button.dataset.tabGroupId = groupData.id;
@@ -100,9 +100,12 @@ export class GroupsPanel {
 
   /**
    * @param {TabGroupStateData} group
+   * @param {object} [options]
+   * @param {boolean} [options.isOpen]
+   *   Set to true if the group is currently open, and false if it's saved
    * @returns {XULElement}
    */
-  #createRow(group) {
+  #createRow(group, { isOpen = true } = {}) {
     let { doc } = this;
     let row = doc.createXULElement("toolbaritem");
     row.setAttribute("class", "all-tabs-item all-tabs-group-item");
@@ -124,6 +127,18 @@ export class GroupsPanel {
       "class",
       "all-tabs-button subviewbutton subviewbutton-iconic all-tabs-group-action-button"
     );
+    if (!isOpen) {
+      button.classList.add(
+        "all-tabs-group-saved-group",
+        "tab-group-icon-closed"
+      );
+      button.dataset.command = "allTabsGroupView_restoreGroup";
+    } else {
+      button.classList.add(
+        group.collapsed ? "tab-group-icon-collapsed" : "tab-group-icon"
+      );
+      button.dataset.command = "allTabsGroupView_selectGroup";
+    }
     button.setAttribute("flex", "1");
     button.setAttribute("crop", "end");
 

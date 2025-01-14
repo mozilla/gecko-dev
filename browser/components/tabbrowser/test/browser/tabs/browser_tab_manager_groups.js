@@ -43,6 +43,23 @@ async function closeTabsMenu(win = window) {
   await hidden;
 }
 
+async function assertTabMenuContains(expectedLabels) {
+  let allTabsMenu = await openTabsMenu();
+  let tabButtons = allTabsMenu.querySelectorAll(
+    "#allTabsMenu-allTabsView-tabs .all-tabs-button"
+  );
+
+  tabButtons.forEach((button, i) => {
+    Assert.equal(
+      button.label,
+      expectedLabels[i],
+      `Expected: ${expectedLabels[i]}`
+    );
+  });
+
+  await closeTabsMenu();
+}
+
 /**
  * Tests that grouped tabs in alltabsmenu are prepended by
  * a group indicator
@@ -56,17 +73,12 @@ add_task(async function test_allTabsView() {
       })
     );
   }
-  gBrowser.addTabGroup([tabs[0], tabs[1]], {
+  let testGroup = gBrowser.addTabGroup([tabs[0], tabs[1]], {
     label: "Test Group",
   });
   gBrowser.addTabGroup([tabs[2], tabs[3]]);
 
-  let allTabsMenu = await openTabsMenu();
-
-  let tabButtons = allTabsMenu.querySelectorAll(
-    "#allTabsMenu-allTabsView-tabs .all-tabs-button"
-  );
-  let expectedLabels = [
+  await assertTabMenuContains([
     "New Tab",
     "data:text/plain,tab5",
     "Test Group",
@@ -75,16 +87,19 @@ add_task(async function test_allTabsView() {
     "Unnamed Group",
     "data:text/plain,tab3",
     "data:text/plain,tab4",
-  ];
-  tabButtons.forEach((button, i) => {
-    Assert.equal(
-      button.label,
-      expectedLabels[i],
-      `Expected: ${expectedLabels[i]}`
-    );
-  });
+  ]);
 
-  await closeTabsMenu();
+  testGroup.collapsed = true;
+  await assertTabMenuContains([
+    "New Tab",
+    "data:text/plain,tab5",
+    "Test Group",
+    // tab1 and tab2 rows should be hidden when Test Group is collapsed
+    "Unnamed Group",
+    "data:text/plain,tab3",
+    "data:text/plain,tab4",
+  ]);
+
   for (let tab of tabs) {
     BrowserTestUtils.removeTab(tab);
   }

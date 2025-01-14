@@ -57,6 +57,14 @@ class TabsListBase {
       case "TabClose":
         this._tabClose(event.target);
         break;
+      case "TabGroupCollapse":
+      case "TabGroupExpand":
+      case "TabGroupCreate":
+      case "TabGroupRemoved":
+      case "TabGrouped":
+      case "TabUngrouped":
+        this._refreshDOM();
+        break;
       case "TabMove":
         this._moveTab(event.target);
         break;
@@ -101,6 +109,11 @@ class TabsListBase {
    * Populate the popup with menuitems and setup the listeners.
    */
   _populate() {
+    this._populateDOM();
+    this._setupListeners();
+  }
+
+  _populateDOM() {
     let fragment = this.doc.createDocumentFragment();
     let currentGroupId;
 
@@ -110,12 +123,13 @@ class TabsListBase {
           fragment.appendChild(this._createGroupRow(tab.group));
           currentGroupId = tab.group.id;
         }
-        fragment.appendChild(this._createRow(tab));
+        if (!tab.group?.collapsed) {
+          fragment.appendChild(this._createRow(tab));
+        }
       }
     }
 
     this._addElement(fragment);
-    this._setupListeners();
   }
 
   _addElement(elementOrFragment) {
@@ -126,6 +140,12 @@ class TabsListBase {
    * Remove the menuitems from the DOM, cleanup internal state and listeners.
    */
   _cleanup() {
+    this._cleanupDOM();
+    this._cleanupListeners();
+    this._clearDropTarget();
+  }
+
+  _cleanupDOM() {
     this.doc
       .querySelectorAll(".all-tabs-group-button")
       .forEach(node => node.remove());
@@ -134,8 +154,11 @@ class TabsListBase {
       item.remove();
     }
     this.tabToElement = new Map();
-    this._cleanupListeners();
-    this._clearDropTarget();
+  }
+
+  _refreshDOM() {
+    this._cleanupDOM();
+    this._populateDOM();
   }
 
   _setupListeners() {
@@ -145,6 +168,12 @@ class TabsListBase {
     this.gBrowser.tabContainer.addEventListener("TabClose", this);
     this.gBrowser.tabContainer.addEventListener("TabMove", this);
     this.gBrowser.tabContainer.addEventListener("TabPinned", this);
+    this.gBrowser.tabContainer.addEventListener("TabGroupCollapse", this);
+    this.gBrowser.tabContainer.addEventListener("TabGroupExpand", this);
+    this.gBrowser.tabContainer.addEventListener("TabGroupCreate", this);
+    this.gBrowser.tabContainer.addEventListener("TabGroupRemoved", this);
+    this.gBrowser.tabContainer.addEventListener("TabGrouped", this);
+    this.gBrowser.tabContainer.addEventListener("TabUngrouped", this);
 
     this.containerNode.addEventListener("click", this);
 
@@ -162,6 +191,12 @@ class TabsListBase {
     this.gBrowser.tabContainer.removeEventListener("TabClose", this);
     this.gBrowser.tabContainer.removeEventListener("TabMove", this);
     this.gBrowser.tabContainer.removeEventListener("TabPinned", this);
+    this.gBrowser.tabContainer.removeEventListener("TabGroupCollapse", this);
+    this.gBrowser.tabContainer.removeEventListener("TabGroupExpand", this);
+    this.gBrowser.tabContainer.removeEventListener("TabGroupCreate", this);
+    this.gBrowser.tabContainer.removeEventListener("TabGroupRemoved", this);
+    this.gBrowser.tabContainer.removeEventListener("TabGrouped", this);
+    this.gBrowser.tabContainer.removeEventListener("TabUngrouped", this);
 
     this.containerNode.removeEventListener("click", this);
 
@@ -397,9 +432,12 @@ export class TabsPanel extends TabsListBase {
     let button = doc.createXULElement("toolbarbutton");
     button.setAttribute("context", "open-tab-group-context-menu");
     button.dataset.tabGroupId = group.id;
-    button.setAttribute(
-      "class",
-      "all-tabs-button all-tabs-group-button subviewbutton subviewbutton-iconic"
+    button.classList.add(
+      "all-tabs-button",
+      "all-tabs-group-button",
+      "subviewbutton",
+      "subviewbutton-iconic",
+      group.collapsed ? "tab-group-icon-collapsed" : "tab-group-icon"
     );
     button.setAttribute("flex", "1");
     button.setAttribute("crop", "end");
@@ -413,8 +451,6 @@ export class TabsPanel extends TabsListBase {
           button.label = msg;
         });
     }
-
-    button.image = "chrome://browser/skin/tabbrowser/tab-group-chicklet.svg";
     row.appendChild(button);
     return row;
   }

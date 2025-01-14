@@ -1566,19 +1566,6 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
-.all-tabs-group-item {
-  > .subviewbutton-iconic > .toolbarbutton-icon {
-    list-style-image: url("chrome://browser/skin/tabbrowser/tab-group-chicklet.svg");
-    fill: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
-  }
-
-  > .all-tabs-group-saved-group > .toolbarbutton-icon {
-    -moz-context-properties: fill, stroke;
-    fill: transparent;
-    stroke: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
-  }
-}
-
 .all-tabs-button {
   list-style-image: url("chrome://global/skin/icons/defaultFavicon.svg");
 }
