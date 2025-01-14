@@ -69,7 +69,7 @@ td {
 .active-policies tr.odd:not(:hover),
 .errors tr:nth-child(odd):not(:hover),
 tbody:nth-child(4n + 1) {
-  background-color: var(--in-content-box-background-odd);
+  background-color: var(--table-row-background-color-alternate);
 }
 
 .arr_sep.odd:not(:last-child) td:not(:first-child) {
