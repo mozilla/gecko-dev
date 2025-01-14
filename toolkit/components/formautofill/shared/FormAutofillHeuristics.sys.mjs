@@ -327,6 +327,37 @@ export const FormAutofillHeuristics = {
   },
 
   /**
+   * If this is a house number field and there is no address-line1 or
+   * street-address field, change the house number field to address-line1.
+   *
+   * @param {FieldScanner} scanner
+   *        The current parsing status for all elements
+   * @returns {boolean}
+   *          Return true if there is any field can be recognized in the parser,
+   *          otherwise false.
+   */
+  _parseHouseNumberFields(scanner, fieldDetail) {
+    if (fieldDetail?.fieldName == "address-housenumber") {
+      const savedIndex = scanner.parsingIndex;
+      for (let idx = 0; !scanner.parsingFinished; idx++) {
+        const detail = scanner.getFieldDetailByIndex(idx);
+        if (!detail) {
+          break;
+        }
+
+        if (["address-line1", "street-address"].includes(detail?.fieldName)) {
+          return false;
+        }
+      }
+
+      // Return false so additional address handling still gets performed.
+      scanner.updateFieldName(savedIndex, "street-address");
+    }
+
+    return false;
+  },
+
+  /**
    * Try to find the correct address-line[1-3] sequence and correct their field
    * names.
    *
@@ -829,6 +860,7 @@ export const FormAutofillHeuristics = {
       // Attempt to parse the field using different parsers.
       if (
         this._parseNameFields(scanner, fieldDetail) ||
+        this._parseHouseNumberFields(scanner, fieldDetail) ||
         this._parseStreetAddressFields(scanner, fieldDetail) ||
         this._parseAddressFields(scanner, fieldDetail) ||
         this._parseCreditCardExpiryFields(scanner, fieldDetail) ||

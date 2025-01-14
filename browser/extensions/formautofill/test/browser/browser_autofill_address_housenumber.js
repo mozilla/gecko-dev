@@ -149,6 +149,7 @@ add_autofill_heuristic_tests([
           {
             fieldName: "address-line1",
             autofill: "160 Main St",
+            reason: "update-heuristic",
           },
           { fieldName: "address-line2", autofill: "Apartment 306" },
         ],
@@ -174,6 +175,7 @@ add_autofill_heuristic_tests([
           {
             fieldName: "address-line1",
             autofill: "Schlesische Str 999",
+            reason: "update-heuristic",
           },
           { fieldName: "address-line2", autofill: "" },
         ],
@@ -212,6 +214,65 @@ add_autofill_heuristic_tests([
           {
             fieldName: "postal-code",
             autofill: TEST_PROFILE_DE2["postal-code"],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    description: "Test autofill with house number and street with labels",
+    fixtureData: `<form>
+      <input id="email">
+      <label for="address1">House Number</label><input id="address1">
+      <label for="address2">Street</label><input id="address2">
+      <input id="postal-code">
+    </form>`,
+    profile: TEST_PROFILE_CA,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "email", autofill: TEST_PROFILE_CA.email },
+          { fieldName: "address-housenumber", autofill: "160" },
+          { fieldName: "street-address", autofill: "Main St" },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_CA["postal-code"],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Test autofill with house number, street and apartment with labels",
+    fixtureData: `<form>
+      <input id="email">
+      <label for="address1">House Number</label><input id="address1">
+      <label for="address2">Street</label><input id="address2">
+      <label for="address-apt">Apartment</label><input id="address-apt">
+      <input id="postal-code">
+    </form>`,
+    profile: TEST_PROFILE_CA,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "email", autofill: TEST_PROFILE_CA.email },
+          { fieldName: "address-housenumber", autofill: "160" },
+          {
+            fieldName: "address-line1",
+            autofill: "Main St",
+            reason: "update-heuristic",
+          },
+          { fieldName: "address-line2", autofill: "Apartment 306" },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_CA["postal-code"],
           },
         ],
       },
