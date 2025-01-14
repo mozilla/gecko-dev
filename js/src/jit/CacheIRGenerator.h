@@ -571,6 +571,7 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
   AttachDecision tryAttachBoundFunction(Handle<BoundFunctionObject*> calleeObj);
   AttachDecision tryAttachBoundNative(Handle<BoundFunctionObject*> calleeObj);
   AttachDecision tryAttachBoundFunCall(Handle<BoundFunctionObject*> calleeObj);
+  AttachDecision tryAttachFunCallBound(Handle<JSFunction*> callee);
 
   void trackAttached(const char* name /* must be a C string literal */);
 
@@ -603,6 +604,9 @@ class MOZ_RAII InlinableNativeIRGenerator {
 
   bool isCalleeBoundFunction() const;
   BoundFunctionObject* boundCallee() const;
+
+  bool isTargetBoundFunction() const;
+  BoundFunctionObject* boundTarget() const;
 
   ObjOperandId emitNativeCalleeGuard(Int32OperandId argcId);
   void emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,

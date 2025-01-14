@@ -6333,6 +6333,31 @@ BoundFunctionObject* InlinableNativeIRGenerator::boundCallee() const {
   return &callee()->as<BoundFunctionObject>();
 }
 
+bool InlinableNativeIRGenerator::isTargetBoundFunction() const {
+  switch (flags_.getArgFormat()) {
+    case CallFlags::Standard:
+    case CallFlags::Spread:
+      return false;
+    case CallFlags::FunCall:
+    case CallFlags::FunApplyArgsObj:
+    case CallFlags::FunApplyArray:
+    case CallFlags::FunApplyNullUndefined:
+      if (callee()->is<JSFunction>()) {
+        MOZ_ASSERT(generator_.thisval_.isObject());
+        return generator_.thisval_.toObject().is<BoundFunctionObject>();
+      }
+      return false;
+    case CallFlags::Unknown:
+      break;
+  }
+  MOZ_CRASH("Unsupported arg format");
+}
+
+BoundFunctionObject* InlinableNativeIRGenerator::boundTarget() const {
+  MOZ_ASSERT(isTargetBoundFunction());
+  return &generator_.thisval_.toObject().as<BoundFunctionObject>();
+}
+
 ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
     Int32OperandId argcId) {
   // Note: we rely on GuardSpecificFunction to also guard against the same
@@ -6358,8 +6383,21 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
 
   // Guard that |callee| is an object.
   ObjOperandId calleeObjId = writer.guardToObject(calleeValId);
-
   ObjOperandId targetId = calleeObjId;
+
+  // The callee is a bound function whose bound target is |target_|.
+  //
+  // Example:
+  // ```
+  // var boundPush = Array.prototype.push.bind(arr);
+  // boundPush(1);
+  // ```
+  //
+  // Relevant generator members:
+  // - |CallIRGenerator::callee_| is `boundPush`
+  // - |InlinableNativeIRGenerator::target_| is `Array.prototype.push`
+  //
+  // Also see tryAttachBound{Native,FunCall,FunApply}.
   if (isCalleeBoundFunction()) {
     // Ensure the callee is a bound function.
     writer.guardClass(calleeObjId, GuardClassKind::BoundFunction);
@@ -6398,6 +6436,40 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
 
     // Guard that |this| is an object.
     targetId = writer.guardToObject(thisValId);
+  }
+
+  // The callee calls a bound function whose bound target is |target_|.
+  //
+  // For example:
+  // ```
+  // var boundPush = Array.prototype.push.bind(arr);
+  // boundPush.call(null, 1);
+  // ```
+  //
+  // Relevant generator members:
+  // - |CallIRGenerator::callee_| is `Function.prototype.call`
+  // - |CallIRGenerator::thisval_| is `boundPush`
+  // - |InlinableNativeIRGenerator::target_| is `Array.prototype.push`
+  //
+  // Also see tryAttach{FunCall,FunApply}Bound.
+  if (isTargetBoundFunction()) {
+    MOZ_ASSERT(!isCalleeBoundFunction(), "unexpected nested bound functions");
+    MOZ_ASSERT(flags_.getArgFormat() == CallFlags::FunCall,
+               "unsupported arg-format for bound target");
+
+    // Ensure that |target| is a bound function.
+    writer.guardClass(targetId, GuardClassKind::BoundFunction);
+
+    // Ensure numBoundArgs matches.
+    size_t numBoundArgs = boundTarget()->numBoundArgs();
+    Int32OperandId numBoundArgsId = writer.loadBoundFunctionNumArgs(targetId);
+    writer.guardSpecificInt32(numBoundArgsId, numBoundArgs);
+
+    // Return the bound function as callee to support loading bound arguments.
+    calleeObjId = targetId;
+
+    // Load the bound function target.
+    targetId = writer.loadBoundFunctionTarget(targetId);
   }
 
   writer.guardSpecificFunction(targetId, target_);
@@ -6443,9 +6515,10 @@ ObjOperandId InlinableNativeIRGenerator::emitLoadArgsArray() {
 
 ValOperandId InlinableNativeIRGenerator::loadBoundArgument(
     ObjOperandId calleeId, size_t argIndex) {
-  MOZ_ASSERT(isCalleeBoundFunction());
+  MOZ_ASSERT(isCalleeBoundFunction() || isTargetBoundFunction());
 
-  size_t numBoundArgs = boundCallee()->numBoundArgs();
+  auto* bound = isCalleeBoundFunction() ? boundCallee() : boundTarget();
+  size_t numBoundArgs = bound->numBoundArgs();
   MOZ_ASSERT(argIndex < numBoundArgs);
 
   if (numBoundArgs <= BoundFunctionObject::MaxInlineBoundArgs) {
@@ -6462,14 +6535,22 @@ ValOperandId InlinableNativeIRGenerator::loadThis(ObjOperandId calleeId) {
   switch (flags_.getArgFormat()) {
     case CallFlags::Standard:
     case CallFlags::Spread:
+      MOZ_ASSERT(!isTargetBoundFunction());
       if (isCalleeBoundFunction()) {
         return writer.loadFixedSlot(
             calleeId, BoundFunctionObject::offsetOfBoundThisSlot());
       }
       return writer.loadArgumentFixedSlot(ArgumentKind::This, argc_, flags_);
     case CallFlags::FunCall:
+      // Load |this| from bound this.
+      if (isTargetBoundFunction()) {
+        return writer.loadFixedSlot(
+            calleeId, BoundFunctionObject::offsetOfBoundThisSlot());
+      }
+
       // Load |this| from bound arguments, if present.
       if (hasBoundArguments()) {
+        MOZ_ASSERT(isCalleeBoundFunction());
         return loadBoundArgument(calleeId, 0);
       }
 
@@ -6510,6 +6591,8 @@ ValOperandId InlinableNativeIRGenerator::loadThis(ObjOperandId calleeId) {
     case CallFlags::FunApplyArgsObj:
     case CallFlags::FunApplyNullUndefined:
       MOZ_ASSERT(argc_ > 0);
+      MOZ_ASSERT(!isCalleeBoundFunction());
+      MOZ_ASSERT(!isTargetBoundFunction());
       return writer.loadArgumentFixedSlot(ArgumentKind::This, argc_ - 1);
     case CallFlags::Unknown:
       break;
@@ -6523,13 +6606,18 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
   MOZ_ASSERT(flags_.getArgFormat() == CallFlags::Standard ||
              flags_.getArgFormat() == CallFlags::FunCall);
 
+  // Check if the |this| value is stored in the bound arguments.
+  bool thisFromBoundArgs = flags_.getArgFormat() == CallFlags::FunCall &&
+                           isCalleeBoundFunction() && hasBoundArguments();
+
   if (hasBoundArguments()) {
-    size_t numBoundArgs = boundCallee()->numBoundArgs();
+    auto* bound = isCalleeBoundFunction() ? boundCallee() : boundTarget();
+    size_t numBoundArgs = bound->numBoundArgs();
     size_t argIndex = uint8_t(kind) - uint8_t(ArgumentKind::Arg0);
 
     // Skip over the first bound argument, which stores the |this| value for
     // bound FunCall.
-    if (flags_.getArgFormat() == CallFlags::FunCall) {
+    if (thisFromBoundArgs) {
       argIndex += 1;
     }
 
@@ -6546,7 +6634,7 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
     case CallFlags::Standard:
       return writer.loadArgumentFixedSlot(kind, argc_, flags_);
     case CallFlags::FunCall:
-      if (hasBoundArguments()) {
+      if (thisFromBoundArgs) {
         return writer.loadArgumentFixedSlot(kind, argc_);
       }
       MOZ_ASSERT(argc_ > 1);
@@ -6565,6 +6653,9 @@ ValOperandId InlinableNativeIRGenerator::loadArgument(ObjOperandId calleeId,
 bool InlinableNativeIRGenerator::hasBoundArguments() const {
   if (isCalleeBoundFunction()) {
     return boundCallee()->numBoundArgs() != 0;
+  }
+  if (isTargetBoundFunction()) {
+    return boundTarget()->numBoundArgs() != 0;
   }
   return false;
 }
@@ -13252,6 +13343,90 @@ AttachDecision CallIRGenerator::tryAttachBoundFunCall(
   return nativeGen.tryAttachStub();
 }
 
+AttachDecision CallIRGenerator::tryAttachFunCallBound(
+    Handle<JSFunction*> callee) {
+  MOZ_ASSERT(callee->isNativeWithoutJitEntry());
+
+  if (callee->native() != fun_call) {
+    return AttachDecision::NoAction;
+  }
+
+  if (!thisval_.isObject() || !thisval_.toObject().is<BoundFunctionObject>()) {
+    return AttachDecision::NoAction;
+  }
+  Rooted<BoundFunctionObject*> bound(
+      cx_, &thisval_.toObject().as<BoundFunctionObject>());
+
+  // The target must be a native JSFunction without a JitEntry.
+  Rooted<JSObject*> boundTarget(cx_, bound->getTarget());
+  if (!boundTarget->is<JSFunction>()) {
+    return AttachDecision::NoAction;
+  }
+  auto target = boundTarget.as<JSFunction>();
+
+  bool isScripted = target->hasJitEntry();
+  MOZ_ASSERT_IF(!isScripted, target->isNativeWithoutJitEntry());
+
+  // We don't yet supported scripted bound targets.
+  if (isScripted) {
+    return AttachDecision::NoAction;
+  }
+
+  // Limit the number of bound arguments to prevent us from compiling many
+  // different stubs (we bake in numBoundArgs and it's usually very small).
+  static constexpr size_t MaxBoundArgs = 10;
+  size_t numBoundArgs = bound->numBoundArgs();
+  if (numBoundArgs > MaxBoundArgs) {
+    return AttachDecision::NoAction;
+  }
+
+  // Ensure we don't exceed JIT_ARGS_LENGTH_MAX.
+  if (numBoundArgs + argc_ > JIT_ARGS_LENGTH_MAX) {
+    return AttachDecision::NoAction;
+  }
+
+  // Don't try to optimize when we're already megamorphic.
+  if (mode_ != ICState::Mode::Specialized) {
+    return AttachDecision::NoAction;
+  }
+
+  CallFlags targetFlags(CallFlags::FunCall);
+  if (cx_->realm() == target->realm()) {
+    targetFlags.setIsSameRealm();
+  }
+
+  HandleValue newTarget = NullHandleValue;
+
+  // Use the bound |this| value.
+  Rooted<Value> thisValue(cx_, bound->getBoundThis());
+
+  auto callArgs = argc_ > 0
+                      ? HandleValueArray::subarray(args_, 1, args_.length() - 1)
+                      : HandleValueArray::empty();
+
+  // Concatenate the bound arguments and the stack arguments.
+  JS::RootedVector<Value> concatenatedArgs(cx_);
+  if (numBoundArgs != 0) {
+    if (!concatenatedArgs.reserve(numBoundArgs + callArgs.length())) {
+      cx_->recoverFromOutOfMemory();
+      return AttachDecision::NoAction;
+    }
+
+    for (size_t i = 0; i < numBoundArgs; i++) {
+      concatenatedArgs.infallibleAppend(bound->getBoundArg(i));
+    }
+    concatenatedArgs.infallibleAppend(callArgs.begin(), callArgs.length());
+  }
+
+  // Actual args.
+  auto args = numBoundArgs != 0 ? concatenatedArgs : callArgs;
+
+  // Check for specific native-function optimizations.
+  InlinableNativeIRGenerator nativeGen(*this, target, newTarget, thisValue,
+                                       args, argc_, targetFlags);
+  return nativeGen.tryAttachStub();
+}
+
 AttachDecision CallIRGenerator::tryAttachStub() {
   AutoAssertNoPendingException aanpe(cx_);
 
@@ -13309,6 +13484,7 @@ AttachDecision CallIRGenerator::tryAttachStub() {
       op_ == JSOp::CallIgnoresRv) {
     TRY_ATTACH(tryAttachFunCall(calleeFunc));
     TRY_ATTACH(tryAttachFunApply(calleeFunc));
+    TRY_ATTACH(tryAttachFunCallBound(calleeFunc));
   }
 
   return tryAttachCallNative(calleeFunc);
