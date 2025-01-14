@@ -12,7 +12,11 @@ def RLBoxLibrary(name, use_segue=True):
         "/third_party/rlbox_wasm2c_sandbox/c_src/wasm2c_sandbox_wrapper.c",
     ]
 
-    SOURCES += [f"!{name}.wasm.c"]
+    if CONFIG["DEVELOPER_OPTIONS"]:
+        wasm_sources = sorted(f"!{name}.wasm_{n}.c" for n in range(16))
+    else:
+        wasm_sources = [f"!{name}.wasm.c"]
+    SOURCES += wasm_sources
     SOURCES += ["/third_party/wasm2c/wasm2c/wasm-rt-impl.c"]
     SOURCES += ["/third_party/wasm2c/wasm2c/wasm-rt-mem-impl.c"]
 
@@ -38,9 +42,8 @@ def RLBoxLibrary(name, use_segue=True):
     # fails inside the sandbox. This information is used to annotate crash reports.
     DEFINES["WASM_RT_GROW_FAILED_HANDLER"] = "moz_wasm2c_memgrow_failed"
 
-    SOURCES[f"!{name}.wasm.c"].flags += [
-        "-Wno-unused",
-    ]
+    for source in wasm_sources:
+        SOURCES[source].flags += ["-Wno-unused"]
 
     # Use Segue optimization. Since this requires passing the "-mfsgsbase", we
     # restrict this to compilers and architectures that support this flag.
@@ -81,4 +84,5 @@ def RLBoxLibrary(name, use_segue=True):
         script="/config/wasm2c.py",
         entry_point="wasm2c",
         inputs=["!/dist/host/bin/wasm2c" + CONFIG["HOST_BIN_SUFFIX"], f"!{name}.wasm"],
+        flags=["--num-outputs", len(wasm_sources)] if len(wasm_sources) > 1 else [],
     )
