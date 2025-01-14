@@ -21,7 +21,6 @@ import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
  * @property themeOptions Optional list of theme customizing options during onboarding.
  * @property termsOfService Optional term of service page data.
  * @property toolbarOptions Optional list of toolbar selection options.
- * @property marketingData Optional marketing page data.
  * @property onRecordImpressionEvent Callback for recording impression event.
  */
 data class OnboardingPageState(
@@ -35,7 +34,6 @@ data class OnboardingPageState(
     val themeOptions: List<ThemeOption>? = null,
     val termsOfService: OnboardingTermsOfService? = null,
     val toolbarOptions: List<ToolbarOption>? = null,
-    val marketingData: OnboardingMarketingData? = null,
     val onRecordImpressionEvent: () -> Unit = {},
 )
 
@@ -136,17 +134,6 @@ data class OnboardingTermsOfService(
     val lineTwoLinkUrl: String,
     val lineThreeText: String,
     val lineThreeLinkText: String,
-)
-
-/**
- * Model containing data for the marketing data page during onboarding.
- */
-data class OnboardingMarketingData(
-    val bodyOneText: String,
-    val bodyOneLinkText: String,
-    val linkUrl: String,
-    val bodyTwoText: String,
-    val bodyThreeText: String,
 )
 
 /**

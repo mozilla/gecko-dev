@@ -279,46 +279,6 @@ class OnboardingMapperTest {
             onCustomizeToolbarButtonClick = unitLambda,
             onCustomizeThemeClick = {},
             onTermsOfServiceButtonClick = {},
-            onMarketingDataContinueClick = {},
-        )
-
-        assertEquals(expected, actual)
-    }
-
-    @Test
-    fun `GIVEN a marketing data collection opt out page WHEN mapToOnboardingPageState is called THEN creates the expected OnboardingPageState`() {
-        val expected = OnboardingPageState(
-            imageRes = R.drawable.ic_high_five,
-            title = "marketing data title",
-            description = "marketing data body",
-            primaryButton = Action("marketing data button text", unitLambda),
-        )
-
-        val onboardingPageUiData = OnboardingPageUiData(
-            type = OnboardingPageUiData.Type.MARKETING_DATA,
-            imageRes = R.drawable.ic_high_five,
-            title = "marketing data title",
-            description = "marketing data body",
-            primaryButtonLabel = "marketing data button text",
-        )
-
-        val actual = mapToOnboardingPageState(
-            onboardingPageUiData = onboardingPageUiData,
-            onMakeFirefoxDefaultClick = {},
-            onMakeFirefoxDefaultSkipClick = {},
-            onSignInButtonClick = {},
-            onSignInSkipClick = {},
-            onNotificationPermissionButtonClick = {},
-            onNotificationPermissionSkipClick = {},
-            onAddFirefoxWidgetClick = {},
-            onAddFirefoxWidgetSkipClick = {},
-            onAddOnsButtonClick = {},
-            onCustomizeToolbarButtonClick = {},
-            onCustomizeToolbarSkipClick = {},
-            onCustomizeThemeClick = {},
-            onCustomizeThemeSkip = {},
-            onTermsOfServiceButtonClick = {},
-            onMarketingDataContinueClick = unitLambda,
         )
 
         assertEquals(expected, actual)

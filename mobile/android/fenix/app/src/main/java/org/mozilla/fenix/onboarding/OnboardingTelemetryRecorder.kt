@@ -133,16 +133,6 @@ class OnboardingTelemetryRecorder {
                     ),
                 )
             }
-            OnboardingPageUiData.Type.MARKETING_DATA -> {
-                Onboarding.marketingDataCardViewed.record(
-                    Onboarding.MarketingDataCardViewedExtra(
-                        action = ACTION_IMPRESSION,
-                        elementType = ET_ONBOARDING_CARD,
-                        sequenceId = sequenceId,
-                        sequencePosition = sequencePosition,
-                    ),
-                )
-            }
         }
     }
 
@@ -379,18 +369,6 @@ class OnboardingTelemetryRecorder {
      */
     fun onTermsOfServiceManagerAcceptTermsButtonClick() {
         Onboarding.termsOfServiceAccepted.record()
-    }
-
-    /**
-     * Records the marketing data card continue button click event
-     * @param optIn If the user chose to opt in to marketing data collection
-     */
-    fun onMarketingDataContinueClicked(optIn: Boolean) {
-        Onboarding.marketingDataContinueClicked.record(
-            Onboarding.MarketingDataContinueClickedExtra(
-                optIn = optIn,
-            ),
-        )
     }
 
     companion object {

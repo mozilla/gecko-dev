@@ -22,7 +22,6 @@ data class OnboardingPageUiData(
     val toolbarOptions: List<ToolbarOption>? = null,
     val themeOptions: List<ThemeOption>? = null,
     val termsOfService: OnboardingTermsOfService? = null,
-    val marketingData: OnboardingMarketingData? = null,
 ) {
     /**
      * Model for different types of Onboarding Pages.
@@ -55,9 +54,6 @@ data class OnboardingPageUiData(
         ),
         TERMS_OF_SERVICE(
             telemetryId = "terms_of_service",
-        ),
-        MARKETING_DATA(
-            telemetryId = "marketing_data",
         ),
     }
 }
