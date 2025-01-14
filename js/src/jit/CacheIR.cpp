@@ -6339,11 +6339,11 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
       break;
     case CallFlags::FunCall:
     case CallFlags::FunApplyArray:
+    case CallFlags::FunApplyNullUndefined:
       calleeValId = writer.loadArgumentFixedSlot(ArgumentKind::Callee, argc_);
       break;
     case CallFlags::Unknown:
     case CallFlags::FunApplyArgsObj:
-    case CallFlags::FunApplyNullUndefined:
       MOZ_CRASH("Unsupported arg format");
   }
 
@@ -6366,11 +6366,12 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
   }
 
   if (flags_.getArgFormat() == CallFlags::FunCall ||
-      flags_.getArgFormat() == CallFlags::FunApplyArray) {
+      flags_.getArgFormat() == CallFlags::FunApplyArray ||
+      flags_.getArgFormat() == CallFlags::FunApplyNullUndefined) {
     JSFunction* funCallOrApply;
     ValOperandId thisValId;
     if (isCalleeBoundFunction()) {
-      MOZ_ASSERT(flags_.getArgFormat() != CallFlags::FunApplyArray,
+      MOZ_ASSERT(flags_.getArgFormat() == CallFlags::FunCall,
                  "unexpected bound function");
 
       funCallOrApply =
@@ -6407,6 +6408,15 @@ ObjOperandId InlinableNativeIRGenerator::emitNativeCalleeGuard(
     } else {
       writer.guardSpecificFunction(newTargetObjId, target_);
     }
+  }
+
+  if (flags_.getArgFormat() == CallFlags::FunApplyNullUndefined) {
+    MOZ_ASSERT(!hasBoundArguments(),
+               "null/undefined apply args is not a bound argument");
+
+    ValOperandId argValId =
+        writer.loadArgumentFixedSlot(ArgumentKind::Arg1, argc_);
+    writer.guardIsNullOrUndefined(argValId);
   }
 
   return calleeObjId;
@@ -11836,7 +11846,8 @@ AttachDecision CallIRGenerator::tryAttachFunApply(HandleFunction calleeFunc) {
   }
 
   if (mode_ == ICState::Mode::Specialized && !isScripted &&
-      format == CallFlags::FunCall) {
+      (format == CallFlags::FunCall ||
+       format == CallFlags::FunApplyNullUndefined)) {
     HandleValue newTarget = NullHandleValue;
     HandleValue thisValue = argc_ > 0 ? args_[0] : UndefinedHandleValue;
     HandleValueArray args = HandleValueArray::empty();
@@ -12137,7 +12148,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
   }
 
   MOZ_ASSERT(flags_.getArgFormat() == CallFlags::Standard ||
-             flags_.getArgFormat() == CallFlags::FunCall);
+             flags_.getArgFormat() == CallFlags::FunCall ||
+             flags_.getArgFormat() == CallFlags::FunApplyNullUndefined);
 
   // Check for special-cased native functions.
   switch (native) {

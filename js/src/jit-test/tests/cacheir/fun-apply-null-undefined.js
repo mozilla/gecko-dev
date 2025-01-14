@@ -27,10 +27,12 @@ testBasic();
 function testUndefinedGuard() {
     var f = function() { return arguments.length; }
     var arr = [-5, 5];
+    var strings = ["a", "b"];
     for (var i = 0; i < 100; i++) {
         var args = i < 50 ? undefined : arr;
         assertEq(f.apply(null, args), i < 50 ? 0 : 2);
         assertEq(Math.abs.apply(null, args), i < 50 ? NaN : 5);
+        assertEq(Array.prototype.join.apply(strings, args), i < 50 ? "a,b" : "a-5b");
     }
 }
 testUndefinedGuard();
