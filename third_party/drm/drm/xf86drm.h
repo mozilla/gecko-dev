@@ -44,7 +44,7 @@ extern "C" {
 #endif
 
 #ifndef DRM_MAX_MINOR
-#define DRM_MAX_MINOR   64
+#define DRM_MAX_MINOR   64 /* deprecated */
 #endif
 
 #if defined(__linux__)
@@ -98,7 +98,7 @@ extern "C" {
      + MAX3(sizeof(DRM_PRIMARY_MINOR_NAME), \
             sizeof(DRM_CONTROL_MINOR_NAME), \
             sizeof(DRM_RENDER_MINOR_NAME)) \
-     + sizeof("144") /* highest possible node number */ \
+     + sizeof("1048575") /* highest possible node number 2^MINORBITS - 1 */ \
      + 1) /* NULL-terminator */
 
 #define DRM_ERR_NO_DEVICE  (-1001)
@@ -919,6 +919,18 @@ extern int drmGetDevices2(uint32_t flags, drmDevicePtr devices[], int max_device
 
 extern int drmGetDeviceFromDevId(dev_t dev_id, uint32_t flags, drmDevicePtr *device);
 
+/**
+ * Get the node type (DRM_NODE_PRIMARY or DRM_NODE_RENDER) from a device ID.
+ *
+ * Returns negative errno on error.
+ */
+extern int drmGetNodeTypeFromDevId(dev_t devid);
+
+/**
+ * Check if two drmDevice pointers represent the same DRM device.
+ *
+ * Returns 1 if the devices are equal, 0 otherwise.
+ */
 extern int drmDevicesEqual(drmDevicePtr a, drmDevicePtr b);
 
 extern int drmSyncobjCreate(int fd, uint32_t flags, uint32_t *handle);
@@ -947,6 +959,8 @@ extern int drmSyncobjTransfer(int fd,
 			      uint32_t dst_handle, uint64_t dst_point,
 			      uint32_t src_handle, uint64_t src_point,
 			      uint32_t flags);
+extern int drmSyncobjEventfd(int fd, uint32_t handle, uint64_t point, int ev_fd,
+                             uint32_t flags);
 
 extern char *
 drmGetFormatModifierVendor(uint64_t modifier);
