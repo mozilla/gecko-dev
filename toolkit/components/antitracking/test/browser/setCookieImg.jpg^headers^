@@ -1,1 +1,2 @@
-Set-Cookie: foo=bar;
+Cache-Control: no-store
+Set-Cookie: foo=bar; Max-Age=86400; Partitioned; Secure;

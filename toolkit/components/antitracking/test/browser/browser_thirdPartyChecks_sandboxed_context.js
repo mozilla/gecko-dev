@@ -74,6 +74,8 @@ add_task(async function test_top_level_sandboxed_context() {
   // loaded in the first-party context.
   let obsChannelPromise = observeChannel(TEST_IMAGE_URL, false, true);
 
+  Services.cookies.removeAll();
+
   info("Opening the top-level sandboxed page");
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
@@ -84,10 +86,19 @@ add_task(async function test_top_level_sandboxed_context() {
 
   ok(true, "The loading of the image was successful.");
 
+  is(Services.cookies.cookies.length, 1, "The cookie was set");
+  is(
+    Services.cookies.cookies[0].isSession,
+    true,
+    "The cookie is forced to be a session cookie"
+  );
+
   BrowserTestUtils.removeTab(tab);
 });
 
 add_task(async function test_sandboxed_iframe() {
+  Services.cookies.removeAll();
+
   info("Opening the top-level page");
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_SITE);
 
@@ -120,6 +131,13 @@ add_task(async function test_sandboxed_iframe() {
   await obsChannelPromise;
 
   ok(true, "The loading of the image in the sandboxed iframe was successful.");
+
+  is(Services.cookies.cookies.length, 1, "The cookie was set");
+  is(
+    Services.cookies.cookies[0].isSession,
+    false,
+    "The cookie isn't forced to be a session cookie"
+  );
 
   BrowserTestUtils.removeTab(tab);
 });
