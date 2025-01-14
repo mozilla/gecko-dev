@@ -66,6 +66,8 @@ reason = "Feature is Firefox-specific and Windows-specific."
 
 ["initWithPendingUpdate.js"]
 
+["initialStateValidation.js"]
+
 ["languagePackUpdates.js"]
 skip-if = ["socketprocess_networking"] # Bug 1759035
 

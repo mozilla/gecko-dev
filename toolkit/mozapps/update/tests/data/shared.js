@@ -365,6 +365,21 @@ function writeFile(aFile, aText) {
 }
 
 /**
+ * Attempts to remove a file. Does not fail if the file does not exist.
+ * @param  file
+ *         The `nsIFile` to remove.
+ */
+function ensureRemoved(file) {
+  try {
+    file.remove(false);
+  } catch (ex) {
+    if (ex.result != Cr.NS_ERROR_FILE_NOT_FOUND) {
+      throw ex;
+    }
+  }
+}
+
+/**
  * Reads the current update operation/state in the status file in the patch
  * directory including the error code if it is present.
  *

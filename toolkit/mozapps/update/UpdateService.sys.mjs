@@ -2661,6 +2661,8 @@ export class UpdateService {
     }
     const readyUpdateDir = getReadyUpdateDir();
     let status = readStatusFile(readyUpdateDir);
+    let statusParts = status.split(":");
+    status = statusParts[0];
     LOG(`UpdateService:#asyncInit - status = "${status}"`);
     if (!this.canUsuallyApplyUpdates) {
       LOG(
@@ -2682,30 +2684,26 @@ export class UpdateService {
       updates.push(lazy.UM.internal.downloadingUpdate);
     }
 
-    if (status == STATE_NONE) {
-      // A status of STATE_NONE in #asyncInit means that the there
-      // isn't an update in progress. Let's make sure we initialize into a good
-      // state.
-      // Under some edgecases such as Windows system restore the
-      // active-update.xml will contain a pending update without the status
-      // file. We need to deal with that situation gracefully.
-      LOG("UpdateService:#asyncInit - Initial cleanup");
+    // Validate the update state. It's too complicated to recover much of
+    // anything if the state isn't already correct. And blowing away all the
+    // update state is a good way to make sure we always start the update loop
+    // in a reasonably consistent state. If we do this, we can return early
+    // since the rest of the function deals with further validation and handling
+    // of update success and failure.
+    const resetUpdateState = async (missingUpdateObject = false) => {
+      LOG("UpdateService:#asyncInit - Resetting update state");
 
-      const statusFile = readyUpdateDir.clone();
-      statusFile.append(FILE_UPDATE_STATUS);
-      if (statusFile.exists()) {
-        // This file existing but not having a state in it is unexpected. In
-        // addition to putting things in a good state, put a null update in the
-        // update history if we didn't start up with any.
-        LOG("UpdateService:#asyncInit - Status file is empty?");
-
+      // If we are clearing away some update data and we don't actually have a
+      // corresponding update object to write into the update history, just
+      // make an empty one.
+      if (missingUpdateObject && !updates.length) {
         if (!updates.length) {
           updates.push(new Update(null));
         }
       }
 
-      // There shouldn't be any updates when the update status is null. Mark any
-      // updates that are in there as having failed.
+      // We are about to clean up any updates that we have, so if we do have
+      // any, mark them as having failed.
       if (updates.length) {
         for (let update of updates) {
           update.state = STATE_FAILED;
@@ -2718,7 +2716,80 @@ export class UpdateService {
       }
 
       await cleanupActiveUpdates();
-      return;
+      transitionState(Ci.nsIApplicationUpdateService.STATE_IDLE);
+    };
+
+    switch (status) {
+      case STATE_DOWNLOADING:
+        if (!lazy.UM.internal.downloadingUpdate) {
+          LOG("UpdateService:#asyncInit - Missing downloading update object");
+          await resetUpdateState(true);
+          return;
+        } else if (lazy.UM.internal.readyUpdate) {
+          // It isn't valid to have a ready update while in the downloading
+          // state. We could just clear out the ready update and continue with
+          // the downloading update, but if the state is inconsistent, we'd
+          // prefer to start from scratch rather than try to rescue it
+          LOG("UpdateService:#asyncInit - Unexpected ready update object");
+          await resetUpdateState(true);
+          return;
+        }
+
+        // Note that we don't check for an existing downloading update MAR
+        // because there are good states where it does not exist (ex. BITS or
+        // the transfer just hasn't started yet).
+        break;
+      case STATE_PENDING:
+      case STATE_PENDING_SERVICE:
+      case STATE_PENDING_ELEVATE:
+      case STATE_APPLYING:
+      case STATE_APPLIED:
+      case STATE_APPLIED_SERVICE: {
+        let readyMarFile = readyUpdateDir.clone();
+        readyMarFile.append(FILE_UPDATE_MAR);
+
+        if (!lazy.UM.internal.readyUpdate) {
+          LOG("UpdateService:#asyncInit - Missing ready update object");
+          await resetUpdateState(true);
+          return;
+        } else if (!readyMarFile.exists()) {
+          LOG("UpdateService:#asyncInit - Missing mar file");
+          await resetUpdateState();
+          return;
+        }
+        break;
+      }
+      case STATE_SUCCEEDED:
+      case STATE_FAILED:
+        // There is more handing and validation to be done in this state, so
+        // we never want to return early here or lose any of the available state
+        // information, even if it is inconsistent.
+        break;
+      case STATE_DOWNLOAD_FAILED:
+        // This is an odd state to start up in since we usually handle this
+        // situation right away. We'll just clean this state up since the risk
+        // of whatever state is still hanging around interfering with update
+        // seems higher than the possible benefit of being able to salvage some
+        // partial transfer.
+        await resetUpdateState(!lazy.UM.internal.downloadingUpdate);
+        return;
+      case STATE_NONE: {
+        const statusFile = readyUpdateDir.clone();
+        statusFile.append(FILE_UPDATE_STATUS);
+        // This file existing but not having a state in it is unexpected.
+        const statusFileExists = statusFile.exists();
+        if (statusFileExists) {
+          LOG("UpdateService:#asyncInit - Status file is empty?");
+        }
+        await resetUpdateState(statusFileExists);
+        return;
+      }
+      default:
+        LOG(
+          `UpdateService:#asyncInit - Unexpected state! ${status}) - assuming no valid updates`
+        );
+        await resetUpdateState();
+        return;
     }
 
     let channelChanged = updatesToCheck => {
@@ -2930,15 +3001,13 @@ export class UpdateService {
       update = new Update(null);
     }
 
-    let parts = status.split(":");
-    status = parts[0];
     update.state = status;
     LOG(
       `UpdateService:#asyncInit - Setting update's state from ` +
         `the status file (="${update.state}")`
     );
-    if (update.state == STATE_FAILED && parts[1]) {
-      update.errorCode = parseInt(parts[1]);
+    if (update.state == STATE_FAILED && statusParts[1]) {
+      update.errorCode = parseInt(statusParts[1]);
       LOG(
         `UpdateService:#asyncInit - Setting update's errorCode ` +
           `from the status file (="${update.errorCode}")`
