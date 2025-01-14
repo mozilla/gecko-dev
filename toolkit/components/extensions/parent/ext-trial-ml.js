@@ -115,11 +115,6 @@ class TrialML extends ExtensionAPI {
     if (!this.extension || this.extension.hasShutdown) {
       throw new ExtensionError("Extension has already shutdown");
     }
-    if (options.taskName === "translation") {
-      throw new ExtensionError(
-        "Not implemented yet: calling the translation engine"
-      );
-    }
     this.#engine = await createEngine(options, progressData => {
       extension.emit(ENGINE_EVENT, progressData);
     });
