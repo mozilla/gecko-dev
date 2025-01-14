@@ -37,7 +37,8 @@ bool nsBaseColorPicker::MaybeBlockColorPicker(
 
   if (!mBrowsingContext->Canonical()->CanOpenModalPicker()) {
     if (aCallback) {
-      // Color pickers are disabled, so we answer the callback with returnCancel.
+      // Color pickers are disabled, so we answer the callback with
+      // returnCancel.
       aCallback->Done(EmptyString());
     }
     return true;
