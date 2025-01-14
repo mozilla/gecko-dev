@@ -10,8 +10,8 @@
 #include <windows.h>
 #include <commdlg.h>
 
-#include "nsBaseColorPicker.h"
 #include "nsCOMPtr.h"
+#include "nsIColorPicker.h"
 #include "nsThreadUtils.h"
 
 class nsIWidget;
@@ -37,19 +37,17 @@ class AsyncColorChooser : public mozilla::Runnable {
   nsCOMPtr<nsIColorPickerShownCallback> mCallback;
 };
 
-class nsColorPicker final : public nsBaseColorPicker {
+class nsColorPicker : public nsIColorPicker {
   virtual ~nsColorPicker();
 
  public:
   nsColorPicker();
 
   NS_DECL_ISUPPORTS
+  NS_DECL_NSICOLORPICKER
 
  private:
-  // nsBaseColorPicker
-  nsresult InitNative(const nsTArray<nsString>& aDefaultColors) override;
-  nsresult OpenNative() override;
-
+  COLORREF mInitialColor;
   nsTArray<nsString> mDefaultColors;
   nsCOMPtr<nsIWidget> mParentWidget;
 };

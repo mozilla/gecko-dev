@@ -111,10 +111,6 @@ class nsFilePicker::AsyncShowFilePicker : public mozilla::Runnable {
     NS_ASSERTION(NS_IsMainThread(),
                  "AsyncShowFilePicker should be on the main thread!");
 
-    if (mFilePicker->MaybeBlockFilePicker(mCallback)) {
-      return NS_OK;
-    }
-
     // macOS requires require GUI operations to be on the main thread, so that's
     // why we're not dispatching to another thread and calling back to the main
     // after it's done.

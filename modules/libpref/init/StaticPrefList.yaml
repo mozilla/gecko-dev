@@ -1966,12 +1966,6 @@
   value: @IS_NOT_ANDROID@
   mirror: always
 
-# Whether we block opening pickers from background tabs.
-- name: browser.disable_pickers_background_tabs
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 #---------------------------------------------------------------------------
 # Prefs starting with "channelclassifier."
 #---------------------------------------------------------------------------
