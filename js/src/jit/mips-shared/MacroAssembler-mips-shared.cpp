@@ -2211,12 +2211,32 @@ void MacroAssembler::enterFakeExitFrameForWasm(Register cxreg, Register scratch,
 
 CodeOffset MacroAssembler::sub32FromMemAndBranchIfNegativeWithPatch(
     Address address, Label* label) {
-  MOZ_CRASH("needs to be implemented on this platform");
+  ScratchRegisterScope scratch(asMasm());
+  MOZ_ASSERT(scratch != address.base);
+  ma_load(scratch, address);
+  // mips doesn't have imm subtract insn, instead we use addiu rs, rt, -imm.
+  // 128 is arbitrary, but makes `*address` count upwards, which may help
+  // to identify cases where the subsequent ::patch..() call was forgotten.
+  as_addiu(scratch, scratch, 128);
+  // Points immediately after the insn to patch
+  CodeOffset patchPoint = CodeOffset(currentOffset());
+  ma_store(scratch, address);
+  ma_b(scratch, scratch, label, Assembler::Signed);
+  return patchPoint;
 }
 
 void MacroAssembler::patchSub32FromMemAndBranchIfNegative(CodeOffset offset,
                                                           Imm32 imm) {
-  MOZ_CRASH("needs to be implemented on this platform");
+  int32_t val = imm.value;
+  // Patching it to zero would make the insn pointless
+  MOZ_RELEASE_ASSERT(val >= 1 && val <= 127);
+  InstImm* inst = (InstImm*)m_buffer.getInst(BufferOffset(offset.offset() - 4));
+  // mips doesn't have imm subtract insn, instead we use addiu rs, rt, -imm.
+  // 31     25 20 15
+  // |      |  |  |
+  // 001001 rs rt imm = addiu rs, rt, imm
+  MOZ_ASSERT(inst->extractOpcode() == ((uint32_t)op_addiu >> OpcodeShift));
+  inst->setImm16(-val & 0xffff);
 }
 
 // ========================================================================
