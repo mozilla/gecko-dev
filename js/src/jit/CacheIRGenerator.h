@@ -603,13 +603,15 @@ class MOZ_RAII InlinableNativeIRGenerator {
   // inline a JSFunction, |callee_| and |target_| are the same object.
   bool isCalleeBoundFunction() const { return callee_ != target_; }
 
-  void emitNativeCalleeGuard();
+  ObjOperandId emitNativeCalleeGuard();
   void emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
                                 GuardClassKind kind) {
     generator_.emitOptimisticClassGuard(objId, obj, kind);
   }
 
   ObjOperandId emitLoadArgsArray();
+
+  ValOperandId loadThis(ObjOperandId calleeId);
 
   void initializeInputOperand() {
     // The input operand is already initialized for FunCall and FunApplyArray.
