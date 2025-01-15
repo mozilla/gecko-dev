@@ -15308,6 +15308,16 @@
   value: false
   mirror: always
 
+# Enable the heuristic to allow storage access for extended navigations with interaction
+- name: privacy.restrict3rdpartystorage.heuristic.navigation
+  type: bool
+#if defined(ANDROID)
+  value: false
+#else
+  value: @IS_NIGHTLY_BUILD@
+#endif
+  mirror: always
+
 # Anti-tracking permission expiration.
 - name: privacy.restrict3rdpartystorage.expiration_redirect
   type: uint32_t
@@ -15349,7 +15359,11 @@
 # Enable the heuristic to allow storage access for recent visited pages
 - name: privacy.restrict3rdpartystorage.heuristic.recently_visited
   type: bool
+#if defined(ANDROID)
   value: true
+#else
+  value: @IS_NOT_NIGHTLY_BUILD@
+#endif
   mirror: always
 
 # Valid time gap since last visit

@@ -12,6 +12,7 @@
 #include "nsLoadGroup.h"
 #include "mozilla/AntiTrackingUtils.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/DynamicFpiNavigationHeuristic.h"
 #include "mozilla/Components.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/NullPrincipal.h"
@@ -2676,6 +2677,9 @@ nsresult DocumentLoadListener::DoOnStartRequest(nsIRequest* aRequest) {
       NS_WARNING_ASSERTION(
           NS_SUCCEEDED(rv),
           "BounceTrackingState::OnDocumentStartRequest failed.");
+
+      DynamicFpiNavigationHeuristic::MaybeGrantStorageAccess(loadingContext,
+                                                             mChannel);
     }
   }
 
