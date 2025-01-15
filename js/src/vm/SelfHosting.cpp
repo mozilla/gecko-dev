@@ -1020,44 +1020,6 @@ static bool intrinsic_SharedArrayBuffersMemorySame(JSContext* cx, unsigned argc,
   return true;
 }
 
-static bool intrinsic_GetTypedArrayKind(JSContext* cx, unsigned argc,
-                                        Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 1);
-  MOZ_ASSERT(args[0].isObject());
-
-  static_assert(TYPEDARRAY_KIND_INT8 == Scalar::Type::Int8,
-                "TYPEDARRAY_KIND_INT8 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_UINT8 == Scalar::Type::Uint8,
-                "TYPEDARRAY_KIND_UINT8 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_INT16 == Scalar::Type::Int16,
-                "TYPEDARRAY_KIND_INT16 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_UINT16 == Scalar::Type::Uint16,
-                "TYPEDARRAY_KIND_UINT16 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_INT32 == Scalar::Type::Int32,
-                "TYPEDARRAY_KIND_INT32 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_UINT32 == Scalar::Type::Uint32,
-                "TYPEDARRAY_KIND_UINT32 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_FLOAT32 == Scalar::Type::Float32,
-                "TYPEDARRAY_KIND_FLOAT32 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_FLOAT64 == Scalar::Type::Float64,
-                "TYPEDARRAY_KIND_FLOAT64 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_UINT8CLAMPED == Scalar::Type::Uint8Clamped,
-                "TYPEDARRAY_KIND_UINT8CLAMPED doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_BIGINT64 == Scalar::Type::BigInt64,
-                "TYPEDARRAY_KIND_BIGINT64 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_BIGUINT64 == Scalar::Type::BigUint64,
-                "TYPEDARRAY_KIND_BIGUINT64 doesn't match the scalar type");
-  static_assert(TYPEDARRAY_KIND_FLOAT16 == Scalar::Type::Float16,
-                "TYPEDARRAY_KIND_FLOAT16 doesn't match the scalar type");
-
-  JSObject* obj = &args[0].toObject();
-  Scalar::Type type = JS_GetArrayBufferViewType(obj);
-
-  args.rval().setInt32(static_cast<int32_t>(type));
-  return true;
-}
-
 static bool intrinsic_IsTypedArrayConstructor(JSContext* cx, unsigned argc,
                                               Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2047,7 +2009,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("GetOwnPropertyDescriptorToArray", GetOwnPropertyDescriptorToArray, 2,
           0),
     JS_FN("GetStringDataProperty", intrinsic_GetStringDataProperty, 2, 0),
-    JS_FN("GetTypedArrayKind", intrinsic_GetTypedArrayKind, 1, 0),
     JS_INLINABLE_FN("GuardToArrayBuffer",
                     intrinsic_GuardToBuiltin<ArrayBufferObject>, 1, 0,
                     IntrinsicGuardToArrayBuffer),
