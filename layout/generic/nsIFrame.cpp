@@ -6899,8 +6899,8 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
   const auto& styleISize = aSizeOverrides.mStyleISize
                                ? *aSizeOverrides.mStyleISize
                                : stylePos->ISize(aWM);
-  const auto& styleBSize = aSizeOverrides.mStyleISize
-                               ? *aSizeOverrides.mStyleISize
+  const auto& styleBSize = aSizeOverrides.mStyleBSize
+                               ? *aSizeOverrides.mStyleBSize
                                : stylePos->BSize(aWM);
   const auto iStartOffsetIsAuto =
       stylePos->GetInset(LogicalSide::IStart, aWM).IsAuto();
@@ -6958,7 +6958,19 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
   const auto bShouldStretch =
       shouldStretch(blockAlignSelf, this, bStartOffsetIsAuto, bEndOffsetIsAuto);
   const auto iSizeIsAuto = styleISize.IsAuto();
-  const auto bSizeIsAuto = styleBSize.IsAuto();
+  // Note(dshin, bug 1789477): `auto` in the context of abs-element uses
+  // stretch-fit sizing, given specific alignment conditions [1]. Effectively,
+  // `auto` is `stretch`. `nsLayoutUtils::IsAutoBSize` is not the right tool
+  // here, since the mapping is explicit, and it's incorrect to e.g. map
+  // `fit-content` to `stretch`.
+  // `-moz-available` behaves like `auto` in general, so map the same way.
+  // When Bug 567039 brings `-moz-available` into alignment with `stretch`, this
+  // special check can be removed. TODO(dshin): we're probably duplicating the
+  // `stretch` logic here, since `stretch` is `stretch-fit` sizing [2].
+  //
+  // [1]: https://drafts.csswg.org/css-position/#abspos-auto-size
+  // [2]: https://drafts.csswg.org/css-sizing-4/#valdef-width-stretch
+  const auto bSizeIsAuto = styleBSize.IsAuto() || styleBSize.IsMozAvailable();
   if (bSizeIsAuto && bShouldStretch) {
     result.BSize(aWM) = nsLayoutUtils::ComputeStretchContentBoxBSize(
         aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM));
