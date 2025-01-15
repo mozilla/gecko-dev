@@ -184,7 +184,16 @@ static void GenPrint(DebugChannel channel, MacroAssembler& masm,
   {
     MOZ_ASSERT(MaybeGetJitContext(),
                "codegen debug checks require a jit context");
+#  ifdef JS_CODEGEN_ARM64
+    if (IsCompilingWasm()) {
+      masm.setupWasmABICall();
+    } else {
+      // JS ARM64 has an extra stack pointer which is not managed in WASM.
+      masm.setupUnalignedABICall(temp);
+    }
+#  else
     masm.setupUnalignedABICall(temp);
+#  endif
     passArgAndCall(IsCompilingWasm(), temp);
   }
 
