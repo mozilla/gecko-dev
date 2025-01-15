@@ -484,8 +484,11 @@ JS_PUBLIC_API bool IsObjectInContextCompartment(JSObject* obj,
 
 using DOMInstanceClassHasProtoAtDepth = bool (*)(const JSClass*, uint32_t,
                                                  uint32_t);
+using DOMInstanceClassIsError = bool (*)(const JSClass*);
+
 struct JSDOMCallbacks {
   DOMInstanceClassHasProtoAtDepth instanceClassMatchesProto;
+  DOMInstanceClassIsError instanceClassIsError;
 };
 using DOMCallbacks = struct JSDOMCallbacks;
 

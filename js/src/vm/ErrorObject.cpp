@@ -958,6 +958,11 @@ static bool exn_isError(JSContext* cx, unsigned argc, Value* vp) {
     args.rval().setBoolean(true);
     return true;
   }
+  if (unwrappedObject->getClass()->isDOMClass()) {
+    args.rval().setBoolean(cx->runtime()->DOMcallbacks->instanceClassIsError(
+        unwrappedObject->getClass()));
+    return true;
+  }
 
   // Step 3. Return false
   args.rval().setBoolean(false);
