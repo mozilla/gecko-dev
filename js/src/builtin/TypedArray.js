@@ -1550,46 +1550,6 @@ function TypedArrayCreateSameType(exemplar, length) {
 }
 
 // https://github.com/tc39/proposal-change-array-by-copy
-// TypedArray.prototype.toReversed()
-function TypedArrayToReversed() {
-  // Step 2. Perform ? ValidateTypedArray(O).
-  if (!IsObject(this) || !IsTypedArray(this)) {
-    return callFunction(
-      CallTypedArrayMethodIfWrapped,
-      this,
-      "TypedArrayToReversed"
-    );
-  }
-
-  GetAttachedArrayBuffer(this);
-
-  // Step 1. Let O be the this value.
-  var O = this;
-
-  // Step 3. Let length be O.[[ArrayLength]].
-  var len = TypedArrayLength(O);
-
-  // Step 4. Let A be ? TypedArrayCreateSameType(O, « 𝔽(length) »).
-  var A = TypedArrayCreateSameType(O, len);
-
-  // Step 5. Let k be 0.
-  // Step 6. Repeat, while k < length,
-  for (var k = 0; k < len; k++) {
-    // Step 5.a. Let from be ! ToString(𝔽(length - k - 1)).
-    var from = len - k - 1;
-    // Step 5.b. omitted - Let Pk be ! ToString(𝔽(k)).
-    // k coerced to String by property access
-    // Step 5.c. Let fromValue be ! Get(O, from).
-    var fromValue = O[from];
-    // Step 5.d. Perform ! Set(A, k, kValue, true).
-    A[k] = fromValue;
-  }
-
-  // Step 7. Return A.
-  return A;
-}
-
-// https://github.com/tc39/proposal-change-array-by-copy
 // TypedArray.prototype.with()
 function TypedArrayWith(index, value) {
   // Step 2. Perform ? ValidateTypedArray(O).
