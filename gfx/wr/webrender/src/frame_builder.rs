@@ -274,6 +274,7 @@ impl FrameBuilder {
     fn build_layer_screen_rects_and_cull_layers(
         &mut self,
         scene: &mut BuiltScene,
+        present: bool,
         global_screen_world_rect: WorldRect,
         resource_cache: &mut ResourceCache,
         gpu_cache: &mut GpuCache,
@@ -293,6 +294,8 @@ impl FrameBuilder {
         profile: &mut TransactionProfile,
     ) {
         profile_scope!("build_layer_screen_rects_and_cull_layers");
+
+        let render_picture_cache_slices = present;
 
         let root_spatial_node_index = spatial_tree.root_reference_frame_index();
 
@@ -427,6 +430,9 @@ impl FrameBuilder {
             }
 
             for pic_index in scene.tile_cache_pictures.iter().rev() {
+                if !render_picture_cache_slices {
+                    break;
+                }
                 let pic = &mut scene.prim_store.pictures[pic_index.0];
 
                 match pic.raster_config {
@@ -583,6 +589,10 @@ impl FrameBuilder {
         frame_state.push_dirty_region(default_dirty_region);
 
         for pic_index in &scene.tile_cache_pictures {
+            if !render_picture_cache_slices {
+                break;
+            }
+
             prepare_picture(
                 *pic_index,
                 &mut scene.prim_store,
@@ -617,6 +627,7 @@ impl FrameBuilder {
     pub fn build(
         &mut self,
         scene: &mut BuiltScene,
+        present: bool,
         resource_cache: &mut ResourceCache,
         gpu_cache: &mut GpuCache,
         rg_builder: &mut RenderTaskGraphBuilder,
@@ -682,6 +693,7 @@ impl FrameBuilder {
 
         self.build_layer_screen_rects_and_cull_layers(
             scene,
+            present,
             screen_world_rect,
             resource_cache,
             gpu_cache,
@@ -772,33 +784,35 @@ impl FrameBuilder {
                 passes.push(pass);
             }
 
-            let mut ctx = RenderTargetContext {
-                global_device_pixel_scale,
-                clip_store: &scene.clip_store,
-                prim_store: &scene.prim_store,
-                resource_cache,
-                use_dual_source_blending,
-                use_advanced_blending: scene.config.gpu_supports_advanced_blend,
-                break_advanced_blend_batches: !scene.config.advanced_blend_is_coherent,
-                batch_lookback_count: scene.config.batch_lookback_count,
-                spatial_tree,
-                data_stores,
-                surfaces: &scene.surfaces,
-                scratch: &mut scratch.primitive,
-                screen_world_rect,
-                globals: &self.globals,
-                tile_caches,
-                root_spatial_node_index: spatial_tree.root_reference_frame_index(),
-                frame_memory: &mut frame_memory,
-            };
+            if present {
+                let mut ctx = RenderTargetContext {
+                    global_device_pixel_scale,
+                    clip_store: &scene.clip_store,
+                    prim_store: &scene.prim_store,
+                    resource_cache,
+                    use_dual_source_blending,
+                    use_advanced_blending: scene.config.gpu_supports_advanced_blend,
+                    break_advanced_blend_batches: !scene.config.advanced_blend_is_coherent,
+                    batch_lookback_count: scene.config.batch_lookback_count,
+                    spatial_tree,
+                    data_stores,
+                    surfaces: &scene.surfaces,
+                    scratch: &mut scratch.primitive,
+                    screen_world_rect,
+                    globals: &self.globals,
+                    tile_caches,
+                    root_spatial_node_index: spatial_tree.root_reference_frame_index(),
+                    frame_memory: &mut frame_memory,
+                };
 
-            self.build_composite_pass(
-                scene,
-                &mut ctx,
-                gpu_cache,
-                &mut deferred_resolves,
-                &mut composite_state,
-            );
+                self.build_composite_pass(
+                    scene,
+                    &mut ctx,
+                    gpu_cache,
+                    &mut deferred_resolves,
+                    &mut composite_state,
+                );
+            }
         }
 
         profile.end_time(profiler::FRAME_BATCHING_TIME);
@@ -822,6 +836,7 @@ impl FrameBuilder {
                 device_origin,
                 scene.output_rect.size(),
             ),
+            present,
             passes,
             transform_palette: transform_palette.finish(),
             render_tasks,
@@ -1274,6 +1289,7 @@ pub fn build_render_pass(
 pub struct Frame {
     /// The rectangle to show the frame in, on screen.
     pub device_rect: DeviceIntRect,
+    pub present: bool,
     pub passes: FrameVec<RenderPass>,
 
     pub transform_palette: FrameVec<TransformData>,

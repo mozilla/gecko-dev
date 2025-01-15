@@ -1444,7 +1444,7 @@ impl Renderer {
         &mut self,
         doc_id: DocumentId,
         active_doc: &mut RenderedDocument,
-        device_size: Option<DeviceIntSize>,
+        mut device_size: Option<DeviceIntSize>,
         buffer_age: usize,
     ) -> Result<RenderResults, Vec<RendererError>> {
         profile_scope!("render");
@@ -1511,6 +1511,12 @@ impl Renderer {
 
             frame_id
         };
+
+        if !active_doc.frame.present {
+            // Setting device_size to None is what ensures compositing/presenting
+            // the frame is skipped in the rest of this module.
+            device_size = None;
+        }
 
         if let Some(device_size) = device_size {
             // Inform the client that we are starting a composition transaction if native
@@ -3494,7 +3500,7 @@ impl Renderer {
             // to the swapchain tile list
             match tile.kind {
                 TileKind::Opaque | TileKind::Alpha => {
-                    // Store (index of tile, index of layer) so we can segment them below 
+                    // Store (index of tile, index of layer) so we can segment them below
                     occlusion.add(&rect, is_opaque, idx); // (idx, input_layers.len() - 1));
                 }
                 TileKind::Clear => {
