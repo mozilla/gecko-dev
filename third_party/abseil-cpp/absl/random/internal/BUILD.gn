@@ -187,6 +187,11 @@ absl_source_set("platform") {
     "//third_party/abseil-cpp/absl/base:config",
   ]
   visibility = [ "//third_party/abseil-cpp/absl/random/*" ]
+
+  if (moz_webrtc_build) {
+    # We don't really want to run Google's scripting to generate build flags
+    deps -= [ "//build:chromeos_buildflags" ]
+  }
 }
 
 absl_source_set("randen") {
