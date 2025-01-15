@@ -386,9 +386,7 @@ function splitString({ searchString, searchMode }) {
   }
 
   // Check for an unambiguous restriction char at the beginning of the first
-  // token, or at the end of the last token. We only count trailing restriction
-  // chars if they are the search restriction char, which is "?". This is to
-  // allow for a typed question to yield only search results.
+  // token.
   if (
     CHAR_TO_TYPE_MAP.has(firstToken[0]) &&
     !UrlbarTokenizer.REGEXP_PERCENT_ENCODED_START.test(firstToken) &&
@@ -397,16 +395,6 @@ function splitString({ searchString, searchMode }) {
     tokens[0] = firstToken.substring(1);
     tokens.splice(0, 0, firstToken[0]);
     return tokens;
-  }
-
-  const lastIndex = tokens.length - 1;
-  const lastToken = tokens[lastIndex];
-  if (
-    lastToken[lastToken.length - 1] == UrlbarTokenizer.RESTRICT.SEARCH &&
-    !UrlbarTokenizer.looksLikeUrl(lastToken, { requirePath: true })
-  ) {
-    tokens[lastIndex] = lastToken.substring(0, lastToken.length - 1);
-    tokens.push(lastToken[lastToken.length - 1]);
   }
 
   return tokens;

@@ -304,5 +304,5 @@ add_task(async function test_restrict_search() {
     value: "test" + UrlbarTokenizer.RESTRICT.SEARCH,
   });
   result = await AssertPrivateResult(window, engine, true);
-  Assert.equal(result.searchParams.query, "test");
+  Assert.equal(result.searchParams.query, "test?");
 });
