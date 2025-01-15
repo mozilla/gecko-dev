@@ -144,24 +144,31 @@ static void SetProxyResultDirect(nsACString& aResult) {
   aResult.AssignLiteral("DIRECT");
 }
 
+static const char* GetEnvRetryUppercase(const nsCString& aEnv) {
+  nsAutoCString env(aEnv);
+  const char* proxyVal = PR_GetEnv(env.get());
+  if (proxyVal) {
+    return proxyVal;
+  }
+  ToUpperCase(env);
+  proxyVal = PR_GetEnv(env.get());
+  return proxyVal;
+}
+
 static nsresult GetProxyFromEnvironment(const nsACString& aScheme,
                                         const nsACString& aHost, int32_t aPort,
                                         nsACString& aResult) {
   nsAutoCString envVar;
   envVar.Append(aScheme);
   envVar.AppendLiteral("_proxy");
-  const char* proxyVal = PR_GetEnv(envVar.get());
-  if (!proxyVal) {
-    // try uppercase name too
-    ToUpperCase(envVar);
-    proxyVal = PR_GetEnv(envVar.get());
+  const char* proxyVal = GetEnvRetryUppercase(envVar);
+  if (!proxyVal && aScheme == "ws") {
+    proxyVal = GetEnvRetryUppercase("http_proxy"_ns);
+  } else if (!proxyVal && aScheme == "wss") {
+    proxyVal = GetEnvRetryUppercase("https_proxy"_ns);
   }
   if (!proxyVal) {
-    proxyVal = PR_GetEnv("all_proxy");
-    if (!proxyVal) {
-      // try uppercase name too
-      proxyVal = PR_GetEnv("ALL_PROXY");
-    }
+    proxyVal = GetEnvRetryUppercase("all_proxy"_ns);
     if (!proxyVal) {
       // Return failure so that the caller can detect the failure and
       // fall back to other proxy detection (e.g., WPAD)
@@ -169,11 +176,7 @@ static nsresult GetProxyFromEnvironment(const nsACString& aScheme,
     }
   }
 
-  const char* noProxyVal = PR_GetEnv("no_proxy");
-  if (!noProxyVal) {
-    // try uppercase name too
-    noProxyVal = PR_GetEnv("NO_PROXY");
-  }
+  const char* noProxyVal = GetEnvRetryUppercase("no_proxy"_ns);
   if (noProxyVal && IsInNoProxyList(aHost, aPort, noProxyVal)) {
     SetProxyResultDirect(aResult);
     return NS_OK;
