@@ -12,7 +12,6 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/gfx/Point.h"
 #include "nsIWebProgressListener.h"
-#include "prio.h"
 
 class nsPagePrintTimer;
 class nsPrintJob;
