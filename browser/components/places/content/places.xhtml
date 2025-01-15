@@ -332,9 +332,6 @@
           class="placesTree"
           is="places-tree"
           hidecolumnpicker="true" context="placesContext"
-          onselect="PlacesOrganizer.onPlaceSelected(true);"
-          onclick="PlacesOrganizer.onPlacesListClick(event);"
-          onfocus="PlacesOrganizer.updateDetailsPane(event);"
           seltype="single"
           persist="style">
       <treecols>
@@ -353,10 +350,7 @@
               is="places-tree"
               flatList="true"
               selectfirstnode="true"
-              enableColumnDrag="true"
-              onfocus="PlacesOrganizer.updateDetailsPane(event)"
-              onselect="PlacesOrganizer.updateDetailsPane(event)"
-              onkeypress="ContentTree.onKeyPress(event);">
+              enableColumnDrag="true">
           <treecols id="placeContentColumns" context="placesColumnsContext">
             <!--
               The below code may suggest that 'ordinal' is still a supported XUL
@@ -388,7 +382,7 @@
             <treecol data-l10n-id="places-view-sort-col-last-modified" id="placesContentLastModified" anonid="lastModified" style="flex: 1 auto" hidden="true"
                       persist="width hidden ordinal sortActive sortDirection"/>
           </treecols>
-          <treechildren flex="1" onclick="ContentTree.onClick(event);"/>
+          <treechildren flex="1"/>
         </tree>
         <richlistbox flex="1"
                      hidden="true"

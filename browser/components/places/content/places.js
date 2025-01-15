@@ -174,6 +174,14 @@ var PlacesOrganizer = {
     ContentArea.init();
 
     this._places = document.getElementById("placesList");
+    this._places.addEventListener("select", () => this.onPlaceSelected(true));
+    this._places.addEventListener("click", event =>
+      this.onPlacesListClick(event)
+    );
+    this._places.addEventListener("focus", event =>
+      this.updateDetailsPane(event)
+    );
+
     this._initFolderTree();
 
     var leftPaneSelection = "AllBookmarks"; // default to all-bookmarks
@@ -206,9 +214,15 @@ var PlacesOrganizer = {
     document.addEventListener("command", this);
 
     let placeContentElement = document.getElementById("placeContent");
-    placeContentElement.addEventListener("onOpenFlatContainer", function (e) {
-      PlacesOrganizer.openFlatContainer(e.detail);
-    });
+    placeContentElement.addEventListener("onOpenFlatContainer", event =>
+      this.openFlatContainer(event.detail)
+    );
+    placeContentElement.addEventListener("focus", event =>
+      this.updateDetailsPane(event)
+    );
+    placeContentElement.addEventListener("select", event =>
+      this.updateDetailsPane(event)
+    );
 
     if (AppConstants.platform === "macosx") {
       // 1. Map Edit->Find command to OrganizerCommand_find:all.  Need to map
@@ -1577,6 +1591,10 @@ var ContentArea = {
 var ContentTree = {
   init: function CT_init() {
     this._view = document.getElementById("placeContent");
+    this.view.addEventListener("keypress", this);
+    document
+      .querySelector("#placeContent > treechildren")
+      .addEventListener("click", this);
   },
 
   get view() {
@@ -1594,6 +1612,17 @@ var ContentTree = {
   openSelectedNode: function CT_openSelectedNode(aEvent) {
     let view = this.view;
     PlacesUIUtils.openNodeWithEvent(view.selectedNode, aEvent);
+  },
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "click":
+        this.onClick(event);
+        break;
+      case "keypress":
+        this.onKeyPress(event);
+        break;
+    }
   },
 
   onClick: function CT_onClick(aEvent) {
