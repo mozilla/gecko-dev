@@ -140,6 +140,10 @@ run-if = ["(os == 'win' && !msix)"] # Disabled for MSIX due to https://bugzilla.
 support-files = ["file_UninstallPing.worker.js"]
 run-if = ["os == 'win'"]
 
+["test_UsageReporting.js"]
+tags = "coverage"
+run-if = ["appname == 'firefox'"]
+
 ["test_UserInteraction.js"]
 
 ["test_UserInteraction_annotations.js"]

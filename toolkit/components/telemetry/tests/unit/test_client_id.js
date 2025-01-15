@@ -31,6 +31,11 @@ add_task(function test_setup() {
   // FOG needs a profile and to be init.
   do_get_profile();
   Services.fog.initializeFOG();
+
+  // In Firefox itself, these are set as part of browser startup.  In
+  // tests, we need to arrange our initial state.
+  GleanPings.usageReporting.setEnabled(true);
+  GleanPings.usageDeletionRequest.setEnabled(true);
 });
 
 add_task(async function test_client_id() {

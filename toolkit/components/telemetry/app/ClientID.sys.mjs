@@ -464,6 +464,7 @@ var ClientIDImpl = {
       await this._loadDataReportingState();
     }
 
+    GleanPings.usageReporting.setEnabled(true);
     if (!(await this.updateUsageProfileID(id))) {
       this._log.error(
         "setUsageProfileID - invalid Usage Profile ID passed, not updating"
@@ -645,6 +646,7 @@ var ClientIDImpl = {
   async setCanaryUsageProfileIdentifier() {
     this._log.trace("setCanaryUsageProfileIdentifier");
     this.updateUsageProfileID(CANARY_USAGE_PROFILE_ID);
+    GleanPings.usageReporting.setEnabled(false);
 
     this._saveDataReportingStateTask = this._saveDataReportingState();
     await this._saveDataReportingStateTask;
@@ -673,6 +675,7 @@ var ClientIDImpl = {
     this._log.trace("_doResetUsageProfileIdentifier");
 
     // Reset the cached Usage Profile ID.
+    GleanPings.usageReporting.setEnabled(true);
     this.updateUsageProfileID(lazy.CommonUtils.generateUUID());
 
     // If there is a save in progress, wait for it to complete.

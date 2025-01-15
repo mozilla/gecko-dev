@@ -52,6 +52,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/UntrustedModulesPing.sys.mjs",
   UninstallPing: "resource://gre/modules/UninstallPing.sys.mjs",
   UpdatePing: "resource://gre/modules/UpdatePing.sys.mjs",
+  UsageReporting: "resource://gre/modules/UsageReporting.sys.mjs",
 });
 
 if (
@@ -982,6 +983,9 @@ var Impl = {
         if (aData == TelemetryUtils.Preferences.FhrUploadEnabled) {
           return this._onUploadPrefChange();
         }
+        if (aData == "datareporting.usage.uploadEnabled") {
+          return lazy.UsageReporting._onUsagePrefChange();
+        }
     }
     return undefined;
   },
@@ -1081,8 +1085,6 @@ var Impl = {
         let oldClientId = await lazy.ClientID.getClientID();
         let oldProfileGroupId = await lazy.ClientID.getProfileGroupID();
         await lazy.ClientID.setCanaryIdentifiers();
-        // For the time being this is tied to the telemetry upload preference.
-        await lazy.ClientID.setCanaryUsageProfileIdentifier();
         this._clientID = await lazy.ClientID.getClientID();
         this._profileGroupID = await lazy.ClientID.getProfileGroupID();
 
@@ -1123,6 +1125,15 @@ var Impl = {
         true
       );
     }
+    if (AppConstants.MOZ_APP_NAME == "firefox") {
+      // Firefox-only: watch the usage reporting setting to enable, disable, and
+      // trigger "usage-deletion-request" pings.
+      Services.prefs.addObserver(
+        "datareporting.usage.uploadEnabled",
+        this,
+        true
+      );
+    }
   },
 
   /**
@@ -1134,6 +1145,9 @@ var Impl = {
         TelemetryUtils.Preferences.FhrUploadEnabled,
         this
       );
+    }
+    if (AppConstants.MOZ_APP_NAME == "firefox") {
+      Services.prefs.removeObserver("datareporting.usage.uploadEnabled", this);
     }
   },
 
