@@ -155,7 +155,8 @@ var gSitePermissionsManager = {
       this._isObserving = true;
     }
 
-    document.addEventListener("dialogaccept", () => this.onApplyChanges());
+    document.addEventListener("dialogaccept", this);
+    window.addEventListener("unload", this);
 
     this._type = params.permissionType;
     this._list = document.getElementById("permissionsBox");
@@ -258,6 +259,17 @@ var gSitePermissionsManager = {
       }
     }
     this.buildPermissionsList();
+  },
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "dialogaccept":
+        this.onApplyChanges();
+        break;
+      case "unload":
+        this.uninit();
+        break;
+    }
   },
 
   _handleCheckboxUIUpdates() {
@@ -677,3 +689,5 @@ var gSitePermissionsManager = {
     column.setAttribute("data-last-sortDirection", sortDirection);
   },
 };
+
+window.addEventListener("load", () => gSitePermissionsManager.onLoad());
