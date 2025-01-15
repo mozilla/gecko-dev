@@ -28,7 +28,6 @@
 namespace mozilla::places {
 
 struct VisitData;
-class ConcurrentStatementsHolder;
 class VisitedQuery;
 
 // Initial size of mRecentlyVisitedURIs.
@@ -161,8 +160,6 @@ class History final : public BaseHistory,
    * invoke GetDBConn() before.
    */
   RefPtr<mozilla::places::Database> mDB;
-
-  RefPtr<ConcurrentStatementsHolder> mConcurrentStatementsHolder;
 
   /**
    * Remove any memory references to tasks and do not take on any more.

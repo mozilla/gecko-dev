@@ -549,6 +549,18 @@ var tests = [
   test_storage_cleared_base_domain,
 ];
 
+add_setup(async function () {
+  // We must explicitly initialize Places, because otherwise the database
+  // doesn't exist yet, and `hasVisits` awaits for the Places subsystem to
+  // initialize it.
+  // In the real world this is not a problem as either the database already
+  // exists, or Places will be initialized shortly after by something else.
+  Assert.equal(
+    PlacesUtils.history.databaseStatus,
+    PlacesUtils.history.DATABASE_STATUS_CREATE
+  );
+});
+
 function run_test() {
   for (let i = 0; i < tests.length; i++) {
     add_task(tests[i]);

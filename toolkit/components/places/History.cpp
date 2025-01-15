@@ -13,6 +13,7 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "nsXULAppAPI.h"
 
+#include "ConcurrentConnection.h"
 #include "History.h"
 #include "nsNavHistory.h"
 #include "nsNavBookmarks.h"
@@ -23,6 +24,7 @@
 #include "NotifyRankingChanged.h"
 
 #include "mozilla/storage.h"
+#include "mozIStorageBindingParamsArray.h"
 #include "mozIStorageResultSet.h"
 #include "mozIStorageRow.h"
 #include "mozilla/dom/Link.h"
@@ -392,7 +394,7 @@ nsresult GetJSObjectFromArray(JSContext* aCtx, JS::Handle<JSObject*> aArray,
 
 }  // namespace
 
-class VisitedQuery final : public AsyncStatementCallback {
+class VisitedQuery final : public PendingStatementCallback {
  public:
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -457,14 +459,6 @@ class VisitedQuery final : public AsyncStatementCallback {
     return history->QueueVisitedStatement(std::move(query));
   }
 
-  void Execute(mozIStorageAsyncStatement& aStatement) {
-    nsTArray<nsCString> urls =
-        ToTArray<nsTArray<nsCString>>(mUrlsToContentParentSet.Keys());
-    MOZ_ALWAYS_SUCCEEDS(aStatement.BindArrayOfUTF8StringsByIndex(0, urls));
-    nsCOMPtr<mozIStoragePendingStatement> handle;
-    MOZ_ALWAYS_SUCCEEDS(aStatement.ExecuteAsync(this, getter_AddRefs(handle)));
-  }
-
   NS_IMETHOD HandleResult(mozIStorageResultSet* aResultSet) override {
     nsCOMPtr<mozIStorageRow> row;
     while (NS_SUCCEEDED(aResultSet->GetNextRow(getter_AddRefs(row))) && row) {
@@ -492,6 +486,18 @@ class VisitedQuery final : public AsyncStatementCallback {
       NotifyVisitedStatus();
     }
     return NS_OK;
+  }
+
+  nsresult BindParams(mozIStorageBindingParamsArray* aParamsArray) override {
+    NS_ENSURE_ARG(aParamsArray);
+    nsTArray<nsCString> urls =
+        ToTArray<nsTArray<nsCString>>(mUrlsToContentParentSet.Keys());
+    nsCOMPtr<mozIStorageBindingParams> params;
+    nsresult rv = aParamsArray->NewBindingParams(getter_AddRefs(params));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = params->BindArrayOfUTF8StringsByIndex(0, urls);
+    NS_ENSURE_SUCCESS(rv, rv);
+    return aParamsArray->AddParams(params);
   }
 
   void NotifyVisitedStatus() {
@@ -531,7 +537,7 @@ class VisitedQuery final : public AsyncStatementCallback {
   nsMainThreadPtrHandle<mozIVisitedStatusCallback> mCallback;
 };
 
-NS_IMPL_ISUPPORTS_INHERITED0(VisitedQuery, AsyncStatementCallback)
+NS_IMPL_ISUPPORTS_INHERITED0(VisitedQuery, PendingStatementCallback)
 
 /**
  * Notifies observers about a visit or an array of visits.
@@ -1534,107 +1540,23 @@ History::~History() {
 
 void History::InitMemoryReporter() { RegisterWeakMemoryReporter(this); }
 
-class ConcurrentStatementsHolder final : public mozIStorageCompletionCallback {
- public:
-  NS_DECL_ISUPPORTS
-
-  ConcurrentStatementsHolder() : mShutdownWasInvoked(false) {}
-
-  static RefPtr<ConcurrentStatementsHolder> Create(
-      mozIStorageConnection* aDBConn) {
-    RefPtr<ConcurrentStatementsHolder> holder =
-        new ConcurrentStatementsHolder();
-    nsresult rv = aDBConn->AsyncClone(true, holder);
-    if (NS_FAILED(rv)) {
-      return nullptr;
-    }
-    return holder;
-  }
-
-  NS_IMETHOD Complete(nsresult aStatus, nsISupports* aConnection) override {
-    if (NS_FAILED(aStatus)) {
-      return NS_OK;
-    }
-    mReadOnlyDBConn = do_QueryInterface(aConnection);
-    // It's possible Shutdown was invoked before we were handed back the
-    // cloned connection handle.
-    if (mShutdownWasInvoked) {
-      Shutdown();
-      return NS_OK;
-    }
-
-    // Now we can create our cached statements.
-
-    if (!mIsVisitedStatement) {
-      // Bind by index to save a name lookup.
-      (void)mReadOnlyDBConn->CreateAsyncStatement(
-          nsLiteralCString("WITH urls (url, url_hash) AS ( "
-                           "  SELECT value, hash(value) FROM carray(?1) "
-                           ") "
-                           "SELECT url, last_visit_date NOTNULL "
-                           "FROM moz_places "
-                           "JOIN urls USING(url_hash, url) "),
-          getter_AddRefs(mIsVisitedStatement));
-      MOZ_ASSERT(mIsVisitedStatement);
-      if (mIsVisitedStatement) {
-        auto queries = std::move(mVisitedQueries);
-        for (auto& query : queries) {
-          query->Execute(*mIsVisitedStatement);
-        }
-      }
-    }
-
-    return NS_OK;
-  }
-
-  void QueueVisitedStatement(RefPtr<VisitedQuery>&& aVisitedQuery) {
-    if (mIsVisitedStatement) {
-      RefPtr<VisitedQuery> query = std::move(aVisitedQuery);
-      query->Execute(*mIsVisitedStatement);
-    } else {
-      mVisitedQueries.AppendElement(aVisitedQuery);
-    }
-  }
-
-  void Shutdown() {
-    mShutdownWasInvoked = true;
-    if (mReadOnlyDBConn) {
-      mVisitedQueries.Clear();
-      DebugOnly<nsresult> rv;
-      if (mIsVisitedStatement) {
-        MOZ_ALWAYS_SUCCEEDS(mIsVisitedStatement->Finalize());
-      }
-      MOZ_ALWAYS_SUCCEEDS(mReadOnlyDBConn->AsyncClose(nullptr));
-      mReadOnlyDBConn = nullptr;
-    }
-  }
-
- private:
-  ~ConcurrentStatementsHolder() = default;
-
-  nsCOMPtr<mozIStorageAsyncConnection> mReadOnlyDBConn;
-  nsCOMPtr<mozIStorageAsyncStatement> mIsVisitedStatement;
-  nsTArray<RefPtr<VisitedQuery>> mVisitedQueries;
-  bool mShutdownWasInvoked;
-};
-
-NS_IMPL_ISUPPORTS(ConcurrentStatementsHolder, mozIStorageCompletionCallback)
-
 nsresult History::QueueVisitedStatement(RefPtr<VisitedQuery>&& aQuery) {
   MOZ_ASSERT(NS_IsMainThread());
   if (IsShuttingDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-
-  if (!mConcurrentStatementsHolder) {
-    mozIStorageConnection* dbConn = GetDBConn();
-    NS_ENSURE_STATE(dbConn);
-    mConcurrentStatementsHolder = ConcurrentStatementsHolder::Create(dbConn);
-    if (!mConcurrentStatementsHolder) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
+  RefPtr<ConcurrentConnection> conn = ConcurrentConnection::GetSingleton();
+  MOZ_ASSERT(conn);
+  if (conn) {
+    conn->Queue(
+        "WITH urls (url, url_hash) AS ( "
+        "  SELECT value, hash(value) FROM carray(?1) "
+        ") "
+        "SELECT url, last_visit_date NOTNULL "
+        "FROM moz_places "
+        "JOIN urls USING(url_hash, url) "_ns,
+        aQuery);
   }
-  mConcurrentStatementsHolder->QueueVisitedStatement(std::move(aQuery));
   return NS_OK;
 }
 
@@ -1986,9 +1908,6 @@ void History::Shutdown() {
     MutexAutoLock lockedScope(mShuttingDownMutex);
     MOZ_ASSERT(!mShuttingDown && "Shutdown was called more than once!");
     mShuttingDown = true;
-  }
-  if (mConcurrentStatementsHolder) {
-    mConcurrentStatementsHolder->Shutdown();
   }
 }
 
