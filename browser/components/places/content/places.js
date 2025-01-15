@@ -200,8 +200,10 @@ var PlacesOrganizer = {
 
     // Set up the search UI.
     PlacesSearchBox.init();
+    ViewMenu.init();
 
     window.addEventListener("AppCommand", this, true);
+    document.addEventListener("command", this);
 
     let placeContentElement = document.getElementById("placeContent");
     placeContentElement.addEventListener("onOpenFlatContainer", function (e) {
@@ -232,6 +234,11 @@ var PlacesOrganizer = {
     contextMenu.removeChild(
       document.getElementById("placesContext_show_folder:info")
     );
+    let columnsContextPopup = document.getElementById("placesColumnsContext");
+    columnsContextPopup.addEventListener("command", event => {
+      ViewMenu.showHideColumn(event.target);
+      event.stopPropagation();
+    });
 
     if (!Services.policies.isAllowed("profileImport")) {
       document
@@ -251,6 +258,48 @@ var PlacesOrganizer = {
         break;
       case "unload":
         this.destroy();
+        break;
+      case "command":
+        switch (event.target.id) {
+          // == organizerCommandSet ==
+          case "OrganizerCommand_find:all":
+            PlacesSearchBox.findAll();
+            break;
+          case "OrganizerCommand_export":
+            this.exportBookmarks();
+            break;
+          case "OrganizerCommand_import":
+            this.importFromFile();
+            break;
+          case "OrganizerCommand_browserImport":
+            this.importFromBrowser();
+            break;
+          case "OrganizerCommand_backup":
+            this.backupBookmarks();
+            break;
+          case "OrganizerCommand_restoreFromFile":
+            this.onRestoreBookmarksFromFile();
+            break;
+          case "OrganizerCommand_search:save":
+            this.saveSearch();
+            break;
+          case "OrganizerCommand_search:moreCriteria":
+            PlacesQueryBuilder.addRow();
+            break;
+          case "OrganizerCommand:Back":
+            this.back();
+            break;
+          case "OrganizerCommand:Forward":
+            this.forward();
+            break;
+          case "OrganizerCommand:CloseWindow":
+            window.close();
+            break;
+          // == placesToolbox ==
+          case "searchFilter":
+            PlacesSearchBox.search(event.target.value);
+            break;
+        }
         break;
       case "AppCommand":
         event.stopPropagation();
@@ -558,7 +607,7 @@ var PlacesOrganizer = {
       restorePopup.firstChild.remove();
     }
 
-    (async function () {
+    (async () => {
       let backupFiles = await PlacesBackups.getBackupFiles();
       if (!backupFiles.length) {
         return;
@@ -596,10 +645,7 @@ var PlacesOrganizer = {
         );
         m.setAttribute("label", label);
         m.setAttribute("value", PathUtils.filename(file));
-        m.setAttribute(
-          "oncommand",
-          "PlacesOrganizer.onRestoreMenuItemClick(this);"
-        );
+        m.addEventListener("command", () => this.onRestoreMenuItemClick(m));
       }
 
       // Add the restoreFromFile item.
@@ -1068,6 +1114,34 @@ var PlacesQueryBuilder = {
  * Population and commands for the View Menu.
  */
 var ViewMenu = {
+  init() {
+    let columnsPopup = document.querySelector("#viewColumns > menupopup");
+    columnsPopup.addEventListener("command", event => {
+      event.stopPropagation();
+      this.showHideColumn(event.target);
+    });
+
+    let sortPopup = document.querySelector("#viewSort > menupopup");
+    sortPopup.addEventListener("command", event => {
+      event.stopPropagation();
+
+      switch (event.target.id) {
+        case "viewUnsorted":
+          this.setSortColumn(null, null);
+          break;
+        case "viewSortAscending":
+          this.setSortColumn(null, "ascending");
+          break;
+        case "viewSortDescending":
+          this.setSortColumn(null, "descending");
+          break;
+        default:
+          this.setSortColumn(event.target.column, null);
+          break;
+      }
+    });
+  },
+
   /**
    * Removes content generated previously from a menupopup.
    *

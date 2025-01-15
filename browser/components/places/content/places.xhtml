@@ -86,33 +86,26 @@
   <script src="chrome://browser/content/places/places-tree.js"/>
 
   <commandset id="organizerCommandSet">
-    <command id="OrganizerCommand_find:all"
-             oncommand="PlacesSearchBox.findAll();"/>
-    <command id="OrganizerCommand_export"
-             oncommand="PlacesOrganizer.exportBookmarks();"/>
-    <command id="OrganizerCommand_import"
-             oncommand="PlacesOrganizer.importFromFile();"/>
-    <command id="OrganizerCommand_browserImport"
-             oncommand="PlacesOrganizer.importFromBrowser();"/>
-    <command id="OrganizerCommand_backup"
-             oncommand="PlacesOrganizer.backupBookmarks();"/>
-    <command id="OrganizerCommand_restoreFromFile"
-             oncommand="PlacesOrganizer.onRestoreBookmarksFromFile();"/>
-    <command id="OrganizerCommand_search:save"
-             oncommand="PlacesOrganizer.saveSearch();"/>
-    <command id="OrganizerCommand_search:moreCriteria"
-             oncommand="PlacesQueryBuilder.addRow();"/>
-    <command id="OrganizerCommand:Back"
-             oncommand="PlacesOrganizer.back();"/>
-    <command id="OrganizerCommand:Forward"
-             oncommand="PlacesOrganizer.forward();"/>
+    <command id="OrganizerCommand_find:all"/>
+    <command id="OrganizerCommand_export"/>
+    <command id="OrganizerCommand_import"/>
+    <command id="OrganizerCommand_browserImport"/>
+    <command id="OrganizerCommand_backup"/>
+    <command id="OrganizerCommand_restoreFromFile"/>
+    <command id="OrganizerCommand_search:save"/>
+    <command id="OrganizerCommand_search:moreCriteria"/>
+    <command id="OrganizerCommand:Back"/>
+    <command id="OrganizerCommand:Forward"/>
+    <command id="OrganizerCommand:CloseWindow"/>
   </commandset>
 #include ../../downloads/content/downloadsCommands.inc.xhtml
 
   <keyset id="placesOrganizerKeyset">
     <!-- Instantiation Keys -->
-    <key id="placesKey_close" data-l10n-id="places-cmd-close" modifiers="accel"
-         oncommand="window.close();"/>
+    <key id="placesKey_close"
+        command="OrganizerCommand:CloseWindow"
+         data-l10n-id="places-cmd-close"
+         modifiers="accel"/>
 
     <!-- Command Keys -->
     <key id="placesKey_find:all"
@@ -162,8 +155,7 @@
   <popupset id="placesPopupset">
 #include placesContextMenu.inc.xhtml
     <menupopup id="placesColumnsContext"
-               onpopupshowing="ViewMenu.fillWithColumns(event, null, null, 'checkbox', false);"
-               oncommand="ViewMenu.showHideColumn(event.target); event.stopPropagation();"/>
+               onpopupshowing="ViewMenu.fillWithColumns(event, null, null, 'checkbox', false);"/>
 #include ../../downloads/content/downloadsContextMenu.inc.xhtml
   </popupset>
 
@@ -250,9 +242,9 @@
             <menuseparator id="orgCloseSeparator"/>
 
             <menuitem id="orgClose"
+                      command="OrganizerCommand:CloseWindow"
                       key="placesKey_close"
-                      data-l10n-id="places-file-close"
-                      oncommand="window.close();"/>
+                      data-l10n-id="places-file-close"/>
 #endif
           </menupopup>
 #ifdef XP_MACOSX
@@ -268,23 +260,18 @@
 
             <menu id="viewColumns"
                   data-l10n-id="places-view-menu-columns">
-              <menupopup onpopupshowing="ViewMenu.fillWithColumns(event, null, null, 'checkbox', false);"
-                         oncommand="ViewMenu.showHideColumn(event.target); event.stopPropagation();"/>
+              <menupopup onpopupshowing="ViewMenu.fillWithColumns(event, null, null, 'checkbox', false);"/>
             </menu>
 
             <menu id="viewSort" data-l10n-id="places-view-menu-sort">
-              <menupopup onpopupshowing="ViewMenu.populateSortMenu(event);"
-                         oncommand="ViewMenu.setSortColumn(event.target.column, null);">
+              <menupopup onpopupshowing="ViewMenu.populateSortMenu(event);">
                 <menuitem id="viewUnsorted" type="radio" name="columns"
-                          data-l10n-id="places-view-sort-unsorted"
-                          oncommand="ViewMenu.setSortColumn(null, null);"/>
+                          data-l10n-id="places-view-sort-unsorted"/>
                 <menuseparator id="directionSeparator"/>
                 <menuitem id="viewSortAscending" type="radio" name="direction"
-                          data-l10n-id="places-view-sort-ascending"
-                          oncommand="ViewMenu.setSortColumn(null, 'ascending'); event.stopPropagation();"/>
+                          data-l10n-id="places-view-sort-ascending"/>
                 <menuitem id="viewSortDescending" type="radio" name="direction"
-                          data-l10n-id="places-view-sort-descending"
-                          oncommand="ViewMenu.setSortColumn(null, 'descending'); event.stopPropagation();"/>
+                          data-l10n-id="places-view-sort-descending"/>
               </menupopup>
             </menu>
           </menupopup>
@@ -338,7 +325,6 @@
                       flex="1"
                       aria-controls="placeContent"
                       data-l10n-attrs="placeholder"
-                      oncommand="PlacesSearchBox.search(this.value);"
                       collection="bookmarks"/>
     </toolbar>
   </toolbox>
