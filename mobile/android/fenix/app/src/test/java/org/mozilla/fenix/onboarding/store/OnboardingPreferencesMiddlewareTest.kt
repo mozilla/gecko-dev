@@ -73,6 +73,23 @@ class OnboardingPreferencesMiddlewareTest {
         }
 
     @Test
+    fun `GIVEN update selected toolbar action with WHEN middleware is invoked THEN the repo update function is called with the selected toolbar`() =
+        runTestOnMain {
+            middleware.invoke(
+                context = context,
+                next = {},
+                action = OnboardingAction.OnboardingToolbarAction.UpdateSelected(ToolbarOptionType.TOOLBAR_BOTTOM),
+            )
+
+            verify(repository).updateOnboardingPreference(
+                OnboardingPreferencesRepository.OnboardingPreferenceUpdate(
+                    OnboardingPreferencesRepository.OnboardingPreference.BottomToolbar,
+                ),
+            )
+            verifyNoMoreInteractions(repository)
+        }
+
+    @Test
     fun `GIVEN no op actions with WHEN middleware is invoked THEN nothing happens`() =
         runTestOnMain {
             middleware.invoke(
@@ -82,12 +99,6 @@ class OnboardingPreferencesMiddlewareTest {
                     addOnId = "test",
                     status = OnboardingAddonStatus.INSTALLED,
                 ),
-            )
-
-            middleware.invoke(
-                context = context,
-                next = {},
-                action = OnboardingAction.OnboardingToolbarAction.UpdateSelected(ToolbarOptionType.TOOLBAR_TOP),
             )
 
             verifyNoInteractions(repository)

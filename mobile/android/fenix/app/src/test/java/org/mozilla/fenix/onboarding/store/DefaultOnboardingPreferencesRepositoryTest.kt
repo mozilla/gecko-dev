@@ -40,6 +40,8 @@ class DefaultOnboardingPreferencesRepositoryTest {
         assertEquals(R.string.pref_key_follow_device_theme, preferenceKeys[0].preferenceKey)
         assertEquals(R.string.pref_key_light_theme, preferenceKeys[1].preferenceKey)
         assertEquals(R.string.pref_key_dark_theme, preferenceKeys[2].preferenceKey)
+        assertEquals(R.string.pref_key_toolbar_top, preferenceKeys[3].preferenceKey)
+        assertEquals(R.string.pref_key_toolbar_bottom, preferenceKeys[4].preferenceKey)
     }
 
     @Test
@@ -242,5 +244,57 @@ class DefaultOnboardingPreferencesRepositoryTest {
             assertFalse(settings.shouldFollowDeviceTheme)
             assertFalse(settings.shouldUseLightTheme)
             assertTrue(settings.shouldUseDarkTheme)
+        }
+
+    @Test
+    fun `GIVEN top toolbar preference update WHEN updateOnboardingPreference is called THEN the real preference is updated`() =
+        runTest {
+            val repository = DefaultOnboardingPreferencesRepository(
+                context = testContext,
+                lifecycleOwner = mockk(relaxed = true),
+                coroutineScope = this,
+            )
+
+            settings.preferences.edit {
+                preferenceKeys.forEach {
+                    putBoolean(testContext.getString(it.preferenceKey), true)
+                }
+            }
+
+            assertTrue(settings.shouldUseBottomToolbar)
+
+            repository.updateOnboardingPreference(
+                OnboardingPreferencesRepository.OnboardingPreferenceUpdate(
+                    OnboardingPreferencesRepository.OnboardingPreference.TopToolbar,
+                ),
+            )
+
+            assertFalse(settings.shouldUseBottomToolbar)
+        }
+
+    @Test
+    fun `GIVEN bottom toolbar preference update WHEN updateOnboardingPreference is called THEN the real preference is updated`() =
+        runTest {
+            val repository = DefaultOnboardingPreferencesRepository(
+                context = testContext,
+                lifecycleOwner = mockk(relaxed = true),
+                coroutineScope = this,
+            )
+
+            settings.preferences.edit {
+                preferenceKeys.forEach {
+                    putBoolean(testContext.getString(it.preferenceKey), false)
+                }
+            }
+
+            assertFalse(settings.shouldUseBottomToolbar)
+
+            repository.updateOnboardingPreference(
+                OnboardingPreferencesRepository.OnboardingPreferenceUpdate(
+                    OnboardingPreferencesRepository.OnboardingPreference.BottomToolbar,
+                ),
+            )
+
+            assertTrue(settings.shouldUseBottomToolbar)
         }
 }
