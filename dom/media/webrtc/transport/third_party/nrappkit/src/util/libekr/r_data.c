@@ -84,7 +84,10 @@
 #include <r_data.h>
 #include <string.h>
 
-int r_data_create(Data **dp, const UCHAR *d, size_t l)
+int r_data_create(dp,d,l)
+  Data **dp;
+  const UCHAR *d;
+  size_t l;
   {
     Data *d_=0;
     int _status;
@@ -110,7 +113,9 @@ int r_data_create(Data **dp, const UCHAR *d, size_t l)
   }
 
 
-int r_data_alloc_mem(Data *d, size_t l)
+int r_data_alloc_mem(d,l)
+  Data *d;
+  size_t l;
   {
     int _status;
 
@@ -123,7 +128,9 @@ int r_data_alloc_mem(Data *d, size_t l)
     return(_status);
   }
 
-int r_data_alloc(Data **dp, size_t l)
+int r_data_alloc(dp,l)
+  Data **dp;
+  size_t l;
   {
     Data *d_=0;
     int _status;
@@ -144,7 +151,10 @@ int r_data_alloc(Data **dp, size_t l)
     return(_status);
   }
 
-int r_data_make(Data *dp, const UCHAR *d, size_t l)
+int r_data_make(dp,d,l)
+  Data *dp;
+  const UCHAR *d;
+  size_t l;
   {
     if(!(dp->data=(UCHAR *)RMALLOC(l)))
       ERETURN(R_NO_MEMORY);
@@ -155,7 +165,8 @@ int r_data_make(Data *dp, const UCHAR *d, size_t l)
     return(0);
   }
 
-int r_data_destroy(Data **dp)
+int r_data_destroy(dp)
+  Data **dp;
   {
     if(!dp || !*dp)
       return(0);
@@ -169,7 +180,8 @@ int r_data_destroy(Data **dp)
     return(0);
   }
 
-int r_data_destroy_v(void *v)
+int r_data_destroy_v(v)
+  void *v;
   {
     Data *d = 0;
 
@@ -184,7 +196,8 @@ int r_data_destroy_v(void *v)
     return(0);
   }
 
-int r_data_destroy_vp(void **v)
+int r_data_destroy_vp(v)
+  void **v;
   {
     Data *d = 0;
 
@@ -200,7 +213,9 @@ int r_data_destroy_vp(void **v)
     return(0);
   }
 
-int r_data_copy(Data *dst, Data *src)
+int r_data_copy(dst,src)
+  Data *dst;
+  Data *src;
   {
     if(!(dst->data=(UCHAR *)RMALLOC(src->len)))
       ERETURN(R_NO_MEMORY);
@@ -208,7 +223,8 @@ int r_data_copy(Data *dst, Data *src)
     return(0);
   }
 
-int r_data_zfree(Data *d)
+int r_data_zfree(d)
+  Data *d;
   {
     if(!d)
       return(0);
@@ -219,7 +235,9 @@ int r_data_zfree(Data *d)
     return(0);
   }
 
-int r_data_compare(Data *d1, Data *d2)
+int r_data_compare(d1,d2)
+  Data *d1;
+  Data *d2;
   {
     if(d1->len<d2->len)
       return(-1);
@@ -227,3 +245,4 @@ int r_data_compare(Data *d1, Data *d2)
       return(-1);
     return(memcmp(d1->data,d2->data,d1->len));
   }
+

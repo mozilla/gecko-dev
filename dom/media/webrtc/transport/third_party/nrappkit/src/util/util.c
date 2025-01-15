@@ -56,7 +56,10 @@
 
 int nr_util_default_log_facility=LOG_COMMON;
 
-int nr_get_filename(char *base, char *name, char **namep)
+int nr_get_filename(base,name,namep)
+  char *base;
+  char *name;
+  char **namep;
   {
     int len=strlen(base)+strlen(name)+2;
     char *ret=0;
@@ -117,7 +120,10 @@ int nr_fwrite_all(FILE *fp,UCHAR *buf,int len)
     return(_status);
   }
 
-int nr_read_data(int fd, char *buf, int len)
+int nr_read_data(fd,buf,len)
+  int fd;
+  char *buf;
+  int len;
   {
     int r,_status;
 
@@ -383,7 +389,11 @@ int nr_reg_uint8_fetch_and_check(NR_registry key, UINT8 min, UINT8 max, int log_
  * Returns strlen(src) + MIN(siz, strlen(initial dst)).
  * If retval >= siz, truncation occurred.
  */
-size_t strlcat(char *dst, const char *src, size_t siz)
+size_t
+strlcat(dst, src, siz)
+        char *dst;
+        const char *src;
+        size_t siz;
 {
         char *d = dst;
         const char *s = src;
@@ -681,3 +691,4 @@ int gettimeofday(struct timeval *tv, void *tz)
     return 0;
   }
 #endif
+
