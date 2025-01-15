@@ -3532,6 +3532,7 @@ bool WarpBuilder::buildIC(BytecodeLocation loc, CacheKind kind,
     case CacheKind::ToBool:
     case CacheKind::Call:
     case CacheKind::Lambda:
+    case CacheKind::GetImport:
       // We're currently not using an IC or transpiling CacheIR for these kinds.
       MOZ_CRASH("Unexpected kind");
   }
@@ -3555,6 +3556,7 @@ bool WarpBuilder::buildBailoutForColdIC(BytecodeLocation loc, CacheKind kind) {
     case CacheKind::GetElem:
     case CacheKind::GetPropSuper:
     case CacheKind::GetElemSuper:
+    case CacheKind::GetImport:
     case CacheKind::LazyConstant:
     case CacheKind::Call:
     case CacheKind::ToPropertyKey:

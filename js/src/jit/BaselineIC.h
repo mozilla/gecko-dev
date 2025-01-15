@@ -459,6 +459,8 @@ extern bool DoOptimizeGetIteratorFallback(JSContext* cx, BaselineFrame* frame,
                                           ICFallbackStub* stub,
                                           HandleValue value,
                                           MutableHandleValue res);
+extern bool DoGetImportFallback(JSContext* cx, BaselineFrame* frame,
+                                ICFallbackStub* stub, MutableHandleValue res);
 
 }  // namespace jit
 }  // namespace js

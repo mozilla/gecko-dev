@@ -44,7 +44,8 @@ namespace jit {
   _(GetProp)                                   \
   _(GetPropSuper)                              \
   _(CloseIter)                                 \
-  _(OptimizeGetIterator)
+  _(OptimizeGetIterator)                       \
+  _(GetImport)
 
 }  // namespace jit
 }  // namespace js
