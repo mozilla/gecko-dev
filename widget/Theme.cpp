@@ -1309,21 +1309,28 @@ void Theme::PaintAutoStyleOutline(nsIFrame* aFrame,
                                   const LayoutDeviceRect& aRect,
                                   const Colors& aColors, DPIRatio aDpiRatio) {
   const nscoord a2d = aFrame->PresContext()->AppUnitsPerDevPixel();
-  nscoord cssOffset = aFrame->StyleOutline()->mOutlineOffset.ToAppUnits();
+  const auto cssOffset = aFrame->StyleOutline()->mOutlineOffset.ToAppUnits();
+
+  LayoutDeviceRect rect(aRect);
+  auto devOffset = LayoutDevicePixel::FromAppUnits(cssOffset, a2d);
   nscoord cssRadii[8] = {0};
   if (!aFrame->GetBorderRadii(cssRadii)) {
+    // The goal of this code is getting a 0px inner radius, but 2px outer
+    // radius.
     const auto twoPixels = 2 * AppUnitsPerCSSPixel();
     const nscoord radius =
         cssOffset >= 0 ? twoPixels : std::max(twoPixels + cssOffset, 0);
+    auto twoDevPixels = CSSCoord(2) * aDpiRatio;
+    rect.Inflate(devOffset + twoDevPixels);
+    devOffset = -twoDevPixels;
     for (auto& r : cssRadii) {
       r = radius;
     }
   }
 
-  auto offset = LayoutDevicePixel::FromAppUnits(cssOffset, a2d);
   RectCornerRadii innerRadii;
   nsCSSRendering::ComputePixelRadii(cssRadii, a2d, &innerRadii);
-  return PaintAutoStyleOutline(aPaintData, aRect, aColors, innerRadii, offset,
+  return PaintAutoStyleOutline(aPaintData, rect, aColors, innerRadii, devOffset,
                                InvertColors::No, aDpiRatio);
 }
 
