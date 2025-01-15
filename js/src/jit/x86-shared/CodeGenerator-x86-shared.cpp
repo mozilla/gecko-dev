@@ -107,12 +107,33 @@ void CodeGenerator::visitTestFAndBranch(LTestFAndBranch* test) {
   emitBranch(Assembler::NotEqual, test->ifTrue(), test->ifFalse());
 }
 
+static Assembler::DoubleCondition ToDoubleCondition(FloatRegister lhs,
+                                                    FloatRegister rhs,
+                                                    JSOp op) {
+  if (lhs == rhs) {
+    switch (op) {
+      case JSOp::Eq:
+      case JSOp::StrictEq:
+      case JSOp::Le:
+      case JSOp::Ge:
+        return Assembler::DoubleOrdered;
+      case JSOp::Ne:
+      case JSOp::StrictNe:
+        return Assembler::DoubleUnordered;
+      default:
+        break;
+    }
+  }
+  return JSOpToDoubleCondition(op);
+}
+
 void CodeGenerator::visitCompareD(LCompareD* comp) {
   FloatRegister lhs = ToFloatRegister(comp->left());
   FloatRegister rhs = ToFloatRegister(comp->right());
   Register output = ToRegister(comp->output());
 
-  Assembler::DoubleCondition cond = JSOpToDoubleCondition(comp->mir()->jsop());
+  Assembler::DoubleCondition cond =
+      ToDoubleCondition(lhs, rhs, comp->mir()->jsop());
 
   Assembler::NaNCond nanCond = Assembler::NaNCondFromDoubleCondition(cond);
   if (comp->mir()->operandsAreNeverNaN()) {
@@ -130,7 +151,8 @@ void CodeGenerator::visitCompareF(LCompareF* comp) {
   FloatRegister rhs = ToFloatRegister(comp->right());
   Register output = ToRegister(comp->output());
 
-  Assembler::DoubleCondition cond = JSOpToDoubleCondition(comp->mir()->jsop());
+  Assembler::DoubleCondition cond =
+      ToDoubleCondition(lhs, rhs, comp->mir()->jsop());
 
   Assembler::NaNCond nanCond = Assembler::NaNCondFromDoubleCondition(cond);
   if (comp->mir()->operandsAreNeverNaN()) {
@@ -184,7 +206,7 @@ void CodeGenerator::visitCompareDAndBranch(LCompareDAndBranch* comp) {
   FloatRegister rhs = ToFloatRegister(comp->right());
 
   Assembler::DoubleCondition cond =
-      JSOpToDoubleCondition(comp->cmpMir()->jsop());
+      ToDoubleCondition(lhs, rhs, comp->cmpMir()->jsop());
 
   Assembler::NaNCond nanCond = Assembler::NaNCondFromDoubleCondition(cond);
   if (comp->cmpMir()->operandsAreNeverNaN()) {
@@ -200,7 +222,7 @@ void CodeGenerator::visitCompareFAndBranch(LCompareFAndBranch* comp) {
   FloatRegister rhs = ToFloatRegister(comp->right());
 
   Assembler::DoubleCondition cond =
-      JSOpToDoubleCondition(comp->cmpMir()->jsop());
+      ToDoubleCondition(lhs, rhs, comp->cmpMir()->jsop());
 
   Assembler::NaNCond nanCond = Assembler::NaNCondFromDoubleCondition(cond);
   if (comp->cmpMir()->operandsAreNeverNaN()) {

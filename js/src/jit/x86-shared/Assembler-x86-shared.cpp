@@ -120,9 +120,20 @@ AssemblerX86Shared::Condition AssemblerX86Shared::InvertCondition(
       return AboveOrEqual;
     case BelowOrEqual:
       return Above;
-    default:
-      MOZ_CRASH("unexpected condition");
+    case Overflow:
+      return NoOverflow;
+    case NoOverflow:
+      return Overflow;
+    case Signed:
+      return NotSigned;
+    case NotSigned:
+      return Signed;
+    case Parity:
+      return NoParity;
+    case NoParity:
+      return Parity;
   }
+  MOZ_CRASH("unexpected condition");
 }
 
 AssemblerX86Shared::Condition AssemblerX86Shared::UnsignedCondition(
