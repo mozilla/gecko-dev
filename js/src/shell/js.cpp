@@ -3763,7 +3763,7 @@ static bool DisassFile(JSContext* cx, unsigned argc, Value* vp) {
   if (!sprinter.init()) {
     return false;
   }
-  if (JSScript::dump(cx, script, p.options, &sprinter)) {
+  if (!JSScript::dump(cx, script, p.options, &sprinter)) {
     return false;
   }
 
