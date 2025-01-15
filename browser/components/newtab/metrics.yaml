@@ -820,12 +820,14 @@ newtab.handoff_preference:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1864496
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892148
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1940643
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1864496
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892148
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1940643
     data_sensitivity:
       - interaction
-    expires: 137
+    expires: 144
     notification_emails:
       - fx-search-telemetry@mozilla.com
 
