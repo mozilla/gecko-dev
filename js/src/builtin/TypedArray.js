@@ -674,50 +674,6 @@ function TypedArrayReduceRight(callbackfn /*, initialValue*/) {
   return accumulator;
 }
 
-// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
-// Plus <https://github.com/tc39/ecma262/pull/2221>
-// 22.2.3.22 %TypedArray%.prototype.reverse ( )
-function TypedArrayReverse() {
-  // Step 2.
-  if (!IsObject(this) || !IsTypedArray(this)) {
-    return callFunction(
-      CallTypedArrayMethodIfWrapped,
-      this,
-      "TypedArrayReverse"
-    );
-  }
-
-  GetAttachedArrayBuffer(this);
-
-  // Step 1.
-  var O = this;
-
-  // Step 3.
-  var len = TypedArrayLength(O);
-
-  // Step 4.
-  var middle = std_Math_floor(len / 2);
-
-  // Steps 5-6.
-  for (var lower = 0; lower !== middle; lower++) {
-    // Step 6.a.
-    var upper = len - lower - 1;
-
-    // Step 6.d.
-    var lowerValue = O[lower];
-
-    // Step 6.e.
-    var upperValue = O[upper];
-
-    // Steps 6.f-g.
-    O[lower] = upperValue;
-    O[upper] = lowerValue;
-  }
-
-  // Step 7.
-  return O;
-}
-
 // ES2017 draft rev 6859bb9ccaea9c6ede81d71e5320e3833b92cb3e
 // 22.2.3.24 %TypedArray%.prototype.slice ( start, end )
 function TypedArraySlice(start, end) {
