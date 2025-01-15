@@ -2445,7 +2445,7 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
   mApi->SetFrameStartTime(startTime);
 #endif
 
-  fastTxn.GenerateFrame(aId, true, aReasons);
+  fastTxn.GenerateFrame(aId, aReasons);
   wr::RenderThread::Get()->IncPendingFrameCount(mApi->GetId(), aId, start);
 
   NeedIncreasedMaxDirtyPageModifier();

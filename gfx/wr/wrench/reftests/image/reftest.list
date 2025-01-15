@@ -24,5 +24,3 @@ fuzzy(1,160000) == image-filter-stretch-tile.yaml green-alpha-ref.yaml
 == snapshot-detached.yaml snapshot-detached-ref.yaml
 == snapshot-filters-01.yaml snapshot-filters-01-ref.yaml
 == snapshot-filters-02.yaml snapshot-filters-02-ref.yaml
-fuzzy(1,350) == snapshot-shadow.yaml snapshot-shadow-ref.yaml
-== snapshot-multiframe.yaml snapshot-multiframe-ref.yaml

@@ -122,9 +122,6 @@ pub enum GenerateFrame {
         /// An id that allows tracking the frame transaction through the various
         /// frame stages. Specified by the caller of generate_frame().
         id: u64,
-        /// If false, (a subset of) the frame will be rendered, but nothing will
-        /// be presented on the window.
-        present: bool,
     },
     /// Don't generate a frame even if something has changed.
     No,
@@ -139,19 +136,10 @@ impl GenerateFrame {
         }
     }
 
-    /// If false, a frame may be (partially) generated but it will not be
-    /// presented to the window.
-    pub fn present(&self) -> bool {
-        match self {
-            GenerateFrame::Yes { present, .. } => *present,
-            GenerateFrame::No => false,
-        }
-    }
-
     /// Return the frame ID, if a frame is generated.
     pub fn id(&self) -> Option<u64> {
         match self {
-            GenerateFrame::Yes { id, .. } => Some(*id),
+            GenerateFrame::Yes { id } => Some(*id),
             GenerateFrame::No => None,
         }
     }
@@ -375,8 +363,8 @@ impl Transaction {
     /// as to when happened.
     ///
     /// [notifier]: trait.RenderNotifier.html#tymethod.new_frame_ready
-    pub fn generate_frame(&mut self, id: u64, present: bool, reasons: RenderReasons) {
-        self.generate_frame = GenerateFrame::Yes{ id, present };
+    pub fn generate_frame(&mut self, id: u64, reasons: RenderReasons) {
+        self.generate_frame = GenerateFrame::Yes{ id };
         self.render_reasons |= reasons;
     }
 

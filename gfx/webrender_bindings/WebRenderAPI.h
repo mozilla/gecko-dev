@@ -132,8 +132,7 @@ class TransactionBuilder final {
 
   void ClearDisplayList(Epoch aEpoch, wr::WrPipelineId aPipeline);
 
-  void GenerateFrame(const VsyncId& aVsyncId, bool aPresent,
-                     wr::RenderReasons aReasons);
+  void GenerateFrame(const VsyncId& aVsyncId, wr::RenderReasons aReasons);
 
   void InvalidateRenderedFrame(wr::RenderReasons aReasons);
 
