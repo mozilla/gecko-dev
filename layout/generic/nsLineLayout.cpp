@@ -3371,8 +3371,12 @@ void nsLineLayout::RelativePositionFrames(PerSpanData* psd,
     overflowAreas.InkOverflow().UnionRect(
         psd->mFrame->mOverflowAreas.InkOverflow(), adjustedBounds);
   } else {
-    LogicalRect rect(wm, psd->mIStart, mBStartEdge, psd->mICoord - psd->mIStart,
-                     mFinalLineBSize);
+    // Note(dshin, bug 1940938): `mICoord` can be negative due to a negative
+    // `text-indent` value (i.e. "Outdenting"). Ensure that we have a valid
+    // overflow rect for that case.
+    const auto iStart = std::min(psd->mIStart, psd->mICoord);
+    const auto iSize = std::abs(psd->mICoord - psd->mIStart);
+    LogicalRect rect(wm, iStart, mBStartEdge, iSize, mFinalLineBSize);
     // The minimum combined area for the frames that are direct
     // children of the block starts at the upper left corner of the
     // line and is sized to match the size of the line's bounding box
