@@ -12997,7 +12997,7 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
     JS::Prefs::setAtStartup_experimental_symbols_as_weakmap_keys(true);
   }
   if (op.getBoolOption("enable-error-iserror")) {
-    JS::Prefs::setAtStartup_experimental_error_iserror(true);
+    JS::Prefs::set_experimental_error_iserror(true);
   }
   if (op.getBoolOption("enable-iterator-sequencing")) {
     JS::Prefs::setAtStartup_experimental_iterator_sequencing(true);
