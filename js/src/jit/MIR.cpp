@@ -5713,6 +5713,48 @@ void MCompare::trySpecializeFloat32(TempAllocator& alloc) {
   }
 }
 
+MDefinition* MSameValue::foldsTo(TempAllocator& alloc) {
+  MDefinition* lhs = left();
+  if (lhs->isBox()) {
+    lhs = lhs->toBox()->input();
+  }
+
+  MDefinition* rhs = right();
+  if (rhs->isBox()) {
+    rhs = rhs->toBox()->input();
+  }
+
+  // Trivially true if both operands are the same.
+  if (lhs == rhs) {
+    return MConstant::New(alloc, BooleanValue(true));
+  }
+
+  // CacheIR optimizes the following cases, so don't bother to handle them here:
+  // 1. Both inputs are numbers (int32 or double).
+  // 2. Both inputs are strictly different types.
+  // 3. Both inputs are the same type.
+
+  // Optimize when one operand is guaranteed to be |null|.
+  if (lhs->type() == MIRType::Null || rhs->type() == MIRType::Null) {
+    // The `null` value must be the right-hand side operand.
+    auto* input = lhs->type() == MIRType::Null ? rhs : lhs;
+    auto* cst = lhs->type() == MIRType::Null ? lhs : rhs;
+    return MCompare::New(alloc, input, cst, JSOp::StrictEq,
+                         MCompare::Compare_Null);
+  }
+
+  // Optimize when one operand is guaranteed to be |undefined|.
+  if (lhs->type() == MIRType::Undefined || rhs->type() == MIRType::Undefined) {
+    // The `undefined` value must be the right-hand side operand.
+    auto* input = lhs->type() == MIRType::Undefined ? rhs : lhs;
+    auto* cst = lhs->type() == MIRType::Undefined ? lhs : rhs;
+    return MCompare::New(alloc, input, cst, JSOp::StrictEq,
+                         MCompare::Compare_Undefined);
+  }
+
+  return this;
+}
+
 MDefinition* MNot::foldsTo(TempAllocator& alloc) {
   auto foldConstant = [&alloc](MDefinition* input, MIRType type) -> MConstant* {
     MConstant* inputConst = input->maybeConstantValue();
