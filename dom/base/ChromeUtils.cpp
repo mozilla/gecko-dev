@@ -2444,7 +2444,8 @@ void ChromeUtils::GetAllPossibleUtilityActorNames(GlobalObject& aGlobal,
 /* static */
 bool ChromeUtils::ShouldResistFingerprinting(
     GlobalObject& aGlobal, JSRFPTarget aTarget,
-    const Nullable<uint64_t>& aOverriddenFingerprintingSettings) {
+    const Nullable<uint64_t>& aOverriddenFingerprintingSettings,
+    const Optional<bool>& aIsPBM) {
   RFPTarget target;
   switch (aTarget) {
     case JSRFPTarget::RoundWindowSize:
@@ -2461,13 +2462,18 @@ bool ChromeUtils::ShouldResistFingerprinting(
   }
 
   bool isPBM = false;
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  if (global) {
-    nsPIDOMWindowInner* win = global->GetAsInnerWindow();
-    if (win) {
-      nsIDocShell* docshell = win->GetDocShell();
-      if (docshell) {
-        nsDocShell::Cast(docshell)->GetUsePrivateBrowsing(&isPBM);
+  if (aIsPBM.WasPassed()) {
+    isPBM = aIsPBM.Value();
+  } else {
+    nsCOMPtr<nsIGlobalObject> global =
+        do_QueryInterface(aGlobal.GetAsSupports());
+    if (global) {
+      nsPIDOMWindowInner* win = global->GetAsInnerWindow();
+      if (win) {
+        nsIDocShell* docshell = win->GetDocShell();
+        if (docshell) {
+          nsDocShell::Cast(docshell)->GetUsePrivateBrowsing(&isPBM);
+        }
       }
     }
   }
