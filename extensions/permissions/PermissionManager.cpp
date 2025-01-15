@@ -69,8 +69,6 @@ constexpr char kPermissionChangeNotification[] = PERM_CHANGE_NOTIFICATION;
 // be overridden with an explicit permission (including UNKNOWN_ACTION)
 constexpr int64_t cIDPermissionIsDefault = -1;
 
-static StaticRefPtr<PermissionManager> gPermissionManager;
-
 #define ENSURE_NOT_CHILD_PROCESS_(onError)                 \
   PR_BEGIN_MACRO                                           \
   if (IsChildProcess()) {                                  \
@@ -712,42 +710,38 @@ PermissionManager::~PermissionManager() {
 
 /* static */
 StaticMutex PermissionManager::sCreationMutex;
+StaticRefPtr<PermissionManager> PermissionManager::sInstanceHolder;
+bool PermissionManager::sInstanceDead(false);
 
 // static
 already_AddRefed<nsIPermissionManager> PermissionManager::GetXPCOMSingleton() {
-  // The lazy initialization could race.
-  StaticMutexAutoLock lock(sCreationMutex);
-
-  if (gPermissionManager) {
-    return do_AddRef(gPermissionManager);
-  }
-
-  // Create a new singleton PermissionManager.
-  // We AddRef only once since XPCOM has rules about the ordering of module
-  // teardowns - by the time our module destructor is called, it's too late to
-  // Release our members, since GC cycles have already been completed and
-  // would result in serious leaks.
-  // See bug 209571.
-  auto permManager = MakeRefPtr<PermissionManager>();
-  if (NS_SUCCEEDED(permManager->Init())) {
-    gPermissionManager = permManager.get();
-    return permManager.forget();
-  }
-
-  return nullptr;
+  return GetInstance();
 }
 
 // static
-PermissionManager* PermissionManager::GetInstance() {
-  // TODO: There is a minimal chance that we can race here with a
-  // GetXPCOMSingleton call that did not yet set gPermissionManager.
-  // See bug 1745056.
-  if (!gPermissionManager) {
-    // Hand off the creation of the permission manager to GetXPCOMSingleton.
-    nsCOMPtr<nsIPermissionManager> permManager = GetXPCOMSingleton();
+already_AddRefed<PermissionManager> PermissionManager::GetInstance() {
+  // The lazy initialization could race.
+  StaticMutexAutoLock lock(sCreationMutex);
+
+  if (sInstanceDead) {
+    return nullptr;
   }
 
-  return gPermissionManager;
+  if (sInstanceHolder) {
+    RefPtr<PermissionManager> ret(sInstanceHolder);
+    return ret.forget();
+  }
+
+  auto permManager = MakeRefPtr<PermissionManager>();
+  if (NS_SUCCEEDED(permManager->Init())) {
+    // Note that this does an extra AddRef on purpose to keep us alive
+    // until shutdown.
+    sInstanceHolder = permManager.get();
+    return permManager.forget();
+  }
+
+  sInstanceDead = true;
+  return nullptr;
 }
 
 nsresult PermissionManager::Init() {
@@ -777,7 +771,7 @@ nsresult PermissionManager::Init() {
 
     // We use ClearOnShutdown on the content process only because on the parent
     // process we need to block the shutdown for the final closeDB() call.
-    ClearOnShutdown(&gPermissionManager);
+    ClearOnShutdown(&sInstanceHolder);
     return NS_OK;
   }
 
@@ -2382,9 +2376,9 @@ void PermissionManager::CloseDB(CloseDBNextOp aNextOp) {
         }
 
         if (aNextOp == eShutdown) {
-          NS_DispatchToMainThread(NS_NewRunnableFunction(
-              "PermissionManager::MaybeCompleteShutdown",
-              [self] { self->MaybeCompleteShutdown(); }));
+          NS_DispatchToMainThread(
+              NS_NewRunnableFunction("PermissionManager::FinishAsyncShutdown",
+                                     [self] { self->FinishAsyncShutdown(); }));
         }
       }));
 }
@@ -4082,7 +4076,7 @@ nsresult PermissionManager::TestPermissionWithoutDefaultsFromPrincipal(
                               true);
 }
 
-void PermissionManager::MaybeCompleteShutdown() {
+void PermissionManager::FinishAsyncShutdown() {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<nsIAsyncShutdownClient> asc = GetAsyncShutdownBarrier();
@@ -4090,6 +4084,13 @@ void PermissionManager::MaybeCompleteShutdown() {
 
   DebugOnly<nsresult> rv = asc->RemoveBlocker(this);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+  // Now we can safely release our holder.
+  StaticMutexAutoLock lock(sCreationMutex);
+  MOZ_ASSERT(sInstanceDead);
+  if (sInstanceHolder) {
+    sInstanceHolder = nullptr;
+  }
 }
 
 // Async shutdown blocker methods
@@ -4101,11 +4102,15 @@ NS_IMETHODIMP PermissionManager::GetName(nsAString& aName) {
 
 NS_IMETHODIMP PermissionManager::BlockShutdown(
     nsIAsyncShutdownClient* aClient) {
+  {
+    // From now on we do not allow to capture new references to our singleton.
+    StaticMutexAutoLock lock(sCreationMutex);
+    sInstanceDead = true;
+  }
   RemoveIdleDailyMaintenanceJob();
   RemoveAllFromMemory();
+  // CloseDB does async work and will call FinishAsyncShutdown once done.
   CloseDB(eShutdown);
-
-  gPermissionManager = nullptr;
   return NS_OK;
 }
 

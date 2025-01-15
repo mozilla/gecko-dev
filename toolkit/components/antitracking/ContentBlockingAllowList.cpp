@@ -124,7 +124,7 @@ nsresult ContentBlockingAllowList::Check(
             _spec),
            aContentBlockingAllowListPrincipal);
 
-  PermissionManager* permManager = PermissionManager::GetInstance();
+  RefPtr<PermissionManager> permManager = PermissionManager::GetInstance();
   NS_ENSURE_TRUE(permManager, NS_ERROR_FAILURE);
 
   // Check both the normal mode and private browsing mode user override
@@ -317,7 +317,7 @@ nsresult ContentBlockingAllowListCache::EnsureInit() {
   mIsInitialized = true;
 
   // 1. Get all permissions representing allow-list entries.
-  PermissionManager* permManager = PermissionManager::GetInstance();
+  RefPtr<PermissionManager> permManager = PermissionManager::GetInstance();
   NS_ENSURE_TRUE(permManager, NS_ERROR_FAILURE);
 
   nsTArray<nsCString> types = GetAllowListPermissionTypes();

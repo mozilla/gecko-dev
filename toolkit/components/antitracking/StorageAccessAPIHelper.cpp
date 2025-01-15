@@ -839,7 +839,7 @@ StorageAccessAPIHelper::SaveAccessForOriginOnParentProcess(
     return ParentAccessGrantPromise::CreateAndReject(false, __func__);
   }
 
-  PermissionManager* permManager = PermissionManager::GetInstance();
+  RefPtr<PermissionManager> permManager = PermissionManager::GetInstance();
   if (NS_WARN_IF(!permManager)) {
     LOG(("Permission manager is null, bailing out early"));
     return ParentAccessGrantPromise::CreateAndReject(false, __func__);

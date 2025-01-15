@@ -57,7 +57,7 @@ void ContentBlockingTelemetryService::ReportStoragePermissionExpire() {
 
   LOG(("Start to report storage permission expire."));
 
-  PermissionManager* permManager = PermissionManager::GetInstance();
+  RefPtr<PermissionManager> permManager = PermissionManager::GetInstance();
   if (NS_WARN_IF(!permManager)) {
     LOG(("Permission manager is null, bailing out early"));
     return;

@@ -213,7 +213,7 @@ bool AntiTrackingUtils::IsStorageAccessPermission(nsIPermission* aPermission,
 // static
 Maybe<size_t> AntiTrackingUtils::CountSitesAllowStorageAccess(
     nsIPrincipal* aPrincipal) {
-  PermissionManager* permManager = PermissionManager::GetInstance();
+  RefPtr<PermissionManager> permManager = PermissionManager::GetInstance();
   if (NS_WARN_IF(!permManager)) {
     return Nothing();
   }
@@ -290,7 +290,7 @@ bool AntiTrackingUtils::CheckStoragePermission(nsIPrincipal* aPrincipal,
                                                bool aIsInPrivateBrowsing,
                                                uint32_t* aRejectedReason,
                                                uint32_t aBlockedReason) {
-  PermissionManager* permManager = PermissionManager::GetInstance();
+  RefPtr<PermissionManager> permManager = PermissionManager::GetInstance();
   if (NS_WARN_IF(!permManager)) {
     LOG(("Failed to obtain the permission manager"));
     return false;

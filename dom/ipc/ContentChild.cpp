@@ -2470,10 +2470,8 @@ mozilla::ipc::IPCResult ContentChild::RecvSystemTimezoneChanged() {
 
 mozilla::ipc::IPCResult ContentChild::RecvAddPermission(
     const IPC::Permission& permission) {
-  nsCOMPtr<nsIPermissionManager> permissionManagerIface =
-      components::PermissionManager::Service();
-  PermissionManager* permissionManager =
-      static_cast<PermissionManager*>(permissionManagerIface.get());
+  RefPtr<PermissionManager> permissionManager =
+      PermissionManager::GetInstance();
   MOZ_ASSERT(permissionManager,
              "We have no permissionManager in the Content process !");
 
@@ -2503,10 +2501,8 @@ mozilla::ipc::IPCResult ContentChild::RecvAddPermission(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvRemoveAllPermissions() {
-  nsCOMPtr<nsIPermissionManager> permissionManagerIface =
-      components::PermissionManager::Service();
-  PermissionManager* permissionManager =
-      static_cast<PermissionManager*>(permissionManagerIface.get());
+  RefPtr<PermissionManager> permissionManager =
+      PermissionManager::GetInstance();
   MOZ_ASSERT(permissionManager,
              "We have no permissionManager in the Content process !");
 
