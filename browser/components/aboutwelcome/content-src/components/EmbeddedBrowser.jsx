@@ -3,24 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import React, { useEffect, useRef } from "react";
+import { AboutWelcomeUtils } from "../lib/aboutwelcome-utils.mjs";
 
 const BROWSER_STYLES = [
   "height",
   "width",
   "border",
-  "border-radius",
+  "borderRadius",
   "flex",
   "margin",
   "padding",
 ];
-
-function applyValidStyles(element, style, validStyles) {
-  Object.keys(style).forEach(key => {
-    if (validStyles.includes(key)) {
-      element.style.setProperty(key, style[key]);
-    }
-  });
-}
 
 export const EmbeddedBrowser = props => {
   // Conditionally render the component only if the environment supports XULElements (such as in Spotlight modals)
@@ -71,7 +64,13 @@ const EmbeddedBrowserInner = ({ url, style }) => {
 
   useEffect(() => {
     if (browserRef.current && style) {
-      applyValidStyles(browserRef.current, style, BROWSER_STYLES);
+      const validStyles = AboutWelcomeUtils.getValidStyle(
+        style,
+        BROWSER_STYLES
+      );
+      Object.keys(validStyles).forEach(key => {
+        browserRef.current.style.setProperty(key, style[key]);
+      });
     }
   }, [style]);
 

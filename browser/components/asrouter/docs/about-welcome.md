@@ -35,7 +35,9 @@ You can see JSON for all current default screens in about:welcome [here](https:/
 ![About Welcome Responsive 1](./aboutwelcome-res-1.png)
 
 ### Content Tiles
-Screens in about:welcome support a variety of content tiles. One tile can be displayed per screen.
+Screens in about:welcome support a variety of content tiles. Typically, only one tile is displayed per screen. When necessary, multiple tiles can be included on one screen. Each tile can be configured with a header that describes the tile and reveals it when clicked (see example below).
+
+![Content Tiles](./content-tiles.png)
 
 #### Addons Picker
 Displays a curated list of recommended add-ons that users can choose to install directly from the tile.

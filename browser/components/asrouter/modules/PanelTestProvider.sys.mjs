@@ -20,32 +20,112 @@ const isMSIX =
 
 const MESSAGES = () => [
   {
-    id: "EMBEDDED_BROWSER_SPOTLIGHT",
-    groups: ["panel-test-provider"],
+    id: "CONTENT_TILES_TEST",
+    targeting: 'providerCohorts.panel_local_testing == "SHOW_TEST"',
     template: "spotlight",
-    targeting: true,
     content: {
       template: "multistage",
       screens: [
         {
-          id: "EMBEDDED_BROWSER_SCREEN",
+          id: "SCREEN_1",
           content: {
+            spotlight_style: {
+              display: "block",
+              padding: "20px 0 0 0",
+              width: "616px",
+            },
             logo: {},
             title: {
-              raw: "Embedded browser test",
+              raw: "Content tiles test",
             },
-            tiles: {
-              type: "embedded_browser",
-              data: {
-                style: {
-                  width: "100%",
-                  height: "200px",
+            subtitle: {
+              raw: "Review the content below before continuing.",
+            },
+            tiles: [
+              {
+                type: "embedded_browser",
+                header: {
+                  title: "Test title 1",
+                  subtitle: "Read more",
                 },
-                url: "https://example.com",
+                data: {
+                  style: {
+                    width: "100%",
+                    height: "200px",
+                  },
+                  url: "https://example.com",
+                },
               },
-            },
-            dismiss_button: {
+              {
+                type: "embedded_browser",
+                header: {
+                  title: "Test Title 2",
+                  subtitle: "Read more",
+                },
+                data: {
+                  style: {
+                    width: "100%",
+                    height: "200px",
+                  },
+                  url: "https://example.com",
+                },
+              },
+              {
+                type: "multiselect",
+                header: {
+                  title: "Test Title 3",
+                  subtitle: "Manage options",
+                },
+                data: [
+                  {
+                    id: "checkbox-test-1",
+                    type: "checkbox",
+                    defaultValue: false,
+                    label: {
+                      raw: "Test option 1",
+                    },
+                    action: {
+                      type: "SET_PREF",
+                      data: {
+                        pref: {
+                          name: "test-pref-1",
+                          value: true,
+                        },
+                      },
+                    },
+                  },
+                  {
+                    id: "checkbox-test-2",
+                    type: "checkbox",
+                    defaultValue: false,
+                    label: {
+                      raw: "Test option 2",
+                    },
+                    action: {
+                      type: "SET_PREF",
+                      data: {
+                        pref: {
+                          name: "test-pref-2",
+                          value: true,
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            action_buttons_above_content: true,
+            primary_button: {
+              label: {
+                raw: "Continue",
+                marginBlock: "28px 0",
+              },
               action: {
+                type: "MULTI_ACTION",
+                collectSelect: true,
+                data: {
+                  actions: [],
+                },
                 dismiss: true,
               },
             },
@@ -53,6 +133,7 @@ const MESSAGES = () => [
         },
       ],
     },
+    provider: "panel_local_testing",
   },
   {
     id: "TAB_GROUP_TEST_CALLOUT_HORIZONTAL",

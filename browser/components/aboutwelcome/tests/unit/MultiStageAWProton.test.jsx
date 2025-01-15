@@ -1,5 +1,8 @@
 import { AboutWelcomeDefaults } from "modules/AboutWelcomeDefaults.sys.mjs";
-import { MultiStageProtonScreen } from "content-src/components/MultiStageProtonScreen";
+import {
+  MultiStageProtonScreen,
+  ProtonScreenActionButtons,
+} from "content-src/components/MultiStageProtonScreen";
 import { AWScreenUtils } from "modules/AWScreenUtils.sys.mjs";
 import React from "react";
 import { mount } from "enzyme";
@@ -470,6 +473,55 @@ describe("MultiStageAboutWelcomeProton module", () => {
       const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
       assert.ok(wrapper.exists());
       assert.equal(wrapper.find("main").prop("reverse-split"), "");
+    });
+
+    it("should render with screen custom styles", async () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          position: "center",
+          screen_style: {
+            overflow: "auto",
+            display: "block",
+            padding: "40px 0 0 0",
+            width: "800px",
+            // disallowed style
+            height: "500px",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      assert.ok(
+        (wrapper.find("main").getDOMNode().style.cssText =
+          `overflow: ${SCREEN_PROPS.content.screen_style.overflow}; display: ${SCREEN_PROPS.content.screen_style.display})`)
+      );
+      assert.ok(
+        (wrapper.find(".section-main").getDOMNode().style.cssText =
+          `padding: ${SCREEN_PROPS.content.screen_style.padding}; width: ${SCREEN_PROPS.content.screen_style.width})`)
+      );
+    });
+
+    it("should render action buttons above content when configured", async () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "test title",
+          position: "center",
+          action_buttons_above_content: "true",
+          primary_button: {
+            label: "test primary button",
+          },
+        },
+      };
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+      assert.ok(wrapper.exists());
+      const welcomeTextEl = wrapper.find(".welcome-text");
+      const secondChild = welcomeTextEl.children().at(1);
+      assert.strictEqual(
+        secondChild.type(),
+        ProtonScreenActionButtons,
+        "Second child is ProtonScreenActionButtons"
+      );
     });
   });
 
