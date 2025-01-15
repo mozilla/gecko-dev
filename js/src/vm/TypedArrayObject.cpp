@@ -2643,6 +2643,168 @@ static bool TypedArray_lastIndexOf(JSContext* cx, unsigned argc, Value* vp) {
                                                                           args);
 }
 
+template <typename T>
+static inline bool IsNaN(T num) {
+  if constexpr (std::is_same_v<T, float16>) {
+    return num != num;
+  } else {
+    // Static analysis complains when using self-comparison for built-in types,
+    // so we have to use `std::isnan`.
+    return std::isnan(num);
+  }
+}
+
+template <typename Ops, typename NativeType>
+static int64_t TypedArrayIncludesNaN(TypedArrayObject* tarray, size_t k,
+                                     size_t len) {
+  MOZ_RELEASE_ASSERT(k < len);
+  MOZ_RELEASE_ASSERT(len <= tarray->length().valueOr(0));
+
+  SharedMem<NativeType*> data =
+      Ops::extract(tarray).template cast<NativeType*>();
+  for (size_t i = k; i < len; i++) {
+    NativeType element = Ops::load(data + i);
+    if (IsNaN(element)) {
+      return int64_t(i);
+    }
+  }
+  return -1;
+}
+
+template <typename ExternalType, typename NativeType>
+static typename std::enable_if_t<!std::numeric_limits<NativeType>::is_integer,
+                                 int64_t>
+TypedArrayIncludes(TypedArrayObject* tarray, size_t k, size_t len,
+                   const Value& searchElement) {
+  if (searchElement.isDouble() && std::isnan(searchElement.toDouble())) {
+    if (tarray->isSharedMemory()) {
+      return TypedArrayIncludesNaN<SharedOps, NativeType>(tarray, k, len);
+    }
+    return TypedArrayIncludesNaN<UnsharedOps, NativeType>(tarray, k, len);
+  }
+
+  // Delegate to TypedArrayIndexOf if not NaN.
+  return TypedArrayIndexOf<ExternalType, NativeType>(tarray, k, len,
+                                                     searchElement);
+}
+
+template <typename ExternalType, typename NativeType>
+static typename std::enable_if_t<std::numeric_limits<NativeType>::is_integer,
+                                 int64_t>
+TypedArrayIncludes(TypedArrayObject* tarray, size_t k, size_t len,
+                   const Value& searchElement) {
+  // Delegate to TypedArrayIndexOf for integer types.
+  return TypedArrayIndexOf<ExternalType, NativeType>(tarray, k, len,
+                                                     searchElement);
+}
+
+/**
+ * %TypedArray%.prototype.includes ( searchElement [ , fromIndex ] )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_includes(JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
+
+  // Steps 1-3.
+  Rooted<TypedArrayObject*> tarray(
+      cx, &args.thisv().toObject().as<TypedArrayObject>());
+
+  auto arrayLength = tarray->length();
+  if (!arrayLength) {
+    ReportOutOfBounds(cx, tarray);
+    return false;
+  }
+  size_t len = *arrayLength;
+
+  // Step 4.
+  if (len == 0) {
+    args.rval().setBoolean(false);
+    return true;
+  }
+
+  // Steps 5-10.
+  size_t k = 0;
+  if (args.hasDefined(1)) {
+    // Steps 5-6.
+    double fromIndex;
+    if (!ToInteger(cx, args[1], &fromIndex)) {
+      return false;
+    }
+
+    // Steps 7-10.
+    if (fromIndex >= 0) {
+      if (fromIndex >= double(len)) {
+        args.rval().setBoolean(false);
+        return true;
+      }
+      k = size_t(fromIndex);
+    } else {
+      k = size_t(std::max(0.0, fromIndex + double(len)));
+    }
+    MOZ_ASSERT(k < len);
+
+    // Reacquire the length because side-effects may have detached or resized
+    // the array buffer.
+    size_t currentLength = tarray->length().valueOr(0);
+
+    // Contrary to `indexOf`, `includes` doesn't perform `HasProperty`, so we
+    // have to handle the case when the current length is smaller than the
+    // original length.
+    if (currentLength < len) {
+      // Accessing an element beyond the typed array length returns `undefined`,
+      // so return `true` iff the search element is `undefined`.
+      if (args[0].isUndefined()) {
+        args.rval().setBoolean(true);
+        return true;
+      }
+
+      // If the search element isn't `undefined` and |k| is beyond the current
+      // length, return `false`.
+      if (k >= currentLength) {
+        args.rval().setBoolean(false);
+        return true;
+      }
+
+      // Otherwise just restrict |len| to the current length.
+      len = currentLength;
+    }
+  }
+  MOZ_ASSERT(k < len);
+
+  // Steps 11-12.
+  int64_t result;
+  switch (tarray->type()) {
+#define TYPED_ARRAY_INCLUDES(ExternalType, NativeType, Name)              \
+  case Scalar::Name:                                                      \
+    result = TypedArrayIncludes<ExternalType, NativeType>(tarray, k, len, \
+                                                          args.get(0));   \
+    break;
+    JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_INCLUDES)
+#undef TYPED_ARRAY_INCLUDES
+    default:
+      MOZ_CRASH("Unsupported TypedArray type");
+  }
+  MOZ_ASSERT_IF(result >= 0, uint64_t(result) < len);
+  MOZ_ASSERT_IF(result < 0, result == -1);
+
+  args.rval().setBoolean(result >= 0);
+  return true;
+}
+
+/**
+ * %TypedArray%.prototype.includes ( searchElement [ , fromIndex ] )
+ *
+ * ES2025 draft rev c4042979a7cdd96b663ffcc43aeee90af8d7a576
+ */
+static bool TypedArray_includes(JSContext* cx, unsigned argc, Value* vp) {
+  AutoJSMethodProfilerEntry pseudoFrame(cx, "[TypedArray].prototype",
+                                        "includes");
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsTypedArrayObject, TypedArray_includes>(cx,
+                                                                       args);
+}
+
 // Byte vector with large enough inline storage to allow constructing small
 // typed arrays without extra heap allocations.
 using ByteVector =
@@ -3756,7 +3918,7 @@ static bool uint8array_toHex(JSContext* cx, unsigned argc, Value* vp) {
     JS_SELF_HOSTED_FN("keys", "TypedArrayKeys", 0, 0),
     JS_SELF_HOSTED_FN("values", "$TypedArrayValues", 0, 0),
     JS_SELF_HOSTED_SYM_FN(iterator, "$TypedArrayValues", 0, 0),
-    JS_SELF_HOSTED_FN("includes", "TypedArrayIncludes", 2, 0),
+    JS_FN("includes", TypedArray_includes, 1, 0),
     JS_SELF_HOSTED_FN("toString", "ArrayToString", 0, 0),
     JS_SELF_HOSTED_FN("toLocaleString", "TypedArrayToLocaleString", 2, 0),
     JS_SELF_HOSTED_FN("at", "TypedArrayAt", 1, 0),
