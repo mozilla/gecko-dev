@@ -40,7 +40,7 @@ add_task(async function () {
 
   info("Check node is highlighted when the inspect icon is clicked");
   const onHighlighterShown = waitForHighlighterTypeShown(
-    inspector.highlighters.TYPES.BOXMODEL
+    inspector.highlighters.TYPES.SELECTOR
   );
   await clickOnInspectIcon(animationInspector, panel, 0);
   data = await onHighlighterShown;
