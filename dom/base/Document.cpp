@@ -7364,7 +7364,7 @@ bool Document::ShouldThrottleFrameRequests() const {
     return false;
   }
 
-  if (Hidden()) {
+  if (Hidden() && !StaticPrefs::layout_testing_top_level_always_active()) {
     // We're not visible (probably in a background tab or the bf cache).
     return true;
   }

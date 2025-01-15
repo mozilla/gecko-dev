@@ -11246,6 +11246,12 @@ bool PresShell::ComputeActiveness() const {
   MOZ_LOG(gLog, LogLevel::Debug,
           (" > BrowsingContext %p  active: %d", bc, inActiveTab));
 
+  if (StaticPrefs::layout_testing_top_level_always_active() && bc &&
+      bc->IsTop()) {
+    MOZ_LOG(gLog, LogLevel::Debug, (" > Activeness overridden by pref"));
+    return true;
+  }
+
   Document* root = nsContentUtils::GetInProcessSubtreeRootDocument(doc);
   if (auto* browserChild = BrowserChild::GetFrom(root->GetDocShell())) {
     // We might want to activate a tab even though the browsing-context is not

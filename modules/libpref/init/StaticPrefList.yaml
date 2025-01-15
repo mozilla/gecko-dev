@@ -10040,6 +10040,15 @@
   value: true
   mirror: always
 
+# Treat top level pages as always-active for the purpose of refresh driver
+# throttling and such.
+#
+# Intended for testing automation and so forth.
+- name: layout.testing.top-level-always-active
+  type: bool
+  value: false
+  mirror: always
+
 # Pref to stop overlay scrollbars from fading out, for testing purposes.
 - name: layout.testing.overlay-scrollbars.always-visible
   type: bool
