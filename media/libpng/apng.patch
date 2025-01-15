@@ -1,7 +1,7 @@
 diff --git a/png.h b/png.h
 --- a/png.h
 +++ b/png.h
-@@ -329,6 +329,10 @@
+@@ -328,6 +328,10 @@
  #   include "pnglibconf.h"
  #endif
  
@@ -12,7 +12,7 @@ diff --git a/png.h b/png.h
  #ifndef PNG_VERSION_INFO_ONLY
  /* Machine specific configuration. */
  #  include "pngconf.h"
-@@ -424,6 +428,17 @@ extern "C" {
+@@ -423,6 +427,17 @@ extern "C" {
   * See pngconf.h for base types that vary by machine/system
   */
  
@@ -31,12 +31,12 @@ diff --git a/png.h b/png.h
   * do not agree upon the version number.
   */
 @@ -745,6 +760,10 @@ typedef png_unknown_chunk * * png_unknow
- #define PNG_INFO_sCAL 0x4000U  /* ESR, 1.0.6 */
  #define PNG_INFO_IDAT 0x8000U  /* ESR, 1.0.6 */
  #define PNG_INFO_eXIf 0x10000U /* GR-P, 1.6.31 */
+ #define PNG_INFO_cICP 0x20000U
 +#ifdef PNG_APNG_SUPPORTED
-+#define PNG_INFO_acTL 0x20000U
-+#define PNG_INFO_fcTL 0x40000U
++#define PNG_INFO_acTL 0x40000U
++#define PNG_INFO_fcTL 0x80000U
 +#endif
  
  /* This is used for the transformation routines, as some of them
@@ -52,75 +52,75 @@ diff --git a/png.h b/png.h
  
  /* The following callback receives png_uint_32 row_number, int pass for the
   * png_bytep data of the row.  When transforming an interlaced image the
-@@ -3230,6 +3253,75 @@ PNG_EXPORT(244, int, png_set_option, (pn
+@@ -3241,6 +3264,75 @@ PNG_EXPORT(244, int, png_set_option, (pn
   *  END OF HARDWARE AND SOFTWARE OPTIONS
   ******************************************************************************/
  
 +#ifdef PNG_APNG_SUPPORTED
-+PNG_EXPORT(248, png_uint_32, png_get_acTL, (png_structp png_ptr,
++PNG_EXPORT(252, png_uint_32, png_get_acTL, (png_structp png_ptr,
 +   png_infop info_ptr, png_uint_32 *num_frames, png_uint_32 *num_plays));
 +
-+PNG_EXPORT(249, png_uint_32, png_set_acTL, (png_structp png_ptr,
++PNG_EXPORT(253, png_uint_32, png_set_acTL, (png_structp png_ptr,
 +   png_infop info_ptr, png_uint_32 num_frames, png_uint_32 num_plays));
 +
-+PNG_EXPORT(250, png_uint_32, png_get_num_frames, (png_structp png_ptr,
++PNG_EXPORT(254, png_uint_32, png_get_num_frames, (png_structp png_ptr,
 +   png_infop info_ptr));
 +
-+PNG_EXPORT(251, png_uint_32, png_get_num_plays, (png_structp png_ptr,
++PNG_EXPORT(255, png_uint_32, png_get_num_plays, (png_structp png_ptr,
 +   png_infop info_ptr));
 +
-+PNG_EXPORT(252, png_uint_32, png_get_next_frame_fcTL,
++PNG_EXPORT(256, png_uint_32, png_get_next_frame_fcTL,
 +   (png_structp png_ptr, png_infop info_ptr, png_uint_32 *width,
 +   png_uint_32 *height, png_uint_32 *x_offset, png_uint_32 *y_offset,
 +   png_uint_16 *delay_num, png_uint_16 *delay_den, png_byte *dispose_op,
 +   png_byte *blend_op));
 +
-+PNG_EXPORT(253, png_uint_32, png_set_next_frame_fcTL,
++PNG_EXPORT(257, png_uint_32, png_set_next_frame_fcTL,
 +   (png_structp png_ptr, png_infop info_ptr, png_uint_32 width,
 +   png_uint_32 height, png_uint_32 x_offset, png_uint_32 y_offset,
 +   png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op,
 +   png_byte blend_op));
 +
-+PNG_EXPORT(254, png_uint_32, png_get_next_frame_width,
++PNG_EXPORT(258, png_uint_32, png_get_next_frame_width,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(255, png_uint_32, png_get_next_frame_height,
++PNG_EXPORT(259, png_uint_32, png_get_next_frame_height,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(256, png_uint_32, png_get_next_frame_x_offset,
++PNG_EXPORT(260, png_uint_32, png_get_next_frame_x_offset,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(257, png_uint_32, png_get_next_frame_y_offset,
++PNG_EXPORT(261, png_uint_32, png_get_next_frame_y_offset,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(258, png_uint_16, png_get_next_frame_delay_num,
++PNG_EXPORT(262, png_uint_16, png_get_next_frame_delay_num,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(259, png_uint_16, png_get_next_frame_delay_den,
++PNG_EXPORT(263, png_uint_16, png_get_next_frame_delay_den,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(260, png_byte, png_get_next_frame_dispose_op,
++PNG_EXPORT(264, png_byte, png_get_next_frame_dispose_op,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(261, png_byte, png_get_next_frame_blend_op,
++PNG_EXPORT(265, png_byte, png_get_next_frame_blend_op,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(262, png_byte, png_get_first_frame_is_hidden,
++PNG_EXPORT(266, png_byte, png_get_first_frame_is_hidden,
 +   (png_structp png_ptr, png_infop info_ptr));
-+PNG_EXPORT(263, png_uint_32, png_set_first_frame_is_hidden,
++PNG_EXPORT(267, png_uint_32, png_set_first_frame_is_hidden,
 +   (png_structp png_ptr, png_infop info_ptr, png_byte is_hidden));
 +
 +#ifdef PNG_READ_APNG_SUPPORTED
-+PNG_EXPORT(264, void, png_read_frame_head, (png_structp png_ptr,
++PNG_EXPORT(268, void, png_read_frame_head, (png_structp png_ptr,
 +   png_infop info_ptr));
 +#ifdef PNG_PROGRESSIVE_READ_SUPPORTED
-+PNG_EXPORT(265, void, png_set_progressive_frame_fn, (png_structp png_ptr,
++PNG_EXPORT(269, void, png_set_progressive_frame_fn, (png_structp png_ptr,
 +   png_progressive_frame_ptr frame_info_fn,
 +   png_progressive_frame_ptr frame_end_fn));
 +#endif /* PROGRESSIVE_READ */
 +#endif /* READ_APNG */
 +
 +#ifdef PNG_WRITE_APNG_SUPPORTED
-+PNG_EXPORT(266, void, png_write_frame_head, (png_structp png_ptr,
++PNG_EXPORT(270, void, png_write_frame_head, (png_structp png_ptr,
 +   png_infop info_ptr, png_bytepp row_pointers,
 +   png_uint_32 width, png_uint_32 height,
 +   png_uint_32 x_offset, png_uint_32 y_offset,
 +   png_uint_16 delay_num, png_uint_16 delay_den, png_byte dispose_op,
 +   png_byte blend_op));
 +
-+PNG_EXPORT(267, void, png_write_frame_tail, (png_structp png_ptr,
++PNG_EXPORT(271, void, png_write_frame_tail, (png_structp png_ptr,
 +   png_infop info_ptr));
 +#endif /* WRITE_APNG */
 +#endif /* APNG */
@@ -128,14 +128,14 @@ diff --git a/png.h b/png.h
  /* Maintainer: Put new public prototypes here ^, in libpng.3, in project
   * defs, and in scripts/symbols.def.
   */
-@@ -3238,7 +3330,11 @@ PNG_EXPORT(244, int, png_set_option, (pn
+@@ -3249,7 +3341,11 @@ PNG_EXPORT(244, int, png_set_option, (pn
   * one to use is one more than this.)
   */
  #ifdef PNG_EXPORT_LAST_ORDINAL
 +#ifdef PNG_APNG_SUPPORTED
-+  PNG_EXPORT_LAST_ORDINAL(269);
++  PNG_EXPORT_LAST_ORDINAL(271);
 +#else
-   PNG_EXPORT_LAST_ORDINAL(249);
+   PNG_EXPORT_LAST_ORDINAL(251);
 +#endif /* APNG */
  #endif
  
@@ -143,7 +143,7 @@ diff --git a/png.h b/png.h
 diff --git a/pngget.c b/pngget.c
 --- a/pngget.c
 +++ b/pngget.c
-@@ -1264,4 +1264,166 @@ png_get_palette_max(png_const_structp pn
+@@ -1288,4 +1288,166 @@ png_get_palette_max(png_const_structp pn
  #  endif
  #endif
  
@@ -313,7 +313,7 @@ diff --git a/pngget.c b/pngget.c
 diff --git a/pnginfo.h b/pnginfo.h
 --- a/pnginfo.h
 +++ b/pnginfo.h
-@@ -263,5 +263,18 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
+@@ -270,5 +270,18 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
     png_bytepp row_pointers;        /* the image bits */
  #endif
  
@@ -335,7 +335,7 @@ diff --git a/pnginfo.h b/pnginfo.h
 diff --git a/pngpread.c b/pngpread.c
 --- a/pngpread.c
 +++ b/pngpread.c
-@@ -195,6 +195,89 @@ png_push_read_chunk(png_structrp png_ptr
+@@ -209,6 +209,89 @@ png_push_read_chunk(png_structrp png_ptr
  
     chunk_name = png_ptr->chunk_name;
  
@@ -425,7 +425,7 @@ diff --git a/pngpread.c b/pngpread.c
     if (chunk_name == png_IDAT)
     {
        if ((png_ptr->mode & PNG_AFTER_IDAT) != 0)
-@@ -261,6 +344,9 @@ png_push_read_chunk(png_structrp png_ptr
+@@ -275,6 +358,9 @@ png_push_read_chunk(png_structrp png_ptr
  
     else if (chunk_name == png_IDAT)
     {
@@ -435,7 +435,7 @@ diff --git a/pngpread.c b/pngpread.c
        png_ptr->idat_size = png_ptr->push_length;
        png_ptr->process_mode = PNG_READ_IDAT_MODE;
        png_push_have_info(png_ptr, info_ptr);
-@@ -415,6 +501,20 @@ png_push_read_chunk(png_structrp png_ptr
+@@ -437,6 +523,20 @@ png_push_read_chunk(png_structrp png_ptr
     }
  #endif
  
@@ -456,7 +456,7 @@ diff --git a/pngpread.c b/pngpread.c
     else
     {
        PNG_PUSH_SAVE_BUFFER_IF_FULL
-@@ -547,7 +647,11 @@ png_push_read_IDAT(png_structrp png_ptr)
+@@ -569,7 +669,11 @@ png_push_read_IDAT(png_structrp png_ptr)
        png_byte chunk_tag[4];
  
        /* TODO: this code can be commoned up with the same code in push_read */
@@ -468,7 +468,7 @@ diff --git a/pngpread.c b/pngpread.c
        png_push_fill_buffer(png_ptr, chunk_length, 4);
        png_ptr->push_length = png_get_uint_31(png_ptr, chunk_length);
        png_reset_crc(png_ptr);
-@@ -555,17 +659,60 @@ png_push_read_IDAT(png_structrp png_ptr)
+@@ -577,17 +681,60 @@ png_push_read_IDAT(png_structrp png_ptr)
        png_ptr->chunk_name = PNG_CHUNK_FROM_STRING(chunk_tag);
        png_ptr->mode |= PNG_HAVE_CHUNK_HEADER;
  
@@ -529,7 +529,7 @@ diff --git a/pngpread.c b/pngpread.c
     }
  
     if (png_ptr->idat_size != 0 && png_ptr->save_buffer_size != 0)
-@@ -639,6 +786,16 @@ png_process_IDAT_data(png_structrp png_p
+@@ -661,6 +808,16 @@ png_process_IDAT_data(png_structrp png_p
     if (!(buffer_length > 0) || buffer == NULL)
        png_error(png_ptr, "No IDAT data (internal error)");
  
@@ -546,7 +546,7 @@ diff --git a/pngpread.c b/pngpread.c
     /* This routine must process all the data it has been given
      * before returning, calling the row callback as required to
      * handle the uncompressed results.
-@@ -1093,6 +1250,18 @@ png_set_progressive_read_fn(png_structrp
+@@ -1094,6 +1251,18 @@ png_set_progressive_read_fn(png_structrp
     png_set_read_fn(png_ptr, progressive_ptr, png_push_fill_buffer);
  }
  
@@ -568,7 +568,7 @@ diff --git a/pngpread.c b/pngpread.c
 diff --git a/pngpriv.h b/pngpriv.h
 --- a/pngpriv.h
 +++ b/pngpriv.h
-@@ -662,6 +662,10 @@
+@@ -620,6 +620,10 @@
  #define PNG_HAVE_CHUNK_AFTER_IDAT 0x2000U /* Have another chunk after IDAT */
  #define PNG_WROTE_eXIf            0x4000U
  #define PNG_IS_READ_STRUCT        0x8000U /* Else is a write struct */
@@ -579,7 +579,7 @@ diff --git a/pngpriv.h b/pngpriv.h
  
  /* Flags for the transformations the PNG library does on the image data */
  #define PNG_BGR                 0x0001U
-@@ -898,6 +902,16 @@
+@@ -857,6 +861,16 @@
  #define png_tRNS PNG_U32(116,  82,  78,  83)
  #define png_zTXt PNG_U32(122,  84,  88, 116)
  
@@ -596,7 +596,7 @@ diff --git a/pngpriv.h b/pngpriv.h
  /* The following will work on (signed char*) strings, whereas the get_uint_32
   * macro will fail on top-bit-set values because of the sign extension.
   */
-@@ -1683,6 +1697,49 @@ PNG_INTERNAL_FUNCTION(void,png_push_read
+@@ -1653,6 +1667,49 @@ PNG_INTERNAL_FUNCTION(void,png_push_read
  
  #endif /* PROGRESSIVE_READ */
  
@@ -649,7 +649,7 @@ diff --git a/pngpriv.h b/pngpriv.h
 diff --git a/pngread.c b/pngread.c
 --- a/pngread.c
 +++ b/pngread.c
-@@ -161,6 +161,9 @@ png_read_info(png_structrp png_ptr, png_
+@@ -160,6 +160,9 @@ png_read_info(png_structrp png_ptr, png_
  
        else if (chunk_name == png_IDAT)
        {
@@ -659,7 +659,7 @@ diff --git a/pngread.c b/pngread.c
           png_ptr->idat_size = length;
           break;
        }
-@@ -255,6 +258,17 @@ png_read_info(png_structrp png_ptr, png_
+@@ -259,6 +262,17 @@ png_read_info(png_structrp png_ptr, png_
           png_handle_iTXt(png_ptr, info_ptr, length);
  #endif
  
@@ -677,7 +677,7 @@ diff --git a/pngread.c b/pngread.c
        else
           png_handle_unknown(png_ptr, info_ptr, length,
               PNG_HANDLE_CHUNK_AS_DEFAULT);
-@@ -262,6 +276,72 @@ png_read_info(png_structrp png_ptr, png_
+@@ -266,6 +280,72 @@ png_read_info(png_structrp png_ptr, png_
  }
  #endif /* SEQUENTIAL_READ */
  
@@ -753,7 +753,7 @@ diff --git a/pngread.c b/pngread.c
 diff --git a/pngrutil.c b/pngrutil.c
 --- a/pngrutil.c
 +++ b/pngrutil.c
-@@ -863,6 +863,11 @@ png_handle_IHDR(png_structrp png_ptr, pn
+@@ -877,6 +877,11 @@ png_handle_IHDR(png_structrp png_ptr, pn
     filter_type = buf[11];
     interlace_type = buf[12];
  
@@ -765,7 +765,7 @@ diff --git a/pngrutil.c b/pngrutil.c
     /* Set internal variables */
     png_ptr->width = width;
     png_ptr->height = height;
-@@ -2857,6 +2862,180 @@ png_handle_iTXt(png_structrp png_ptr, pn
+@@ -2912,6 +2917,180 @@ png_handle_iTXt(png_structrp png_ptr, pn
  }
  #endif
  
@@ -946,7 +946,7 @@ diff --git a/pngrutil.c b/pngrutil.c
  #ifdef PNG_READ_UNKNOWN_CHUNKS_SUPPORTED
  /* Utility function for png_handle_unknown; set up png_ptr::unknown_chunk */
  static int
-@@ -3162,7 +3341,11 @@ png_check_chunk_length(png_const_structr
+@@ -3217,7 +3396,11 @@ png_check_chunk_length(png_const_structr
     if (PNG_USER_CHUNK_MALLOC_MAX < limit)
        limit = PNG_USER_CHUNK_MALLOC_MAX;
  # endif
@@ -958,7 +958,7 @@ diff --git a/pngrutil.c b/pngrutil.c
     {
        png_alloc_size_t idat_limit = PNG_UINT_31_MAX;
        size_t row_factor =
-@@ -4166,6 +4349,38 @@ png_read_IDAT_data(png_structrp png_ptr,
+@@ -4217,6 +4400,38 @@ png_read_IDAT_data(png_structrp png_ptr,
           uInt avail_in;
           png_bytep buffer;
  
@@ -997,7 +997,7 @@ diff --git a/pngrutil.c b/pngrutil.c
           while (png_ptr->idat_size == 0)
           {
              png_crc_finish(png_ptr, 0);
-@@ -4177,6 +4392,7 @@ png_read_IDAT_data(png_structrp png_ptr,
+@@ -4228,6 +4443,7 @@ png_read_IDAT_data(png_structrp png_ptr,
              if (png_ptr->chunk_name != png_IDAT)
                 png_error(png_ptr, "Not enough image data");
           }
@@ -1005,7 +1005,7 @@ diff --git a/pngrutil.c b/pngrutil.c
  
           avail_in = png_ptr->IDAT_read_size;
  
-@@ -4240,6 +4456,9 @@ png_read_IDAT_data(png_structrp png_ptr,
+@@ -4291,6 +4507,9 @@ png_read_IDAT_data(png_structrp png_ptr,
  
           png_ptr->mode |= PNG_AFTER_IDAT;
           png_ptr->flags |= PNG_FLAG_ZSTREAM_ENDED;
@@ -1015,7 +1015,7 @@ diff --git a/pngrutil.c b/pngrutil.c
  
           if (png_ptr->zstream.avail_in > 0 || png_ptr->idat_size > 0)
              png_chunk_benign_error(png_ptr, "Extra compressed data");
-@@ -4677,4 +4896,80 @@ defined(PNG_USER_TRANSFORM_PTR_SUPPORTED
+@@ -4700,4 +4919,80 @@ defined(PNG_USER_TRANSFORM_PTR_SUPPORTED
  
     png_ptr->flags |= PNG_FLAG_ROW_INIT;
  }
@@ -1099,7 +1099,7 @@ diff --git a/pngrutil.c b/pngrutil.c
 diff --git a/pngset.c b/pngset.c
 --- a/pngset.c
 +++ b/pngset.c
-@@ -280,6 +280,11 @@ png_set_IHDR(png_const_structrp png_ptr,
+@@ -305,6 +305,11 @@ png_set_IHDR(png_const_structrp png_ptr,
     info_ptr->pixel_depth = (png_byte)(info_ptr->channels * info_ptr->bit_depth);
  
     info_ptr->rowbytes = PNG_ROWBYTES(info_ptr->pixel_depth, width);
@@ -1111,7 +1111,7 @@ diff --git a/pngset.c b/pngset.c
  }
  
  #ifdef PNG_oFFs_SUPPORTED
-@@ -1151,6 +1156,146 @@ png_set_sPLT(png_const_structrp png_ptr,
+@@ -1176,6 +1181,146 @@ png_set_sPLT(png_const_structrp png_ptr,
  }
  #endif /* sPLT */
  
@@ -1261,7 +1261,7 @@ diff --git a/pngset.c b/pngset.c
 diff --git a/pngstruct.h b/pngstruct.h
 --- a/pngstruct.h
 +++ b/pngstruct.h
-@@ -399,6 +399,27 @@ struct png_struct_def
+@@ -398,6 +398,27 @@ struct png_struct_def
     png_byte filter_type;
  #endif
  
@@ -1292,7 +1292,7 @@ diff --git a/pngstruct.h b/pngstruct.h
 diff --git a/pngwrite.c b/pngwrite.c
 --- a/pngwrite.c
 +++ b/pngwrite.c
-@@ -128,6 +128,10 @@ png_write_info_before_PLTE(png_structrp 
+@@ -127,6 +127,10 @@ png_write_info_before_PLTE(png_structrp 
         * the application continues writing the PNG.  So check the 'invalid'
         * flag here too.
         */
@@ -1300,10 +1300,10 @@ diff --git a/pngwrite.c b/pngwrite.c
 +   if ((info_ptr->valid & PNG_INFO_acTL) != 0)
 +      png_write_acTL(png_ptr, info_ptr->num_frames, info_ptr->num_plays);
 +#endif
- #ifdef PNG_GAMMA_SUPPORTED
- #  ifdef PNG_WRITE_gAMA_SUPPORTED
-       if ((info_ptr->colorspace.flags & PNG_COLORSPACE_INVALID) == 0 &&
-@@ -368,6 +372,11 @@ png_write_end(png_structrp png_ptr, png_
+ #ifdef PNG_WRITE_UNKNOWN_CHUNKS_SUPPORTED
+          /* Write unknown chunks first; PNG v3 establishes a precedence order
+           * for colourspace chunks.  It is certain therefore that new
+@@ -399,6 +403,11 @@ png_write_end(png_structrp png_ptr, png_
     if ((png_ptr->mode & PNG_HAVE_IDAT) == 0)
        png_error(png_ptr, "No IDATs written into file");
  
@@ -1315,7 +1315,7 @@ diff --git a/pngwrite.c b/pngwrite.c
  #ifdef PNG_WRITE_CHECK_FOR_INVALID_INDEX_SUPPORTED
     if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE &&
         png_ptr->num_palette_max >= png_ptr->num_palette)
-@@ -2415,4 +2424,42 @@ png_image_write_to_file(png_imagep image
+@@ -2446,4 +2455,42 @@ png_image_write_to_file(png_imagep image
  }
  #endif /* SIMPLIFIED_WRITE_STDIO */
  #endif /* SIMPLIFIED_WRITE */
@@ -1361,7 +1361,7 @@ diff --git a/pngwrite.c b/pngwrite.c
 diff --git a/pngwutil.c b/pngwutil.c
 --- a/pngwutil.c
 +++ b/pngwutil.c
-@@ -823,6 +823,11 @@ png_write_IHDR(png_structrp png_ptr, png
+@@ -840,6 +840,11 @@ png_write_IHDR(png_structrp png_ptr, png
     /* Write the chunk */
     png_write_complete_chunk(png_ptr, png_IHDR, buf, 13);
  
@@ -1373,7 +1373,7 @@ diff --git a/pngwutil.c b/pngwutil.c
     if ((png_ptr->do_filter) == PNG_NO_FILTERS)
     {
  #ifdef PNG_WRITE_FILTER_SUPPORTED
-@@ -1009,7 +1014,17 @@ png_compress_IDAT(png_structrp png_ptr, 
+@@ -1026,7 +1031,17 @@ png_compress_IDAT(png_structrp png_ptr, 
  #endif
  
           if (size > 0)
@@ -1391,7 +1391,7 @@ diff --git a/pngwutil.c b/pngwutil.c
           png_ptr->mode |= PNG_HAVE_IDAT;
  
           png_ptr->zstream.next_out = data;
-@@ -1056,7 +1071,17 @@ png_compress_IDAT(png_structrp png_ptr, 
+@@ -1073,7 +1088,17 @@ png_compress_IDAT(png_structrp png_ptr, 
  #endif
  
           if (size > 0)
@@ -1409,7 +1409,7 @@ diff --git a/pngwutil.c b/pngwutil.c
           png_ptr->zstream.avail_out = 0;
           png_ptr->zstream.next_out = NULL;
           png_ptr->mode |= PNG_HAVE_IDAT | PNG_AFTER_IDAT;
-@@ -1891,6 +1916,82 @@ png_write_tIME(png_structrp png_ptr, png
+@@ -1931,6 +1956,82 @@ png_write_tIME(png_structrp png_ptr, png
  }
  #endif
  

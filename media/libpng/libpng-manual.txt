@@ -1,6 +1,6 @@
 libpng-manual.txt - A description on how to use and modify libpng
 
- Copyright (c) 2018-2024 Cosmin Truta
+ Copyright (c) 2018-2025 Cosmin Truta
  Copyright (c) 1998-2018 Glenn Randers-Pehrson
 
  This document is released under the libpng license.
@@ -9,9 +9,9 @@ libpng-manual.txt - A description on how to use and modify libpng
 
  Based on:
 
- libpng version 1.6.36, December 2018, through 1.6.44 - September 2024
+ libpng version 1.6.36, December 2018, through 1.6.45 - January 2025
  Updated and distributed by Cosmin Truta
- Copyright (c) 2018-2024 Cosmin Truta
+ Copyright (c) 2018-2025 Cosmin Truta
 
  libpng versions 0.97, January 1998, through 1.6.35 - July 2018
  Updated and distributed by Glenn Randers-Pehrson
@@ -5173,7 +5173,7 @@ a pre-existing bug where the per-chunk 'keep' setting is ignored, and makes
 it possible to skip IDAT chunks in the sequential reader.
 
 The machine-generated configure files are no longer included in branches
-libpng16 and later of the GIT repository.  They continue to be included
+libpng17 and later of the GIT repository.  They continue to be included
 in the tarball releases, however.
 
 Libpng-1.6.0 through 1.6.2 used the CMF bytes at the beginning of the IDAT

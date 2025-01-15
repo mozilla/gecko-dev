@@ -18,15 +18,21 @@ UNIFIED_SOURCES += [
     'pngerror.c',
     'pngget.c',
     'pngmem.c',
-    'pngpread.c',
     'pngread.c',
     'pngrio.c',
     'pngrtran.c',
-    'pngrutil.c',
     'pngset.c',
     'pngtrans.c',
     'pngwio.c',
     'pngwrite.c',
+]
+
+# These source files all define duplicate interlacing symbols (starting at
+# png_pass_start) so they can't be compiled together. When the libpng is
+# refactored to avoid this we can merge these back into UNIFIED_SOURCES.
+SOURCES += [
+    'pngpread.c',
+    'pngrutil.c',
     'pngwutil.c'
 ]
 
