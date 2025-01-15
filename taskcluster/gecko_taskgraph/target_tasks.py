@@ -752,8 +752,8 @@ def target_tasks_custom_car_perf_testing(full_task_graph, parameters, graph_conf
                     return False
                 if "jetstream2" in try_name:
                     return True
-                # Bug 1898514: avoid tp6m or non-essential tp6 jobs in cron
-                if "tp6m" in try_name:
+                # Bug 1898514: avoid tp6m or non-essential tp6 jobs in cron on non-a55 platform
+                if "tp6m" in try_name and "a55" not in platform:
                     return False
                 return True
         return False
