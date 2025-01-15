@@ -2074,21 +2074,6 @@ browserLowMemoryPrefs:
         branch: default
         pref: "browser.tabs.unloadOnLowMemory"
 
-scriptLoaderPrefs:
-  description: Prefs that control the script loader.
-  owner: npierron@mozilla.com
-  hasExposure: false
-  variables:
-    delazificationStrategy:
-      description: >-
-        Selects which parsing/delazification strategy should be used while
-        parsing scripts off-main-thread. See DelazificationOption in
-        CompileOptions.h for values.
-      type: int
-      setPref:
-        branch: default
-        pref: "dom.script_loader.delazification.strategy"
-
 echPrefs:
   description: Prefs that control Encrypted Client Hello.
   owner: djackson@mozilla.com
