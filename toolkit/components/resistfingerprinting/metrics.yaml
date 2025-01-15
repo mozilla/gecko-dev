@@ -1710,25 +1710,6 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  webglinfo:
-    type: text
-    description: >
-      A JSON blob that contains information about the graphics hardware exposed by WebGL.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896101
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
   gl_version:
     type: quantity
     unit: int
@@ -2359,26 +2340,6 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  voices:
-    type: text
-    description: >
-      Available speechSynthesis voices.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886387
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886387#c4
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
   voices_count:
     type: quantity
     unit: int
@@ -2769,27 +2730,6 @@ characteristics:
     data_sensitivity:
       - technical
 
-  media_devices:
-    type: text
-    description: >
-      A JSON object containing the number of audio input/output, video input and
-      the number of unique group ids.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896736
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896736#c4
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
   camera_count:
     type: quantity
     unit: int
@@ -2977,25 +2917,6 @@ characteristics:
     expires: never
     data_sensitivity:
       - interaction
-
-  media_capabilities:
-    type: text
-    description: >
-      Which, if any, media types are not supported, and whether they can be run smoothly and power-efficiently.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1899181
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1899181#c3
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
 
   media_capabilities_unsupported:
     type: text
@@ -3258,26 +3179,6 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
-
-  ice_foundations:
-    type: text
-    description: >
-      Unique ICE foundations occurance count and the
-      standard deviation of latencies
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902003
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902003#c2
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
 
   ice_order:
     type: quantity
