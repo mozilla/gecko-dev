@@ -54,17 +54,20 @@ add_task(async function () {
       content.fetch("data?size=" + size);
     });
     await onRequest;
-
-    info(`Wait for eventTimings for throttling profile ${profile.id}`);
-    await waitForRequestData(store, ["eventTimings"]);
-
     const requestItem = getSortedRequests(store.getState()).at(-1);
-    if (requestItem.eventTimings) {
-      Assert.greater(
-        requestItem.eventTimings.timings.receive,
-        1000,
-        `Request was properly throttled for profile ${profile.id}`
-      );
+
+    if (profile.id !== "Offline") {
+      // There will be no event timing data for the Offline profile.
+      info(`Wait for eventTimings for throttling profile ${profile.id}`);
+      await waitForRequestData(store, ["eventTimings"], requestItem.id);
+
+      if (requestItem.eventTimings) {
+        Assert.greater(
+          requestItem.eventTimings.timings.receive,
+          1000,
+          `Request was properly throttled for profile ${profile.id}`
+        );
+      }
     }
   }
 

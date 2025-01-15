@@ -531,6 +531,8 @@ skip-if = [
 
 ["browser_net_throttling_cached.js"]
 
+["browser_net_throttling_menu.js"]
+
 ["browser_net_throttling_profiles.js"]
 
 ["browser_net_timeline_ticks.js"]

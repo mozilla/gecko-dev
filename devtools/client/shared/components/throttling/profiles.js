@@ -41,6 +41,20 @@ class ThrottlingProfile {
     );
   }
 
+  get menuItemLabel() {
+    const download = this.#toDescriptionData(this.download);
+    const upload = this.#toDescriptionData(this.upload);
+    return L10N.getFormatStr(
+      "throttling.profile.label",
+      this.id,
+      download.value,
+      download.unit,
+      upload.value,
+      upload.unit,
+      this.latency
+    );
+  }
+
   #toDescriptionData(val) {
     if (val % MBps === 0) {
       return { value: val / MBps, unit: "Mbps" };
@@ -63,6 +77,12 @@ const PROFILE_CONSTANTS = {
 
 // Should be synced with devtools/docs/user/network_monitor/throttling/index.rst
 const profiles = [
+  {
+    id: PROFILE_CONSTANTS.OFFLINE,
+    download: 0,
+    upload: 0,
+    latency: 5,
+  },
   {
     id: PROFILE_CONSTANTS.GPRS,
     download: 50 * KBps,
@@ -110,12 +130,6 @@ const profiles = [
     download: 30 * MBps,
     upload: 15 * MBps,
     latency: 2,
-  },
-  {
-    id: PROFILE_CONSTANTS.OFFLINE,
-    download: 0,
-    upload: 0,
-    latency: 5,
   },
 ].map(profile => new ThrottlingProfile(profile));
 

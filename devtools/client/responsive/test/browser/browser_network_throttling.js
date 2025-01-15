@@ -40,16 +40,14 @@ function testNetworkThrottlingSelectorLabel(
   expectedLabel,
   expectedTooltip
 ) {
-  const title = ui.toolWindow.document.querySelector(
-    "#network-throttling-menu .title"
-  );
+  const menu = ui.toolWindow.document.querySelector("#network-throttling");
   is(
-    title.textContent,
+    menu.textContent,
     expectedLabel,
     `Button label should be changed to ${expectedLabel}`
   );
   is(
-    title.parentNode.getAttribute("title"),
+    menu.getAttribute("title"),
     expectedTooltip,
     `Button tooltip should be changed to ${expectedTooltip}`
   );

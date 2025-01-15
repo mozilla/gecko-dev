@@ -5,6 +5,7 @@
 "use strict";
 
 const {
+  createFactory,
   PureComponent,
 } = require("resource://devtools/client/shared/vendor/react.js");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
@@ -19,13 +20,25 @@ const L10N = new LocalizationHelper(
   "devtools/client/locales/network-throttling.properties"
 );
 const NO_THROTTLING_LABEL = L10N.getStr("responsive.noThrottling");
+const OFFLINE_LABEL = L10N.getStr("responsive.offline");
 
-loader.lazyRequireGetter(
-  this,
-  "showMenu",
-  "resource://devtools/client/shared/components/menu/utils.js",
-  true
-);
+loader.lazyGetter(this, "MenuItem", () => {
+  const menuItemClass = require("resource://devtools/client/shared/components/menu/MenuItem.js");
+  const menuItem = createFactory(menuItemClass);
+  menuItem.DUMMY_ICON = menuItemClass.DUMMY_ICON;
+  return menuItem;
+});
+
+loader.lazyGetter(this, "MenuButton", () => {
+  return createFactory(
+    require("resource://devtools/client/shared/components/menu/MenuButton.js")
+  );
+});
+loader.lazyGetter(this, "MenuList", () => {
+  return createFactory(
+    require("resource://devtools/client/shared/components/menu/MenuList.js")
+  );
+});
 
 /**
  * This component represents selector button that can be used
@@ -36,41 +49,48 @@ class NetworkThrottlingMenu extends PureComponent {
     return {
       networkThrottling: PropTypes.shape(Types.networkThrottling).isRequired,
       onChangeNetworkThrottling: PropTypes.func.isRequired,
+      toolboxDoc: PropTypes.object.isRequired,
     };
   }
 
-  constructor(props) {
-    super(props);
-    this.onShowThrottlingMenu = this.onShowThrottlingMenu.bind(this);
-  }
-
-  onShowThrottlingMenu(event) {
+  renderThrottlingMenu() {
     const { networkThrottling, onChangeNetworkThrottling } = this.props;
 
     const menuItems = throttlingProfiles.profiles.map(profile => {
-      return {
-        label: profile.id,
-        type: "checkbox",
+      const isOffline =
+        throttlingProfiles.PROFILE_CONSTANTS.OFFLINE === profile.id;
+      return MenuItem({
+        id: profile.id,
+        key: profile.id,
+        className: "network-throttling-item",
         checked:
           networkThrottling.enabled && profile.id == networkThrottling.profile,
-        click: () => onChangeNetworkThrottling(true, profile.id),
-      };
+        icon: null,
+        label: isOffline ? OFFLINE_LABEL : profile.menuItemLabel,
+        tooltip: isOffline ? OFFLINE_LABEL : profile.description,
+        onClick: () => onChangeNetworkThrottling(true, profile.id),
+      });
     });
 
-    menuItems.unshift("-");
+    menuItems.unshift(dom.hr({ key: "separator" }));
 
-    menuItems.unshift({
-      label: NO_THROTTLING_LABEL,
-      type: "checkbox",
-      checked: !networkThrottling.enabled,
-      click: () => onChangeNetworkThrottling(false, ""),
-    });
-
-    showMenu(menuItems, { button: event.target });
+    menuItems.unshift(
+      MenuItem({
+        id: NO_THROTTLING_LABEL,
+        key: NO_THROTTLING_LABEL,
+        className: "network-throttling-item",
+        checked: !networkThrottling.enabled,
+        icon: null,
+        label: NO_THROTTLING_LABEL,
+        tooltip: NO_THROTTLING_LABEL,
+        onClick: () => onChangeNetworkThrottling(false, ""),
+      })
+    );
+    return MenuList({}, menuItems);
   }
 
   render() {
-    const { networkThrottling } = this.props;
+    const { networkThrottling, toolboxDoc } = this.props;
     const label = networkThrottling.enabled
       ? networkThrottling.profile
       : NO_THROTTLING_LABEL;
@@ -85,14 +105,17 @@ class NetworkThrottlingMenu extends PureComponent {
       title = selectedProfile.description;
     }
 
-    return dom.button(
+    return MenuButton(
       {
-        id: "network-throttling-menu",
+        id: "network-throttling",
+        menuId: "network-throttling-menu",
+        toolboxDoc,
         className: "devtools-button devtools-dropdown-button",
+        icon: null,
+        label,
         title,
-        onClick: this.onShowThrottlingMenu,
       },
-      dom.span({ className: "title" }, label)
+      () => this.renderThrottlingMenu()
     );
   }
 }

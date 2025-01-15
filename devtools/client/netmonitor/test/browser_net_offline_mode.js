@@ -17,10 +17,8 @@ add_task(async function () {
   const { tab, monitor, toolbox } = await initNetMonitor(HTTPS_CUSTOM_GET_URL, {
     requestCount: 1,
   });
-  const { document } = monitor.panelWin;
-
-  await selectThrottle(document, monitor, toolbox, PROFILE_CONSTANTS.OFFLINE);
-  assertCurrentThrottleSelected(document, PROFILE_CONSTANTS.OFFLINE);
+  await selectThrottle(monitor, PROFILE_CONSTANTS.OFFLINE);
+  assertCurrentThrottleSelected(monitor, PROFILE_CONSTANTS.OFFLINE);
 
   const offlineEventFired = SpecialPowers.spawn(
     tab.linkedBrowser,
@@ -38,13 +36,8 @@ add_task(async function () {
   await assertNavigatorOnlineInConsole(toolbox, "false");
   await assertPageIsOffline();
 
-  await selectThrottle(
-    document,
-    monitor,
-    toolbox,
-    PROFILE_CONSTANTS.REGULAR_4G_LTE
-  );
-  assertCurrentThrottleSelected(document, PROFILE_CONSTANTS.REGULAR_4G_LTE);
+  await selectThrottle(monitor, PROFILE_CONSTANTS.REGULAR_4G_LTE);
+  assertCurrentThrottleSelected(monitor, PROFILE_CONSTANTS.REGULAR_4G_LTE);
 
   await reloadBrowser();
 
@@ -54,23 +47,10 @@ add_task(async function () {
   await teardown(monitor);
 });
 
-async function selectThrottle(document, monitor, toolbox, profileId) {
-  info(`Selecting the '${profileId}' profile`);
-  document.getElementById("network-throttling-menu").click();
-  // Throttling menu items cannot be retrieved by id so we can't use getContextMenuItem
-  // here. Instead use querySelector on the toolbox top document, where the context menu
-  // will be rendered.
-  const item = toolbox.topWindow.document.querySelector(
-    "menuitem[label='" + profileId + "']"
-  );
-  await BrowserTestUtils.waitForPopupEvent(item.parentNode, "shown");
-  item.parentNode.activateItem(item);
-  await monitor.panelWin.api.once(TEST_EVENTS.THROTTLING_CHANGED);
-}
-
-function assertCurrentThrottleSelected(document, expectedProfile) {
+function assertCurrentThrottleSelected(monitor, expectedProfile) {
+  const doc = monitor.panelWin.document;
   is(
-    document.querySelector("#network-throttling-menu .title").innerText,
+    doc.querySelector("#network-throttling").innerText,
     expectedProfile,
     `The '${expectedProfile}' throttle profile is correctly selected`
   );

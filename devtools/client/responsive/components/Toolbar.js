@@ -162,6 +162,10 @@ class Toolbar extends PureComponent {
         }),
         dom.div({ className: "devtools-separator" }),
         NetworkThrottlingMenu({
+          // NetworkThrottlingMenu expects to display the Menu in the toolbox document
+          // but for RDM we can just use window.document, same as for the device
+          // selector MenuButton.
+          toolboxDoc: window.document,
           networkThrottling,
           onChangeNetworkThrottling,
         }),

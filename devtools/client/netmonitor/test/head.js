@@ -1605,3 +1605,33 @@ function hasValidSize(request) {
     request.querySelector(".requests-list-size").innerText
   );
 }
+
+function getThrottleProfileItem(monitor, profileId) {
+  const toolboxDoc = monitor.toolbox.doc;
+
+  const popup = toolboxDoc.querySelector("#network-throttling-menu");
+  const menuItems = [...popup.querySelectorAll(".menuitem > .command")];
+  return menuItems.find(menuItem => menuItem.id == profileId);
+}
+
+async function selectThrottle(monitor, profileId) {
+  const panelDoc = monitor.panelWin.document;
+  const toolboxDoc = monitor.toolbox.doc;
+
+  info("Opening the throttling menu");
+
+  const onShown = BrowserTestUtils.waitForPopupEvent(toolboxDoc, "shown");
+  panelDoc.getElementById("network-throttling").click();
+
+  info("Waiting for the throttling menu to be displayed");
+  await onShown;
+
+  const profileItem = getThrottleProfileItem(monitor, profileId);
+  ok(profileItem, "Found a profile throttling menu item for id " + profileId);
+
+  info(`Selecting the '${profileId}' profile`);
+  profileItem.click();
+
+  info(`Waiting for the '${profileId}' profile to be applied`);
+  await monitor.panelWin.api.once(TEST_EVENTS.THROTTLING_CHANGED);
+}

@@ -463,10 +463,19 @@ async function testMenuItems(toolWindow, button, testFn) {
     win.document.addEventListener(
       "popupshown",
       async () => {
-        if (button.id === "device-selector") {
-          const popup = toolWindow.document.querySelector(
-            "#device-selector-menu"
-          );
+        // Handle MenuButton popups (device selector and network throttling).
+        if (
+          button.id === "device-selector" ||
+          button.id === "network-throttling"
+        ) {
+          let popupId;
+          if (button.id === "device-selector") {
+            popupId = "#device-selector-menu";
+          } else {
+            popupId = "#network-throttling-menu";
+          }
+
+          const popup = toolWindow.document.querySelector(popupId);
           const menuItems = [...popup.querySelectorAll(".menuitem > .command")];
 
           testFn(menuItems);
@@ -514,7 +523,7 @@ const selectDevicePixelRatio = (ui, value) =>
 const selectNetworkThrottling = (ui, value) =>
   Promise.all([
     once(ui, "network-throttling-changed"),
-    selectMenuItem(ui, "#network-throttling-menu", value),
+    selectMenuItem(ui, "#network-throttling", value),
   ]);
 
 function getSessionHistory(browser) {

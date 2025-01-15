@@ -24,6 +24,7 @@ The table below lists the numbers associated with each network type, but please 
   :header: "Selection", "Download speed", "Upload speed", "Minimum latency"
   :widths: auto
 
+  Offline, 0 Mbps, 0 Mbps, 5
   GPRS, 50 Kbps, 20 Kbps, 500
   Regular 2G, 250 Kbps, 50 Kbps, 300
   Good 2G, 450 Kbps, 150 Kbps, 150
@@ -32,7 +33,6 @@ The table below lists the numbers associated with each network type, but please 
   Regular 4G/LTE, 4 Mbps, 3 Mbps, 20
   DSL, 2 Mbps, 1 Mbps, 5
   Wi-Fi, 30 Mbps, 15 Mbps, 2
-  Offline, 0 Mbps, 0 Mbps, 5
 
 Network Monitor Features
 ************************
