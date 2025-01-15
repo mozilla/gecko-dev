@@ -1869,6 +1869,40 @@ static bool TypedArray_set(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<IsTypedArrayObject, TypedArray_set>(cx, args);
 }
 
+/**
+ * Convert |value| to an integer and clamp it to a valid integer index within
+ * the range `[0..length]`.
+ */
+static bool ToIntegerIndex(JSContext* cx, Handle<Value> value, size_t length,
+                           size_t* result) {
+  // Optimize for the common case when |value| is an int32 to avoid unnecessary
+  // floating point computations.
+  if (value.isInt32()) {
+    int32_t relative = value.toInt32();
+
+    if (relative >= 0) {
+      *result = std::min(size_t(relative), length);
+    } else if (mozilla::Abs(relative) <= length) {
+      *result = length - mozilla::Abs(relative);
+    } else {
+      *result = 0;
+    }
+    return true;
+  }
+
+  double relative;
+  if (!ToInteger(cx, value, &relative)) {
+    return false;
+  }
+
+  if (relative >= 0) {
+    *result = size_t(std::min(relative, double(length)));
+  } else {
+    *result = size_t(std::max(relative + double(length), 0.0));
+  }
+  return true;
+}
+
 // ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
 // 22.2.3.5 %TypedArray%.prototype.copyWithin ( target, start [ , end ] )
 static bool TypedArray_copyWithin(JSContext* cx, const CallArgs& args) {
@@ -1887,55 +1921,33 @@ static bool TypedArray_copyWithin(JSContext* cx, const CallArgs& args) {
   // Step 3.
   size_t len = *arrayLength;
 
-  // Step 4.
-  double relativeTarget;
-  if (!ToInteger(cx, args.get(0), &relativeTarget)) {
-    return false;
-  }
-
-  // Step 5.
-  uint64_t to;
-  if (relativeTarget < 0) {
-    to = std::max(len + relativeTarget, 0.0);
-  } else {
-    to = std::min(relativeTarget, double(len));
-  }
-
-  // Step 6.
-  double relativeStart;
-  if (!ToInteger(cx, args.get(1), &relativeStart)) {
-    return false;
-  }
-
-  // Step 7.
-  uint64_t from;
-  if (relativeStart < 0) {
-    from = std::max(len + relativeStart, 0.0);
-  } else {
-    from = std::min(relativeStart, double(len));
-  }
-
-  // Step 8.
-  double relativeEnd;
-  if (!args.hasDefined(2)) {
-    relativeEnd = len;
-  } else {
-    if (!ToInteger(cx, args[2], &relativeEnd)) {
+  // Steps 4-5.
+  size_t to = 0;
+  if (args.hasDefined(0)) {
+    if (!ToIntegerIndex(cx, args[0], len, &to)) {
       return false;
     }
   }
 
-  // Step 9.
-  uint64_t final_;
-  if (relativeEnd < 0) {
-    final_ = std::max(len + relativeEnd, 0.0);
-  } else {
-    final_ = std::min(relativeEnd, double(len));
+  // Steps 6-7.
+  size_t from = 0;
+  if (args.hasDefined(1)) {
+    if (!ToIntegerIndex(cx, args[1], len, &from)) {
+      return false;
+    }
+  }
+
+  // Steps 8-9.
+  size_t final_ = len;
+  if (args.hasDefined(2)) {
+    if (!ToIntegerIndex(cx, args[2], len, &final_)) {
+      return false;
+    }
   }
 
   // Step 10.
   MOZ_ASSERT(to <= len);
-  uint64_t count;
+  size_t count;
   if (from <= final_) {
     count = std::min(final_ - from, len - to);
   } else {
@@ -2378,8 +2390,7 @@ static bool TypedArray_indexOf(JSContext* cx, const CallArgs& args) {
   size_t k = 0;
   if (args.hasDefined(1)) {
     // Steps 5-6.
-    double fromIndex;
-    if (!ToInteger(cx, args[1], &fromIndex)) {
+    if (!ToIntegerIndex(cx, args[1], len, &k)) {
       return false;
     }
 
@@ -2387,21 +2398,10 @@ static bool TypedArray_indexOf(JSContext* cx, const CallArgs& args) {
     // the array buffer.
     len = std::min(len, tarray->length().valueOr(0));
 
-    // Return early if the new length is zero.
-    if (len == 0) {
+    // Return early if |k| exceeds the current length.
+    if (k >= len) {
       args.rval().setInt32(-1);
       return true;
-    }
-
-    // Steps 7-10.
-    if (fromIndex >= 0) {
-      if (fromIndex >= double(len)) {
-        args.rval().setInt32(-1);
-        return true;
-      }
-      k = size_t(fromIndex);
-    } else {
-      k = size_t(std::max(0.0, fromIndex + double(len)));
     }
   }
   MOZ_ASSERT(k < len);
@@ -2721,23 +2721,9 @@ static bool TypedArray_includes(JSContext* cx, const CallArgs& args) {
   // Steps 5-10.
   size_t k = 0;
   if (args.hasDefined(1)) {
-    // Steps 5-6.
-    double fromIndex;
-    if (!ToInteger(cx, args[1], &fromIndex)) {
+    if (!ToIntegerIndex(cx, args[1], len, &k)) {
       return false;
     }
-
-    // Steps 7-10.
-    if (fromIndex >= 0) {
-      if (fromIndex >= double(len)) {
-        args.rval().setBoolean(false);
-        return true;
-      }
-      k = size_t(fromIndex);
-    } else {
-      k = size_t(std::max(0.0, fromIndex + double(len)));
-    }
-    MOZ_ASSERT(k < len);
 
     // Reacquire the length because side-effects may have detached or resized
     // the array buffer.
@@ -2749,20 +2735,19 @@ static bool TypedArray_includes(JSContext* cx, const CallArgs& args) {
     if (currentLength < len) {
       // Accessing an element beyond the typed array length returns `undefined`,
       // so return `true` iff the search element is `undefined`.
-      if (args[0].isUndefined()) {
+      if (k < len && args[0].isUndefined()) {
         args.rval().setBoolean(true);
-        return true;
-      }
-
-      // If the search element isn't `undefined` and |k| is beyond the current
-      // length, return `false`.
-      if (k >= currentLength) {
-        args.rval().setBoolean(false);
         return true;
       }
 
       // Otherwise just restrict |len| to the current length.
       len = currentLength;
+    }
+
+    // Return early if |k| exceeds the current length.
+    if (k >= len) {
+      args.rval().setBoolean(false);
+      return true;
     }
   }
   MOZ_ASSERT(k < len);
@@ -2916,34 +2901,16 @@ static bool TypedArray_fill(JSContext* cx, const CallArgs& args) {
   // Steps 6-9
   size_t startIndex = 0;
   if (args.hasDefined(1)) {
-    // Step 6.
-    double relativeStart;
-    if (!ToInteger(cx, args[1], &relativeStart)) {
+    if (!ToIntegerIndex(cx, args[1], len, &startIndex)) {
       return false;
-    }
-
-    // Steps 7-9.
-    if (relativeStart < 0) {
-      startIndex = size_t(std::max(double(len) + relativeStart, 0.0));
-    } else {
-      startIndex = size_t(std::min(relativeStart, double(len)));
     }
   }
 
   // Steps 10-13.
   size_t endIndex = len;
   if (args.hasDefined(2)) {
-    // Step 10.
-    double relativeEnd;
-    if (!ToInteger(cx, args[2], &relativeEnd)) {
+    if (!ToIntegerIndex(cx, args[2], len, &endIndex)) {
       return false;
-    }
-
-    // Steps 11-13.
-    if (relativeEnd < 0) {
-      endIndex = size_t(std::max(double(len) + relativeEnd, 0.0));
-    } else {
-      endIndex = size_t(std::min(relativeEnd, double(len)));
     }
   }
 
