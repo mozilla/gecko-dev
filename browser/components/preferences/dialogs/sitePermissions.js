@@ -155,6 +155,7 @@ var gSitePermissionsManager = {
       this._isObserving = true;
     }
 
+    document.addEventListener("command", this);
     document.addEventListener("dialogaccept", this);
     window.addEventListener("unload", this);
 
@@ -263,6 +264,22 @@ var gSitePermissionsManager = {
 
   handleEvent(event) {
     switch (event.type) {
+      case "command":
+        switch (event.target.id) {
+          case "key_close":
+            window.close();
+            break;
+          case "searchBox":
+            this.buildPermissionsList();
+            break;
+          case "removePermission":
+            this.onPermissionDelete();
+            break;
+          case "removeAllPermissions":
+            this.onAllPermissionsDelete();
+            break;
+        }
+        break;
       case "dialogaccept":
         this.onApplyChanges();
         break;

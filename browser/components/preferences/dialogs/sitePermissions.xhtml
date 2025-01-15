@@ -43,9 +43,9 @@
 
     <keyset>
       <key
+        id="key_close"
         data-l10n-id="permissions-close-key"
         modifiers="accel"
-        oncommand="window.close();"
       />
     </keyset>
 
@@ -61,7 +61,6 @@
           flex="1"
           data-l10n-id="permissions-searchbox"
           data-l10n-attrs="placeholder"
-          oncommand="gSitePermissionsManager.buildPermissionsList();"
         />
       </hbox>
       <separator class="thin" />
@@ -91,13 +90,8 @@
         id="removePermission"
         disabled="true"
         data-l10n-id="permissions-remove"
-        oncommand="gSitePermissionsManager.onPermissionDelete();"
       />
-      <button
-        id="removeAllPermissions"
-        data-l10n-id="permissions-remove-all"
-        oncommand="gSitePermissionsManager.onAllPermissionsDelete();"
-      />
+      <button id="removeAllPermissions" data-l10n-id="permissions-remove-all" />
     </hbox>
 
     <checkbox id="permissionsDisableCheckbox" />
