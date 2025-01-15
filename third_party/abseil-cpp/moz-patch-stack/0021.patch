@@ -1,0 +1,24 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Sat, 28 Dec 2024 13:48:00 -0600
+Subject: Bug 1935474 - turn off ABSL_HAVE_GETAUXVAL for arm linux to fix build
+ failures. r?ng!
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ac5b730fd85881bd43fd43310ced6e1a8dbf6c66
+---
+ abseil-cpp/absl/random/internal/randen_detect.cc | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/abseil-cpp/absl/random/internal/randen_detect.cc b/abseil-cpp/absl/random/internal/randen_detect.cc
+index bdeab877b98..50e761eba50 100644
+--- a/abseil-cpp/absl/random/internal/randen_detect.cc
++++ b/abseil-cpp/absl/random/internal/randen_detect.cc
+@@ -36,7 +36,8 @@
+ #if defined(__ANDROID__)
+ #define ABSL_INTERNAL_USE_ANDROID_GETAUXVAL
+ #define ABSL_INTERNAL_USE_GETAUXVAL
+-#elif defined(__linux__) && defined(ABSL_HAVE_GETAUXVAL)
++#elif defined(__linux__) && defined(ABSL_HAVE_GETAUXVAL) && \
++    !defined(ABSL_ARCH_AARCH64)
+ #define ABSL_INTERNAL_USE_LINUX_GETAUXVAL
+ #define ABSL_INTERNAL_USE_GETAUXVAL
+ #endif
