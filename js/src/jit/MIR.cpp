@@ -5755,6 +5755,45 @@ MDefinition* MSameValue::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
+MDefinition* MSameValueDouble::foldsTo(TempAllocator& alloc) {
+  // Trivially true if both operands are the same.
+  if (left() == right()) {
+    return MConstant::New(alloc, BooleanValue(true));
+  }
+
+  // At least one operand must be a constant.
+  if (!left()->isConstant() && !right()->isConstant()) {
+    return this;
+  }
+
+  auto* input = left()->isConstant() ? right() : left();
+  auto* cst = left()->isConstant() ? left() : right();
+  double dbl = cst->toConstant()->toDouble();
+
+  // Use bitwise comparison for +/-0.
+  if (dbl == 0.0) {
+    auto* reinterp = MWasmReinterpret::New(alloc, input, MIRType::Int64);
+    block()->insertBefore(this, reinterp);
+
+    auto* zeroBitsCst =
+        MConstant::NewInt64(alloc, mozilla::BitwiseCast<int64_t>(dbl));
+    block()->insertBefore(this, zeroBitsCst);
+
+    return MCompare::New(alloc, reinterp, zeroBitsCst, JSOp::StrictEq,
+                         MCompare::Compare_Int64);
+  }
+
+  // Fold `Object.is(d, NaN)` to `d !== d`.
+  if (std::isnan(dbl)) {
+    return MCompare::New(alloc, input, input, JSOp::StrictNe,
+                         MCompare::Compare_Double);
+  }
+
+  // Otherwise fold to MCompare.
+  return MCompare::New(alloc, left(), right(), JSOp::StrictEq,
+                       MCompare::Compare_Double);
+}
+
 MDefinition* MNot::foldsTo(TempAllocator& alloc) {
   auto foldConstant = [&alloc](MDefinition* input, MIRType type) -> MConstant* {
     MConstant* inputConst = input->maybeConstantValue();
