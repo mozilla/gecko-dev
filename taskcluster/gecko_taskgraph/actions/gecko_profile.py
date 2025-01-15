@@ -37,14 +37,26 @@ logger = logging.getLogger(__name__)
         {"test-type": "raptor"},
         {"test-type": "mozperftest"},
     ],
-    schema={},
+    schema={
+        "type": "object",
+        "properties": {
+            "depth": {
+                "type": "integer",
+                "default": 1,
+                "minimum": 1,
+                "maximum": 10,
+                "title": "Depth",
+                "description": "How many pushes to backfill the profiling task on.",
+            },
+        },
+    },
     available=lambda parameters: True,
 )
 def geckoprofile_action(parameters, graph_config, input, task_group_id, task_id):
     task = get_task_definition(task_id)
     label = task["metadata"]["name"]
     pushes = []
-    depth = 2
+    depth = input.get("depth", 1)
     end_id = int(parameters["pushlog_id"])
 
     while True:
