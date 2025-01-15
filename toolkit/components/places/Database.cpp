@@ -42,6 +42,11 @@
 // Time between corrupt database backups.
 #define RECENT_BACKUP_TIME_MICROSEC (int64_t)86400 * PR_USEC_PER_SEC  // 24H
 
+// Filename of the database.
+#define DATABASE_FILENAME u"places.sqlite"_ns
+// Filename of the icons database.
+#define DATABASE_FAVICONS_FILENAME u"favicons.sqlite"_ns
+
 // Set to the database file name when it was found corrupt by a previous
 // maintenance run.
 #define PREF_FORCE_DATABASE_REPLACEMENT \
@@ -734,7 +739,7 @@ nsresult Database::EnsureFaviconsDatabaseAttached(
   bool fileExists = false;
   if (NS_SUCCEEDED(databaseFile->Exists(&fileExists)) && fileExists) {
     return AttachDatabase(mMainConn, NS_ConvertUTF16toUTF8(iconsPath),
-                          DATABASE_FAVICONS_SCHEMANAME);
+                          "favicons"_ns);
   }
 
   // Open the database file, this will also create it.
@@ -794,7 +799,7 @@ nsresult Database::EnsureFaviconsDatabaseAttached(
   }
 
   rv = AttachDatabase(mMainConn, NS_ConvertUTF16toUTF8(iconsPath),
-                      DATABASE_FAVICONS_SCHEMANAME);
+                      "favicons"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -1104,8 +1109,6 @@ nsresult Database::SetupDatabaseConnection(
   }
 #endif
 
-  // Note: attaching new databases may require updating `ConcurrentConnection`.
-
   // Attach the favicons database to the main connection.
   rv = EnsureFaviconsDatabaseAttached(aStorage);
   if (NS_FAILED(rv)) {
@@ -1137,7 +1140,7 @@ nsresult Database::SetupDatabaseConnection(
   NS_ENSURE_SUCCESS(rv, rv);
 
   // We use our functions during migration, so initialize them now.
-  rv = InitFunctions(mMainConn);
+  rv = InitFunctions();
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -1654,49 +1657,48 @@ nsresult Database::EnsureBookmarkRoots(const int32_t startPosition,
   return NS_OK;
 }
 
-// static
-nsresult Database::InitFunctions(mozIStorageConnection* aMainConn) {
+nsresult Database::InitFunctions() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsresult rv = GetUnreversedHostFunction::create(aMainConn);
+  nsresult rv = GetUnreversedHostFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = MatchAutoCompleteFunction::create(aMainConn);
+  rv = MatchAutoCompleteFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = CalculateFrecencyFunction::create(aMainConn);
+  rv = CalculateFrecencyFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = GenerateGUIDFunction::create(aMainConn);
+  rv = GenerateGUIDFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = IsValidGUIDFunction::create(aMainConn);
+  rv = IsValidGUIDFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = FixupURLFunction::create(aMainConn);
+  rv = FixupURLFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = StoreLastInsertedIdFunction::create(aMainConn);
+  rv = StoreLastInsertedIdFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = HashFunction::create(aMainConn);
+  rv = HashFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = GetQueryParamFunction::create(aMainConn);
+  rv = GetQueryParamFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = GetPrefixFunction::create(aMainConn);
+  rv = GetPrefixFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = GetHostAndPortFunction::create(aMainConn);
+  rv = GetHostAndPortFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = StripPrefixAndUserinfoFunction::create(aMainConn);
+  rv = StripPrefixAndUserinfoFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = IsFrecencyDecayingFunction::create(aMainConn);
+  rv = IsFrecencyDecayingFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = NoteSyncChangeFunction::create(aMainConn);
+  rv = NoteSyncChangeFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = InvalidateDaysOfHistoryFunction::create(aMainConn);
+  rv = InvalidateDaysOfHistoryFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = SHA256HexFunction::create(aMainConn);
+  rv = SHA256HexFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = SetShouldStartFrecencyRecalculationFunction::create(aMainConn);
+  rv = SetShouldStartFrecencyRecalculationFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = TargetFolderGuidFunction::create(aMainConn);
+  rv = TargetFolderGuidFunction::create(mMainConn);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (StaticPrefs::places_frecency_pages_alternative_featureGate_AtStartup()) {
-    rv = CalculateAltFrecencyFunction::create(aMainConn);
+    rv = CalculateAltFrecencyFunction::create(mMainConn);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 

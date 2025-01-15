@@ -7,9 +7,6 @@
   _className* _className::_sInstance = nullptr;                             \
                                                                             \
   already_AddRefed<_className> _className::GetSingleton() {                 \
-    if (!NS_IsMainThread) {                                                 \
-      return nullptr;                                                       \
-    }                                                                       \
     if (_sInstance) {                                                       \
       RefPtr<_className> ret = _sInstance;                                  \
       return ret.forget();                                                  \
