@@ -336,6 +336,9 @@ const COMMON_PREFERENCES = new Map([
   // Do not download intermediate certificates
   ["security.remote_settings.intermediates.enabled", false],
 
+  // Disable logging for remote settings
+  ["services.settings.loglevel", "off"],
+
   // Ensure remote settings do not hit the network
   ["services.settings.server", "data:,#remote-settings-dummy/v1"],
 
