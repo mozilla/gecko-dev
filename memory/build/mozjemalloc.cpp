@@ -1491,6 +1491,8 @@ class ArenaCollection {
 
     MOZ_RELEASE_ASSERT(tree.Search(aArena), "Arena not in tree");
     tree.Remove(aArena);
+    mNumOperationsDisposedArenas += aArena->Operations();
+
     delete aArena;
   }
 
@@ -1568,6 +1570,12 @@ class ArenaCollection {
     mMainThreadId = Some(GetThreadId());
   }
 
+  // This requires the lock to get a consistent count across all the active
+  // + disposed arenas.
+  size_t OperationsDisposedArenas() MOZ_REQUIRES(mLock) {
+    return mNumOperationsDisposedArenas;
+  }
+
  private:
   const static arena_id_t MAIN_THREAD_ARENA_BIT = 0x1;
 
@@ -1593,6 +1601,10 @@ class ArenaCollection {
   Atomic<int32_t, MemoryOrdering::Relaxed> mDefaultMaxDirtyPageModifier;
   // This is never changed except for forking, and it does not need mLock.
   Maybe<ThreadId> mMainThreadId;
+
+  // The number of operations that happened in arenas that have since been
+  // destroyed.
+  size_t mNumOperationsDisposedArenas = 0;
 };
 
 MOZ_RUNINIT static ArenaCollection gArenas;
@@ -5499,6 +5511,7 @@ inline void MozJemalloc::jemalloc_stats_lite(jemalloc_stats_lite_t* aStats) {
       aStats->allocated_bytes += arena->AllocatedBytes();
       aStats->num_operations += arena->Operations();
     }
+    aStats->num_operations += gArenas.OperationsDisposedArenas();
   }
 }
 
