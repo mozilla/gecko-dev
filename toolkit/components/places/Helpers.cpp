@@ -46,7 +46,7 @@ NS_IMPL_ISUPPORTS(AsyncStatementCallback, mozIStorageStatementCallback)
 
 NS_IMETHODIMP
 WeakAsyncStatementCallback::HandleResult(mozIStorageResultSet* aResultSet) {
-  MOZ_ASSERT(false, "Was not expecting a resultset, but got it.");
+  MOZ_DIAGNOSTIC_CRASH("Was not expecting a resultset, but got it.");
   return NS_OK;
 }
 
@@ -72,6 +72,11 @@ WeakAsyncStatementCallback::HandleError(mozIStorageError* aError) {
   NS_WARNING(warnMsg.get());
 #endif
 
+  return NS_OK;
+}
+
+nsresult PendingStatementCallback::BindParams(mozIStorageBindingParamsArray*) {
+  MOZ_DIAGNOSTIC_CRASH("Must override");
   return NS_OK;
 }
 

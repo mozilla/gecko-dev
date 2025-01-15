@@ -36,6 +36,7 @@ if CONFIG["MOZ_PLACES"]:
     ]
 
     UNIFIED_SOURCES += [
+        "ConcurrentConnection.cpp",
         "Database.cpp",
         "FaviconHelpers.cpp",
         "Helpers.cpp",
