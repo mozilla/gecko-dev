@@ -49,9 +49,6 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_host_title">Indi Makita ang Address</string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Wala koneksyon sa internet</string>
-
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Mag-reload</string>
 

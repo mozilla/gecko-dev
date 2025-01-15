@@ -195,11 +195,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Žeden internetny zwisk</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Zda se, až jo problem z wašym internetnym zwiskom</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Pśeglědajśo swój seśowy zwisk abo zacytajśo bok za mało wokognuśow znowego.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Wopytajśo z drugim rědom zwězaś. Pśeglědajśo swój modem abo router. Źělśo zwisk WLAN a zwěžćo znowego.</string>
     <!-- The document title and heading of an error page. -->

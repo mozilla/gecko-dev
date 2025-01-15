@@ -13,25 +13,18 @@
     <string name="tab_tray_add_new_collection_name">Ngalan</string>
 
 
+    <!-- Browser Fragment -->
     <!-- Content description (not visible, for screen readers etc.): Navigate backward (browsing history) -->
     <string name="browser_menu_back">Balikan</string>
 
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">Mga add-on</string>
-    <!-- Browser menu button that opens the addon extensions manager -->
+    <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Mga extension</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Bulig</string>
     <!-- Browser menu button that sends a to a the what's new article -->
     <string name="browser_menu_whats_new">Anu ang Bag-o</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">Mag-install</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Mag-resync</string>
-
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Mag-scan</string>
 
     <!-- Preference linking to about page for Fenix
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
@@ -41,8 +34,6 @@
 
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">Kasayuran</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Toolbar</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Tema</string>
     <!-- Preference for settings related to visual options -->
@@ -50,13 +41,12 @@
     <!-- Preference for language -->
     <string name="preferences_language">Lenggwahe</string>
 
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">Mga login</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Buksan ang mga tab</string>
     <!-- Preference for signing out -->
     <string name="preferences_sign_out">Mag sign out</string>
 
+    <!-- Advanced Preferences -->
     <!-- Preference for tracking protection exceptions -->
     <string name="preferences_tracking_protection_exceptions">Pagkatuhay</string>
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
@@ -103,9 +93,9 @@
     <string name="close_tabs_after_one_month">Pagkatapos sang isa ka bulan</string>
 
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">Sige</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">Sige</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Kanselahon</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Kanselahon</string>
 
     <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
     <string name="tab_drawer_fab_content">Pribado</string>

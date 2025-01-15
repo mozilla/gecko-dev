@@ -192,11 +192,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">אין חיבור לרשת</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">נראה שיש בעיה בחיבור האינטרנט שלך</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">נא לבדוק את החיבור שלך לרשת או לנסות לטעון את הדף מחדש בעוד מספר רגעים.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">נא לנסות להתחבר במכשיר אחר, לבדוק את המודם או הנתב שלך, ולהתנתק ולהתחבר מחדש ל־Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

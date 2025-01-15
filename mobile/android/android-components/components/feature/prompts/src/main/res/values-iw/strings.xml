@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">להשתמש בססמה חזקה?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ניתן להגן על החשבונות שלך על־ידי שימוש בססמה חזקה הנוצרת באופן אקראי. הססמה תישמר בחשבון שלך לשימוש עתידי.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">ניתן להגן על החשבון שלך על־ידי שימוש בססמה חזקה הנוצרת באופן אקראי. הססמה תישמר בחשבון שלך לשימוש עתידי.</string>

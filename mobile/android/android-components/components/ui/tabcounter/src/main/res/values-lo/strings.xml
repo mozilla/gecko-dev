@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-    <!-- Message announced to the user when tab tray is selected with 1 tab -->
-    <string name="mozac_tab_counter_open_tab_tray_single" moz:removedIn="133" tools:ignore="UnusedResources">1 ເປີດແທັບ. ແຕະເພື່ອປ່ຽນແທັບ.</string>
-    <!-- Message announced to the user when tab tray is selected with multiple tabs -->
-    <string name="mozac_tab_counter_open_tab_tray_plural" moz:removedIn="133" tools:ignore="UnusedResources">%1$s ເປີດແທັບ. ແຕະເພື່ອປ່ຽນແທັບ.</string>
     <!-- Message announced to the user when tab tray is selected
     The %1$s will be replaced by the number of opened tabs -->
     <string name="mozac_tab_counter_open_tab_tray">ເປີດແທັບ: %1$s. ແຕະເພື່ອສະຫຼັບແທັບ.</string>

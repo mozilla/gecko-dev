@@ -116,8 +116,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Starkes Passwort verwenden?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Schützen Sie Ihre Konten, indem Sie ein starkes, zufällig generiertes Passwort verwenden. Es wird zur zukünftigen Verwendung in Ihrem Konto gespeichert.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Schützen Sie Ihr Konto mit einem starken, zufällig erzeugten Passwort. Es wird zur zukünftigen Verwendung in Ihrem Konto gespeichert.</string>

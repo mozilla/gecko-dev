@@ -44,7 +44,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Enrollañ an ivinelloù diuzet en dastumad</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Diuzet</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Diuzet</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -95,12 +95,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Argas</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Hor c’heweriuster prevezded araoketañ betek-hen a lak an heulierien a-gostez.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Gouzout hiroc’h a-zivout ar gwarez toupinoù hollek</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -115,12 +109,6 @@
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Stokit ha dalc’hit ar biroù evit lammat etre ar pajennoù e roll istor an ivinell.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nevez: stokit ur wech war ar biroù dehoù ha kleiz.</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Ur merdeiñ primoc’h e beg ho pizied.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Ezhomm a zo haeziñ ar c’hamera. Kit e Arventennoù Android, stokit war an aotreoù ha stokit war aotren.</string>
@@ -332,9 +320,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Serriñ panell al lañser ivinelloù personelaet</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Mod lenn, treiñ, moullañ, rannañ, digeriñ en un arload</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Mod lenn, treiñ, moullañ, rannañ, digeriñ en un arload</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Mod lenn, moullañ, rannañ, digeriñ en un arload</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Mod lenn, moullañ, rannañ, digeriñ en un arload</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Enrollañ</string>
@@ -398,8 +386,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Cʼhwilerviñ</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">C’hwilerviñ ur c’hod QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Arventennoù al lusker klask</string>
@@ -425,16 +411,12 @@
 
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Evit ar c’hlask-mañ:</string>
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Lusker klask %s</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Luskerioù enklask: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Kejit gant ho pajenn degemer personelaet. Ivinelloù nevez, sinedoù ha disoc’hoù enklask a vo diskouezet amañ.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Donemat war un internet personeloc’h</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -511,10 +493,6 @@
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Personelait ho Firefox gant askouezhioù</string>
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Ouzhpennit askouezhioù evit gwellaat ho diogelroez, kenderc\'husted ha muioc’h c’hoazh</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Ergerzhout askouezhioù ouzhpenn</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Kregiñ gant ar merdeiñ.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Ergerzhout askouezhioù ouzhpenn</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -599,8 +577,6 @@
     <string name="preferences_category_advanced">Kempleshocʼh</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Buhez prevez ha diogelroez</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Aotreoù al lecʼhiennoù</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">Arventennoù al lec\'hienn</string>
     <!-- Preference for private browsing options -->
@@ -941,15 +917,16 @@
     <string name="exceptions_empty_message_learn_more_link">Gouzout hirocʼh</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Roadennoù teknikel hag arver</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Roadennoù teknikel hag arver</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Rann ar roadennoù digonusted, arver, periant ha personeladur a-zivout ho merdeer gant Mozilla evit sikour acʼhanomp da wellaat %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Roadennoù Marketing</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Rannañ titouroù implijoù diazez gant Adjust, hor cʼheveler marketing hezoug</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Kas an danevelloù sac’hadenn ent emgefreek</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Rannañ titouroù implijoù diazez gant Adjust, hor cʼheveler marketing hezoug</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Kas an danevelloù sac’hadenn ent emgefreek</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studioù</string>
     <!-- Summary for studies preferences -->
@@ -1113,22 +1090,22 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Gouzout hiroc’h</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Serriñ a raio an arload evit kemer e kont ar cheñchamantoù.</string>
+    <string name="studies_restart_app" moz:removedIn="135">Serriñ a raio an arload evit kemer e kont ar cheñchamantoù.</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">Mat eo</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">Mat eo</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Nullañ</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Nullañ</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">O serriñ emañ an arload evit kemer e kont ar cheñchamantoù…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">O serriñ emañ an arload evit kemer e kont ar cheñchamantoù…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Ivinelloù digor</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Ivinelloù digor</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Ivinelloù prevez</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ivinelloù prevez</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Ivinelloù goubredet</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ivinelloù goubredet</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Ouzhpennañ un ivinell</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1230,6 +1207,7 @@
 
     <!-- WebCompat Reporter -->
 
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Digarezit. %1$s ne cʼhall ket kargañ ar bajenn.</string>
@@ -1252,8 +1230,6 @@
     <string name="bookmark_delete_negative">Nullañ</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Ouzhnenañ an teuliad</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Sined enrollet!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Enrollet e “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1565,8 +1541,6 @@
     <string name="snackbar_tabs_closed">Ivinelloù serret</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Ivinelloù serret: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Sined enrollet!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Ouzhpennet er berradennoù!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -2464,10 +2438,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Ya, esaeañ anezhañ</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ket bremañ</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Esaeit ar gwirier alioù</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Digeriñ ar gwirier alioù</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Digeriñ ar gwirier alioù</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2834,11 +2804,6 @@
     <string name="glean_debug_tools_title">Ostilhoù diveugañ Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Evit kuitaat ar skramm a-bezh, lakait da riklañ adalek ar c\'hrec’h hag implijit ar jestr distreiñ</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Evit kuitaat ar skramm a-bezh, lakait da riklañ adalek ar c\'hrec’h hag pouezit war distreiñ</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Riklit adalek an nec’h ha grit ar fiñv distreiñ evit mont kuit</string>
@@ -2849,4 +2814,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>

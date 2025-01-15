@@ -84,7 +84,6 @@
     <string name="share_dialog_title">Partekatu</string>
 
     <string name="notification_erase_title_android_14">Ezabatu nabigatze-historia?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Sakatu edo garbitu jakinarazpen hau zure nabigatze-historia ezabatzeko.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -515,10 +514,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Itxi</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Ongi etorri %1$s(e)ra!</string>
 
@@ -837,7 +833,7 @@
     <string name="studies_learn_more">Argibide gehiago</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Aplikazioa itxi egingo da aldaketak aplikatzeko</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikazioa itxi egingo da aldaketak aplikatzeko</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Kendu</string>
@@ -925,9 +921,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Aldatu</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Pantaila osoko moduan sartzen</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Aldatu berehala loturara fitxa berrian</string>
@@ -1119,11 +1112,6 @@
     <string name="promote_search_widget_snackbar_message">Widgeta hasierako pantailan gehitu da</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Pantaila osotik irteteko, arrastatu goitik eta erabili atzerako keinua</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Pantaila osotik irteteko, arrastatu goitik eta sakatu atzera</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Irteteko, arrastatu goitik eta erabili atzerako keinua</string>

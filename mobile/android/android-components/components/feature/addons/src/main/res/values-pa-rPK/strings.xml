@@ -187,9 +187,9 @@
     <string name="mozac_feature_addons_failed_to_translate">ترجمہ نہیں لبھیا، نہ ہی %1$s لئی، نہ ہی مول بولی %2$s لئی</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s ایپ انسٹال کیتی گئی اے</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">%1$s ایپ انسٹال کر نہیں سکی</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">ایہہ پھیلاؤ انسٹال کرن چ ناکام ہویا۔</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">ایس پھیلاؤ نوں کنیکشن خرابی رہݨ کرکے ڈاؤن‌لوڈ نہیں کیتا جا سکیا۔</string>
@@ -199,8 +199,6 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">ایس پھیلاؤ دی تصدیق نہیں ہو سکݨ کرکے ایس نوں انسٹال نہیں کیتا جا سکیا۔</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%2$s %3$s نال معافق نہ ہوݨ کرکے %1$s نوں انسٹال نہیں کیتا جا سکیا۔</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">ستھرتا جاں سرکھیا سمسیاواں کھڑھیاں کرن دے خطرے کرکے %1$s نوں انسٹال نہیں کیتا جا سکیا۔</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s نوں صرف انٹرپرائیز پالسیاں ورت کے ای سنگٹھن ولوں انسٹال کیتا جا سکدا اے، جو کہ ایس پلیٹفارم تے سہائک نہیں اے، ایس کرکے ایس نوں انسٹال نہیں کیتا جا سکیا۔</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -247,8 +245,6 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">ٹھیک اے</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">ہور جاݨو</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s نوں سرکھیا جاں ستھرتا مسئلیاں کرکے اسمرتھ کیتا گیا اے۔</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s دے سرکھیت ہوݨ نوں تصدیق نہیں کیتا جا سکیا تے اسمرتھ کیتا گیا اے۔</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

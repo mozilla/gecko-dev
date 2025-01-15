@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">강력한 비밀번호를 사용하시겠습니까?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">무작위로 생성된 강력한 비밀번호를 사용하여 계정을 보호하세요. 나중에 사용할 수 있도록 계정에 저장됩니다.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">무작위로 생성된 강력한 비밀번호를 사용하여 계정을 보호하세요. 나중에 사용할 수 있도록 계정에 저장됩니다.</string>

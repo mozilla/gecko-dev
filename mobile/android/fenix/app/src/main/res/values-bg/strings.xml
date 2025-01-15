@@ -48,7 +48,7 @@
     <string name="tab_tray_collection_button_multiselect_content_description">Запазване на избраните раздели в списък</string>
 
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Избран</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Избран</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -421,8 +421,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Сканиране</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Сканиране на QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Настройки на търсачките</string>
@@ -448,8 +446,6 @@
 
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Търсене в:</string>
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Търсеща машина от %s</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
@@ -538,10 +534,6 @@
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Добавете разширения от трети страни, за да подобрите сигурността, производителността и др.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Разгледайте още разширения.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Започнете да разглеждате.</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Разгледайте още разширения</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">Започнете да разглеждате</string>
@@ -617,7 +609,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Запазване и продължаване</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button" tools:ignore="UnusedResources">Пропускане</string>
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Пропускане</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Горе</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -633,7 +625,7 @@
     <string name="onboarding_customize_toolbar_placement_top_content_description">Изображение на горната лента с инструменти</string>
 
     <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_not_now_button">Не сега</string>
+    <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Не сега</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Изберете тема</string>
@@ -642,7 +634,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Запазване и начало на разглеждане</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button" tools:ignore="UnusedResources">Пропускане</string>
+    <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Пропускане</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Тъмна</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -710,8 +702,6 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Поверителност и сигурност</string>
 
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Права на страници</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">Настройки на сайтове</string>
     <!-- Preference for private browsing options -->
@@ -1251,11 +1241,17 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Отворени раздели</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Отворени раздели</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Поверителни раздели</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Поверителни раздели</string>
+    <!-- Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs -->
+    <string name="tabs_header_private_tabs_counter_title">Отворени поверителни раздели: %1$s. Докоснете за превключване на разделите.</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Синхронизирани раздели</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Синхронизирани раздели</string>
+    <!-- Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs -->
+    <string name="tabs_header_synced_tabs_counter_title">Отворени синхронизирани раздели: %1$s. Докоснете за превключване на разделите.</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Добавяне на раздел</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1381,6 +1377,11 @@
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">Изпращане</string>
 
+
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">Докладът ви е изпратен</string>
+    <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+    <string name="webcompat_reporter_dismiss_success_snackbar_text">Затваряне</string>
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

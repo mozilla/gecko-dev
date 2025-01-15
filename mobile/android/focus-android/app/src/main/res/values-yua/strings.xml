@@ -85,7 +85,6 @@
     <string name="share_dialog_title">Túuxbil yéetel</string>
 
     <string name="notification_erase_title_android_14">¿Borrar le k\'ajláayo\' navegación?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Pulse wa borrar le notificación utia\'al u borrar seguramente u historial navegación.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -513,10 +512,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">K\'aal</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Bienvenido ti\' %1$s</string>
 
@@ -834,7 +830,7 @@
     <string name="studies_learn_more">Kaanbal asab</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Le ka\'anatako\'ob yaan u p\'atik uti\'al u ts\'áaik k\'eexo\'ob</string>
+    <string name="studies_restart_app" moz:removedIn="135">Le ka\'anatako\'ob yaan u p\'atik uti\'al u ts\'áaik k\'eexo\'ob</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Péeks</string>
@@ -930,9 +926,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Tuupub</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Táan u yokol ti\' modo pantalla completa</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">K\'eexbil ka nuupuk ich túumben nu\'ukbesaj séebanil</string>
@@ -1106,11 +1099,6 @@
     <string name="promote_search_widget_snackbar_message">Widget ts\'áabal ti\' pantalla Chúunul</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Utia\'al u jóok\'ol pantalla completa, jíilankilo\'ob tak ka\'anal yéetel meyaj gesto paachil</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Utia\'al u jóok\'ol ti\' pantalla completa, jíilankilo\'ob tak ka\'anal ka pulse tak paachil</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Jíilankilo\'ob tak ka\'anal yéetel meyaj paachil uti\'al jóok\'ol</string>

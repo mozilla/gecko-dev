@@ -12,7 +12,7 @@
     <string name="content_description_private_browsing_button">கமுக்க உலாவல் முறை செயலில்</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">கமுக்க உலாவல் முறை முடக்கத்தில்</string>
-    <!-- Placeholder text shown in the search bar before a user enters text -->
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">தேடு/முகவரியை உள்ளிடு</string>
 
 
@@ -36,7 +36,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">தேர்ந்த கீற்றுகளைத் திரட்டில் சேமிக்கவும்</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">தேர்ந்தது</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">தேர்ந்தது</string>
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s மொசில்லாவால் தயாரிக்கப்படுகிறது.</string>
@@ -86,10 +86,6 @@
     <string name="browser_menu_refresh">புதுப்பிக்கவும்</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">நிறுத்து</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">துணை நிரல்கள்</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">இங்கே துணை நிரல்கள் இல்லை</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">உதவி</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -102,8 +98,6 @@
     <string name="browser_menu_desktop_site">மேசைக்கணினி தளம்</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">முகப்பு திரையில் சேர்</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">நிறுவுக</string>
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">பக்கத்தில் தேடு</string>
 
@@ -134,10 +128,6 @@
     <string name="default_locale_text">சாதன மொழியைப் பின்பற்று</string>
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">மொழியைத் தேடவும்</string>
-
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">வருடு</string>
 
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">தேடுபொறி அமைவுகள்</string>
@@ -183,8 +173,6 @@
     <string name="preferences_category_advanced">மேம்பட்டவை</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">தனியுரிமை மற்றும் பாதுகாப்பு</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">தள அனுமதிகள்</string>
 
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">கமுக்க உலாவல்</string>
@@ -203,8 +191,6 @@
     <!-- Preference category for account information -->
     <string name="preferences_category_account">கணக்கு</string>
 
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">கருவிப்பட்டி</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">கருப்பொருள்</string>
     <!-- Preference for gestures based actions -->
@@ -243,13 +229,9 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">வெளிப்புற பதிவிறக்க மேலாளர்</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">துணை நிரல்கள்</string>
-
     <!-- Preference for notifications -->
     <string name="preferences_notifications">அறிவிப்புகள்</string>
 
-    <!-- Account Preferences -->
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">இப்போது ஒத்திசை</string>
     <!-- Preference category for sync -->
@@ -258,8 +240,6 @@
     <string name="preferences_sync_history">வரலாறு</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">புத்தகக்குறிகள்</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">புகுபதிகைகள்</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">திறந்த கீற்றுகள்</string>
     <!-- Preference for signing out -->
@@ -289,7 +269,7 @@
     <string name="fxa_received_tab_channel_name">பெறப்பட்ட கீற்றுகள்</string>
 
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">பிற பயர்பாக்சு சாதனங்களிலிருந்து பெறப்பட்ட கீற்றுகளுக்கான அறிவிப்புகள்.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">பிற பயர்பாக்சு சாதனங்களிலிருந்து பெறப்பட்ட கீற்றுகளுக்கான அறிவிப்புகள்.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">கீற்று பெறப்பட்டது</string>
 
@@ -307,7 +287,7 @@
     <string name="exceptions_empty_message_learn_more_link">மேலும் அறிய</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">பயனளவு மற்றும் தொழில்நுட்ப தரவு</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">பயனளவு மற்றும் தொழில்நுட்ப தரவு</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s உலாவியைச் சிறந்ததாக்க உங்களுடைய உலாவிப் பற்றிய செயல்திறன், பயனளவு, வன்பொருள் மற்றும் தனிப்பயனாக்க தரவுகளை மொசில்லாவுடன் பகிர்கிறது</string>
     <!-- Preference switch for marketing data collection -->
@@ -391,9 +371,9 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">திறந்த கீற்றுகள்</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">திறந்த கீற்றுகள்</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">கமுக்கக் கீற்றுகள்</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">கமுக்கக் கீற்றுகள்</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">கீற்றைச் சேர்</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -428,7 +408,7 @@
     <string name="collection_open_tabs">கீற்றுகளைத் திற</string>
 
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">நீக்கு</string>
+    <string name="remove_top_site">நீக்கு</string>
     <!-- Text for the menu button to delete a top site from history -->
     <string name="delete_from_history">வரலாற்றிலிருந்து அழி</string>
     <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
@@ -477,8 +457,6 @@
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s தேர்ந்தெடுக்கப்பட்ட உருப்படிகளை நீக்கும்.</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">கோப்புறையைச் சேர்</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">புத்தகக்குறி சேமிக்கப்பட்டது</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">தொகு</string>
     <!-- Bookmark overflow menu edit button -->
@@ -647,7 +625,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">மற்றொரு சாதனத்தை இணை</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">ஒரு கீற்றை அனுப்ப, குறைந்தது ஒரு சாதனத்திலாவது பயர்பாக்சில் உள்நுழைக.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">ஒரு கீற்றை அனுப்ப, குறைந்தது ஒரு சாதனத்திலாவது பயர்பாக்சில் உள்நுழைக.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">புரிந்தது</string>
     <!-- Share error message -->
@@ -692,14 +670,8 @@
     <string name="qr_scanner_dialog_negative">மறு</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">%1$s அழிக்க விரும்புகிறீர்களா?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">இக்கீற்றை நீக்குவதால் தொகுப்பு முழுதும் நீங்கிடும். புதிய திரட்டுகளை நீங்கள் எந்த நேரத்திலும் உருவாக்க முடியும்.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">%1$s அழிக்கவா?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">அழி</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">முழு திரை பயன்முறையில் நுழைகிறது</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">தொடுப்பு நகலெடுக்கப்பட்டது</string>
     <!-- Sample text for accessibility font size -->
@@ -753,9 +725,11 @@
     <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
     <string name="deleting_browsing_data_in_progress">உலாவி வரலாற்றை அழிக்கிறது…</string>
 
+    <!-- Onboarding -->
     <!-- text to display in the snackbar once account is signed-in -->
     <string name="onboarding_firefox_account_sync_is_on">ஒத்திசைவு இயக்கத்தில்</string>
 
+    <!-- Onboarding theme -->
     <!-- Text shown in snackbar when multiple tabs have been sent to device -->
     <string name="sync_sent_tabs_snackbar">கீற்றுகள் அனுப்பப்பட்டன!</string>
     <!-- Text shown in snackbar when one tab has been sent to device  -->
@@ -768,7 +742,7 @@
     <string name="sync_scan_code">குறியீட்டை வருடு</string>
 
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[உங்கள் கணினியில் பயர்பாக்சைத் திறந்து <b>https://firefox.com/pair</b> பக்கத்திற்கு செல்லவும்]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[உங்கள் கணினியில் பயர்பாக்சைத் திறந்து <b>https://firefox.com/pair</b> பக்கத்திற்கு செல்லவும்]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">வருடத் தயார்</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -826,8 +800,6 @@
 
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">இரகசியபரிவர்த்தனையாளர்கள்</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">கைரேகையாளர்கள்</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
     <string name="enhanced_tracking_protection_blocked">தடுக்கப்பட்டவை</string>
     <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
@@ -844,11 +816,7 @@
     <string name="etp_cryptominers_title">இரகசியபரிவர்த்தனையாளர்கள்</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">மின்னியல் நாணயத்தை அறுவடைச் செய்யவல்ல தீங்கிழைக்கும் மென்பொருள் உங்கள் சாதனத்தை அணுகுவதிலிருந்து தடுக்கிறது.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">கைரேகையர்கள்</string>
 
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">உங்கள் சாதனத்தைப் பற்றிய தனித்தனியாக அடையாளம் காணக்கூடிய கண்காணிப்பு நோக்கங்களுக்காகப் பயன்படுத்தக்கூடிய தரவு சேகரிப்பை நிறுத்துகிறது.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">உள்ளடக்கப் பின்தொடரல்</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -908,34 +876,16 @@
     <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
     <string name="add_to_homescreen_text_placeholder">குறுக்குவழி பெயர்</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">புகுபதிகைககளும் கடவுச்சொற்களும்</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins">புகுபதிகைகளியையும் கடவுச்சொற்களையும் சேமிக்கவும்</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">சேமிக்கச் சொல்லுங்கள்</string>
     <!-- Preference option for never saving passwords in Fenix -->
     <string name="preferences_passwords_save_logins_never_save">எப்போதும் சேமிக்காதே</string>
 
-    <!-- Preference for syncing saved logins in Fenix -->
-    <string name="preferences_passwords_sync_logins">உள்நுழைவுகளை ஒத்திசைக்கவும்</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins">சேமிக்கப்பட்ட புகுபதிகைகள்</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text">நீங்கள் சேமித்த அல்லது %s உடன் ஒத்திசைக்கும் உள்நுழைவுகள் இங்கே காண்பிக்கப்படும்.</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link">ஒத்திசைவு பற்றி மேலும் அறிய</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">விதிவிலக்குகள்</string>
 
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty">சேமிக்கப்படாத உள்நுழைவுகள் மற்றும் கடவுச்சொற்கள் இங்கே காண்பிக்கப்படும்.</string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description">இந்த தளங்களுக்கு உள்நுழைவுகள் மற்றும் கடவுச்சொற்கள் சேமிக்கப்படாது.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">எல்லா விதிவிலக்குகளையும் நீக்கு</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">புகுபதிகைகளைத் தேடு</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">தளம்</string>
     <!-- The header for the username for a login -->
@@ -961,13 +911,7 @@
     <string name="saved_login_reveal_password">கடவுச்சொல்லை காட்டு</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">கடவுச்சொல்லை மறை</string>
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message">நீங்கள் சேமித்த உள்நுழைவுகளைக் காண திறக்கவும்</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title">உங்கள் உள்நுழைவுகளையும் கடவுச்சொற்களையும் பாதுகாக்கவும்</string>
 
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_message">உங்கள் சாதனம் பிறரிடம் இருக்கும்போது சேமித்த புகுபதிகைகளையும் கடவுச்சொற்களையும் அணுகுவதிலிருந்து பாதுகாக்க சாதனப் பூட்டு வடிவம், பின், அல்லது கடவுச்சொல்லை அமையுங்கள்.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">பிறகு</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -982,8 +926,6 @@
     <string name="saved_logins_sort_strategy_alphabetically">பெயர் (A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">கடைசி பயன்பாடு</string>
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description">புகுபதிகைகள் வரிசைப்படுத்தல் பட்டி</string>
 
     <!-- Title of the Add search engine screen -->
     <string name="search_engine_add_custom_search_engine_title">தேடுபொறியைச் சேர்</string>
@@ -1040,24 +982,8 @@
     <string name="login_menu_delete_button">நீக்கு</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">திருத்து</string>
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation">இந்தப் புகுபதிகையை நீக்க விரும்புகிறீர்களா?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">நீக்கு</string>
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu">புகுபதிகை விருப்பங்கள்</string>
-    <!--  The editable text field for a login's web address. -->
-    <string name="saved_login_hostname_description">திருத்தக்கூடிய உரை களம் புகுபதிகைக்கான வலை முகவரிக்கானது.</string>
-    <!--  The editable text field for a login's username. -->
-    <string name="saved_login_username_description">திருத்தக்கூடிய உரை களம் புகுபதிகைக்கான பயனர் பெயருக்கானது.</string>
-    <!--  The editable text field for a login's password. -->
-    <string name="saved_login_password_description">திருத்தக்கூடிய உரை களம் புகுபதிகைக்கான கடவுச்சொல்லுக்கானது.</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login">புகுபதிகையில் மாற்றங்களைச் சேமி.</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">திருத்து</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">கடவுச்சொல் தேவை</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">குரல் தேடல்</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -1074,7 +1000,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">கீற்று ஒத்திசைவைச் செயற்படுத்துங்கள்.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">உங்களின் மற்ற சாதனங்களின் பயர்பாக்சில் திறந்த கீற்றுகள் ஏதுமில்லை.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">உங்களின் மற்ற சாதனங்களின் பயர்பாக்சில் திறந்த கீற்றுகள் ஏதுமில்லை.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">உங்கள் மற்ற கருவிகளிலிருந்து கீற்றுகளின் பட்டியலைப் பார்க்க.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->

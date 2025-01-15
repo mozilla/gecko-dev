@@ -116,8 +116,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">要使用較強的密碼嗎？</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">請使用隨機產生的強密碼來保護您的帳號。將儲存到您的帳號以供未來使用。</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">請使用隨機產生的強密碼來保護您的帳號。將儲存到您的帳號以供未來使用。</string>

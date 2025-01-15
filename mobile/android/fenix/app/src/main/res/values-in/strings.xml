@@ -47,7 +47,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Simpan tab terpilih ke koleksi</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Terpilih</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Terpilih</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -405,8 +405,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Pindai</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Pindai kode QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Setelan mesin pencari</string>
@@ -433,9 +431,6 @@
 
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Kali ini, cari di:</string>
-
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s mesin pencari</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
@@ -524,10 +519,6 @@
     <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated -->
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Sesuaikan Firefox Anda dengan ekstensi</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Jelajahi lebih banyak ekstensi.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Mulai menjelajah.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Jelajahi lebih banyak ekstensi</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -623,8 +614,6 @@
 
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Privasi dan keamanan</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Izin situs</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">Pengaturan situs</string>
     <!-- Preference for private browsing options -->
@@ -1156,11 +1145,11 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Buka tab</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Buka tab</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Tab privat</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Tab privat</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Tab tersinkron</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Tab tersinkron</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Tambah tab</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

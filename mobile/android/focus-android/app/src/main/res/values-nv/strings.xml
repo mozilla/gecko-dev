@@ -5,21 +5,31 @@
     <!-- ## into a separate file like strings_references.xml                                  ## -->
     <!-- ####################################################################################### -->
 
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_cancel">Dooda nisin</string>
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_ok">Lą́\'ąą</string>
 
+    <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">Hanítą́ \'éí doodaii\' addressígíí biih níłtązh</string>
 
     <string name="teaser">T\'áá bí nanil\'ingo hainitá.</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
     <string name="feedback_erase">Hanítá baa hane\' yę́ę \'ígíí nits\'ą́ą́\' k\'éé\'óólchxǫ\'.</string>
 
+    <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">Hanį́tá %1$s</string>
 
+    <!-- Menu item: Share the currently visible page -->
     <string name="menu_share">&quot;Ła\' bił \'ííshjání \'ádeeshłííł nisin &quot;</string>
 
+    <!-- Menu item: Report an issue on the current site -->
     <string name="menu_report_site_issue">Siteígíí ba\'at\'e\' hólǫ́ léi\' \'áko \'éí baa hodeeshnih nisin</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. %1$s will be
+      replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
+      links can be opened by native apps that aren't a browser, e.g. "Open in YouTube" -->
     <string name="menu_open_with_default_browser2">Tsésǫ\' \'ániidígíí léi\' biyi\'jį\' \'ąą \'ádeeshłííł nisin %1$s.</string>
 
 

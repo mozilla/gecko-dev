@@ -5,136 +5,223 @@
     <!-- ## into a separate file like strings_references.xml                                  ## -->
     <!-- ####################################################################################### -->
 
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_cancel">বাতিল</string>
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_ok">ঠিক আছে</string>
 
     <string name="action_save">সংরক্ষণ</string>
 
+    <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">অনুসন্ধান করুন বা ঠিকানা লিখুন</string>
 
     <string name="teaser">স্বয়ংক্রিয় প্রাইভেন্ট ব্রাউজিং। \nব্রাউজ করুন। মুছে দিন। আবার করুন।</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
     <string name="feedback_erase">আপনার ব্রাউজিংয়ের পূর্ববর্তী তথ্য মুছে ফেলা হয়েছে।</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
     <string name="feedback_erase_custom_tab">ট্যাব এর ব্রাউজিং ইতিহাস মুছে ফেলা হয়েছে।</string>
 
+    <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">%1$s এর জন্যে অনুসন্ধান করুন</string>
 
+    <!-- Menu item: Share the currently visible page -->
     <string name="menu_share">শেয়ার…</string>
 
+    <!-- Menu item: Report an issue on the current site -->
     <string name="menu_report_site_issue">সাইট ইস্যু রিপোর্ট করুন</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. %1$s will be
+      replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
+      links can be opened by native apps that aren't a browser, e.g. "Open in YouTube" -->
     <string name="menu_open_with_default_browser2">%1$s এ খুলুন</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. This menu item
+      will be shown if there are multiple browsers and we do not know which one is the default
+      browser or in case Focus is actually the default browser. Clicking this menu item will show
+      a screen with multiple browsers (or other apps that can open the current URL) to choose from. -->
     <string name="menu_open_with_a_browser2">খুলুন…</string>
 
+    <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
     <string name="menu_add_to_home_screen">নীড় স্ক্রিনে যোগ</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">সেটিং</string>
     <string name="menu_about">পরিচিতি</string>
     <string name="menu_help">সহায়তা</string>
     <string name="menu_rights">আপনার অধিকারসমূহ</string>
 
+    <!-- Menu item: This is the label for a menu entry that shows how many trackers have been blocked
+         for the currently loaded website. The number of blocked trackers is shown below this label.
+         Next to this label is a switch that allows the user to temporarily enable / disable the
+         blocking of trackers for the current browsing session - for example if the current website
+         doesn't work correctly with blocked content. -->
     <string name="menu_trackers_blocked_title">ট্র্যাকার ব্লক করা হয়েছে্যা</string>
 
+    <!-- Menu item: This is the subtitle for the Trackers blocked menu entry that shows how many
+    trackers have been blocked for the currently loaded website.  -->
     <string name="menu_trackers_blocked_subtitle">বন্ধ করলে, চালু কিছু সাইটের সমস্যা ঠিক হতে পারে</string>
 
+    <!-- Menu item: This is the label for turning off content blocking for the current website. -->
     <string name="menu_content_blocking">কন্টেন্ট ব্লকিং</string>
+    <!-- This is the subtitle content blocking toggle -->
     <string name="menu_content_blocking_subtitle">কিছু সাইট ফিক্স করা বন্ধ</string>
 
+    <!-- This is a small text at the bottom of the menu shown in a "custom tab" for branding purposes.
+     See https://github.com/mozilla-mobile/focus-android/issues/2106
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="menu_custom_tab_branding">%1$s পরিচালিত</string>
 
+    <!-- This is the title of a dialog that shows all the share targets (apps or contacts) when
+         sharing an URL. -->
     <string name="share_dialog_title">শেয়ারের মাধ্যম</string>
 
     <string name="notification_erase_text">ব্রাউজিং ইতিহাস মুছে দিন</string>
 
+    <!-- Notification action to open Focus and resume the current browsing session. -->
     <string name="notification_action_open">খুলুন</string>
 
+    <!-- Notification action to erase the current browsing session AND switch to Focus (bring it
+         to the foreground) -->
     <string name="notification_action_erase_and_open">মুছুন এবং খুলুন</string>
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_short_label">মুছুন</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters. -->
     <string name="shortcut_erase_long_label">ব্রাউজিং ইতিহাস মুছুন</string>
 
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_and_open_short_label">মুছে ফেলুন এবং খুলুন</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters.
+         %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="shortcut_erase_and_open_long_label">মুছে ফেলুন এবং %1$s খুলুন</string>
 
+    <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">গোপনীয়তা ও নিরাপত্তা</string>
 
+    <!-- Preference summary for settings related to privacy and security -->
     <string name="preference_privacy_and_security_summary">ট্র্যাকিং, কুকিজ, লগইন, ডাটা পছন্দ</string>
 
+    <!-- Preference category description for settings related to search, set default
+    and autocomplete are settings a user can find and change inside the "search" settings screen -->
     <string name="preference_search_summary">ডিফল্ট সেট করুন, অটোকমপ্লিট</string>
 
+    <!-- Preference category description for settings screen for settings related to Mozilla -->
+    <!-- About the app and help are links that are inside this menu -->
+    <!-- %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_mozilla_summary">%1$s সম্বন্ধে, সাহায্য</string>
 
+    <!-- Preference category for settings related to controlling web content -->
     <string name="preference_category_web_content">ওয়েব কনটেন্ট</string>
 
+    <!-- Preference category: stealth settings for while switching apps -->
     <string name="preference_category_switching_apps">সুইচিং অ্যাপস</string>
 
+    <!-- Preference category for General Settings -->
     <string name="preference_category_general">সাধারণ</string>
 
+    <!-- Preference category for settings about sending usage data -->
     <string name="preference_category_data_collection_use">ডাটা সংগ্রহ ও ব্যবহার</string>
 
     <string name="preference_category_search">অনুসন্ধান</string>
 
+    <!-- Title of "switch" preference that enables/disables search suggestions -->
     <string name="preference_show_search_suggestions">অনুসন্ধান পরামর্শ নিন</string>
+    <!-- Description of the preference that enables/disables search suggestions
+        %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_show_search_suggestions_summary">আপনার অনুসন্ধান ইঞ্জিনে ঠিকানা বারে আপনি যা টাইপ করেন, %1$s তা পাঠাবে</string>
 
+    <!-- This label is shown below the name of the default search engine in settings -->
     <string name="preference_search_engine_default">পূর্বনির্ধারিত</string>
 
+    <!-- This label is shown above the currently selected search engine in settings -->
     <string name="preference_search_engine_label">অনুসন্ধান ইঞ্জিন</string>
 
+    <!-- Text that is shown below a "switch" preference that is enabled. -->
     <string name="preference_state_on">চালু</string>
 
+    <!-- Text that is shown below a "switch" preference that is disabled. -->
     <string name="preference_state_off">বন্ধ</string>
 
+    <!-- Item in settings that will open a new preference screen for configuring the URL autocomplete behavior. -->
     <string name="preference_subitem_autocomplete">URL অটোকমপ্লিট</string>
 
+    <!-- Title of "switch" preference that enables/disables autocomplete for the default list -->
     <string name="preference_switch_autocomplete_topsites">শীর্ষস্থানীয় সাইটের জন্য</string>
 
+    <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
     <string name="preference_switch_autocomplete_user_list">আপনি যেসব সাইট যোগ করবেন তার জন্যে</string>
 
+    <!-- Preference category: Manage (user-defined) sites -->
     <string name="preference_category_autocomplete_manage_sites">সাইট ব্যবস্থাপনা করুন</string>
 
+    <!-- Item in autocomplete settings that will open a new preference screen for adding and removing URLs to the user-defined list-->
     <string name="preference_autocomplete_subitem_manage_sites">সাইট ব্যবস্থাপনা</string>
 
+    <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
     <string name="preference_autocomplete_action_add">+ কাস্টোম URL যোগ করুন</string>
 
+    <!-- Title of the screen for adding custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_add">কাস্টোম URL যোগ করুন</string>
 
+    <!-- Label for the button to quick add custom autocomplete URLs. -->
     <string name="custom_autocomplete_quick_add">কাস্টোম URL যোগ করুন</string>
 
+    <!-- Label for the button to quick add the current URL to the custom autocomplete list -->
     <string name="add_custom_autocomplete_label">স্বয়ংপূরণে লিঙ্ক যোগ করুন</string>
 
+    <!-- Preference category for settings about cookies and site data -->
     <string name="preference_category_cookies">কুকি ও সাইট ডাটা</string>
 
+    <!-- Preference category for settings about data choices -->
     <string name="preference_category_data_choices">ডাটা পছন্দ</string>
 
+    <!-- Title of the screen for removing custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_remove">কাস্টোম URL মুছে দিন</string>
 
+    <!-- A link to SUMO at autocomplete settings. -->
     <string name="preference_autocomplete_learn_more">আরও জানুন</string>
 
+    <!-- Preference summary: Custom (user-defined) autocomplete URLs. -->
     <string name="preference_autocomplete_custom_summary">কাস্টোম অটোকমপ্লিট URLs যোগ এবং ম্যানেজ করুন।</string>
 
+    <!-- Label for the "custom autocomplete URL" input field -->
     <string name="preference_autocomplete_add_title">URL যোগ করতে</string>
 
+    <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
     <string name="preference_autocomplete_add_hint">URL পেস্ট অথবা প্রবেশ করান</string>
 
+    <!-- Example how a custom domain autocomplete URL be added (e.g. without http://) -->
     <string name="preference_autocomplete_add_example2">উদাহরণ: mozilla.org</string>
 
+    <!-- To be removed once the new hint has been translated -->
     <string name="preference_autocomplete_add_example">উদাহরণ: example.com</string>
 
+    <!-- Confirmation "snackbar" shown after a new custom autocomplete URL has been added. -->
     <string name="preference_autocomplete_add_confirmation">নতুন কাস্টোম URL যোগ করা হয়েছে।</string>
 
+    <!-- Menu item to remove existing autocomplete URLs. -->
     <string name="preference_autocomplete_menu_remove">অপসারণ</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Button that will delete all selected custom autocomplete URLs. -->
     <string name="preference_autocomplete_action_remove_content_description">অপসারণ</string>
 
+    <!-- Error message shown if the entered custom autocomplete URL is not valid or empty. -->
     <string name="preference_autocomplete_add_error">যে URL টি আপনি দিলেন তা ডবল চেক করুন।</string>
 
     <string name="preference_language">ভাষা</string>
+    <!-- This is shown when the user hasn't set a focus specific language, i.e. when Focus
+         is using the system default language. -->
     <string name="preference_language_systemdefault">সিস্টেম ডিফল্ট</string>
 
     <string name="preference_category_privacy">গোপনীয়তা</string>
@@ -151,47 +238,70 @@
     <string name="preference_privacy_should_block_cookies_third_party_tracker_cookies_option">শুধুমাত্র তৃতীয় পক্ষের ট্র্যাকার কুকিজ ব্লক কর</string>
     <string name="preference_privacy_should_block_cookies_third_party_only_option">&quot;কেবল ৩য়-পক্ষীয় কুকি ব্লক কর &quot;</string>
 
+    <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
     <string name="preference_security_biometric">অ্যাপ আনলক করার জন্য আঙ্গুলের ছাপ ব্যবহার করুন</string>
 
+    <!-- Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
+         and prevents the user from taking screenshots or casting the app to other displays. -->
     <string name="preference_privacy_secure_mode">অদৃশ্য</string>
+    <!-- Preference Summary: Stealth mode (previously "Secure mode") is a setting that prevents the
+     app's content (in our case especially the content of webpages) to show up in the "recent apps"
+     screen. Additionally Android will prevent the user from taking screenshots or casting the app
+     to other displays. -->
     <string name="preference_privacy_stealth_summary">অ্যাপ্লিকেশন পরিবর্তনের সময় ওয়েব পেজ লুকান এবং স্ক্রিনশট গ্রহণ ব্লক করুন।</string>
 
     <string name="preference_category_security">নিরাপত্তা</string>
 
     <string name="preference_category_performance">কর্মক্ষমতা</string>
     <string name="preference_performance_block_webfonts">ওয়েব ফন্ট ব্লক করুন</string>
+    <!-- This text is shown below the setting for disabling web fonts. Some websites use icons/images from a font and those do not show up if fonts are blocked.-->
     <string name="preference_performance_block_webfonts_summary">ছবি অথবা আইকন দৃশ্যমান নাও হতে পারে</string>
 
     <string name="preference_performance_block_javascript">JavaScript ব্লক কর</string>
+    <!-- This text is shown below setting for disabling JavaScript. Some websites may not work correctly when JavaScript is disabled -->
     <string name="preference_performance_block_javascript_summary">পাতা সম্ভবত দ্রুত লোড হচ্ছে, কিন্তু অনাকাঙ্খিত ভাল দেখাচ্ছে না</string>
 
+    <!-- This preference does not set Focus as the default browser but instead links to Android's
+     "default apps" settings screen or if not supported by this Android version to a SUMO page describing
+     how to set Focus as a default browser.
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_default_browser2">%1$s কে ডিফল্ট ব্রাউজার করুন</string>
 
     <string name="preference_category_mozilla">Mozilla</string>
     <string name="preference_mozilla_telemetry2">ব্যবহারের তথ্য পাঠাও</string>
 
+    <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
     <string name="preference_mozilla_telemetry_summary">আরও জানুন</string>
 
+    <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla কেবলমাত্র সংগ্রহ করা চেষ্টা করে যা প্রত্যেকের জন্য %1$s প্রদান এবং উন্নতি করতে হবে।</string>
 
+    <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">গোপনীয়তা নীতি</string>
 
+    <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
     <string name="preference_about">%1$s সম্পর্কে</string>
 
+    <!-- Header for the list of installed search engines -->
     <string name="preference_search_installed_search_engines">ইন্সটল করা অনুসন্ধান ইঞ্জিন</string>
 
+    <!-- Action for restoring the default list of search engines -->
     <string name="preference_search_restore">ডিফল্ট অনুসন্ধান ইঞ্জিন পুনরুদ্ধার</string>
 
+    <!-- Action for adding an additional search engine to the list.
+    The "+" is used to emphasize that this is an "add" action -->
     <string name="preference_search_add2">+ অন্য অনুসন্ধান ইঞ্জিন যোগ করুন</string>
     <string name="preference_search_remove_title">অনুসন্ধান ইঞ্জিন অপসারণ করুন</string>
     <string name="preference_search_remove">অপসারণ</string>
 
+    <!-- Clickable action text that shows when user long-presses on a search engine search field (this is similar to paste or copy when long-pressing a text field) -->
     <string name="action_option_add_search_engine">অনুসন্ধান ইঞ্জিন যোগ</string>
 
     <string name="search_add_manually_name_hint">অনুসন্ধান ইঞ্জিন নাম</string>
     <string name="search_add_manually_string">ব্যবহারের জন্য অনুসন্ধান বাক্য</string>
     <string name="search_add_manually_save">সংরক্ষণ</string>
 
+    <!-- Example of search engine url -->
     <string name="search_add_manually_example">উদাহরণ: example.com/search/?q=%s</string>
 
     <string name="search_add_confirmation">নতুন অনুসন্ধান ইঞ্জিন যোগ হয়েছে।</string>
@@ -203,48 +313,83 @@
 
     <string name="search_add_error_format">সার্চ স্ট্রিংটি যেটি উদাহরণ ফরম্যাটের সাথে মেলে তা চেক করুন</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clear text in URL bar -->
     <string name="content_description_clear_input">ইনপুট পরিস্কার</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clicking on the website overlay
+     while in typing mode will dismiss and go back to the browser. This text will be read when the
+     overlay if focused. See https://github.com/mozilla-mobile/focus-android/issues/50 -->
     <string name="content_description_dismiss_input">খারিজ</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
+     history and go back to the home screen. -->
     <string name="content_description_erase">ব্রাউজিং ইতিহাস পরিষ্কার করুন</string>
 
+    <!-- If the user has multiple tabs open we will show an addition "floating action button" showing how many tabs are open.
+     This string is not displayed and read only by screenreaders. %1$s will be replaced with the number of open tabs. This
+      button will only be visible when there is more than one tab open (>= 2). -->
     <string name="content_description_tab_counter">ট্যাব খোলা: %1$s</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Lock icon showed in the URL bar for
+     https pages.. -->
     <string name="content_description_lock">সুরক্ষিত কানেকশন</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we start
+     loading a website -->
     <string name="accessibility_announcement_loading">লোড হচ্ছে</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we
+     finished loading a website -->
     <string name="accessibility_announcement_loading_finished">ওয়েবসাইট লোড হয়েছে</string>
 
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
     <string name="content_description_menu">আরও বিকল্পসমূহ</string>
 
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button used
+    on home screen-->
     <string name="indicator_content_description_menu">আরো অপশন বাটন</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
     <string name="content_description_forward">সামনে পরিভ্রমণ করুন</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Reload current website -->
     <string name="content_description_reload">ওয়েবসাইট রিলোড করুন</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate back (browsing history) -->
     <string name="content_description_back">পেছনে পরিভ্রমণ করুন</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Stop loading the current website. This button will turn into the refresh button once loading has been completed (see content_description_reload) -->
     <string name="content_description_stop">ওয়েবসাইট লোডিং বন্ধ করুন</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Custom Tab exit button - closes the custom tab and returns to the previous app. -->
     <string name="content_description_customtab_exit">আগের অ্যাপে ফিরে যাও</string>
 
+    <!-- Content description (not visible, for screen readers etc.): This is the description for the ImageView in the menu that displays
+         the number of trackers blocked for the current session -->
     <string name="content_description_trackers_blocked">ব্লক করা ট্র্যাকারের সংখ্যা</string>
 
+    <!-- Content description (not visible, for screen readers etc.): This is the description for the switch in the menu that temporarily disables/enables
+         content blocking for the current session -->
     <string name="content_description_blocking_switch">ট্র্যাকার ব্লক করুন</string>
 
     <string name="your_rights">আপনার অধিকারসমূহ</string>
 
     <string name="external_app_prompt_title">নতুন অ্যাপে লিংক খুলুন</string>
+    <!-- This string is shown when the user has clicked a link that needs to be opened in a different app.
+         Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar). -->
     <string name="external_app_prompt">লিংকটি %2$s এ খুলতে, আপনি %1$s কে ছেড়ে দিতে পারেন।</string>
+    <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
     <string name="external_app_prompt_no_app_title">একটি অ্যাপ অনুসন্ধান করো যা লিংখটি খুলতে পারবে</string>
+    <!-- This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+         the app store installed on the device (usually that's Google Play). -->
     <string name="external_app_prompt_no_app">আপনার ডিভাইসের কোন অ্যাপই এই লিঙ্কটি খুলতে সক্ষম হয়নি। %2$s অনুসন্ধান করে একটি অ্যাপ বের করার জন্যে আপনি %1$s কে দ্বায়িত্ব দিতে পারেন।</string>
+    <!-- This label is shown above a list of apps that can be used to open a given link -->
     <string name="external_multiple_apps_matched_exit">আপনি কি ব্যক্তিগত ব্রাউজিং বন্ধ করবেন?</string>
 
+    <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
     <string name="download_snackbar_finished">%1$s সম্পন্ন হয়েছে</string>
 
+    <!-- Snackbar action to immediately open the successfully downloaded file. -->
     <string name="download_snackbar_open">খুলুন</string>
 
 
@@ -275,126 +420,208 @@
 
 
 
-  <string name="firstrun_defaultbrowser_title">আপনার গোপনীয়তা কঠোর করুন</string>
+  <!-- First run tour (Default browser): Title -->
+    <string name="firstrun_defaultbrowser_title">আপনার গোপনীয়তা কঠোর করুন</string>
+    <!-- First run tour (Default browser): Text. -->
     <string name="firstrun_defaultbrowser_text2">ব্যাক্তিগত ব্রাউজিং কে আরেক উচ্চতায় নিয়ে যান। বিজ্ঞাপন আর অন্যান্য কনটেন্ট ব্লক করুন, যারা আপনাকে সকল ওয়েবসাইটে অনুসরণ করে বেড়ায় আর আপনার পেজ লোডিং টাইম অনেকগুন বাড়িয়ে দেয়।</string>
 
+    <!-- First run tour (Search): Title -->
     <string name="firstrun_search_title">আপনি খুঁজবেন, আমার মত করে</string>
+    <!-- First run tour (Search): Text -->
     <string name="firstrun_search_text">অন্য কিছু খুঁজছেন? সেটিংস এ অন্য ডিফল্ট সার্চ ইঞ্জিন পছন্দ করুন।</string>
 
+    <!-- First run tour (Shortcut): Title -->
     <string name="firstrun_shortcut_title">নীড় স্ক্রিনে শর্টকাট যোগ করুন</string>
+    <!-- First run tour (Shortcut): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="firstrun_shortcut_text">%1$s এ আপনার প্রিয় সাইটে দ্রুত ফিরে আসুন। শুধু %1$s মেনু থেকে \&quot;হোম স্ক্রীনে যোগ করুন\&quot; নির্বাচন করুন।</string>
 
+    <!-- First run tour (Privacy): Title -->
     <string name="firstrun_privacy_title">গোপনীয়তাকে অভ্যাসে পরিনত করুন</string>
+    <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="firstrun_privacy_text">আপনার ডিফল্ট ব্রাউজার হিসাবে %1$s সেট করুন এবং অন্য অ্যাপ্লিকেশন থেকে ওয়েবপেজ খুললে আপনি ব্যক্তিগত ব্রাউজিং এর সুবিধা পাবেন।</string>
 
     <string name="firstrun_close_button">ঠিক আছে, বুঝতে পেরেছি!</string>
     <string name="firstrun_skip_button">উপেক্ষা</string>
     <string name="firstrun_next_button">পরবর্তী</string>
 
+    <!-- Indicator that no trackers are being blocked because content blocking is disabled; normally shows the number of blocked trackers -->
     <string name="content_blocking_disabled">-</string>
 
+    <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_add">যোগ</string>
 
+    <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_cancel">বাতিল</string>
 
+    <!-- The user visible name of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
+    The recommended maximum length is 40 characters; the value may be truncated if it is too long.
+
+    * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
+    * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
+    -->
     <string name="notification_browsing_session_channel_name">ব্যক্তিগত ব্রাউজিং সেশন</string>
 
+    <!-- The user visible description of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
+    The recommended maximum length is 300 characters; the value may be truncated if it is too long. %1$s will be replaced with the name of the app (e.g. Firefox Focus).
+
+    * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
+    * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
+    -->
     <string name="notification_browsing_session_channel_description">নোাটফিকেশন ট্যাপ করে আপনার %1$s সেশন মুছে ফেলা যাবে। আপনাকে অ্যাপ্লিকেশন খুলতে বা ব্রাউজারে কি চলছে তা দেখার প্রয়োজন হবে না।</string>
 
+    <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">ব্রাউজিং ইতিহাস পরিষ্কার করুন</string>
 
-    <string name="download_firefox">Firefox ডাউনলোড করুন</string>
+    <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
+      item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox ডাউনলোড করুন</string>
 
-    <string name="your_rights_content1">%1$s হল Mozilla এবং অন্যান্য অবদানকারীর দ্বারা তৈরি ফ্রি এবং ওপেনসোর্স সফটওয়্যার।</string>
+    <!-- Text shown in the "Your rights" screen.
+    %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
+    <string name="your_rights_content1"><![CDATA[%1$s হল Mozilla এবং অন্যান্য অবদানকারীর দ্বারা তৈরি ফ্রি এবং ওপেনসোর্স সফটওয়্যার।]]></string>
 
 
 
 
-  <string name="gv_prompt_username_hint">ব্যবহারকারীর নাম</string>
+  <!-- Text shown in prompts for GeckoView -->
+    <string name="gv_prompt_username_hint">ব্যবহারকারীর নাম</string>
     <string name="gv_prompt_password_hint">পাসওয়ার্ড</string>
     <string name="gv_prompt_clear">পরিষ্কার</string>
 
+    <!-- Text shown in Security Information Popup -->
+    <!-- Text to denote secure or insecure connection -->
     <string name="security_popup_secure_connection">নিরাপদ সংযোগ</string>
     <string name="security_popup_insecure_connection">অনিরাপদ সংযোগ</string>
+    <!-- %1$s will be replaced with organization that granted the SSL certificate -->
     <string name="security_popup_security_verified">যাচাইকারী: %1$s</string>
 
+    <!-- Content Description of Security Icon in toolbar -->
     <string name="site_security_icon_content_description">সাইট নিরাপত্তা</string>
     <string name="preference_autocomplete_duplicate_url_error">URL ইতোমধ্যেই আছে</string>
 
+    <!-- Label for the Find in page button -->
     <string name="find_in_page">পাতায় অনুসন্ধান</string>
 
+    <!-- Watermark/Hint for the find in page input field -->
     <string name="find_in_page_input">পাতায় অনুসন্ধান</string>
 
+    <!-- String to show the number of results found in the page and the
+        position the user is at. The first argument is the position, the second argument is the total -->
     <string name="find_in_page_result">%1$d/%2$d</string>
+    <!-- String to be read by the accessibility service presenting the number of results found in the page
+        and the position the user is at. The first argument is the position, the second argument is the total -->
     <string name="accessibility_find_in_page_result">%2$d এর %1$d</string>
 
+    <!-- String to be read by the accessibility service when focusing the next result button -->
     <string name="accessibility_next_result">পরবর্তী ফলাফল খুঁজুন</string>
+    <!-- String to be read by the accessibility service when focusing the previous result button -->
     <string name="accessibility_previous_result">পূর্ববর্তী ফলাফল খুঁজুন</string>
+    <!-- String to be read by the accessibility service when focusing the dismiss button in the "find in page" UI -->
     <string name="accessibility_dismiss_find_in_page">পাতায় খোঁজা বাতিল করুন</string>
 
 
 
-  <string name="preference_performance_request_desktop_site">ডেস্কটপ সাইটের অনুরোধ</string>
+  <!-- Checkbox menu item text to request desktop site -->
+    <string name="preference_performance_request_desktop_site">ডেস্কটপ সাইটের অনুরোধ</string>
 
+    <!-- Displayed after a user long presses on the URL in a custom tab to copy the URL -->
     <string name="custom_tab_copy_url_action">URL কপি হয়েছে</string>
 
+    <!-- Description of what a user may find in the Advanced Setting category, used for debugging -->
     <string name="preference_advanced_summary">ডেভেলপার টুল</string>
 
+    <!-- Title of Advanced Setting category -->
     <string name="preference_category_advanced">বিস্তৃত</string>
 
+    <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
     <string name="preference_remote_debugging">ইউএসবি/ওয়াইফাই এর মাধ্যমে রিমোট ডিবাগিং</string>
 
+    <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->
     <string name="biometric_auth_image_description">আঙ্গুলের ছাপ আইকন</string>
 
+    <!-- Error text displayed when the user's fingerprint cannot be recognized upon re-entering the app.
+     This is displayed during the authentication flow as the app launches. -->
     <string name="biometric_auth_not_recognized_error">আঙ্গুলের ছাপ চেনা যাচ্ছে না। আবার চেষ্টা করুন।</string>
 
+    <!-- Error text displayed when the user's fingerprint moved too quickly upon re-entering the app
+    This is displayed during the authentication flow as the app launches.-->
     <string name="biometric_auth_moved_too_quickly">আঙ্গুল খুব দ্রুত সরে গেছে। আবার চেষ্টা করুন।</string>
 
+    <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
     <string name="enable_search_suggestions_no">না</string>
 
+    <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
     <string name="enable_search_suggestions_yes">হ্যাঁ</string>
 
+    <!-- Message displayed when using a search engine that doesn't provide suggestions -->
     <string name="no_suggestions_message">কিছু সার্চ ইঞ্জিন পরামর্শ প্রদর্শন করতে পারবে না।</string>
 
+    <!-- Button to dismiss the message displayed  when using a search engine that doesn't provide suggestions-->
     <string name="dismiss_no_suggestions_prompt_button">বাতিল</string>
 
     <!-- Tips displayed on the home view -->
 
+    <!-- Tip displayed on home view explaining how to disable tracking protection
+    The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_disable_tracking_protection">সাইট অপ্রত্যাশিত আচরণ করছে?\n ট্র্যাকিং সুরক্ষা বন্ধ করে দেখুন</string>
 
-    <string name="tip_add_to_homescreen">আপনার দ্বারা অধিক ব্যবহার হওয়া সাইটসমূহে এক ট্যাপে চলে যান %1$s মেনু &gt; হোম স্ক্রিনে যোগ করুন</string>
+    <!-- Tip displayed on home view explaining how to add sites to homescreen
+    Argument 1 will be replaced with a line break in the application.-->
+    <string name="tip_add_to_homescreen"><![CDATA[আপনার দ্বারা অধিক ব্যবহার হওয়া সাইটসমূহে এক ট্যাপে চলে যান %1$s মেনু > হোম স্ক্রিনে যোগ করুন]]></string>
 
+    <!-- Tip displayed on home view explaining how to make Focus the default browser
+    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_set_default_browser">%1$s এর মধ্যে প্রতিটি লিঙ্ক খুলুন\n ডিফল্ট ব্রাউজার হিসাবে %1$s সেট করুন</string>
 
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
+    The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_autocomplete_url">আপনার সবচে বেশী ব্যবহৃত স্বয়ংপূরণ URLs\n অ্যাড্রেস বারে যেকোনো URL লং-প্রেস করুন</string>
 
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
+    The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_open_in_new_tab">একটি নতুন ট্যাব একটি লিঙ্ক খুলুন\n কোন পেজে কোন লিংক লং-প্রেস করুন</string>
 
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
     <string name="tip_disable_tips2">স্টার্ট স্ক্রিনে টিপস বন্ধ করুন</string>
 
+    <!-- Label for the snackbar when a user opens a new tab -->
     <string name="new_tab_opened_snackbar">নতুন ট্যাব খোলা হয়েছে</string>
 
+    <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">পরিবর্তন</string>
 
+    <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">অবিলম্বে নতুন ট্যাব লিঙ্ক স্যুইচ করুন</string>
 
+    <!-- Preference title for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
     <string name="preference_safe_browsing_title">সম্ভাব্য বিপজ্জনক এবং প্রতারণামূলক সাইট ব্লক করুন</string>
+    <!-- Preference summary for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
     <string name="preference_safe_browsing_summary">প্রতারণামূলক এবং আক্রমণ সাইট, ম্যালওয়্যার সাইট, এবং অবাঞ্ছিত সফ্টওয়্যারের সাইট ব্লক করুন।</string>
 
+    <!-- Preference for exceptions tracking protection -->
     <string name="preference_exceptions">ব্যতিক্রম</string>
+    <!-- Description for the exceptions preference screen-->
     <string name="preference_exceptions_description">আপনি এই ওয়েবসাইটগুলির জন্য সামগ্রী অবরোধ নিষ্ক্রিয় করেছেন।</string>
+    <!-- Menu item to remove existing exceptions. -->
     <string name="preference_exceptions_menu_remove">অপসারণ করুন</string>
+    <!-- Button to remove all websites from the exception list -->
     <string name="preference_exceptions_remove_all_button_label">সব ওয়েবসাইট অপসারণ করুন</string>
 
+    <!-- Title for the tab crash report screen-->
     <string name="tab_crash_report_title">ট্যাব ক্র্যাশ হয়েছে</string>
+    <!-- Headline for the tab crash report screen -->
     <string name="tab_crash_report_headline">দুঃখিত। আমদের এই ট্যাবের সাথে একটি সমস্যা হচ্ছে।</string>
+    <!-- Subtitle for the tab crash report screen -->
     <string name="tab_crash_report_description">ব্যক্তিগত ব্রাউজার হিসাবে, আমরা কখনও সংরক্ষণ এবং এই ট্যাব পুনরুদ্ধার করতে পারব না।</string>
+    <!-- Label for button to close the tab-->
     <string name="tab_crash_report_close_tab_button_label">ট্যাব বন্ধ করুন</string>
 
 
 
 
-  <string name="crash_report_send_crash_label">Mozilla কে ক্র্যাশ রিপোর্ট পাঠান</string>
+  <!-- Label for the checkbox to send the tab crash report to Mozilla -->
+    <string name="crash_report_send_crash_label">Mozilla কে ক্র্যাশ রিপোর্ট পাঠান</string>
 
     <!-- Tracking protection bottom sheet -->
 

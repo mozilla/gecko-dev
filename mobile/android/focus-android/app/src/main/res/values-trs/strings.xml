@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">nadure\' riña aksêso dirêckto</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Nagi\'iaj</string>
     <string name="menu_about">Doj rayi\'î</string>
     <string name="menu_help">Sa ruguñu\'unj un</string>
@@ -82,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">Ga\'nïnj gan\'an ngà</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">Narè\' nej nuguan\' garajsunt nga ganana\'uî\'t</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -119,23 +116,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Nānà’huì’ riña Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Nānà’huì’ riña Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Nānà’huì’ riña Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Nānà’huì’ riña Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Nānà’huì’ riña Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Nānà’huì’ riña Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Nānà’huì’ riña Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Nānà’huì’ riña Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s sò\' \'nïnj rā\'a daran\' sa \'iát.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s sò\' \'nïnj rā\'a daran\' sa \'iát.</p>
 <p>Nāgi\'iaj \'ngō nabegado huìi man:
   <ul>
     <li>Nānà\'uì\' nī gāchē nu āsìj riña aplikasiun dan</li>
@@ -511,10 +508,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Nārán</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Guruhuât gunumânt riña %1$s</string>
 
@@ -605,7 +599,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Naduninj Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Naduninj Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -617,23 +611,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s huā guendâ gārāsunt sanī da’huît gārayinat nuguan’ <a href="%2$s">si’hiaj Mozilla</a> Nī a’ngô nej nuguan’ tna’huēj rayi’î nej sun nan.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s huā guendâ gārāsunt sanī da’huît gārayinat nuguan’ <a href="%2$s">si’hiaj Mozilla</a> Nī a’ngô nej nuguan’ tna’huēj rayi’î nej sun nan.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Nitāj si â’nïnj fundación Mozilla ganè’ nej rasuun nīka nī ngà ‘ngō yiko’ li, dàj rû’ si yugui nej %1$s asi da’nga’ nīka, Firefox. Ga’ue narì’t doj nuguan’ a’min rayi’î <a href="%2$s">hiūj nan</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Nitāj si â’nïnj fundación Mozilla ganè’ nej rasuun nīka nī ngà ‘ngō yiko’ li, dàj rû’ si yugui nej %1$s asi da’nga’ nīka, Firefox. Ga’ue narì’t doj nuguan’ a’min rayi’î <a href="%2$s">hiūj nan</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[‘Ngō da’nga’ natà’ guendâ %1$s nūn man ngà <a href="%2$s">nej lisênsia huā nî’nïnj ïn</a>.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[‘Ngō da’nga’ natà’ guendâ %1$s nūn man ngà <a href="%2$s">nej lisênsia huā nî’nïnj ïn</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s arâj sunj nej nuguan’ narikî Disconnect,Inc. dàj rû’ nej sun huā ninïïn <a href="%2$s">GNU ‘iaj Licencia Yumàn’ v3</a>, nī nunj <a href="%3$s">hiūj nan</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s arâj sunj nej nuguan’ narikî Disconnect,Inc. dàj rû’ nej sun huā ninïïn <a href="%2$s">GNU ‘iaj Licencia Yumàn’ v3</a>, nī nunj <a href="%3$s">hiūj nan</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Si yugui re\'</string>
@@ -824,13 +818,13 @@
     <string name="preference_studies">Nej ēstûdio</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Ngà gā’hue gā’nïnj man nî ngà gā’hue gāyi’ì nej man gī’hiaj man ēstûdio.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Ngà gā’hue gā’nïnj man nî ngà gā’hue gāyi’ì nej man gī’hiaj man ēstûdio.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Gāhuin chrūn doj</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Nārán riña aplikasiûn nan da’ gā’hue nātū sa nākàa riñanj</string>
+    <string name="studies_restart_app" moz:removedIn="135">Nārán riña aplikasiûn nan da’ gā’hue nātū sa nākàa riñanj</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Nādure\'</string>
@@ -918,9 +912,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Naduno\'</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Hiàj nanunj da\' huā ngè riña aga\'a</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Naduna riña dunikò\' duguî\'t rakïj ñanj ra\'ñanj chre</string>
@@ -1027,7 +1018,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s ginùn huin gārasunj HTTPS da’ gā nïn doj gāchē nunt.<a href="%2$s">Gāhuin chrūn doj</a> <br/><br/>     Nadunā dàj gā riña hiūj nan riña tàj sa nadunāt> Sa huìi &amp; Sa dugumîn> Sa dugumîn.]]></string>
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ginùn huin gārasunj HTTPS da’ gā nïn doj gāchē nunt.<a href="%2$s">Gāhuin chrūn doj</a> <br/><br/>     Nadunā dàj gā riña hiūj nan riña tàj sa nadunāt> Sa huìi &amp; Sa dugumîn> Sa dugumîn.]]></string>
 
     <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_title">Nitāj seguridâ nikāj koneksiôn</string>
@@ -1087,4 +1078,5 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Ngà nanûn widget riña pāntayâ ayì’ìt</string>
-</resources>
+
+    </resources>

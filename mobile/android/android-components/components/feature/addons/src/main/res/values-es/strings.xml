@@ -206,14 +206,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Esta extensión no ha podido ser instalada porque no ha sido verificada.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s no ha podido ser instalado porque no es compatible con %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s no ha podido ser instalado porque tiene un alto riesgo de causar problemas de estabilidad o seguridad.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">%1$s viola las políticas de Mozilla y no se puede instalar en %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">No se ha podido instalar %1$s porque solo lo puede hacer una organización que use políticas empresariales, lo cual no es compatible con esta plataforma.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s viola las políticas de Mozilla y no se puede instalar.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">%1$s viola las políticas de Mozilla y no se puede instalar en %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -263,11 +259,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Ver detalles</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s ha sido desactivado debido a problemas de seguridad o estabilidad.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Esta extensión está bloqueada por violar las políticas de Mozilla y ha sido desactivada.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Esta extensión viola las políticas de Mozilla y ha sido desactivada. Se puede activar, pero podría ser arriesgado.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Esta extensión está restringida por violar las políticas de Mozilla y ha sido desactivada. Se puede activar, pero podría ser arriesgado.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

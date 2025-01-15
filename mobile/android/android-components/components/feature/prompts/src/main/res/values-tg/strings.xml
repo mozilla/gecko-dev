@@ -105,8 +105,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Аз ниҳонвожаи қавӣ истифода мебаред?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Ҳисобҳои худро бо истифода аз ниҳонвожаҳои қавӣ ва ба таври тасодуфӣ эҷодшуда муҳофизат намоед. Ниҳонвожаҳо барои истифодаи оянда дар ҳисоби шумо нигоҳ дошта мешаванд.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Ҳисоби худро бо истифода аз ниҳонвожаҳои қавӣ ва ба таври тасодуфӣ эҷодшуда муҳофизат намоед. Ниҳонвожаҳо барои истифодаи оянда дар ҳисоби шумо нигоҳ дошта мешаванд.</string>

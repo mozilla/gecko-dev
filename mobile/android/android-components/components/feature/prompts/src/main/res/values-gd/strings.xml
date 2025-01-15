@@ -103,8 +103,6 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">A bheil thu airson am facal-faire làidir a chleachdadh?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Dìon na cunntasan agad le facal-faire làidir a chaidh a ghintinn air thuaiream. Thèid a shàbhaladh sa chunntas agad far am bi e ri do làimh.</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Dìon an cunntas agad le facal-faire làidir a chaidh a ghintinn air thuaiream. Thèid a shàbhaladh sa chunntas agad far am bi e ri do làimh.</string>
 
     <!-- Pressing this will use the suggested strong password -->

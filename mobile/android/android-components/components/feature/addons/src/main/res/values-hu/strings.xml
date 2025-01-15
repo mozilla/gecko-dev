@@ -206,14 +206,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">A kiegészítőt nem lehetett telepíteni, mert nincs ellenőrizve.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">A(z) %1$s kiegészítőt nem lehetett telepíteni, mert nem kompatibilis a következővel: %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">A(z) %1$s kiegészítőt nem lehetett telepíteni, mert stabilitási és biztonsági szempontból magas kockázatú.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">A(z) %1$s sérti a Mozilla irányelveit, ezért nem telepíthető erre: %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">A(z) %1$s nem volt telepíthető, mert csak egy vállalati házirendeket használó szervezet tudja telepíteni, amely nem támogatott ezen a platformon.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">A(z) %1$s sérti a Mozilla irányelveit, ezért nem telepíthető.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">A(z) %1$s sérti a Mozilla irányelveit, ezért nem telepíthető erre: %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -263,11 +259,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Részletek megtekintése</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">A(z) %1$s biztonsági vagy stabilitási problémák miatt le lett tiltva.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Ez a kiegészítő a Mozilla irányelveinek megsértése miatt blokkolva lett, és le lett tiltva.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Ez a kiegészítő megsérti a Mozilla irányelveit, és le lett tiltva. Engedélyezheti, de ez kockázatos lehet.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Ez a kiegészítő a Mozilla irányelveinek megsértése miatt korlátozva lett, és le lett tiltva. Engedélyezheti, de ez kockázatos lehet.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

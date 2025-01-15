@@ -102,8 +102,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Gunakan sandi yang kuat?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Lindungi akun Anda dengan menggunakan kata sandi yang kuat dan dibuat secara acak. Ini akan disimpan ke akun Anda untuk digunakan di masa mendatang.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Lindungi akun Anda dengan menggunakan kata sandi yang kuat dan dibuat secara acak. Ini akan disimpan ke akun Anda untuk digunakan di masa mendatang.</string>

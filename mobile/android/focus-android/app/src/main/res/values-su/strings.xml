@@ -514,10 +514,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Tutup</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Wilujeng sumping di %1$s</string>
 
@@ -835,7 +832,7 @@
     <string name="studies_learn_more">Lenyepan</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Aplikasi bakal kaluar pikeun nerapkeun parobahan</string>
+    <string name="studies_restart_app" moz:removedIn="135">Aplikasi bakal kaluar pikeun nerapkeun parobahan</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Piceun</string>
@@ -1113,11 +1110,6 @@
     <string name="promote_search_widget_snackbar_message">Wijet ditambahkeun kana layar tepas</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Pikeun kaluar tina layar pinuh, séréd ti luhur jeung maké géstur balik</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Pikeun kaluar tina layar pinuh, séréd ti luhur jeung ketok balik deui</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Séred ti luhur &amp; gunakeun géstur balik pikeun kaluar</string>

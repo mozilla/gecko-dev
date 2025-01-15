@@ -45,7 +45,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">የተመረጡ ትሮችን ወደ ስብስብ ያስቀምጡ</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">ተመርጧል</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ተመርጧል</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -411,8 +411,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">ቃኝ</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">የQR ኮድ ይቃኙ</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">የፍለጋ ፍርግም ቅንብሮች</string>
@@ -437,9 +435,6 @@
 
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">በዚህ ጊዜ ፍለጋ በ፡-</string>
-
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s የፍለጋ ፍርግም</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
@@ -524,10 +519,6 @@
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">የእርስዎን ደህንነት፣ ምርታማነት እና ሌሎችንም ለማሻሻል የሶስተኛ ወገን ቅጥያዎችን ያክሉ።</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">ተጨማሪ ቅጥያዎችን ያስሱ።</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">ማሰስ ጀምር።</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">ተጨማሪ ቅጥያዎችን ያስሱ</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">ማሰስ ይጀምሩ</string>
@@ -607,7 +598,7 @@
     <string name="onboarding_save_and_continue_button">አስቀምጥ እና ቀጥል</string>
 
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">እለፍ</string>
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">እለፍ</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">ከላይ</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -663,8 +654,6 @@
     <string name="preferences_category_advanced">የላቀ</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">ግላዊነት እና ደህንነት</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">የድረ-ገፅ ፈቃዶች</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">የጣቢያ ቅንብሮች</string>
     <!-- Preference for private browsing options -->
@@ -1014,10 +1003,11 @@
     <string name="preferences_marketing_data">የግብይት ውሂብ</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">የሞባይል ግብይት አቅራቢያችን ከሆነው ከአጀስት ጋር መሰረታዊ የአጠቃቀም መረጃን ያካፍላል</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">የብልሽት ሪፖርቶችን በራስ-ሰር አስገባ</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">ብልሽቶች ከተከሰቱ በኋላ ከMozilla መጀመር ጋር የብልሽት ውሂብን በራስ-ሰር ያጋራል</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">የብልሽት ሪፖርቶችን በራስ-ሰር አስገባ</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">ብልሽቶች ከተከሰቱ በኋላ ከMozilla መጀመር ጋር የብልሽት ውሂብን በራስ-ሰር ያጋራል</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">ጥናቶች</string>
     <!-- Summary for studies preferences -->
@@ -1190,11 +1180,11 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">ክፍት ትሮች</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">ክፍት ትሮች</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">የግል ትሮች</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">የግል ትሮች</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">የተመሳሰሉ ትሮች</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">የተመሳሰሉ ትሮች</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">ትር አክል</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Utilizar un senhal segur ?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protegissètz vòstres comptes en utilizant un senhal fòrt e generat a l\'azard. Serà salvat dins vòstre compte per d\'usatges futurs.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protegissètz vòstre compte en utilizant un senhal fòrt e generat a l\'azard. Serà salvat dins vòstre compte per d\'usatges futurs.</string>

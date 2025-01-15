@@ -31,8 +31,6 @@
     <string name="browser_menu_library">ପାଠାଗାର</string>
     <!-- Browser menu toggle that requests a desktop site -->
     <string name="browser_menu_desktop_site">ଡେସ୍କଟପ୍ ସାଇଟ୍</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">ସ୍ଥାପନ କରନ୍ତୁ</string>
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">ପୃଷ୍ଠାରେ ଖୋଜି ପାଆନ୍ତୁ</string>
 
@@ -170,14 +168,9 @@
 
     <!-- label shown when there are not site exceptions to show in the site exception settings -->
     <string name="no_site_exceptions">କୌଣସି ସାଇଟ୍ ବ୍ୟତିକ୍ରମ ହୋଇନାହିଁ</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">ପାସ୍‍ୱାର୍ଡ଼ ଆବଶ୍ୟକ</string>
-
-    <!-- Button caption to confirm the renaming of the top site. -->
-	<string name="top_sites_rename_dialog_ok">ଠିକ୍ ଅଛି</string>
 
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Firefox ପରିବାରର ଏକ ଅଂଶ। %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Firefox ପରିବାରର ଏକ ଅଂଶ। %s</string>
 
     <!-- Translations feature-->
 

@@ -92,11 +92,7 @@
     <string name="mozac_browser_errorpages_unknown_host_title">Indiritzu no agatadu</string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Nissuna connessione de internet</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Paret chi nch’est unu problema cun sa connessione tua a internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Controlla sa cunfiguratzione de rete o torra a carrigare sa pàgina luego.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Prova a ti connètere dae unu dispositivu diferente. Controlla su modem o su router tuo. Disconnete·ti e torra·ti a connètere a su Wi-Fi.</string>
 

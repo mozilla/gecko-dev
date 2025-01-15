@@ -5,12 +5,12 @@
     <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
     <string name="app_name_private_4">%s (Uslig)</string>
 
-    <!-- Placeholder text shown in the search bar before a user enters text -->
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Rzu neɣ ssekcem tansa</string>
     <!-- Label of editable text in create collection dialog for naming a new collection  -->
     <string name="tab_tray_add_new_collection_name">Isem</string>
 
-    <!-- Text for the negative button -->
+    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">Uhu, tanemmirt</string>
 
     <!-- Text for the positive action button -->
@@ -63,7 +63,7 @@
     <string name="search_suggestions_onboarding_allow_button">ssureg</string>
     <!-- Button in the search suggestions onboarding that does not allow search suggestions in private sessions -->
     <string name="search_suggestions_onboarding_do_not_allow_button">Ad ur ssirig</string>
-    <!-- Search engine suggestion title text. The first parameter is the name of teh suggested engine-->
+    <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
     <string name="search_engine_suggestions_title">Rzu %s</string>
 
     <!-- Text preview for smaller sized widgets -->
@@ -101,8 +101,6 @@
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">WAXXA</string>
 
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">Inekcam</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Rẓem iseksal</string>
     <!-- Preference for signing out -->
@@ -129,6 +127,7 @@
     <!-- Preference for using dark theme -->
     <string name="preference_dark_theme">Adeɣmum</string>
 
+    <!-- Library -->
     <!-- Option in Library to open Downloads page -->
     <string name="library_downloads">Agamen</string>
     <!-- Option in Library to open a new tab -->
@@ -172,9 +171,9 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Rẓem iseksal</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Rẓem iseksal</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">iseksal usligen</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">iseksal usligen</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Rnu aseksel</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -201,12 +200,10 @@
     <string name="open_tabs_menu">Rẓem umuɣ n yiseksal</string>
     <!-- Text for the button to open tabs of the selected collection -->
     <string name="collection_open_tabs">Rẓem iseksal</string>
-    <!-- Text for the menu button to rename a top site -->
-	<string name="rename_top_site">Ssenfel isem</string>
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">Kkes</string>
+    <string name="remove_top_site">Kkes</string>
 
-    <!-- Text for the button to delete a single history item -->
+    <!-- Context description text for the button to delete a single history item -->
     <string name="history_delete_item">Kkes</string>
 
     <!-- Text for the header that groups the history for today -->
@@ -220,6 +217,7 @@
     <!-- Text for the header that groups the history older than the last month -->
     <string name="history_older">Iqburen</string>
 
+    <!-- Downloads -->
     <!-- Text for the snackbar to confirm that multiple downloads items have been removed -->
     <string name="download_delete_multiple_items_snackbar_1">ttwakksen wagamen </string>
     <!-- Text for the button to remove a single download item -->
@@ -255,6 +253,7 @@
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Rnu asdaw</string>
 
+    <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Ddu ɣer tisɣal</string>
     <!-- Preference for altering the notification access for all websites -->
@@ -274,6 +273,7 @@
     <!-- Content description (not visible, for screen readers etc.): button to close the collection creator -->
     <string name="create_collection_close">Mḍel</string>
 
+    <!-- Share -->
     <!-- Share screen header -->
     <string name="share_header_2">Bḍu</string>
     <!-- Content description (not visible, for screen readers etc.):
@@ -285,6 +285,7 @@
      <!-- Add new device screen title -->
     <string name="sync_add_new_device_title">Azen ɣer wallal</string>
 
+    <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Mdel iseksal usligen</string>
 
@@ -293,8 +294,6 @@
     <string name="qr_scanner_confirmation_dialog_message">Ssureg %1$s ad irẓem %2$s</string>
     <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
     <string name="qr_scanner_dialog_positive">SSUREG</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">Kkes %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Kkes</string>
 
@@ -311,6 +310,7 @@
     <!-- Text for the allow button for the data deletion dialog -->
     <string name="delete_browsing_data_prompt_allow">Kkes</string>
 
+    <!-- Onboarding theme -->
     <!-- Text shown in snackbar when multiple tabs have been sent to device -->
     <string name="sync_sent_tabs_snackbar">Ttwaznen iseksal!</string>
     <!-- Text shown in snackbar when one tab has been sent to device  -->
@@ -325,15 +325,10 @@
     <!-- Add button text for the Add to Homescreen dialog -->
     <string name="add_to_homescreen_add">Rnu</string>
 
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">Rzu inekcam</string>
     <!-- Content Description (for screenreaders etc) read for the button to clear a password while editing a login-->
     <string name="saved_logins_clear_password">Sfeḍ taguri n uzeray</string>
     <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
     <string name="saved_logins_sort_strategy_alphabetically">Isem (A-Ẓ)</string>
-
-    <!-- Preference option for adding a credit card -->
-    <string name="preferences_credit_cards_add_credit_card">Rnu takarḍa n usmad</string>
 
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">Rnu takarḍa</string>
@@ -376,17 +371,11 @@
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Kkes</string>
 
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">Ẓreg</string>
-
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
     <string name="voice_search_explainer">ssiwel dɣi</string>
 
     <!-- Title text displayed in the rename top site dialog. -->
-	<string name="top_sites_rename_dialog_title">Isem</string>
-
-    <!-- Button caption to confirm the renaming of the top site. -->
-	<string name="top_sites_rename_dialog_ok">WAXXA</string>
+    <string name="top_sites_rename_dialog_title">Isem</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Kkes</string>

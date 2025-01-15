@@ -53,6 +53,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">Eemalda otseteede hulgast</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Sätted</string>
     <string name="menu_about">Teave</string>
     <string name="menu_help">Abi</string>
@@ -84,10 +85,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">Jagamine kasutades</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">Kustuta lehitsemise ajalugu</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -120,7 +117,7 @@
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s annab kontrolli sulle.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s annab kontrolli sulle.</p>
 <p>Kasuta seda kui privaatset brauserit:
   <ul>
     <li>Otsi ja lehitse otse äpis</li>
@@ -293,6 +290,10 @@
     <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
     <string name="preference_security_biometric">Rakenduse lahtilukustamiseks kasutatakse sõrmejälge</string>
 
+    <!-- Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
+        open when the app was last run to ensure that only the phone's owner can view a previous session.
+        %s will be replaced by the app name (e.g. Firefox Focus)
+        Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them-->
     <string name="preference_security_biometric_summary2">Kui oled juba lisanud otsetee või avanud kaardi, siis saad %se avada sõrmejäljega.</string>
 
     <!-- Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
@@ -519,7 +520,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Laadi alla Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Laadi alla Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -528,23 +529,23 @@
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s on kättesaadavaks tehtud <a href="%2$s">Mozilla avaliku litsentsi</a> ja muude avatud lähtekoodi litsentside tingimuste alusel.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s on kättesaadavaks tehtud <a href="%2$s">Mozilla avaliku litsentsi</a> ja muude avatud lähtekoodi litsentside tingimuste alusel.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Sulle ei anta mingeid õigusi ega litsentse Mozilla Foundationi ega ühegi osapoole kaubamärkidele, sealhulgas Mozilla, Firefoxi või %1$se nimedele või logodele. <a href="%2$s">Lisateave</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Sulle ei anta mingeid õigusi ega litsentse Mozilla Foundationi ega ühegi osapoole kaubamärkidele, sealhulgas Mozilla, Firefoxi või %1$se nimedele või logodele. <a href="%2$s">Lisateave</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[%1$se täiendav lähtekood on saadaval mitmesuguste vaba ja avatud lähtekoodi <a href="%2$s">litsentside</a> alusel.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$se täiendav lähtekood on saadaval mitmesuguste vaba ja avatud lähtekoodi <a href="%2$s">litsentside</a> alusel.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s kasutab ka Disconnect, Inc. poolt pakutavat blokkimise nimekirja kui eraldiseisvat ja sõltumatut tööd <a href="%2$s">GNU GPL v3 litsentsi</a> all, mis on saadaval <a href="%3$s">siin</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s kasutab ka Disconnect, Inc. poolt pakutavat blokkimise nimekirja kui eraldiseisvat ja sõltumatut tööd <a href="%2$s">GNU GPL v3 litsentsi</a> all, mis on saadaval <a href="%3$s">siin</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Kasutajanimi</string>
@@ -665,13 +666,13 @@
     <string name="preference_studies">Uuringud</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox võib aegajalt paigaldada ja käivitada uuringuid.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox võib aegajalt paigaldada ja käivitada uuringuid.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Rohkem teavet</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Muudatuste rakendamiseks äpp suletakse</string>
+    <string name="studies_restart_app" moz:removedIn="135">Muudatuste rakendamiseks äpp suletakse</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Eemalda</string>

@@ -212,11 +212,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">ምንም የበይነመረብ ግንኙነት የለም</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">የበይነመረብ ግንኙነትዎ ላይ ችግር ያለ ይመስላል</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">የአውታረ መረብ ግንኙነትዎን ይፈትሹ ወይም ገጹን ከጥቂት ጊዜ በኋላ እንደገና ለመጫን ይሞክሩ።</string>
 
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">በሌላ መሣሪያ ላይ ለመገናኘት ይሞክሩ። የእርስዎን ሞደም ወይም ራውተር ይፈትሹ። ግንኙነቱን ያቋርጡ እና ከWi-Fi ጋር እንደገና ያገናኙ።</string>

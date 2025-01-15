@@ -5,106 +5,171 @@
     <!-- ## into a separate file like strings_references.xml                                  ## -->
     <!-- ####################################################################################### -->
 
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_cancel">Cealaigh</string>
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_ok">OK</string>
 
     <string name="action_save">Sábháil</string>
 
+    <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">Cuardach nó seoladh Gréasáin</string>
 
     <string name="teaser">Brabhsáil phríobháideach, go huathoibríoch.\nBrabhsáil. Bánaigh. Arís is arís eile.</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
     <string name="feedback_erase">Bánaíodh do stair bhrabhsála.</string>
 
+    <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">Cuardaigh %1$s</string>
 
+    <!-- Menu item: Share the currently visible page -->
     <string name="menu_share">Comhroinn…</string>
 
+    <!-- Menu item: Report an issue on the current site -->
     <string name="menu_report_site_issue">Tuairiscigh Fadhb leis an Suíomh</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. %1$s will be
+      replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
+      links can be opened by native apps that aren't a browser, e.g. "Open in YouTube" -->
     <string name="menu_open_with_default_browser2">Oscail in %1$s</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. This menu item
+      will be shown if there are multiple browsers and we do not know which one is the default
+      browser or in case Focus is actually the default browser. Clicking this menu item will show
+      a screen with multiple browsers (or other apps that can open the current URL) to choose from. -->
     <string name="menu_open_with_a_browser2">Oscail in…</string>
 
+    <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
     <string name="menu_add_to_home_screen">Cuir leis an scáileán Baile</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Socruithe</string>
     <string name="menu_about">Maidir leis</string>
     <string name="menu_help">Cabhair</string>
     <string name="menu_rights">Cearta an úsáideora</string>
 
+    <!-- Menu item: This is the label for a menu entry that shows how many trackers have been blocked
+         for the currently loaded website. The number of blocked trackers is shown below this label.
+         Next to this label is a switch that allows the user to temporarily enable / disable the
+         blocking of trackers for the current browsing session - for example if the current website
+         doesn't work correctly with blocked content. -->
     <string name="menu_trackers_blocked_title">Lorgairí blocáilte</string>
 
+    <!-- This is a small text at the bottom of the menu shown in a "custom tab" for branding purposes.
+     See https://github.com/mozilla-mobile/focus-android/issues/2106
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="menu_custom_tab_branding">Á chumhachtú ag %1$s</string>
 
+    <!-- This is the title of a dialog that shows all the share targets (apps or contacts) when
+         sharing an URL. -->
     <string name="share_dialog_title">Comhroinn trí</string>
 
     <string name="notification_erase_text">Glan an stair bhrabhsála</string>
 
+    <!-- Notification action to open Focus and resume the current browsing session. -->
     <string name="notification_action_open">Oscail</string>
 
+    <!-- Notification action to erase the current browsing session AND switch to Focus (bring it
+         to the foreground) -->
     <string name="notification_action_erase_and_open">Scrios agus Oscail</string>
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_short_label">Glan</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters. -->
     <string name="shortcut_erase_long_label">Glan an stair bhrabhsála</string>
 
 
+    <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">Príobháideachas agus Slándáil</string>
 
+    <!-- Preference summary for settings related to privacy and security -->
     <string name="preference_privacy_and_security_summary">Lorgaireacht, fianáin, roghanna sonraí</string>
 
+    <!-- Preference category description for settings related to search, set default
+    and autocomplete are settings a user can find and change inside the "search" settings screen -->
     <string name="preference_search_summary">Réamhshocrú, uathchríochnú</string>
 
+    <!-- Preference category description for settings screen for settings related to Mozilla -->
+    <!-- About the app and help are links that are inside this menu -->
+    <!-- %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_mozilla_summary">Maidir le %1$s, cabhair</string>
 
+    <!-- Preference category for settings related to controlling web content -->
     <string name="preference_category_web_content">Inneachar Gréasáin</string>
 
+    <!-- Preference category: stealth settings for while switching apps -->
     <string name="preference_category_switching_apps">Athrú Aipeanna</string>
 
+    <!-- Preference category for General Settings -->
     <string name="preference_category_general">Ginearálta</string>
 
+    <!-- Preference category for settings about sending usage data -->
     <string name="preference_category_data_collection_use">Bailiúchán agus Úsáid Sonraí</string>
 
     <string name="preference_category_search">Cuardach</string>
 
+    <!-- This label is shown below the name of the default search engine in settings -->
     <string name="preference_search_engine_default">Réamhshocrú</string>
 
+    <!-- Text that is shown below a "switch" preference that is enabled. -->
     <string name="preference_state_on">Ann</string>
 
+    <!-- Text that is shown below a "switch" preference that is disabled. -->
     <string name="preference_state_off">As</string>
 
+    <!-- Item in settings that will open a new preference screen for configuring the URL autocomplete behavior. -->
     <string name="preference_subitem_autocomplete">Uathchríochnú URL</string>
 
+    <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
     <string name="preference_autocomplete_action_add">+ Cuir URL saincheaptha leis</string>
 
+    <!-- Title of the screen for adding custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_add">Cuir URL saincheaptha leis</string>
 
+    <!-- Label for the button to quick add custom autocomplete URLs. -->
     <string name="custom_autocomplete_quick_add">Cuir URL saincheaptha leis</string>
 
+    <!-- Preference category for settings about cookies and site data -->
     <string name="preference_category_cookies">Fianáin agus Sonraí Suímh</string>
 
+    <!-- Preference category for settings about data choices -->
     <string name="preference_category_data_choices">Roghanna Sonraí</string>
 
+    <!-- Title of the screen for removing custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_remove">Bain URLanna saincheaptha</string>
 
+    <!-- A link to SUMO at autocomplete settings. -->
     <string name="preference_autocomplete_learn_more">Tuilleadh eolais</string>
 
+    <!-- Label for the "custom autocomplete URL" input field -->
     <string name="preference_autocomplete_add_title">URL le cur leis</string>
 
+    <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
     <string name="preference_autocomplete_add_hint">Greamaigh nó clóscríobh URL</string>
 
+    <!-- Example how a custom domain autocomplete URL be added (e.g. without http://) -->
     <string name="preference_autocomplete_add_example2">Sampla: mozilla.org</string>
 
+    <!-- To be removed once the new hint has been translated -->
     <string name="preference_autocomplete_add_example">Sampla: example.com</string>
 
+    <!-- Menu item to remove existing autocomplete URLs. -->
     <string name="preference_autocomplete_menu_remove">Bain</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Button that will delete all selected custom autocomplete URLs. -->
     <string name="preference_autocomplete_action_remove_content_description">Bain</string>
 
+    <!-- Error message shown if the entered custom autocomplete URL is not valid or empty. -->
     <string name="preference_autocomplete_add_error">Deimhnigh an URL a chuir tú isteach arís.</string>
 
     <string name="preference_language">Teanga</string>
+    <!-- This is shown when the user hasn't set a focus specific language, i.e. when Focus
+         is using the system default language. -->
     <string name="preference_language_systemdefault">Réamhshocrú an chórais</string>
 
     <string name="preference_category_privacy">Príobháideachas</string>
@@ -114,11 +179,18 @@
     <string name="preference_privacy_block_content">Cuir cosc ar lorgairí ábhair eile</string>
     <string name="preference_privacy_category_cookies">Cuir cosc ar fhianáin</string>
 
+    <!-- Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
+         and prevents the user from taking screenshots or casting the app to other displays. -->
     <string name="preference_privacy_secure_mode">Mód Rúnda</string>
+    <!-- Preference Summary: Stealth mode (previously "Secure mode") is a setting that prevents the
+     app's content (in our case especially the content of webpages) to show up in the "recent apps"
+     screen. Additionally Android will prevent the user from taking screenshots or casting the app
+     to other displays. -->
     <string name="preference_privacy_stealth_summary">Folaigh leathanaigh Ghréasáin agus an aip á hathrú</string>
 
     <string name="preference_category_performance">Feidhmíocht</string>
     <string name="preference_performance_block_webfonts">Cuir cosc ar chlónna Gréasáin</string>
+    <!-- This text is shown below the setting for disabling web fonts. Some websites use icons/images from a font and those do not show up if fonts are blocked.-->
     <string name="preference_performance_block_webfonts_summary">D\'fhéadfadh go mbeadh deilbhíní nó íomhánna ar iarraidh</string>
 
     <string name="preference_performance_block_javascript">Cuir cosc ar JavaScript</string>
@@ -126,26 +198,35 @@
     <string name="preference_category_mozilla">Mozilla</string>
     <string name="preference_mozilla_telemetry2">Seol sonraí úsáide chugainn</string>
 
+    <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
     <string name="preference_mozilla_telemetry_summary">Tuilleadh eolais</string>
 
+    <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Fógra Príobháideachais</string>
 
+    <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
     <string name="preference_about">Maidir le %1$s</string>
 
+    <!-- Header for the list of installed search engines -->
     <string name="preference_search_installed_search_engines">Innill chuardaigh suiteáilte</string>
 
+    <!-- Action for restoring the default list of search engines -->
     <string name="preference_search_restore">Athchóirigh na hinnill chuardaigh réamhshocraithe</string>
 
+    <!-- Action for adding an additional search engine to the list.
+    The "+" is used to emphasize that this is an "add" action -->
     <string name="preference_search_add2">+ Cuir inneall cuardaigh leis</string>
     <string name="preference_search_remove_title">Bain innill chuardaigh</string>
     <string name="preference_search_remove">Bain</string>
 
+    <!-- Clickable action text that shows when user long-presses on a search engine search field (this is similar to paste or copy when long-pressing a text field) -->
     <string name="action_option_add_search_engine">Inneall cuardaigh nua</string>
 
     <string name="search_add_manually_name_hint">Ainm an innill cuardaigh</string>
     <string name="search_add_manually_string">Teaghrán cuardaigh</string>
     <string name="search_add_manually_save">Sábháil</string>
 
+    <!-- Example of search engine url -->
     <string name="search_add_manually_example">Sampla: example.com/search/?q=%s</string>
 
     <string name="search_add_confirmation">Cuireadh inneall cuardaigh nua leis.</string>
@@ -154,44 +235,75 @@
 
     <string name="search_add_error_empty_search">Cuir teaghrán cuardaigh isteach</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clear text in URL bar -->
     <string name="content_description_clear_input">Glan an réimse</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clicking on the website overlay
+     while in typing mode will dismiss and go back to the browser. This text will be read when the
+     overlay if focused. See https://github.com/mozilla-mobile/focus-android/issues/50 -->
     <string name="content_description_dismiss_input">Díbir</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
+     history and go back to the home screen. -->
     <string name="content_description_erase">Glan an stair bhrabhsála</string>
 
+    <!-- If the user has multiple tabs open we will show an addition "floating action button" showing how many tabs are open.
+     This string is not displayed and read only by screenreaders. %1$s will be replaced with the number of open tabs. This
+      button will only be visible when there is more than one tab open (>= 2). -->
     <string name="content_description_tab_counter">Cluaisíní oscailte: %1$s</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Lock icon showed in the URL bar for
+     https pages.. -->
     <string name="content_description_lock">Ceangal slán</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we start
+     loading a website -->
     <string name="accessibility_announcement_loading">Á lódáil</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we
+     finished loading a website -->
     <string name="accessibility_announcement_loading_finished">Luchtaíodh an suíomh Gréasáin</string>
 
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
     <string name="content_description_menu">Tuilleadh roghanna</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
     <string name="content_description_forward">Téigh ar aghaidh</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Reload current website -->
     <string name="content_description_reload">Athlódáil an suíomh</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate back (browsing history) -->
     <string name="content_description_back">Téigh ar gcúl</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Stop loading the current website. This button will turn into the refresh button once loading has been completed (see content_description_reload) -->
     <string name="content_description_stop">Stop ag lódáil an tsuímh</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Custom Tab exit button - closes the custom tab and returns to the previous app. -->
     <string name="content_description_customtab_exit">Fill ar an aip roimhe seo</string>
 
+    <!-- Content description (not visible, for screen readers etc.): This is the description for the switch in the menu that temporarily disables/enables
+         content blocking for the current session -->
     <string name="content_description_blocking_switch">Cuir cosc ar lorgairí</string>
 
     <string name="your_rights">Cearta an úsáideora</string>
 
     <string name="external_app_prompt_title">Oscail an nasc in aip eile</string>
+    <!-- This string is shown when the user has clicked a link that needs to be opened in a different app.
+         Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar). -->
     <string name="external_app_prompt">Is féidir leat %1$s a fhágáil chun an nasc seo a oscailt in %2$s.</string>
+    <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
     <string name="external_app_prompt_no_app_title">Aimsigh aip lenar féidir an nasc seo a oscailt</string>
+    <!-- This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+         the app store installed on the device (usually that's Google Play). -->
     <string name="external_app_prompt_no_app">Níl aon aip ar do ghléas atá in ann an nasc seo a oscailt. Is féidir leat %1$s a fhágáil chun aip oiriúnach a lorg in %2$s.</string>
+    <!-- This label is shown above a list of apps that can be used to open a given link -->
     <string name="external_multiple_apps_matched_exit">Scoir de Bhrabhsáil Phríobháideach?</string>
 
+    <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
     <string name="download_snackbar_finished">%1$s críochnaithe</string>
 
+    <!-- Snackbar action to immediately open the successfully downloaded file. -->
     <string name="download_snackbar_open">Oscail</string>
 
 
@@ -221,30 +333,42 @@
 
 
 
-  <string name="firstrun_defaultbrowser_title">Príobháideachas praiticiúil proifisiúnta</string>
+  <!-- First run tour (Default browser): Title -->
+    <string name="firstrun_defaultbrowser_title">Príobháideachas praiticiúil proifisiúnta</string>
 
+    <!-- First run tour (Shortcut): Title -->
     <string name="firstrun_shortcut_title">Cuir aicearraí leis an leathanach baile</string>
 
     <string name="firstrun_close_button">OK, tuigim!</string>
     <string name="firstrun_skip_button">Ná bac leis</string>
     <string name="firstrun_next_button">Ar Aghaidh</string>
 
+    <!-- Indicator that no trackers are being blocked because content blocking is disabled; normally shows the number of blocked trackers -->
     <string name="content_blocking_disabled">-</string>
 
+    <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_add">Cuir Leis</string>
 
+    <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_cancel">Cealaigh</string>
 
-    <string name="download_firefox">Íoslódáil Firefox</string>
+    <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
+      item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
+    <string name="download_firefox" tools:ignore="BrandUsage">Íoslódáil Firefox</string>
 
+    <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Ainm úsáideora</string>
     <string name="gv_prompt_password_hint">Focal Faire</string>
     <string name="gv_prompt_clear">Glan</string>
 
+    <!-- Text shown in Security Information Popup -->
+    <!-- Text to denote secure or insecure connection -->
     <string name="security_popup_secure_connection">Ceangal Slán</string>
     <string name="security_popup_insecure_connection">Ceangal Neamhshlán</string>
+    <!-- %1$s will be replaced with organization that granted the SSL certificate -->
     <string name="security_popup_security_verified">Fíoraithe ag: %1$s</string>
 
+    <!-- Content Description of Security Icon in toolbar -->
     <string name="site_security_icon_content_description">Slándáil an tSuímh</string>
     <string name="preference_autocomplete_duplicate_url_error">Tá an URL ann cheana</string>
 

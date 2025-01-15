@@ -202,14 +202,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">An askouezh-mañ n\'hall ket bezañ staliet rak n\'eo ket bet gwiriet.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s n’hall ket bezañ staliet rak ne glot ket gant %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s n’hall ket bezañ staliet rak gallout a ra degas ur riskl bras a-fet stabilded pe diogelroez.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">%1$s a za a-enep da bolitikerezh Mozilla ha n’hall ket bezañ staliet war %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s n’hall ket bezañ staliet rak n’hall bezañ staliet gant un aozadur a ra gant ar reolennoù embregerezh, ar pezh n’eo ket skoret war ar savenn-mañ.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s a za a-enep da bolitikerezh Mozilla ha n’hall ket bezañ staliet.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">%1$s a za a-enep da bolitikerezh Mozilla ha n’hall ket bezañ staliet war %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -259,11 +255,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Gwelet ar munudoù</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">Diweredekaet eo bet %1$s en abeg da gudennoù a-fet surentez pe stabilded.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Stanket eo an adkouezh-mañ dre ma za a-enep da bolitikerezh Mozilla ha diweredekaet eo bet.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">An askouezh-mañ a za a-enep da bolitikerezh Mozilla ha diweredekaet eo bet. Gallout a rit gweredekaat anezhañ met risklus e c’‘hall bezañ.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Strishaet eo bet an askouezh-mañ dre ma za a-enep da bolitikerezh Mozilla ha diweredekaet eo bet. Gallout a rit gweredekaat anezhañ met risklus e c’‘hall bezañ.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

@@ -200,11 +200,7 @@ erro da configuración do servidor e non do computador.</li>
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Non hai conexión á internet</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Parece que hai un problema coa túa conexión a Internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Comprobe a súa conexión de rede ou tente volver a cargar a páxina nuns instantes.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Proba a conectar cun dispositivo diferente. Comproba o teu módem ou router. Desconecta e volve conectar á wifi.</string>
     <!-- The document title and heading of an error page. -->

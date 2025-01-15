@@ -209,11 +209,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Kennask internet ebet</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">War a-seblant zo ur gudenn gant ho kennask internet</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Gwiriekait ho kennask ouzh ar rouedad pe klaskit adkargañ ar bajenn a-benn nebeud.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Klaskit kennaskañ war un trevnad all. Gwiriekait ho modem pe ho heñcher. Digennaskit hag adkennaskit ouzh ar wifi.</string>
     <!-- The document title and heading of an error page. -->

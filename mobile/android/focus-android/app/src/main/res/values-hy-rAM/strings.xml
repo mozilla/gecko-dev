@@ -96,7 +96,7 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Որոնել Focus-ում</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Որոնել Focus-ում</string>
 
     <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">Գաղտնիություն և անվտանգություն</string>
@@ -383,10 +383,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Փակել</string>
-
-    <!-- New Onboarding flow second screen skip onboarding button label-->
+  <!-- New Onboarding flow second screen skip onboarding button label-->
     <string name="onboarding_second_screen_skip_button_text">Բաց թողնել</string>
 
     <!-- First run tour (Default browser): Title -->
@@ -449,7 +446,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Ներբեռնել Firefox-ը</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Ներբեռնել Firefox-ը</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -631,4 +628,5 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Վիջեթն ավելացվել է հիմնական էկրանին</string>
-</resources>
+
+    </resources>

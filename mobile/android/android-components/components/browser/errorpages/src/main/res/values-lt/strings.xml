@@ -179,10 +179,6 @@
         <li>Jei nepavyksta įkelti ir kitų tinklalapių, patikrinkite savo įrenginio duomenų ar belaidį ryšį.</li>
       </ul>]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Nėra ryšio su internetu</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Patikrinkite savo tinklo ryšį, arba pabandykite įkelti tinklalapį iš naujo.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Įkelti iš naujo</string>
 

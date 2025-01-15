@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">ใช้รหัสผ่านที่คาดเดายากหรือไม่?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ปกป้องบัญชีของคุณด้วยการใช้รหัสผ่านที่แข็งแกร่งซึ่งสร้างขึ้นแบบสุ่ม รหัสผ่านดังกล่าวจะถูกบันทึกไว้ในบัญชีของคุณเพื่อใช้ในอนาคต</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">ปกป้องบัญชีของคุณด้วยการใช้รหัสผ่านที่แข็งแกร่งซึ่งสร้างขึ้นแบบสุ่ม รหัสผ่านดังกล่าวจะถูกบันทึกไว้ในบัญชีของคุณเพื่อใช้ในอนาคต</string>

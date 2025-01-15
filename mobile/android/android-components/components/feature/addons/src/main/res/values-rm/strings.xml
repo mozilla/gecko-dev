@@ -206,14 +206,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">I n’è betg reussì dad installar questa extensiun perquai ch’ella n’è betg verifitgada.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">Impussibel dad installar %1$s pervia dad incumpatibilitad cun %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">Impussibel dad installar %1$s perquai che la ristga è gronda ch\'i dat problems da stabilitad u da segirezza.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">%1$s violescha las directivas da Mozilla e na po betg vegnir installà en %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">I n’è betg reussì dad installar %1$s perquai ch’il supplement po mo vegnir installà dad in’organisaziun che utilisescha directivas d’interpresa, ma quai na vegn betg sustegnì da questa plattafurma.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s violescha las directivas da Mozilla e na po betg vegnir installà.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">%1$s violescha las directivas da Mozilla e na po betg vegnir installà en %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -263,11 +259,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Mussar ils detagls</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s è vegnì deactivà pervia da problems da segirezza u da stabilitad.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Questa extensiun è bloccada pervia da la violaziun da directivas da Mozilla ed è vegnida deactivada.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Questa extensiun violescha las directivas da Mozilla ed è vegnida deactivada. Ti pos l’activar, ma quai po esser ristgus.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Questa extensiun è suttamessa a limitaziuns pervia da la violaziun da las directivas da Mozilla ed è vegnida deactivada. Ti pos l’activar, ma quai po esser ristgus.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

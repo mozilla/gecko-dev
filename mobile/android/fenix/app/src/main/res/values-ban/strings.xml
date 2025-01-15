@@ -8,7 +8,7 @@
     <!-- Label of editable text in create collection dialog for naming a new collection  -->
     <string name="tab_tray_add_new_collection_name">Aran</string>
 
-    <!-- Text for the negative button -->
+    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">Ten, suksma</string>
 
 
@@ -19,10 +19,7 @@
     <!-- Button text for showing all the tabs in the tabs tray -->
     <string name="recent_tabs_show_all">Cingak makejang</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Scan</string>
-    <!-- Search engine suggestion title text. The first parameter is the name of teh suggested engine-->
+    <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
     <string name="search_engine_suggestions_title">Rereh %s</string>
     <!-- Menu option in the search selector menu to open the search settings -->
     <string name="search_settings_menu_item">Rereh piranti</string>

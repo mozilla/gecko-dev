@@ -54,7 +54,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">سئچیلن تاغلاری مجموعه‌ده ساخلا</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">سئچیلدی</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">سئچیلدی</string>
 
 
     <!-- Home - Bookmarks -->
@@ -111,12 +111,6 @@
     <string name="open_in_app_cfr_negative_button_text">باغلا</string>
 
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">ایندیه قدر لاب گوجلو گیزلیلیک اؤزللیگیمیز، سایتلار آراسی ایزله‌ییجی‌لرین قاباغینی آلار.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">بوتون کوکی قوروما حاقیندا بیلگی آلین</string>
-
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
     <string name="erase_action_cfr_message">یئنی بیر گیزلی اوتورم باشلادماق اوچون بورایا توخونون. گئچمیشینیزی، کوکی‌لرینیزی، هرشئیی سیلین.</string>
@@ -127,19 +121,10 @@
     <string name="navbar_cfr_title">یئنی گزینمه ایله داها یئیین مرور ائله‌یین</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">داها آرتیق مرور فضاسی اوچون آشاغی اسکرول ائتدیگینیز زامان بو بار اوزاقلاشیر.</string>
-
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">سایتدا، داها چوخ مرور فضاسی اوچون آشاغیا حرکت ائتدیگینیز زمان، بو بار گیزله‌نیر.</string>
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">بو تاغین گئچمیشینده صفحه‌لر آراسیندا گئچیش ائتمک اوچون فلش‌لره دوْخونون و باسیلیْ توتون.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">یئنی: بیر کلیک‌له دال و قاباخ فلش‌لری</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">هر زمان بارماقلاریزین اوجوندا اوْلان داها یئیین گزینمه‌‍‌نین کیفینی آپارین.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">کامئرا ال چاتماسی لازیم.اندروید تنظیم‌لرینه گئدین، ایجازه‌لره توخونون و ایجازه وئرین.</string>
@@ -327,9 +312,9 @@
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">آلت‌لر</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">اوْخویوجو گؤرونوشو، ترجمه، پرینت، پایلاشما، اَپ آچما</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">اوْخویوجو گؤرونوشو، ترجمه، پرینت، پایلاشما، اَپ آچما</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">اوْخویوجو گؤرونوشو، پرینت، پایلاشما، اَپ آچما</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">اوْخویوجو گؤرونوشو، پرینت، پایلاشما، اَپ آچما</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ساخلا</string>
@@ -392,9 +377,6 @@
     <string name="locale_search_hint">دیل آختار</string>
 
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">اسکن</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">آختاریش موتورونون تنظیم‌لری</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -419,12 +401,7 @@
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">بو دفعه بوردا آختار:</string>
 
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">%s آختاریش موتورو</string>
-
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">اؤزللشدیریلمیش آنایارپاق‌نان تانیش اولون. سون تاغلار، بوکمارک‌لار و آختاریش سونوچلاری بورادا گؤرونه‌جک.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">داها اؤزل اینترنته خوش گلیبسیز</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -444,26 +421,14 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">باغلا</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">بیلدیریش‌لر %s ایله داها چوخ شئی ائتمه‌گه کومک ائدیر.</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">تاغلارینیزی جهازلار آراسیندا دؤنگل‌ ائله‌یین، یئندیرمه‌لری ایداره ائله‌یین، %s گیزلیلیک قوروماسیندان لاب یاخچی یارارلانماق حاقیندا اطلاعات آلین و آیری شئی‌لر.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">ایدامه وئر</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">ایندی یوخ</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">فایرفاکس گیزللیک بیلدیریمی</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">فایرفاکس گیزللیک بیلدیریمی</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">سیزی قوروماغی سئویریک</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">میلیون‌لارجا فایرفاکسی نییه سئودیگینی اؤرگه‌شین</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">میلیون‌لارجا فایرفاکسی نییه سئودیگینی اؤرگه‌شین</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">داها چوخ سئچیمله گوونلی مورور</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -472,11 +437,6 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">100 میلیون‌دان چوْخ آدام، منفعت آختارمیان بیر قورولوش طرفیندن آرخالانان بیر موروچویو سئچه‌رک گیزلیلیک‌لرینی قوْرویور.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">تانینمیش ایزله‌ییجی‌لر؟ اوْتوماتیک مسدود اوْلور. اوزانتیْ‌لار؟ بوتون 700. پی‌دی‌اف فایل‌لارینیْ ایمتیحان ائله‌یین؟ داخیلی اوْخویوجوموز بونلاریْ مودیریته آسانلاشدیریر.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">نفع آختارمیان مورورچوموز، شیرکتلرین سیزی گیزلیجه اینترنتده تعقیب ائتمه‌لرینی مسدود ائلییر.</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">گیزلیلیک بیلدیریمی</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">وارساییلان مورورچو ائله</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -485,33 +445,30 @@
     <string name="juno_onboarding_sign_in_title_2">جهازلار آراسیندا گئچیش ائلین زامان رمزلنمیش قالین.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">گیریش و دؤنگل ائتدیگینیز زامان داها گوونلی اولورسوز. فایرفاکس رمزلری، بوکمارکلاری و آیری شئی‌لری رمزلشدیریر.</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">فایرفاکس، دؤنگل ائتدیگینیز زمان، رمزلریزی، بوکمارک‌لاریزی و داها چوْخونو رمزلشدیریر.</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">فایرفاکس، دؤنگل ائتدیگینیز زمان، رمزلریزی، بوکمارک‌لاریزی و داها چوْخونو رمزلشدیریر.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">گیریش</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">ایندی یوخ</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">بیلدیریش‌لر فایرفاکس ایله داها امن قالماغینیزا کومک ائدیر.</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">بیلدیریش‌لر فایرفاکس ایله داها امن قالماغینیزا کومک ائدیر.</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">تاغلاری جهازلاریز آراسیندا گوونلی شکلده گؤندرین و فایرفاکسین آیری اؤزللیکلرینی کشف ائله‌یین.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">تاغلاری جهازلاریز آراسیندا گوونلی شکلده گؤندرین و فایرفاکسین آیری اؤزللیکلرینی کشف ائله‌یین.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">بیلدیریش‌لری آچ</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">ایندی یوخ</string>
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">فایرفاکس آختاریش ویجتینی ایمتیحان ائله‌یین</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">فایرفاکس آختاریش ویجتینی ایمتیحان ائله‌یین</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">فایرفاکسی آنا اکرانیزا آرتیرساز گیزلیلیگه اؤنجه‌لیک وئرن مورورچونوزا آسانلیق‌لا الینیز چاتار.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">فایرفاکسی آنا اکرانیزا آرتیرساز گیزلیلیگه اؤنجه‌لیک وئرن مورورچونوزا آسانلیق‌لا الینیز چاتار.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">فایرفاکس ویجتینی آرتیر</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">فایرفاکس ویجتینی آرتیر</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ایندی یوخ</string>
 
@@ -554,9 +511,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">آدرس چوبوغو ترجیح‌لری</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">آدرس چوبوغو -فایرفاکس تکلیفی</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">آدرس چوبوغو -فایرفاکس تکلیفی</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">فایرفاکس تکلیفی حاقیندا آرتیق بیلگی آلین</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">فایرفاکس تکلیفی حاقیندا آرتیق بیلگی آلین</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">گوگل پلی‌ده امتیاز وئر</string>
     <!-- Preference linking to about page for Fenix
@@ -569,8 +526,6 @@
 
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">گیزلیلیک و گوونلیک</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">سایت ایجازه‌لری</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">گیزلی مورور</string>
     <!-- Preference for opening links in a private tab-->
@@ -660,8 +615,6 @@
     <string name="toast_override_account_sync_server_done">موْزیلا حسابیْ/دؤنگل سروری دگیشدیریلدی. دگیشمه‌لری یئرینه سالماق اوچون اپلیکیشن‌دن چیخیلیر…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">حساب</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">ادوات چوبوغو</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">آدرس چوبوغو یئری</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -833,7 +786,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">ایندی یئنی اوزانتیْ‌لار وار</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">فایرفاکسیْ اؤزوُنوز ائتمک ایمکانیْ وئرن 100 دن چوْخ یئنی اوُزانتیا باخیْن.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">فایرفاکسیْ اؤزوُنوز ائتمک ایمکانیْ وئرن 100 دن چوْخ یئنی اوُزانتیا باخیْن.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">اوزانتی‌ْ‌لاری آراشدیرین</string>
@@ -903,7 +856,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">آلیْنان تاغ‌لار</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">آیریْ فایرفاکس جهازلاریندان آلینان تاغلارا اوچون بیلدیریش‌لر</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">آیریْ فایرفاکس جهازلاریندان آلینان تاغلارا اوچون بیلدیریش‌لر</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">تاغ آلیندیْ</string>
 
@@ -929,13 +882,14 @@
     <string name="exceptions_empty_message_learn_more_link">آرتیق بیلین</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">ایشه آلما و فنی دیتالار</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">ایشه آلما و فنی دیتالار</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">%1$s داها یاخچیْ ائتمک اوچون موُروچونوز حاقیندا ایشله‌ییش،ایشه آلما، دوْنانیم و اؤزللشدیرمه دیتالارینی موزیلا ایله پایلاشیر.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">بازارلاما دیتاسیْ</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">اساس ایشه آلما بیلگی‌لرینی موبایل بازارلاما ایش اوْرتاغیمیز Adjust ایله پایلاشیر.</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">اساس ایشه آلما بیلگی‌لرینی موبایل بازارلاما ایش اوْرتاغیمیز Adjust ایله پایلاشیر.</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">آراشدیرمالار</string>
 
@@ -978,8 +932,6 @@
     <string name="preference_gestures_dynamic_toolbar">آلت‌لر چوبوغونو گیزلتمک اوچون اسکرول ائله‌</string>
 
 
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">تاغ‌لاریْ دگیشدیرمک اوچون ادوات چوُبوغونو یانالار طرف چکین</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">تاغ‌لاریْ آچماق اوچون ادوات چوُبوغونو یوخاریا چکین</string>
 
@@ -1114,21 +1066,21 @@
     <string name="studies_learn_more">آرتیق بیلین</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">دگیشمه‌لری یئرینه سالماق اوچون اپلیکیشن‌دن چیخاجاق</string>
+    <string name="studies_restart_app" moz:removedIn="135">دگیشمه‌لری یئرینه سالماق اوچون اپلیکیشن‌دن چیخاجاق</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">تامام</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">تامام</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">لغو</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">لغو</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">دگیشمه‌لری یئرینه سالماق اوچون اپلیکیشن‌دن چیْخیلیر…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">دگیشمه‌لری یئرینه سالماق اوچون اپلیکیشن‌دن چیْخیلیر…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">آچیْق تاغ‌لار</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">آچیْق تاغ‌لار</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">گیزلی تاغ‌لار</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">گیزلی تاغ‌لار</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">دؤنگل‌لنمیش تاغ‌لار</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">دؤنگل‌لنمیش تاغ‌لار</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">تاغ آرتیر</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1179,8 +1131,6 @@
     <string name="collection_open_tabs">تاغ‌لاریْ آچ</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">مجموعه آدیْ</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">یئنی‌دن آدلاندیْر</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">قالدیر</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1252,8 +1202,6 @@
     <string name="bookmark_delete_negative">لغو</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">قوْولوق اکله</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">بوکمارک ساخلاندی!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">دوزه‌لیش</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1319,8 +1267,6 @@
     <string name="bookmark_navigate_back_button_content_description">دالیا گئدین</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">یئنی پوشه آرتیر</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">بوکمارک‌لاری باغلا</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">بوکمارک‌لاردا آختار</string>
 
@@ -1505,7 +1451,7 @@
     <string name="sync_connect_device">باشقا جهازا باغلا</string>
 
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">بیر تاغ گؤندرمک اوچون آزی بیر باشقا جهازدا فایرفاکسا داخیل اوْلون.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">بیر تاغ گؤندرمک اوچون آزی بیر باشقا جهازدا فایرفاکسا داخیل اوْلون.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">آنلادیم</string>
 
@@ -1525,17 +1471,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">گیزلی تاغ‌لاریْ باغلا</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">اوْرتا</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">چوْخ ناراضیْ</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">ناراضیْ</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">راضیْ</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">چوْخ راضیْ</string>
-
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">گیزلی تاغ‌لار باغلانسین؟</string>
@@ -1547,10 +1482,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">فایرفاکس یئیین و گیزلی‌دیر.</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">فایرفاکس یئیین و گیزلی‌دیر.</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">فایرفاکسیْ وارساییلان مورورچو ائله‌یین</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">فایرفاکسیْ وارساییلان مورورچو ائله‌یین</string>
 
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">گیزلی مورورو ایمتیحان ائله</string>
@@ -1573,7 +1508,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">لطفا، قیسا بیر سؤرغویا قاتیلاراق فایرفاکس تکمیل اولماسینا کمک ائدین.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">لطفا، قیسا بیر سؤرغویا قاتیلاراق فایرفاکس تکمیل اولماسینا کمک ائدین.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">سوْرغویا قاتیلن</string>
     <!-- Preference for not taking the short survey. -->
@@ -1590,8 +1525,6 @@
     <string name="snackbar_tabs_closed">تاغلار باغلاندیْ</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">تاغلار باغلاندیْ: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">بوکمارک‌لار ساخلاندیْ !</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">شوْرتکات‌لارا آرتیریلدیْ !</string>
 
@@ -1621,8 +1554,6 @@
     <string name="tab_collection_dialog_message">%1$s مجموعه‌سینی سیلمه‌گه آرخایینسیز؟</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">سیل</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">بوتون اکران حالتینه گئچیلیر</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">اینترنت آدرسی کوْپی اوْلدو</string>
     <!-- Sample text for accessibility font size -->
@@ -1680,9 +1611,6 @@
     <string name="delete_history_prompt_title">سیلمک اوچون وقت آرالیغی</string>
 
     <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">گئچمیشی (باشقا جهازلاردان دؤنگل اوْلموش گئچمیشده ایچینده)، کوکی‌لر و دیگر باخیش بیلگی‌لری سیلیر.</string>
-
-    <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">گئچمیشی (باشقا جهازلاردان دؤنگل اوْلموش گئچمیشده ایچینده)</string>
 
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1730,7 +1658,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">کد اسکنی</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[کامپیوتریزده <b>https://firefox.com/pair</b> آدرسینه گئدین]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[کامپیوتریزده <b>https://firefox.com/pair</b> آدرسینه گئدین]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">اسکنه حاضیر</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1739,7 +1667,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">یئرینه ایمیل استفاده ائدین</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[حسابینیز یوخ؟ فایرفاکسی جهازلار آراسیندا دؤنگل ائتمک اوچون <u>حساب آچین</u>.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[حسابینیز یوخ؟ فایرفاکسی جهازلار آراسیندا دؤنگل ائتمک اوچون <u>حساب آچین</u>.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s حسابینیزلا دؤنگلی دایاندیراجاق. اما بو جهازداکی مرور دیتانیزی هیچ بیرینی سیلمه‌یه‌جک.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1809,8 +1737,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">کریپتو معدنچی</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">بارماق ایزی یئغانلار</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">تانینمیش بارماق ایزلری</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">آیرینتی‌لار</string>
@@ -1837,11 +1763,6 @@
     <string name="etp_cryptominers_title">کریپتو معدنچی</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">ضررلی اسکریپت‌لرین دیجیتال ارز الده ائتمک اوچون جهانیزا گیرمه‌سی‌نین قاباغینیْ آلیر.</string>
-
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">بارماق ایزی‌لری</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">جهانیز حاقیندا ایزله‌مه هدفی ایله استفاده ائدیله بیله‌جک بنزرسیز اوْلاراق تانیلابیلیر دیتالارین یئغماسینیْ دایاندیریر.</string>
 
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">جهانیز حاقیندا ایزله‌مه هدفی ایله استفاده ائدیله بیله‌جک بنزرسیز اوْلاراق تانیلابیلیر دیتالارین یئغماسینیْ دایاندیریر.</string>
@@ -2302,7 +2223,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">لطفا تاغ دؤنگل‌ینی گوجلندیر.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">باشقا جهازیزدا فایرفاکس‌دا آچیق تاغیز یوْخ.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">باشقا جهازیزدا فایرفاکس‌دا آچیق تاغیز یوْخ.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">باشقا جهازیزدان تاغلارین لیستینه باخین.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2330,8 +2251,6 @@
     <string name="shortcut_name_hint">شورتکات آدیْ</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">شورتکات‌ آدرسی</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">اولسون</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">لغو</string>
     <!-- Text for the menu button to open the homepage settings. -->
@@ -2368,7 +2287,7 @@
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">بیر آیدان سونرا اتوماتیک باغلانسین؟</string>
 
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">فایرفاکس، سوْن بیر آی ایچینده باخمادیغیز تاغلاریْ باغلیا بیلر.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">فایرفاکس، سوْن بیر آی ایچینده باخمادیغیز تاغلاریْ باغلیا بیلر.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">اتوماتیک باغلاماغیْ آچ</string>
 
@@ -2377,7 +2296,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">فایرفاکس تکلیف‌لری</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">فایرفاکس تکلیف‌لری</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">گوگل آختاریشیْ</string>
@@ -2388,7 +2307,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">وارساییلان مرورچوزا دگیشدیرین</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">فایرفاکس‌دا اتوماتیک آچیلماق اوچون سایتلاریندان، ایمیل‌لریندن و مسیج‌لریندن باغلانتی‌ْ تعیین ائدین.‎</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">فایرفاکس‌دا اتوماتیک آچیلماق اوچون سایتلاریندان، ایمیل‌لریندن و مسیج‌لریندن باغلانتی‌ْ تعیین ائدین.‎</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">قالدیر</string>
@@ -2397,7 +2316,7 @@
     <string name="radio_preference_info_content_description">چوْخ جزئیات اوچون کلیک ائله‌</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">یوخاریا گئت</string>
+    <string name="action_bar_up_description">یوخاریا گئت</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">باغلا</string>
@@ -2413,7 +2332,7 @@
     <string name="pocket_stories_feature_title_2">%s -دن گوج آلیر.</string>
 
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">فایرفاکس عائله‌سینین بیر پارچاسی. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">فایرفاکس عائله‌سینین بیر پارچاسی. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">آرتیق بیلین</string>
     <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
@@ -2551,8 +2470,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">آرتیق بیلین</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">“هن, امتحان ائله”نی سئچتیغیزده %1$s %2$s و %3$s %4$sنی قبول ائله‌میش اوْلورسوز.</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">“هن, امتحان ائله”نی سئچتیغیزده %1$s %2$s و %3$s %4$sنی قبول ائله‌میش اوْلورسوز.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">گیزلیلیک بیلدیریمی</string>
@@ -2562,16 +2479,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">بلی، اوْنو امتحان ائله‌</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ایندی یوْخ</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">آلماقدان اول بو محصولون رای‌لرینه اعتبار ائده بیله‌جگیزی اؤرگه‌شین.‌‎</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">باخیش یوخلایانی امتحان ائله</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">بو رای‌لرین اعتباری وار؟ دوزلتیلمیش رتبه‌نی گؤرمک اوچون ایندی یوْخلایین.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">باخیش یوخلایانیْ آچ</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">بتا</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">باخیش یوخلایانیْ آچ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2643,9 +2550,9 @@
 
 
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">فایرفاکس‌دا پرینتی یاخچیلاشدیرماغا کمک ائدین. یالنیز بیر ثانیه چکیر.</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">فایرفاکس‌دا پرینت‌دن نه قدر راضیسینیز؟</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">فایرفاکس‌دا پرینتی یاخچیلاشدیرماغا کمک ائدین. یالنیز بیر ثانیه چکیر.</string>
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">فایرفاکس‌دا پرینت‌دن نه قدر راضیسینیز؟</string>
 
 
     </resources>

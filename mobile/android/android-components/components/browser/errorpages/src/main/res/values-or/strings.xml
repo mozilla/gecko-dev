@@ -88,10 +88,6 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_host_title">ଠିକଣା ମିଳୁନାହିଁ</string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ନାହିଁ</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">ଆପଣଙ୍କର ନେଟୱର୍କ ସଂଯୋଗ ଦେଖନ୍ତୁ କିମ୍ବା ପୃଷ୍ଠାଟିକୁ ଆଉ କିଛି କ୍ଷଣ ପରେ ପୁନର୍ଧାରଣ କରନ୍ତୁ</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">ପୁନର୍ଧାରଣ</string>
 

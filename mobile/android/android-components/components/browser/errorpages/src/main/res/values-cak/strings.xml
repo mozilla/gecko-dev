@@ -178,10 +178,6 @@
         <li>We man yatikïr ta nasamajib\'ej jun ruxaq, tanik\'oj ri Wi-Fi awokem o rutzij awokisab\'al.</li>
       </ul>]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Majun Okem pa K\'amaya\'l</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Tanik\'oj ri awokem pa k\'amab\'ey o tatojtob\'ej nasamajij chik ri ruxaq pa jun ti mej.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Tisamajïx chik</string>
 

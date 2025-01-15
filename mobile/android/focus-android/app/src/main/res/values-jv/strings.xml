@@ -5,87 +5,144 @@
     <!-- ## into a separate file like strings_references.xml                                  ## -->
     <!-- ####################################################################################### -->
 
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_cancel">Batal</string>
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_ok">OKÉ</string>
 
     <string name="action_save">Simpen</string>
 
+    <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">Golèk utawa lebokaké alamat</string>
 
     <string name="teaser">Dlajahan pribadi otomatis.\nDlajah. Busak. Balèni.</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
     <string name="feedback_erase">Riwayat dlajahan sampéyan wis dibusak.</string>
 
+    <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">Golèk %1$s</string>
 
+    <!-- Menu item: Share the currently visible page -->
     <string name="menu_share">Dumké…</string>
 
+    <!-- Menu item: Report an issue on the current site -->
     <string name="menu_report_site_issue">Lapur Masalah Situs</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. %1$s will be
+      replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
+      links can be opened by native apps that aren't a browser, e.g. "Open in YouTube" -->
     <string name="menu_open_with_default_browser2">Bukak ing %1$s</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. This menu item
+      will be shown if there are multiple browsers and we do not know which one is the default
+      browser or in case Focus is actually the default browser. Clicking this menu item will show
+      a screen with multiple browsers (or other apps that can open the current URL) to choose from. -->
     <string name="menu_open_with_a_browser2">Bukak ing…</string>
 
+    <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
     <string name="menu_add_to_home_screen">Tambah ing Layar Utama</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Setèlan</string>
     <string name="menu_about">Ngenani</string>
     <string name="menu_help">Pitulung</string>
     <string name="menu_rights">Hak Sampéyan</string>
 
+    <!-- Menu item: This is the label for a menu entry that shows how many trackers have been blocked
+         for the currently loaded website. The number of blocked trackers is shown below this label.
+         Next to this label is a switch that allows the user to temporarily enable / disable the
+         blocking of trackers for the current browsing session - for example if the current website
+         doesn't work correctly with blocked content. -->
     <string name="menu_trackers_blocked_title">Palacak kablokir</string>
 
+    <!-- Menu item: This is the subtitle for the Trackers blocked menu entry that shows how many
+    trackers have been blocked for the currently loaded website.  -->
     <string name="menu_trackers_blocked_subtitle">Matèni iki bisa ndandani sawetara masalah situs</string>
 
+    <!-- Menu item: This is the label for turning off content blocking for the current website. -->
     <string name="menu_content_blocking">Blokir kontèn</string>
+    <!-- This is the subtitle content blocking toggle -->
     <string name="menu_content_blocking_subtitle">Patèni kanggo ndandani sawetara situs</string>
 
+    <!-- This is a small text at the bottom of the menu shown in a "custom tab" for branding purposes.
+     See https://github.com/mozilla-mobile/focus-android/issues/2106
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="menu_custom_tab_branding">Disokong déning %1$s</string>
 
+    <!-- This is the title of a dialog that shows all the share targets (apps or contacts) when
+         sharing an URL. -->
     <string name="share_dialog_title">Dumké liwat</string>
 
     <string name="notification_erase_text">Busak riwayat dlajahan</string>
 
+    <!-- Notification action to open Focus and resume the current browsing session. -->
     <string name="notification_action_open">Bukak</string>
 
+    <!-- Notification action to erase the current browsing session AND switch to Focus (bring it
+         to the foreground) -->
     <string name="notification_action_erase_and_open">Busak lan Bukak</string>
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_short_label">Busak</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters. -->
     <string name="shortcut_erase_long_label">Busak riwayat dlajahan</string>
 
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_and_open_short_label">Busak &amp; bukak</string>
 
+    <!-- Preference category description for settings screen for settings related to Mozilla -->
+    <!-- About the app and help are links that are inside this menu -->
+    <!-- %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_mozilla_summary">Ngenani %1$s, pitulung</string>
 
+    <!-- Preference category for settings related to controlling web content -->
     <string name="preference_category_web_content">Kontèn Wèb</string>
 
+    <!-- Preference category: stealth settings for while switching apps -->
     <string name="preference_category_switching_apps">Ganti aplikasi</string>
 
+    <!-- Preference category for General Settings -->
     <string name="preference_category_general">Umum</string>
 
     <string name="preference_category_search">Golèk</string>
 
+    <!-- Title of "switch" preference that enables/disables search suggestions -->
     <string name="preference_show_search_suggestions">Njaluk saran panggolekan</string>
 
+    <!-- This label is shown above the currently selected search engine in settings -->
     <string name="preference_search_engine_label">Mesin panggolèk</string>
 
+    <!-- Text that is shown below a "switch" preference that is enabled. -->
     <string name="preference_state_on">Uripké</string>
 
+    <!-- Text that is shown below a "switch" preference that is disabled. -->
     <string name="preference_state_off">Paténi</string>
 
+    <!-- Preference category for settings about data choices -->
     <string name="preference_category_data_choices">Pilihan Data</string>
 
+    <!-- A link to SUMO at autocomplete settings. -->
     <string name="preference_autocomplete_learn_more">Sinau liyané</string>
 
+    <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
     <string name="preference_autocomplete_add_hint">Témpél utowo leboké URL</string>
 
+    <!-- Menu item to remove existing autocomplete URLs. -->
     <string name="preference_autocomplete_menu_remove">Busak</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Button that will delete all selected custom autocomplete URLs. -->
     <string name="preference_autocomplete_action_remove_content_description">Busak</string>
 
     <string name="preference_language">Basa</string>
+    <!-- This is shown when the user hasn't set a focus specific language, i.e. when Focus
+         is using the system default language. -->
     <string name="preference_language_systemdefault">Gawan sistem</string>
 
     <string name="preference_category_privacy">Privasi</string>
@@ -95,23 +152,34 @@
 
     <string name="preference_category_mozilla">Mozilla</string>
 
+    <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
     <string name="preference_about">Ngenani %1$s</string>
 
+    <!-- Header for the list of installed search engines -->
     <string name="preference_search_installed_search_engines">Mesin panggolèk sing wis dipasang</string>
 
+    <!-- Action for restoring the default list of search engines -->
     <string name="preference_search_restore">Mulihaké mesin panggolèk standar</string>
 
+    <!-- Action for adding an additional search engine to the list.
+    The "+" is used to emphasize that this is an "add" action -->
     <string name="preference_search_add2">+Tambah mesin panggolèk liyané</string>
     <string name="preference_search_remove_title">Busak mesin panggolèk</string>
     <string name="preference_search_remove">Busak</string>
 
+    <!-- Clickable action text that shows when user long-presses on a search engine search field (this is similar to paste or copy when long-pressing a text field) -->
     <string name="action_option_add_search_engine">Tambah mesin panggolèk</string>
 
     <string name="search_add_manually_name_hint">Jeneng mesin panggolèk</string>
     <string name="search_add_manually_save">Simpen</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clicking on the website overlay
+     while in typing mode will dismiss and go back to the browser. This text will be read when the
+     overlay if focused. See https://github.com/mozilla-mobile/focus-android/issues/50 -->
     <string name="content_description_dismiss_input">Singkirké</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we start
+     loading a website -->
     <string name="accessibility_announcement_loading">Ngamot</string>
 
 
@@ -121,26 +189,39 @@
 
   <string name="firstrun_close_button">Oké, mudheng!</string>
 
+    <!-- Indicator that no trackers are being blocked because content blocking is disabled; normally shows the number of blocked trackers -->
     <string name="content_blocking_disabled">-</string>
 
+    <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_cancel">Mbatalake</string>
 
-    <string name="download_firefox">Undhuh Firefox</string>
+    <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
+      item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
+    <string name="download_firefox" tools:ignore="BrandUsage">Undhuh Firefox</string>
 
+    <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Jeneng Panganggo</string>
     <string name="gv_prompt_password_hint">Tembung wadi</string>
     <string name="gv_prompt_clear">Busak</string>
 
+    <!-- Text shown in Security Information Popup -->
+    <!-- Text to denote secure or insecure connection -->
     <string name="security_popup_secure_connection">Sambungan aman</string>
     <string name="security_popup_insecure_connection">Sambungan ora aman</string>
 
     <string name="preference_autocomplete_duplicate_url_error">URL wis ana</string>
 
+    <!-- Label for the Find in page button -->
     <string name="find_in_page">Golèki ing kaca</string>
 
+    <!-- Watermark/Hint for the find in page input field -->
     <string name="find_in_page_input">Golekì ing kaca</string>
 
+    <!-- String to show the number of results found in the page and the
+        position the user is at. The first argument is the position, the second argument is the total -->
     <string name="find_in_page_result">%1$d / %2$d</string>
+    <!-- String to be read by the accessibility service presenting the number of results found in the page
+        and the position the user is at. The first argument is the position, the second argument is the total -->
     <string name="accessibility_find_in_page_result">%1$d saka %2$d</string>
 
     <!-- Tips displayed on the home view -->

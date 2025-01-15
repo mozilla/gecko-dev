@@ -192,11 +192,7 @@
 	</ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Keine Internetverbindung</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Anscheinend gibt es ein Problem mit Ihrer Internetverbindung</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Überprüfen Sie Ihre Netzwerkverbindung oder versuchen Sie in wenigen Augenblicken, die Seite neu zu laden.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Versuchen Sie, auf einem anderen Gerät eine Verbindung herzustellen. Überprüfen Sie Ihr Modem oder Router. Trennen Sie die WLAN-Verbindung und stellen Sie die Verbindung wieder her.</string>
     <!-- The document title and heading of an error page. -->

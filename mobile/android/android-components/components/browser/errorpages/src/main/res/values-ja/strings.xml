@@ -194,11 +194,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">インターネットに接続されていません</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">インターネット接続に問題があるようです</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">ネットワーク接続を確認するか、しばらくしてからページを再読み込みしてください。</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">別の端末で接続してみてください。モデムまたはルーターを確認してください。Wi-Fi を一旦切断して再接続してください。</string>
     <!-- The document title and heading of an error page. -->

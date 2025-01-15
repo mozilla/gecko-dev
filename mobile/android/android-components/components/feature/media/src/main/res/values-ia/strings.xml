@@ -22,13 +22,9 @@
 
     <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name-->
     <string name="mozac_feature_media_sharing_camera_reminder_text">Memento: %1$s ancora usa tu camera. Tocca pro aperir le scheda.</string>
-    <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
-    <string name="mozac_feature_media_sharing_microphone_reminder_text" moz:RemovedIn="124" tools:ignore="UnusedResources">Memento: %1$s ancora usa tu microphono. Tocca pro aperir le scheda.</string>
 
     <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
     <string name="mozac_feature_media_sharing_microphone_reminder_text_2">Memento: %1$s ancora usa tu microphono. Tocca pro aperir le scheda.</string>
-    <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
-    <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text" moz:RemovedIn="124" tools:ignore="UnusedResources">Memento: %1$s ancora usa tu microphono e camera. Tocca pro aperir le scheda.</string>
 
     <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
     <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">Memento: %1$s ancora usa tu microphono e camera. Tocca pro aperir le scheda.</string>

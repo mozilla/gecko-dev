@@ -12,7 +12,7 @@
     <string name="content_description_private_browsing_button">گەڕانی تایبەتی شاراوە کارابکە</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">گەڕانی تایبەتی شاراوە ناچالاک بکە</string>
-    <!-- Placeholder text shown in the search bar before a user enters text -->
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">بگەڕێ یان ناونیشان بنووسە</string>
     <!-- No Open Tabs Message Description -->
     <string name="no_open_tabs_description">بازدەرە کراوەکانت لێرە پیشان دەدرێت.</string>
@@ -33,7 +33,7 @@
 
 
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">دیاریکرا</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">دیاریکرا</string>
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s بەرهەم هێنراوە لە لایەن مۆزیلاوە.</string>
@@ -42,7 +42,7 @@
        چەند ئەفسانەییەک دەربارەی گەڕانی تایبەتیی
     </string>
 
-    <!-- Text for the negative button -->
+    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">نا سوپاس</string>
 
     <!-- Text for the positive action button -->
@@ -79,10 +79,6 @@
     <string name="browser_menu_refresh">نوێکردنەوە</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">بوەستە</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">پێوەکراوەکان</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">هیچ پێوەکراوێک نیە</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">یارمەتی</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -95,8 +91,6 @@
     <string name="browser_menu_desktop_site">پیشاندانی ماڵپەڕ وەک ڕوومێز</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">زیادی بکە بۆ شاشەی سەرەکی</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">دامەزراندن</string>
 
 
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -137,9 +131,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">گەڕان بۆ زمان</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">گەڕانی QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">ڕێکخستنەکانی بزوێنەری گەڕان</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -150,7 +141,7 @@
     <string name="search_suggestions_onboarding_do_not_allow_button">ڕێگە مەدە</string>
     <!-- Search suggestion onboarding hint title text -->
     <string name="search_suggestions_onboarding_title">ڕێگە دەدەی  بە پێشنیاری گەڕان لە دانییشتنی شاراوەی تایبەت؟</string>
-    <!-- Search engine suggestion title text. The first parameter is the name of teh suggested engine-->
+    <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
     <string name="search_engine_suggestions_title">بگەڕێ بۆ %s</string>
 
 
@@ -190,8 +181,6 @@
     <string name="preferences_category_advanced">پێشکەوتوو</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">تایبەتیی و پاراستن</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">ڕێگەپێدانەکانی ماڵپەڕ</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">وێبگەڕانی تایبەتی</string>
     <!-- Preference for opening links in a private tab-->
@@ -209,8 +198,6 @@
     <string name="preferences_override_sync_tokenserver">ڕاژەی خوازراو بۆ هاوکاتگەری</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">هەژمار</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">توڵامراز</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">ڕووکار</string>
     <!-- Preference for gestures based actions -->
@@ -250,14 +237,9 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">بەڕێوەبردنی داگرتنی دەرەکی</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">پێوەکراوەکان</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">ئاگانامەکان</string>
 
-    <!-- Add-on Preferences -->
-    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection">کۆمەڵەیەکی پێوەکراوی دڵخواز</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">باشە</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -268,7 +250,6 @@
     <string name="customize_addon_collection_user_hint">خاوەنی کۆکراوە (ناونیشانی بەکارهێنەر)</string>
 
 
-    <!-- Account Preferences -->
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">هاوکاتگەری پێکردن</string>
     <!-- Preference category for sync -->
@@ -277,8 +258,6 @@
     <string name="preferences_sync_history">مێژوو</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">جێنیشانه‌که‌ر</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">چوونەژوورەوەکان</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">بازدەرەکان بکەرەوە</string>
     <!-- Preference for signing out -->
@@ -302,8 +281,6 @@
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s لە %2$s%3$s</string>
 
-    <!-- Preference for syncing credit cards -->
-    <string name="preferences_sync_credit_cards">کارتی پڕکردنەوەی بانکی</string>
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">ناونیشانەکان</string>
 
@@ -312,7 +289,7 @@
     <string name="fxa_received_tab_channel_name">بازدەری بەدەستگەیشتوو</string>
 
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">ئاگانامەکان بۆ بازدەر هاتووە لە ئامێرێکی تری فایەرفۆکسەوە.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">ئاگانامەکان بۆ بازدەر هاتووە لە ئامێرێکی تری فایەرفۆکسەوە.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">بازدەر گەیشت</string>
 
@@ -330,13 +307,14 @@
     <string name="exceptions_empty_message_learn_more_link">زیاتر بزانە</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">بەکارهێنان و زانیاری تەکنیکی</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">بەکارهێنان و زانیاری تەکنیکی</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">چوستی وێبگەڕ، بەکارهێنانی و زانیاری خوازراوی وێبگەڕەکەت بڵاوەپێدەکات لەگەڵ مۆزیلا بۆ ئەوەی یارمەتیمان بدات %1$s باشتر بکەین</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">زانیاری بازاڕیکردن</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">زانیاری سەرەتایی بڵاودەکاتەوە لەگەڵ Adjust، کە بریتییە لە فرۆشیارێکی ئێمە بۆ بازاڕی مۆبایل.</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">زانیاری سەرەتایی بڵاودەکاتەوە لەگەڵ Adjust، کە بریتییە لە فرۆشیارێکی ئێمە بۆ بازاڕی مۆبایل.</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">توێژینەوە</string>
     <!-- Summary for studies preferences -->
@@ -372,8 +350,6 @@
     <string name="preference_gestures_website_pull_to_refresh">بیخزێنە بۆ نوێکردنەوە</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">بیخزێنە بۆ شاردنەوەی توڵامراز</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">توڵامراز ببە بۆ لاکان بۆ گۆڕین لە نێوان بازدەرەکان</string>
 
 
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
@@ -445,11 +421,11 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">بازدەرەکان بکەرەوە</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">بازدەرەکان بکەرەوە</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">بازدەرە تایبەتەکان</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">بازدەرە تایبەتەکان</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">بازدەرە هاوکاتپێکراوەکان</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">بازدەرە هاوکاتپێکراوەکان</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">بازدەر زیادبکە</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -498,10 +474,8 @@
     <string name="collection_name_hint">ناوی کۆکراوە</string>
 
 
-    <!-- Text for the menu button to rename a top site -->
-	<string name="rename_top_site">دووبارە ناونانەوە</string>
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">بیسڕەوە</string>
+    <string name="remove_top_site">بیسڕەوە</string>
     <!-- Text for the menu button to delete a top site from history -->
     <string name="delete_from_history">سڕینەوە لە مێژووی کار</string>
     <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
@@ -563,8 +537,6 @@
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s برگە دیاریکراوەکان دەسڕێتەوە.</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">بوخچە زیادبکە</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">نیشانکراو پاشەکەوتکرا!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">دەستکاریکردن</string>
     <!-- Bookmark overflow menu edit button -->
@@ -743,7 +715,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">پەیوەندی بکە بە ئامێرێکی تر</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">بۆ ناردنی بازدەر، پێویستە بەلایەنی کەمەوە بچیتە ژوورەوە لە ئامێرێکی تری فایەرفۆکس.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">بۆ ناردنی بازدەر، پێویستە بەلایەنی کەمەوە بچیتە ژوورەوە لە ئامێرێکی تری فایەرفۆکس.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">تێگەیشتم</string>
 
@@ -771,8 +743,6 @@
     <string name="snackbar_tab_closed">بازدەر داخرا</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">بازدەرەکان داخران</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">نیشانەکراو هەڵگیرا!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
     <string name="snackbar_private_tab_closed">بازدەری تایبەت داخرا</string>
     <!-- Text shown in snackbar when user closes all private tabs -->
@@ -791,14 +761,8 @@
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">ئایا تۆ دڵنیایت کە دەتەوێت %1$s بسڕیتەوە؟</string>
 
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">سڕینەوەی ئەم بازدەرە هەموو کۆکەرەوەکە دەسڕێتەوە. دەتوانیت کۆکەرەوەیەکی تر درووست بکەیت لە هەر کاتێکی تردا.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">%1$s دەسڕیتەوە؟</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">سڕینەوە</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">چوونە دۆخی پراوپڕی شاشە</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">بەستەر لەبەرگیرا</string>
     <!-- Sample text for accessibility font size -->
@@ -853,9 +817,11 @@
     <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
     <string name="deleting_browsing_data_in_progress">سڕینەوەی زانیارییەکانی گەڕان…</string>
 
+    <!-- Onboarding -->
     <!-- text to display in the snackbar once account is signed-in -->
     <string name="onboarding_firefox_account_sync_is_on">هاوکاتگەری کارایە</string>
 
+    <!-- Onboarding theme -->
     <!-- Text shown in snackbar when multiple tabs have been sent to device -->
     <string name="sync_sent_tabs_snackbar">بازدەرەکان نێردران!</string>
     <!-- Text shown in snackbar when one tab has been sent to device  -->
@@ -867,7 +833,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">کۆدەکە سکان بکە</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[لەسەر کۆمپیوتەرەکەت فایەرفۆکس بکەرەوە بچۆ <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[لەسەر کۆمپیوتەرەکەت فایەرفۆکس بکەرەوە بچۆ <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">ئامادەیە بۆ سکان</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -876,7 +842,7 @@
     <string name="sign_in_with_email">دەتوانیت پۆستی ئەلیکترۆنی بەکارببەیت</string>
 
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[هەژمارت نیە؟ <u> دانەیەک درووست بکە</u> بۆ هاوکاتگەری پێکردن لەنێوان ئامێرەکان.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[هەژمارت نیە؟ <u> دانەیەک درووست بکە</u> بۆ هاوکاتگەری پێکردن لەنێوان ئامێرەکان.]]></string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
     <string name="sign_out_disconnect">دەرچوون</string>
     <!-- Option to cancel signing out shown in confirmation dialog to sign out of account -->
@@ -924,8 +890,6 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">تەنها لە بازدەری تایبەت</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">شیفرە-کانەکەر</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">پەنجەمۆرەکان</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
     <string name="enhanced_tracking_protection_blocked">بلۆککراوە</string>
     <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
@@ -934,8 +898,6 @@
     <string name="etp_social_media_trackers_title">چاودێریکردنی تۆڕی کۆمەڵایەتی</string>
     <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_title">شیفرە-کانەکەر</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">پەنجەمۆرەکان</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">چاودێریکردنی ناوەڕۆک</string>
     <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
@@ -990,36 +952,16 @@
     <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
     <string name="add_to_homescreen_text_placeholder">ناوی قەدبڕ</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">چوونەژوورەوە و وشەی تێپەڕەکان</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins">چوونەژوورەوە وشەی تێپەڕەکان پاشەکەوت بکە</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">داوابکە بۆ پاشەکەوتکردن</string>
     <!-- Preference option for never saving passwords in Fenix -->
     <string name="preferences_passwords_save_logins_never_save">هەرگیز پاشەکەوت مەکە</string>
 
-    <!-- Preference for syncing saved logins in Fenix -->
-    <string name="preferences_passwords_sync_logins">چوونەژوورەوەکان هاوکاتگەری پێبکە</string>
-    <!-- Preference for syncing saved logins in Fenix, when not signed in-->
-    <string name="preferences_passwords_sync_logins_across_devices">چوونەژوورەوەکان هاوکاتگەری پێبکە لە نێوان ئامێرەکان</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins">چوونەژوورەوەی پاشەکەوتکراو</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text">ئەو چوونەژوورەوانەی پاشەکەوتی دەکەیت یان هاوکاتگەری پێدەکەیت لەگەڵ %s لێرە دەردەکەوێت.</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link">زیاتر بزانە دەربارەی هاوکاتگەری.</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">هەڵاوێردییەکان</string>
 
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty">ئەو چوونەژوور و وشەی تێەپەڕانەی پاشەکەوتی ناکەیت لێرە دەردەکەوێت.</string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description">چوونەژوورەوە و وشەی تێپەڕ پاشەکەوت ناکرێت بۆ ئەم ماڵپەڕانە.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">هەموو هەڵاوێردییەکان بسڕەوە</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">بگەڕێ لە ناو چوونەژوورەوەکان</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">ماڵپەڕ</string>
     <!-- The header for the username for a login -->
@@ -1044,10 +986,6 @@
     <string name="saved_login_reveal_password">وشەی تێپەڕبوون پیشان بدە</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">وشەی تێپەڕبوون بشارەوە</string>
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message">بیکەرەوە بۆ ئەوەی چوونەژوورەوەکان ببینی</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title">چوونەژوورەوەکان و وشەی تێپەڕبوون بپارێزە</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">دوواتر</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1062,21 +1000,11 @@
     <string name="saved_logins_sort_strategy_alphabetically">ناو(A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">کۆتا بەکارهێنراو</string>
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description">پێڕستی چوونەژوورەوەکان ڕێکخبە</string>
 
-    <!-- Preference and title for managing the settings for credit cards -->
-    <string name="preferences_credit_cards">کارتی پڕکردنەوەی بانکی</string>
-    <!-- Preference for saving and autofilling credit cards -->
-    <string name="preferences_credit_cards_save_and_autofill_cards">هەڵیبگرە و کارتەکان خۆکار پڕبکەرەوە</string>
-    <!-- Preference summary for saving and autofilling credit card data -->
-    <string name="preferences_credit_cards_save_and_autofill_cards_summary">زانیارییەکان بە کۆدکراون</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">هاوکاتگەری کردنی کارت لە نێوان ئامێرەکان</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
     <string name="preferences_credit_cards_sync_cards">هاوکاتگەری کارتەکان</string>
-    <!-- Preference option for adding a credit card -->
-    <string name="preferences_credit_cards_add_credit_card">کارتی پڕکردنەوەی بانکی زیادبکە</string>
 
     <!-- The title for the "Save" menu item for saving a credit card -->
     <string name="credit_cards_menu_save">پاشەکەوتکردن</string>
@@ -1139,18 +1067,8 @@
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">دەستکاریکردن</string>
 
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation">تۆ دڵنیایت کە دەویت ئەم چوونەژوورەوەیە بسڕیتەوە؟</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">سڕینەوە</string>
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu">هەڵبژاردەکانی چوونەژوورەوە</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login">گۆڕانکارییەکە پاشەکەوت بکە بۆ چوونەژوورەوە.</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">دەستکاریکردن</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">وشەی تێپڕبوون داواکراوە</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">گەڕانی دەنگی</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -1167,7 +1085,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">تکایە هاوکاتگەری بازدەر پێبکە.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">هیچ بازدەرێکی کراوەت نیە لە ئامێرەکانی تری فایەرفۆکس.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">هیچ بازدەرێکی کراوەت نیە لە ئامێرەکانی تری فایەرفۆکس.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">لیستەی بازدەرەکان پیشان بدە لە ئامێرەکانی ترەوە.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -1178,11 +1096,9 @@
     <!-- Confirmation dialog button text when top sites limit is reached. -->
     <string name="top_sites_max_limit_confirmation_button">باشە، تێگەیشتم</string>
     <!-- Title text displayed in the rename top site dialog. -->
-	<string name="top_sites_rename_dialog_title">ناو</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-	<string name="top_sites_rename_dialog_ok">باشە</string>
+    <string name="top_sites_rename_dialog_title">ناو</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
-	<string name="top_sites_rename_dialog_cancel">پاشگەزبوونەوە</string>
+    <string name="top_sites_rename_dialog_cancel">پاشگەزبوونەوە</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">سڕینەوە</string>

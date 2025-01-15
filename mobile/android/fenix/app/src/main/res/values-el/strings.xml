@@ -50,7 +50,7 @@
     <string name="tab_tray_collection_button_multiselect_content_description">Αποθήκευση επιλεγμένων καρτελών στη συλλογή</string>
 
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Επιλέχθηκε</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Επιλέχθηκε</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -425,8 +425,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Σάρωση</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Σάρωση κωδικού QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Ρυθμίσεις μηχανής αναζήτησης</string>
@@ -451,9 +449,6 @@
 
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Αυτήν τη φορά, αναζήτηση σε:</string>
-
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Μηχανή αναζήτησης «%s»</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
@@ -539,10 +534,6 @@
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Προσθέστε επεκτάσεις τρίτων για να βελτιώσετε την ασφάλεια, την παραγωγικότητα και πολλά άλλα.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Εξερευνήστε περισσότερες επεκτάσεις.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Ξεκινήστε την περιήγηση.</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Εξερευνήστε περισσότερες επεκτάσεις</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">Έναρξη περιήγησης</string>
@@ -620,7 +611,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Αποθήκευση και συνέχεια</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">Παράλειψη</string>
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Παράλειψη</string>
 
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">Πάνω</string>
@@ -628,14 +619,17 @@
     <string name="onboarding_customize_toolbar_bottom_option">Κάτω</string>
 
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
-    <string name="onboarding_customize_toolbar_placement_content_description">Εικόνα της γραμμής εργαλείων στο %1$s μέρος</string>
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Εικόνα της γραμμής εργαλείων στο %1$s μέρος</string>
+
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Όχι τώρα</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Επιλέξτε θέμα</string>
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Αποθήκευση και έναρξη περιήγησης</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">Παράλειψη</string>
+    <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Παράλειψη</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">Σκουρόχρωμο</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -644,6 +638,9 @@
     <string name="onboarding_customize_theme_system_option">Θέμα συστήματος</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">Εικόνα για το %1$s θέμα</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">Όχι τώρα</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -697,8 +694,6 @@
     <string name="preferences_category_advanced">Σύνθετα</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Απόρρητο και ασφάλεια</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Δικαιώματα ιστοτόπων</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">Ρυθμίσεις ιστοτόπου</string>
     <!-- Preference for private browsing options -->
@@ -1058,10 +1053,11 @@
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Μοιραστείτε πληροφορίες σχετικά με το πώς ανακαλύψατε το Firefox με τους συνεργάτες μάρκετινγκ της Mozilla. Αυτό μας βοηθά να αναπτύξουμε το Firefox και να δημιουργήσουμε ένα καλύτερο διαδίκτυο.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Μάθετε περισσότερα σχετικά με τα δεδομένα μάρκετινγκ</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Αυτόματη υποβολή αναφορών κατάρρευσης</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Αυτόματη κοινοποίηση δεδομένων καταρρεύσεων με τη Mozilla κατά την εκκίνηση, μετά από καταρρεύσεις</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Αυτόματη υποβολή αναφορών κατάρρευσης</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Αυτόματη κοινοποίηση δεδομένων καταρρεύσεων με τη Mozilla κατά την εκκίνηση, μετά από καταρρεύσεις</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Μελέτες</string>
     <!-- Summary for studies preferences -->
@@ -1241,11 +1237,11 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Ανοικτές καρτέλες</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Ανοικτές καρτέλες</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Ιδιωτικές καρτέλες</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Ιδιωτικές καρτέλες</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Συγχρονισμένες καρτέλες</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Συγχρονισμένες καρτέλες</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Προσθήκη καρτέλας</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1370,6 +1366,9 @@
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">Αποστολή</string>
 
+
+    <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+    <string name="webcompat_reporter_dismiss_success_snackbar_text">Κλείσιμο</string>
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

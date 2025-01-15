@@ -45,7 +45,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">ບັນທຶກແທັບທີ່ເລືອກແລ້ວໄປໄວ້ທີ່ການເກັບສະສົມ</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">ເລືອກແລ້ວ</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ເລືອກແລ້ວ</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -273,6 +273,8 @@
     <string name="browser_menu_turn_on_reader_view">ເປີດ Reader View</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">ປິດ Reader View</string>
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">ຍ້າຍໄປແຖບທີ່ບໍ່ແມ່ນສ່ວນຕົວ</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">ແປໜ້ານີ້…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -291,6 +293,10 @@
     <string name="menu_cfr_title">ໃໝ່: ເມນູປັບປຸງ</string>
     <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
     <string name="menu_cfr_body">ຊອກຫາສິ່ງທີ່ທ່ານຕ້ອງການໄດ້ໄວຂຶ້ນ, ຈາກການທ່ອງເວັບສ່ວນຕົວເພື່ອບັນທຶກຄຳສັ່ງ.</string>
+
+    <!-- Extensions management fragment -->
+    <!-- Text displayed when there are no extensions to be shown -->
+    <string name="extensions_management_no_extensions">ບໍ່ມີສ່ວນຂະຫຍາຍຢູ່ທີ່ນີ້</string>
 
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->
@@ -315,8 +321,6 @@
     <string name="locale_search_hint">ຄົ້ນຫາພາສາ</string>
 
     <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">ສະແກນ</string>
     <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">ສະແກນລະຫັດ QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
@@ -343,8 +347,9 @@
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">ເວລານີ້ຄົ້ນຫາໃນ:</string>
 
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">ເຄື່ອງມືການຄົ້ນຫາ %s</string>
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">ເຄື່ອງ​ມື​ຄົ້ນ​ຫາ: %s</string>
 
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
@@ -394,10 +399,11 @@
         Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">ລອງໃຊ້ວິດເຈັດຄົ້ນຫາຂອງ Firefox</string>
 
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">ສຳຫຼວດສ່ວນຂະຫຍາຍເພີ່ມເຕີມ.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">ເລີ່ມການທ່ອງເວັບ</string>
+    <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">ເພີ່ມ widget Firefox</string>
+    <!-- Text for the button to dismiss the screen and move on with the flow -->
+    <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">ເທິງ</string>
 
@@ -440,8 +446,6 @@
     <string name="preferences_category_advanced">ຂັ້ນສູງ</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">ຄວາມເປັນສ່ວນຕົວ ແລະ ຄວາມປອດໄພ</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">ສິດທິໃນເວັບໄຊທ</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">ການທ່ອງເວັບແບບສ່ວນຕົວ</string>
     <!-- Preference for opening links in a private tab-->
@@ -864,11 +868,11 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">ເປີດແທັບ</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">ເປີດແທັບ</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">ແທັບສ່ວນຕົວ</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ແທັບສ່ວນຕົວ</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">ແທັບທີ່ Sync ແລ້ວ</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ແທັບທີ່ Sync ແລ້ວ</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">ເພີ່ມແທັບ</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

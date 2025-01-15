@@ -110,10 +110,6 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_host_title">સરનામું મળ્યું નથી</string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">ઇન્ટરનેટ કનેક્શન નથી</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">તમારું નેટવર્ક કનેક્શન તપાસો અથવા થોડી ક્ષણોમાં પૃષ્ઠને ફરીથી લોડ કરવાનો પ્રયાસ કરો.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">ફરીથી લોડ કરો</string>
 

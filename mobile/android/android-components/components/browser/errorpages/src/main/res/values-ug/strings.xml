@@ -213,12 +213,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">تورغا ئۇلانمىغان</string>
-
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">ئىنتېرنېت باغلىنىشىڭىزدا مەسىلە باردەك قىلىدۇ</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">تور ئۇلىنىشىڭىزنى تەكشۈرۈڭ ياكى بىر نەچچە مىنۇتتىن كېيىن بەتنى قايتا يۈكلەڭ.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">باشقا ئۈسكۈنىگە باغلاپ سىناپ بېقىڭ. مودېمىڭىز ياكى يېتەكلىگۈچىڭىزنى تەكشۈرۈڭ. باغلىنىشنى ئۈزۈپ ئاندىن سىمسىز تور يەنى Wi-Fi غا قايتا باغلاڭ.</string>
     <!-- The document title and heading of an error page. -->

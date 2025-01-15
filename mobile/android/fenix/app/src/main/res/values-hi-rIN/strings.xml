@@ -13,7 +13,7 @@
     <string name="content_description_private_browsing_button">निजी ब्राउज़िंग सक्षम करें</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">निजी ब्राउज़िंग अक्षम करें</string>
-    <!-- Placeholder text shown in the search bar before a user enters text -->
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">खोजें या पता दर्ज करें</string>
     <!-- No Open Tabs Message Description -->
     <string name="no_open_tabs_description">आपके खुले टैब यहां दिखाए जाएंगे।</string>
@@ -35,7 +35,7 @@
     <string name="tab_tray_collection_button_multiselect_content_description">चुने गए टैब को संग्रह में सहेजें</string>
 
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">चयनित</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">चयनित</string>
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s को Mozilla द्वारा निर्मित किया गया है।</string>
@@ -46,7 +46,7 @@
     <string name="private_browsing_placeholder_description_2">%1$s जब आप ऐप को बंद करते हैं तो निजी टैब से आपका खोज और ब्राउज़िंग इतिहास को मिटाता हैं। हालांकि यह आपको वेबसाइटों या आपके इंटरनेट सेवा प्रदाता के लिए अज्ञात नहीं बनाता है, लेकिन यह आसान बनाता है कि आप इस कंप्यूटर का उपयोग करने वाले किसी अन्य व्यक्ति से ऑनलाइन निजी काम करें।</string>
     <string name="private_browsing_common_myths">निजी ब्राउज़िंग के बारे में आम कथा</string>
 
-    <!-- Text for the negative button -->
+    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">नहीं धन्यवाद</string>
 
     <!-- Text for the positive action button -->
@@ -108,10 +108,6 @@
     <string name="browser_menu_refresh">रीफ़्रेश करें</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">रोकें</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">ऐड-ऑन्स</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">यहां कोई ऐड-ऑन नहीं है</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">सहायता</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -124,8 +120,6 @@
     <string name="browser_menu_desktop_site">डेस्कटॉप साइट</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">मुख्य स्क्रीन में जोड़ें</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">स्थापित करें</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">पुन: सिंक करें</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -177,9 +171,6 @@
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="locale_search_hint">भाषा खोजें</string>
 
-    <!-- Search Fragment -->
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">स्कैन करें</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">खोज इंजन सेटिंग्स</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -193,7 +184,7 @@
     <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix)-->
     <string name="search_suggestions_onboarding_text">%s आपके द्वारा पता बार में टाइप की गई सभी चीज़ों को आपके डिफ़ॉल्ट खोज इंजन के साथ साझा करेगा।</string>
 
-    <!-- Search engine suggestion title text. The first parameter is the name of teh suggested engine-->
+    <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
     <string name="search_engine_suggestions_title">%s खोजें</string>
 
     <!-- Search engine suggestion description text -->
@@ -230,8 +221,6 @@
     <string name="preferences_category_advanced">उन्नत</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">गोपनीयता और सुरक्षा</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">साइट की अनुमति</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">निजी ब्राउज़िंग</string>
     <!-- Preference for opening links in a private tab-->
@@ -247,8 +236,6 @@
     <string name="preferences_override_sync_tokenserver">अनुकूलित सिंक सर्वर</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">खाता</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">टूलबार</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">थीम</string>
     <!-- Preference for customizing the home screen -->
@@ -289,9 +276,6 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">बाहरी डाउनलोड प्रबंधक</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">ऐड-ऑन</string>
-
     <!-- Preference for notifications -->
     <string name="preferences_notifications">अधिसूचनाएं</string>
 
@@ -306,13 +290,10 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">वापस अंदर जाएँ</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks">हाल के बुकमार्क</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">हाल ही में देखे गए</string>
 
-    <!-- Account Preferences -->
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">अब सिंक करें</string>
     <!-- Preference category for sync -->
@@ -321,8 +302,6 @@
     <string name="preferences_sync_history">इतिहास</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">बुकमार्क</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">लॉगिन</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">टैब खोलें</string>
     <!-- Preference for signing out -->
@@ -349,9 +328,6 @@
         and the third is the device model. -->
     <string name="default_device_name_2">%2$s %3$s पर %1$s</string>
 
-    <!-- Preference for syncing credit cards -->
-    <string name="preferences_sync_credit_cards">क्रेडिट कार्ड</string>
-
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">पते</string>
 
@@ -359,7 +335,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">प्राप्त टैब</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">अन्य Firefox उपकरणों से प्राप्त टैब के लिए अधिसूचनाएं।</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">अन्य Firefox उपकरणों से प्राप्त टैब के लिए अधिसूचनाएं।</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">टैब प्राप्त किया गया</string>
     <!-- %s is the device name -->
@@ -376,11 +352,12 @@
     <string name="exceptions_empty_message_learn_more_link">अधिक जानें</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">उपयोगिता और तकनीकी डेटा</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">उपयोगिता और तकनीकी डेटा</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Mozilla के साथ अपने ब्राउज़र के बारे में प्रदर्शन, उपयोग, हार्डवेयर और अनुकूलन डेटा साझा करना हमें %1$s को बेहतर बनाने में मदद करता है</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">मार्केटिंग डेटा</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">अध्ययन</string>
     <!-- Summary for studies preferences -->
@@ -502,17 +479,17 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">अधिक जानें</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">ठीक</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">ठीक</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">रद्द करें</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">रद्द करें</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">खुले टैब</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">खुले टैब</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">निजी टैब</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">निजी टैब</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">समकालीन टैब</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">समकालीन टैब</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">टैब जोड़ें</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -560,10 +537,8 @@
     <string name="collection_open_tabs">खुले टैब</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">संग्रह का नाम</string>
-    <!-- Text for the menu button to rename a top site -->
-	<string name="rename_top_site">नाम बदलें</string>
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">हटाएं</string>
+    <string name="remove_top_site">हटाएं</string>
 
     <!-- Text for the menu button to delete a top site from history -->
     <string name="delete_from_history">इतिहास से मिटाएं</string>
@@ -628,8 +603,6 @@
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s चयनित वस्तुओं को मिटा देगा।</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">फ़ोल्डर जोड़ें</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">बुकमार्क सहेजा गया!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">संपादित</string>
     <!-- Bookmark overflow menu edit button -->
@@ -817,7 +790,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">अन्य डिवाइस जोड़ें</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">टैब भेजने के लिए, कम से कम एक अन्य डिवाइस पर Firefox में साइन इन करें।</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">टैब भेजने के लिए, कम से कम एक अन्य डिवाइस पर Firefox में साइन इन करें।</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">समझ गए</string>
     <!-- Share error message -->
@@ -849,8 +822,6 @@
     <string name="snackbar_tab_closed">टैब बंद हो गया</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">टैब बंद हो गया</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">बुकमार्क सहेजा गया!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
     <string name="snackbar_private_tab_closed">निजी टैब बंद हो गया</string>
     <!-- Text shown in snackbar when user closes all private tabs -->
@@ -872,14 +843,8 @@
     <string name="qr_scanner_dialog_invalid_ok">ठीक है</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">क्या आप वाकई %1$s को हटाना चाहते हैं?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">इस टैब को हटाने से संपूर्ण संग्रह मिट जाएगा। आप किसी भी समय नए संग्रह बना सकते हैं।</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">%1$s को मिटाएं?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">मिटाएं</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">पूर्ण स्क्रीन मोड में प्रवेश</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL कॉपी हो गया</string>
 
@@ -938,9 +903,11 @@
     <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
     <string name="deleting_browsing_data_in_progress">ब्राउज़िंग डेटा मिटा रहे हैं…</string>
 
+    <!-- Onboarding -->
     <!-- text to display in the snackbar once account is signed-in -->
     <string name="onboarding_firefox_account_sync_is_on">सिंक चालू है</string>
 
+    <!-- Onboarding theme -->
     <!-- Text shown in snackbar when multiple tabs have been sent to device -->
     <string name="sync_sent_tabs_snackbar">टैब भेजा गया!</string>
     <!-- Text shown in snackbar when one tab has been sent to device  -->
@@ -952,7 +919,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">कोड को स्कैन करें</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[अपने कंप्यूटर पर Firefox खोलें और <b> https://firefox.com/pair </ b> पर जाएं]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[अपने कंप्यूटर पर Firefox खोलें और <b> https://firefox.com/pair </ b> पर जाएं]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">स्कैन करने के लिए तैयार है</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1010,8 +977,6 @@
 
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">क्रिप्टोमाइनर</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">फिंगरप्रिंटर</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">विवरण</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1030,10 +995,6 @@
     <string name="etp_cryptominers_title">क्रिप्टोमाइनर</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">डिजिटल मुद्रा का पता लगाने में  दुर्भावनापूर्ण लिपियों को आपके डिवाइस के ऐक्सेस से रोकता हैं</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">फिंगरप्रिंटर</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">आपके डिवाइस के बारे में एकत्र किए जाने से विशिष्ट पहचान डेटा को रोकता है जिसका उपयोग ट्रैकिंग उद्देश्यों के लिए किया जा सकता है।</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ट्रैकिंग सामग्री</string>
 
@@ -1101,36 +1062,15 @@
     <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
     <string name="add_to_homescreen_text_placeholder">शॉर्टकट नाम</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">लॉगिन और पासवर्ड</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins">लॉगिन और पासवर्ड सहेजें</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">सहेजने के लिए पूछें</string>
     <!-- Preference option for never saving passwords in Fenix -->
     <string name="preferences_passwords_save_logins_never_save">कभी नहीं सहेजें</string>
 
-    <!-- Preference option for adding a login -->
-    <string name="preferences_logins_add_login">लॉगिन जोड़ें</string>
-
-    <!-- Preference for syncing saved logins in Fenix -->
-    <string name="preferences_passwords_sync_logins">लॉगिन सिंक करें</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins">सहेजे गए लॉगिन</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text">आपके द्वारा सहेजे गए या %s में सिंक होने वाले लॉगिन यहां दिखाई देंगे।</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link">सिंक के बारे में अधिक जानें।</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">अपवाद</string>
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty">लॉगिन और पासवर्ड जो सहेजे नहीं गए हैं उन्हें यहां दिखाये जायेंगे।</string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description">इन साइटों के लिए लॉगिन और पासवर्ड सहेजे नहीं जाएंगे।</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">सभी अपवादों को मिटाएं</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">लॉगिन खोजें</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">साइट</string>
     <!-- The header for the username for a login -->
@@ -1157,12 +1097,6 @@
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">पासवर्ड छिपाएं</string>
 
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message">अपने सहेजे गए लॉगिन को देखने के लिए अनलॉक करें</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title">अपने लॉगिन और पासवर्ड को सुरक्षित करें</string>
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_message">यदि आपके डिवाइस में किसी और के पास है, तो अपने सहेजे गए लॉगिन और पासवर्ड को एक्सेस होने से बचाने के लिए डिवाइस लॉक पैटर्न, पिन या पासवर्ड सेट करें।</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">बाद में</string>
 
@@ -1179,14 +1113,6 @@
     <string name="saved_logins_sort_strategy_alphabetically">नाम (A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">अंतिम प्रयुक्त</string>
-
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description">लॉगिन मेन्यू को क्रमबद्ध करें</string>
-
-    <!-- Preference and title for managing the settings for credit cards -->
-    <string name="preferences_credit_cards">क्रेडिट कार्ड</string>
-    <!-- Preference option for adding a credit card -->
-    <string name="preferences_credit_cards_add_credit_card">क्रेडिट कार्ड जोड़ें</string>
 
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">कार्ड जोड़ें</string>
@@ -1226,7 +1152,7 @@
     <string name="search_engine_delete">मिटाएं</string>
 
     <!-- Description text for the Search String TextField. The %s is part of the string -->
-    <string formatted="false" name="search_add_custom_engine_search_string_example">“%s” से प्रश्न बदले। उदाहरण:\nhttps://www.google.com/search?q=%s</string>
+    <string name="search_add_custom_engine_search_string_example" formatted="false">“%s” से प्रश्न बदले। उदाहरण:\nhttps://www.google.com/search?q=%s</string>
 
     <!-- Accessibility description for the form in which details about the custom search engine are entered -->
     <string name="search_add_custom_engine_form_description">अनुकूल खोज इंजन विवरण</string>
@@ -1281,30 +1207,9 @@
     <string name="login_menu_delete_button">हटाएं</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">संपादित करें</string>
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation">क्या आप वाकई इस लॉगिन को हटाना चाहते हैं?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">हटाएं</string>
 
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu">लॉगिन विकल्प</string>
-    <!--  The editable text field for a login's web address. -->
-    <string name="saved_login_hostname_description">लॉगिन के वेब पते के लिए संपादन योग्य पाठ क्षेत्र।</string>
-    <!--  The editable text field for a login's username. -->
-    <string name="saved_login_username_description">लॉगिन के उपयोगकर्ता के लिए संपादन योग्य पाठ क्षेत्र।</string>
-    <!--  The editable text field for a login's password. -->
-    <string name="saved_login_password_description">लॉगिन के पासवर्ड के लिए संपादन योग्य पाठ क्षेत्र।</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login">लॉगिन में बदलाव को सहेजें।</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">संपादित करें</string>
-
-    <!--  The page title for adding new login. -->
-    <string name="add_login">नया लॉगिन जोड़ें</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">पासवर्ड की आवश्यकता है</string>
-    <!--  The error message in add login view when username field is blank. -->
-    <string name="saved_login_username_required">उपयोगकर्ता का नाम आवश्यक</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">आवाज़ द्वारा खोज</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -1326,7 +1231,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">कृपया टैब सिंकिंग सक्षम करें।</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">आपके अन्य उपकरणों पर Firefox में कोई टैब खुला नहीं है।</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">आपके अन्य उपकरणों पर Firefox में कोई टैब खुला नहीं है।</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">अपने अन्य उपकरणों से टैब की एक सूची देखें।</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -1339,11 +1244,9 @@
     <string name="top_sites_max_limit_confirmation_button">ठीक है, समझ गए</string>
 
     <!-- Title text displayed in the rename top site dialog. -->
-	<string name="top_sites_rename_dialog_title">नाम</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-	<string name="top_sites_rename_dialog_ok">ठीक है</string>
+    <string name="top_sites_rename_dialog_title">नाम</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
-	<string name="top_sites_rename_dialog_cancel">रद्द करें</string>
+    <string name="top_sites_rename_dialog_cancel">रद्द करें</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->

@@ -45,6 +45,7 @@
     <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
     <string name="menu_add_to_home_screen">ముంగిలి తెరకు చేర్చు</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">అమరికలు</string>
     <string name="menu_about">గురించి</string>
     <string name="menu_help">సహాయం</string>
@@ -76,10 +77,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">దీనిద్వారా పంచుకోండి</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">విహరణ చరిత్రను తుడిచివేయి</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -460,7 +457,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefoxను దింపుకోండి</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefoxను దింపుకోండి</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->

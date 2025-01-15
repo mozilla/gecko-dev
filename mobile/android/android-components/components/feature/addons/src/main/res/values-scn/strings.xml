@@ -206,14 +206,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Stu stinneriu nun potti èssiri nzitatu picchì nun fu virificatu.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s nun potti èssiri nzitatu picchì nun è cumpatìbbili cu %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s nun potti èssiri nzitatu picchì àvi un rìsicu autu di causari prubblemi di sicurizza o stabbilità.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">%1$s rumpi i pulìtichi di Mozilla e nun po èssiri nzitatu nni %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s nun potti èssiri nzitatu picchì po èssiri nzitatu sulu di n\'urganizzazzioni chi usa i pulìtichi di mpria, ma sta chiattafurma nun i supporta.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s rumpi i pulìtichi di Mozilla e nun po èssiri nzitatu.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">%1$s rumpi i pulìtichi di Mozilla e nun po èssiri nzitatu nni %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -263,11 +259,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Vidi minutagghi</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s fu sdisabbilitatu pi prubblemi di sicurizza o stabbilità.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Stu stinneriu è bluccatu picchì rumpi i pulìtichi di Mozilla e fu sdisabbilitatu.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Stu stinneriu rumpi i pulìtichi di Mozilla e fu sdisabbilitatu. U poi abbilitari, ma po\' èssiri un rìsicu.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Stu stinneriu è limitatu picchì rumpi i pulìtichi di Mozilla e fu sdisabbilitatu. U poi abbilitari, ma po\' èssiri un rìsicu.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

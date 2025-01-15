@@ -202,14 +202,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Cha b’ urrainn dhuinn an leudachan seo a stàladh a chionn ’s nach deach a dhearbhadh.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">Cha b’ urrainn dhuinn %1$s a stàladh a chionn ’s nach eil e co-chòrdail le %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">Cha b’ urrainn dhuinn %1$s a stàladh a chionn ’s bheil cunnart mòr gun adhbharaich e duilgheadasan seasmhachd no tèarainteachd.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">Tha %1$s a’ briseadh poileasaidhean Mozilla is cha ghabh a stàladh air %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">Cha b’ urrainn dhuinn %1$s a stàladh a chionn ’s nach gabh a stàladh ach le buidheann a chleachdas poileasaidhean enterprise ach chan eil taic riutha air an ùrlar seo.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">Tha %1$s a’ briseadh poileasaidhean Mozilla is cha ghabh a stàladh.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">Tha %1$s a’ briseadh poileasaidhean Mozilla is cha ghabh a stàladh air %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -259,11 +255,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Faic am mion-fhiosrachadh</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">Chaidh %1$s a chur à comas air sgàth adhbharan tèarainteachd no seasmhachd.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Chaidh an leudachan seo a bhacadh a chionn ’s gun do bhris e poileasaidhean Mozilla agus chaidh a chur à comas.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Tha an leudachan seo a’ briseadh poileasaidhean Mozilla ’s chaidh a chur à comas. Is urrainn dhut a chur an comas ach dh’fhaoidte gum bi sin cunnartach.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Chaidh an leudachan seo a chuingeachadh a chionn ’s gun do bhris e poileasaidhean Mozilla ’s chaidh a chur à comas. Is urrainn dhut a chur an comas ach dh’fhaoidte gum bi sin cunnartach.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

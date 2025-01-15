@@ -195,11 +195,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Không có kết nối mạng</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Có vẻ như đã xảy ra sự cố với kết nối Internet của bạn</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Kiểm tra kết nối mạng của bạn hoặc thử tải lại trang trong giây lát.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Hãy thử kết nối trên thiết bị khác. Kiểm tra modem hoặc bộ định tuyến của bạn. Ngắt kết nối và kết nối lại với Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

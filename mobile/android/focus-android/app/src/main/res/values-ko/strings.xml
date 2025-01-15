@@ -84,7 +84,6 @@
     <string name="share_dialog_title">다음으로 공유</string>
 
     <string name="notification_erase_title_android_14">방문 기록을 삭제하시겠습니까?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">검색 기록을 안전하게 삭제하려면 이 알림을 탭하거나 지우세요.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -514,10 +513,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">닫기</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">%1$s에 오신 것을 환영합니다</string>
 
@@ -836,7 +832,7 @@
     <string name="studies_learn_more">자세히 알아보기</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">변경 사항을 적용하기 위해 애플리케이션이 종료됩니다</string>
+    <string name="studies_restart_app" moz:removedIn="135">변경 사항을 적용하기 위해 애플리케이션이 종료됩니다</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">삭제</string>
@@ -924,9 +920,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">전환</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">전체 화면 모드로 들어가기</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">새탭의 링크로 즉시 전환</string>
@@ -1119,11 +1112,6 @@
     <string name="promote_search_widget_snackbar_message">홈 화면에 위젯이 추가됨</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">전체 화면을 종료하려면 위에서 드래그하고 뒤로 동작을 사용하세요.</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">전체 화면을 종료하려면 위에서 드래그한 후 뒤로를 누르세요.</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">종료하려면, 위에서 드래그하고 뒤로 제스처를 사용하세요</string>

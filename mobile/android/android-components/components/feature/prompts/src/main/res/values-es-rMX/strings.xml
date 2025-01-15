@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">¿Usar contraseña segura?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protege tus cuentas utilizando una contraseña segura generada aleatoriamente. Se guardará en tu cuenta para uso futuro.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protege tu cuenta usando una contraseña segura generada de forma aleatoria. Se guardará en tu cuenta para usarla después.</string>

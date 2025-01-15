@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">शॉर्टकट से हटाएँ</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">सेटिंग</string>
     <string name="menu_about">परिचय</string>
     <string name="menu_help">सहायता</string>
@@ -82,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">इसके माध्यम से साझा करें</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">ब्राउज़िंग इतिहास मिटाएँ</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -512,7 +509,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox डाउनलोड करें</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox डाउनलोड करें</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -581,13 +578,13 @@
     <string name="preference_studies">अध्ययन</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox संस्थापन और समय-समय पर अध्ययन कर सकता है.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox संस्थापन और समय-समय पर अध्ययन कर सकता है.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">और अधिक जानें</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">परिवर्तन लागू हेतु एप्लीकेशन बंद हो जाएगा</string>
+    <string name="studies_restart_app" moz:removedIn="135">परिवर्तन लागू हेतु एप्लीकेशन बंद हो जाएगा</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">हटाएँ</string>

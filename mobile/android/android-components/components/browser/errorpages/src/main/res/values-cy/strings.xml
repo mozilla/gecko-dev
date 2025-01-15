@@ -191,12 +191,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Dim cysylltiad rhyngrwyd</string>
-
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Mae\'n ymddangos bod problem gyda\'ch cysylltiad rhyngrwyd</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Gwiriwch eich cysylltiad rhwydwaith neu ceisiwch ail-lwytho’r dudalen ymhen ychydig eiliadau.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Ceisiwch gysylltu ar ddyfais wahanol. Gwiriwch eich modem neu lwybrydd. Datgysylltwch ac ailgysylltwch â\'r Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

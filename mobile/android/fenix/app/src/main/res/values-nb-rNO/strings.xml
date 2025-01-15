@@ -46,7 +46,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Lagre valgte faner i samlingen</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Valgt</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Valgt</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -95,12 +95,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Ignorer</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Vår kraftigste personvernfunksjon til nå isolerer sporere på tvers av nettsteder.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Les mer om total beskyttelse mot infokapsler</string>
-
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
     <string name="erase_action_cfr_message">Trykk her for å starte en ny privat økt. Slett historikken din, infokapsler — alt.</string>
@@ -115,9 +109,6 @@
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Trykk og hold pilene for å hoppe mellom sidene i denne fanens historikk.</string>
-
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Gled deg over raskere navigering som alltid er tilgjengelig.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameratilgang er nødvendig. Gå til Android-innstillinger, trykk på tillatelser, og trykk på tillat.</string>
@@ -319,9 +310,9 @@
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
     <string name="browser_main_menu_content_description_settings_button">Innstillinger</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Lesevisning, oversett, skriv ut, del, åpne app</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Lesevisning, oversett, skriv ut, del, åpne app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Lesevisning, skriv ut, del, åpne app</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Lesevisning, skriv ut, del, åpne app</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Lagre</string>
@@ -384,9 +375,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Skann</string>
-
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Skann QR-kode</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Innstillinger for søkemotor</string>
@@ -412,16 +400,11 @@
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Søk denne gangen i:</string>
 
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s-søkemotor</string>
-
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Søkemotor: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Møt din personlige hjemmeside. Nylige faner, bokmerker og søkeresultater vises her.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Velkommen til et mer personlig internett</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -549,8 +532,6 @@
     <string name="preferences_category_advanced">Avansert</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Personvern og sikkerhet</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Nettstedstillatelser</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Privat nettlesing</string>
     <!-- Preference for opening links in a private tab-->
@@ -889,15 +870,16 @@
     <string name="exceptions_empty_message_learn_more_link">Les mer</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Bruk og tekniske data</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Bruk og tekniske data</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Deler data om ytelse, bruksmønster, maskinvare og tilpasninger i din nettleser med Mozilla, for å hjelpe oss å gjøre %1$s bedre</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Markedsføringsdata</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Deler grunnleggende bruksdata med Adjust, vår mobile markedsføringsleverandør</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Send inn krasjrapporter automatisk</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Deler grunnleggende bruksdata med Adjust, vår mobile markedsføringsleverandør</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Send inn krasjrapporter automatisk</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Undersøkelse</string>
     <!-- Summary for studies preferences -->
@@ -1065,21 +1047,21 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Les mer</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Applikasjonen avsluttes for å iverksette endringer</string>
+    <string name="studies_restart_app" moz:removedIn="135">Applikasjonen avsluttes for å iverksette endringer</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">OK</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">OK</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Avbryt</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Avbryt</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Avslutter applikasjonen for å legge til endringer…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Avslutter applikasjonen for å legge til endringer…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Åpne faner</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Åpne faner</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Private faner</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Private faner</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Synkroniserte faner</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Synkroniserte faner</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Legg til fane</string>
 
@@ -1183,6 +1165,7 @@
 
     <!-- WebCompat Reporter -->
 
+
     <!-- Broken site reason text for images or videos -->
     <string name="webcompat_reporter_reason_media">Bilder eller videoer</string>
     <!-- Broken site reason text for buttons, links, and other content -->
@@ -1224,8 +1207,6 @@
     <string name="bookmark_delete_negative">Avbryt</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Legg til mappe</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Bokmerke lagret!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Lagret i «%s»</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1573,8 +1554,6 @@
     <string name="snackbar_tabs_closed">Faner lukket</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Faner lukket: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Bokmerker lagret!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Bokmerker lagret i «%s»!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2484,15 +2463,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Ja, prøv det</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ikke nå</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Finn ut om du kan stole på vurderinger av dette produktet — før du kjøper.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Prøv vurderingskontrollør</string>
-
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Er disse vurderingene pålitelige? Sjekk nå for å se en justert vurdering.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Åpne vurderingskontrollør</string>
 
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Åpne vurderingskontrolløren</string>
@@ -2882,11 +2852,6 @@
     <string name="glean_debug_tools_title">Glean feilsøkingsverktøy</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">For å avslutte fullskjerm, dra fra toppen, og så til venstre</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">For å avslutte fullskjerm, dra fra toppen, og trykk tilbake-knappen</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Dra fra toppen, og så til venstre for å avslutte</string>
@@ -2897,4 +2862,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>

@@ -119,23 +119,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Tikanöx pa Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Tikanöx pa Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Tikanöx pa Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Tikanöx pa Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Tikanöx pa Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Tikanöx pa Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Tikanöx pa Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Tikanöx pa Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s nuya\' ronojel pan aq\'a\'.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s nuya\' ronojel pan aq\'a\'.</p>
 <p>Tawokisaj achi\'el jun ichinan okik\'amaya\'l:
  <ul>
  <li>Tikanöx chuqa\' tokisäx ri chokoy</li>
@@ -511,10 +511,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Titz\'apïx</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Ütz apetik pa %1$s</string>
 
@@ -603,7 +600,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Taqasaj Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Taqasaj Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -615,23 +612,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s niya\' pan aq\'a\' rik\'in rojqanem ri <a href="%2$s">Aj winäq Ya\'oj Ruq\'ij Mozilla</a> chuqa\' ch\'aqa\' chik taq ya\'oj q\'ij kichin ch\'aqa\' chik taq jaqäl b\'itz\'ib\'.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s niya\' pan aq\'a\' rik\'in rojqanem ri <a href="%2$s">Aj winäq Ya\'oj Ruq\'ij Mozilla</a> chuqa\' ch\'aqa\' chik taq ya\'oj q\'ij kichin ch\'aqa\' chik taq jaqäl b\'itz\'ib\'.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Man nisuj taq kich\'ojib\'al chuqa\' ya\'oj q\'ij chi ke ri etz\'ib\'an taq b\'i\'aj richin Mozilla Moloj ni xa ta chi ke ri taq ruch\'akulal achi\'el Mozilla, Firefox o %1$s taq b\'i\'aj o taq wachaj. Nawïl rutz\'aqat na\'oj <a href="%2$s">wawe\'</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Man nisuj taq kich\'ojib\'al chuqa\' ya\'oj q\'ij chi ke ri etz\'ib\'an taq b\'i\'aj richin Mozilla Moloj ni xa ta chi ke ri taq ruch\'akulal achi\'el Mozilla, Firefox o %1$s taq b\'i\'aj o taq wachaj. Nawïl rutz\'aqat na\'oj <a href="%2$s">wawe\'</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Rutz\'aqat ruxe\'el b\'itz\'ib\' richin %1$s wachel kik\'in ch\'aqa\' chik jalajöj sipan taq kema\' chuqa\' jaqäl b\'itz\'ib\' <a href="%2$s">taq ya\'oj q\'ij</a>.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Rutz\'aqat ruxe\'el b\'itz\'ib\' richin %1$s wachel kik\'in ch\'aqa\' chik jalajöj sipan taq kema\' chuqa\' jaqäl b\'itz\'ib\' <a href="%2$s">taq ya\'oj q\'ij</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s chuqa\' nrokisaj kicholonem tanaj ya\'on ruma Disconnect, Inc. achi\'el jachon chuqa\' alaj ruk\'aslem nimawuj ruma <a href="%2$s">GNU General Public License v3</a>, chuqa\' wachel <a href="%3$s">wawe\'</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s chuqa\' nrokisaj kicholonem tanaj ya\'on ruma Disconnect, Inc. achi\'el jachon chuqa\' alaj ruk\'aslem nimawuj ruma <a href="%2$s">GNU General Public License v3</a>, chuqa\' wachel <a href="%3$s">wawe\'</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Rub\'i\' okisanel</string>
@@ -813,13 +810,13 @@
     <string name="preference_studies">Taq tijonïk</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox k\'o b\'ey nitikïr yeruyäk chuqa\' yerub\'än taq tijob\'alil.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox k\'o b\'ey nitikïr yeruyäk chuqa\' yerub\'än taq tijob\'alil.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Tetamäx ch\'aqa\' chik</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Xtitz\'apitäj ri okisanel richin yejikib\'äx ri taq jaloj</string>
+    <string name="studies_restart_app" moz:removedIn="135">Xtitz\'apitäj ri okisanel richin yejikib\'äx ri taq jaloj</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Tiyuj</string>
@@ -901,9 +898,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Tiq\'ax pa</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Nok pa chijun ruwa</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Chanin tijal rik\'in tixim pa k\'ak\'a\' ruwi\'</string>
@@ -1027,4 +1021,5 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Xtz\'aqatisäx widget pa ri rutikirib\'al ruwa</string>
-</resources>
+
+    </resources>

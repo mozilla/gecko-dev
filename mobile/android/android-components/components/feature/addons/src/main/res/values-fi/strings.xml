@@ -206,14 +206,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Tätä laajennusta ei voitu asentaa, koska sitä ei ole vahvistettu.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">Lisäosaa %1$s ei voitu asentaa, koska se ei ole yhteensopiva %2$sin version %3$s kanssa.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">Laajennusta %1$s ei voitu asentaa, koska sen riski aiheuttaa epävakautta tai tietoturvaongelmia on suuri.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">%1$s rikkoo Mozillan käytäntöjä, eikä sitä voida asentaa %2$siin.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">Lisäosaa %1$s ei voitu asentaa, koska sen voi asentaa vain organisaatio, joka käyttää yrityskäytäntöjä, joita tämä alusta ei tue.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s rikkoo Mozillan käytäntöjä, eikä sitä voida asentaa.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">%1$s rikkoo Mozillan käytäntöjä, eikä sitä voida asentaa %2$siin.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -263,11 +259,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Näytä yksityiskohdat</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s on poistettu käytöstä turvallisuus- tai vakausongelmian vuoksi.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Tämä laajennus on estetty Mozillan käytäntöjen rikkomisen vuoksi, ja se on poistettu käytöstä.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Tämä laajennus rikkoo Mozillan käytäntöjä ja on poistettu käytöstä. Voit ottaa sen käyttöön, mutta se voi olla riskialtista.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Tämä laajennus on rajoitettu Mozillan käytäntöjen rikkomisen vuoksi, ja se on poistettu käytöstä. Voit ottaa laajennuksen käyttöön, mutta se voi olla riskialtista.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

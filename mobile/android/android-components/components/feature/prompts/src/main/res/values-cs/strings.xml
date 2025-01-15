@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Chcete použít silné heslo?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Chraňte své účty pomocí silného, náhodně vygenerovaného hesla. To se uloží do vašeho účtu pro budoucí použití.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Chraňte svůj účet pomocí silného, náhodně vygenerovaného hesla. Bude uloženo do vašeho účtu pro budoucí použití.</string>

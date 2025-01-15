@@ -45,7 +45,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Salve lis schedis selezionadis intune racuelte</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Selezionade</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Selezionade</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -97,12 +97,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Scarte</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">La nestre plui potente funzion di simpri pe protezion de riservatece e isole lis spiis inter-sît.</string>
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Plui informazions su la Protezion Totâl dai Cookies</string>
-
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -117,12 +111,6 @@
     <string name="navbar_cfr_message_2">Suntun sît web, cheste sbare e vignarà platade a pene che tu scoris in jù, lassantti plui spazi pe naviazion.</string>
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Tocje e ten fracadis lis frecis par passâ di une pagjine a chê altre te cronologjie di cheste schede.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Gnovis: frece indevant e indaûr cuntune tocjade sole</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Gjolditi une navigazion plui svelte e simpri a puartade di man.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Al covente l’acès ae fotocjamare. Va tes impostazions di Android, va te schede dai permès e tocje permet.</string>
@@ -331,9 +319,9 @@
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Siere il menù pe personalizazion des schedis</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description_with_translate">Viodude di leture, traduzion, stampe, condivision, vierzi app</string>
+    <string name="browser_menu_tools_description_with_translate" moz:removedIn="134" tools:ignore="UnusedResources">Viodude di leture, traduzion, stampe, condivision, vierzi app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Viodude di leture, stampe, condivision, vierzi app</string>
+    <string name="browser_menu_tools_description" moz:removedIn="134" tools:ignore="UnusedResources">Viodude di leture, stampe, condivision, vierzi app</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Salve</string>
@@ -397,8 +385,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Scansione</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Scansione il codiç QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Impostazions motôr di ricercje</string>
@@ -421,16 +407,11 @@
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Cheste volte cîr in:</string>
 
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Motôr di ricercje %s</string>
-
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Motôr di ricercje: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Scuvierç la tô pagjine iniziâl personalizade. Lis schedis resintis, i segnelibris e i risultâts des ricercjis a vignaran fûr achì.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Benvignût intun internet plui personâl</string>
 
@@ -512,10 +493,6 @@
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Zonte estensions di tiercis parts par miorâ sigurece, produtivitât e tant altri.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Esplore altris estensions.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Scomence a navigâ.</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Esplore altris estensions</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">Scomence a navigâ</string>
@@ -595,8 +572,6 @@
     <string name="preferences_category_advanced">Avanzadis</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Riservatece e sigurece</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Permès dai sîts</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">Impostazions dai sîts</string>
     <!-- Preference for private browsing options -->
@@ -945,17 +920,18 @@
     <string name="exceptions_empty_message_learn_more_link">Plui informazions</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Dâts tecnics e di utilizazion</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Dâts tecnics e di utilizazion</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Al condivît cun Mozilla informazions su prestazions, utilizazion, hardware e personalizazions dal navigadôr par judânus a miorâ %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dâts di comercializazion</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Al condivît i dâts di utilizazion di base cun Adjust, il nestri furnidôr di comercializazion mobile</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Mande in automatic lis segnalazions di colàs</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Al condivît in automatic cun Mozilla i dâts sui colàs al sucessîf inviament</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Al condivît i dâts di utilizazion di base cun Adjust, il nestri furnidôr di comercializazion mobile</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Mande in automatic lis segnalazions di colàs</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Al condivît in automatic cun Mozilla i dâts sui colàs al sucessîf inviament</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studis</string>
     <!-- Summary for studies preferences -->
@@ -1125,21 +1101,21 @@
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Plui informazions</string>
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">La aplicazion e jessarà par aplicâ lis modifichis</string>
+    <string name="studies_restart_app" moz:removedIn="135">La aplicazion e jessarà par aplicâ lis modifichis</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">Va ben</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">Va ben</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Anule</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Anule</string>
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Daûr a sierâ la aplicazion par aplicâ lis modifichis…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Daûr a sierâ la aplicazion par aplicâ lis modifichis…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Schedis viertis</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Schedis viertis</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Schedis privadis</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Schedis privadis</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Schedis sincronizadis</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Schedis sincronizadis</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Zonte schede</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1271,8 +1247,6 @@
     <string name="bookmark_delete_negative">Anule</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Zonte cartele</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Segnelibri salvât!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Salvât in “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1618,8 +1592,6 @@
     <string name="snackbar_tabs_closed">Schedis sieradis</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Schedis sieradis: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Segnelibris salvâts!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Segnelibris salvâts in “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2520,14 +2492,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Sì, provilu</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">No cumò</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Prime di comprâ, scuvierç se tu ti puedis fidâ des recensions di chest prodot.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Prove verifiche recensions</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Sono afidabilis chestis recensions? Controle daurman par viodi la valutazion retificade.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Vierç verifiche recensions</string>
 
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Vierç verifiche recensions</string>
@@ -2919,11 +2883,6 @@
     <string name="glean_debug_tools_title">Struments di debug par Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Par jessi de modalitât plen schermi, strissine di parsore e dopre il mot indaûr</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Par jessi de modalitât plen schermi, strissine di parsore e frache indaûr</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Strissine di parsore e dopre il mot indaûr par lâ fûr</string>
@@ -2934,4 +2893,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>

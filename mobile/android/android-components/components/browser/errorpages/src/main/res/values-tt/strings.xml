@@ -202,11 +202,16 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_host_title">Адрес табылмады</string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Интернетка тоташу юк</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Челтәргә бәйләнешегезне тикшерегез яки бераздан битне яңадан йөкләп карагыз.</string>
-
+    <!-- In the example, the two URLs in markup do not need to be translated. -->
+    <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[
+    <p>Браузер күрсәтелгән адрес өчен хост серверын таба алмады.</p>
+    <ul>
+    <li>Адресны язганда хата киткән булуы мөмкин, мәсәлән:
+    <strong>www</strong>.example.com урынына
+    <strong>ww</strong>.example.com.</li>
+    <li>Һичбер сәхифә дә ачылмаса, җиһазыгызның мобиль интернет яки Wi-Fi бәйләнешен тикшерегез.</li>
+    </ul>
+    ]]></string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_error_code">Хата коды: NS_ERROR_OFFLINE</string>
 
@@ -215,6 +220,9 @@
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">Яраксыз адрес</string>
+    <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
+    <p>Кертелгән адресның форматын танып булмады. Зинһар, адресның хатасызмы икәнен тикшереп, янәдән тырышып карагыз.</p>
+    ]]></string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title_alternative">Адрес хаталы</string>
     <!-- This string contains markup. The URL should not be localized. -->

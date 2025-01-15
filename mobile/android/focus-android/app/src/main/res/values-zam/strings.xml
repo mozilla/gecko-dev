@@ -53,6 +53,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">Mté dónt kúe</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Thús kùey</string>
     <string name="menu_about">Chò nàk ná</string>
     <string name="menu_help">Lì ché</string>
@@ -74,10 +75,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">Tă~làz leɁn</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">Tób bí lô góš</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -110,20 +107,20 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">KwàɁn léɁn Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">KwàɁn léɁn Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">KwàɁn léɁn Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">KwàɁn léɁn Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">KwàɁn léɁn Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">KwàɁn léɁn Focus Beta</string>
 
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">KwàɁn léɁn Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">KwàɁn léɁn Focus Nightly</string>
 
     <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">Yent-chó wìʔ</string>
@@ -413,7 +410,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">B-là Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">B-là Firefox</string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Chó lèl</string>

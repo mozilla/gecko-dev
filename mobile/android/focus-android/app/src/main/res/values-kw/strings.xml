@@ -84,7 +84,6 @@
     <string name="share_dialog_title">Kevrenna dre</string>
 
     <string name="notification_erase_title_android_14">Dilea istori peuri?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Tapp po gordhyllo an gwarnyans ma dhe dhilea dha istori peuri yn tiogel.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -123,23 +122,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Hwilas yn Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Hwilas yn Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Hwilas yn Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Hwilas yn Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Hwilas yn Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Hwilas yn Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Hwilas yn Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Hwilas yn Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>Gans %1$s yth esos\'ta ow kul maystri.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>Gans %1$s yth esos\'ta ow kul maystri.</p>
 <p>Gwra hy usya avel peurell brivedh:
   <ul>
     <li>Hwilas ha peuri a-berth y\'n dowlen</li>
@@ -516,10 +515,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Degea</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Dynnargh dhe %1$s</string>
 
@@ -610,7 +606,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Iskarga Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Iskarga Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -622,23 +618,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[Y hwrer %1$s kavadow dhis der ambosow an <a href="%2$s">Leshyans Poblek Mozilla</a> ha leshyansow fenten-ygor erel.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Y hwrer %1$s kavadow dhis der ambosow an <a href="%2$s">Leshyans Poblek Mozilla</a> ha leshyansow fenten-ygor erel.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Nyns yw grontys dhis gwiryow po leshyansow vytholl dhe werthnosow an Fondyans Mozilla po py rannbarth pynag, ynna an henwyn po avenyow Mozilla, Firefox, po %1$s. Y hyllir kavos kedhlow ynwedhek <a href="%2$s">omma</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Nyns yw grontys dhis gwiryow po leshyansow vytholl dhe werthnosow an Fondyans Mozilla po py rannbarth pynag, ynna an henwyn po avenyow Mozilla, Firefox, po %1$s. Y hyllir kavos kedhlow ynwedhek <a href="%2$s">omma</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Kod pennfenten a %1$s yw kavadow yn-dann lies <a href="%2$s">leshyans</a> rydh ha fenten-ygor.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Kod pennfenten a %1$s yw kavadow yn-dann lies <a href="%2$s">leshyans</a> rydh ha fenten-ygor.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s a wra devnydh ynwedh a lies rol-lettya proviys gans Disconnect, Inc. avel oberennow dihaval hag anserghek yn-dann an <a href="%2$s">Leshyans Poblek Ollgemmyn GNU v3</a> ha kavadow <a href="%3$s">omma</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s a wra devnydh ynwedh a lies rol-lettya proviys gans Disconnect, Inc. avel oberennow dihaval hag anserghek yn-dann an <a href="%2$s">Leshyans Poblek Ollgemmyn GNU v3</a> ha kavadow <a href="%3$s">omma</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Hanow devnydhyer</string>
@@ -829,13 +825,13 @@
     <string name="preference_studies">Studhyansow</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Possybyl yw y hwra lea ha gweythresa Firefox studhyansow a dermyn dhe dermyn.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Possybyl yw y hwra lea ha gweythresa Firefox studhyansow a dermyn dhe dermyn.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Dyski moy</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">An gweythyn a wra degea dhe weytha chanjyow</string>
+    <string name="studies_restart_app" moz:removedIn="135">An gweythyn a wra degea dhe weytha chanjyow</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Dilea</string>
@@ -924,9 +920,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Skwychya</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Gweythresa modh skrin leun</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Skwychya dhe gevren yn tab nowydh a-dhesempis</string>
@@ -1030,7 +1023,7 @@
 
      <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s a assay usya junyans HTTPS peskweyth may fo possybyl a-barth gwell diogeledh.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s a assay usya junyans HTTPS peskweyth may fo possybyl a-barth gwell diogeledh.
  <a href="%2$s">Dyski moy</a><br/><br/>
  Chanjya an dewis ma yn Dewisyow >Privetter &amp; Diogeledh > Diogeledh.]]></string>
 
@@ -1099,4 +1092,5 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget keworrys dhe skrin tre</string>
-</resources>
+
+    </resources>

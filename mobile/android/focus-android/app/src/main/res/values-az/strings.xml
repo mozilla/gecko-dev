@@ -5,136 +5,223 @@
     <!-- ## into a separate file like strings_references.xml                                  ## -->
     <!-- ####################################################################################### -->
 
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_cancel">Ləğv et</string>
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_ok">Tamam</string>
 
     <string name="action_save">Saxla</string>
 
+    <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">Ünvanı daxil et və ya axtar</string>
 
     <string name="teaser">Avtomatik məxfi səyahət.\nGəz. Poz. Təkrarla.</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
     <string name="feedback_erase">Səyahət tarixçəniz silindi.</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
     <string name="feedback_erase_custom_tab">Vərəqin tarixçəsi pozuldu.</string>
 
+    <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">%1$s üçün axtar</string>
 
+    <!-- Menu item: Share the currently visible page -->
     <string name="menu_share">Paylaş…</string>
 
+    <!-- Menu item: Report an issue on the current site -->
     <string name="menu_report_site_issue">Sayt Problemini Bildir</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. %1$s will be
+      replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
+      links can be opened by native apps that aren't a browser, e.g. "Open in YouTube" -->
     <string name="menu_open_with_default_browser2">%1$s ilə aç</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. This menu item
+      will be shown if there are multiple browsers and we do not know which one is the default
+      browser or in case Focus is actually the default browser. Clicking this menu item will show
+      a screen with multiple browsers (or other apps that can open the current URL) to choose from. -->
     <string name="menu_open_with_a_browser2">Bununla aç…</string>
 
+    <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
     <string name="menu_add_to_home_screen">Ana Ekrana əlavə et</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Tənzimləmələr</string>
     <string name="menu_about">Haqqında</string>
     <string name="menu_help">Kömək</string>
     <string name="menu_rights">Hüquqlarınız</string>
 
+    <!-- Menu item: This is the label for a menu entry that shows how many trackers have been blocked
+         for the currently loaded website. The number of blocked trackers is shown below this label.
+         Next to this label is a switch that allows the user to temporarily enable / disable the
+         blocking of trackers for the current browsing session - for example if the current website
+         doesn't work correctly with blocked content. -->
     <string name="menu_trackers_blocked_title">İzləyicilər bloklandı</string>
 
+    <!-- Menu item: This is the subtitle for the Trackers blocked menu entry that shows how many
+    trackers have been blocked for the currently loaded website.  -->
     <string name="menu_trackers_blocked_subtitle">Bunu söndürmə bəzi sayt uyğunsuzluqlarını həll edə bilər</string>
 
+    <!-- Menu item: This is the label for turning off content blocking for the current website. -->
     <string name="menu_content_blocking">Məzmun Əngəlləmə</string>
+    <!-- This is the subtitle content blocking toggle -->
     <string name="menu_content_blocking_subtitle">Bəzi saytlardakı problemləri həll etmək üçün söndürün</string>
 
+    <!-- This is a small text at the bottom of the menu shown in a "custom tab" for branding purposes.
+     See https://github.com/mozilla-mobile/focus-android/issues/2106
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="menu_custom_tab_branding">%1$s Tərəfindən</string>
 
+    <!-- This is the title of a dialog that shows all the share targets (apps or contacts) when
+         sharing an URL. -->
     <string name="share_dialog_title">Bununla paylaş:</string>
 
     <string name="notification_erase_text">Səyahət keçmişini poz</string>
 
+    <!-- Notification action to open Focus and resume the current browsing session. -->
     <string name="notification_action_open">Aç</string>
 
+    <!-- Notification action to erase the current browsing session AND switch to Focus (bring it
+         to the foreground) -->
     <string name="notification_action_erase_and_open">Poz və Aç</string>
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_short_label">Poz</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters. -->
     <string name="shortcut_erase_long_label">Səyahət keçmişini poz</string>
 
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_and_open_short_label">Poz və Aç</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters.
+         %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="shortcut_erase_and_open_long_label">Poz və %1$s tətbiqini aç</string>
 
+    <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">Məxfilik və Təhlükəsizlik</string>
 
+    <!-- Preference summary for settings related to privacy and security -->
     <string name="preference_privacy_and_security_summary">İzlənmə, çərəzlər, məlumat seçimləri</string>
 
+    <!-- Preference category description for settings related to search, set default
+    and autocomplete are settings a user can find and change inside the "search" settings screen -->
     <string name="preference_search_summary">Əsas olaraq qur, avto tamamlama</string>
 
+    <!-- Preference category description for settings screen for settings related to Mozilla -->
+    <!-- About the app and help are links that are inside this menu -->
+    <!-- %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_mozilla_summary">%1$s haqqında, kömək</string>
 
+    <!-- Preference category for settings related to controlling web content -->
     <string name="preference_category_web_content">Web Məzmun</string>
 
+    <!-- Preference category: stealth settings for while switching apps -->
     <string name="preference_category_switching_apps">Tətbiq Keçidi</string>
 
+    <!-- Preference category for General Settings -->
     <string name="preference_category_general">Ümumi</string>
 
+    <!-- Preference category for settings about sending usage data -->
     <string name="preference_category_data_collection_use">Məlumat yığılması və istifadəsi</string>
 
     <string name="preference_category_search">Axtar</string>
 
+    <!-- Title of "switch" preference that enables/disables search suggestions -->
     <string name="preference_show_search_suggestions">Axtarış təkliflərini al</string>
+    <!-- Description of the preference that enables/disables search suggestions
+        %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_show_search_suggestions_summary">%1$s ünvan sətrində yazdıqlarınızı axtarış mühərriyinizə göndərəcək</string>
 
+    <!-- This label is shown below the name of the default search engine in settings -->
     <string name="preference_search_engine_default">İlkin hal</string>
 
+    <!-- This label is shown above the currently selected search engine in settings -->
     <string name="preference_search_engine_label">Axtarış mühərriyi</string>
 
+    <!-- Text that is shown below a "switch" preference that is enabled. -->
     <string name="preference_state_on">Açıq</string>
 
+    <!-- Text that is shown below a "switch" preference that is disabled. -->
     <string name="preference_state_off">Bağlı</string>
 
+    <!-- Item in settings that will open a new preference screen for configuring the URL autocomplete behavior. -->
     <string name="preference_subitem_autocomplete">Ünvan Avtomatik Tamamlama</string>
 
+    <!-- Title of "switch" preference that enables/disables autocomplete for the default list -->
     <string name="preference_switch_autocomplete_topsites">Çox istifadə edilən saytlar üçün</string>
 
+    <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
     <string name="preference_switch_autocomplete_user_list">Əlavə etdiyiniz saytlar üçün</string>
 
+    <!-- Preference category: Manage (user-defined) sites -->
     <string name="preference_category_autocomplete_manage_sites">Saytları idarə et</string>
 
+    <!-- Item in autocomplete settings that will open a new preference screen for adding and removing URLs to the user-defined list-->
     <string name="preference_autocomplete_subitem_manage_sites">Saytları idarə et</string>
 
+    <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
     <string name="preference_autocomplete_action_add">+ Fərdi ünvan əlavə et</string>
 
+    <!-- Title of the screen for adding custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_add">Fərdi ünvan əlavə et</string>
 
+    <!-- Label for the button to quick add custom autocomplete URLs. -->
     <string name="custom_autocomplete_quick_add">Fərdi ünvan əlavə et</string>
 
+    <!-- Label for the button to quick add the current URL to the custom autocomplete list -->
     <string name="add_custom_autocomplete_label">Avtomatik tamamlama üçün keçid əlavə edin</string>
 
+    <!-- Preference category for settings about cookies and site data -->
     <string name="preference_category_cookies">Çərəzlər və Sayt Məlumatları</string>
 
+    <!-- Preference category for settings about data choices -->
     <string name="preference_category_data_choices">Məlumat Seçimləri</string>
 
+    <!-- Title of the screen for removing custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_remove">Fərdi ünvanı sil</string>
 
+    <!-- A link to SUMO at autocomplete settings. -->
     <string name="preference_autocomplete_learn_more">Ətraflı öyrən</string>
 
+    <!-- Preference summary: Custom (user-defined) autocomplete URLs. -->
     <string name="preference_autocomplete_custom_summary">Avtomatik tamamlanacaq fərdi ünvanları idarə edin.</string>
 
+    <!-- Label for the "custom autocomplete URL" input field -->
     <string name="preference_autocomplete_add_title">Əlavə ediləcək ünvan</string>
 
+    <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
     <string name="preference_autocomplete_add_hint">Ünvanı yapışdırın və ya daxil edin</string>
 
+    <!-- Example how a custom domain autocomplete URL be added (e.g. without http://) -->
     <string name="preference_autocomplete_add_example2">Məsələn: mozilla.org</string>
 
+    <!-- To be removed once the new hint has been translated -->
     <string name="preference_autocomplete_add_example">Məsələn: example.com</string>
 
+    <!-- Confirmation "snackbar" shown after a new custom autocomplete URL has been added. -->
     <string name="preference_autocomplete_add_confirmation">Yeni fərdi ünvan əlavə edildi.</string>
 
+    <!-- Menu item to remove existing autocomplete URLs. -->
     <string name="preference_autocomplete_menu_remove">Sil</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Button that will delete all selected custom autocomplete URLs. -->
     <string name="preference_autocomplete_action_remove_content_description">Sil</string>
 
+    <!-- Error message shown if the entered custom autocomplete URL is not valid or empty. -->
     <string name="preference_autocomplete_add_error">Daxil etdiyiniz ünvanı bir də yoxlayın.</string>
 
     <string name="preference_language">Dil</string>
+    <!-- This is shown when the user hasn't set a focus specific language, i.e. when Focus
+         is using the system default language. -->
     <string name="preference_language_systemdefault">Sistemin dili</string>
 
     <string name="preference_category_privacy">Məxfilik</string>
@@ -151,47 +238,70 @@
     <string name="preference_privacy_should_block_cookies_third_party_tracker_cookies_option">Ancaq 3cü tərəf izləmə çərəzlərini əngəllə</string>
     <string name="preference_privacy_should_block_cookies_third_party_only_option">Ancaq 3cü tərəf çərəzləri əngəllə</string>
 
+    <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
     <string name="preference_security_biometric">Tətbiqi açmaq üçün barmaq izi işlət</string>
 
+    <!-- Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
+         and prevents the user from taking screenshots or casting the app to other displays. -->
     <string name="preference_privacy_secure_mode">Görünməzlik</string>
+    <!-- Preference Summary: Stealth mode (previously "Secure mode") is a setting that prevents the
+     app's content (in our case especially the content of webpages) to show up in the "recent apps"
+     screen. Additionally Android will prevent the user from taking screenshots or casting the app
+     to other displays. -->
     <string name="preference_privacy_stealth_summary">Tətbiqlər arası keçərkən saytları gizlət və ekran görüntüləri çəkməyi əngəllə.</string>
 
     <string name="preference_category_security">Təhlükəsizlik</string>
 
     <string name="preference_category_performance">Məhsuldarlıq</string>
     <string name="preference_performance_block_webfonts">Web şriftlərini əngəllə</string>
+    <!-- This text is shown below the setting for disabling web fonts. Some websites use icons/images from a font and those do not show up if fonts are blocked.-->
     <string name="preference_performance_block_webfonts_summary">Əksik icon və şəkillərə səbəb ola bilər</string>
 
     <string name="preference_performance_block_javascript">JavaScript-i əngəllə</string>
+    <!-- This text is shown below setting for disabling JavaScript. Some websites may not work correctly when JavaScript is disabled -->
     <string name="preference_performance_block_javascript_summary">Səhifələr daha sürətli yüklənə bilər, ancaq səhv işləyə bilərlər</string>
 
+    <!-- This preference does not set Focus as the default browser but instead links to Android's
+     "default apps" settings screen or if not supported by this Android version to a SUMO page describing
+     how to set Focus as a default browser.
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_default_browser2">%1$s səyyahını əsas et</string>
 
     <string name="preference_category_mozilla">Mozilla</string>
     <string name="preference_mozilla_telemetry2">İstifadə məlumatlarını göndər</string>
 
+    <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
     <string name="preference_mozilla_telemetry_summary">Ətraflı öyrən</string>
 
+    <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla ancaq %1$s səyyahını hamı üçün yaxşılaşdırmağa lazım olan məlumatları yığır.</string>
 
+    <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Məxfilik Bildirişi</string>
 
+    <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
     <string name="preference_about">%1$s Haqqında</string>
 
+    <!-- Header for the list of installed search engines -->
     <string name="preference_search_installed_search_engines">Quraşdırılmış axtarış mühərrikləri</string>
 
+    <!-- Action for restoring the default list of search engines -->
     <string name="preference_search_restore">İlkin axtarış nizamlarını bərpa et</string>
 
+    <!-- Action for adding an additional search engine to the list.
+    The "+" is used to emphasize that this is an "add" action -->
     <string name="preference_search_add2">+ Digər axtarış mühərriyini əlavə et</string>
     <string name="preference_search_remove_title">Axtarış mühərriklərini sil</string>
     <string name="preference_search_remove">Sil</string>
 
+    <!-- Clickable action text that shows when user long-presses on a search engine search field (this is similar to paste or copy when long-pressing a text field) -->
     <string name="action_option_add_search_engine">Axtarış mühərriyini əlavə et</string>
 
     <string name="search_add_manually_name_hint">Axtarış mühərriyinin adı</string>
     <string name="search_add_manually_string">İstifadə ediləcək axtarış sətri</string>
     <string name="search_add_manually_save">Saxla</string>
 
+    <!-- Example of search engine url -->
     <string name="search_add_manually_example">Məsələn: mozillaz.org/search/?q=%s</string>
 
     <string name="search_add_confirmation">Yeni axtarış mühərriyi əlavə edildi.</string>
@@ -203,48 +313,83 @@
 
     <string name="search_add_error_format">Axtarış mətninin nümunədəki formata uyğun olduğunu yoxlayın</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clear text in URL bar -->
     <string name="content_description_clear_input">Girişi təmizlə</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clicking on the website overlay
+     while in typing mode will dismiss and go back to the browser. This text will be read when the
+     overlay if focused. See https://github.com/mozilla-mobile/focus-android/issues/50 -->
     <string name="content_description_dismiss_input">Ləğv et</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
+     history and go back to the home screen. -->
     <string name="content_description_erase">Səyahət tarixçəsini təmizlə</string>
 
+    <!-- If the user has multiple tabs open we will show an addition "floating action button" showing how many tabs are open.
+     This string is not displayed and read only by screenreaders. %1$s will be replaced with the number of open tabs. This
+      button will only be visible when there is more than one tab open (>= 2). -->
     <string name="content_description_tab_counter">Açıq vərəqlər: %1$s</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Lock icon showed in the URL bar for
+     https pages.. -->
     <string name="content_description_lock">Təhlükəsiz əlaqə</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we start
+     loading a website -->
     <string name="accessibility_announcement_loading">Yüklənir</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we
+     finished loading a website -->
     <string name="accessibility_announcement_loading_finished">Sayt yükləndi</string>
 
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
     <string name="content_description_menu">Digər seçimlər</string>
 
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button used
+    on home screen-->
     <string name="indicator_content_description_menu">Daha çox seçim düyməsi</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
     <string name="content_description_forward">İrəli keç</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Reload current website -->
     <string name="content_description_reload">Saytı yenilə</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate back (browsing history) -->
     <string name="content_description_back">Geri get</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Stop loading the current website. This button will turn into the refresh button once loading has been completed (see content_description_reload) -->
     <string name="content_description_stop">Səhifəni yükləməyi dayandır</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Custom Tab exit button - closes the custom tab and returns to the previous app. -->
     <string name="content_description_customtab_exit">Əvvəlki tətbiqə qayıt</string>
 
+    <!-- Content description (not visible, for screen readers etc.): This is the description for the ImageView in the menu that displays
+         the number of trackers blocked for the current session -->
     <string name="content_description_trackers_blocked">Əngəllənmiş izləyicilərin sayı</string>
 
+    <!-- Content description (not visible, for screen readers etc.): This is the description for the switch in the menu that temporarily disables/enables
+         content blocking for the current session -->
     <string name="content_description_blocking_switch">İzləyiciləri əngəllə</string>
 
     <string name="your_rights">Hüquqlarınız</string>
 
     <string name="external_app_prompt_title">Keçidi başqa tətbiqdə aç</string>
+    <!-- This string is shown when the user has clicked a link that needs to be opened in a different app.
+         Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar). -->
     <string name="external_app_prompt">%1$s səyyahını tərk edərək keçidi %2$s üzərində aça bilərsiz.</string>
+    <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
     <string name="external_app_prompt_no_app_title">Keçid aça bilən tətbiq tap</string>
+    <!-- This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+         the app store installed on the device (usually that's Google Play). -->
     <string name="external_app_prompt_no_app">Cihazınızdakı heç bir tətbiq bu keçidi aça bilmir. %1$s səyyahını tərk edərək %2$s ilə bunu bacaran tətbiq axtara bilərsiz.</string>
+    <!-- This label is shown above a list of apps that can be used to open a given link -->
     <string name="external_multiple_apps_matched_exit">Məxfi Səyahətdən çıxırsın?</string>
 
+    <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
     <string name="download_snackbar_finished">%1$s endirildi</string>
 
+    <!-- Snackbar action to immediately open the successfully downloaded file. -->
     <string name="download_snackbar_open">Aç</string>
 
 
@@ -275,126 +420,208 @@
 
 
 
-  <string name="firstrun_defaultbrowser_title">Məxfiliyinizi gücləndirin</string>
+  <!-- First run tour (Default browser): Title -->
+    <string name="firstrun_defaultbrowser_title">Məxfiliyinizi gücləndirin</string>
+    <!-- First run tour (Default browser): Text. -->
     <string name="firstrun_defaultbrowser_text2">Məxfi səyahəti fərqli səviyyəyə götürün. Saytlar üzərindən sizə izləyə biləcək reklam və digər məzmunları bloklayın və yüklənmə sürətini artırın.</string>
 
+    <!-- First run tour (Search): Title -->
     <string name="firstrun_search_title">Sizin axtarış, sizin qaydalar</string>
+    <!-- First run tour (Search): Text -->
     <string name="firstrun_search_text">Fərqli şeylər axtarırsız? Tənzimləmələrdən fərqli axtarış mühərriyi seçin.</string>
 
+    <!-- First run tour (Shortcut): Title -->
     <string name="firstrun_shortcut_title">Ana ekranınıza keçidlər əlavə edin</string>
+    <!-- First run tour (Shortcut): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="firstrun_shortcut_text">%1$s üzərindəki sevimli saytlarınıza cəld girin. %1$s menyusundan \&quot;Ana ekrana əlavə et\&quot; seçməyiniz kifayətdir.</string>
 
+    <!-- First run tour (Privacy): Title -->
     <string name="firstrun_privacy_title">Məxfiliyi vərdiş halına gətirin</string>
+    <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="firstrun_privacy_text">Əsas səyyahınız olaraq %1$s seçin və digər tətbiqlərdən keçid açarkən məxfi səyahətin üstünlüklərindən faydalanın.</string>
 
     <string name="firstrun_close_button">Tamam, başa düşdüm!</string>
     <string name="firstrun_skip_button">Keç</string>
     <string name="firstrun_next_button">Sonrakı</string>
 
+    <!-- Indicator that no trackers are being blocked because content blocking is disabled; normally shows the number of blocked trackers -->
     <string name="content_blocking_disabled">-</string>
 
+    <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_add">Əlavə et</string>
 
+    <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_cancel">Ləğv et</string>
 
+    <!-- The user visible name of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
+    The recommended maximum length is 40 characters; the value may be truncated if it is too long.
+
+    * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
+    * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
+    -->
     <string name="notification_browsing_session_channel_name">Məxfi səyahət sessiyası</string>
 
+    <!-- The user visible description of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
+    The recommended maximum length is 300 characters; the value may be truncated if it is too long. %1$s will be replaced with the name of the app (e.g. Firefox Focus).
+
+    * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
+    * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
+    -->
     <string name="notification_browsing_session_channel_description">Bildirişlər tək toxunuşla %1$s sessiyanınızı pozmağa imkan verəcək. Tətbiqi açmağa və ya səyyahınızda nəyin işlədiyinə baxmağa ehtiyyacınız yoxdur.</string>
 
+    <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Səyahət keçmişini poz</string>
 
-    <string name="download_firefox">Firefox Endir</string>
+    <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
+      item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox Endir</string>
 
-    <string name="your_rights_content1">%1$s Mozilla və digər töhfəverənlər tərəfindən yaradılmış azad və açıq qaynaqlı proqramdır.</string>
+    <!-- Text shown in the "Your rights" screen.
+    %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
+    <string name="your_rights_content1"><![CDATA[%1$s Mozilla və digər töhfəverənlər tərəfindən yaradılmış azad və açıq qaynaqlı proqramdır.]]></string>
 
 
 
 
-  <string name="gv_prompt_username_hint">İstifadəçi adı</string>
+  <!-- Text shown in prompts for GeckoView -->
+    <string name="gv_prompt_username_hint">İstifadəçi adı</string>
     <string name="gv_prompt_password_hint">Parol</string>
     <string name="gv_prompt_clear">Təmizlə</string>
 
+    <!-- Text shown in Security Information Popup -->
+    <!-- Text to denote secure or insecure connection -->
     <string name="security_popup_secure_connection">Təhlükəsiz Əlaqə</string>
     <string name="security_popup_insecure_connection">Təhlükəli Əlaqə</string>
+    <!-- %1$s will be replaced with organization that granted the SSL certificate -->
     <string name="security_popup_security_verified">Doğrulayan: %1$s</string>
 
+    <!-- Content Description of Security Icon in toolbar -->
     <string name="site_security_icon_content_description">Sayt Təhlükəsizliyi</string>
     <string name="preference_autocomplete_duplicate_url_error">URL artıq mövcuddur</string>
 
+    <!-- Label for the Find in page button -->
     <string name="find_in_page">Səhifədə Tap</string>
 
+    <!-- Watermark/Hint for the find in page input field -->
     <string name="find_in_page_input">Səhifədə tap</string>
 
+    <!-- String to show the number of results found in the page and the
+        position the user is at. The first argument is the position, the second argument is the total -->
     <string name="find_in_page_result">%1$d/%2$d</string>
+    <!-- String to be read by the accessibility service presenting the number of results found in the page
+        and the position the user is at. The first argument is the position, the second argument is the total -->
     <string name="accessibility_find_in_page_result">%2$d nəticədən %1$d dənəsi</string>
 
+    <!-- String to be read by the accessibility service when focusing the next result button -->
     <string name="accessibility_next_result">Sonrakı nəticəni tap</string>
+    <!-- String to be read by the accessibility service when focusing the previous result button -->
     <string name="accessibility_previous_result">Əvvəlki nəticəni tap</string>
+    <!-- String to be read by the accessibility service when focusing the dismiss button in the "find in page" UI -->
     <string name="accessibility_dismiss_find_in_page">Səhifədə axtarışı qapat</string>
 
 
 
-  <string name="preference_performance_request_desktop_site">Masaüstü saytını istə</string>
+  <!-- Checkbox menu item text to request desktop site -->
+    <string name="preference_performance_request_desktop_site">Masaüstü saytını istə</string>
 
+    <!-- Displayed after a user long presses on the URL in a custom tab to copy the URL -->
     <string name="custom_tab_copy_url_action">URL köçürüldü</string>
 
+    <!-- Description of what a user may find in the Advanced Setting category, used for debugging -->
     <string name="preference_advanced_summary">Tərtibatçı alətləri</string>
 
+    <!-- Title of Advanced Setting category -->
     <string name="preference_category_advanced">Təkmilləşmiş</string>
 
+    <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
     <string name="preference_remote_debugging">USB/Wi-Fi ilə məsafəli sazlama</string>
 
+    <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->
     <string name="biometric_auth_image_description">Barmaq izi ikonu</string>
 
+    <!-- Error text displayed when the user's fingerprint cannot be recognized upon re-entering the app.
+     This is displayed during the authentication flow as the app launches. -->
     <string name="biometric_auth_not_recognized_error">Barmaq izi tanınmadı. Təkrar yoxlayın.</string>
 
+    <!-- Error text displayed when the user's fingerprint moved too quickly upon re-entering the app
+    This is displayed during the authentication flow as the app launches.-->
     <string name="biometric_auth_moved_too_quickly">Barmaq çox sürətli hərəkət elədi. Təkrar yoxlayın.</string>
 
+    <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
     <string name="enable_search_suggestions_no">Xeyr</string>
 
+    <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
     <string name="enable_search_suggestions_yes">Bəli</string>
 
+    <!-- Message displayed when using a search engine that doesn't provide suggestions -->
     <string name="no_suggestions_message">Bəzi axtarış mühərrikləri məsləhətləri göstərə bilmirlər.</string>
 
+    <!-- Button to dismiss the message displayed  when using a search engine that doesn't provide suggestions-->
     <string name="dismiss_no_suggestions_prompt_button">Qapat</string>
 
     <!-- Tips displayed on the home view -->
 
+    <!-- Tip displayed on home view explaining how to disable tracking protection
+    The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_disable_tracking_protection">Sayt gözlənilməyən hərəkətlər edir?\n İzləmə Qorumasınını söndürməyi yoxlayın</string>
 
-    <string name="tip_add_to_homescreen">Çox işlətdiyiniz saytları tək toxunuşla açın%1$s Menyu &gt; Ana Ekrana əlavə et</string>
+    <!-- Tip displayed on home view explaining how to add sites to homescreen
+    Argument 1 will be replaced with a line break in the application.-->
+    <string name="tip_add_to_homescreen"><![CDATA[Çox işlətdiyiniz saytları tək toxunuşla açın%1$s Menyu > Ana Ekrana əlavə et]]></string>
 
+    <!-- Tip displayed on home view explaining how to make Focus the default browser
+    Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
+    The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_set_default_browser">Bütün keçidləri %1$s ilə açın\n %1$s əsas səyyahınız olsun</string>
 
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
+    The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_autocomplete_url">Çox işlətdiyiniz saytlar üçün avto doldurma\n Ünvan sətrindəki hər hansı bir ünvana uzun basın</string>
 
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
+    The new line here must be kept as the second half of the string is clickable for the user. -->
     <string name="tip_open_in_new_tab">Keçidi yeni vərəqdə açın\n Səhifədə hər hansı bir keçidə uzun basın</string>
 
+    <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
     <string name="tip_disable_tips2">Ana ekranındakı məsləhətləri söndür</string>
 
+    <!-- Label for the snackbar when a user opens a new tab -->
     <string name="new_tab_opened_snackbar">Yeni vərəq açıldı</string>
 
+    <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Keç</string>
 
+    <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Yeni vərəqdəki keçidə dərhal keç</string>
 
+    <!-- Preference title for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
     <string name="preference_safe_browsing_title">Potensial təhlükəli və aldadıcı saytları əngəllə</string>
+    <!-- Preference summary for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
     <string name="preference_safe_browsing_summary">Zərərverici, aldadıcı, istənməyən saytları əngəllə.</string>
 
+    <!-- Preference for exceptions tracking protection -->
     <string name="preference_exceptions">İstisnalar</string>
+    <!-- Description for the exceptions preference screen-->
     <string name="preference_exceptions_description">Bu saytlar üçün Məzmun Əngəlləməni söndürmüsünüz.</string>
+    <!-- Menu item to remove existing exceptions. -->
     <string name="preference_exceptions_menu_remove">Sil</string>
+    <!-- Button to remove all websites from the exception list -->
     <string name="preference_exceptions_remove_all_button_label">Bütün saytları sil</string>
 
+    <!-- Title for the tab crash report screen-->
     <string name="tab_crash_report_title">Vərəq Çökdü</string>
+    <!-- Headline for the tab crash report screen -->
     <string name="tab_crash_report_headline">Üzr istəyirik. Bu vərəqlə əlaqədar problemimiz var.</string>
+    <!-- Subtitle for the tab crash report screen -->
     <string name="tab_crash_report_description">Məxfi səyyah olaraq biz heç vaxt vərəqləri saxlamırıq və bu səbəbdən də bu vərəqi bərpa edə bilməyəcik.</string>
+    <!-- Label for button to close the tab-->
     <string name="tab_crash_report_close_tab_button_label">Vərəqi Qapat</string>
 
 
 
 
-  <string name="crash_report_send_crash_label">Çökmə hesabatını Mozillaya göndər</string>
+  <!-- Label for the checkbox to send the tab crash report to Mozilla -->
+    <string name="crash_report_send_crash_label">Çökmə hesabatını Mozillaya göndər</string>
 
     <!-- Tracking protection bottom sheet -->
 

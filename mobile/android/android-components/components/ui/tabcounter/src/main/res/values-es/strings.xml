@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
-    <!-- Message announced to the user when tab tray is selected with 1 tab -->
-    <string name="mozac_tab_counter_open_tab_tray_single" moz:removedIn="133" tools:ignore="UnusedResources">1 pestaña abierta. Toca para cambiar de pestaña.</string>
-    <!-- Message announced to the user when tab tray is selected with multiple tabs -->
-    <string name="mozac_tab_counter_open_tab_tray_plural" moz:removedIn="133" tools:ignore="UnusedResources">%1$s pestañas abiertas. Toca para cambiar de pestaña.</string>
     <!-- Message announced to the user when tab tray is selected
     The %1$s will be replaced by the number of opened tabs -->
-    <string name="mozac_tab_counter_open_tab_tray">Pestañas abiertas: %1$s. Toca para cambiar de pestaña.</string>
+    <string name="mozac_tab_counter_open_tab_tray" moz:removedIn="136" tools:ignore="UnusedResources">Pestañas abiertas: %1$s. Toca para cambiar de pestaña.</string>
+    <!-- Message announced to the user when tab tray is selected used by a11y services
+    The %1$s will be replaced by the number of opened tabs -->
+    <string name="mozac_open_tab_counter_tab_tray">Pestañas no privadas abiertas: %1$s. Toca para cambiar de pestaña.</string>
     <!-- Browser menu button that creates a new tab -->
     <string name="mozac_browser_menu_new_tab">Nueva pestaña</string>
     <!-- Browser menu button that creates a private tab -->

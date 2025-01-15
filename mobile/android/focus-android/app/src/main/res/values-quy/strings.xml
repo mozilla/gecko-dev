@@ -5,110 +5,177 @@
     <!-- ## into a separate file like strings_references.xml                                  ## -->
     <!-- ####################################################################################### -->
 
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_cancel">Tatiy</string>
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_ok">ARI</string>
 
     <string name="action_save">Jallich\'ay</string>
 
+    <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">Mask\'ay mana chay dirección ñisqaman yaykuy</string>
 
     <string name="teaser">Sapanmanta asuy t\'aqwiriy. T\'aqwiriy. Pichay. Kutikipay.</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
     <string name="feedback_erase">Ñawpa yaykusqa t\'aqwiriyniyki picharpakun.</string>
 
+    <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">Mask\'ay kaypaq %1$s</string>
 
+    <!-- Menu item: Share the currently visible page -->
     <string name="menu_share">Qunakuy…</string>
 
+    <!-- Menu item: Report an issue on the current site -->
     <string name="menu_report_site_issue">Kitiqpata Ch\'ampanta Willay</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. %1$s will be
+      replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
+      links can be opened by native apps that aren't a browser, e.g. "Open in YouTube" -->
     <string name="menu_open_with_default_browser2">Kichariy kaypi %1$s</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. This menu item
+      will be shown if there are multiple browsers and we do not know which one is the default
+      browser or in case Focus is actually the default browser. Clicking this menu item will show
+      a screen with multiple browsers (or other apps that can open the current URL) to choose from. -->
     <string name="menu_open_with_a_browser2">Kichariy kaypi…</string>
 
+    <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
     <string name="menu_add_to_home_screen">Qallariy pantallaman yapaykuy</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Allinchaykuna</string>
     <string name="menu_about">Kaymanta</string>
     <string name="menu_help">Yanapay</string>
     <string name="menu_rights">Derechosniyki</string>
 
+    <!-- Menu item: This is the label for a menu entry that shows how many trackers have been blocked
+         for the currently loaded website. The number of blocked trackers is shown below this label.
+         Next to this label is a switch that allows the user to temporarily enable / disable the
+         blocking of trackers for the current browsing session - for example if the current website
+         doesn't work correctly with blocked content. -->
     <string name="menu_trackers_blocked_title">Mask\'achiqkuna ch\'atasqa</string>
 
+    <!-- This is a small text at the bottom of the menu shown in a "custom tab" for branding purposes.
+     See https://github.com/mozilla-mobile/focus-android/issues/2106
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="menu_custom_tab_branding">Kallpachasqa kaywan %1$s</string>
 
+    <!-- This is the title of a dialog that shows all the share targets (apps or contacts) when
+         sharing an URL. -->
     <string name="share_dialog_title">Via ñisqata qunakuy</string>
 
     <string name="notification_erase_text">Ñawpa yaykusqa t\'aqwiriyta pichay</string>
 
+    <!-- Notification action to open Focus and resume the current browsing session. -->
     <string name="notification_action_open">Kichay</string>
 
+    <!-- Notification action to erase the current browsing session AND switch to Focus (bring it
+         to the foreground) -->
     <string name="notification_action_erase_and_open">Pichaytaq kichariytaq</string>
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_short_label">Pichay</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters. -->
     <string name="shortcut_erase_long_label">Ñawpa yaykusqa t\'aqwiriyta pichay</string>
 
 
+    <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">Asuy chanta Takya</string>
 
+    <!-- Preference summary for settings related to privacy and security -->
     <string name="preference_privacy_and_security_summary">Tarichiqkunamanta, cookies kaqkunamanta, willaykunamanta ima akllaykuna</string>
 
+    <!-- Preference category description for settings related to search, set default
+    and autocomplete are settings a user can find and change inside the "search" settings screen -->
     <string name="preference_search_summary">Akllasqañajinata churay, sapanmanta junt\'achiy</string>
 
+    <!-- Preference category description for settings screen for settings related to Mozilla -->
+    <!-- About the app and help are links that are inside this menu -->
+    <!-- %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_mozilla_summary">Kaymanta %1$s, yanapay</string>
 
+    <!-- Preference category for settings related to controlling web content -->
     <string name="preference_category_web_content">Web kaqmanta Tiyapuynin</string>
 
+    <!-- Preference category: stealth settings for while switching apps -->
     <string name="preference_category_switching_apps">Apps kaqkunata tikraychaspa</string>
 
+    <!-- Preference category for General Settings -->
     <string name="preference_category_general">Jatunnin</string>
 
+    <!-- Preference category for settings about sending usage data -->
     <string name="preference_category_data_collection_use">Willaykunamanta tantaynin chanta llamk\'aynin ima</string>
 
     <string name="preference_category_search">Mask\'ay</string>
 
+    <!-- This label is shown below the name of the default search engine in settings -->
     <string name="preference_search_engine_default">Ajinaña jamuq</string>
 
+    <!-- Text that is shown below a "switch" preference that is enabled. -->
     <string name="preference_state_on">Jap\'ichisqa</string>
 
+    <!-- Text that is shown below a "switch" preference that is disabled. -->
     <string name="preference_state_off">Wañuchisqa</string>
 
+    <!-- Item in settings that will open a new preference screen for configuring the URL autocomplete behavior. -->
     <string name="preference_subitem_autocomplete">URL sapanmanta junt\'achiy</string>
 
+    <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
     <string name="preference_autocomplete_action_add">+ sapanchaykunata yapay URL</string>
 
+    <!-- Title of the screen for adding custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_add">Sapanchaykunata yapay URL</string>
 
+    <!-- Label for the button to quick add custom autocomplete URLs. -->
     <string name="custom_autocomplete_quick_add">Sapanchaykunata yapay URL</string>
 
+    <!-- Preference category for settings about cookies and site data -->
     <string name="preference_category_cookies">Cookies chanta Kitimanta Willaykuna</string>
 
+    <!-- Preference category for settings about data choices -->
     <string name="preference_category_data_choices">Willaykunamanta Akllaykuna</string>
 
+    <!-- Title of the screen for removing custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_remove">Sapanchasqa URLs raqpay</string>
 
+    <!-- A link to SUMO at autocomplete settings. -->
     <string name="preference_autocomplete_learn_more">Astawan yachay</string>
 
+    <!-- Preference summary: Custom (user-defined) autocomplete URLs. -->
     <string name="preference_autocomplete_custom_summary">Yapay chanta kamachiy sapanchasqa sapanmanta junt\'achiyta URLs.</string>
 
+    <!-- Label for the "custom autocomplete URL" input field -->
     <string name="preference_autocomplete_add_title">URL yapanapaq</string>
 
+    <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
     <string name="preference_autocomplete_add_hint">Mach\'ay mana chay URL qillqay</string>
 
+    <!-- Example how a custom domain autocomplete URL be added (e.g. without http://) -->
     <string name="preference_autocomplete_add_example2">Kayjina: mozilla.org</string>
 
+    <!-- To be removed once the new hint has been translated -->
     <string name="preference_autocomplete_add_example">Kayjina: example.com</string>
 
+    <!-- Confirmation "snackbar" shown after a new custom autocomplete URL has been added. -->
     <string name="preference_autocomplete_add_confirmation">Musuq sapanchasqa URL yapasqa.</string>
 
+    <!-- Menu item to remove existing autocomplete URLs. -->
     <string name="preference_autocomplete_menu_remove">Raqpay</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Button that will delete all selected custom autocomplete URLs. -->
     <string name="preference_autocomplete_action_remove_content_description">Raqpay</string>
 
+    <!-- Error message shown if the entered custom autocomplete URL is not valid or empty. -->
     <string name="preference_autocomplete_add_error">Watiqmanta qhawaykuy kay URL qillqasqaykita.</string>
 
     <string name="preference_language">Runasimi</string>
+    <!-- This is shown when the user hasn't set a focus specific language, i.e. when Focus
+         is using the system default language. -->
     <string name="preference_language_systemdefault">Sistemaqpata ajinaña jamuynin</string>
 
     <string name="preference_category_privacy">Asuy</string>
@@ -124,43 +191,65 @@
 
     <string name="preference_privacy_should_block_cookies_third_party_only_option">Cookies 3 ñiqi kaqkunallaqpata ch\'ataykuy</string>
 
+    <!-- Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
+         and prevents the user from taking screenshots or casting the app to other displays. -->
     <string name="preference_privacy_secure_mode">Mana rikukuq</string>
+    <!-- Preference Summary: Stealth mode (previously "Secure mode") is a setting that prevents the
+     app's content (in our case especially the content of webpages) to show up in the "recent apps"
+     screen. Additionally Android will prevent the user from taking screenshots or casting the app
+     to other displays. -->
     <string name="preference_privacy_stealth_summary">Web raphikunata pakay ruwaykunata chhalaptiyki</string>
 
     <string name="preference_category_performance">Llamk\'ay thaskiynin</string>
     <string name="preference_performance_block_webfonts">Web paqariykunata ch\'ataykuy</string>
+    <!-- This text is shown below the setting for disabling web fonts. Some websites use icons/images from a font and those do not show up if fonts are blocked.-->
     <string name="preference_performance_block_webfonts_summary">Unanchakunata mana chay rikch\'aykunata pisichiy atinman</string>
 
     <string name="preference_performance_block_javascript">JavaScript ch\'ataykuy</string>
+    <!-- This text is shown below setting for disabling JavaScript. Some websites may not work correctly when JavaScript is disabled -->
     <string name="preference_performance_block_javascript_summary">Raphikuna aswan utqhayta chaqnanay atinkuman, ichaqa mana suyaq kaqjinata llamk\'ay atillankutaq</string>
 
+    <!-- This preference does not set Focus as the default browser but instead links to Android's
+     "default apps" settings screen or if not supported by this Android version to a SUMO page describing
+     how to set Focus as a default browser.
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_default_browser2">Tikray %1$s ajinaña churasqa t\'aqwiriqniykipi</string>
 
     <string name="preference_category_mozilla">Mozilla</string>
     <string name="preference_mozilla_telemetry2">Llamk\'akusqamanta willaykunata kachay</string>
 
+    <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
     <string name="preference_mozilla_telemetry_summary">Astawan yachay</string>
 
+    <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla aswan munasqallata tantananpaq kaypachakun qusunankupaq chanta allinchanankupaq %1$s tukuypaq.</string>
 
+    <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Asuymanta willay</string>
 
+    <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
     <string name="preference_about">Kaymanta %1$s</string>
 
+    <!-- Header for the list of installed search engines -->
     <string name="preference_search_installed_search_engines">Mask\'aq motores chantisqa</string>
 
+    <!-- Action for restoring the default list of search engines -->
     <string name="preference_search_restore">Ajinaña jamuq mask\'aq motoresta jamuyninman kutichiy</string>
 
+    <!-- Action for adding an additional search engine to the list.
+    The "+" is used to emphasize that this is an "add" action -->
     <string name="preference_search_add2">+ Wak mask\'aq motorta yapay</string>
     <string name="preference_search_remove_title">Mask\'aq motoresta raqpay</string>
     <string name="preference_search_remove">Raqpay</string>
 
+    <!-- Clickable action text that shows when user long-presses on a search engine search field (this is similar to paste or copy when long-pressing a text field) -->
     <string name="action_option_add_search_engine">Mask\'aq motorta yapay</string>
 
     <string name="search_add_manually_name_hint">Mask\'aq motorpata sutin</string>
     <string name="search_add_manually_string">Mayqin mask\'aq wallqawanchus llamk\'akunqa</string>
     <string name="search_add_manually_save">Jallich\'ay</string>
 
+    <!-- Example of search engine url -->
     <string name="search_add_manually_example">Kayjina: example.com/search/?q=%s</string>
 
     <string name="search_add_confirmation">Musuq mask\'aq motor yapasqa.</string>
@@ -172,44 +261,75 @@
 
     <string name="search_add_error_format">Qhawaykachay mask\'aq wallqaqa kikin kananta ejemplo rikukuywan</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clear text in URL bar -->
     <string name="content_description_clear_input">Registrota pichay</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clicking on the website overlay
+     while in typing mode will dismiss and go back to the browser. This text will be read when the
+     overlay if focused. See https://github.com/mozilla-mobile/focus-android/issues/50 -->
     <string name="content_description_dismiss_input">Wich\'uy</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
+     history and go back to the home screen. -->
     <string name="content_description_erase">Ñawpa yaykusqa t\'aqwiriyta pichay</string>
 
+    <!-- If the user has multiple tabs open we will show an addition "floating action button" showing how many tabs are open.
+     This string is not displayed and read only by screenreaders. %1$s will be replaced with the number of open tabs. This
+      button will only be visible when there is more than one tab open (>= 2). -->
     <string name="content_description_tab_counter">Tikllakuna kichasqa: %1$s</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Lock icon showed in the URL bar for
+     https pages.. -->
     <string name="content_description_lock">Takya t\'inkiy</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we start
+     loading a website -->
     <string name="accessibility_announcement_loading">Chaqnanachkan</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we
+     finished loading a website -->
     <string name="accessibility_announcement_loading_finished">Web raphi chaqnanasqa</string>
 
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
     <string name="content_description_menu">Aswan akllaykuna</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
     <string name="content_description_forward">Ñawpaqman riy</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Reload current website -->
     <string name="content_description_reload">Watiqmanta chaqnanay web raphita</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate back (browsing history) -->
     <string name="content_description_back">Ñawpa raphiman riy</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Stop loading the current website. This button will turn into the refresh button once loading has been completed (see content_description_reload) -->
     <string name="content_description_stop">Kay raphiqpata chaqnanayninta sayay</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Custom Tab exit button - closes the custom tab and returns to the previous app. -->
     <string name="content_description_customtab_exit">Ñawpa aplicacionman kutiy</string>
 
+    <!-- Content description (not visible, for screen readers etc.): This is the description for the switch in the menu that temporarily disables/enables
+         content blocking for the current session -->
     <string name="content_description_blocking_switch">Tarichiqkunata ch\'ataykuy</string>
 
     <string name="your_rights">Derechosniyki</string>
 
     <string name="external_app_prompt_title">T\'inkiyta kichariy wak aplicaciónwan</string>
+    <!-- This string is shown when the user has clicked a link that needs to be opened in a different app.
+         Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar). -->
     <string name="external_app_prompt">Lluqsiy atiwaq kaymanta %1$s kay t\'inkiyta kaypi %2$s kichanaykipaq.</string>
+    <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
     <string name="external_app_prompt_no_app_title">Juk aplicación tariy mayqinchus kay t\'inkiyta kichariy atinanpaq</string>
+    <!-- This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+         the app store installed on the device (usually that's Google Play). -->
     <string name="external_app_prompt_no_app">Ni mayqin aplicaciones kay dispositivoykiqpata kay t\'inkiyta kichariy atinchu. Lluqsiy atiwaq kaymanta %1$s mask\'anaykipaq kaypi %2$s juk tupakuq aplicacionta.</string>
+    <!-- This label is shown above a list of apps that can be used to open a given link -->
     <string name="external_multiple_apps_matched_exit">¿Asuy t\'aqwiriymanta lluqsinkichu?</string>
 
+    <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
     <string name="download_snackbar_finished">%1$s tukusqa</string>
 
+    <!-- Snackbar action to immediately open the successfully downloaded file. -->
     <string name="download_snackbar_open">Kichay</string>
 
 
@@ -239,58 +359,94 @@
 
 
 
-  <string name="firstrun_defaultbrowser_title">Asuykita kallpachay</string>
+  <!-- First run tour (Default browser): Title -->
+    <string name="firstrun_defaultbrowser_title">Asuykita kallpachay</string>
+    <!-- First run tour (Default browser): Text. -->
     <string name="firstrun_defaultbrowser_text2">Qhipan ñiqiman kay asuy t\'aqwiriyta apay. Willaykunata chanta wak tiyapuykunata ima ch\'ataykuy mayqinkunachus tarisuy atinkuman kitinninta chanta raphikunaqpata chaqnanayninta jayrayan ima.</string>
 
+    <!-- First run tour (Search): Title -->
     <string name="firstrun_search_title">Mask\'ayniyki, munasqaykimanjina</string>
+    <!-- First run tour (Search): Text -->
     <string name="firstrun_search_text">¿Jukjinatachu mask\'achkanki? Wak ajinaña jamuq mask\'aq motorta akllay configuracionpi.</string>
 
+    <!-- First run tour (Shortcut): Title -->
     <string name="firstrun_shortcut_title">Qallariy pantallaykiman chiqan yaykunata yapay</string>
+    <!-- First run tour (Shortcut): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="firstrun_shortcut_text">Aswan munasqa kitikunaykita watiqmanta watukuy kaypi %1$s utqhaytapacha. Akllay \&quot;Qallariy pantallaman yapay\&quot; kay %1$s menu kaqpi.</string>
 
+    <!-- First run tour (Privacy): Title -->
     <string name="firstrun_privacy_title">Asuymanta juk sapakuti ruwayta ruway</string>
+    <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="firstrun_privacy_text">Churaykuy kayta %1$s ajinaña jamuq t\'aqwiriqjinata chanta asuy t\'aqwiriy allin jamuyninta qhawaykachay ima kay web raphikunata kicharispa wak aplicacionesmantapacha.</string>
 
     <string name="firstrun_close_button">¡Ari, jap\'iqasqa!</string>
     <string name="firstrun_skip_button">Phinkiy</string>
     <string name="firstrun_next_button">Qhipan</string>
 
+    <!-- Indicator that no trackers are being blocked because content blocking is disabled; normally shows the number of blocked trackers -->
     <string name="content_blocking_disabled">-</string>
 
+    <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_add">Yapay</string>
 
+    <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_cancel">Tatiy</string>
 
+    <!-- The user visible name of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
+    The recommended maximum length is 40 characters; the value may be truncated if it is too long.
+
+    * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
+    * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
+    -->
     <string name="notification_browsing_session_channel_name">Asuy t\'aqwiriymanta sesión</string>
 
+    <!-- The user visible description of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
+    The recommended maximum length is 300 characters; the value may be truncated if it is too long. %1$s will be replaced with the name of the app (e.g. Firefox Focus).
+
+    * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
+    * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
+    -->
     <string name="notification_browsing_session_channel_description">Willaykuqkuna sesion kaqta pichay atichisunki kaymanta %1$s juk ñit\'iywan. Mana aplicacionta kicharinallaykiñachu tiyan nitaq qhawayta imachus t\'aqwiriqpi llamk\'akuchkanta.</string>
 
+    <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Ñawpa yaykusqa t\'aqwiriyta pichay</string>
 
-    <string name="download_firefox">Firefox kaqta uraykuchiy</string>
+    <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
+      item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox kaqta uraykuchiy</string>
 
-    <string name="your_rights_content1">%1$s kaqqa juk software kichasqa codigoyuqtaq chanta qhasitaq, Mozillawan chanta wak yanapaqkunawan ima paqarichisqa.</string>
+    <!-- Text shown in the "Your rights" screen.
+    %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
+    <string name="your_rights_content1"><![CDATA[%1$s kaqqa juk software kichasqa codigoyuqtaq chanta qhasitaq, Mozillawan chanta wak yanapaqkunawan ima paqarichisqa.]]></string>
 
 
 
 
-  <string name="gv_prompt_username_hint">Yaykuq suti</string>
+  <!-- Text shown in prompts for GeckoView -->
+    <string name="gv_prompt_username_hint">Yaykuq suti</string>
     <string name="gv_prompt_password_hint">Pakasqa willay</string>
     <string name="gv_prompt_clear">Pichay</string>
 
+    <!-- Text shown in Security Information Popup -->
+    <!-- Text to denote secure or insecure connection -->
     <string name="security_popup_secure_connection">Takya t\'inkiy</string>
     <string name="security_popup_insecure_connection">Mana takya t\'inkiy</string>
+    <!-- %1$s will be replaced with organization that granted the SSL certificate -->
     <string name="security_popup_security_verified">Qhawaychasqa kaywan: %1$s</string>
 
+    <!-- Content Description of Security Icon in toolbar -->
     <string name="site_security_icon_content_description">Kitimanta takya</string>
     <string name="preference_autocomplete_duplicate_url_error">Kay URL kanña</string>
 
+    <!-- Label for the Find in page button -->
     <string name="find_in_page">Kay raphipi tariy</string>
 
 
 
-  <string name="preference_performance_request_desktop_site">Escritoriomanta kitita mañay</string>
+  <!-- Checkbox menu item text to request desktop site -->
+    <string name="preference_performance_request_desktop_site">Escritoriomanta kitita mañay</string>
 
+    <!-- Displayed after a user long presses on the URL in a custom tab to copy the URL -->
     <string name="custom_tab_copy_url_action">URL kikinchasqa</string>
 
     <!-- Tips displayed on the home view -->

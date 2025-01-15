@@ -89,8 +89,6 @@
 
     <string name="notification_erase_title_android_14">Eyða vafurferli?</string>
 
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Ýttu á eða hreinsaðu þessa tilkynningu til að eyða vafurferli þínum á öruggan hátt.</string>
-
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
     <string name="notification_erase_text_android_14_1">Ýttu á eða strjúktu út þessa tilkynningu til að eyða vafurferli þínum á öruggan hátt.</string>
@@ -496,9 +494,6 @@
 
     <string name="error_hostLookup_title">Netþjónn fannst ekki</string>
 
-    <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Loka</string>
-
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Velkomin í %1$s</string>
@@ -814,7 +809,7 @@
     <string name="studies_learn_more">Fræðast meira</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Forritið hættir til að virkja breytingar</string>
+    <string name="studies_restart_app" moz:removedIn="135">Forritið hættir til að virkja breytingar</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Fjarlægja</string>
@@ -909,9 +904,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Skipta</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Fara í fullan skjá</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Skipta strax yfir í tengil í nýjum flipa</string>
@@ -1093,11 +1085,6 @@ Ef þú hefur getað tengst þessum netþjóni án vandamála áður, gæti veri
     <string name="promote_search_widget_snackbar_message">Viðmótshluta bætt á upphafsskjá</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Til að hætta í fylltum skjá, skaltu draga niður að ofan og nota bakbendingu</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Til að hætta í fylltum skjá, skaltu draga niður að ofan og ýta á til-baka hnappinn</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Dragðu að ofan og notaðu aftur-bendingu til að hætta</string>

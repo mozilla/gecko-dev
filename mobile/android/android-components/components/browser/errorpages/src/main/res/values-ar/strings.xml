@@ -159,10 +159,6 @@
 <li>إن لم تكن تستطيع تحميل أي صفحة، تحقق من اتصال المحمول بشبكة البيانات أو الشبكة اللاسلكية.</li>
 </ul>]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">لا يوجد اتصال بالإنترنت</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">افحص اتصال الشبكة أو جرّب إعادة تحميل الصفحة بعد قليل.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">أعِد التحميل</string>
 

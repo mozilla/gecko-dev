@@ -107,9 +107,6 @@
 
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Chroń swoje konta za pomocą silnego, losowo wygenerowanego hasła. Zostanie ono zachowane na Twoim koncie, aby zawsze mieć do niego dostęp.</string>
-
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Chroń swoje konto za pomocą silnego, losowo wygenerowanego hasła. Zostanie ono zachowane na Twoim koncie, aby zawsze mieć do niego dostęp.</string>
 
     <!-- Pressing this will use the suggested strong password -->

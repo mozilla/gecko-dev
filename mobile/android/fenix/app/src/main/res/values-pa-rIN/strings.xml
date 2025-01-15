@@ -48,7 +48,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">ਚੁਣੀਆਂ ਟੈਬਾਂ ਨੂੰ ਭੰਡਾਰ ਵਿੱਚ ਸੰਭਾਲੋ</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">ਚੁਣੇ ਹੋਏ</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ਚੁਣੇ ਹੋਏ</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -427,8 +427,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">ਸਕੈਨ ਕਰੋ</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">QR ਕੋਡ ਨੂੰ ਸਕੈਨ ਕਰੋ</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">ਖੋਜ ਇੰਜਣ ਸੈਟਿੰਗਾਂ</string>
@@ -455,12 +453,14 @@
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">ਇਸ ਵਾਰ ਇਸ ਵਿੱਚ ਖੋਜੋ:</string>
 
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s ਖੋਜ ਇੰਜਣ</string>
-
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">ਖੋਜ ਇੰਜਣ: %s</string>
+
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: ਖੋਜ ਇੰਜਣ ਚੋਣਕਾਰ</string>
 
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
@@ -543,10 +543,6 @@
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">ਆਪਣੀ ਸੁਰੱਖਿਆ, ਕਾਰਗੁਜ਼ਾਰੀ ਅਤੇ ਹੋਰ ਕਈ ਕੁਝ ਸੁਧਾਰਨ ਲਈ ਤੀਜੀ ਧਿਰ ਇਕਸਟੈਨਸ਼ਨਾਂ ਨੂੰ ਇੰਸਟਾਲ ਕਰੋ।</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">ਹੋਰ ਇਕਸਟੈਨਸ਼ਨਾਂ ਦੀ ਪੜਤਾਲ ਕਰੋ।</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">ਬਰਾਊਜ਼ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">ਹੋਰ ਇਕਸਟੈਨਸ਼ਨਾਂ ਦੀ ਪੜਤਾਲ ਕਰੋ</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">ਬਰਾਊਜ਼ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ</string>
@@ -625,7 +621,7 @@
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">ਸੰਭਾਲੋ ਅਤੇ ਜਾਰੀ ਰੱਖੋ</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_toolbar_skip_button">ਛੱਡੋ</string>
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ਛੱਡੋ</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">ਉੱਤੇ</string>
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
@@ -640,6 +636,9 @@
     <string name="onboarding_customize_toolbar_placement_bottom_content_description">ਹੇਠਾਂ ਟੂਲਬਾਰ ਦਾ ਚਿੱਤਰ</string>
     <string name="onboarding_customize_toolbar_placement_top_content_description">ਉੱਤੇ ਟੂਲਬਾਰ ਦਾ ਚਿੱਤਰ</string>
 
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ਹੁਣੇ ਨਹੀਂ</string>
+
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">ਥੀਮ ਨੂੰ ਚੁਣੋ</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -647,7 +646,7 @@
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">ਸੰਭਾਲੋ ਅਤੇ ਬਰਾਊਜ਼ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_skip_button">ਛੱਡੋ</string>
+    <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">ਛੱਡੋ</string>
     <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_dark_option">ਗੂੜ੍ਹਾ</string>
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
@@ -658,6 +657,9 @@
     <string name="onboarding_customize_theme_main_image_content_description">ਥੀਮ ਚੋਣ ਝਲਕ ਦਾ ਵੱਡਾ ਹੈੱਡਰ ਚਿੱਤਰ ਬਣਾਈ ਗਈ ਸ਼ਕਲ ਵਿੱਚ ਕਲਾਕਾਰ ਅਤੇ ਬਿਲਡਰ ਟੂਲ ਦਿਖਾਏ ਜਾ ਰਹੇ ਹਨ।</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">%1$s ਥੀਮ ਦਾ ਚਿੱਤਰ</string>
+
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button">ਹੁਣੇ ਨਹੀਂ</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -710,8 +712,6 @@
     <string name="preferences_category_advanced">ਤਕਨੀਕੀ</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">ਪਰਦੇਦਾਰੀ ਤੇ ਸੁਰੱਖਿਆ</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">ਸਾਈਟ ਇਜਾਜ਼ਤਾਂ</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">ਸਾਈਟ ਦੀਆਂ ਸੈਟਿੰਗਾਂ</string>
     <!-- Preference for private browsing options -->
@@ -1261,11 +1261,11 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">ਟੈਬਾਂ ਖੋਲ੍ਹੋ</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">ਟੈਬਾਂ ਖੋਲ੍ਹੋ</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">ਸਿੰਕ ਕੀਤੀਆਂ ਟੈਬਾਂ</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ਸਿੰਕ ਕੀਤੀਆਂ ਟੈਬਾਂ</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">ਟੈਬ ਜੋੜੋ</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

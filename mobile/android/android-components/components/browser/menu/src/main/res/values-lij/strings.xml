@@ -2,6 +2,4 @@
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
     <!-- Content description (not visible, for screen readers etc.): Indicates the overflow menu has a highlight -->
     <string name="mozac_browser_menu_highlighted">In evidensa</string>
-    <!-- Label for add-ons submenu section -->
-    <string name="mozac_browser_menu_addons">Conponenti azonti</string>
     </resources>

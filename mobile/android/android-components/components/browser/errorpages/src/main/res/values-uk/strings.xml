@@ -199,11 +199,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Немає з’єднання з Інтернетом</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Схоже, виникла проблема з вашим інтернет-з’єднанням</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Перевірте з’єднання з Інтернетом або спробуйте перезавантажити сторінку через кілька хвилин.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Спробуйте під’єднатися на іншому пристрої. Перевірте свій модем або маршрутизатор. Від’єднайтеся і знову під’єднайтеся до Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

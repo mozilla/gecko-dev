@@ -106,8 +106,6 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Şifreyeke xurt bi kar bînî?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Hesabên xwe bi karanîna şîfreyeke xurt, ku bi rengek rasthatî hatî çêkirin, biparêzin. Ew ê ji bo karanîna siberojê di hesabê we de bê hilanîn.</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Hesabên xwe bi karanîna şîfreyeke xurt, ku bi rengek rasthatî hatî çêkirin, biparêzin. Ew ê ji bo karanîna siberojê di hesabê we de bê hilanîn.</string>
 
     <!-- Pressing this will use the suggested strong password -->

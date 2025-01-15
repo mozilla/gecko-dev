@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">Shikishti pal ne Atajos</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Kan titajshitia</string>
     <string name="menu_about">Taipanpa</string>
     <string name="menu_help">Shinechpalewi</string>
@@ -82,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">Shiktakuli tik</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">Ma mupupu kan nipashaluj yewa</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -119,23 +116,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Shiktemu tik Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Shiktemu tik Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Shiktemu tik Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Shiktemu tik Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Shiktemu tik Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Shiktemu tik Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Shiktemu tik Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Shiktemu tik Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s metztekipanultia.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s metztekipanultia.</p>
 <p>Shikwi kenha ken se ichtaka tajtachialis:
   <ul>
     <li>Shitatejtemu wan shipashalu tik ne app</li>
@@ -501,10 +498,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Shiktzakwa</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Yek shiajsi %1$s</string>
 
@@ -595,7 +589,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Shiktemulti Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Shiktemulti Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -607,23 +601,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[Tiweli tikwi %1$s kwak titakamati tay kituktia <a href="%2$s">Mozilla Public License</a> wan sejseuk licenciaj iwan walajkewalis tapujtuk.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Tiweli tikwi %1$s kwak titakamati tay kituktia <a href="%2$s">Mozilla Public License</a> wan sejseuk licenciaj iwan walajkewalis tapujtuk.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Tesu timetzajkawat tikwi ne tay tupal wan ne lijlicenciaj ipal imajmarcaj wawasujtuk ne Fundación Mozilla ush uksé, nian ne itukay ush ichimal Mozilla, FireFox ush %1$s. Su tikneki tikmatiuk ipanpa, shu <a href="%2$s">nikan</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Tesu timetzajkawat tikwi ne tay tupal wan ne lijlicenciaj ipal imajmarcaj wawasujtuk ne Fundación Mozilla ush uksé, nian ne itukay ush ichimal Mozilla, FireFox ush %1$s. Su tikneki tikmatiuk ipanpa, shu <a href="%2$s">nikan</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Ukse icodigoj walajkewalis ipal %1$s weli muajsi tik sejseuk walajkewalis te mutashtawia wan tapujtuk <a href="%2$s">licenciaj</a>.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Ukse icodigoj walajkewalis ipal %1$s weli muajsi tik sejseuk walajkewalis te mutashtawia wan tapujtuk <a href="%2$s">licenciaj</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s nusan kikwi ne ilistaj Disconnect, Inc. pal tatentzakwa ken itekiw tepal wan isel tik ne <a href="%2$s">GNU Licenciaj General Public v3</a>, wan weli muita <a href="%3$s">nikan</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s nusan kikwi ne ilistaj Disconnect, Inc. pal tatentzakwa ken itekiw tepal wan isel tik ne <a href="%2$s">GNU Licenciaj General Public v3</a>, wan weli muita <a href="%3$s">nikan</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Mutukay usuarioj</string>
@@ -729,6 +723,7 @@
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
     <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s weli kiejekua isel kitawelkwepilia ne itajtanilis ne cookie.</string>
 
+    <!-- Contextual Feature Recommendation Popups -->
     <!-- CFR for Cookie Banner (Banner Info Message). %1$s will be replaced by the app name, %2$s will be an active link using the string cfr_cookie_banner_link as text. -->
     <string name="cfr_cookie_banner">%1$s kiejekua kitawelkwepilia ne itajtanilis ne cookie pal kikutamima ne ipajpanti ne cookie takakasua.\n\nShiktukti ken mugustuj ne ipanti ne cookie tik %2$s.</string>
 
@@ -796,13 +791,13 @@
     <string name="preference_studies">Tapepetalis</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox weliskia kitalia wan kipewaltia tapepetalis kemanian.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox weliskia kitalia wan kipewaltia tapepetalis kemanian.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Shikmatiuk</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Ne aplicación mutzakwas pal mupata yek.</string>
+    <string name="studies_restart_app" moz:removedIn="135">Ne aplicación mutzakwas pal mupata yek.</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Shikishti</string>
@@ -890,9 +885,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Shikpata</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Tikalaki ne modoj pantallaj patawak</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Shiktapu ne ilpika melaktik tik ukse itzun</string>
@@ -1000,7 +992,7 @@
 
      <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s kiejekua kikwi se musalulis HTTPS keman weli pal nejmachnemi.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s kiejekua kikwi se musalulis HTTPS keman weli pal nejmachnemi.
      <a href="%2$s">Shitamati ukchupi</a> <br/><br/>
      Shikpata ini tachijchiwalis tik Tachijchiwalis > Ichtakayu &amp; Nejmachnemilis> Nejmachnemilis.]]></string>
 
@@ -1069,4 +1061,5 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Ne widget mutalijtuk tik ne achtu iswat</string>
-</resources>
+
+    </resources>

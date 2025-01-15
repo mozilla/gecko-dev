@@ -5,136 +5,223 @@
     <!-- ## into a separate file like strings_references.xml                                  ## -->
     <!-- ####################################################################################### -->
 
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_cancel">Tubspach</string>
+    <!-- Label used for buttons, e.g. in dialogs -->
     <string name="action_ok">Jan ik yooch</string>
 
     <string name="action_save">Chkwaach</string>
 
+    <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">Tñur paa eemch ŕmee solch</string>
 
     <string name="teaser">Byaw´i Sal amchu. Sal m´am. Mtkryee. Mtkweek miyi.</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
     <string name="feedback_erase">Chumŕmee m´amu hay payt ŕputub bwiir.</string>
 
+    <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
     <string name="feedback_erase_custom_tab">Chumŕmee m´amu hay payt ŕputub bwiir.</string>
 
+    <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">%1$s chŕmee</string>
 
+    <!-- Menu item: Share the currently visible page -->
     <string name="menu_share">Mkwimu…</string>
 
+    <!-- Menu item: Report an issue on the current site -->
     <string name="menu_report_site_issue">Wawchuha klyeebha paytum jwaknaabchu</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. %1$s will be
+      replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
+      links can be opened by native apps that aren't a browser, e.g. "Open in YouTube" -->
     <string name="menu_open_with_default_browser2">%1$s em msol</string>
 
+    <!-- Menu item: Switch to another browser to open the currently visible page. This menu item
+      will be shown if there are multiple browsers and we do not know which one is the default
+      browser or in case Focus is actually the default browser. Clicking this menu item will show
+      a screen with multiple browsers (or other apps that can open the current URL) to choose from. -->
     <string name="menu_open_with_a_browser2">Em msol…</string>
 
+    <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
     <string name="menu_add_to_home_screen">Jabchu namaan ch hal mchmi</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Chajaanch</string>
     <string name="menu_about">Sak ntpach</string>
     <string name="menu_help">Chbtaarch</string>
     <string name="menu_rights">Mir mir mwii</string>
 
+    <!-- Menu item: This is the label for a menu entry that shows how many trackers have been blocked
+         for the currently loaded website. The number of blocked trackers is shown below this label.
+         Next to this label is a switch that allows the user to temporarily enable / disable the
+         blocking of trackers for the current browsing session - for example if the current website
+         doesn't work correctly with blocked content. -->
     <string name="menu_trackers_blocked_title">Chŕmechu ŕ´ap</string>
 
+    <!-- Menu item: This is the subtitle for the Trackers blocked menu entry that shows how many
+    trackers have been blocked for the currently loaded website.  -->
     <string name="menu_trackers_blocked_subtitle">Chwichu yak yoya mchubowutemum amchuhal chatewulim chajankyawyu</string>
 
+    <!-- Menu item: This is the label for turning off content blocking for the current website. -->
     <string name="menu_content_blocking">Mtbspachmwir amchu ñulyoom mchajanhikyawa</string>
+    <!-- This is the subtitle content blocking toggle -->
     <string name="menu_content_blocking_subtitle">Mtubspach amchu ñulyom mchajanhikyawa</string>
 
+    <!-- This is a small text at the bottom of the menu shown in a "custom tab" for branding purposes.
+     See https://github.com/mozilla-mobile/focus-android/issues/2106
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="menu_custom_tab_branding">%1$s em ntpachu</string>
 
+    <!-- This is the title of a dialog that shows all the share targets (apps or contacts) when
+         sharing an URL. -->
     <string name="share_dialog_title">Sam paa m´em</string>
 
     <string name="notification_erase_text">Sal amchu mujiñ</string>
 
+    <!-- Notification action to open Focus and resume the current browsing session. -->
     <string name="notification_action_open">Sol</string>
 
+    <!-- Notification action to erase the current browsing session AND switch to Focus (bring it
+         to the foreground) -->
     <string name="notification_action_erase_and_open">Ŕmar e sol</string>
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_short_label">Ŕmar</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters. -->
     <string name="shortcut_erase_long_label">Sal amchu mujiñ</string>
 
 
+    <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
+         This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
     <string name="shortcut_erase_and_open_short_label">Ŕmar e sol</string>
 
+    <!-- The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
+         instead of the short title when it has enough space. Android recommends a maximum length
+         of 25 characters.
+         %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="shortcut_erase_and_open_long_label">Ŕmar e sol %1$s</string>
 
+    <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">Jabchu tpaay ŕbokjanchu</string>
 
+    <!-- Preference summary for settings related to privacy and security -->
     <string name="preference_privacy_and_security_summary">Kabwik chŕmeechu, cookies ee tñurya</string>
 
+    <!-- Preference category description for settings related to search, set default
+    and autocomplete are settings a user can find and change inside the "search" settings screen -->
     <string name="preference_search_summary">Bu januliwu chiich, yemik maat chulwiyu</string>
 
+    <!-- Preference category description for settings screen for settings related to Mozilla -->
+    <!-- About the app and help are links that are inside this menu -->
+    <!-- %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_mozilla_summary">%1$s chŕmechum, nyamch</string>
 
+    <!-- Preference category for settings related to controlling web content -->
     <string name="preference_category_web_content">Web chapayt wii</string>
 
+    <!-- Preference category: stealth settings for while switching apps -->
     <string name="preference_category_switching_apps">Aplicación jkayum tyak</string>
 
+    <!-- Preference category for General Settings -->
     <string name="preference_category_general">Payt</string>
 
+    <!-- Preference category for settings about sending usage data -->
     <string name="preference_category_data_collection_use">Tñur kabwik ñum tchech chu chyunk</string>
 
     <string name="preference_category_search">Ŕmee</string>
 
+    <!-- Title of "switch" preference that enables/disables search suggestions -->
     <string name="preference_show_search_suggestions">Kabwik chŕmecuhu mukunabchu</string>
+    <!-- Description of the preference that enables/disables search suggestions
+        %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_show_search_suggestions_summary">%1$s ey ñukwee ñumtñurum bar chŕmechuhal kwiima</string>
 
+    <!-- This label is shown below the name of the default search engine in settings -->
     <string name="preference_search_engine_default">Ñub ik chmiich</string>
 
+    <!-- This label is shown above the currently selected search engine in settings -->
     <string name="preference_search_engine_label">Chŕmeechu</string>
 
+    <!-- Text that is shown below a "switch" preference that is enabled. -->
     <string name="preference_state_on">Chubowu</string>
 
+    <!-- Text that is shown below a "switch" preference that is disabled. -->
     <string name="preference_state_off">Ŕ\'am</string>
 
+    <!-- Item in settings that will open a new preference screen for configuring the URL autocomplete behavior. -->
     <string name="preference_subitem_autocomplete">URL yeemik chublwi</string>
 
+    <!-- Title of "switch" preference that enables/disables autocomplete for the default list -->
     <string name="preference_switch_autocomplete_topsites">Amchu kajan kajanu</string>
 
+    <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
     <string name="preference_switch_autocomplete_user_list">Wachuha sal chmiich</string>
 
+    <!-- Preference category: Manage (user-defined) sites -->
     <string name="preference_category_autocomplete_manage_sites">Waachu ñumtrcheech</string>
 
+    <!-- Item in autocomplete settings that will open a new preference screen for adding and removing URLs to the user-defined list-->
     <string name="preference_autocomplete_subitem_manage_sites">Waachu numtrcheech</string>
 
+    <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
     <string name="preference_autocomplete_action_add">+ URL yeemik wii jam sal chmii</string>
 
+    <!-- Title of the screen for adding custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_add">URL yeemik wii jam sal chmii</string>
 
+    <!-- Label for the button to quick add custom autocomplete URLs. -->
     <string name="custom_autocomplete_quick_add">URL yeemik wii jam sal chmii</string>
 
+    <!-- Label for the button to quick add the current URL to the custom autocomplete list -->
     <string name="add_custom_autocomplete_label">Jabchu yemik matchublwiibu</string>
 
+    <!-- Preference category for settings about cookies and site data -->
     <string name="preference_category_cookies">Cookies e tñur wawchu</string>
 
+    <!-- Preference category for settings about data choices -->
     <string name="preference_category_data_choices">Tñurch t\'t orrum nyaamch</string>
 
+    <!-- Title of the screen for removing custom autocomplete URLs. -->
     <string name="preference_autocomplete_title_remove">URLs yemi wiiha ujiiñ</string>
 
+    <!-- A link to SUMO at autocomplete settings. -->
     <string name="preference_autocomplete_learn_more">Terabum ŕpo</string>
 
+    <!-- Preference summary: Custom (user-defined) autocomplete URLs. -->
     <string name="preference_autocomplete_custom_summary">URLs yemi wiha ñumchublwiha ŕmee sal chmii.</string>
 
+    <!-- Label for the "custom autocomplete URL" input field -->
     <string name="preference_autocomplete_add_title">URL ha sal chmii</string>
 
+    <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
     <string name="preference_autocomplete_add_hint">URL tublich sal chmii</string>
 
+    <!-- Example how a custom domain autocomplete URL be added (e.g. without http://) -->
     <string name="preference_autocomplete_add_example2">Yabwika: mozilla.org</string>
 
+    <!-- To be removed once the new hint has been translated -->
     <string name="preference_autocomplete_add_example">Yabwika: example.com</string>
 
+    <!-- Confirmation "snackbar" shown after a new custom autocomplete URL has been added. -->
     <string name="preference_autocomplete_add_confirmation">URL jkaay yemi wii sal chmii.</string>
 
+    <!-- Menu item to remove existing autocomplete URLs. -->
     <string name="preference_autocomplete_menu_remove">Ujiñ</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Button that will delete all selected custom autocomplete URLs. -->
     <string name="preference_autocomplete_action_remove_content_description">Ujiñ</string>
 
+    <!-- Error message shown if the entered custom autocomplete URL is not valid or empty. -->
     <string name="preference_autocomplete_add_error">URL sal mukjabha mtkweek m´uu.</string>
 
     <string name="preference_language">Paa kwawchu</string>
+    <!-- This is shown when the user hasn't set a focus specific language, i.e. when Focus
+         is using the system default language. -->
     <string name="preference_language_systemdefault">Sistem kablwiwu ha sal chmii</string>
 
     <string name="preference_category_privacy">Jabchu tpaay</string>
@@ -151,47 +238,70 @@
     <string name="preference_privacy_should_block_cookies_third_party_tracker_cookies_option">T´am 3 nyumuk cookies uj nyaamch jmuuk jmuukum</string>
     <string name="preference_privacy_should_block_cookies_third_party_only_option">Cookies jkayha paa t´tkyat</string>
 
+    <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
     <string name="preference_security_biometric">Ŕalum mchknaa sak muyok mjab hikyawa</string>
 
+    <!-- Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
+         and prevents the user from taking screenshots or casting the app to other displays. -->
     <string name="preference_privacy_secure_mode">Ŕpoobtem</string>
+    <!-- Preference Summary: Stealth mode (previously "Secure mode") is a setting that prevents the
+     app's content (in our case especially the content of webpages) to show up in the "recent apps"
+     screen. Additionally Android will prevent the user from taking screenshots or casting the app
+     to other displays. -->
     <string name="preference_privacy_stealth_summary">Jabchu web ha tjoot aplicación jkaay chkwa ñwam</string>
 
     <string name="preference_category_security">Kryek janu</string>
 
     <string name="preference_category_performance">Kabyuk trchech chu</string>
     <string name="preference_performance_block_webfonts">Tñur web wi tkat</string>
+    <!-- This text is shown below the setting for disabling web fonts. Some websites use icons/images from a font and those do not show up if fonts are blocked.-->
     <string name="preference_performance_block_webfonts_summary">Icon ee paa tñurch hal chapayt kamjwilchuhal aaw yome</string>
 
     <string name="preference_performance_block_javascript">JavaScript tket</string>
+    <!-- This text is shown below setting for disabling JavaScript. Some websites may not work correctly when JavaScript is disabled -->
     <string name="preference_performance_block_javascript_summary">Jabchuhay wayiibrab jukewu yuso, kabyuu imyus kabyuwuha kos ŕpoochtema</string>
 
+    <!-- This preference does not set Focus as the default browser but instead links to Android's
+     "default apps" settings screen or if not supported by this Android version to a SUMO page describing
+     how to set Focus as a default browser.
+      %1$s will be replaced by the app name (e.g. Firefox Focus) -->
     <string name="preference_default_browser2">%1$s ha sal amchu jaan myoobka</string>
 
     <string name="preference_category_mozilla">Mozilla</string>
     <string name="preference_mozilla_telemetry2">Kamwiik daatha mwiruha m´emch</string>
 
+    <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
     <string name="preference_mozilla_telemetry_summary">Terabum ŕpo</string>
 
+    <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla hay chmwiwuha paytum chyunk ka %1$s paytum wichkyaaw chajaanrab hikyawa.</string>
 
+    <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Kabwik yemi wii jan yuwuha</string>
 
+    <!-- Item in Preferences that shows the about page. Parameter 1 is the app name, i.e. Firefox Focus/Firefox Klar. -->
     <string name="preference_about">%1$s kabyuwuh</string>
 
+    <!-- Header for the list of installed search engines -->
     <string name="preference_search_installed_search_engines">Motor chŕmechu ñuk chkwachumyok</string>
 
+    <!-- Action for restoring the default list of search engines -->
     <string name="preference_search_restore">Motor chajaana januwa chŕmeech hay jan hikyawa</string>
 
+    <!-- Action for adding an additional search engine to the list.
+    The "+" is used to emphasize that this is an "add" action -->
     <string name="preference_search_add2">+ Motor jkaay chŕmeech kyaaw jkaay sal chmii</string>
     <string name="preference_search_remove_title">Motor chŕmeechu ujiñ</string>
     <string name="preference_search_remove">Ujiiñ</string>
 
+    <!-- Clickable action text that shows when user long-presses on a search engine search field (this is similar to paste or copy when long-pressing a text field) -->
     <string name="action_option_add_search_engine">Chŕmeechu sal chmii</string>
 
     <string name="search_add_manually_name_hint">Motor chŕmechu muul</string>
     <string name="search_add_manually_string">Caden ŕmee ñum trchech hi kyawa</string>
     <string name="search_add_manually_save">Chkwaach</string>
 
+    <!-- Example of search engine url -->
     <string name="search_add_manually_example">Yabwika: example.com/search/?q=%s</string>
 
     <string name="search_add_confirmation">Motor chŕmeechu jkaay kur sal chmiich.</string>
@@ -203,48 +313,83 @@
 
     <string name="search_add_error_format">Caden chŕmechu hay tñurchu sal kyakham nyamuha uuch</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clear text in URL bar -->
     <string name="content_description_clear_input">Tñurchi tkyeech</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Clicking on the website overlay
+     while in typing mode will dismiss and go back to the browser. This text will be read when the
+     overlay if focused. See https://github.com/mozilla-mobile/focus-android/issues/50 -->
     <string name="content_description_dismiss_input">Kos ñul uuten</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
+     history and go back to the home screen. -->
     <string name="content_description_erase">Sal amchu mujiñ</string>
 
+    <!-- If the user has multiple tabs open we will show an addition "floating action button" showing how many tabs are open.
+     This string is not displayed and read only by screenreaders. %1$s will be replaced with the number of open tabs. This
+      button will only be visible when there is more than one tab open (>= 2). -->
     <string name="content_description_tab_counter">Tñur chiichu sool: %1$s</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Lock icon showed in the URL bar for
+     https pages.. -->
     <string name="content_description_lock">Tublich chu jan</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we start
+     loading a website -->
     <string name="accessibility_announcement_loading">Jukewu</string>
 
+    <!-- This text is not visible. Instead it will be read by the accessibility service once we
+     finished loading a website -->
     <string name="accessibility_announcement_loading_finished">Web wawu jukeewu</string>
 
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
     <string name="content_description_menu">Chwichu terab</string>
 
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button used
+    on home screen-->
     <string name="indicator_content_description_menu">Tawiinchu chaterab kyaaw</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
     <string name="content_description_forward">Jiboom kyaamch</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Reload current website -->
     <string name="content_description_reload">Web tkweek jukewu</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Navigate back (browsing history) -->
     <string name="content_description_back">Sal amchu tkweek jabch</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Stop loading the current website. This button will turn into the refresh button once loading has been completed (see content_description_reload) -->
     <string name="content_description_stop">Web jabchuha chubŕkwich</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Custom Tab exit button - closes the custom tab and returns to the previous app. -->
     <string name="content_description_customtab_exit">Aplicación jubo kyakhal tkweek</string>
 
+    <!-- Content description (not visible, for screen readers etc.): This is the description for the ImageView in the menu that displays
+         the number of trackers blocked for the current session -->
     <string name="content_description_trackers_blocked">Chŕibchu chapayt ŕmeechuy ŕ´ap kyo</string>
 
+    <!-- Content description (not visible, for screen readers etc.): This is the description for the switch in the menu that temporarily disables/enables
+         content blocking for the current session -->
     <string name="content_description_blocking_switch">Chkŕmeech paa tketch</string>
 
     <string name="your_rights">Mir mir mwii</string>
 
     <string name="external_app_prompt_title">Jabchu aplicación jkayk solch</string>
+    <!-- This string is shown when the user has clicked a link that needs to be opened in a different app.
+         Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar). -->
     <string name="external_app_prompt">%1$s hal mchpaa pay jabchu %2$s msol.</string>
+    <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
     <string name="external_app_prompt_no_app_title">Aplicacion ŕit jabchu solum mŕmee</string>
+    <!-- This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
+         the app store installed on the device (usually that's Google Play). -->
     <string name="external_app_prompt_no_app">Aplicacion dispositiiv mwi ŕitulik yak yoya soltema. %1$s myaam %2$s mŕmee aplicación ŕit kwa solhikyawa.</string>
+    <!-- This label is shown above a list of apps that can be used to open a given link -->
     <string name="external_multiple_apps_matched_exit">Sal amchu jabch tpaay al chpaa?</string>
 
+    <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
     <string name="download_snackbar_finished">%1$s byir</string>
 
+    <!-- Snackbar action to immediately open the successfully downloaded file. -->
     <string name="download_snackbar_open">Sol</string>
 
 
@@ -275,77 +420,127 @@
 
 
 
-  <string name="firstrun_defaultbrowser_title">Myeemik chumwiwuha ta mwiluk</string>
+  <!-- First run tour (Default browser): Title -->
+    <string name="firstrun_defaultbrowser_title">Myeemik chumwiwuha ta mwiluk</string>
+    <!-- First run tour (Default browser): Text. -->
     <string name="firstrun_defaultbrowser_text2">Sal amchu ksool tpayha myaabraab mwaam. Cehapayt jkay knawchu ee jkay sal yak chumwiwu hal jaab wawchu t´t´orum kyakhal unuu tñur kwimch kajanha chmii chum.</string>
 
+    <!-- First run tour (Search): Title -->
     <string name="firstrun_search_title">Myeemik, chmŕmeewu</string>
+    <!-- First run tour (Search): Text -->
     <string name="firstrun_search_text">¿Ñukwee jkaayum yakum mŕmee´e? Chajanchu kur sal chmiich ha chubowu wiiha myok.</string>
 
+    <!-- First run tour (Shortcut): Title -->
     <string name="firstrun_shortcut_title">Pantaal kajanha wayiibraw sal mchmii</string>
+    <!-- First run tour (Shortcut): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="firstrun_shortcut_text">Amchu jnmiraabhal %1$s hal khal koha wamyiibraw sal mtkweek. \&quot;Tñur kwimch namanchuhal mchmii\&quot; im myok %1$s chnamanchuhal.</string>
 
+    <!-- First run tour (Privacy): Title -->
     <string name="firstrun_privacy_title">Myeemik chmwiwuha myok majanuk</string>
+    <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="firstrun_privacy_text">%1$s ha sal amchu kajan mik mchmii pay sal amchu myeemik mwii ha kabuwu ha m´uk aplicación o tñur kwimch web hal amchu ha payrum m´uu.</string>
 
     <string name="firstrun_close_button">¡M´eb´e!</string>
     <string name="firstrun_skip_button">Kos ñulm´ebtem</string>
     <string name="firstrun_next_button">Nulkpeeb</string>
 
+    <!-- Indicator that no trackers are being blocked because content blocking is disabled; normally shows the number of blocked trackers -->
     <string name="content_blocking_disabled">-</string>
 
+    <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_add">Sal chmii</string>
 
+    <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_cancel">Tubspach</string>
 
+    <!-- The user visible name of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
+    The recommended maximum length is 40 characters; the value may be truncated if it is too long.
+
+    * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
+    * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
+    -->
     <string name="notification_browsing_session_channel_name">Chyunch sal amchu ŕ´aap</string>
 
+    <!-- The user visible description of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
+    The recommended maximum length is 300 characters; the value may be truncated if it is too long. %1$s will be replaced with the name of the app (e.g. Firefox Focus).
+
+    * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
+    * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
+    -->
     <string name="notification_browsing_session_channel_description">Chknaabchuhay chynchu ha %1$s ah ŕmara tawinch ŕisum. Kos aplicación ha msol yaŕaaltem o sal amchuhay boo kwawu uch yutem.</string>
 
+    <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Sal amchu mujiñ</string>
 
-    <string name="download_firefox">Firefox munaal</string>
+    <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
+      item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox munaal</string>
 
-    <string name="your_rights_content1">%1$s software kos codig wiiytem solkyoha Mozilla ha ee jkay kubtar cyobchya.</string>
+    <!-- Text shown in the "Your rights" screen.
+    %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
+    <string name="your_rights_content1"><![CDATA[%1$s software kos codig wiiytem solkyoha Mozilla ha ee jkay kubtar cyobchya.]]></string>
 
+    <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">M´mulha myoka</string>
     <string name="gv_prompt_password_hint">Ŕ\' amu</string>
     <string name="gv_prompt_clear">Tkryee</string>
 
+    <!-- Text shown in Security Information Popup -->
+    <!-- Text to denote secure or insecure connection -->
     <string name="security_popup_secure_connection">Tublich chu jan</string>
     <string name="security_popup_insecure_connection">Tublich chu kos jaan tpaay</string>
+    <!-- %1$s will be replaced with organization that granted the SSL certificate -->
     <string name="security_popup_security_verified">Say uu: %1$s</string>
 
+    <!-- Label for the Find in page button -->
     <string name="find_in_page">Chŕmeechu myook</string>
 
+    <!-- Watermark/Hint for the find in page input field -->
     <string name="find_in_page_input">Chŕmeechu myook</string>
 
+    <!-- String to show the number of results found in the page and the
+        position the user is at. The first argument is the position, the second argument is the total -->
     <string name="find_in_page_result">%1$d/%2$d</string>
 
+    <!-- Checkbox menu item text to request desktop site -->
     <string name="preference_performance_request_desktop_site">Trchechu mk\' kaab</string>
 
+    <!-- Displayed after a user long presses on the URL in a custom tab to copy the URL -->
     <string name="custom_tab_copy_url_action">URL tñurch</string>
 
+    <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
     <string name="preference_remote_debugging">Ñulyomuk tkryeechu USB/Wi-Fi nyaam</string>
 
     <!-- Tips displayed on the home view -->
 
+    <!-- Preference title for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
     <string name="preference_safe_browsing_title">Waachu klyeeb´e paa wakyaw mŕ´am</string>
+    <!-- Preference summary for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
     <string name="preference_safe_browsing_summary">Amchu chknarp ee paa jwakyaa ŕ ´amcha, amchu malware ee amchu software kos yaŕaalch tpaay mtket.</string>
 
+    <!-- Preference for exceptions tracking protection -->
     <string name="preference_exceptions">Kos ñul´ebchtpaay</string>
+    <!-- Description for the exceptions preference screen-->
     <string name="preference_exceptions_description">Chapayt sal kyaak amchu yak yoya mtket.</string>
+    <!-- Menu item to remove existing exceptions. -->
     <string name="preference_exceptions_menu_remove">Ujiiñ</string>
+    <!-- Button to remove all websites from the exception list -->
     <string name="preference_exceptions_remove_all_button_label">Amchu ha paytum ujiiñ</string>
 
+    <!-- Title for the tab crash report screen-->
     <string name="tab_crash_report_title">Tñur chmiichu hay kos jantem</string>
+    <!-- Headline for the tab crash report screen -->
     <string name="tab_crash_report_headline">Tuñur chmiichuhal trchech upaar um unuuch. Ñubyu kwal ibtem.</string>
+    <!-- Subtitle for the tab crash report screen -->
     <string name="tab_crash_report_description">Ñul amchu kŕ´apchuwukyawa kos chapayt chwatem, sakyaaw kos tkweek chajaantem.</string>
+    <!-- Label for button to close the tab-->
     <string name="tab_crash_report_close_tab_button_label">Tñur chiichu ŕ´aap</string>
 
 
 
 
-  <string name="crash_report_send_crash_label">Wuñparum Mozilla kwiim</string>
+  <!-- Label for the checkbox to send the tab crash report to Mozilla -->
+    <string name="crash_report_send_crash_label">Wuñparum Mozilla kwiim</string>
 
     <!-- Tracking protection bottom sheet -->
 

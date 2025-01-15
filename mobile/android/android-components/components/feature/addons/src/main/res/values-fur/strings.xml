@@ -202,14 +202,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Nol è stât pussibil instalâ cheste estension parcè che no je stade verificade.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">Impussibil instalâ %1$s parcè che nol è compatibil cun %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">Impussibil instalâ %1$s parcè che al à un risi elevât di causâ problemis di stabilitât e sigurece.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">%1$s al viole lis politichis di Mozilla e nol è pussibil instalâlu in %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">Nol è pussibil instalâ %1$s parcè che dome une organizazion che e dopre politichis di imprese e pues instalâlu, e chestis politichis no son supuartadis su cheste plateforme.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s al viole lis politichis di Mozilla e nol è pussibil instalâlu.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">%1$s al viole lis politichis di Mozilla e nol è pussibil instalâlu in %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -259,11 +255,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Viôt i detais</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s al è stât disativât par vie di problemis di sigurece o di stabilitât.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Cheste estension e je blocade parcè che e viole lis politichis di Mozilla e e je stade disativade.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Cheste estension e viole lis politichis di Mozilla e e je stade disativade. Tu puedis tornâ a ativâle, ma al è pussibil che al compuarti cualchi risi.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Cheste estension e je limitade parcè che e viole lis politichis di Mozilla e e je stade disativade. Tu puedis tornâ a ativâle, ma al è pussibil che al compuarti cualchi risi.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

@@ -107,9 +107,6 @@
     <string name="mozac_feature_prompts_suggest_strong_password_title">ጠንካራ የይለፍ ቃል ይጠቀሙ?</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ጠንካራ በዘፈቀደ የመነጨ የይለፍ ቃል በመጠቀም መለያዎችዎን ይጠብቁ። ለወደፊት ጥቅም ወደ መለያዎ ይቀመጣል።</string>
-
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">ጠንካራ በዘፈቀደ የመነጨ የይለፍ ቃል በመጠቀም መለያዎን ይጠብቁ። ለወደፊት ጥቅም በመለያዎ ውስጥ ይቀመጣል።</string>
 
     <!-- Pressing this will use the suggested strong password -->

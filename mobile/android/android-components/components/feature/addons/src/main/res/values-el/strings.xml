@@ -206,14 +206,10 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Δεν ήταν δυνατή η εγκατάσταση αυτής της επέκτασης, επειδή δεν έχει επαληθευτεί.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">Δεν ήταν δυνατή η εγκατάσταση του %1$s, επειδή δεν είναι συμβατό με το %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">Δεν είναι δυνατή η εγκατάσταση του %1$s, επειδή είναι πολύ πιθανό να προκαλέσει προβλήματα σταθερότητας ή ασφάλειας.</string>
     <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_blocklisted_2">Το %1$s παραβιάζει τις πολιτικές της Mozilla και δεν είναι δυνατή η εγκατάστασή του στο %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">Δεν ήταν δυνατή η εγκατάσταση του %1$s, επειδή μπορεί να εγκατασταθεί μόνο από έναν οργανισμό που χρησιμοποιεί εταιρικές πολιτικές, κάτι που δεν υποστηρίζεται σε αυτήν την πλατφόρμα.</string>
-    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">Το %1$s παραβιάζει τις πολιτικές της Mozilla και δεν είναι δυνατή η εγκατάστασή του.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_soft_blocked_1">Το %1$s παραβιάζει τις πολιτικές της Mozilla και δεν είναι δυνατή η εγκατάστασή του στο %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -263,11 +259,7 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Προβολή λεπτομερειών</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">Το %1$s έχει απενεργοποιηθεί λόγω ζητημάτων ασφαλείας ή σταθερότητας.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted_1">Αυτή η επέκταση έχει αποκλειστεί επειδή παραβιάζει τις πολιτικές της Mozilla και έχει απενεργοποιηθεί.</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Αυτή η επέκταση παραβιάζει τις πολιτικές της Mozilla και έχει απενεργοποιηθεί. Μπορείτε να την ενεργοποιήσετε, αλλά αυτό ενδέχεται να είναι επικίνδυνο.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked_1">Αυτή η επέκταση περιορίζεται επειδή παραβιάζει τις πολιτικές της Mozilla και έχει απενεργοποιηθεί. Μπορείτε να το ενεργοποιήσετε, αλλά αυτό ενδέχεται να είναι επικίνδυνο.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->

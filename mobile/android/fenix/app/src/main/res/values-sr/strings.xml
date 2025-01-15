@@ -46,7 +46,7 @@
     <!-- Content description for save to collection button while in multiselect mode in tab tray -->
     <string name="tab_tray_collection_button_multiselect_content_description">Сачувајте одабране језичке у збирку</string>
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Изабрано</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Изабрано</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -94,13 +94,6 @@
     <!-- Text for the negative action button -->
     <string name="open_in_app_cfr_negative_button_text">Одбаци</string>
 
-    <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Наша најјача заштита приватности изолује праћење на више локација.</string>
-
-    <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Сазнајте више о свеобухватној заштити од колачића</string>
-
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
     <string name="erase_action_cfr_message">Додирните овде да започнете нову приватну сесију. Обришите историју, колачиће — све.</string>
@@ -120,12 +113,6 @@
     <string name="address_bar_swipe_cfr_title">Превуците траку са алаткама да промените картице</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message">Превуците налево или надесно да пребаците. Превуците лево на задњој картици да отворите нову.</string>
-
-    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Ново: стрелице напред и назад једним додиром</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Уживајте у бржој навигацији која вам је увек на дохват руке.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Потребан је приступ камери. Отворите Android подешавања, одаберите дозволе и омогућите приступ.</string>
@@ -392,8 +379,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Скенирај</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Скенирај QR кȏд</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Подешавања претраживача</string>
@@ -419,16 +404,11 @@
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Овај пут претражујте:</string>
 
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s претраживач</string>
-
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Претраживач: %s</string>
 
     <!-- Home onboarding -->
-    <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Упознајте своју персонализовану почетну страницу. Овде се приказују недавни језичци, обележивачи и резултати претраге.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Добродошли на више личан интернет</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -509,10 +489,6 @@
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Прилагодите ваш Firefox уз додатке</string>
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Додајте додатке трећих страна да појачате безбедност, продуктивност и остало.</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Откријте још додатака.</string>
-    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Започните прегледање.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Откријте још додатака</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -599,8 +575,6 @@
     <string name="preferences_category_advanced">Напредно</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Приватност и безбедност</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Дозволе на страници</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">Подешавања сајта</string>
     <!-- Preference for private browsing options -->
@@ -952,11 +926,12 @@
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маркетиншки подаци</string>
     <!-- Preference description for marketing data collection -->
-    <string name="preferences_marketing_data_description2">Подели податке о основном коришћењу са фирмом Adjust, нашим сарадником за маркетинг</string>
-    <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_title">Аутоматски шаљите извештаје о паду</string>
-    <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Након пада, аутоматски дели податке о паду са Mozilla-ом при покретању</string>
+    <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Подели податке о основном коришћењу са фирмом Adjust, нашим сарадником за маркетинг</string>
+
+    <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Аутоматски шаљите извештаје о паду</string>
+
+    <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Након пада, аутоматски дели податке о паду са Mozilla-ом при покретању</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Студије</string>
     <!-- Summary for studies preferences -->
@@ -1125,22 +1100,22 @@
     <string name="studies_learn_more">Сазнајте више</string>
 
     <!-- Dialog message shown after removing a study -->
-    <string name="studies_restart_app">Апликација ће се затворити како би применила промене</string>
+    <string name="studies_restart_app" moz:removedIn="135">Апликација ће се затворити како би применила промене</string>
     <!-- Dialog button to confirm the removing a study. -->
-    <string name="studies_restart_dialog_ok">ОК</string>
+    <string name="studies_restart_dialog_ok" moz:removedIn="135">ОК</string>
     <!-- Dialog button text for canceling removing a study. -->
-    <string name="studies_restart_dialog_cancel">Откажи</string>
+    <string name="studies_restart_dialog_cancel" moz:removedIn="135">Откажи</string>
 
     <!-- Toast shown after turning on/off studies preferences -->
-    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Затварање апликације ради примене промена…</string>
+    <string name="studies_toast_quit_application" moz:removedIn="135" tools:ignore="UnusedResources">Затварање апликације ради примене промена…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Отворени језичци</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Отворени језичци</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Приватни језичци</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Приватни језичци</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Синхронизовани језичци</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Синхронизовани језичци</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Додај језичак</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1313,8 +1288,6 @@
     <string name="bookmark_delete_negative">Откажи</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Додај фасциклу</string>
-    <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Обележивач сачуван!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Сачувано у “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1657,8 +1630,6 @@
     <string name="snackbar_tabs_closed">Језичци затворени</string>
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Затворених картица: %1$s</string>
-    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Обележивачи сачувани!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
     <string name="snackbar_message_bookmarks_saved_in">Обележивачи сачувани у “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -2562,14 +2533,6 @@
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Да, пробај</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Не сада</string>
-    <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Сазнајте можете ли веровати рецензијама овог производа — пре куповине.</string>
-    <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Пробај прегледач рецензија</string>
-    <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Да ли су ове рецензије поуздане? Проверите сада да видите прилагођену оцену.</string>
-    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Отвори прегледач рецензија</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Отвори прегледач рецензија</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2954,11 +2917,6 @@
     <string name="glean_debug_tools_title">Glean алатке за отклањање грешака</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Да изађете из режима преко целог екрана, превуците одозго и користите покрет за назад</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Да изађете из режима преко целог екрана, превуците одозго и притисните назад</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Превуците одозго и користите покрет уназад за излаз</string>
@@ -2969,4 +2927,5 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
-</resources>
+
+    </resources>

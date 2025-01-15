@@ -204,8 +204,6 @@
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Dodatak nije bilo moguće instalirati jer nije provjeren.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s nije moguće instalirati jer nije kompatibilan s %2$s %3$s.</string>
-    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s nije bilo moguće instalirati jer postoji visok rizik od uzrokovanja problema sa stabilnošću i sigurnošću.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s nije moguće instalirati jer ga može instalirati samo organizacija koja koristi pravila poduzeća, što nije podržano na ovoj platformi.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -254,8 +252,6 @@
     <string name="mozac_feature_addons_status_learn_more">Saznajte više</string>
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Pogledaj detalje</string>
-    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">Dodatak %1$s je blokiran zbog problema sa sigurnosti ili stabilnosti.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s nije mogao biti verificiran kao siguran te je onemogućen.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

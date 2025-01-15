@@ -109,9 +109,6 @@
 
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ئىختىيارى ھاسىللانغان كۈچلۈك ئىم ئارقىلىق ھېساباتىڭىزنى قوغداڭ. ئۇ كەلگۈسىدە ئىشلىتىش ئۈچۈن ھېساباتىڭىزدا ساقلىنىدۇ.</string>
-
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">ئىختىيارى ھاسىللانغان كۈچلۈك ئىم ئارقىلىق ھېساباتىڭىزنى قوغداڭ. ئۇ كەلگۈسىدە ئىشلىتىش ئۈچۈن ھېساباتىڭىزدا ساقلىنىدۇ.</string>
 
     <!-- Pressing this will use the suggested strong password -->

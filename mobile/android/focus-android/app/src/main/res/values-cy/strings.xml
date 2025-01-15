@@ -84,7 +84,6 @@
     <string name="share_dialog_title">Rhannu drwy</string>
 
     <string name="notification_erase_title_android_14">Dileu hanes pori?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Tapio neu gau\'r hysbysiad hwn i ddileu eich hanes pori yn ddiogel.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -517,10 +516,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Cau</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Croeso i %1$s</string>
 
@@ -842,7 +838,7 @@
     <string name="studies_learn_more">Darllen rhagor</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Bydd yr ap yn cau er mwyn gosod y newidiadau</string>
+    <string name="studies_restart_app" moz:removedIn="135">Bydd yr ap yn cau er mwyn gosod y newidiadau</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Tynnu</string>
@@ -930,9 +926,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Newid</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Mynd i’r sgrin lawn</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Newid i ddolen mewn tab newydd ar unwaith</string>
@@ -1124,11 +1117,6 @@
     <string name="promote_search_widget_snackbar_message">Teclyn wedi’i ychwanegu i’r sgrin cartref</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">I adael y sgrin lawn, llusgwch o\'r brig a defnyddiwch ystum nôl</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">I adael y sgrin lawn, llusgwch o\'r brig a phwyso nôl</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Llusgwch o\'r brig a defnyddio ystum nôl i adael</string>

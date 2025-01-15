@@ -181,11 +181,7 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Ndaikatúi eike ñandutípe</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Ha’eténte ku oĩva apañuái eike hag̃ua ñandutípe</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Ehechajey ne ñanduti juajuha térã emyanyhẽjey pe kuatiarogue ag̃amieve.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Eñeha’ã eike ambue mba’e’okápe. Ehechajey ne módem térã router-pe. Esẽa ha upéi eikejey Wi-Fi rupive.</string>
     <!-- The document title and heading of an error page. -->

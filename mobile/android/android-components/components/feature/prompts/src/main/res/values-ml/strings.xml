@@ -105,8 +105,6 @@
     <string name="mozac_feature_prompts_suggest_strong_password_title">ഒരു കഠിനമായ രഹസ്യവാക്കു് ഉപയോഗിക്കട്ടെ?</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ഒരു ശക്തമായ ക്രമരഹിതമായ രഹസ്യവാക്കു് ഉപയോഗിച്ചു് താങ്ങളുടെ അക്കൗണ്ടുകൾ പരിരക്ഷിക്കുക. പില്കാല ഉപയോഗത്തിനു് ഇതു് താങ്ങളുടെ അക്കൗണ്ടിൽ കരുതിവച്ചിരിക്കും.</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">ഒരു ശക്തമായ ക്രമരഹിതമായ രഹസ്യവാക്കു് ഉപയോഗിച്ചു് താങ്ങളുടെ അക്കൗണ്ടു് പരിരക്ഷിക്കുക. പില്കാല ഉപയോഗത്തിനു് ഇതു് താങ്ങളുടെ അക്കൗണ്ടിൽ കരുതിവച്ചിരിക്കും.</string>
 
     <!-- Pressing this will use the suggested strong password -->

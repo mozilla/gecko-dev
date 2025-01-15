@@ -194,10 +194,6 @@
       </ul>
     ]]></string>
 
-    <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">کوئی انٹرنیٹ کنکشن کائنی</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">اپݨے نیٹ ورک کنکشن دی پڑتال کرو یا کجھ لمحے بعد ولدا کوشش کرو۔</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">ولدا لوڈ کرو</string>
 

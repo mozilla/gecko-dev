@@ -52,6 +52,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">Pašalinti iš leistukų</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">Nustatymai</string>
     <string name="menu_about">Apie</string>
     <string name="menu_help">Žinynas</string>
@@ -82,10 +83,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">Dalintis naudojant</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">Valyti naršymo žurnalą</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -118,7 +115,7 @@
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>„%1$s“ suteikia jums kontrolę.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>„%1$s“ suteikia jums kontrolę.</p>
 <p>Naudokite ją kaip privačią naršyklę:
   <ul>
     <li>Ieškokite ir naršykite pačioje programoje</li>
@@ -540,7 +537,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Parsisiųsti „Firefox“</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Parsisiųsti „Firefox“</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -552,23 +549,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[Jums leidžiama naudotis „%1$s“ programa, vadovaujantis <a href="%2$s">„Mozillos“ viešąja licencija</a> ir kitomis atviromis licencijomis.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Jums leidžiama naudotis „%1$s“ programa, vadovaujantis <a href="%2$s">„Mozillos“ viešąja licencija</a> ir kitomis atviromis licencijomis.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Jums nesuteikiamos jokios prekės ženklo teisės ar licencijos į „Mozilla Foundation“ ar kitų šalių prekės ženklus, tame tarpe – į „Mozilla“, „Firefox“ ar „%1$s“ vardus ar logotipus. Papildomą informaciją apie prekės ženklus galite rasti <a href="%2$s">čia</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Jums nesuteikiamos jokios prekės ženklo teisės ar licencijos į „Mozilla Foundation“ ar kitų šalių prekės ženklus, tame tarpe – į „Mozilla“, „Firefox“ ar „%1$s“ vardus ar logotipus. Papildomą informaciją apie prekės ženklus galite rasti <a href="%2$s">čia</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Papildoma „%1$s“ pirminis kodas yra pateikiamas su įvairiomis kitomis, laisvomis ir atviromis <a href="%2$s">licencijomis</a>.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Papildoma „%1$s“ pirminis kodas yra pateikiamas su įvairiomis kitomis, laisvomis ir atviromis <a href="%2$s">licencijomis</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[„%1$s“ naudoja blokavimo sąrašus, kuriuos teikia „Disconnect, Inc.“, kaip atskirus ir nepriklausomus darbus vadovaujantis <a href="%2$s">„GNU General Public License v3“</a> licencija, ir pasiekiamus <a href="%3$s">čia</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[„%1$s“ naudoja blokavimo sąrašus, kuriuos teikia „Disconnect, Inc.“, kaip atskirus ir nepriklausomus darbus vadovaujantis <a href="%2$s">„GNU General Public License v3“</a> licencija, ir pasiekiamus <a href="%3$s">čia</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Naudotojo vardas</string>
@@ -648,13 +645,13 @@
     <string name="preference_studies">Tyrimai</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">„Firefox“ retkarčiais gali įdiegti ir vykdyti tyrimus.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">„Firefox“ retkarčiais gali įdiegti ir vykdyti tyrimus.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Sužinoti daugiau</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Norint pritaikyti pakeitimus, programa bus uždaryta</string>
+    <string name="studies_restart_app" moz:removedIn="135">Norint pritaikyti pakeitimus, programa bus uždaryta</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Pašalinti</string>
@@ -745,6 +742,7 @@
     <!-- Title of the preference to enable "HTTPS-Only" mode -->
     <string name="preference_https_only_title">Tik HTTPS veiksena</string>
 
+    <!-- Description of the preference to enable "HTTPS-Only" mode. -->
     <string name="preference_https_only_summary3">Siekiant didesnio saugumo, automatiškai bandoma jungtis prie svetainių naudojant šifruotą HTTPS protokolą.</string>
 
     <!-- Preference for exceptions tracking protection -->

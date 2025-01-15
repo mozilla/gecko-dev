@@ -45,7 +45,7 @@
     <string name="tab_tray_collection_button_multiselect_content_description">Hilpekînên bijartî li koleksiyonê qeyd bike</string>
 
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-    <string name="tab_tray_multiselect_selected_content_description">Hate bijartin</string>
+    <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Hate bijartin</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -412,8 +412,6 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Kodê bixwîne</string>
-    <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button_2">Koda QR sken bike</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Sazkariyên motora lêgerînê</string>
@@ -438,9 +436,6 @@
 
     <!-- Header text for the search selector menu -->
     <string name="search_header_menu_item_2">Bi vê bigere:</string>
-
-    <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Motora lêgerînê ya %sê</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
@@ -505,8 +500,6 @@
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Ji bo bilindkirina ewlekarî, hilberîn û zêdetir pêvekên partiya-sêyemîn bi kar bîne.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Zêdetir pêvekan keşf bike.</string>
-    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">Zêdetir pêvekan keşf bike</string>
 
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
@@ -554,8 +547,6 @@
     <string name="preferences_category_advanced">Pêşketî</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Nihênî û ewlehî</string>
-    <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Destûrên malperê</string>
     <!-- Preference for advanced site settings -->
     <string name="preferences_site_settings">Eyarên malperan</string>
     <!-- Preference for private browsing options -->
@@ -822,6 +813,7 @@
     <string name="preferences_marketing_data">Daneyên bazarkirinê</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2" moz:removedIn="134" tools:ignore="UnusedResources">Daneyên bikaranînê yên bingehîn bi hevkara me ya kar Adjustê tên parvekirin</string>
+
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Lêkolîn</string>
 
@@ -996,11 +988,11 @@
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
-    <string name="tab_header_label">Hilpekînên vekirî</string>
+    <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Hilpekînên vekirî</string>
     <!-- Title for the list of tabs in the current private session -->
-    <string name="tabs_header_private_tabs_title">Hilpekînên veşartî</string>
+    <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Hilpekînên veşartî</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Hilpekînên senkronîzekirî</string>
+    <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Hilpekînên senkronîzekirî</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Hilpekînê tevlî bike</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

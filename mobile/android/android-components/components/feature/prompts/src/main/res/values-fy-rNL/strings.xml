@@ -104,8 +104,6 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Sterk wachtwurd brûke?</string>
-    <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Beskermje jo accounts mei in sterk, willekeurich oanmakke wachtwurd. Dit wurdt foar takomstich gebrûk yn jo account bewarre.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description_3">Beskermje jo account mei in sterk, willekeurich oanmakke wachtwurd. Dit wurdt foar takomstich gebrûk yn jo account bewarre.</string>

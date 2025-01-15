@@ -518,10 +518,7 @@
 
 
 
-  <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Lat att</string>
-
-    <!-- New Onboarding flow first screen title -->
+  <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">Velkomen til %1$s</string>
 
@@ -842,7 +839,7 @@
     <string name="studies_learn_more">Les meir</string>
 
     <!-- Dialog message shown when some changes are made on studies -->
-    <string name="studies_restart_app">Applikasjonen vil avslutte for å setje i verk endringar</string>
+    <string name="studies_restart_app" moz:removedIn="135">Applikasjonen vil avslutte for å setje i verk endringar</string>
 
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Fjern</string>
@@ -1126,11 +1123,6 @@
     <string name="promote_search_widget_snackbar_message">Widget lagt til på startskjermen</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">For å avslute fullskjerm, drag frå toppen, og så til venstre</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">For å avslutte fullskjerm, drag frå toppen, og trykk på tilbake-knappen</string>
-
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">Drag frå toppen, og så til venstre for å avslutte</string>

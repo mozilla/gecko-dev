@@ -201,11 +201,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Ingen internetanslutning</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Det verkar finnas ett problem med din internetanslutning</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Kontrollera din nätverksanslutning eller försök ladda om sidan om en stund.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Prova att ansluta på en annan enhet. Kontrollera ditt modem eller router. Koppla ner och återanslut till Wi-Fi.</string>
     <!-- The document title and heading of an error page. -->

@@ -192,11 +192,7 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Žadyn internetny zwisk</string>
-    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title_2">Zda so, zo je problem z wašim internetnym zwiskom</string>
-    <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Přepruwujće swój syćowy zwisk abo začitajće stronu za mało wokomikow znowa.</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
     <string name="mozac_browser_errorpages_no_internet_message_2">Spytajće z druhim gratom zwjazać. Přepruwujće swój modem abo router. Dźělće zwisk WLAN a zwjazajće znowa.</string>
     <!-- The document title and heading of an error page. -->
