@@ -14,8 +14,9 @@ namespace mozilla {
 
 static bool IsValidOverflowRect(const nsRect& aRect) {
   // The reason we can't simply use `nsRect::IsEmpty` is that any one dimension
-  // being zero is considered empty by it - On the other hand, an overflow rect is
-  // valid if it has non-negative dimensions and at least one of them is non-zero.
+  // being zero is considered empty by it - On the other hand, an overflow rect
+  // is valid if it has non-negative dimensions and at least one of them is
+  // non-zero.
   return aRect.Size() != nsSize{0, 0} && aRect.Width() >= 0 &&
          aRect.Height() >= 0;
 }
