@@ -326,6 +326,6 @@ class AsyncStatementTelemetryTimer : public AsyncStatementCallback {
   const TimeStamp mStart;
 };
 
-} // namespace mozilla::places
+}  // namespace mozilla::places
 
 #endif  // mozilla_places_Helpers_h_
